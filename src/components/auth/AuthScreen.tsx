@@ -109,9 +109,7 @@ export function AuthScreen() {
               </div>
             </div>
             <h1 className="text-6xl font-semibold tracking-normal text-navy sm:text-7xl">LevelFlow</h1>
-            <p className="max-w-xl text-base leading-7 text-slate">
-              A premium operating layer for E8 traders: account rules, risk windows, and setup discipline kept in one clean terminal.
-            </p>
+            <p className="max-w-xl text-base leading-7 text-slate">A premium operating layer for E8 traders.</p>
           </div>
         </div>
 
