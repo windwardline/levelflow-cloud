@@ -29,7 +29,7 @@ export function AuthScreen() {
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: appConfig.appUrl,
       },
     });
 
@@ -79,7 +79,7 @@ export function AuthScreen() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: appConfig.appUrl,
       },
     });
 
