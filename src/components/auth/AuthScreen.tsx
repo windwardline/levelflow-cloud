@@ -130,7 +130,7 @@ export function AuthScreen() {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
-            <img className="mb-4 h-auto w-full max-w-[260px]" src={brandAssets.logo} alt="Windward Capital" />
+            <img className="mx-auto mb-4 h-auto w-full max-w-[260px]" src={brandAssets.logo} alt="Windward Capital" />
             <h2 className="text-2xl font-semibold tracking-normal text-navy">{headline}</h2>
             <p className="text-sm leading-6 text-slate">{body}</p>
           </div>
