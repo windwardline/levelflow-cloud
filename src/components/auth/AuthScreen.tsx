@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Apple, ArrowRight, Chrome, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { Apple, ArrowRight, Chrome, KeyRound, Loader2, Mail } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { brandAssets } from "../../lib/assets";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
@@ -91,37 +91,27 @@ export function AuthScreen() {
 
   const isBusy = status === "sending" || status === "verifying" || status === "oauth";
   const showTokenForm = status === "sent" || status === "verifying";
-  const headline = isSupabaseConfigured ? "Secure sign-in" : "Deployment setup required";
+  const headline = isSupabaseConfigured ? "Secure access" : "Cloud access pending";
   const body = isSupabaseConfigured
     ? message
-    : "Add the Supabase URL and publishable key to the hosted environment, then apply the SQL bootstrap to enable passwordless login and account saves.";
+    : "Supabase access is not connected yet. Once connected, secure email and OAuth sign-in will open the live trading workspace.";
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
       <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 py-6 sm:px-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-7">
-          <div className="inline-flex items-center gap-2 rounded-full border border-navy/10 bg-white px-4 py-2 text-sm font-medium text-navy shadow-sm">
-            <ShieldCheck className="h-4 w-4 text-bullish" aria-hidden="true" />
-            Supabase Auth, RLS, and cross-device sessions
-          </div>
-          <div className="max-w-2xl space-y-5">
+        <div className="space-y-8">
+          <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
-              <img className="h-14 w-14 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Capital mark" />
-              <p className="text-sm font-semibold uppercase tracking-normal text-slate">Windward Capital</p>
-            </div>
-            <h1 className="text-4xl font-semibold tracking-normal text-navy sm:text-5xl">
-              Institutional E8 trade operations, synchronized across every trading session.
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-slate">
-              Configure E8 One, Signature, and Pro accounts with strict challenge constraints before generating limit-only setups.
-            </p>
-          </div>
-          <div className="grid max-w-2xl gap-3 sm:grid-cols-3">
-            {["Limit orders only", "CE(S)T guardrails", "Realtime RLS"].map((item) => (
-              <div key={item} className="rounded-lg border border-white bg-white/80 px-4 py-3 text-sm font-medium text-navy shadow-sm">
-                {item}
+              <img className="h-14 w-14 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Line mark" />
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-normal text-slate">A Windward Line product</p>
+                <p className="text-sm font-medium text-bullish">Built for funded-account discipline</p>
               </div>
-            ))}
+            </div>
+            <h1 className="text-6xl font-semibold tracking-normal text-navy sm:text-7xl">LevelFlow</h1>
+            <p className="max-w-xl text-base leading-7 text-slate">
+              A premium operating layer for E8 traders: account rules, risk windows, and setup discipline kept in one clean terminal.
+            </p>
           </div>
         </div>
 
@@ -130,17 +120,15 @@ export function AuthScreen() {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div className="mb-4 flex w-full justify-center">
-              <img className="h-auto w-full max-w-[260px]" src={brandAssets.logo} alt="Windward Capital" />
-            </div>
+            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">LevelFlow Cloud</p>
             <h2 className="text-2xl font-semibold tracking-normal text-navy">{headline}</h2>
             <p className="text-sm leading-6 text-slate">{body}</p>
           </div>
 
           {!isSupabaseConfigured ? (
             <div className="mb-5 rounded-lg border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-semibold text-navy">
-              Required hosted env vars: `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
-              <span className="mt-2 block font-medium text-slate">Current app URL: {appConfig.appUrl}</span>
+              Waiting for Supabase project details.
+              <span className="mt-2 block font-medium text-slate">App URL: {appConfig.appUrl}</span>
             </div>
           ) : null}
 
@@ -182,7 +170,7 @@ export function AuthScreen() {
                 required
               />
               <button className="primary-button w-full" type="submit" disabled={isBusy || !isSupabaseConfigured}>
-                {status === "verifying" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+                {status === "verifying" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="h-4 w-4" aria-hidden="true" />}
                 Verify and continue
               </button>
             </form>

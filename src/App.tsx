@@ -34,10 +34,10 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <img className="h-11 w-11 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Capital mark" />
+              <img className="h-11 w-11 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Line mark" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-normal text-slate">Windward Capital</p>
-                <h1 className="text-2xl font-semibold tracking-normal text-navy">E8 operations dashboard</h1>
+                <p className="text-xs font-semibold uppercase tracking-normal text-slate">A Windward Line product</p>
+                <h1 className="text-2xl font-semibold tracking-normal text-navy">LevelFlow</h1>
               </div>
             </div>
           </div>
