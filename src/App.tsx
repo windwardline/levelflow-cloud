@@ -6,6 +6,7 @@ import { AccountOnboarding } from "./components/onboarding/AccountOnboarding";
 import { ConfidenceGauge } from "./components/trade/ConfidenceGauge";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useE8Time } from "./hooks/useE8Time";
+import { brandAssets } from "./lib/assets";
 import { supabase } from "./lib/supabase";
 
 export default function App() {
@@ -33,7 +34,7 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <img className="h-11 w-11 rounded-lg object-contain" src="/brand/windward-capital-mark.jpg" alt="Windward Capital mark" />
+              <img className="h-11 w-11 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Capital mark" />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-normal text-slate">Windward Capital</p>
                 <h1 className="text-2xl font-semibold tracking-normal text-navy">E8 operations dashboard</h1>

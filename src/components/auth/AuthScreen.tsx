@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Apple, ArrowRight, Chrome, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
+import { brandAssets } from "../../lib/assets";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
 
@@ -105,7 +106,7 @@ export function AuthScreen() {
           </div>
           <div className="max-w-2xl space-y-5">
             <div className="flex items-center gap-3">
-              <img className="h-14 w-14 rounded-lg object-contain" src="/brand/windward-capital-mark.jpg" alt="Windward Capital mark" />
+              <img className="h-14 w-14 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Capital mark" />
               <p className="text-sm font-semibold uppercase tracking-normal text-slate">Windward Capital</p>
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-navy sm:text-5xl">
@@ -129,7 +130,7 @@ export function AuthScreen() {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
-            <img className="mb-4 h-auto w-full max-w-[260px]" src="/brand/windward-capital-logo.jpg" alt="Windward Capital" />
+            <img className="mb-4 h-auto w-full max-w-[260px]" src={brandAssets.logo} alt="Windward Capital" />
             <h2 className="text-2xl font-semibold tracking-normal text-navy">{headline}</h2>
             <p className="text-sm leading-6 text-slate">{body}</p>
           </div>
