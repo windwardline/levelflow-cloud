@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-width: 320px;
+    background: #f7f8f4;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background:
+      linear-gradient(180deg, rgba(17, 28, 56, 0.035), rgba(247, 248, 244, 0) 38%),
+      #f7f8f4;
+    color: #162033;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .terminal-panel {
+    border: 1px solid rgba(128, 138, 149, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 24px 60px rgba(17, 28, 56, 0.12);
+  }
+
+  .primary-button,
+  .secondary-button {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 8px;
+    padding: 0.625rem 1rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .primary-button {
+    background: #111c38;
+    color: #ffffff;
+  }
+
+  .primary-button:hover:not(:disabled) {
+    background: #1b2a50;
+  }
+
+  .secondary-button {
+    border: 1px solid rgba(128, 138, 149, 0.24);
+    background: #ffffff;
+    color: #111c38;
+  }
+
+  .secondary-button:hover:not(:disabled) {
+    border-color: rgba(91, 130, 102, 0.58);
+    color: #365a42;
+  }
+
+  .primary-button:disabled,
+  .secondary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+  }
+
+  .field {
+    min-height: 48px;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(128, 138, 149, 0.26);
+    background: #ffffff;
+    padding: 0 0.875rem;
+    color: #111c38;
+    outline: none;
+  }
+
+  .field:focus {
+    border-color: #5b8266;
+  }
+
+  .segmented-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .segmented-button,
+  .choice-tile,
+  .ruleset-row {
+    min-height: 44px;
+    border: 1px solid rgba(128, 138, 149, 0.22);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #111c38;
+    font-weight: 700;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .segmented-button-active,
+  .choice-tile-active,
+  .ruleset-row-active {
+    border-color: rgba(91, 130, 102, 0.72);
+    background: rgba(91, 130, 102, 0.12);
+    color: #365a42;
+  }
+
+  .balance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .choice-tile {
+    padding: 0.75rem;
+    text-align: center;
+  }
+
+  .ruleset-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem;
+    text-align: left;
+  }
+}

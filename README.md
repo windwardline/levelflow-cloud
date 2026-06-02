@@ -1,0 +1,39 @@
+# Windward Capital LevelFlow Cloud
+
+LevelFlow Cloud is scaffolded as an enterprise-grade, multi-tenant React/Vite and Node/Express platform for Windward Capital's E8 Markets and TradeLocker workflows. The foundation encodes the requested Supabase Auth model, strict user-owned data tables with RLS, E8 account matrices, CET/CEST automation hooks, and a frontend onboarding surface that keeps web and future native clients aligned around the same Supabase session and relational schema.
+
+## Generated Foundation
+
+- `public/brand/` contains optimized Windward Capital logo assets for the hosted app.
+- `src/` contains the React application, Supabase client, E8 configuration matrix, passwordless/OAuth login, onboarding dashboard, E8 time hook, chart shell, and confidence gauge.
+- `server/` contains the Express API scaffold, Supabase service-role client, E8 cron routines, news provider adapter, and TradeAnalyzer foundation.
+- `supabase/init.sql` contains the SQL bootstrap for tables, constraints, lookup rows, RLS policies, triggers, Realtime publication, and `REPLICA IDENTITY FULL`.
+- `.env.example` separates public browser keys from server-only service-role credentials.
+
+## Local Commands
+
+```bash
+npm install
+npm run dev
+npm run server
+npm run build
+```
+
+Run `supabase/init.sql` in the Supabase SQL editor or through your migration workflow before saving onboarding data from the frontend.
+
+## Production Checklist
+
+1. Create or select a Supabase project.
+2. Run [supabase/init.sql](/supabase/init.sql) in the Supabase SQL editor.
+3. In Supabase Auth, enable email OTP/magic links and configure Google/Apple OAuth providers.
+4. Add the deployed site URL to Supabase Auth redirect URLs.
+5. Set hosted frontend env vars:
+   - `VITE_APP_URL`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+6. Keep these server-only values out of static hosting:
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `MASSIVE_API_KEY`
+   - `FMP_API_KEY` or `FINNHUB_API_KEY`
+
+Massive.com and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript.
