@@ -91,6 +91,9 @@ export function AuthScreen() {
 
   const isBusy = status === "sending" || status === "verifying" || status === "oauth";
   const showTokenForm = status === "sent" || status === "verifying";
+  const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
+  const appleAuthEnabled = import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
+  const oauthEnabled = googleAuthEnabled || appleAuthEnabled;
   const headline = isSupabaseConfigured ? "Secure access" : "Cloud access pending";
   const body = isSupabaseConfigured
     ? message
@@ -174,22 +177,30 @@ export function AuthScreen() {
             </form>
           )}
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-slate/20" />
-            <span className="text-xs font-semibold uppercase tracking-normal text-slate">OAuth</span>
-            <span className="h-px flex-1 bg-slate/20" />
-          </div>
+          {oauthEnabled ? (
+            <>
+              <div className="my-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-slate/20" />
+                <span className="text-xs font-semibold uppercase tracking-normal text-slate">OAuth</span>
+                <span className="h-px flex-1 bg-slate/20" />
+              </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button className="secondary-button" type="button" onClick={() => signInWithOAuth("google")} disabled={isBusy || !isSupabaseConfigured}>
-              <Chrome className="h-4 w-4" aria-hidden="true" />
-              Google
-            </button>
-            <button className="secondary-button" type="button" onClick={() => signInWithOAuth("apple")} disabled={isBusy || !isSupabaseConfigured}>
-              <Apple className="h-4 w-4" aria-hidden="true" />
-              Apple
-            </button>
-          </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {googleAuthEnabled ? (
+                  <button className="secondary-button" type="button" onClick={() => signInWithOAuth("google")} disabled={isBusy || !isSupabaseConfigured}>
+                    <Chrome className="h-4 w-4" aria-hidden="true" />
+                    Google
+                  </button>
+                ) : null}
+                {appleAuthEnabled ? (
+                  <button className="secondary-button" type="button" onClick={() => signInWithOAuth("apple")} disabled={isBusy || !isSupabaseConfigured}>
+                    <Apple className="h-4 w-4" aria-hidden="true" />
+                    Apple
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : null}
 
           {error ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-medium text-danger">{error}</p> : null}
         </div>
