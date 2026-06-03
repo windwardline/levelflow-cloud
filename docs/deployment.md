@@ -55,5 +55,6 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 MASSIVE_API_KEY=your_massive_api_key
 NEWS_SYNC_TOKEN=your_generated_sync_token
 FMP_API_KEY=your_financial_modeling_prep_key
+FMP_API_BASE_URL=https://financialmodelingprep.com/stable
 FINNHUB_API_KEY=your_finnhub_key
 ```

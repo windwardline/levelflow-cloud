@@ -3,6 +3,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const NEWS_SYNC_TOKEN = Deno.env.get("NEWS_SYNC_TOKEN");
 const ECONOMIC_CALENDAR_PROVIDER = Deno.env.get("ECONOMIC_CALENDAR_PROVIDER") ?? "fmp";
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
+const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ?? "https://financialmodelingprep.com/stable";
 const FINNHUB_API_KEY = Deno.env.get("FINNHUB_API_KEY");
 
 type EconomicEvent = {
@@ -89,15 +90,20 @@ async function fetchFmpEvents(windowStart: Date, windowEnd: Date): Promise<Econo
     return [];
   }
 
-  const url = new URL("https://financialmodelingprep.com/api/v3/economic_calendar");
+  const url = new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/economic-calendar`);
   url.searchParams.set("from", isoDate(windowStart));
   url.searchParams.set("to", isoDate(windowEnd));
   url.searchParams.set("apikey", FMP_API_KEY);
 
   const response = await fetch(url);
-  const payload = await response.json();
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(`FMP economic calendar request failed (${response.status}): ${responseText.slice(0, 180)}`);
+  }
+
+  const payload = JSON.parse(responseText);
   if (!Array.isArray(payload)) {
-    return [];
+    throw new Error("FMP economic calendar response was not an array");
   }
 
   return payload.map((rawEvent) => {

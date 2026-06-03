@@ -6,7 +6,7 @@
 - Auth and database: Supabase project `usrtpoftuvhpmyhlhqlg`.
 - Market data: Supabase Edge Function `market-data`, backed by Massive.com key label `LevelFlow2.0.0`.
 - Advisory analyzer: Supabase Edge Function `trade-analyzer`, using Massive.com daily bars, E8 account rules, news blackout records, correlation filtering, limit-order-only outputs, and RLS-owned inserts.
-- News ingestion: Supabase Edge Function `news-calendar`, scheduled hourly through `pg_cron` and `pg_net`.
+- News ingestion: Supabase Edge Function `news-calendar`, scheduled hourly through `pg_cron` and `pg_net`, targeting FMP's current stable economic-calendar endpoint.
 - E8 automation: database cron `levelflow-e8-due-jobs`, checking CE(S)T every minute and running due drawdown reset, Signature closure, weekend pending-order cleanup, spread protection, and outcome review jobs.
 - Deployment automation: `.github/workflows/deploy.yml`.
 
@@ -21,7 +21,7 @@
 
 ## Full Launch Gate
 
-- Economic calendar provider: FMP is selected through `ECONOMIC_CALENDAR_PROVIDER=fmp`; `FMP_API_KEY` is required as a GitHub Actions secret and Supabase Edge Function secret.
+- Economic calendar provider: FMP is selected through `ECONOMIC_CALENDAR_PROVIDER=fmp`; `FMP_API_KEY` is configured, but the current FMP subscription returns `402 Restricted Endpoint` for the economic-calendar API. Full launch needs an FMP plan that includes that endpoint.
 - Supabase Free/Nano is acceptable for private beta load testing, but full launch should move to Pro before external users depend on uptime, log retention, and email branding.
 - TradeLocker execution remains intentionally out of scope. LevelFlow is advisory-only until a separate execution integration and legal review are completed.
 - Automated deployment secrets are configured for source build, Supabase function deploys, and Pages artifact publishing. If any token is revoked, update the matching GitHub Actions secret.

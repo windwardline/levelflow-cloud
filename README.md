@@ -31,6 +31,7 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
    - `MASSIVE_API_KEY`
    - `NEWS_SYNC_TOKEN`
    - `FMP_API_KEY` or `FINNHUB_API_KEY` for macro news ingestion
+   - `FMP_API_BASE_URL` only if FMP changes the default stable REST host
    - `MASSIVE_API_BASE_URL` if Massive.com changes the default REST host
 6. Apply the launch migrations in `supabase/migrations/`.
 7. Set hosted frontend env vars:
