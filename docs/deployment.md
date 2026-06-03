@@ -7,7 +7,7 @@ The current production-ready path is a static React frontend backed directly by 
 Set these environment variables in the host:
 
 ```bash
-VITE_APP_URL=https://your-hosted-app.example
+VITE_APP_URL=https://app.windwardline.com/
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_publishable_key
 ```
@@ -23,7 +23,7 @@ Run `supabase/init.sql` in the Supabase SQL editor. The SQL creates:
 - RLS policies for authenticated users.
 - Realtime publication membership with `REPLICA IDENTITY FULL` where cross-session dashboards need old/new row data.
 
-Deploy the `market-data` Edge Function before exposing the live chart in production. The function requires a Supabase-authenticated user session and keeps Massive.com credentials off the static frontend.
+Deploy the `market-data` Edge Function before exposing the live chart in production. The function requires a Supabase-authenticated user session, allows the production origin `https://app.windwardline.com`, and keeps Massive.com credentials off the static frontend.
 
 ```bash
 npx supabase secrets set MASSIVE_API_KEY=your_massive_api_key --project-ref your-project-ref
