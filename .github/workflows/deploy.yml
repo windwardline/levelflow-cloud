@@ -10,6 +10,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       VITE_APP_URL: https://windwardline.github.io/levelflow-cloud-app/
       VITE_BASE_PATH: /levelflow-cloud-app/
       VITE_ENABLE_APPLE_AUTH: "false"
