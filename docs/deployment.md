@@ -23,6 +23,13 @@ Run `supabase/init.sql` in the Supabase SQL editor. The SQL creates:
 - RLS policies for authenticated users.
 - Realtime publication membership with `REPLICA IDENTITY FULL` where cross-session dashboards need old/new row data.
 
+Deploy the `market-data` Edge Function before exposing the live chart in production. The function requires a Supabase-authenticated user session and keeps Massive.com credentials off the static frontend.
+
+```bash
+npx supabase secrets set MASSIVE_API_KEY=your_massive_api_key --project-ref your-project-ref
+npx supabase functions deploy market-data --project-ref your-project-ref
+```
+
 ## Server Runtime
 
 The Express server scaffold is not safe to publish as a static site because it uses service-role and provider API keys. Deploy it separately to a secure Node runtime if cron jobs and provider-backed trade analysis are needed.

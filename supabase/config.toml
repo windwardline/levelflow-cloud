@@ -1,0 +1,4 @@
+project_id = "levelflow-cloud"
+
+[functions.market-data]
+verify_jwt = true

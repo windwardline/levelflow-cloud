@@ -1,21 +1,16 @@
 import { useEffect, useRef } from "react";
-import { ColorType, LineSeries, createChart } from "lightweight-charts";
+import { ColorType, LineSeries, createChart, type IChartApi, type ISeriesApi, type LineData, type Time } from "lightweight-charts";
+import type { MarketDataPoint } from "../../lib/marketData";
 
-const SAMPLE_SERIES = [
-  { time: "2026-05-22", value: 1.081 },
-  { time: "2026-05-23", value: 1.084 },
-  { time: "2026-05-24", value: 1.083 },
-  { time: "2026-05-25", value: 1.089 },
-  { time: "2026-05-26", value: 1.091 },
-  { time: "2026-05-27", value: 1.087 },
-  { time: "2026-05-28", value: 1.094 },
-  { time: "2026-05-29", value: 1.096 },
-  { time: "2026-06-01", value: 1.099 },
-  { time: "2026-06-02", value: 1.101 },
-] as const;
+type MarketChartProps = {
+  data: MarketDataPoint[];
+  loading?: boolean;
+};
 
-export function MarketChart() {
+export function MarketChart({ data, loading = false }: MarketChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -45,7 +40,8 @@ export function MarketChart() {
       lineWidth: 3,
     });
 
-    lineSeries.setData([...SAMPLE_SERIES]);
+    chartRef.current = chart;
+    lineSeriesRef.current = lineSeries;
     chart.timeScale().fitContent();
 
     const resize = () => {
@@ -60,8 +56,28 @@ export function MarketChart() {
     return () => {
       window.removeEventListener("resize", resize);
       chart.remove();
+      chartRef.current = null;
+      lineSeriesRef.current = null;
     };
   }, []);
 
-  return <div ref={containerRef} className="h-[260px] w-full" />;
+  useEffect(() => {
+    if (!lineSeriesRef.current || !chartRef.current) {
+      return;
+    }
+
+    const chartData = data.map((point) => ({ time: point.time as Time, value: point.value })) satisfies LineData<Time>[];
+    lineSeriesRef.current.setData(chartData);
+    chartRef.current.timeScale().fitContent();
+  }, [data]);
+
+  return (
+    <div className="relative">
+      <div ref={containerRef} className="h-[260px] w-full" />
+      {loading && <div className="absolute inset-0 grid place-items-center bg-white/70 text-sm font-semibold text-navy">Loading market data</div>}
+      {!loading && data.length === 0 && (
+        <div className="absolute inset-0 grid place-items-center bg-white/80 text-sm font-semibold text-slate">No market data returned</div>
+      )}
+    </div>
+  );
 }

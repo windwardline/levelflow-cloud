@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { LogOut, ShieldAlert, Timer, Wifi } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
-import { MarketChart } from "./components/charts/MarketChart";
+import { MarketFeed } from "./components/charts/MarketFeed";
 import { AccountOnboarding } from "./components/onboarding/AccountOnboarding";
 import { ConfidenceGauge } from "./components/trade/ConfidenceGauge";
 import { useAuthSession } from "./hooks/useAuthSession";
@@ -76,14 +76,7 @@ export default function App() {
           </div>
 
           <div className="terminal-panel overflow-hidden p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate">Massive.com symbol map</p>
-                <h2 className="text-xl font-semibold tracking-normal text-navy">EURUSD sample feed</h2>
-              </div>
-              <span className="rounded-full bg-bullish/10 px-3 py-1 text-sm font-semibold text-bullish">C:EURUSD</span>
-            </div>
-            <MarketChart />
+            <MarketFeed />
           </div>
         </section>
 
