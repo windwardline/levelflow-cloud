@@ -1,0 +1,87 @@
+name: Deploy LevelFlow Cloud
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VITE_APP_URL: https://windwardline.github.io/levelflow-cloud-app/
+      VITE_BASE_PATH: /levelflow-cloud-app/
+      VITE_ENABLE_APPLE_AUTH: "false"
+      VITE_ENABLE_GOOGLE_AUTH: "false"
+      SUPABASE_PROJECT_REF: usrtpoftuvhpmyhlhqlg
+    steps:
+      - name: Check required secrets
+        run: |
+          missing=0
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN LEVELFLOW_PAGES_TOKEN MASSIVE_API_KEY NEWS_SYNC_TOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required secret: ${name}"
+              missing=1
+            fi
+          done
+          exit "$missing"
+        env:
+          LEVELFLOW_PAGES_TOKEN: ${{ secrets.LEVELFLOW_PAGES_TOKEN }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          NEWS_SYNC_TOKEN: ${{ secrets.NEWS_SYNC_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+
+      - name: Configure Supabase function secrets
+        run: |
+          cat > /tmp/levelflow-function-secrets.env <<'EOF'
+          MASSIVE_API_KEY=${{ secrets.MASSIVE_API_KEY }}
+          APP_ALLOWED_ORIGINS=https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173
+          NEWS_SYNC_TOKEN=${{ secrets.NEWS_SYNC_TOKEN }}
+          ECONOMIC_CALENDAR_PROVIDER=${{ vars.ECONOMIC_CALENDAR_PROVIDER || 'fmp' }}
+          FMP_API_KEY=${{ secrets.FMP_API_KEY }}
+          FINNHUB_API_KEY=${{ secrets.FINNHUB_API_KEY }}
+          EOF
+          npx supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file /tmp/levelflow-function-secrets.env
+          rm -f /tmp/levelflow-function-secrets.env
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy Supabase functions
+        run: npx supabase functions deploy market-data trade-analyzer news-calendar --project-ref "$SUPABASE_PROJECT_REF" --use-api
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Publish GitHub Pages artifact
+        run: |
+          git clone "https://x-access-token:${LEVELFLOW_PAGES_TOKEN}@github.com/windwardline/levelflow-cloud-app.git" /tmp/levelflow-cloud-app
+          rsync -a --delete --exclude='.git' dist/ /tmp/levelflow-cloud-app/
+          cd /tmp/levelflow-cloud-app
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Publish LevelFlow build"
+          git push origin main
+        env:
+          LEVELFLOW_PAGES_TOKEN: ${{ secrets.LEVELFLOW_PAGES_TOKEN }}

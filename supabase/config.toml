@@ -2,3 +2,9 @@ project_id = "levelflow-cloud"
 
 [functions.market-data]
 verify_jwt = true
+
+[functions.trade-analyzer]
+verify_jwt = true
+
+[functions.news-calendar]
+verify_jwt = false

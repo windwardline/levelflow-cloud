@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Apple, ArrowRight, Chrome, KeyRound, Loader2, Mail } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
+import { LegalLinks } from "../legal/LegalLinks";
 import { brandAssets } from "../../lib/assets";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
@@ -203,6 +204,9 @@ export function AuthScreen() {
           ) : null}
 
           {error ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-medium text-danger">{error}</p> : null}
+          <div className="mt-6 border-t border-slate/15 pt-4">
+            <LegalLinks />
+          </div>
         </div>
       </section>
     </main>

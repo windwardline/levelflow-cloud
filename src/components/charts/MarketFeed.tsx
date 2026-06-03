@@ -9,7 +9,6 @@ const SYMBOL_OPTIONS: Array<{ label: string; value: SupportedSymbol }> = [
   { label: "EURUSD", value: "EURUSD" },
   { label: "GBPUSD", value: "GBPUSD" },
   { label: "NAS100", value: "NAS100" },
-  { label: "SPX500", value: "SPX500" },
 ];
 
 export function MarketFeed() {

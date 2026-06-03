@@ -2,12 +2,10 @@ const MASSIVE_API_BASE_URL = Deno.env.get("MASSIVE_API_BASE_URL") ?? "https://ap
 const MASSIVE_API_KEY = Deno.env.get("MASSIVE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const symbolMap = {
   EURUSD: "C:EURUSD",
@@ -52,20 +50,20 @@ type MassiveAggResponse = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders(req) });
   }
 
   if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+    return jsonResponse(req, { error: "Method not allowed" }, 405);
   }
 
   if (!MASSIVE_API_KEY) {
-    return jsonResponse({ error: "Massive.com API key is not configured" }, 500);
+    return jsonResponse(req, { error: "Massive.com API key is not configured" }, 500);
   }
 
   const user = await getAuthenticatedUser(req);
   if (!user) {
-    return jsonResponse({ error: "Authenticated Supabase session required" }, 401);
+    return jsonResponse(req, { error: "Authenticated Supabase session required" }, 401);
   }
 
   let body: MarketDataRequest;
@@ -78,7 +76,7 @@ Deno.serve(async (req) => {
   const uiSymbol = normalizeSymbol(body.symbol ?? "EURUSD");
   const ticker = symbolMap[uiSymbol as SupportedSymbol];
   if (!ticker) {
-    return jsonResponse({ error: "Unsupported LevelFlow market symbol" }, 400);
+    return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
   }
 
   const { from, to } = resolveDateWindow(body);
@@ -102,6 +100,7 @@ Deno.serve(async (req) => {
 
   if (!response.ok) {
     return jsonResponse(
+      req,
       {
         error: "Massive.com market data request failed",
         providerStatus: payload.status ?? response.statusText,
@@ -124,7 +123,7 @@ Deno.serve(async (req) => {
 
   const latest = points.at(-1);
 
-  return jsonResponse({
+  return jsonResponse(req, {
     adjusted: payload.adjusted ?? true,
     asOf: new Date().toISOString(),
     from,
@@ -195,10 +194,21 @@ function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function jsonResponse(body: unknown, status = 200) {
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("Origin");
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? "https://windwardline.github.io";
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+function jsonResponse(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: {
-      ...corsHeaders,
+      ...corsHeaders(req),
       "Content-Type": "application/json",
     },
     status,

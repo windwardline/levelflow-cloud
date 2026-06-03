@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { LogOut, ShieldAlert, Timer, Wifi } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { MarketFeed } from "./components/charts/MarketFeed";
+import { LegalLinks } from "./components/legal/LegalLinks";
 import { AccountOnboarding } from "./components/onboarding/AccountOnboarding";
-import { ConfidenceGauge } from "./components/trade/ConfidenceGauge";
+import { TradeAnalyzerPanel } from "./components/trade/TradeAnalyzerPanel";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useE8Time } from "./hooks/useE8Time";
 import { brandAssets } from "./lib/assets";
@@ -62,18 +63,7 @@ export default function App() {
         )}
 
         <section className="grid gap-5 lg:grid-cols-[0.68fr_1.32fr]">
-          <div className="terminal-panel p-5">
-            <div className="mb-4">
-              <p className="text-sm font-semibold text-slate">Analyzer readiness</p>
-              <h2 className="text-xl font-semibold tracking-normal text-navy">Confluence engine</h2>
-            </div>
-            <ConfidenceGauge score={82} />
-            <div className="mt-5 grid gap-2 text-sm">
-              <EngineRow label="Order mode" value="Limit only" />
-              <EngineRow label="News filter" value="E8 One / Pro enforced" />
-              <EngineRow label="Risk model" value="Daily DD aware" />
-            </div>
-          </div>
+          <TradeAnalyzerPanel />
 
           <div className="terminal-panel overflow-hidden p-5">
             <MarketFeed />
@@ -81,6 +71,9 @@ export default function App() {
         </section>
 
         <AccountOnboarding userEmail={session.user.email ?? "Authenticated trader"} />
+        <footer className="pb-4">
+          <LegalLinks />
+        </footer>
       </div>
     </main>
   );
@@ -94,15 +87,6 @@ function StatusTile({ icon, label, value }: { icon: ReactNode; label: string; va
         <p className="truncate text-sm font-semibold text-slate">{label}</p>
         <p className="truncate text-lg font-semibold tracking-normal text-navy">{value}</p>
       </div>
-    </div>
-  );
-}
-
-function EngineRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-h-10 items-center justify-between gap-3 rounded-lg bg-canvas px-3 py-2">
-      <span className="text-slate">{label}</span>
-      <span className="text-right font-semibold text-navy">{value}</span>
     </div>
   );
 }

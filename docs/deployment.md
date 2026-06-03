@@ -32,7 +32,20 @@ npx supabase functions deploy market-data --project-ref your-project-ref
 
 ## Server Runtime
 
-The Express server scaffold is not safe to publish as a static site because it uses service-role and provider API keys. Deploy it separately to a secure Node runtime if cron jobs and provider-backed trade analysis are needed.
+The browser app remains static. Provider-backed work now runs through Supabase Edge Functions and Supabase database cron jobs instead of exposing API keys to browser JavaScript.
+
+Deployed functions:
+
+- `market-data`: authenticated Massive.com market-data access.
+- `trade-analyzer`: authenticated advisory limit-order setup generation.
+- `news-calendar`: token-protected economic-calendar ingestion.
+
+Database cron jobs:
+
+- `levelflow-e8-due-jobs`: CE(S)T-aware E8 maintenance checks every minute.
+- `levelflow-news-calendar-sync`: hourly economic-calendar sync.
+
+The Express server scaffold remains useful for local experiments, but it is no longer the production launch path.
 
 Required server-only env vars:
 
@@ -40,6 +53,7 @@ Required server-only env vars:
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 MASSIVE_API_KEY=your_massive_api_key
+NEWS_SYNC_TOKEN=your_generated_sync_token
 FMP_API_KEY=your_financial_modeling_prep_key
 FINNHUB_API_KEY=your_finnhub_key
 ```
