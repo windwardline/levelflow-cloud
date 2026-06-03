@@ -6,7 +6,9 @@ export type AnalyzerSetup = {
   confidenceScore: number;
   confluence: Record<string, unknown>;
   correlationGroup: string;
+  dataProvider?: string;
   entryPrice: number;
+  fmpSymbol?: string;
   lotSize: number;
   massiveSymbol: string;
   orderType: "limit";
@@ -20,8 +22,10 @@ export type AnalyzerSetup = {
 export type AnalyzerResponse = {
   advisoryOnly?: boolean;
   blocked?: boolean;
+  error?: string;
   message?: string;
   pendingOrderId?: string;
+  providerWarnings?: string[];
   reason?: string;
   setup?: AnalyzerSetup;
   setupId?: string;
