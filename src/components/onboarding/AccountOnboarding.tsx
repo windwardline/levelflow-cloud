@@ -1,36 +1,32 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BadgeDollarSign, CheckCircle2, History, LockKeyhole, RadioTower, Save, SlidersHorizontal } from "lucide-react";
 import { E8_PROGRAMS, PROGRAM_ORDER, formatCurrency, getSelection, type E8ProgramCode } from "../../lib/e8Matrix";
+import type { SavedAccount } from "../../hooks/useUserAccounts";
 import { supabase } from "../../lib/supabase";
 
 type AccountOnboardingProps = {
+  accounts?: SavedAccount[];
+  accountsLoading?: boolean;
+  onAccountsChanged?: () => void;
+  onSelectAccount?: (accountId: string) => void;
+  selectedAccountId?: string;
   userEmail: string;
 };
 
-type SavedAccount = {
-  account_name: string;
-  account_size_id: string;
-  created_at: string;
-  current_balance: number | string;
-  current_equity: number | string;
-  id: string;
-  initial_balance: number | string;
-  payout_pct: number;
-  program_code: E8ProgramCode;
-  stage: string;
-  status: string;
-  updated_at: string;
-};
-
-export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
+export function AccountOnboarding({
+  accounts = [],
+  accountsLoading = false,
+  onAccountsChanged,
+  onSelectAccount,
+  selectedAccountId,
+  userEmail,
+}: AccountOnboardingProps) {
   const [programCode, setProgramCode] = useState<E8ProgramCode>("e8_one");
   const [balance, setBalance] = useState(E8_PROGRAMS.e8_one.balances[0]);
   const [rulesetId, setRulesetId] = useState(E8_PROGRAMS.e8_one.rulesets[0].id);
   const [payoutPct, setPayoutPct] = useState(E8_PROGRAMS.e8_one.defaultPayout);
   const [accountName, setAccountName] = useState("Primary Evaluation");
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
-  const [accountsLoading, setAccountsLoading] = useState(true);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "loaded">("idle");
   const [error, setError] = useState("");
 
@@ -39,62 +35,16 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
   const selection = useMemo(() => getSelection(programCode, balance, rulesetId), [balance, programCode, rulesetId]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadAccounts() {
-      if (!supabase) {
-        setAccountsLoading(false);
-        return;
-      }
-
-      setAccountsLoading(true);
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (cancelled) {
-        return;
-      }
-
-      if (userError || !user) {
-        setAccountsLoading(false);
-        setError(userError?.message ?? "No authenticated user found.");
-        return;
-      }
-
-      const { data, error: accountError } = await supabase
-        .from("user_accounts")
-        .select("id, account_name, account_size_id, program_code, payout_pct, stage, status, initial_balance, current_balance, current_equity, created_at, updated_at")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
-
-      if (cancelled) {
-        return;
-      }
-
-      if (accountError) {
-        setError(accountError.message);
-        setAccountsLoading(false);
-        return;
-      }
-
-      const accounts = (data ?? []) as SavedAccount[];
-      setSavedAccounts(accounts);
-      if (accounts[0]) {
-        applySavedAccount(accounts[0]);
-        setStatus("loaded");
-      }
-      setAccountsLoading(false);
+    if (selectedAccountId === "") {
+      return;
     }
 
-    loadAccounts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const selected = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0];
+    if (selected && selected.id !== accountId && status !== "saving") {
+      applySavedAccount(selected);
+      setStatus("loaded");
+    }
+  }, [accountId, accounts, selectedAccountId, status]);
 
   function changeProgram(nextProgramCode: E8ProgramCode) {
     const nextProgram = E8_PROGRAMS[nextProgramCode];
@@ -125,6 +75,7 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
   function startNewAccount() {
     setAccountId(null);
     setAccountName("Primary Evaluation");
+    onSelectAccount?.("");
     changeProgram("e8_one");
   }
 
@@ -177,7 +128,8 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
 
     const nextAccount = savedAccount as SavedAccount;
     setAccountId(nextAccount.id);
-    setSavedAccounts((accounts) => [nextAccount, ...accounts.filter((account) => account.id !== nextAccount.id)]);
+    onSelectAccount?.(nextAccount.id);
+    onAccountsChanged?.();
     setStatus("saved");
   }
 
@@ -195,7 +147,7 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
             </div>
           </div>
 
-          {savedAccounts.length > 0 ? (
+          {accounts.length > 0 ? (
             <div className="mb-5 rounded-lg border border-slate/15 bg-canvas p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-navy">
@@ -206,24 +158,24 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
                   New
                 </button>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {savedAccounts.map((account) => (
-                  <button
-                    className={`ruleset-row min-h-14 ${accountId === account.id ? "ruleset-row-active" : ""}`}
-                    key={account.id}
-                    type="button"
-                    onClick={() => {
-                      applySavedAccount(account);
-                      setStatus("loaded");
-                    }}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate">{account.account_name}</span>
-                      <span className="block text-xs font-medium text-slate">{formatCurrency(Number(account.initial_balance))}</span>
-                    </span>
-                  </button>
+              <select
+                className="field"
+                value={accountId ?? ""}
+                onChange={(event) => {
+                  const selected = accounts.find((account) => account.id === event.target.value);
+                  if (selected) {
+                    applySavedAccount(selected);
+                    onSelectAccount?.(selected.id);
+                    setStatus("loaded");
+                  }
+                }}
+              >
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.account_name} - {formatCurrency(Number(account.initial_balance))}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           ) : null}
 
@@ -242,52 +194,45 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-navy">Program</p>
-            <div className="segmented-grid">
+            <label className="mb-2 block text-sm font-semibold text-navy" htmlFor="programCode">
+              Program
+            </label>
+            <select id="programCode" className="field" value={programCode} onChange={(event) => changeProgram(event.target.value as E8ProgramCode)}>
               {PROGRAM_ORDER.map((code) => (
-                <button
-                  key={code}
-                  className={`segmented-button ${programCode === code ? "segmented-button-active" : ""}`}
-                  type="button"
-                  onClick={() => changeProgram(code)}
-                >
+                <option key={code} value={code}>
                   {E8_PROGRAMS[code].name}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-navy">Balance</p>
-            <div className="balance-grid">
+            <label className="mb-2 block text-sm font-semibold text-navy" htmlFor="balance">
+              Balance
+            </label>
+            <select id="balance" className="field" value={balance} onChange={(event) => setBalance(Number(event.target.value))}>
               {program.balances.map((option) => (
-                <button
-                  key={option}
-                  className={`choice-tile ${balance === option ? "choice-tile-active" : ""}`}
-                  type="button"
-                  onClick={() => setBalance(option)}
-                >
+                <option key={option} value={option}>
                   {formatCurrency(option)}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {programCode === "e8_one" ? (
             <div>
-              <p className="mb-2 text-sm font-semibold text-navy">Ruleset</p>
-              <div className="grid gap-2">
+              <label className="mb-2 block text-sm font-semibold text-navy" htmlFor="ruleset">
+                Ruleset
+              </label>
+              <div className="relative">
+                <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate" aria-hidden="true" />
+                <select id="ruleset" className="field pl-10" value={rulesetId} onChange={(event) => setRulesetId(event.target.value)}>
                 {program.rulesets.map((ruleset) => (
-                  <button
-                    key={ruleset.id}
-                    className={`ruleset-row ${rulesetId === ruleset.id ? "ruleset-row-active" : ""}`}
-                    type="button"
-                    onClick={() => setRulesetId(ruleset.id)}
-                  >
-                    <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span>{ruleset.label}</span>
-                  </button>
+                  <option key={ruleset.id} value={ruleset.id}>
+                    {ruleset.label}
+                  </option>
                 ))}
+                </select>
               </div>
             </div>
           ) : (
@@ -297,19 +242,16 @@ export function AccountOnboarding({ userEmail }: AccountOnboardingProps) {
           )}
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-navy">Payout</p>
-            <div className="segmented-grid">
+            <label className="mb-2 block text-sm font-semibold text-navy" htmlFor="payoutPct">
+              Payout
+            </label>
+            <select id="payoutPct" className="field" value={payoutPct} onChange={(event) => setPayoutPct(Number(event.target.value))}>
               {program.payoutOptions.map((option) => (
-                <button
-                  key={option}
-                  className={`segmented-button ${payoutPct === option ? "segmented-button-active" : ""}`}
-                  type="button"
-                  onClick={() => setPayoutPct(option)}
-                >
+                <option key={option} value={option}>
                   {option}%
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
         </div>
       </section>

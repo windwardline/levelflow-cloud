@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Apple, ArrowRight, Chrome, KeyRound, Loader2, Mail } from "lucide-react";
+import { Apple, ArrowRight, Chrome, Gift, KeyRound, Loader2, Mail } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { LegalLinks } from "../legal/LegalLinks";
 import { brandAssets } from "../../lib/assets";
@@ -7,6 +7,8 @@ import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
 
 type AuthStatus = "idle" | "sending" | "sent" | "verifying" | "oauth";
+
+const SUPPORT_EMAIL = "support@windwardline.com";
 
 export function AuthScreen() {
   const [email, setEmail] = useState("");
@@ -99,6 +101,9 @@ export function AuthScreen() {
   const body = isSupabaseConfigured
     ? message
     : "Supabase access is not connected yet. Once connected, secure email and OAuth sign-in will open the live trading workspace.";
+  const donationHref =
+    appConfig.donationUrl ||
+    `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent("I would like the current donation link for LevelFlow development and maintenance.")}`;
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
@@ -204,6 +209,17 @@ export function AuthScreen() {
           ) : null}
 
           {error ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-medium text-danger">{error}</p> : null}
+
+          <div className="mt-6 grid gap-3 border-t border-slate/15 pt-4 sm:grid-cols-2">
+            <a className="secondary-button" href={`mailto:${SUPPORT_EMAIL}`}>
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              Contact
+            </a>
+            <a className="secondary-button" href={donationHref} target={appConfig.donationUrl ? "_blank" : undefined} rel={appConfig.donationUrl ? "noreferrer" : undefined}>
+              <Gift className="h-4 w-4" aria-hidden="true" />
+              {appConfig.donationUrl ? "Donate" : "Support"}
+            </a>
+          </div>
           <div className="mt-6 border-t border-slate/15 pt-4">
             <LegalLinks />
           </div>

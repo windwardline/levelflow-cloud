@@ -1,12 +1,14 @@
 import type { SupportedSymbol } from "./symbolMap";
 import { supabase } from "./supabase";
 
+export type ChartTimeframe = "15min" | "1hour" | "4hour" | "1day";
+
 export type MarketDataPoint = {
   close: number;
   high: number | null;
   low: number | null;
   open: number | null;
-  time: string;
+  time: string | number;
   value: number;
   volume: number | null;
 };
@@ -21,6 +23,7 @@ export type MarketDataResponse = {
   providerStatus: string;
   resultsCount: number;
   symbol: SupportedSymbol;
+  timeframe: ChartTimeframe;
   ticker: string;
   to: string;
 };
@@ -28,6 +31,7 @@ export type MarketDataResponse = {
 type MarketDataRequest = {
   days?: number;
   symbol: SupportedSymbol;
+  timeframe?: ChartTimeframe;
 };
 
 type MarketDataError = {
@@ -35,7 +39,7 @@ type MarketDataError = {
   providerStatus?: string;
 };
 
-export async function fetchMarketData({ days = 45, symbol }: MarketDataRequest) {
+export async function fetchMarketData({ days = 45, symbol, timeframe = "1hour" }: MarketDataRequest) {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
@@ -44,6 +48,7 @@ export async function fetchMarketData({ days = 45, symbol }: MarketDataRequest) 
     body: {
       days,
       symbol,
+      timeframe,
     },
   });
 

@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { MarketChart } from "./MarketChart";
 import { fetchMarketData, type MarketDataResponse } from "../../lib/marketData";
 import type { SupportedSymbol } from "../../lib/symbolMap";
-import { toMassiveTicker } from "../../lib/symbolMap";
+import { toFmpSymbol } from "../../lib/symbolMap";
 
 const SYMBOL_OPTIONS: Array<{ label: string; value: SupportedSymbol }> = [
   { label: "EURUSD", value: "EURUSD" },
@@ -48,14 +48,14 @@ export function MarketFeed() {
     };
   }, [selectedSymbol, refreshNonce]);
 
-  const ticker = useMemo(() => toMassiveTicker(selectedSymbol), [selectedSymbol]);
+  const ticker = useMemo(() => toFmpSymbol(selectedSymbol), [selectedSymbol]);
   const latestClose = marketData?.latestClose;
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate">Massive.com live feed</p>
+          <p className="text-sm font-semibold text-slate">FMP market feed</p>
           <h2 className="text-xl font-semibold tracking-normal text-navy">Market context</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">

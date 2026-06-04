@@ -40,7 +40,8 @@
   }
 
   .primary-button,
-  .secondary-button {
+  .secondary-button,
+  .nav-button {
     display: inline-flex;
     min-height: 44px;
     align-items: center;
@@ -77,8 +78,30 @@
     color: #365a42;
   }
 
+  .nav-button {
+    min-height: 40px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #52606d;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .nav-button:hover {
+    background: rgba(128, 138, 149, 0.08);
+    color: #111c38;
+  }
+
+  .nav-button-active {
+    border-color: rgba(91, 130, 102, 0.42);
+    background: rgba(91, 130, 102, 0.12);
+    color: #365a42;
+  }
+
   .primary-button:disabled,
-  .secondary-button:disabled {
+  .secondary-button:disabled,
+  .nav-button:disabled {
     cursor: not-allowed;
     opacity: 0.62;
   }

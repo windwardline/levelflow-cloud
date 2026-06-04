@@ -1,16 +1,31 @@
 import { useEffect, useRef } from "react";
-import { ColorType, LineSeries, createChart, type IChartApi, type ISeriesApi, type LineData, type Time } from "lightweight-charts";
+import {
+  ColorType,
+  LineSeries,
+  LineStyle,
+  createChart,
+  type IChartApi,
+  type IPriceLine,
+  type ISeriesApi,
+  type LineData,
+  type Time,
+} from "lightweight-charts";
 import type { MarketDataPoint } from "../../lib/marketData";
+import type { AnalyzerSetup } from "../../lib/tradeAnalyzer";
+
+type ChartSetup = Pick<AnalyzerSetup, "entryPrice" | "side" | "stopLoss" | "takeProfit">;
 
 type MarketChartProps = {
   data: MarketDataPoint[];
   loading?: boolean;
+  setup?: ChartSetup | null;
 };
 
-export function MarketChart({ data, loading = false }: MarketChartProps) {
+export function MarketChart({ data, loading = false, setup = null }: MarketChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const priceLinesRef = useRef<IPriceLine[]>([]);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -32,7 +47,10 @@ export function MarketChart({ data, loading = false }: MarketChartProps) {
       },
       timeScale: {
         borderColor: "rgba(128, 138, 149, 0.25)",
+        rightOffset: 8,
       },
+      handleScale: true,
+      handleScroll: true,
     });
 
     const lineSeries = chart.addSeries(LineSeries, {
@@ -68,8 +86,55 @@ export function MarketChart({ data, loading = false }: MarketChartProps) {
 
     const chartData = data.map((point) => ({ time: point.time as Time, value: point.value })) satisfies LineData<Time>[];
     lineSeriesRef.current.setData(chartData);
-    chartRef.current.timeScale().fitContent();
+    if (chartData.length > 0) {
+      chartRef.current.timeScale().fitContent();
+    }
   }, [data]);
+
+  useEffect(() => {
+    if (!lineSeriesRef.current) {
+      return;
+    }
+
+    const series = lineSeriesRef.current;
+    priceLinesRef.current.forEach((line) => series.removePriceLine(line));
+    priceLinesRef.current = [];
+
+    if (!setup) {
+      return;
+    }
+
+    const entryColor = setup.side === "buy" ? "#3F7A52" : "#B84A4A";
+    const riskColor = "#B84A4A";
+    const targetColor = "#111C38";
+
+    priceLinesRef.current = [
+      series.createPriceLine({
+        axisLabelVisible: true,
+        color: entryColor,
+        lineStyle: LineStyle.Solid,
+        lineWidth: 2,
+        price: setup.entryPrice,
+        title: `${setup.side.toUpperCase()} LIMIT`,
+      }),
+      series.createPriceLine({
+        axisLabelVisible: true,
+        color: riskColor,
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 2,
+        price: setup.stopLoss,
+        title: "STOP",
+      }),
+      series.createPriceLine({
+        axisLabelVisible: true,
+        color: targetColor,
+        lineStyle: LineStyle.Dotted,
+        lineWidth: 2,
+        price: setup.takeProfit,
+        title: "TARGET",
+      }),
+    ];
+  }, [setup]);
 
   return (
     <div className="relative">

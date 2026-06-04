@@ -7,7 +7,7 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.win
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const symbolMap = {
+const symbolMap: Record<string, string> = {
   EURUSD: "EURUSD",
   GBPUSD: "GBPUSD",
   USDJPY: "USDJPY",
@@ -20,7 +20,14 @@ const symbolMap = {
   US30: "^DJI",
   NAS100: "^NDX",
   SPX500: "^GSPC",
-} as const;
+  NASDAQ: "^IXIC",
+  SPY: "SPY",
+  QQQ: "QQQ",
+  DIA: "DIA",
+  IWM: "IWM",
+  GLD: "GLD",
+  SLV: "SLV",
+};
 
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
@@ -35,18 +42,26 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   US30: ["USD"],
   NAS100: ["USD"],
   SPX500: ["USD"],
+  NASDAQ: ["USD"],
+  SPY: ["USD"],
+  QQQ: ["USD"],
+  DIA: ["USD"],
+  IWM: ["USD"],
+  GLD: ["USD"],
+  SLV: ["USD"],
 };
 
 const correlationGroups: Record<string, string[]> = {
   eur_beta: ["EURUSD", "GBPUSD"],
   commodity_fx: ["AUDUSD", "NZDUSD", "USDCAD"],
   metals: ["XAUUSD", "XAGUSD"],
-  us_indices: ["US30", "NAS100", "SPX500"],
+  us_indices: ["US30", "NAS100", "SPX500", "NASDAQ", "SPY", "QQQ", "DIA", "IWM"],
+  precious_metal_funds: ["GLD", "SLV"],
 };
 
 const intradayTimeframes = ["4hour", "1hour", "15min"] as const;
 
-type SupportedSymbol = keyof typeof symbolMap;
+type SupportedSymbol = string;
 type Direction = "buy" | "sell" | "neutral" | "block";
 type Side = "buy" | "sell";
 type Timeframe = "1day" | (typeof intradayTimeframes)[number];
@@ -129,6 +144,17 @@ type SessionContext = {
   reason?: string;
 };
 
+type ExistingSetupRow = {
+  confidence_score: number | string;
+  id: string;
+  limit_entry: number | string;
+  pending_order_id: string | null;
+  side: Side;
+  stop_loss: number | string;
+  symbol: string;
+  take_profit: number | string;
+};
+
 Deno.serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -160,8 +186,9 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { error: "A saved account is required before analysis" }, 400);
     }
 
-    const uiSymbol = normalizeSymbol(body.symbol ?? "EURUSD");
-    const fmpSymbol = symbolMap[uiSymbol as SupportedSymbol];
+    const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
+    const uiSymbol = normalizeSymbol(requestedSymbol);
+    const fmpSymbol = symbolMap[uiSymbol] ?? sanitizeFmpSymbol(requestedSymbol);
     if (!fmpSymbol) {
       return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
     }
@@ -219,6 +246,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    const duplicateSetup = await findDuplicateSetup(token, account.id, symbol, setup);
+    if (duplicateSetup) {
+      return jsonResponse(req, {
+        advisoryOnly: true,
+        deduplicated: true,
+        message: "Refreshed advisory setup. Matching active recommendation already exists, so LevelFlow did not create a duplicate log entry.",
+        pendingOrderId: duplicateSetup.pending_order_id,
+        setupId: duplicateSetup.id,
+        setup,
+      });
+    }
+
     const activeCorrelated = await fetchRows<{ id: string; symbol: string; confidence_score: number }>(
       token,
       `trade_setups?select=id,symbol,confidence_score&correlation_group=eq.${encodeURIComponent(group)}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(
@@ -226,7 +265,7 @@ Deno.serve(async (req) => {
       )}`,
     );
 
-    const strongerExisting = activeCorrelated.find((row) => row.confidence_score >= setup.confidenceScore);
+    const strongerExisting = activeCorrelated.find((row) => row.symbol !== symbol && row.confidence_score >= setup.confidenceScore);
     if (strongerExisting) {
       return jsonResponse(req, {
         blocked: true,
@@ -350,7 +389,7 @@ async function analyzeSetup(
     symbol,
     dataProvider: "FMP",
     fmpSymbol,
-    massiveSymbol: fmpSymbol,
+    providerSymbol: fmpSymbol,
     side: consensus.side,
     orderType: "limit" as const,
     entryPrice: roundPrice(pricePlan.entryPrice),
@@ -384,6 +423,26 @@ async function analyzeSetup(
       targetLogic: pricePlan.targetLogic,
     },
   };
+}
+
+async function findDuplicateSetup(token: string, accountId: string, symbol: SupportedSymbol, setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>) {
+  const recentWindow = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  const rows = await fetchRows<ExistingSetupRow>(
+    token,
+    `trade_setups?select=id,pending_order_id,symbol,side,limit_entry,stop_loss,take_profit,confidence_score&account_id=eq.${encodeURIComponent(accountId)}&symbol=eq.${encodeURIComponent(
+      symbol,
+    )}&side=eq.${setup.side}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(recentWindow)}&order=created_at.desc`,
+  );
+
+  return (
+    rows.find((row) => {
+      return (
+        priceMatches(row.limit_entry, setup.entryPrice) &&
+        priceMatches(row.stop_loss, setup.stopLoss) &&
+        priceMatches(row.take_profit, setup.takeProfit)
+      );
+    }) ?? null
+  );
 }
 
 async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
@@ -788,7 +847,7 @@ function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
   if (!currency) {
     return true;
   }
-  return symbolCurrencies[symbol].includes(currency);
+  return symbolCurrencies[symbol]?.includes(currency) ?? currency === "USD";
 }
 
 function getSessionContext(): SessionContext {
@@ -1023,6 +1082,11 @@ function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function sanitizeFmpSymbol(value: string) {
+  const symbol = value.toUpperCase().replace(/[^A-Z0-9.^_-]/g, "").slice(0, 32);
+  return symbol || null;
+}
+
 function clampInteger(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) {
     return min;
@@ -1038,6 +1102,16 @@ function toTimestamp(value: string) {
 
 function roundPrice(value: number) {
   return Number(value.toFixed(8));
+}
+
+function priceMatches(left: number | string, right: number) {
+  const leftNumber = Number(left);
+  if (!Number.isFinite(leftNumber) || !Number.isFinite(right)) {
+    return false;
+  }
+
+  const tolerance = Math.max(Math.abs(right) * 0.00025, 0.00001);
+  return Math.abs(leftNumber - right) <= tolerance;
 }
 
 function corsHeaders(req: Request) {

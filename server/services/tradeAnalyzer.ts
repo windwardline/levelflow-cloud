@@ -1,4 +1,4 @@
-import { getCorrelationGroup, toMassiveTicker } from "../../src/lib/symbolMap";
+import { getCorrelationGroup, toFmpSymbol } from "../../src/lib/symbolMap";
 import type { E8ProgramCode } from "../../src/lib/e8Matrix";
 
 export type OhlcvBar = {
@@ -22,7 +22,7 @@ export type AccountRiskProfile = {
 
 export type TradeSetup = {
   symbol: string;
-  massiveSymbol: string;
+  providerSymbol: string;
   side: "buy" | "sell";
   orderType: "limit";
   entryPrice: number;
@@ -76,7 +76,7 @@ export class TradeAnalyzer {
 
     return {
       symbol,
-      massiveSymbol: toMassiveTicker(symbol),
+      providerSymbol: toFmpSymbol(symbol),
       side,
       orderType: "limit",
       entryPrice,

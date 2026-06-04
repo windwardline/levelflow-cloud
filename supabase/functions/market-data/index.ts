@@ -1,5 +1,5 @@
-const MASSIVE_API_BASE_URL = Deno.env.get("MASSIVE_API_BASE_URL") ?? "https://api.massive.com";
-const MASSIVE_API_KEY = Deno.env.get("MASSIVE_API_KEY");
+const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ?? "https://financialmodelingprep.com/stable";
+const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
@@ -8,44 +8,47 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.win
   .filter(Boolean);
 
 const symbolMap = {
-  EURUSD: "C:EURUSD",
-  GBPUSD: "C:GBPUSD",
-  USDJPY: "C:USDJPY",
-  AUDUSD: "C:AUDUSD",
-  USDCAD: "C:USDCAD",
-  USDCHF: "C:USDCHF",
-  NZDUSD: "C:NZDUSD",
-  XAUUSD: "C:XAUUSD",
-  XAGUSD: "C:XAGUSD",
-  US30: "I:DJI",
-  NAS100: "I:NDX",
-  SPX500: "I:SPX",
+  EURUSD: "EURUSD",
+  GBPUSD: "GBPUSD",
+  USDJPY: "USDJPY",
+  AUDUSD: "AUDUSD",
+  USDCAD: "USDCAD",
+  USDCHF: "USDCHF",
+  NZDUSD: "NZDUSD",
+  XAUUSD: "GCUSD",
+  XAGUSD: "SIUSD",
+  US30: "^DJI",
+  NAS100: "^NDX",
+  SPX500: "^GSPC",
+  NASDAQ: "^IXIC",
+  SPY: "SPY",
+  QQQ: "QQQ",
+  DIA: "DIA",
+  IWM: "IWM",
+  GLD: "GLD",
+  SLV: "SLV",
 } as const;
 
+const intradayTimeframes = ["15min", "1hour", "4hour"] as const;
+
 type SupportedSymbol = keyof typeof symbolMap;
+type ChartTimeframe = "1day" | (typeof intradayTimeframes)[number];
 
 type MarketDataRequest = {
   days?: number;
   from?: string;
   symbol?: string;
+  timeframe?: string;
   to?: string;
 };
 
-type MassiveAgg = {
-  c?: number;
-  h?: number;
-  l?: number;
-  o?: number;
-  t?: number;
-  v?: number;
-};
-
-type MassiveAggResponse = {
-  adjusted?: boolean;
-  results?: MassiveAgg[];
-  resultsCount?: number;
-  status?: string;
-  ticker?: string;
+type FmpBar = {
+  close?: number;
+  date?: string;
+  high?: number;
+  low?: number;
+  open?: number;
+  volume?: number;
 };
 
 Deno.serve(async (req) => {
@@ -57,8 +60,8 @@ Deno.serve(async (req) => {
     return jsonResponse(req, { error: "Method not allowed" }, 405);
   }
 
-  if (!MASSIVE_API_KEY) {
-    return jsonResponse(req, { error: "Massive.com API key is not configured" }, 500);
+  if (!FMP_API_KEY) {
+    return jsonResponse(req, { error: "FMP API key is not configured" }, 500);
   }
 
   const user = await getAuthenticatedUser(req);
@@ -73,67 +76,80 @@ Deno.serve(async (req) => {
     body = {};
   }
 
-  const uiSymbol = normalizeSymbol(body.symbol ?? "EURUSD");
-  const ticker = symbolMap[uiSymbol as SupportedSymbol];
+  const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
+  const uiSymbol = normalizeSymbol(requestedSymbol);
+  const ticker = symbolMap[uiSymbol as SupportedSymbol] ?? sanitizeFmpSymbol(requestedSymbol);
   if (!ticker) {
     return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
   }
 
-  const { from, to } = resolveDateWindow(body);
-  const endpoint = new URL(`/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}`, MASSIVE_API_BASE_URL);
-  endpoint.searchParams.set("adjusted", "true");
-  endpoint.searchParams.set("sort", "asc");
-  endpoint.searchParams.set("limit", "120");
+  const timeframe = normalizeTimeframe(body.timeframe);
+  const { from, to } = resolveDateWindow(body, timeframe);
+  const endpoint =
+    timeframe === "1day"
+      ? new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`)
+      : new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`);
+  endpoint.searchParams.set("symbol", ticker);
+  endpoint.searchParams.set("apikey", FMP_API_KEY);
 
-  const response = await fetch(endpoint, {
-    headers: {
-      Authorization: `Bearer ${MASSIVE_API_KEY}`,
-    },
-  });
-
-  let payload: MassiveAggResponse;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = {};
+  if (timeframe === "1day") {
+    endpoint.searchParams.set("from", from);
+    endpoint.searchParams.set("to", to);
   }
+
+  const response = await fetch(endpoint);
+  const responseText = await response.text();
 
   if (!response.ok) {
     return jsonResponse(
       req,
       {
-        error: "Massive.com market data request failed",
-        providerStatus: payload.status ?? response.statusText,
+        error: "FMP market data request failed",
+        providerStatus: responseText.slice(0, 220) || response.statusText,
       },
       response.status,
     );
   }
 
-  const points = (payload.results ?? [])
-    .filter((point) => typeof point.t === "number" && typeof point.c === "number")
+  let payload: unknown;
+  try {
+    payload = JSON.parse(responseText);
+  } catch {
+    return jsonResponse(req, { error: "FMP market data response was not JSON", providerStatus: "INVALID_JSON" }, 502);
+  }
+
+  if (!Array.isArray(payload)) {
+    return jsonResponse(req, { error: "FMP market data response was not an array", providerStatus: "UNEXPECTED_RESPONSE" }, 502);
+  }
+
+  const points = (payload as FmpBar[])
+    .filter((point) => typeof point.date === "string" && typeof point.close === "number")
     .map((point) => ({
-      close: point.c as number,
-      high: point.h ?? null,
-      low: point.l ?? null,
-      open: point.o ?? null,
-      time: new Date(point.t as number).toISOString().slice(0, 10),
-      value: point.c as number,
-      volume: point.v ?? null,
-    }));
+      close: point.close as number,
+      high: typeof point.high === "number" ? point.high : null,
+      low: typeof point.low === "number" ? point.low : null,
+      open: typeof point.open === "number" ? point.open : null,
+      time: timeframe === "1day" ? (point.date as string).slice(0, 10) : Math.trunc(toTimestamp(point.date as string) / 1000),
+      value: point.close as number,
+      volume: typeof point.volume === "number" ? point.volume : null,
+    }))
+    .sort((first, second) => sortableTime(first.time) - sortableTime(second.time))
+    .slice(timeframe === "1day" ? -260 : -500);
 
   const latest = points.at(-1);
 
   return jsonResponse(req, {
-    adjusted: payload.adjusted ?? true,
+    adjusted: true,
     asOf: new Date().toISOString(),
     from,
     latestClose: latest?.close ?? null,
     points,
-    provider: "Massive.com",
-    providerStatus: payload.status ?? "OK",
-    resultsCount: payload.resultsCount ?? points.length,
+    provider: "FMP",
+    providerStatus: "OK",
+    resultsCount: points.length,
     symbol: uiSymbol,
-    ticker: payload.ticker ?? ticker,
+    timeframe,
+    ticker,
     to,
   });
 });
@@ -168,9 +184,18 @@ function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-function resolveDateWindow(body: MarketDataRequest) {
+function sanitizeFmpSymbol(value: string) {
+  const symbol = value.toUpperCase().replace(/[^A-Z0-9.^_-]/g, "").slice(0, 32);
+  return symbol || null;
+}
+
+function normalizeTimeframe(value: unknown): ChartTimeframe {
+  return typeof value === "string" && [...intradayTimeframes, "1day"].includes(value as ChartTimeframe) ? (value as ChartTimeframe) : "1hour";
+}
+
+function resolveDateWindow(body: MarketDataRequest, timeframe: ChartTimeframe) {
   const to = isIsoDate(body.to) ? body.to : isoDate(new Date());
-  const dayCount = clampInteger(body.days ?? 45, 7, 120);
+  const dayCount = clampInteger(body.days ?? (timeframe === "1day" ? 120 : 14), 2, timeframe === "1day" ? 260 : 60);
   const defaultFromDate = new Date(`${to}T00:00:00.000Z`);
   defaultFromDate.setUTCDate(defaultFromDate.getUTCDate() - dayCount);
   const from = isIsoDate(body.from) ? body.from : isoDate(defaultFromDate);
@@ -192,6 +217,16 @@ function isIsoDate(value: unknown): value is string {
 
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function toTimestamp(value: string) {
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  const timestamp = new Date(normalized).getTime();
+  return Number.isFinite(timestamp) ? timestamp : Date.now();
+}
+
+function sortableTime(value: string | number) {
+  return typeof value === "number" ? value : toTimestamp(value);
 }
 
 function corsHeaders(req: Request) {
