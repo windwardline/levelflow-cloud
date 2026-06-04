@@ -13,8 +13,8 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       VITE_APP_URL: https://app.windwardline.com/
       VITE_BASE_PATH: /
-      VITE_ENABLE_APPLE_AUTH: "false"
-      VITE_ENABLE_GOOGLE_AUTH: "false"
+      VITE_ENABLE_APPLE_AUTH: ${{ vars.VITE_ENABLE_APPLE_AUTH || 'false' }}
+      VITE_ENABLE_GOOGLE_AUTH: ${{ vars.VITE_ENABLE_GOOGLE_AUTH || 'false' }}
       SUPABASE_PROJECT_REF: usrtpoftuvhpmyhlhqlg
     steps:
       - name: Check required secrets
@@ -71,7 +71,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy Supabase functions
-        run: npx supabase functions deploy market-data market-symbols trade-analyzer news-calendar --project-ref "$SUPABASE_PROJECT_REF" --use-api
+        run: npx supabase functions deploy market-data trade-analyzer news-calendar --project-ref "$SUPABASE_PROJECT_REF" --use-api
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

@@ -14,7 +14,7 @@ import { brandAssets } from "./lib/assets";
 import { supabase } from "./lib/supabase";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
-type AppTab = "advisor" | "accounts" | "history" | "profile" | "help" | "support";
+type AppTab = "advisor" | "accounts" | "history" | "profile" | "help" | "donate";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 
@@ -24,7 +24,7 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "History", value: "history" },
   { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
   { icon: <HelpCircle className="h-4 w-4" aria-hidden="true" />, label: "Help", value: "help" },
-  { icon: <Gift className="h-4 w-4" aria-hidden="true" />, label: "Support", value: "support" },
+  { icon: <Gift className="h-4 w-4" aria-hidden="true" />, label: "Donate", value: "donate" },
 ];
 
 export default function App() {
@@ -122,7 +122,7 @@ export default function App() {
         {activeTab === "history" ? <HistoryPanel loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} /> : null}
         {activeTab === "profile" ? <ProfilePanel email={session.user.email ?? ""} userId={session.user.id} /> : null}
         {activeTab === "help" ? <HelpPanel /> : null}
-        {activeTab === "support" ? <SupportPanel /> : null}
+        {activeTab === "donate" ? <DonatePanel /> : null}
 
         <footer className="pb-4">
           <LegalLinks />
@@ -291,7 +291,7 @@ function ProfilePanel({ email, userId }: { email: string; userId: string }) {
 
 function HelpPanel() {
   return (
-    <section className="terminal-panel max-w-4xl p-5 sm:p-6">
+    <section className="terminal-panel max-w-5xl p-5 sm:p-6">
       <div className="mb-5 flex items-center gap-3">
         <BookOpen className="h-5 w-5 text-navy" aria-hidden="true" />
         <div>
@@ -299,17 +299,54 @@ function HelpPanel() {
           <h2 className="text-2xl font-semibold tracking-normal text-navy">How to use LevelFlow</h2>
         </div>
       </div>
-      <ol className="grid gap-3 text-sm leading-6 text-slate">
-        <li className="rounded-lg bg-canvas px-4 py-3"><strong className="text-navy">1.</strong> Configure each E8 account in Accounts so LevelFlow can size risk against the correct program rules.</li>
-        <li className="rounded-lg bg-canvas px-4 py-3"><strong className="text-navy">2.</strong> In Advisor, select the account, security, and chart timeframe. The default chart is 1H.</li>
-        <li className="rounded-lg bg-canvas px-4 py-3"><strong className="text-navy">3.</strong> Generate a setup. LevelFlow evaluates market context, strategy confluence, risk constraints, and calendar context before logging a unique advisory recommendation.</li>
-        <li className="rounded-lg bg-canvas px-4 py-3"><strong className="text-navy">4.</strong> Review History to compare recommendations, tracked outcomes, and security-level focus statistics.</li>
-      </ol>
+      <div className="mb-5 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
+        <h3 className="font-semibold text-navy">First-session checklist</h3>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <li>Create one Account record for each E8 account you trade.</li>
+          <li>Open Advisor, select the account, then choose the security from the approved E8 dropdown.</li>
+          <li>Review the 1H chart first, change timeframe only when you need a different market read, then generate the setup.</li>
+          <li>Use History after each session to review what was recommended and keep outcomes current.</li>
+        </ol>
+      </div>
+      <div className="grid gap-4 text-sm leading-6 text-slate lg:grid-cols-2">
+        <GuideStep
+          title="1. Set up each E8 account first"
+          body="Open Accounts and create a separate record for every E8 account you want LevelFlow to advise against. Use the account's current program, balance, phase, drawdown settings, and payout cadence; these values drive risk sizing and guardrails."
+        />
+        <GuideStep
+          title="2. Work from the Advisor screen"
+          body="Choose the E8 account first, then choose one approved security from the grouped dropdown. The chart defaults to 1H because that is the primary planning view; switch to 15 minutes, 4 hours, or daily only when the setup needs extra context."
+        />
+        <GuideStep
+          title="3. Read the chart before generating"
+          body="Use the chart before pressing Generate: drag left to inspect history, zoom around recent structure, and refresh the chart if you have been sitting on the screen for a while."
+        />
+        <GuideStep
+          title="4. Generate one current advisory setup"
+          body="Click Generate setup when you want the current best advisory recommendation for that account and security. LevelFlow reviews market structure, momentum, volatility, value/volume behavior, multi-timeframe alignment, account rules, and calendar context."
+        />
+        <GuideStep
+          title="5. Use the plotted levels"
+          body="When a setup qualifies, the chart plots the limit entry, stop loss, and take profit. Use those levels as the planning reference for your own trading platform; LevelFlow does not place, modify, or close trades."
+        />
+        <GuideStep
+          title="6. Re-check without polluting history"
+          body="You can generate again for the same account and security to see whether the recommendation changed. If the same active setup is still best, LevelFlow refreshes the view and avoids creating a duplicate history row."
+        />
+        <GuideStep
+          title="7. Review recommendation history"
+          body="Open History to review prior recommendations, confidence scores, account association, entry/stop/target, status, and recorded outcomes. Security stats show what you have asked LevelFlow to analyze and where results are accumulating."
+        />
+        <GuideStep
+          title="8. Keep account and profile data current"
+          body="Update Accounts whenever balance, phase, program, drawdown, or payout status changes. Use Profile for user preferences. Cleaner account data gives the advisor cleaner risk context and more useful historical records."
+        />
+      </div>
     </section>
   );
 }
 
-function SupportPanel() {
+function DonatePanel() {
   const donationHref =
     appConfig.donationUrl ||
     `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent("I would like the current donation link for LevelFlow development and maintenance.")}`;
@@ -321,7 +358,7 @@ function SupportPanel() {
           <Mail className="h-5 w-5 text-navy" aria-hidden="true" />
           <div>
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Contact</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">Support</h2>
+            <h2 className="text-2xl font-semibold tracking-normal text-navy">Contact</h2>
           </div>
         </div>
         <p className="text-sm leading-6 text-slate">For access, account, data, or recommendation issues, contact Windward Line support.</p>
@@ -336,7 +373,7 @@ function SupportPanel() {
           <Gift className="h-5 w-5 text-navy" aria-hidden="true" />
           <div>
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Development fund</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">Support LevelFlow</h2>
+            <h2 className="text-2xl font-semibold tracking-normal text-navy">Donate</h2>
           </div>
         </div>
         <p className="text-sm leading-6 text-slate">Contributions go toward provider data, hosting, development, testing, and maintenance costs.</p>
@@ -345,6 +382,15 @@ function SupportPanel() {
           {appConfig.donationUrl ? "Donate" : "Request donation link"}
         </a>
       </section>
+    </div>
+  );
+}
+
+function GuideStep({ body, title }: { body: string; title: string }) {
+  return (
+    <div className="rounded-lg bg-canvas px-4 py-3">
+      <h3 className="font-semibold text-navy">{title}</h3>
+      <p className="mt-1">{body}</p>
     </div>
   );
 }

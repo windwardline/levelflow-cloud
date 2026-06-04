@@ -6,19 +6,17 @@ import { brandAssets } from "../../lib/assets";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
 
-type AuthStatus = "idle" | "sending" | "sent" | "verifying" | "oauth";
+type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 
 export function AuthScreen() {
   const [email, setEmail] = useState("");
-  const [token, setToken] = useState("");
-  const [sentEmail, setSentEmail] = useState("");
   const [status, setStatus] = useState<AuthStatus>("idle");
-  const [message, setMessage] = useState("Enter your email to receive a secure code or magic link.");
+  const [message, setMessage] = useState("Enter your email and LevelFlow will send a one-time magic link.");
   const [error, setError] = useState("");
 
-  async function sendOtp(event: FormEvent<HTMLFormElement>) {
+  async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) {
       setError("Supabase is not configured for this deployment.");
@@ -29,45 +27,21 @@ export function AuthScreen() {
     setStatus("sending");
 
     const normalizedEmail = email.trim().toLowerCase();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
+    const { error: magicLinkError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
         emailRedirectTo: appConfig.appUrl,
       },
     });
 
-    if (otpError) {
+    if (magicLinkError) {
       setStatus("idle");
-      setError(otpError.message);
+      setError(magicLinkError.message);
       return;
     }
 
-    setSentEmail(normalizedEmail);
     setStatus("sent");
-    setMessage(`Code sent to ${normalizedEmail}. The magic link in the same email will also complete sign-in.`);
-  }
-
-  async function verifyToken(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!supabase) {
-      setError("Supabase is not configured for this deployment.");
-      return;
-    }
-
-    setError("");
-    setStatus("verifying");
-
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: sentEmail,
-      token: token.trim(),
-      type: "email",
-    });
-
-    if (verifyError) {
-      setStatus("sent");
-      setError(verifyError.message);
-      return;
-    }
+    setMessage(`Magic link sent to ${normalizedEmail}. Open that email and click the link to enter LevelFlow.`);
   }
 
   async function signInWithOAuth(provider: Extract<Provider, "google" | "apple">) {
@@ -92,8 +66,7 @@ export function AuthScreen() {
     }
   }
 
-  const isBusy = status === "sending" || status === "verifying" || status === "oauth";
-  const showTokenForm = status === "sent" || status === "verifying";
+  const isBusy = status === "sending" || status === "oauth";
   const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
   const appleAuthEnabled = import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
   const oauthEnabled = googleAuthEnabled || appleAuthEnabled;
@@ -139,8 +112,7 @@ export function AuthScreen() {
             </div>
           ) : null}
 
-          {!showTokenForm ? (
-            <form className="space-y-4" onSubmit={sendOtp}>
+          <form className="space-y-4" onSubmit={sendMagicLink}>
               <label className="block text-sm font-medium text-navy" htmlFor="email">
                 Email
               </label>
@@ -158,30 +130,15 @@ export function AuthScreen() {
               </div>
               <button className="primary-button w-full" type="submit" disabled={isBusy || !isSupabaseConfigured}>
                 {status === "sending" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                Send secure code
+                Send magic link
               </button>
-            </form>
-          ) : (
-            <form className="space-y-4" onSubmit={verifyToken}>
-              <label className="block text-sm font-medium text-navy" htmlFor="token">
-                6-digit code
-              </label>
-              <input
-                id="token"
-                className="h-12 w-full rounded-lg border border-slate/25 bg-white px-4 text-center text-xl font-semibold tracking-normal text-navy outline-none focus:border-bullish"
-                inputMode="numeric"
-                maxLength={6}
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                placeholder="000000"
-                required
-              />
-              <button className="primary-button w-full" type="submit" disabled={isBusy || !isSupabaseConfigured}>
-                {status === "verifying" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="h-4 w-4" aria-hidden="true" />}
-                Verify and continue
-              </button>
-            </form>
-          )}
+          </form>
+
+          {status === "sent" ? (
+            <div className="mt-4 rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-sm font-semibold text-bullish">
+              Check your inbox. No 6-digit code is required.
+            </div>
+          ) : null}
 
           {oauthEnabled ? (
             <>
@@ -217,7 +174,7 @@ export function AuthScreen() {
             </a>
             <a className="secondary-button" href={donationHref} target={appConfig.donationUrl ? "_blank" : undefined} rel={appConfig.donationUrl ? "noreferrer" : undefined}>
               <Gift className="h-4 w-4" aria-hidden="true" />
-              {appConfig.donationUrl ? "Donate" : "Support"}
+              Donate
             </a>
           </div>
           <div className="mt-6 border-t border-slate/15 pt-4">

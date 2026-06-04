@@ -2,14 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { MarketChart } from "./MarketChart";
 import { fetchMarketData, type MarketDataResponse } from "../../lib/marketData";
-import type { SupportedSymbol } from "../../lib/symbolMap";
-import { toFmpSymbol } from "../../lib/symbolMap";
-
-const SYMBOL_OPTIONS: Array<{ label: string; value: SupportedSymbol }> = [
-  { label: "EURUSD", value: "EURUSD" },
-  { label: "GBPUSD", value: "GBPUSD" },
-  { label: "NAS100", value: "NAS100" },
-];
+import { SECURITY_GROUPS, formatSecurityLabel, getSecurityOption, toFmpSymbol, type SupportedSymbol } from "../../lib/symbolMap";
 
 export function MarketFeed() {
   const [selectedSymbol, setSelectedSymbol] = useState<SupportedSymbol>("EURUSD");
@@ -73,18 +66,20 @@ export function MarketFeed() {
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-        <div className="segmented-grid">
-          {SYMBOL_OPTIONS.map((option) => (
-            <button
-              className={`segmented-button px-3 ${selectedSymbol === option.value ? "segmented-button-active" : ""}`}
-              key={option.value}
-              type="button"
-              onClick={() => setSelectedSymbol(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <label className="grid gap-2 text-sm font-semibold text-navy">
+          Security
+          <select className="field" value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value as SupportedSymbol)}>
+            {SECURITY_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.symbol} value={option.symbol}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
         <div className="min-w-36 rounded-lg bg-canvas px-3 py-2 text-right">
           <p className="text-xs font-semibold uppercase tracking-normal text-slate">Latest close</p>
           <p className="text-lg font-semibold tracking-normal text-navy">
@@ -100,7 +95,7 @@ export function MarketFeed() {
           {error
             ? error
             : marketData
-              ? `${marketData.providerStatus} - ${marketData.resultsCount} bars from ${marketData.from} to ${marketData.to}`
+              ? `${formatSecurityLabel(selectedSymbol)} - ${marketData.providerStatus} - ${marketData.resultsCount} bars from ${marketData.from} to ${marketData.to}`
               : "Loading provider data"}
         </p>
         {marketData?.asOf && <p className="text-slate">Refreshed {formatAsOf(marketData.asOf)}</p>}
@@ -110,7 +105,8 @@ export function MarketFeed() {
 }
 
 function formatPrice(symbol: SupportedSymbol, value: number) {
-  if (symbol.includes("USD") && !symbol.startsWith("US")) {
+  const option = getSecurityOption(symbol);
+  if (option.assetType === "Forex" || option.assetType === "Metals" || option.assetType === "Crypto") {
     return value.toLocaleString(undefined, {
       maximumFractionDigits: 5,
       minimumFractionDigits: 5,

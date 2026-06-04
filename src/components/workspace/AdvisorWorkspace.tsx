@@ -5,8 +5,7 @@ import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import type { SavedAccount } from "../../hooks/useUserAccounts";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
-import { fetchMarketSymbols } from "../../lib/marketSymbols";
-import { SECURITY_GROUPS, formatSecurityLabel, getSecurityOption, type SecurityGroup, type SupportedSymbol } from "../../lib/symbolMap";
+import { SECURITY_GROUPS, formatSecurityLabel, getSecurityOption, type SupportedSymbol } from "../../lib/symbolMap";
 import { generateTradeSetup, type AnalyzerResponse, type AnalyzerSetup, type TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatCurrency } from "../../lib/e8Matrix";
 
@@ -43,8 +42,6 @@ export function AdvisorWorkspace({
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketNotice, setMarketNotice] = useState("Loading FMP market context.");
-  const [symbolGroups, setSymbolGroups] = useState<SecurityGroup[]>(SECURITY_GROUPS);
-  const [symbolDirectoryTotal, setSymbolDirectoryTotal] = useState(SECURITY_GROUPS.reduce((sum, group) => sum + group.options.length, 0));
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [result, setResult] = useState<AnalyzerResponse | null>(null);
   const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">("idle");
@@ -58,24 +55,7 @@ export function AdvisorWorkspace({
   );
   const setup = result?.setup ?? mapSavedSetup(latestSavedSetup);
   const symbolStat = setupStats.find((stat) => stat.symbol === symbol);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadSymbols() {
-      const directory = await fetchMarketSymbols();
-      if (!cancelled) {
-        setSymbolGroups(directory.groups.length > 0 ? directory.groups : SECURITY_GROUPS);
-        setSymbolDirectoryTotal(directory.total);
-      }
-    }
-
-    loadSymbols();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const scopedSymbolCount = SECURITY_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +68,8 @@ export function AdvisorWorkspace({
         const nextData = await fetchMarketData({ days: timeframe === "1day" ? 160 : 21, symbol, timeframe });
         if (!cancelled) {
           setMarketData(nextData);
-          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars from FMP.`);
+          const providerLabel = nextData.providerStatus.startsWith("OK_FALLBACK") ? `FMP fallback ${nextData.ticker}` : `FMP ${nextData.ticker}`;
+          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars from ${providerLabel}.`);
         }
       } catch {
         if (!cancelled) {
@@ -176,11 +157,11 @@ export function AdvisorWorkspace({
                   setResult(null);
                 }}
               >
-                {symbolGroups.map((group) => (
+                {SECURITY_GROUPS.map((group) => (
                   <optgroup key={group.label} label={group.label}>
                     {group.options.map((option) => (
                       <option key={option.symbol} value={option.symbol}>
-                        {option.label} ({option.fmpSymbol})
+                        {option.fallbackFmpSymbol ? `${option.label} (${option.fmpSymbol}, fallback ${option.fallbackFmpSymbol})` : `${option.label} (${option.fmpSymbol})`}
                       </option>
                     ))}
                   </optgroup>
@@ -230,7 +211,7 @@ export function AdvisorWorkspace({
             </div>
             <MarketChart data={marketData?.points ?? []} loading={marketLoading} setup={setup} />
             <p className="mt-3 text-sm font-medium text-slate">{marketNotice}</p>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">FMP directory: {symbolDirectoryTotal.toLocaleString()} selectable instruments</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">E8 scope: {scopedSymbolCount} approved instruments</p>
           </div>
 
           <aside className="border-t border-slate/15 p-5 sm:p-6 lg:border-l lg:border-t-0">

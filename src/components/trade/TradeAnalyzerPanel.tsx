@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Brain, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { generateTradeSetup, type AnalyzerResponse } from "../../lib/tradeAnalyzer";
-import type { SupportedSymbol } from "../../lib/symbolMap";
+import { SECURITY_GROUPS, type SupportedSymbol } from "../../lib/symbolMap";
 import { supabase } from "../../lib/supabase";
 import { ConfidenceGauge } from "./ConfidenceGauge";
 
@@ -10,8 +10,6 @@ type AccountOption = {
   id: string;
   program_code: string;
 };
-
-const SYMBOL_OPTIONS: SupportedSymbol[] = ["EURUSD", "GBPUSD", "NAS100"];
 
 export function TradeAnalyzerPanel() {
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -110,21 +108,20 @@ export function TradeAnalyzerPanel() {
           </select>
         </label>
 
-        <div>
-          <p className="mb-2 text-sm font-semibold text-navy">Symbol</p>
-          <div className="segmented-grid">
-            {SYMBOL_OPTIONS.map((option) => (
-              <button
-                className={`segmented-button px-3 ${symbol === option ? "segmented-button-active" : ""}`}
-                key={option}
-                type="button"
-                onClick={() => setSymbol(option)}
-              >
-                {option}
-              </button>
+        <label className="grid gap-2 text-sm font-semibold text-navy">
+          Security
+          <select className="field" value={symbol} onChange={(event) => setSymbol(event.target.value as SupportedSymbol)}>
+            {SECURITY_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.symbol} value={option.symbol}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
-          </div>
-        </div>
+          </select>
+        </label>
 
         <button className="primary-button w-full" type="button" disabled={status === "analyzing" || !accountId} onClick={analyze}>
           {status === "analyzing" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Brain className="h-4 w-4" aria-hidden="true" />}

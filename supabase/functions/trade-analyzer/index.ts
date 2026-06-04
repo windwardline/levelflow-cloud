@@ -7,7 +7,12 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.win
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const symbolMap: Record<string, string> = {
+type SymbolConfig = {
+  fallback?: string;
+  primary: string;
+};
+
+const symbolMap: Record<string, string | SymbolConfig> = {
   EURUSD: "EURUSD",
   GBPUSD: "GBPUSD",
   USDJPY: "USDJPY",
@@ -15,19 +20,52 @@ const symbolMap: Record<string, string> = {
   USDCAD: "USDCAD",
   USDCHF: "USDCHF",
   NZDUSD: "NZDUSD",
-  XAUUSD: "GCUSD",
-  XAGUSD: "SIUSD",
-  US30: "^DJI",
-  NAS100: "^NDX",
-  SPX500: "^GSPC",
-  NASDAQ: "^IXIC",
-  SPY: "SPY",
-  QQQ: "QQQ",
-  DIA: "DIA",
-  IWM: "IWM",
-  GLD: "GLD",
-  SLV: "SLV",
+  NZDJPY: "NZDJPY",
+  NZDCHF: "NZDCHF",
+  NZDCAD: "NZDCAD",
+  GBPNZD: "GBPNZD",
+  GBPJPY: "GBPJPY",
+  GBPCHF: "GBPCHF",
+  GBPCAD: "GBPCAD",
+  GBPAUD: "GBPAUD",
+  EURNZD: "EURNZD",
+  EURJPY: "EURJPY",
+  EURGBP: "EURGBP",
+  EURCHF: "EURCHF",
+  EURCAD: "EURCAD",
+  EURAUD: "EURAUD",
+  CHFJPY: "CHFJPY",
+  CADJPY: "CADJPY",
+  CADCHF: "CADCHF",
+  AUDNZD: "AUDNZD",
+  AUDJPY: "AUDJPY",
+  AUDCHF: "AUDCHF",
+  AUDCAD: "AUDCAD",
+  XAUUSD: "XAUUSD",
+  XAGUSD: "XAGUSD",
+  SP: "^GSPC",
+  NSDQ: { primary: "^NDX", fallback: "QQQ" },
+  NIKKEI: "^N225",
+  DOW: "^DJI",
+  DAX: { primary: "^GDAXI", fallback: "DAX" },
+  ASX: { primary: "^AXJO", fallback: "EWA" },
+  WTI: { primary: "CLUSD", fallback: "USO" },
+  BRENT: "BZUSD",
+  XRPUSD: "XRPUSD",
+  SOLUSD: "SOLUSD",
+  LTCUSD: "LTCUSD",
+  ETHUSD: "ETHUSD",
+  BTCUSD: "BTCUSD",
+  BNBUSD: "BNBUSD",
+  BCHUSD: "BCHUSD",
+  ADAUSD: "ADAUSD",
 };
+
+for (const [symbol, value] of Object.entries(symbolMap)) {
+  if (typeof value === "string") {
+    symbolMap[symbol] = { primary: value };
+  }
+}
 
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
@@ -37,26 +75,58 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   USDCAD: ["USD", "CAD"],
   USDCHF: ["USD", "CHF"],
   NZDUSD: ["NZD", "USD"],
+  NZDJPY: ["NZD", "JPY"],
+  NZDCHF: ["NZD", "CHF"],
+  NZDCAD: ["NZD", "CAD"],
+  GBPNZD: ["GBP", "NZD"],
+  GBPJPY: ["GBP", "JPY"],
+  GBPCHF: ["GBP", "CHF"],
+  GBPCAD: ["GBP", "CAD"],
+  GBPAUD: ["GBP", "AUD"],
+  EURNZD: ["EUR", "NZD"],
+  EURJPY: ["EUR", "JPY"],
+  EURGBP: ["EUR", "GBP"],
+  EURCHF: ["EUR", "CHF"],
+  EURCAD: ["EUR", "CAD"],
+  EURAUD: ["EUR", "AUD"],
+  CHFJPY: ["CHF", "JPY"],
+  CADJPY: ["CAD", "JPY"],
+  CADCHF: ["CAD", "CHF"],
+  AUDNZD: ["AUD", "NZD"],
+  AUDJPY: ["AUD", "JPY"],
+  AUDCHF: ["AUD", "CHF"],
+  AUDCAD: ["AUD", "CAD"],
   XAUUSD: ["USD"],
   XAGUSD: ["USD"],
-  US30: ["USD"],
-  NAS100: ["USD"],
-  SPX500: ["USD"],
-  NASDAQ: ["USD"],
-  SPY: ["USD"],
-  QQQ: ["USD"],
-  DIA: ["USD"],
-  IWM: ["USD"],
-  GLD: ["USD"],
-  SLV: ["USD"],
+  SP: ["USD"],
+  NSDQ: ["USD"],
+  NIKKEI: ["JPY"],
+  DOW: ["USD"],
+  DAX: ["EUR"],
+  ASX: ["AUD"],
+  WTI: ["USD"],
+  BRENT: ["USD"],
+  XRPUSD: ["USD"],
+  SOLUSD: ["USD"],
+  LTCUSD: ["USD"],
+  ETHUSD: ["USD"],
+  BTCUSD: ["USD"],
+  BNBUSD: ["USD"],
+  BCHUSD: ["USD"],
+  ADAUSD: ["USD"],
 };
 
 const correlationGroups: Record<string, string[]> = {
-  eur_beta: ["EURUSD", "GBPUSD"],
-  commodity_fx: ["AUDUSD", "NZDUSD", "USDCAD"],
+  aud_crosses: ["AUDUSD", "AUDNZD", "AUDJPY", "AUDCHF", "AUDCAD", "EURAUD", "GBPAUD"],
+  crypto: ["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"],
+  energies: ["WTI", "BRENT"],
+  eur_crosses: ["EURUSD", "EURNZD", "EURJPY", "EURGBP", "EURCHF", "EURCAD", "EURAUD"],
+  gbp_crosses: ["GBPUSD", "GBPNZD", "GBPJPY", "GBPCHF", "GBPCAD", "GBPAUD", "EURGBP"],
+  jpy_crosses: ["USDJPY", "NZDJPY", "GBPJPY", "EURJPY", "CHFJPY", "CADJPY", "AUDJPY"],
   metals: ["XAUUSD", "XAGUSD"],
-  us_indices: ["US30", "NAS100", "SPX500", "NASDAQ", "SPY", "QQQ", "DIA", "IWM"],
-  precious_metal_funds: ["GLD", "SLV"],
+  nzd_crosses: ["NZDUSD", "NZDJPY", "NZDCHF", "NZDCAD", "AUDNZD", "EURNZD", "GBPNZD"],
+  us_indices: ["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX"],
+  usd_majors: ["USDJPY", "USDCHF", "USDCAD", "NZDUSD", "GBPUSD", "EURUSD", "AUDUSD"],
 };
 
 const intradayTimeframes = ["4hour", "1hour", "15min"] as const;
@@ -155,6 +225,12 @@ type ExistingSetupRow = {
   take_profit: number | string;
 };
 
+type ProviderContextResult = {
+  fmpSymbol: string | null;
+  marketContext: MarketContext | null;
+  providerFailures: string[];
+};
+
 Deno.serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -188,8 +264,8 @@ Deno.serve(async (req) => {
 
     const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
-    const fmpSymbol = symbolMap[uiSymbol] ?? sanitizeFmpSymbol(requestedSymbol);
-    if (!fmpSymbol) {
+    const providerSymbols = resolveProviderSymbols(requestedSymbol);
+    if (providerSymbols.length === 0) {
       return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
     }
 
@@ -231,9 +307,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const marketContext = await fetchMarketContext(fmpSymbol);
+    const { fmpSymbol, marketContext, providerFailures } = await fetchFirstAvailableMarketContext(providerSymbols);
+    if (!fmpSymbol || !marketContext) {
+      return jsonResponse(req, { blocked: true, reason: "FMP did not return enough bars for this instrument.", providerWarnings: providerFailures });
+    }
+
     if (marketContext.daily.length < 80) {
-      return jsonResponse(req, { blocked: true, reason: "Not enough FMP daily bars returned for analyzer confidence.", providerWarnings: marketContext.providerWarnings });
+      return jsonResponse(req, { blocked: true, reason: "Not enough FMP daily bars returned for analyzer confidence.", providerWarnings: [...providerFailures, ...marketContext.providerWarnings] });
     }
 
     const group = getCorrelationGroup(symbol);
@@ -331,6 +411,36 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Promise<ProviderContextResult> {
+  const providerFailures: string[] = [];
+
+  for (const [index, providerSymbol] of providerSymbols.entries()) {
+    try {
+      const marketContext = await fetchMarketContext(providerSymbol);
+      if (marketContext.daily.length >= 80) {
+        if (index > 0) {
+          marketContext.providerWarnings.unshift(`Using FMP fallback symbol ${providerSymbol}; primary ${providerSymbols[0]} was unavailable.`);
+        }
+        return {
+          fmpSymbol: providerSymbol,
+          marketContext,
+          providerFailures,
+        };
+      }
+
+      providerFailures.push(`${providerSymbol}: insufficient daily history (${marketContext.daily.length} bars)`);
+    } catch (error) {
+      providerFailures.push(`${providerSymbol}: ${error instanceof Error ? error.message : "FMP request failed"}`);
+    }
+  }
+
+  return {
+    fmpSymbol: null,
+    marketContext: null,
+    providerFailures,
+  };
+}
 
 async function analyzeSetup(
   token: string,
@@ -1080,6 +1190,14 @@ function getBearerToken(req: Request) {
 
 function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function resolveProviderSymbols(symbol: string) {
+  const normalized = normalizeSymbol(symbol);
+  const config = symbolMap[normalized] as SymbolConfig | undefined;
+  const sanitized = sanitizeFmpSymbol(symbol);
+  const symbols = config ? [config.primary, config.fallback].filter(Boolean) : [sanitized].filter(Boolean);
+  return Array.from(new Set(symbols)) as string[];
 }
 
 function sanitizeFmpSymbol(value: string) {

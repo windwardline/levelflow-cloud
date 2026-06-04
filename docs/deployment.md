@@ -26,7 +26,6 @@ Run `supabase/init.sql` in the Supabase SQL editor. The SQL creates:
 Deploy the `market-data` and `trade-analyzer` Edge Functions before exposing live charting and advisory setup generation in production. The functions require a Supabase-authenticated user session, allow the production origin `https://app.windwardline.com`, and keep provider credentials off the static frontend.
 
 ```bash
-npx supabase secrets set MASSIVE_API_KEY=your_massive_api_key --project-ref your-project-ref
 npx supabase secrets set FMP_API_KEY=your_financial_modeling_prep_key --project-ref your-project-ref
 npx supabase functions deploy market-data trade-analyzer --project-ref your-project-ref
 ```
@@ -37,7 +36,7 @@ The browser app remains static. Provider-backed work now runs through Supabase E
 
 Deployed functions:
 
-- `market-data`: authenticated Massive.com market-data access.
+- `market-data`: authenticated FMP market-data access.
 - `trade-analyzer`: authenticated FMP-backed, multi-timeframe advisory limit-order setup generation.
 - `news-calendar`: token-protected economic-calendar ingestion.
 
@@ -53,7 +52,6 @@ Required server-only env vars:
 ```bash
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-MASSIVE_API_KEY=your_massive_api_key
 NEWS_SYNC_TOKEN=your_generated_sync_token
 FMP_API_KEY=your_financial_modeling_prep_key
 FMP_API_BASE_URL=https://financialmodelingprep.com/stable

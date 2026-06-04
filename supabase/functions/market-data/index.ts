@@ -7,7 +7,12 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.win
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const symbolMap = {
+type SymbolConfig = {
+  fallback?: string;
+  primary: string;
+};
+
+const symbolMap: Record<string, string | SymbolConfig> = {
   EURUSD: "EURUSD",
   GBPUSD: "GBPUSD",
   USDJPY: "USDJPY",
@@ -15,23 +20,56 @@ const symbolMap = {
   USDCAD: "USDCAD",
   USDCHF: "USDCHF",
   NZDUSD: "NZDUSD",
-  XAUUSD: "GCUSD",
-  XAGUSD: "SIUSD",
-  US30: "^DJI",
-  NAS100: "^NDX",
-  SPX500: "^GSPC",
-  NASDAQ: "^IXIC",
-  SPY: "SPY",
-  QQQ: "QQQ",
-  DIA: "DIA",
-  IWM: "IWM",
-  GLD: "GLD",
-  SLV: "SLV",
-} as const;
+  NZDJPY: "NZDJPY",
+  NZDCHF: "NZDCHF",
+  NZDCAD: "NZDCAD",
+  GBPNZD: "GBPNZD",
+  GBPJPY: "GBPJPY",
+  GBPCHF: "GBPCHF",
+  GBPCAD: "GBPCAD",
+  GBPAUD: "GBPAUD",
+  EURNZD: "EURNZD",
+  EURJPY: "EURJPY",
+  EURGBP: "EURGBP",
+  EURCHF: "EURCHF",
+  EURCAD: "EURCAD",
+  EURAUD: "EURAUD",
+  CHFJPY: "CHFJPY",
+  CADJPY: "CADJPY",
+  CADCHF: "CADCHF",
+  AUDNZD: "AUDNZD",
+  AUDJPY: "AUDJPY",
+  AUDCHF: "AUDCHF",
+  AUDCAD: "AUDCAD",
+  XAUUSD: "XAUUSD",
+  XAGUSD: "XAGUSD",
+  SP: "^GSPC",
+  NSDQ: { primary: "^NDX", fallback: "QQQ" },
+  NIKKEI: "^N225",
+  DOW: "^DJI",
+  DAX: { primary: "^GDAXI", fallback: "DAX" },
+  ASX: { primary: "^AXJO", fallback: "EWA" },
+  WTI: { primary: "CLUSD", fallback: "USO" },
+  BRENT: "BZUSD",
+  XRPUSD: "XRPUSD",
+  SOLUSD: "SOLUSD",
+  LTCUSD: "LTCUSD",
+  ETHUSD: "ETHUSD",
+  BTCUSD: "BTCUSD",
+  BNBUSD: "BNBUSD",
+  BCHUSD: "BCHUSD",
+  ADAUSD: "ADAUSD",
+};
+
+for (const [symbol, value] of Object.entries(symbolMap)) {
+  if (typeof value === "string") {
+    symbolMap[symbol] = { primary: value };
+  }
+}
 
 const intradayTimeframes = ["15min", "1hour", "4hour"] as const;
 
-type SupportedSymbol = keyof typeof symbolMap;
+type SupportedSymbol = string;
 type ChartTimeframe = "1day" | (typeof intradayTimeframes)[number];
 
 type MarketDataRequest = {
@@ -78,51 +116,39 @@ Deno.serve(async (req) => {
 
   const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
   const uiSymbol = normalizeSymbol(requestedSymbol);
-  const ticker = symbolMap[uiSymbol as SupportedSymbol] ?? sanitizeFmpSymbol(requestedSymbol);
-  if (!ticker) {
+  const providerSymbols = resolveProviderSymbols(requestedSymbol);
+  if (providerSymbols.length === 0) {
     return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
   }
 
   const timeframe = normalizeTimeframe(body.timeframe);
   const { from, to } = resolveDateWindow(body, timeframe);
-  const endpoint =
-    timeframe === "1day"
-      ? new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`)
-      : new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`);
-  endpoint.searchParams.set("symbol", ticker);
-  endpoint.searchParams.set("apikey", FMP_API_KEY);
+  const failures: string[] = [];
+  let payload: FmpBar[] = [];
+  let ticker = providerSymbols[0];
 
-  if (timeframe === "1day") {
-    endpoint.searchParams.set("from", from);
-    endpoint.searchParams.set("to", to);
+  for (const providerSymbol of providerSymbols) {
+    const result = await fetchFmpBars(providerSymbol, timeframe, from, to);
+    if (result.ok && result.payload.length > 0) {
+      payload = result.payload;
+      ticker = providerSymbol;
+      break;
+    }
+    failures.push(`${providerSymbol}: ${result.status}`);
   }
 
-  const response = await fetch(endpoint);
-  const responseText = await response.text();
-
-  if (!response.ok) {
+  if (payload.length === 0) {
     return jsonResponse(
       req,
       {
         error: "FMP market data request failed",
-        providerStatus: responseText.slice(0, 220) || response.statusText,
+        providerStatus: failures.join(" | ") || "NO_DATA",
       },
-      response.status,
+      502,
     );
   }
 
-  let payload: unknown;
-  try {
-    payload = JSON.parse(responseText);
-  } catch {
-    return jsonResponse(req, { error: "FMP market data response was not JSON", providerStatus: "INVALID_JSON" }, 502);
-  }
-
-  if (!Array.isArray(payload)) {
-    return jsonResponse(req, { error: "FMP market data response was not an array", providerStatus: "UNEXPECTED_RESPONSE" }, 502);
-  }
-
-  const points = (payload as FmpBar[])
+  const points = payload
     .filter((point) => typeof point.date === "string" && typeof point.close === "number")
     .map((point) => ({
       close: point.close as number,
@@ -145,7 +171,7 @@ Deno.serve(async (req) => {
     latestClose: latest?.close ?? null,
     points,
     provider: "FMP",
-    providerStatus: "OK",
+    providerStatus: ticker === providerSymbols[0] ? "OK" : `OK_FALLBACK:${ticker}`,
     resultsCount: points.length,
     symbol: uiSymbol,
     timeframe,
@@ -187,6 +213,63 @@ function normalizeSymbol(value: string) {
 function sanitizeFmpSymbol(value: string) {
   const symbol = value.toUpperCase().replace(/[^A-Z0-9.^_-]/g, "").slice(0, 32);
   return symbol || null;
+}
+
+function resolveProviderSymbols(symbol: string) {
+  const normalized = normalizeSymbol(symbol);
+  const config = symbolMap[normalized] as SymbolConfig | undefined;
+  const sanitized = sanitizeFmpSymbol(symbol);
+  const symbols = config ? [config.primary, config.fallback].filter(Boolean) : [sanitized].filter(Boolean);
+  return Array.from(new Set(symbols)) as string[];
+}
+
+async function fetchFmpBars(providerSymbol: string, timeframe: ChartTimeframe, from: string, to: string) {
+  const endpoint =
+    timeframe === "1day"
+      ? new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`)
+      : new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`);
+  endpoint.searchParams.set("symbol", providerSymbol);
+  endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
+
+  if (timeframe === "1day") {
+    endpoint.searchParams.set("from", from);
+    endpoint.searchParams.set("to", to);
+  }
+
+  const response = await fetch(endpoint);
+  const responseText = await response.text();
+  if (!response.ok) {
+    return {
+      ok: false,
+      payload: [] as FmpBar[],
+      status: responseText.slice(0, 120) || response.statusText,
+    };
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(responseText);
+  } catch {
+    return {
+      ok: false,
+      payload: [] as FmpBar[],
+      status: "INVALID_JSON",
+    };
+  }
+
+  if (!Array.isArray(payload)) {
+    return {
+      ok: false,
+      payload: [] as FmpBar[],
+      status: "UNEXPECTED_RESPONSE",
+    };
+  }
+
+  return {
+    ok: payload.length > 0,
+    payload: payload as FmpBar[],
+    status: payload.length > 0 ? "OK" : "NO_DATA",
+  };
 }
 
 function normalizeTimeframe(value: unknown): ChartTimeframe {
