@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { BookOpen, Gift, HelpCircle, History, LayoutDashboard, LogOut, Mail, ShieldAlert, Timer, User, Wallet, Wifi } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
+import { DonationOptions } from "./components/donations/DonationOptions";
 import { LegalLinks } from "./components/legal/LegalLinks";
 import { AccountOnboarding } from "./components/onboarding/AccountOnboarding";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useE8Time } from "./hooks/useE8Time";
 import { useTradeSetups, type SecurityStat } from "./hooks/useTradeSetups";
 import { useUserAccounts } from "./hooks/useUserAccounts";
-import { appConfig } from "./lib/env";
 import { brandAssets } from "./lib/assets";
 import { supabase } from "./lib/supabase";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
@@ -347,9 +347,9 @@ function HelpPanel() {
 }
 
 function DonatePanel() {
-  const donationHref =
-    appConfig.donationUrl ||
-    `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent("I would like the current donation link for LevelFlow development and maintenance.")}`;
+  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent(
+    "I would like the current donation link for LevelFlow development and maintenance.",
+  )}`;
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -376,11 +376,7 @@ function DonatePanel() {
             <h2 className="text-2xl font-semibold tracking-normal text-navy">Donate</h2>
           </div>
         </div>
-        <p className="text-sm leading-6 text-slate">Contributions go toward provider data, hosting, development, testing, and maintenance costs.</p>
-        <a className="primary-button mt-5" href={donationHref} target={appConfig.donationUrl ? "_blank" : undefined} rel={appConfig.donationUrl ? "noreferrer" : undefined}>
-          <Gift className="h-4 w-4" aria-hidden="true" />
-          {appConfig.donationUrl ? "Donate" : "Request donation link"}
-        </a>
+        <DonationOptions fallbackHref={donationFallbackHref} />
       </section>
     </div>
   );
