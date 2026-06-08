@@ -67,6 +67,8 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
   }
 }
 
+const temporarilyUnavailableSymbols = new Set(["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"]);
+
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
   GBPUSD: ["GBP", "USD"],
@@ -264,6 +266,14 @@ Deno.serve(async (req) => {
 
     const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
+    if (temporarilyUnavailableSymbols.has(uiSymbol)) {
+      return jsonResponse(req, {
+        blocked: true,
+        reason: "This asset group is temporarily unavailable while LevelFlow verifies provider coverage.",
+        symbol: uiSymbol,
+      });
+    }
+
     const providerSymbols = resolveProviderSymbols(requestedSymbol);
     if (providerSymbols.length === 0) {
       return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
@@ -487,9 +497,8 @@ async function analyzeSetup(
 
   const balance = Number(account.current_balance || account.initial_balance);
   const dailyDrawdownLimit = Number(account.daily_drawdown_limit || balance * 0.02);
-  const riskDistance = Math.abs(pricePlan.entryPrice - pricePlan.stopLoss);
   const maxLoss = Math.min(dailyDrawdownLimit * 0.7, balance * 0.0045);
-  const lotSize = Number(Math.max(0.01, maxLoss / Math.max(riskDistance, 0.00001)).toFixed(2));
+  const lotSize = 0.01;
   const breakevenTriggerPrice =
     consensus.side === "buy"
       ? pricePlan.entryPrice + Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5
@@ -527,6 +536,8 @@ async function analyzeSetup(
       dailyAtr: averageTrueRange(market.daily, 14),
       maxLoss,
       dailyDrawdownLimit,
+      lotSizingStatus: "hidden_pending_e8_contract_specs",
+      lotSizingReason: "LevelFlow needs verified E8 contract size and tick value data before surfacing lot recommendations.",
       activeNewsEventsTracked: activeNewsEvents.length,
       upcomingNewsEventsTracked: upcomingNewsEvents.length,
       stopLogic: pricePlan.stopLogic,

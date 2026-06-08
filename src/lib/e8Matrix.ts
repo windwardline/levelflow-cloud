@@ -31,8 +31,8 @@ export type E8AccountSelection = E8Ruleset & {
   defaultPayout: number;
   leverageRatio: "1:30";
   rawSpreadsEnabled: true;
-  noCommissionsEnabled: false;
-  noCommissionsSelectable: false;
+  noCommissionsEnabled: boolean;
+  noCommissionsSelectable: true;
 };
 
 const e8OneRulesets: E8Ruleset[] = [
@@ -85,7 +85,7 @@ export const E8_PROGRAMS: Record<E8ProgramCode, E8Program> = {
     balances: [5_000, 10_000, 25_000, 50_000, 100_000, 200_000, 400_000, 500_000],
     payoutOptions: [80, 90, 100],
     defaultPayout: 80,
-    phaseTwoRequired: true,
+    phaseTwoRequired: false,
     newsBlackoutEnforced: true,
     rulesets: e8OneRulesets,
   },
@@ -180,6 +180,6 @@ export function getSelection(programCode: E8ProgramCode, balance: number, rulese
     leverageRatio: "1:30",
     rawSpreadsEnabled: true,
     noCommissionsEnabled: false,
-    noCommissionsSelectable: false,
+    noCommissionsSelectable: true,
   };
 }

@@ -67,9 +67,7 @@ create table if not exists public.e8_programs (
   raw_spreads_enabled boolean not null default true,
   no_commissions_enabled boolean not null default false,
   no_commissions_selectable boolean not null default false,
-  created_at timestamptz not null default now(),
-  constraint e8_programs_raw_spreads_required check (raw_spreads_enabled is true),
-  constraint e8_programs_no_commissions_disabled check (no_commissions_enabled is false)
+  created_at timestamptz not null default now()
 );
 
 create table if not exists public.e8_account_sizes (
@@ -100,9 +98,7 @@ create table if not exists public.e8_account_sizes (
   constraint e8_account_sizes_one_drawdown_type check (
     (drawdown_mode = 'static' and static_drawdown_pct is not null and dynamic_drawdown_pct is null)
     or (drawdown_mode in ('dynamic_intraday', 'dynamic_eod') and dynamic_drawdown_pct is not null and static_drawdown_pct is null)
-  ),
-  constraint e8_account_sizes_raw_spreads_required check (raw_spreads_enabled is true),
-  constraint e8_account_sizes_no_commissions_disabled check (no_commissions_enabled is false)
+  )
 );
 
 create table if not exists public.user_accounts (
@@ -126,9 +122,7 @@ create table if not exists public.user_accounts (
   no_commissions_enabled boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  archived_at timestamptz,
-  constraint user_accounts_no_commissions_disabled check (no_commissions_enabled is false),
-  constraint user_accounts_raw_spreads_required check (raw_spreads_enabled is true)
+  archived_at timestamptz
 );
 
 create table if not exists public.account_day_metrics (
@@ -264,6 +258,12 @@ on conflict (program_code) do update set
   display_name = excluded.display_name,
   description = excluded.description;
 
+update public.e8_programs
+set
+  raw_spreads_enabled = true,
+  no_commissions_enabled = true,
+  no_commissions_selectable = true;
+
 insert into public.e8_account_sizes (
   id,
   program_code,
@@ -299,7 +299,7 @@ select
   r.profit_target_pct,
   array[80, 90, 100]::smallint[],
   80,
-  true,
+  false,
   true
 from (
   values
@@ -327,6 +327,13 @@ on conflict (id) do update set
   profit_target_pct = excluded.profit_target_pct,
   payout_options = excluded.payout_options,
   default_payout_pct = excluded.default_payout_pct;
+
+update public.e8_account_sizes
+set
+  raw_spreads_enabled = true,
+  no_commissions_enabled = true,
+  no_commissions_selectable = true,
+  phase_two_required = false;
 
 insert into public.e8_account_sizes (
   id,
@@ -415,6 +422,13 @@ on conflict (id) do update set
   payout_options = excluded.payout_options,
   default_payout_pct = excluded.default_payout_pct;
 
+update public.e8_account_sizes
+set
+  raw_spreads_enabled = true,
+  no_commissions_enabled = true,
+  no_commissions_selectable = true,
+  phase_two_required = false;
+
 create or replace function private.set_updated_at()
 returns trigger
 language plpgsql
@@ -497,14 +511,18 @@ begin
     raise exception 'Payout % is not available for account size %', new.payout_pct, new.account_size_id;
   end if;
 
-  if new.no_commissions_enabled is true then
-    raise exception 'No Commissions is visible in the UI but disabled by LevelFlow policy';
+  if new.current_balance <= 0 or new.current_equity <= 0 then
+    raise exception 'Current balance and current equity must be greater than zero';
   end if;
 
-  new.raw_spreads_enabled = true;
-  new.no_commissions_enabled = false;
+  new.no_commissions_enabled = coalesce(new.no_commissions_enabled, false);
+  if new.no_commissions_enabled and not cfg.no_commissions_selectable then
+    raise exception 'No Commissions is not available for account size %', new.account_size_id;
+  end if;
 
-  if new.program_code = 'e8_pro'::public.e8_program_code and new.stage = 'phase_2'::public.account_stage then
+  new.raw_spreads_enabled = not new.no_commissions_enabled;
+
+  if new.stage in ('phase_1'::public.account_stage, 'phase_2'::public.account_stage) then
     new.stage = 'evaluation'::public.account_stage;
   end if;
 

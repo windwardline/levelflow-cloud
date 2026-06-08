@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { MarketChart } from "./MarketChart";
 import { fetchMarketData, type MarketDataResponse } from "../../lib/marketData";
-import { SECURITY_GROUPS, formatSecurityLabel, getSecurityOption, toFmpSymbol, type SupportedSymbol } from "../../lib/symbolMap";
+import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, getSecurityOption, toFmpSymbol, type SupportedSymbol } from "../../lib/symbolMap";
 
 export function MarketFeed() {
   const [selectedSymbol, setSelectedSymbol] = useState<SupportedSymbol>("EURUSD");
@@ -67,9 +67,9 @@ export function MarketFeed() {
 
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
         <label className="grid gap-2 text-sm font-semibold text-navy">
-          Security
+          Asset
           <select className="field" value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value as SupportedSymbol)}>
-            {SECURITY_GROUPS.map((group) => (
+            {AVAILABLE_ASSET_GROUPS.map((group) => (
               <optgroup key={group.label} label={group.label}>
                 {group.options.map((option) => (
                   <option key={option.symbol} value={option.symbol}>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Brain, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { generateTradeSetup, type AnalyzerResponse } from "../../lib/tradeAnalyzer";
-import { SECURITY_GROUPS, type SupportedSymbol } from "../../lib/symbolMap";
+import { AVAILABLE_ASSET_GROUPS, type SupportedSymbol } from "../../lib/symbolMap";
 import { supabase } from "../../lib/supabase";
 import { ConfidenceGauge } from "./ConfidenceGauge";
 
@@ -109,9 +109,9 @@ export function TradeAnalyzerPanel() {
         </label>
 
         <label className="grid gap-2 text-sm font-semibold text-navy">
-          Security
+          Asset
           <select className="field" value={symbol} onChange={(event) => setSymbol(event.target.value as SupportedSymbol)}>
-            {SECURITY_GROUPS.map((group) => (
+            {AVAILABLE_ASSET_GROUPS.map((group) => (
               <optgroup key={group.label} label={group.label}>
                 {group.options.map((option) => (
                   <option key={option.symbol} value={option.symbol}>
@@ -139,7 +139,6 @@ export function TradeAnalyzerPanel() {
               <AnalyzerRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
               <AnalyzerRow label="Take profit" value={formatNumber(setup.takeProfit)} />
               <AnalyzerRow label="Breakeven" value={formatNumber(setup.breakevenTriggerPrice)} />
-              <AnalyzerRow label="Lot size" value={setup.lotSize.toString()} />
             </div>
             <div className="flex items-start gap-2 rounded-lg bg-bullish/10 px-3 py-2 text-sm font-semibold text-bullish">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

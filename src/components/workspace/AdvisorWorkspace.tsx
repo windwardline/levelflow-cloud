@@ -5,7 +5,7 @@ import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import type { SavedAccount } from "../../hooks/useUserAccounts";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
-import { SECURITY_GROUPS, formatSecurityLabel, getSecurityOption, type SupportedSymbol } from "../../lib/symbolMap";
+import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, getSecurityOption, type SupportedSymbol } from "../../lib/symbolMap";
 import { generateTradeSetup, type AnalyzerResponse, type AnalyzerSetup, type TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatCurrency } from "../../lib/e8Matrix";
 
@@ -48,14 +48,14 @@ export function AdvisorWorkspace({
   const [advisorNotice, setAdvisorNotice] = useState("");
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0] ?? null;
-  const selectedSecurity = getSecurityOption(symbol);
+  const selectedAsset = getSecurityOption(symbol);
   const latestSavedSetup = useMemo(
     () => setups.find((setup) => setup.account_id === selectedAccount?.id && setup.symbol === symbol) ?? null,
     [selectedAccount?.id, setups, symbol],
   );
   const setup = result?.setup ?? mapSavedSetup(latestSavedSetup);
   const symbolStat = setupStats.find((stat) => stat.symbol === symbol);
-  const scopedSymbolCount = SECURITY_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
+  const scopedSymbolCount = AVAILABLE_ASSET_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,7 +148,7 @@ export function AdvisorWorkspace({
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-navy">
-              Security
+              Asset
               <select
                 className="field"
                 value={symbol}
@@ -157,7 +157,7 @@ export function AdvisorWorkspace({
                   setResult(null);
                 }}
               >
-                {SECURITY_GROUPS.map((group) => (
+                {AVAILABLE_ASSET_GROUPS.map((group) => (
                   <optgroup key={group.label} label={group.label}>
                     {group.options.map((option) => (
                       <option key={option.symbol} value={option.symbol}>
@@ -199,7 +199,7 @@ export function AdvisorWorkspace({
           <div className="min-w-0 p-5 sm:p-6">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate">{selectedSecurity.assetType}</p>
+                <p className="text-sm font-semibold text-slate">{selectedAsset.assetType}</p>
                 <h3 className="text-xl font-semibold tracking-normal text-navy">{formatSecurityLabel(symbol)}</h3>
               </div>
               <div className="text-right">
@@ -211,7 +211,7 @@ export function AdvisorWorkspace({
             </div>
             <MarketChart data={marketData?.points ?? []} loading={marketLoading} setup={setup} />
             <p className="mt-3 text-sm font-medium text-slate">{marketNotice}</p>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">E8 scope: {scopedSymbolCount} approved instruments</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">E8 scope: {scopedSymbolCount} active LevelFlow assets</p>
           </div>
 
           <aside className="border-t border-slate/15 p-5 sm:p-6 lg:border-l lg:border-t-0">
@@ -237,7 +237,7 @@ export function AdvisorWorkspace({
             <BarChart3 className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
               <p className="text-sm font-semibold text-slate">Focus statistics</p>
-              <h3 className="text-lg font-semibold tracking-normal text-navy">{selectedSecurity.symbol}</h3>
+              <h3 className="text-lg font-semibold tracking-normal text-navy">{selectedAsset.symbol}</h3>
             </div>
           </div>
           {symbolStat ? (
@@ -249,7 +249,7 @@ export function AdvisorWorkspace({
               <MetricRow label="Pending review" value={symbolStat.pending.toString()} />
             </div>
           ) : (
-            <p className="text-sm leading-6 text-slate">No saved recommendations for this security yet.</p>
+            <p className="text-sm leading-6 text-slate">No saved recommendations for this asset yet.</p>
           )}
         </section>
       </aside>
@@ -266,7 +266,7 @@ function RecommendationPanel({
   latestSavedSetup: TradeSetupRow | null;
   notice: string;
   result: AnalyzerResponse | null;
-  setup: Pick<AnalyzerSetup, "breakevenTriggerPrice" | "confidenceScore" | "entryPrice" | "lotSize" | "side" | "stopLoss" | "takeProfit"> | null;
+  setup: Pick<AnalyzerSetup, "breakevenTriggerPrice" | "confidenceScore" | "entryPrice" | "side" | "stopLoss" | "takeProfit"> | null;
 }) {
   if (setup) {
     return (
@@ -278,11 +278,10 @@ function RecommendationPanel({
           <MetricRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
           <MetricRow label="Take profit" value={formatNumber(setup.takeProfit)} />
           <MetricRow label="Breakeven" value={formatNumber(setup.breakevenTriggerPrice)} />
-          <MetricRow label="Lot size" value={setup.lotSize > 0 ? setup.lotSize.toString() : "Logged setup"} />
         </div>
         <div className="flex items-start gap-2 rounded-lg bg-bullish/10 px-3 py-2 text-sm font-semibold text-bullish">
           {result?.deduplicated ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-          {notice || (latestSavedSetup ? "Showing latest saved recommendation for this security." : "Advisory setup ready. LevelFlow does not execute trades.")}
+          {notice || (latestSavedSetup ? "Showing latest saved recommendation for this asset." : "Advisory setup ready. LevelFlow does not execute trades.")}
         </div>
       </div>
     );
@@ -293,7 +292,7 @@ function RecommendationPanel({
       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-white">
         <Target className="h-5 w-5" aria-hidden="true" />
       </div>
-      <p>{notice || "Choose an account and security, then generate the best current advisory setup. Results are logged once per unique active setup."}</p>
+      <p>{notice || "Choose an account and asset, then generate the best current advisory setup. Results are logged once per unique active setup."}</p>
     </div>
   );
 }
@@ -339,7 +338,6 @@ function mapSavedSetup(setup: TradeSetupRow | null) {
     breakevenTriggerPrice: Number(setup.breakeven_trigger_price),
     confidenceScore: Number(setup.confidence_score),
     entryPrice: Number(setup.limit_entry),
-    lotSize: Number(setup.risk_model?.lotSize ?? 0),
     side: setup.side,
     stopLoss: Number(setup.stop_loss),
     takeProfit: Number(setup.take_profit),

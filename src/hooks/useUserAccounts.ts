@@ -10,15 +10,17 @@ export type SavedAccount = {
   current_equity: number | string;
   id: string;
   initial_balance: number | string;
+  no_commissions_enabled: boolean;
   payout_pct: number;
   program_code: E8ProgramCode;
+  raw_spreads_enabled: boolean;
   stage: string;
   status: string;
   updated_at: string;
 };
 
 const ACCOUNT_SELECT =
-  "id, account_name, account_size_id, program_code, payout_pct, stage, status, initial_balance, current_balance, current_equity, created_at, updated_at";
+  "id, account_name, account_size_id, program_code, payout_pct, stage, status, initial_balance, current_balance, current_equity, raw_spreads_enabled, no_commissions_enabled, created_at, updated_at";
 
 export function useUserAccounts() {
   const [accounts, setAccounts] = useState<SavedAccount[]>([]);

@@ -162,7 +162,7 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
               <tr>
                 <th className="py-3 pr-4 font-semibold">Date</th>
                 <th className="py-3 pr-4 font-semibold">Account</th>
-                <th className="py-3 pr-4 font-semibold">Security</th>
+                <th className="py-3 pr-4 font-semibold">Asset</th>
                 <th className="py-3 pr-4 font-semibold">Side</th>
                 <th className="py-3 pr-4 font-semibold">Entry</th>
                 <th className="py-3 pr-4 font-semibold">Stop</th>
@@ -193,7 +193,7 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
 
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Security trends</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Asset trends</p>
           <h2 className="text-2xl font-semibold tracking-normal text-navy">Stats</h2>
         </div>
         <div className="grid gap-3">
@@ -291,7 +291,7 @@ function ProfilePanel({ email, userId }: { email: string; userId: string }) {
 
 function HelpPanel() {
   return (
-    <section className="terminal-panel max-w-5xl p-5 sm:p-6">
+    <section className="terminal-panel max-w-4xl p-5 sm:p-6">
       <div className="mb-5 flex items-center gap-3">
         <BookOpen className="h-5 w-5 text-navy" aria-hidden="true" />
         <div>
@@ -299,47 +299,62 @@ function HelpPanel() {
           <h2 className="text-2xl font-semibold tracking-normal text-navy">How to use LevelFlow</h2>
         </div>
       </div>
-      <div className="mb-5 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
-        <h3 className="font-semibold text-navy">First-session checklist</h3>
-        <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>Create one Account record for each E8 account you trade.</li>
-          <li>Open Advisor, select the account, then choose the security from the approved E8 dropdown.</li>
-          <li>Review the 1H chart first, change timeframe only when you need a different market read, then generate the setup.</li>
-          <li>Use History after each session to review what was recommended and keep outcomes current.</li>
-        </ol>
+
+      <div className="mb-5 grid gap-3 text-sm leading-6 text-slate md:grid-cols-3">
+        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-3">
+          <p className="font-semibold text-navy">1. Account</p>
+          <p className="mt-1">Save each E8 account with its current balance, equity, payout, drawdown rules, and pricing type.</p>
+        </div>
+        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-3">
+          <p className="font-semibold text-navy">2. Asset</p>
+          <p className="mt-1">Pick one active LevelFlow asset from Forex, Metals, or Crypto, then review the 1H chart before generating.</p>
+        </div>
+        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-3">
+          <p className="font-semibold text-navy">3. Decision</p>
+          <p className="mt-1">Generate the advisory setup, review the plotted levels, and track the recommendation in History.</p>
+        </div>
       </div>
-      <div className="grid gap-4 text-sm leading-6 text-slate lg:grid-cols-2">
+
+      <div className="grid gap-3 text-sm leading-6 text-slate">
         <GuideStep
+          number="01"
           title="1. Set up each E8 account first"
-          body="Open Accounts and create a separate record for every E8 account you want LevelFlow to advise against. Use the account's current program, balance, phase, drawdown settings, and payout cadence; these values drive risk sizing and guardrails."
+          body="Open Accounts and create a separate record for every E8 account you want LevelFlow to advise against. Use the account's starting balance, current balance, current equity, drawdown settings, payout, and pricing type. These values drive the account guardrails."
         />
         <GuideStep
+          number="02"
           title="2. Work from the Advisor screen"
-          body="Choose the E8 account first, then choose one approved security from the grouped dropdown. The chart defaults to 1H because that is the primary planning view; switch to 15 minutes, 4 hours, or daily only when the setup needs extra context."
+          body="Choose the E8 account first, then choose one active asset from the grouped dropdown. LevelFlow currently shows the E8-aligned Forex, Metals, and Crypto assets with verified provider coverage. The chart defaults to 1H because that is the primary planning view; switch to 15 minutes, 4 hours, or daily only when the setup needs extra context."
         />
         <GuideStep
+          number="03"
           title="3. Read the chart before generating"
           body="Use the chart before pressing Generate: drag left to inspect history, zoom around recent structure, and refresh the chart if you have been sitting on the screen for a while."
         />
         <GuideStep
+          number="04"
           title="4. Generate one current advisory setup"
-          body="Click Generate setup when you want the current best advisory recommendation for that account and security. LevelFlow reviews market structure, momentum, volatility, value/volume behavior, multi-timeframe alignment, account rules, and calendar context."
+          body="Click Generate setup when you want the current best advisory recommendation for that account and asset. LevelFlow reviews market structure, momentum, volatility, value/volume behavior, multi-timeframe alignment, account rules, and calendar context."
         />
         <GuideStep
+          number="05"
           title="5. Use the plotted levels"
           body="When a setup qualifies, the chart plots the limit entry, stop loss, and take profit. Use those levels as the planning reference for your own trading platform; LevelFlow does not place, modify, or close trades."
         />
         <GuideStep
+          number="06"
           title="6. Re-check without polluting history"
-          body="You can generate again for the same account and security to see whether the recommendation changed. If the same active setup is still best, LevelFlow refreshes the view and avoids creating a duplicate history row."
+          body="You can generate again for the same account and asset to see whether the recommendation changed. If the same active setup is still best, LevelFlow refreshes the view and avoids creating a duplicate history row."
         />
         <GuideStep
+          number="07"
           title="7. Review recommendation history"
-          body="Open History to review prior recommendations, confidence scores, account association, entry/stop/target, status, and recorded outcomes. Security stats show what you have asked LevelFlow to analyze and where results are accumulating."
+          body="Open History to review prior recommendations, confidence scores, account association, entry/stop/target, status, and recorded outcomes. Asset stats show what you have asked LevelFlow to analyze and where results are accumulating."
         />
         <GuideStep
+          number="08"
           title="8. Keep account and profile data current"
-          body="Update Accounts whenever balance, phase, program, drawdown, or payout status changes. Use Profile for user preferences. Cleaner account data gives the advisor cleaner risk context and more useful historical records."
+          body="Update Accounts whenever balance, equity, program, drawdown, payout, pricing type, or funded status changes. Use Profile for user preferences. Cleaner account data gives the advisor cleaner guardrail context and more useful historical records."
         />
       </div>
     </section>
@@ -382,11 +397,14 @@ function DonatePanel() {
   );
 }
 
-function GuideStep({ body, title }: { body: string; title: string }) {
+function GuideStep({ body, number, title }: { body: string; number: string; title: string }) {
   return (
-    <div className="rounded-lg bg-canvas px-4 py-3">
-      <h3 className="font-semibold text-navy">{title}</h3>
-      <p className="mt-1">{body}</p>
+    <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas px-4 py-4 sm:grid-cols-[auto_1fr]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white">{number}</div>
+      <div>
+        <h3 className="font-semibold text-navy">{title}</h3>
+        <p className="mt-1">{body}</p>
+      </div>
     </div>
   );
 }

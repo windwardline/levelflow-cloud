@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { BadgeDollarSign, CheckCircle2, History, LockKeyhole, RadioTower, Save, SlidersHorizontal } from "lucide-react";
+import { BadgeDollarSign, CheckCircle2, History, LockKeyhole, RadioTower, Save, SlidersHorizontal, Trash2 } from "lucide-react";
 import { E8_PROGRAMS, PROGRAM_ORDER, formatCurrency, getSelection, type E8ProgramCode } from "../../lib/e8Matrix";
 import type { SavedAccount } from "../../hooks/useUserAccounts";
 import { supabase } from "../../lib/supabase";
@@ -26,13 +26,23 @@ export function AccountOnboarding({
   const [rulesetId, setRulesetId] = useState(E8_PROGRAMS.e8_one.rulesets[0].id);
   const [payoutPct, setPayoutPct] = useState(E8_PROGRAMS.e8_one.defaultPayout);
   const [accountName, setAccountName] = useState("Primary Evaluation");
+  const [currentBalance, setCurrentBalance] = useState(E8_PROGRAMS.e8_one.balances[0]);
+  const [currentEquity, setCurrentEquity] = useState(E8_PROGRAMS.e8_one.balances[0]);
+  const [noCommissionsEnabled, setNoCommissionsEnabled] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "loaded">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "loaded" | "deleting" | "deleted">("idle");
   const [error, setError] = useState("");
 
   const program = E8_PROGRAMS[programCode];
 
   const selection = useMemo(() => getSelection(programCode, balance, rulesetId), [balance, programCode, rulesetId]);
+
+  useEffect(() => {
+    if (!accountId && status !== "saving") {
+      setCurrentBalance(selection.balance);
+      setCurrentEquity(selection.balance);
+    }
+  }, [accountId, selection.balance, status]);
 
   useEffect(() => {
     if (selectedAccountId === "") {
@@ -51,9 +61,20 @@ export function AccountOnboarding({
     setAccountId(null);
     setProgramCode(nextProgramCode);
     setBalance(nextProgram.balances[0]);
+    setCurrentBalance(nextProgram.balances[0]);
+    setCurrentEquity(nextProgram.balances[0]);
     setRulesetId(nextProgram.rulesets[0].id);
     setPayoutPct(nextProgram.defaultPayout);
+    setNoCommissionsEnabled(false);
     setStatus("idle");
+  }
+
+  function changeStartingBalance(nextBalance: number) {
+    setBalance(nextBalance);
+    if (!accountId) {
+      setCurrentBalance(nextBalance);
+      setCurrentEquity(nextBalance);
+    }
   }
 
   function applySavedAccount(account: SavedAccount) {
@@ -67,8 +88,11 @@ export function AccountOnboarding({
     setAccountName(account.account_name);
     setProgramCode(account.program_code);
     setBalance(accountBalance);
+    setCurrentBalance(Number(account.current_balance));
+    setCurrentEquity(Number(account.current_equity));
     setRulesetId(matchingRuleset.id);
     setPayoutPct(Number(account.payout_pct));
+    setNoCommissionsEnabled(Boolean(account.no_commissions_enabled));
     setError("");
   }
 
@@ -77,6 +101,51 @@ export function AccountOnboarding({
     setAccountName("Primary Evaluation");
     onSelectAccount?.("");
     changeProgram("e8_one");
+  }
+
+  async function deleteAccount() {
+    if (!accountId || !supabase) {
+      return;
+    }
+
+    const confirmed = window.confirm("Delete this E8 account and its saved LevelFlow recommendations?");
+    if (!confirmed) {
+      return;
+    }
+
+    setError("");
+    setStatus("deleting");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setStatus("loaded");
+      setError(userError?.message ?? "No authenticated user found.");
+      return;
+    }
+
+    const deletedAccountId = accountId;
+    const { error: deleteError } = await supabase.from("user_accounts").delete().eq("id", deletedAccountId).eq("user_id", user.id);
+
+    if (deleteError) {
+      setStatus("loaded");
+      setError(deleteError.message);
+      return;
+    }
+
+    const nextAccount = accounts.find((account) => account.id !== deletedAccountId);
+    if (nextAccount) {
+      applySavedAccount(nextAccount);
+      onSelectAccount?.(nextAccount.id);
+      setStatus("loaded");
+    } else {
+      startNewAccount();
+      setStatus("deleted");
+    }
+    onAccountsChanged?.();
   }
 
   async function saveAccount(event: FormEvent<HTMLFormElement>) {
@@ -88,6 +157,12 @@ export function AccountOnboarding({
 
     setError("");
     setStatus("saving");
+
+    if (!Number.isFinite(currentBalance) || currentBalance <= 0 || !Number.isFinite(currentEquity) || currentEquity <= 0) {
+      setStatus("idle");
+      setError("Current balance and equity must be greater than zero.");
+      return;
+    }
 
     const {
       data: { user },
@@ -106,12 +181,12 @@ export function AccountOnboarding({
       program_code: programCode,
       account_name: accountName.trim(),
       payout_pct: payoutPct,
-      stage: selection.program.phaseTwoRequired ? "phase_1" : "evaluation",
+      stage: "evaluation",
       initial_balance: selection.balance,
-      current_balance: selection.balance,
-      current_equity: selection.balance,
-      raw_spreads_enabled: true,
-      no_commissions_enabled: false,
+      current_balance: currentBalance,
+      current_equity: currentEquity,
+      raw_spreads_enabled: !noCommissionsEnabled,
+      no_commissions_enabled: noCommissionsEnabled,
     };
 
     const request = accountId
@@ -208,9 +283,9 @@ export function AccountOnboarding({
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-navy" htmlFor="balance">
-              Balance
+              Starting balance
             </label>
-            <select id="balance" className="field" value={balance} onChange={(event) => setBalance(Number(event.target.value))}>
+            <select id="balance" className="field" value={balance} onChange={(event) => changeStartingBalance(Number(event.target.value))}>
               {program.balances.map((option) => (
                 <option key={option} value={option}>
                   {formatCurrency(option)}
@@ -253,6 +328,43 @@ export function AccountOnboarding({
               ))}
             </select>
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-navy" htmlFor="currentBalance">
+              Current balance
+              <input
+                id="currentBalance"
+                className="field"
+                min="1"
+                step="0.01"
+                type="number"
+                value={currentBalance}
+                onChange={(event) => setCurrentBalance(Number(event.target.value))}
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-navy" htmlFor="currentEquity">
+              Current equity
+              <input
+                id="currentEquity"
+                className="field"
+                min="1"
+                step="0.01"
+                type="number"
+                value={currentEquity}
+                onChange={(event) => setCurrentEquity(Number(event.target.value))}
+              />
+            </label>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-navy" htmlFor="pricingModel">
+              E8 pricing type
+            </label>
+            <select id="pricingModel" className="field" value={noCommissionsEnabled ? "no_commissions" : "raw_spreads"} onChange={(event) => setNoCommissionsEnabled(event.target.value === "no_commissions")}>
+              <option value="raw_spreads">Raw Spreads</option>
+              <option value="no_commissions">No Commissions</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -269,7 +381,8 @@ export function AccountOnboarding({
           </div>
 
           <dl className="grid gap-3 text-sm">
-            <Metric label="Balance" value={formatCurrency(selection.balance)} />
+            <Metric label="Starting balance" value={formatCurrency(selection.balance)} />
+            <Metric label="Current balance" value={formatCurrency(currentBalance)} />
             <Metric label="Leverage" value={selection.leverageRatio} />
             <Metric label="Daily DD" value={`${selection.dailyDrawdownPct}%`} />
             <Metric
@@ -278,9 +391,10 @@ export function AccountOnboarding({
             />
             <Metric label="Profit target" value={`${selection.profitTargetPct}%`} />
             <Metric label="Payout" value={`${payoutPct}%`} />
+            <Metric label="Pricing" value={noCommissionsEnabled ? "No Commissions" : "Raw Spreads"} />
             {selection.dailyProfitCapPct ? <Metric label="Daily profit cap" value={`${selection.dailyProfitCapPct}%`} /> : null}
             {selection.dailyLossAutoPausePct ? <Metric label="Auto-pause" value={`${selection.dailyLossAutoPausePct}% daily loss`} /> : null}
-            <Metric label="Stage path" value={selection.program.phaseTwoRequired ? "Phase 1 -> Phase 2 -> Funded" : "Evaluation -> Funded"} />
+            <Metric label="Stage path" value="Evaluation -> Funded" />
           </dl>
         </section>
 
@@ -290,15 +404,20 @@ export function AccountOnboarding({
             <h3 className="text-lg font-semibold tracking-normal text-navy">Execution constraints</h3>
           </div>
           <div className="space-y-3">
-            <Constraint label="Raw Spreads" checked disabled={false} />
-            <Constraint label="No Commissions" checked={false} disabled />
+            <Constraint label="Raw Spreads" checked={!noCommissionsEnabled} disabled={false} />
+            <Constraint label="No Commissions" checked={noCommissionsEnabled} disabled={false} />
             <Constraint label="Limit orders only" checked disabled={false} />
             <Constraint label="High-impact news halt" checked={selection.program.newsBlackoutEnforced} disabled />
           </div>
-          <button className="primary-button mt-5 w-full" type="submit" disabled={status === "saving" || accountsLoading}>
+          <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+            <button className="primary-button w-full" type="submit" disabled={status === "saving" || status === "deleting" || accountsLoading}>
             {status === "saved" ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}
             {status === "saving"
               ? "Saving..."
+              : status === "deleting"
+                ? "Deleting..."
+                : status === "deleted"
+                  ? "Account deleted"
               : status === "saved"
                 ? "Configuration saved"
                 : status === "loaded"
@@ -306,7 +425,14 @@ export function AccountOnboarding({
                   : accountId
                     ? "Update account"
                     : "Save account"}
-          </button>
+            </button>
+            {accountId ? (
+              <button className="secondary-button border-danger/30 text-danger hover:bg-danger/10" type="button" disabled={status === "saving" || status === "deleting"} onClick={deleteAccount}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Delete
+              </button>
+            ) : null}
+          </div>
           {error ? <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm font-medium text-danger">{error}</p> : null}
         </section>
       </aside>

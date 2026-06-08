@@ -67,6 +67,8 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
   }
 }
 
+const temporarilyUnavailableSymbols = new Set(["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"]);
+
 const intradayTimeframes = ["15min", "1hour", "4hour"] as const;
 
 type SupportedSymbol = string;
@@ -116,6 +118,17 @@ Deno.serve(async (req) => {
 
   const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
   const uiSymbol = normalizeSymbol(requestedSymbol);
+  if (temporarilyUnavailableSymbols.has(uiSymbol)) {
+    return jsonResponse(
+      req,
+      {
+        error: "This asset is temporarily unavailable in LevelFlow while provider coverage is verified.",
+        symbol: uiSymbol,
+      },
+      400,
+    );
+  }
+
   const providerSymbols = resolveProviderSymbols(requestedSymbol);
   if (providerSymbols.length === 0) {
     return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);

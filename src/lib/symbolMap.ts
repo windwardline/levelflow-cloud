@@ -16,6 +16,8 @@ export type SecurityGroup = {
   options: SecurityOption[];
 };
 
+export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>(["Indices", "Energies"]);
+
 const forex = [
   ["USDJPY", "USD/JPY", "U.S. Dollar / Japanese Yen", "USDJPY"],
   ["USDCHF", "USD/CHF", "U.S. Dollar / Swiss Franc", "USDCHF"],
@@ -135,6 +137,15 @@ export const SECURITY_GROUPS: SecurityGroup[] = [
 ];
 
 export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap((group) => group.options);
+
+export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS.filter((group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label));
+
+export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap((group) => group.options);
+
+export function isAvailableAssetSymbol(symbol: string) {
+  const normalized = normalizeSymbol(symbol);
+  return AVAILABLE_ASSET_OPTIONS.some((option) => option.symbol === normalized || normalizeSymbol(option.fmpSymbol) === normalized);
+}
 
 export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
   aud_crosses: ["AUDUSD", "AUDNZD", "AUDJPY", "AUDCHF", "AUDCAD", "EURAUD", "GBPAUD"],
