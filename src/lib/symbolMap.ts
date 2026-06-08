@@ -1,6 +1,6 @@
 export type SupportedSymbol = string;
 
-export type SecurityType = "Forex" | "Metals" | "Indices" | "Energies" | "Crypto";
+export type SecurityType = "Forex" | "Metals" | "Indices" | "Energies" | "Crypto" | "Futures";
 
 export type SecurityOption = {
   assetType: SecurityType;
@@ -111,6 +111,39 @@ export const SECURITY_GROUPS: SecurityGroup[] = [
     ],
   },
   {
+    label: "Futures",
+    options: [
+      {
+        assetType: "Futures",
+        description: "E-Mini S&P 500 Futures",
+        fmpSymbol: "ESUSD",
+        label: "ES - E-Mini S&P 500 Futures",
+        symbol: "ESUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Gold Futures",
+        fmpSymbol: "GCUSD",
+        label: "GC - Gold Futures",
+        symbol: "GCUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Silver Futures",
+        fmpSymbol: "SIUSD",
+        label: "SI - Silver Futures",
+        symbol: "SIUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Brent Crude Oil Futures",
+        fmpSymbol: "BZUSD",
+        label: "BZ - Brent Crude Oil Futures",
+        symbol: "BZUSD",
+      },
+    ],
+  },
+  {
     label: "Energies",
     options: [
       {
@@ -150,6 +183,7 @@ export function isAvailableAssetSymbol(symbol: string) {
 export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
   aud_crosses: ["AUDUSD", "AUDNZD", "AUDJPY", "AUDCHF", "AUDCAD", "EURAUD", "GBPAUD"],
   crypto: ["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"],
+  futures: ["ESUSD", "GCUSD", "SIUSD", "BZUSD"],
   energies: ["WTI", "BRENT"],
   eur_crosses: ["EURUSD", "EURNZD", "EURJPY", "EURGBP", "EURCHF", "EURCAD", "EURAUD"],
   gbp_crosses: ["GBPUSD", "GBPNZD", "GBPJPY", "GBPCHF", "GBPCAD", "GBPAUD", "EURGBP"],

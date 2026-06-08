@@ -53,8 +53,16 @@ create table if not exists public.profiles (
   email text,
   display_name text,
   default_timezone text,
+  market_focus text not null default 'multi_asset',
+  experience_level text not null default 'intermediate',
+  default_timeframe text not null default '1hour',
+  theme_preference text not null default 'system',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint profiles_market_focus_valid check (market_focus in ('multi_asset', 'forex', 'metals', 'crypto', 'futures')),
+  constraint profiles_experience_level_valid check (experience_level in ('newer', 'intermediate', 'advanced')),
+  constraint profiles_default_timeframe_valid check (default_timeframe in ('15min', '1hour', '4hour', '1day')),
+  constraint profiles_theme_preference_valid check (theme_preference in ('light', 'dark', 'system'))
 );
 
 create table if not exists public.e8_programs (
@@ -128,7 +136,7 @@ create table if not exists public.user_accounts (
 create table if not exists public.account_day_metrics (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  account_id uuid not null references public.user_accounts(id) on delete cascade,
+  account_id uuid references public.user_accounts(id) on delete cascade,
   trading_day date not null,
   realized_pnl numeric(12,2) not null default 0,
   open_pnl numeric(12,2) not null default 0,
@@ -144,7 +152,7 @@ create table if not exists public.account_day_metrics (
 create table if not exists public.pending_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  account_id uuid not null references public.user_accounts(id) on delete cascade,
+  account_id uuid references public.user_accounts(id) on delete cascade,
   symbol text not null,
   massive_symbol text not null,
   side public.order_side not null,
@@ -165,7 +173,7 @@ create table if not exists public.pending_orders (
 create table if not exists public.trade_setups (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  account_id uuid not null references public.user_accounts(id) on delete cascade,
+  account_id uuid references public.user_accounts(id) on delete cascade,
   pending_order_id uuid references public.pending_orders(id) on delete set null,
   symbol text not null,
   massive_symbol text not null,
@@ -595,6 +603,8 @@ create index if not exists account_day_metrics_user_id_idx on public.account_day
 create index if not exists account_day_metrics_account_day_idx on public.account_day_metrics (account_id, trading_day desc);
 create index if not exists pending_orders_user_status_idx on public.pending_orders (user_id, status);
 create index if not exists trade_setups_user_created_idx on public.trade_setups (user_id, created_at desc);
+create index if not exists trade_setups_user_symbol_created_idx on public.trade_setups (user_id, symbol, created_at desc);
+create index if not exists pending_orders_user_symbol_created_idx on public.pending_orders (user_id, symbol, created_at desc);
 create index if not exists trade_outcomes_user_outcome_idx on public.trade_outcomes (user_id, outcome);
 create index if not exists strategy_weightings_user_idx on public.strategy_weightings (user_id);
 create index if not exists economic_events_scheduled_impact_idx on public.economic_events (scheduled_at, impact);

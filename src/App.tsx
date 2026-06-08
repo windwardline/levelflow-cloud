@@ -1,26 +1,24 @@
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { BookOpen, Gift, HelpCircle, History, LayoutDashboard, LogOut, Mail, ShieldAlert, Timer, User, Wallet, Wifi } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, Gift, HelpCircle, History, LayoutDashboard, LogOut, Mail, Monitor, Moon, Sun, User } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { DonationOptions } from "./components/donations/DonationOptions";
 import { LegalLinks } from "./components/legal/LegalLinks";
-import { AccountOnboarding } from "./components/onboarding/AccountOnboarding";
 import { useAuthSession } from "./hooks/useAuthSession";
-import { useE8Time } from "./hooks/useE8Time";
 import { useTradeSetups, type SecurityStat } from "./hooks/useTradeSetups";
-import { useUserAccounts } from "./hooks/useUserAccounts";
 import { brandAssets } from "./lib/assets";
 import { supabase } from "./lib/supabase";
+import type { ChartTimeframe } from "./lib/marketData";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
-type AppTab = "advisor" | "accounts" | "history" | "profile" | "help" | "donate";
+type AppTab = "advisor" | "history" | "profile" | "help" | "donate";
+type ThemeMode = "light" | "dark" | "system";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
-  { icon: <Wallet className="h-4 w-4" aria-hidden="true" />, label: "Accounts", value: "accounts" },
   { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "History", value: "history" },
   { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
   { icon: <HelpCircle className="h-4 w-4" aria-hidden="true" />, label: "Help", value: "help" },
@@ -28,10 +26,9 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
 ];
 
 export default function App() {
+  const theme = useThemePreference();
   const { session, loading } = useAuthSession();
-  const e8Time = useE8Time();
   const [activeTab, setActiveTab] = useState<AppTab>("advisor");
-  const accountsState = useUserAccounts();
   const setupState = useTradeSetups();
 
   if (loading) {
@@ -46,26 +43,36 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthScreen />;
+    return <AuthScreen themeControl={<ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />} />;
   }
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
       <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <img className="h-11 w-11 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Line mark" />
+            <img className="h-10 w-10 shrink-0 rounded-lg object-contain sm:h-11 sm:w-11" src={brandAssets.mark} alt="Windward Line mark" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-slate">Windward Line</p>
-              <h1 className="truncate text-2xl font-semibold tracking-normal text-navy">LevelFlow</h1>
+              <p className="text-[0.7rem] font-semibold uppercase tracking-normal text-slate sm:text-xs">Windward Line</p>
+              <h1 className="truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">LevelFlow</h1>
             </div>
+            <div className="ml-auto sm:hidden">
+              <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
+            </div>
+            <div className="ml-auto hidden sm:block">
+              <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
+            </div>
+            <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => supabase?.auth.signOut()}>
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
           </div>
 
-          <nav className="flex min-w-0 flex-1 flex-wrap justify-start gap-2 lg:justify-center" aria-label="LevelFlow sections">
+          <nav className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="LevelFlow sections">
             {TABS.map((tab) => (
               <button
                 key={tab.value}
-                className={`nav-button ${activeTab === tab.value ? "nav-button-active" : ""}`}
+                className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab(tab.value)}
               >
@@ -74,53 +81,15 @@ export default function App() {
               </button>
             ))}
           </nav>
-
-          <button className="secondary-button" type="button" onClick={() => supabase?.auth.signOut()}>
-            <LogOut className="h-4 w-4" aria-hidden="true" />
-            Sign out
-          </button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl space-y-5 px-5 py-5 sm:px-8">
-        <section className="grid gap-3 md:grid-cols-3">
-          <StatusTile icon={<Timer className="h-5 w-5" aria-hidden="true" />} label="E8 server time" value={e8Time.serverNowLabel} />
-          <StatusTile icon={<Wifi className="h-5 w-5" aria-hidden="true" />} label={e8Time.dailyReset.label} value={e8Time.dailyReset.remainingLabel} />
-          <StatusTile icon={<ShieldAlert className="h-5 w-5" aria-hidden="true" />} label={e8Time.signatureClosure.label} value={e8Time.signatureClosure.remainingLabel} />
-        </section>
-
-        {(e8Time.inSpreadProtection || e8Time.isWeekendProtectionWindow) && (
-          <section className="rounded-lg border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-semibold text-navy">
-            {e8Time.inSpreadProtection ? e8Time.spreadProtectionLabel : "Friday 22:00 CE(S)T weekend protection window active"}
-          </section>
-        )}
-
-        {activeTab === "advisor" ? (
-          <AdvisorWorkspace
-            accounts={accountsState.accounts}
-            accountsLoading={accountsState.loading}
-            onOpenAccounts={() => setActiveTab("accounts")}
-            onSelectAccount={accountsState.setSelectedAccountId}
-            onSetupsChanged={setupState.refreshSetups}
-            selectedAccountId={accountsState.selectedAccountId}
-            setupStats={setupState.stats}
-            setups={setupState.setups}
-          />
-        ) : null}
-
-        {activeTab === "accounts" ? (
-          <AccountOnboarding
-            accounts={accountsState.accounts}
-            accountsLoading={accountsState.loading}
-            onAccountsChanged={accountsState.refreshAccounts}
-            onSelectAccount={accountsState.setSelectedAccountId}
-            selectedAccountId={accountsState.selectedAccountId}
-            userEmail={session.user.email ?? "Authenticated trader"}
-          />
-        ) : null}
-
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
+        {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={setupState.refreshSetups} setupStats={setupState.stats} setups={setupState.setups} /> : null}
         {activeTab === "history" ? <HistoryPanel loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} /> : null}
-        {activeTab === "profile" ? <ProfilePanel email={session.user.email ?? ""} userId={session.user.id} /> : null}
+        {activeTab === "profile" ? (
+          <ProfilePanel email={session.user.email ?? ""} themeMode={theme.mode} onThemeChange={theme.setMode} userId={session.user.id} />
+        ) : null}
         {activeTab === "help" ? <HelpPanel /> : null}
         {activeTab === "donate" ? <DonatePanel /> : null}
 
@@ -132,21 +101,9 @@ export default function App() {
   );
 }
 
-function StatusTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="terminal-panel flex min-h-20 items-center gap-4 p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy text-white">{icon}</div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-slate">{label}</p>
-        <p className="truncate text-lg font-semibold tracking-normal text-navy">{value}</p>
-      </div>
-    </div>
-  );
-}
-
 function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: TradeSetupRow[]; stats: SecurityStat[] }) {
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -161,7 +118,6 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
             <thead className="border-b border-slate/15 text-xs uppercase tracking-normal text-slate">
               <tr>
                 <th className="py-3 pr-4 font-semibold">Date</th>
-                <th className="py-3 pr-4 font-semibold">Account</th>
                 <th className="py-3 pr-4 font-semibold">Asset</th>
                 <th className="py-3 pr-4 font-semibold">Side</th>
                 <th className="py-3 pr-4 font-semibold">Entry</th>
@@ -175,9 +131,8 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
               {setups.map((setup) => (
                 <tr key={setup.id} className="border-b border-slate/10">
                   <td className="py-3 pr-4 text-slate">{formatDate(setup.created_at)}</td>
-                  <td className="py-3 pr-4 font-medium text-navy">{setup.user_accounts?.account_name ?? "Account"}</td>
                   <td className="py-3 pr-4 font-semibold text-navy">{setup.symbol}</td>
-                  <td className={`py-3 pr-4 font-bold uppercase ${setup.side === "buy" ? "text-bullish" : "text-danger"}`}>{setup.side}</td>
+                  <td className={`py-3 pr-4 font-bold uppercase ${setup.side === "buy" ? "text-bullish" : "text-danger"}`}>{setup.side} limit</td>
                   <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.limit_entry))}</td>
                   <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.stop_loss))}</td>
                   <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.take_profit))}</td>
@@ -217,9 +172,22 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
   );
 }
 
-function ProfilePanel({ email, userId }: { email: string; userId: string }) {
+function ProfilePanel({
+  email,
+  onThemeChange,
+  themeMode,
+  userId,
+}: {
+  email: string;
+  onThemeChange: (mode: ThemeMode) => void;
+  themeMode: ThemeMode;
+  userId: string;
+}) {
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [marketFocus, setMarketFocus] = useState("multi_asset");
+  const [experienceLevel, setExperienceLevel] = useState("intermediate");
+  const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>("1hour");
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
@@ -230,10 +198,21 @@ function ProfilePanel({ email, userId }: { email: string; userId: string }) {
         return;
       }
 
-      const { data } = await supabase.from("profiles").select("display_name, default_timezone").eq("id", userId).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, default_timezone, market_focus, experience_level, default_timeframe, theme_preference")
+        .eq("id", userId)
+        .maybeSingle();
+
       if (!cancelled && data) {
         setDisplayName(data.display_name ?? "");
         setTimezone(data.default_timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+        setMarketFocus(data.market_focus ?? "multi_asset");
+        setExperienceLevel(data.experience_level ?? "intermediate");
+        setDefaultTimeframe((data.default_timeframe ?? "1hour") as ChartTimeframe);
+        if (["light", "dark", "system"].includes(data.theme_preference ?? "")) {
+          onThemeChange(data.theme_preference as ThemeMode);
+        }
       }
     }
 
@@ -242,7 +221,7 @@ function ProfilePanel({ email, userId }: { email: string; userId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [onThemeChange, userId]);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -252,47 +231,93 @@ function ProfilePanel({ email, userId }: { email: string; userId: string }) {
 
     setStatus("saving");
     await supabase.from("profiles").upsert({
+      default_timeframe: defaultTimeframe,
       default_timezone: timezone,
       display_name: displayName.trim(),
       email,
+      experience_level: experienceLevel,
       id: userId,
+      market_focus: marketFocus,
+      theme_preference: themeMode,
     });
     setStatus("saved");
   }
 
   return (
-    <form className="terminal-panel max-w-3xl p-5 sm:p-6" onSubmit={saveProfile}>
-      <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">User profile</p>
-        <h2 className="text-2xl font-semibold tracking-normal text-navy">Preferences</h2>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-navy">
-          Display name
-          <input className="field" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Trader name" />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-navy">
-          Timezone
-          <select className="field" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
-            {Array.from(new Set([timezone, "America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/London", "Europe/Berlin"].filter(Boolean))).map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <button className="primary-button mt-5" type="submit" disabled={status === "saving"}>
-        {status === "saving" ? "Saving..." : status === "saved" ? "Profile saved" : "Save profile"}
-      </button>
-    </form>
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.55fr)]">
+      <form className="terminal-panel p-5 sm:p-6" onSubmit={saveProfile}>
+        <div className="mb-5">
+          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">User profile</p>
+          <h2 className="text-2xl font-semibold tracking-normal text-navy">Preferences</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Display name
+            <input className="field" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Trader name" />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Timezone
+            <select className="field" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
+              {Array.from(new Set([timezone, "America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/London", "Europe/Berlin"].filter(Boolean))).map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Market focus
+            <select className="field" value={marketFocus} onChange={(event) => setMarketFocus(event.target.value)}>
+              <option value="multi_asset">Multi-asset</option>
+              <option value="forex">Forex</option>
+              <option value="metals">Metals</option>
+              <option value="crypto">Crypto</option>
+              <option value="futures">Futures</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Experience level
+            <select className="field" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)}>
+              <option value="newer">Newer trader</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Default chart timeframe
+            <select className="field" value={defaultTimeframe} onChange={(event) => setDefaultTimeframe(event.target.value as ChartTimeframe)}>
+              <option value="15min">15 minutes</option>
+              <option value="1hour">1 hour</option>
+              <option value="4hour">4 hours</option>
+              <option value="1day">Daily</option>
+            </select>
+          </label>
+          <div className="grid gap-2 text-sm font-semibold text-navy">
+            Theme
+            <ThemeToggle mode={themeMode} onChange={onThemeChange} />
+          </div>
+        </div>
+        <button className="primary-button mt-5" type="submit" disabled={status === "saving"}>
+          {status === "saving" ? "Saving..." : status === "saved" ? "Profile saved" : "Save profile"}
+        </button>
+      </form>
+
+      <section className="terminal-panel p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Session policy</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Sign-in behavior</h2>
+        <div className="mt-4 grid gap-3 text-sm leading-6 text-slate">
+          <p>LevelFlow now stores authentication in browser session storage. Reloading the same tab keeps the workspace open, but closing the browser session requires a fresh magic-link sign-in.</p>
+          <p>This keeps the product fast during active use while avoiding multi-day persistent login on a shared machine.</p>
+        </div>
+      </section>
+    </div>
   );
 }
 
 function HelpPanel() {
   return (
-    <section className="terminal-panel max-w-4xl p-5 sm:p-6">
-      <div className="mb-5 flex items-center gap-3">
+    <section className="terminal-panel p-5 sm:p-6">
+      <div className="mb-6 flex items-center gap-3">
         <BookOpen className="h-5 w-5 text-navy" aria-hidden="true" />
         <div>
           <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Operating guide</p>
@@ -300,61 +325,46 @@ function HelpPanel() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 text-sm leading-6 text-slate md:grid-cols-3">
-        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-3">
-          <p className="font-semibold text-navy">1. Account</p>
-          <p className="mt-1">Save each E8 account with its current balance, equity, payout, drawdown rules, and pricing type.</p>
-        </div>
-        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-3">
-          <p className="font-semibold text-navy">2. Asset</p>
-          <p className="mt-1">Pick one active LevelFlow asset from Forex, Metals, or Crypto, then review the 1H chart before generating.</p>
-        </div>
-        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-3">
-          <p className="font-semibold text-navy">3. Decision</p>
-          <p className="mt-1">Generate the advisory setup, review the plotted levels, and track the recommendation in History.</p>
-        </div>
-      </div>
-
-      <div className="grid gap-3 text-sm leading-6 text-slate">
+      <div className="grid gap-4 lg:grid-cols-2">
         <GuideStep
           number="01"
-          title="1. Set up each E8 account first"
-          body="Open Accounts and create a separate record for every E8 account you want LevelFlow to advise against. Use the account's starting balance, current balance, current equity, drawdown settings, payout, and pricing type. These values drive the account guardrails."
+          title="Start with one asset"
+          body="Open Advisor, choose an asset from the grouped dropdown, and begin on the 1H chart. Use the chart before generating: drag left for history, scroll or pinch to zoom, and reset the view when you want the full context back."
         />
         <GuideStep
           number="02"
-          title="2. Work from the Advisor screen"
-          body="Choose the E8 account first, then choose one active asset from the grouped dropdown. LevelFlow currently shows the E8-aligned Forex, Metals, and Crypto assets with verified provider coverage. The chart defaults to 1H because that is the primary planning view; switch to 15 minutes, 4 hours, or daily only when the setup needs extra context."
+          title="Generate a limit-only setup"
+          body="Click Generate setup when you want LevelFlow's current best pending limit-order idea. The analyzer reviews trend, market structure, liquidity behavior, momentum, volatility, value/volume behavior, multi-timeframe alignment, correlation, and calendar risk."
         />
         <GuideStep
           number="03"
-          title="3. Read the chart before generating"
-          body="Use the chart before pressing Generate: drag left to inspect history, zoom around recent structure, and refresh the chart if you have been sitting on the screen for a while."
+          title="Read buy versus sell first"
+          body="The recommendation badge is green for BUY LIMIT and red for SELL LIMIT. Check that side before copying any level into another platform."
         />
         <GuideStep
           number="04"
-          title="4. Generate one current advisory setup"
-          body="Click Generate setup when you want the current best advisory recommendation for that account and asset. LevelFlow reviews market structure, momentum, volatility, value/volume behavior, multi-timeframe alignment, account rules, and calendar context."
+          title="Use the plotted levels"
+          body="When a setup qualifies, the chart plots entry, stop loss, and take profit. The entry is always a pending limit level: buy entries are below current market and sell entries are above current market."
         />
         <GuideStep
           number="05"
-          title="5. Use the plotted levels"
-          body="When a setup qualifies, the chart plots the limit entry, stop loss, and take profit. Use those levels as the planning reference for your own trading platform; LevelFlow does not place, modify, or close trades."
+          title="Re-check without duplicate clutter"
+          body="You can generate again for the same asset to see whether the best setup changed. If the same active setup is still best, LevelFlow refreshes the view and avoids creating a duplicate history row."
         />
         <GuideStep
           number="06"
-          title="6. Re-check without polluting history"
-          body="You can generate again for the same account and asset to see whether the recommendation changed. If the same active setup is still best, LevelFlow refreshes the view and avoids creating a duplicate history row."
+          title="Review your history"
+          body="Open History to review prior recommendations, confidence scores, entry/stop/target, and status. Asset stats show where your review activity is concentrated and how tracked outcomes are accumulating."
         />
         <GuideStep
           number="07"
-          title="7. Review recommendation history"
-          body="Open History to review prior recommendations, confidence scores, account association, entry/stop/target, status, and recorded outcomes. Asset stats show what you have asked LevelFlow to analyze and where results are accumulating."
+          title="Keep preferences current"
+          body="Open Profile to set display, timezone, market focus, experience level, default chart timeframe, and theme preference. These settings make the workspace easier to scan and prepare for deeper personalization."
         />
         <GuideStep
           number="08"
-          title="8. Keep account and profile data current"
-          body="Update Accounts whenever balance, equity, program, drawdown, payout, pricing type, or funded status changes. Use Profile for user preferences. Cleaner account data gives the advisor cleaner guardrail context and more useful historical records."
+          title="Remember what LevelFlow does"
+          body="LevelFlow evaluates market conditions and produces advisory trade setups. It does not place, modify, close, or size trades for you."
         />
       </div>
     </section>
@@ -376,7 +386,7 @@ function DonatePanel() {
             <h2 className="text-2xl font-semibold tracking-normal text-navy">Contact</h2>
           </div>
         </div>
-        <p className="text-sm leading-6 text-slate">For access, account, data, or recommendation issues, contact Windward Line support.</p>
+        <p className="text-sm leading-6 text-slate">For access, data, or recommendation issues, contact Windward Line support.</p>
         <a className="secondary-button mt-5" href={`mailto:${SUPPORT_EMAIL}`}>
           <Mail className="h-4 w-4" aria-hidden="true" />
           {SUPPORT_EMAIL}
@@ -397,13 +407,37 @@ function DonatePanel() {
   );
 }
 
+function ThemeToggle({ compact = false, mode, onChange }: { compact?: boolean; mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
+  const options: Array<{ icon: ReactNode; label: string; value: ThemeMode }> = [
+    { icon: <Sun className="h-4 w-4" aria-hidden="true" />, label: "Light", value: "light" },
+    { icon: <Moon className="h-4 w-4" aria-hidden="true" />, label: "Dark", value: "dark" },
+    { icon: <Monitor className="h-4 w-4" aria-hidden="true" />, label: "System", value: "system" },
+  ];
+
+  return (
+    <div className="inline-flex rounded-lg border border-slate/20 bg-white p-1" aria-label="Theme">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          className={`flex min-h-8 items-center gap-1.5 rounded-md px-2 text-xs font-bold transition ${mode === option.value ? "bg-bullish/15 text-bullish" : "text-slate hover:text-navy"}`}
+          type="button"
+          onClick={() => onChange(option.value)}
+        >
+          {option.icon}
+          {compact ? <span className="sr-only">{option.label}</span> : option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function GuideStep({ body, number, title }: { body: string; number: string; title: string }) {
   return (
     <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas px-4 py-4 sm:grid-cols-[auto_1fr]">
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white">{number}</div>
       <div>
         <h3 className="font-semibold text-navy">{title}</h3>
-        <p className="mt-1">{body}</p>
+        <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
       </div>
     </div>
   );
@@ -416,6 +450,38 @@ function StatPill({ label, value }: { label: string; value: string }) {
       <p className="text-slate">{label}</p>
     </div>
   );
+}
+
+function useThemePreference() {
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") {
+      return "system";
+    }
+    const stored = window.localStorage.getItem("levelflow-theme");
+    return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+  });
+  const [systemDark, setSystemDark] = useState(() => (typeof window === "undefined" ? false : window.matchMedia("(prefers-color-scheme: dark)").matches));
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSystemDark(query.matches);
+    onChange();
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  const resolvedMode = useMemo(() => (mode === "system" ? (systemDark ? "dark" : "light") : mode), [mode, systemDark]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedMode;
+    document.documentElement.dataset.themeMode = mode;
+    window.localStorage.setItem("levelflow-theme", mode);
+  }, [mode, resolvedMode]);
+
+  return { mode, resolvedMode, setMode };
 }
 
 function formatDate(value: string) {

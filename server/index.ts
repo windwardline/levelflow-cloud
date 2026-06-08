@@ -1,7 +1,6 @@
 import cors from "cors";
 import express from "express";
-import { startE8MaintenanceJobs } from "./cron/e8Maintenance";
-import { TradeAnalyzer, type AccountRiskProfile, type OhlcvBar } from "./services/tradeAnalyzer";
+import { TradeAnalyzer, type OhlcvBar } from "./services/tradeAnalyzer";
 
 const app = express();
 const port = Number(process.env.PORT ?? 8080);
@@ -15,7 +14,7 @@ app.get("/health", (_request, response) => {
   response.json({
     status: "ok",
     service: "levelflow-cloud",
-    timezone: process.env.E8_SERVER_TIMEZONE ?? "Europe/Prague",
+    timezone: process.env.SERVER_TIMEZONE ?? "UTC",
   });
 });
 
@@ -23,24 +22,20 @@ app.post("/api/analyze", (request, response) => {
   const body = request.body as {
     symbol?: string;
     bars?: OhlcvBar[];
-    account?: AccountRiskProfile;
   };
 
-  if (!body.symbol || !body.bars || !body.account) {
-    response.status(400).json({ error: "symbol, bars, and account are required." });
+  if (!body.symbol || !body.bars) {
+    response.status(400).json({ error: "symbol and bars are required." });
     return;
   }
 
-  const setup = analyzer.analyze(body.symbol, body.bars, body.account, {
+  const setup = analyzer.analyze(body.symbol, body.bars, {
     highImpactWithinWindow: false,
-    signatureBypass: body.account.programCode === "e8_signature",
     events: [],
   });
 
   response.json({ setup });
 });
-
-startE8MaintenanceJobs();
 
 app.listen(port, () => {
   console.log(`LevelFlow Cloud API listening on :${port}`);

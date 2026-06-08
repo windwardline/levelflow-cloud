@@ -11,7 +11,7 @@ export type SecurityStat = {
   wins: number;
 };
 
-export function useTradeSetups(accountId?: string) {
+export function useTradeSetups() {
   const [setups, setSetups] = useState<TradeSetupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,13 +21,13 @@ export function useTradeSetups(accountId?: string) {
     setError("");
 
     try {
-      setSetups(await fetchTradeSetups(accountId));
+      setSetups(await fetchTradeSetups());
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Trade setup history could not be loaded.");
     } finally {
       setLoading(false);
     }
-  }, [accountId]);
+  }, []);
 
   useEffect(() => {
     refreshSetups();
@@ -52,7 +52,7 @@ export function useTradeSetups(accountId?: string) {
       }
 
       channel = client
-        .channel(`level-flow-setups-${user.id}-${accountId ?? "all"}`)
+        .channel(`level-flow-setups-${user.id}`)
         .on(
           "postgres_changes",
           { event: "*", filter: `user_id=eq.${user.id}`, schema: "public", table: "trade_setups" },
@@ -78,7 +78,7 @@ export function useTradeSetups(accountId?: string) {
         client.removeChannel(channel);
       }
     };
-  }, [accountId, refreshSetups]);
+  }, [refreshSetups]);
 
   const stats = useMemo(() => buildStats(setups), [setups]);
 

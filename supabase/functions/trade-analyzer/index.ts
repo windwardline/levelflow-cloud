@@ -43,6 +43,10 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   AUDCAD: "AUDCAD",
   XAUUSD: "XAUUSD",
   XAGUSD: "XAGUSD",
+  ESUSD: "ESUSD",
+  GCUSD: "GCUSD",
+  SIUSD: "SIUSD",
+  BZUSD: "BZUSD",
   SP: "^GSPC",
   NSDQ: { primary: "^NDX", fallback: "QQQ" },
   NIKKEI: "^N225",
@@ -100,6 +104,10 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   AUDCAD: ["AUD", "CAD"],
   XAUUSD: ["USD"],
   XAGUSD: ["USD"],
+  ESUSD: ["USD"],
+  GCUSD: ["USD"],
+  SIUSD: ["USD"],
+  BZUSD: ["USD"],
   SP: ["USD"],
   NSDQ: ["USD"],
   NIKKEI: ["JPY"],
@@ -122,6 +130,7 @@ const correlationGroups: Record<string, string[]> = {
   aud_crosses: ["AUDUSD", "AUDNZD", "AUDJPY", "AUDCHF", "AUDCAD", "EURAUD", "GBPAUD"],
   crypto: ["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"],
   energies: ["WTI", "BRENT"],
+  futures: ["ESUSD", "GCUSD", "SIUSD", "BZUSD"],
   eur_crosses: ["EURUSD", "EURNZD", "EURJPY", "EURGBP", "EURCHF", "EURCAD", "EURAUD"],
   gbp_crosses: ["GBPUSD", "GBPNZD", "GBPJPY", "GBPCHF", "GBPCAD", "GBPAUD", "EURGBP"],
   jpy_crosses: ["USDJPY", "NZDJPY", "GBPJPY", "EURJPY", "CHFJPY", "CADJPY", "AUDJPY"],
@@ -140,21 +149,7 @@ type Timeframe = "1day" | (typeof intradayTimeframes)[number];
 type RegimeName = "trend" | "range" | "volatile_chop" | "compression";
 
 type AnalyzeRequest = {
-  accountId?: string;
   symbol?: string;
-};
-
-type AccountRow = {
-  id: string;
-  user_id: string;
-  program_code: "e8_one" | "e8_signature" | "e8_pro";
-  account_name: string;
-  initial_balance: number | string;
-  current_balance: number | string;
-  current_equity: number | string;
-  daily_drawdown_limit: number | string;
-  daily_profit: number | string;
-  status: string;
 };
 
 type Bar = {
@@ -260,10 +255,6 @@ Deno.serve(async (req) => {
       body = {};
     }
 
-    if (!body.accountId) {
-      return jsonResponse(req, { error: "A saved account is required before analysis" }, 400);
-    }
-
     const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
     if (temporarilyUnavailableSymbols.has(uiSymbol)) {
@@ -279,41 +270,15 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
     }
 
-    const account = await fetchSingle<AccountRow>(
-      token,
-      `user_accounts?select=id,user_id,program_code,account_name,initial_balance,current_balance,current_equity,daily_drawdown_limit,daily_profit,status&id=eq.${encodeURIComponent(body.accountId)}`,
-    );
-
-    if (!account || account.user_id !== user.id) {
-      return jsonResponse(req, { error: "Account not found for this user" }, 404);
-    }
-
-    if (!["evaluation", "funded", "paused"].includes(account.status)) {
-      return jsonResponse(req, { blocked: true, reason: "Account is not in an analyzable status." });
-    }
-
     const symbol = uiSymbol as SupportedSymbol;
     const sessionContext = getSessionContext();
-    if (sessionContext.block) {
-      return jsonResponse(req, { blocked: true, reason: sessionContext.reason, sessionContext });
-    }
 
     const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
-    const newsBlocked = account.program_code !== "e8_signature" && activeNewsEvents.length > 0;
-    if (newsBlocked) {
+    if (activeNewsEvents.length > 0) {
       return jsonResponse(req, {
         blocked: true,
-        reason: "Relevant high-impact news blackout is active for this program.",
+        reason: "Relevant high-impact calendar risk is active for this asset.",
         newsEvents: activeNewsEvents,
-      });
-    }
-
-    const balance = Number(account.current_balance || account.initial_balance);
-    const dailyProfit = Number(account.daily_profit || 0);
-    if (account.program_code === "e8_pro" && dailyProfit / Math.max(balance, 1) >= 0.0185) {
-      return jsonResponse(req, {
-        blocked: true,
-        reason: "E8 Pro daily profit is near the hard 2% cap.",
       });
     }
 
@@ -327,7 +292,7 @@ Deno.serve(async (req) => {
     }
 
     const group = getCorrelationGroup(symbol);
-    const setup = await analyzeSetup(token, symbol, fmpSymbol, group, marketContext, account, activeNewsEvents, upcomingNewsEvents, sessionContext);
+    const setup = await analyzeSetup(token, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
     if (!setup) {
       return jsonResponse(req, {
         blocked: true,
@@ -336,7 +301,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const duplicateSetup = await findDuplicateSetup(token, account.id, symbol, setup);
+    const duplicateSetup = await findDuplicateSetup(token, user.id, symbol, setup);
     if (duplicateSetup) {
       return jsonResponse(req, {
         advisoryOnly: true,
@@ -350,7 +315,7 @@ Deno.serve(async (req) => {
 
     const activeCorrelated = await fetchRows<{ id: string; symbol: string; confidence_score: number }>(
       token,
-      `trade_setups?select=id,symbol,confidence_score&correlation_group=eq.${encodeURIComponent(group)}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(
+      `trade_setups?select=id,symbol,confidence_score&user_id=eq.${encodeURIComponent(user.id)}&correlation_group=eq.${encodeURIComponent(group)}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(
         new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
       )}`,
     );
@@ -366,7 +331,7 @@ Deno.serve(async (req) => {
 
     const pendingOrder = await insertSingle(token, "pending_orders", {
       user_id: user.id,
-      account_id: account.id,
+      account_id: null,
       symbol,
       massive_symbol: fmpSymbol,
       side: setup.side,
@@ -382,7 +347,7 @@ Deno.serve(async (req) => {
 
     const tradeSetup = await insertSingle(token, "trade_setups", {
       user_id: user.id,
-      account_id: account.id,
+      account_id: null,
       pending_order_id: pendingOrder.id,
       symbol,
       massive_symbol: fmpSymbol,
@@ -397,7 +362,6 @@ Deno.serve(async (req) => {
       news_context: {
         activeEvents: activeNewsEvents,
         upcomingEvents: upcomingNewsEvents,
-        signatureBypass: account.program_code === "e8_signature",
       },
       correlation_group: group,
       status: "generated",
@@ -458,7 +422,6 @@ async function analyzeSetup(
   fmpSymbol: string,
   correlationGroup: string,
   market: MarketContext,
-  account: AccountRow,
   activeNewsEvents: NewsEvent[],
   upcomingNewsEvents: NewsEvent[],
   sessionContext: SessionContext,
@@ -495,9 +458,6 @@ async function analyzeSetup(
     return null;
   }
 
-  const balance = Number(account.current_balance || account.initial_balance);
-  const dailyDrawdownLimit = Number(account.daily_drawdown_limit || balance * 0.02);
-  const maxLoss = Math.min(dailyDrawdownLimit * 0.7, balance * 0.0045);
   const lotSize = 0.01;
   const breakevenTriggerPrice =
     consensus.side === "buy"
@@ -527,6 +487,11 @@ async function analyzeSetup(
       primaryTimeframe: market.primaryTimeframe,
       providerWarnings: market.providerWarnings,
       rewardRisk: Number(pricePlan.rewardRisk.toFixed(2)),
+      orderConstruction: {
+        orderType: "limit",
+        latestClose: market.latest.close,
+        validation: consensus.side === "buy" ? "buy limit entry below latest close" : "sell limit entry above latest close",
+      },
       sessionContext,
       strategyWeightAdjustment: weightAdjustment,
       upcomingNewsEvents,
@@ -534,10 +499,8 @@ async function analyzeSetup(
     riskModel: {
       atr: pricePlan.atr,
       dailyAtr: averageTrueRange(market.daily, 14),
-      maxLoss,
-      dailyDrawdownLimit,
-      lotSizingStatus: "hidden_pending_e8_contract_specs",
-      lotSizingReason: "LevelFlow needs verified E8 contract size and tick value data before surfacing lot recommendations.",
+      positionSizingStatus: "not_calculated",
+      positionSizingReason: "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
       activeNewsEventsTracked: activeNewsEvents.length,
       upcomingNewsEventsTracked: upcomingNewsEvents.length,
       stopLogic: pricePlan.stopLogic,
@@ -546,11 +509,11 @@ async function analyzeSetup(
   };
 }
 
-async function findDuplicateSetup(token: string, accountId: string, symbol: SupportedSymbol, setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>) {
+async function findDuplicateSetup(token: string, userId: string, symbol: SupportedSymbol, setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>) {
   const recentWindow = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,pending_order_id,symbol,side,limit_entry,stop_loss,take_profit,confidence_score&account_id=eq.${encodeURIComponent(accountId)}&symbol=eq.${encodeURIComponent(
+    `trade_setups?select=id,pending_order_id,symbol,side,limit_entry,stop_loss,take_profit,confidence_score&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
       symbol,
     )}&side=eq.${setup.side}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(recentWindow)}&order=created_at.desc`,
   );
@@ -918,6 +881,23 @@ function buildPricePlan(side: Side, market: MarketContext, regime: Regime) {
   const stopBuffer = Math.max(atr * 1.2, dailyAtr * 0.12);
   const stopLoss = side === "buy" ? Math.min(structure.latestSwingLow - stopBuffer, entryPrice - atr * 1.25) : Math.max(structure.latestSwingHigh + stopBuffer, entryPrice + atr * 1.25);
   const riskDistance = Math.abs(entryPrice - stopLoss);
+  const minimumLimitDistance = Math.max(atr * 0.05, Math.abs(latest.close) * 0.00005, 0.00001);
+
+  if (side === "buy" && roundPrice(entryPrice) >= roundPrice(latest.close - minimumLimitDistance)) {
+    return null;
+  }
+
+  if (side === "sell" && roundPrice(entryPrice) <= roundPrice(latest.close + minimumLimitDistance)) {
+    return null;
+  }
+
+  if (side === "buy" && roundPrice(stopLoss) >= roundPrice(entryPrice)) {
+    return null;
+  }
+
+  if (side === "sell" && roundPrice(stopLoss) <= roundPrice(entryPrice)) {
+    return null;
+  }
 
   const liquidityTarget = side === "buy" ? Math.max(structure.nextLiquidityHigh, dailyStructure.latestSwingHigh) : Math.min(structure.nextLiquidityLow, dailyStructure.latestSwingLow);
   const minimumTarget = side === "buy" ? entryPrice + riskDistance * 1.8 : entryPrice - riskDistance * 1.8;
@@ -929,6 +909,14 @@ function buildPricePlan(side: Side, market: MarketContext, regime: Regime) {
   }
   if (side === "sell" && takeProfit >= entryPrice) {
     takeProfit = entryPrice - riskDistance * 2;
+  }
+
+  if (side === "buy" && roundPrice(takeProfit) <= roundPrice(entryPrice)) {
+    return null;
+  }
+
+  if (side === "sell" && roundPrice(takeProfit) >= roundPrice(entryPrice)) {
+    return null;
   }
 
   const rewardRisk = Math.abs(takeProfit - entryPrice) / Math.max(riskDistance, 0.00001);
@@ -981,19 +969,19 @@ function getSessionContext(): SessionContext {
 
   if (rolloverWindow) {
     return {
-      block: true,
-      label: "CE(S)T rollover protection",
+      block: false,
+      label: "Market rollover window",
       penalty: 10,
-      reason: "New setup generation is halted during the 23:55-00:15 CE(S)T rollover protection window.",
+      reason: "Market rollover conditions reduce setup quality.",
     };
   }
 
   if (fridayClose) {
     return {
-      block: true,
-      label: "Friday close protection",
+      block: false,
+      label: "Late Friday session",
       penalty: 10,
-      reason: "New setup generation is halted after Friday 22:00 CE(S)T for weekend protection.",
+      reason: "Late Friday liquidity conditions reduce setup quality.",
     };
   }
 

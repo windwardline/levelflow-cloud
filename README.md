@@ -1,13 +1,13 @@
-# Windward Capital LevelFlow Cloud
+# Windward Line LevelFlow Cloud
 
-LevelFlow Cloud is scaffolded as an enterprise-grade, multi-tenant React/Vite and Node/Express platform for Windward Capital's E8 Markets and TradeLocker workflows. The foundation encodes the requested Supabase Auth model, strict user-owned data tables with RLS, E8 account matrices, CET/CEST automation hooks, and a frontend onboarding surface that keeps web and future native clients aligned around the same Supabase session and relational schema.
+LevelFlow Cloud is an enterprise-style React/Vite and Supabase platform for market analysis, chart review, and advisory trade setup generation. The app uses Supabase Auth, strict user-owned data tables with RLS, FMP-backed market data, an Edge Function analyzer, and a frontend workspace that keeps web and future native clients aligned around the same Supabase session and relational schema.
 
 ## Generated Foundation
 
 - `public/brand/` contains optimized Windward Capital logo assets for the hosted app.
-- `src/` contains the React application, Supabase client, E8 configuration matrix, passwordless/OAuth login, onboarding dashboard, E8 time hook, FMP-backed market feed, FMP-backed advisory analyzer, and confidence gauge.
-- `server/` contains the Express API scaffold, Supabase service-role client, E8 cron routines, news provider adapter, and TradeAnalyzer foundation for local/server experiments.
-- `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, Edge Functions, and scheduled CE(S)T automation.
+- `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, FMP-backed market feed, FMP-backed advisory analyzer, profile preferences, history, and confidence gauge.
+- `server/` contains the Express API scaffold, Supabase service-role client, news provider adapter, and TradeAnalyzer foundation for local/server experiments.
+- `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
 - `.env.example` separates public browser keys from server-only service-role credentials.
 
 ## Local Commands
@@ -19,7 +19,7 @@ npm run server
 npm run build
 ```
 
-Run `supabase/init.sql` in the Supabase SQL editor or through your migration workflow before saving onboarding data from the frontend.
+Run `supabase/init.sql` in the Supabase SQL editor or through your migration workflow before using a fresh project.
 
 ## Production Checklist
 

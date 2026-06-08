@@ -32,7 +32,7 @@ export type AnalyzerResponse = {
 };
 
 export type TradeSetupRow = {
-  account_id: string;
+  account_id: string | null;
   breakeven_trigger_price: number | string;
   confidence_score: number | string;
   confluence: Record<string, unknown> | null;
@@ -51,19 +51,15 @@ export type TradeSetupRow = {
     outcome: string;
     realized_pnl: number | string | null;
   }>;
-  user_accounts?: {
-    account_name: string;
-  } | null;
 };
 
-export async function generateTradeSetup(accountId: string, symbol: SupportedSymbol) {
+export async function generateTradeSetup(symbol: SupportedSymbol) {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
   const { data, error } = await supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
     body: {
-      accountId,
       symbol,
     },
   });
@@ -79,7 +75,7 @@ export async function generateTradeSetup(accountId: string, symbol: SupportedSym
   return data;
 }
 
-export async function fetchTradeSetups(accountId?: string) {
+export async function fetchTradeSetups() {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
@@ -87,14 +83,10 @@ export async function fetchTradeSetups(accountId?: string) {
   let query = supabase
     .from("trade_setups")
     .select(
-      "id, account_id, pending_order_id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, confluence, risk_model, correlation_group, status, created_at, user_accounts(account_name), trade_outcomes(outcome, realized_pnl)",
+      "id, account_id, pending_order_id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl)",
     )
     .order("created_at", { ascending: false })
     .limit(80);
-
-  if (accountId) {
-    query = query.eq("account_id", accountId);
-  }
 
   const { data, error } = await query;
 

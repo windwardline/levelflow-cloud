@@ -23,6 +23,17 @@
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
+  html[data-theme="dark"] {
+    background: #0b111c;
+  }
+
+  html[data-theme="dark"] body {
+    background:
+      linear-gradient(180deg, rgba(91, 130, 102, 0.08), rgba(11, 17, 28, 0) 34%),
+      #0b111c;
+    color: #e6edf6;
+  }
+
   button,
   input,
   select,
@@ -167,5 +178,83 @@
     gap: 0.625rem;
     padding: 0.75rem;
     text-align: left;
+  }
+}
+
+@layer utilities {
+  html[data-theme="dark"] .bg-canvas {
+    background-color: #0f1724;
+  }
+
+  html[data-theme="dark"] .bg-white,
+  html[data-theme="dark"] .bg-white\/90 {
+    background-color: rgba(16, 24, 38, 0.94);
+  }
+
+  html[data-theme="dark"] .bg-white\/70,
+  html[data-theme="dark"] .bg-white\/80 {
+    background-color: rgba(16, 24, 38, 0.78);
+  }
+
+  html[data-theme="dark"] .text-ink,
+  html[data-theme="dark"] .text-navy {
+    color: #e6edf6;
+  }
+
+  html[data-theme="dark"] .text-slate {
+    color: #aab6c5;
+  }
+
+  html[data-theme="dark"] .border-slate\/10,
+  html[data-theme="dark"] .border-slate\/15,
+  html[data-theme="dark"] .border-slate\/20,
+  html[data-theme="dark"] .border-slate\/25 {
+    border-color: rgba(170, 182, 197, 0.18);
+  }
+
+  html[data-theme="dark"] .terminal-panel {
+    border-color: rgba(170, 182, 197, 0.18);
+    background: rgba(16, 24, 38, 0.94);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  }
+
+  html[data-theme="dark"] .secondary-button {
+    border-color: rgba(170, 182, 197, 0.24);
+    background: #101826;
+    color: #e6edf6;
+  }
+
+  html[data-theme="dark"] .secondary-button:hover:not(:disabled) {
+    border-color: rgba(91, 130, 102, 0.72);
+    color: #8fbd9c;
+  }
+
+  html[data-theme="dark"] .nav-button {
+    color: #aab6c5;
+  }
+
+  html[data-theme="dark"] .nav-button:hover {
+    background: rgba(170, 182, 197, 0.1);
+    color: #e6edf6;
+  }
+
+  html[data-theme="dark"] .nav-button-active {
+    border-color: rgba(91, 130, 102, 0.56);
+    background: rgba(91, 130, 102, 0.18);
+    color: #8fbd9c;
+  }
+
+  html[data-theme="dark"] .field {
+    border-color: rgba(170, 182, 197, 0.24);
+    background: #0f1724;
+    color: #e6edf6;
+  }
+
+  html[data-theme="dark"] .field:focus {
+    border-color: #8fbd9c;
+  }
+
+  html[data-theme="dark"] input::placeholder {
+    color: #7d8a9b;
   }
 }

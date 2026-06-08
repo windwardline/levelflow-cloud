@@ -1,5 +1,4 @@
 import { getCorrelationGroup, toFmpSymbol } from "../../src/lib/symbolMap";
-import type { E8ProgramCode } from "../../src/lib/e8Matrix";
 
 export type OhlcvBar = {
   time: number;
@@ -8,16 +7,6 @@ export type OhlcvBar = {
   low: number;
   close: number;
   volume: number;
-};
-
-export type AccountRiskProfile = {
-  accountId: string;
-  userId: string;
-  programCode: E8ProgramCode;
-  balance: number;
-  dailyDrawdownLimit: number;
-  dailyProfit: number;
-  riskPerSetupPct: number;
 };
 
 export type TradeSetup = {
@@ -38,21 +27,16 @@ export type TradeSetup = {
 
 export type NewsGuard = {
   highImpactWithinWindow: boolean;
-  signatureBypass: boolean;
   events: unknown[];
 };
 
 export class TradeAnalyzer {
-  analyze(symbol: string, bars: OhlcvBar[], account: AccountRiskProfile, newsGuard: NewsGuard): TradeSetup | null {
+  analyze(symbol: string, bars: OhlcvBar[], newsGuard: NewsGuard): TradeSetup | null {
     if (bars.length < 80) {
       return null;
     }
 
-    if (this.shouldHaltForNews(account.programCode, newsGuard)) {
-      return null;
-    }
-
-    if (account.programCode === "e8_pro" && account.dailyProfit / account.balance >= 0.0185) {
+    if (this.shouldHaltForNews(newsGuard)) {
       return null;
     }
 
@@ -61,18 +45,17 @@ export class TradeAnalyzer {
     const momentum = this.detectMomentumDivergence(bars);
     const atr = this.averageTrueRange(bars, 14);
     const structure = this.findStructureLevels(bars);
+    const latest = bars.at(-1)!;
     const side = smc.bias === "bullish" && momentum.bias !== "bearish" ? "buy" : "sell";
-    const entryPrice = side === "buy" ? smc.limitLevel : smc.limitLevel;
+    const entryPrice = side === "buy" ? Math.min(smc.limitLevel, latest.close - atr * 0.1) : Math.max(smc.limitLevel, latest.close + atr * 0.1);
     const stopLoss =
       side === "buy" ? Math.max(0.00001, structure.latestSwingLow - atr * 1.5) : structure.latestSwingHigh + atr * 1.5;
     const takeProfit = side === "buy" ? structure.nextLiquidityHigh : structure.nextLiquidityLow;
     const confidenceScore = this.scoreConfluence([smc.score, volumeProfile.score, momentum.score]);
 
-    if (confidenceScore < 60 || Math.abs(entryPrice - stopLoss) === 0) {
+    if (confidenceScore < 60 || Math.abs(entryPrice - stopLoss) === 0 || !this.isValidLimitPlan(side, latest.close, entryPrice, stopLoss, takeProfit)) {
       return null;
     }
-
-    const lotSize = this.calculateLotSize(account, entryPrice, stopLoss);
 
     return {
       symbol,
@@ -83,7 +66,7 @@ export class TradeAnalyzer {
       stopLoss,
       takeProfit,
       breakevenTriggerPrice: entryPrice + (takeProfit - entryPrice) * 0.5,
-      lotSize,
+      lotSize: 0.01,
       confidenceScore,
       correlationGroup: getCorrelationGroup(symbol),
       confluence: {
@@ -93,15 +76,14 @@ export class TradeAnalyzer {
       },
       riskModel: {
         atr,
-        riskPerSetupPct: account.riskPerSetupPct,
-        dailyDrawdownLimit: account.dailyDrawdownLimit,
-        maxLoss: Math.abs(entryPrice - stopLoss) * lotSize,
+        positionSizingStatus: "not_calculated",
+        positionSizingReason: "Local analyzer scaffold records market setups only.",
       },
     };
   }
 
-  private shouldHaltForNews(programCode: E8ProgramCode, newsGuard: NewsGuard) {
-    return programCode !== "e8_signature" && newsGuard.highImpactWithinWindow && !newsGuard.signatureBypass;
+  private shouldHaltForNews(newsGuard: NewsGuard) {
+    return newsGuard.highImpactWithinWindow;
   }
 
   private detectSmartMoneyConcepts(bars: OhlcvBar[]) {
@@ -161,10 +143,12 @@ export class TradeAnalyzer {
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
-  private calculateLotSize(account: AccountRiskProfile, entry: number, stopLoss: number) {
-    const maxLoss = Math.min(account.dailyDrawdownLimit * 0.8, account.balance * (account.riskPerSetupPct / 100));
-    const perUnitRisk = Math.abs(entry - stopLoss);
-    return Number(Math.max(0.01, maxLoss / Math.max(perUnitRisk, 0.00001)).toFixed(2));
+  private isValidLimitPlan(side: "buy" | "sell", latestClose: number, entry: number, stopLoss: number, takeProfit: number) {
+    if (side === "buy") {
+      return entry < latestClose && stopLoss < entry && takeProfit > entry;
+    }
+
+    return entry > latestClose && stopLoss > entry && takeProfit < entry;
   }
 
   private averageTrueRange(bars: OhlcvBar[], period: number) {

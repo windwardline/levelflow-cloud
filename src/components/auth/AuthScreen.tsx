@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useState } from "react";
 import { Apple, ArrowRight, Chrome, Gift, KeyRound, Loader2, Mail } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { LegalLinks } from "../legal/LegalLinks";
@@ -11,7 +12,11 @@ type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 
-export function AuthScreen() {
+type AuthScreenProps = {
+  themeControl?: ReactNode;
+};
+
+export function AuthScreen({ themeControl }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [message, setMessage] = useState("Enter your email and LevelFlow will send a one-time magic link.");
@@ -78,25 +83,26 @@ export function AuthScreen() {
   const headline = isSupabaseConfigured ? "Secure access" : "Cloud access pending";
   const body = isSupabaseConfigured
     ? message
-    : "Supabase access is not connected yet. Once connected, secure email and OAuth sign-in will open the live trading workspace.";
+    : "Supabase access is not connected yet. Once connected, secure email and OAuth sign-in will open the live market-analysis workspace.";
   const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent(
     "I would like the current donation link for LevelFlow development and maintenance.",
   )}`;
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
+      {themeControl ? <div className="fixed right-4 top-4 z-20">{themeControl}</div> : null}
       <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 py-6 sm:px-8 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-8">
           <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
-              <img className="h-14 w-14 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Line mark" />
+                <img className="h-14 w-14 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Line mark" />
               <div>
                 <p className="text-sm font-semibold uppercase tracking-normal text-slate">A Windward Line product</p>
-                <p className="text-sm font-medium text-bullish">Built for funded-account discipline</p>
+                <p className="text-sm font-medium text-bullish">Built for disciplined market review</p>
               </div>
             </div>
             <h1 className="text-6xl font-semibold tracking-normal text-navy sm:text-7xl">LevelFlow</h1>
-            <p className="max-w-xl text-base leading-7 text-slate">A premium operating layer for E8 traders.</p>
+            <p className="max-w-xl text-base leading-7 text-slate">A premium market-analysis layer for disciplined traders.</p>
           </div>
         </div>
 
