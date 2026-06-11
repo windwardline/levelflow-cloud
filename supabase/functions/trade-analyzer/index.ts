@@ -870,19 +870,33 @@ async function upsertOutcome(
 }
 
 async function refreshStrategyWeights(token: string, userId: string) {
+  const outcomes = await fetchRows<{ outcome: string; setup_id: string }>(
+    token,
+    `trade_outcomes?select=setup_id,outcome&user_id=eq.${encodeURIComponent(userId)}&outcome=in.(take_profit,stop_loss)&order=reviewed_at.desc&limit=500`,
+  );
+  const setupIds = Array.from(new Set(outcomes.map((outcome) => outcome.setup_id).filter(Boolean)));
+  if (setupIds.length === 0) {
+    return;
+  }
+
   const rows = await fetchRows<{
     confluence: Record<string, unknown> | null;
     correlation_group: string | null;
+    id: string;
     symbol: string;
-    trade_outcomes?: Array<{ outcome: string }>;
   }>(
     token,
-    `trade_setups?select=symbol,correlation_group,confluence,trade_outcomes(outcome)&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=500`,
+    `trade_setups?select=id,symbol,correlation_group,confluence&user_id=eq.${encodeURIComponent(userId)}&id=in.(${setupIds.map((id) => encodeURIComponent(id)).join(",")})`,
   );
+  const setupsById = new Map(rows.map((row) => [row.id, row]));
   const grouped = new Map<string, { losses: number; total: number; wins: number }>();
 
-  for (const row of rows) {
-    const outcome = row.trade_outcomes?.[0]?.outcome;
+  for (const outcomeRow of outcomes) {
+    const row = setupsById.get(outcomeRow.setup_id);
+    if (!row) {
+      continue;
+    }
+    const outcome = outcomeRow.outcome;
     if (outcome !== "take_profit" && outcome !== "stop_loss") {
       continue;
     }
