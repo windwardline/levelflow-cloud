@@ -10,6 +10,7 @@
   html {
     min-width: 320px;
     background: #f7f8f4;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -44,10 +45,20 @@
 
 @layer components {
   .terminal-panel {
+    min-width: 0;
     border: 1px solid rgba(128, 138, 149, 0.18);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 24px 60px rgba(17, 28, 56, 0.12);
+    box-shadow: 0 16px 36px rgba(17, 28, 56, 0.1);
+  }
+
+  .terminal-panel p,
+  .terminal-panel span,
+  .terminal-panel h2,
+  .terminal-panel h3,
+  .terminal-panel td,
+  .terminal-panel th {
+    overflow-wrap: anywhere;
   }
 
   .primary-button,
@@ -119,6 +130,7 @@
 
   .field {
     min-height: 48px;
+    min-width: 0;
     width: 100%;
     border-radius: 8px;
     border: 1px solid rgba(128, 138, 149, 0.26);
@@ -215,7 +227,7 @@
   html[data-theme="dark"] .terminal-panel {
     border-color: rgba(170, 182, 197, 0.18);
     background: rgba(16, 24, 38, 0.94);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
   }
 
   html[data-theme="dark"] .secondary-button {
@@ -256,5 +268,16 @@
 
   html[data-theme="dark"] input::placeholder {
     color: #7d8a9b;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .primary-button,
+    .secondary-button,
+    .nav-button,
+    .segmented-button,
+    .choice-tile,
+    .ruleset-row {
+      transition: none;
+    }
   }
 }

@@ -32,14 +32,21 @@ export type OutcomeSummary = {
 
 let lastOutcomeRefreshAt = 0;
 const OUTCOME_REFRESH_INTERVAL_MS = 60_000;
+type RefreshSetupsOptions = {
+  forceOutcomeRefresh?: boolean;
+  refreshOutcomes?: boolean;
+  silent?: boolean;
+};
 
 export function useTradeSetups() {
   const [setups, setSetups] = useState<TradeSetupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const refreshSetups = useCallback(async (options?: { forceOutcomeRefresh?: boolean }) => {
-    setLoading(true);
+  const refreshSetups = useCallback(async (options?: RefreshSetupsOptions) => {
+    if (!options?.silent) {
+      setLoading(true);
+    }
     setError("");
 
     try {
@@ -53,7 +60,9 @@ export function useTradeSetups() {
         }
       }
 
-      if (options?.forceOutcomeRefresh || Date.now() - lastOutcomeRefreshAt > OUTCOME_REFRESH_INTERVAL_MS) {
+      const shouldRefreshOutcomes =
+        options?.forceOutcomeRefresh === true || (options?.refreshOutcomes === true && Date.now() - lastOutcomeRefreshAt > OUTCOME_REFRESH_INTERVAL_MS);
+      if (shouldRefreshOutcomes) {
         try {
           await refreshTradeOutcomes();
           lastOutcomeRefreshAt = Date.now();
@@ -65,7 +74,9 @@ export function useTradeSetups() {
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Trade setup history could not be loaded.");
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -82,7 +93,7 @@ export function useTradeSetups() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        refreshSetups({ forceOutcomeRefresh: true });
+        refreshSetups();
       } else {
         setSetups([]);
       }
@@ -115,14 +126,14 @@ export function useTradeSetups() {
           "postgres_changes",
           { event: "*", filter: `user_id=eq.${user.id}`, schema: "public", table: "trade_setups" },
           () => {
-            refreshSetups();
+            refreshSetups({ silent: true });
           },
         )
         .on(
           "postgres_changes",
           { event: "*", filter: `user_id=eq.${user.id}`, schema: "public", table: "trade_outcomes" },
           () => {
-            refreshSetups();
+            refreshSetups({ silent: true });
           },
         )
         .subscribe();

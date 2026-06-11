@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Gift, HelpCircle, History, LayoutDashboard, LogOut, Mail, Monitor, Moon, Sun, User } from "lucide-react";
+import { BookOpen, Gift, History, LayoutDashboard, LogOut, Mail, Monitor, Moon, Sun, User } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { DonationOptions } from "./components/donations/DonationOptions";
@@ -9,12 +9,12 @@ import { useAuthSession } from "./hooks/useAuthSession";
 import { useTradeSetups, type CategoryStat, type OutcomeSummary, type SecurityStat } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { brandAssets } from "./lib/assets";
-import { buildDefaultProfile, profileDisplayName, PREFERRED_SESSION_OPTIONS, US_TIME_ZONE_GROUPS, type ThemeMode, type UserProfile } from "./lib/profile";
+import { buildDefaultProfile, profileDisplayName, PREFERRED_SESSION_OPTIONS, US_STATE_TIME_ZONES, type ThemeMode, type UserProfile } from "./lib/profile";
 import { supabase } from "./lib/supabase";
 import type { ChartTimeframe } from "./lib/marketData";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
-type AppTab = "advisor" | "history" | "profile" | "help" | "donate";
+type AppTab = "advisor" | "history" | "profile" | "guide" | "donate";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 
@@ -22,7 +22,7 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
   { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "History", value: "history" },
   { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
-  { icon: <HelpCircle className="h-4 w-4" aria-hidden="true" />, label: "Help", value: "help" },
+  { icon: <BookOpen className="h-4 w-4" aria-hidden="true" />, label: "Guide", value: "guide" },
   { icon: <Gift className="h-4 w-4" aria-hidden="true" />, label: "Donate", value: "donate" },
 ];
 
@@ -32,6 +32,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("advisor");
   const setupState = useTradeSetups();
   const profileState = useUserProfile(session?.user.id ?? null, session?.user.email ?? "", theme.setMode);
+
+  useEffect(() => {
+    if (session && activeTab === "history") {
+      setupState.refreshSetups({ forceOutcomeRefresh: true });
+    }
+  }, [activeTab, session, setupState.refreshSetups]);
 
   if (loading) {
     return (
@@ -52,7 +58,7 @@ export default function App() {
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <img className="h-10 w-10 shrink-0 rounded-lg object-contain sm:h-11 sm:w-11" src={brandAssets.mark} alt="Windward Line mark" />
@@ -90,14 +96,14 @@ export default function App() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
-        {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={() => setupState.refreshSetups({ forceOutcomeRefresh: true })} profile={profile} setupStats={setupState.stats} setups={setupState.setups} /> : null}
+        {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={() => setupState.refreshSetups({ silent: true })} profile={profile} setupStats={setupState.stats} setups={setupState.setups} /> : null}
         {activeTab === "history" ? (
           <HistoryPanel categoryStats={setupState.categoryStats} loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} summary={setupState.outcomeSummary} />
         ) : null}
         {activeTab === "profile" ? (
           <ProfilePanel onSave={profileState.saveProfile} onThemeChange={theme.setMode} profile={profile} saveStatus={profileState.status} themeMode={theme.mode} />
         ) : null}
-        {activeTab === "help" ? <HelpPanel profile={profile} /> : null}
+        {activeTab === "guide" ? <GuidePanel /> : null}
         {activeTab === "donate" ? <DonatePanel /> : null}
 
         <footer className="pb-4">
@@ -218,7 +224,7 @@ function ProfilePanel({
   saveStatus,
   themeMode,
 }: {
-  onSave: (input: Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "experienceLevel" | "marketFocus" | "preferredSession" | "themePreference">) => Promise<void>;
+  onSave: (input: Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "marketFocus" | "preferredSession" | "themePreference">) => Promise<void>;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
   saveStatus: "idle" | "saving" | "saved";
@@ -227,7 +233,6 @@ function ProfilePanel({
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [timezone, setTimezone] = useState(profile.defaultTimezone);
   const [marketFocus, setMarketFocus] = useState(profile.marketFocus);
-  const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel);
   const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>(profile.defaultTimeframe);
   const [preferredSession, setPreferredSession] = useState(profile.preferredSession);
   const [saveError, setSaveError] = useState("");
@@ -236,7 +241,6 @@ function ProfilePanel({
     setDisplayName(profile.displayName);
     setTimezone(profile.defaultTimezone);
     setMarketFocus(profile.marketFocus);
-    setExperienceLevel(profile.experienceLevel);
     setDefaultTimeframe(profile.defaultTimeframe);
     setPreferredSession(profile.preferredSession);
   }, [profile]);
@@ -250,7 +254,6 @@ function ProfilePanel({
         defaultTimeframe,
         defaultTimezone: timezone,
         displayName,
-        experienceLevel,
         marketFocus,
         preferredSession,
         themePreference: themeMode,
@@ -275,14 +278,10 @@ function ProfilePanel({
           <label className="grid gap-2 text-sm font-semibold text-navy">
             U.S. timezone
             <select className="field" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
-              {US_TIME_ZONE_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </optgroup>
+              {US_STATE_TIME_ZONES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </label>
@@ -304,14 +303,6 @@ function ProfilePanel({
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
-            Experience level
-            <select className="field" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value as UserProfile["experienceLevel"])}>
-              <option value="newer">Newer trader</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
@@ -338,20 +329,17 @@ function ProfilePanel({
         <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Profile impact</p>
         <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How LevelFlow uses it</h2>
         <div className="mt-4 grid gap-3 text-sm leading-6 text-slate">
-          <p>Your name appears in the workspace header and advisor desk so shared machines are easier to verify at a glance.</p>
-          <p>Your U.S. timezone drives the market open and close countdowns, while the advisor still shows the market-local time beside it.</p>
+          <p>Your name appears in the workspace header so shared machines are easier to verify at a glance.</p>
+          <p>Your U.S. timezone drives the market open and close countdowns. Daylight saving time is handled automatically by the selected timezone.</p>
           <p>Market focus selects the first advisor asset for a new session. Preferred session highlights the global session you care about most.</p>
-          <p>Default timeframe opens new chart work on your preferred view; experience level tunes the Help page wording.</p>
+          <p>Default timeframe opens new chart work on your preferred view, and theme preference keeps the workspace readable in your environment.</p>
         </div>
       </section>
     </div>
   );
 }
 
-function HelpPanel({ profile }: { profile: UserProfile }) {
-  const isNewer = profile.experienceLevel === "newer";
-  const isAdvanced = profile.experienceLevel === "advanced";
-
+function GuidePanel() {
   return (
     <section className="terminal-panel p-5 sm:p-6">
       <div className="mb-6 flex items-center gap-3">
@@ -362,24 +350,16 @@ function HelpPanel({ profile }: { profile: UserProfile }) {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <GuideStep
           number="01"
           title="Start with one asset"
-          body={
-            isNewer
-              ? "Open Advisor, choose one asset from the grouped dropdown, and begin on your saved default timeframe. Review the chart first: drag left for more history, scroll or pinch to zoom, and reset the view when you want the full context back."
-              : "Open Advisor, choose one asset from the grouped dropdown, and begin on your saved default timeframe. Review structure, liquidity, and momentum on the chart before generating."
-          }
+          body="Open Advisor, choose one asset from the grouped dropdown, and begin on your saved default timeframe. Review the chart first: drag left for more history, scroll or pinch to zoom, and reset the view when you want the full context back."
         />
         <GuideStep
           number="02"
           title="Generate a limit-only setup"
-          body={
-            isAdvanced
-              ? "Click Generate setup for the current best pending limit-order idea. The analyzer scores multi-timeframe alignment, structure, liquidity behavior, momentum, volatility, value/volume behavior, correlation, and calendar risk."
-              : "Click Generate setup when you want LevelFlow's current best pending limit-order idea. The analyzer reviews trend, market structure, liquidity behavior, momentum, volatility, value/volume behavior, multi-timeframe alignment, correlation, and calendar risk."
-          }
+          body="Click Generate setup when you want LevelFlow's current best pending limit-order idea. The analyzer reviews trend, market structure, liquidity behavior, momentum, volatility, value/volume behavior, multi-timeframe alignment, correlation, session quality, and calendar risk."
         />
         <GuideStep
           number="03"
@@ -404,13 +384,27 @@ function HelpPanel({ profile }: { profile: UserProfile }) {
         <GuideStep
           number="07"
           title="Keep preferences current"
-          body="Open Profile to set display, timezone, market focus, experience level, default chart timeframe, and theme preference. These settings make the workspace easier to scan and prepare for deeper personalization."
+          body="Open Profile to set display name, timezone, market focus, preferred session, default chart timeframe, and theme preference. These settings shape the workspace without changing the analyzer's quality threshold."
         />
         <GuideStep
           number="08"
           title="Remember what LevelFlow does"
           body="LevelFlow evaluates market conditions and produces advisory trade setups. It does not place, modify, close, or size trades for you."
         />
+      </div>
+
+      <div className="mt-5 rounded-lg border border-slate/15 bg-canvas p-4">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Support contact</p>
+            <h3 className="mt-1 text-lg font-semibold text-navy">Questions, access, or data issues</h3>
+            <p className="mt-1 text-sm leading-6 text-slate">Send the asset, timeframe, and a short description of what you saw so the issue can be reproduced quickly.</p>
+          </div>
+          <a className="secondary-button shrink-0" href={`mailto:${SUPPORT_EMAIL}`}>
+            <Mail className="h-4 w-4" aria-hidden="true" />
+            {SUPPORT_EMAIL}
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -422,22 +416,7 @@ function DonatePanel() {
   )}`;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <section className="terminal-panel p-5 sm:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <Mail className="h-5 w-5 text-navy" aria-hidden="true" />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Contact</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">Contact</h2>
-          </div>
-        </div>
-        <p className="text-sm leading-6 text-slate">For access, data, or recommendation issues, contact Windward Line support.</p>
-        <a className="secondary-button mt-5" href={`mailto:${SUPPORT_EMAIL}`}>
-          <Mail className="h-4 w-4" aria-hidden="true" />
-          {SUPPORT_EMAIL}
-        </a>
-      </section>
-
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(280px,0.4fr)]">
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex items-center gap-3">
           <Gift className="h-5 w-5 text-navy" aria-hidden="true" />
@@ -447,6 +426,13 @@ function DonatePanel() {
           </div>
         </div>
         <DonationOptions fallbackHref={donationFallbackHref} />
+      </section>
+      <section className="terminal-panel p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What donations support</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">App costs</h2>
+        <p className="mt-4 text-sm leading-6 text-slate">
+          Donations go toward market-data access, authentication email delivery, hosting, database capacity, testing, and continued LevelFlow development.
+        </p>
       </section>
     </div>
   );
@@ -478,9 +464,9 @@ function ThemeToggle({ compact = false, mode, onChange }: { compact?: boolean; m
 
 function GuideStep({ body, number, title }: { body: string; number: string; title: string }) {
   return (
-    <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas px-4 py-4 sm:grid-cols-[auto_1fr]">
+    <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)]">
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white">{number}</div>
-      <div>
+      <div className="min-w-0">
         <h3 className="font-semibold text-navy">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
       </div>

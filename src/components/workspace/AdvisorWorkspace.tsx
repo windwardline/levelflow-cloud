@@ -5,7 +5,7 @@ import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
-import { profileDisplayName, type UserProfile } from "../../lib/profile";
+import type { UserProfile } from "../../lib/profile";
 import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, getSecurityOption, type SupportedSymbol } from "../../lib/symbolMap";
 import { generateTradeSetup, type AnalyzerResponse, type AnalyzerSetup, type TradeSetupRow } from "../../lib/tradeAnalyzer";
 
@@ -150,10 +150,10 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       <section className="terminal-panel overflow-hidden">
         <div className="border-b border-slate/15 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Market advisor</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Trade setup desk</h2>
-              <p className="mt-1 text-sm text-slate">Welcome, {profileDisplayName(profile)}.</p>
+              <p className="mt-1 text-sm text-slate">Evaluate the current market and log qualified limit-order setups.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
               <RefreshCw className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -229,7 +229,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
               </p>
             </div>
           </div>
-          <MarketChart data={marketData?.points ?? []} loading={marketLoading} setup={setup} />
+          <MarketChart data={marketData?.points ?? []} loading={marketLoading} setup={setup} viewKey={`${symbol}:${timeframe}`} />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <p className="font-medium text-slate">{marketNotice}</p>
             <p className="text-xs font-semibold uppercase tracking-normal text-slate">{activeAssetCount} active assets</p>
@@ -326,10 +326,10 @@ function RecommendationPanel({
 
 function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMarketClock>; sessions: ReturnType<typeof getGlobalSessions> }) {
   return (
-    <div className="mb-4 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 lg:grid-cols-[minmax(220px,0.9fr)_minmax(0,1.4fr)]">
-      <div className="rounded-lg bg-white p-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-normal text-slate">{clock.marketLabel}</p>
+    <div className="mb-4 grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas p-3 lg:grid-cols-[minmax(220px,0.9fr)_minmax(0,1.4fr)]">
+      <div className="min-w-0 rounded-lg bg-white p-3">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <p className="min-w-0 text-xs font-semibold uppercase tracking-normal text-slate">{clock.marketLabel}</p>
           <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${clock.isOpen ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>{clock.statusLabel}</span>
         </div>
         <p className="mt-2 text-lg font-semibold text-navy">
@@ -346,9 +346,9 @@ function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMar
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {sessions.map((session) => (
-          <div key={session.id} className={`rounded-lg border px-3 py-3 ${session.isPreferred ? "border-bullish/40 bg-bullish/10" : "border-slate/15 bg-white"}`}>
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold text-navy">{session.label}</p>
+          <div key={session.id} className={`min-w-0 rounded-lg border px-3 py-3 ${session.isPreferred ? "border-bullish/40 bg-bullish/10" : "border-slate/15 bg-white"}`}>
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <p className="min-w-0 font-semibold text-navy">{session.label}</p>
               <span className={`text-xs font-bold uppercase ${session.isOpen ? "text-bullish" : "text-slate"}`}>{session.isOpen ? "Open" : "Closed"}</span>
             </div>
             <p className="mt-1 text-xs text-slate">{session.marketTime}</p>
@@ -371,12 +371,12 @@ function SetupList({ setups }: { setups: TradeSetupRow[] }) {
   return (
     <div className="grid gap-2">
       {setups.map((setup) => (
-        <div key={setup.id} className="rounded-lg border border-slate/15 bg-canvas px-3 py-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="font-semibold text-navy">{setup.symbol}</p>
+        <div key={setup.id} className="min-w-0 rounded-lg border border-slate/15 bg-canvas px-3 py-2">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <p className="min-w-0 font-semibold text-navy">{setup.symbol}</p>
             <span className={`text-xs font-bold uppercase ${setup.side === "buy" ? "text-bullish" : "text-danger"}`}>{setup.side} limit</span>
           </div>
-          <div className="mt-1 flex items-center justify-between gap-3 text-xs text-slate">
+          <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-xs text-slate">
             <span>{formatDate(setup.created_at)}</span>
             <span>{Number(setup.confidence_score)}% confidence</span>
           </div>
@@ -388,9 +388,9 @@ function SetupList({ setups }: { setups: TradeSetupRow[] }) {
 
 function MetricRow({ label, value, valueClassName = "text-navy" }: { label: string; value: string; valueClassName?: string }) {
   return (
-    <div className="flex min-h-10 items-center justify-between gap-3 rounded-lg bg-canvas px-3 py-2">
-      <span className="text-slate">{label}</span>
-      <span className={`text-right font-semibold ${valueClassName}`}>{value}</span>
+    <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-lg bg-canvas px-3 py-2">
+      <span className="min-w-0 text-slate">{label}</span>
+      <span className={`min-w-0 text-right font-semibold ${valueClassName}`}>{value}</span>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronsLeft, ChevronsRight, Maximize2, MoveHorizontal, ZoomIn, ZoomOut } from "lucide-react";
 import {
   CandlestickSeries,
   ColorType,
@@ -19,13 +20,15 @@ type MarketChartProps = {
   data: MarketDataPoint[];
   loading?: boolean;
   setup?: ChartSetup | null;
+  viewKey?: string;
 };
 
-export function MarketChart({ data, loading = false, setup = null }: MarketChartProps) {
+export function MarketChart({ data, loading = false, setup = null, viewKey = "default" }: MarketChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const priceLinesRef = useRef<IPriceLine[]>([]);
+  const lastFitKeyRef = useRef("");
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? "light");
 
   useEffect(() => {
@@ -74,17 +77,27 @@ export function MarketChart({ data, loading = false, setup = null }: MarketChart
     candleSeriesRef.current = candleSeries;
     chart.timeScale().fitContent();
 
+    let resizeFrame = 0;
     const resize = () => {
       if (containerRef.current) {
-        chart.applyOptions({ height: containerRef.current.clientHeight || 440, width: containerRef.current.clientWidth });
+        window.cancelAnimationFrame(resizeFrame);
+        resizeFrame = window.requestAnimationFrame(() => {
+          if (containerRef.current) {
+            chart.applyOptions({ height: containerRef.current.clientHeight || 440, width: containerRef.current.clientWidth });
+          }
+        });
       }
     };
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(containerRef.current);
 
     resize();
     window.addEventListener("resize", resize);
 
     return () => {
       window.removeEventListener("resize", resize);
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(resizeFrame);
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
@@ -116,22 +129,15 @@ export function MarketChart({ data, loading = false, setup = null }: MarketChart
       return;
     }
 
-    const chartData = data.map((point) => {
-      const close = point.close;
-      return {
-        close,
-        high: point.high ?? close,
-        low: point.low ?? close,
-        open: point.open ?? point.value,
-        time: point.time as Time,
-      };
-    }) satisfies CandlestickData<Time>[];
+    const chartData = normalizeChartData(data);
 
     candleSeriesRef.current.setData(chartData);
-    if (chartData.length > 0) {
+    const fitKey = `${viewKey}:${chartData.length}:${String(chartData[0]?.time ?? "")}:${String(chartData.at(-1)?.time ?? "")}`;
+    if (chartData.length > 0 && fitKey !== lastFitKeyRef.current) {
+      lastFitKeyRef.current = fitKey;
       chartRef.current.timeScale().fitContent();
     }
-  }, [data]);
+  }, [data, viewKey]);
 
   useEffect(() => {
     if (!candleSeriesRef.current) {
@@ -179,11 +185,26 @@ export function MarketChart({ data, loading = false, setup = null }: MarketChart
   }, [setup, theme]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-slate/15 bg-white">
-      <div className="absolute right-3 top-3 z-10">
-        <button className="secondary-button min-h-9 px-3 py-1 text-xs" type="button" onClick={() => chartRef.current?.timeScale().fitContent()}>
-          Reset view
-        </button>
+    <div className="relative min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-white">
+      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-slate/15 bg-white/90 p-1">
+        <ChartToolButton label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
+          <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
+        </ChartToolButton>
+        <ChartToolButton label="Zoom in" onClick={() => zoomChart(chartRef.current, 0.72)}>
+          <ZoomIn className="h-4 w-4" aria-hidden="true" />
+        </ChartToolButton>
+        <ChartToolButton label="Zoom out" onClick={() => zoomChart(chartRef.current, 1.35)}>
+          <ZoomOut className="h-4 w-4" aria-hidden="true" />
+        </ChartToolButton>
+        <ChartToolButton label="Scroll right" onClick={() => scrollChart(chartRef.current, 1)}>
+          <ChevronsRight className="h-4 w-4" aria-hidden="true" />
+        </ChartToolButton>
+        <ChartToolButton label="Autoscale price" onClick={() => chartRef.current?.priceScale("right").applyOptions({ autoScale: true })}>
+          <MoveHorizontal className="h-4 w-4" aria-hidden="true" />
+        </ChartToolButton>
+        <ChartToolButton label="Default chart view" onClick={() => resetChart(chartRef.current)}>
+          <Maximize2 className="h-4 w-4" aria-hidden="true" />
+        </ChartToolButton>
       </div>
       <div ref={containerRef} className="h-[390px] w-full sm:h-[500px] xl:h-[560px]" />
       {loading && <div className="absolute inset-0 grid place-items-center bg-white/70 text-sm font-semibold text-navy">Loading market data</div>}
@@ -192,6 +213,84 @@ export function MarketChart({ data, loading = false, setup = null }: MarketChart
       )}
     </div>
   );
+}
+
+function ChartToolButton({ children, label, onClick }: { children: ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      aria-label={label}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate transition hover:bg-bullish/10 hover:text-bullish"
+      title={label}
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function normalizeChartData(data: MarketDataPoint[]) {
+  const deduped = new Map<string, CandlestickData<Time>>();
+  for (const point of data) {
+    const close = Number(point.close);
+    const open = Number(point.open ?? point.value ?? close);
+    const high = Number(point.high ?? close);
+    const low = Number(point.low ?? close);
+    const time = point.time as Time;
+    if (!Number.isFinite(close) || !Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || time === null || time === undefined) {
+      continue;
+    }
+    deduped.set(String(time), {
+      close,
+      high: Math.max(high, open, close),
+      low: Math.min(low, open, close),
+      open,
+      time,
+    });
+  }
+  return Array.from(deduped.values()).sort((first, second) => compareChartTime(first.time, second.time));
+}
+
+function compareChartTime(first: Time, second: Time) {
+  return chartTimeValue(first) - chartTimeValue(second);
+}
+
+function chartTimeValue(value: Time) {
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "string") {
+    return Date.parse(value);
+  }
+  return Date.UTC(value.year, value.month - 1, value.day) / 1000;
+}
+
+function resetChart(chart: IChartApi | null) {
+  if (!chart) {
+    return;
+  }
+  chart.priceScale("right").applyOptions({ autoScale: true });
+  chart.timeScale().fitContent();
+}
+
+function zoomChart(chart: IChartApi | null, factor: number) {
+  const range = chart?.timeScale().getVisibleLogicalRange();
+  if (!chart || !range) {
+    return;
+  }
+  const center = (range.from + range.to) / 2;
+  const halfWidth = Math.max((range.to - range.from) * factor * 0.5, 4);
+  chart.timeScale().setVisibleLogicalRange({ from: center - halfWidth, to: center + halfWidth });
+}
+
+function scrollChart(chart: IChartApi | null, direction: -1 | 1) {
+  const range = chart?.timeScale().getVisibleLogicalRange();
+  if (!chart || !range) {
+    return;
+  }
+  const span = range.to - range.from;
+  const offset = Math.max(span * 0.28, 4) * direction;
+  chart.timeScale().setVisibleLogicalRange({ from: range.from + offset, to: range.to + offset });
 }
 
 function chartPalette(theme: string) {

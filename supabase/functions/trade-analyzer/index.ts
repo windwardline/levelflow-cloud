@@ -293,9 +293,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const outcomeRefresh = await refreshUserOutcomes(token, user.id);
-    await refreshStrategyWeights(token, user.id);
-
     const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
     if (temporarilyUnavailableSymbols.has(uiSymbol)) {
@@ -312,6 +309,8 @@ Deno.serve(async (req) => {
     }
 
     const symbol = uiSymbol as SupportedSymbol;
+    const outcomeRefresh = await refreshUserOutcomes(token, user.id, { limit: 24, symbols: [symbol] });
+    await refreshStrategyWeights(token, user.id);
     const sessionContext = getSessionContext();
 
     const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
@@ -342,7 +341,7 @@ Deno.serve(async (req) => {
     }
 
     const group = getCorrelationGroup(symbol);
-    const setup = await analyzeSetup(token, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
+    const setup = await analyzeSetup(token, user.id, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
     if (!setup) {
       await invalidateActiveSetupsForSymbol(token, user.id, symbol, "No setup met the LevelFlow committee confluence threshold.");
       return jsonResponse(req, {
@@ -427,6 +426,7 @@ async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Prom
 
 async function analyzeSetup(
   token: string,
+  userId: string,
   symbol: SupportedSymbol,
   fmpSymbol: string,
   correlationGroup: string,
@@ -445,7 +445,7 @@ async function analyzeSetup(
   const setupKey = buildSetupKey(regime, consensus.side, votes);
   const weight = await fetchSingle<{ confidence_adjustment: number | string }>(
     token,
-    `strategy_weightings?select=confidence_adjustment&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
+    `strategy_weightings?select=confidence_adjustment&user_id=eq.${encodeURIComponent(userId)}&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
   );
   const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
 
@@ -638,7 +638,7 @@ async function invalidateActiveSetupsForSymbol(token: string, userId: string, sy
   });
 }
 
-async function refreshUserOutcomes(token: string, userId: string): Promise<OutcomeRefreshSummary> {
+async function refreshUserOutcomes(token: string, userId: string, options: { limit?: number; symbols?: SupportedSymbol[] } = {}): Promise<OutcomeRefreshSummary> {
   const summary: OutcomeRefreshSummary = {
     expired: 0,
     failed: 0,
@@ -648,11 +648,14 @@ async function refreshUserOutcomes(token: string, userId: string): Promise<Outco
     stopLoss: 0,
     takeProfit: 0,
   };
+  const symbolFilter =
+    options.symbols && options.symbols.length > 0 ? `&symbol=in.(${options.symbols.map((symbol) => encodeURIComponent(symbol)).join(",")})` : "";
+  const limit = Math.max(1, Math.min(options.limit ?? 120, 120));
   const setups = await fetchRows<SetupForOutcome>(
     token,
     `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
       userId,
-    )}&status=in.(generated,placed)&order=created_at.asc&limit=120`,
+    )}&status=in.(generated,placed)${symbolFilter}&order=created_at.asc&limit=${limit}`,
   );
   const barsByProviderSymbol = new Map<string, Promise<Bar[]>>();
 
