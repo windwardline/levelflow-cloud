@@ -6,14 +6,15 @@ import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { DonationOptions } from "./components/donations/DonationOptions";
 import { LegalLinks } from "./components/legal/LegalLinks";
 import { useAuthSession } from "./hooks/useAuthSession";
-import { useTradeSetups, type SecurityStat } from "./hooks/useTradeSetups";
+import { useTradeSetups, type CategoryStat, type OutcomeSummary, type SecurityStat } from "./hooks/useTradeSetups";
+import { useUserProfile } from "./hooks/useUserProfile";
 import { brandAssets } from "./lib/assets";
+import { buildDefaultProfile, profileDisplayName, PREFERRED_SESSION_OPTIONS, US_TIME_ZONE_GROUPS, type ThemeMode, type UserProfile } from "./lib/profile";
 import { supabase } from "./lib/supabase";
 import type { ChartTimeframe } from "./lib/marketData";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
 type AppTab = "advisor" | "history" | "profile" | "help" | "donate";
-type ThemeMode = "light" | "dark" | "system";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 
@@ -30,6 +31,7 @@ export default function App() {
   const { session, loading } = useAuthSession();
   const [activeTab, setActiveTab] = useState<AppTab>("advisor");
   const setupState = useTradeSetups();
+  const profileState = useUserProfile(session?.user.id ?? null, session?.user.email ?? "", theme.setMode);
 
   if (loading) {
     return (
@@ -46,6 +48,8 @@ export default function App() {
     return <AuthScreen themeControl={<ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />} />;
   }
 
+  const profile = profileState.profile ?? buildDefaultProfile(session.user.id, session.user.email ?? "");
+
   return (
     <main className="min-h-screen bg-canvas text-ink">
       <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur">
@@ -55,6 +59,7 @@ export default function App() {
             <div className="min-w-0">
               <p className="text-[0.7rem] font-semibold uppercase tracking-normal text-slate sm:text-xs">Windward Line</p>
               <h1 className="truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">LevelFlow</h1>
+              <p className="truncate text-xs font-medium text-slate">Welcome, {profileDisplayName(profile)}</p>
             </div>
             <div className="ml-auto sm:hidden">
               <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
@@ -85,12 +90,14 @@ export default function App() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
-        {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={setupState.refreshSetups} setupStats={setupState.stats} setups={setupState.setups} /> : null}
-        {activeTab === "history" ? <HistoryPanel loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} /> : null}
-        {activeTab === "profile" ? (
-          <ProfilePanel email={session.user.email ?? ""} themeMode={theme.mode} onThemeChange={theme.setMode} userId={session.user.id} />
+        {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={() => setupState.refreshSetups({ forceOutcomeRefresh: true })} profile={profile} setupStats={setupState.stats} setups={setupState.setups} /> : null}
+        {activeTab === "history" ? (
+          <HistoryPanel categoryStats={setupState.categoryStats} loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} summary={setupState.outcomeSummary} />
         ) : null}
-        {activeTab === "help" ? <HelpPanel /> : null}
+        {activeTab === "profile" ? (
+          <ProfilePanel onSave={profileState.saveProfile} onThemeChange={theme.setMode} profile={profile} saveStatus={profileState.status} themeMode={theme.mode} />
+        ) : null}
+        {activeTab === "help" ? <HelpPanel profile={profile} /> : null}
         {activeTab === "donate" ? <DonatePanel /> : null}
 
         <footer className="pb-4">
@@ -101,7 +108,19 @@ export default function App() {
   );
 }
 
-function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: TradeSetupRow[]; stats: SecurityStat[] }) {
+function HistoryPanel({
+  categoryStats,
+  loading,
+  setups,
+  stats,
+  summary,
+}: {
+  categoryStats: CategoryStat[];
+  loading: boolean;
+  setups: TradeSetupRow[];
+  stats: SecurityStat[];
+  summary: OutcomeSummary;
+}) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
       <section className="terminal-panel p-5 sm:p-6">
@@ -111,6 +130,13 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
             <h2 className="text-2xl font-semibold tracking-normal text-navy">Recommendations</h2>
           </div>
           <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${setups.length} saved setups`}</p>
+        </div>
+
+        <div className="mb-5 grid gap-3 sm:grid-cols-4">
+          <StatPill label="Overall win rate" value={summary.winRate === null ? "Pending" : `${summary.winRate}%`} />
+          <StatPill label="Resolved" value={summary.resolved.toString()} />
+          <StatPill label="Take profit" value={summary.wins.toString()} />
+          <StatPill label="Stop loss" value={summary.losses.toString()} />
         </div>
 
         <div className="overflow-x-auto">
@@ -137,7 +163,7 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
                   <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.stop_loss))}</td>
                   <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.take_profit))}</td>
                   <td className="py-3 pr-4 font-semibold text-navy">{Number(setup.confidence_score)}%</td>
-                  <td className="py-3 pr-4 text-slate">{setup.trade_outcomes?.[0]?.outcome ?? setup.status}</td>
+                  <td className="py-3 pr-4 text-slate">{formatOutcome(setup)}</td>
                 </tr>
               ))}
             </tbody>
@@ -152,6 +178,19 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
           <h2 className="text-2xl font-semibold tracking-normal text-navy">Stats</h2>
         </div>
         <div className="grid gap-3">
+          {categoryStats.map((stat) => (
+            <div key={stat.category} className="rounded-lg border border-bullish/20 bg-bullish/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-navy">{stat.category}</p>
+                <p className="text-sm font-semibold text-slate">{stat.count} setups</p>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <StatPill label="Win rate" value={stat.winRate === null ? "Pending" : `${stat.winRate}%`} />
+                <StatPill label="TP / SL" value={`${stat.wins}/${stat.losses}`} />
+                <StatPill label="Pending" value={stat.pending.toString()} />
+              </div>
+            </div>
+          ))}
           {stats.map((stat) => (
             <div key={stat.symbol} className="rounded-lg border border-slate/15 bg-canvas p-3">
               <div className="flex items-center justify-between gap-3">
@@ -159,8 +198,8 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
                 <p className="text-sm font-semibold text-slate">{stat.count} setups</p>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <StatPill label="Confidence" value={`${stat.averageConfidence}%`} />
-                <StatPill label="Wins" value={stat.wins.toString()} />
+                <StatPill label="Win rate" value={stat.winRate === null ? "Pending" : `${stat.winRate}%`} />
+                <StatPill label="TP / SL" value={`${stat.wins}/${stat.losses}`} />
                 <StatPill label="Pending" value={stat.pending.toString()} />
               </div>
             </div>
@@ -173,74 +212,52 @@ function HistoryPanel({ loading, setups, stats }: { loading: boolean; setups: Tr
 }
 
 function ProfilePanel({
-  email,
+  onSave,
   onThemeChange,
+  profile,
+  saveStatus,
   themeMode,
-  userId,
 }: {
-  email: string;
+  onSave: (input: Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "experienceLevel" | "marketFocus" | "preferredSession" | "themePreference">) => Promise<void>;
   onThemeChange: (mode: ThemeMode) => void;
+  profile: UserProfile;
+  saveStatus: "idle" | "saving" | "saved";
   themeMode: ThemeMode;
-  userId: string;
 }) {
-  const [displayName, setDisplayName] = useState("");
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const [marketFocus, setMarketFocus] = useState("multi_asset");
-  const [experienceLevel, setExperienceLevel] = useState("intermediate");
-  const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>("1hour");
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [timezone, setTimezone] = useState(profile.defaultTimezone);
+  const [marketFocus, setMarketFocus] = useState(profile.marketFocus);
+  const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel);
+  const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>(profile.defaultTimeframe);
+  const [preferredSession, setPreferredSession] = useState(profile.preferredSession);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadProfile() {
-      if (!supabase) {
-        return;
-      }
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, default_timezone, market_focus, experience_level, default_timeframe, theme_preference")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (!cancelled && data) {
-        setDisplayName(data.display_name ?? "");
-        setTimezone(data.default_timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
-        setMarketFocus(data.market_focus ?? "multi_asset");
-        setExperienceLevel(data.experience_level ?? "intermediate");
-        setDefaultTimeframe((data.default_timeframe ?? "1hour") as ChartTimeframe);
-        if (["light", "dark", "system"].includes(data.theme_preference ?? "")) {
-          onThemeChange(data.theme_preference as ThemeMode);
-        }
-      }
-    }
-
-    loadProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [onThemeChange, userId]);
+    setDisplayName(profile.displayName);
+    setTimezone(profile.defaultTimezone);
+    setMarketFocus(profile.marketFocus);
+    setExperienceLevel(profile.experienceLevel);
+    setDefaultTimeframe(profile.defaultTimeframe);
+    setPreferredSession(profile.preferredSession);
+  }, [profile]);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase) {
-      return;
-    }
+    setSaveError("");
 
-    setStatus("saving");
-    await supabase.from("profiles").upsert({
-      default_timeframe: defaultTimeframe,
-      default_timezone: timezone,
-      display_name: displayName.trim(),
-      email,
-      experience_level: experienceLevel,
-      id: userId,
-      market_focus: marketFocus,
-      theme_preference: themeMode,
-    });
-    setStatus("saved");
+    try {
+      await onSave({
+        defaultTimeframe,
+        defaultTimezone: timezone,
+        displayName,
+        experienceLevel,
+        marketFocus,
+        preferredSession,
+        themePreference: themeMode,
+      });
+    } catch {
+      setSaveError("Profile could not be saved. Try again after the connection refreshes.");
+    }
   }
 
   return (
@@ -248,7 +265,7 @@ function ProfilePanel({
       <form className="terminal-panel p-5 sm:p-6" onSubmit={saveProfile}>
         <div className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-normal text-bullish">User profile</p>
-          <h2 className="text-2xl font-semibold tracking-normal text-navy">Preferences</h2>
+          <h2 className="text-2xl font-semibold tracking-normal text-navy">Workspace preferences</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-navy">
@@ -256,18 +273,22 @@ function ProfilePanel({
             <input className="field" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Trader name" />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
-            Timezone
+            U.S. timezone
             <select className="field" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
-              {Array.from(new Set([timezone, "America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/London", "Europe/Berlin"].filter(Boolean))).map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+              {US_TIME_ZONE_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Market focus
-            <select className="field" value={marketFocus} onChange={(event) => setMarketFocus(event.target.value)}>
+            <select className="field" value={marketFocus} onChange={(event) => setMarketFocus(event.target.value as UserProfile["marketFocus"])}>
               <option value="multi_asset">Multi-asset</option>
               <option value="forex">Forex</option>
               <option value="metals">Metals</option>
@@ -276,8 +297,18 @@ function ProfilePanel({
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
+            Preferred session
+            <select className="field" value={preferredSession} onChange={(event) => setPreferredSession(event.target.value as UserProfile["preferredSession"])}>
+              {PREFERRED_SESSION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
             Experience level
-            <select className="field" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)}>
+            <select className="field" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value as UserProfile["experienceLevel"])}>
               <option value="newer">Newer trader</option>
               <option value="intermediate">Intermediate</option>
               <option value="advanced">Advanced</option>
@@ -297,24 +328,30 @@ function ProfilePanel({
             <ThemeToggle mode={themeMode} onChange={onThemeChange} />
           </div>
         </div>
-        <button className="primary-button mt-5" type="submit" disabled={status === "saving"}>
-          {status === "saving" ? "Saving..." : status === "saved" ? "Profile saved" : "Save profile"}
+        {saveError ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">{saveError}</p> : null}
+        <button className="primary-button mt-5" type="submit" disabled={saveStatus === "saving"}>
+          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Profile saved" : "Save profile"}
         </button>
       </form>
 
       <section className="terminal-panel p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Session policy</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Sign-in behavior</h2>
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Profile impact</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How LevelFlow uses it</h2>
         <div className="mt-4 grid gap-3 text-sm leading-6 text-slate">
-          <p>LevelFlow now stores authentication in browser session storage. Reloading the same tab keeps the workspace open, but closing the browser session requires a fresh magic-link sign-in.</p>
-          <p>This keeps the product fast during active use while avoiding multi-day persistent login on a shared machine.</p>
+          <p>Your name appears in the workspace header and advisor desk so shared machines are easier to verify at a glance.</p>
+          <p>Your U.S. timezone drives the market open and close countdowns, while the advisor still shows the market-local time beside it.</p>
+          <p>Market focus selects the first advisor asset for a new session. Preferred session highlights the global session you care about most.</p>
+          <p>Default timeframe opens new chart work on your preferred view; experience level tunes the Help page wording.</p>
         </div>
       </section>
     </div>
   );
 }
 
-function HelpPanel() {
+function HelpPanel({ profile }: { profile: UserProfile }) {
+  const isNewer = profile.experienceLevel === "newer";
+  const isAdvanced = profile.experienceLevel === "advanced";
+
   return (
     <section className="terminal-panel p-5 sm:p-6">
       <div className="mb-6 flex items-center gap-3">
@@ -329,12 +366,20 @@ function HelpPanel() {
         <GuideStep
           number="01"
           title="Start with one asset"
-          body="Open Advisor, choose an asset from the grouped dropdown, and begin on the 1H chart. Use the chart before generating: drag left for history, scroll or pinch to zoom, and reset the view when you want the full context back."
+          body={
+            isNewer
+              ? "Open Advisor, choose one asset from the grouped dropdown, and begin on your saved default timeframe. Review the chart first: drag left for more history, scroll or pinch to zoom, and reset the view when you want the full context back."
+              : "Open Advisor, choose one asset from the grouped dropdown, and begin on your saved default timeframe. Review structure, liquidity, and momentum on the chart before generating."
+          }
         />
         <GuideStep
           number="02"
           title="Generate a limit-only setup"
-          body="Click Generate setup when you want LevelFlow's current best pending limit-order idea. The analyzer reviews trend, market structure, liquidity behavior, momentum, volatility, value/volume behavior, multi-timeframe alignment, correlation, and calendar risk."
+          body={
+            isAdvanced
+              ? "Click Generate setup for the current best pending limit-order idea. The analyzer scores multi-timeframe alignment, structure, liquidity behavior, momentum, volatility, value/volume behavior, correlation, and calendar risk."
+              : "Click Generate setup when you want LevelFlow's current best pending limit-order idea. The analyzer reviews trend, market structure, liquidity behavior, momentum, volatility, value/volume behavior, multi-timeframe alignment, correlation, and calendar risk."
+          }
         />
         <GuideStep
           number="03"
@@ -349,12 +394,12 @@ function HelpPanel() {
         <GuideStep
           number="05"
           title="Re-check without duplicate clutter"
-          body="You can generate again for the same asset to see whether the best setup changed. If the same active setup is still best, LevelFlow refreshes the view and avoids creating a duplicate history row."
+          body="You can generate again for the same asset to see whether the best setup changed. LevelFlow refreshes the current recommendation, updates still-viable active setups, and avoids creating duplicate history rows."
         />
         <GuideStep
           number="06"
           title="Review your history"
-          body="Open History to review prior recommendations, confidence scores, entry/stop/target, and status. Asset stats show where your review activity is concentrated and how tracked outcomes are accumulating."
+          body="Open History to review prior recommendations, confidence scores, entry/stop/target, and status. Outcome stats show take-profit hits, stop-loss hits, unfilled ideas, and win rate by asset and category."
         />
         <GuideStep
           number="07"
@@ -495,4 +540,24 @@ function formatNumber(value: number) {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 5,
   });
+}
+
+function formatOutcome(setup: TradeSetupRow) {
+  const outcome = setup.trade_outcomes?.[0]?.outcome;
+  if (outcome === "take_profit") {
+    return "Take profit";
+  }
+  if (outcome === "stop_loss") {
+    return "Stop loss";
+  }
+  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired") {
+    return "Unfilled";
+  }
+  if (setup.status === "invalidated") {
+    return "Invalidated";
+  }
+  if (setup.status === "placed") {
+    return "Live / filled";
+  }
+  return "Pending";
 }

@@ -24,11 +24,21 @@ export type AnalyzerResponse = {
   deduplicated?: boolean;
   error?: string;
   message?: string;
+  outcomeRefresh?: {
+    expired: number;
+    failed: number;
+    pending: number;
+    placed: number;
+    reviewed: number;
+    stopLoss: number;
+    takeProfit: number;
+  };
   pendingOrderId?: string;
   providerWarnings?: string[];
   reason?: string;
   setup?: AnalyzerSetup;
   setupId?: string;
+  updated?: boolean;
 };
 
 export type TradeSetupRow = {
@@ -48,8 +58,12 @@ export type TradeSetupRow = {
   symbol: string;
   take_profit: number | string;
   trade_outcomes?: Array<{
+    exit_at?: string | null;
+    feedback?: Record<string, unknown> | null;
+    filled_at?: string | null;
     outcome: string;
     realized_pnl: number | string | null;
+    reviewed_at?: string | null;
   }>;
 };
 
@@ -75,6 +89,24 @@ export async function generateTradeSetup(symbol: SupportedSymbol) {
   return data;
 }
 
+export async function refreshTradeOutcomes() {
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const { data, error } = await supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
+    body: {
+      action: "refresh_outcomes",
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
 export async function fetchTradeSetups() {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
@@ -83,7 +115,7 @@ export async function fetchTradeSetups() {
   let query = supabase
     .from("trade_setups")
     .select(
-      "id, account_id, pending_order_id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl)",
+      "id, account_id, pending_order_id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
     )
     .order("created_at", { ascending: false })
     .limit(80);

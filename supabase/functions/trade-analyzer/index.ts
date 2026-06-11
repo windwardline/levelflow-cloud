@@ -149,6 +149,7 @@ type Timeframe = "1day" | (typeof intradayTimeframes)[number];
 type RegimeName = "trend" | "range" | "volatile_chop" | "compression";
 
 type AnalyzeRequest = {
+  action?: "analyze" | "refresh_outcomes";
   symbol?: string;
 };
 
@@ -212,14 +213,41 @@ type SessionContext = {
 };
 
 type ExistingSetupRow = {
+  account_id: string | null;
+  breakeven_trigger_price: number | string;
   confidence_score: number | string;
+  confluence: Record<string, unknown> | null;
+  created_at: string;
   id: string;
   limit_entry: number | string;
+  massive_symbol: string;
   pending_order_id: string | null;
   side: Side;
   stop_loss: number | string;
+  status: string;
   symbol: string;
   take_profit: number | string;
+};
+
+type SetupForOutcome = ExistingSetupRow & {
+  risk_model: Record<string, unknown> | null;
+};
+
+type OutcomeRefreshSummary = {
+  expired: number;
+  failed: number;
+  pending: number;
+  placed: number;
+  reviewed: number;
+  stopLoss: number;
+  takeProfit: number;
+};
+
+type UpsertedSetupResult = {
+  deduplicated: boolean;
+  pendingOrderId: string | null;
+  setupId: string;
+  updated: boolean;
 };
 
 type ProviderContextResult = {
@@ -255,6 +283,19 @@ Deno.serve(async (req) => {
       body = {};
     }
 
+    if (body.action === "refresh_outcomes") {
+      const outcomeRefresh = await refreshUserOutcomes(token, user.id);
+      await refreshStrategyWeights(token, user.id);
+      return jsonResponse(req, {
+        advisoryOnly: true,
+        message: "Trade outcomes refreshed.",
+        outcomeRefresh,
+      });
+    }
+
+    const outcomeRefresh = await refreshUserOutcomes(token, user.id);
+    await refreshStrategyWeights(token, user.id);
+
     const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
     if (temporarilyUnavailableSymbols.has(uiSymbol)) {
@@ -275,41 +316,40 @@ Deno.serve(async (req) => {
 
     const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
     if (activeNewsEvents.length > 0) {
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "High-impact calendar risk is active for this asset.");
       return jsonResponse(req, {
         blocked: true,
         reason: "Relevant high-impact calendar risk is active for this asset.",
         newsEvents: activeNewsEvents,
+        outcomeRefresh,
       });
     }
 
     const { fmpSymbol, marketContext, providerFailures } = await fetchFirstAvailableMarketContext(providerSymbols);
     if (!fmpSymbol || !marketContext) {
-      return jsonResponse(req, { blocked: true, reason: "FMP did not return enough bars for this instrument.", providerWarnings: providerFailures });
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "FMP did not return enough bars for this instrument.");
+      return jsonResponse(req, { blocked: true, reason: "FMP did not return enough bars for this instrument.", providerWarnings: providerFailures, outcomeRefresh });
     }
 
     if (marketContext.daily.length < 80) {
-      return jsonResponse(req, { blocked: true, reason: "Not enough FMP daily bars returned for analyzer confidence.", providerWarnings: [...providerFailures, ...marketContext.providerWarnings] });
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "Not enough FMP daily bars returned for analyzer confidence.");
+      return jsonResponse(req, {
+        blocked: true,
+        reason: "Not enough FMP daily bars returned for analyzer confidence.",
+        providerWarnings: [...providerFailures, ...marketContext.providerWarnings],
+        outcomeRefresh,
+      });
     }
 
     const group = getCorrelationGroup(symbol);
     const setup = await analyzeSetup(token, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
     if (!setup) {
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "No setup met the LevelFlow committee confluence threshold.");
       return jsonResponse(req, {
         blocked: true,
         reason: "No setup met the LevelFlow committee confluence threshold.",
         providerWarnings: marketContext.providerWarnings,
-      });
-    }
-
-    const duplicateSetup = await findDuplicateSetup(token, user.id, symbol, setup);
-    if (duplicateSetup) {
-      return jsonResponse(req, {
-        advisoryOnly: true,
-        deduplicated: true,
-        message: "Refreshed advisory setup. Matching active recommendation already exists, so LevelFlow did not create a duplicate log entry.",
-        pendingOrderId: duplicateSetup.pending_order_id,
-        setupId: duplicateSetup.id,
-        setup,
+        outcomeRefresh,
       });
     }
 
@@ -322,57 +362,26 @@ Deno.serve(async (req) => {
 
     const strongerExisting = activeCorrelated.find((row) => row.symbol !== symbol && row.confidence_score >= setup.confidenceScore);
     if (strongerExisting) {
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol, `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`);
       return jsonResponse(req, {
         blocked: true,
         reason: `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
         correlationGroup: group,
+        outcomeRefresh,
       });
     }
 
-    const pendingOrder = await insertSingle(token, "pending_orders", {
-      user_id: user.id,
-      account_id: null,
-      symbol,
-      massive_symbol: fmpSymbol,
-      side: setup.side,
-      order_type: "limit",
-      entry_price: setup.entryPrice,
-      stop_loss: setup.stopLoss,
-      take_profit: setup.takeProfit,
-      lot_size: setup.lotSize,
-      confidence_score: setup.confidenceScore,
-      status: "generated",
-      expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-    });
-
-    const tradeSetup = await insertSingle(token, "trade_setups", {
-      user_id: user.id,
-      account_id: null,
-      pending_order_id: pendingOrder.id,
-      symbol,
-      massive_symbol: fmpSymbol,
-      side: setup.side,
-      limit_entry: setup.entryPrice,
-      stop_loss: setup.stopLoss,
-      take_profit: setup.takeProfit,
-      breakeven_trigger_price: setup.breakevenTriggerPrice,
-      confidence_score: setup.confidenceScore,
-      confluence: setup.confluence,
-      risk_model: setup.riskModel,
-      news_context: {
-        activeEvents: activeNewsEvents,
-        upcomingEvents: upcomingNewsEvents,
-      },
-      correlation_group: group,
-      status: "generated",
-    });
+    const savedSetup = await upsertActiveSetup(token, user.id, symbol, fmpSymbol, group, setup, activeNewsEvents, upcomingNewsEvents);
 
     return jsonResponse(req, {
       advisoryOnly: true,
-      message: "Generated advisory limit-order setup. LevelFlow does not execute trades.",
-      pendingOrderId: pendingOrder.id,
-      setupId: tradeSetup.id,
+      deduplicated: savedSetup.deduplicated,
+      message: savedSetup.updated ? "Updated current active advisory setup. LevelFlow did not create a duplicate log entry." : "Generated advisory limit-order setup. LevelFlow does not execute trades.",
+      outcomeRefresh,
+      pendingOrderId: savedSetup.pendingOrderId,
+      setupId: savedSetup.setupId,
       setup,
+      updated: savedSetup.updated,
     });
   } catch (error) {
     return jsonResponse(
@@ -509,24 +518,402 @@ async function analyzeSetup(
   };
 }
 
-async function findDuplicateSetup(token: string, userId: string, symbol: SupportedSymbol, setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>) {
-  const recentWindow = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+async function upsertActiveSetup(
+  token: string,
+  userId: string,
+  symbol: SupportedSymbol,
+  fmpSymbol: string,
+  group: string,
+  setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>,
+  activeNewsEvents: NewsEvent[],
+  upcomingNewsEvents: NewsEvent[],
+): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,pending_order_id,symbol,side,limit_entry,stop_loss,take_profit,confidence_score&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
+    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,confluence,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
       symbol,
-    )}&side=eq.${setup.side}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(recentWindow)}&order=created_at.desc`,
+    )}&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
+  const activeSetup = rows[0] ?? null;
+  const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
 
-  return (
-    rows.find((row) => {
-      return (
-        priceMatches(row.limit_entry, setup.entryPrice) &&
-        priceMatches(row.stop_loss, setup.stopLoss) &&
-        priceMatches(row.take_profit, setup.takeProfit)
-      );
-    }) ?? null
+  if (activeSetup && activeSetup.side === setup.side) {
+    if (activeSetup.pending_order_id) {
+      await updateRows(token, `pending_orders?id=eq.${encodeURIComponent(activeSetup.pending_order_id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+        confidence_score: setup.confidenceScore,
+        entry_price: setup.entryPrice,
+        expires_at: expiresAt,
+        invalidation_reason: null,
+        massive_symbol: fmpSymbol,
+        side: setup.side,
+        status: "generated",
+        stop_loss: setup.stopLoss,
+        take_profit: setup.takeProfit,
+      });
+    }
+
+    await updateRows(token, `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+      breakeven_trigger_price: setup.breakevenTriggerPrice,
+      confidence_score: setup.confidenceScore,
+      confluence: setup.confluence,
+      correlation_group: group,
+      limit_entry: setup.entryPrice,
+      massive_symbol: fmpSymbol,
+      news_context: {
+        activeEvents: activeNewsEvents,
+        upcomingEvents: upcomingNewsEvents,
+      },
+      risk_model: setup.riskModel,
+      side: setup.side,
+      status: "generated",
+      stop_loss: setup.stopLoss,
+      take_profit: setup.takeProfit,
+    });
+
+    return {
+      deduplicated: true,
+      pendingOrderId: activeSetup.pending_order_id,
+      setupId: activeSetup.id,
+      updated: true,
+    };
+  }
+
+  if (activeSetup) {
+    await invalidateActiveSetupsForSymbol(token, userId, symbol, "A newer analysis produced a different current setup.");
+  }
+
+  const pendingOrder = await insertSingle(token, "pending_orders", {
+    user_id: userId,
+    account_id: null,
+    symbol,
+    massive_symbol: fmpSymbol,
+    side: setup.side,
+    order_type: "limit",
+    entry_price: setup.entryPrice,
+    stop_loss: setup.stopLoss,
+    take_profit: setup.takeProfit,
+    lot_size: setup.lotSize,
+    confidence_score: setup.confidenceScore,
+    status: "generated",
+    expires_at: expiresAt,
+  });
+
+  const tradeSetup = await insertSingle(token, "trade_setups", {
+    user_id: userId,
+    account_id: null,
+    pending_order_id: pendingOrder.id,
+    symbol,
+    massive_symbol: fmpSymbol,
+    side: setup.side,
+    limit_entry: setup.entryPrice,
+    stop_loss: setup.stopLoss,
+    take_profit: setup.takeProfit,
+    breakeven_trigger_price: setup.breakevenTriggerPrice,
+    confidence_score: setup.confidenceScore,
+    confluence: setup.confluence,
+    risk_model: setup.riskModel,
+    news_context: {
+      activeEvents: activeNewsEvents,
+      upcomingEvents: upcomingNewsEvents,
+    },
+    correlation_group: group,
+    status: "generated",
+  });
+
+  return {
+    deduplicated: false,
+    pendingOrderId: pendingOrder.id,
+    setupId: tradeSetup.id,
+    updated: false,
+  };
+}
+
+async function invalidateActiveSetupsForSymbol(token: string, userId: string, symbol: SupportedSymbol, reason: string) {
+  await updateRows(token, `pending_orders?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(symbol)}&status=in.(generated,placed)`, {
+    invalidation_reason: reason,
+    status: "invalidated",
+  });
+  await updateRows(token, `trade_setups?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(symbol)}&status=in.(generated,placed)`, {
+    status: "invalidated",
+  });
+}
+
+async function refreshUserOutcomes(token: string, userId: string): Promise<OutcomeRefreshSummary> {
+  const summary: OutcomeRefreshSummary = {
+    expired: 0,
+    failed: 0,
+    pending: 0,
+    placed: 0,
+    reviewed: 0,
+    stopLoss: 0,
+    takeProfit: 0,
+  };
+  const setups = await fetchRows<SetupForOutcome>(
+    token,
+    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
+      userId,
+    )}&status=in.(generated,placed)&order=created_at.asc&limit=120`,
   );
+  const barsByProviderSymbol = new Map<string, Promise<Bar[]>>();
+
+  for (const setup of setups) {
+    summary.reviewed += 1;
+
+    try {
+      const providerSymbol = setup.massive_symbol || resolveProviderSymbols(setup.symbol)[0];
+      if (!providerSymbol) {
+        summary.failed += 1;
+        continue;
+      }
+
+      if (!barsByProviderSymbol.has(providerSymbol)) {
+        barsByProviderSymbol.set(providerSymbol, fetchFmpBars(providerSymbol, "15min"));
+      }
+      const bars = await barsByProviderSymbol.get(providerSymbol)!;
+      const evaluation = evaluateSetupOutcome(setup, bars);
+      if (evaluation.state === "pending") {
+        summary.pending += 1;
+        continue;
+      }
+
+      if (evaluation.state === "placed") {
+        summary.placed += 1;
+        await markSetupStatus(token, userId, setup, "placed");
+        await upsertOutcome(token, userId, setup, {
+          feedback: evaluation.feedback,
+          filledAt: evaluation.filledAt,
+          outcome: "pending",
+          reviewedAt: new Date().toISOString(),
+        });
+        continue;
+      }
+
+      if (evaluation.outcome === "take_profit") {
+        summary.takeProfit += 1;
+      } else if (evaluation.outcome === "stop_loss") {
+        summary.stopLoss += 1;
+      } else {
+        summary.expired += 1;
+      }
+
+      await markSetupStatus(token, userId, setup, evaluation.outcome === "unfilled" ? "expired" : "filled");
+      await upsertOutcome(token, userId, setup, {
+        exitAt: evaluation.exitAt,
+        feedback: evaluation.feedback,
+        filledAt: evaluation.filledAt,
+        outcome: evaluation.outcome,
+        reviewedAt: new Date().toISOString(),
+      });
+    } catch {
+      summary.failed += 1;
+    }
+  }
+
+  return summary;
+}
+
+function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
+  const entry = Number(setup.limit_entry);
+  const stopLoss = Number(setup.stop_loss);
+  const takeProfit = Number(setup.take_profit);
+  const createdAt = new Date(setup.created_at).getTime();
+  const expiresAt = createdAt + 6 * 60 * 60 * 1000;
+  const createdBars = bars.filter((bar) => bar.time >= createdAt);
+
+  if (!Number.isFinite(entry) || !Number.isFinite(stopLoss) || !Number.isFinite(takeProfit)) {
+    return { state: "pending" as const };
+  }
+
+  if (createdBars.length === 0) {
+    if (Date.now() > expiresAt) {
+      return {
+        exitAt: new Date(expiresAt).toISOString(),
+        feedback: {
+          reason: "No post-recommendation bars were available before the six-hour setup window expired.",
+          source: "price_path_review",
+        },
+        outcome: "unfilled" as const,
+        state: "resolved" as const,
+      };
+    }
+    return { state: "pending" as const };
+  }
+
+  let fillIndex = -1;
+  for (let index = 0; index < createdBars.length; index += 1) {
+    const bar = createdBars[index];
+    const filled = setup.side === "buy" ? bar.low <= entry : bar.high >= entry;
+    if (filled) {
+      fillIndex = index;
+      break;
+    }
+  }
+
+  if (fillIndex < 0) {
+    if (Date.now() > expiresAt) {
+      return {
+        exitAt: new Date(expiresAt).toISOString(),
+        feedback: {
+          reason: "Limit entry did not fill before the six-hour setup window expired.",
+          source: "price_path_review",
+        },
+        outcome: "unfilled" as const,
+        state: "resolved" as const,
+      };
+    }
+    return { state: "pending" as const };
+  }
+
+  const filledAt = new Date(createdBars[fillIndex].time).toISOString();
+  let maxFavorableMove = 0;
+  let maxAdverseMove = 0;
+
+  for (const bar of createdBars.slice(fillIndex)) {
+    if (setup.side === "buy") {
+      maxFavorableMove = Math.max(maxFavorableMove, bar.high - entry);
+      maxAdverseMove = Math.max(maxAdverseMove, entry - bar.low);
+      const targetHit = bar.high >= takeProfit;
+      const stopHit = bar.low <= stopLoss;
+
+      if (stopHit || targetHit) {
+        const outcome = stopHit ? "stop_loss" : "take_profit";
+        return {
+          exitAt: new Date(bar.time).toISOString(),
+          feedback: {
+            maxAdverseMove: roundPrice(maxAdverseMove),
+            maxFavorableMove: roundPrice(maxFavorableMove),
+            source: "price_path_review",
+          },
+          filledAt,
+          outcome,
+          state: "resolved" as const,
+        };
+      }
+    } else {
+      maxFavorableMove = Math.max(maxFavorableMove, entry - bar.low);
+      maxAdverseMove = Math.max(maxAdverseMove, bar.high - entry);
+      const targetHit = bar.low <= takeProfit;
+      const stopHit = bar.high >= stopLoss;
+
+      if (stopHit || targetHit) {
+        const outcome = stopHit ? "stop_loss" : "take_profit";
+        return {
+          exitAt: new Date(bar.time).toISOString(),
+          feedback: {
+            maxAdverseMove: roundPrice(maxAdverseMove),
+            maxFavorableMove: roundPrice(maxFavorableMove),
+            source: "price_path_review",
+          },
+          filledAt,
+          outcome,
+          state: "resolved" as const,
+        };
+      }
+    }
+  }
+
+  return {
+    feedback: {
+      maxAdverseMove: roundPrice(maxAdverseMove),
+      maxFavorableMove: roundPrice(maxFavorableMove),
+      source: "price_path_review",
+    },
+    filledAt,
+    state: "placed" as const,
+  };
+}
+
+async function markSetupStatus(token: string, userId: string, setup: SetupForOutcome, status: "expired" | "filled" | "placed") {
+  await updateRows(token, `trade_setups?id=eq.${encodeURIComponent(setup.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+    status,
+  });
+  if (setup.pending_order_id) {
+    await updateRows(token, `pending_orders?id=eq.${encodeURIComponent(setup.pending_order_id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+      status,
+    });
+  }
+}
+
+async function upsertOutcome(
+  token: string,
+  userId: string,
+  setup: SetupForOutcome,
+  outcome: {
+    exitAt?: string;
+    feedback: Record<string, unknown>;
+    filledAt?: string;
+    outcome: "pending" | "unfilled" | "take_profit" | "stop_loss";
+    reviewedAt: string;
+  },
+) {
+  await upsertRows(
+    token,
+    "trade_outcomes",
+    {
+      account_id: setup.account_id,
+      exit_at: outcome.exitAt ?? null,
+      feedback: {
+        ...outcome.feedback,
+        confidenceScore: setup.confidence_score,
+        side: setup.side,
+        symbol: setup.symbol,
+      },
+      filled_at: outcome.filledAt ?? null,
+      outcome: outcome.outcome,
+      realized_pnl: null,
+      reviewed_at: outcome.reviewedAt,
+      setup_id: setup.id,
+      user_id: userId,
+    },
+    "setup_id",
+  );
+}
+
+async function refreshStrategyWeights(token: string, userId: string) {
+  const rows = await fetchRows<{
+    confluence: Record<string, unknown> | null;
+    correlation_group: string | null;
+    symbol: string;
+    trade_outcomes?: Array<{ outcome: string }>;
+  }>(
+    token,
+    `trade_setups?select=symbol,correlation_group,confluence,trade_outcomes(outcome)&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=500`,
+  );
+  const grouped = new Map<string, { losses: number; total: number; wins: number }>();
+
+  for (const row of rows) {
+    const outcome = row.trade_outcomes?.[0]?.outcome;
+    if (outcome !== "take_profit" && outcome !== "stop_loss") {
+      continue;
+    }
+    const setupKey = extractSetupKey(row.confluence, row.correlation_group, row.symbol);
+    const current = grouped.get(setupKey) ?? { losses: 0, total: 0, wins: 0 };
+    current.total += 1;
+    if (outcome === "take_profit") {
+      current.wins += 1;
+    } else {
+      current.losses += 1;
+    }
+    grouped.set(setupKey, current);
+  }
+
+  const payloads = Array.from(grouped.entries()).map(([setupKey, stats]) => ({
+    confidence_adjustment: roundPrice(Math.max(-10, Math.min(10, ((stats.wins / Math.max(stats.total, 1)) - 0.5) * 20))),
+    last_reviewed_at: new Date().toISOString(),
+    losses: stats.losses,
+    setup_key: setupKey,
+    total_setups: stats.total,
+    user_id: userId,
+    wins: stats.wins,
+  }));
+
+  if (payloads.length > 0) {
+    await upsertRows(token, "strategy_weightings", payloads, "user_id,setup_key");
+  }
+}
+
+function extractSetupKey(confluence: Record<string, unknown> | null, correlationGroup: string | null, symbol: string) {
+  return typeof confluence?.setupKey === "string" && confluence.setupKey.trim() ? confluence.setupKey : correlationGroup || symbol;
 }
 
 async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
@@ -1151,6 +1538,34 @@ async function insertSingle(token: string, table: string, payload: Record<string
   return rows[0];
 }
 
+async function updateRows<T = unknown>(token: string, path: string, payload: Record<string, unknown>): Promise<T[]> {
+  const response = await supabaseFetch(token, path, {
+    body: JSON.stringify(payload),
+    headers: {
+      Prefer: "return=representation",
+    },
+    method: "PATCH",
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
+async function upsertRows<T = unknown>(token: string, table: string, payload: Record<string, unknown> | Array<Record<string, unknown>>, onConflict: string): Promise<T[]> {
+  const response = await supabaseFetch(token, `${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
 async function supabaseFetch(token: string, path: string, init: RequestInit = {}) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
@@ -1219,16 +1634,6 @@ function toTimestamp(value: string) {
 
 function roundPrice(value: number) {
   return Number(value.toFixed(8));
-}
-
-function priceMatches(left: number | string, right: number) {
-  const leftNumber = Number(left);
-  if (!Number.isFinite(leftNumber) || !Number.isFinite(right)) {
-    return false;
-  }
-
-  const tolerance = Math.max(Math.abs(right) * 0.00025, 0.00001);
-  return Math.abs(leftNumber - right) <= tolerance;
 }
 
 function corsHeaders(req: Request) {

@@ -57,12 +57,51 @@ create table if not exists public.profiles (
   experience_level text not null default 'intermediate',
   default_timeframe text not null default '1hour',
   theme_preference text not null default 'system',
+  preferred_session text not null default 'any',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint profiles_default_timezone_us_valid check (
+    default_timezone is null or default_timezone in (
+      'America/New_York',
+      'America/Detroit',
+      'America/Kentucky/Louisville',
+      'America/Kentucky/Monticello',
+      'America/Indiana/Indianapolis',
+      'America/Indiana/Vincennes',
+      'America/Indiana/Winamac',
+      'America/Indiana/Marengo',
+      'America/Indiana/Petersburg',
+      'America/Indiana/Vevay',
+      'America/Chicago',
+      'America/Indiana/Tell_City',
+      'America/Indiana/Knox',
+      'America/Menominee',
+      'America/North_Dakota/Center',
+      'America/North_Dakota/New_Salem',
+      'America/North_Dakota/Beulah',
+      'America/Denver',
+      'America/Boise',
+      'America/Phoenix',
+      'America/Los_Angeles',
+      'America/Anchorage',
+      'America/Juneau',
+      'America/Sitka',
+      'America/Metlakatla',
+      'America/Yakutat',
+      'America/Nome',
+      'America/Adak',
+      'Pacific/Honolulu',
+      'America/Puerto_Rico',
+      'Pacific/Guam',
+      'Pacific/Saipan',
+      'Pacific/Pago_Pago'
+    )
+  ),
   constraint profiles_market_focus_valid check (market_focus in ('multi_asset', 'forex', 'metals', 'crypto', 'futures')),
   constraint profiles_experience_level_valid check (experience_level in ('newer', 'intermediate', 'advanced')),
   constraint profiles_default_timeframe_valid check (default_timeframe in ('15min', '1hour', '4hour', '1day')),
-  constraint profiles_theme_preference_valid check (theme_preference in ('light', 'dark', 'system'))
+  constraint profiles_theme_preference_valid check (theme_preference in ('light', 'dark', 'system')),
+  constraint profiles_preferred_session_valid check (preferred_session in ('any', 'asia', 'europe', 'north_america', 'australia'))
 );
 
 create table if not exists public.e8_programs (
@@ -195,7 +234,7 @@ create table if not exists public.trade_setups (
 create table if not exists public.trade_outcomes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  account_id uuid not null references public.user_accounts(id) on delete cascade,
+  account_id uuid references public.user_accounts(id) on delete cascade,
   setup_id uuid not null references public.trade_setups(id) on delete cascade,
   reviewed_at timestamptz,
   filled_at timestamptz,
@@ -605,6 +644,12 @@ create index if not exists pending_orders_user_status_idx on public.pending_orde
 create index if not exists trade_setups_user_created_idx on public.trade_setups (user_id, created_at desc);
 create index if not exists trade_setups_user_symbol_created_idx on public.trade_setups (user_id, symbol, created_at desc);
 create index if not exists pending_orders_user_symbol_created_idx on public.pending_orders (user_id, symbol, created_at desc);
+create index if not exists trade_setups_user_active_symbol_idx
+  on public.trade_setups (user_id, symbol, status, created_at desc)
+  where status in ('generated', 'placed');
+create index if not exists pending_orders_user_active_symbol_idx
+  on public.pending_orders (user_id, symbol, status, created_at desc)
+  where status in ('generated', 'placed');
 create index if not exists trade_outcomes_user_outcome_idx on public.trade_outcomes (user_id, outcome);
 create index if not exists strategy_weightings_user_idx on public.strategy_weightings (user_id);
 create index if not exists economic_events_scheduled_impact_idx on public.economic_events (scheduled_at, impact);

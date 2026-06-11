@@ -1,16 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, Brain, CheckCircle2, Clock, Loader2, RefreshCw, ShieldCheck, Target } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
+import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
+import { profileDisplayName, type UserProfile } from "../../lib/profile";
 import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, getSecurityOption, type SupportedSymbol } from "../../lib/symbolMap";
 import { generateTradeSetup, type AnalyzerResponse, type AnalyzerSetup, type TradeSetupRow } from "../../lib/tradeAnalyzer";
 
 type AdvisorWorkspaceProps = {
   onSetupsChanged: () => void;
+  profile: UserProfile;
   setupStats: SecurityStat[];
   setups: TradeSetupRow[];
+};
+
+type AnalysisState = {
+  requestedAt: number;
+  response: AnalyzerResponse | null;
+  symbol: SupportedSymbol;
 };
 
 const TIMEFRAMES: Array<{ label: string; value: ChartTimeframe }> = [
@@ -20,22 +29,49 @@ const TIMEFRAMES: Array<{ label: string; value: ChartTimeframe }> = [
   { label: "Daily", value: "1day" },
 ];
 
-export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: AdvisorWorkspaceProps) {
+export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups }: AdvisorWorkspaceProps) {
   const [symbol, setSymbol] = useState<SupportedSymbol>("EURUSD");
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1hour");
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>(profile.defaultTimeframe);
+  const [timeframeTouched, setTimeframeTouched] = useState(false);
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketNotice, setMarketNotice] = useState("Loading FMP market context.");
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const [result, setResult] = useState<AnalyzerResponse | null>(null);
+  const [analysisState, setAnalysisState] = useState<AnalysisState | null>(null);
   const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">("idle");
   const [advisorNotice, setAdvisorNotice] = useState("");
+  const [clockNow, setClockNow] = useState(() => new Date());
+  const [symbolTouched, setSymbolTouched] = useState(false);
+  const requestIdRef = useRef(0);
 
   const selectedAsset = getSecurityOption(symbol);
-  const latestSavedSetup = useMemo(() => setups.find((setup) => setup.symbol === symbol) ?? null, [setups, symbol]);
-  const setup = result?.setup ?? mapSavedSetup(latestSavedSetup);
+  const activeResult = analysisState?.symbol === symbol ? analysisState.response : null;
+  const setup = activeResult?.setup ?? null;
   const symbolStat = setupStats.find((stat) => stat.symbol === symbol);
   const activeAssetCount = AVAILABLE_ASSET_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
+  const marketClock = useMemo(() => getMarketClock(symbol, profile.defaultTimezone, clockNow), [clockNow, profile.defaultTimezone, symbol]);
+  const globalSessions = useMemo(() => getGlobalSessions(profile.defaultTimezone, profile.preferredSession, clockNow), [clockNow, profile.defaultTimezone, profile.preferredSession]);
+
+  useEffect(() => {
+    if (!timeframeTouched) {
+      setTimeframe(profile.defaultTimeframe);
+    }
+  }, [profile.defaultTimeframe, timeframeTouched]);
+
+  useEffect(() => {
+    if (symbolTouched || profile.marketFocus === "multi_asset") {
+      return;
+    }
+    const focusedAsset = AVAILABLE_ASSET_GROUPS.find((group) => group.label.toLowerCase() === profile.marketFocus)?.options[0];
+    if (focusedAsset) {
+      setSymbol(focusedAsset.symbol);
+    }
+  }, [profile.marketFocus, symbolTouched]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockNow(new Date()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,26 +107,41 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
   }, [refreshNonce, symbol, timeframe]);
 
   async function analyze() {
+    const requestedSymbol = symbol;
+    const requestedLabel = formatSecurityLabel(requestedSymbol);
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     setAnalyzerStatus("analyzing");
-    setAdvisorNotice("");
+    setAdvisorNotice(`Analyzing ${requestedLabel}.`);
+    setAnalysisState({ requestedAt: Date.now(), response: null, symbol: requestedSymbol });
 
     try {
-      const nextResult = await generateTradeSetup(symbol);
-      setResult(nextResult);
+      const nextResult = await generateTradeSetup(requestedSymbol);
+      if (requestIdRef.current !== requestId) {
+        return;
+      }
+      setAnalysisState({ requestedAt: Date.now(), response: nextResult, symbol: requestedSymbol });
       if (nextResult.setup) {
         setAdvisorNotice(
           nextResult.deduplicated
-            ? "Matching active setup refreshed. No duplicate history row was created."
-            : "Limit-order setup generated and logged.",
+            ? `${requestedLabel} active setup refreshed. No duplicate history row was created.`
+            : `${requestedLabel} limit-order setup generated and logged.`,
         );
         onSetupsChanged();
       } else {
-        setAdvisorNotice(nextResult.reason ?? "No qualified limit-order setup met the committee threshold on this pass.");
+        setAdvisorNotice(nextResult.reason ?? `No current ${requestedLabel} limit-order setup met the committee threshold on this pass.`);
+        onSetupsChanged();
       }
     } catch {
-      setAdvisorNotice("LevelFlow is refreshing provider context for this asset. Try again shortly.");
+      if (requestIdRef.current === requestId) {
+        setAnalysisState({ requestedAt: Date.now(), response: null, symbol: requestedSymbol });
+        setAdvisorNotice(`LevelFlow is refreshing provider context for ${requestedLabel}. Try again shortly.`);
+      }
     } finally {
-      setAnalyzerStatus("idle");
+      if (requestIdRef.current === requestId) {
+        setAnalyzerStatus("idle");
+      }
     }
   }
 
@@ -102,6 +153,7 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
             <div>
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Market advisor</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Trade setup desk</h2>
+              <p className="mt-1 text-sm text-slate">Welcome, {profileDisplayName(profile)}.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
               <RefreshCw className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -116,8 +168,11 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
                 className="field"
                 value={symbol}
                 onChange={(event) => {
+                  requestIdRef.current += 1;
                   setSymbol(event.target.value as SupportedSymbol);
-                  setResult(null);
+                  setSymbolTouched(true);
+                  setAnalyzerStatus("idle");
+                  setAnalysisState(null);
                   setAdvisorNotice("");
                 }}
               >
@@ -135,7 +190,14 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
 
             <label className="grid gap-2 text-sm font-semibold text-navy">
               Chart timeframe
-              <select className="field" value={timeframe} onChange={(event) => setTimeframe(event.target.value as ChartTimeframe)}>
+              <select
+                className="field"
+                value={timeframe}
+                onChange={(event) => {
+                  setTimeframeTouched(true);
+                  setTimeframe(event.target.value as ChartTimeframe);
+                }}
+              >
                 {TIMEFRAMES.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -154,6 +216,7 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
         </div>
 
         <div className="p-4 sm:p-6">
+          <MarketClockPanel clock={marketClock} sessions={globalSessions} />
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate">{selectedAsset.assetType}</p>
@@ -176,7 +239,7 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
 
       <aside className="grid content-start gap-5">
         <section className="terminal-panel p-5">
-          <RecommendationPanel notice={advisorNotice} result={result} setup={setup} latestSavedSetup={latestSavedSetup} />
+          <RecommendationPanel notice={advisorNotice} result={activeResult} setup={setup} />
         </section>
 
         <section className="terminal-panel p-5">
@@ -202,9 +265,10 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
             <div className="grid gap-2 text-sm">
               <MetricRow label="Recommendations" value={symbolStat.count.toString()} />
               <MetricRow label="Avg confidence" value={`${symbolStat.averageConfidence}%`} />
-              <MetricRow label="Tracked wins" value={symbolStat.wins.toString()} />
-              <MetricRow label="Tracked losses" value={symbolStat.losses.toString()} />
-              <MetricRow label="Pending review" value={symbolStat.pending.toString()} />
+              <MetricRow label="Win rate" value={symbolStat.winRate === null ? "Pending" : `${symbolStat.winRate}%`} />
+              <MetricRow label="Take profit" value={symbolStat.wins.toString()} />
+              <MetricRow label="Stop loss" value={symbolStat.losses.toString()} />
+              <MetricRow label="Pending / live" value={symbolStat.pending.toString()} />
             </div>
           ) : (
             <p className="text-sm leading-6 text-slate">No saved recommendations for this asset yet.</p>
@@ -216,12 +280,10 @@ export function AdvisorWorkspace({ onSetupsChanged, setupStats, setups }: Adviso
 }
 
 function RecommendationPanel({
-  latestSavedSetup,
   notice,
   result,
   setup,
 }: {
-  latestSavedSetup: TradeSetupRow | null;
   notice: string;
   result: AnalyzerResponse | null;
   setup: Pick<AnalyzerSetup, "breakevenTriggerPrice" | "confidenceScore" | "entryPrice" | "side" | "stopLoss" | "takeProfit"> | null;
@@ -243,7 +305,7 @@ function RecommendationPanel({
         </div>
         <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
           {result?.deduplicated ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-          {notice || (latestSavedSetup ? "Showing latest saved recommendation for this asset." : "Advisory setup ready. LevelFlow does not execute trades.")}
+          {notice || "Current advisory setup ready. LevelFlow does not execute trades."}
         </div>
       </div>
     );
@@ -257,6 +319,45 @@ function RecommendationPanel({
       <div>
         <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
         <p className="mt-1">{notice || "Choose an asset, review the chart, then generate the best current pending limit setup. Results are logged once per unique active setup."}</p>
+      </div>
+    </div>
+  );
+}
+
+function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMarketClock>; sessions: ReturnType<typeof getGlobalSessions> }) {
+  return (
+    <div className="mb-4 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 lg:grid-cols-[minmax(220px,0.9fr)_minmax(0,1.4fr)]">
+      <div className="rounded-lg bg-white p-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-normal text-slate">{clock.marketLabel}</p>
+          <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${clock.isOpen ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>{clock.statusLabel}</span>
+        </div>
+        <p className="mt-2 text-lg font-semibold text-navy">
+          {clock.nextEventLabel}: {clock.countdownLabel}
+        </p>
+        <div className="mt-2 grid gap-1 text-xs leading-5 text-slate">
+          <span>User time: {clock.userTime}</span>
+          <span>Market time: {clock.marketTime}</span>
+          <span>
+            Next event: {clock.nextEventUserTime} / {clock.nextEventMarketTime}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {sessions.map((session) => (
+          <div key={session.id} className={`rounded-lg border px-3 py-3 ${session.isPreferred ? "border-bullish/40 bg-bullish/10" : "border-slate/15 bg-white"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-semibold text-navy">{session.label}</p>
+              <span className={`text-xs font-bold uppercase ${session.isOpen ? "text-bullish" : "text-slate"}`}>{session.isOpen ? "Open" : "Closed"}</span>
+            </div>
+            <p className="mt-1 text-xs text-slate">{session.marketTime}</p>
+            <p className="mt-2 text-xs font-semibold text-navy">
+              {session.nextEventLabel} in {session.countdownLabel}
+            </p>
+            <p className="text-xs text-slate">{session.nextEventUserTime} local</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -292,21 +393,6 @@ function MetricRow({ label, value, valueClassName = "text-navy" }: { label: stri
       <span className={`text-right font-semibold ${valueClassName}`}>{value}</span>
     </div>
   );
-}
-
-function mapSavedSetup(setup: TradeSetupRow | null) {
-  if (!setup) {
-    return null;
-  }
-
-  return {
-    breakevenTriggerPrice: Number(setup.breakeven_trigger_price),
-    confidenceScore: Number(setup.confidence_score),
-    entryPrice: Number(setup.limit_entry),
-    side: setup.side,
-    stopLoss: Number(setup.stop_loss),
-    takeProfit: Number(setup.take_profit),
-  };
 }
 
 function formatPrice(symbol: string, value: number) {
