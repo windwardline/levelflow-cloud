@@ -81,7 +81,7 @@ export function useTradeSetups() {
   }, []);
 
   useEffect(() => {
-    refreshSetups();
+    refreshSetups({ refreshOutcomes: true });
   }, [refreshSetups]);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export function useTradeSetups() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        refreshSetups();
+        refreshSetups({ refreshOutcomes: true });
       } else {
         setSetups([]);
       }

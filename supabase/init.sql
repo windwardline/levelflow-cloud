@@ -53,7 +53,6 @@ create table if not exists public.profiles (
   email text,
   display_name text,
   default_timezone text,
-  market_focus text not null default 'multi_asset',
   default_timeframe text not null default '1hour',
   theme_preference text not null default 'system',
   preferred_session text not null default 'any',
@@ -69,7 +68,6 @@ create table if not exists public.profiles (
       'Pacific/Honolulu'
     )
   ),
-  constraint profiles_market_focus_valid check (market_focus in ('multi_asset', 'forex', 'metals', 'crypto', 'futures')),
   constraint profiles_default_timeframe_valid check (default_timeframe in ('15min', '1hour', '4hour', '1day')),
   constraint profiles_theme_preference_valid check (theme_preference in ('light', 'dark', 'system')),
   constraint profiles_preferred_session_valid check (preferred_session in ('any', 'asia', 'europe', 'north_america', 'australia'))

@@ -1,6 +1,25 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Gift, History, LayoutDashboard, LogOut, Mail, Monitor, Moon, Sun, User } from "lucide-react";
+import {
+  BadgeCheck,
+  BookOpen,
+  CalendarClock,
+  Gauge,
+  Gift,
+  History,
+  LayoutDashboard,
+  LineChart,
+  ListChecks,
+  LogOut,
+  Mail,
+  Monitor,
+  Moon,
+  ShieldAlert,
+  SlidersHorizontal,
+  Sun,
+  Target,
+  User,
+} from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { DonationOptions } from "./components/donations/DonationOptions";
@@ -224,7 +243,7 @@ function ProfilePanel({
   saveStatus,
   themeMode,
 }: {
-  onSave: (input: Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "marketFocus" | "preferredSession" | "themePreference">) => Promise<void>;
+  onSave: (input: Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "preferredSession" | "themePreference">) => Promise<void>;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
   saveStatus: "idle" | "saving" | "saved";
@@ -232,7 +251,6 @@ function ProfilePanel({
 }) {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [timezone, setTimezone] = useState(profile.defaultTimezone);
-  const [marketFocus, setMarketFocus] = useState(profile.marketFocus);
   const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>(profile.defaultTimeframe);
   const [preferredSession, setPreferredSession] = useState(profile.preferredSession);
   const [saveError, setSaveError] = useState("");
@@ -240,7 +258,6 @@ function ProfilePanel({
   useEffect(() => {
     setDisplayName(profile.displayName);
     setTimezone(profile.defaultTimezone);
-    setMarketFocus(profile.marketFocus);
     setDefaultTimeframe(profile.defaultTimeframe);
     setPreferredSession(profile.preferredSession);
   }, [profile]);
@@ -254,7 +271,6 @@ function ProfilePanel({
         defaultTimeframe,
         defaultTimezone: timezone,
         displayName,
-        marketFocus,
         preferredSession,
         themePreference: themeMode,
       });
@@ -283,16 +299,6 @@ function ProfilePanel({
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
-            Market focus
-            <select className="field" value={marketFocus} onChange={(event) => setMarketFocus(event.target.value as UserProfile["marketFocus"])}>
-              <option value="multi_asset">Multi-asset</option>
-              <option value="forex">Forex</option>
-              <option value="metals">Metals</option>
-              <option value="crypto">Crypto</option>
-              <option value="futures">Futures</option>
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
@@ -331,7 +337,7 @@ function ProfilePanel({
         <div className="mt-4 grid gap-3 text-sm leading-6 text-slate">
           <p>Your name appears in the workspace header so shared machines are easier to verify at a glance.</p>
           <p>Your U.S. timezone drives the market open and close countdowns. Daylight saving time is handled automatically by the selected timezone.</p>
-          <p>Market focus selects the first advisor asset for a new session. Preferred session highlights the global session you care about most.</p>
+          <p>Preferred session highlights the global trading session you care about most without changing the asset sort order.</p>
           <p>Default timeframe opens new chart work on your preferred view, and theme preference keeps the workspace readable in your environment.</p>
         </div>
       </section>
@@ -340,57 +346,129 @@ function ProfilePanel({
 }
 
 function GuidePanel() {
+  const workflowSteps = [
+    {
+      body: "Use the grouped Asset dropdown, then choose the chart timeframe you want the advisor to evaluate. Assets are sorted by category, quote currency, then base currency so the list stays predictable as coverage grows.",
+      icon: <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />,
+      number: "01",
+      title: "Choose the market context",
+    },
+    {
+      body: "Review the chart before asking for a setup. Drag to look left, zoom in or out, resize the panel with the browser, and use the chart controls to return to the default view when you are done.",
+      icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
+      number: "02",
+      title: "Read the chart first",
+    },
+    {
+      body: "Click Generate setup for a fresh pass. LevelFlow clears stale recommendations for the selected asset, evaluates the latest market data, and returns only the best current pending limit setup if one qualifies.",
+      icon: <Target className="h-5 w-5" aria-hidden="true" />,
+      number: "03",
+      title: "Generate the next limit setup",
+    },
+    {
+      body: "The side badge is green for BUY LIMIT and red for SELL LIMIT. The chart plots the entry, stop loss, take profit, and breakeven reference so the output is visible before you use it elsewhere.",
+      icon: <BadgeCheck className="h-5 w-5" aria-hidden="true" />,
+      number: "04",
+      title: "Confirm the output",
+    },
+    {
+      body: "Re-run the advisor whenever conditions change. If the same setup remains viable, LevelFlow refreshes the levels and confidence without duplicating the history row; if it no longer qualifies, it is removed from view.",
+      icon: <ListChecks className="h-5 w-5" aria-hidden="true" />,
+      number: "05",
+      title: "Refresh without clutter",
+    },
+  ];
+
+  const logicItems = [
+    {
+      body: "The analyzer weighs trend, market structure, liquidity behavior, momentum, volatility, value and volume behavior, multi-timeframe agreement, correlation, session quality, and calendar risk.",
+      icon: <Gauge className="h-5 w-5" aria-hidden="true" />,
+      title: "Trading logic",
+    },
+    {
+      body: "Calendar context is treated as a risk modifier. High-impact economic events, rate-sensitive releases, and broad market calendar risk can reduce confidence or block marginal ideas near the event window.",
+      icon: <CalendarClock className="h-5 w-5" aria-hidden="true" />,
+      title: "News and event risk",
+    },
+    {
+      body: "Confidence is a 0-100 committee score. LevelFlow requires enough strategy agreement, reward-to-risk quality, session quality, and provider coverage before a setup can appear.",
+      icon: <ShieldAlert className="h-5 w-5" aria-hidden="true" />,
+      title: "Confidence score",
+    },
+    {
+      body: "Entries are limit levels only: buy entries must sit below current price and sell entries must sit above current price. Stops use structure invalidation with volatility buffers; targets use liquidity, minimum reward-to-risk, and projected range.",
+      icon: <Target className="h-5 w-5" aria-hidden="true" />,
+      title: "Entry, stop, and target",
+    },
+  ];
+
   return (
     <section className="terminal-panel p-5 sm:p-6">
-      <div className="mb-6 flex items-center gap-3">
-        <BookOpen className="h-5 w-5 text-navy" aria-hidden="true" />
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Operating guide</p>
-          <h2 className="text-2xl font-semibold tracking-normal text-navy">How to use LevelFlow</h2>
+      <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.42fr)] lg:items-end">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-navy text-white">
+            <BookOpen className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Operating guide</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to use LevelFlow</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
+              LevelFlow is a market advisory workspace. It helps you select an asset, review live chart context, request the next qualified limit-order idea, and track how recommendations perform over time.
+            </p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">
+          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Core rule</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-navy">LevelFlow recommends pending limit orders only. It does not execute, size, modify, or close trades.</p>
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <GuideStep
-          number="01"
-          title="Start with one asset"
-          body="Open Advisor, choose one asset from the grouped dropdown, and begin on your saved default timeframe. Review the chart first: drag left for more history, scroll or pinch to zoom, and reset the view when you want the full context back."
-        />
-        <GuideStep
-          number="02"
-          title="Generate a limit-only setup"
-          body="Click Generate setup when you want LevelFlow's current best pending limit-order idea. The analyzer reviews trend, market structure, liquidity behavior, momentum, volatility, value/volume behavior, multi-timeframe alignment, correlation, session quality, and calendar risk."
-        />
-        <GuideStep
-          number="03"
-          title="Read buy versus sell first"
-          body="The recommendation badge is green for BUY LIMIT and red for SELL LIMIT. Check that side before copying any level into another platform."
-        />
-        <GuideStep
-          number="04"
-          title="Use the plotted levels"
-          body="When a setup qualifies, the chart plots entry, stop loss, and take profit. The entry is always a pending limit level: buy entries are below current market and sell entries are above current market."
-        />
-        <GuideStep
-          number="05"
-          title="Re-check without duplicate clutter"
-          body="You can generate again for the same asset to see whether the best setup changed. LevelFlow refreshes the current recommendation, updates still-viable active setups, and avoids creating duplicate history rows."
-        />
-        <GuideStep
-          number="06"
-          title="Review your history"
-          body="Open History to review prior recommendations, confidence scores, entry/stop/target, and status. Outcome stats show take-profit hits, stop-loss hits, unfilled ideas, and win rate by asset and category."
-        />
-        <GuideStep
-          number="07"
-          title="Keep preferences current"
-          body="Open Profile to set display name, timezone, market focus, preferred session, default chart timeframe, and theme preference. These settings shape the workspace without changing the analyzer's quality threshold."
-        />
-        <GuideStep
-          number="08"
-          title="Remember what LevelFlow does"
-          body="LevelFlow evaluates market conditions and produces advisory trade setups. It does not place, modify, close, or size trades for you."
-        />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.5fr)]">
+        <div className="grid gap-3">
+          {workflowSteps.map((step) => (
+            <GuideStep key={step.number} {...step} />
+          ))}
+        </div>
+
+        <div className="grid content-start gap-3">
+          <div className="rounded-lg border border-slate/15 bg-canvas p-4">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What the inputs do</p>
+            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate">
+              <p>
+                <strong className="text-navy">Asset</strong> tells LevelFlow which FMP-backed market to analyze and which calendar currencies or market risks matter.
+              </p>
+              <p>
+                <strong className="text-navy">Timeframe</strong> controls the visible chart and the bar interval used for the active review.
+              </p>
+              <p>
+                <strong className="text-navy">Timezone and preferred session</strong> personalize market clocks and highlight the session you care about most.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-slate/15 bg-canvas p-4">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What the outputs do</p>
+            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate">
+              <p>
+                <strong className="text-navy">Limit entry</strong> is the pending price where the idea becomes active.
+              </p>
+              <p>
+                <strong className="text-navy">Stop loss</strong> marks the invalidation level used by the advisory model.
+              </p>
+              <p>
+                <strong className="text-navy">Take profit</strong> is the primary target selected from liquidity, volatility, and reward-to-risk checks.
+              </p>
+              <p>
+                <strong className="text-navy">Breakeven</strong> is a reference level for trade management, not an automatic action.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        {logicItems.map((item) => (
+          <GuideInsight key={item.title} {...item} />
+        ))}
       </div>
 
       <div className="mt-5 rounded-lg border border-slate/15 bg-canvas p-4">
@@ -462,10 +540,28 @@ function ThemeToggle({ compact = false, mode, onChange }: { compact?: boolean; m
   );
 }
 
-function GuideStep({ body, number, title }: { body: string; number: string; title: string }) {
+function GuideStep({ body, icon, number, title }: { body: string; icon: ReactNode; number: string; title: string }) {
   return (
     <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white">{number}</div>
+      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
+        <span className="sr-only">{number}</span>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-normal text-bullish">{number}</span>
+          <h3 className="font-semibold text-navy">{title}</h3>
+        </div>
+        <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function GuideInsight({ body, icon, title }: { body: string; icon: ReactNode; title: string }) {
+  return (
+    <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-white p-4 sm:grid-cols-[auto_minmax(0,1fr)]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bullish/10 text-bullish">{icon}</div>
       <div className="min-w-0">
         <h3 className="font-semibold text-navy">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate">{body}</p>

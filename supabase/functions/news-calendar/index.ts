@@ -5,6 +5,7 @@ const ECONOMIC_CALENDAR_PROVIDER = Deno.env.get("ECONOMIC_CALENDAR_PROVIDER") ??
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ?? "https://financialmodelingprep.com/stable";
 const FINNHUB_API_KEY = Deno.env.get("FINNHUB_API_KEY");
+const MARKET_MOVING_EARNINGS_SYMBOLS = new Set(["AAPL", "AMZN", "AVGO", "GOOGL", "GOOG", "META", "MSFT", "NVDA", "TSLA"]);
 
 type EconomicEvent = {
   country?: string;
@@ -86,6 +87,19 @@ async function fetchProviderEvents(windowStart: Date, windowEnd: Date) {
 }
 
 async function fetchFmpEvents(windowStart: Date, windowEnd: Date): Promise<EconomicEvent[]> {
+  const economicEvents = await fetchFmpEconomicEvents(windowStart, windowEnd);
+  let earningsEvents: EconomicEvent[] = [];
+
+  try {
+    earningsEvents = await fetchFmpEarningsEvents(windowStart, windowEnd);
+  } catch {
+    earningsEvents = [];
+  }
+
+  return [...economicEvents, ...earningsEvents];
+}
+
+async function fetchFmpEconomicEvents(windowStart: Date, windowEnd: Date): Promise<EconomicEvent[]> {
   if (!FMP_API_KEY) {
     return [];
   }
@@ -119,6 +133,50 @@ async function fetchFmpEvents(windowStart: Date, windowEnd: Date): Promise<Econo
       raw_payload: event,
       scheduled_at: scheduledAt,
     };
+  });
+}
+
+async function fetchFmpEarningsEvents(windowStart: Date, windowEnd: Date): Promise<EconomicEvent[]> {
+  if (!FMP_API_KEY) {
+    return [];
+  }
+
+  const url = new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/earnings-calendar`);
+  url.searchParams.set("from", isoDate(windowStart));
+  url.searchParams.set("to", isoDate(windowEnd));
+  url.searchParams.set("apikey", FMP_API_KEY);
+
+  const response = await fetch(url);
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(`FMP earnings calendar request failed (${response.status}): ${responseText.slice(0, 180)}`);
+  }
+
+  const payload = JSON.parse(responseText);
+  if (!Array.isArray(payload)) {
+    throw new Error("FMP earnings calendar response was not an array");
+  }
+
+  return payload.flatMap((rawEvent) => {
+    const event = rawEvent as Record<string, unknown>;
+    const symbol = optionalString(event.symbol)?.toUpperCase();
+    const date = optionalString(event.date);
+    if (!symbol || !date || !MARKET_MOVING_EARNINGS_SYMBOLS.has(symbol)) {
+      return [];
+    }
+
+    return [
+      {
+        country: "US",
+        currency: "USD",
+        event_name: `${symbol} earnings`,
+        external_id: stableExternalId("fmp_earnings", symbol, date, event.time),
+        impact: "high" as const,
+        provider: "fmp_earnings",
+        raw_payload: event,
+        scheduled_at: parseEarningsDate(date, event.time),
+      },
+    ];
   });
 }
 
@@ -158,6 +216,17 @@ function stableExternalId(provider: string, ...parts: unknown[]) {
 function parseDate(value: unknown) {
   const date = new Date(String(value ?? ""));
   return Number.isNaN(date.valueOf()) ? new Date().toISOString() : date.toISOString();
+}
+
+function parseEarningsDate(dateValue: unknown, timeValue: unknown) {
+  const rawDate = String(dateValue ?? "");
+  if (rawDate.includes("T")) {
+    return parseDate(rawDate);
+  }
+
+  const time = String(timeValue ?? "").toLowerCase();
+  const releaseTime = time.includes("bmo") || time.includes("before") ? "12:00:00Z" : time.includes("amc") || time.includes("after") ? "21:00:00Z" : "16:00:00Z";
+  return parseDate(`${rawDate}T${releaseTime}`);
 }
 
 function optionalString(value: unknown) {

@@ -41,7 +41,6 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">("idle");
   const [advisorNotice, setAdvisorNotice] = useState("");
   const [clockNow, setClockNow] = useState(() => new Date());
-  const [symbolTouched, setSymbolTouched] = useState(false);
   const requestIdRef = useRef(0);
 
   const selectedAsset = getSecurityOption(symbol);
@@ -57,16 +56,6 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       setTimeframe(profile.defaultTimeframe);
     }
   }, [profile.defaultTimeframe, timeframeTouched]);
-
-  useEffect(() => {
-    if (symbolTouched || profile.marketFocus === "multi_asset") {
-      return;
-    }
-    const focusedAsset = AVAILABLE_ASSET_GROUPS.find((group) => group.label.toLowerCase() === profile.marketFocus)?.options[0];
-    if (focusedAsset) {
-      setSymbol(focusedAsset.symbol);
-    }
-  }, [profile.marketFocus, symbolTouched]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(new Date()), 60_000);
@@ -170,7 +159,6 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
                 onChange={(event) => {
                   requestIdRef.current += 1;
                   setSymbol(event.target.value as SupportedSymbol);
-                  setSymbolTouched(true);
                   setAnalyzerStatus("idle");
                   setAnalysisState(null);
                   setAdvisorNotice("");
@@ -326,11 +314,13 @@ function RecommendationPanel({
 
 function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMarketClock>; sessions: ReturnType<typeof getGlobalSessions> }) {
   return (
-    <div className="mb-4 grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas p-3 lg:grid-cols-[minmax(220px,0.9fr)_minmax(0,1.4fr)]">
-      <div className="min-w-0 rounded-lg bg-white p-3">
+    <div className="mb-4 grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas p-3 xl:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.45fr)]">
+      <div className="min-w-0 rounded-lg border border-slate/10 bg-white p-3">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <p className="min-w-0 text-xs font-semibold uppercase tracking-normal text-slate">{clock.marketLabel}</p>
-          <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${clock.isOpen ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>{clock.statusLabel}</span>
+          <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-bold uppercase ${clock.isOpen ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
+            {clock.statusLabel}
+          </span>
         </div>
         <p className="mt-2 text-lg font-semibold text-navy">
           {clock.nextEventLabel}: {clock.countdownLabel}
@@ -344,18 +334,25 @@ function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMar
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-w-0 gap-2">
         {sessions.map((session) => (
-          <div key={session.id} className={`min-w-0 rounded-lg border px-3 py-3 ${session.isPreferred ? "border-bullish/40 bg-bullish/10" : "border-slate/15 bg-white"}`}>
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <p className="min-w-0 font-semibold text-navy">{session.label}</p>
-              <span className={`text-xs font-bold uppercase ${session.isOpen ? "text-bullish" : "text-slate"}`}>{session.isOpen ? "Open" : "Closed"}</span>
+          <div
+            key={session.id}
+            className={`grid min-w-0 gap-2 rounded-lg border px-3 py-2.5 sm:grid-cols-[minmax(132px,0.85fr)_minmax(124px,0.65fr)_minmax(158px,1fr)] sm:items-center ${
+              session.isPreferred ? "border-bullish/40 bg-bullish/10" : "border-slate/15 bg-white"
+            }`}
+          >
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate font-semibold text-navy">{session.label}</p>
+                <span className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${session.isOpen ? "text-bullish" : "text-slate"}`}>{session.isOpen ? "Open" : "Closed"}</span>
+              </div>
+              <p className="mt-0.5 truncate text-xs text-slate">{session.marketTime}</p>
             </div>
-            <p className="mt-1 text-xs text-slate">{session.marketTime}</p>
-            <p className="mt-2 text-xs font-semibold text-navy">
-              {session.nextEventLabel} in {session.countdownLabel}
+            <p className="min-w-0 text-xs font-semibold text-navy">
+              <span className="whitespace-nowrap">{session.nextEventLabel}</span> in {session.countdownLabel}
             </p>
-            <p className="text-xs text-slate">{session.nextEventUserTime} local</p>
+            <p className="min-w-0 text-xs text-slate">{session.nextEventUserTime} local</p>
           </div>
         ))}
       </div>

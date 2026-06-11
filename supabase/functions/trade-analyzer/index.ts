@@ -72,6 +72,7 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
 }
 
 const temporarilyUnavailableSymbols = new Set(["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"]);
+const equityCalendarSensitiveSymbols = new Set(["ESUSD", "SP", "NSDQ", "DOW"]);
 
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
@@ -175,6 +176,7 @@ type NewsEvent = {
   currency?: string;
   event_name?: string;
   impact?: string;
+  provider?: string;
   scheduled_at?: string;
 };
 
@@ -1345,7 +1347,7 @@ async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
   const upcomingEnd = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
   const rows = await fetchRows<NewsEvent>(
     token,
-    `economic_events?select=currency,event_name,impact,scheduled_at&impact=eq.high&scheduled_at=gte.${encodeURIComponent(activeStart)}&scheduled_at=lte.${encodeURIComponent(upcomingEnd)}`,
+    `economic_events?select=provider,currency,event_name,impact,scheduled_at&impact=eq.high&scheduled_at=gte.${encodeURIComponent(activeStart)}&scheduled_at=lte.${encodeURIComponent(upcomingEnd)}`,
   );
   const relevant = rows.filter((event) => isNewsRelevant(symbol, event));
 
@@ -1356,6 +1358,10 @@ async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
 }
 
 function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
+  if (event.provider === "fmp_earnings") {
+    return equityCalendarSensitiveSymbols.has(symbol);
+  }
+
   const currency = event.currency?.toUpperCase();
   if (!currency) {
     return true;
@@ -1528,7 +1534,7 @@ function getCorrelationGroup(symbol: string) {
 }
 
 async function fetchSingle<T>(token: string, path: string) {
-  const rows = await fetchRows<T>(token, `${path}${path.includes("?") ? "&" : "?"}limit=1`);
+  const rows = await fetchRows<T>(token, /(?:^|[?&])limit=/.test(path) ? path : `${path}${path.includes("?") ? "&" : "?"}limit=1`);
   return rows[0] ?? null;
 }
 

@@ -4,7 +4,6 @@ import {
   buildDefaultProfile,
   isUsTimezone,
   resolveDefaultUsTimeZone,
-  type MarketFocus,
   type PreferredSession,
   type ThemeMode,
   type UserProfile,
@@ -17,12 +16,11 @@ type ProfileRow = {
   display_name: string | null;
   email: string | null;
   id: string;
-  market_focus: string | null;
   preferred_session: string | null;
   theme_preference: string | null;
 };
 
-type SaveProfileInput = Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "marketFocus" | "preferredSession" | "themePreference">;
+type SaveProfileInput = Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "preferredSession" | "themePreference">;
 
 export function useUserProfile(userId: string | null, email: string, onThemeChange: (mode: ThemeMode) => void) {
   const [profile, setProfile] = useState<UserProfile | null>(() => (userId ? buildDefaultProfile(userId, email) : null));
@@ -47,7 +45,7 @@ export function useUserProfile(userId: string | null, email: string, onThemeChan
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, display_name, default_timezone, market_focus, default_timeframe, theme_preference, preferred_session")
+        .select("id, email, display_name, default_timezone, default_timeframe, theme_preference, preferred_session")
         .eq("id", userId)
         .maybeSingle();
 
@@ -89,7 +87,6 @@ export function useUserProfile(userId: string | null, email: string, onThemeChan
         display_name: nextProfile.displayName,
         email,
         id: userId,
-        market_focus: nextProfile.marketFocus,
         preferred_session: nextProfile.preferredSession,
         theme_preference: nextProfile.themePreference,
       });
@@ -122,7 +119,6 @@ function rowToProfile(row: ProfileRow, fallback: UserProfile): UserProfile {
     defaultTimezone: isUsTimezone(row.default_timezone) ? row.default_timezone : fallback.defaultTimezone,
     displayName: row.display_name ?? fallback.displayName,
     email: row.email ?? fallback.email,
-    marketFocus: isMarketFocus(row.market_focus) ? row.market_focus : fallback.marketFocus,
     preferredSession: isPreferredSession(row.preferred_session) ? row.preferred_session : fallback.preferredSession,
     themePreference: isThemeMode(row.theme_preference) ? row.theme_preference : fallback.themePreference,
   };
@@ -134,10 +130,6 @@ function isChartTimeframe(value: string | null): value is ChartTimeframe {
 
 function isThemeMode(value: string | null): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
-}
-
-function isMarketFocus(value: string | null): value is MarketFocus {
-  return value === "multi_asset" || value === "forex" || value === "metals" || value === "crypto" || value === "futures";
 }
 
 function isPreferredSession(value: string | null): value is PreferredSession {

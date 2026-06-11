@@ -17,6 +17,8 @@ export type SecurityGroup = {
 };
 
 export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>(["Indices", "Energies"]);
+const ASSET_CATEGORY_ORDER: SecurityType[] = ["Crypto", "Energies", "Forex", "Futures", "Indices", "Metals"];
+const KNOWN_QUOTE_CURRENCIES = ["USDT", "USD", "JPY", "CHF", "CAD", "AUD", "NZD", "EUR", "GBP", "BTC", "ETH"];
 
 const forex = [
   ["USDJPY", "USD/JPY", "U.S. Dollar / Japanese Yen", "USDJPY"],
@@ -60,7 +62,7 @@ const crypto = [
   ["ADAUSD", "ADA/USD", "Cardano / U.S. Dollar", "ADAUSD"],
 ] satisfies Array<[string, string, string, string]>;
 
-export const SECURITY_GROUPS: SecurityGroup[] = [
+const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
   {
     label: "Forex",
     options: forex.map(([symbol, display, description, fmpSymbol]) => ({
@@ -169,6 +171,8 @@ export const SECURITY_GROUPS: SecurityGroup[] = [
   },
 ];
 
+export const SECURITY_GROUPS: SecurityGroup[] = sortSecurityGroups(UNSORTED_SECURITY_GROUPS);
+
 export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap((group) => group.options);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS.filter((group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label));
@@ -222,4 +226,47 @@ export function getCorrelationGroup(symbol: string) {
 
 export function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function sortSecurityGroups(groups: SecurityGroup[]) {
+  return [...groups]
+    .sort((first, second) => ASSET_CATEGORY_ORDER.indexOf(first.label) - ASSET_CATEGORY_ORDER.indexOf(second.label))
+    .map((group) => ({
+      ...group,
+      options: [...group.options].sort(compareSecurityOptions),
+    }));
+}
+
+function compareSecurityOptions(first: SecurityOption, second: SecurityOption) {
+  const firstParts = getAssetSortParts(first);
+  const secondParts = getAssetSortParts(second);
+
+  return (
+    firstParts.quote.localeCompare(secondParts.quote) ||
+    firstParts.base.localeCompare(secondParts.base) ||
+    firstParts.symbol.localeCompare(secondParts.symbol)
+  );
+}
+
+function getAssetSortParts(option: SecurityOption) {
+  const pair = splitBaseQuote(option.symbol) ?? splitBaseQuote(option.fmpSymbol);
+  return {
+    base: pair?.base ?? normalizeSymbol(option.symbol),
+    quote: pair?.quote ?? "ZZZ",
+    symbol: normalizeSymbol(option.symbol),
+  };
+}
+
+function splitBaseQuote(value: string) {
+  const normalized = normalizeSymbol(value);
+  const quote = KNOWN_QUOTE_CURRENCIES.find((candidate) => normalized.endsWith(candidate) && normalized.length > candidate.length);
+
+  if (!quote) {
+    return null;
+  }
+
+  return {
+    base: normalized.slice(0, -quote.length),
+    quote,
+  };
 }

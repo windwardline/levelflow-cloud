@@ -1,7 +1,6 @@
 import type { ChartTimeframe } from "./marketData";
 
 export type ThemeMode = "light" | "dark" | "system";
-export type MarketFocus = "multi_asset" | "forex" | "metals" | "crypto" | "futures";
 export type PreferredSession = "any" | "asia" | "europe" | "north_america" | "australia";
 
 export type UserProfile = {
@@ -10,7 +9,6 @@ export type UserProfile = {
   displayName: string;
   email: string;
   id: string;
-  marketFocus: MarketFocus;
   preferredSession: PreferredSession;
   themePreference: ThemeMode;
 };
@@ -41,7 +39,6 @@ export function buildDefaultProfile(id: string, email: string): UserProfile {
     displayName: "",
     email,
     id,
-    marketFocus: "multi_asset",
     preferredSession: "any",
     themePreference: "system",
   };

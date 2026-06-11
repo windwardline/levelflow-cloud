@@ -53,12 +53,12 @@
   }
 
   .terminal-panel p,
-  .terminal-panel span,
   .terminal-panel h2,
   .terminal-panel h3,
   .terminal-panel td,
   .terminal-panel th {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   .primary-button,
@@ -144,53 +144,6 @@
     border-color: #5b8266;
   }
 
-  .segmented-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-    gap: 0.5rem;
-  }
-
-  .segmented-button,
-  .choice-tile,
-  .ruleset-row {
-    min-height: 44px;
-    border: 1px solid rgba(128, 138, 149, 0.22);
-    border-radius: 8px;
-    background: #ffffff;
-    color: #111c38;
-    font-weight: 700;
-    transition:
-      border-color 160ms ease,
-      background-color 160ms ease,
-      color 160ms ease;
-  }
-
-  .segmented-button-active,
-  .choice-tile-active,
-  .ruleset-row-active {
-    border-color: rgba(91, 130, 102, 0.72);
-    background: rgba(91, 130, 102, 0.12);
-    color: #365a42;
-  }
-
-  .balance-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
-    gap: 0.5rem;
-  }
-
-  .choice-tile {
-    padding: 0.75rem;
-    text-align: center;
-  }
-
-  .ruleset-row {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.75rem;
-    text-align: left;
-  }
 }
 
 @layer utilities {
@@ -273,10 +226,7 @@
   @media (prefers-reduced-motion: reduce) {
     .primary-button,
     .secondary-button,
-    .nav-button,
-    .segmented-button,
-    .choice-tile,
-    .ruleset-row {
+    .nav-button {
       transition: none;
     }
   }
