@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const windowEnd = new Date();
     windowEnd.setUTCDate(windowEnd.getUTCDate() + 7);
 
-    const events = await fetchProviderEvents(windowStart, windowEnd);
+    const events = dedupeEvents(await fetchProviderEvents(windowStart, windowEnd));
     if (events.length === 0) {
       return jsonResponse({
         configured: Boolean(FMP_API_KEY || FINNHUB_API_KEY),
@@ -211,6 +211,10 @@ async function fetchFinnhubEvents(windowStart: Date, windowEnd: Date): Promise<E
 
 function stableExternalId(provider: string, ...parts: unknown[]) {
   return `${provider}:${parts.map((part) => String(part ?? "")).join(":")}`;
+}
+
+function dedupeEvents(events: EconomicEvent[]) {
+  return Array.from(new Map(events.map((event) => [`${event.provider}:${event.external_id}`, event])).values());
 }
 
 function parseDate(value: unknown) {
