@@ -76,7 +76,7 @@ export default function App() {
       <main className="flex min-h-screen items-center justify-center bg-canvas px-6 text-navy">
         <div className="terminal-panel w-full max-w-sm p-6 text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-navy/90" />
-          <p className="font-semibold">Opening LevelFlow Cloud</p>
+          <p className="font-semibold">Opening LevelFlow</p>
         </div>
       </main>
     );
@@ -217,7 +217,7 @@ function HistoryPanel({
           <div>
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Trade journal</p>
             <h2 className="text-2xl font-semibold tracking-normal text-navy">History review</h2>
-            <p className="mt-1 text-sm leading-6 text-slate">Filter, group, and review every recommendation LevelFlow has logged.</p>
+            <p className="mt-1 text-sm leading-6 text-slate">Review recommendations by market, outcome, confidence, and date.</p>
           </div>
           <div className="text-left sm:text-right">
             <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${filteredSetups.length} of ${setups.length} shown`}</p>
@@ -325,7 +325,7 @@ function HistoryPanel({
             <HistoryPerformanceRow
               label="Open review"
               value={summary.pending.toString()}
-              detail="Active or still pending outcome review"
+              detail="Current setups awaiting a final result"
               tone={summary.pending > 0 ? "bullish" : "neutral"}
             />
           </div>
@@ -585,7 +585,7 @@ function GuidePanel() {
       title: "Review levels",
     },
     {
-      body: "History keeps unique active setups and outcome results.",
+      body: "History keeps unique setups and their final results.",
       icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
       title: "Track",
@@ -604,7 +604,7 @@ function GuidePanel() {
       title: "Location",
     },
     {
-      body: "Session quality, upcoming events, and correlation filters can reduce confidence or block marginal ideas.",
+      body: "Session quality, upcoming events, and correlation checks can reduce confidence or block marginal ideas.",
       icon: <Activity className="h-5 w-5" aria-hidden="true" />,
       title: "Timing",
     },
@@ -637,7 +637,7 @@ function GuidePanel() {
       value: "Take profit",
     },
     {
-      body: "A management reference level. It is not an automatic action.",
+      body: "A reference level for discretionary trade management.",
       label: "Reference",
       value: "Breakeven",
     },
@@ -672,18 +672,18 @@ function GuidePanel() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Field guide</p>
-                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">Use LevelFlow as a pre-trade review desk.</h2>
+                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">Use LevelFlow as a disciplined market review desk.</h2>
               </div>
             </div>
             <p className="max-w-3xl text-base leading-7 text-slate">
-              Start with the chart. Let LevelFlow evaluate whether the next pending limit setup is strong enough to consider. A stand-down is a valid outcome.
+              Start with the chart. Let LevelFlow evaluate whether the next pending limit setup is strong enough to consider. When conditions are not clean, standing down is the output.
             </p>
           </div>
 
           <div className="grid content-between gap-3 rounded-lg border border-slate/15 bg-canvas p-4">
             <GuideRule label="Order type" value="Limit orders only" />
-            <GuideRule label="Output" value="Advisory, not execution" />
-            <GuideRule label="Review window" value="Refresh on change" />
+            <GuideRule label="Output" value="Advisory setup" />
+            <GuideRule label="Review window" value="Current market only" />
           </div>
         </div>
       </section>
@@ -694,7 +694,7 @@ function GuidePanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Workflow</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Five-step operating sequence</h2>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate">A clean pass produces either a qualified setup or a clear stand-down.</p>
+          <p className="max-w-md text-sm leading-6 text-slate">A clean pass produces either a qualified limit setup or a clear stand-down.</p>
         </div>
         <div className="grid gap-3 lg:grid-cols-5">
           {workflow.map((step, index) => (
@@ -735,7 +735,7 @@ function GuidePanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to read the score</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
-              Confidence is a 0-100 confluence score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data coverage, and recent outcome learning.
+              Confidence is a 0-100 confluence score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data quality, and recent outcome learning.
             </p>
           </div>
           <div className="grid gap-3">
@@ -749,7 +749,7 @@ function GuidePanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Support</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Contact</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Questions or data issues</h2>
             <p className="mt-1 text-sm leading-6 text-slate">Send the asset, timeframe, and a short description of what looked off.</p>
           </div>
@@ -858,9 +858,7 @@ function DonatePanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What donations support</p>
         <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">App costs</h2>
-        <p className="mt-4 text-sm leading-6 text-slate">
-          Donations go toward market-data access, authentication email delivery, hosting, database capacity, testing, and continued LevelFlow development.
-        </p>
+        <p className="mt-4 text-sm leading-6 text-slate">Donations go toward market data, authentication email delivery, hosting, database capacity, testing, and continued LevelFlow development.</p>
       </section>
     </div>
   );

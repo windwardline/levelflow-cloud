@@ -1,12 +1,12 @@
 # Windward Line LevelFlow Cloud
 
-LevelFlow Cloud is an enterprise-style React/Vite and Supabase platform for market analysis, chart review, and advisory trade setup generation. The app uses Supabase Auth, strict user-owned data tables with RLS, FMP-backed market data, an Edge Function analyzer, and a frontend workspace that keeps web and future native clients aligned around the same Supabase session and relational schema.
+LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market review, chart analysis, and advisory limit-order setup generation. The app uses Supabase Auth, strict user-owned data tables with RLS, server-side market data, an Edge Function analyzer, and a focused web workspace for logged-in users.
 
-## Generated Foundation
+## Architecture
 
 - `public/brand/` contains optimized Windward Capital logo assets for the hosted app.
-- `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, FMP-backed market feed, FMP-backed advisory analyzer, profile preferences, history, and confidence gauge.
-- `server/` contains the Express API scaffold, Supabase service-role client, news provider adapter, and TradeAnalyzer foundation for local/server experiments.
+- `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, legal links, and charting components.
+- `server/` contains the Express API scaffold, Supabase service-role client, news adapter, and analyzer foundation for local/server experiments.
 - `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
 - `.env.example` separates public browser keys from server-only service-role credentials.
 
@@ -16,6 +16,7 @@ LevelFlow Cloud is an enterprise-style React/Vite and Supabase platform for mark
 npm install
 npm run dev
 npm run server
+npm test
 npm run build
 ```
 
@@ -43,4 +44,4 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
    - `FMP_API_KEY`
    - `FINNHUB_API_KEY`
 
-FMP and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript.
+Market-data and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript. LevelFlow is advisory-only; trade execution is outside the active product scope.

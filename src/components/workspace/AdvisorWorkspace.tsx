@@ -73,12 +73,12 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
         const nextData = await fetchMarketData({ days: timeframe === "1day" ? 180 : 21, symbol, timeframe });
         if (!cancelled) {
           setMarketData(nextData);
-          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars loaded.`);
+          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars loaded for review.`);
         }
       } catch {
         if (!cancelled) {
           setMarketData(null);
-          setMarketNotice("Market data is unavailable for this asset.");
+          setMarketNotice("Verified market data is not available for this asset yet.");
         }
       } finally {
         if (!cancelled) {
@@ -135,7 +135,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
         <div className="border-b border-slate/15 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Market advisor</p>
+              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Trade setup desk</h2>
               <p className="mt-1 text-sm text-slate">Review the chart, then generate the current limit setup.</p>
             </div>
@@ -163,7 +163,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
                   <optgroup key={group.label} label={group.label}>
                     {group.options.map((option) => (
                       <option key={option.symbol} value={option.symbol}>
-                        {option.fallbackFmpSymbol ? `${option.label} (${option.fmpSymbol}, fallback ${option.fallbackFmpSymbol})` : `${option.label} (${option.fmpSymbol})`}
+                        {option.label}
                       </option>
                     ))}
                   </optgroup>
@@ -288,7 +288,7 @@ function RecommendationPanel({
         </div>
         <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
           {result?.deduplicated ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-          {notice || "Current advisory setup ready. LevelFlow does not execute trades."}
+          {notice || "Current advisory setup ready for manual review."}
         </div>
       </div>
     );

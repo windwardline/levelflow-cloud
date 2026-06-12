@@ -1,6 +1,6 @@
 # Deployment Notes
 
-The current production-ready path is a static React frontend backed directly by Supabase Auth and Postgres RLS. This supports live login and account onboarding once Supabase is configured.
+The current production-ready path is a static React frontend backed directly by Supabase Auth, Edge Functions, and Postgres RLS. This supports live login, profile preferences, market review, advisory setup generation, and user-owned recommendation history once Supabase is configured.
 
 ## Hosted Frontend
 
@@ -16,10 +16,9 @@ The app intentionally renders a setup-required state when Supabase is missing, i
 
 ## Supabase
 
-Run `supabase/init.sql` in the Supabase SQL editor. The SQL creates:
+Run `supabase/init.sql` in the Supabase SQL editor for a fresh project. The SQL creates:
 
-- E8 program and account-size lookups.
-- User-owned profile, account, metric, setup, pending-order, outcome, strategy-weighting, notice, and economic-event tables.
+- User-owned profile, setup, pending-order, outcome, strategy-weighting, notice, and economic-event tables.
 - RLS policies for authenticated users.
 - Realtime publication membership with `REPLICA IDENTITY FULL` where cross-session dashboards need old/new row data.
 
@@ -32,7 +31,7 @@ npx supabase functions deploy market-data trade-analyzer --project-ref your-proj
 
 ## Server Runtime
 
-The browser app remains static. Provider-backed work now runs through Supabase Edge Functions and Supabase database cron jobs instead of exposing API keys to browser JavaScript.
+The browser app remains static. Market-data and analyzer work runs through Supabase Edge Functions and database jobs instead of exposing API keys to browser JavaScript.
 
 Deployed functions:
 
@@ -42,7 +41,6 @@ Deployed functions:
 
 Database cron jobs:
 
-- `levelflow-e8-due-jobs`: CE(S)T-aware E8 maintenance checks every minute.
 - `levelflow-news-calendar-sync`: hourly economic-calendar sync.
 
 The Express server scaffold remains useful for local experiments, but it is no longer the production launch path.

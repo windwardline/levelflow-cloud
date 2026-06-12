@@ -12,7 +12,7 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
 
   return (
     <div className={compact ? "rounded-lg border border-slate/15 bg-canvas p-3" : ""}>
-      <p className="text-sm leading-6 text-slate">Contributions go toward provider data, hosting, development, testing, and maintenance costs.</p>
+      <p className="text-sm leading-6 text-slate">Contributions go toward market data, hosting, development, testing, and maintenance costs.</p>
       {links.length > 0 ? (
         <div className={`mt-4 grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
           {links.map((link) => (
