@@ -30,12 +30,24 @@ import { useUserProfile } from "./hooks/useUserProfile";
 import { brandAssets } from "./lib/assets";
 import { buildDefaultProfile, profileDisplayName, PREFERRED_SESSION_OPTIONS, US_STATE_TIME_ZONES, type ThemeMode, type UserProfile } from "./lib/profile";
 import { supabase } from "./lib/supabase";
+import { getSecurityOption } from "./lib/symbolMap";
 import type { ChartTimeframe } from "./lib/marketData";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
 type AppTab = "advisor" | "history" | "profile" | "guide" | "donate";
+type HistoryGroupBy = "date" | "category" | "asset" | "status";
+type HistoryOutcome = "pending" | "take_profit" | "stop_loss" | "unfilled";
+type HistorySort = "newest" | "oldest" | "confidence" | "asset";
+type HistoryStatusFilter = "all" | "pending" | "take_profit" | "stop_loss" | "unfilled";
+type HistorySetupGroup = {
+  items: TradeSetupRow[];
+  key: string;
+  label: string;
+};
 
 const SUPPORT_EMAIL = "support@windwardline.com";
+const ALL_HISTORY_FILTER = "all";
+const HISTORY_STATUS_ORDER: HistoryOutcome[] = ["pending", "take_profit", "stop_loss", "unfilled"];
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
@@ -146,92 +158,292 @@ function HistoryPanel({
   stats: SecurityStat[];
   summary: OutcomeSummary;
 }) {
+  const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState(ALL_HISTORY_FILTER);
+  const [assetFilter, setAssetFilter] = useState(ALL_HISTORY_FILTER);
+  const [groupBy, setGroupBy] = useState<HistoryGroupBy>("date");
+  const [sortBy, setSortBy] = useState<HistorySort>("newest");
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(setups.map((setup) => getSecurityOption(setup.symbol).assetType))).sort();
+  }, [setups]);
+
+  const assets = useMemo(() => {
+    return Array.from(
+      new Set(
+        setups
+          .filter((setup) => categoryFilter === ALL_HISTORY_FILTER || getSecurityOption(setup.symbol).assetType === categoryFilter)
+          .map((setup) => setup.symbol),
+      ),
+    ).sort();
+  }, [categoryFilter, setups]);
+
+  useEffect(() => {
+    if (assetFilter !== ALL_HISTORY_FILTER && !assets.includes(assetFilter)) {
+      setAssetFilter(ALL_HISTORY_FILTER);
+    }
+  }, [assetFilter, assets]);
+
+  const filteredSetups = useMemo(() => {
+    return sortHistorySetups(
+      setups.filter((setup) => {
+        const outcome = getSetupOutcome(setup);
+        const category = getSecurityOption(setup.symbol).assetType;
+        const statusMatches = statusFilter === "all" || outcome === statusFilter;
+        const categoryMatches = categoryFilter === ALL_HISTORY_FILTER || category === categoryFilter;
+        const assetMatches = assetFilter === ALL_HISTORY_FILTER || setup.symbol === assetFilter;
+        return statusMatches && categoryMatches && assetMatches;
+      }),
+      sortBy,
+    );
+  }, [assetFilter, categoryFilter, setups, sortBy, statusFilter]);
+
+  const groupedSetups = useMemo(() => groupHistorySetups(filteredSetups, groupBy), [filteredSetups, groupBy]);
+  const activeFilterCount = [statusFilter !== "all", categoryFilter !== ALL_HISTORY_FILTER, assetFilter !== ALL_HISTORY_FILTER].filter(Boolean).length;
+
+  function clearFilters() {
+    setStatusFilter("all");
+    setCategoryFilter(ALL_HISTORY_FILTER);
+    setAssetFilter(ALL_HISTORY_FILTER);
+    setGroupBy("date");
+    setSortBy("newest");
+  }
+
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Trade journal</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">Recommendations</h2>
+            <h2 className="text-2xl font-semibold tracking-normal text-navy">History review</h2>
+            <p className="mt-1 text-sm leading-6 text-slate">Filter, group, and review every recommendation LevelFlow has logged.</p>
           </div>
-          <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${setups.length} saved setups`}</p>
+          <div className="text-left sm:text-right">
+            <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${filteredSetups.length} of ${setups.length} shown`}</p>
+            {activeFilterCount > 0 ? (
+              <button className="mt-1 text-sm font-bold text-bullish" type="button" onClick={clearFilters}>
+                Clear filters
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-4">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <StatPill label="Total setups" value={summary.total.toString()} />
           <StatPill label="Overall win rate" value={summary.winRate === null ? "Pending" : `${summary.winRate}%`} />
-          <StatPill label="Resolved" value={summary.resolved.toString()} />
           <StatPill label="Take profit" value={summary.wins.toString()} />
           <StatPill label="Stop loss" value={summary.losses.toString()} />
+          <StatPill label="Active / pending" value={summary.pending.toString()} />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate/15 text-xs uppercase tracking-normal text-slate">
-              <tr>
-                <th className="py-3 pr-4 font-semibold">Date</th>
-                <th className="py-3 pr-4 font-semibold">Asset</th>
-                <th className="py-3 pr-4 font-semibold">Side</th>
-                <th className="py-3 pr-4 font-semibold">Entry</th>
-                <th className="py-3 pr-4 font-semibold">Stop</th>
-                <th className="py-3 pr-4 font-semibold">Target</th>
-                <th className="py-3 pr-4 font-semibold">Confidence</th>
-                <th className="py-3 pr-4 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {setups.map((setup) => (
-                <tr key={setup.id} className="border-b border-slate/10">
-                  <td className="py-3 pr-4 text-slate">{formatDate(setup.created_at)}</td>
-                  <td className="py-3 pr-4 font-semibold text-navy">{setup.symbol}</td>
-                  <td className={`py-3 pr-4 font-bold uppercase ${setup.side === "buy" ? "text-bullish" : "text-danger"}`}>{setup.side} limit</td>
-                  <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.limit_entry))}</td>
-                  <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.stop_loss))}</td>
-                  <td className="py-3 pr-4 text-navy">{formatNumber(Number(setup.take_profit))}</td>
-                  <td className="py-3 pr-4 font-semibold text-navy">{Number(setup.confidence_score)}%</td>
-                  <td className="py-3 pr-4 text-slate">{formatOutcome(setup)}</td>
-                </tr>
+        <div className="mb-5 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 md:grid-cols-2 xl:grid-cols-5">
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Status
+            <select className="field min-h-11" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as HistoryStatusFilter)}>
+              <option value="all">All statuses</option>
+              <option value="pending">Active / pending</option>
+              <option value="take_profit">Take profit</option>
+              <option value="stop_loss">Stop loss</option>
+              <option value="unfilled">Unfilled / expired</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Category
+            <select className="field min-h-11" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+              <option value={ALL_HISTORY_FILTER}>All categories</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Asset
+            <select className="field min-h-11" value={assetFilter} onChange={(event) => setAssetFilter(event.target.value)}>
+              <option value={ALL_HISTORY_FILTER}>All assets</option>
+              {assets.map((asset) => (
+                <option key={asset} value={asset}>
+                  {asset}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Group by
+            <select className="field min-h-11" value={groupBy} onChange={(event) => setGroupBy(event.target.value as HistoryGroupBy)}>
+              <option value="date">Date</option>
+              <option value="status">Status</option>
+              <option value="category">Category</option>
+              <option value="asset">Asset</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-navy">
+            Sort
+            <select className="field min-h-11" value={sortBy} onChange={(event) => setSortBy(event.target.value as HistorySort)}>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="confidence">Highest confidence</option>
+              <option value="asset">Asset A-Z</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="grid gap-4">
+          {groupedSetups.map((group) => (
+            <section key={group.key} className="min-w-0">
+              <div className="mb-2 flex min-w-0 items-center justify-between gap-3 border-b border-slate/15 pb-2">
+                <h3 className="min-w-0 text-lg font-semibold text-navy">{group.label}</h3>
+                <span className="shrink-0 text-sm font-semibold text-slate">
+                  {group.items.length} {group.items.length === 1 ? "setup" : "setups"}
+                </span>
+              </div>
+              <div className="grid gap-3">
+                {group.items.map((setup) => (
+                  <HistorySetupCard key={setup.id} setup={setup} />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
         {!loading && setups.length === 0 ? <p className="mt-4 text-sm leading-6 text-slate">No recommendations have been logged yet.</p> : null}
+        {!loading && setups.length > 0 && filteredSetups.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">No recommendations match the current filters.</p>
+        ) : null}
       </section>
 
-      <section className="terminal-panel p-5 sm:p-6">
-        <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Asset trends</p>
-          <h2 className="text-2xl font-semibold tracking-normal text-navy">Stats</h2>
+      <aside className="grid content-start gap-5">
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Performance</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Overview</h2>
+          </div>
+          <div className="grid gap-3">
+            <HistoryPerformanceRow label="Resolved setups" value={summary.resolved.toString()} detail={`${summary.wins} TP / ${summary.losses} SL`} tone="neutral" />
+            <HistoryPerformanceRow label="Unfilled / expired" value={summary.unfilled.toString()} detail="Ideas that did not fill in the setup window" tone="neutral" />
+            <HistoryPerformanceRow
+              label="Open review"
+              value={summary.pending.toString()}
+              detail="Active or still pending outcome review"
+              tone={summary.pending > 0 ? "bullish" : "neutral"}
+            />
+          </div>
+        </section>
+
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Category trends</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By market</h2>
+          </div>
+          <div className="grid gap-3">
+            {categoryStats.map((stat) => (
+              <HistoryStatRow key={stat.category} label={stat.category} stat={stat} />
+            ))}
+          </div>
+          {categoryStats.length === 0 ? <p className="text-sm leading-6 text-slate">Category stats will populate after recommendations are logged.</p> : null}
+        </section>
+
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Asset trends</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Most reviewed</h2>
+          </div>
+          <div className="grid gap-3">
+            {stats.slice(0, 8).map((stat) => (
+              <HistoryStatRow key={stat.symbol} label={stat.symbol} stat={stat} />
+            ))}
+          </div>
+          {stats.length === 0 ? <p className="text-sm leading-6 text-slate">Asset stats will populate as recommendations are reviewed and outcomes are recorded.</p> : null}
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
+  const outcome = getSetupOutcome(setup);
+  const outcomeLabel = getOutcomeLabel(outcome);
+  const isBuy = setup.side === "buy";
+  const category = getSecurityOption(setup.symbol).assetType;
+
+  return (
+    <article className="min-w-0 rounded-lg border border-slate/15 bg-canvas p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-lg font-semibold text-navy">{setup.symbol}</h4>
+            <span className="rounded-full bg-white px-2 py-1 text-xs font-bold uppercase text-slate">{category}</span>
+          </div>
+          <p className="mt-1 text-sm text-slate">{formatDate(setup.created_at)}</p>
         </div>
-        <div className="grid gap-3">
-          {categoryStats.map((stat) => (
-            <div key={stat.category} className="rounded-lg border border-bullish/20 bg-bullish/10 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-navy">{stat.category}</p>
-                <p className="text-sm font-semibold text-slate">{stat.count} setups</p>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <StatPill label="Win rate" value={stat.winRate === null ? "Pending" : `${stat.winRate}%`} />
-                <StatPill label="TP / SL" value={`${stat.wins}/${stat.losses}`} />
-                <StatPill label="Pending" value={stat.pending.toString()} />
-              </div>
-            </div>
-          ))}
-          {stats.map((stat) => (
-            <div key={stat.symbol} className="rounded-lg border border-slate/15 bg-canvas p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-navy">{stat.symbol}</p>
-                <p className="text-sm font-semibold text-slate">{stat.count} setups</p>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <StatPill label="Win rate" value={stat.winRate === null ? "Pending" : `${stat.winRate}%`} />
-                <StatPill label="TP / SL" value={`${stat.wins}/${stat.losses}`} />
-                <StatPill label="Pending" value={stat.pending.toString()} />
-              </div>
-            </div>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>{setup.side} limit</span>
+          <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getOutcomeClassName(outcome)}`}>{outcomeLabel}</span>
         </div>
-        {stats.length === 0 ? <p className="text-sm leading-6 text-slate">Stats will populate as recommendations are reviewed and outcomes are recorded.</p> : null}
-      </section>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <HistoryMetric label="Entry" value={formatPriceValue(setup.limit_entry)} valueClassName={isBuy ? "text-bullish" : "text-danger"} />
+        <HistoryMetric label="Stop" value={formatPriceValue(setup.stop_loss)} />
+        <HistoryMetric label="Target" value={formatPriceValue(setup.take_profit)} />
+        <HistoryMetric label="Breakeven" value={formatPriceValue(setup.breakeven_trigger_price)} />
+        <HistoryMetric label="Confidence" value={`${Number(setup.confidence_score)}%`} />
+      </div>
+    </article>
+  );
+}
+
+function HistoryMetric({ label, value, valueClassName = "text-navy" }: { label: string; value: string; valueClassName?: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-white px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
+      <p className={`mt-1 truncate font-semibold ${valueClassName}`}>{value}</p>
+    </div>
+  );
+}
+
+function HistoryPerformanceRow({ detail, label, tone, value }: { detail: string; label: string; tone: "bullish" | "neutral"; value: string }) {
+  return (
+    <div className={`rounded-lg border px-3 py-3 ${tone === "bullish" ? "border-bullish/25 bg-bullish/10" : "border-slate/15 bg-canvas"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-navy">{label}</p>
+        <p className="text-lg font-semibold text-navy">{value}</p>
+      </div>
+      <p className="mt-1 text-sm leading-5 text-slate">{detail}</p>
+    </div>
+  );
+}
+
+function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | SecurityStat }) {
+  const resolvedLabel = stat.winRate === null ? "Pending" : `${stat.winRate}% win rate`;
+  const barWidth = stat.winRate === null ? 0 : stat.winRate;
+
+  return (
+    <div className="rounded-lg border border-slate/15 bg-canvas p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-navy">{label}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{stat.count} setups</p>
+        </div>
+        <p className="shrink-0 text-sm font-semibold text-navy">{resolvedLabel}</p>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+        <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+        <div>
+          <p className="font-semibold text-navy">{stat.wins}</p>
+          <p className="text-slate">TP</p>
+        </div>
+        <div>
+          <p className="font-semibold text-navy">{stat.losses}</p>
+          <p className="text-slate">SL</p>
+        </div>
+        <div>
+          <p className="font-semibold text-navy">{stat.pending}</p>
+          <p className="text-slate">Pending</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -611,6 +823,126 @@ function useThemePreference() {
   return { mode, resolvedMode, setMode };
 }
 
+function sortHistorySetups(setups: TradeSetupRow[], sortBy: HistorySort) {
+  return [...setups].sort((first, second) => {
+    const firstDate = new Date(first.created_at).getTime();
+    const secondDate = new Date(second.created_at).getTime();
+
+    if (sortBy === "oldest") {
+      return firstDate - secondDate;
+    }
+    if (sortBy === "confidence") {
+      return Number(second.confidence_score) - Number(first.confidence_score) || secondDate - firstDate;
+    }
+    if (sortBy === "asset") {
+      return first.symbol.localeCompare(second.symbol) || secondDate - firstDate;
+    }
+    return secondDate - firstDate;
+  });
+}
+
+function groupHistorySetups(setups: TradeSetupRow[], groupBy: HistoryGroupBy): HistorySetupGroup[] {
+  const groups = new Map<string, HistorySetupGroup>();
+
+  setups.forEach((setup) => {
+    const group = getHistoryGroup(setup, groupBy);
+    const existingGroup = groups.get(group.key);
+    if (existingGroup) {
+      existingGroup.items.push(setup);
+      return;
+    }
+    groups.set(group.key, { ...group, items: [setup] });
+  });
+
+  const orderedGroups = Array.from(groups.values());
+  if (groupBy === "asset" || groupBy === "category") {
+    return orderedGroups.sort((first, second) => first.label.localeCompare(second.label));
+  }
+  if (groupBy === "status") {
+    return orderedGroups.sort((first, second) => HISTORY_STATUS_ORDER.indexOf(first.key as HistoryOutcome) - HISTORY_STATUS_ORDER.indexOf(second.key as HistoryOutcome));
+  }
+  return orderedGroups;
+}
+
+function getHistoryGroup(setup: TradeSetupRow, groupBy: HistoryGroupBy): Omit<HistorySetupGroup, "items"> {
+  if (groupBy === "asset") {
+    return { key: setup.symbol, label: setup.symbol };
+  }
+  if (groupBy === "category") {
+    const category = getSecurityOption(setup.symbol).assetType;
+    return { key: category, label: category };
+  }
+  if (groupBy === "status") {
+    const outcome = getSetupOutcome(setup);
+    return { key: outcome, label: getOutcomeLabel(outcome) };
+  }
+
+  const date = new Date(setup.created_at);
+  const key = Number.isNaN(date.getTime()) ? "unknown-date" : date.toISOString().slice(0, 10);
+  return { key, label: formatHistoryDateGroup(date) };
+}
+
+function formatHistoryDateGroup(date: Date) {
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown date";
+  }
+
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+  if (dateStart === todayStart) {
+    return "Today";
+  }
+  if (dateStart === todayStart - 86_400_000) {
+    return "Yesterday";
+  }
+
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+function getSetupOutcome(setup: TradeSetupRow): HistoryOutcome {
+  const outcome = setup.trade_outcomes?.[0]?.outcome;
+  if (outcome === "take_profit" || outcome === "stop_loss") {
+    return outcome;
+  }
+  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {
+    return "unfilled";
+  }
+  return "pending";
+}
+
+function getOutcomeLabel(outcome: HistoryOutcome) {
+  if (outcome === "take_profit") {
+    return "Take profit";
+  }
+  if (outcome === "stop_loss") {
+    return "Stop loss";
+  }
+  if (outcome === "unfilled") {
+    return "Unfilled / expired";
+  }
+  return "Active / pending";
+}
+
+function getOutcomeClassName(outcome: HistoryOutcome) {
+  if (outcome === "take_profit") {
+    return "bg-bullish/10 text-bullish";
+  }
+  if (outcome === "stop_loss") {
+    return "bg-danger/10 text-danger";
+  }
+  if (outcome === "unfilled") {
+    return "bg-warning/15 text-warning";
+  }
+  return "bg-navy/10 text-navy";
+}
+
+function formatPriceValue(value: number | string | null | undefined) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? formatNumber(numericValue) : "Pending";
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
@@ -622,24 +954,4 @@ function formatNumber(value: number) {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 5,
   });
-}
-
-function formatOutcome(setup: TradeSetupRow) {
-  const outcome = setup.trade_outcomes?.[0]?.outcome;
-  if (outcome === "take_profit") {
-    return "Take profit";
-  }
-  if (outcome === "stop_loss") {
-    return "Stop loss";
-  }
-  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired") {
-    return "Unfilled";
-  }
-  if (setup.status === "invalidated") {
-    return "Invalidated";
-  }
-  if (setup.status === "placed") {
-    return "Live / filled";
-  }
-  return "Pending";
 }

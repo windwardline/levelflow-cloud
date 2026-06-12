@@ -265,7 +265,7 @@ function normalizeOutcome(setup: TradeSetupRow) {
   if (outcome === "take_profit" || outcome === "stop_loss") {
     return outcome;
   }
-  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired") {
+  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {
     return "unfilled";
   }
   return "pending";
