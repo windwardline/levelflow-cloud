@@ -35,7 +35,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   const [timeframeTouched, setTimeframeTouched] = useState(false);
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
-  const [marketNotice, setMarketNotice] = useState("Loading FMP market context.");
+  const [marketNotice, setMarketNotice] = useState("Loading market context.");
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [analysisState, setAnalysisState] = useState<AnalysisState | null>(null);
   const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">("idle");
@@ -67,19 +67,18 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 
     async function loadMarketData() {
       setMarketLoading(true);
-      setMarketNotice("Loading FMP market context.");
+      setMarketNotice("Loading market context.");
 
       try {
         const nextData = await fetchMarketData({ days: timeframe === "1day" ? 180 : 21, symbol, timeframe });
         if (!cancelled) {
           setMarketData(nextData);
-          const providerLabel = nextData.providerStatus.startsWith("OK_FALLBACK") ? `FMP fallback ${nextData.ticker}` : `FMP ${nextData.ticker}`;
-          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars from ${providerLabel}.`);
+          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars loaded.`);
         }
       } catch {
         if (!cancelled) {
           setMarketData(null);
-          setMarketNotice("This asset is hidden from recommendations until provider coverage is verified.");
+          setMarketNotice("Market data is unavailable for this asset.");
         }
       } finally {
         if (!cancelled) {
@@ -112,20 +111,16 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       }
       setAnalysisState({ requestedAt: Date.now(), response: nextResult, symbol: requestedSymbol });
       if (nextResult.setup) {
-        setAdvisorNotice(
-          nextResult.deduplicated
-            ? `${requestedLabel} active setup refreshed. No duplicate history row was created.`
-            : `${requestedLabel} limit-order setup generated and logged.`,
-        );
+        setAdvisorNotice(nextResult.deduplicated ? `${requestedLabel} active setup refreshed.` : `${requestedLabel} limit setup logged.`);
         onSetupsChanged();
       } else {
-        setAdvisorNotice(nextResult.reason ?? `No current ${requestedLabel} limit-order setup met the committee threshold on this pass.`);
+        setAdvisorNotice(nextResult.reason ?? `No current ${requestedLabel} limit setup qualifies.`);
         onSetupsChanged();
       }
     } catch {
       if (requestIdRef.current === requestId) {
         setAnalysisState({ requestedAt: Date.now(), response: null, symbol: requestedSymbol });
-        setAdvisorNotice(`LevelFlow is refreshing provider context for ${requestedLabel}. Try again shortly.`);
+        setAdvisorNotice(`Market context is refreshing for ${requestedLabel}. Try again shortly.`);
       }
     } finally {
       if (requestIdRef.current === requestId) {
@@ -142,7 +137,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Market advisor</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Trade setup desk</h2>
-              <p className="mt-1 text-sm text-slate">Evaluate the current market and log qualified limit-order setups.</p>
+              <p className="mt-1 text-sm text-slate">Review the chart, then generate the current limit setup.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
               <RefreshCw className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -306,7 +301,7 @@ function RecommendationPanel({
       </div>
       <div>
         <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
-        <p className="mt-1">{notice || "Choose an asset, review the chart, then generate the best current pending limit setup. Results are logged once per unique active setup."}</p>
+        <p className="mt-1">{notice || "Select an asset, review the chart, then generate the current limit setup."}</p>
       </div>
     </div>
   );
@@ -362,7 +357,7 @@ function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMar
 
 function SetupList({ setups }: { setups: TradeSetupRow[] }) {
   if (setups.length === 0) {
-    return <p className="text-sm leading-6 text-slate">No recommendations logged yet.</p>;
+    return <p className="text-sm leading-6 text-slate">No recommendations yet.</p>;
   }
 
   return (

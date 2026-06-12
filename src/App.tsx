@@ -1,23 +1,24 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
-  BadgeCheck,
+  Activity,
+  ArrowRight,
   BookOpen,
-  CalendarClock,
-  Gauge,
+  Crosshair,
   Gift,
   History,
   LayoutDashboard,
+  Layers3,
   LineChart,
-  ListChecks,
   LogOut,
   Mail,
   Monitor,
   Moon,
-  ShieldAlert,
-  SlidersHorizontal,
+  Radar,
+  ShieldCheck,
   Sun,
   Target,
+  TrendingUp,
   User,
 } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
@@ -547,10 +548,10 @@ function ProfilePanel({
         <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Profile impact</p>
         <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How LevelFlow uses it</h2>
         <div className="mt-4 grid gap-3 text-sm leading-6 text-slate">
-          <p>Your name appears in the workspace header so shared machines are easier to verify at a glance.</p>
-          <p>Your U.S. timezone drives the market open and close countdowns. Daylight saving time is handled automatically by the selected timezone.</p>
-          <p>Preferred session highlights the global trading session you care about most without changing the asset sort order.</p>
-          <p>Default timeframe opens new chart work on your preferred view, and theme preference keeps the workspace readable in your environment.</p>
+          <p>Your name personalizes the workspace.</p>
+          <p>Your U.S. timezone drives market clocks and daylight saving time adjustments.</p>
+          <p>Preferred session highlights the trading session you watch most.</p>
+          <p>Default timeframe and theme set your starting workspace view.</p>
         </div>
       </section>
     </div>
@@ -558,145 +559,282 @@ function ProfilePanel({
 }
 
 function GuidePanel() {
-  const workflowSteps = [
+  const workflow = [
     {
-      body: "Use the grouped Asset dropdown, then choose the chart timeframe you want the advisor to evaluate. Assets are sorted by category, base currency, then quote currency so the list stays predictable as coverage grows.",
-      icon: <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />,
+      body: "Select the asset and timeframe you are reviewing.",
+      icon: <Crosshair className="h-5 w-5" aria-hidden="true" />,
       number: "01",
-      title: "Choose the market context",
+      title: "Set the market",
     },
     {
-      body: "Review the chart before asking for a setup. Drag to look left, zoom in or out, resize the panel with the browser, and use the chart controls to return to the default view when you are done.",
+      body: "Check trend, structure, range, and recent price behavior first.",
       icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
       number: "02",
-      title: "Read the chart first",
+      title: "Read the chart",
     },
     {
-      body: "Click Generate setup for a fresh pass. LevelFlow clears stale recommendations for the selected asset, evaluates the latest market data, and returns only the best current pending limit setup if one qualifies.",
-      icon: <Target className="h-5 w-5" aria-hidden="true" />,
+      body: "Run the advisor after the chart context is clear.",
+      icon: <Radar className="h-5 w-5" aria-hidden="true" />,
       number: "03",
-      title: "Generate the next limit setup",
+      title: "Generate",
     },
     {
-      body: "The side badge is green for BUY LIMIT and red for SELL LIMIT. The chart plots the entry, stop loss, take profit, and breakeven reference so the output is visible before you use it elsewhere.",
-      icon: <BadgeCheck className="h-5 w-5" aria-hidden="true" />,
+      body: "Confirm side, entry, stop, target, breakeven, and confidence.",
+      icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
-      title: "Confirm the output",
+      title: "Review levels",
     },
     {
-      body: "Re-run the advisor whenever conditions change. If the same setup remains viable, LevelFlow refreshes the levels and confidence without duplicating the history row; if it no longer qualifies, it is removed from view.",
-      icon: <ListChecks className="h-5 w-5" aria-hidden="true" />,
+      body: "History keeps unique active setups and outcome results.",
+      icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
-      title: "Refresh without clutter",
+      title: "Track",
     },
   ];
 
-  const logicItems = [
+  const decisionLenses = [
     {
-      body: "The analyzer weighs trend, market structure, liquidity behavior, momentum, volatility, value and volume behavior, multi-timeframe agreement, correlation, session quality, and calendar risk.",
-      icon: <Gauge className="h-5 w-5" aria-hidden="true" />,
-      title: "Trading logic",
+      body: "Trend, momentum, and market structure decide whether buyers or sellers have control.",
+      icon: <TrendingUp className="h-5 w-5" aria-hidden="true" />,
+      title: "Direction",
     },
     {
-      body: "Calendar context is treated as a risk modifier. High-impact economic events, rate-sensitive releases, and broad market calendar risk can reduce confidence or block marginal ideas near the event window.",
-      icon: <CalendarClock className="h-5 w-5" aria-hidden="true" />,
-      title: "News and event risk",
+      body: "Liquidity, value areas, volatility, and recent range help determine whether a limit entry is worth waiting for.",
+      icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
+      title: "Location",
     },
     {
-      body: "Confidence is a 0-100 committee score. LevelFlow requires enough strategy agreement, reward-to-risk quality, session quality, and provider coverage before a setup can appear.",
-      icon: <ShieldAlert className="h-5 w-5" aria-hidden="true" />,
-      title: "Confidence score",
+      body: "Session quality, upcoming events, and correlation filters can reduce confidence or block marginal ideas.",
+      icon: <Activity className="h-5 w-5" aria-hidden="true" />,
+      title: "Timing",
     },
     {
-      body: "Entries are limit levels only: buy entries must sit below current price and sell entries must sit above current price. Stops use structure invalidation with volatility buffers; targets use liquidity, minimum reward-to-risk, and projected range.",
+      body: "Stops, targets, breakeven, and reward-to-risk are checked before a setup can appear.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
-      title: "Entry, stop, and target",
+      title: "Risk",
+    },
+  ];
+
+  const outputItems = [
+    {
+      body: "Pending order direction. Buy limits wait below market; sell limits wait above market.",
+      label: "Order",
+      value: "Buy / sell limit",
+    },
+    {
+      body: "The price where the idea becomes active.",
+      label: "Entry",
+      value: "Limit price",
+    },
+    {
+      body: "The price area that invalidates the setup.",
+      label: "Stop",
+      value: "Invalidation",
+    },
+    {
+      body: "The primary objective selected from liquidity, volatility, and reward-to-risk checks.",
+      label: "Target",
+      value: "Take profit",
+    },
+    {
+      body: "A management reference level. It is not an automatic action.",
+      label: "Reference",
+      value: "Breakeven",
+    },
+  ];
+
+  const confidenceBands = [
+    {
+      body: "Enough confluence and reward-to-risk for LevelFlow to show a setup.",
+      range: "66+",
+      title: "Qualified",
+    },
+    {
+      body: "Stronger agreement across structure, momentum, location, and timing.",
+      range: "80+",
+      title: "High confluence",
+    },
+    {
+      body: "No current limit setup meets the model threshold. Standing down is the output.",
+      range: "Blocked",
+      title: "Stand down",
     },
   ];
 
   return (
-    <section className="terminal-panel p-5 sm:p-6">
-      <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.42fr)] lg:items-end">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-navy text-white">
-            <BookOpen className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Operating guide</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to use LevelFlow</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
-              LevelFlow is a market advisory workspace. It helps you select an asset, review live chart context, request the next qualified limit-order idea, and track how recommendations perform over time.
+    <div className="grid gap-5">
+      <section className="terminal-panel overflow-hidden">
+        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)] lg:items-stretch">
+          <div className="min-w-0">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-navy text-white">
+                <BookOpen className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Field guide</p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">Use LevelFlow as a pre-trade review desk.</h2>
+              </div>
+            </div>
+            <p className="max-w-3xl text-base leading-7 text-slate">
+              Start with the chart. Let LevelFlow evaluate whether the next pending limit setup is strong enough to consider. A stand-down is a valid outcome.
             </p>
           </div>
-        </div>
-        <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Core rule</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-navy">LevelFlow recommends pending limit orders only. It does not execute, size, modify, or close trades.</p>
-        </div>
-      </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.5fr)]">
-        <div className="grid gap-3">
-          {workflowSteps.map((step) => (
-            <GuideStep key={step.number} {...step} />
+          <div className="grid content-between gap-3 rounded-lg border border-slate/15 bg-canvas p-4">
+            <GuideRule label="Order type" value="Limit orders only" />
+            <GuideRule label="Output" value="Advisory, not execution" />
+            <GuideRule label="Review window" value="Refresh on change" />
+          </div>
+        </div>
+      </section>
+
+      <section className="terminal-panel p-5 sm:p-6">
+        <div className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Workflow</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Five-step operating sequence</h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-slate">A clean pass produces either a qualified setup or a clear stand-down.</p>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-5">
+          {workflow.map((step, index) => (
+            <GuideProcessStep key={step.number} {...step} isLast={index === workflow.length - 1} />
           ))}
         </div>
+      </section>
 
-        <div className="grid content-start gap-3">
-          <div className="rounded-lg border border-slate/15 bg-canvas p-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What the inputs do</p>
-            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate">
-              <p>
-                <strong className="text-navy">Asset</strong> tells LevelFlow which FMP-backed market to analyze and which calendar currencies or market risks matter.
-              </p>
-              <p>
-                <strong className="text-navy">Timeframe</strong> controls the visible chart and the bar interval used for the active review.
-              </p>
-              <p>
-                <strong className="text-navy">Timezone and preferred session</strong> personalize market clocks and highlight the session you care about most.
-              </p>
-            </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.5fr)]">
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Decision model</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What the analyzer weighs</h2>
           </div>
-          <div className="rounded-lg border border-slate/15 bg-canvas p-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What the outputs do</p>
-            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate">
-              <p>
-                <strong className="text-navy">Limit entry</strong> is the pending price where the idea becomes active.
-              </p>
-              <p>
-                <strong className="text-navy">Stop loss</strong> marks the invalidation level used by the advisory model.
-              </p>
-              <p>
-                <strong className="text-navy">Take profit</strong> is the primary target selected from liquidity, volatility, and reward-to-risk checks.
-              </p>
-              <p>
-                <strong className="text-navy">Breakeven</strong> is a reference level for trade management, not an automatic action.
-              </p>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {decisionLenses.map((item) => (
+              <GuideLensCard key={item.title} {...item} />
+            ))}
+          </div>
+        </section>
+
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Output</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Recommendation anatomy</h2>
+          </div>
+          <div className="grid gap-3">
+            {outputItems.map((item) => (
+              <GuideOutputRow key={item.label} {...item} />
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section className="terminal-panel p-5 sm:p-6">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(280px,0.4fr)] lg:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to read the score</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
+              Confidence is a 0-100 confluence score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data coverage, and recent outcome learning.
+            </p>
+          </div>
+          <div className="grid gap-3">
+            {confidenceBands.map((band) => (
+              <GuideConfidenceBand key={band.range} {...band} />
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-2">
-        {logicItems.map((item) => (
-          <GuideInsight key={item.title} {...item} />
-        ))}
-      </div>
-
-      <div className="mt-5 rounded-lg border border-slate/15 bg-canvas p-4">
+      <section className="terminal-panel p-5 sm:p-6">
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Support contact</p>
-            <h3 className="mt-1 text-lg font-semibold text-navy">Questions, access, or data issues</h3>
-            <p className="mt-1 text-sm leading-6 text-slate">Send the asset, timeframe, and a short description of what you saw so the issue can be reproduced quickly.</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Support</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Questions or data issues</h2>
+            <p className="mt-1 text-sm leading-6 text-slate">Send the asset, timeframe, and a short description of what looked off.</p>
           </div>
           <a className="secondary-button shrink-0" href={`mailto:${SUPPORT_EMAIL}`}>
             <Mail className="h-4 w-4" aria-hidden="true" />
             {SUPPORT_EMAIL}
           </a>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function GuideRule({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-slate/10 pb-3 last:border-b-0 last:pb-0">
+      <span className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</span>
+      <span className="text-right text-sm font-semibold text-navy">{value}</span>
+    </div>
+  );
+}
+
+function GuideProcessStep({
+  body,
+  icon,
+  isLast,
+  number,
+  title,
+}: {
+  body: string;
+  icon: ReactNode;
+  isLast: boolean;
+  number: string;
+  title: string;
+}) {
+  return (
+    <div className="relative min-w-0 rounded-lg border border-slate/15 bg-canvas p-4">
+      {!isLast ? (
+        <div className="pointer-events-none absolute -right-4 top-8 hidden h-px w-5 bg-slate/25 lg:block">
+          <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-slate" aria-hidden="true" />
+        </div>
+      ) : null}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white">{icon}</div>
+        <span className="text-xs font-bold uppercase tracking-normal text-bullish">{number}</span>
       </div>
-    </section>
+      <h3 className="font-semibold text-navy">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate">{body}</p>
+    </div>
+  );
+}
+
+function GuideLensCard({ body, icon, title }: { body: string; icon: ReactNode; title: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-slate/15 bg-canvas p-4">
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bullish/10 text-bullish">{icon}</div>
+        <h3 className="font-semibold text-navy">{title}</h3>
+      </div>
+      <p className="text-sm leading-6 text-slate">{body}</p>
+    </div>
+  );
+}
+
+function GuideOutputRow({ body, label, value }: { body: string; label: string; value: string }) {
+  return (
+    <div className="grid min-w-0 gap-2 rounded-lg border border-slate/15 bg-canvas p-3">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
+        <p className="text-sm font-semibold text-navy">{value}</p>
+      </div>
+      <p className="text-sm leading-6 text-slate">{body}</p>
+    </div>
+  );
+}
+
+function GuideConfidenceBand({ body, range, title }: { body: string; range: string; title: string }) {
+  return (
+    <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas p-4 sm:grid-cols-[88px_minmax(0,1fr)]">
+      <div className="flex h-14 w-full items-center justify-center rounded-lg bg-white text-lg font-semibold text-navy">{range}</div>
+      <div className="min-w-0">
+        <h3 className="font-semibold text-navy">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
+      </div>
+    </div>
   );
 }
 
@@ -748,36 +886,6 @@ function ThemeToggle({ compact = false, mode, onChange }: { compact?: boolean; m
           {compact ? <span className="sr-only">{option.label}</span> : option.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-function GuideStep({ body, icon, number, title }: { body: string; icon: ReactNode; number: string; title: string }) {
-  return (
-    <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)]">
-      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
-        <span className="sr-only">{number}</span>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-normal text-bullish">{number}</span>
-          <h3 className="font-semibold text-navy">{title}</h3>
-        </div>
-        <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
-      </div>
-    </div>
-  );
-}
-
-function GuideInsight({ body, icon, title }: { body: string; icon: ReactNode; title: string }) {
-  return (
-    <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-white p-4 sm:grid-cols-[auto_minmax(0,1fr)]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bullish/10 text-bullish">{icon}</div>
-      <div className="min-w-0">
-        <h3 className="font-semibold text-navy">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
-      </div>
     </div>
   );
 }
