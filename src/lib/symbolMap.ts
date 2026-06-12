@@ -242,8 +242,8 @@ function compareSecurityOptions(first: SecurityOption, second: SecurityOption) {
   const secondParts = getAssetSortParts(second);
 
   return (
-    firstParts.quote.localeCompare(secondParts.quote) ||
     firstParts.base.localeCompare(secondParts.base) ||
+    firstParts.quote.localeCompare(secondParts.quote) ||
     firstParts.symbol.localeCompare(secondParts.symbol)
   );
 }

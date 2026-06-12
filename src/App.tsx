@@ -348,7 +348,7 @@ function ProfilePanel({
 function GuidePanel() {
   const workflowSteps = [
     {
-      body: "Use the grouped Asset dropdown, then choose the chart timeframe you want the advisor to evaluate. Assets are sorted by category, quote currency, then base currency so the list stays predictable as coverage grows.",
+      body: "Use the grouped Asset dropdown, then choose the chart timeframe you want the advisor to evaluate. Assets are sorted by category, base currency, then quote currency so the list stays predictable as coverage grows.",
       icon: <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />,
       number: "01",
       title: "Choose the market context",
