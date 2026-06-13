@@ -19,7 +19,7 @@ type AuthScreenProps = {
 export function AuthScreen({ themeControl }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<AuthStatus>("idle");
-  const [message, setMessage] = useState("Enter your email and LevelFlow will send a secure magic link.");
+  const [message, setMessage] = useState("Enter your email to receive a magic link. No password or 6-digit code required.");
   const [error, setError] = useState("");
   const [donationsOpen, setDonationsOpen] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -51,7 +51,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     }
 
     setStatus("sent");
-    setMessage(`Magic link sent to ${normalizedEmail}. Open that email and click the link to enter LevelFlow.`);
+    setMessage(`Magic link sent to ${normalizedEmail}. Open that email to continue.`);
   }
 
   async function signInWithOAuth(provider: Extract<Provider, "google" | "apple">) {
@@ -80,10 +80,10 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
   const appleAuthEnabled = import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
   const oauthEnabled = googleAuthEnabled || appleAuthEnabled;
-  const headline = isSupabaseConfigured ? "Sign in to LevelFlow" : "Cloud access pending";
+  const headline = isSupabaseConfigured ? "Sign in" : "Cloud access pending";
   const body = isSupabaseConfigured
     ? message
-    : "Cloud access is not connected yet. Once connected, secure sign-in will open the live market-analysis workspace.";
+    : "Cloud access is not connected yet. Once configured, sign-in will open the live workspace.";
   const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent(
     "I would like the current donation link for LevelFlow development and maintenance.",
   )}`;
@@ -98,11 +98,11 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               <img className="h-14 w-14 rounded-lg object-contain" src={brandAssets.mark} alt="Windward Line mark" />
               <div>
                 <p className="text-sm font-semibold uppercase tracking-normal text-slate">A Windward Line product</p>
-                <p className="text-sm font-medium text-bullish">Built for disciplined market review</p>
+                <p className="text-sm font-medium text-bullish">Market review, refined</p>
               </div>
             </div>
             <h1 className="text-6xl font-semibold tracking-normal text-navy sm:text-7xl">LevelFlow</h1>
-            <p className="max-w-xl text-base leading-7 text-slate">A premium operating layer for disciplined market review.</p>
+            <p className="max-w-xl text-base leading-7 text-slate">A premium workspace for chart context, confluence, and limit-order setup review.</p>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
-            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Secure workspace</p>
+            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Private workspace</p>
             <h2 className="text-2xl font-semibold tracking-normal text-navy">{headline}</h2>
             <p className="text-sm leading-6 text-slate">{body}</p>
           </div>
