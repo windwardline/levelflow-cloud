@@ -911,7 +911,7 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
   const takeProfit = Number(setup.take_profit);
   const createdAt = new Date(setup.created_at).getTime();
   const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
-  const createdBars = bars.filter((bar) => bar.time >= createdAt);
+  const createdBars = bars.filter((bar) => bar.time >= createdAt && bar.time <= expiresAt);
 
   if (!Number.isFinite(entry) || !Number.isFinite(stopLoss) || !Number.isFinite(takeProfit)) {
     return { state: "pending" as const };
@@ -1007,6 +1007,21 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
         };
       }
     }
+  }
+
+  if (Date.now() > expiresAt) {
+    return {
+      exitAt: new Date(expiresAt).toISOString(),
+      feedback: {
+        maxAdverseMove: roundPrice(maxAdverseMove),
+        maxFavorableMove: roundPrice(maxFavorableMove),
+        reason: "Entry filled, but neither target nor stop was reached before the setup review window ended.",
+        source: "price_path_review",
+      },
+      filledAt,
+      outcome: "ambiguous" as const,
+      state: "resolved" as const,
+    };
   }
 
   return {
