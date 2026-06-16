@@ -80,6 +80,13 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  if to_regclass('public.user_accounts') is not null then
+    execute 'drop trigger if exists validate_user_account_config on public.user_accounts';
+  end if;
+end $$;
+
 drop function if exists private.run_e8_due_jobs();
 drop function if exists private.run_e8_job_once(text, text);
 drop function if exists private.run_e8_maintenance(text);
