@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSecurityOption } from "../lib/symbolMap";
+import { normalizeSetupOutcome } from "../lib/outcomes";
 import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
 
@@ -209,7 +210,7 @@ function buildStats(setups: TradeSetupRow[]) {
         winRate: null,
         wins: 0,
       } satisfies CategoryStat);
-    const outcome = normalizeOutcome(setup);
+    const outcome = normalizeSetupOutcome(setup);
 
     current.count += 1;
     current.averageConfidence += Number(setup.confidence_score);
@@ -217,19 +218,19 @@ function buildStats(setups: TradeSetupRow[]) {
     categoryStat.averageConfidence += Number(setup.confidence_score);
     summary.total += 1;
 
-    if (outcome === "take_profit") {
+    if (outcome === "target_reached") {
       current.wins += 1;
       categoryStat.wins += 1;
       summary.wins += 1;
-    } else if (outcome === "stop_loss") {
+    } else if (outcome === "stopped_out") {
       current.losses += 1;
       categoryStat.losses += 1;
       summary.losses += 1;
-    } else if (outcome === "unfilled") {
+    } else if (outcome === "entry_not_filled") {
       current.unfilled += 1;
       categoryStat.unfilled += 1;
       summary.unfilled += 1;
-    } else if (outcome === "ambiguous") {
+    } else if (outcome === "unclear_path") {
       current.ambiguous += 1;
       categoryStat.ambiguous += 1;
       summary.ambiguous += 1;
@@ -267,18 +268,4 @@ function finalizeStat<T extends SecurityStat | CategoryStat>(stat: T): T {
 
 function sortStats(first: SecurityStat | CategoryStat, second: SecurityStat | CategoryStat) {
   return second.count - first.count || second.averageConfidence - first.averageConfidence;
-}
-
-function normalizeOutcome(setup: TradeSetupRow) {
-  const outcome = setup.trade_outcomes?.[0]?.outcome;
-  if (outcome === "take_profit" || outcome === "stop_loss") {
-    return outcome;
-  }
-  if (outcome === "ambiguous") {
-    return "ambiguous";
-  }
-  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {
-    return "unfilled";
-  }
-  return "pending";
 }

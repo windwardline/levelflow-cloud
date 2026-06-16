@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
+import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
 import { US_STATE_TIME_ZONES } from "../src/lib/profile";
 import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel } from "../src/lib/symbolMap";
+import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 describe("asset catalog", () => {
   it("keeps the public asset list focused and sorted by category, base, then quote", () => {
@@ -54,3 +56,28 @@ describe("market clocks", () => {
     assert.equal(sessions.find((session) => session.id === "north_america")?.isPreferred, true);
   });
 });
+
+describe("recommendation outcomes", () => {
+  it("uses clear user-facing labels for each internal status", () => {
+    assert.equal(OUTCOME_COPY.still_tracking.label, "Still tracking");
+    assert.equal(OUTCOME_COPY.target_reached.label, "Reached target");
+    assert.equal(OUTCOME_COPY.stopped_out.label, "Hit stop");
+    assert.equal(OUTCOME_COPY.unclear_path.label, "Unclear path");
+    assert.equal(OUTCOME_COPY.entry_not_filled.label, "Entry not filled");
+  });
+
+  it("separates unresolved, unfilled, and unclear paths", () => {
+    assert.equal(normalizeSetupOutcome(buildSetup({ status: "generated" })), "still_tracking");
+    assert.equal(normalizeSetupOutcome(buildSetup({ status: "expired" })), "entry_not_filled");
+    assert.equal(normalizeSetupOutcome(buildSetup({ outcome: "ambiguous", status: "filled" })), "unclear_path");
+    assert.equal(normalizeSetupOutcome(buildSetup({ outcome: "take_profit", status: "filled" })), "target_reached");
+    assert.equal(normalizeSetupOutcome(buildSetup({ outcome: "stop_loss", status: "filled" })), "stopped_out");
+  });
+});
+
+function buildSetup({ outcome, status }: { outcome?: string; status: string }): Pick<TradeSetupRow, "status" | "trade_outcomes"> {
+  return {
+    status,
+    trade_outcomes: outcome ? [{ exit_at: null, feedback: null, filled_at: null, outcome, realized_pnl: null, reviewed_at: "2026-06-16T12:00:00.000Z" }] : [],
+  };
+}

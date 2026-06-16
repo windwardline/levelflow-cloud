@@ -29,6 +29,7 @@ import { useAuthSession } from "./hooks/useAuthSession";
 import { useTradeSetups, type CategoryStat, type OutcomeSummary, type SecurityStat } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { brandAssets } from "./lib/assets";
+import { isResolvedOutcome, normalizeSetupOutcome, OUTCOME_COPY, type SetupOutcome } from "./lib/outcomes";
 import { buildDefaultProfile, profileDisplayName, PREFERRED_SESSION_OPTIONS, US_STATE_TIME_ZONES, type ThemeMode, type UserProfile } from "./lib/profile";
 import { supabase } from "./lib/supabase";
 import { getSecurityOption } from "./lib/symbolMap";
@@ -37,9 +38,8 @@ import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
 type AppTab = "advisor" | "history" | "profile" | "guide" | "donate";
 type HistoryGroupBy = "date" | "category" | "asset" | "status";
-type HistoryOutcome = "ambiguous" | "pending" | "take_profit" | "stop_loss" | "unfilled";
 type HistorySort = "newest" | "oldest" | "confidence" | "asset";
-type HistoryStatusFilter = "all" | HistoryOutcome;
+type HistoryStatusFilter = "all" | SetupOutcome;
 type HistorySetupGroup = {
   items: TradeSetupRow[];
   key: string;
@@ -48,7 +48,7 @@ type HistorySetupGroup = {
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 const ALL_HISTORY_FILTER = "all";
-const HISTORY_STATUS_ORDER: HistoryOutcome[] = ["pending", "take_profit", "stop_loss", "ambiguous", "unfilled"];
+const HISTORY_STATUS_ORDER: SetupOutcome[] = ["still_tracking", "target_reached", "stopped_out", "unclear_path", "entry_not_filled"];
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
@@ -240,10 +240,10 @@ function HistoryPanel({
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <StatPill label="Total setups" value={summary.total.toString()} />
           <StatPill label="Overall win rate" value={summary.winRate === null ? "Pending" : `${summary.winRate}%`} />
-          <StatPill label="Take profit" value={summary.wins.toString()} />
-          <StatPill label="Stop loss" value={summary.losses.toString()} />
-          <StatPill label="Ambiguous" value={summary.ambiguous.toString()} />
-          <StatPill label="Active / pending" value={summary.pending.toString()} />
+          <StatPill label="Reached target" value={summary.wins.toString()} />
+          <StatPill label="Hit stop" value={summary.losses.toString()} />
+          <StatPill label="Unclear path" value={summary.ambiguous.toString()} />
+          <StatPill label="Still tracking" value={summary.pending.toString()} />
         </div>
 
         <div className="mb-5 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 md:grid-cols-2 xl:grid-cols-5">
@@ -251,11 +251,11 @@ function HistoryPanel({
             Status
             <select className="field min-h-11" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as HistoryStatusFilter)}>
               <option value="all">All statuses</option>
-              <option value="pending">Active / pending</option>
-              <option value="take_profit">Take profit</option>
-              <option value="stop_loss">Stop loss</option>
-              <option value="ambiguous">Ambiguous path</option>
-              <option value="unfilled">Unfilled / expired</option>
+              {HISTORY_STATUS_ORDER.map((status) => (
+                <option key={status} value={status}>
+                  {OUTCOME_COPY[status].filterLabel}
+                </option>
+              ))}
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
@@ -330,19 +330,21 @@ function HistoryPanel({
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Resolution</h2>
           </div>
           <div className="grid gap-3">
-            <HistoryPerformanceRow label="Resolved setups" value={summary.resolved.toString()} detail={`${summary.wins} TP / ${summary.losses} SL`} tone="neutral" />
-            <HistoryPerformanceRow label="Ambiguous paths" value={summary.ambiguous.toString()} detail="Stop and target touched inside the same review candle" tone="neutral" />
-            <HistoryPerformanceRow label="Unfilled / expired" value={summary.unfilled.toString()} detail="Ideas that did not fill in the setup window" tone="neutral" />
+            <HistoryPerformanceRow label="Resolved setups" value={summary.resolved.toString()} detail={`${summary.wins} reached target / ${summary.losses} hit stop`} tone="neutral" />
+            <HistoryPerformanceRow label="Unclear paths" value={summary.ambiguous.toString()} detail={OUTCOME_COPY.unclear_path.description} tone="neutral" />
+            <HistoryPerformanceRow label="Entry not filled" value={summary.unfilled.toString()} detail={OUTCOME_COPY.entry_not_filled.description} tone="neutral" />
             <HistoryPerformanceRow
-              label="Open review"
+              label="Still tracking"
               value={summary.pending.toString()}
-              detail="Current setups awaiting a final result"
+              detail={OUTCOME_COPY.still_tracking.description}
               tone={summary.pending > 0 ? "bullish" : "neutral"}
             />
           </div>
         </section>
 
         <ModelLearningPanel setups={setups} />
+
+        <StatusGuidePanel />
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
@@ -416,7 +418,7 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         <HistoryMetric label="Entry" value={formatPriceValue(setup.limit_entry)} valueClassName={isBuy ? "text-bullish" : "text-danger"} />
         <HistoryMetric label="Stop" value={formatPriceValue(setup.stop_loss)} />
         <HistoryMetric label="Target" value={formatPriceValue(setup.take_profit)} />
-        <HistoryMetric label="Breakeven" value={formatPriceValue(setup.breakeven_trigger_price)} />
+        <HistoryMetric label="Break-even" value={formatPriceValue(setup.breakeven_trigger_price)} />
         <HistoryMetric label="Confidence" value={`${Number(setup.confidence_score)}%`} />
         <HistoryMetric label="Reward / risk" value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`} />
       </div>
@@ -446,7 +448,7 @@ function HistoryPerformanceRow({ detail, label, tone, value }: { detail: string;
 }
 
 function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | SecurityStat }) {
-  const resolvedLabel = stat.winRate === null ? "Pending" : `${stat.winRate}% win rate`;
+  const resolvedLabel = stat.winRate === null ? "Learning" : `${stat.winRate}% win rate`;
   const barWidth = stat.winRate === null ? 0 : stat.winRate;
 
   return (
@@ -464,19 +466,19 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
         <div>
           <p className="font-semibold text-navy">{stat.wins}</p>
-          <p className="text-slate">TP</p>
+          <p className="text-slate">Target</p>
         </div>
         <div>
           <p className="font-semibold text-navy">{stat.losses}</p>
-          <p className="text-slate">SL</p>
+          <p className="text-slate">Stop</p>
         </div>
         <div>
           <p className="font-semibold text-navy">{stat.pending}</p>
-          <p className="text-slate">Pending</p>
+          <p className="text-slate">Tracking</p>
         </div>
         <div>
           <p className="font-semibold text-navy">{stat.ambiguous}</p>
-          <p className="text-slate">Amb.</p>
+          <p className="text-slate">Unclear</p>
         </div>
       </div>
     </div>
@@ -495,12 +497,12 @@ function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { amb
             {count} setups / {resolved} resolved
           </p>
         </div>
-        <p className="shrink-0 text-sm font-semibold text-navy">{winRate === null ? "Pending" : `${winRate}% win rate`}</p>
+        <p className="shrink-0 text-sm font-semibold text-navy">{winRate === null ? "Learning" : `${winRate}% win rate`}</p>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
         <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
       </div>
-      {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} ambiguous path {ambiguous === 1 ? "review" : "reviews"}</p> : null}
+      {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} unclear {ambiguous === 1 ? "path" : "paths"}</p> : null}
     </div>
   );
 }
@@ -509,16 +511,16 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
   const families = useMemo(() => buildSetupFamilyStats(setups), [setups]);
   const resolved = setups.filter((setup) => {
     const outcome = getSetupOutcome(setup);
-    return outcome === "take_profit" || outcome === "stop_loss";
+    return isResolvedOutcome(outcome);
   }).length;
 
   return (
     <section className="terminal-panel p-5 sm:p-6">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Global learning</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Model signal</h2>
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Shared learning</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Outcome signal</h2>
         <p className="mt-2 text-sm leading-6 text-slate">
-          LevelFlow uses resolved outcomes to calibrate setup families across the app. More resolved setups improve the shared scoring layer.
+          LevelFlow uses resolved outcomes across the app to calibrate similar setup families. This is shared learning, not a user-specific score.
         </p>
       </div>
       <div className="mb-4 grid grid-cols-2 gap-3">
@@ -544,6 +546,28 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
           </div>
         ))}
         {families.length === 0 ? <p className="text-sm leading-6 text-slate">Model family stats will appear after recommendations are generated.</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function StatusGuidePanel() {
+  return (
+    <section className="terminal-panel p-5 sm:p-6">
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Status guide</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What each result means</h2>
+      </div>
+      <div className="grid gap-3">
+        {HISTORY_STATUS_ORDER.map((status) => (
+          <div key={status} className="rounded-lg border border-slate/15 bg-canvas p-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold text-navy">{OUTCOME_COPY[status].label}</p>
+              <span className={`rounded-full px-2 py-1 text-[0.7rem] font-bold uppercase ${getOutcomeClassName(status)}`}>{OUTCOME_COPY[status].shortLabel}</span>
+            </div>
+            <p className="mt-2 text-sm leading-5 text-slate">{OUTCOME_COPY[status].description}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -661,31 +685,31 @@ function ProfilePanel({
 function GuidePanel() {
   const workflow = [
     {
-      body: "Choose the market and chart interval. The default view starts at 1 hour because it balances current structure with enough context for the analyzer.",
+      body: "Choose the market and chart interval. The default 1 hour view balances current structure with enough history to make the review useful.",
       icon: <Crosshair className="h-5 w-5" aria-hidden="true" />,
       number: "01",
       title: "Select the market",
     },
     {
-      body: "Use the chart first. Look for the current trend, range, liquidity, and whether price is near a level where a pending limit order could make sense.",
+      body: "Use the chart first. Look for trend, range, liquidity, and whether price is near an area where a limit order could make sense.",
       icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
       number: "02",
       title: "Read the chart",
     },
     {
-      body: "Generate the setup. LevelFlow clears stale results, refreshes the selected market, and either returns a qualified limit setup or tells you to stand down.",
+      body: "Run the review. LevelFlow clears stale results, refreshes the selected market, and either returns a current limit-order idea or explains why nothing passed.",
       icon: <Radar className="h-5 w-5" aria-hidden="true" />,
       number: "03",
       title: "Run the desk",
     },
     {
-      body: "Review side, limit entry, stop, target, breakeven, confidence, and the setup quality receipt before taking any action outside LevelFlow.",
+      body: "Review side, limit entry, stop, target, break-even reference, confidence, and supporting evidence before taking any action outside LevelFlow.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
       title: "Validate the receipt",
     },
     {
-      body: "Insights organizes unique recommendations, resolved outcomes, confidence calibration, and model-family learning so the system becomes more transparent over time.",
+      body: "Insights organizes unique recommendations, final outcomes, confidence bands, and shared learning so performance becomes easier to review over time.",
       icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
       title: "Review insights",
@@ -709,7 +733,7 @@ function GuidePanel() {
       title: "Timing",
     },
     {
-      body: "Stops, targets, breakeven reference, and reward-to-risk are checked before a setup can appear.",
+      body: "Stops, targets, break-even reference, and reward-to-risk are checked before a setup can appear.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "Risk",
     },
@@ -717,7 +741,7 @@ function GuidePanel() {
 
   const outputItems = [
     {
-      body: "The direction of the pending idea. Buy limits wait below market; sell limits wait above market.",
+      body: "The direction of the idea. Buy limits wait below market; sell limits wait above market.",
       label: "Order",
       value: "Buy / sell limit",
     },
@@ -739,25 +763,25 @@ function GuidePanel() {
     {
       body: "A reference level for discretionary trade management after the setup has moved in favor.",
       label: "Reference",
-      value: "Breakeven",
+      value: "Break-even",
     },
   ];
 
   const confidenceBands = [
     {
-      body: "Enough confluence, timing quality, and reward-to-risk for LevelFlow to show a setup.",
+      body: "Enough agreement, timing quality, and reward-to-risk for LevelFlow to show a setup.",
       range: "66+",
       title: "Qualified",
     },
     {
       body: "Stronger agreement across structure, momentum, location, timing, and recent outcome learning.",
       range: "80+",
-      title: "High confluence",
+      title: "High agreement",
     },
     {
-      body: "No current limit setup meets the model threshold. Standing down is intentional output, not a failure state.",
+      body: "No current limit-order idea meets the review threshold. No idea is a valid result, not a failure state.",
       range: "Blocked",
-      title: "Stand down",
+      title: "No idea",
     },
   ];
 
@@ -772,11 +796,11 @@ function GuidePanel() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Field guide</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">Operate LevelFlow like a private market desk.</h2>
+            <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">A focused market review in one workspace.</h2>
               </div>
             </div>
             <p className="max-w-3xl text-base leading-7 text-slate">
-              Start with market context, then let LevelFlow test whether the next pending limit setup is strong enough to consider. A clean pass returns levels and evidence; a failed pass tells you to stand down.
+              Start with market context, then let LevelFlow test whether the next limit-order idea is strong enough to consider. A clean pass returns levels and evidence; if nothing passes, the prior result stays cleared.
             </p>
           </div>
 
@@ -802,8 +826,8 @@ function GuidePanel() {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.5fr)]">
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Decision model</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What the analyzer weighs</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Review model</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What LevelFlow checks</h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {decisionLenses.map((item) => (
@@ -831,7 +855,7 @@ function GuidePanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to read the score</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
-              Confidence is a 0-100 confluence score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data quality, and global outcome learning.
+              Confidence is a 0-100 quality score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data quality, and shared outcome learning.
             </p>
           </div>
           <div className="grid gap-3">
@@ -1083,7 +1107,7 @@ function groupHistorySetups(setups: TradeSetupRow[], groupBy: HistoryGroupBy): H
     return orderedGroups.sort((first, second) => first.label.localeCompare(second.label));
   }
   if (groupBy === "status") {
-    return orderedGroups.sort((first, second) => HISTORY_STATUS_ORDER.indexOf(first.key as HistoryOutcome) - HISTORY_STATUS_ORDER.indexOf(second.key as HistoryOutcome));
+    return orderedGroups.sort((first, second) => HISTORY_STATUS_ORDER.indexOf(first.key as SetupOutcome) - HISTORY_STATUS_ORDER.indexOf(second.key as SetupOutcome));
   }
   return orderedGroups;
 }
@@ -1103,11 +1127,11 @@ function buildConfidenceBands(setups: TradeSetupRow[]) {
     }
     const outcome = getSetupOutcome(setup);
     band.count += 1;
-    if (outcome === "take_profit") {
+    if (outcome === "target_reached") {
       band.wins += 1;
-    } else if (outcome === "stop_loss") {
+    } else if (outcome === "stopped_out") {
       band.losses += 1;
-    } else if (outcome === "ambiguous") {
+    } else if (outcome === "unclear_path") {
       band.ambiguous += 1;
     }
   }
@@ -1197,47 +1221,25 @@ function formatHistoryDateGroup(date: Date) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
-function getSetupOutcome(setup: TradeSetupRow): HistoryOutcome {
-  const outcome = setup.trade_outcomes?.[0]?.outcome;
-  if (outcome === "take_profit" || outcome === "stop_loss") {
-    return outcome;
-  }
-  if (outcome === "ambiguous") {
-    return "ambiguous";
-  }
-  if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {
-    return "unfilled";
-  }
-  return "pending";
+function getSetupOutcome(setup: TradeSetupRow): SetupOutcome {
+  return normalizeSetupOutcome(setup);
 }
 
-function getOutcomeLabel(outcome: HistoryOutcome) {
-  if (outcome === "take_profit") {
-    return "Take profit";
-  }
-  if (outcome === "stop_loss") {
-    return "Stop loss";
-  }
-  if (outcome === "unfilled") {
-    return "Unfilled / expired";
-  }
-  if (outcome === "ambiguous") {
-    return "Ambiguous path";
-  }
-  return "Active / pending";
+function getOutcomeLabel(outcome: SetupOutcome) {
+  return OUTCOME_COPY[outcome].label;
 }
 
-function getOutcomeClassName(outcome: HistoryOutcome) {
-  if (outcome === "take_profit") {
+function getOutcomeClassName(outcome: SetupOutcome) {
+  if (outcome === "target_reached") {
     return "bg-bullish/10 text-bullish";
   }
-  if (outcome === "stop_loss") {
+  if (outcome === "stopped_out") {
     return "bg-danger/10 text-danger";
   }
-  if (outcome === "unfilled") {
+  if (outcome === "entry_not_filled") {
     return "bg-warning/15 text-warning";
   }
-  if (outcome === "ambiguous") {
+  if (outcome === "unclear_path") {
     return "bg-slate/10 text-slate";
   }
   return "bg-navy/10 text-navy";

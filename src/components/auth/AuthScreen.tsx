@@ -102,7 +102,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               </div>
             </div>
             <h1 className="text-6xl font-semibold tracking-normal text-navy sm:text-7xl">LevelFlow</h1>
-            <p className="max-w-xl text-base leading-7 text-slate">A premium workspace for chart context, confluence, and limit-order setup review.</p>
+            <p className="max-w-xl text-base leading-7 text-slate">A premium workspace for chart context, market agreement, and limit-order review.</p>
           </div>
         </div>
 
