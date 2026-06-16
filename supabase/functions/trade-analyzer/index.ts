@@ -250,6 +250,8 @@ type OutcomeRefreshSummary = {
   takeProfit: number;
 };
 
+type ResolvedOutcome = "ambiguous" | "pending" | "unfilled" | "take_profit" | "stop_loss";
+
 type UpsertedSetupResult = {
   deduplicated: boolean;
   pendingOrderId: string | null;
@@ -353,8 +355,10 @@ Deno.serve(async (req) => {
     const group = getCorrelationGroup(symbol);
     const setup = await analyzeSetup(token, user.id, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
     if (!setup) {
+      const analysisDiagnostics = await explainNoSetup(token, marketContext, upcomingNewsEvents, sessionContext);
       await invalidateActiveSetupsForSymbol(token, user.id, symbol, "No setup met the LevelFlow committee confluence threshold.");
       return jsonResponse(req, {
+        analysisDiagnostics,
         blocked: true,
         reason: "No setup met the LevelFlow committee confluence threshold.",
         providerWarnings: marketContext.providerWarnings,
@@ -533,6 +537,52 @@ async function analyzeSetup(
       targetLogic: pricePlan.targetLogic,
     },
   };
+}
+
+async function explainNoSetup(token: string, market: MarketContext, upcomingNewsEvents: NewsEvent[], sessionContext: SessionContext) {
+  const regime = classifyRegime(market);
+  const votes = runStrategyCommittee(market, regime);
+  const consensus = scoreConsensus(votes, regime);
+  const diagnostics: string[] = [];
+
+  if (!consensus.side) {
+    diagnostics.push(`Committee did not produce a dominant side: buy ${consensus.buyScore}, sell ${consensus.sellScore}, block ${consensus.blockScore}.`);
+  } else {
+    const setupKey = buildSetupKey(regime, consensus.side, votes);
+    const weight = await fetchSingle<{ confidence_adjustment: number | string }>(
+      token,
+      `strategy_weightings_global?select=confidence_adjustment&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
+    );
+    const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
+    const pricePlan = buildPricePlan(consensus.side, market, regime);
+    const newsPenalty = Math.min(8, upcomingNewsEvents.length * 3);
+    const timeframePenalty = market.availableTimeframes.length < 3 ? 5 : 0;
+    const providerPenalty = Math.min(6, market.providerWarnings.length * 2);
+    const confidenceScore = clampInteger(
+      Math.round(consensus.score + weightAdjustment - newsPenalty - sessionContext.penalty - timeframePenalty - providerPenalty),
+      0,
+      100,
+    );
+
+    diagnostics.push(`Committee favored ${consensus.side}, but the adjusted score was ${confidenceScore}; LevelFlow requires 66 or higher.`);
+    if (!pricePlan) {
+      diagnostics.push("Limit entry construction failed price validation, so no pending limit order was shown.");
+    } else if (pricePlan.rewardRisk < 1.35) {
+      diagnostics.push(`Reward-to-risk was ${pricePlan.rewardRisk.toFixed(2)}R; LevelFlow requires at least 1.35R.`);
+    }
+  }
+
+  if (upcomingNewsEvents.length > 0) {
+    diagnostics.push(`${upcomingNewsEvents.length} upcoming high-impact event${upcomingNewsEvents.length === 1 ? "" : "s"} reduced setup quality.`);
+  }
+  if (sessionContext.penalty > 0) {
+    diagnostics.push(`${sessionContext.label} reduced confidence by ${sessionContext.penalty} points.`);
+  }
+  if (market.availableTimeframes.length < 3) {
+    diagnostics.push("Fewer than three analyzer timeframes were available from the provider.");
+  }
+
+  return diagnostics.slice(0, 5);
 }
 
 async function upsertActiveSetup(
@@ -801,7 +851,7 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       const stopHit = bar.low <= stopLoss;
 
       if (stopHit || targetHit) {
-        const outcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
+        const outcome: ResolvedOutcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
         return {
           exitAt: new Date(bar.time).toISOString(),
           feedback: {
@@ -822,7 +872,7 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       const stopHit = bar.high >= stopLoss;
 
       if (stopHit || targetHit) {
-        const outcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
+        const outcome: ResolvedOutcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
         return {
           exitAt: new Date(bar.time).toISOString(),
           feedback: {
@@ -869,7 +919,7 @@ async function upsertOutcome(
     exitAt?: string;
     feedback: Record<string, unknown>;
     filledAt?: string;
-    outcome: "ambiguous" | "pending" | "unfilled" | "take_profit" | "stop_loss";
+    outcome: ResolvedOutcome;
     reviewedAt: string;
   },
 ) {

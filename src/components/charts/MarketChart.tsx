@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronsLeft, ChevronsRight, Maximize2, MoveHorizontal, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Crosshair, Maximize2, MoveHorizontal, ZoomIn, ZoomOut } from "lucide-react";
 import {
   CandlestickSeries,
   ColorType,
@@ -29,6 +29,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const priceLinesRef = useRef<IPriceLine[]>([]);
   const lastFitKeyRef = useRef("");
+  const [hoverBar, setHoverBar] = useState<CandlestickData<Time> | null>(null);
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? "light");
 
   useEffect(() => {
@@ -76,6 +77,11 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
     chart.timeScale().fitContent();
+
+    chart.subscribeCrosshairMove((param) => {
+      const bar = param.seriesData.get(candleSeries) as CandlestickData<Time> | undefined;
+      setHoverBar(bar ?? null);
+    });
 
     let resizeFrame = 0;
     const resize = () => {
@@ -186,7 +192,19 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
 
   return (
     <div className="relative min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-white">
-      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-slate/15 bg-white/90 p-1">
+      <div className="absolute left-3 top-3 z-10 hidden max-w-[calc(100%-8.5rem)] rounded-lg border border-slate/15 bg-white/90 px-3 py-2 text-xs font-semibold text-slate shadow-sm sm:block">
+        {hoverBar ? (
+          <span className="whitespace-nowrap">
+            O {formatChartPrice(hoverBar.open)} H {formatChartPrice(hoverBar.high)} L {formatChartPrice(hoverBar.low)} C {formatChartPrice(hoverBar.close)}
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Crosshair className="h-3.5 w-3.5" aria-hidden="true" />
+            Hover for OHLC
+          </span>
+        )}
+      </div>
+      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-slate/15 bg-white/90 p-1 shadow-sm">
         <ChartToolButton label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
           <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
         </ChartToolButton>
@@ -211,6 +229,35 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       {!loading && data.length === 0 && (
         <div className="absolute inset-0 grid place-items-center bg-white/80 px-6 text-center text-sm font-semibold text-slate">No verified market data returned</div>
       )}
+      {setup ? <SetupZoneSummary setup={setup} /> : null}
+    </div>
+  );
+}
+
+function SetupZoneSummary({ setup }: { setup: ChartSetup }) {
+  const isBuy = setup.side === "buy";
+  const risk = Math.abs(setup.entryPrice - setup.stopLoss);
+  const reward = Math.abs(setup.takeProfit - setup.entryPrice);
+  const rewardRisk = reward / Math.max(risk, 0.00001);
+
+  return (
+    <div className="grid gap-2 border-t border-slate/15 bg-white/95 px-3 py-3 text-xs font-semibold text-slate sm:grid-cols-4">
+      <div>
+        <p className="uppercase tracking-normal text-slate">Entry</p>
+        <p className={isBuy ? "mt-1 text-bullish" : "mt-1 text-danger"}>{formatChartPrice(setup.entryPrice)}</p>
+      </div>
+      <div>
+        <p className="uppercase tracking-normal text-slate">Risk zone</p>
+        <p className="mt-1 text-danger">{formatChartPrice(setup.stopLoss)}</p>
+      </div>
+      <div>
+        <p className="uppercase tracking-normal text-slate">Reward zone</p>
+        <p className="mt-1 text-navy">{formatChartPrice(setup.takeProfit)}</p>
+      </div>
+      <div>
+        <p className="uppercase tracking-normal text-slate">Reward / risk</p>
+        <p className="mt-1 text-navy">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}R` : "Pending"}</p>
+      </div>
     </div>
   );
 }
@@ -309,4 +356,11 @@ function chartPalette(theme: string) {
     grid: "rgba(128, 138, 149, 0.12)",
     text: "#52606D",
   };
+}
+
+function formatChartPrice(value: number) {
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: Math.abs(value) >= 100 ? 2 : 5,
+    minimumFractionDigits: Math.abs(value) >= 100 ? 2 : 5,
+  });
 }

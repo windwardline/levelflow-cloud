@@ -91,7 +91,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   return (
     <main className="min-h-screen bg-canvas text-ink">
       {themeControl ? <div className="fixed right-4 top-4 z-20">{themeControl}</div> : null}
-      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 py-6 sm:px-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 pb-6 pt-24 sm:px-8 sm:py-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-8">
           <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
