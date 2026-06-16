@@ -44,7 +44,7 @@ end $$;
 
 do $$
 begin
-  create type public.trade_outcome_status as enum ('pending', 'unfilled', 'take_profit', 'stop_loss', 'breakeven', 'manual_close', 'expired');
+  create type public.trade_outcome_status as enum ('pending', 'unfilled', 'take_profit', 'stop_loss', 'breakeven', 'manual_close', 'expired', 'ambiguous');
 exception when duplicate_object then null;
 end $$;
 
@@ -191,6 +191,7 @@ create table if not exists public.trade_setups (
   take_profit numeric(18,8) not null check (take_profit > 0),
   breakeven_trigger_price numeric(18,8) not null check (breakeven_trigger_price > 0),
   confidence_score smallint not null check (confidence_score between 0 and 100),
+  analyzer_version text not null default '2026.06.16.global-learning',
   confluence jsonb not null default '{}'::jsonb,
   risk_model jsonb not null default '{}'::jsonb,
   news_context jsonb not null default '{}'::jsonb,
@@ -205,6 +206,7 @@ create table if not exists public.trade_outcomes (
   user_id uuid not null references auth.users(id) on delete cascade,
   account_id uuid references public.user_accounts(id) on delete cascade,
   setup_id uuid not null references public.trade_setups(id) on delete cascade,
+  analyzer_version text not null default '2026.06.16.global-learning',
   reviewed_at timestamptz,
   filled_at timestamptz,
   exit_at timestamptz,
@@ -230,6 +232,20 @@ create table if not exists public.strategy_weightings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint strategy_weightings_unique_user_setup unique (user_id, setup_key)
+);
+
+create table if not exists public.strategy_weightings_global (
+  setup_key text primary key,
+  analyzer_version text not null default '2026.06.16.global-learning',
+  total_setups integer not null default 0 check (total_setups >= 0),
+  wins integer not null default 0 check (wins >= 0),
+  losses integer not null default 0 check (losses >= 0),
+  ambiguous integer not null default 0 check (ambiguous >= 0),
+  confidence_adjustment numeric(6,3) not null default 0,
+  sample_weight numeric(6,3) not null default 0,
+  last_reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.economic_events (
@@ -594,6 +610,11 @@ create trigger set_strategy_weightings_updated_at
   before update on public.strategy_weightings
   for each row execute function private.set_updated_at();
 
+drop trigger if exists set_strategy_weightings_global_updated_at on public.strategy_weightings_global;
+create trigger set_strategy_weightings_global_updated_at
+  before update on public.strategy_weightings_global
+  for each row execute function private.set_updated_at();
+
 drop trigger if exists set_economic_events_updated_at on public.economic_events;
 create trigger set_economic_events_updated_at
   before update on public.economic_events
@@ -612,6 +633,7 @@ create index if not exists account_day_metrics_account_day_idx on public.account
 create index if not exists pending_orders_user_status_idx on public.pending_orders (user_id, status);
 create index if not exists trade_setups_user_created_idx on public.trade_setups (user_id, created_at desc);
 create index if not exists trade_setups_user_symbol_created_idx on public.trade_setups (user_id, symbol, created_at desc);
+create index if not exists trade_setups_analyzer_version_idx on public.trade_setups (analyzer_version, created_at desc);
 create index if not exists pending_orders_user_symbol_created_idx on public.pending_orders (user_id, symbol, created_at desc);
 create index if not exists trade_setups_user_active_symbol_idx
   on public.trade_setups (user_id, symbol, status, created_at desc)
@@ -620,7 +642,9 @@ create index if not exists pending_orders_user_active_symbol_idx
   on public.pending_orders (user_id, symbol, status, created_at desc)
   where status in ('generated', 'placed');
 create index if not exists trade_outcomes_user_outcome_idx on public.trade_outcomes (user_id, outcome);
+create index if not exists trade_outcomes_analyzer_version_idx on public.trade_outcomes (analyzer_version, reviewed_at desc);
 create index if not exists strategy_weightings_user_idx on public.strategy_weightings (user_id);
+create index if not exists strategy_weightings_global_version_idx on public.strategy_weightings_global (analyzer_version, total_setups desc);
 create index if not exists economic_events_scheduled_impact_idx on public.economic_events (scheduled_at, impact);
 create index if not exists system_notices_user_active_idx on public.system_notices (user_id, active_from, active_until);
 
@@ -633,12 +657,13 @@ alter table public.pending_orders enable row level security;
 alter table public.trade_setups enable row level security;
 alter table public.trade_outcomes enable row level security;
 alter table public.strategy_weightings enable row level security;
+alter table public.strategy_weightings_global enable row level security;
 alter table public.economic_events enable row level security;
 alter table public.system_notices enable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.e8_programs, public.e8_account_sizes to anon, authenticated;
-grant select on public.economic_events to authenticated;
+grant select on public.economic_events, public.strategy_weightings_global to authenticated;
 grant select, insert, update, delete on
   public.profiles,
   public.user_accounts,
@@ -696,6 +721,13 @@ using ((select auth.uid()) = id);
 drop policy if exists "economic events readable by authenticated users" on public.economic_events;
 create policy "economic events readable by authenticated users"
 on public.economic_events
+for select
+to authenticated
+using (true);
+
+drop policy if exists "global strategy weightings readable by authenticated users" on public.strategy_weightings_global;
+create policy "global strategy weightings readable by authenticated users"
+on public.strategy_weightings_global
 for select
 to authenticated
 using (true);

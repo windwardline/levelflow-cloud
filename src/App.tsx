@@ -37,9 +37,9 @@ import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
 type AppTab = "advisor" | "history" | "profile" | "guide" | "donate";
 type HistoryGroupBy = "date" | "category" | "asset" | "status";
-type HistoryOutcome = "pending" | "take_profit" | "stop_loss" | "unfilled";
+type HistoryOutcome = "ambiguous" | "pending" | "take_profit" | "stop_loss" | "unfilled";
 type HistorySort = "newest" | "oldest" | "confidence" | "asset";
-type HistoryStatusFilter = "all" | "pending" | "take_profit" | "stop_loss" | "unfilled";
+type HistoryStatusFilter = "all" | HistoryOutcome;
 type HistorySetupGroup = {
   items: TradeSetupRow[];
   key: string;
@@ -48,7 +48,7 @@ type HistorySetupGroup = {
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 const ALL_HISTORY_FILTER = "all";
-const HISTORY_STATUS_ORDER: HistoryOutcome[] = ["pending", "take_profit", "stop_loss", "unfilled"];
+const HISTORY_STATUS_ORDER: HistoryOutcome[] = ["pending", "take_profit", "stop_loss", "ambiguous", "unfilled"];
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
@@ -200,6 +200,7 @@ function HistoryPanel({
   }, [assetFilter, categoryFilter, setups, sortBy, statusFilter]);
 
   const groupedSetups = useMemo(() => groupHistorySetups(filteredSetups, groupBy), [filteredSetups, groupBy]);
+  const confidenceBands = useMemo(() => buildConfidenceBands(filteredSetups), [filteredSetups]);
   const activeFilterCount = [statusFilter !== "all", categoryFilter !== ALL_HISTORY_FILTER, assetFilter !== ALL_HISTORY_FILTER].filter(Boolean).length;
 
   function clearFilters() {
@@ -229,11 +230,12 @@ function HistoryPanel({
           </div>
         </div>
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <StatPill label="Total setups" value={summary.total.toString()} />
           <StatPill label="Overall win rate" value={summary.winRate === null ? "Pending" : `${summary.winRate}%`} />
           <StatPill label="Take profit" value={summary.wins.toString()} />
           <StatPill label="Stop loss" value={summary.losses.toString()} />
+          <StatPill label="Ambiguous" value={summary.ambiguous.toString()} />
           <StatPill label="Active / pending" value={summary.pending.toString()} />
         </div>
 
@@ -245,6 +247,7 @@ function HistoryPanel({
               <option value="pending">Active / pending</option>
               <option value="take_profit">Take profit</option>
               <option value="stop_loss">Stop loss</option>
+              <option value="ambiguous">Ambiguous path</option>
               <option value="unfilled">Unfilled / expired</option>
             </select>
           </label>
@@ -321,6 +324,7 @@ function HistoryPanel({
           </div>
           <div className="grid gap-3">
             <HistoryPerformanceRow label="Resolved setups" value={summary.resolved.toString()} detail={`${summary.wins} TP / ${summary.losses} SL`} tone="neutral" />
+            <HistoryPerformanceRow label="Ambiguous paths" value={summary.ambiguous.toString()} detail="Stop and target touched inside the same review candle" tone="neutral" />
             <HistoryPerformanceRow label="Unfilled / expired" value={summary.unfilled.toString()} detail="Ideas that did not fill in the setup window" tone="neutral" />
             <HistoryPerformanceRow
               label="Open review"
@@ -328,6 +332,18 @@ function HistoryPanel({
               detail="Current setups awaiting a final result"
               tone={summary.pending > 0 ? "bullish" : "neutral"}
             />
+          </div>
+        </section>
+
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Calibration</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By confidence</h2>
+          </div>
+          <div className="grid gap-3">
+            {confidenceBands.map((band) => (
+              <ConfidenceBandRow key={band.label} {...band} />
+            ))}
           </div>
         </section>
 
@@ -431,7 +447,7 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
         <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+      <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
         <div>
           <p className="font-semibold text-navy">{stat.wins}</p>
           <p className="text-slate">TP</p>
@@ -444,7 +460,33 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
           <p className="font-semibold text-navy">{stat.pending}</p>
           <p className="text-slate">Pending</p>
         </div>
+        <div>
+          <p className="font-semibold text-navy">{stat.ambiguous}</p>
+          <p className="text-slate">Amb.</p>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { ambiguous: number; count: number; label: string; resolved: number; winRate: number | null }) {
+  const barWidth = winRate ?? 0;
+
+  return (
+    <div className="rounded-lg border border-slate/15 bg-canvas p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-navy">{label}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+            {count} setups / {resolved} resolved
+          </p>
+        </div>
+        <p className="shrink-0 text-sm font-semibold text-navy">{winRate === null ? "Pending" : `${winRate}% win rate`}</p>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+        <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
+      </div>
+      {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} ambiguous path {ambiguous === 1 ? "review" : "reviews"}</p> : null}
     </div>
   );
 }
@@ -970,6 +1012,42 @@ function groupHistorySetups(setups: TradeSetupRow[], groupBy: HistoryGroupBy): H
   return orderedGroups;
 }
 
+function buildConfidenceBands(setups: TradeSetupRow[]) {
+  const bands = [
+    { ambiguous: 0, count: 0, label: "Qualified: 66-74", losses: 0, max: 74, min: 66, wins: 0 },
+    { ambiguous: 0, count: 0, label: "Strong: 75-84", losses: 0, max: 84, min: 75, wins: 0 },
+    { ambiguous: 0, count: 0, label: "Elite: 85-100", losses: 0, max: 100, min: 85, wins: 0 },
+  ];
+
+  for (const setup of setups) {
+    const score = Number(setup.confidence_score);
+    const band = bands.find((candidate) => score >= candidate.min && score <= candidate.max);
+    if (!band) {
+      continue;
+    }
+    const outcome = getSetupOutcome(setup);
+    band.count += 1;
+    if (outcome === "take_profit") {
+      band.wins += 1;
+    } else if (outcome === "stop_loss") {
+      band.losses += 1;
+    } else if (outcome === "ambiguous") {
+      band.ambiguous += 1;
+    }
+  }
+
+  return bands.map((band) => {
+    const resolved = band.wins + band.losses;
+    return {
+      ambiguous: band.ambiguous,
+      count: band.count,
+      label: band.label,
+      resolved,
+      winRate: resolved > 0 ? Math.round((band.wins / resolved) * 100) : null,
+    };
+  });
+}
+
 function getHistoryGroup(setup: TradeSetupRow, groupBy: HistoryGroupBy): Omit<HistorySetupGroup, "items"> {
   if (groupBy === "asset") {
     return { key: setup.symbol, label: setup.symbol };
@@ -1012,6 +1090,9 @@ function getSetupOutcome(setup: TradeSetupRow): HistoryOutcome {
   if (outcome === "take_profit" || outcome === "stop_loss") {
     return outcome;
   }
+  if (outcome === "ambiguous") {
+    return "ambiguous";
+  }
   if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {
     return "unfilled";
   }
@@ -1028,6 +1109,9 @@ function getOutcomeLabel(outcome: HistoryOutcome) {
   if (outcome === "unfilled") {
     return "Unfilled / expired";
   }
+  if (outcome === "ambiguous") {
+    return "Ambiguous path";
+  }
   return "Active / pending";
 }
 
@@ -1040,6 +1124,9 @@ function getOutcomeClassName(outcome: HistoryOutcome) {
   }
   if (outcome === "unfilled") {
     return "bg-warning/15 text-warning";
+  }
+  if (outcome === "ambiguous") {
+    return "bg-slate/10 text-slate";
   }
   return "bg-navy/10 text-navy";
 }

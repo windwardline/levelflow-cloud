@@ -25,6 +25,7 @@ export type AnalyzerResponse = {
   error?: string;
   message?: string;
   outcomeRefresh?: {
+    ambiguous: number;
     expired: number;
     failed: number;
     pending: number;
@@ -32,6 +33,11 @@ export type AnalyzerResponse = {
     reviewed: number;
     stopLoss: number;
     takeProfit: number;
+  };
+  learningRefresh?: {
+    reason?: string;
+    skipped: boolean;
+    updated: number;
   };
   pendingOrderId?: string;
   providerWarnings?: string[];
@@ -45,6 +51,7 @@ export type TradeSetupRow = {
   account_id: string | null;
   breakeven_trigger_price: number | string;
   confidence_score: number | string;
+  analyzer_version?: string | null;
   confluence: Record<string, unknown> | null;
   correlation_group: string | null;
   created_at: string;
@@ -115,7 +122,7 @@ export async function fetchTradeSetups() {
   let query = supabase
     .from("trade_setups")
     .select(
-      "id, account_id, pending_order_id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
+      "id, account_id, pending_order_id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
     )
     .order("created_at", { ascending: false })
     .limit(80);

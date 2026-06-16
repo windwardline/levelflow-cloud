@@ -4,6 +4,7 @@ import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../l
 import { supabase } from "../lib/supabase";
 
 export type SecurityStat = {
+  ambiguous: number;
   averageConfidence: number;
   category: string;
   count: number;
@@ -21,6 +22,7 @@ export type CategoryStat = Omit<SecurityStat, "symbol"> & {
 };
 
 export type OutcomeSummary = {
+  ambiguous: number;
   losses: number;
   pending: number;
   resolved: number;
@@ -166,6 +168,7 @@ function buildStats(setups: TradeSetupRow[]) {
   const bySymbol = new Map<string, SecurityStat>();
   const byCategory = new Map<string, CategoryStat>();
   const summary: OutcomeSummary = {
+    ambiguous: 0,
     losses: 0,
     pending: 0,
     resolved: 0,
@@ -181,6 +184,7 @@ function buildStats(setups: TradeSetupRow[]) {
       bySymbol.get(setup.symbol) ??
       ({
         averageConfidence: 0,
+        ambiguous: 0,
         category,
         count: 0,
         losses: 0,
@@ -195,6 +199,7 @@ function buildStats(setups: TradeSetupRow[]) {
       byCategory.get(category) ??
       ({
         averageConfidence: 0,
+        ambiguous: 0,
         category,
         count: 0,
         losses: 0,
@@ -224,6 +229,10 @@ function buildStats(setups: TradeSetupRow[]) {
       current.unfilled += 1;
       categoryStat.unfilled += 1;
       summary.unfilled += 1;
+    } else if (outcome === "ambiguous") {
+      current.ambiguous += 1;
+      categoryStat.ambiguous += 1;
+      summary.ambiguous += 1;
     } else {
       current.pending += 1;
       categoryStat.pending += 1;
@@ -264,6 +273,9 @@ function normalizeOutcome(setup: TradeSetupRow) {
   const outcome = setup.trade_outcomes?.[0]?.outcome;
   if (outcome === "take_profit" || outcome === "stop_loss") {
     return outcome;
+  }
+  if (outcome === "ambiguous") {
+    return "ambiguous";
   }
   if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {
     return "unfilled";

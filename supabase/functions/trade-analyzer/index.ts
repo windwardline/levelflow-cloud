@@ -2,6 +2,8 @@ const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ?? "https://financialm
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const ANALYZER_VERSION = "2026.06.16.global-learning";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
@@ -210,12 +212,14 @@ type Regime = {
 type SessionContext = {
   block: boolean;
   label: string;
+  marketKind: string;
   penalty: number;
   reason?: string;
 };
 
 type ExistingSetupRow = {
   account_id: string | null;
+  analyzer_version?: string | null;
   breakeven_trigger_price: number | string;
   confidence_score: number | string;
   confluence: Record<string, unknown> | null;
@@ -236,6 +240,7 @@ type SetupForOutcome = ExistingSetupRow & {
 };
 
 type OutcomeRefreshSummary = {
+  ambiguous: number;
   expired: number;
   failed: number;
   pending: number;
@@ -287,9 +292,10 @@ Deno.serve(async (req) => {
 
     if (body.action === "refresh_outcomes") {
       const outcomeRefresh = await refreshUserOutcomes(token, user.id);
-      await refreshStrategyWeights(token, user.id);
+      const learningRefresh = await refreshGlobalStrategyWeights();
       return jsonResponse(req, {
         advisoryOnly: true,
+        learningRefresh,
         message: "Trade outcomes refreshed.",
         outcomeRefresh,
       });
@@ -312,8 +318,8 @@ Deno.serve(async (req) => {
 
     const symbol = uiSymbol as SupportedSymbol;
     const outcomeRefresh = await refreshUserOutcomes(token, user.id, { limit: 24, symbols: [symbol] });
-    await refreshStrategyWeights(token, user.id);
-    const sessionContext = getSessionContext();
+    const learningRefresh = await refreshGlobalStrategyWeights();
+    const sessionContext = getSessionContext(symbol);
 
     const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
     if (activeNewsEvents.length > 0) {
@@ -322,6 +328,7 @@ Deno.serve(async (req) => {
         blocked: true,
         reason: "Relevant high-impact calendar risk is active for this asset.",
         newsEvents: activeNewsEvents,
+        learningRefresh,
         outcomeRefresh,
       });
     }
@@ -329,7 +336,7 @@ Deno.serve(async (req) => {
     const { fmpSymbol, marketContext, providerFailures } = await fetchFirstAvailableMarketContext(providerSymbols);
     if (!fmpSymbol || !marketContext) {
       await invalidateActiveSetupsForSymbol(token, user.id, symbol, "FMP did not return enough bars for this instrument.");
-      return jsonResponse(req, { blocked: true, reason: "FMP did not return enough bars for this instrument.", providerWarnings: providerFailures, outcomeRefresh });
+      return jsonResponse(req, { blocked: true, learningRefresh, reason: "FMP did not return enough bars for this instrument.", providerWarnings: providerFailures, outcomeRefresh });
     }
 
     if (marketContext.daily.length < 80) {
@@ -338,6 +345,7 @@ Deno.serve(async (req) => {
         blocked: true,
         reason: "Not enough FMP daily bars returned for analyzer confidence.",
         providerWarnings: [...providerFailures, ...marketContext.providerWarnings],
+        learningRefresh,
         outcomeRefresh,
       });
     }
@@ -350,6 +358,7 @@ Deno.serve(async (req) => {
         blocked: true,
         reason: "No setup met the LevelFlow committee confluence threshold.",
         providerWarnings: marketContext.providerWarnings,
+        learningRefresh,
         outcomeRefresh,
       });
     }
@@ -368,6 +377,7 @@ Deno.serve(async (req) => {
         blocked: true,
         reason: `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
         correlationGroup: group,
+        learningRefresh,
         outcomeRefresh,
       });
     }
@@ -378,6 +388,7 @@ Deno.serve(async (req) => {
       advisoryOnly: true,
       deduplicated: savedSetup.deduplicated,
       message: savedSetup.updated ? "Updated current active advisory setup. LevelFlow did not create a duplicate log entry." : "Generated advisory limit-order setup. LevelFlow does not execute trades.",
+      learningRefresh,
       outcomeRefresh,
       pendingOrderId: savedSetup.pendingOrderId,
       setupId: savedSetup.setupId,
@@ -445,9 +456,9 @@ async function analyzeSetup(
   }
 
   const setupKey = buildSetupKey(regime, consensus.side, votes);
-  const weight = await fetchSingle<{ confidence_adjustment: number | string }>(
+  const weight = await fetchSingle<{ confidence_adjustment: number | string; sample_weight?: number | string; total_setups?: number | string }>(
     token,
-    `strategy_weightings?select=confidence_adjustment&user_id=eq.${encodeURIComponent(userId)}&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
+    `strategy_weightings_global?select=confidence_adjustment,sample_weight,total_setups&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
   );
   const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
 
@@ -505,6 +516,10 @@ async function analyzeSetup(
       },
       sessionContext,
       strategyWeightAdjustment: weightAdjustment,
+      strategyWeightSource: "global",
+      strategyWeightSampleSize: Number(weight?.total_setups ?? 0),
+      strategyWeightSampleWeight: Number(weight?.sample_weight ?? 0),
+      analyzerVersion: ANALYZER_VERSION,
       upcomingNewsEvents,
     },
     riskModel: {
@@ -532,7 +547,7 @@ async function upsertActiveSetup(
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,confluence,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
+    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
       symbol,
     )}&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
@@ -557,6 +572,7 @@ async function upsertActiveSetup(
     await updateRows(token, `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
       breakeven_trigger_price: setup.breakevenTriggerPrice,
       confidence_score: setup.confidenceScore,
+      analyzer_version: ANALYZER_VERSION,
       confluence: setup.confluence,
       correlation_group: group,
       limit_entry: setup.entryPrice,
@@ -612,6 +628,7 @@ async function upsertActiveSetup(
     take_profit: setup.takeProfit,
     breakeven_trigger_price: setup.breakevenTriggerPrice,
     confidence_score: setup.confidenceScore,
+    analyzer_version: ANALYZER_VERSION,
     confluence: setup.confluence,
     risk_model: setup.riskModel,
     news_context: {
@@ -642,6 +659,7 @@ async function invalidateActiveSetupsForSymbol(token: string, userId: string, sy
 
 async function refreshUserOutcomes(token: string, userId: string, options: { limit?: number; symbols?: SupportedSymbol[] } = {}): Promise<OutcomeRefreshSummary> {
   const summary: OutcomeRefreshSummary = {
+    ambiguous: 0,
     expired: 0,
     failed: 0,
     pending: 0,
@@ -655,7 +673,7 @@ async function refreshUserOutcomes(token: string, userId: string, options: { lim
   const limit = Math.max(1, Math.min(options.limit ?? 120, 120));
   const setups = await fetchRows<SetupForOutcome>(
     token,
-    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
+    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
       userId,
     )}&status=in.(generated,placed)${symbolFilter}&order=created_at.asc&limit=${limit}`,
   );
@@ -697,6 +715,8 @@ async function refreshUserOutcomes(token: string, userId: string, options: { lim
         summary.takeProfit += 1;
       } else if (evaluation.outcome === "stop_loss") {
         summary.stopLoss += 1;
+      } else if (evaluation.outcome === "ambiguous") {
+        summary.ambiguous += 1;
       } else {
         summary.expired += 1;
       }
@@ -781,10 +801,11 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       const stopHit = bar.low <= stopLoss;
 
       if (stopHit || targetHit) {
-        const outcome = stopHit ? "stop_loss" : "take_profit";
+        const outcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
         return {
           exitAt: new Date(bar.time).toISOString(),
           feedback: {
+            ambiguousSameBar: stopHit && targetHit,
             maxAdverseMove: roundPrice(maxAdverseMove),
             maxFavorableMove: roundPrice(maxFavorableMove),
             source: "price_path_review",
@@ -801,10 +822,11 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       const stopHit = bar.high >= stopLoss;
 
       if (stopHit || targetHit) {
-        const outcome = stopHit ? "stop_loss" : "take_profit";
+        const outcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
         return {
           exitAt: new Date(bar.time).toISOString(),
           feedback: {
+            ambiguousSameBar: stopHit && targetHit,
             maxAdverseMove: roundPrice(maxAdverseMove),
             maxFavorableMove: roundPrice(maxFavorableMove),
             source: "price_path_review",
@@ -847,7 +869,7 @@ async function upsertOutcome(
     exitAt?: string;
     feedback: Record<string, unknown>;
     filledAt?: string;
-    outcome: "pending" | "unfilled" | "take_profit" | "stop_loss";
+    outcome: "ambiguous" | "pending" | "unfilled" | "take_profit" | "stop_loss";
     reviewedAt: string;
   },
 ) {
@@ -856,6 +878,7 @@ async function upsertOutcome(
     "trade_outcomes",
     {
       account_id: setup.account_id,
+      analyzer_version: setup.analyzer_version ?? ANALYZER_VERSION,
       exit_at: outcome.exitAt ?? null,
       feedback: {
         ...outcome.feedback,
@@ -874,27 +897,36 @@ async function upsertOutcome(
   );
 }
 
-async function refreshStrategyWeights(token: string, userId: string) {
-  const outcomes = await fetchRows<{ outcome: string; setup_id: string }>(
-    token,
-    `trade_outcomes?select=setup_id,outcome&user_id=eq.${encodeURIComponent(userId)}&outcome=in.(take_profit,stop_loss)&order=reviewed_at.desc&limit=500`,
+async function refreshGlobalStrategyWeights() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return {
+      skipped: true,
+      updated: 0,
+      reason: "SUPABASE_SERVICE_ROLE_KEY is not configured for global learning updates.",
+    };
+  }
+
+  const outcomes = await adminFetchRows<{ outcome: string; setup_id: string }>(
+    `trade_outcomes?select=setup_id,outcome&analyzer_version=eq.${encodeURIComponent(ANALYZER_VERSION)}&outcome=in.(take_profit,stop_loss,ambiguous)&order=reviewed_at.desc&limit=2500`,
   );
   const setupIds = Array.from(new Set(outcomes.map((outcome) => outcome.setup_id).filter(Boolean)));
   if (setupIds.length === 0) {
-    return;
+    return {
+      skipped: false,
+      updated: 0,
+    };
   }
 
-  const rows = await fetchRows<{
+  const rows = await adminFetchRows<{
     confluence: Record<string, unknown> | null;
     correlation_group: string | null;
     id: string;
     symbol: string;
   }>(
-    token,
-    `trade_setups?select=id,symbol,correlation_group,confluence&user_id=eq.${encodeURIComponent(userId)}&id=in.(${setupIds.map((id) => encodeURIComponent(id)).join(",")})`,
+    `trade_setups?select=id,symbol,correlation_group,confluence&id=in.(${setupIds.map((id) => encodeURIComponent(id)).join(",")})`,
   );
   const setupsById = new Map(rows.map((row) => [row.id, row]));
-  const grouped = new Map<string, { losses: number; total: number; wins: number }>();
+  const grouped = new Map<string, { ambiguous: number; losses: number; total: number; wins: number }>();
 
   for (const outcomeRow of outcomes) {
     const row = setupsById.get(outcomeRow.setup_id);
@@ -902,33 +934,49 @@ async function refreshStrategyWeights(token: string, userId: string) {
       continue;
     }
     const outcome = outcomeRow.outcome;
-    if (outcome !== "take_profit" && outcome !== "stop_loss") {
+    if (outcome !== "take_profit" && outcome !== "stop_loss" && outcome !== "ambiguous") {
       continue;
     }
     const setupKey = extractSetupKey(row.confluence, row.correlation_group, row.symbol);
-    const current = grouped.get(setupKey) ?? { losses: 0, total: 0, wins: 0 };
+    const current = grouped.get(setupKey) ?? { ambiguous: 0, losses: 0, total: 0, wins: 0 };
     current.total += 1;
     if (outcome === "take_profit") {
       current.wins += 1;
-    } else {
+    } else if (outcome === "stop_loss") {
       current.losses += 1;
+    } else {
+      current.ambiguous += 1;
     }
     grouped.set(setupKey, current);
   }
 
-  const payloads = Array.from(grouped.entries()).map(([setupKey, stats]) => ({
-    confidence_adjustment: roundPrice(Math.max(-10, Math.min(10, ((stats.wins / Math.max(stats.total, 1)) - 0.5) * 20))),
-    last_reviewed_at: new Date().toISOString(),
-    losses: stats.losses,
-    setup_key: setupKey,
-    total_setups: stats.total,
-    user_id: userId,
-    wins: stats.wins,
-  }));
+  const payloads = Array.from(grouped.entries()).map(([setupKey, stats]) => {
+    const resolved = stats.wins + stats.losses;
+    const sampleWeight = resolved >= 20 ? 1 : resolved >= 8 ? resolved / 20 : 0;
+    const winRate = stats.wins / Math.max(resolved, 1);
+    const adjustment = Math.max(-10, Math.min(10, (winRate - 0.5) * 20)) * sampleWeight;
+
+    return {
+      ambiguous: stats.ambiguous,
+      analyzer_version: ANALYZER_VERSION,
+      confidence_adjustment: roundPrice(adjustment),
+      last_reviewed_at: new Date().toISOString(),
+      losses: stats.losses,
+      sample_weight: roundPrice(sampleWeight),
+      setup_key: setupKey,
+      total_setups: stats.total,
+      wins: stats.wins,
+    };
+  });
 
   if (payloads.length > 0) {
-    await upsertRows(token, "strategy_weightings", payloads, "user_id,setup_key");
+    await adminUpsertRows("strategy_weightings_global", payloads, "setup_key");
   }
+
+  return {
+    skipped: false,
+    updated: payloads.length,
+  };
 }
 
 function extractSetupKey(confluence: Record<string, unknown> | null, correlationGroup: string | null, symbol: string) {
@@ -1369,42 +1417,85 @@ function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
   return symbolCurrencies[symbol]?.includes(currency) ?? currency === "USD";
 }
 
-function getSessionContext(): SessionContext {
+function getSessionContext(symbol: SupportedSymbol): SessionContext {
   const now = new Date();
-  const cest = getZonedParts(now, "Europe/Berlin");
-  const minutes = cest.hour * 60 + cest.minute;
-  const weekday = cest.weekday;
-  const rolloverWindow = minutes >= 23 * 60 + 55 || minutes <= 15;
-  const fridayClose = weekday === 5 && minutes >= 22 * 60;
+  const assetType = getAssetType(symbol);
 
-  if (rolloverWindow) {
+  if (assetType === "crypto") {
     return {
       block: false,
-      label: "Market rollover window",
-      penalty: 10,
-      reason: "Market rollover conditions reduce setup quality.",
+      label: "Continuous digital asset session",
+      marketKind: "crypto",
+      penalty: 0,
     };
   }
 
-  if (fridayClose) {
+  if (assetType === "futures") {
+    const eastern = getZonedParts(now, "America/New_York");
+    const minutes = eastern.hour * 60 + eastern.minute;
+    const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 && minutes >= 17 * 60 && minutes < 18 * 60;
+    const fridayClose = eastern.weekday === 5 && minutes >= 16 * 60 + 30;
+    const sundayPreopen = eastern.weekday === 7 && minutes < 18 * 60;
+
+    if (maintenanceBreak) {
+      return {
+        block: false,
+        label: "Futures maintenance window",
+        marketKind: "futures",
+        penalty: 12,
+        reason: "Daily futures maintenance reduces setup quality and fill reliability.",
+      };
+    }
+
+    if (fridayClose || sundayPreopen || eastern.weekday === 6) {
+      return {
+        block: false,
+        label: "Futures weekend liquidity risk",
+        marketKind: "futures",
+        penalty: 12,
+        reason: "Weekend or pre-open futures liquidity reduces setup quality.",
+      };
+    }
+
     return {
       block: false,
-      label: "Late Friday session",
-      penalty: 10,
-      reason: "Late Friday liquidity conditions reduce setup quality.",
+      label: "Primary futures session",
+      marketKind: "futures",
+      penalty: 0,
     };
   }
 
   const utcHour = now.getUTCHours();
+  const eastern = getZonedParts(now, "America/New_York");
   const londonNyOverlap = utcHour >= 13 && utcHour < 17;
   const londonOpen = utcHour >= 7 && utcHour < 10;
   const lateSession = utcHour >= 20 && utcHour < 22;
+  const fridayClose = eastern.weekday === 5 && eastern.hour >= 16;
+  const weekend = eastern.weekday === 6 || (eastern.weekday === 7 && eastern.hour < 17);
 
   return {
     block: false,
-    label: londonNyOverlap ? "London/New York overlap" : londonOpen ? "London open" : lateSession ? "Late-session risk" : "Normal session",
-    penalty: lateSession ? 3 : 0,
+    label: weekend ? "FX weekend closure" : fridayClose ? "Late Friday FX session" : londonNyOverlap ? "London/New York overlap" : londonOpen ? "London open" : lateSession ? "Late-session risk" : "Normal session",
+    marketKind: "forex",
+    penalty: weekend ? 14 : fridayClose ? 10 : lateSession ? 3 : 0,
+    reason: weekend
+      ? "Weekend FX closure reduces setup quality."
+      : fridayClose
+        ? "Late Friday liquidity conditions reduce setup quality."
+        : lateSession
+          ? "Late-session liquidity can reduce follow-through."
+          : undefined,
   };
+}
+
+function getAssetType(symbol: SupportedSymbol) {
+  if (["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"].includes(symbol)) {
+    return "crypto";
+  }
+  if (["ESUSD", "GCUSD", "SIUSD", "BZUSD", "SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"].includes(symbol)) {
+    return "futures";
+  }
+  return "forex";
 }
 
 function getZonedParts(date: Date, timeZone: string) {
@@ -1589,12 +1680,46 @@ async function upsertRows<T = unknown>(token: string, table: string, payload: Re
   return (await response.json()) as T[];
 }
 
+async function adminFetchRows<T>(path: string): Promise<T[]> {
+  const response = await adminSupabaseFetch(path);
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
+async function adminUpsertRows<T = unknown>(table: string, payload: Record<string, unknown> | Array<Record<string, unknown>>, onConflict: string): Promise<T[]> {
+  const response = await adminSupabaseFetch(`${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
 async function supabaseFetch(token: string, path: string, init: RequestInit = {}) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
       apikey: SUPABASE_ANON_KEY ?? "",
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
+async function adminSupabaseFetch(path: string, init: RequestInit = {}) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
+      apikey: SUPABASE_SERVICE_ROLE_KEY ?? "",
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },

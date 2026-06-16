@@ -6,7 +6,7 @@ LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market rev
 
 - `public/brand/` contains optimized Windward Capital logo assets for the hosted app.
 - `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, legal links, and charting components.
-- `server/` contains the Express API scaffold, Supabase service-role client, news adapter, and analyzer foundation for local/server experiments.
+- `supabase/functions/` contains the production backend: authenticated market data, trade analysis, and calendar ingestion Edge Functions.
 - `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
 - `.env.example` separates public browser keys from server-only service-role credentials.
 

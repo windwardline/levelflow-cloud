@@ -43,7 +43,7 @@ Database cron jobs:
 
 - `levelflow-news-calendar-sync`: hourly economic-calendar sync.
 
-The Express server scaffold remains useful for local experiments, but it is no longer the production launch path.
+The production backend runs through Supabase Edge Functions. Local experiments should target those functions rather than a separate Express server path.
 
 Required server-only env vars:
 
