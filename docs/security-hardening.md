@@ -2,7 +2,7 @@
 
 ## Cloudflare response headers
 
-Apply these headers to `https://app.windwardline.com/*` with a Cloudflare Response Header Transform Rule.
+Apply these headers to `https://app.windwardline.com/*` with a Cloudflare Response Header Transform Rule. The `app.windwardline.com` DNS record must remain proxied through Cloudflare; DNS-only records bypass response-header transforms.
 
 | Header | Value |
 | --- | --- |
