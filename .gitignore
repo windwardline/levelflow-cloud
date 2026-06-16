@@ -5,6 +5,8 @@ supabase/.temp
 .env.local
 .env.*.local
 coverage
+playwright-report
+test-results
 *.log
 *.tsbuildinfo
 .DS_Store

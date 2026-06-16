@@ -8,6 +8,12 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.win
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const RATE_LIMIT_WINDOW_SECONDS = 60;
+const RATE_LIMITS: Record<string, number> = {
+  generate_setup: 24,
+  refresh_outcomes: 12,
+  scan_opportunities: 8,
+};
 
 type SymbolConfig = {
   fallback?: string;
@@ -220,7 +226,6 @@ type SessionContext = {
 };
 
 type ExistingSetupRow = {
-  account_id: string | null;
   analyzer_version?: string | null;
   breakeven_trigger_price: number | string;
   confidence_score: number | string;
@@ -305,6 +310,19 @@ Deno.serve(async (req) => {
       body = await req.json();
     } catch {
       body = {};
+    }
+
+    const rateLimit = await claimAnalyzerRequest(user.id, normalizeActionName(body.action));
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        req,
+        {
+          blocked: true,
+          reason: "Too many review requests. Wait a moment, then try again.",
+          resetAt: rateLimit.resetAt,
+        },
+        429,
+      );
     }
 
     if (body.action === "refresh_outcomes") {
@@ -715,7 +733,7 @@ async function upsertActiveSetup(
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
+    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
       symbol,
     )}&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
@@ -770,7 +788,6 @@ async function upsertActiveSetup(
 
   const pendingOrder = await insertSingle(token, "pending_orders", {
     user_id: userId,
-    account_id: null,
     symbol,
     massive_symbol: fmpSymbol,
     side: setup.side,
@@ -786,7 +803,6 @@ async function upsertActiveSetup(
 
   const tradeSetup = await insertSingle(token, "trade_setups", {
     user_id: userId,
-    account_id: null,
     pending_order_id: pendingOrder.id,
     symbol,
     massive_symbol: fmpSymbol,
@@ -841,7 +857,7 @@ async function refreshUserOutcomes(token: string, userId: string, options: { lim
   const limit = Math.max(1, Math.min(options.limit ?? 120, 120));
   const setups = await fetchRows<SetupForOutcome>(
     token,
-    `trade_setups?select=id,account_id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
+    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
       userId,
     )}&status=in.(generated,placed)${symbolFilter}&order=created_at.asc&limit=${limit}`,
   );
@@ -1104,7 +1120,6 @@ async function upsertOutcome(
     token,
     "trade_outcomes",
     {
-      account_id: setup.account_id,
       analyzer_version: setup.analyzer_version ?? ANALYZER_VERSION,
       exit_at: outcome.exitAt ?? null,
       feedback: {
@@ -1122,6 +1137,39 @@ async function upsertOutcome(
     },
     "setup_id",
   );
+}
+
+function normalizeActionName(action: unknown) {
+  return typeof action === "string" && action in RATE_LIMITS ? action : "generate_setup";
+}
+
+async function claimAnalyzerRequest(userId: string, action: string) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for analyzer rate limiting.");
+  }
+
+  const rows = await adminRpcRows<{
+    allowed: boolean;
+    limit_count: number;
+    request_count: number;
+    reset_at: string;
+  }>("claim_analyzer_request", {
+    p_action: action,
+    p_limit: RATE_LIMITS[action] ?? RATE_LIMITS.generate_setup,
+    p_user_id: userId,
+    p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+  });
+  const result = rows[0];
+  if (!result) {
+    throw new Error("Analyzer rate limit check returned no result.");
+  }
+
+  return {
+    allowed: Boolean(result.allowed),
+    limit: Number(result.limit_count),
+    requestCount: Number(result.request_count),
+    resetAt: result.reset_at,
+  };
 }
 
 async function refreshGlobalStrategyWeights() {
@@ -1955,6 +2003,17 @@ async function upsertRows<T = unknown>(token: string, table: string, payload: Re
 
 async function adminFetchRows<T>(path: string): Promise<T[]> {
   const response = await adminSupabaseFetch(path);
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
+async function adminRpcRows<T>(functionName: string, payload: Record<string, unknown>): Promise<T[]> {
+  const response = await adminSupabaseFetch(`rpc/${functionName}`, {
+    body: JSON.stringify(payload),
+    method: "POST",
+  });
   if (!response.ok) {
     throw new Error(await response.text());
   }

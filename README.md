@@ -15,8 +15,8 @@ LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market rev
 ```bash
 npm install
 npm run dev
-npm run server
 npm test
+npm run test:e2e
 npm run build
 ```
 
@@ -28,12 +28,12 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
 2. Run [supabase/init.sql](/supabase/init.sql) in the Supabase SQL editor.
 3. In Supabase Auth, enable email OTP/magic links and configure Google/Apple OAuth providers.
 4. Add `https://app.windwardline.com/` and any fallback/local development URLs to Supabase Auth redirect URLs.
-5. Deploy the Supabase Edge Functions and set Supabase function secrets:
+5. Apply the launch migrations in `supabase/migrations/`.
+6. Deploy the Supabase Edge Functions and set Supabase function secrets:
    - `NEWS_SYNC_TOKEN`
    - `FMP_API_KEY` for the advisory analyzer and macro news ingestion
    - `FINNHUB_API_KEY` only if macro news ingestion is switched away from FMP
    - `FMP_API_BASE_URL` only if FMP changes the default stable REST host
-6. Apply the launch migrations in `supabase/migrations/`.
 7. Set hosted frontend env vars:
    - `VITE_APP_URL`
    - `VITE_SUPABASE_URL`
@@ -45,3 +45,5 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
    - `FINNHUB_API_KEY`
 
 Market-data and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript. LevelFlow is advisory-only; trade execution is outside the active product scope.
+
+See [docs/security-hardening.md](/docs/security-hardening.md) for the Cloudflare response-header policy and authenticated E2E test-user setup.
