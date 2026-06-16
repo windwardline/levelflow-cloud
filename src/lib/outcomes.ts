@@ -31,8 +31,8 @@ export const OUTCOME_COPY: Record<
   },
   unclear_path: {
     description: "The entry filled, but the available candle shows stop and target traded in the same bar, so sequence cannot be confirmed.",
-    filterLabel: "Unclear path",
-    label: "Unclear path",
+    filterLabel: "Unclear result",
+    label: "Unclear result",
     shortLabel: "Unclear",
   },
   entry_not_filled: {

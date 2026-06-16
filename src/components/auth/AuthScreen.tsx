@@ -19,7 +19,7 @@ type AuthScreenProps = {
 export function AuthScreen({ themeControl }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<AuthStatus>("idle");
-  const [message, setMessage] = useState("Enter your email to receive a magic link. No password or 6-digit code required.");
+  const [message, setMessage] = useState("Enter your email to receive a secure magic link. No password required.");
   const [error, setError] = useState("");
   const [donationsOpen, setDonationsOpen] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -147,7 +147,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
           {status === "sent" ? (
             <div className="mt-4 rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-sm font-semibold text-bullish">
-              Check your inbox. No 6-digit code is required.
+              Check your inbox and open the magic link to continue.
             </div>
           ) : null}
 

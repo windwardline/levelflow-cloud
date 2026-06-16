@@ -720,7 +720,7 @@ async function upsertActiveSetup(
     )}&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
   const activeSetup = rows[0] ?? null;
-  const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(getSetupExpiryTime(symbol, Date.now())).toISOString();
 
   if (activeSetup && activeSetup.side === setup.side) {
     if (activeSetup.pending_order_id) {
@@ -910,7 +910,7 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
   const stopLoss = Number(setup.stop_loss);
   const takeProfit = Number(setup.take_profit);
   const createdAt = new Date(setup.created_at).getTime();
-  const expiresAt = createdAt + 6 * 60 * 60 * 1000;
+  const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
   const createdBars = bars.filter((bar) => bar.time >= createdAt);
 
   if (!Number.isFinite(entry) || !Number.isFinite(stopLoss) || !Number.isFinite(takeProfit)) {
@@ -922,7 +922,8 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       return {
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
-          reason: "No post-recommendation bars were available before the six-hour setup window expired.",
+          reason: "No post-recommendation bars were available before the setup review window expired.",
+          expiresAt: new Date(expiresAt).toISOString(),
           source: "price_path_review",
         },
         outcome: "unfilled" as const,
@@ -947,7 +948,8 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       return {
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
-          reason: "Limit entry did not fill before the six-hour setup window expired.",
+          reason: "Limit entry did not fill before the setup review window expired.",
+          expiresAt: new Date(expiresAt).toISOString(),
           source: "price_path_review",
         },
         outcome: "unfilled" as const,
@@ -1016,6 +1018,48 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
     filledAt,
     state: "placed" as const,
   };
+}
+
+function getSetupExpiryTime(symbol: SupportedSymbol, createdAt: number) {
+  const sixHours = createdAt + 6 * 60 * 60 * 1000;
+  const weeklyClose = getUpcomingWeeklyCloseTime(symbol, createdAt);
+  if (!weeklyClose) {
+    return sixHours;
+  }
+  const weeklyCutoff = weeklyClose - 5 * 60 * 1000;
+  return Math.min(sixHours, weeklyCutoff > createdAt ? weeklyCutoff : weeklyClose);
+}
+
+function getUpcomingWeeklyCloseTime(symbol: SupportedSymbol, fromTimestamp: number) {
+  if (getAssetType(symbol) === "crypto") {
+    return null;
+  }
+
+  const marketTimeZone = "America/New_York";
+  const closeHour = getAssetType(symbol) === "futures" ? 16 : 17;
+  const closeMinute = getAssetType(symbol) === "futures" ? 30 : 0;
+  const from = new Date(fromTimestamp);
+
+  for (let dayOffset = 0; dayOffset <= 7; dayOffset += 1) {
+    const candidateUtc = getZonedTargetUtc(from, marketTimeZone, dayOffset, 5, closeHour, closeMinute);
+    if (candidateUtc > fromTimestamp) {
+      return candidateUtc;
+    }
+  }
+
+  return null;
+}
+
+function getZonedTargetUtc(from: Date, timeZone: string, dayOffset: number, targetWeekday: number, hour: number, minute: number) {
+  const base = new Date(from.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+  const noonUtc = Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 12, 0, 0);
+  const parts = getZonedDateParts(new Date(noonUtc), timeZone);
+  if (parts.weekday !== targetWeekday) {
+    return 0;
+  }
+  const naiveUtc = Date.UTC(parts.year, parts.month - 1, parts.day, hour, minute, 0);
+  const offset = getTimeZoneOffsetMs(new Date(naiveUtc), timeZone);
+  return naiveUtc - offset;
 }
 
 async function markSetupStatus(token: string, userId: string, setup: SetupForOutcome, status: "expired" | "filled" | "placed") {
@@ -1684,6 +1728,48 @@ function getZonedParts(date: Date, timeZone: string) {
     minute: Number(lookup.minute ?? 0),
     weekday: weekdayMap[lookup.weekday ?? "Mon"] ?? 1,
   };
+}
+
+function getZonedDateParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour12: false,
+    month: "2-digit",
+    timeZone,
+    weekday: "short",
+    year: "numeric",
+  }).formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const weekdayMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  return {
+    day: Number(lookup.day ?? 1),
+    month: Number(lookup.month ?? 1),
+    weekday: weekdayMap[lookup.weekday ?? "Mon"] ?? 1,
+    year: Number(lookup.year ?? 1970),
+  };
+}
+
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    month: "2-digit",
+    second: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const asUtc = Date.UTC(
+    Number(lookup.year ?? 1970),
+    Number(lookup.month ?? 1) - 1,
+    Number(lookup.day ?? 1),
+    Number(lookup.hour ?? 0),
+    Number(lookup.minute ?? 0),
+    Number(lookup.second ?? 0),
+  );
+  return asUtc - date.getTime();
 }
 
 function pickPrimaryTimeframe(timeframes: Partial<Record<Timeframe, Bar[]>>): Timeframe {
