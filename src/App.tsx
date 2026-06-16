@@ -52,10 +52,9 @@ const HISTORY_STATUS_ORDER: HistoryOutcome[] = ["pending", "take_profit", "stop_
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
-  { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "History", value: "history" },
+  { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "Insights", value: "history" },
   { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
   { icon: <BookOpen className="h-4 w-4" aria-hidden="true" />, label: "Guide", value: "guide" },
-  { icon: <Gift className="h-4 w-4" aria-hidden="true" />, label: "Donate", value: "donate" },
 ];
 
 export default function App() {
@@ -105,6 +104,14 @@ export default function App() {
             <div className="ml-auto hidden sm:block">
               <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
             </div>
+            <a className="secondary-button hidden min-h-10 px-3 py-2 lg:inline-flex" href={`mailto:${SUPPORT_EMAIL}`}>
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              Contact
+            </a>
+            <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setActiveTab("donate")}>
+              <Gift className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Donate</span>
+            </button>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => supabase?.auth.signOut()}>
               <LogOut className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
@@ -216,9 +223,9 @@ function HistoryPanel({
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Trade journal</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">History review</h2>
-            <p className="mt-1 text-sm leading-6 text-slate">Review recommendations by market, outcome, confidence, and date.</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Recommendation intelligence</p>
+            <h2 className="text-2xl font-semibold tracking-normal text-navy">Insights</h2>
+            <p className="mt-1 text-sm leading-6 text-slate">Review recommendation quality by market, outcome, confidence band, and model family.</p>
           </div>
           <div className="text-left sm:text-right">
             <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${filteredSetups.length} of ${setups.length} shown`}</p>
@@ -320,7 +327,7 @@ function HistoryPanel({
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Performance</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Overview</h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Resolution</h2>
           </div>
           <div className="grid gap-3">
             <HistoryPerformanceRow label="Resolved setups" value={summary.resolved.toString()} detail={`${summary.wins} TP / ${summary.losses} SL`} tone="neutral" />
@@ -334,6 +341,8 @@ function HistoryPanel({
             />
           </div>
         </section>
+
+        <ModelLearningPanel setups={setups} />
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
@@ -382,6 +391,9 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
   const outcomeLabel = getOutcomeLabel(outcome);
   const isBuy = setup.side === "buy";
   const category = getSecurityOption(setup.symbol).assetType;
+  const confluence = asRecord(setup.confluence);
+  const setupKey = String(confluence.setupKey ?? setup.correlation_group ?? "model family");
+  const rewardRisk = asNumber(confluence.rewardRisk);
 
   return (
     <article className="min-w-0 rounded-lg border border-slate/15 bg-canvas p-4">
@@ -392,6 +404,7 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
             <span className="rounded-full bg-white px-2 py-1 text-xs font-bold uppercase text-slate">{category}</span>
           </div>
           <p className="mt-1 text-sm text-slate">{formatDate(setup.created_at)}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{formatDisplayName(setupKey)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>{setup.side} limit</span>
@@ -399,12 +412,13 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
         <HistoryMetric label="Entry" value={formatPriceValue(setup.limit_entry)} valueClassName={isBuy ? "text-bullish" : "text-danger"} />
         <HistoryMetric label="Stop" value={formatPriceValue(setup.stop_loss)} />
         <HistoryMetric label="Target" value={formatPriceValue(setup.take_profit)} />
         <HistoryMetric label="Breakeven" value={formatPriceValue(setup.breakeven_trigger_price)} />
         <HistoryMetric label="Confidence" value={`${Number(setup.confidence_score)}%`} />
+        <HistoryMetric label="Reward / risk" value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`} />
       </div>
     </article>
   );
@@ -488,6 +502,50 @@ function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { amb
       </div>
       {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} ambiguous path {ambiguous === 1 ? "review" : "reviews"}</p> : null}
     </div>
+  );
+}
+
+function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
+  const families = useMemo(() => buildSetupFamilyStats(setups), [setups]);
+  const resolved = setups.filter((setup) => {
+    const outcome = getSetupOutcome(setup);
+    return outcome === "take_profit" || outcome === "stop_loss";
+  }).length;
+
+  return (
+    <section className="terminal-panel p-5 sm:p-6">
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Global learning</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Model signal</h2>
+        <p className="mt-2 text-sm leading-6 text-slate">
+          LevelFlow uses resolved outcomes to calibrate setup families across the app. More resolved setups improve the shared scoring layer.
+        </p>
+      </div>
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <StatPill label="Resolved locally" value={resolved.toString()} />
+        <StatPill label="Families seen" value={families.length.toString()} />
+      </div>
+      <div className="grid gap-3">
+        {families.slice(0, 5).map((family) => (
+          <div key={family.key} className="rounded-lg border border-slate/15 bg-canvas p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-navy">{formatDisplayName(family.key)}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{family.count} setups</p>
+              </div>
+              <p className={`shrink-0 text-sm font-semibold ${family.adjustment > 0 ? "text-bullish" : family.adjustment < 0 ? "text-danger" : "text-navy"}`}>
+                {family.adjustment > 0 ? "+" : ""}
+                {family.adjustment.toFixed(1)} pts
+              </p>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate">
+              {family.globalSampleSize > 0 ? `${family.globalSampleSize} global outcomes have informed this family.` : "Global sample is still developing."}
+            </p>
+          </div>
+        ))}
+        {families.length === 0 ? <p className="text-sm leading-6 text-slate">Model family stats will appear after recommendations are generated.</p> : null}
+      </div>
+    </section>
   );
 }
 
@@ -603,55 +661,55 @@ function ProfilePanel({
 function GuidePanel() {
   const workflow = [
     {
-      body: "Select the asset and timeframe you are reviewing.",
+      body: "Choose the market and chart interval. The default view starts at 1 hour because it balances current structure with enough context for the analyzer.",
       icon: <Crosshair className="h-5 w-5" aria-hidden="true" />,
       number: "01",
-      title: "Set the market",
+      title: "Select the market",
     },
     {
-      body: "Check trend, structure, range, and recent price behavior first.",
+      body: "Use the chart first. Look for the current trend, range, liquidity, and whether price is near a level where a pending limit order could make sense.",
       icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
       number: "02",
       title: "Read the chart",
     },
     {
-      body: "Run the advisor after the chart context is clear.",
+      body: "Generate the setup. LevelFlow clears stale results, refreshes the selected market, and either returns a qualified limit setup or tells you to stand down.",
       icon: <Radar className="h-5 w-5" aria-hidden="true" />,
       number: "03",
-      title: "Generate",
+      title: "Run the desk",
     },
     {
-      body: "Confirm side, entry, stop, target, breakeven, and confidence.",
+      body: "Review side, limit entry, stop, target, breakeven, confidence, and the setup quality receipt before taking any action outside LevelFlow.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
-      title: "Review levels",
+      title: "Validate the receipt",
     },
     {
-      body: "History keeps unique setups and their final results.",
+      body: "Insights organizes unique recommendations, resolved outcomes, confidence calibration, and model-family learning so the system becomes more transparent over time.",
       icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
-      title: "Track",
+      title: "Review insights",
     },
   ];
 
   const decisionLenses = [
     {
-      body: "Trend, momentum, and market structure decide whether buyers or sellers have control.",
+      body: "Trend, momentum, and structure determine whether buyers or sellers have control.",
       icon: <TrendingUp className="h-5 w-5" aria-hidden="true" />,
       title: "Direction",
     },
     {
-      body: "Liquidity, value areas, volatility, and recent range help determine whether a limit entry is worth waiting for.",
+      body: "Liquidity, value, volatility, and range position determine whether the entry is worth waiting for.",
       icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
       title: "Location",
     },
     {
-      body: "Session quality, upcoming events, and correlation checks can reduce confidence or block marginal ideas.",
+      body: "Session quality, upcoming events, data coverage, and correlation filters reduce confidence or block marginal ideas.",
       icon: <Activity className="h-5 w-5" aria-hidden="true" />,
       title: "Timing",
     },
     {
-      body: "Stops, targets, breakeven, and reward-to-risk are checked before a setup can appear.",
+      body: "Stops, targets, breakeven reference, and reward-to-risk are checked before a setup can appear.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "Risk",
     },
@@ -659,27 +717,27 @@ function GuidePanel() {
 
   const outputItems = [
     {
-      body: "Pending order direction. Buy limits wait below market; sell limits wait above market.",
+      body: "The direction of the pending idea. Buy limits wait below market; sell limits wait above market.",
       label: "Order",
       value: "Buy / sell limit",
     },
     {
-      body: "The price where the idea becomes active.",
+      body: "The price where the idea becomes active. LevelFlow does not generate market or stop entries.",
       label: "Entry",
       value: "Limit price",
     },
     {
-      body: "The price area that invalidates the setup.",
+      body: "The price area that invalidates the structure and volatility assumptions behind the setup.",
       label: "Stop",
       value: "Invalidation",
     },
     {
-      body: "The primary objective selected from liquidity, volatility, and reward-to-risk checks.",
+      body: "The primary objective selected from liquidity, volatility, and minimum reward-to-risk checks.",
       label: "Target",
       value: "Take profit",
     },
     {
-      body: "A reference level for discretionary trade management.",
+      body: "A reference level for discretionary trade management after the setup has moved in favor.",
       label: "Reference",
       value: "Breakeven",
     },
@@ -687,17 +745,17 @@ function GuidePanel() {
 
   const confidenceBands = [
     {
-      body: "Enough confluence and reward-to-risk for LevelFlow to show a setup.",
+      body: "Enough confluence, timing quality, and reward-to-risk for LevelFlow to show a setup.",
       range: "66+",
       title: "Qualified",
     },
     {
-      body: "Stronger agreement across structure, momentum, location, and timing.",
+      body: "Stronger agreement across structure, momentum, location, timing, and recent outcome learning.",
       range: "80+",
       title: "High confluence",
     },
     {
-      body: "No current limit setup meets the model threshold. Standing down is the output.",
+      body: "No current limit setup meets the model threshold. Standing down is intentional output, not a failure state.",
       range: "Blocked",
       title: "Stand down",
     },
@@ -714,19 +772,15 @@ function GuidePanel() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Field guide</p>
-                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">Use LevelFlow as a disciplined market review desk.</h2>
+            <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">Operate LevelFlow like a private market desk.</h2>
               </div>
             </div>
             <p className="max-w-3xl text-base leading-7 text-slate">
-              Start with the chart. Let LevelFlow evaluate whether the next pending limit setup is strong enough to consider. When conditions are not clean, standing down is the output.
+              Start with market context, then let LevelFlow test whether the next pending limit setup is strong enough to consider. A clean pass returns levels and evidence; a failed pass tells you to stand down.
             </p>
           </div>
 
-          <div className="grid content-between gap-3 rounded-lg border border-slate/15 bg-canvas p-4">
-            <GuideRule label="Order type" value="Limit orders only" />
-            <GuideRule label="Output" value="Advisory setup" />
-            <GuideRule label="Review window" value="Current market only" />
-          </div>
+          <GuidePreviewCard />
         </div>
       </section>
 
@@ -736,7 +790,7 @@ function GuidePanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Workflow</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Five-step operating sequence</h2>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate">A clean pass produces either a qualified limit setup or a clear stand-down.</p>
+          <p className="max-w-md text-sm leading-6 text-slate">The workflow is intentionally simple: context first, analysis second, evidence before action.</p>
         </div>
         <div className="grid gap-3 lg:grid-cols-5">
           {workflow.map((step, index) => (
@@ -777,7 +831,7 @@ function GuidePanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to read the score</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
-              Confidence is a 0-100 confluence score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data quality, and recent outcome learning.
+              Confidence is a 0-100 confluence score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data quality, and global outcome learning.
             </p>
           </div>
           <div className="grid gap-3">
@@ -805,11 +859,33 @@ function GuidePanel() {
   );
 }
 
-function GuideRule({ label, value }: { label: string; value: string }) {
+function GuidePreviewCard() {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-slate/10 pb-3 last:border-b-0 last:pb-0">
+    <div className="grid content-between gap-4 rounded-lg border border-slate/15 bg-canvas p-4">
+      <div>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="rounded-full bg-danger/10 px-3 py-1 text-xs font-bold uppercase text-danger">Sell limit</span>
+          <span className="text-sm font-semibold text-navy">87% confidence</span>
+        </div>
+        <div className="grid gap-2 text-sm">
+          <GuidePreviewMetric label="Entry" value="1.15780" tone="danger" />
+          <GuidePreviewMetric label="Stop" value="1.16120" />
+          <GuidePreviewMetric label="Target" value="1.15040" />
+          <GuidePreviewMetric label="Receipt" value="Trend + liquidity + timing" />
+        </div>
+      </div>
+      <div className="rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-xs font-semibold leading-5 text-bullish">
+        Example only. Live recommendations refresh from the selected market and only appear when the current setup qualifies.
+      </div>
+    </div>
+  );
+}
+
+function GuidePreviewMetric({ label, tone = "neutral", value }: { label: string; tone?: "danger" | "neutral"; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
       <span className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</span>
-      <span className="text-right text-sm font-semibold text-navy">{value}</span>
+      <span className={`text-right font-semibold ${tone === "danger" ? "text-danger" : "text-navy"}`}>{value}</span>
     </div>
   );
 }
@@ -1048,6 +1124,42 @@ function buildConfidenceBands(setups: TradeSetupRow[]) {
   });
 }
 
+function buildSetupFamilyStats(setups: TradeSetupRow[]) {
+  const families = new Map<
+    string,
+    {
+      adjustmentTotal: number;
+      count: number;
+      globalSampleSize: number;
+      key: string;
+    }
+  >();
+
+  for (const setup of setups) {
+    const confluence = asRecord(setup.confluence);
+    const key = String(confluence.setupKey ?? setup.correlation_group ?? setup.symbol);
+    const current = families.get(key) ?? {
+      adjustmentTotal: 0,
+      count: 0,
+      globalSampleSize: 0,
+      key,
+    };
+    current.count += 1;
+    current.adjustmentTotal += asNumber(confluence.strategyWeightAdjustment) ?? 0;
+    current.globalSampleSize = Math.max(current.globalSampleSize, asNumber(confluence.strategyWeightSampleSize) ?? 0);
+    families.set(key, current);
+  }
+
+  return Array.from(families.values())
+    .map((family) => ({
+      adjustment: family.count > 0 ? family.adjustmentTotal / family.count : 0,
+      count: family.count,
+      globalSampleSize: family.globalSampleSize,
+      key: family.key,
+    }))
+    .sort((first, second) => second.globalSampleSize - first.globalSampleSize || second.count - first.count || first.key.localeCompare(second.key));
+}
+
 function getHistoryGroup(setup: TradeSetupRow, groupBy: HistoryGroupBy): Omit<HistorySetupGroup, "items"> {
   if (groupBy === "asset") {
     return { key: setup.symbol, label: setup.symbol };
@@ -1147,4 +1259,20 @@ function formatNumber(value: number) {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 5,
   });
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function asNumber(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatDisplayName(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
 }

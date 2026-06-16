@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Brain, CheckCircle2, Clock, Loader2, RefreshCw, ShieldCheck, Target } from "lucide-react";
+import { BarChart3, Brain, CheckCircle2, Clipboard, Clock, FileSearch, Loader2, RefreshCw, ShieldCheck, Target, XCircle } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
@@ -137,7 +137,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Trade setup desk</h2>
-              <p className="mt-1 text-sm text-slate">Review the chart, then generate the current limit setup.</p>
+              <p className="mt-1 text-sm text-slate">Select a market, review the chart, then request the current qualified limit setup.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
               <RefreshCw className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -190,12 +190,23 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
             </label>
 
             <div className="flex items-end">
-              <button className="primary-button w-full lg:min-w-48" type="button" disabled={analyzerStatus === "analyzing"} onClick={analyze}>
+              <button className="primary-button w-full lg:min-w-48" type="button" disabled={analyzerStatus === "analyzing" || marketLoading} onClick={analyze}>
                 {analyzerStatus === "analyzing" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Brain className="h-4 w-4" aria-hidden="true" />}
                 Generate setup
               </button>
             </div>
           </div>
+
+          <DeskStatusStrip
+            analysisStatus={analyzerStatus}
+            clockStatus={marketClock.statusLabel}
+            latestClose={marketData?.latestClose ?? null}
+            loading={marketLoading}
+            provider={marketData?.provider ?? "FMP"}
+            result={activeResult}
+            stat={symbolStat}
+            symbol={symbol}
+          />
         </div>
 
         <div className="p-4 sm:p-6">
@@ -215,14 +226,18 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <MarketChart data={marketData?.points ?? []} loading={marketLoading} setup={setup} viewKey={`${symbol}:${timeframe}`} />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <p className="font-medium text-slate">{marketNotice}</p>
-            <p className="text-xs font-semibold uppercase tracking-normal text-slate">{activeAssetCount} active assets</p>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
+              <span>{activeAssetCount} active assets</span>
+              <span className="hidden sm:inline">/</span>
+              <span>{marketData?.provider ?? "FMP"} data</span>
+            </div>
           </div>
         </div>
       </section>
 
       <aside className="grid content-start gap-5">
         <section className="terminal-panel p-5">
-          <RecommendationPanel notice={advisorNotice} result={activeResult} setup={setup} />
+          <RecommendationPanel notice={advisorNotice} result={activeResult} setup={setup} status={analyzerStatus} symbol={symbol} />
         </section>
 
         <section className="terminal-panel p-5">
@@ -262,17 +277,72 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   );
 }
 
+function DeskStatusStrip({
+  analysisStatus,
+  clockStatus,
+  latestClose,
+  loading,
+  provider,
+  result,
+  stat,
+  symbol,
+}: {
+  analysisStatus: "idle" | "analyzing";
+  clockStatus: string;
+  latestClose: number | null;
+  loading: boolean;
+  provider: string;
+  result: AnalyzerResponse | null;
+  stat: SecurityStat | undefined;
+  symbol: SupportedSymbol;
+}) {
+  const stateLabel = analysisStatus === "analyzing" ? "Analysis running" : result?.setup ? "Setup ready" : result?.blocked ? "Stand down" : "Ready";
+
+  return (
+    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <DeskStatusItem label="Data" value={loading ? "Refreshing" : `${provider} live`} detail={latestClose === null ? "Awaiting latest close" : `Latest ${formatPrice(symbol, latestClose)}`} />
+      <DeskStatusItem label="Session" value={clockStatus} detail="Clock uses your profile timezone" />
+      <DeskStatusItem label="Advisor" value={stateLabel} detail="Stale setups clear on each run" />
+      <DeskStatusItem
+        label="Asset history"
+        value={stat ? `${stat.count} reviewed` : "No history"}
+        detail={stat?.winRate === null || !stat ? "Outcome data pending" : `${stat.winRate}% resolved win rate`}
+      />
+    </div>
+  );
+}
+
+function DeskStatusItem({ detail, label, value }: { detail: string; label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-slate/15 bg-canvas px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
+      <p className="mt-1 truncate font-semibold text-navy">{value}</p>
+      <p className="mt-0.5 truncate text-xs text-slate">{detail}</p>
+    </div>
+  );
+}
+
 function RecommendationPanel({
   notice,
   result,
   setup,
+  status,
+  symbol,
 }: {
   notice: string;
   result: AnalyzerResponse | null;
-  setup: Pick<AnalyzerSetup, "breakevenTriggerPrice" | "confidenceScore" | "entryPrice" | "side" | "stopLoss" | "takeProfit"> | null;
+  setup: AnalyzerSetup | null;
+  status: "idle" | "analyzing";
+  symbol: SupportedSymbol;
 }) {
+  if (status === "analyzing") {
+    return <AnalysisProgress symbol={symbol} />;
+  }
+
   if (setup) {
     const isBuy = setup.side === "buy";
+    const receipt = buildQualityReceipt(setup, result);
+    const levelSummary = `${setup.side.toUpperCase()} LIMIT ${setup.symbol} @ ${formatNumber(setup.entryPrice)} | SL ${formatNumber(setup.stopLoss)} | TP ${formatNumber(setup.takeProfit)}`;
 
     return (
       <div className="grid gap-4">
@@ -286,12 +356,27 @@ function RecommendationPanel({
           <MetricRow label="Take profit" value={formatNumber(setup.takeProfit)} />
           <MetricRow label="Breakeven" value={formatNumber(setup.breakevenTriggerPrice)} />
         </div>
+        <button
+          className="secondary-button w-full"
+          type="button"
+          onClick={() => {
+            void navigator.clipboard?.writeText(levelSummary);
+          }}
+        >
+          <Clipboard className="h-4 w-4" aria-hidden="true" />
+          Copy setup levels
+        </button>
         <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
           {result?.deduplicated ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
           {notice || "Current advisory setup ready for manual review."}
         </div>
+        <QualityReceipt receipt={receipt} />
       </div>
     );
+  }
+
+  if (result?.blocked || result?.reason || result?.providerWarnings?.length) {
+    return <NoSetupPanel notice={notice} result={result} symbol={symbol} />;
   }
 
   return (
@@ -301,10 +386,224 @@ function RecommendationPanel({
       </div>
       <div>
         <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
-        <p className="mt-1">{notice || "Select an asset, review the chart, then generate the current limit setup."}</p>
+        <p className="mt-1">{notice || "Select an asset, review the chart, then generate the current qualified limit setup."}</p>
       </div>
     </div>
   );
+}
+
+function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
+  const steps = ["Refreshing market data", "Scoring strategy committee", "Checking event and session risk", "Constructing limit-only levels"];
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-white">
+        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Analyzing {symbol}</p>
+        <h3 className="mt-1 text-lg font-semibold text-navy">Building the current setup</h3>
+      </div>
+      <div className="grid gap-2">
+        {steps.map((step) => (
+          <div key={step} className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-2 text-sm font-semibold text-slate">
+            <span className="h-2 w-2 rounded-full bg-bullish" />
+            {step}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NoSetupPanel({ notice, result, symbol }: { notice: string; result: AnalyzerResponse; symbol: SupportedSymbol }) {
+  const reasons = [
+    result.reason ?? notice,
+    ...(result.analysisDiagnostics ?? []),
+    ...(result.providerWarnings ?? []),
+    result.learningRefresh?.reason ? `Learning refresh: ${result.learningRefresh.reason}` : "",
+  ].filter(Boolean);
+
+  return (
+    <div className="grid gap-4 text-sm leading-6 text-slate">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/15 text-warning">
+        <XCircle className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Stand down</p>
+        <h3 className="mt-1 text-lg font-semibold text-navy">No qualified limit setup</h3>
+        <p className="mt-1">LevelFlow cleared the prior display for {formatSecurityLabel(symbol)} and did not find a current setup that passed the model threshold.</p>
+      </div>
+      <div className="grid gap-2">
+        {reasons.slice(0, 4).map((reason) => (
+          <div key={reason} className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 font-medium text-slate">
+            {reason}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type QualityReceiptItem = {
+  detail: string;
+  label: string;
+  tone?: "bullish" | "danger" | "neutral";
+  value: string;
+};
+
+type QualityReceiptData = {
+  blockers: string[];
+  items: QualityReceiptItem[];
+  strategyVotes: Array<{ direction: string; name: string; score: number }>;
+};
+
+function QualityReceipt({ receipt }: { receipt: QualityReceiptData }) {
+  return (
+    <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3">
+      <div className="flex items-center gap-2">
+        <FileSearch className="h-4 w-4 text-bullish" aria-hidden="true" />
+        <h3 className="font-semibold text-navy">Setup quality receipt</h3>
+      </div>
+      <div className="grid gap-2">
+        {receipt.items.map((item) => (
+          <div key={item.label} className="rounded-lg bg-white px-3 py-2">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-normal text-slate">{item.label}</p>
+              <p className={`text-right text-sm font-semibold ${item.tone === "bullish" ? "text-bullish" : item.tone === "danger" ? "text-danger" : "text-navy"}`}>{item.value}</p>
+            </div>
+            <p className="mt-1 text-xs leading-5 text-slate">{item.detail}</p>
+          </div>
+        ))}
+      </div>
+      {receipt.strategyVotes.length > 0 ? (
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-slate">Top strategy votes</p>
+          <div className="grid gap-2">
+            {receipt.strategyVotes.slice(0, 3).map((vote) => (
+              <div key={`${vote.name}:${vote.direction}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm">
+                <span className="min-w-0 truncate font-semibold text-navy">{formatStrategyName(vote.name)}</span>
+                <span className={vote.direction === "buy" ? "text-bullish" : vote.direction === "sell" ? "text-danger" : "text-slate"}>
+                  {vote.direction} / {vote.score}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {receipt.blockers.length > 0 ? (
+        <div className="rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-xs font-semibold leading-5 text-warning">
+          Watchlist: {receipt.blockers.join(" ")}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | null): QualityReceiptData {
+  const confluence = setup.confluence ?? {};
+  const riskModel = setup.riskModel ?? {};
+  const consensus = asRecord(confluence.consensus);
+  const marketRegime = asRecord(confluence.marketRegime);
+  const orderConstruction = asRecord(confluence.orderConstruction);
+  const sessionContext = asRecord(confluence.sessionContext);
+  const rewardRisk = asNumber(confluence.rewardRisk);
+  const weightAdjustment = asNumber(confluence.strategyWeightAdjustment);
+  const sampleSize = asNumber(confluence.strategyWeightSampleSize);
+  const sampleWeight = asNumber(confluence.strategyWeightSampleWeight);
+  const providerWarnings = asStringArray(confluence.providerWarnings).concat(result?.providerWarnings ?? []);
+  const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents) ? confluence.upcomingNewsEvents.length : 0;
+  const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
+
+  const items: QualityReceiptItem[] = [
+    {
+      detail: String(marketRegime.rationale ?? "Regime classification was included in the analyzer pass."),
+      label: "Market regime",
+      value: formatStrategyName(String(marketRegime.name ?? "current")),
+    },
+    {
+      detail: `Buy score ${formatMaybeNumber(consensus.buyScore)}, sell score ${formatMaybeNumber(consensus.sellScore)}, block score ${formatMaybeNumber(consensus.blockScore)}.`,
+      label: "Committee",
+      tone: setup.side === "buy" ? "bullish" : "danger",
+      value: `${setup.side.toUpperCase()} bias`,
+    },
+    {
+      detail: String(orderConstruction.validation ?? "Entry is constructed as a pending limit order away from the latest close."),
+      label: "Order construction",
+      value: "Limit only",
+    },
+    {
+      detail: String(riskModel.stopLogic ?? "Stop uses structure invalidation and volatility buffer logic."),
+      label: "Invalidation",
+      value: "Structure + ATR",
+    },
+    {
+      detail: String(riskModel.targetLogic ?? "Target uses liquidity, volatility, and reward-to-risk checks."),
+      label: "Objective",
+      value: rewardRisk === null ? "R:R checked" : `${rewardRisk.toFixed(2)}R`,
+    },
+    {
+      detail: `${String(sessionContext.label ?? "Session context")} ${upcomingNewsEvents > 0 ? `with ${upcomingNewsEvents} upcoming high-impact event${upcomingNewsEvents === 1 ? "" : "s"}.` : "with no upcoming high-impact event penalty."}`,
+      label: "Timing",
+      tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
+      value: asNumber(sessionContext.penalty) ? `-${asNumber(sessionContext.penalty)} pts` : "Clean",
+    },
+    {
+      detail: sampleSize && sampleSize > 0 ? `${sampleSize} comparable outcomes are informing the global adjustment; sample weight ${formatMaybeNumber(sampleWeight)}.` : "Global learning is ready, but this setup family needs more resolved outcomes.",
+      label: "Global learning",
+      tone: weightAdjustment && weightAdjustment > 0 ? "bullish" : weightAdjustment && weightAdjustment < 0 ? "danger" : "neutral",
+      value: weightAdjustment === null ? "Pending" : `${weightAdjustment > 0 ? "+" : ""}${weightAdjustment.toFixed(1)} pts`,
+    },
+  ];
+
+  return {
+    blockers: Array.from(new Set(providerWarnings)).slice(0, 3),
+    items,
+    strategyVotes,
+  };
+}
+
+function normalizeStrategyVotes(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const vote = asRecord(item);
+      return {
+        direction: String(vote.direction ?? "neutral"),
+        name: String(vote.name ?? "strategy"),
+        score: asNumber(vote.score) ?? 0,
+      };
+    })
+    .filter((vote) => vote.score > 0)
+    .sort((first, second) => second.score - first.score);
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function asNumber(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function asStringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+}
+
+function formatMaybeNumber(value: unknown) {
+  const number = asNumber(value);
+  return number === null ? "pending" : Number.isInteger(number) ? String(number) : number.toFixed(2);
+}
+
+function formatStrategyName(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
 }
 
 function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMarketClock>; sessions: ReturnType<typeof getGlobalSessions> }) {

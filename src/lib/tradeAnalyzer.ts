@@ -19,6 +19,7 @@ export type AnalyzerSetup = {
 };
 
 export type AnalyzerResponse = {
+  analysisDiagnostics?: string[];
   advisoryOnly?: boolean;
   blocked?: boolean;
   deduplicated?: boolean;
