@@ -161,7 +161,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market review desk</h2>
+              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market review</h2>
               <p className="mt-1 text-sm text-slate">Select a market, review the chart, then ask LevelFlow for the current limit-order idea.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>

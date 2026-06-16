@@ -62,11 +62,11 @@ describe("recommendation outcomes", () => {
     assert.equal(OUTCOME_COPY.still_tracking.label, "Still tracking");
     assert.equal(OUTCOME_COPY.target_reached.label, "Reached target");
     assert.equal(OUTCOME_COPY.stopped_out.label, "Hit stop");
-    assert.equal(OUTCOME_COPY.unclear_path.label, "Unclear path");
+    assert.equal(OUTCOME_COPY.unclear_path.label, "Unclear result");
     assert.equal(OUTCOME_COPY.entry_not_filled.label, "Entry not filled");
   });
 
-  it("separates unresolved, unfilled, and unclear paths", () => {
+  it("separates unresolved, unfilled, and unclear results", () => {
     assert.equal(normalizeSetupOutcome(buildSetup({ status: "generated" })), "still_tracking");
     assert.equal(normalizeSetupOutcome(buildSetup({ status: "expired" })), "entry_not_filled");
     assert.equal(normalizeSetupOutcome(buildSetup({ outcome: "ambiguous", status: "filled" })), "unclear_path");
