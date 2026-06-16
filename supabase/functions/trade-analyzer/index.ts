@@ -75,6 +75,7 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
 
 const temporarilyUnavailableSymbols = new Set(["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"]);
 const equityCalendarSensitiveSymbols = new Set(["ESUSD", "SP", "NSDQ", "DOW"]);
+const defaultScanSymbols = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "ETHUSD", "ESUSD", "GCUSD"];
 
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
@@ -152,7 +153,8 @@ type Timeframe = "1day" | (typeof intradayTimeframes)[number];
 type RegimeName = "trend" | "range" | "volatile_chop" | "compression";
 
 type AnalyzeRequest = {
-  action?: "analyze" | "refresh_outcomes";
+  action?: "analyze" | "refresh_outcomes" | "scan_opportunities";
+  symbols?: string[];
   symbol?: string;
 };
 
@@ -265,6 +267,19 @@ type ProviderContextResult = {
   providerFailures: string[];
 };
 
+type MarketScanCandidate = {
+  assetType: string;
+  blocked?: boolean;
+  confidenceScore?: number;
+  entryPrice?: number;
+  reason?: string;
+  rewardRisk?: number;
+  side?: Side;
+  stopLoss?: number;
+  symbol: SupportedSymbol;
+  takeProfit?: number;
+};
+
 Deno.serve(async (req) => {
   try {
     if (req.method === "OPTIONS") {
@@ -300,6 +315,16 @@ Deno.serve(async (req) => {
         learningRefresh,
         message: "Trade outcomes refreshed.",
         outcomeRefresh,
+      });
+    }
+
+    if (body.action === "scan_opportunities") {
+      const learningRefresh = await refreshGlobalStrategyWeights();
+      const scan = await scanOpportunities(token, body.symbols);
+      return jsonResponse(req, {
+        advisoryOnly: true,
+        learningRefresh,
+        ...scan,
       });
     }
 
@@ -355,12 +380,12 @@ Deno.serve(async (req) => {
     const group = getCorrelationGroup(symbol);
     const setup = await analyzeSetup(token, user.id, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
     if (!setup) {
-      const analysisDiagnostics = await explainNoSetup(token, marketContext, upcomingNewsEvents, sessionContext);
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "No setup met the LevelFlow committee confluence threshold.");
+      const analysisDiagnostics = await explainNoSetup(token, symbol, marketContext, upcomingNewsEvents, sessionContext);
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "No current limit-order idea met the review threshold.");
       return jsonResponse(req, {
         analysisDiagnostics,
         blocked: true,
-        reason: "No setup met the LevelFlow committee confluence threshold.",
+        reason: "No current limit-order idea met the review threshold.",
         providerWarnings: marketContext.providerWarnings,
         learningRefresh,
         outcomeRefresh,
@@ -441,6 +466,99 @@ async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Prom
   };
 }
 
+async function scanOpportunities(token: string, requestedSymbols: string[] | undefined) {
+  const normalizedSymbols = Array.from(
+    new Set((requestedSymbols && requestedSymbols.length > 0 ? requestedSymbols : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(Boolean)),
+  ).slice(0, 10);
+  const opportunities: MarketScanCandidate[] = [];
+  const blocked: MarketScanCandidate[] = [];
+
+  for (const symbol of normalizedSymbols) {
+    if (temporarilyUnavailableSymbols.has(symbol)) {
+      blocked.push({
+        assetType: getAssetType(symbol),
+        blocked: true,
+        reason: "Hidden until provider coverage is verified.",
+        symbol,
+      });
+      continue;
+    }
+
+    const providerSymbols = resolveProviderSymbols(symbol);
+    if (providerSymbols.length === 0) {
+      blocked.push({
+        assetType: getAssetType(symbol),
+        blocked: true,
+        reason: "Unsupported market symbol.",
+        symbol,
+      });
+      continue;
+    }
+
+    try {
+      const sessionContext = getSessionContext(symbol);
+      const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
+      if (activeNewsEvents.length > 0) {
+        blocked.push({
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: "High-impact calendar risk is active.",
+          symbol,
+        });
+        continue;
+      }
+
+      const { fmpSymbol, marketContext, providerFailures } = await fetchFirstAvailableMarketContext(providerSymbols);
+      if (!fmpSymbol || !marketContext || marketContext.daily.length < 80) {
+        blocked.push({
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: providerFailures[0] ?? "Not enough market data returned.",
+          symbol,
+        });
+        continue;
+      }
+
+      const group = getCorrelationGroup(symbol);
+      const setup = await analyzeSetup(token, "scan", symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
+      if (!setup) {
+        const diagnostics = await explainNoSetup(token, symbol, marketContext, upcomingNewsEvents, sessionContext);
+        blocked.push({
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: diagnostics[0] ?? "No current limit-order idea passed review.",
+          symbol,
+        });
+        continue;
+      }
+
+      opportunities.push({
+        assetType: getAssetType(symbol),
+        confidenceScore: setup.confidenceScore,
+        entryPrice: setup.entryPrice,
+        rewardRisk: Number(setup.confluence.rewardRisk ?? 0),
+        side: setup.side,
+        stopLoss: setup.stopLoss,
+        symbol,
+        takeProfit: setup.takeProfit,
+      });
+    } catch (error) {
+      blocked.push({
+        assetType: getAssetType(symbol),
+        blocked: true,
+        reason: error instanceof Error ? error.message : "Market scan failed.",
+        symbol,
+      });
+    }
+  }
+
+  return {
+    blocked,
+    opportunities: opportunities.sort((first, second) => (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)).slice(0, 5),
+    scanned: normalizedSymbols.length,
+  };
+}
+
 async function analyzeSetup(
   token: string,
   userId: string,
@@ -459,7 +577,7 @@ async function analyzeSetup(
     return null;
   }
 
-  const setupKey = buildSetupKey(regime, consensus.side, votes);
+  const setupKey = buildSetupKey(symbol, market, sessionContext, regime, consensus.side, votes);
   const weight = await fetchSingle<{ confidence_adjustment: number | string; sample_weight?: number | string; total_setups?: number | string }>(
     token,
     `strategy_weightings_global?select=confidence_adjustment,sample_weight,total_setups&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
@@ -539,16 +657,16 @@ async function analyzeSetup(
   };
 }
 
-async function explainNoSetup(token: string, market: MarketContext, upcomingNewsEvents: NewsEvent[], sessionContext: SessionContext) {
+async function explainNoSetup(token: string, symbol: SupportedSymbol, market: MarketContext, upcomingNewsEvents: NewsEvent[], sessionContext: SessionContext) {
   const regime = classifyRegime(market);
   const votes = runStrategyCommittee(market, regime);
   const consensus = scoreConsensus(votes, regime);
   const diagnostics: string[] = [];
 
   if (!consensus.side) {
-    diagnostics.push(`Committee did not produce a dominant side: buy ${consensus.buyScore}, sell ${consensus.sellScore}, block ${consensus.blockScore}.`);
+    diagnostics.push(`No clear direction passed review: buy ${consensus.buyScore}, sell ${consensus.sellScore}, block ${consensus.blockScore}.`);
   } else {
-    const setupKey = buildSetupKey(regime, consensus.side, votes);
+    const setupKey = buildSetupKey(symbol, market, sessionContext, regime, consensus.side, votes);
     const weight = await fetchSingle<{ confidence_adjustment: number | string }>(
       token,
       `strategy_weightings_global?select=confidence_adjustment&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
@@ -566,7 +684,7 @@ async function explainNoSetup(token: string, market: MarketContext, upcomingNews
 
     diagnostics.push(`Committee favored ${consensus.side}, but the adjusted score was ${confidenceScore}; LevelFlow requires 66 or higher.`);
     if (!pricePlan) {
-      diagnostics.push("Limit entry construction failed price validation, so no pending limit order was shown.");
+      diagnostics.push("Limit entry failed price validation, so no limit-order idea was shown.");
     } else if (pricePlan.rewardRisk < 1.35) {
       diagnostics.push(`Reward-to-risk was ${pricePlan.rewardRisk.toFixed(2)}R; LevelFlow requires at least 1.35R.`);
     }
@@ -579,7 +697,7 @@ async function explainNoSetup(token: string, market: MarketContext, upcomingNews
     diagnostics.push(`${sessionContext.label} reduced confidence by ${sessionContext.penalty} points.`);
   }
   if (market.availableTimeframes.length < 3) {
-    diagnostics.push("Fewer than three analyzer timeframes were available from the provider.");
+    diagnostics.push("Fewer than three review timeframes were available from the provider.");
   }
 
   return diagnostics.slice(0, 5);
@@ -1542,6 +1660,9 @@ function getAssetType(symbol: SupportedSymbol) {
   if (["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"].includes(symbol)) {
     return "crypto";
   }
+  if (["XAUUSD", "XAGUSD"].includes(symbol)) {
+    return "metals";
+  }
   if (["ESUSD", "GCUSD", "SIUSD", "BZUSD", "SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"].includes(symbol)) {
     return "futures";
   }
@@ -1595,14 +1716,15 @@ function directionalBias(bars: Bar[]): Direction {
   return "neutral";
 }
 
-function buildSetupKey(regime: Regime, side: Side, votes: StrategyVote[]) {
+function buildSetupKey(symbol: SupportedSymbol, market: MarketContext, sessionContext: SessionContext, regime: Regime, side: Side, votes: StrategyVote[]) {
   const leaders = votes
     .filter((vote) => vote.direction === side)
     .sort((first, second) => second.score - first.score)
     .slice(0, 3)
     .map((vote) => vote.name)
     .join("+");
-  return `${regime.name}_${side}_${leaders}`;
+  const context = [getAssetType(symbol), market.primaryTimeframe, sessionContext.marketKind, regime.name, side, leaders || "balanced"].join("_");
+  return context.replace(/[^a-zA-Z0-9_+.-]/g, "_");
 }
 
 function findStructureLevels(bars: Bar[]) {

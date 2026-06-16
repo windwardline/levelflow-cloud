@@ -10,7 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       VITE_APP_URL: https://app.windwardline.com/
       VITE_BASE_PATH: /
       VITE_DONATION_CASHAPP_URL: ${{ vars.VITE_DONATION_CASHAPP_URL || '' }}
@@ -41,12 +40,12 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
 
       - name: Install dependencies

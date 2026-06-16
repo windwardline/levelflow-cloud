@@ -48,6 +48,27 @@ export type AnalyzerResponse = {
   updated?: boolean;
 };
 
+export type MarketScanCandidate = {
+  assetType: string;
+  blocked?: boolean;
+  confidenceScore?: number;
+  entryPrice?: number;
+  reason?: string;
+  rewardRisk?: number;
+  side?: "buy" | "sell";
+  stopLoss?: number;
+  symbol: SupportedSymbol;
+  takeProfit?: number;
+};
+
+export type MarketScanResponse = {
+  advisoryOnly?: boolean;
+  blocked: MarketScanCandidate[];
+  learningRefresh?: AnalyzerResponse["learningRefresh"];
+  opportunities: MarketScanCandidate[];
+  scanned: number;
+};
+
 export type TradeSetupRow = {
   account_id: string | null;
   breakeven_trigger_price: number | string;
@@ -92,6 +113,29 @@ export async function generateTradeSetup(symbol: SupportedSymbol) {
 
   if (!data) {
     throw new Error("No analyzer response was returned.");
+  }
+
+  return data;
+}
+
+export async function scanMarketOpportunities(symbols?: SupportedSymbol[]) {
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const { data, error } = await supabase.functions.invoke<MarketScanResponse>("trade-analyzer", {
+    body: {
+      action: "scan_opportunities",
+      symbols,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("No market scan response was returned.");
   }
 
   return data;
