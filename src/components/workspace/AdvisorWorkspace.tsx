@@ -299,14 +299,14 @@ function DeskStatusStrip({
   const stateLabel = analysisStatus === "analyzing" ? "Analysis running" : result?.setup ? "Setup ready" : result?.blocked ? "Stand down" : "Ready";
 
   return (
-    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mt-4 grid gap-2 sm:grid-cols-2">
       <DeskStatusItem label="Data" value={loading ? "Refreshing" : `${provider} live`} detail={latestClose === null ? "Awaiting latest close" : `Latest ${formatPrice(symbol, latestClose)}`} />
-      <DeskStatusItem label="Session" value={clockStatus} detail="Clock uses your profile timezone" />
-      <DeskStatusItem label="Advisor" value={stateLabel} detail="Stale setups clear on each run" />
+      <DeskStatusItem label="Session" value={clockStatus} detail="Profile timezone" />
+      <DeskStatusItem label="Advisor" value={stateLabel} detail="Fresh on each run" />
       <DeskStatusItem
         label="Asset history"
         value={stat ? `${stat.count} reviewed` : "No history"}
-        detail={stat?.winRate === null || !stat ? "Outcome data pending" : `${stat.winRate}% resolved win rate`}
+        detail={stat?.winRate === null || !stat ? "Outcome pending" : `${stat.winRate}% win rate`}
       />
     </div>
   );
@@ -314,10 +314,12 @@ function DeskStatusStrip({
 
 function DeskStatusItem({ detail, label, value }: { detail: string; label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-lg border border-slate/15 bg-canvas px-3 py-2">
+    <div className="grid min-h-[72px] min-w-0 content-center rounded-lg border border-slate/15 bg-canvas px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
-      <p className="mt-1 truncate font-semibold text-navy">{value}</p>
-      <p className="mt-0.5 truncate text-xs text-slate">{detail}</p>
+      <div className="mt-1 flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="min-w-0 text-base font-semibold leading-6 text-navy">{value}</p>
+        <p className="min-w-0 text-sm font-medium leading-5 text-slate">{detail}</p>
+      </div>
     </div>
   );
 }
