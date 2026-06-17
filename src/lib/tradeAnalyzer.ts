@@ -95,16 +95,25 @@ export type TradeSetupRow = {
   }>;
 };
 
+const ANALYZER_TIMEOUT_MS = 18_000;
+const MARKET_SCAN_TIMEOUT_MS = 24_000;
+const OUTCOME_REFRESH_TIMEOUT_MS = 15_000;
+const HISTORY_TIMEOUT_MS = 12_000;
+
 export async function generateTradeSetup(symbol: SupportedSymbol) {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
-  const { data, error } = await supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
-    body: {
-      symbol,
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
+      body: {
+        symbol,
+      },
+    }),
+    ANALYZER_TIMEOUT_MS,
+    "Market review timed out.",
+  );
 
   if (error) {
     throw new Error(error.message);
@@ -122,12 +131,16 @@ export async function scanMarketOpportunities(symbols?: SupportedSymbol[]) {
     throw new Error("Supabase is not configured.");
   }
 
-  const { data, error } = await supabase.functions.invoke<MarketScanResponse>("trade-analyzer", {
-    body: {
-      action: "scan_opportunities",
-      symbols,
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.functions.invoke<MarketScanResponse>("trade-analyzer", {
+      body: {
+        action: "scan_opportunities",
+        symbols,
+      },
+    }),
+    MARKET_SCAN_TIMEOUT_MS,
+    "Market scan timed out.",
+  );
 
   if (error) {
     throw new Error(error.message);
@@ -145,11 +158,15 @@ export async function refreshTradeOutcomes() {
     throw new Error("Supabase is not configured.");
   }
 
-  const { data, error } = await supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
-    body: {
-      action: "refresh_outcomes",
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
+      body: {
+        action: "refresh_outcomes",
+      },
+    }),
+    OUTCOME_REFRESH_TIMEOUT_MS,
+    "Outcome refresh timed out.",
+  );
 
   if (error) {
     throw new Error(error.message);
@@ -171,11 +188,20 @@ export async function fetchTradeSetups() {
     .order("created_at", { ascending: false })
     .limit(80);
 
-  const { data, error } = await query;
+  const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
 
   if (error) {
     throw new Error(error.message);
   }
 
   return (data ?? []) as unknown as TradeSetupRow[];
+}
+
+function withTimeout<T>(request: PromiseLike<T>, timeoutMs: number, message: string) {
+  return Promise.race([
+    request,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
 }

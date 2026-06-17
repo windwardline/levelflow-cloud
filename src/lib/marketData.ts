@@ -39,18 +39,24 @@ type MarketDataError = {
   providerStatus?: string;
 };
 
+const MARKET_DATA_TIMEOUT_MS = 15_000;
+
 export async function fetchMarketData({ days = 45, symbol, timeframe = "1hour" }: MarketDataRequest) {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
-  const { data, error } = await supabase.functions.invoke<MarketDataResponse | MarketDataError>("market-data", {
-    body: {
-      days,
-      symbol,
-      timeframe,
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.functions.invoke<MarketDataResponse | MarketDataError>("market-data", {
+      body: {
+        days,
+        symbol,
+        timeframe,
+      },
+    }),
+    MARKET_DATA_TIMEOUT_MS,
+    "Market data timed out.",
+  );
 
   if (error) {
     throw new Error(error.message);
@@ -65,4 +71,13 @@ export async function fetchMarketData({ days = 45, symbol, timeframe = "1hour" }
   }
 
   return data as MarketDataResponse;
+}
+
+function withTimeout<T>(request: Promise<T>, timeoutMs: number, message: string) {
+  return Promise.race([
+    request,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
 }

@@ -446,7 +446,7 @@ Deno.serve(async (req) => {
       return jsonResponse(req, {
         blocked: true,
         reason:
-          "This asset group is temporarily unavailable while LevelFlow verifies provider coverage.",
+          "This market group is temporarily unavailable while LevelFlow verifies chart coverage.",
         symbol: uiSymbol,
       });
     }
@@ -475,11 +475,11 @@ Deno.serve(async (req) => {
         token,
         user.id,
         symbol,
-        "High-impact calendar risk is active for this asset.",
+        "A major scheduled event is active for this market.",
       );
       return jsonResponse(req, {
         blocked: true,
-        reason: "Relevant high-impact calendar risk is active for this asset.",
+        reason: "A major scheduled event is active for this market.",
         newsEvents: activeNewsEvents,
         learningRefresh,
         outcomeRefresh,
@@ -609,8 +609,8 @@ Deno.serve(async (req) => {
       advisoryOnly: true,
       deduplicated: savedSetup.deduplicated,
       message: savedSetup.updated
-        ? "Updated current active advisory setup. LevelFlow did not create a duplicate log entry."
-        : "Generated advisory limit-order setup. LevelFlow does not execute trades.",
+        ? "Updated the current idea without creating a duplicate entry."
+        : "Built a current limit idea. LevelFlow does not place trades.",
       learningRefresh,
       outcomeRefresh,
       pendingOrderId: savedSetup.pendingOrderId,
@@ -719,7 +719,7 @@ async function scanOpportunities(
         blocked.push({
           assetType: getAssetType(symbol),
           blocked: true,
-          reason: "High-impact calendar risk is active.",
+          reason: "A major scheduled event is active.",
           symbol,
         });
         continue;
@@ -980,23 +980,23 @@ async function explainNoSetup(
       );
     } else if (pricePlan.rewardRisk < 1.35) {
       diagnostics.push(
-        `Reward-to-risk was ${
+        `Payoff was ${
           pricePlan.rewardRisk.toFixed(2)
-        }R; LevelFlow requires at least 1.35R.`,
+        }x; LevelFlow requires at least 1.35x.`,
       );
     }
   }
 
   if (upcomingNewsEvents.length > 0) {
     diagnostics.push(
-      `${upcomingNewsEvents.length} upcoming high-impact event${
+      `${upcomingNewsEvents.length} major scheduled event${
         upcomingNewsEvents.length === 1 ? "" : "s"
       } reduced setup quality.`,
     );
   }
   if (sessionContext.penalty > 0) {
     diagnostics.push(
-      `${sessionContext.label} reduced confidence by ${sessionContext.penalty} points.`,
+      `${sessionContext.label} reduced confidence.`,
     );
   }
   if (market.availableTimeframes.length < 3) {
