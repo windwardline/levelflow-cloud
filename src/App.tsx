@@ -22,6 +22,7 @@ import {
   Target,
   TrendingUp,
   User,
+  WalletCards,
 } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
@@ -95,11 +96,6 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
     value: "history",
   },
   {
-    icon: <User className="h-4 w-4" aria-hidden="true" />,
-    label: "Profile",
-    value: "profile",
-  },
-  {
     icon: <BookOpen className="h-4 w-4" aria-hidden="true" />,
     label: "Guide",
     value: "guide",
@@ -108,6 +104,11 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
     icon: <Compass className="h-4 w-4" aria-hidden="true" />,
     label: "About",
     value: "about",
+  },
+  {
+    icon: <User className="h-4 w-4" aria-hidden="true" />,
+    label: "Profile",
+    value: "profile",
   },
 ];
 
@@ -435,7 +436,7 @@ function HistoryPanel({
               value={assetFilter}
               onChange={(event) => setAssetFilter(event.target.value)}
             >
-              <option value={ALL_HISTORY_FILTER}>All assets</option>
+              <option value={ALL_HISTORY_FILTER}>All markets</option>
               {assets.map((asset) => (
                 <option key={asset} value={asset}>
                   {asset}
@@ -468,7 +469,7 @@ function HistoryPanel({
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
               <option value="confidence">Highest confidence</option>
-              <option value="asset">Market order</option>
+              <option value="asset">Market name</option>
             </select>
           </label>
         </div>
@@ -551,7 +552,7 @@ function HistoryPanel({
               Confidence
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              By score range
+              By Score Range
             </h2>
           </div>
           <div className="grid gap-3">
@@ -567,7 +568,7 @@ function HistoryPanel({
               Market trends
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              By market
+              By Market
             </h2>
           </div>
           <div className="grid gap-3">
@@ -589,10 +590,10 @@ function HistoryPanel({
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-              Asset trends
+              Market trends
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Most reviewed
+              Most Reviewed
             </h2>
           </div>
           <div className="grid gap-3">
@@ -620,17 +621,17 @@ function OverviewPanel() {
     {
       body: "LevelFlow reviews the selected market and shows one current limit idea only when the chart, timing, and risk are strong enough.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
-      title: "One focused answer",
+      title: "One Focused Answer",
     },
     {
       body: "The review checks direction, price location, volatility, session timing, event risk, and past results.",
       icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
-      title: "Market context in one pass",
+      title: "Market Context in One Pass",
     },
     {
       body: "Entry, stop, target, confidence, and the reason for the idea are shown together before you decide what to do next.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
-      title: "Review support, not trade placement",
+      title: "Review Support, Not Trade Placement",
     },
   ];
 
@@ -638,7 +639,7 @@ function OverviewPanel() {
     { label: "Order type", value: "Limit only" },
     { label: "Default chart", value: "1 hour" },
     { label: "Data", value: "Live charts + events" },
-    { label: "Learning", value: "All resolved ideas" },
+    { label: "Learning", value: "All finished ideas" },
   ];
 
   return (
@@ -647,10 +648,10 @@ function OverviewPanel() {
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)] lg:items-center">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-              What LevelFlow is
+              What LevelFlow Is
             </p>
             <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">
-              A premium market review workspace for disciplined traders.
+              A Premium Market Review Workspace for Disciplined Traders
             </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
               LevelFlow refreshes the chart, checks the market from several
@@ -695,7 +696,7 @@ function OverviewPanel() {
               Why it matters
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              The goal is cleaner decisions, not more noise.
+              Cleaner Decisions, Less Noise
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate">
               Most trading tools add more noise. LevelFlow narrows the decision:
@@ -783,7 +784,7 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         />
         <HistoryMetric
           label="Payoff"
-          value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`}
+          value={formatPayoff(rewardRisk)}
         />
       </div>
     </article>
@@ -939,19 +940,18 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
     <section className="terminal-panel p-5 sm:p-6">
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-          App learning
+          Shared learning
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-          What is improving
+          What Is Improving
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate">
-          LevelFlow uses finished ideas across the app to improve future
-          reviews. This is shared across the product, not isolated to one user.
+          Finished ideas improve future reviews across LevelFlow.
         </p>
       </div>
       <div className="mb-4 grid grid-cols-2 gap-3">
         <StatPill label="Finished ideas" value={resolved.toString()} />
-        <StatPill label="Patterns found" value={families.length.toString()} />
+        <StatPill label="Review types" value={families.length.toString()} />
       </div>
       <div className="grid gap-3">
         {families.slice(0, 5).map((family) => (
@@ -974,20 +974,19 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
               <p
                 className={`shrink-0 text-sm font-semibold ${family.adjustment > 0 ? "text-bullish" : family.adjustment < 0 ? "text-danger" : "text-navy"}`}
               >
-                {family.adjustment > 0 ? "+" : ""}
-                {family.adjustment.toFixed(1)} pts
+                {formatScoreAdjustment(family.adjustment)}
               </p>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate">
               {family.globalSampleSize > 0
-                ? `${family.globalSampleSize} finished ideas have informed this pattern.`
-                : "More finished ideas are needed before this pattern carries weight."}
+                ? `${family.globalSampleSize} finished ideas included.`
+                : "More finished ideas are needed."}
             </p>
           </div>
         ))}
         {families.length === 0 ? (
           <p className="text-sm leading-6 text-slate">
-            Learning signals will appear after ideas are reviewed.
+            Results appear after ideas are reviewed.
           </p>
         ) : null}
       </div>
@@ -1087,11 +1086,8 @@ function ProfilePanel({
             Profile
           </p>
           <h2 className="text-2xl font-semibold tracking-normal text-navy">
-            Workspace defaults
+            Preferences
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate">
-            Set how LevelFlow opens and how market clocks are shown.
-          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-navy">
@@ -1104,7 +1100,7 @@ function ProfilePanel({
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
-            U.S. timezone
+            U.S. time zone
             <select
               className="field"
               value={timezone}
@@ -1187,7 +1183,7 @@ function ProfilePanel({
                 Today
               </p>
               <h2 className="text-2xl font-semibold tracking-normal text-navy">
-                Workspace clock
+                Market Clock
               </h2>
             </div>
           </div>
@@ -1217,20 +1213,20 @@ function ProfilePanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-navy" aria-hidden="true" />
+            <WalletCards className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-                Saved defaults
+                Account
               </p>
               <h2 className="text-2xl font-semibold tracking-normal text-navy">
-                What this controls
+                Current Settings
               </h2>
             </div>
           </div>
-          <div className="grid gap-3 text-sm leading-6 text-slate">
-            <p>Name personalizes the workspace.</p>
-            <p>Time zone controls market clocks and daylight saving time.</p>
-            <p>Session and chart defaults shape the Advisor starting view.</p>
+          <div className="grid gap-3">
+            <ProfileDetailRow label="Signed in" value={profile.email} />
+            <ProfileDetailRow label="Theme" value={formatThemeLabel(themeMode)} />
+            <ProfileDetailRow label="Starting chart" value={timeframeLabel} />
           </div>
         </section>
       </div>
@@ -1377,7 +1373,7 @@ function GuidePanel() {
                   Guide
                 </p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">
-                  How to use LevelFlow.
+                  How to Use LevelFlow
                 </h2>
               </div>
             </div>
@@ -1399,7 +1395,7 @@ function GuidePanel() {
               Workflow
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Five-step workflow
+              Five-Step Workflow
             </h2>
           </div>
           <p className="max-w-md text-sm leading-6 text-slate">
@@ -1424,7 +1420,7 @@ function GuidePanel() {
               Review
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              What LevelFlow checks
+              What LevelFlow Checks
             </h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -1440,7 +1436,7 @@ function GuidePanel() {
               Output
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              What the idea includes
+              What the Idea Includes
             </h2>
           </div>
           <div className="grid gap-3">
@@ -1458,7 +1454,7 @@ function GuidePanel() {
               Confidence
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              How to read the score
+              How to Read the Score
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
               Confidence is a 0-100 quality score. It reflects market agreement,
@@ -1480,10 +1476,10 @@ function GuidePanel() {
               Contact
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Questions or data issues
+              Questions or Data Issues
             </h2>
             <p className="mt-1 text-sm leading-6 text-slate">
-              Send the asset, timeframe, and a short description of what looked
+              Send the market, timeframe, and a short description of what looked
               off.
             </p>
           </div>
@@ -2083,6 +2079,30 @@ function formatNumber(value: number) {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 5,
   });
+}
+
+function formatPayoff(value: number | null) {
+  return value === null ? "Pending" : `${value.toFixed(2)}x payoff`;
+}
+
+function formatScoreAdjustment(value: number) {
+  if (value > 0) {
+    return "Improving";
+  }
+  if (value < 0) {
+    return "Cooling";
+  }
+  return "Neutral";
+}
+
+function formatThemeLabel(themeMode: ThemeMode) {
+  if (themeMode === "light") {
+    return "Light";
+  }
+  if (themeMode === "dark") {
+    return "Dark";
+  }
+  return "System";
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

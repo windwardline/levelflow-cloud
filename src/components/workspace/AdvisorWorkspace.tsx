@@ -49,7 +49,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   const activeResult = analysisState?.symbol === symbol ? analysisState.response : null;
   const setup = activeResult?.setup ?? null;
   const symbolStat = setupStats.find((stat) => stat.symbol === symbol);
-  const activeAssetCount = AVAILABLE_ASSET_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
+  const activeMarketCount = AVAILABLE_ASSET_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
   const marketClock = useMemo(() => getMarketClock(symbol, profile.defaultTimezone, clockNow), [clockNow, profile.defaultTimezone, symbol]);
   const globalSessions = useMemo(() => getGlobalSessions(profile.defaultTimezone, profile.preferredSession, clockNow), [clockNow, profile.defaultTimezone, profile.preferredSession]);
 
@@ -75,12 +75,12 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
         const nextData = await fetchMarketData({ days: timeframe === "1day" ? 180 : 21, symbol, timeframe });
         if (!cancelled) {
           setMarketData(nextData);
-          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} bars loaded for review.`);
+          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} candles loaded.`);
         }
       } catch {
         if (!cancelled) {
           setMarketData(null);
-          setMarketNotice("Verified market data is not available for this asset yet.");
+          setMarketNotice("Verified market data is not available for this market yet.");
         }
       } finally {
         if (!cancelled) {
@@ -161,7 +161,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market review</h2>
+              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market Review</h2>
               <p className="mt-1 text-sm text-slate">Select a market, review the chart, then ask LevelFlow for the current limit idea.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
@@ -251,7 +251,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <p className="font-medium text-slate">{marketNotice}</p>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
-              <span>{activeAssetCount} active assets</span>
+              <span>{activeMarketCount} active markets</span>
               <span className="hidden sm:inline">/</span>
               <span>Live chart data</span>
             </div>
@@ -277,14 +277,14 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           status={scanStatus}
         />
 
-        <DataHealthPanel activeAssetCount={activeAssetCount} data={marketData} loading={marketLoading} notice={marketNotice} />
+        <DataHealthPanel activeMarketCount={activeMarketCount} data={marketData} loading={marketLoading} notice={marketNotice} />
 
         <section className="terminal-panel p-5">
           <div className="mb-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-slate">Recent ideas</p>
-              <h3 className="text-lg font-semibold tracking-normal text-navy">Latest activity</h3>
+              <p className="text-sm font-semibold text-slate">Recent Ideas</p>
+              <h3 className="text-lg font-semibold tracking-normal text-navy">Latest Activity</h3>
             </div>
           </div>
           <SetupList setups={setups.slice(0, 5)} />
@@ -294,21 +294,21 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="mb-4 flex items-center gap-3">
             <BarChart3 className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-slate">Asset results</p>
+              <p className="text-sm font-semibold text-slate">Market Results</p>
               <h3 className="text-lg font-semibold tracking-normal text-navy">{selectedAsset.symbol}</h3>
             </div>
           </div>
           {symbolStat ? (
             <div className="grid gap-2 text-sm">
               <MetricRow label="Ideas shown" value={symbolStat.count.toString()} />
-              <MetricRow label="Avg confidence" value={`${symbolStat.averageConfidence}%`} />
+              <MetricRow label="Average confidence" value={`${symbolStat.averageConfidence}%`} />
               <MetricRow label="Win rate" value={symbolStat.winRate === null ? "Learning" : `${symbolStat.winRate}%`} />
               <MetricRow label="Reached target" value={symbolStat.wins.toString()} />
               <MetricRow label="Hit stop" value={symbolStat.losses.toString()} />
               <MetricRow label="Still tracking" value={symbolStat.pending.toString()} />
             </div>
           ) : (
-            <p className="text-sm leading-6 text-slate">No saved ideas for this asset yet.</p>
+            <p className="text-sm leading-6 text-slate">No saved ideas for this market yet.</p>
           )}
         </section>
       </aside>
@@ -317,12 +317,12 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 }
 
 function DataHealthPanel({
-  activeAssetCount,
+  activeMarketCount,
   data,
   loading,
   notice,
 }: {
-  activeAssetCount: number;
+  activeMarketCount: number;
   data: MarketDataResponse | null;
   loading: boolean;
   notice: string;
@@ -336,15 +336,15 @@ function DataHealthPanel({
       <div className="mb-4 flex items-center gap-3">
         <CheckCircle2 className="h-5 w-5 text-bullish" aria-hidden="true" />
         <div>
-          <p className="text-sm font-semibold text-slate">Market data</p>
+          <p className="text-sm font-semibold text-slate">Market Data</p>
           <h3 className="text-lg font-semibold tracking-normal text-navy">{status}</h3>
         </div>
       </div>
       <div className="grid gap-2 text-sm">
         <MetricRow label="Feed" value="Live" />
-        <MetricRow label="Bars loaded" value={loading ? "Refreshing" : String(data?.resultsCount ?? 0)} />
+        <MetricRow label="Candles loaded" value={loading ? "Refreshing" : String(data?.resultsCount ?? 0)} />
         <MetricRow label="Last updated" value={lastUpdated} />
-        <MetricRow label="Active assets" value={String(activeAssetCount)} />
+        <MetricRow label="Active markets" value={String(activeMarketCount)} />
       </div>
       <p className="mt-3 text-sm leading-6 text-slate">{notice}</p>
       {hiddenCategories.length > 0 ? (
@@ -375,8 +375,8 @@ function MarketScanPanel({
     <section className="terminal-panel p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate">Market scan</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">Best current markets</h3>
+          <p className="text-sm font-semibold text-slate">Market Scan</p>
+          <h3 className="text-lg font-semibold tracking-normal text-navy">Best Current Markets</h3>
         </div>
         <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={onScan} disabled={status === "scanning"}>
           {status === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
@@ -398,7 +398,7 @@ function MarketScanPanel({
 
       {result ? (
         <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
-          {result.scanned} reviewed{blockedCount > 0 ? ` / ${blockedCount} skipped` : ""}. Scan results are not saved.
+          {result.scanned} reviewed{blockedCount > 0 ? ` / ${blockedCount} unavailable` : ""}. Scan results are not saved.
         </p>
       ) : null}
     </section>
@@ -424,7 +424,7 @@ function MarketScanRow({ candidate, onSelectSymbol }: { candidate: MarketScanCan
       </div>
       <div className="flex min-w-0 items-center justify-between gap-3 text-xs text-slate">
         <span>{candidate.confidenceScore ?? 0}% confidence</span>
-        <span>{candidate.rewardRisk ? `${candidate.rewardRisk.toFixed(2)}R` : "Target pending"}</span>
+        <span>{formatPayoff(candidate.rewardRisk)}</span>
       </div>
     </button>
   );
@@ -538,8 +538,8 @@ function RecommendationPanel({
         <Target className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
-        <p className="mt-1">{notice || "Select an asset, review the chart, then ask LevelFlow for the current limit idea."}</p>
+        <h3 className="text-lg font-semibold text-navy">Ready for Review</h3>
+        <p className="mt-1">{notice || "Select a market, review the chart, then ask LevelFlow for the current limit idea."}</p>
       </div>
     </div>
   );
@@ -555,7 +555,7 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
       </div>
       <div>
         <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Analyzing {symbol}</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Building the current idea</h3>
+        <h3 className="mt-1 text-lg font-semibold text-navy">Building the Current Idea</h3>
       </div>
       <div className="grid gap-2">
         {steps.map((step) => (
@@ -585,8 +585,8 @@ function NoSetupPanel({ notice, result, symbol }: { notice: string; result: Anal
         <XCircle className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No trade idea</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Nothing passed review</h3>
+        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No Trade Idea</p>
+        <h3 className="mt-1 text-lg font-semibold text-navy">Nothing Passed Review</h3>
         <p className="mt-1">LevelFlow cleared the prior display for {formatSecurityLabel(symbol)} and did not find a current limit idea strong enough to show.</p>
       </div>
       <div className="grid gap-2">
@@ -618,7 +618,7 @@ function QualityReceipt({ receipt }: { receipt: QualityReceiptData }) {
     <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3">
       <div className="flex items-center gap-2">
         <FileSearch className="h-4 w-4 text-bullish" aria-hidden="true" />
-        <h3 className="font-semibold text-navy">Why this idea</h3>
+        <h3 className="font-semibold text-navy">Why This Idea</h3>
       </div>
       <div className="grid gap-2">
         {receipt.items.map((item) => (
@@ -633,7 +633,7 @@ function QualityReceipt({ receipt }: { receipt: QualityReceiptData }) {
       </div>
       {receipt.strategyVotes.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-slate">Supporting signals</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-slate">Top checks</p>
           <div className="grid gap-2">
             {receipt.strategyVotes.slice(0, 3).map((vote) => (
               <div key={`${vote.name}:${vote.direction}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm">
@@ -665,7 +665,6 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
   const rewardRisk = asNumber(confluence.rewardRisk);
   const weightAdjustment = asNumber(confluence.strategyWeightAdjustment);
   const sampleSize = asNumber(confluence.strategyWeightSampleSize);
-  const sampleWeight = asNumber(confluence.strategyWeightSampleWeight);
   const providerWarnings = asStringArray(confluence.providerWarnings).concat(result?.providerWarnings ?? []);
   const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents) ? confluence.upcomingNewsEvents.length : 0;
   const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
@@ -695,19 +694,19 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
     {
       detail: String(riskModel.targetLogic ?? "Target uses price structure, volatility, and payoff checks."),
       label: "Target",
-      value: rewardRisk === null ? "Payoff checked" : `${rewardRisk.toFixed(2)}R`,
+      value: formatPayoff(rewardRisk),
     },
     {
-      detail: `${String(sessionContext.label ?? "Session context")} ${upcomingNewsEvents > 0 ? `with ${upcomingNewsEvents} upcoming high-impact event${upcomingNewsEvents === 1 ? "" : "s"}.` : "with no upcoming high-impact event penalty."}`,
+      detail: `${String(sessionContext.label ?? "Session context")} ${upcomingNewsEvents > 0 ? `with ${upcomingNewsEvents} major upcoming event${upcomingNewsEvents === 1 ? "" : "s"}.` : "with no major event penalty."}`,
       label: "Timing",
       tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
-      value: asNumber(sessionContext.penalty) ? `-${asNumber(sessionContext.penalty)} pts` : "Clean",
+      value: asNumber(sessionContext.penalty) ? "Event risk" : "Clean",
     },
     {
-      detail: sampleSize && sampleSize > 0 ? `${sampleSize} finished ideas are informing this pattern; influence ${formatMaybeNumber(sampleWeight)}.` : "More finished ideas are needed before this pattern carries weight.",
+      detail: sampleSize && sampleSize > 0 ? `${sampleSize} finished ideas included.` : "More finished ideas are needed.",
       label: "Past results",
       tone: weightAdjustment && weightAdjustment > 0 ? "bullish" : weightAdjustment && weightAdjustment < 0 ? "danger" : "neutral",
-      value: weightAdjustment === null ? "Building" : `${weightAdjustment > 0 ? "+" : ""}${weightAdjustment.toFixed(1)} pts`,
+      value: formatScoreAdjustment(weightAdjustment),
     },
   ];
 
@@ -752,6 +751,23 @@ function asStringArray(value: unknown) {
 function formatMaybeNumber(value: unknown) {
   const number = asNumber(value);
   return number === null ? "Pending" : Number.isInteger(number) ? String(number) : number.toFixed(2);
+}
+
+function formatPayoff(value: number | null | undefined) {
+  return value ? `${value.toFixed(2)}x payoff` : "Target pending";
+}
+
+function formatScoreAdjustment(value: number | null) {
+  if (value === null) {
+    return "Building";
+  }
+  if (value > 0) {
+    return "Improving";
+  }
+  if (value < 0) {
+    return "Cooling";
+  }
+  return "Neutral";
 }
 
 function cleanReviewMessage(value: string) {

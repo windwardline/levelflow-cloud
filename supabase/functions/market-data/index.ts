@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
         req,
         {
           error:
-            "This asset is temporarily unavailable in LevelFlow while provider coverage is verified.",
+            "This market is temporarily unavailable while LevelFlow verifies chart coverage.",
           symbol: uiSymbol,
         },
         400,

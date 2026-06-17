@@ -256,7 +256,7 @@ function SetupZoneSummary({ setup }: { setup: ChartSetup }) {
       </div>
       <div>
         <p className="uppercase tracking-normal text-slate">Payoff</p>
-        <p className="mt-1 text-navy">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}R` : "Pending"}</p>
+        <p className="mt-1 text-navy">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}x` : "Pending"}</p>
       </div>
     </div>
   );

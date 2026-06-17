@@ -9,6 +9,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
+    linear-gradient(110deg, rgba(91, 130, 102, 0.08), rgba(91, 130, 102, 0) 28%),
     linear-gradient(180deg, rgba(17, 28, 56, 0.035), rgba(247, 248, 244, 0) 38%),
     #f7f8f4;
   color: #162033;
@@ -53,6 +54,7 @@ html[data-theme="dark"] {
 
 html[data-theme="dark"] body {
   background:
+    linear-gradient(110deg, rgba(143, 189, 156, 0.1), rgba(143, 189, 156, 0) 30%),
     linear-gradient(180deg, rgba(91, 130, 102, 0.08), rgba(11, 17, 28, 0) 34%),
     #0b111c;
   color: #e6edf6;
