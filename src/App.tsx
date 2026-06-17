@@ -22,7 +22,6 @@ import {
   Target,
   TrendingUp,
   User,
-  WalletCards,
 } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
@@ -38,7 +37,6 @@ import {
 import { useUserProfile } from "./hooks/useUserProfile";
 import { brandAssets } from "./lib/assets";
 import {
-  isResolvedOutcome,
   normalizeSetupOutcome,
   OUTCOME_COPY,
   type SetupOutcome,
@@ -250,6 +248,8 @@ export default function App() {
             onThemeChange={theme.setMode}
             profile={profile}
             saveStatus={profileState.status}
+            setups={setupState.setups}
+            summary={setupState.outcomeSummary}
             themeMode={theme.mode}
           />
         ) : null}
@@ -544,8 +544,6 @@ function HistoryPanel({
           </div>
         </section>
 
-        <ModelLearningPanel setups={setups} />
-
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
@@ -639,7 +637,7 @@ function OverviewPanel() {
     { label: "Order type", value: "Limit only" },
     { label: "Default chart", value: "1 hour" },
     { label: "Data", value: "Live charts + events" },
-    { label: "Learning", value: "All finished ideas" },
+    { label: "Learning", value: "Shared across LevelFlow" },
   ];
 
   return (
@@ -703,7 +701,9 @@ function OverviewPanel() {
               if the quality, timing, and reward are not there, it clears the
               prior idea and shows no trade idea. If the idea passes, it shows
               the side, entry, stop, target, confidence, and reason in one
-              place.
+              place. Finished ideas across LevelFlow also improve future
+              reviews, so the product learns from the full review history
+              rather than one user at a time.
             </p>
           </div>
           <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">
@@ -929,76 +929,13 @@ function ConfidenceBandRow({
   );
 }
 
-function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
-  const families = useMemo(() => buildSetupFamilyStats(setups), [setups]);
-  const resolved = setups.filter((setup) => {
-    const outcome = getSetupOutcome(setup);
-    return isResolvedOutcome(outcome);
-  }).length;
-
-  return (
-    <section className="terminal-panel p-5 sm:p-6">
-      <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-          Shared learning
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-          What Is Improving
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-slate">
-          Finished ideas improve future reviews across LevelFlow.
-        </p>
-      </div>
-      <div className="mb-4 grid grid-cols-2 gap-3">
-        <StatPill label="Finished ideas" value={resolved.toString()} />
-        <StatPill label="Review types" value={families.length.toString()} />
-      </div>
-      <div className="grid gap-3">
-        {families.slice(0, 5).map((family) => (
-          <div
-            key={family.key}
-            className="min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-canvas p-3"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <p
-                  className="block max-w-full truncate font-semibold text-navy"
-                  title={formatDisplayName(family.key)}
-                >
-                  {formatModelFamilyLabel(family.key)}
-                </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
-                  {family.count} ideas
-                </p>
-              </div>
-              <p
-                className={`shrink-0 text-sm font-semibold ${family.adjustment > 0 ? "text-bullish" : family.adjustment < 0 ? "text-danger" : "text-navy"}`}
-              >
-                {formatScoreAdjustment(family.adjustment)}
-              </p>
-            </div>
-            <p className="mt-2 text-xs leading-5 text-slate">
-              {family.globalSampleSize > 0
-                ? `${family.globalSampleSize} finished ideas included.`
-                : "More finished ideas are needed."}
-            </p>
-          </div>
-        ))}
-        {families.length === 0 ? (
-          <p className="text-sm leading-6 text-slate">
-            Results appear after ideas are reviewed.
-          </p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
 function ProfilePanel({
   onSave,
   onThemeChange,
   profile,
   saveStatus,
+  setups,
+  summary,
   themeMode,
 }: {
   onSave: (
@@ -1014,6 +951,8 @@ function ProfilePanel({
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
   saveStatus: "idle" | "saving" | "saved";
+  setups: TradeSetupRow[];
+  summary: OutcomeSummary;
   themeMode: ThemeMode;
 }) {
   const [displayName, setDisplayName] = useState(profile.displayName);
@@ -1035,14 +974,7 @@ function ProfilePanel({
     sessions.find((session) => session.isPreferred) ??
     sessions.find((session) => session.id === "north_america") ??
     sessions[0];
-  const timezoneLabel =
-    US_STATE_TIME_ZONES.find((option) => option.value === timezone)?.label ??
-    "Eastern Time";
-  const sessionLabel =
-    PREFERRED_SESSION_OPTIONS.find(
-      (option) => option.value === preferredSession,
-    )?.label ?? "No preference";
-  const timeframeLabel = getTimeframeLabel(defaultTimeframe);
+  const latestIdea = setups[0];
 
   useEffect(() => {
     setDisplayName(profile.displayName);
@@ -1151,11 +1083,6 @@ function ProfilePanel({
             <ThemeToggle mode={themeMode} onChange={onThemeChange} />
           </div>
         </div>
-        <div className="mt-5 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 sm:grid-cols-3">
-          <ProfileMiniMetric label="Time zone" value={timezoneLabel} />
-          <ProfileMiniMetric label="Session" value={sessionLabel} />
-          <ProfileMiniMetric label="Chart" value={timeframeLabel} />
-        </div>
         {saveError ? (
           <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
             {saveError}
@@ -1213,34 +1140,28 @@ function ProfilePanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
-            <WalletCards className="h-5 w-5 text-navy" aria-hidden="true" />
+            <Activity className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
                 Account
               </p>
               <h2 className="text-2xl font-semibold tracking-normal text-navy">
-                Current Settings
+                Activity
               </h2>
             </div>
           </div>
           <div className="grid gap-3">
             <ProfileDetailRow label="Signed in" value={profile.email} />
-            <ProfileDetailRow label="Theme" value={formatThemeLabel(themeMode)} />
-            <ProfileDetailRow label="Starting chart" value={timeframeLabel} />
+            <ProfileDetailRow label="Saved ideas" value={summary.total.toString()} />
+            <ProfileDetailRow label="Finished ideas" value={summary.resolved.toString()} />
+            <ProfileDetailRow
+              label="Win rate"
+              value={summary.winRate === null ? "Building" : `${summary.winRate}%`}
+            />
+            <ProfileDetailRow label="Last idea" value={latestIdea ? formatDate(latestIdea.created_at) : "None yet"} />
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-function ProfileMiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-lg bg-white px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-normal text-slate">
-        {label}
-      </p>
-      <p className="mt-1 truncate font-semibold text-navy">{value}</p>
     </div>
   );
 }
@@ -1917,53 +1838,6 @@ function buildConfidenceBands(setups: TradeSetupRow[]) {
   });
 }
 
-function buildSetupFamilyStats(setups: TradeSetupRow[]) {
-  const families = new Map<
-    string,
-    {
-      adjustmentTotal: number;
-      count: number;
-      globalSampleSize: number;
-      key: string;
-    }
-  >();
-
-  for (const setup of setups) {
-    const confluence = asRecord(setup.confluence);
-    const key = String(
-      confluence.setupKey ?? setup.correlation_group ?? setup.symbol,
-    );
-    const current = families.get(key) ?? {
-      adjustmentTotal: 0,
-      count: 0,
-      globalSampleSize: 0,
-      key,
-    };
-    current.count += 1;
-    current.adjustmentTotal +=
-      asNumber(confluence.strategyWeightAdjustment) ?? 0;
-    current.globalSampleSize = Math.max(
-      current.globalSampleSize,
-      asNumber(confluence.strategyWeightSampleSize) ?? 0,
-    );
-    families.set(key, current);
-  }
-
-  return Array.from(families.values())
-    .map((family) => ({
-      adjustment: family.count > 0 ? family.adjustmentTotal / family.count : 0,
-      count: family.count,
-      globalSampleSize: family.globalSampleSize,
-      key: family.key,
-    }))
-    .sort(
-      (first, second) =>
-        second.globalSampleSize - first.globalSampleSize ||
-        second.count - first.count ||
-        first.key.localeCompare(second.key),
-    );
-}
-
 function getHistoryGroup(
   setup: TradeSetupRow,
   groupBy: HistoryGroupBy,
@@ -2062,19 +1936,6 @@ function formatProfileTime(date: Date, timeZone: string) {
   }).format(date);
 }
 
-function getTimeframeLabel(timeframe: ChartTimeframe) {
-  if (timeframe === "15min") {
-    return "15 minutes";
-  }
-  if (timeframe === "1hour") {
-    return "1 hour";
-  }
-  if (timeframe === "4hour") {
-    return "4 hours";
-  }
-  return "Daily";
-}
-
 function formatNumber(value: number) {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 5,
@@ -2083,26 +1944,6 @@ function formatNumber(value: number) {
 
 function formatPayoff(value: number | null) {
   return value === null ? "Pending" : `${value.toFixed(2)}x payoff`;
-}
-
-function formatScoreAdjustment(value: number) {
-  if (value > 0) {
-    return "Improving";
-  }
-  if (value < 0) {
-    return "Cooling";
-  }
-  return "Neutral";
-}
-
-function formatThemeLabel(themeMode: ThemeMode) {
-  if (themeMode === "light") {
-    return "Light";
-  }
-  if (themeMode === "dark") {
-    return "Dark";
-  }
-  return "System";
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -2121,33 +1962,4 @@ function formatDisplayName(value: string) {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
     .trim();
-}
-
-function formatModelFamilyLabel(value: string) {
-  const normalized = value
-    .replace(/\+/g, " + ")
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const withoutAssetPrefix = normalized.replace(
-    /^(forex|crypto|metals|futures)\s+/i,
-    "",
-  );
-  const withoutTimeframe = withoutAssetPrefix.replace(
-    /^(15min|1hour|4hour|1day)\s+/i,
-    "",
-  );
-  const withoutSession = withoutTimeframe.replace(
-    /^(forex|crypto|futures)\s+/i,
-    "",
-  );
-  const readable = withoutSession
-    .replace(/\bmulti timeframe bias\b/gi, "direction")
-    .replace(/\bmomentum confirmation\b/gi, "momentum")
-    .replace(/\bvolume value retest\b/gi, "price location")
-    .replace(/\bsmart money liquidity\b/gi, "price sweep")
-    .replace(/\bcompression\b/gi, "compression")
-    .replace(/\btrend\b/gi, "trend")
-    .replace(/\s+\+\s+/g, " + ");
-  return formatDisplayName(readable);
 }
