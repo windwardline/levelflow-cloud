@@ -10,6 +10,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
+      GIT_CONFIG_COUNT: 1
+      GIT_CONFIG_KEY_0: init.defaultBranch
+      GIT_CONFIG_VALUE_0: main
       VITE_APP_URL: https://app.windwardline.com/
       VITE_BASE_PATH: /
       VITE_DONATION_CASHAPP_URL: ${{ vars.VITE_DONATION_CASHAPP_URL || '' }}
