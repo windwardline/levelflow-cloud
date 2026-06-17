@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "env -u NO_COLOR playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.0",
