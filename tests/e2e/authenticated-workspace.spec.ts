@@ -6,7 +6,10 @@ const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const testEmail = process.env.LEVELFLOW_E2E_EMAIL;
 const testPassword = process.env.LEVELFLOW_E2E_PASSWORD;
 
-test.skip(!supabaseUrl || !supabaseKey || !testEmail || !testPassword, "Set LevelFlow E2E Supabase and dedicated test-user credentials to run authenticated browser tests.");
+test.skip(
+  !supabaseUrl || !supabaseKey || !testEmail || !testPassword,
+  "Set LevelFlow E2E Supabase and dedicated test-user credentials to run authenticated browser tests.",
+);
 
 test.beforeEach(async ({ page }) => {
   const client = createClient(supabaseUrl!, supabaseKey!, {
@@ -21,7 +24,9 @@ test.beforeEach(async ({ page }) => {
   });
 
   if (error || !data.session) {
-    throw new Error(`Unable to authenticate LevelFlow E2E user: ${error?.message ?? "No session returned"}`);
+    throw new Error(
+      `Unable to authenticate LevelFlow E2E user: ${error?.message ?? "No session returned"}`,
+    );
   }
 
   const projectRef = new URL(supabaseUrl!).hostname.split(".")[0];
@@ -37,23 +42,43 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test("authenticated workspace exposes core premium navigation without stale help text", async ({ page }) => {
+test("authenticated workspace exposes core premium navigation without stale help text", async ({
+  page,
+}) => {
   await page.goto("/");
 
-  await expect(page.getByRole("button", { name: "Advisor" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Guide" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Insights" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "About" })).toBeVisible();
+  const navLabels = await page
+    .locator("nav button")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => button.textContent?.trim()),
+    );
+  expect(navLabels).toEqual([
+    "Advisor",
+    "Insights",
+    "Profile",
+    "Guide",
+    "About",
+  ]);
 
   await page.getByRole("button", { name: "About" }).click();
-  await expect(page.getByRole("heading", { name: "A premium market review workspace for disciplined traders." })).toBeVisible();
-  await expect(page.getByText("Review support, not trade placement")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "A premium market review workspace for disciplined traders.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Review support, not trade placement"),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Insights" }).click();
-  await expect(page.getByRole("heading", { name: "What is improving" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What is improving" }),
+  ).toBeVisible();
   await expect(page.getByText("Status guide")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Guide" }).click();
-  await expect(page.getByRole("heading", { name: "How to use LevelFlow." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "How to use LevelFlow." }),
+  ).toBeVisible();
   await expect(page.getByText("What LevelFlow checks")).toBeVisible();
 });

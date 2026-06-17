@@ -18,6 +18,8 @@ const MARKET_MOVING_EARNINGS_SYMBOLS = new Set([
   "NVDA",
   "TSLA",
 ]);
+const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
+const PROVIDER_FETCH_TIMEOUT_MS = 12_000;
 
 type EconomicEvent = {
   country?: string;
@@ -62,7 +64,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${SUPABASE_URL}/rest/v1/economic_events?on_conflict=provider,external_id`,
       {
         body: JSON.stringify(events),
@@ -74,6 +76,7 @@ Deno.serve(async (req) => {
         },
         method: "POST",
       },
+      SUPABASE_FETCH_TIMEOUT_MS,
     );
 
     if (!response.ok) {
@@ -137,7 +140,7 @@ async function fetchFmpEconomicEvents(
   url.searchParams.set("to", isoDate(windowEnd));
   url.searchParams.set("apikey", FMP_API_KEY);
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
   if (!response.ok) {
     throw new Error(
@@ -188,7 +191,7 @@ async function fetchFmpEarningsEvents(
   url.searchParams.set("to", isoDate(windowEnd));
   url.searchParams.set("apikey", FMP_API_KEY);
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
   const responseText = await response.text();
   if (!response.ok) {
     throw new Error(
@@ -239,8 +242,17 @@ async function fetchFinnhubEvents(
   url.searchParams.set("to", isoDate(windowEnd));
   url.searchParams.set("token", FINNHUB_API_KEY);
 
-  const response = await fetch(url);
-  const payload = (await response.json()) as Record<string, unknown>;
+  const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Finnhub economic calendar request failed (${response.status}): ${
+        responseText.slice(0, 180)
+      }`,
+    );
+  }
+
+  const payload = JSON.parse(responseText) as Record<string, unknown>;
   const events = Array.isArray(payload.economicCalendar)
     ? payload.economicCalendar
     : [];
@@ -316,6 +328,17 @@ function normalizeImpact(value: unknown): "low" | "medium" | "high" {
 
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function fetchWithTimeout(
+  input: string | URL,
+  init: RequestInit = {},
+  timeoutMs = PROVIDER_FETCH_TIMEOUT_MS,
+) {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  });
 }
 
 function jsonResponse(body: unknown, status = 200) {

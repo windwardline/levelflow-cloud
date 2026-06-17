@@ -1,6 +1,6 @@
 # Deployment Notes
 
-The current production-ready path is a static React frontend backed directly by Supabase Auth, Edge Functions, and Postgres RLS. This supports live login, profile preferences, market review, advisory setup generation, and user-owned recommendation history once Supabase is configured.
+The current production-ready path is a static React frontend backed directly by Supabase Auth, Edge Functions, and Postgres RLS. This supports live login, profile preferences, market review, limit-idea generation, and user-owned recommendation history once Supabase is configured.
 
 ## Hosted Frontend
 
@@ -38,7 +38,7 @@ The browser app remains static. Market-data and analyzer work runs through Supab
 Deployed functions:
 
 - `market-data`: authenticated FMP market-data access.
-- `trade-analyzer`: authenticated FMP-backed, multi-timeframe advisory limit-order setup generation.
+- `trade-analyzer`: authenticated FMP-backed, multi-timeframe limit-idea generation.
 - `news-calendar`: token-protected economic-calendar ingestion.
 
 Database cron jobs:

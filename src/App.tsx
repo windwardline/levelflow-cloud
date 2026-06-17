@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowRight,
   BookOpen,
+  CalendarClock,
   Compass,
   Crosshair,
   Gift,
@@ -27,15 +28,40 @@ import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { DonationOptions } from "./components/donations/DonationOptions";
 import { LegalLinks } from "./components/legal/LegalLinks";
 import { useAuthSession } from "./hooks/useAuthSession";
-import { useTradeSetups, type CategoryStat, type OutcomeSummary, type SecurityStat } from "./hooks/useTradeSetups";
+import {
+  useTradeSetups,
+  type CategoryStat,
+  type OutcomeSummary,
+  type SecurityStat,
+} from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { brandAssets } from "./lib/assets";
-import { isResolvedOutcome, normalizeSetupOutcome, OUTCOME_COPY, type SetupOutcome } from "./lib/outcomes";
-import { buildDefaultProfile, profileDisplayName, PREFERRED_SESSION_OPTIONS, US_STATE_TIME_ZONES, type ThemeMode, type UserProfile } from "./lib/profile";
+import {
+  isResolvedOutcome,
+  normalizeSetupOutcome,
+  OUTCOME_COPY,
+  type SetupOutcome,
+} from "./lib/outcomes";
+import {
+  buildDefaultProfile,
+  profileDisplayName,
+  PREFERRED_SESSION_OPTIONS,
+  US_STATE_TIME_ZONES,
+  type ThemeMode,
+  type UserProfile,
+} from "./lib/profile";
 import { supabase } from "./lib/supabase";
-import { getSecurityOption } from "./lib/symbolMap";
+import {
+  compareAssetCategories,
+  compareAssetSymbols,
+  formatSecurityLabel,
+  getSecurityOption,
+  sortAssetSymbols,
+  type SecurityType,
+} from "./lib/symbolMap";
 import type { ChartTimeframe } from "./lib/marketData";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
+import { getGlobalSessions } from "./lib/marketSessions";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "about" | "donate";
 type HistoryGroupBy = "date" | "category" | "asset" | "status";
@@ -49,14 +75,40 @@ type HistorySetupGroup = {
 
 const SUPPORT_EMAIL = "support@windwardline.com";
 const ALL_HISTORY_FILTER = "all";
-const HISTORY_STATUS_ORDER: SetupOutcome[] = ["still_tracking", "target_reached", "stopped_out", "unclear_path", "entry_not_filled"];
+const HISTORY_STATUS_ORDER: SetupOutcome[] = [
+  "still_tracking",
+  "target_reached",
+  "stopped_out",
+  "unclear_path",
+  "entry_not_filled",
+];
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
-  { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
-  { icon: <BookOpen className="h-4 w-4" aria-hidden="true" />, label: "Guide", value: "guide" },
-  { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "Insights", value: "history" },
-  { icon: <Compass className="h-4 w-4" aria-hidden="true" />, label: "About", value: "about" },
-  { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
+  {
+    icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />,
+    label: "Advisor",
+    value: "advisor",
+  },
+  {
+    icon: <History className="h-4 w-4" aria-hidden="true" />,
+    label: "Insights",
+    value: "history",
+  },
+  {
+    icon: <User className="h-4 w-4" aria-hidden="true" />,
+    label: "Profile",
+    value: "profile",
+  },
+  {
+    icon: <BookOpen className="h-4 w-4" aria-hidden="true" />,
+    label: "Guide",
+    value: "guide",
+  },
+  {
+    icon: <Compass className="h-4 w-4" aria-hidden="true" />,
+    label: "About",
+    value: "about",
+  },
 ];
 
 export default function App() {
@@ -64,7 +116,11 @@ export default function App() {
   const { session, loading } = useAuthSession();
   const [activeTab, setActiveTab] = useState<AppTab>("advisor");
   const setupState = useTradeSetups();
-  const profileState = useUserProfile(session?.user.id ?? null, session?.user.email ?? "", theme.setMode);
+  const profileState = useUserProfile(
+    session?.user.id ?? null,
+    session?.user.email ?? "",
+    theme.setMode,
+  );
 
   useEffect(() => {
     if (session && activeTab === "history") {
@@ -84,21 +140,39 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthScreen themeControl={<ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />} />;
+    return (
+      <AuthScreen
+        themeControl={
+          <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
+        }
+      />
+    );
   }
 
-  const profile = profileState.profile ?? buildDefaultProfile(session.user.id, session.user.email ?? "");
+  const profile =
+    profileState.profile ??
+    buildDefaultProfile(session.user.id, session.user.email ?? "");
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white">
+      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <img className="h-10 w-10 shrink-0 rounded-lg object-contain sm:h-11 sm:w-11" src={brandAssets.mark} alt="Windward Line mark" />
+            <img
+              className="h-10 w-10 shrink-0 rounded-lg object-contain sm:h-11 sm:w-11"
+              src={brandAssets.mark}
+              alt="Windward Line mark"
+            />
             <div className="min-w-0">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-normal text-slate sm:text-xs">Windward Line</p>
-              <h1 className="truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">LevelFlow</h1>
-              <p className="truncate text-xs font-medium text-slate">Welcome, {profileDisplayName(profile)}</p>
+              <p className="text-[0.7rem] font-semibold uppercase tracking-normal text-slate sm:text-xs">
+                Windward Line
+              </p>
+              <h1 className="truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">
+                LevelFlow
+              </h1>
+              <p className="truncate text-xs font-medium text-slate">
+                Welcome, {profileDisplayName(profile)}
+              </p>
             </div>
             <div className="ml-auto sm:hidden">
               <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
@@ -106,21 +180,35 @@ export default function App() {
             <div className="ml-auto hidden sm:block">
               <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
             </div>
-            <a className="secondary-button hidden min-h-10 px-3 py-2 lg:inline-flex" href={`mailto:${SUPPORT_EMAIL}`}>
+            <a
+              className="secondary-button hidden min-h-10 px-3 py-2 lg:inline-flex"
+              href={`mailto:${SUPPORT_EMAIL}`}
+            >
               <Mail className="h-4 w-4" aria-hidden="true" />
               Contact
             </a>
-            <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setActiveTab("donate")}>
+            <button
+              className="secondary-button min-h-10 px-3 py-2"
+              type="button"
+              onClick={() => setActiveTab("donate")}
+            >
               <Gift className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Donate</span>
             </button>
-            <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => supabase?.auth.signOut()}>
+            <button
+              className="secondary-button min-h-10 px-3 py-2"
+              type="button"
+              onClick={() => supabase?.auth.signOut()}
+            >
               <LogOut className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
 
-          <nav className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="LevelFlow sections">
+          <nav
+            className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
+            aria-label="LevelFlow sections"
+          >
             {TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -137,13 +225,32 @@ export default function App() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
-        {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={() => setupState.refreshSetups({ silent: true })} profile={profile} setupStats={setupState.stats} setups={setupState.setups} /> : null}
+        {activeTab === "advisor" ? (
+          <AdvisorWorkspace
+            onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
+            profile={profile}
+            setupStats={setupState.stats}
+            setups={setupState.setups}
+          />
+        ) : null}
         {activeTab === "about" ? <OverviewPanel /> : null}
         {activeTab === "history" ? (
-          <HistoryPanel categoryStats={setupState.categoryStats} loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} summary={setupState.outcomeSummary} />
+          <HistoryPanel
+            categoryStats={setupState.categoryStats}
+            loading={setupState.loading}
+            setups={setupState.setups}
+            stats={setupState.stats}
+            summary={setupState.outcomeSummary}
+          />
         ) : null}
         {activeTab === "profile" ? (
-          <ProfilePanel onSave={profileState.saveProfile} onThemeChange={theme.setMode} profile={profile} saveStatus={profileState.status} themeMode={theme.mode} />
+          <ProfilePanel
+            onSave={profileState.saveProfile}
+            onThemeChange={theme.setMode}
+            profile={profile}
+            saveStatus={profileState.status}
+            themeMode={theme.mode}
+          />
         ) : null}
         {activeTab === "guide" ? <GuidePanel /> : null}
         {activeTab === "donate" ? <DonatePanel /> : null}
@@ -176,17 +283,25 @@ function HistoryPanel({
   const [sortBy, setSortBy] = useState<HistorySort>("newest");
 
   const categories = useMemo(() => {
-    return Array.from(new Set(setups.map((setup) => getSecurityOption(setup.symbol).assetType))).sort();
+    return Array.from(
+      new Set(setups.map((setup) => getSecurityOption(setup.symbol).assetType)),
+    ).sort(compareAssetCategories);
   }, [setups]);
 
   const assets = useMemo(() => {
-    return Array.from(
-      new Set(
-        setups
-          .filter((setup) => categoryFilter === ALL_HISTORY_FILTER || getSecurityOption(setup.symbol).assetType === categoryFilter)
-          .map((setup) => setup.symbol),
+    return sortAssetSymbols(
+      Array.from(
+        new Set(
+          setups
+            .filter(
+              (setup) =>
+                categoryFilter === ALL_HISTORY_FILTER ||
+                getSecurityOption(setup.symbol).assetType === categoryFilter,
+            )
+            .map((setup) => setup.symbol),
+        ),
       ),
-    ).sort();
+    );
   }, [categoryFilter, setups]);
 
   useEffect(() => {
@@ -200,18 +315,31 @@ function HistoryPanel({
       setups.filter((setup) => {
         const outcome = getSetupOutcome(setup);
         const category = getSecurityOption(setup.symbol).assetType;
-        const statusMatches = statusFilter === "all" || outcome === statusFilter;
-        const categoryMatches = categoryFilter === ALL_HISTORY_FILTER || category === categoryFilter;
-        const assetMatches = assetFilter === ALL_HISTORY_FILTER || setup.symbol === assetFilter;
+        const statusMatches =
+          statusFilter === "all" || outcome === statusFilter;
+        const categoryMatches =
+          categoryFilter === ALL_HISTORY_FILTER || category === categoryFilter;
+        const assetMatches =
+          assetFilter === ALL_HISTORY_FILTER || setup.symbol === assetFilter;
         return statusMatches && categoryMatches && assetMatches;
       }),
       sortBy,
     );
   }, [assetFilter, categoryFilter, setups, sortBy, statusFilter]);
 
-  const groupedSetups = useMemo(() => groupHistorySetups(filteredSetups, groupBy), [filteredSetups, groupBy]);
-  const confidenceBands = useMemo(() => buildConfidenceBands(filteredSetups), [filteredSetups]);
-  const activeFilterCount = [statusFilter !== "all", categoryFilter !== ALL_HISTORY_FILTER, assetFilter !== ALL_HISTORY_FILTER].filter(Boolean).length;
+  const groupedSetups = useMemo(
+    () => groupHistorySetups(filteredSetups, groupBy),
+    [filteredSetups, groupBy],
+  );
+  const confidenceBands = useMemo(
+    () => buildConfidenceBands(filteredSetups),
+    [filteredSetups],
+  );
+  const activeFilterCount = [
+    statusFilter !== "all",
+    categoryFilter !== ALL_HISTORY_FILTER,
+    assetFilter !== ALL_HISTORY_FILTER,
+  ].filter(Boolean).length;
 
   function clearFilters() {
     setStatusFilter("all");
@@ -226,14 +354,29 @@ function HistoryPanel({
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Results</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">Insights</h2>
-            <p className="mt-1 text-sm leading-6 text-slate">See which ideas were shown, how they finished, and where performance is improving.</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Results
+            </p>
+            <h2 className="text-2xl font-semibold tracking-normal text-navy">
+              Insights
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate">
+              See which ideas were shown, how they finished, and where
+              performance is improving.
+            </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${filteredSetups.length} of ${setups.length} shown`}</p>
+            <p className="text-sm font-semibold text-slate">
+              {loading
+                ? "Loading"
+                : `${filteredSetups.length} of ${setups.length} shown`}
+            </p>
             {activeFilterCount > 0 ? (
-              <button className="mt-1 text-sm font-bold text-bullish" type="button" onClick={clearFilters}>
+              <button
+                className="mt-1 text-sm font-bold text-bullish"
+                type="button"
+                onClick={clearFilters}
+              >
                 Clear filters
               </button>
             ) : null}
@@ -242,7 +385,10 @@ function HistoryPanel({
 
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <StatPill label="Total ideas" value={summary.total.toString()} />
-          <StatPill label="Overall win rate" value={summary.winRate === null ? "Pending" : `${summary.winRate}%`} />
+          <StatPill
+            label="Overall win rate"
+            value={summary.winRate === null ? "Pending" : `${summary.winRate}%`}
+          />
           <StatPill label="Reached target" value={summary.wins.toString()} />
           <StatPill label="Hit stop" value={summary.losses.toString()} />
           <StatPill label="Needs review" value={summary.ambiguous.toString()} />
@@ -252,7 +398,13 @@ function HistoryPanel({
         <div className="mb-5 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Status
-            <select className="field min-h-11" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as HistoryStatusFilter)}>
+            <select
+              className="field min-h-11"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as HistoryStatusFilter)
+              }
+            >
               <option value="all">All statuses</option>
               {HISTORY_STATUS_ORDER.map((status) => (
                 <option key={status} value={status}>
@@ -263,7 +415,11 @@ function HistoryPanel({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Category
-            <select className="field min-h-11" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+            <select
+              className="field min-h-11"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
               <option value={ALL_HISTORY_FILTER}>All categories</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
@@ -273,8 +429,12 @@ function HistoryPanel({
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
-            Asset
-            <select className="field min-h-11" value={assetFilter} onChange={(event) => setAssetFilter(event.target.value)}>
+            Market
+            <select
+              className="field min-h-11"
+              value={assetFilter}
+              onChange={(event) => setAssetFilter(event.target.value)}
+            >
               <option value={ALL_HISTORY_FILTER}>All assets</option>
               {assets.map((asset) => (
                 <option key={asset} value={asset}>
@@ -285,20 +445,30 @@ function HistoryPanel({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Group by
-            <select className="field min-h-11" value={groupBy} onChange={(event) => setGroupBy(event.target.value as HistoryGroupBy)}>
+            <select
+              className="field min-h-11"
+              value={groupBy}
+              onChange={(event) =>
+                setGroupBy(event.target.value as HistoryGroupBy)
+              }
+            >
               <option value="date">Date</option>
               <option value="status">Status</option>
               <option value="category">Category</option>
-              <option value="asset">Asset</option>
+              <option value="asset">Market</option>
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Sort
-            <select className="field min-h-11" value={sortBy} onChange={(event) => setSortBy(event.target.value as HistorySort)}>
+            <select
+              className="field min-h-11"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as HistorySort)}
+            >
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
               <option value="confidence">Highest confidence</option>
-              <option value="asset">Asset A-Z</option>
+              <option value="asset">Market order</option>
             </select>
           </label>
         </div>
@@ -307,9 +477,12 @@ function HistoryPanel({
           {groupedSetups.map((group) => (
             <section key={group.key} className="min-w-0">
               <div className="mb-2 flex min-w-0 items-center justify-between gap-3 border-b border-slate/15 pb-2">
-                <h3 className="min-w-0 text-lg font-semibold text-navy">{group.label}</h3>
+                <h3 className="min-w-0 text-lg font-semibold text-navy">
+                  {group.label}
+                </h3>
                 <span className="shrink-0 text-sm font-semibold text-slate">
-                  {group.items.length} {group.items.length === 1 ? "idea" : "ideas"}
+                  {group.items.length}{" "}
+                  {group.items.length === 1 ? "idea" : "ideas"}
                 </span>
               </div>
               <div className="grid gap-3">
@@ -320,22 +493,47 @@ function HistoryPanel({
             </section>
           ))}
         </div>
-        {!loading && setups.length === 0 ? <p className="mt-4 text-sm leading-6 text-slate">No ideas have been logged yet.</p> : null}
+        {!loading && setups.length === 0 ? (
+          <p className="mt-4 text-sm leading-6 text-slate">
+            No ideas have been logged yet.
+          </p>
+        ) : null}
         {!loading && setups.length > 0 && filteredSetups.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">No ideas match the current filters.</p>
+          <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
+            No ideas match the current filters.
+          </p>
         ) : null}
       </section>
 
       <aside className="grid content-start gap-5">
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Performance</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Resolution</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Performance
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              Resolution
+            </h2>
           </div>
           <div className="grid gap-3">
-            <HistoryPerformanceRow label="Finished ideas" value={summary.resolved.toString()} detail={`${summary.wins} reached target / ${summary.losses} hit stop`} tone="neutral" />
-            <HistoryPerformanceRow label="Needs review" value={summary.ambiguous.toString()} detail={OUTCOME_COPY.unclear_path.description} tone="neutral" />
-            <HistoryPerformanceRow label="Entry not filled" value={summary.unfilled.toString()} detail={OUTCOME_COPY.entry_not_filled.description} tone="neutral" />
+            <HistoryPerformanceRow
+              label="Finished ideas"
+              value={summary.resolved.toString()}
+              detail={`${summary.wins} reached target / ${summary.losses} hit stop`}
+              tone="neutral"
+            />
+            <HistoryPerformanceRow
+              label="Needs review"
+              value={summary.ambiguous.toString()}
+              detail={OUTCOME_COPY.unclear_path.description}
+              tone="neutral"
+            />
+            <HistoryPerformanceRow
+              label="Entry not filled"
+              value={summary.unfilled.toString()}
+              detail={OUTCOME_COPY.entry_not_filled.description}
+              tone="neutral"
+            />
             <HistoryPerformanceRow
               label="Still tracking"
               value={summary.pending.toString()}
@@ -349,8 +547,12 @@ function HistoryPanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By score range</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Confidence
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              By score range
+            </h2>
           </div>
           <div className="grid gap-3">
             {confidenceBands.map((band) => (
@@ -361,28 +563,52 @@ function HistoryPanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Market trends</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By market</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Market trends
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              By market
+            </h2>
           </div>
           <div className="grid gap-3">
             {categoryStats.map((stat) => (
-              <HistoryStatRow key={stat.category} label={stat.category} stat={stat} />
+              <HistoryStatRow
+                key={stat.category}
+                label={stat.category}
+                stat={stat}
+              />
             ))}
           </div>
-          {categoryStats.length === 0 ? <p className="text-sm leading-6 text-slate">Market results will appear after ideas are logged.</p> : null}
+          {categoryStats.length === 0 ? (
+            <p className="text-sm leading-6 text-slate">
+              Market results will appear after ideas are logged.
+            </p>
+          ) : null}
         </section>
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Asset trends</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Most reviewed</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Asset trends
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              Most reviewed
+            </h2>
           </div>
           <div className="grid gap-3">
             {stats.slice(0, 8).map((stat) => (
-              <HistoryStatRow key={stat.symbol} label={stat.symbol} stat={stat} />
+              <HistoryStatRow
+                key={stat.symbol}
+                label={stat.symbol}
+                stat={stat}
+              />
             ))}
           </div>
-          {stats.length === 0 ? <p className="text-sm leading-6 text-slate">Asset results will appear after ideas are reviewed.</p> : null}
+          {stats.length === 0 ? (
+            <p className="text-sm leading-6 text-slate">
+              Market results will appear after ideas are reviewed.
+            </p>
+          ) : null}
         </section>
       </aside>
     </div>
@@ -420,17 +646,28 @@ function OverviewPanel() {
       <section className="terminal-panel overflow-hidden">
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)] lg:items-center">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What LevelFlow is</p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">A premium market review workspace for disciplined traders.</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              What LevelFlow is
+            </p>
+            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">
+              A premium market review workspace for disciplined traders.
+            </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
-              LevelFlow refreshes the chart, checks the market from several angles, accounts for timing risk, and presents the next limit idea when the evidence is strong enough.
+              LevelFlow refreshes the chart, checks the market from several
+              angles, accounts for timing risk, and presents the next limit idea
+              when the evidence is strong enough.
             </p>
           </div>
           <div className="grid gap-2 rounded-lg border border-slate/15 bg-canvas p-4">
             {proofItems.map((item) => (
-              <div key={item.label} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm">
+              <div
+                key={item.label}
+                className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+              >
                 <span className="min-w-0 text-slate">{item.label}</span>
-                <span className="shrink-0 font-semibold text-navy">{item.value}</span>
+                <span className="shrink-0 font-semibold text-navy">
+                  {item.value}
+                </span>
               </div>
             ))}
           </div>
@@ -440,8 +677,12 @@ function OverviewPanel() {
       <section className="grid gap-4 lg:grid-cols-3">
         {valueCards.map((card) => (
           <article key={card.title} className="terminal-panel p-5 sm:p-6">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">{card.icon}</div>
-            <h3 className="text-xl font-semibold tracking-normal text-navy">{card.title}</h3>
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
+              {card.icon}
+            </div>
+            <h3 className="text-xl font-semibold tracking-normal text-navy">
+              {card.title}
+            </h3>
             <p className="mt-2 text-sm leading-6 text-slate">{card.body}</p>
           </article>
         ))}
@@ -450,16 +691,27 @@ function OverviewPanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Why it matters</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">The goal is cleaner decisions, not more noise.</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Why it matters
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              The goal is cleaner decisions, not more noise.
+            </h2>
             <p className="mt-3 text-sm leading-6 text-slate">
-              Most trading tools add more noise. LevelFlow narrows the decision: if the quality, timing, and reward are not there, it clears the prior idea and shows no trade idea. If the idea passes, it shows the side, entry, stop, target, confidence, and reason in one place.
+              Most trading tools add more noise. LevelFlow narrows the decision:
+              if the quality, timing, and reward are not there, it clears the
+              prior idea and shows no trade idea. If the idea passes, it shows
+              the side, entry, stop, target, confidence, and reason in one
+              place.
             </p>
           </div>
           <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">
-            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Important boundary</p>
+            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
+              Important boundary
+            </p>
             <p className="mt-2 text-sm leading-6 text-navy">
-              LevelFlow does not place trades. It helps traders review the market, compare evidence, and decide with more discipline.
+              LevelFlow does not place trades. It helps traders review the
+              market, compare evidence, and decide with more discipline.
             </p>
           </div>
         </div>
@@ -474,7 +726,9 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
   const isBuy = setup.side === "buy";
   const category = getSecurityOption(setup.symbol).assetType;
   const confluence = asRecord(setup.confluence);
-  const setupKey = String(confluence.setupKey ?? setup.correlation_group ?? "setup type");
+  const setupKey = String(
+    confluence.setupKey ?? setup.correlation_group ?? "setup type",
+  );
   const rewardRisk = asNumber(confluence.rewardRisk);
 
   return (
@@ -483,41 +737,93 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-lg font-semibold text-navy">{setup.symbol}</h4>
-            <span className="rounded-full bg-white px-2 py-1 text-xs font-bold uppercase text-slate">{category}</span>
+            <span className="rounded-full bg-white px-2 py-1 text-xs font-bold uppercase text-slate">
+              {category}
+            </span>
           </div>
-          <p className="mt-1 text-sm text-slate">{formatDate(setup.created_at)}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{formatDisplayName(setupKey)}</p>
+          <p className="mt-1 text-sm text-slate">
+            {formatDate(setup.created_at)}
+          </p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+            {formatDisplayName(setupKey)}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>{setup.side} limit</span>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getOutcomeClassName(outcome)}`}>{outcomeLabel}</span>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}
+          >
+            {setup.side} limit
+          </span>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getOutcomeClassName(outcome)}`}
+          >
+            {outcomeLabel}
+          </span>
         </div>
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-        <HistoryMetric label="Entry" value={formatPriceValue(setup.limit_entry)} valueClassName={isBuy ? "text-bullish" : "text-danger"} />
+        <HistoryMetric
+          label="Entry"
+          value={formatPriceValue(setup.limit_entry)}
+          valueClassName={isBuy ? "text-bullish" : "text-danger"}
+        />
         <HistoryMetric label="Stop" value={formatPriceValue(setup.stop_loss)} />
-        <HistoryMetric label="Target" value={formatPriceValue(setup.take_profit)} />
-        <HistoryMetric label="Break-even" value={formatPriceValue(setup.breakeven_trigger_price)} />
-        <HistoryMetric label="Confidence" value={`${Number(setup.confidence_score)}%`} />
-        <HistoryMetric label="Payoff" value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`} />
+        <HistoryMetric
+          label="Target"
+          value={formatPriceValue(setup.take_profit)}
+        />
+        <HistoryMetric
+          label="Break-even"
+          value={formatPriceValue(setup.breakeven_trigger_price)}
+        />
+        <HistoryMetric
+          label="Confidence"
+          value={`${Number(setup.confidence_score)}%`}
+        />
+        <HistoryMetric
+          label="Payoff"
+          value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`}
+        />
       </div>
     </article>
   );
 }
 
-function HistoryMetric({ label, value, valueClassName = "text-navy" }: { label: string; value: string; valueClassName?: string }) {
+function HistoryMetric({
+  label,
+  value,
+  valueClassName = "text-navy",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
   return (
     <div className="min-w-0 rounded-lg bg-white px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+        {label}
+      </p>
       <p className={`mt-1 truncate font-semibold ${valueClassName}`}>{value}</p>
     </div>
   );
 }
 
-function HistoryPerformanceRow({ detail, label, tone, value }: { detail: string; label: string; tone: "bullish" | "neutral"; value: string }) {
+function HistoryPerformanceRow({
+  detail,
+  label,
+  tone,
+  value,
+}: {
+  detail: string;
+  label: string;
+  tone: "bullish" | "neutral";
+  value: string;
+}) {
   return (
-    <div className={`rounded-lg border px-3 py-3 ${tone === "bullish" ? "border-bullish/25 bg-bullish/10" : "border-slate/15 bg-canvas"}`}>
+    <div
+      className={`rounded-lg border px-3 py-3 ${tone === "bullish" ? "border-bullish/25 bg-bullish/10" : "border-slate/15 bg-canvas"}`}
+    >
       <div className="flex items-center justify-between gap-3">
         <p className="font-semibold text-navy">{label}</p>
         <p className="text-lg font-semibold text-navy">{value}</p>
@@ -527,8 +833,15 @@ function HistoryPerformanceRow({ detail, label, tone, value }: { detail: string;
   );
 }
 
-function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | SecurityStat }) {
-  const resolvedLabel = stat.winRate === null ? "Learning" : `${stat.winRate}% win rate`;
+function HistoryStatRow({
+  label,
+  stat,
+}: {
+  label: string;
+  stat: CategoryStat | SecurityStat;
+}) {
+  const resolvedLabel =
+    stat.winRate === null ? "Learning" : `${stat.winRate}% win rate`;
   const barWidth = stat.winRate === null ? 0 : stat.winRate;
 
   return (
@@ -536,12 +849,19 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-semibold text-navy">{label}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{stat.count} ideas</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+            {stat.count} ideas
+          </p>
         </div>
-        <p className="shrink-0 text-sm font-semibold text-navy">{resolvedLabel}</p>
+        <p className="shrink-0 text-sm font-semibold text-navy">
+          {resolvedLabel}
+        </p>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-        <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
+        <div
+          className="h-full rounded-full bg-bullish"
+          style={{ width: `${barWidth}%` }}
+        />
       </div>
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
         <div>
@@ -565,7 +885,19 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
   );
 }
 
-function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { ambiguous: number; count: number; label: string; resolved: number; winRate: number | null }) {
+function ConfidenceBandRow({
+  ambiguous,
+  count,
+  label,
+  resolved,
+  winRate,
+}: {
+  ambiguous: number;
+  count: number;
+  label: string;
+  resolved: number;
+  winRate: number | null;
+}) {
   const barWidth = winRate ?? 0;
 
   return (
@@ -577,12 +909,21 @@ function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { amb
             {count} ideas / {resolved} finished
           </p>
         </div>
-        <p className="shrink-0 text-sm font-semibold text-navy">{winRate === null ? "Learning" : `${winRate}% win rate`}</p>
+        <p className="shrink-0 text-sm font-semibold text-navy">
+          {winRate === null ? "Learning" : `${winRate}% win rate`}
+        </p>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-        <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
+        <div
+          className="h-full rounded-full bg-bullish"
+          style={{ width: `${barWidth}%` }}
+        />
       </div>
-      {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} need review</p> : null}
+      {ambiguous > 0 ? (
+        <p className="mt-2 text-xs font-semibold text-slate">
+          {ambiguous} need review
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -597,10 +938,15 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
   return (
     <section className="terminal-panel p-5 sm:p-6">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">App learning</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What is improving</h2>
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+          App learning
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+          What is improving
+        </h2>
         <p className="mt-2 text-sm leading-6 text-slate">
-          LevelFlow uses finished ideas across the app to improve future reviews. This is shared across the product, not isolated to one user.
+          LevelFlow uses finished ideas across the app to improve future
+          reviews. This is shared across the product, not isolated to one user.
         </p>
       </div>
       <div className="mb-4 grid grid-cols-2 gap-3">
@@ -609,25 +955,41 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
       </div>
       <div className="grid gap-3">
         {families.slice(0, 5).map((family) => (
-          <div key={family.key} className="min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-canvas p-3">
+          <div
+            key={family.key}
+            className="min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-canvas p-3"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="block max-w-full truncate font-semibold text-navy" title={formatDisplayName(family.key)}>
+                <p
+                  className="block max-w-full truncate font-semibold text-navy"
+                  title={formatDisplayName(family.key)}
+                >
                   {formatModelFamilyLabel(family.key)}
                 </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{family.count} ideas</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+                  {family.count} ideas
+                </p>
               </div>
-              <p className={`shrink-0 text-sm font-semibold ${family.adjustment > 0 ? "text-bullish" : family.adjustment < 0 ? "text-danger" : "text-navy"}`}>
+              <p
+                className={`shrink-0 text-sm font-semibold ${family.adjustment > 0 ? "text-bullish" : family.adjustment < 0 ? "text-danger" : "text-navy"}`}
+              >
                 {family.adjustment > 0 ? "+" : ""}
                 {family.adjustment.toFixed(1)} pts
               </p>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate">
-              {family.globalSampleSize > 0 ? `${family.globalSampleSize} finished ideas have informed this pattern.` : "More finished ideas are needed before this pattern carries weight."}
+              {family.globalSampleSize > 0
+                ? `${family.globalSampleSize} finished ideas have informed this pattern.`
+                : "More finished ideas are needed before this pattern carries weight."}
             </p>
           </div>
         ))}
-        {families.length === 0 ? <p className="text-sm leading-6 text-slate">Learning signals will appear after ideas are reviewed.</p> : null}
+        {families.length === 0 ? (
+          <p className="text-sm leading-6 text-slate">
+            Learning signals will appear after ideas are reviewed.
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -640,7 +1002,16 @@ function ProfilePanel({
   saveStatus,
   themeMode,
 }: {
-  onSave: (input: Pick<UserProfile, "defaultTimeframe" | "defaultTimezone" | "displayName" | "preferredSession" | "themePreference">) => Promise<void>;
+  onSave: (
+    input: Pick<
+      UserProfile,
+      | "defaultTimeframe"
+      | "defaultTimezone"
+      | "displayName"
+      | "preferredSession"
+      | "themePreference"
+    >,
+  ) => Promise<void>;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
   saveStatus: "idle" | "saving" | "saved";
@@ -648,9 +1019,31 @@ function ProfilePanel({
 }) {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [timezone, setTimezone] = useState(profile.defaultTimezone);
-  const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>(profile.defaultTimeframe);
-  const [preferredSession, setPreferredSession] = useState(profile.preferredSession);
+  const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>(
+    profile.defaultTimeframe,
+  );
+  const [preferredSession, setPreferredSession] = useState(
+    profile.preferredSession,
+  );
   const [saveError, setSaveError] = useState("");
+  const [profileNow, setProfileNow] = useState(() => new Date());
+
+  const sessions = useMemo(
+    () => getGlobalSessions(timezone, preferredSession, profileNow),
+    [preferredSession, profileNow, timezone],
+  );
+  const focusedSession =
+    sessions.find((session) => session.isPreferred) ??
+    sessions.find((session) => session.id === "north_america") ??
+    sessions[0];
+  const timezoneLabel =
+    US_STATE_TIME_ZONES.find((option) => option.value === timezone)?.label ??
+    "Eastern Time";
+  const sessionLabel =
+    PREFERRED_SESSION_OPTIONS.find(
+      (option) => option.value === preferredSession,
+    )?.label ?? "No preference";
+  const timeframeLabel = getTimeframeLabel(defaultTimeframe);
 
   useEffect(() => {
     setDisplayName(profile.displayName);
@@ -658,6 +1051,14 @@ function ProfilePanel({
     setDefaultTimeframe(profile.defaultTimeframe);
     setPreferredSession(profile.preferredSession);
   }, [profile]);
+
+  useEffect(() => {
+    const interval = window.setInterval(
+      () => setProfileNow(new Date()),
+      60_000,
+    );
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -672,25 +1073,43 @@ function ProfilePanel({
         themePreference: themeMode,
       });
     } catch {
-      setSaveError("Profile could not be saved. Try again after the connection refreshes.");
+      setSaveError(
+        "Profile could not be saved. Try again after the connection refreshes.",
+      );
     }
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.55fr)]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]">
       <form className="terminal-panel p-5 sm:p-6" onSubmit={saveProfile}>
         <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">User profile</p>
-          <h2 className="text-2xl font-semibold tracking-normal text-navy">Workspace preferences</h2>
+          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            Profile
+          </p>
+          <h2 className="text-2xl font-semibold tracking-normal text-navy">
+            Workspace defaults
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate">
+            Set how LevelFlow opens and how market clocks are shown.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-navy">
-            Display name
-            <input className="field" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Trader name" />
+            Name
+            <input
+              className="field"
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              placeholder="Trader name"
+            />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             U.S. timezone
-            <select className="field" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
+            <select
+              className="field"
+              value={timezone}
+              onChange={(event) => setTimezone(event.target.value)}
+            >
               {US_STATE_TIME_ZONES.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -700,7 +1119,15 @@ function ProfilePanel({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Preferred session
-            <select className="field" value={preferredSession} onChange={(event) => setPreferredSession(event.target.value as UserProfile["preferredSession"])}>
+            <select
+              className="field"
+              value={preferredSession}
+              onChange={(event) =>
+                setPreferredSession(
+                  event.target.value as UserProfile["preferredSession"],
+                )
+              }
+            >
               {PREFERRED_SESSION_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -710,7 +1137,13 @@ function ProfilePanel({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
             Default chart timeframe
-            <select className="field" value={defaultTimeframe} onChange={(event) => setDefaultTimeframe(event.target.value as ChartTimeframe)}>
+            <select
+              className="field"
+              value={defaultTimeframe}
+              onChange={(event) =>
+                setDefaultTimeframe(event.target.value as ChartTimeframe)
+              }
+            >
               <option value="15min">15 minutes</option>
               <option value="1hour">1 hour</option>
               <option value="4hour">4 hours</option>
@@ -722,22 +1155,107 @@ function ProfilePanel({
             <ThemeToggle mode={themeMode} onChange={onThemeChange} />
           </div>
         </div>
-        {saveError ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">{saveError}</p> : null}
-        <button className="primary-button mt-5" type="submit" disabled={saveStatus === "saving"}>
-          {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Profile saved" : "Save profile"}
+        <div className="mt-5 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 sm:grid-cols-3">
+          <ProfileMiniMetric label="Time zone" value={timezoneLabel} />
+          <ProfileMiniMetric label="Session" value={sessionLabel} />
+          <ProfileMiniMetric label="Chart" value={timeframeLabel} />
+        </div>
+        {saveError ? (
+          <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+            {saveError}
+          </p>
+        ) : null}
+        <button
+          className="primary-button mt-5"
+          type="submit"
+          disabled={saveStatus === "saving"}
+        >
+          {saveStatus === "saving"
+            ? "Saving..."
+            : saveStatus === "saved"
+              ? "Profile saved"
+              : "Save profile"}
         </button>
       </form>
 
-      <section className="terminal-panel p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Profile impact</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How LevelFlow uses it</h2>
-        <div className="mt-4 grid gap-3 text-sm leading-6 text-slate">
-          <p>Your name personalizes the workspace.</p>
-          <p>Your U.S. timezone drives market clocks and daylight saving time adjustments.</p>
-          <p>Preferred session highlights the trading session you watch most.</p>
-          <p>Default timeframe and theme set your starting workspace view.</p>
-        </div>
-      </section>
+      <div className="grid gap-5">
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <CalendarClock className="h-5 w-5 text-navy" aria-hidden="true" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+                Today
+              </p>
+              <h2 className="text-2xl font-semibold tracking-normal text-navy">
+                Workspace clock
+              </h2>
+            </div>
+          </div>
+          <div className="grid gap-3">
+            <ProfileDetailRow
+              label="Local time"
+              value={formatProfileTime(profileNow, timezone)}
+            />
+            <ProfileDetailRow
+              label="Session focus"
+              value={
+                focusedSession
+                  ? `${focusedSession.label} ${focusedSession.isOpen ? "open" : "closed"}`
+                  : "No preference"
+              }
+            />
+            <ProfileDetailRow
+              label="Next session event"
+              value={
+                focusedSession
+                  ? `${focusedSession.nextEventLabel} in ${focusedSession.countdownLabel}`
+                  : "Tracking all sessions"
+              }
+            />
+          </div>
+        </section>
+
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-navy" aria-hidden="true" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+                Saved defaults
+              </p>
+              <h2 className="text-2xl font-semibold tracking-normal text-navy">
+                What this controls
+              </h2>
+            </div>
+          </div>
+          <div className="grid gap-3 text-sm leading-6 text-slate">
+            <p>Name personalizes the workspace.</p>
+            <p>Time zone controls market clocks and daylight saving time.</p>
+            <p>Session and chart defaults shape the Advisor starting view.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function ProfileMiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-white px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+        {label}
+      </p>
+      <p className="mt-1 truncate font-semibold text-navy">{value}</p>
+    </div>
+  );
+}
+
+function ProfileDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-sm">
+      <span className="min-w-0 text-slate">{label}</span>
+      <span className="min-w-0 text-right font-semibold text-navy">
+        {value}
+      </span>
     </div>
   );
 }
@@ -855,12 +1373,18 @@ function GuidePanel() {
                 <BookOpen className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Guide</p>
-                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">How to use LevelFlow.</h2>
+                <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+                  Guide
+                </p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">
+                  How to use LevelFlow.
+                </h2>
               </div>
             </div>
             <p className="max-w-3xl text-base leading-7 text-slate">
-              Start with the chart, run the review, then inspect the levels and reason. Market Scan can help decide what to look at next, while Insights tracks how ideas finish over time.
+              Start with the chart, run the review, then inspect the levels and
+              reason. Market Scan can help decide what to look at next, while
+              Insights tracks how ideas finish over time.
             </p>
           </div>
 
@@ -871,14 +1395,24 @@ function GuidePanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Workflow</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Five-step workflow</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Workflow
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              Five-step workflow
+            </h2>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate">Chart first, review second, reason before action.</p>
+          <p className="max-w-md text-sm leading-6 text-slate">
+            Chart first, review second, reason before action.
+          </p>
         </div>
         <div className="grid gap-3 lg:grid-cols-5">
           {workflow.map((step, index) => (
-            <GuideProcessStep key={step.number} {...step} isLast={index === workflow.length - 1} />
+            <GuideProcessStep
+              key={step.number}
+              {...step}
+              isLast={index === workflow.length - 1}
+            />
           ))}
         </div>
       </section>
@@ -886,8 +1420,12 @@ function GuidePanel() {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.5fr)]">
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Review</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What LevelFlow checks</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Review
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              What LevelFlow checks
+            </h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {decisionLenses.map((item) => (
@@ -898,8 +1436,12 @@ function GuidePanel() {
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Output</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What the idea includes</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Output
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              What the idea includes
+            </h2>
           </div>
           <div className="grid gap-3">
             {outputItems.map((item) => (
@@ -912,10 +1454,15 @@ function GuidePanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(280px,0.4fr)] lg:items-start">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to read the score</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Confidence
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              How to read the score
+            </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
-              Confidence is a 0-100 quality score. It reflects market agreement, payoff, timing, event risk, data quality, and past results.
+              Confidence is a 0-100 quality score. It reflects market agreement,
+              payoff, timing, event risk, data quality, and past results.
             </p>
           </div>
           <div className="grid gap-3">
@@ -929,11 +1476,21 @@ function GuidePanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Contact</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Questions or data issues</h2>
-            <p className="mt-1 text-sm leading-6 text-slate">Send the asset, timeframe, and a short description of what looked off.</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Contact
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              Questions or data issues
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate">
+              Send the asset, timeframe, and a short description of what looked
+              off.
+            </p>
           </div>
-          <a className="secondary-button shrink-0" href={`mailto:${SUPPORT_EMAIL}`}>
+          <a
+            className="secondary-button shrink-0"
+            href={`mailto:${SUPPORT_EMAIL}`}
+          >
             <Mail className="h-4 w-4" aria-hidden="true" />
             {SUPPORT_EMAIL}
           </a>
@@ -948,28 +1505,50 @@ function GuidePreviewCard() {
     <div className="grid content-between gap-4 rounded-lg border border-slate/15 bg-canvas p-4">
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="rounded-full bg-danger/10 px-3 py-1 text-xs font-bold uppercase text-danger">Sell limit</span>
-          <span className="text-sm font-semibold text-navy">87% confidence</span>
+          <span className="rounded-full bg-danger/10 px-3 py-1 text-xs font-bold uppercase text-danger">
+            Sell limit
+          </span>
+          <span className="text-sm font-semibold text-navy">
+            87% confidence
+          </span>
         </div>
         <div className="grid gap-2 text-sm">
           <GuidePreviewMetric label="Entry" value="1.15780" tone="danger" />
           <GuidePreviewMetric label="Stop" value="1.16120" />
           <GuidePreviewMetric label="Target" value="1.15040" />
-        <GuidePreviewMetric label="Reason" value="Direction + location + timing" />
+          <GuidePreviewMetric
+            label="Reason"
+            value="Direction + location + timing"
+          />
         </div>
       </div>
       <div className="rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-xs font-semibold leading-5 text-bullish">
-        Example only. Live ideas refresh from the selected market and only appear when the current idea passes review.
+        Example only. Live ideas refresh from the selected market and only
+        appear when the current idea passes review.
       </div>
     </div>
   );
 }
 
-function GuidePreviewMetric({ label, tone = "neutral", value }: { label: string; tone?: "danger" | "neutral"; value: string }) {
+function GuidePreviewMetric({
+  label,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  tone?: "danger" | "neutral";
+  value: string;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
-      <span className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</span>
-      <span className={`text-right font-semibold ${tone === "danger" ? "text-danger" : "text-navy"}`}>{value}</span>
+      <span className="text-xs font-semibold uppercase tracking-normal text-slate">
+        {label}
+      </span>
+      <span
+        className={`text-right font-semibold ${tone === "danger" ? "text-danger" : "text-navy"}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -991,12 +1570,19 @@ function GuideProcessStep({
     <div className="relative min-w-0 rounded-lg border border-slate/15 bg-canvas p-4">
       {!isLast ? (
         <div className="pointer-events-none absolute -right-4 top-8 hidden h-px w-5 bg-slate/25 lg:block">
-          <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-slate" aria-hidden="true" />
+          <ArrowRight
+            className="absolute -right-2 -top-2 h-4 w-4 text-slate"
+            aria-hidden="true"
+          />
         </div>
       ) : null}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white">{icon}</div>
-        <span className="text-xs font-bold uppercase tracking-normal text-bullish">{number}</span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white">
+          {icon}
+        </div>
+        <span className="text-xs font-bold uppercase tracking-normal text-bullish">
+          {number}
+        </span>
       </div>
       <h3 className="font-semibold text-navy">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-slate">{body}</p>
@@ -1004,11 +1590,21 @@ function GuideProcessStep({
   );
 }
 
-function GuideLensCard({ body, icon, title }: { body: string; icon: ReactNode; title: string }) {
+function GuideLensCard({
+  body,
+  icon,
+  title,
+}: {
+  body: string;
+  icon: ReactNode;
+  title: string;
+}) {
   return (
     <div className="min-w-0 rounded-lg border border-slate/15 bg-canvas p-4">
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bullish/10 text-bullish">{icon}</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bullish/10 text-bullish">
+          {icon}
+        </div>
         <h3 className="font-semibold text-navy">{title}</h3>
       </div>
       <p className="text-sm leading-6 text-slate">{body}</p>
@@ -1016,11 +1612,21 @@ function GuideLensCard({ body, icon, title }: { body: string; icon: ReactNode; t
   );
 }
 
-function GuideOutputRow({ body, label, value }: { body: string; label: string; value: string }) {
+function GuideOutputRow({
+  body,
+  label,
+  value,
+}: {
+  body: string;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="grid min-w-0 gap-2 rounded-lg border border-slate/15 bg-canvas p-3">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+          {label}
+        </p>
         <p className="text-sm font-semibold text-navy">{value}</p>
       </div>
       <p className="text-sm leading-6 text-slate">{body}</p>
@@ -1028,10 +1634,20 @@ function GuideOutputRow({ body, label, value }: { body: string; label: string; v
   );
 }
 
-function GuideConfidenceBand({ body, range, title }: { body: string; range: string; title: string }) {
+function GuideConfidenceBand({
+  body,
+  range,
+  title,
+}: {
+  body: string;
+  range: string;
+  title: string;
+}) {
   return (
     <div className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas p-4 sm:grid-cols-[88px_minmax(0,1fr)]">
-      <div className="flex h-14 w-full items-center justify-center rounded-lg bg-white text-lg font-semibold text-navy">{range}</div>
+      <div className="flex h-14 w-full items-center justify-center rounded-lg bg-white text-lg font-semibold text-navy">
+        {range}
+      </div>
       <div className="min-w-0">
         <h3 className="font-semibold text-navy">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
@@ -1051,30 +1667,65 @@ function DonatePanel() {
         <div className="mb-5 flex items-center gap-3">
           <Gift className="h-5 w-5 text-navy" aria-hidden="true" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Development fund</p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">Donate</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Development fund
+            </p>
+            <h2 className="text-2xl font-semibold tracking-normal text-navy">
+              Donate
+            </h2>
           </div>
         </div>
         <DonationOptions fallbackHref={donationFallbackHref} />
       </section>
       <section className="terminal-panel p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What donations support</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">App costs</h2>
-        <p className="mt-4 text-sm leading-6 text-slate">Donations go toward market data, authentication email delivery, hosting, database capacity, testing, and continued LevelFlow development.</p>
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+          What donations support
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+          App costs
+        </h2>
+        <p className="mt-4 text-sm leading-6 text-slate">
+          Donations go toward market data, authentication email delivery,
+          hosting, database capacity, testing, and continued LevelFlow
+          development.
+        </p>
       </section>
     </div>
   );
 }
 
-function ThemeToggle({ compact = false, mode, onChange }: { compact?: boolean; mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
+function ThemeToggle({
+  compact = false,
+  mode,
+  onChange,
+}: {
+  compact?: boolean;
+  mode: ThemeMode;
+  onChange: (mode: ThemeMode) => void;
+}) {
   const options: Array<{ icon: ReactNode; label: string; value: ThemeMode }> = [
-    { icon: <Sun className="h-4 w-4" aria-hidden="true" />, label: "Light", value: "light" },
-    { icon: <Moon className="h-4 w-4" aria-hidden="true" />, label: "Dark", value: "dark" },
-    { icon: <Monitor className="h-4 w-4" aria-hidden="true" />, label: "System", value: "system" },
+    {
+      icon: <Sun className="h-4 w-4" aria-hidden="true" />,
+      label: "Light",
+      value: "light",
+    },
+    {
+      icon: <Moon className="h-4 w-4" aria-hidden="true" />,
+      label: "Dark",
+      value: "dark",
+    },
+    {
+      icon: <Monitor className="h-4 w-4" aria-hidden="true" />,
+      label: "System",
+      value: "system",
+    },
   ];
 
   return (
-    <div className="inline-flex rounded-lg border border-slate/20 bg-white p-1" aria-label="Theme">
+    <div
+      className="inline-flex rounded-lg border border-slate/20 bg-white p-1"
+      aria-label="Theme"
+    >
       {options.map((option) => (
         <button
           key={option.value}
@@ -1083,7 +1734,11 @@ function ThemeToggle({ compact = false, mode, onChange }: { compact?: boolean; m
           onClick={() => onChange(option.value)}
         >
           {option.icon}
-          {compact ? <span className="sr-only">{option.label}</span> : option.label}
+          {compact ? (
+            <span className="sr-only">{option.label}</span>
+          ) : (
+            option.label
+          )}
         </button>
       ))}
     </div>
@@ -1105,9 +1760,15 @@ function useThemePreference() {
       return "system";
     }
     const stored = window.localStorage.getItem("levelflow-theme");
-    return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    return stored === "light" || stored === "dark" || stored === "system"
+      ? stored
+      : "system";
   });
-  const [systemDark, setSystemDark] = useState(() => (typeof window === "undefined" ? false : window.matchMedia("(prefers-color-scheme: dark)").matches));
+  const [systemDark, setSystemDark] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1120,7 +1781,10 @@ function useThemePreference() {
     return () => query.removeEventListener("change", onChange);
   }, []);
 
-  const resolvedMode = useMemo(() => (mode === "system" ? (systemDark ? "dark" : "light") : mode), [mode, systemDark]);
+  const resolvedMode = useMemo(
+    () => (mode === "system" ? (systemDark ? "dark" : "light") : mode),
+    [mode, systemDark],
+  );
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedMode;
@@ -1140,16 +1804,25 @@ function sortHistorySetups(setups: TradeSetupRow[], sortBy: HistorySort) {
       return firstDate - secondDate;
     }
     if (sortBy === "confidence") {
-      return Number(second.confidence_score) - Number(first.confidence_score) || secondDate - firstDate;
+      return (
+        Number(second.confidence_score) - Number(first.confidence_score) ||
+        secondDate - firstDate
+      );
     }
     if (sortBy === "asset") {
-      return first.symbol.localeCompare(second.symbol) || secondDate - firstDate;
+      return (
+        compareAssetSymbols(first.symbol, second.symbol) ||
+        secondDate - firstDate
+      );
     }
     return secondDate - firstDate;
   });
 }
 
-function groupHistorySetups(setups: TradeSetupRow[], groupBy: HistoryGroupBy): HistorySetupGroup[] {
+function groupHistorySetups(
+  setups: TradeSetupRow[],
+  groupBy: HistoryGroupBy,
+): HistorySetupGroup[] {
   const groups = new Map<string, HistorySetupGroup>();
 
   setups.forEach((setup) => {
@@ -1163,25 +1836,65 @@ function groupHistorySetups(setups: TradeSetupRow[], groupBy: HistoryGroupBy): H
   });
 
   const orderedGroups = Array.from(groups.values());
-  if (groupBy === "asset" || groupBy === "category") {
-    return orderedGroups.sort((first, second) => first.label.localeCompare(second.label));
+  if (groupBy === "asset") {
+    return orderedGroups.sort((first, second) =>
+      compareAssetSymbols(first.key, second.key),
+    );
+  }
+  if (groupBy === "category") {
+    return orderedGroups.sort((first, second) =>
+      compareAssetCategories(
+        first.key as SecurityType,
+        second.key as SecurityType,
+      ),
+    );
   }
   if (groupBy === "status") {
-    return orderedGroups.sort((first, second) => HISTORY_STATUS_ORDER.indexOf(first.key as SetupOutcome) - HISTORY_STATUS_ORDER.indexOf(second.key as SetupOutcome));
+    return orderedGroups.sort(
+      (first, second) =>
+        HISTORY_STATUS_ORDER.indexOf(first.key as SetupOutcome) -
+        HISTORY_STATUS_ORDER.indexOf(second.key as SetupOutcome),
+    );
   }
   return orderedGroups;
 }
 
 function buildConfidenceBands(setups: TradeSetupRow[]) {
   const bands = [
-    { ambiguous: 0, count: 0, label: "Qualified: 66-74", losses: 0, max: 74, min: 66, wins: 0 },
-    { ambiguous: 0, count: 0, label: "Strong: 75-84", losses: 0, max: 84, min: 75, wins: 0 },
-    { ambiguous: 0, count: 0, label: "Best: 85-100", losses: 0, max: 100, min: 85, wins: 0 },
+    {
+      ambiguous: 0,
+      count: 0,
+      label: "Qualified: 66-74",
+      losses: 0,
+      max: 74,
+      min: 66,
+      wins: 0,
+    },
+    {
+      ambiguous: 0,
+      count: 0,
+      label: "Strong: 75-84",
+      losses: 0,
+      max: 84,
+      min: 75,
+      wins: 0,
+    },
+    {
+      ambiguous: 0,
+      count: 0,
+      label: "Best: 85-100",
+      losses: 0,
+      max: 100,
+      min: 85,
+      wins: 0,
+    },
   ];
 
   for (const setup of setups) {
     const score = Number(setup.confidence_score);
-    const band = bands.find((candidate) => score >= candidate.min && score <= candidate.max);
+    const band = bands.find(
+      (candidate) => score >= candidate.min && score <= candidate.max,
+    );
     if (!band) {
       continue;
     }
@@ -1221,7 +1934,9 @@ function buildSetupFamilyStats(setups: TradeSetupRow[]) {
 
   for (const setup of setups) {
     const confluence = asRecord(setup.confluence);
-    const key = String(confluence.setupKey ?? setup.correlation_group ?? setup.symbol);
+    const key = String(
+      confluence.setupKey ?? setup.correlation_group ?? setup.symbol,
+    );
     const current = families.get(key) ?? {
       adjustmentTotal: 0,
       count: 0,
@@ -1229,8 +1944,12 @@ function buildSetupFamilyStats(setups: TradeSetupRow[]) {
       key,
     };
     current.count += 1;
-    current.adjustmentTotal += asNumber(confluence.strategyWeightAdjustment) ?? 0;
-    current.globalSampleSize = Math.max(current.globalSampleSize, asNumber(confluence.strategyWeightSampleSize) ?? 0);
+    current.adjustmentTotal +=
+      asNumber(confluence.strategyWeightAdjustment) ?? 0;
+    current.globalSampleSize = Math.max(
+      current.globalSampleSize,
+      asNumber(confluence.strategyWeightSampleSize) ?? 0,
+    );
     families.set(key, current);
   }
 
@@ -1241,12 +1960,20 @@ function buildSetupFamilyStats(setups: TradeSetupRow[]) {
       globalSampleSize: family.globalSampleSize,
       key: family.key,
     }))
-    .sort((first, second) => second.globalSampleSize - first.globalSampleSize || second.count - first.count || first.key.localeCompare(second.key));
+    .sort(
+      (first, second) =>
+        second.globalSampleSize - first.globalSampleSize ||
+        second.count - first.count ||
+        first.key.localeCompare(second.key),
+    );
 }
 
-function getHistoryGroup(setup: TradeSetupRow, groupBy: HistoryGroupBy): Omit<HistorySetupGroup, "items"> {
+function getHistoryGroup(
+  setup: TradeSetupRow,
+  groupBy: HistoryGroupBy,
+): Omit<HistorySetupGroup, "items"> {
   if (groupBy === "asset") {
-    return { key: setup.symbol, label: setup.symbol };
+    return { key: setup.symbol, label: formatSecurityLabel(setup.symbol) };
   }
   if (groupBy === "category") {
     const category = getSecurityOption(setup.symbol).assetType;
@@ -1258,7 +1985,9 @@ function getHistoryGroup(setup: TradeSetupRow, groupBy: HistoryGroupBy): Omit<Hi
   }
 
   const date = new Date(setup.created_at);
-  const key = Number.isNaN(date.getTime()) ? "unknown-date" : date.toISOString().slice(0, 10);
+  const key = Number.isNaN(date.getTime())
+    ? "unknown-date"
+    : date.toISOString().slice(0, 10);
   return { key, label: formatHistoryDateGroup(date) };
 }
 
@@ -1268,8 +1997,16 @@ function formatHistoryDateGroup(date: Date) {
   }
 
   const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  ).getTime();
+  const dateStart = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ).getTime();
 
   if (dateStart === todayStart) {
     return "Today";
@@ -1278,7 +2015,9 @@ function formatHistoryDateGroup(date: Date) {
     return "Yesterday";
   }
 
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+    date,
+  );
 }
 
 function getSetupOutcome(setup: TradeSetupRow): SetupOutcome {
@@ -1317,6 +2056,29 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatProfileTime(date: Date, timeZone: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+    timeZoneName: "short",
+    weekday: "short",
+  }).format(date);
+}
+
+function getTimeframeLabel(timeframe: ChartTimeframe) {
+  if (timeframe === "15min") {
+    return "15 minutes";
+  }
+  if (timeframe === "1hour") {
+    return "1 hour";
+  }
+  if (timeframe === "4hour") {
+    return "4 hours";
+  }
+  return "Daily";
+}
+
 function formatNumber(value: number) {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 5,
@@ -1324,7 +2086,9 @@ function formatNumber(value: number) {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function asNumber(value: unknown) {
@@ -1345,9 +2109,18 @@ function formatModelFamilyLabel(value: string) {
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  const withoutAssetPrefix = normalized.replace(/^(forex|crypto|metals|futures)\s+/i, "");
-  const withoutTimeframe = withoutAssetPrefix.replace(/^(15min|1hour|4hour|1day)\s+/i, "");
-  const withoutSession = withoutTimeframe.replace(/^(forex|crypto|futures)\s+/i, "");
+  const withoutAssetPrefix = normalized.replace(
+    /^(forex|crypto|metals|futures)\s+/i,
+    "",
+  );
+  const withoutTimeframe = withoutAssetPrefix.replace(
+    /^(15min|1hour|4hour|1day)\s+/i,
+    "",
+  );
+  const withoutSession = withoutTimeframe.replace(
+    /^(forex|crypto|futures)\s+/i,
+    "",
+  );
   const readable = withoutSession
     .replace(/\bmulti timeframe bias\b/gi, "direction")
     .replace(/\bmomentum confirmation\b/gi, "momentum")

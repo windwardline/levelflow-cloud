@@ -1,6 +1,12 @@
 export type SupportedSymbol = string;
 
-export type SecurityType = "Forex" | "Metals" | "Indices" | "Energies" | "Crypto" | "Futures";
+export type SecurityType =
+  | "Forex"
+  | "Metals"
+  | "Indices"
+  | "Energies"
+  | "Crypto"
+  | "Futures";
 
 export type SecurityOption = {
   assetType: SecurityType;
@@ -16,9 +22,31 @@ export type SecurityGroup = {
   options: SecurityOption[];
 };
 
-export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>(["Indices", "Energies"]);
-const ASSET_CATEGORY_ORDER: SecurityType[] = ["Crypto", "Energies", "Forex", "Futures", "Indices", "Metals"];
-const KNOWN_QUOTE_CURRENCIES = ["USDT", "USD", "JPY", "CHF", "CAD", "AUD", "NZD", "EUR", "GBP", "BTC", "ETH"];
+export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>([
+  "Indices",
+  "Energies",
+]);
+const ASSET_CATEGORY_ORDER: SecurityType[] = [
+  "Crypto",
+  "Energies",
+  "Forex",
+  "Futures",
+  "Indices",
+  "Metals",
+];
+const KNOWN_QUOTE_CURRENCIES = [
+  "USDT",
+  "USD",
+  "JPY",
+  "CHF",
+  "CAD",
+  "AUD",
+  "NZD",
+  "EUR",
+  "GBP",
+  "BTC",
+  "ETH",
+];
 
 const forex = [
   ["USDJPY", "USD/JPY", "U.S. Dollar / Japanese Yen", "USDJPY"],
@@ -76,7 +104,13 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
   {
     label: "Indices",
     options: [
-      { assetType: "Indices", description: "S&P 500 Index", fmpSymbol: "^GSPC", label: "SP - S&P 500 Index", symbol: "SP" },
+      {
+        assetType: "Indices",
+        description: "S&P 500 Index",
+        fmpSymbol: "^GSPC",
+        label: "SP - S&P 500 Index",
+        symbol: "SP",
+      },
       {
         assetType: "Indices",
         description: "Nasdaq 100 Index",
@@ -85,8 +119,20 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "NSDQ - Nasdaq 100 Index",
         symbol: "NSDQ",
       },
-      { assetType: "Indices", description: "Nikkei 225 Index", fmpSymbol: "^N225", label: "NIKKEI - Nikkei 225 Index", symbol: "NIKKEI" },
-      { assetType: "Indices", description: "Dow Jones Industrial Average", fmpSymbol: "^DJI", label: "DOW - Dow Jones Industrial Average", symbol: "DOW" },
+      {
+        assetType: "Indices",
+        description: "Nikkei 225 Index",
+        fmpSymbol: "^N225",
+        label: "NIKKEI - Nikkei 225 Index",
+        symbol: "NIKKEI",
+      },
+      {
+        assetType: "Indices",
+        description: "Dow Jones Industrial Average",
+        fmpSymbol: "^DJI",
+        label: "DOW - Dow Jones Industrial Average",
+        symbol: "DOW",
+      },
       {
         assetType: "Indices",
         description: "DAX Performance Index",
@@ -108,8 +154,20 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
   {
     label: "Metals",
     options: [
-      { assetType: "Metals", description: "Gold / U.S. Dollar", fmpSymbol: "XAUUSD", label: "XAU/USD - Gold / U.S. Dollar", symbol: "XAUUSD" },
-      { assetType: "Metals", description: "Silver / U.S. Dollar", fmpSymbol: "XAGUSD", label: "XAG/USD - Silver / U.S. Dollar", symbol: "XAGUSD" },
+      {
+        assetType: "Metals",
+        description: "Gold / U.S. Dollar",
+        fmpSymbol: "XAUUSD",
+        label: "XAU/USD - Gold / U.S. Dollar",
+        symbol: "XAUUSD",
+      },
+      {
+        assetType: "Metals",
+        description: "Silver / U.S. Dollar",
+        fmpSymbol: "XAGUSD",
+        label: "XAG/USD - Silver / U.S. Dollar",
+        symbol: "XAGUSD",
+      },
     ],
   },
   {
@@ -156,7 +214,13 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "WTI - WTI Crude Oil",
         symbol: "WTI",
       },
-      { assetType: "Energies", description: "Brent Crude Oil", fmpSymbol: "BZUSD", label: "BRENT - Brent Crude Oil", symbol: "BRENT" },
+      {
+        assetType: "Energies",
+        description: "Brent Crude Oil",
+        fmpSymbol: "BZUSD",
+        label: "BRENT - Brent Crude Oil",
+        symbol: "BRENT",
+      },
     ],
   },
   {
@@ -171,31 +235,100 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
   },
 ];
 
-export const SECURITY_GROUPS: SecurityGroup[] = sortSecurityGroups(UNSORTED_SECURITY_GROUPS);
+export const SECURITY_GROUPS: SecurityGroup[] = sortSecurityGroups(
+  UNSORTED_SECURITY_GROUPS,
+);
 
-export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap((group) => group.options);
+export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap(
+  (group) => group.options,
+);
 
-export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS.filter((group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label));
+export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS.filter(
+  (group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label),
+);
 
-export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap((group) => group.options);
+export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap(
+  (group) => group.options,
+);
 
 export function isAvailableAssetSymbol(symbol: string) {
   const normalized = normalizeSymbol(symbol);
-  return AVAILABLE_ASSET_OPTIONS.some((option) => option.symbol === normalized || normalizeSymbol(option.fmpSymbol) === normalized);
+  return AVAILABLE_ASSET_OPTIONS.some(
+    (option) =>
+      option.symbol === normalized ||
+      normalizeSymbol(option.fmpSymbol) === normalized,
+  );
 }
 
 export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
-  aud_crosses: ["AUDUSD", "AUDNZD", "AUDJPY", "AUDCHF", "AUDCAD", "EURAUD", "GBPAUD"],
-  crypto: ["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"],
+  aud_crosses: [
+    "AUDUSD",
+    "AUDNZD",
+    "AUDJPY",
+    "AUDCHF",
+    "AUDCAD",
+    "EURAUD",
+    "GBPAUD",
+  ],
+  crypto: [
+    "XRPUSD",
+    "SOLUSD",
+    "LTCUSD",
+    "ETHUSD",
+    "BTCUSD",
+    "BNBUSD",
+    "BCHUSD",
+    "ADAUSD",
+  ],
   futures: ["ESUSD", "GCUSD", "SIUSD", "BZUSD"],
   energies: ["WTI", "BRENT"],
-  eur_crosses: ["EURUSD", "EURNZD", "EURJPY", "EURGBP", "EURCHF", "EURCAD", "EURAUD"],
-  gbp_crosses: ["GBPUSD", "GBPNZD", "GBPJPY", "GBPCHF", "GBPCAD", "GBPAUD", "EURGBP"],
-  jpy_crosses: ["USDJPY", "NZDJPY", "GBPJPY", "EURJPY", "CHFJPY", "CADJPY", "AUDJPY"],
+  eur_crosses: [
+    "EURUSD",
+    "EURNZD",
+    "EURJPY",
+    "EURGBP",
+    "EURCHF",
+    "EURCAD",
+    "EURAUD",
+  ],
+  gbp_crosses: [
+    "GBPUSD",
+    "GBPNZD",
+    "GBPJPY",
+    "GBPCHF",
+    "GBPCAD",
+    "GBPAUD",
+    "EURGBP",
+  ],
+  jpy_crosses: [
+    "USDJPY",
+    "NZDJPY",
+    "GBPJPY",
+    "EURJPY",
+    "CHFJPY",
+    "CADJPY",
+    "AUDJPY",
+  ],
   metals: ["XAUUSD", "XAGUSD"],
-  nzd_crosses: ["NZDUSD", "NZDJPY", "NZDCHF", "NZDCAD", "AUDNZD", "EURNZD", "GBPNZD"],
+  nzd_crosses: [
+    "NZDUSD",
+    "NZDJPY",
+    "NZDCHF",
+    "NZDCAD",
+    "AUDNZD",
+    "EURNZD",
+    "GBPNZD",
+  ],
   us_indices: ["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX"],
-  usd_majors: ["USDJPY", "USDCHF", "USDCAD", "NZDUSD", "GBPUSD", "EURUSD", "AUDUSD"],
+  usd_majors: [
+    "USDJPY",
+    "USDCHF",
+    "USDCAD",
+    "NZDUSD",
+    "GBPUSD",
+    "EURUSD",
+    "AUDUSD",
+  ],
 };
 
 export function toFmpSymbol(symbol: string) {
@@ -205,7 +338,11 @@ export function toFmpSymbol(symbol: string) {
 export function getSecurityOption(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   return (
-    SECURITY_OPTIONS.find((option) => option.symbol === normalized || normalizeSymbol(option.fmpSymbol) === normalized) ?? {
+    SECURITY_OPTIONS.find(
+      (option) =>
+        option.symbol === normalized ||
+        normalizeSymbol(option.fmpSymbol) === normalized,
+    ) ?? {
       assetType: "Forex",
       description: symbol,
       fmpSymbol: symbol.toUpperCase().trim(),
@@ -221,16 +358,43 @@ export function formatSecurityLabel(symbol: string) {
 
 export function getCorrelationGroup(symbol: string) {
   const normalized = normalizeSymbol(symbol);
-  return Object.entries(CORRELATION_GROUPS).find(([, symbols]) => symbols.includes(normalized))?.[0] ?? normalized;
+  return (
+    Object.entries(CORRELATION_GROUPS).find(([, symbols]) =>
+      symbols.includes(normalized),
+    )?.[0] ?? normalized
+  );
 }
 
 export function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+export function compareAssetCategories(
+  first: SecurityType,
+  second: SecurityType,
+) {
+  return (
+    ASSET_CATEGORY_ORDER.indexOf(first) -
+      ASSET_CATEGORY_ORDER.indexOf(second) || first.localeCompare(second)
+  );
+}
+
+export function compareAssetSymbols(first: string, second: string) {
+  const firstOption = getSecurityOption(first);
+  const secondOption = getSecurityOption(second);
+  return (
+    compareAssetCategories(firstOption.assetType, secondOption.assetType) ||
+    compareSecurityOptions(firstOption, secondOption)
+  );
+}
+
+export function sortAssetSymbols(symbols: string[]) {
+  return [...symbols].sort(compareAssetSymbols);
+}
+
 function sortSecurityGroups(groups: SecurityGroup[]) {
   return [...groups]
-    .sort((first, second) => ASSET_CATEGORY_ORDER.indexOf(first.label) - ASSET_CATEGORY_ORDER.indexOf(second.label))
+    .sort((first, second) => compareAssetCategories(first.label, second.label))
     .map((group) => ({
       ...group,
       options: [...group.options].sort(compareSecurityOptions),
@@ -249,7 +413,8 @@ function compareSecurityOptions(first: SecurityOption, second: SecurityOption) {
 }
 
 function getAssetSortParts(option: SecurityOption) {
-  const pair = splitBaseQuote(option.symbol) ?? splitBaseQuote(option.fmpSymbol);
+  const pair =
+    splitBaseQuote(option.symbol) ?? splitBaseQuote(option.fmpSymbol);
   return {
     base: pair?.base ?? normalizeSymbol(option.symbol),
     quote: pair?.quote ?? "ZZZ",
@@ -259,7 +424,10 @@ function getAssetSortParts(option: SecurityOption) {
 
 function splitBaseQuote(value: string) {
   const normalized = normalizeSymbol(value);
-  const quote = KNOWN_QUOTE_CURRENCIES.find((candidate) => normalized.endsWith(candidate) && normalized.length > candidate.length);
+  const quote = KNOWN_QUOTE_CURRENCIES.find(
+    (candidate) =>
+      normalized.endsWith(candidate) && normalized.length > candidate.length,
+  );
 
   if (!quote) {
     return null;

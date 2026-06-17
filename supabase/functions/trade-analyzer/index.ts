@@ -16,6 +16,8 @@ const RATE_LIMITS: Record<string, number> = {
   refresh_outcomes: 12,
   scan_opportunities: 8,
 };
+const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
+const MARKET_DATA_FETCH_TIMEOUT_MS = 12_000;
 
 type SymbolConfig = {
   fallback?: string;
@@ -1747,7 +1749,11 @@ async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
   endpoint.searchParams.set("symbol", fmpSymbol);
   endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
 
-  const response = await fetch(endpoint);
+  const response = await fetchWithTimeout(
+    endpoint,
+    {},
+    MARKET_DATA_FETCH_TIMEOUT_MS,
+  );
   const responseText = await response.text();
   if (!response.ok) {
     throw new Error(
@@ -2768,7 +2774,7 @@ async function supabaseFetch(
   path: string,
   init: RequestInit = {},
 ) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  return fetchWithTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -2776,11 +2782,11 @@ async function supabaseFetch(
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
-  });
+  }, SUPABASE_FETCH_TIMEOUT_MS);
 }
 
 async function adminSupabaseFetch(path: string, init: RequestInit = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  return fetchWithTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
@@ -2788,7 +2794,7 @@ async function adminSupabaseFetch(path: string, init: RequestInit = {}) {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
-  });
+  }, SUPABASE_FETCH_TIMEOUT_MS);
 }
 
 async function getAuthenticatedUser(token: string | null) {
@@ -2796,12 +2802,12 @@ async function getAuthenticatedUser(token: string | null) {
     return null;
   }
 
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+  const response = await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
       Authorization: `Bearer ${token}`,
       apikey: SUPABASE_ANON_KEY,
     },
-  });
+  }, SUPABASE_FETCH_TIMEOUT_MS);
 
   if (!response.ok) {
     return null;
@@ -2813,6 +2819,17 @@ async function getAuthenticatedUser(token: string | null) {
 
 function getBearerToken(req: Request) {
   return req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? null;
+}
+
+function fetchWithTimeout(
+  input: string | URL,
+  init: RequestInit = {},
+  timeoutMs = SUPABASE_FETCH_TIMEOUT_MS,
+) {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  });
 }
 
 function normalizeSymbol(value: string) {
