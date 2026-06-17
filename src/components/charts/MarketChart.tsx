@@ -227,7 +227,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       <div ref={containerRef} className="h-[390px] w-full sm:h-[500px] xl:h-[560px]" />
       {loading && <div className="absolute inset-0 grid place-items-center bg-white/70 text-sm font-semibold text-navy">Loading market data</div>}
       {!loading && data.length === 0 && (
-        <div className="absolute inset-0 grid place-items-center bg-white/80 px-6 text-center text-sm font-semibold text-slate">No verified market data returned</div>
+        <div className="absolute inset-0 grid place-items-center bg-white/80 px-6 text-center text-sm font-semibold text-slate">No chart data available yet</div>
       )}
       {setup ? <SetupZoneSummary setup={setup} /> : null}
     </div>
@@ -247,15 +247,15 @@ function SetupZoneSummary({ setup }: { setup: ChartSetup }) {
         <p className={isBuy ? "mt-1 text-bullish" : "mt-1 text-danger"}>{formatChartPrice(setup.entryPrice)}</p>
       </div>
       <div>
-        <p className="uppercase tracking-normal text-slate">Risk zone</p>
+        <p className="uppercase tracking-normal text-slate">Stop</p>
         <p className="mt-1 text-danger">{formatChartPrice(setup.stopLoss)}</p>
       </div>
       <div>
-        <p className="uppercase tracking-normal text-slate">Reward zone</p>
+        <p className="uppercase tracking-normal text-slate">Target</p>
         <p className="mt-1 text-navy">{formatChartPrice(setup.takeProfit)}</p>
       </div>
       <div>
-        <p className="uppercase tracking-normal text-slate">Reward / risk</p>
+        <p className="uppercase tracking-normal text-slate">Payoff</p>
         <p className="mt-1 text-navy">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}R` : "Pending"}</p>
       </div>
     </div>

@@ -29,7 +29,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) {
-      setError("Supabase is not configured for this deployment.");
+      setError("Cloud access is not connected for this deployment.");
       return;
     }
 
@@ -46,7 +46,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
     if (magicLinkError) {
       setStatus("idle");
-      setError(magicLinkError.message);
+      setError("The sign-in link could not be sent. Try again shortly.");
       return;
     }
 
@@ -56,7 +56,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
   async function signInWithOAuth(provider: Extract<Provider, "google" | "apple">) {
     if (!supabase) {
-      setError("Supabase is not configured for this deployment.");
+      setError("Cloud access is not connected for this deployment.");
       return;
     }
 
@@ -72,7 +72,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
     if (oauthError) {
       setStatus("idle");
-      setError(oauthError.message);
+      setError("That sign-in option is not available right now.");
     }
   }
 
@@ -118,7 +118,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
           {!isSupabaseConfigured ? (
             <div className="mb-5 rounded-lg border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-semibold text-navy">
-              Waiting for Supabase project details.
+              Waiting for cloud project details.
               <span className="mt-2 block font-medium text-slate">App URL: {appConfig.appUrl}</span>
             </div>
           ) : null}
@@ -155,7 +155,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             <>
               <div className="my-6 flex items-center gap-3">
                 <span className="h-px flex-1 bg-slate/20" />
-                <span className="text-xs font-semibold uppercase tracking-normal text-slate">OAuth</span>
+                <span className="text-xs font-semibold uppercase tracking-normal text-slate">Other sign-in options</span>
                 <span className="h-px flex-1 bg-slate/20" />
               </div>
 

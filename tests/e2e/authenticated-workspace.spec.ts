@@ -41,19 +41,19 @@ test("authenticated workspace exposes core premium navigation without stale help
   await page.goto("/");
 
   await expect(page.getByRole("button", { name: "Advisor" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Insights" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Guide" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Insights" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "About" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Overview" }).click();
-  await expect(page.getByRole("heading", { name: "A market review workspace for high-quality limit-order ideas." })).toBeVisible();
-  await expect(page.getByText("Decision support, not execution")).toBeVisible();
+  await page.getByRole("button", { name: "About" }).click();
+  await expect(page.getByRole("heading", { name: "A premium market review workspace for disciplined traders." })).toBeVisible();
+  await expect(page.getByText("Review support, not trade placement")).toBeVisible();
 
   await page.getByRole("button", { name: "Insights" }).click();
-  await expect(page.getByRole("heading", { name: "Outcome signal" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What is improving" })).toBeVisible();
   await expect(page.getByText("Status guide")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Guide" }).click();
-  await expect(page.getByRole("heading", { name: "How to operate the review workflow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How to use LevelFlow." })).toBeVisible();
   await expect(page.getByText("What LevelFlow checks")).toBeVisible();
 });

@@ -62,7 +62,7 @@ describe("recommendation outcomes", () => {
     assert.equal(OUTCOME_COPY.still_tracking.label, "Still tracking");
     assert.equal(OUTCOME_COPY.target_reached.label, "Reached target");
     assert.equal(OUTCOME_COPY.stopped_out.label, "Hit stop");
-    assert.equal(OUTCOME_COPY.unclear_path.label, "Unclear result");
+    assert.equal(OUTCOME_COPY.unclear_path.label, "Needs review");
     assert.equal(OUTCOME_COPY.entry_not_filled.label, "Entry not filled");
   });
 
