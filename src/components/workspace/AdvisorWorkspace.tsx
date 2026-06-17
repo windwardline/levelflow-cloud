@@ -172,7 +172,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 
           <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(220px,1.5fr)_minmax(160px,0.55fr)_auto]">
             <label className="grid gap-2 text-sm font-semibold text-navy">
-              Asset
+              Market
               <select
                 className="field"
                 value={symbol}
@@ -455,7 +455,7 @@ function DeskStatusStrip({
       <DeskStatusItem label="Session" value={clockStatus} detail="Local clock" />
       <DeskStatusItem label="Advisor" value={stateLabel} detail="Fresh review" />
       <DeskStatusItem
-        label="Asset history"
+        label="Market history"
         value={stat ? `${stat.count} reviewed` : "No history"}
         detail={stat?.winRate === null || !stat ? "Results building" : `${stat.winRate}% win rate`}
       />

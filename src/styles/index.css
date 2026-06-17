@@ -18,7 +18,7 @@
     min-width: 320px;
     min-height: 100vh;
     background:
-      linear-gradient(180deg, rgba(17, 28, 56, 0.035), rgba(247, 248, 244, 0) 38%),
+      linear-gradient(180deg, rgba(17, 28, 56, 0.05), rgba(247, 248, 244, 0) 34%),
       #f7f8f4;
     color: #162033;
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
@@ -48,8 +48,11 @@
     min-width: 0;
     border: 1px solid rgba(128, 138, 149, 0.18);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 16px 36px rgba(17, 28, 56, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.72) inset,
+      0 18px 44px rgba(17, 28, 56, 0.11);
+    backdrop-filter: blur(10px);
   }
 
   .terminal-panel p,
@@ -83,10 +86,12 @@
   .primary-button {
     background: #111c38;
     color: #ffffff;
+    box-shadow: 0 10px 20px rgba(17, 28, 56, 0.16);
   }
 
   .primary-button:hover:not(:disabled) {
     background: #1b2a50;
+    transform: translateY(-1px);
   }
 
   .secondary-button {
@@ -98,6 +103,7 @@
   .secondary-button:hover:not(:disabled) {
     border-color: rgba(91, 130, 102, 0.58);
     color: #365a42;
+    transform: translateY(-1px);
   }
 
   .nav-button {
@@ -142,6 +148,7 @@
 
   .field:focus {
     border-color: #5b8266;
+    box-shadow: 0 0 0 3px rgba(91, 130, 102, 0.14);
   }
 
 }

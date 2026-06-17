@@ -8,6 +8,8 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
+const MARKET_DATA_FETCH_TIMEOUT_MS = 12_000;
 
 type SymbolConfig = {
   fallback?: string;
@@ -244,12 +246,12 @@ async function getAuthenticatedUser(req: Request) {
     return null;
   }
 
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+  const response = await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
       Authorization: `Bearer ${token}`,
       apikey: SUPABASE_ANON_KEY,
     },
-  });
+  }, SUPABASE_FETCH_TIMEOUT_MS);
 
   if (!response.ok) {
     return null;
@@ -299,7 +301,11 @@ async function fetchFmpBars(
     endpoint.searchParams.set("to", to);
   }
 
-  const response = await fetch(endpoint);
+  const response = await fetchWithTimeout(
+    endpoint,
+    {},
+    MARKET_DATA_FETCH_TIMEOUT_MS,
+  );
   const responseText = await response.text();
   if (!response.ok) {
     return {
@@ -384,6 +390,17 @@ function toTimestamp(value: string) {
 
 function sortableTime(value: string | number) {
   return typeof value === "number" ? value : toTimestamp(value);
+}
+
+function fetchWithTimeout(
+  input: string | URL,
+  init: RequestInit = {},
+  timeoutMs = MARKET_DATA_FETCH_TIMEOUT_MS,
+) {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  });
 }
 
 function corsHeaders(req: Request) {
