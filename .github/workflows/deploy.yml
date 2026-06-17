@@ -29,7 +29,7 @@ jobs:
           missing=0
           for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN LEVELFLOW_PAGES_TOKEN NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
             if [ -z "${!name}" ]; then
-              echo "::error::Missing required secret: ${name}"
+              echo "Missing required secret: ${name}"
               missing=1
             fi
           done
