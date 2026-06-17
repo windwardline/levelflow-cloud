@@ -1,8 +1,10 @@
-const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ?? "https://financialmodelingprep.com/stable";
+const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
+  "https://financialmodelingprep.com/stable";
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
+  "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -71,7 +73,16 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
   }
 }
 
-const temporarilyUnavailableSymbols = new Set(["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"]);
+const temporarilyUnavailableSymbols = new Set([
+  "SP",
+  "NSDQ",
+  "NIKKEI",
+  "DOW",
+  "DAX",
+  "ASX",
+  "WTI",
+  "BRENT",
+]);
 
 const intradayTimeframes = ["15min", "1hour", "4hour"] as const;
 
@@ -96,105 +107,130 @@ type FmpBar = {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders(req) });
-  }
-
-  if (req.method !== "POST") {
-    return jsonResponse(req, { error: "Method not allowed" }, 405);
-  }
-
-  if (!FMP_API_KEY) {
-    return jsonResponse(req, { error: "FMP API key is not configured" }, 500);
-  }
-
-  const user = await getAuthenticatedUser(req);
-  if (!user) {
-    return jsonResponse(req, { error: "Authenticated Supabase session required" }, 401);
-  }
-
-  let body: MarketDataRequest;
   try {
-    body = await req.json();
-  } catch {
-    body = {};
-  }
-
-  const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
-  const uiSymbol = normalizeSymbol(requestedSymbol);
-  if (temporarilyUnavailableSymbols.has(uiSymbol)) {
-    return jsonResponse(
-      req,
-      {
-        error: "This asset is temporarily unavailable in LevelFlow while provider coverage is verified.",
-        symbol: uiSymbol,
-      },
-      400,
-    );
-  }
-
-  const providerSymbols = resolveProviderSymbols(requestedSymbol);
-  if (providerSymbols.length === 0) {
-    return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
-  }
-
-  const timeframe = normalizeTimeframe(body.timeframe);
-  const { from, to } = resolveDateWindow(body, timeframe);
-  const failures: string[] = [];
-  let payload: FmpBar[] = [];
-  let ticker = providerSymbols[0];
-
-  for (const providerSymbol of providerSymbols) {
-    const result = await fetchFmpBars(providerSymbol, timeframe, from, to);
-    if (result.ok && result.payload.length > 0) {
-      payload = result.payload;
-      ticker = providerSymbol;
-      break;
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders(req) });
     }
-    failures.push(`${providerSymbol}: ${result.status}`);
+
+    if (req.method !== "POST") {
+      return jsonResponse(req, { error: "Method not allowed" }, 405);
+    }
+
+    if (!FMP_API_KEY) {
+      return jsonResponse(req, { error: "FMP API key is not configured" }, 500);
+    }
+
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return jsonResponse(req, {
+        error: "Authenticated Supabase session required",
+      }, 401);
+    }
+
+    let body: MarketDataRequest;
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
+    const requestedSymbol =
+      typeof body.symbol === "string" && body.symbol.trim()
+        ? body.symbol.trim()
+        : "EURUSD";
+    const uiSymbol = normalizeSymbol(requestedSymbol);
+    if (temporarilyUnavailableSymbols.has(uiSymbol)) {
+      return jsonResponse(
+        req,
+        {
+          error:
+            "This asset is temporarily unavailable in LevelFlow while provider coverage is verified.",
+          symbol: uiSymbol,
+        },
+        400,
+      );
+    }
+
+    const providerSymbols = resolveProviderSymbols(requestedSymbol);
+    if (providerSymbols.length === 0) {
+      return jsonResponse(
+        req,
+        { error: "Unsupported LevelFlow market symbol" },
+        400,
+      );
+    }
+
+    const timeframe = normalizeTimeframe(body.timeframe);
+    const { from, to } = resolveDateWindow(body, timeframe);
+    const failures: string[] = [];
+    let payload: FmpBar[] = [];
+    let ticker = providerSymbols[0];
+
+    for (const providerSymbol of providerSymbols) {
+      const result = await fetchFmpBars(providerSymbol, timeframe, from, to);
+      if (result.ok && result.payload.length > 0) {
+        payload = result.payload;
+        ticker = providerSymbol;
+        break;
+      }
+      failures.push(`${providerSymbol}: ${result.status}`);
+    }
+
+    if (payload.length === 0) {
+      return jsonResponse(
+        req,
+        {
+          error: "FMP market data request failed",
+          providerStatus: failures.join(" | ") || "NO_DATA",
+        },
+        502,
+      );
+    }
+
+    const points = payload
+      .filter((point) =>
+        typeof point.date === "string" && typeof point.close === "number"
+      )
+      .map((point) => ({
+        close: point.close as number,
+        high: typeof point.high === "number" ? point.high : null,
+        low: typeof point.low === "number" ? point.low : null,
+        open: typeof point.open === "number" ? point.open : null,
+        time: timeframe === "1day"
+          ? (point.date as string).slice(0, 10)
+          : Math.trunc(toTimestamp(point.date as string) / 1000),
+        value: point.close as number,
+        volume: typeof point.volume === "number" ? point.volume : null,
+      }))
+      .sort((first, second) =>
+        sortableTime(first.time) - sortableTime(second.time)
+      )
+      .slice(timeframe === "1day" ? -260 : -500);
+
+    const latest = points.at(-1);
+
+    return jsonResponse(req, {
+      adjusted: true,
+      asOf: new Date().toISOString(),
+      from,
+      latestClose: latest?.close ?? null,
+      points,
+      provider: "FMP",
+      providerStatus: ticker === providerSymbols[0]
+        ? "OK"
+        : `OK_FALLBACK:${ticker}`,
+      resultsCount: points.length,
+      symbol: uiSymbol,
+      timeframe,
+      ticker,
+      to,
+    });
+  } catch (error) {
+    console.error("market-data request failed", error);
+    return jsonResponse(req, {
+      error: "Chart data could not load. Try again shortly.",
+    }, 500);
   }
-
-  if (payload.length === 0) {
-    return jsonResponse(
-      req,
-      {
-        error: "FMP market data request failed",
-        providerStatus: failures.join(" | ") || "NO_DATA",
-      },
-      502,
-    );
-  }
-
-  const points = payload
-    .filter((point) => typeof point.date === "string" && typeof point.close === "number")
-    .map((point) => ({
-      close: point.close as number,
-      high: typeof point.high === "number" ? point.high : null,
-      low: typeof point.low === "number" ? point.low : null,
-      open: typeof point.open === "number" ? point.open : null,
-      time: timeframe === "1day" ? (point.date as string).slice(0, 10) : Math.trunc(toTimestamp(point.date as string) / 1000),
-      value: point.close as number,
-      volume: typeof point.volume === "number" ? point.volume : null,
-    }))
-    .sort((first, second) => sortableTime(first.time) - sortableTime(second.time))
-    .slice(timeframe === "1day" ? -260 : -500);
-
-  const latest = points.at(-1);
-
-  return jsonResponse(req, {
-    adjusted: true,
-    asOf: new Date().toISOString(),
-    from,
-    latestClose: latest?.close ?? null,
-    points,
-    provider: "FMP",
-    providerStatus: ticker === providerSymbols[0] ? "OK" : `OK_FALLBACK:${ticker}`,
-    resultsCount: points.length,
-    symbol: uiSymbol,
-    timeframe,
-    ticker,
-    to,
-  });
 });
 
 async function getAuthenticatedUser(req: Request) {
@@ -236,15 +272,25 @@ function resolveProviderSymbols(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   const config = symbolMap[normalized] as SymbolConfig | undefined;
   const sanitized = sanitizeFmpSymbol(symbol);
-  const symbols = config ? [config.primary, config.fallback].filter(Boolean) : [sanitized].filter(Boolean);
+  const symbols = config
+    ? [config.primary, config.fallback].filter(Boolean)
+    : [sanitized].filter(Boolean);
   return Array.from(new Set(symbols)) as string[];
 }
 
-async function fetchFmpBars(providerSymbol: string, timeframe: ChartTimeframe, from: string, to: string) {
-  const endpoint =
-    timeframe === "1day"
-      ? new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`)
-      : new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`);
+async function fetchFmpBars(
+  providerSymbol: string,
+  timeframe: ChartTimeframe,
+  from: string,
+  to: string,
+) {
+  const endpoint = timeframe === "1day"
+    ? new URL(
+      `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`,
+    )
+    : new URL(
+      `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`,
+    );
   endpoint.searchParams.set("symbol", providerSymbol);
   endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
 
@@ -290,12 +336,19 @@ async function fetchFmpBars(providerSymbol: string, timeframe: ChartTimeframe, f
 }
 
 function normalizeTimeframe(value: unknown): ChartTimeframe {
-  return typeof value === "string" && [...intradayTimeframes, "1day"].includes(value as ChartTimeframe) ? (value as ChartTimeframe) : "1hour";
+  return typeof value === "string" &&
+      [...intradayTimeframes, "1day"].includes(value as ChartTimeframe)
+    ? (value as ChartTimeframe)
+    : "1hour";
 }
 
 function resolveDateWindow(body: MarketDataRequest, timeframe: ChartTimeframe) {
   const to = isIsoDate(body.to) ? body.to : isoDate(new Date());
-  const dayCount = clampInteger(body.days ?? (timeframe === "1day" ? 120 : 14), 2, timeframe === "1day" ? 260 : 60);
+  const dayCount = clampInteger(
+    body.days ?? (timeframe === "1day" ? 120 : 14),
+    2,
+    timeframe === "1day" ? 260 : 60,
+  );
   const defaultFromDate = new Date(`${to}T00:00:00.000Z`);
   defaultFromDate.setUTCDate(defaultFromDate.getUTCDate() - dayCount);
   const from = isIsoDate(body.from) ? body.from : isoDate(defaultFromDate);
@@ -320,7 +373,11 @@ function isoDate(date: Date) {
 }
 
 function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? `${value}T00:00:00Z`
+    : value.includes("T")
+    ? value
+    : `${value.replace(" ", "T")}Z`;
   const timestamp = new Date(normalized).getTime();
   return Number.isFinite(timestamp) ? timestamp : Date.now();
 }
@@ -331,11 +388,14 @@ function sortableTime(value: string | number) {
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get("Origin");
-  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? "https://app.windwardline.com";
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0] ?? "https://app.windwardline.com";
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }

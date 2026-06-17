@@ -37,7 +37,7 @@ import { getSecurityOption } from "./lib/symbolMap";
 import type { ChartTimeframe } from "./lib/marketData";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
-type AppTab = "advisor" | "history" | "overview" | "profile" | "guide" | "donate";
+type AppTab = "advisor" | "history" | "guide" | "profile" | "about" | "donate";
 type HistoryGroupBy = "date" | "category" | "asset" | "status";
 type HistorySort = "newest" | "oldest" | "confidence" | "asset";
 type HistoryStatusFilter = "all" | SetupOutcome;
@@ -53,10 +53,10 @@ const HISTORY_STATUS_ORDER: SetupOutcome[] = ["still_tracking", "target_reached"
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   { icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />, label: "Advisor", value: "advisor" },
-  { icon: <Compass className="h-4 w-4" aria-hidden="true" />, label: "Overview", value: "overview" },
-  { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "Insights", value: "history" },
-  { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
   { icon: <BookOpen className="h-4 w-4" aria-hidden="true" />, label: "Guide", value: "guide" },
+  { icon: <History className="h-4 w-4" aria-hidden="true" />, label: "Insights", value: "history" },
+  { icon: <Compass className="h-4 w-4" aria-hidden="true" />, label: "About", value: "about" },
+  { icon: <User className="h-4 w-4" aria-hidden="true" />, label: "Profile", value: "profile" },
 ];
 
 export default function App() {
@@ -138,7 +138,7 @@ export default function App() {
 
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
         {activeTab === "advisor" ? <AdvisorWorkspace onSetupsChanged={() => setupState.refreshSetups({ silent: true })} profile={profile} setupStats={setupState.stats} setups={setupState.setups} /> : null}
-        {activeTab === "overview" ? <OverviewPanel /> : null}
+        {activeTab === "about" ? <OverviewPanel /> : null}
         {activeTab === "history" ? (
           <HistoryPanel categoryStats={setupState.categoryStats} loading={setupState.loading} setups={setupState.setups} stats={setupState.stats} summary={setupState.outcomeSummary} />
         ) : null}
@@ -226,9 +226,9 @@ function HistoryPanel({
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Recommendation intelligence</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Results</p>
             <h2 className="text-2xl font-semibold tracking-normal text-navy">Insights</h2>
-          <p className="mt-1 text-sm leading-6 text-slate">Review recommendation quality by market, outcome, confidence band, and setup type.</p>
+            <p className="mt-1 text-sm leading-6 text-slate">See which ideas were shown, how they finished, and where performance is improving.</p>
           </div>
           <div className="text-left sm:text-right">
             <p className="text-sm font-semibold text-slate">{loading ? "Loading" : `${filteredSetups.length} of ${setups.length} shown`}</p>
@@ -241,11 +241,11 @@ function HistoryPanel({
         </div>
 
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-          <StatPill label="Total setups" value={summary.total.toString()} />
+          <StatPill label="Total ideas" value={summary.total.toString()} />
           <StatPill label="Overall win rate" value={summary.winRate === null ? "Pending" : `${summary.winRate}%`} />
           <StatPill label="Reached target" value={summary.wins.toString()} />
           <StatPill label="Hit stop" value={summary.losses.toString()} />
-          <StatPill label="Unclear result" value={summary.ambiguous.toString()} />
+          <StatPill label="Needs review" value={summary.ambiguous.toString()} />
           <StatPill label="Still tracking" value={summary.pending.toString()} />
         </div>
 
@@ -309,7 +309,7 @@ function HistoryPanel({
               <div className="mb-2 flex min-w-0 items-center justify-between gap-3 border-b border-slate/15 pb-2">
                 <h3 className="min-w-0 text-lg font-semibold text-navy">{group.label}</h3>
                 <span className="shrink-0 text-sm font-semibold text-slate">
-                  {group.items.length} {group.items.length === 1 ? "setup" : "setups"}
+                  {group.items.length} {group.items.length === 1 ? "idea" : "ideas"}
                 </span>
               </div>
               <div className="grid gap-3">
@@ -320,9 +320,9 @@ function HistoryPanel({
             </section>
           ))}
         </div>
-        {!loading && setups.length === 0 ? <p className="mt-4 text-sm leading-6 text-slate">No recommendations have been logged yet.</p> : null}
+        {!loading && setups.length === 0 ? <p className="mt-4 text-sm leading-6 text-slate">No ideas have been logged yet.</p> : null}
         {!loading && setups.length > 0 && filteredSetups.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">No recommendations match the current filters.</p>
+          <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">No ideas match the current filters.</p>
         ) : null}
       </section>
 
@@ -333,8 +333,8 @@ function HistoryPanel({
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Resolution</h2>
           </div>
           <div className="grid gap-3">
-            <HistoryPerformanceRow label="Resolved setups" value={summary.resolved.toString()} detail={`${summary.wins} reached target / ${summary.losses} hit stop`} tone="neutral" />
-            <HistoryPerformanceRow label="Unclear results" value={summary.ambiguous.toString()} detail={OUTCOME_COPY.unclear_path.description} tone="neutral" />
+            <HistoryPerformanceRow label="Finished ideas" value={summary.resolved.toString()} detail={`${summary.wins} reached target / ${summary.losses} hit stop`} tone="neutral" />
+            <HistoryPerformanceRow label="Needs review" value={summary.ambiguous.toString()} detail={OUTCOME_COPY.unclear_path.description} tone="neutral" />
             <HistoryPerformanceRow label="Entry not filled" value={summary.unfilled.toString()} detail={OUTCOME_COPY.entry_not_filled.description} tone="neutral" />
             <HistoryPerformanceRow
               label="Still tracking"
@@ -349,8 +349,8 @@ function HistoryPanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Calibration</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By confidence</h2>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By score range</h2>
           </div>
           <div className="grid gap-3">
             {confidenceBands.map((band) => (
@@ -361,7 +361,7 @@ function HistoryPanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Category trends</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Market trends</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">By market</h2>
           </div>
           <div className="grid gap-3">
@@ -369,7 +369,7 @@ function HistoryPanel({
               <HistoryStatRow key={stat.category} label={stat.category} stat={stat} />
             ))}
           </div>
-          {categoryStats.length === 0 ? <p className="text-sm leading-6 text-slate">Category stats will populate after recommendations are logged.</p> : null}
+          {categoryStats.length === 0 ? <p className="text-sm leading-6 text-slate">Market results will appear after ideas are logged.</p> : null}
         </section>
 
         <section className="terminal-panel p-5 sm:p-6">
@@ -382,7 +382,7 @@ function HistoryPanel({
               <HistoryStatRow key={stat.symbol} label={stat.symbol} stat={stat} />
             ))}
           </div>
-          {stats.length === 0 ? <p className="text-sm leading-6 text-slate">Asset stats will populate as recommendations are reviewed and outcomes are recorded.</p> : null}
+          {stats.length === 0 ? <p className="text-sm leading-6 text-slate">Asset results will appear after ideas are reviewed.</p> : null}
         </section>
       </aside>
     </div>
@@ -392,27 +392,27 @@ function HistoryPanel({
 function OverviewPanel() {
   const valueCards = [
     {
-      body: "LevelFlow reviews a selected market and returns one current limit-order idea only when the evidence is strong enough.",
+      body: "LevelFlow reviews the selected market and shows one current limit idea only when the chart, timing, and risk are strong enough.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "One focused answer",
     },
     {
-      body: "The review combines trend, momentum, structure, liquidity, volatility, session timing, calendar risk, and historical outcomes.",
+      body: "The review checks direction, price location, volatility, session timing, event risk, and past results.",
       icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
       title: "Market context in one pass",
     },
     {
-      body: "Entries, stops, targets, confidence, and supporting evidence are shown together so the idea can be reviewed before action.",
+      body: "Entry, stop, target, confidence, and the reason for the idea are shown together before you decide what to do next.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
-      title: "Decision support, not execution",
+      title: "Review support, not trade placement",
     },
   ];
 
   const proofItems = [
     { label: "Order type", value: "Limit only" },
     { label: "Default chart", value: "1 hour" },
-    { label: "Data source", value: "FMP + calendar events" },
-    { label: "Learning", value: "Shared outcome calibration" },
+    { label: "Data", value: "Live charts + events" },
+    { label: "Learning", value: "All resolved ideas" },
   ];
 
   return (
@@ -421,9 +421,9 @@ function OverviewPanel() {
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)] lg:items-center">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">What LevelFlow is</p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">A market review workspace for high-quality limit-order ideas.</h2>
+            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">A premium market review workspace for disciplined traders.</h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
-              LevelFlow is built for traders who want a disciplined second set of eyes. It refreshes market data, checks the chart from several angles, accounts for event and session risk, and presents the next limit-order idea when the evidence is strong enough.
+              LevelFlow refreshes the chart, checks the market from several angles, accounts for timing risk, and presents the next limit idea when the evidence is strong enough.
             </p>
           </div>
           <div className="grid gap-2 rounded-lg border border-slate/15 bg-canvas p-4">
@@ -453,13 +453,13 @@ function OverviewPanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Why it matters</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">The goal is cleaner decisions, not more noise.</h2>
             <p className="mt-3 text-sm leading-6 text-slate">
-              Most trading tools add more charts, lists, and signals. LevelFlow narrows the decision: if the setup quality, timing, and reward-to-risk are not there, it clears the prior idea and shows no trade idea. If the idea passes, it shows the side, limit entry, stop, target, confidence, and evidence in one place.
+              Most trading tools add more noise. LevelFlow narrows the decision: if the quality, timing, and reward are not there, it clears the prior idea and shows no trade idea. If the idea passes, it shows the side, entry, stop, target, confidence, and reason in one place.
             </p>
           </div>
           <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">
             <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Important boundary</p>
             <p className="mt-2 text-sm leading-6 text-navy">
-              LevelFlow does not place trades. It is a premium advisory workspace for manual review, chart alignment, and disciplined trade selection.
+              LevelFlow does not place trades. It helps traders review the market, compare evidence, and decide with more discipline.
             </p>
           </div>
         </div>
@@ -500,7 +500,7 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         <HistoryMetric label="Target" value={formatPriceValue(setup.take_profit)} />
         <HistoryMetric label="Break-even" value={formatPriceValue(setup.breakeven_trigger_price)} />
         <HistoryMetric label="Confidence" value={`${Number(setup.confidence_score)}%`} />
-        <HistoryMetric label="Reward / risk" value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`} />
+        <HistoryMetric label="Payoff" value={rewardRisk === null ? "Pending" : `${rewardRisk.toFixed(2)}R`} />
       </div>
     </article>
   );
@@ -536,7 +536,7 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-semibold text-navy">{label}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{stat.count} setups</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{stat.count} ideas</p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-navy">{resolvedLabel}</p>
       </div>
@@ -558,7 +558,7 @@ function HistoryStatRow({ label, stat }: { label: string; stat: CategoryStat | S
         </div>
         <div>
           <p className="font-semibold text-navy">{stat.ambiguous}</p>
-          <p className="text-slate">Unclear</p>
+          <p className="text-slate">Review</p>
         </div>
       </div>
     </div>
@@ -574,7 +574,7 @@ function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { amb
         <div>
           <p className="font-semibold text-navy">{label}</p>
           <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
-            {count} setups / {resolved} resolved
+            {count} ideas / {resolved} finished
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-navy">{winRate === null ? "Learning" : `${winRate}% win rate`}</p>
@@ -582,7 +582,7 @@ function ConfidenceBandRow({ ambiguous, count, label, resolved, winRate }: { amb
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
         <div className="h-full rounded-full bg-bullish" style={{ width: `${barWidth}%` }} />
       </div>
-      {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} unclear {ambiguous === 1 ? "result" : "results"}</p> : null}
+      {ambiguous > 0 ? <p className="mt-2 text-xs font-semibold text-slate">{ambiguous} need review</p> : null}
     </div>
   );
 }
@@ -597,15 +597,15 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
   return (
     <section className="terminal-panel p-5 sm:p-6">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Shared learning</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Outcome signal</h2>
+        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">App learning</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What is improving</h2>
         <p className="mt-2 text-sm leading-6 text-slate">
-          LevelFlow uses resolved outcomes across the app to calibrate similar setup families. This is shared learning, not a user-specific score.
+          LevelFlow uses finished ideas across the app to improve future reviews. This is shared across the product, not isolated to one user.
         </p>
       </div>
       <div className="mb-4 grid grid-cols-2 gap-3">
-        <StatPill label="Resolved locally" value={resolved.toString()} />
-        <StatPill label="Families seen" value={families.length.toString()} />
+        <StatPill label="Finished ideas" value={resolved.toString()} />
+        <StatPill label="Patterns found" value={families.length.toString()} />
       </div>
       <div className="grid gap-3">
         {families.slice(0, 5).map((family) => (
@@ -615,7 +615,7 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
                 <p className="block max-w-full truncate font-semibold text-navy" title={formatDisplayName(family.key)}>
                   {formatModelFamilyLabel(family.key)}
                 </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{family.count} setups</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">{family.count} ideas</p>
               </div>
               <p className={`shrink-0 text-sm font-semibold ${family.adjustment > 0 ? "text-bullish" : family.adjustment < 0 ? "text-danger" : "text-navy"}`}>
                 {family.adjustment > 0 ? "+" : ""}
@@ -623,11 +623,11 @@ function ModelLearningPanel({ setups }: { setups: TradeSetupRow[] }) {
               </p>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate">
-              {family.globalSampleSize > 0 ? `${family.globalSampleSize} global outcomes have informed this family.` : "Global sample is still developing."}
+              {family.globalSampleSize > 0 ? `${family.globalSampleSize} finished ideas have informed this pattern.` : "More finished ideas are needed before this pattern carries weight."}
             </p>
           </div>
         ))}
-        {families.length === 0 ? <p className="text-sm leading-6 text-slate">Model family stats will appear after recommendations are generated.</p> : null}
+        {families.length === 0 ? <p className="text-sm leading-6 text-slate">Learning signals will appear after ideas are reviewed.</p> : null}
       </div>
     </section>
   );
@@ -745,31 +745,31 @@ function ProfilePanel({
 function GuidePanel() {
   const workflow = [
     {
-      body: "Choose the market and chart interval. The default 1 hour view balances current structure with enough history for a useful review.",
+      body: "Choose the market and chart interval. The 1 hour default gives a balanced starting view.",
       icon: <Crosshair className="h-5 w-5" aria-hidden="true" />,
       number: "01",
       title: "Select the market",
     },
     {
-      body: "Use the chart first. Look for trend, range, liquidity, and whether price is near an area where a limit order could make sense.",
+      body: "Use the chart first. Look for direction, range, and whether price is near a useful entry area.",
       icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
       number: "02",
       title: "Read the chart",
     },
     {
-      body: "Click Review market. LevelFlow clears stale results, refreshes the selected market, and either returns a current limit-order idea or explains why nothing passed.",
+      body: "Click Review market. LevelFlow clears stale results, refreshes the market, and either shows a current idea or says no idea passed.",
       icon: <Radar className="h-5 w-5" aria-hidden="true" />,
       number: "03",
       title: "Run the review",
     },
     {
-      body: "Review side, limit entry, stop, target, break-even reference, confidence, data health, and supporting evidence before taking any action outside LevelFlow.",
+      body: "Review the side, entry, stop, target, confidence, and reason before taking any action outside LevelFlow.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
       title: "Review the idea",
     },
     {
-      body: "Use Insights to review unique recommendations, final outcomes, confidence bands, and shared learning without changing your current chart.",
+      body: "Use Insights to review past ideas, final results, and score ranges without changing your current chart.",
       icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
       title: "Review insights",
@@ -778,22 +778,22 @@ function GuidePanel() {
 
   const decisionLenses = [
     {
-      body: "Trend, momentum, and structure determine whether buyers or sellers have control.",
+      body: "Direction checks whether buyers or sellers have control.",
       icon: <TrendingUp className="h-5 w-5" aria-hidden="true" />,
       title: "Direction",
     },
     {
-      body: "Liquidity, value, volatility, and range position determine whether the entry is worth waiting for.",
+      body: "Location checks whether the entry is worth waiting for.",
       icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
       title: "Location",
     },
     {
-      body: "Session quality, upcoming events, data coverage, and correlation filters reduce confidence or block marginal ideas.",
+      body: "Timing checks sessions, upcoming events, chart coverage, and related markets.",
       icon: <Activity className="h-5 w-5" aria-hidden="true" />,
       title: "Timing",
     },
     {
-      body: "Stops, targets, break-even reference, and reward-to-risk are checked before a setup can appear.",
+      body: "Risk checks the stop, target, and payoff before an idea can appear.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "Risk",
     },
@@ -811,17 +811,17 @@ function GuidePanel() {
       value: "Limit price",
     },
     {
-      body: "The price area that invalidates the structure and volatility assumptions behind the setup.",
+      body: "The price area where the idea is no longer valid.",
       label: "Stop",
-      value: "Invalidation",
+      value: "Risk price",
     },
     {
-      body: "The primary objective selected from liquidity, volatility, and minimum reward-to-risk checks.",
+      body: "The primary objective selected from price structure, volatility, and payoff.",
       label: "Target",
       value: "Take profit",
     },
     {
-      body: "A reference level for discretionary trade management after the setup has moved in favor.",
+      body: "A reference level after the idea has moved in favor.",
       label: "Reference",
       value: "Break-even",
     },
@@ -829,17 +829,17 @@ function GuidePanel() {
 
   const confidenceBands = [
     {
-      body: "Enough agreement, timing quality, and reward-to-risk for LevelFlow to show a setup.",
+      body: "Enough agreement, timing quality, and payoff for LevelFlow to show an idea.",
       range: "66+",
       title: "Qualified",
     },
     {
-      body: "Stronger agreement across structure, momentum, location, timing, and recent outcome learning.",
+      body: "Stronger agreement across direction, location, timing, and recent results.",
       range: "80+",
       title: "High agreement",
     },
     {
-      body: "No current limit-order idea meets the review threshold. No idea is a valid result, not a failure state.",
+      body: "No current idea meets the review threshold. No idea is a valid result.",
       range: "Blocked",
       title: "No idea",
     },
@@ -855,12 +855,12 @@ function GuidePanel() {
                 <BookOpen className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Field guide</p>
-                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">How to operate the review workflow.</h2>
+                <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Guide</p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">How to use LevelFlow.</h2>
               </div>
             </div>
             <p className="max-w-3xl text-base leading-7 text-slate">
-              Start with the chart, run the review, then inspect the levels and evidence. Opportunity Scan can help decide what to look at next, while Insights tracks how saved ideas resolve over time.
+              Start with the chart, run the review, then inspect the levels and reason. Market Scan can help decide what to look at next, while Insights tracks how ideas finish over time.
             </p>
           </div>
 
@@ -872,9 +872,9 @@ function GuidePanel() {
         <div className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Workflow</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Five-step operating sequence</h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Five-step workflow</h2>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate">The workflow is intentionally simple: chart first, review second, evidence before action.</p>
+          <p className="max-w-md text-sm leading-6 text-slate">Chart first, review second, reason before action.</p>
         </div>
         <div className="grid gap-3 lg:grid-cols-5">
           {workflow.map((step, index) => (
@@ -886,7 +886,7 @@ function GuidePanel() {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.5fr)]">
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Review model</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Review</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What LevelFlow checks</h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -899,7 +899,7 @@ function GuidePanel() {
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-5">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Output</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Recommendation anatomy</h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">What the idea includes</h2>
           </div>
           <div className="grid gap-3">
             {outputItems.map((item) => (
@@ -915,7 +915,7 @@ function GuidePanel() {
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Confidence</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">How to read the score</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
-              Confidence is a 0-100 quality score. It reflects strategy agreement, reward-to-risk, session quality, event risk, data quality, and shared outcome learning.
+              Confidence is a 0-100 quality score. It reflects market agreement, payoff, timing, event risk, data quality, and past results.
             </p>
           </div>
           <div className="grid gap-3">
@@ -955,11 +955,11 @@ function GuidePreviewCard() {
           <GuidePreviewMetric label="Entry" value="1.15780" tone="danger" />
           <GuidePreviewMetric label="Stop" value="1.16120" />
           <GuidePreviewMetric label="Target" value="1.15040" />
-          <GuidePreviewMetric label="Evidence" value="Trend + liquidity + timing" />
+        <GuidePreviewMetric label="Reason" value="Direction + location + timing" />
         </div>
       </div>
       <div className="rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-xs font-semibold leading-5 text-bullish">
-        Example only. Live recommendations refresh from the selected market and only appear when the current idea passes review.
+        Example only. Live ideas refresh from the selected market and only appear when the current idea passes review.
       </div>
     </div>
   );
@@ -1174,9 +1174,9 @@ function groupHistorySetups(setups: TradeSetupRow[], groupBy: HistoryGroupBy): H
 
 function buildConfidenceBands(setups: TradeSetupRow[]) {
   const bands = [
-    { ambiguous: 0, count: 0, label: "Passed: 66-74", losses: 0, max: 74, min: 66, wins: 0 },
+    { ambiguous: 0, count: 0, label: "Qualified: 66-74", losses: 0, max: 74, min: 66, wins: 0 },
     { ambiguous: 0, count: 0, label: "Strong: 75-84", losses: 0, max: 84, min: 75, wins: 0 },
-    { ambiguous: 0, count: 0, label: "Elite: 85-100", losses: 0, max: 100, min: 85, wins: 0 },
+    { ambiguous: 0, count: 0, label: "Best: 85-100", losses: 0, max: 100, min: 85, wins: 0 },
   ];
 
   for (const setup of setups) {
@@ -1348,11 +1348,13 @@ function formatModelFamilyLabel(value: string) {
   const withoutAssetPrefix = normalized.replace(/^(forex|crypto|metals|futures)\s+/i, "");
   const withoutTimeframe = withoutAssetPrefix.replace(/^(15min|1hour|4hour|1day)\s+/i, "");
   const withoutSession = withoutTimeframe.replace(/^(forex|crypto|futures)\s+/i, "");
-  const compact = withoutSession.replace(/\b(multi timeframe bias|momentum confirmation|volume value retest|smart money liquidity)\b/gi, (match) =>
-    match
-      .split(" ")
-      .map((word) => word[0]?.toUpperCase())
-      .join(""),
-  );
-  return formatDisplayName(compact);
+  const readable = withoutSession
+    .replace(/\bmulti timeframe bias\b/gi, "direction")
+    .replace(/\bmomentum confirmation\b/gi, "momentum")
+    .replace(/\bvolume value retest\b/gi, "price location")
+    .replace(/\bsmart money liquidity\b/gi, "price sweep")
+    .replace(/\bcompression\b/gi, "compression")
+    .replace(/\btrend\b/gi, "trend")
+    .replace(/\s+\+\s+/g, " + ");
+  return formatDisplayName(readable);
 }

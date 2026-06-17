@@ -1,10 +1,12 @@
-const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ?? "https://financialmodelingprep.com/stable";
+const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
+  "https://financialmodelingprep.com/stable";
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ANALYZER_VERSION = "2026.06.16.global-learning";
-const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
+  "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -79,9 +81,27 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
   }
 }
 
-const temporarilyUnavailableSymbols = new Set(["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"]);
+const temporarilyUnavailableSymbols = new Set([
+  "SP",
+  "NSDQ",
+  "NIKKEI",
+  "DOW",
+  "DAX",
+  "ASX",
+  "WTI",
+  "BRENT",
+]);
 const equityCalendarSensitiveSymbols = new Set(["ESUSD", "SP", "NSDQ", "DOW"]);
-const defaultScanSymbols = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "ETHUSD", "ESUSD", "GCUSD"];
+const defaultScanSymbols = [
+  "EURUSD",
+  "GBPUSD",
+  "USDJPY",
+  "XAUUSD",
+  "BTCUSD",
+  "ETHUSD",
+  "ESUSD",
+  "GCUSD",
+];
 
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
@@ -137,17 +157,74 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
 };
 
 const correlationGroups: Record<string, string[]> = {
-  aud_crosses: ["AUDUSD", "AUDNZD", "AUDJPY", "AUDCHF", "AUDCAD", "EURAUD", "GBPAUD"],
-  crypto: ["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"],
+  aud_crosses: [
+    "AUDUSD",
+    "AUDNZD",
+    "AUDJPY",
+    "AUDCHF",
+    "AUDCAD",
+    "EURAUD",
+    "GBPAUD",
+  ],
+  crypto: [
+    "XRPUSD",
+    "SOLUSD",
+    "LTCUSD",
+    "ETHUSD",
+    "BTCUSD",
+    "BNBUSD",
+    "BCHUSD",
+    "ADAUSD",
+  ],
   energies: ["WTI", "BRENT"],
   futures: ["ESUSD", "GCUSD", "SIUSD", "BZUSD"],
-  eur_crosses: ["EURUSD", "EURNZD", "EURJPY", "EURGBP", "EURCHF", "EURCAD", "EURAUD"],
-  gbp_crosses: ["GBPUSD", "GBPNZD", "GBPJPY", "GBPCHF", "GBPCAD", "GBPAUD", "EURGBP"],
-  jpy_crosses: ["USDJPY", "NZDJPY", "GBPJPY", "EURJPY", "CHFJPY", "CADJPY", "AUDJPY"],
+  eur_crosses: [
+    "EURUSD",
+    "EURNZD",
+    "EURJPY",
+    "EURGBP",
+    "EURCHF",
+    "EURCAD",
+    "EURAUD",
+  ],
+  gbp_crosses: [
+    "GBPUSD",
+    "GBPNZD",
+    "GBPJPY",
+    "GBPCHF",
+    "GBPCAD",
+    "GBPAUD",
+    "EURGBP",
+  ],
+  jpy_crosses: [
+    "USDJPY",
+    "NZDJPY",
+    "GBPJPY",
+    "EURJPY",
+    "CHFJPY",
+    "CADJPY",
+    "AUDJPY",
+  ],
   metals: ["XAUUSD", "XAGUSD"],
-  nzd_crosses: ["NZDUSD", "NZDJPY", "NZDCHF", "NZDCAD", "AUDNZD", "EURNZD", "GBPNZD"],
+  nzd_crosses: [
+    "NZDUSD",
+    "NZDJPY",
+    "NZDCHF",
+    "NZDCAD",
+    "AUDNZD",
+    "EURNZD",
+    "GBPNZD",
+  ],
   us_indices: ["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX"],
-  usd_majors: ["USDJPY", "USDCHF", "USDCAD", "NZDUSD", "GBPUSD", "EURUSD", "AUDUSD"],
+  usd_majors: [
+    "USDJPY",
+    "USDCHF",
+    "USDCAD",
+    "NZDUSD",
+    "GBPUSD",
+    "EURUSD",
+    "AUDUSD",
+  ],
 };
 
 const intradayTimeframes = ["4hour", "1hour", "15min"] as const;
@@ -257,7 +334,12 @@ type OutcomeRefreshSummary = {
   takeProfit: number;
 };
 
-type ResolvedOutcome = "ambiguous" | "pending" | "unfilled" | "take_profit" | "stop_loss";
+type ResolvedOutcome =
+  | "ambiguous"
+  | "pending"
+  | "unfilled"
+  | "take_profit"
+  | "stop_loss";
 
 type UpsertedSetupResult = {
   deduplicated: boolean;
@@ -296,13 +378,17 @@ Deno.serve(async (req) => {
     }
 
     if (!FMP_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      return jsonResponse(req, { error: "Analyzer provider configuration is incomplete" }, 500);
+      return jsonResponse(req, {
+        error: "Analyzer provider configuration is incomplete",
+      }, 500);
     }
 
     const token = getBearerToken(req);
     const user = await getAuthenticatedUser(token);
     if (!token || !user) {
-      return jsonResponse(req, { error: "Authenticated Supabase session required" }, 401);
+      return jsonResponse(req, {
+        error: "Authenticated Supabase session required",
+      }, 401);
     }
 
     let body: AnalyzeRequest;
@@ -312,7 +398,10 @@ Deno.serve(async (req) => {
       body = {};
     }
 
-    const rateLimit = await claimAnalyzerRequest(user.id, normalizeActionName(body.action));
+    const rateLimit = await claimAnalyzerRequest(
+      user.id,
+      normalizeActionName(body.action),
+    );
     if (!rateLimit.allowed) {
       return jsonResponse(
         req,
@@ -346,29 +435,46 @@ Deno.serve(async (req) => {
       });
     }
 
-    const requestedSymbol = typeof body.symbol === "string" && body.symbol.trim() ? body.symbol.trim() : "EURUSD";
+    const requestedSymbol =
+      typeof body.symbol === "string" && body.symbol.trim()
+        ? body.symbol.trim()
+        : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
     if (temporarilyUnavailableSymbols.has(uiSymbol)) {
       return jsonResponse(req, {
         blocked: true,
-        reason: "This asset group is temporarily unavailable while LevelFlow verifies provider coverage.",
+        reason:
+          "This asset group is temporarily unavailable while LevelFlow verifies provider coverage.",
         symbol: uiSymbol,
       });
     }
 
     const providerSymbols = resolveProviderSymbols(requestedSymbol);
     if (providerSymbols.length === 0) {
-      return jsonResponse(req, { error: "Unsupported LevelFlow market symbol" }, 400);
+      return jsonResponse(
+        req,
+        { error: "Unsupported LevelFlow market symbol" },
+        400,
+      );
     }
 
     const symbol = uiSymbol as SupportedSymbol;
-    const outcomeRefresh = await refreshUserOutcomes(token, user.id, { limit: 24, symbols: [symbol] });
+    const outcomeRefresh = await refreshUserOutcomes(token, user.id, {
+      limit: 24,
+      symbols: [symbol],
+    });
     const learningRefresh = await refreshGlobalStrategyWeights();
     const sessionContext = getSessionContext(symbol);
 
-    const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
+    const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
+      await fetchRelevantNews(token, symbol);
     if (activeNewsEvents.length > 0) {
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "High-impact calendar risk is active for this asset.");
+      await invalidateActiveSetupsForSymbol(
+        token,
+        user.id,
+        symbol,
+        "High-impact calendar risk is active for this asset.",
+      );
       return jsonResponse(req, {
         blocked: true,
         reason: "Relevant high-impact calendar risk is active for this asset.",
@@ -378,28 +484,69 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { fmpSymbol, marketContext, providerFailures } = await fetchFirstAvailableMarketContext(providerSymbols);
+    const { fmpSymbol, marketContext, providerFailures } =
+      await fetchFirstAvailableMarketContext(providerSymbols);
     if (!fmpSymbol || !marketContext) {
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "FMP did not return enough bars for this instrument.");
-      return jsonResponse(req, { blocked: true, learningRefresh, reason: "FMP did not return enough bars for this instrument.", providerWarnings: providerFailures, outcomeRefresh });
+      await invalidateActiveSetupsForSymbol(
+        token,
+        user.id,
+        symbol,
+        "FMP did not return enough bars for this instrument.",
+      );
+      return jsonResponse(req, {
+        blocked: true,
+        learningRefresh,
+        reason: "FMP did not return enough bars for this instrument.",
+        providerWarnings: providerFailures,
+        outcomeRefresh,
+      });
     }
 
     if (marketContext.daily.length < 80) {
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "Not enough FMP daily bars returned for analyzer confidence.");
+      await invalidateActiveSetupsForSymbol(
+        token,
+        user.id,
+        symbol,
+        "Not enough FMP daily bars returned for analyzer confidence.",
+      );
       return jsonResponse(req, {
         blocked: true,
         reason: "Not enough FMP daily bars returned for analyzer confidence.",
-        providerWarnings: [...providerFailures, ...marketContext.providerWarnings],
+        providerWarnings: [
+          ...providerFailures,
+          ...marketContext.providerWarnings,
+        ],
         learningRefresh,
         outcomeRefresh,
       });
     }
 
     const group = getCorrelationGroup(symbol);
-    const setup = await analyzeSetup(token, user.id, symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
+    const setup = await analyzeSetup(
+      token,
+      user.id,
+      symbol,
+      fmpSymbol,
+      group,
+      marketContext,
+      activeNewsEvents,
+      upcomingNewsEvents,
+      sessionContext,
+    );
     if (!setup) {
-      const analysisDiagnostics = await explainNoSetup(token, symbol, marketContext, upcomingNewsEvents, sessionContext);
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol, "No current limit-order idea met the review threshold.");
+      const analysisDiagnostics = await explainNoSetup(
+        token,
+        symbol,
+        marketContext,
+        upcomingNewsEvents,
+        sessionContext,
+      );
+      await invalidateActiveSetupsForSymbol(
+        token,
+        user.id,
+        symbol,
+        "No current limit-order idea met the review threshold.",
+      );
       return jsonResponse(req, {
         analysisDiagnostics,
         blocked: true,
@@ -410,31 +557,58 @@ Deno.serve(async (req) => {
       });
     }
 
-    const activeCorrelated = await fetchRows<{ id: string; symbol: string; confidence_score: number }>(
+    const activeCorrelated = await fetchRows<
+      { id: string; symbol: string; confidence_score: number }
+    >(
       token,
-      `trade_setups?select=id,symbol,confidence_score&user_id=eq.${encodeURIComponent(user.id)}&correlation_group=eq.${encodeURIComponent(group)}&status=in.(generated,placed)&created_at=gte.${encodeURIComponent(
-        new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      )}`,
+      `trade_setups?select=id,symbol,confidence_score&user_id=eq.${
+        encodeURIComponent(user.id)
+      }&correlation_group=eq.${
+        encodeURIComponent(group)
+      }&status=in.(generated,placed)&created_at=gte.${
+        encodeURIComponent(
+          new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+        )
+      }`,
     );
 
-    const strongerExisting = activeCorrelated.find((row) => row.symbol !== symbol && row.confidence_score >= setup.confidenceScore);
+    const strongerExisting = activeCorrelated.find((row) =>
+      row.symbol !== symbol && row.confidence_score >= setup.confidenceScore
+    );
     if (strongerExisting) {
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol, `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`);
+      await invalidateActiveSetupsForSymbol(
+        token,
+        user.id,
+        symbol,
+        `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
+      );
       return jsonResponse(req, {
         blocked: true,
-        reason: `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
+        reason:
+          `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
         correlationGroup: group,
         learningRefresh,
         outcomeRefresh,
       });
     }
 
-    const savedSetup = await upsertActiveSetup(token, user.id, symbol, fmpSymbol, group, setup, activeNewsEvents, upcomingNewsEvents);
+    const savedSetup = await upsertActiveSetup(
+      token,
+      user.id,
+      symbol,
+      fmpSymbol,
+      group,
+      setup,
+      activeNewsEvents,
+      upcomingNewsEvents,
+    );
 
     return jsonResponse(req, {
       advisoryOnly: true,
       deduplicated: savedSetup.deduplicated,
-      message: savedSetup.updated ? "Updated current active advisory setup. LevelFlow did not create a duplicate log entry." : "Generated advisory limit-order setup. LevelFlow does not execute trades.",
+      message: savedSetup.updated
+        ? "Updated current active advisory setup. LevelFlow did not create a duplicate log entry."
+        : "Generated advisory limit-order setup. LevelFlow does not execute trades.",
       learningRefresh,
       outcomeRefresh,
       pendingOrderId: savedSetup.pendingOrderId,
@@ -443,18 +617,21 @@ Deno.serve(async (req) => {
       updated: savedSetup.updated,
     });
   } catch (error) {
+    console.error("trade-analyzer request failed", error);
     return jsonResponse(
       req,
       {
         blocked: true,
-        error: error instanceof Error ? error.message : "Analyzer request failed.",
+        error: "Market review could not complete. Try again shortly.",
       },
       500,
     );
   }
 });
 
-async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Promise<ProviderContextResult> {
+async function fetchFirstAvailableMarketContext(
+  providerSymbols: string[],
+): Promise<ProviderContextResult> {
   const providerFailures: string[] = [];
 
   for (const [index, providerSymbol] of providerSymbols.entries()) {
@@ -462,7 +639,11 @@ async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Prom
       const marketContext = await fetchMarketContext(providerSymbol);
       if (marketContext.daily.length >= 80) {
         if (index > 0) {
-          marketContext.providerWarnings.unshift(`Using FMP fallback symbol ${providerSymbol}; primary ${providerSymbols[0]} was unavailable.`);
+          marketContext.providerWarnings.unshift(
+            `Using FMP fallback symbol ${providerSymbol}; primary ${
+              providerSymbols[0]
+            } was unavailable.`,
+          );
         }
         return {
           fmpSymbol: providerSymbol,
@@ -471,9 +652,15 @@ async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Prom
         };
       }
 
-      providerFailures.push(`${providerSymbol}: insufficient daily history (${marketContext.daily.length} bars)`);
+      providerFailures.push(
+        `${providerSymbol}: insufficient daily history (${marketContext.daily.length} bars)`,
+      );
     } catch (error) {
-      providerFailures.push(`${providerSymbol}: ${error instanceof Error ? error.message : "FMP request failed"}`);
+      providerFailures.push(
+        `${providerSymbol}: ${
+          error instanceof Error ? error.message : "FMP request failed"
+        }`,
+      );
     }
   }
 
@@ -484,9 +671,18 @@ async function fetchFirstAvailableMarketContext(providerSymbols: string[]): Prom
   };
 }
 
-async function scanOpportunities(token: string, requestedSymbols: string[] | undefined) {
+async function scanOpportunities(
+  token: string,
+  requestedSymbols: string[] | undefined,
+) {
   const normalizedSymbols = Array.from(
-    new Set((requestedSymbols && requestedSymbols.length > 0 ? requestedSymbols : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(Boolean)),
+    new Set(
+      (requestedSymbols && requestedSymbols.length > 0
+        ? requestedSymbols
+        : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(
+          Boolean,
+        ),
+    ),
   ).slice(0, 10);
   const opportunities: MarketScanCandidate[] = [];
   const blocked: MarketScanCandidate[] = [];
@@ -515,7 +711,8 @@ async function scanOpportunities(token: string, requestedSymbols: string[] | und
 
     try {
       const sessionContext = getSessionContext(symbol);
-      const { active: activeNewsEvents, upcoming: upcomingNewsEvents } = await fetchRelevantNews(token, symbol);
+      const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
+        await fetchRelevantNews(token, symbol);
       if (activeNewsEvents.length > 0) {
         blocked.push({
           assetType: getAssetType(symbol),
@@ -526,25 +723,50 @@ async function scanOpportunities(token: string, requestedSymbols: string[] | und
         continue;
       }
 
-      const { fmpSymbol, marketContext, providerFailures } = await fetchFirstAvailableMarketContext(providerSymbols);
+      const { fmpSymbol, marketContext, providerFailures } =
+        await fetchFirstAvailableMarketContext(providerSymbols);
       if (!fmpSymbol || !marketContext || marketContext.daily.length < 80) {
+        if (providerFailures.length > 0) {
+          console.warn(
+            "scan market data unavailable",
+            symbol,
+            providerFailures[0],
+          );
+        }
         blocked.push({
           assetType: getAssetType(symbol),
           blocked: true,
-          reason: providerFailures[0] ?? "Not enough market data returned.",
+          reason: "Chart data is not ready for this market yet.",
           symbol,
         });
         continue;
       }
 
       const group = getCorrelationGroup(symbol);
-      const setup = await analyzeSetup(token, "scan", symbol, fmpSymbol, group, marketContext, activeNewsEvents, upcomingNewsEvents, sessionContext);
+      const setup = await analyzeSetup(
+        token,
+        "scan",
+        symbol,
+        fmpSymbol,
+        group,
+        marketContext,
+        activeNewsEvents,
+        upcomingNewsEvents,
+        sessionContext,
+      );
       if (!setup) {
-        const diagnostics = await explainNoSetup(token, symbol, marketContext, upcomingNewsEvents, sessionContext);
+        const diagnostics = await explainNoSetup(
+          token,
+          symbol,
+          marketContext,
+          upcomingNewsEvents,
+          sessionContext,
+        );
         blocked.push({
           assetType: getAssetType(symbol),
           blocked: true,
-          reason: diagnostics[0] ?? "No current limit-order idea passed review.",
+          reason: diagnostics[0] ??
+            "No current limit-order idea passed review.",
           symbol,
         });
         continue;
@@ -561,10 +783,11 @@ async function scanOpportunities(token: string, requestedSymbols: string[] | und
         takeProfit: setup.takeProfit,
       });
     } catch (error) {
+      console.warn("scan market failed", symbol, error);
       blocked.push({
         assetType: getAssetType(symbol),
         blocked: true,
-        reason: error instanceof Error ? error.message : "Market scan failed.",
+        reason: "This market could not be reviewed right now.",
         symbol,
       });
     }
@@ -572,7 +795,9 @@ async function scanOpportunities(token: string, requestedSymbols: string[] | und
 
   return {
     blocked,
-    opportunities: opportunities.sort((first, second) => (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)).slice(0, 5),
+    opportunities: opportunities.sort((first, second) =>
+      (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)
+    ).slice(0, 5),
     scanned: normalizedSymbols.length,
   };
 }
@@ -595,10 +820,25 @@ async function analyzeSetup(
     return null;
   }
 
-  const setupKey = buildSetupKey(symbol, market, sessionContext, regime, consensus.side, votes);
-  const weight = await fetchSingle<{ confidence_adjustment: number | string; sample_weight?: number | string; total_setups?: number | string }>(
+  const setupKey = buildSetupKey(
+    symbol,
+    market,
+    sessionContext,
+    regime,
+    consensus.side,
+    votes,
+  );
+  const weight = await fetchSingle<
+    {
+      confidence_adjustment: number | string;
+      sample_weight?: number | string;
+      total_setups?: number | string;
+    }
+  >(
     token,
-    `strategy_weightings_global?select=confidence_adjustment,sample_weight,total_setups&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
+    `strategy_weightings_global?select=confidence_adjustment,sample_weight,total_setups&setup_key=eq.${
+      encodeURIComponent(setupKey)
+    }&limit=1`,
   );
   const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
 
@@ -611,7 +851,10 @@ async function analyzeSetup(
   const timeframePenalty = market.availableTimeframes.length < 3 ? 5 : 0;
   const providerPenalty = Math.min(6, market.providerWarnings.length * 2);
   const confidenceScore = clampInteger(
-    Math.round(consensus.score + weightAdjustment - newsPenalty - sessionContext.penalty - timeframePenalty - providerPenalty),
+    Math.round(
+      consensus.score + weightAdjustment - newsPenalty -
+        sessionContext.penalty - timeframePenalty - providerPenalty,
+    ),
     0,
     100,
   );
@@ -621,10 +864,11 @@ async function analyzeSetup(
   }
 
   const lotSize = 0.01;
-  const breakevenTriggerPrice =
-    consensus.side === "buy"
-      ? pricePlan.entryPrice + Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5
-      : pricePlan.entryPrice - Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5;
+  const breakevenTriggerPrice = consensus.side === "buy"
+    ? pricePlan.entryPrice +
+      Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5
+    : pricePlan.entryPrice -
+      Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5;
 
   return {
     symbol,
@@ -652,7 +896,9 @@ async function analyzeSetup(
       orderConstruction: {
         orderType: "limit",
         latestClose: market.latest.close,
-        validation: consensus.side === "buy" ? "buy limit entry below latest close" : "sell limit entry above latest close",
+        validation: consensus.side === "buy"
+          ? "buy limit entry below latest close"
+          : "sell limit entry above latest close",
       },
       sessionContext,
       strategyWeightAdjustment: weightAdjustment,
@@ -666,7 +912,8 @@ async function analyzeSetup(
       atr: pricePlan.atr,
       dailyAtr: averageTrueRange(market.daily, 14),
       positionSizingStatus: "not_calculated",
-      positionSizingReason: "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
+      positionSizingReason:
+        "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
       activeNewsEventsTracked: activeNewsEvents.length,
       upcomingNewsEventsTracked: upcomingNewsEvents.length,
       stopLogic: pricePlan.stopLogic,
@@ -675,19 +922,38 @@ async function analyzeSetup(
   };
 }
 
-async function explainNoSetup(token: string, symbol: SupportedSymbol, market: MarketContext, upcomingNewsEvents: NewsEvent[], sessionContext: SessionContext) {
+async function explainNoSetup(
+  token: string,
+  symbol: SupportedSymbol,
+  market: MarketContext,
+  upcomingNewsEvents: NewsEvent[],
+  sessionContext: SessionContext,
+) {
   const regime = classifyRegime(market);
   const votes = runStrategyCommittee(market, regime);
   const consensus = scoreConsensus(votes, regime);
   const diagnostics: string[] = [];
 
   if (!consensus.side) {
-    diagnostics.push(`No clear direction passed review: buy ${consensus.buyScore}, sell ${consensus.sellScore}, block ${consensus.blockScore}.`);
+    diagnostics.push(
+      `No clear direction passed review: buy ${consensus.buyScore}, sell ${consensus.sellScore}, block ${consensus.blockScore}.`,
+    );
   } else {
-    const setupKey = buildSetupKey(symbol, market, sessionContext, regime, consensus.side, votes);
-    const weight = await fetchSingle<{ confidence_adjustment: number | string }>(
+    const setupKey = buildSetupKey(
+      symbol,
+      market,
+      sessionContext,
+      regime,
+      consensus.side,
+      votes,
+    );
+    const weight = await fetchSingle<
+      { confidence_adjustment: number | string }
+    >(
       token,
-      `strategy_weightings_global?select=confidence_adjustment&setup_key=eq.${encodeURIComponent(setupKey)}&limit=1`,
+      `strategy_weightings_global?select=confidence_adjustment&setup_key=eq.${
+        encodeURIComponent(setupKey)
+      }&limit=1`,
     );
     const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
     const pricePlan = buildPricePlan(consensus.side, market, regime);
@@ -695,27 +961,46 @@ async function explainNoSetup(token: string, symbol: SupportedSymbol, market: Ma
     const timeframePenalty = market.availableTimeframes.length < 3 ? 5 : 0;
     const providerPenalty = Math.min(6, market.providerWarnings.length * 2);
     const confidenceScore = clampInteger(
-      Math.round(consensus.score + weightAdjustment - newsPenalty - sessionContext.penalty - timeframePenalty - providerPenalty),
+      Math.round(
+        consensus.score + weightAdjustment - newsPenalty -
+          sessionContext.penalty - timeframePenalty - providerPenalty,
+      ),
       0,
       100,
     );
 
-    diagnostics.push(`Committee favored ${consensus.side}, but the adjusted score was ${confidenceScore}; LevelFlow requires 66 or higher.`);
+    diagnostics.push(
+      `Committee favored ${consensus.side}, but the adjusted score was ${confidenceScore}; LevelFlow requires 66 or higher.`,
+    );
     if (!pricePlan) {
-      diagnostics.push("Limit entry failed price validation, so no limit-order idea was shown.");
+      diagnostics.push(
+        "Limit entry failed price validation, so no limit-order idea was shown.",
+      );
     } else if (pricePlan.rewardRisk < 1.35) {
-      diagnostics.push(`Reward-to-risk was ${pricePlan.rewardRisk.toFixed(2)}R; LevelFlow requires at least 1.35R.`);
+      diagnostics.push(
+        `Reward-to-risk was ${
+          pricePlan.rewardRisk.toFixed(2)
+        }R; LevelFlow requires at least 1.35R.`,
+      );
     }
   }
 
   if (upcomingNewsEvents.length > 0) {
-    diagnostics.push(`${upcomingNewsEvents.length} upcoming high-impact event${upcomingNewsEvents.length === 1 ? "" : "s"} reduced setup quality.`);
+    diagnostics.push(
+      `${upcomingNewsEvents.length} upcoming high-impact event${
+        upcomingNewsEvents.length === 1 ? "" : "s"
+      } reduced setup quality.`,
+    );
   }
   if (sessionContext.penalty > 0) {
-    diagnostics.push(`${sessionContext.label} reduced confidence by ${sessionContext.penalty} points.`);
+    diagnostics.push(
+      `${sessionContext.label} reduced confidence by ${sessionContext.penalty} points.`,
+    );
   }
   if (market.availableTimeframes.length < 3) {
-    diagnostics.push("Fewer than three review timeframes were available from the provider.");
+    diagnostics.push(
+      "Fewer than three review timeframes were available from the provider.",
+    );
   }
 
   return diagnostics.slice(0, 5);
@@ -733,46 +1018,63 @@ async function upsertActiveSetup(
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(
-      symbol,
-    )}&status=in.(generated,placed)&order=created_at.desc&limit=1`,
+    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
+      encodeURIComponent(userId)
+    }&symbol=eq.${
+      encodeURIComponent(
+        symbol,
+      )
+    }&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
   const activeSetup = rows[0] ?? null;
-  const expiresAt = new Date(getSetupExpiryTime(symbol, Date.now())).toISOString();
+  const expiresAt = new Date(getSetupExpiryTime(symbol, Date.now()))
+    .toISOString();
 
   if (activeSetup && activeSetup.side === setup.side) {
     if (activeSetup.pending_order_id) {
-      await updateRows(token, `pending_orders?id=eq.${encodeURIComponent(activeSetup.pending_order_id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+      await updateRows(
+        token,
+        `pending_orders?id=eq.${
+          encodeURIComponent(activeSetup.pending_order_id)
+        }&user_id=eq.${encodeURIComponent(userId)}`,
+        {
+          confidence_score: setup.confidenceScore,
+          entry_price: setup.entryPrice,
+          expires_at: expiresAt,
+          invalidation_reason: null,
+          massive_symbol: fmpSymbol,
+          side: setup.side,
+          status: "generated",
+          stop_loss: setup.stopLoss,
+          take_profit: setup.takeProfit,
+        },
+      );
+    }
+
+    await updateRows(
+      token,
+      `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${
+        encodeURIComponent(userId)
+      }`,
+      {
+        breakeven_trigger_price: setup.breakevenTriggerPrice,
         confidence_score: setup.confidenceScore,
-        entry_price: setup.entryPrice,
-        expires_at: expiresAt,
-        invalidation_reason: null,
+        analyzer_version: ANALYZER_VERSION,
+        confluence: setup.confluence,
+        correlation_group: group,
+        limit_entry: setup.entryPrice,
         massive_symbol: fmpSymbol,
+        news_context: {
+          activeEvents: activeNewsEvents,
+          upcomingEvents: upcomingNewsEvents,
+        },
+        risk_model: setup.riskModel,
         side: setup.side,
         status: "generated",
         stop_loss: setup.stopLoss,
         take_profit: setup.takeProfit,
-      });
-    }
-
-    await updateRows(token, `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
-      breakeven_trigger_price: setup.breakevenTriggerPrice,
-      confidence_score: setup.confidenceScore,
-      analyzer_version: ANALYZER_VERSION,
-      confluence: setup.confluence,
-      correlation_group: group,
-      limit_entry: setup.entryPrice,
-      massive_symbol: fmpSymbol,
-      news_context: {
-        activeEvents: activeNewsEvents,
-        upcomingEvents: upcomingNewsEvents,
       },
-      risk_model: setup.riskModel,
-      side: setup.side,
-      status: "generated",
-      stop_loss: setup.stopLoss,
-      take_profit: setup.takeProfit,
-    });
+    );
 
     return {
       deduplicated: true,
@@ -783,7 +1085,12 @@ async function upsertActiveSetup(
   }
 
   if (activeSetup) {
-    await invalidateActiveSetupsForSymbol(token, userId, symbol, "A newer analysis produced a different current setup.");
+    await invalidateActiveSetupsForSymbol(
+      token,
+      userId,
+      symbol,
+      "A newer analysis produced a different current setup.",
+    );
   }
 
   const pendingOrder = await insertSingle(token, "pending_orders", {
@@ -831,17 +1138,38 @@ async function upsertActiveSetup(
   };
 }
 
-async function invalidateActiveSetupsForSymbol(token: string, userId: string, symbol: SupportedSymbol, reason: string) {
-  await updateRows(token, `pending_orders?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(symbol)}&status=in.(generated,placed)`, {
-    invalidation_reason: reason,
-    status: "invalidated",
-  });
-  await updateRows(token, `trade_setups?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${encodeURIComponent(symbol)}&status=in.(generated,placed)`, {
-    status: "invalidated",
-  });
+async function invalidateActiveSetupsForSymbol(
+  token: string,
+  userId: string,
+  symbol: SupportedSymbol,
+  reason: string,
+) {
+  await updateRows(
+    token,
+    `pending_orders?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${
+      encodeURIComponent(symbol)
+    }&status=in.(generated,placed)`,
+    {
+      invalidation_reason: reason,
+      status: "invalidated",
+    },
+  );
+  await updateRows(
+    token,
+    `trade_setups?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${
+      encodeURIComponent(symbol)
+    }&status=in.(generated,placed)`,
+    {
+      status: "invalidated",
+    },
+  );
 }
 
-async function refreshUserOutcomes(token: string, userId: string, options: { limit?: number; symbols?: SupportedSymbol[] } = {}): Promise<OutcomeRefreshSummary> {
+async function refreshUserOutcomes(
+  token: string,
+  userId: string,
+  options: { limit?: number; symbols?: SupportedSymbol[] } = {},
+): Promise<OutcomeRefreshSummary> {
   const summary: OutcomeRefreshSummary = {
     ambiguous: 0,
     expired: 0,
@@ -852,14 +1180,19 @@ async function refreshUserOutcomes(token: string, userId: string, options: { lim
     stopLoss: 0,
     takeProfit: 0,
   };
-  const symbolFilter =
-    options.symbols && options.symbols.length > 0 ? `&symbol=in.(${options.symbols.map((symbol) => encodeURIComponent(symbol)).join(",")})` : "";
+  const symbolFilter = options.symbols && options.symbols.length > 0
+    ? `&symbol=in.(${
+      options.symbols.map((symbol) => encodeURIComponent(symbol)).join(",")
+    })`
+    : "";
   const limit = Math.max(1, Math.min(options.limit ?? 120, 120));
   const setups = await fetchRows<SetupForOutcome>(
     token,
-    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${encodeURIComponent(
-      userId,
-    )}&status=in.(generated,placed)${symbolFilter}&order=created_at.asc&limit=${limit}`,
+    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${
+      encodeURIComponent(
+        userId,
+      )
+    }&status=in.(generated,placed)${symbolFilter}&order=created_at.asc&limit=${limit}`,
   );
   const barsByProviderSymbol = new Map<string, Promise<Bar[]>>();
 
@@ -867,14 +1200,18 @@ async function refreshUserOutcomes(token: string, userId: string, options: { lim
     summary.reviewed += 1;
 
     try {
-      const providerSymbol = setup.massive_symbol || resolveProviderSymbols(setup.symbol)[0];
+      const providerSymbol = setup.massive_symbol ||
+        resolveProviderSymbols(setup.symbol)[0];
       if (!providerSymbol) {
         summary.failed += 1;
         continue;
       }
 
       if (!barsByProviderSymbol.has(providerSymbol)) {
-        barsByProviderSymbol.set(providerSymbol, fetchFmpBars(providerSymbol, "15min"));
+        barsByProviderSymbol.set(
+          providerSymbol,
+          fetchFmpBars(providerSymbol, "15min"),
+        );
       }
       const bars = await barsByProviderSymbol.get(providerSymbol)!;
       const evaluation = evaluateSetupOutcome(setup, bars);
@@ -905,7 +1242,12 @@ async function refreshUserOutcomes(token: string, userId: string, options: { lim
         summary.expired += 1;
       }
 
-      await markSetupStatus(token, userId, setup, evaluation.outcome === "unfilled" ? "expired" : "filled");
+      await markSetupStatus(
+        token,
+        userId,
+        setup,
+        evaluation.outcome === "unfilled" ? "expired" : "filled",
+      );
       await upsertOutcome(token, userId, setup, {
         exitAt: evaluation.exitAt,
         feedback: evaluation.feedback,
@@ -927,9 +1269,14 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
   const takeProfit = Number(setup.take_profit);
   const createdAt = new Date(setup.created_at).getTime();
   const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
-  const createdBars = bars.filter((bar) => bar.time >= createdAt && bar.time <= expiresAt);
+  const createdBars = bars.filter((bar) =>
+    bar.time >= createdAt && bar.time <= expiresAt
+  );
 
-  if (!Number.isFinite(entry) || !Number.isFinite(stopLoss) || !Number.isFinite(takeProfit)) {
+  if (
+    !Number.isFinite(entry) || !Number.isFinite(stopLoss) ||
+    !Number.isFinite(takeProfit)
+  ) {
     return { state: "pending" as const };
   }
 
@@ -938,7 +1285,8 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       return {
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
-          reason: "No post-recommendation bars were available before the setup review window expired.",
+          reason:
+            "No post-recommendation bars were available before the setup review window expired.",
           expiresAt: new Date(expiresAt).toISOString(),
           source: "price_path_review",
         },
@@ -964,7 +1312,8 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       return {
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
-          reason: "Limit entry did not fill before the setup review window expired.",
+          reason:
+            "Limit entry did not fill before the setup review window expired.",
           expiresAt: new Date(expiresAt).toISOString(),
           source: "price_path_review",
         },
@@ -987,7 +1336,11 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       const stopHit = bar.low <= stopLoss;
 
       if (stopHit || targetHit) {
-        const outcome: ResolvedOutcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
+        const outcome: ResolvedOutcome = stopHit && targetHit
+          ? "ambiguous"
+          : stopHit
+          ? "stop_loss"
+          : "take_profit";
         return {
           exitAt: new Date(bar.time).toISOString(),
           feedback: {
@@ -1008,7 +1361,11 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       const stopHit = bar.high >= stopLoss;
 
       if (stopHit || targetHit) {
-        const outcome: ResolvedOutcome = stopHit && targetHit ? "ambiguous" : stopHit ? "stop_loss" : "take_profit";
+        const outcome: ResolvedOutcome = stopHit && targetHit
+          ? "ambiguous"
+          : stopHit
+          ? "stop_loss"
+          : "take_profit";
         return {
           exitAt: new Date(bar.time).toISOString(),
           feedback: {
@@ -1031,7 +1388,8 @@ function evaluateSetupOutcome(setup: SetupForOutcome, bars: Bar[]) {
       feedback: {
         maxAdverseMove: roundPrice(maxAdverseMove),
         maxFavorableMove: roundPrice(maxFavorableMove),
-        reason: "Entry filled, but neither target nor stop was reached before the setup review window ended.",
+        reason:
+          "Entry filled, but neither target nor stop was reached before the setup review window ended.",
         source: "price_path_review",
       },
       filledAt,
@@ -1058,10 +1416,16 @@ function getSetupExpiryTime(symbol: SupportedSymbol, createdAt: number) {
     return sixHours;
   }
   const weeklyCutoff = weeklyClose - 5 * 60 * 1000;
-  return Math.min(sixHours, weeklyCutoff > createdAt ? weeklyCutoff : weeklyClose);
+  return Math.min(
+    sixHours,
+    weeklyCutoff > createdAt ? weeklyCutoff : weeklyClose,
+  );
 }
 
-function getUpcomingWeeklyCloseTime(symbol: SupportedSymbol, fromTimestamp: number) {
+function getUpcomingWeeklyCloseTime(
+  symbol: SupportedSymbol,
+  fromTimestamp: number,
+) {
   if (getAssetType(symbol) === "crypto") {
     return null;
   }
@@ -1072,7 +1436,14 @@ function getUpcomingWeeklyCloseTime(symbol: SupportedSymbol, fromTimestamp: numb
   const from = new Date(fromTimestamp);
 
   for (let dayOffset = 0; dayOffset <= 7; dayOffset += 1) {
-    const candidateUtc = getZonedTargetUtc(from, marketTimeZone, dayOffset, 5, closeHour, closeMinute);
+    const candidateUtc = getZonedTargetUtc(
+      from,
+      marketTimeZone,
+      dayOffset,
+      5,
+      closeHour,
+      closeMinute,
+    );
     if (candidateUtc > fromTimestamp) {
       return candidateUtc;
     }
@@ -1081,26 +1452,64 @@ function getUpcomingWeeklyCloseTime(symbol: SupportedSymbol, fromTimestamp: numb
   return null;
 }
 
-function getZonedTargetUtc(from: Date, timeZone: string, dayOffset: number, targetWeekday: number, hour: number, minute: number) {
+function getZonedTargetUtc(
+  from: Date,
+  timeZone: string,
+  dayOffset: number,
+  targetWeekday: number,
+  hour: number,
+  minute: number,
+) {
   const base = new Date(from.getTime() + dayOffset * 24 * 60 * 60 * 1000);
-  const noonUtc = Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), 12, 0, 0);
+  const noonUtc = Date.UTC(
+    base.getUTCFullYear(),
+    base.getUTCMonth(),
+    base.getUTCDate(),
+    12,
+    0,
+    0,
+  );
   const parts = getZonedDateParts(new Date(noonUtc), timeZone);
   if (parts.weekday !== targetWeekday) {
     return 0;
   }
-  const naiveUtc = Date.UTC(parts.year, parts.month - 1, parts.day, hour, minute, 0);
+  const naiveUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    hour,
+    minute,
+    0,
+  );
   const offset = getTimeZoneOffsetMs(new Date(naiveUtc), timeZone);
   return naiveUtc - offset;
 }
 
-async function markSetupStatus(token: string, userId: string, setup: SetupForOutcome, status: "expired" | "filled" | "placed") {
-  await updateRows(token, `trade_setups?id=eq.${encodeURIComponent(setup.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
-    status,
-  });
-  if (setup.pending_order_id) {
-    await updateRows(token, `pending_orders?id=eq.${encodeURIComponent(setup.pending_order_id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+async function markSetupStatus(
+  token: string,
+  userId: string,
+  setup: SetupForOutcome,
+  status: "expired" | "filled" | "placed",
+) {
+  await updateRows(
+    token,
+    `trade_setups?id=eq.${encodeURIComponent(setup.id)}&user_id=eq.${
+      encodeURIComponent(userId)
+    }`,
+    {
       status,
-    });
+    },
+  );
+  if (setup.pending_order_id) {
+    await updateRows(
+      token,
+      `pending_orders?id=eq.${
+        encodeURIComponent(setup.pending_order_id)
+      }&user_id=eq.${encodeURIComponent(userId)}`,
+      {
+        status,
+      },
+    );
   }
 }
 
@@ -1140,12 +1549,16 @@ async function upsertOutcome(
 }
 
 function normalizeActionName(action: unknown) {
-  return typeof action === "string" && action in RATE_LIMITS ? action : "generate_setup";
+  return typeof action === "string" && action in RATE_LIMITS
+    ? action
+    : "generate_setup";
 }
 
 async function claimAnalyzerRequest(userId: string, action: string) {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for analyzer rate limiting.");
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is required for analyzer rate limiting.",
+    );
   }
 
   const rows = await adminRpcRows<{
@@ -1177,14 +1590,19 @@ async function refreshGlobalStrategyWeights() {
     return {
       skipped: true,
       updated: 0,
-      reason: "SUPABASE_SERVICE_ROLE_KEY is not configured for global learning updates.",
+      reason:
+        "SUPABASE_SERVICE_ROLE_KEY is not configured for global learning updates.",
     };
   }
 
   const outcomes = await adminFetchRows<{ outcome: string; setup_id: string }>(
-    `trade_outcomes?select=setup_id,outcome&analyzer_version=eq.${encodeURIComponent(ANALYZER_VERSION)}&outcome=in.(take_profit,stop_loss,ambiguous)&order=reviewed_at.desc&limit=2500`,
+    `trade_outcomes?select=setup_id,outcome&analyzer_version=eq.${
+      encodeURIComponent(ANALYZER_VERSION)
+    }&outcome=in.(take_profit,stop_loss,ambiguous)&order=reviewed_at.desc&limit=2500`,
   );
-  const setupIds = Array.from(new Set(outcomes.map((outcome) => outcome.setup_id).filter(Boolean)));
+  const setupIds = Array.from(
+    new Set(outcomes.map((outcome) => outcome.setup_id).filter(Boolean)),
+  );
   if (setupIds.length === 0) {
     return {
       skipped: false,
@@ -1198,10 +1616,15 @@ async function refreshGlobalStrategyWeights() {
     id: string;
     symbol: string;
   }>(
-    `trade_setups?select=id,symbol,correlation_group,confluence&id=in.(${setupIds.map((id) => encodeURIComponent(id)).join(",")})`,
+    `trade_setups?select=id,symbol,correlation_group,confluence&id=in.(${
+      setupIds.map((id) => encodeURIComponent(id)).join(",")
+    })`,
   );
   const setupsById = new Map(rows.map((row) => [row.id, row]));
-  const grouped = new Map<string, { ambiguous: number; losses: number; total: number; wins: number }>();
+  const grouped = new Map<
+    string,
+    { ambiguous: number; losses: number; total: number; wins: number }
+  >();
 
   for (const outcomeRow of outcomes) {
     const row = setupsById.get(outcomeRow.setup_id);
@@ -1209,11 +1632,19 @@ async function refreshGlobalStrategyWeights() {
       continue;
     }
     const outcome = outcomeRow.outcome;
-    if (outcome !== "take_profit" && outcome !== "stop_loss" && outcome !== "ambiguous") {
+    if (
+      outcome !== "take_profit" && outcome !== "stop_loss" &&
+      outcome !== "ambiguous"
+    ) {
       continue;
     }
-    const setupKey = extractSetupKey(row.confluence, row.correlation_group, row.symbol);
-    const current = grouped.get(setupKey) ?? { ambiguous: 0, losses: 0, total: 0, wins: 0 };
+    const setupKey = extractSetupKey(
+      row.confluence,
+      row.correlation_group,
+      row.symbol,
+    );
+    const current = grouped.get(setupKey) ??
+      { ambiguous: 0, losses: 0, total: 0, wins: 0 };
     current.total += 1;
     if (outcome === "take_profit") {
       current.wins += 1;
@@ -1229,7 +1660,8 @@ async function refreshGlobalStrategyWeights() {
     const resolved = stats.wins + stats.losses;
     const sampleWeight = resolved >= 20 ? 1 : resolved >= 8 ? resolved / 20 : 0;
     const winRate = stats.wins / Math.max(resolved, 1);
-    const adjustment = Math.max(-10, Math.min(10, (winRate - 0.5) * 20)) * sampleWeight;
+    const adjustment = Math.max(-10, Math.min(10, (winRate - 0.5) * 20)) *
+      sampleWeight;
 
     return {
       ambiguous: stats.ambiguous,
@@ -1254,8 +1686,14 @@ async function refreshGlobalStrategyWeights() {
   };
 }
 
-function extractSetupKey(confluence: Record<string, unknown> | null, correlationGroup: string | null, symbol: string) {
-  return typeof confluence?.setupKey === "string" && confluence.setupKey.trim() ? confluence.setupKey : correlationGroup || symbol;
+function extractSetupKey(
+  confluence: Record<string, unknown> | null,
+  correlationGroup: string | null,
+  symbol: string,
+) {
+  return typeof confluence?.setupKey === "string" && confluence.setupKey.trim()
+    ? confluence.setupKey
+    : correlationGroup || symbol;
 }
 
 async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
@@ -1271,12 +1709,19 @@ async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
           timeframes[timeframe] = bars;
         }
       } catch (error) {
-        providerWarnings.push(`${timeframe}: ${error instanceof Error ? error.message : "FMP intraday request failed"}`);
+        providerWarnings.push(
+          `${timeframe}: ${
+            error instanceof Error
+              ? error.message
+              : "FMP intraday request failed"
+          }`,
+        );
       }
     }),
   );
 
-  const availableTimeframes = (["1day", ...intradayTimeframes] as Timeframe[]).filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
+  const availableTimeframes = (["1day", ...intradayTimeframes] as Timeframe[])
+    .filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
   const primaryTimeframe = pickPrimaryTimeframe(timeframes);
   const primary = timeframes[primaryTimeframe] ?? daily;
 
@@ -1292,17 +1737,24 @@ async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
 }
 
 async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
-  const endpoint =
-    timeframe === "1day"
-      ? new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`)
-      : new URL(`${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`);
+  const endpoint = timeframe === "1day"
+    ? new URL(
+      `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`,
+    )
+    : new URL(
+      `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`,
+    );
   endpoint.searchParams.set("symbol", fmpSymbol);
   endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
 
   const response = await fetch(endpoint);
   const responseText = await response.text();
   if (!response.ok) {
-    throw new Error(`FMP ${timeframe} request failed (${response.status}): ${responseText.slice(0, 160)}`);
+    throw new Error(
+      `FMP ${timeframe} request failed (${response.status}): ${
+        responseText.slice(0, 160)
+      }`,
+    );
   }
 
   let payload: unknown;
@@ -1317,7 +1769,11 @@ async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
   }
 
   return (payload as FmpBar[])
-    .filter((point) => typeof point.date === "string" && typeof point.open === "number" && typeof point.high === "number" && typeof point.low === "number" && typeof point.close === "number")
+    .filter((point) =>
+      typeof point.date === "string" && typeof point.open === "number" &&
+      typeof point.high === "number" && typeof point.low === "number" &&
+      typeof point.close === "number"
+    )
     .map((point) => ({
       close: point.close as number,
       high: point.high as number,
@@ -1346,21 +1802,47 @@ function runStrategyCommittee(market: MarketContext, regime: Regime) {
 }
 
 function scoreConsensus(votes: StrategyVote[], regime: Regime) {
-  const buyScore = votes.filter((vote) => vote.direction === "buy").reduce((sum, vote) => sum + vote.score, 0);
-  const sellScore = votes.filter((vote) => vote.direction === "sell").reduce((sum, vote) => sum + vote.score, 0);
-  const blockScore = votes.filter((vote) => vote.direction === "block").reduce((sum, vote) => sum + vote.score, 0);
+  const buyScore = votes.filter((vote) => vote.direction === "buy").reduce(
+    (sum, vote) => sum + vote.score,
+    0,
+  );
+  const sellScore = votes.filter((vote) => vote.direction === "sell").reduce(
+    (sum, vote) => sum + vote.score,
+    0,
+  );
+  const blockScore = votes.filter((vote) => vote.direction === "block").reduce(
+    (sum, vote) => sum + vote.score,
+    0,
+  );
   const totalDirectional = buyScore + sellScore;
 
   if (blockScore >= 30 || totalDirectional < 42) {
-    return { buyScore, sellScore, blockScore, score: 0, side: null as Side | null };
+    return {
+      buyScore,
+      sellScore,
+      blockScore,
+      score: 0,
+      side: null as Side | null,
+    };
   }
 
   const side: Side = buyScore >= sellScore ? "buy" : "sell";
   const winningScore = Math.max(buyScore, sellScore);
   const opposingScore = Math.min(buyScore, sellScore);
   const agreementRatio = winningScore / Math.max(totalDirectional, 1);
-  const regimeBonus = regime.bias === side ? 8 : regime.bias === "neutral" ? 2 : -8;
-  const score = clampInteger(Math.round(30 + winningScore * 0.72 - opposingScore * 0.55 + agreementRatio * 18 + regimeBonus), 0, 100);
+  const regimeBonus = regime.bias === side
+    ? 8
+    : regime.bias === "neutral"
+    ? 2
+    : -8;
+  const score = clampInteger(
+    Math.round(
+      30 + winningScore * 0.72 - opposingScore * 0.55 + agreementRatio * 18 +
+        regimeBonus,
+    ),
+    0,
+    100,
+  );
 
   return {
     agreementRatio: Number(agreementRatio.toFixed(3)),
@@ -1383,13 +1865,18 @@ function classifyRegime(market: MarketContext): Regime {
   const volatilityPercentile = percentileRank(atrHistory, atr);
   const trendStrength = Math.abs(ema20 - ema50) / Math.max(atr, 0.00001);
   const compression = volatilityPercentile < 0.28 && trendStrength < 0.9;
-  const bias: Direction = latest.close > ema20 && ema20 > ema50 ? "buy" : latest.close < ema20 && ema20 < ema50 ? "sell" : "neutral";
+  const bias: Direction = latest.close > ema20 && ema20 > ema50
+    ? "buy"
+    : latest.close < ema20 && ema20 < ema50
+    ? "sell"
+    : "neutral";
 
   if (compression) {
     return {
       bias,
       name: "compression",
-      rationale: "Volatility is compressed and directional trend strength is modest.",
+      rationale:
+        "Volatility is compressed and directional trend strength is modest.",
       trendStrength: Number(trendStrength.toFixed(3)),
       volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
     };
@@ -1409,7 +1896,8 @@ function classifyRegime(market: MarketContext): Regime {
     return {
       bias,
       name: "trend",
-      rationale: "Moving average separation and price location support a trend regime.",
+      rationale:
+        "Moving average separation and price location support a trend regime.",
       trendStrength: Number(trendStrength.toFixed(3)),
       volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
     };
@@ -1418,29 +1906,46 @@ function classifyRegime(market: MarketContext): Regime {
   return {
     bias: "neutral",
     name: "range",
-    rationale: "Trend separation is limited; range and failed-breakout behavior should carry more weight.",
+    rationale:
+      "Trend separation is limited; range and failed-breakout behavior should carry more weight.",
     trendStrength: Number(trendStrength.toFixed(3)),
     volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
   };
 }
 
-function voteMultiTimeframeAlignment(market: MarketContext, regime: Regime): StrategyVote {
+function voteMultiTimeframeAlignment(
+  market: MarketContext,
+  regime: Regime,
+): StrategyVote {
   const timeframeBiases = market.availableTimeframes.map((timeframe) => ({
     direction: directionalBias(market.timeframes[timeframe] ?? []),
     timeframe,
   }));
-  const buyCount = timeframeBiases.filter((bias) => bias.direction === "buy").length;
-  const sellCount = timeframeBiases.filter((bias) => bias.direction === "sell").length;
-  const direction: Direction = buyCount > sellCount ? "buy" : sellCount > buyCount ? "sell" : "neutral";
+  const buyCount =
+    timeframeBiases.filter((bias) => bias.direction === "buy").length;
+  const sellCount =
+    timeframeBiases.filter((bias) => bias.direction === "sell").length;
+  const direction: Direction = buyCount > sellCount
+    ? "buy"
+    : sellCount > buyCount
+    ? "sell"
+    : "neutral";
   const alignedWithRegime = regime.bias === direction;
-  const agreement = Math.max(buyCount, sellCount) / Math.max(timeframeBiases.length, 1);
+  const agreement = Math.max(buyCount, sellCount) /
+    Math.max(timeframeBiases.length, 1);
 
   return {
     confidence: Number(agreement.toFixed(2)),
     direction,
     name: "multi_timeframe_bias",
-    rationale: `${Math.max(buyCount, sellCount)} of ${timeframeBiases.length} available timeframes align${alignedWithRegime ? " with the higher-timeframe regime" : ""}.`,
-    score: direction === "neutral" ? 5 : Math.round(14 + agreement * 16 + Number(alignedWithRegime) * 6),
+    rationale: `${
+      Math.max(buyCount, sellCount)
+    } of ${timeframeBiases.length} available timeframes align${
+      alignedWithRegime ? " with the higher-timeframe regime" : ""
+    }.`,
+    score: direction === "neutral"
+      ? 5
+      : Math.round(14 + agreement * 16 + Number(alignedWithRegime) * 6),
     timeframe: "multi",
   };
 }
@@ -1451,40 +1956,67 @@ function voteSmartMoneyConcepts(market: MarketContext): StrategyVote {
   const previous = bars.at(-2)!;
   const swing = findStructureLevels(bars);
   const atr = averageTrueRange(bars, 14);
-  const sweptLow = latest.low < swing.latestSwingLow && latest.close > previous.close;
-  const sweptHigh = latest.high > swing.latestSwingHigh && latest.close < previous.close;
-  const fairValueGap = Math.abs(previous.high - latest.low) > atr * 0.35 || Math.abs(latest.high - previous.low) > atr * 0.35;
-  const changeOfCharacter = latest.close > swing.latestSwingHigh || latest.close < swing.latestSwingLow;
-  const direction: Direction = sweptLow ? "buy" : sweptHigh ? "sell" : changeOfCharacter ? (latest.close > previous.close ? "buy" : "sell") : "neutral";
-  const score = direction === "neutral" ? 8 : 18 + Number(sweptLow || sweptHigh) * 16 + Number(fairValueGap) * 8 + Number(changeOfCharacter) * 8;
+  const sweptLow = latest.low < swing.latestSwingLow &&
+    latest.close > previous.close;
+  const sweptHigh = latest.high > swing.latestSwingHigh &&
+    latest.close < previous.close;
+  const fairValueGap = Math.abs(previous.high - latest.low) > atr * 0.35 ||
+    Math.abs(latest.high - previous.low) > atr * 0.35;
+  const changeOfCharacter = latest.close > swing.latestSwingHigh ||
+    latest.close < swing.latestSwingLow;
+  const direction: Direction = sweptLow
+    ? "buy"
+    : sweptHigh
+    ? "sell"
+    : changeOfCharacter
+    ? (latest.close > previous.close ? "buy" : "sell")
+    : "neutral";
+  const score = direction === "neutral"
+    ? 8
+    : 18 + Number(sweptLow || sweptHigh) * 16 + Number(fairValueGap) * 8 +
+      Number(changeOfCharacter) * 8;
 
   return {
     confidence: Number((score / 46).toFixed(2)),
     direction,
     name: "smart_money_liquidity",
-    rationale: sweptLow ? "Liquidity sweep below structure with bullish recovery." : sweptHigh ? "Liquidity sweep above structure with bearish rejection." : "No clean liquidity sweep; structure still informs invalidation.",
+    rationale: sweptLow
+      ? "Liquidity sweep below structure with bullish recovery."
+      : sweptHigh
+      ? "Liquidity sweep above structure with bearish rejection."
+      : "No clean liquidity sweep; structure still informs invalidation.",
     score,
     timeframe: market.primaryTimeframe,
   };
 }
 
-function voteTrendPullback(market: MarketContext, regime: Regime): StrategyVote {
+function voteTrendPullback(
+  market: MarketContext,
+  regime: Regime,
+): StrategyVote {
   const bars = market.primary;
   const latest = bars.at(-1)!;
   const closes = bars.map((bar) => bar.close);
   const ema20 = ema(closes, 20);
   const ema50 = ema(closes, 50);
   const atr = averageTrueRange(bars, 14);
-  const nearValue = Math.abs(latest.close - ema20) <= atr * 0.75 || Math.abs(latest.close - ema50) <= atr * 0.9;
+  const nearValue = Math.abs(latest.close - ema20) <= atr * 0.75 ||
+    Math.abs(latest.close - ema50) <= atr * 0.9;
   const upTrend = latest.close > ema50 && ema20 > ema50;
   const downTrend = latest.close < ema50 && ema20 < ema50;
-  const direction: Direction = regime.name === "trend" && nearValue && upTrend ? "buy" : regime.name === "trend" && nearValue && downTrend ? "sell" : "neutral";
+  const direction: Direction = regime.name === "trend" && nearValue && upTrend
+    ? "buy"
+    : regime.name === "trend" && nearValue && downTrend
+    ? "sell"
+    : "neutral";
 
   return {
     confidence: direction === "neutral" ? 0.2 : 0.74,
     direction,
     name: "trend_pullback_to_value",
-    rationale: direction === "neutral" ? "Trend pullback conditions are not clean enough." : "Trend regime is active and price is pulling back toward value.",
+    rationale: direction === "neutral"
+      ? "Trend pullback conditions are not clean enough."
+      : "Trend regime is active and price is pulling back toward value.",
     score: direction === "neutral" ? 4 : 26,
     timeframe: market.primaryTimeframe,
   };
@@ -1495,28 +2027,46 @@ function voteBreakoutFailure(market: MarketContext): StrategyVote {
   const latest = bars.at(-1)!;
   const previous = bars.at(-2)!;
   const structure = findStructureLevels(bars);
-  const brokeHigh = previous.close <= structure.latestSwingHigh && latest.close > structure.latestSwingHigh;
-  const brokeLow = previous.close >= structure.latestSwingLow && latest.close < structure.latestSwingLow;
-  const failedHigh = latest.high > structure.latestSwingHigh && latest.close < structure.latestSwingHigh;
-  const failedLow = latest.low < structure.latestSwingLow && latest.close > structure.latestSwingLow;
-  const direction: Direction = brokeHigh || failedLow ? "buy" : brokeLow || failedHigh ? "sell" : "neutral";
+  const brokeHigh = previous.close <= structure.latestSwingHigh &&
+    latest.close > structure.latestSwingHigh;
+  const brokeLow = previous.close >= structure.latestSwingLow &&
+    latest.close < structure.latestSwingLow;
+  const failedHigh = latest.high > structure.latestSwingHigh &&
+    latest.close < structure.latestSwingHigh;
+  const failedLow = latest.low < structure.latestSwingLow &&
+    latest.close > structure.latestSwingLow;
+  const direction: Direction = brokeHigh || failedLow
+    ? "buy"
+    : brokeLow || failedHigh
+    ? "sell"
+    : "neutral";
   const failure = failedHigh || failedLow;
 
   return {
     confidence: direction === "neutral" ? 0.15 : failure ? 0.76 : 0.68,
     direction,
     name: failure ? "failed_breakout_reversal" : "breakout_continuation",
-    rationale: failure ? "A failed break outside structure signals reversal risk." : direction === "neutral" ? "No decisive structure break." : "Price closed beyond recent structure.",
+    rationale: failure
+      ? "A failed break outside structure signals reversal risk."
+      : direction === "neutral"
+      ? "No decisive structure break."
+      : "Price closed beyond recent structure.",
     score: direction === "neutral" ? 5 : failure ? 24 : 21,
     timeframe: market.primaryTimeframe,
   };
 }
 
-function voteRangeMeanReversion(market: MarketContext, regime: Regime): StrategyVote {
+function voteRangeMeanReversion(
+  market: MarketContext,
+  regime: Regime,
+): StrategyVote {
   const bars = market.primary;
   const latest = bars.at(-1)!;
   const range = findStructureLevels(bars);
-  const width = Math.max(range.nextLiquidityHigh - range.nextLiquidityLow, 0.00001);
+  const width = Math.max(
+    range.nextLiquidityHigh - range.nextLiquidityLow,
+    0.00001,
+  );
   const location = (latest.close - range.nextLiquidityLow) / width;
   const rsi = relativeStrengthIndex(bars, 14);
   const buy = regime.name === "range" && location < 0.22 && rsi < 42;
@@ -1527,7 +2077,9 @@ function voteRangeMeanReversion(market: MarketContext, regime: Regime): Strategy
     confidence: direction === "neutral" ? 0.15 : 0.7,
     direction,
     name: "range_mean_reversion",
-    rationale: direction === "neutral" ? "Range edge and oscillator conditions are not aligned." : "Range regime with price extended at an edge and oscillator support.",
+    rationale: direction === "neutral"
+      ? "Range edge and oscillator conditions are not aligned."
+      : "Range regime with price extended at an edge and oscillator support.",
     score: direction === "neutral" ? 4 : 22,
     timeframe: market.primaryTimeframe,
   };
@@ -1542,35 +2094,50 @@ function voteMomentumDivergence(market: MarketContext): StrategyVote {
   const closes = bars.map((bar) => bar.close);
   const macdSlope = ema(closes, 12) - ema(closes, 26);
   const priceBias: Direction = latest.close >= first.close ? "buy" : "sell";
-  const oscillatorBias: Direction = rsi > 55 || macdSlope > 0 ? "buy" : rsi < 45 || macdSlope < 0 ? "sell" : "neutral";
-  const divergence = priceBias !== oscillatorBias && oscillatorBias !== "neutral";
+  const oscillatorBias: Direction = rsi > 55 || macdSlope > 0
+    ? "buy"
+    : rsi < 45 || macdSlope < 0
+    ? "sell"
+    : "neutral";
+  const divergence = priceBias !== oscillatorBias &&
+    oscillatorBias !== "neutral";
   const direction = divergence ? oscillatorBias : oscillatorBias;
 
   return {
     confidence: oscillatorBias === "neutral" ? 0.2 : divergence ? 0.62 : 0.72,
     direction,
     name: divergence ? "momentum_divergence" : "momentum_confirmation",
-    rationale: divergence ? "Price direction and oscillator direction diverge." : "RSI and MACD slope support directional momentum.",
+    rationale: divergence
+      ? "Price direction and oscillator direction diverge."
+      : "RSI and MACD slope support directional momentum.",
     score: oscillatorBias === "neutral" ? 5 : divergence ? 18 : 24,
     timeframe: market.primaryTimeframe,
   };
 }
 
-function voteVolatilityExpansion(market: MarketContext, regime: Regime): StrategyVote {
+function voteVolatilityExpansion(
+  market: MarketContext,
+  regime: Regime,
+): StrategyVote {
   const bars = market.primary;
   const latest = bars.at(-1)!;
   const previous = bars.at(-2)!;
   const atr = averageTrueRange(bars, 14);
   const body = Math.abs(latest.close - latest.open);
-  const expanding = body > atr * 0.8 && Math.abs(latest.close - previous.close) > atr * 0.55;
-  const direction: Direction = expanding ? (latest.close > latest.open ? "buy" : "sell") : "neutral";
+  const expanding = body > atr * 0.8 &&
+    Math.abs(latest.close - previous.close) > atr * 0.55;
+  const direction: Direction = expanding
+    ? (latest.close > latest.open ? "buy" : "sell")
+    : "neutral";
   const compressionBonus = regime.name === "compression" ? 8 : 0;
 
   return {
     confidence: direction === "neutral" ? 0.1 : 0.7,
     direction,
     name: "volatility_expansion",
-    rationale: direction === "neutral" ? "No clean expansion candle after compression." : "Range expansion suggests directional participation.",
+    rationale: direction === "neutral"
+      ? "No clean expansion candle after compression."
+      : "Range expansion suggests directional participation.",
     score: direction === "neutral" ? 3 : 18 + compressionBonus,
     timeframe: market.primaryTimeframe,
   };
@@ -1579,19 +2146,30 @@ function voteVolatilityExpansion(market: MarketContext, regime: Regime): Strateg
 function voteVolumeProfile(market: MarketContext): StrategyVote {
   const bars = market.primary.slice(-100);
   const latest = bars.at(-1)!;
-  const totalVolume = bars.reduce((sum, bar) => sum + (bar.volume || 1), 0) || bars.length;
-  const pointOfControl = bars.reduce((sum, bar) => sum + bar.close * (bar.volume || 1), 0) / totalVolume;
+  const totalVolume = bars.reduce((sum, bar) => sum + (bar.volume || 1), 0) ||
+    bars.length;
+  const pointOfControl =
+    bars.reduce((sum, bar) => sum + bar.close * (bar.volume || 1), 0) /
+    totalVolume;
   const atr = averageTrueRange(bars, 14);
   const nearPoc = Math.abs(latest.close - pointOfControl) <= atr * 0.35;
   const stretchedAbove = latest.close > pointOfControl + atr * 1.1;
   const stretchedBelow = latest.close < pointOfControl - atr * 1.1;
-  const direction: Direction = nearPoc ? directionalBias(bars) : stretchedBelow ? "buy" : stretchedAbove ? "sell" : "neutral";
+  const direction: Direction = nearPoc
+    ? directionalBias(bars)
+    : stretchedBelow
+    ? "buy"
+    : stretchedAbove
+    ? "sell"
+    : "neutral";
 
   return {
     confidence: direction === "neutral" ? 0.18 : nearPoc ? 0.62 : 0.56,
     direction,
     name: nearPoc ? "volume_value_retest" : "volume_value_extension",
-    rationale: nearPoc ? "Price is retesting volume-weighted value." : "Price is extended away from volume-weighted value.",
+    rationale: nearPoc
+      ? "Price is retesting volume-weighted value."
+      : "Price is extended away from volume-weighted value.",
     score: direction === "neutral" ? 5 : nearPoc ? 18 : 14,
     timeframe: market.primaryTimeframe,
   };
@@ -1606,17 +2184,31 @@ function buildPricePlan(side: Side, market: MarketContext, regime: Regime) {
   const structure = findStructureLevels(bars);
   const dailyStructure = findStructureLevels(daily);
   const entryOffset = atr * (regime.name === "trend" ? 0.42 : 0.55);
-  const entryPrice = side === "buy" ? latest.close - entryOffset : latest.close + entryOffset;
+  const entryPrice = side === "buy"
+    ? latest.close - entryOffset
+    : latest.close + entryOffset;
   const stopBuffer = Math.max(atr * 1.2, dailyAtr * 0.12);
-  const stopLoss = side === "buy" ? Math.min(structure.latestSwingLow - stopBuffer, entryPrice - atr * 1.25) : Math.max(structure.latestSwingHigh + stopBuffer, entryPrice + atr * 1.25);
+  const stopLoss = side === "buy"
+    ? Math.min(structure.latestSwingLow - stopBuffer, entryPrice - atr * 1.25)
+    : Math.max(structure.latestSwingHigh + stopBuffer, entryPrice + atr * 1.25);
   const riskDistance = Math.abs(entryPrice - stopLoss);
-  const minimumLimitDistance = Math.max(atr * 0.05, Math.abs(latest.close) * 0.00005, 0.00001);
+  const minimumLimitDistance = Math.max(
+    atr * 0.05,
+    Math.abs(latest.close) * 0.00005,
+    0.00001,
+  );
 
-  if (side === "buy" && roundPrice(entryPrice) >= roundPrice(latest.close - minimumLimitDistance)) {
+  if (
+    side === "buy" &&
+    roundPrice(entryPrice) >= roundPrice(latest.close - minimumLimitDistance)
+  ) {
     return null;
   }
 
-  if (side === "sell" && roundPrice(entryPrice) <= roundPrice(latest.close + minimumLimitDistance)) {
+  if (
+    side === "sell" &&
+    roundPrice(entryPrice) <= roundPrice(latest.close + minimumLimitDistance)
+  ) {
     return null;
   }
 
@@ -1628,10 +2220,18 @@ function buildPricePlan(side: Side, market: MarketContext, regime: Regime) {
     return null;
   }
 
-  const liquidityTarget = side === "buy" ? Math.max(structure.nextLiquidityHigh, dailyStructure.latestSwingHigh) : Math.min(structure.nextLiquidityLow, dailyStructure.latestSwingLow);
-  const minimumTarget = side === "buy" ? entryPrice + riskDistance * 1.8 : entryPrice - riskDistance * 1.8;
-  const volatilityTarget = side === "buy" ? entryPrice + Math.max(atr * 3.2, dailyAtr * 0.35) : entryPrice - Math.max(atr * 3.2, dailyAtr * 0.35);
-  let takeProfit = side === "buy" ? Math.max(liquidityTarget, minimumTarget, volatilityTarget) : Math.min(liquidityTarget, minimumTarget, volatilityTarget);
+  const liquidityTarget = side === "buy"
+    ? Math.max(structure.nextLiquidityHigh, dailyStructure.latestSwingHigh)
+    : Math.min(structure.nextLiquidityLow, dailyStructure.latestSwingLow);
+  const minimumTarget = side === "buy"
+    ? entryPrice + riskDistance * 1.8
+    : entryPrice - riskDistance * 1.8;
+  const volatilityTarget = side === "buy"
+    ? entryPrice + Math.max(atr * 3.2, dailyAtr * 0.35)
+    : entryPrice - Math.max(atr * 3.2, dailyAtr * 0.35);
+  let takeProfit = side === "buy"
+    ? Math.max(liquidityTarget, minimumTarget, volatilityTarget)
+    : Math.min(liquidityTarget, minimumTarget, volatilityTarget);
 
   if (side === "buy" && takeProfit <= entryPrice) {
     takeProfit = entryPrice + riskDistance * 2;
@@ -1648,7 +2248,8 @@ function buildPricePlan(side: Side, market: MarketContext, regime: Regime) {
     return null;
   }
 
-  const rewardRisk = Math.abs(takeProfit - entryPrice) / Math.max(riskDistance, 0.00001);
+  const rewardRisk = Math.abs(takeProfit - entryPrice) /
+    Math.max(riskDistance, 0.00001);
   if (!Number.isFinite(rewardRisk) || riskDistance <= 0) {
     return null;
   }
@@ -1657,9 +2258,11 @@ function buildPricePlan(side: Side, market: MarketContext, regime: Regime) {
     atr,
     entryPrice,
     rewardRisk,
-    stopLogic: "Structure invalidation with ATR buffer and daily-volatility floor.",
+    stopLogic:
+      "Structure invalidation with ATR buffer and daily-volatility floor.",
     stopLoss,
-    targetLogic: "Liquidity target, minimum reward-to-risk, and volatility projection.",
+    targetLogic:
+      "Liquidity target, minimum reward-to-risk, and volatility projection.",
     takeProfit,
   };
 }
@@ -1670,13 +2273,20 @@ async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
   const upcomingEnd = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
   const rows = await fetchRows<NewsEvent>(
     token,
-    `economic_events?select=provider,currency,event_name,impact,scheduled_at&impact=eq.high&scheduled_at=gte.${encodeURIComponent(activeStart)}&scheduled_at=lte.${encodeURIComponent(upcomingEnd)}`,
+    `economic_events?select=provider,currency,event_name,impact,scheduled_at&impact=eq.high&scheduled_at=gte.${
+      encodeURIComponent(activeStart)
+    }&scheduled_at=lte.${encodeURIComponent(upcomingEnd)}`,
   );
   const relevant = rows.filter((event) => isNewsRelevant(symbol, event));
 
   return {
-    active: relevant.filter((event) => typeof event.scheduled_at === "string" && event.scheduled_at >= activeStart && event.scheduled_at <= activeEnd),
-    upcoming: relevant.filter((event) => typeof event.scheduled_at === "string" && event.scheduled_at > activeEnd),
+    active: relevant.filter((event) =>
+      typeof event.scheduled_at === "string" &&
+      event.scheduled_at >= activeStart && event.scheduled_at <= activeEnd
+    ),
+    upcoming: relevant.filter((event) =>
+      typeof event.scheduled_at === "string" && event.scheduled_at > activeEnd
+    ),
   };
 }
 
@@ -1708,7 +2318,8 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
   if (assetType === "futures") {
     const eastern = getZonedParts(now, "America/New_York");
     const minutes = eastern.hour * 60 + eastern.minute;
-    const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 && minutes >= 17 * 60 && minutes < 18 * 60;
+    const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 &&
+      minutes >= 17 * 60 && minutes < 18 * 60;
     const fridayClose = eastern.weekday === 5 && minutes >= 16 * 60 + 30;
     const sundayPreopen = eastern.weekday === 7 && minutes < 18 * 60;
 
@@ -1718,7 +2329,8 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
         label: "Futures maintenance window",
         marketKind: "futures",
         penalty: 12,
-        reason: "Daily futures maintenance reduces setup quality and fill reliability.",
+        reason:
+          "Daily futures maintenance reduces setup quality and fill reliability.",
       };
     }
 
@@ -1746,31 +2358,68 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
   const londonOpen = utcHour >= 7 && utcHour < 10;
   const lateSession = utcHour >= 20 && utcHour < 22;
   const fridayClose = eastern.weekday === 5 && eastern.hour >= 16;
-  const weekend = eastern.weekday === 6 || (eastern.weekday === 7 && eastern.hour < 17);
+  const weekend = eastern.weekday === 6 ||
+    (eastern.weekday === 7 && eastern.hour < 17);
 
   return {
     block: false,
-    label: weekend ? "FX weekend closure" : fridayClose ? "Late Friday FX session" : londonNyOverlap ? "London/New York overlap" : londonOpen ? "London open" : lateSession ? "Late-session risk" : "Normal session",
+    label: weekend
+      ? "FX weekend closure"
+      : fridayClose
+      ? "Late Friday FX session"
+      : londonNyOverlap
+      ? "London/New York overlap"
+      : londonOpen
+      ? "London open"
+      : lateSession
+      ? "Late-session risk"
+      : "Normal session",
     marketKind: "forex",
     penalty: weekend ? 14 : fridayClose ? 10 : lateSession ? 3 : 0,
     reason: weekend
       ? "Weekend FX closure reduces setup quality."
       : fridayClose
-        ? "Late Friday liquidity conditions reduce setup quality."
-        : lateSession
-          ? "Late-session liquidity can reduce follow-through."
-          : undefined,
+      ? "Late Friday liquidity conditions reduce setup quality."
+      : lateSession
+      ? "Late-session liquidity can reduce follow-through."
+      : undefined,
   };
 }
 
 function getAssetType(symbol: SupportedSymbol) {
-  if (["XRPUSD", "SOLUSD", "LTCUSD", "ETHUSD", "BTCUSD", "BNBUSD", "BCHUSD", "ADAUSD"].includes(symbol)) {
+  if (
+    [
+      "XRPUSD",
+      "SOLUSD",
+      "LTCUSD",
+      "ETHUSD",
+      "BTCUSD",
+      "BNBUSD",
+      "BCHUSD",
+      "ADAUSD",
+    ].includes(symbol)
+  ) {
     return "crypto";
   }
   if (["XAUUSD", "XAGUSD"].includes(symbol)) {
     return "metals";
   }
-  if (["ESUSD", "GCUSD", "SIUSD", "BZUSD", "SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX", "WTI", "BRENT"].includes(symbol)) {
+  if (
+    [
+      "ESUSD",
+      "GCUSD",
+      "SIUSD",
+      "BZUSD",
+      "SP",
+      "NSDQ",
+      "NIKKEI",
+      "DOW",
+      "DAX",
+      "ASX",
+      "WTI",
+      "BRENT",
+    ].includes(symbol)
+  ) {
     return "futures";
   }
   return "forex";
@@ -1784,8 +2433,18 @@ function getZonedParts(date: Date, timeZone: string) {
     timeZone,
     weekday: "short",
   }).formatToParts(date);
-  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const weekdayMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  const lookup = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  const weekdayMap: Record<string, number> = {
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+    Sun: 7,
+  };
   return {
     hour: Number(lookup.hour ?? 0),
     minute: Number(lookup.minute ?? 0),
@@ -1802,8 +2461,18 @@ function getZonedDateParts(date: Date, timeZone: string) {
     weekday: "short",
     year: "numeric",
   }).formatToParts(date);
-  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const weekdayMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  const lookup = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  const weekdayMap: Record<string, number> = {
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+    Sun: 7,
+  };
   return {
     day: Number(lookup.day ?? 1),
     month: Number(lookup.month ?? 1),
@@ -1823,7 +2492,9 @@ function getTimeZoneOffsetMs(date: Date, timeZone: string) {
     timeZone,
     year: "numeric",
   }).formatToParts(date);
-  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const lookup = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
   const asUtc = Date.UTC(
     Number(lookup.year ?? 1970),
     Number(lookup.month ?? 1) - 1,
@@ -1835,7 +2506,9 @@ function getTimeZoneOffsetMs(date: Date, timeZone: string) {
   return asUtc - date.getTime();
 }
 
-function pickPrimaryTimeframe(timeframes: Partial<Record<Timeframe, Bar[]>>): Timeframe {
+function pickPrimaryTimeframe(
+  timeframes: Partial<Record<Timeframe, Bar[]>>,
+): Timeframe {
   if ((timeframes["15min"]?.length ?? 0) >= 80) {
     return "15min";
   }
@@ -1865,14 +2538,28 @@ function directionalBias(bars: Bar[]): Direction {
   return "neutral";
 }
 
-function buildSetupKey(symbol: SupportedSymbol, market: MarketContext, sessionContext: SessionContext, regime: Regime, side: Side, votes: StrategyVote[]) {
+function buildSetupKey(
+  symbol: SupportedSymbol,
+  market: MarketContext,
+  sessionContext: SessionContext,
+  regime: Regime,
+  side: Side,
+  votes: StrategyVote[],
+) {
   const leaders = votes
     .filter((vote) => vote.direction === side)
     .sort((first, second) => second.score - first.score)
     .slice(0, 3)
     .map((vote) => vote.name)
     .join("+");
-  const context = [getAssetType(symbol), market.primaryTimeframe, sessionContext.marketKind, regime.name, side, leaders || "balanced"].join("_");
+  const context = [
+    getAssetType(symbol),
+    market.primaryTimeframe,
+    sessionContext.marketKind,
+    regime.name,
+    side,
+    leaders || "balanced",
+  ].join("_");
   return context.replace(/[^a-zA-Z0-9_+.-]/g, "_");
 }
 
@@ -1894,9 +2581,14 @@ function averageTrueRange(bars: Bar[], period: number) {
   const sample = bars.slice(-period - 1);
   const ranges = sample.slice(1).map((bar, index) => {
     const previousClose = sample[index].close;
-    return Math.max(bar.high - bar.low, Math.abs(bar.high - previousClose), Math.abs(bar.low - previousClose));
+    return Math.max(
+      bar.high - bar.low,
+      Math.abs(bar.high - previousClose),
+      Math.abs(bar.low - previousClose),
+    );
   });
-  return ranges.reduce((sum, range) => sum + range, 0) / Math.max(ranges.length, 1);
+  return ranges.reduce((sum, range) => sum + range, 0) /
+    Math.max(ranges.length, 1);
 }
 
 function rollingAtr(bars: Bar[], period: number) {
@@ -1931,7 +2623,10 @@ function ema(values: number[], period: number) {
     return 0;
   }
   const smoothing = 2 / (period + 1);
-  return values.slice(-period * 3).reduce((currentEma, value) => value * smoothing + currentEma * (1 - smoothing), values[0]);
+  return values.slice(-period * 3).reduce(
+    (currentEma, value) => value * smoothing + currentEma * (1 - smoothing),
+    values[0],
+  );
 }
 
 function percentileRank(values: number[], current: number) {
@@ -1942,11 +2637,18 @@ function percentileRank(values: number[], current: number) {
 }
 
 function getCorrelationGroup(symbol: string) {
-  return Object.entries(correlationGroups).find(([, symbols]) => symbols.includes(symbol))?.[0] ?? symbol;
+  return Object.entries(correlationGroups).find(([, symbols]) =>
+    symbols.includes(symbol)
+  )?.[0] ?? symbol;
 }
 
 async function fetchSingle<T>(token: string, path: string) {
-  const rows = await fetchRows<T>(token, /(?:^|[?&])limit=/.test(path) ? path : `${path}${path.includes("?") ? "&" : "?"}limit=1`);
+  const rows = await fetchRows<T>(
+    token,
+    /(?:^|[?&])limit=/.test(path)
+      ? path
+      : `${path}${path.includes("?") ? "&" : "?"}limit=1`,
+  );
   return rows[0] ?? null;
 }
 
@@ -1958,7 +2660,11 @@ async function fetchRows<T>(token: string, path: string): Promise<T[]> {
   return (await response.json()) as T[];
 }
 
-async function insertSingle(token: string, table: string, payload: Record<string, unknown>) {
+async function insertSingle(
+  token: string,
+  table: string,
+  payload: Record<string, unknown>,
+) {
   const response = await supabaseFetch(token, table, {
     body: JSON.stringify(payload),
     headers: {
@@ -1973,7 +2679,11 @@ async function insertSingle(token: string, table: string, payload: Record<string
   return rows[0];
 }
 
-async function updateRows<T = unknown>(token: string, path: string, payload: Record<string, unknown>): Promise<T[]> {
+async function updateRows<T = unknown>(
+  token: string,
+  path: string,
+  payload: Record<string, unknown>,
+): Promise<T[]> {
   const response = await supabaseFetch(token, path, {
     body: JSON.stringify(payload),
     headers: {
@@ -1987,14 +2697,23 @@ async function updateRows<T = unknown>(token: string, path: string, payload: Rec
   return (await response.json()) as T[];
 }
 
-async function upsertRows<T = unknown>(token: string, table: string, payload: Record<string, unknown> | Array<Record<string, unknown>>, onConflict: string): Promise<T[]> {
-  const response = await supabaseFetch(token, `${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
-    body: JSON.stringify(payload),
-    headers: {
-      Prefer: "resolution=merge-duplicates,return=representation",
+async function upsertRows<T = unknown>(
+  token: string,
+  table: string,
+  payload: Record<string, unknown> | Array<Record<string, unknown>>,
+  onConflict: string,
+): Promise<T[]> {
+  const response = await supabaseFetch(
+    token,
+    `${table}?on_conflict=${encodeURIComponent(onConflict)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      method: "POST",
     },
-    method: "POST",
-  });
+  );
   if (!response.ok) {
     throw new Error(await response.text());
   }
@@ -2009,7 +2728,10 @@ async function adminFetchRows<T>(path: string): Promise<T[]> {
   return (await response.json()) as T[];
 }
 
-async function adminRpcRows<T>(functionName: string, payload: Record<string, unknown>): Promise<T[]> {
+async function adminRpcRows<T>(
+  functionName: string,
+  payload: Record<string, unknown>,
+): Promise<T[]> {
   const response = await adminSupabaseFetch(`rpc/${functionName}`, {
     body: JSON.stringify(payload),
     method: "POST",
@@ -2020,21 +2742,32 @@ async function adminRpcRows<T>(functionName: string, payload: Record<string, unk
   return (await response.json()) as T[];
 }
 
-async function adminUpsertRows<T = unknown>(table: string, payload: Record<string, unknown> | Array<Record<string, unknown>>, onConflict: string): Promise<T[]> {
-  const response = await adminSupabaseFetch(`${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
-    body: JSON.stringify(payload),
-    headers: {
-      Prefer: "resolution=merge-duplicates,return=representation",
+async function adminUpsertRows<T = unknown>(
+  table: string,
+  payload: Record<string, unknown> | Array<Record<string, unknown>>,
+  onConflict: string,
+): Promise<T[]> {
+  const response = await adminSupabaseFetch(
+    `${table}?on_conflict=${encodeURIComponent(onConflict)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      method: "POST",
     },
-    method: "POST",
-  });
+  );
   if (!response.ok) {
     throw new Error(await response.text());
   }
   return (await response.json()) as T[];
 }
 
-async function supabaseFetch(token: string, path: string, init: RequestInit = {}) {
+async function supabaseFetch(
+  token: string,
+  path: string,
+  init: RequestInit = {},
+) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
@@ -2090,7 +2823,9 @@ function resolveProviderSymbols(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   const config = symbolMap[normalized] as SymbolConfig | undefined;
   const sanitized = sanitizeFmpSymbol(symbol);
-  const symbols = config ? [config.primary, config.fallback].filter(Boolean) : [sanitized].filter(Boolean);
+  const symbols = config
+    ? [config.primary, config.fallback].filter(Boolean)
+    : [sanitized].filter(Boolean);
   return Array.from(new Set(symbols)) as string[];
 }
 
@@ -2107,7 +2842,11 @@ function clampInteger(value: number, min: number, max: number) {
 }
 
 function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? `${value}T00:00:00Z`
+    : value.includes("T")
+    ? value
+    : `${value.replace(" ", "T")}Z`;
   const timestamp = new Date(normalized).getTime();
   return Number.isFinite(timestamp) ? timestamp : Date.now();
 }
@@ -2118,11 +2857,14 @@ function roundPrice(value: number) {
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get("Origin");
-  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? "https://app.windwardline.com";
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0] ?? "https://app.windwardline.com";
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }

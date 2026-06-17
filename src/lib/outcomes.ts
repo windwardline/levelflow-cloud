@@ -12,7 +12,7 @@ export const OUTCOME_COPY: Record<
   }
 > = {
   still_tracking: {
-    description: "The setup is still inside its review window or does not have a final result yet.",
+    description: "The idea is still inside its review window or does not have a final result yet.",
     filterLabel: "Still tracking",
     label: "Still tracking",
     shortLabel: "Tracking",
@@ -30,13 +30,13 @@ export const OUTCOME_COPY: Record<
     shortLabel: "Stop",
   },
   unclear_path: {
-    description: "The entry filled, but the available candle shows stop and target traded in the same bar, so sequence cannot be confirmed.",
-    filterLabel: "Unclear result",
-    label: "Unclear result",
-    shortLabel: "Unclear",
+    description: "The entry filled, but the available chart cannot confirm whether stop or target came first.",
+    filterLabel: "Needs review",
+    label: "Needs review",
+    shortLabel: "Review",
   },
   entry_not_filled: {
-    description: "The limit entry did not fill before the setup window ended or the idea was invalidated.",
+    description: "The limit entry did not fill before the review window ended or the idea was no longer valid.",
     filterLabel: "Entry not filled",
     label: "Entry not filled",
     shortLabel: "No fill",
