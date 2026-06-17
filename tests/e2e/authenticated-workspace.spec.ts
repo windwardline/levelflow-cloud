@@ -55,30 +55,40 @@ test("authenticated workspace exposes core premium navigation without stale help
   expect(navLabels).toEqual([
     "Advisor",
     "Insights",
-    "Profile",
     "Guide",
     "About",
+    "Profile",
   ]);
 
   await page.getByRole("button", { name: "About" }).click();
   await expect(
     page.getByRole("heading", {
-      name: "A premium market review workspace for disciplined traders.",
+      name: "A Premium Market Review Workspace for Disciplined Traders",
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("Review support, not trade placement"),
+    page.getByRole("heading", { name: "Review Support, Not Trade Placement" }),
   ).toBeVisible();
+  await expect(page.getByText("Shared across LevelFlow")).toBeVisible();
 
   await page.getByRole("button", { name: "Insights" }).click();
   await expect(
-    page.getByRole("heading", { name: "What is improving" }),
+    page.getByRole("heading", { name: "Insights" }),
   ).toBeVisible();
+  await expect(page.getByText("What Is Improving")).toHaveCount(0);
+  await expect(page.getByText("Shared learning")).toHaveCount(0);
   await expect(page.getByText("Status guide")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Guide" }).click();
   await expect(
-    page.getByRole("heading", { name: "How to use LevelFlow." }),
+    page.getByRole("heading", { name: "How to Use LevelFlow" }),
   ).toBeVisible();
-  await expect(page.getByText("What LevelFlow checks")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What LevelFlow Checks" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Profile" }).click();
+  await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
+  await expect(page.getByText("Current Settings")).toHaveCount(0);
+  await expect(page.getByText("Starting chart")).toHaveCount(0);
 });

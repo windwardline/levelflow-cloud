@@ -24,7 +24,7 @@ jobs:
       - name: Check required secrets
         run: |
           missing=0
-          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN LEVELFLOW_PAGES_TOKEN NEWS_SYNC_TOKEN FMP_API_KEY; do
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN LEVELFLOW_PAGES_TOKEN NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing required secret: ${name}"
               missing=1
@@ -33,6 +33,8 @@ jobs:
           exit "$missing"
         env:
           LEVELFLOW_PAGES_TOKEN: ${{ secrets.LEVELFLOW_PAGES_TOKEN }}
+          LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
+          LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           NEWS_SYNC_TOKEN: ${{ secrets.NEWS_SYNC_TOKEN }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -50,6 +52,22 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install browser test runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Run checks
+        run: |
+          npm run check
+          npm test
+
+      - name: Run browser tests
+        run: npm run test:e2e
+        env:
+          LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
+          LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
       - name: Build frontend
         run: npm run build
