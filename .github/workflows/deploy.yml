@@ -80,7 +80,7 @@ jobs:
       - name: Publish GitHub Pages artifact
         run: |
           git clone "https://x-access-token:${LEVELFLOW_PAGES_TOKEN}@github.com/windwardline/levelflow-cloud-app.git" /tmp/levelflow-cloud-app
-          rsync -a --delete --exclude='.git' dist/ /tmp/levelflow-cloud-app/
+          rsync -a --delete --exclude='.git' --exclude='.github' dist/ /tmp/levelflow-cloud-app/
           cd /tmp/levelflow-cloud-app
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
