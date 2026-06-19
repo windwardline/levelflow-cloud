@@ -50,6 +50,7 @@ describe("asset catalog", () => {
   it("formats user-facing asset labels without provider fallback details", () => {
     assert.equal(formatSecurityLabel("EURUSD"), "EUR/USD - Euro / U.S. Dollar");
     assert.equal(formatSecurityLabel("XAUUSD"), "XAU/USD - Gold / U.S. Dollar");
+    assert.equal(formatSecurityLabel("BZUSD"), "BZ - Brent Crude Oil Futures");
   });
 
   it("uses the same category, base, quote ordering for asset lists outside the selector", () => {
