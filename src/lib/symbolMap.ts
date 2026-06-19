@@ -341,11 +341,16 @@ export function toFmpSymbol(symbol: string) {
 
 export function getSecurityOption(symbol: string) {
   const normalized = normalizeSymbol(symbol);
+  const exactMatch = SECURITY_OPTIONS.find(
+    (option) => option.symbol === normalized,
+  );
+  if (exactMatch) {
+    return exactMatch;
+  }
+
   return (
     SECURITY_OPTIONS.find(
-      (option) =>
-        option.symbol === normalized ||
-        normalizeSymbol(option.fmpSymbol) === normalized,
+      (option) => normalizeSymbol(option.fmpSymbol) === normalized,
     ) ?? {
       assetType: "Forex",
       description: symbol,
