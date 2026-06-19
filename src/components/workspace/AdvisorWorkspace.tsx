@@ -6,7 +6,7 @@ import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
 import type { UserProfile } from "../../lib/profile";
-import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, getSecurityOption, TEMPORARILY_HIDDEN_ASSET_TYPES, type SupportedSymbol } from "../../lib/symbolMap";
+import { AVAILABLE_ASSET_GROUPS, AVAILABLE_ASSET_SYMBOLS, formatSecurityLabel, getSecurityOption, TEMPORARILY_HIDDEN_ASSET_TYPES, type SupportedSymbol } from "../../lib/symbolMap";
 import { generateTradeSetup, scanMarketOpportunities, type AnalyzerResponse, type AnalyzerSetup, type MarketScanCandidate, type MarketScanResponse, type TradeSetupRow } from "../../lib/tradeAnalyzer";
 
 type AdvisorWorkspaceProps = {
@@ -134,7 +134,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   async function scanMarkets() {
     setScanStatus("scanning");
     try {
-      setScanResult(await scanMarketOpportunities());
+      setScanResult(await scanMarketOpportunities(AVAILABLE_ASSET_SYMBOLS));
     } catch {
       setScanResult({
         advisoryOnly: true,
@@ -266,12 +266,26 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 
         <MarketScanPanel
           onScan={scanMarkets}
-          onSelectSymbol={(nextSymbol) => {
+          onSelectCandidate={(candidate) => {
+            const nextSymbol = candidate.symbol;
             requestIdRef.current += 1;
             setSymbol(nextSymbol);
             setAnalyzerStatus("idle");
-            setAnalysisState(null);
-            setAdvisorNotice("");
+            if (candidate.setup) {
+              setAnalysisState({
+                requestedAt: Date.now(),
+                response: {
+                  advisoryOnly: true,
+                  message: "Selected from Market Scan.",
+                  setup: candidate.setup,
+                },
+                symbol: nextSymbol,
+              });
+              setAdvisorNotice("Selected from Market Scan. Review market to refresh and save this idea.");
+            } else {
+              setAnalysisState(null);
+              setAdvisorNotice("");
+            }
           }}
           result={scanResult}
           status={scanStatus}
@@ -358,18 +372,18 @@ function DataHealthPanel({
 
 function MarketScanPanel({
   onScan,
-  onSelectSymbol,
+  onSelectCandidate,
   result,
   status,
 }: {
   onScan: () => void;
-  onSelectSymbol: (symbol: SupportedSymbol) => void;
+  onSelectCandidate: (candidate: MarketScanCandidate) => void;
   result: MarketScanResponse | null;
   status: "idle" | "scanning";
 }) {
   const opportunities = result?.opportunities ?? [];
   const blockedCount = result?.blocked.length ?? 0;
-  const emptyMessage = result?.blocked[0]?.reason ?? "Scan major markets to find the strongest current limit ideas.";
+  const emptyMessage = result?.blocked[0]?.reason ?? "Scan all active markets to find the strongest current limit ideas.";
 
   return (
     <section className="terminal-panel p-5">
@@ -385,14 +399,14 @@ function MarketScanPanel({
       </div>
 
       {opportunities.length > 0 ? (
-        <div className="grid gap-2">
+        <div className="grid max-h-[520px] gap-2 overflow-y-auto pr-1">
           {opportunities.map((candidate) => (
-            <MarketScanRow key={candidate.symbol} candidate={candidate} onSelectSymbol={onSelectSymbol} />
+            <MarketScanRow key={candidate.symbol} candidate={candidate} onSelectCandidate={onSelectCandidate} />
           ))}
         </div>
       ) : (
         <p className="text-sm leading-6 text-slate">
-          {status === "scanning" ? "Checking major markets." : emptyMessage}
+          {status === "scanning" ? "Checking all active markets." : emptyMessage}
         </p>
       )}
 
@@ -405,7 +419,7 @@ function MarketScanPanel({
   );
 }
 
-function MarketScanRow({ candidate, onSelectSymbol }: { candidate: MarketScanCandidate; onSelectSymbol: (symbol: SupportedSymbol) => void }) {
+function MarketScanRow({ candidate, onSelectCandidate }: { candidate: MarketScanCandidate; onSelectCandidate: (candidate: MarketScanCandidate) => void }) {
   const isBuy = candidate.side === "buy";
   const sideLabel = candidate.side ? `${candidate.side.toUpperCase()} LIMIT` : "Review";
 
@@ -413,7 +427,7 @@ function MarketScanRow({ candidate, onSelectSymbol }: { candidate: MarketScanCan
     <button
       className="grid min-w-0 gap-2 rounded-lg border border-slate/15 bg-canvas px-3 py-3 text-left transition hover:border-bullish/40 hover:bg-bullish/10"
       type="button"
-      onClick={() => onSelectSymbol(candidate.symbol)}
+      onClick={() => onSelectCandidate(candidate)}
     >
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">

@@ -251,6 +251,10 @@ export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap(
   (group) => group.options,
 );
 
+export const AVAILABLE_ASSET_SYMBOLS = AVAILABLE_ASSET_OPTIONS.map(
+  (option) => option.symbol,
+);
+
 export function isAvailableAssetSymbol(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   return AVAILABLE_ASSET_OPTIONS.some(

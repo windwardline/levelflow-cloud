@@ -5,6 +5,7 @@ import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
 import { US_STATE_TIME_ZONES } from "../src/lib/profile";
 import {
   AVAILABLE_ASSET_GROUPS,
+  AVAILABLE_ASSET_SYMBOLS,
   formatSecurityLabel,
   sortAssetSymbols,
 } from "../src/lib/symbolMap";
@@ -63,6 +64,17 @@ describe("asset catalog", () => {
       ]),
       ["BTCUSD", "ETHUSD", "AUDJPY", "EURUSD", "ESUSD", "XAUUSD"],
     );
+  });
+
+  it("keeps market scan symbols aligned with the visible advisor dropdown", () => {
+    assert.deepEqual(
+      AVAILABLE_ASSET_SYMBOLS,
+      AVAILABLE_ASSET_GROUPS.flatMap((group) =>
+        group.options.map((option) => option.symbol)
+      ),
+    );
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), false);
   });
 });
 
