@@ -56,6 +56,7 @@ export type MarketScanCandidate = {
   reason?: string;
   rewardRisk?: number;
   side?: "buy" | "sell";
+  setup?: AnalyzerSetup;
   stopLoss?: number;
   symbol: SupportedSymbol;
   takeProfit?: number;
@@ -96,7 +97,7 @@ export type TradeSetupRow = {
 };
 
 const ANALYZER_TIMEOUT_MS = 18_000;
-const MARKET_SCAN_TIMEOUT_MS = 24_000;
+const MARKET_SCAN_TIMEOUT_MS = 60_000;
 const OUTCOME_REFRESH_TIMEOUT_MS = 15_000;
 const HISTORY_TIMEOUT_MS = 12_000;
 

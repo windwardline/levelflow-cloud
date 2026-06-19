@@ -94,17 +94,6 @@ const temporarilyUnavailableSymbols = new Set([
   "BRENT",
 ]);
 const equityCalendarSensitiveSymbols = new Set(["ESUSD", "SP", "NSDQ", "DOW"]);
-const defaultScanSymbols = [
-  "EURUSD",
-  "GBPUSD",
-  "USDJPY",
-  "XAUUSD",
-  "BTCUSD",
-  "ETHUSD",
-  "ESUSD",
-  "GCUSD",
-];
-
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
   GBPUSD: ["GBP", "USD"],
@@ -228,6 +217,10 @@ const correlationGroups: Record<string, string[]> = {
     "AUDUSD",
   ],
 };
+
+const defaultScanSymbols = Object.keys(symbolMap).filter((symbol) =>
+  !temporarilyUnavailableSymbols.has(symbol)
+);
 
 const intradayTimeframes = ["4hour", "1hour", "15min"] as const;
 
@@ -364,6 +357,7 @@ type MarketScanCandidate = {
   reason?: string;
   rewardRisk?: number;
   side?: Side;
+  setup?: unknown;
   stopLoss?: number;
   symbol: SupportedSymbol;
   takeProfit?: number;
@@ -429,7 +423,7 @@ Deno.serve(async (req) => {
 
     if (body.action === "scan_opportunities") {
       const learningRefresh = await refreshGlobalStrategyWeights();
-      const scan = await scanOpportunities(token, body.symbols);
+      const scan = await scanOpportunities(token, user.id, body.symbols);
       return jsonResponse(req, {
         advisoryOnly: true,
         learningRefresh,
@@ -559,23 +553,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const activeCorrelated = await fetchRows<
-      { id: string; symbol: string; confidence_score: number }
-    >(
+    const strongerExisting = await findStrongerActiveCorrelatedSetup(
       token,
-      `trade_setups?select=id,symbol,confidence_score&user_id=eq.${
-        encodeURIComponent(user.id)
-      }&correlation_group=eq.${
-        encodeURIComponent(group)
-      }&status=in.(generated,placed)&created_at=gte.${
-        encodeURIComponent(
-          new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        )
-      }`,
-    );
-
-    const strongerExisting = activeCorrelated.find((row) =>
-      row.symbol !== symbol && row.confidence_score >= setup.confidenceScore
+      user.id,
+      group,
+      symbol,
+      setup.confidenceScore,
     );
     if (strongerExisting) {
       await invalidateActiveSetupsForSymbol(
@@ -675,6 +658,7 @@ async function fetchFirstAvailableMarketContext(
 
 async function scanOpportunities(
   token: string,
+  userId: string,
   requestedSymbols: string[] | undefined,
 ) {
   const normalizedSymbols = Array.from(
@@ -682,116 +666,27 @@ async function scanOpportunities(
       (requestedSymbols && requestedSymbols.length > 0
         ? requestedSymbols
         : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(
-          Boolean,
+          (symbol) =>
+            Boolean(symbol) && symbol in symbolMap &&
+            !temporarilyUnavailableSymbols.has(symbol),
         ),
     ),
-  ).slice(0, 10);
+  );
+
+  const results = await mapWithConcurrency(
+    normalizedSymbols,
+    4,
+    (symbol) => scanOpportunity(token, userId, symbol),
+  );
   const opportunities: MarketScanCandidate[] = [];
   const blocked: MarketScanCandidate[] = [];
 
-  for (const symbol of normalizedSymbols) {
-    if (temporarilyUnavailableSymbols.has(symbol)) {
-      blocked.push({
-        assetType: getAssetType(symbol),
-        blocked: true,
-        reason: "Hidden until provider coverage is verified.",
-        symbol,
-      });
-      continue;
+  for (const result of results) {
+    if (result.opportunity) {
+      opportunities.push(result.opportunity);
     }
-
-    const providerSymbols = resolveProviderSymbols(symbol);
-    if (providerSymbols.length === 0) {
-      blocked.push({
-        assetType: getAssetType(symbol),
-        blocked: true,
-        reason: "Unsupported market symbol.",
-        symbol,
-      });
-      continue;
-    }
-
-    try {
-      const sessionContext = getSessionContext(symbol);
-      const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
-        await fetchRelevantNews(token, symbol);
-      if (activeNewsEvents.length > 0) {
-        blocked.push({
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason: "A major scheduled event is active.",
-          symbol,
-        });
-        continue;
-      }
-
-      const { fmpSymbol, marketContext, providerFailures } =
-        await fetchFirstAvailableMarketContext(providerSymbols);
-      if (!fmpSymbol || !marketContext || marketContext.daily.length < 80) {
-        if (providerFailures.length > 0) {
-          console.warn(
-            "scan market data unavailable",
-            symbol,
-            providerFailures[0],
-          );
-        }
-        blocked.push({
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason: "Chart data is not ready for this market yet.",
-          symbol,
-        });
-        continue;
-      }
-
-      const group = getCorrelationGroup(symbol);
-      const setup = await analyzeSetup(
-        token,
-        "scan",
-        symbol,
-        fmpSymbol,
-        group,
-        marketContext,
-        activeNewsEvents,
-        upcomingNewsEvents,
-        sessionContext,
-      );
-      if (!setup) {
-        const diagnostics = await explainNoSetup(
-          token,
-          symbol,
-          marketContext,
-          upcomingNewsEvents,
-          sessionContext,
-        );
-        blocked.push({
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason: diagnostics[0] ??
-            "No current limit-order idea passed review.",
-          symbol,
-        });
-        continue;
-      }
-
-      opportunities.push({
-        assetType: getAssetType(symbol),
-        confidenceScore: setup.confidenceScore,
-        entryPrice: setup.entryPrice,
-        rewardRisk: Number(setup.confluence.rewardRisk ?? 0),
-        side: setup.side,
-        stopLoss: setup.stopLoss,
-        symbol,
-        takeProfit: setup.takeProfit,
-      });
-    } catch (error) {
-      console.warn("scan market failed", symbol, error);
-      blocked.push({
-        assetType: getAssetType(symbol),
-        blocked: true,
-        reason: "This market could not be reviewed right now.",
-        symbol,
-      });
+    if (result.blocked) {
+      blocked.push(result.blocked);
     }
   }
 
@@ -799,9 +694,189 @@ async function scanOpportunities(
     blocked,
     opportunities: opportunities.sort((first, second) =>
       (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)
-    ).slice(0, 5),
+    ),
     scanned: normalizedSymbols.length,
   };
+}
+
+async function scanOpportunity(
+  token: string,
+  userId: string,
+  symbol: SupportedSymbol,
+): Promise<{
+  blocked?: MarketScanCandidate;
+  opportunity?: MarketScanCandidate;
+}> {
+  const providerSymbols = resolveProviderSymbols(symbol);
+  if (providerSymbols.length === 0) {
+    return {
+      blocked: {
+        assetType: getAssetType(symbol),
+        blocked: true,
+        reason: "Unsupported market symbol.",
+        symbol,
+      },
+    };
+  }
+
+  try {
+    const sessionContext = getSessionContext(symbol);
+    const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
+      await fetchRelevantNews(token, symbol);
+    if (activeNewsEvents.length > 0) {
+      return {
+        blocked: {
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: "A major scheduled event is active.",
+          symbol,
+        },
+      };
+    }
+
+    const { fmpSymbol, marketContext, providerFailures } =
+      await fetchFirstAvailableMarketContext(providerSymbols);
+    if (!fmpSymbol || !marketContext || marketContext.daily.length < 80) {
+      if (providerFailures.length > 0) {
+        console.warn(
+          "scan market data unavailable",
+          symbol,
+          providerFailures[0],
+        );
+      }
+      return {
+        blocked: {
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: "Chart data is not ready for this market yet.",
+          symbol,
+        },
+      };
+    }
+
+    const group = getCorrelationGroup(symbol);
+    const setup = await analyzeSetup(
+      token,
+      userId,
+      symbol,
+      fmpSymbol,
+      group,
+      marketContext,
+      activeNewsEvents,
+      upcomingNewsEvents,
+      sessionContext,
+    );
+    if (!setup) {
+      const diagnostics = await explainNoSetup(
+        token,
+        symbol,
+        marketContext,
+        upcomingNewsEvents,
+        sessionContext,
+      );
+      return {
+        blocked: {
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: diagnostics[0] ??
+            "No current limit-order idea passed review.",
+          symbol,
+        },
+      };
+    }
+
+    const strongerExisting = await findStrongerActiveCorrelatedSetup(
+      token,
+      userId,
+      group,
+      symbol,
+      setup.confidenceScore,
+    );
+    if (strongerExisting) {
+      return {
+        blocked: {
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason:
+            `A related market already has an equal or stronger current idea: ${strongerExisting.symbol}.`,
+          symbol,
+        },
+      };
+    }
+
+    return {
+      opportunity: {
+        assetType: getAssetType(symbol),
+        confidenceScore: setup.confidenceScore,
+        entryPrice: setup.entryPrice,
+        rewardRisk: Number(setup.confluence.rewardRisk ?? 0),
+        setup,
+        side: setup.side,
+        stopLoss: setup.stopLoss,
+        symbol,
+        takeProfit: setup.takeProfit,
+      },
+    };
+  } catch (error) {
+    console.warn("scan market failed", symbol, error);
+    return {
+      blocked: {
+        assetType: getAssetType(symbol),
+        blocked: true,
+        reason: "This market could not be reviewed right now.",
+        symbol,
+      },
+    };
+  }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, limit), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        results[currentIndex] = await worker(items[currentIndex]);
+      }
+    }),
+  );
+
+  return results;
+}
+
+async function findStrongerActiveCorrelatedSetup(
+  token: string,
+  userId: string,
+  group: string,
+  symbol: SupportedSymbol,
+  confidenceScore: number,
+) {
+  const rows = await fetchRows<
+    { id: string; symbol: string; confidence_score: number }
+  >(
+    token,
+    `trade_setups?select=id,symbol,confidence_score&user_id=eq.${
+      encodeURIComponent(userId)
+    }&correlation_group=eq.${
+      encodeURIComponent(group)
+    }&status=in.(generated,placed)&created_at=gte.${
+      encodeURIComponent(
+        new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+      )
+    }`,
+  );
+
+  return rows.find((row) =>
+    row.symbol !== symbol && Number(row.confidence_score) >= confidenceScore
+  ) ?? null;
 }
 
 async function analyzeSetup(
