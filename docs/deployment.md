@@ -16,9 +16,9 @@ The app intentionally renders a setup-required state when Supabase is missing, i
 
 ## Supabase
 
-Run `supabase/init.sql` in the Supabase SQL editor for a fresh project. The SQL creates:
+Run `supabase/init.sql` in the Supabase SQL editor for a fresh project, then apply the migrations in `supabase/migrations`. The bootstrap SQL creates the current product surface only:
 
-- User-owned profile, setup, pending-order, outcome, notice, and economic-event tables.
+- User-owned profile, idea, outcome, notice, and economic-event tables.
 - A service-role-only analyzer rate-limit table and RPC function.
 - RLS policies for authenticated users.
 - Realtime publication membership with `REPLICA IDENTITY FULL` where cross-session dashboards need old/new row data.

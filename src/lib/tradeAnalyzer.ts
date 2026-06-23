@@ -8,6 +8,7 @@ export type AnalyzerSetup = {
   correlationGroup: string;
   dataProvider?: string;
   entryPrice: number;
+  expiresAt?: string;
   fmpSymbol?: string;
   lotSize: number;
   orderType: "limit";

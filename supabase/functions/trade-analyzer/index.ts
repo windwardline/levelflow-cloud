@@ -941,6 +941,8 @@ async function analyzeSetup(
   }
 
   const lotSize = 0.01;
+  const expiresAt = new Date(getSetupExpiryTime(symbol, Date.now()))
+    .toISOString();
   const breakevenTriggerPrice = consensus.side === "buy"
     ? pricePlan.entryPrice +
       Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5
@@ -952,6 +954,7 @@ async function analyzeSetup(
     dataProvider: "FMP",
     fmpSymbol,
     providerSymbol: fmpSymbol,
+    expiresAt,
     side: consensus.side,
     orderType: "limit" as const,
     entryPrice: roundPrice(pricePlan.entryPrice),
@@ -993,6 +996,7 @@ async function analyzeSetup(
         "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
       activeNewsEventsTracked: activeNewsEvents.length,
       upcomingNewsEventsTracked: upcomingNewsEvents.length,
+      reviewWindowExpiresAt: expiresAt,
       stopLogic: pricePlan.stopLogic,
       targetLogic: pricePlan.targetLogic,
     },
@@ -1104,8 +1108,7 @@ async function upsertActiveSetup(
     }&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
   const activeSetup = rows[0] ?? null;
-  const expiresAt = new Date(getSetupExpiryTime(symbol, Date.now()))
-    .toISOString();
+  const expiresAt = setup.expiresAt;
 
   if (activeSetup && activeSetup.side === setup.side) {
     if (activeSetup.pending_order_id) {

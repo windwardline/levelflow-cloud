@@ -47,3 +47,4 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
 Market-data and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript. LevelFlow does not place trades; trade execution is outside the active product scope.
 
 See [docs/security-hardening.md](/docs/security-hardening.md) for the Cloudflare response-header policy and authenticated E2E test-user setup.
+See [docs/gap-analysis.md](/docs/gap-analysis.md) for the current improvement backlog across trade logic, frontend, backend, security, and reliability.

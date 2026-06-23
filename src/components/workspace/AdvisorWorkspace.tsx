@@ -522,6 +522,7 @@ function RecommendationPanel({
           <MetricRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
           <MetricRow label="Take profit" value={formatNumber(setup.takeProfit)} />
           <MetricRow label="Break-even reference" value={formatNumber(setup.breakevenTriggerPrice)} />
+          {setup.expiresAt ? <MetricRow label="Review by" value={formatTimestamp(setup.expiresAt)} /> : null}
         </div>
         <button
           className="secondary-button w-full"
