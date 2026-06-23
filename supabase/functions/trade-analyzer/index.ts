@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ANALYZER_VERSION = "2026.06.16.global-learning";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+  "https://levelflow.windwardline.com,https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -2954,7 +2954,7 @@ function corsHeaders(req: Request) {
   const origin = req.headers.get("Origin");
   const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
     ? origin
-    : ALLOWED_ORIGINS[0] ?? "https://app.windwardline.com";
+    : ALLOWED_ORIGINS[0] ?? "https://levelflow.windwardline.com";
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,

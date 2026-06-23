@@ -7,7 +7,7 @@ The current production-ready path is a static React frontend backed directly by 
 Set these environment variables in the host:
 
 ```bash
-VITE_APP_URL=https://app.windwardline.com/
+VITE_APP_URL=https://levelflow.windwardline.com/
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_publishable_key
 ```
@@ -23,7 +23,7 @@ Run `supabase/init.sql` in the Supabase SQL editor for a fresh project, then app
 - RLS policies for authenticated users.
 - Realtime publication membership with `REPLICA IDENTITY FULL` where cross-session dashboards need old/new row data.
 
-Apply migrations before deploying Edge Functions that depend on new database objects. The functions require a Supabase-authenticated user session, allow the production origin `https://app.windwardline.com`, and keep provider credentials off the static frontend.
+Apply migrations before deploying Edge Functions that depend on new database objects. The functions require a Supabase-authenticated user session, allow the production origin `https://levelflow.windwardline.com`, and keep provider credentials off the static frontend.
 
 ```bash
 npx supabase db push --linked

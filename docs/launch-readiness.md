@@ -2,7 +2,7 @@
 
 ## Current Production Surface
 
-- Frontend: GitHub Pages custom domain at `https://app.windwardline.com/` with the legacy GitHub Pages URL retained as a fallback during DNS propagation.
+- Frontend: GitHub Pages custom domain at `https://levelflow.windwardline.com/` with the legacy GitHub Pages URL retained as a fallback during DNS propagation.
 - Auth and database: Supabase project `usrtpoftuvhpmyhlhqlg`.
 - Market data: Supabase Edge Function `market-data`, backed by the FMP key configured in GitHub/Supabase secrets.
 - Market analyzer: Supabase Edge Function `trade-analyzer`, using daily/intraday bars, scheduled-event records, session rules, correlation filtering, limit-only outputs, and RLS-owned inserts.
@@ -15,8 +15,8 @@
 - Real user email login: needs a real magic-link confirmation from the account owner.
 - Profile persistence: real-user validation should confirm profile preference updates, theme selection, and history loading.
 - Legal pages: `risk-disclaimer.html`, `privacy.html`, and `terms.html` are published under `/legal/`.
-- CORS: Edge Functions restrict browser CORS to `https://app.windwardline.com`, `https://windwardline.github.io`, and local development origins.
-- Custom domain: `app.windwardline.com` is the intended production URL. DNS, GitHub Pages, and Supabase Auth redirect settings must all include this host.
+- CORS: Edge Functions restrict browser CORS to `https://levelflow.windwardline.com`, the previous `https://app.windwardline.com` transition host, `https://windwardline.github.io`, and local development origins.
+- Custom domain: `levelflow.windwardline.com` is the intended production URL. DNS, GitHub Pages, and Supabase Auth redirect settings must all include this host.
 - Market access: only verified categories are visible in the app. Restricted or unverified categories remain hidden until data quality is confirmed.
 
 ## Full Launch Gate

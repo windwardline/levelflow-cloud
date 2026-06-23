@@ -27,7 +27,7 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
 1. Create or select a Supabase project.
 2. Run [supabase/init.sql](/supabase/init.sql) in the Supabase SQL editor.
 3. In Supabase Auth, enable email OTP/magic links and configure Google/Apple OAuth providers.
-4. Add `https://app.windwardline.com/` and any fallback/local development URLs to Supabase Auth redirect URLs.
+4. Add `https://levelflow.windwardline.com/` and any fallback/local development URLs to Supabase Auth redirect URLs.
 5. Apply the launch migrations in `supabase/migrations/`.
 6. Deploy the Supabase Edge Functions and set Supabase function secrets:
    - `NEWS_SYNC_TOKEN`
