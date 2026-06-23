@@ -4,7 +4,7 @@ const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+  "https://levelflow.windwardline.com,https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -407,7 +407,7 @@ function corsHeaders(req: Request) {
   const origin = req.headers.get("Origin");
   const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
     ? origin
-    : ALLOWED_ORIGINS[0] ?? "https://app.windwardline.com";
+    : ALLOWED_ORIGINS[0] ?? "https://levelflow.windwardline.com";
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,

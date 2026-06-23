@@ -13,7 +13,7 @@ jobs:
       GIT_CONFIG_COUNT: 1
       GIT_CONFIG_KEY_0: init.defaultBranch
       GIT_CONFIG_VALUE_0: main
-      VITE_APP_URL: https://app.windwardline.com/
+      VITE_APP_URL: https://levelflow.windwardline.com/
       VITE_BASE_PATH: /
       VITE_DONATION_CASHAPP_URL: ${{ vars.VITE_DONATION_CASHAPP_URL || '' }}
       VITE_DONATION_PAYPAL_URL: ${{ vars.VITE_DONATION_PAYPAL_URL || '' }}
@@ -81,7 +81,7 @@ jobs:
       - name: Configure Supabase function secrets
         run: |
           cat > /tmp/levelflow-function-secrets.env <<'EOF'
-          APP_ALLOWED_ORIGINS=https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173
+          APP_ALLOWED_ORIGINS=https://levelflow.windwardline.com,https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173
           NEWS_SYNC_TOKEN=${{ secrets.NEWS_SYNC_TOKEN }}
           ECONOMIC_CALENDAR_PROVIDER=${{ vars.ECONOMIC_CALENDAR_PROVIDER || 'fmp' }}
           FMP_API_KEY=${{ secrets.FMP_API_KEY }}
