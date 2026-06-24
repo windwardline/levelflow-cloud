@@ -40,9 +40,14 @@ create table if not exists public.profiles (
       'America/New_York',
       'America/Chicago',
       'America/Denver',
+      'America/Phoenix',
       'America/Los_Angeles',
       'America/Anchorage',
-      'Pacific/Honolulu'
+      'America/Adak',
+      'Pacific/Honolulu',
+      'America/Puerto_Rico',
+      'Pacific/Pago_Pago',
+      'Pacific/Guam'
     )
   ),
   constraint profiles_default_timeframe_valid check (default_timeframe in ('15min', '1hour', '4hour', '1day')),

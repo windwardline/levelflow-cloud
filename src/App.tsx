@@ -43,9 +43,11 @@ import {
 } from "./lib/outcomes";
 import {
   buildDefaultProfile,
+  getTimeZoneAbbreviation,
+  getUsTimeZoneOption,
   profileDisplayName,
   PREFERRED_SESSION_OPTIONS,
-  US_STATE_TIME_ZONES,
+  US_TIME_ZONE_GROUPS,
   type ThemeMode,
   type UserProfile,
 } from "./lib/profile";
@@ -975,6 +977,11 @@ function ProfilePanel({
     sessions.find((session) => session.id === "north_america") ??
     sessions[0];
   const latestIdea = setups[0];
+  const selectedTimeZone = getUsTimeZoneOption(timezone);
+  const selectedTimeZoneAbbreviation = getTimeZoneAbbreviation(
+    selectedTimeZone.value,
+    profileNow,
+  );
 
   useEffect(() => {
     setDisplayName(profile.displayName);
@@ -1038,10 +1045,17 @@ function ProfilePanel({
               value={timezone}
               onChange={(event) => setTimezone(event.target.value)}
             >
-              {US_STATE_TIME_ZONES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+              {US_TIME_ZONE_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} - {option.regions} -{" "}
+                      {option.group === "adjusts"
+                        ? `${option.daylightLabel}/${option.standardLabel}`
+                        : `${option.standardLabel} year-round`}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -1118,6 +1132,16 @@ function ProfilePanel({
             <ProfileDetailRow
               label="Local time"
               value={formatProfileTime(profileNow, timezone)}
+            />
+            <ProfileDetailRow
+              label="Selected zone"
+              value={`${selectedTimeZone.label} (${selectedTimeZoneAbbreviation})`}
+            />
+            <ProfileDetailRow
+              label="Clock handling"
+              value={selectedTimeZone.group === "adjusts"
+                ? "Adjusts automatically"
+                : "Standard time year-round"}
             />
             <ProfileDetailRow
               label="Session focus"
