@@ -63,11 +63,11 @@ test("authenticated workspace exposes core premium navigation without stale help
   await page.getByRole("button", { name: "About" }).click();
   await expect(
     page.getByRole("heading", {
-      name: "A Premium Market Review Workspace for Disciplined Traders",
+      name: "A premium market review workspace for disciplined traders",
     }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Review Support, Not Trade Placement" }),
+    page.getByRole("heading", { name: "Review support, not trade placement" }),
   ).toBeVisible();
   await expect(page.getByText("Shared across LevelFlow")).toBeVisible();
 
@@ -81,10 +81,10 @@ test("authenticated workspace exposes core premium navigation without stale help
 
   await page.getByRole("button", { name: "Guide" }).click();
   await expect(
-    page.getByRole("heading", { name: "How to Use LevelFlow" }),
+    page.getByRole("heading", { name: "How to use LevelFlow" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "What LevelFlow Checks" }),
+    page.getByRole("heading", { name: "What LevelFlow checks" }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Profile" }).click();

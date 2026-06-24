@@ -15,7 +15,7 @@
 - Real user email login: needs a real magic-link confirmation from the account owner.
 - Profile persistence: real-user validation should confirm profile preference updates, theme selection, and history loading.
 - Legal pages: `risk-disclaimer.html`, `privacy.html`, and `terms.html` are published under `/legal/`.
-- CORS: Edge Functions restrict browser CORS to `https://levelflow.windwardline.com`, the previous `https://app.windwardline.com` transition host, `https://windwardline.github.io`, and local development origins.
+- CORS: Edge Functions restrict browser CORS to `https://levelflow.windwardline.com`, `https://windwardline.github.io`, and local development origins.
 - Custom domain: `levelflow.windwardline.com` is the intended production URL. DNS, GitHub Pages, and Supabase Auth redirect settings must all include this host.
 - Market access: only verified categories are visible in the app. Restricted or unverified categories remain hidden until data quality is confirmed.
 

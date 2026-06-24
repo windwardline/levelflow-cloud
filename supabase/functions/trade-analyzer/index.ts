@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ANALYZER_VERSION = "2026.06.16.global-learning";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://levelflow.windwardline.com,https://app.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+  "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -305,7 +305,7 @@ type ExistingSetupRow = {
   created_at: string;
   id: string;
   limit_entry: number | string;
-  massive_symbol: string;
+  provider_symbol: string;
   pending_order_id: string | null;
   side: Side;
   stop_loss: number | string;
@@ -1099,7 +1099,7 @@ async function upsertActiveSetup(
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
+    `trade_setups?select=id,pending_order_id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
       encodeURIComponent(userId)
     }&symbol=eq.${
       encodeURIComponent(
@@ -1122,7 +1122,7 @@ async function upsertActiveSetup(
           entry_price: setup.entryPrice,
           expires_at: expiresAt,
           invalidation_reason: null,
-          massive_symbol: fmpSymbol,
+          provider_symbol: fmpSymbol,
           side: setup.side,
           status: "generated",
           stop_loss: setup.stopLoss,
@@ -1143,7 +1143,7 @@ async function upsertActiveSetup(
         confluence: setup.confluence,
         correlation_group: group,
         limit_entry: setup.entryPrice,
-        massive_symbol: fmpSymbol,
+        provider_symbol: fmpSymbol,
         news_context: {
           activeEvents: activeNewsEvents,
           upcomingEvents: upcomingNewsEvents,
@@ -1176,7 +1176,7 @@ async function upsertActiveSetup(
   const pendingOrder = await insertSingle(token, "pending_orders", {
     user_id: userId,
     symbol,
-    massive_symbol: fmpSymbol,
+    provider_symbol: fmpSymbol,
     side: setup.side,
     order_type: "limit",
     entry_price: setup.entryPrice,
@@ -1192,7 +1192,7 @@ async function upsertActiveSetup(
     user_id: userId,
     pending_order_id: pendingOrder.id,
     symbol,
-    massive_symbol: fmpSymbol,
+    provider_symbol: fmpSymbol,
     side: setup.side,
     limit_entry: setup.entryPrice,
     stop_loss: setup.stopLoss,
@@ -1268,7 +1268,7 @@ async function refreshUserOutcomes(
   const limit = Math.max(1, Math.min(options.limit ?? 120, 120));
   const setups = await fetchRows<SetupForOutcome>(
     token,
-    `trade_setups?select=id,pending_order_id,symbol,massive_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${
+    `trade_setups?select=id,pending_order_id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${
       encodeURIComponent(
         userId,
       )
@@ -1280,7 +1280,7 @@ async function refreshUserOutcomes(
     summary.reviewed += 1;
 
     try {
-      const providerSymbol = setup.massive_symbol ||
+      const providerSymbol = setup.provider_symbol ||
         resolveProviderSymbols(setup.symbol)[0];
       if (!providerSymbol) {
         summary.failed += 1;

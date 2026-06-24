@@ -550,7 +550,7 @@ function HistoryPanel({
               Confidence
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              By Score Range
+              By score range
             </h2>
           </div>
           <div className="grid gap-3">
@@ -619,17 +619,17 @@ function OverviewPanel() {
     {
       body: "LevelFlow reviews the selected market and shows one current limit idea only when the chart, timing, and risk are strong enough.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
-      title: "One Focused Answer",
+      title: "One focused answer",
     },
     {
       body: "The review checks direction, price location, volatility, session timing, event risk, and past results.",
       icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
-      title: "Market Context in One Pass",
+      title: "Market context in one pass",
     },
     {
       body: "Entry, stop, target, confidence, and the reason for the idea are shown together before you decide what to do next.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
-      title: "Review Support, Not Trade Placement",
+      title: "Review support, not trade placement",
     },
   ];
 
@@ -646,10 +646,10 @@ function OverviewPanel() {
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)] lg:items-center">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-              What LevelFlow Is
+              What LevelFlow is
             </p>
             <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">
-              A Premium Market Review Workspace for Disciplined Traders
+              A premium market review workspace for disciplined traders
             </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
               LevelFlow refreshes the chart, checks the market from several
@@ -694,7 +694,7 @@ function OverviewPanel() {
               Why it matters
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Cleaner Decisions, Less Noise
+              Cleaner decisions, less noise
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate">
               Most trading tools add more noise. LevelFlow narrows the decision:
@@ -1294,7 +1294,7 @@ function GuidePanel() {
                   Guide
                 </p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">
-                  How to Use LevelFlow
+                  How to use LevelFlow
                 </h2>
               </div>
             </div>
@@ -1316,7 +1316,7 @@ function GuidePanel() {
               Workflow
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Five-Step Workflow
+              Five-step workflow
             </h2>
           </div>
           <p className="max-w-md text-sm leading-6 text-slate">
@@ -1341,7 +1341,7 @@ function GuidePanel() {
               Review
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              What LevelFlow Checks
+              What LevelFlow checks
             </h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -1357,7 +1357,7 @@ function GuidePanel() {
               Output
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              What the Idea Includes
+              What the idea includes
             </h2>
           </div>
           <div className="grid gap-3">
@@ -1375,7 +1375,7 @@ function GuidePanel() {
               Confidence
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              How to Read the Score
+              How to read the score
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
               Confidence is a 0-100 quality score. It reflects market agreement,
@@ -1397,7 +1397,7 @@ function GuidePanel() {
               Contact
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Questions or Data Issues
+              Questions or data issues
             </h2>
             <p className="mt-1 text-sm leading-6 text-slate">
               Send the market, timeframe, and a short description of what looked

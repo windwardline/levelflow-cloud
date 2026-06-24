@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
@@ -164,6 +165,15 @@ describe("recommendation outcomes", () => {
       ),
       "stopped_out",
     );
+  });
+});
+
+describe("database schema", () => {
+  it("uses provider-neutral market symbol naming in the current baseline schema", () => {
+    const initSql = readFileSync("supabase/init.sql", "utf8");
+
+    assert.match(initSql, /provider_symbol text not null/);
+    assert.doesNotMatch(initSql, /massive_symbol text not null/);
   });
 });
 
