@@ -11,17 +11,24 @@ Last reviewed: 2026-06-24
 - Outcome tracking and global learning are shared across users through `strategy_weightings_global`, not isolated to individual users.
 - Server-only market data and analysis keep provider keys out of browser JavaScript.
 - Runtime schema and code now use provider-neutral market symbol naming.
+- Outcome replay, category calibration, candle caching, market-data health snapshots, analyzer event telemetry, and setup-only persistence are now part of the core backend.
+
+## Recently Closed
+
+- Historical replay coverage now verifies target, stop, no-fill expiry, and same-candle ambiguous outcomes through the shared replay module.
+- Forex, crypto, futures, and metals now use category-specific thresholds, payoff floors, news/provider penalties, ATR construction, and review windows.
+- FMP candle requests are cached briefly inside the analyzer Edge Function to reduce duplicate scan latency and provider pressure.
+- `market_data_health` persists symbol-level provider health, available timeframes, candle counts, latest bar time, and warnings.
+- `analyzer_events` captures structured backend events for blocked reviews, scan failures, provider errors, slow FMP calls, cache hits, and successful reviews.
+- Legacy `pending_orders` persistence is consolidated into `trade_setups`; the app records ideas and outcomes, not executable orders.
 
 ## Gaps to Close
 
 ### Trade Review Logic
 
-- Add a replay harness that runs the analyzer against historical candles and verifies fill, stop, target, and no-fill outcomes. This is the highest-value accuracy improvement available without changing the FMP plan.
-- Add category-specific calibration. Forex, crypto, metals, and futures should not all use the same confidence threshold, payoff floor, event penalty, and expiry assumptions forever.
 - Add a spread and execution-quality model. Current outcomes use candle high/low paths and do not model spread, slippage, partial touches, or real execution availability.
 - Improve same-candle outcome handling. When stop and target both touch in one candle, LevelFlow correctly marks it as needing review, but those cases should be excluded from learning weight updates or weighted more conservatively.
 - Add scan-level correlation context. The current scan checks existing active correlated ideas, but the UI should eventually explain when multiple top ideas are tightly related.
-- Persist market-data health by symbol. The app should know when a market has weak coverage before a user waits on a review or scan.
 
 ### Front End
 
@@ -32,10 +39,8 @@ Last reviewed: 2026-06-24
 
 ### Back End
 
-- Split the analyzer Edge Function into modules for data loading, strategy votes, setup construction, outcome review, and Supabase persistence. The current single file is testable, but too large.
-- Cache FMP candle responses during scans. A full-market scan currently does independent provider requests per market, which is simple but wasteful and more vulnerable to provider latency.
-- Add structured operational telemetry for Edge Function failures, slow provider responses, scan duration, and symbol-level data coverage.
-- Decide whether `pending_orders` should remain the persistence name. The product no longer places trades, so `idea_orders` or a single `trade_setups` table with expiry fields would be clearer long term.
+- Continue splitting the analyzer Edge Function. Calibration and replay are separated now; strategy votes, market loading, and Supabase persistence should be split next.
+- Add a small internal operations view for `market_data_health` and `analyzer_events` once there is enough live data to make it useful.
 
 ### Security and Reliability
 
@@ -46,10 +51,9 @@ Last reviewed: 2026-06-24
 
 ## Priority Order
 
-1. Historical replay harness for analyzer accuracy.
-2. FMP candle cache plus symbol data-health persistence.
-3. Analyzer module split with targeted unit tests around each strategy vote and setup construction.
-4. Market Scan decision-surface upgrade.
-5. Category-specific thresholds and expiry rules.
-6. Deployment migration step.
-7. Persistence-table consolidation.
+1. Add a spread/execution-quality model before using outcome data for stronger learning adjustments.
+2. Weight same-candle ambiguous outcomes more conservatively in global learning.
+3. Expand Market Scan into a decision surface with category filters and short rationale previews.
+4. Split strategy votes, data loading, and persistence into dedicated analyzer modules.
+5. Add deployment automation for Supabase migrations.
+6. Add CSP and analyzer abuse tests to CI.

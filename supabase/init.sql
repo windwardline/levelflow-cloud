@@ -15,7 +15,7 @@ end $$;
 
 do $$
 begin
-  create type public.pending_order_status as enum ('generated', 'placed', 'filled', 'invalidated', 'cancelled', 'expired');
+  create type public.setup_status as enum ('generated', 'placed', 'filled', 'invalidated', 'cancelled', 'expired');
 exception when duplicate_object then null;
 end $$;
 
@@ -50,30 +50,9 @@ create table if not exists public.profiles (
   constraint profiles_preferred_session_valid check (preferred_session in ('any', 'asia', 'europe', 'north_america', 'australia'))
 );
 
-create table if not exists public.pending_orders (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  symbol text not null,
-  provider_symbol text not null,
-  side public.order_side not null,
-  order_type text not null default 'limit',
-  entry_price numeric(18,8) not null check (entry_price > 0),
-  stop_loss numeric(18,8) not null check (stop_loss > 0),
-  take_profit numeric(18,8) not null check (take_profit > 0),
-  lot_size numeric(18,4) not null check (lot_size > 0),
-  confidence_score smallint not null check (confidence_score between 0 and 100),
-  status public.pending_order_status not null default 'generated',
-  invalidation_reason text,
-  expires_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint pending_orders_limit_only check (order_type = 'limit')
-);
-
 create table if not exists public.trade_setups (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  pending_order_id uuid references public.pending_orders(id) on delete set null,
   symbol text not null,
   provider_symbol text not null,
   side public.order_side not null,
@@ -87,7 +66,7 @@ create table if not exists public.trade_setups (
   risk_model jsonb not null default '{}'::jsonb,
   news_context jsonb not null default '{}'::jsonb,
   correlation_group text,
-  status public.pending_order_status not null default 'generated',
+  status public.setup_status not null default 'generated',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -160,6 +139,36 @@ create table if not exists public.analyzer_rate_limits (
   request_count integer not null default 0 check (request_count >= 0),
   updated_at timestamptz not null default now(),
   primary key (user_id, action, window_start)
+);
+
+create table if not exists public.market_data_health (
+  symbol text primary key,
+  asset_type text not null check (asset_type in ('crypto', 'forex', 'futures', 'metals')),
+  provider_symbol text,
+  status text not null check (status in ('ready', 'limited', 'unavailable')),
+  latest_bar_at timestamptz,
+  daily_bars integer not null default 0 check (daily_bars >= 0),
+  intraday_bars integer not null default 0 check (intraday_bars >= 0),
+  available_timeframes text[] not null default '{}'::text[],
+  provider_warnings jsonb not null default '[]'::jsonb,
+  last_checked_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.analyzer_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  action text not null,
+  status text not null check (status in ('blocked', 'cache_hit', 'error', 'scan_failure', 'slow_provider', 'success')),
+  symbol text,
+  asset_type text check (asset_type is null or asset_type in ('crypto', 'forex', 'futures', 'metals')),
+  provider_symbol text,
+  cache_hit boolean not null default false,
+  duration_ms integer check (duration_ms is null or duration_ms >= 0),
+  message text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
 );
 
 create or replace function private.set_updated_at()
@@ -252,11 +261,6 @@ create trigger set_profiles_updated_at
   before update on public.profiles
   for each row execute function private.set_updated_at();
 
-drop trigger if exists set_pending_orders_updated_at on public.pending_orders;
-create trigger set_pending_orders_updated_at
-  before update on public.pending_orders
-  for each row execute function private.set_updated_at();
-
 drop trigger if exists set_trade_setups_updated_at on public.trade_setups;
 create trigger set_trade_setups_updated_at
   before update on public.trade_setups
@@ -282,12 +286,12 @@ create trigger set_system_notices_updated_at
   before update on public.system_notices
   for each row execute function private.set_updated_at();
 
+drop trigger if exists set_market_data_health_updated_at on public.market_data_health;
+create trigger set_market_data_health_updated_at
+  before update on public.market_data_health
+  for each row execute function private.set_updated_at();
+
 create index if not exists profiles_email_idx on public.profiles (email);
-create index if not exists pending_orders_user_status_idx on public.pending_orders (user_id, status);
-create index if not exists pending_orders_user_symbol_created_idx on public.pending_orders (user_id, symbol, created_at desc);
-create index if not exists pending_orders_user_active_symbol_idx
-  on public.pending_orders (user_id, symbol, status, created_at desc)
-  where status in ('generated', 'placed');
 create index if not exists trade_setups_user_created_idx on public.trade_setups (user_id, created_at desc);
 create index if not exists trade_setups_user_symbol_created_idx on public.trade_setups (user_id, symbol, created_at desc);
 create index if not exists trade_setups_user_active_symbol_idx
@@ -300,29 +304,34 @@ create index if not exists strategy_weightings_global_version_idx on public.stra
 create index if not exists economic_events_scheduled_impact_idx on public.economic_events (scheduled_at, impact);
 create index if not exists analyzer_rate_limits_updated_idx on public.analyzer_rate_limits (updated_at desc);
 create index if not exists system_notices_user_active_idx on public.system_notices (user_id, active_from, active_until);
+create index if not exists market_data_health_status_idx on public.market_data_health (status, last_checked_at desc);
+create index if not exists analyzer_events_action_status_idx on public.analyzer_events (action, status, created_at desc);
+create index if not exists analyzer_events_symbol_idx on public.analyzer_events (symbol, created_at desc);
 
 alter table public.profiles enable row level security;
-alter table public.pending_orders enable row level security;
 alter table public.trade_setups enable row level security;
 alter table public.trade_outcomes enable row level security;
 alter table public.strategy_weightings_global enable row level security;
 alter table public.economic_events enable row level security;
 alter table public.system_notices enable row level security;
 alter table public.analyzer_rate_limits enable row level security;
+alter table public.market_data_health enable row level security;
+alter table public.analyzer_events enable row level security;
 
 revoke all on public.analyzer_rate_limits from anon, authenticated;
+revoke all on public.analyzer_events from anon, authenticated;
 revoke all on function public.claim_analyzer_request(uuid, text, integer, integer) from public, anon, authenticated;
 grant execute on function public.claim_analyzer_request(uuid, text, integer, integer) to service_role;
 
 grant usage on schema public to anon, authenticated;
-grant select on public.economic_events, public.strategy_weightings_global to authenticated;
+grant select on public.economic_events, public.market_data_health, public.strategy_weightings_global to authenticated;
 grant select, insert, update, delete on
   public.profiles,
-  public.pending_orders,
   public.trade_setups,
   public.trade_outcomes,
   public.system_notices
 to authenticated;
+grant select, insert, update, delete on public.analyzer_events, public.market_data_health to service_role;
 
 drop policy if exists "profiles select own" on public.profiles;
 create policy "profiles select own"
@@ -367,6 +376,13 @@ for select
 to authenticated
 using (true);
 
+drop policy if exists "market data health readable by authenticated users" on public.market_data_health;
+create policy "market data health readable by authenticated users"
+on public.market_data_health
+for select
+to authenticated
+using (true);
+
 drop policy if exists "system notices select own or global" on public.system_notices;
 create policy "system notices select own or global"
 on public.system_notices
@@ -401,7 +417,6 @@ declare
   table_name text;
 begin
   foreach table_name in array array[
-    'pending_orders',
     'trade_setups',
     'trade_outcomes'
   ]
@@ -436,10 +451,10 @@ begin
   end loop;
 end $$;
 
-alter table public.pending_orders replica identity full;
 alter table public.trade_setups replica identity full;
 alter table public.trade_outcomes replica identity full;
 alter table public.system_notices replica identity full;
+alter table public.market_data_health replica identity full;
 
 do $$
 declare
@@ -447,9 +462,9 @@ declare
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
     foreach table_name in array array[
-      'pending_orders',
       'trade_setups',
       'trade_outcomes',
+      'market_data_health',
       'system_notices'
     ]
     loop
