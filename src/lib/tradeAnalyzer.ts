@@ -10,7 +10,6 @@ export type AnalyzerSetup = {
   entryPrice: number;
   expiresAt?: string;
   fmpSymbol?: string;
-  lotSize: number;
   orderType: "limit";
   riskModel: Record<string, unknown>;
   side: "buy" | "sell";

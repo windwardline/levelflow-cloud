@@ -44,6 +44,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
   const [clockNow, setClockNow] = useState(() => new Date());
   const requestIdRef = useRef(0);
+  const selectedSymbolRef = useRef<SupportedSymbol>("EURUSD");
 
   const selectedAsset = getSecurityOption(symbol);
   const activeResult = analysisState?.symbol === symbol ? analysisState.response : null;
@@ -58,6 +59,10 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       setTimeframe(profile.defaultTimeframe);
     }
   }, [profile.defaultTimeframe, timeframeTouched]);
+
+  useEffect(() => {
+    selectedSymbolRef.current = symbol;
+  }, [symbol]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(new Date()), 60_000);
@@ -97,7 +102,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   }, [refreshNonce, symbol, timeframe]);
 
   async function analyze() {
-    const requestedSymbol = symbol;
+    const requestedSymbol = selectedSymbolRef.current;
     const requestedLabel = formatSecurityLabel(requestedSymbol);
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
@@ -105,6 +110,9 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
     setAnalyzerStatus("analyzing");
     setAdvisorNotice(`Analyzing ${requestedLabel}.`);
     setAnalysisState({ requestedAt: Date.now(), response: null, symbol: requestedSymbol });
+    if (requestedSymbol !== symbol) {
+      setSymbol(requestedSymbol);
+    }
 
     try {
       const nextResult = await generateTradeSetup(requestedSymbol);
@@ -161,7 +169,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market Review</h2>
+              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market review</h2>
               <p className="mt-1 text-sm text-slate">Select a market, review the chart, then ask LevelFlow for the current limit idea.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
@@ -177,8 +185,10 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
                 className="field"
                 value={symbol}
                 onChange={(event) => {
+                  const nextSymbol = event.target.value as SupportedSymbol;
                   requestIdRef.current += 1;
-                  setSymbol(event.target.value as SupportedSymbol);
+                  selectedSymbolRef.current = nextSymbol;
+                  setSymbol(nextSymbol);
                   setAnalyzerStatus("idle");
                   setAnalysisState(null);
                   setAdvisorNotice("");
@@ -269,6 +279,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           onSelectCandidate={(candidate) => {
             const nextSymbol = candidate.symbol;
             requestIdRef.current += 1;
+            selectedSymbolRef.current = nextSymbol;
             setSymbol(nextSymbol);
             setAnalyzerStatus("idle");
             if (candidate.setup) {
@@ -297,8 +308,8 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="mb-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-slate">Recent Ideas</p>
-              <h3 className="text-lg font-semibold tracking-normal text-navy">Latest Activity</h3>
+              <p className="text-sm font-semibold text-slate">Recent ideas</p>
+              <h3 className="text-lg font-semibold tracking-normal text-navy">Latest activity</h3>
             </div>
           </div>
           <SetupList setups={setups.slice(0, 5)} />
@@ -308,7 +319,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="mb-4 flex items-center gap-3">
             <BarChart3 className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-slate">Market Results</p>
+              <p className="text-sm font-semibold text-slate">Market results</p>
               <h3 className="text-lg font-semibold tracking-normal text-navy">{selectedAsset.symbol}</h3>
             </div>
           </div>
@@ -350,7 +361,7 @@ function DataHealthPanel({
       <div className="mb-4 flex items-center gap-3">
         <CheckCircle2 className="h-5 w-5 text-bullish" aria-hidden="true" />
         <div>
-          <p className="text-sm font-semibold text-slate">Market Data</p>
+          <p className="text-sm font-semibold text-slate">Market data</p>
           <h3 className="text-lg font-semibold tracking-normal text-navy">{status}</h3>
         </div>
       </div>
@@ -383,14 +394,16 @@ function MarketScanPanel({
 }) {
   const opportunities = result?.opportunities ?? [];
   const blockedCount = result?.blocked.length ?? 0;
-  const emptyMessage = result?.blocked[0]?.reason ?? "Scan all active markets to find the strongest current limit ideas.";
+  const emptyMessage = result
+    ? "No current market passed the scan. Try again after the next candle or scheduled event window."
+    : "Scan all active markets to find the strongest current limit ideas.";
 
   return (
     <section className="terminal-panel p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate">Market Scan</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">Best Current Markets</h3>
+          <p className="text-sm font-semibold text-slate">Market scan</p>
+          <h3 className="text-lg font-semibold tracking-normal text-navy">Best current markets</h3>
         </div>
         <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={onScan} disabled={status === "scanning"}>
           {status === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
@@ -412,7 +425,7 @@ function MarketScanPanel({
 
       {result ? (
         <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
-          {result.scanned} reviewed{blockedCount > 0 ? ` / ${blockedCount} unavailable` : ""}. Scan results are not saved.
+          {result.scanned} reviewed{blockedCount > 0 ? ` / ${blockedCount} not ready` : ""}. Select a row to load its chart.
         </p>
       ) : null}
     </section>
@@ -422,6 +435,9 @@ function MarketScanPanel({
 function MarketScanRow({ candidate, onSelectCandidate }: { candidate: MarketScanCandidate; onSelectCandidate: (candidate: MarketScanCandidate) => void }) {
   const isBuy = candidate.side === "buy";
   const sideLabel = candidate.side ? `${candidate.side.toUpperCase()} LIMIT` : "Review";
+  const levelPreview = candidate.entryPrice && candidate.takeProfit
+    ? `Entry ${formatNumber(candidate.entryPrice)} / Target ${formatNumber(candidate.takeProfit)}`
+    : "Load chart for details";
 
   return (
     <button
@@ -440,6 +456,7 @@ function MarketScanRow({ candidate, onSelectCandidate }: { candidate: MarketScan
         <span>{candidate.confidenceScore ?? 0}% confidence</span>
         <span>{formatPayoff(candidate.rewardRisk)}</span>
       </div>
+      <p className="truncate text-xs font-medium text-slate">{levelPreview}</p>
     </button>
   );
 }
@@ -553,7 +570,7 @@ function RecommendationPanel({
         <Target className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-navy">Ready for Review</h3>
+        <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
         <p className="mt-1">{notice || "Select a market, review the chart, then ask LevelFlow for the current limit idea."}</p>
       </div>
     </div>
@@ -570,7 +587,7 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
       </div>
       <div>
         <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Analyzing {symbol}</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Building the Current Idea</h3>
+        <h3 className="mt-1 text-lg font-semibold text-navy">Building the current idea</h3>
       </div>
       <div className="grid gap-2">
         {steps.map((step) => (
@@ -585,14 +602,14 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
 }
 
 function NoSetupPanel({ notice, result, symbol }: { notice: string; result: AnalyzerResponse; symbol: SupportedSymbol }) {
-  const reasons = [
+  const reasons = uniqueReviewMessages([
     result.reason ?? notice,
     ...(result.analysisDiagnostics ?? []),
     ...(result.providerWarnings ?? []),
     result.learningRefresh?.reason ? result.learningRefresh.reason : "",
-  ]
-    .filter(Boolean)
-    .map(cleanReviewMessage);
+  ]);
+  const primaryReason = reasons[0] ?? "The current mix of direction, timing, and payoff is not strong enough.";
+  const supportingReasons = reasons.slice(1, 4);
 
   return (
     <div className="grid gap-4 text-sm leading-6 text-slate">
@@ -600,17 +617,23 @@ function NoSetupPanel({ notice, result, symbol }: { notice: string; result: Anal
         <XCircle className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No Trade Idea</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Nothing Passed Review</h3>
+        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No trade idea</p>
+        <h3 className="mt-1 text-lg font-semibold text-navy">Nothing passed review</h3>
         <p className="mt-1">LevelFlow cleared the prior display for {formatSecurityLabel(symbol)} and did not find a current limit idea strong enough to show.</p>
       </div>
-      <div className="grid gap-2">
-        {reasons.slice(0, 4).map((reason) => (
-          <div key={reason} className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 font-medium text-slate">
-            {reason}
-          </div>
-        ))}
+      <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-slate">Primary reason</p>
+        <p className="mt-1 font-medium text-navy">{primaryReason}</p>
       </div>
+      {supportingReasons.length > 0 ? (
+        <div className="grid gap-2">
+          {supportingReasons.map((reason) => (
+            <div key={reason} className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 font-medium text-slate">
+              {reason}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -633,7 +656,7 @@ function QualityReceipt({ receipt }: { receipt: QualityReceiptData }) {
     <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3">
       <div className="flex items-center gap-2">
         <FileSearch className="h-4 w-4 text-bullish" aria-hidden="true" />
-        <h3 className="font-semibold text-navy">Why This Idea</h3>
+        <h3 className="font-semibold text-navy">Why this idea</h3>
       </div>
       <div className="grid gap-2">
         {receipt.items.map((item) => (
@@ -787,6 +810,13 @@ function formatScoreAdjustment(value: number | null) {
 
 function cleanReviewMessage(value: string) {
   return value
+    .replace(/No clear direction passed review: buy \d+(?:\.\d+)?, sell \d+(?:\.\d+)?, block \d+(?:\.\d+)?\./i, "The chart did not show a clear enough direction.")
+    .replace(/Committee favored (buy|sell), but the adjusted score was (\d+); LevelFlow requires 66 or higher\./i, (_match, side: string, score: string) => `The ${side.toLowerCase()} case reached ${score}/100. LevelFlow shows ideas at 66/100 or higher.`)
+    .replace(/Payoff was ([0-9.]+)x; LevelFlow requires at least 1\.35x\./i, (_match, payoff: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff).`)
+    .replace(/Limit entry failed price validation, so no limit-order setup was shown\./i, "A valid limit entry was not available at the current price.")
+    .replace(/Limit entry failed price validation, so no limit-order idea was shown\./i, "A valid limit entry was not available at the current price.")
+    .replace(/Fewer than three review timeframes were available from the provider\./i, "Some chart intervals are missing, so LevelFlow is waiting for better coverage.")
+    .replace(/\d+ major scheduled event(?:s)? reduced setup quality\./i, "Upcoming scheduled news reduced timing quality.")
     .replace(/FMP/gi, "The chart feed")
     .replace(/provider/gi, "chart feed")
     .replace(/analyzer confidence/gi, "review")
@@ -802,6 +832,17 @@ function cleanReviewMessage(value: string) {
     .replace(/liquidity/gi, "price levels")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function uniqueReviewMessages(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .filter(Boolean)
+        .map(cleanReviewMessage)
+        .filter((value) => value.length > 0),
+    ),
+  );
 }
 
 function formatStrategyName(value: string) {
