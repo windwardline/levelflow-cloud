@@ -77,6 +77,14 @@ export const US_TIME_ZONE_OPTIONS = [
     value: "America/Adak",
   },
   {
+    daylightLabel: "AST",
+    group: "standard",
+    label: "Atlantic Time",
+    regions: "Puerto Rico and U.S. Virgin Islands",
+    standardLabel: "AST",
+    value: "America/Puerto_Rico",
+  },
+  {
     daylightLabel: "MST",
     group: "standard",
     label: "Arizona Time",
@@ -93,14 +101,6 @@ export const US_TIME_ZONE_OPTIONS = [
     value: "Pacific/Honolulu",
   },
   {
-    daylightLabel: "AST",
-    group: "standard",
-    label: "Atlantic Time",
-    regions: "Puerto Rico and U.S. Virgin Islands",
-    standardLabel: "AST",
-    value: "America/Puerto_Rico",
-  },
-  {
     daylightLabel: "SST",
     group: "standard",
     label: "Samoa Time",
@@ -115,21 +115,6 @@ export const US_TIME_ZONE_OPTIONS = [
     regions: "Guam and Northern Mariana Islands",
     standardLabel: "ChST",
     value: "Pacific/Guam",
-  },
-] as const;
-
-export const US_TIME_ZONE_GROUPS = [
-  {
-    label: "Adjusts for daylight and standard time",
-    options: US_TIME_ZONE_OPTIONS.filter((option) =>
-      option.group === "adjusts"
-    ),
-  },
-  {
-    label: "Standard time year-round",
-    options: US_TIME_ZONE_OPTIONS.filter((option) =>
-      option.group === "standard"
-    ),
   },
 ] as const;
 
@@ -210,6 +195,13 @@ export function getUsTimeZoneOption(value: string | null | undefined) {
   const timezone = coerceToSupportedUsTimeZone(value);
   return US_TIME_ZONE_OPTIONS.find((option) => option.value === timezone) ??
     US_TIME_ZONE_OPTIONS[0];
+}
+
+export function formatUsTimeZoneOptionLabel(option: UsTimeZoneOption) {
+  const suffix = option.group === "adjusts"
+    ? `${option.daylightLabel}/${option.standardLabel}`
+    : option.standardLabel;
+  return `${option.label} - ${suffix}`;
 }
 
 export function getTimeZoneAbbreviation(timeZone: string, date = new Date()) {

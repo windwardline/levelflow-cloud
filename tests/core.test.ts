@@ -5,6 +5,7 @@ import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
 import {
   coerceToSupportedUsTimeZone,
+  formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
   US_TIME_ZONE_OPTIONS,
 } from "../src/lib/profile";
@@ -87,19 +88,19 @@ describe("asset catalog", () => {
 describe("profile preferences", () => {
   it("covers U.S. time zones with daylight and standard-time variants", () => {
     assert.deepEqual(
-      US_TIME_ZONE_OPTIONS.map((option) => option.label),
+      US_TIME_ZONE_OPTIONS.map(formatUsTimeZoneOptionLabel),
       [
-        "Eastern Time",
-        "Central Time",
-        "Mountain Time",
-        "Pacific Time",
-        "Alaska Time",
-        "Aleutian Time",
-        "Arizona Time",
-        "Hawaii Time",
-        "Atlantic Time",
-        "Samoa Time",
-        "Chamorro Time",
+        "Eastern Time - EDT/EST",
+        "Central Time - CDT/CST",
+        "Mountain Time - MDT/MST",
+        "Pacific Time - PDT/PST",
+        "Alaska Time - AKDT/AKST",
+        "Aleutian Time - HADT/HAST",
+        "Atlantic Time - AST",
+        "Arizona Time - MST",
+        "Hawaii Time - HST",
+        "Samoa Time - SST",
+        "Chamorro Time - ChST",
       ],
     );
   });
