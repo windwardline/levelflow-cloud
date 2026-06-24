@@ -118,6 +118,21 @@ export const US_TIME_ZONE_OPTIONS = [
   },
 ] as const;
 
+export const US_TIME_ZONE_GROUPS = [
+  {
+    label: "Observes Daylight Saving Time",
+    options: US_TIME_ZONE_OPTIONS.filter((option) =>
+      option.group === "adjusts"
+    ),
+  },
+  {
+    label: "Standard Time Year-Round",
+    options: US_TIME_ZONE_OPTIONS.filter((option) =>
+      option.group === "standard"
+    ),
+  },
+] as const;
+
 export const US_TIME_ZONES: string[] = US_TIME_ZONE_OPTIONS.map((option) =>
   option.value
 );
