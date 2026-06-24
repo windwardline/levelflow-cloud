@@ -43,11 +43,12 @@ import {
 } from "./lib/outcomes";
 import {
   buildDefaultProfile,
+  formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
   getUsTimeZoneOption,
   profileDisplayName,
   PREFERRED_SESSION_OPTIONS,
-  US_TIME_ZONE_GROUPS,
+  US_TIME_ZONE_OPTIONS,
   type ThemeMode,
   type UserProfile,
 } from "./lib/profile";
@@ -1045,17 +1046,10 @@ function ProfilePanel({
               value={timezone}
               onChange={(event) => setTimezone(event.target.value)}
             >
-              {US_TIME_ZONE_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} - {option.regions} -{" "}
-                      {option.group === "adjusts"
-                        ? `${option.daylightLabel}/${option.standardLabel}`
-                        : `${option.standardLabel} year-round`}
-                    </option>
-                  ))}
-                </optgroup>
+              {US_TIME_ZONE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {formatUsTimeZoneOptionLabel(option)}
+                </option>
               ))}
             </select>
           </label>
