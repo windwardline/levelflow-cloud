@@ -13,6 +13,12 @@ type ZonedParts = {
   year: number;
 };
 
+type CalendarDate = {
+  day: number;
+  month: number;
+  year: number;
+};
+
 export type MarketClock = {
   countdownLabel: string;
   isOpen: boolean;
@@ -34,6 +40,14 @@ export type GlobalSessionStatus = {
   marketTime: string;
   nextEventLabel: string;
   nextEventUserTime: string;
+};
+
+type GlobalSessionDefinition = {
+  endLocalMinute: number;
+  id: PreferredSession;
+  label: string;
+  startLocalMinute: number;
+  timeZone: string;
 };
 
 export function getMarketClock(symbol: SupportedSymbol, userTimeZone: string, now = new Date()): MarketClock {
@@ -74,8 +88,8 @@ export function getMarketClock(symbol: SupportedSymbol, userTimeZone: string, no
 
 export function getGlobalSessions(userTimeZone: string, preferredSession: PreferredSession, now = new Date()): GlobalSessionStatus[] {
   return GLOBAL_SESSIONS.map((session) => {
-    const isOpen = isUtcWindowOpen(now, session.startUtcMinute, session.endUtcMinute);
-    const nextEvent = findNextUtcSessionEvent(now, session.startUtcMinute, session.endUtcMinute);
+    const isOpen = isLocalSessionOpen(now, session);
+    const nextEvent = findNextLocalSessionEvent(now, session);
 
     return {
       countdownLabel: formatDuration(nextEvent.date.getTime() - now.getTime()),
@@ -113,13 +127,11 @@ function findNextMarketEvent(now: Date, timeZone: string, kind: MarketKind) {
 
 function buildMarketCandidates(now: Date, timeZone: string, kind: MarketKind) {
   const today = getZonedParts(now, timeZone);
-  const start = zonedTimeToUtc(today.year, today.month, today.day, 0, 0, timeZone);
-  const localTimes = kind === "forex" ? [[17, 0]] : [[17, 0], [18, 0]];
+  const localTimes = kind === "forex" ? [[16, 59], [17, 5]] : [[17, 0], [18, 0]];
   const candidates: Date[] = [];
 
   for (let offset = -1; offset <= 9; offset += 1) {
-    const base = new Date(start.getTime() + offset * 24 * 60 * 60 * 1000);
-    const parts = getZonedParts(base, timeZone);
+    const parts = addCalendarDays(today, offset);
     for (const [hour, minute] of localTimes) {
       candidates.push(zonedTimeToUtc(parts.year, parts.month, parts.day, hour, minute, timeZone));
     }
@@ -131,15 +143,17 @@ function buildMarketCandidates(now: Date, timeZone: string, kind: MarketKind) {
 function isForexOpen(date: Date, timeZone: string) {
   const parts = getZonedParts(date, timeZone);
   const minutes = parts.hour * 60 + parts.minute;
+  const dailyClose = 16 * 60 + 59;
+  const dailyOpen = 17 * 60 + 5;
 
   if (parts.weekday === 0) {
-    return minutes >= 17 * 60;
+    return minutes >= dailyOpen;
   }
   if (parts.weekday >= 1 && parts.weekday <= 4) {
-    return true;
+    return minutes < dailyClose || minutes >= dailyOpen;
   }
   if (parts.weekday === 5) {
-    return minutes < 17 * 60;
+    return minutes < dailyClose;
   }
   return false;
 }
@@ -161,20 +175,43 @@ function isFuturesOpen(date: Date, timeZone: string) {
 }
 
 const GLOBAL_SESSIONS = [
-  { endUtcMinute: 9 * 60, id: "asia", label: "Asia", startUtcMinute: 0, timeZone: "Asia/Tokyo" },
-  { endUtcMinute: 16 * 60, id: "europe", label: "Europe", startUtcMinute: 7 * 60, timeZone: "Europe/London" },
-  { endUtcMinute: 22 * 60, id: "north_america", label: "North America", startUtcMinute: 13 * 60, timeZone: "America/New_York" },
-  { endUtcMinute: 6 * 60, id: "australia", label: "Australia", startUtcMinute: 21 * 60, timeZone: "Australia/Sydney" },
-] satisfies Array<{ endUtcMinute: number; id: PreferredSession; label: string; startUtcMinute: number; timeZone: string }>;
+  { endLocalMinute: 18 * 60, id: "asia", label: "Asia", startLocalMinute: 9 * 60, timeZone: "Asia/Tokyo" },
+  { endLocalMinute: 17 * 60, id: "europe", label: "Europe", startLocalMinute: 8 * 60, timeZone: "Europe/London" },
+  { endLocalMinute: 17 * 60, id: "north_america", label: "North America", startLocalMinute: 8 * 60, timeZone: "America/New_York" },
+  { endLocalMinute: 17 * 60, id: "australia", label: "Australia", startLocalMinute: 8 * 60, timeZone: "Australia/Sydney" },
+] satisfies GlobalSessionDefinition[];
 
-function findNextUtcSessionEvent(now: Date, startUtcMinute: number, endUtcMinute: number) {
-  const isOpen = isUtcWindowOpen(now, startUtcMinute, endUtcMinute);
-  const nowUtcStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+function findNextLocalSessionEvent(now: Date, session: GlobalSessionDefinition) {
+  const isOpen = isLocalSessionOpen(now, session);
+  const today = getZonedParts(now, session.timeZone);
   const candidates: Date[] = [];
 
-  for (let offset = 0; offset <= 2; offset += 1) {
-    candidates.push(new Date(nowUtcStart + offset * 24 * 60 * 60 * 1000 + startUtcMinute * 60 * 1000));
-    candidates.push(new Date(nowUtcStart + offset * 24 * 60 * 60 * 1000 + endUtcMinute * 60 * 1000));
+  for (let offset = 0; offset <= 8; offset += 1) {
+    const parts = addCalendarDays(today, offset);
+    const weekday = getCalendarWeekday(parts);
+    if (weekday < 1 || weekday > 5) {
+      continue;
+    }
+    candidates.push(
+      zonedTimeToUtc(
+        parts.year,
+        parts.month,
+        parts.day,
+        Math.floor(session.startLocalMinute / 60),
+        session.startLocalMinute % 60,
+        session.timeZone,
+      ),
+    );
+    candidates.push(
+      zonedTimeToUtc(
+        parts.year,
+        parts.month,
+        parts.day,
+        Math.floor(session.endLocalMinute / 60),
+        session.endLocalMinute % 60,
+        session.timeZone,
+      ),
+    );
   }
 
   const next = candidates.filter((candidate) => candidate.getTime() > now.getTime()).sort((first, second) => first.getTime() - second.getTime())[0] ?? now;
@@ -184,12 +221,26 @@ function findNextUtcSessionEvent(now: Date, startUtcMinute: number, endUtcMinute
   };
 }
 
-function isUtcWindowOpen(date: Date, startUtcMinute: number, endUtcMinute: number) {
-  const minute = date.getUTCHours() * 60 + date.getUTCMinutes();
-  if (startUtcMinute < endUtcMinute) {
-    return minute >= startUtcMinute && minute < endUtcMinute;
+function isLocalSessionOpen(date: Date, session: GlobalSessionDefinition) {
+  const parts = getZonedParts(date, session.timeZone);
+  if (parts.weekday < 1 || parts.weekday > 5) {
+    return false;
   }
-  return minute >= startUtcMinute || minute < endUtcMinute;
+  const minute = parts.hour * 60 + parts.minute;
+  return minute >= session.startLocalMinute && minute < session.endLocalMinute;
+}
+
+function addCalendarDays(parts: Pick<ZonedParts, "day" | "month" | "year">, offset: number): CalendarDate {
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + offset));
+  return {
+    day: date.getUTCDate(),
+    month: date.getUTCMonth() + 1,
+    year: date.getUTCFullYear(),
+  };
+}
+
+function getCalendarWeekday(parts: CalendarDate) {
+  return new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
 }
 
 function zonedTimeToUtc(year: number, month: number, day: number, hour: number, minute: number, timeZone: string) {
