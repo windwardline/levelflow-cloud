@@ -3,7 +3,11 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
-import { US_STATE_TIME_ZONES } from "../src/lib/profile";
+import {
+  coerceToSupportedUsTimeZone,
+  getTimeZoneAbbreviation,
+  US_TIME_ZONE_OPTIONS,
+} from "../src/lib/profile";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
@@ -81,17 +85,69 @@ describe("asset catalog", () => {
 });
 
 describe("profile preferences", () => {
-  it("limits timezone choices to the six time zones covering the fifty states", () => {
+  it("covers U.S. time zones with daylight and standard-time variants", () => {
     assert.deepEqual(
-      US_STATE_TIME_ZONES.map((option) => option.label),
+      US_TIME_ZONE_OPTIONS.map((option) => option.label),
       [
         "Eastern Time",
         "Central Time",
         "Mountain Time",
         "Pacific Time",
         "Alaska Time",
-        "Hawaii-Aleutian Time",
+        "Aleutian Time",
+        "Arizona Time",
+        "Hawaii Time",
+        "Atlantic Time",
+        "Samoa Time",
+        "Chamorro Time",
       ],
+    );
+  });
+
+  it("normalizes detailed browser zones to the supported profile choices", () => {
+    assert.equal(
+      coerceToSupportedUsTimeZone("America/Indiana/Indianapolis"),
+      "America/New_York",
+    );
+    assert.equal(
+      coerceToSupportedUsTimeZone("America/Phoenix"),
+      "America/Phoenix",
+    );
+    assert.equal(coerceToSupportedUsTimeZone("Pacific/Saipan"), "Pacific/Guam");
+    assert.equal(
+      coerceToSupportedUsTimeZone("America/St_Thomas"),
+      "America/Puerto_Rico",
+    );
+  });
+
+  it("uses IANA rules to switch daylight and standard labels by date", () => {
+    assert.equal(
+      getTimeZoneAbbreviation(
+        "America/New_York",
+        new Date("2026-06-24T12:00:00Z"),
+      ),
+      "EDT",
+    );
+    assert.equal(
+      getTimeZoneAbbreviation(
+        "America/New_York",
+        new Date("2026-01-24T12:00:00Z"),
+      ),
+      "EST",
+    );
+    assert.equal(
+      getTimeZoneAbbreviation(
+        "America/Phoenix",
+        new Date("2026-06-24T12:00:00Z"),
+      ),
+      "MST",
+    );
+    assert.equal(
+      getTimeZoneAbbreviation(
+        "America/Phoenix",
+        new Date("2026-01-24T12:00:00Z"),
+      ),
+      "MST",
     );
   });
 });
