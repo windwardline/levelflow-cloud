@@ -48,7 +48,7 @@ import {
   getUsTimeZoneOption,
   profileDisplayName,
   PREFERRED_SESSION_OPTIONS,
-  US_TIME_ZONE_OPTIONS,
+  US_TIME_ZONE_GROUPS,
   type ThemeMode,
   type UserProfile,
 } from "./lib/profile";
@@ -1046,10 +1046,14 @@ function ProfilePanel({
               value={timezone}
               onChange={(event) => setTimezone(event.target.value)}
             >
-              {US_TIME_ZONE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {formatUsTimeZoneOptionLabel(option)}
-                </option>
+              {US_TIME_ZONE_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {formatUsTimeZoneOptionLabel(option)}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>

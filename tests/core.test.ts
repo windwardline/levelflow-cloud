@@ -7,6 +7,7 @@ import {
   coerceToSupportedUsTimeZone,
   formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
+  US_TIME_ZONE_GROUPS,
   US_TIME_ZONE_OPTIONS,
 } from "../src/lib/profile";
 import {
@@ -86,22 +87,41 @@ describe("asset catalog", () => {
 });
 
 describe("profile preferences", () => {
-  it("covers U.S. time zones with daylight and standard-time variants", () => {
+  it("groups U.S. time zones by Daylight Saving Time observance", () => {
+    assert.deepEqual(
+      US_TIME_ZONE_GROUPS.map((group) => ({
+        label: group.label,
+        options: group.options.map(formatUsTimeZoneOptionLabel),
+      })),
+      [
+        {
+          label: "Observes Daylight Saving Time",
+          options: [
+            "Eastern Time - EDT/EST",
+            "Central Time - CDT/CST",
+            "Mountain Time - MDT/MST",
+            "Pacific Time - PDT/PST",
+            "Alaska Time - AKDT/AKST",
+            "Aleutian Time - HADT/HAST",
+          ],
+        },
+        {
+          label: "Standard Time Year-Round",
+          options: [
+            "Atlantic Time - AST",
+            "Arizona Time - MST",
+            "Hawaii Time - HST",
+            "Samoa Time - SST",
+            "Chamorro Time - ChST",
+          ],
+        },
+      ],
+    );
     assert.deepEqual(
       US_TIME_ZONE_OPTIONS.map(formatUsTimeZoneOptionLabel),
-      [
-        "Eastern Time - EDT/EST",
-        "Central Time - CDT/CST",
-        "Mountain Time - MDT/MST",
-        "Pacific Time - PDT/PST",
-        "Alaska Time - AKDT/AKST",
-        "Aleutian Time - HADT/HAST",
-        "Atlantic Time - AST",
-        "Arizona Time - MST",
-        "Hawaii Time - HST",
-        "Samoa Time - SST",
-        "Chamorro Time - ChST",
-      ],
+      US_TIME_ZONE_GROUPS.flatMap((group) =>
+        group.options.map(formatUsTimeZoneOptionLabel)
+      ),
     );
   });
 
