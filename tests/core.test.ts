@@ -175,6 +175,25 @@ describe("database schema", () => {
     assert.match(initSql, /provider_symbol text not null/);
     assert.doesNotMatch(initSql, /massive_symbol text not null/);
   });
+
+  it("keeps setup persistence consolidated and records data health", () => {
+    const initSql = readFileSync("supabase/init.sql", "utf8");
+
+    assert.doesNotMatch(
+      initSql,
+      /create table if not exists public\.pending_orders/,
+    );
+    assert.doesNotMatch(initSql, /pending_order_id uuid/);
+    assert.match(
+      initSql,
+      /create table if not exists public\.market_data_health/,
+    );
+    assert.match(initSql, /create table if not exists public\.analyzer_events/);
+    assert.match(
+      initSql,
+      /market data health readable by authenticated users/,
+    );
+  });
 });
 
 function buildSetup({
@@ -188,15 +207,15 @@ function buildSetup({
     status,
     trade_outcomes: outcome
       ? [
-          {
-            exit_at: null,
-            feedback: null,
-            filled_at: null,
-            outcome,
-            realized_pnl: null,
-            reviewed_at: "2026-06-16T12:00:00.000Z",
-          },
-        ]
+        {
+          exit_at: null,
+          feedback: null,
+          filled_at: null,
+          outcome,
+          realized_pnl: null,
+          reviewed_at: "2026-06-16T12:00:00.000Z",
+        },
+      ]
       : [],
   };
 }
