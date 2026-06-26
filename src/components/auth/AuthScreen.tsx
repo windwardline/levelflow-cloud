@@ -129,7 +129,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               LevelFlow
             </h1>
             <p className="max-w-xl text-base leading-7 text-slate">
-              A premium workspace for charts, timing, and limit ideas.
+              A premium workspace for charts, timing, and limit setups.
             </p>
           </div>
         </div>

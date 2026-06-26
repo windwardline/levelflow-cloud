@@ -526,6 +526,28 @@ Deno.serve(async (req) => {
     });
     const learningRefresh = await refreshGlobalStrategyWeights();
     const sessionContext = getSessionContext(symbol);
+    if (sessionContext.block) {
+      await invalidateActiveSetupsForSymbol(
+        token,
+        user.id,
+        symbol,
+        sessionContext.reason ?? "The market session is not open.",
+      );
+      await recordAnalyzerEvent({
+        action: "generate_setup",
+        message: sessionContext.label,
+        metadata: { sessionContext },
+        status: "blocked",
+        symbol,
+        userId: user.id,
+      });
+      return jsonResponse(req, {
+        blocked: true,
+        reason: sessionContext.reason ?? "The market session is not open.",
+        learningRefresh,
+        outcomeRefresh,
+      });
+    }
 
     const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
       await fetchRelevantNews(token, symbol);
@@ -642,7 +664,7 @@ Deno.serve(async (req) => {
         token,
         user.id,
         symbol,
-        "No current limit-order idea met the review threshold.",
+        "No current limit-order setup met the review threshold.",
       );
       await recordAnalyzerEvent({
         action: "generate_setup",
@@ -656,7 +678,7 @@ Deno.serve(async (req) => {
       return jsonResponse(req, {
         analysisDiagnostics,
         blocked: true,
-        reason: "No current limit-order idea met the review threshold.",
+        reason: "No current limit-order setup met the review threshold.",
         providerWarnings: marketContext.providerWarnings,
         learningRefresh,
         outcomeRefresh,
@@ -727,8 +749,8 @@ Deno.serve(async (req) => {
       advisoryOnly: true,
       deduplicated: savedSetup.deduplicated,
       message: savedSetup.updated
-        ? "Updated the current idea without creating a duplicate entry."
-        : "Built a current limit idea. LevelFlow does not place trades.",
+        ? "Updated the current setup without creating a duplicate entry."
+        : "Built a current limit setup. LevelFlow does not place trades.",
       learningRefresh,
       outcomeRefresh,
       setupId: savedSetup.setupId,
@@ -922,6 +944,17 @@ async function scanOpportunity(
 
   try {
     const sessionContext = getSessionContext(symbol);
+    if (sessionContext.block) {
+      return {
+        blocked: {
+          assetType: getAssetType(symbol),
+          blocked: true,
+          reason: sessionContext.reason ?? "The market session is not open.",
+          symbol,
+        },
+      };
+    }
+
     const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
       await fetchRelevantNews(token, symbol);
     if (activeNewsEvents.length > 0) {
@@ -1007,7 +1040,7 @@ async function scanOpportunity(
           assetType: getAssetType(symbol),
           blocked: true,
           reason: diagnostics[0] ??
-            "No current limit-order idea passed review.",
+            "No current limit-order setup passed review.",
           symbol,
         },
       };
@@ -1035,7 +1068,7 @@ async function scanOpportunity(
           assetType: getAssetType(symbol),
           blocked: true,
           reason:
-            `A related market already has an equal or stronger current idea: ${strongerExisting.symbol}.`,
+            `A related market already has an equal or stronger current setup: ${strongerExisting.symbol}.`,
           symbol,
         },
       };
@@ -1327,11 +1360,11 @@ async function explainNoSetup(
     );
 
     diagnostics.push(
-      `The current ${consensus.side} idea scored ${confidenceScore}; LevelFlow requires ${calibration.confidenceThreshold} or higher for this market.`,
+      `The current ${consensus.side} setup scored ${confidenceScore}; LevelFlow requires ${calibration.confidenceThreshold} or higher for this market.`,
     );
     if (!pricePlan) {
       diagnostics.push(
-        "Limit entry failed price validation, so no limit-order idea was shown.",
+        "Limit entry failed price validation, so no limit-order setup was shown.",
       );
     } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
       diagnostics.push(
@@ -2510,22 +2543,22 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
 
     if (maintenanceBreak) {
       return {
-        block: false,
+        block: true,
         label: "Futures maintenance window",
         marketKind: "futures",
-        penalty: 12,
+        penalty: 100,
         reason:
-          "Daily futures maintenance reduces setup quality and fill reliability.",
+          "The futures market is in its daily maintenance window.",
       };
     }
 
     if (fridayClose || sundayPreopen || eastern.weekday === 6) {
       return {
-        block: false,
+        block: true,
         label: "Futures weekend liquidity risk",
         marketKind: "futures",
-        penalty: 12,
-        reason: "Weekend or pre-open futures liquidity reduces setup quality.",
+        penalty: 100,
+        reason: "The futures market is outside its active weekly session.",
       };
     }
 
@@ -2537,19 +2570,32 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
     };
   }
 
-  const utcHour = now.getUTCHours();
   const eastern = getZonedParts(now, "America/New_York");
-  const londonNyOverlap = utcHour >= 13 && utcHour < 17;
-  const londonOpen = utcHour >= 7 && utcHour < 10;
-  const lateSession = utcHour >= 20 && utcHour < 22;
-  const fridayClose = eastern.weekday === 5 && eastern.hour >= 16;
+  const london = getZonedParts(now, "Europe/London");
+  const easternMinutes = eastern.hour * 60 + eastern.minute;
+  const londonMinutes = london.hour * 60 + london.minute;
+  const easternWeekday = eastern.weekday >= 1 && eastern.weekday <= 5;
+  const londonWeekday = london.weekday >= 1 && london.weekday <= 5;
+  const dailyRollover = eastern.weekday >= 1 && eastern.weekday <= 4 &&
+    easternMinutes >= 16 * 60 + 59 && easternMinutes < 17 * 60 + 5;
+  const londonNyOverlap = easternWeekday && londonWeekday &&
+    easternMinutes >= 8 * 60 && easternMinutes < 12 * 60 &&
+    londonMinutes >= 13 * 60 && londonMinutes < 17 * 60;
+  const londonOpen = londonWeekday && londonMinutes >= 8 * 60 &&
+    londonMinutes < 10 * 60;
+  const lateSession = easternWeekday && easternMinutes >= 16 * 60 &&
+    easternMinutes < 17 * 60;
+  const fridayClose = eastern.weekday === 5 &&
+    easternMinutes >= 16 * 60 + 30;
   const weekend = eastern.weekday === 6 ||
-    (eastern.weekday === 7 && eastern.hour < 17);
+    (eastern.weekday === 7 && easternMinutes < 17 * 60 + 5);
 
   return {
-    block: false,
+    block: weekend || dailyRollover,
     label: weekend
       ? "FX weekend closure"
+      : dailyRollover
+      ? "FX rollover pause"
       : fridayClose
       ? "Late Friday FX session"
       : londonNyOverlap
@@ -2560,9 +2606,17 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
       ? "Late-session risk"
       : "Normal session",
     marketKind: "forex",
-    penalty: weekend ? 14 : fridayClose ? 10 : lateSession ? 3 : 0,
+    penalty: weekend || dailyRollover
+      ? 100
+      : fridayClose
+      ? 10
+      : lateSession
+      ? 3
+      : 0,
     reason: weekend
-      ? "Weekend FX closure reduces setup quality."
+      ? "The FX market is outside its active weekly session."
+      : dailyRollover
+      ? "The FX market is in its daily rollover pause."
       : fridayClose
       ? "Late Friday liquidity conditions reduce setup quality."
       : lateSession
