@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, Brain, CheckCircle2, Clipboard, Clock, FileSearch, Loader2, RefreshCw, ShieldCheck, Target, XCircle } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { ConfidenceGauge } from "../trade/ConfidenceGauge";
+import { MarketScanPanel } from "./MarketScanPanel";
+import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
 import type { UserProfile } from "../../lib/profile";
 import { AVAILABLE_ASSET_GROUPS, AVAILABLE_ASSET_SYMBOLS, formatSecurityLabel, getSecurityOption, TEMPORARILY_HIDDEN_ASSET_TYPES, type SupportedSymbol } from "../../lib/symbolMap";
-import { generateTradeSetup, scanMarketOpportunities, type AnalyzerResponse, type AnalyzerSetup, type MarketScanCandidate, type MarketScanResponse, type TradeSetupRow } from "../../lib/tradeAnalyzer";
+import { generateTradeSetup, scanMarketOpportunities, type AnalyzerResponse, type AnalyzerSetup, type MarketScanResponse, type TradeSetupRow } from "../../lib/tradeAnalyzer";
 
 type AdvisorWorkspaceProps = {
   onSetupsChanged: () => void;
@@ -304,6 +306,8 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 
         <DataHealthPanel activeMarketCount={activeMarketCount} data={marketData} loading={marketLoading} notice={marketNotice} />
 
+        <VolatilityWindowPanel symbol={symbol} timezone={profile.defaultTimezone} />
+
         <section className="terminal-panel p-5">
           <div className="mb-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-navy" aria-hidden="true" />
@@ -325,7 +329,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           </div>
           {symbolStat ? (
             <div className="grid gap-2 text-sm">
-              <MetricRow label="Ideas shown" value={symbolStat.count.toString()} />
+              <MetricRow label="Setups shown" value={symbolStat.count.toString()} />
               <MetricRow label="Average confidence" value={`${symbolStat.averageConfidence}%`} />
               <MetricRow label="Win rate" value={symbolStat.winRate === null ? "Learning" : `${symbolStat.winRate}%`} />
               <MetricRow label="Reached target" value={symbolStat.wins.toString()} />
@@ -378,86 +382,6 @@ function DataHealthPanel({
         </p>
       ) : null}
     </section>
-  );
-}
-
-function MarketScanPanel({
-  onScan,
-  onSelectCandidate,
-  result,
-  status,
-}: {
-  onScan: () => void;
-  onSelectCandidate: (candidate: MarketScanCandidate) => void;
-  result: MarketScanResponse | null;
-  status: "idle" | "scanning";
-}) {
-  const opportunities = result?.opportunities ?? [];
-  const blockedCount = result?.blocked.length ?? 0;
-  const emptyMessage = result
-    ? "No current market passed the scan. Try again after the next candle or scheduled event window."
-    : "Scan all active markets to find the strongest current limit setups.";
-
-  return (
-    <section className="terminal-panel p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate">Market scan</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">Best current markets</h3>
-        </div>
-        <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={onScan} disabled={status === "scanning"}>
-          {status === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
-          Scan
-        </button>
-      </div>
-
-      {opportunities.length > 0 ? (
-        <div className="grid max-h-[520px] gap-2 overflow-y-auto pr-1">
-          {opportunities.map((candidate) => (
-            <MarketScanRow key={candidate.symbol} candidate={candidate} onSelectCandidate={onSelectCandidate} />
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm leading-6 text-slate">
-          {status === "scanning" ? "Checking all active markets." : emptyMessage}
-        </p>
-      )}
-
-      {result ? (
-        <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
-          {result.scanned} reviewed{blockedCount > 0 ? ` / ${blockedCount} not ready` : ""}. Select a row to load its chart.
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-function MarketScanRow({ candidate, onSelectCandidate }: { candidate: MarketScanCandidate; onSelectCandidate: (candidate: MarketScanCandidate) => void }) {
-  const isBuy = candidate.side === "buy";
-  const sideLabel = candidate.side ? `${candidate.side.toUpperCase()} LIMIT` : "Review";
-  const levelPreview = candidate.entryPrice && candidate.takeProfit
-    ? `Entry ${formatNumber(candidate.entryPrice)} / Target ${formatNumber(candidate.takeProfit)}`
-    : "Load chart for details";
-
-  return (
-    <button
-      className="grid min-w-0 gap-2 rounded-lg border border-slate/15 bg-canvas px-3 py-3 text-left transition hover:border-bullish/40 hover:bg-bullish/10"
-      type="button"
-      onClick={() => onSelectCandidate(candidate)}
-    >
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-navy">{formatSecurityLabel(candidate.symbol)}</p>
-          <p className="mt-0.5 text-xs font-semibold uppercase tracking-normal text-slate">{candidate.assetType}</p>
-        </div>
-        <span className={`shrink-0 text-xs font-bold uppercase ${isBuy ? "text-bullish" : "text-danger"}`}>{sideLabel}</span>
-      </div>
-      <div className="flex min-w-0 items-center justify-between gap-3 text-xs text-slate">
-        <span>{candidate.confidenceScore ?? 0}% confidence</span>
-        <span>{formatPayoff(candidate.rewardRisk)}</span>
-      </div>
-      <p className="truncate text-xs font-medium text-slate">{levelPreview}</p>
-    </button>
   );
 }
 
@@ -700,7 +624,9 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
   const marketRegime = asRecord(confluence.marketRegime);
   const orderConstruction = asRecord(confluence.orderConstruction);
   const sessionContext = asRecord(confluence.sessionContext);
+  const executionQuality = asRecord(riskModel.executionQuality);
   const rewardRisk = asNumber(confluence.rewardRisk);
+  const grossRewardRisk = asNumber(confluence.grossRewardRisk);
   const weightAdjustment = asNumber(confluence.strategyWeightAdjustment);
   const sampleSize = asNumber(confluence.strategyWeightSampleSize);
   const providerWarnings = asStringArray(confluence.providerWarnings).concat(result?.providerWarnings ?? []);
@@ -735,6 +661,12 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
       value: formatPayoff(rewardRisk),
     },
     {
+      detail: buildExecutionDetail(executionQuality, grossRewardRisk, rewardRisk),
+      label: "Execution",
+      tone: asNumber(executionQuality.confidencePenalty) ? "danger" : "neutral",
+      value: String(executionQuality.label ?? "Checked"),
+    },
+    {
       detail: `${String(sessionContext.label ?? "Session context")} ${upcomingNewsEvents > 0 ? `with ${upcomingNewsEvents} major upcoming event${upcomingNewsEvents === 1 ? "" : "s"}.` : "with no major event penalty."}`,
       label: "Timing",
       tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
@@ -753,6 +685,23 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
     items,
     strategyVotes,
   };
+}
+
+function buildExecutionDetail(
+  executionQuality: Record<string, unknown>,
+  grossRewardRisk: number | null,
+  rewardRisk: number | null,
+) {
+  const penalty = asNumber(executionQuality.confidencePenalty) ?? 0;
+  const spread = asNumber(executionQuality.estimatedSpread);
+  const slippage = asNumber(executionQuality.estimatedSlippage);
+  const gross = grossRewardRisk ? `${grossRewardRisk.toFixed(2)}x` : "gross payoff";
+  const effective = rewardRisk ? `${rewardRisk.toFixed(2)}x` : "effective payoff";
+  const cost = spread && slippage
+    ? `Estimated spread ${formatNumber(spread)}, slippage ${formatNumber(slippage)}.`
+    : "Estimated spread and slippage checked.";
+
+  return `${cost} Payoff moved from ${gross} to ${effective}${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
 }
 
 function normalizeStrategyVotes(value: unknown) {

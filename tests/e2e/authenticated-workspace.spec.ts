@@ -92,3 +92,24 @@ test("authenticated workspace exposes core premium navigation without stale help
   await expect(page.getByText("Current Settings")).toHaveCount(0);
   await expect(page.getByText("Starting chart")).toHaveCount(0);
 });
+
+test("advisor market scan exposes filters and rationale-ready surface", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("heading", { name: "Best current markets" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Group")).toHaveValue("all");
+  await expect(page.getByLabel("Quality")).toHaveValue("all");
+  await expect(
+    page.getByText(
+      "Market Scan ranks only setups that pass the same review rules as the main advisor.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("Timing edge")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Best time window" }),
+  ).toBeVisible();
+});

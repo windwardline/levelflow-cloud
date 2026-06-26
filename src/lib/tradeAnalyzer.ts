@@ -52,6 +52,10 @@ export type MarketScanCandidate = {
   blocked?: boolean;
   confidenceScore?: number;
   entryPrice?: number;
+  executionLabel?: string;
+  executionScore?: number;
+  marketRegime?: string;
+  rationale?: string[];
   reason?: string;
   rewardRisk?: number;
   side?: "buy" | "sell";
