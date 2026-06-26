@@ -814,7 +814,6 @@ function cleanReviewMessage(value: string) {
     .replace(/Committee favored (buy|sell), but the adjusted score was (\d+); LevelFlow requires 66 or higher\./i, (_match, side: string, score: string) => `The ${side.toLowerCase()} case reached ${score}/100. LevelFlow shows setups at 66/100 or higher.`)
     .replace(/Payoff was ([0-9.]+)x; LevelFlow requires at least 1\.35x\./i, (_match, payoff: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff).`)
     .replace(/Limit entry failed price validation, so no limit-order setup was shown\./i, "A valid limit entry was not available at the current price.")
-    .replace(/Limit entry failed price validation, so no limit-order idea was shown\./i, "A valid limit entry was not available at the current price.")
     .replace(/Fewer than three review timeframes were available from the provider\./i, "Some chart intervals are missing, so LevelFlow is waiting for better coverage.")
     .replace(/\d+ major scheduled event(?:s)? reduced setup quality\./i, "Upcoming scheduled news reduced timing quality.")
     .replace(/FMP/gi, "The chart feed")

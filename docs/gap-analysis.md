@@ -1,11 +1,11 @@
 # LevelFlow Gap Analysis
 
-Last reviewed: 2026-06-24
+Last reviewed: 2026-06-26
 
 ## Current Strengths
 
-- The Advisor and Market Scan paths share the same setup engine, so scan ideas and direct market reviews use the same market logic.
-- The analyzer only returns limit ideas and clears stale active ideas when a fresh review no longer qualifies.
+- The Advisor and Market Scan paths share the same setup engine, so scan setups and direct market reviews use the same market logic.
+- The analyzer only returns limit setups and clears stale active setups when a fresh review no longer qualifies.
 - The Advisor now clears stale UI state on market changes and uses the latest selected market when a review is requested.
 - The visible asset list is intentionally limited to verified categories and sorted consistently by category, base, then quote.
 - Outcome tracking and global learning are shared across users through `strategy_weightings_global`, not isolated to individual users.
@@ -20,7 +20,7 @@ Last reviewed: 2026-06-24
 - FMP candle requests are cached briefly inside the analyzer Edge Function to reduce duplicate scan latency and provider pressure.
 - `market_data_health` persists symbol-level provider health, available timeframes, candle counts, latest bar time, and warnings.
 - `analyzer_events` captures structured backend events for blocked reviews, scan failures, provider errors, slow FMP calls, cache hits, and successful reviews.
-- Legacy `pending_orders` persistence is consolidated into `trade_setups`; the app records ideas and outcomes, not executable orders.
+- Legacy `pending_orders` persistence is consolidated into `trade_setups`; the app records setups and outcomes, not executable orders.
 
 ## Gaps to Close
 
@@ -28,12 +28,12 @@ Last reviewed: 2026-06-24
 
 - Add a spread and execution-quality model. Current outcomes use candle high/low paths and do not model spread, slippage, partial touches, or real execution availability.
 - Improve same-candle outcome handling. When stop and target both touch in one candle, LevelFlow correctly marks it as needing review, but those cases should be excluded from learning weight updates or weighted more conservatively.
-- Add scan-level correlation context. The current scan checks existing active correlated ideas, but the UI should eventually explain when multiple top ideas are tightly related.
+- Add scan-level correlation context. The current scan checks existing active correlated setups, but the UI should eventually explain when multiple top setups are tightly related.
 
 ### Front End
 
 - Expand Market Scan from a ranked list into a decision surface with category filters, confidence bands, and a clear “why this market ranked here” preview.
-- Continue tightening review copy as more real usage comes in. The no-idea state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
+- Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
 - Split the largest UI file into focused panels. `src/App.tsx` is doing shell, history, insights, guide, about, profile, and utility work in one file.
 

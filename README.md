@@ -1,6 +1,6 @@
 # Windward Line LevelFlow Cloud
 
-LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market review, chart analysis, and limit-order idea generation. The app uses Supabase Auth, strict user-owned data tables with RLS, server-side market data, an Edge Function analyzer, and a focused web workspace for logged-in users.
+LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market review, chart analysis, and limit-order setup generation. The app uses Supabase Auth, strict user-owned data tables with RLS, server-side market data, an Edge Function analyzer, and a focused web workspace for logged-in users.
 
 ## Architecture
 
