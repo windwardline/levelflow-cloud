@@ -9,6 +9,11 @@ import {
   getSetupExpiryTime,
   type ResolvedOutcome,
 } from "./replay.ts";
+import {
+  estimateExecutionQuality,
+  type ExecutionQuality,
+} from "./executionQuality.ts";
+import { calculateLearningWeight } from "./learning.ts";
 
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
@@ -16,7 +21,7 @@ const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const ANALYZER_VERSION = "2026.06.16.global-learning";
+const ANALYZER_VERSION = "2026.06.26.execution-quality";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
   "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
@@ -364,6 +369,10 @@ type MarketScanCandidate = {
   blocked?: boolean;
   confidenceScore?: number;
   entryPrice?: number;
+  executionLabel?: string;
+  executionScore?: number;
+  marketRegime?: string;
+  rationale?: string[];
   reason?: string;
   rewardRisk?: number;
   side?: Side;
@@ -1079,6 +1088,10 @@ async function scanOpportunity(
         assetType: getAssetType(symbol),
         confidenceScore: setup.confidenceScore,
         entryPrice: setup.entryPrice,
+        executionLabel: String(setup.riskModel.executionQuality?.label ?? ""),
+        executionScore: Number(setup.riskModel.executionQuality?.score ?? 0),
+        marketRegime: String(setup.confluence.marketRegime?.name ?? ""),
+        rationale: buildScanRationale(setup),
         rewardRisk: Number(setup.confluence.rewardRisk ?? 0),
         setup,
         side: setup.side,
@@ -1105,6 +1118,32 @@ async function scanOpportunity(
       },
     };
   }
+}
+
+function buildScanRationale(
+  setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>,
+) {
+  const confluence = setup.confluence as Record<string, unknown>;
+  const riskModel = setup.riskModel as Record<string, unknown>;
+  const consensus = asRecord(confluence.consensus);
+  const marketRegime = asRecord(confluence.marketRegime);
+  const sessionContext = asRecord(confluence.sessionContext);
+  const executionQuality = asExecutionQuality(riskModel.executionQuality);
+  const reasons = [
+    `${setup.side.toUpperCase()} setup scored ${setup.confidenceScore}/100.`,
+    `${formatTitle(String(marketRegime.name ?? "current"))} conditions.`,
+    `Effective payoff ${Number(confluence.rewardRisk ?? 0).toFixed(2)}x.`,
+    executionQuality
+      ? `${executionQuality.label} execution quality.`
+      : "Execution quality checked.",
+    String(sessionContext.label ?? "Session checked."),
+  ];
+  const agreementRatio = Number(consensus.agreementRatio ?? 0);
+  if (agreementRatio > 0) {
+    reasons.push(`${Math.round(agreementRatio * 100)}% directional agreement.`);
+  }
+
+  return reasons.slice(0, 5);
 }
 
 async function mapWithConcurrency<T, R>(
@@ -1197,7 +1236,13 @@ async function analyzeSetup(
   );
   const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
 
-  const pricePlan = buildPricePlan(consensus.side, market, regime, calibration);
+  const pricePlan = buildPricePlan(
+    consensus.side,
+    symbol,
+    market,
+    regime,
+    calibration,
+  );
   if (!pricePlan) {
     return null;
   }
@@ -1214,9 +1259,10 @@ async function analyzeSetup(
     market.providerWarnings.length * calibration.providerWarningPenalty,
   );
   const confidenceScore = clampInteger(
-    Math.round(
+      Math.round(
       consensus.score + weightAdjustment - newsPenalty -
-        sessionContext.penalty - timeframePenalty - providerPenalty,
+        sessionContext.penalty - timeframePenalty - providerPenalty -
+        pricePlan.executionQuality.confidencePenalty,
     ),
     0,
     100,
@@ -1267,6 +1313,8 @@ async function analyzeSetup(
         minRewardRisk: calibration.minRewardRisk,
         reviewWindowHours: calibration.defaultReviewHours,
       },
+      executionQuality: pricePlan.executionQuality,
+      grossRewardRisk: Number(pricePlan.grossRewardRisk.toFixed(2)),
       rewardRisk: Number(pricePlan.rewardRisk.toFixed(2)),
       orderConstruction: {
         orderType: "limit",
@@ -1286,6 +1334,7 @@ async function analyzeSetup(
     riskModel: {
       atr: pricePlan.atr,
       dailyAtr: averageTrueRange(market.daily, 14),
+      executionQuality: pricePlan.executionQuality,
       positionSizingStatus: "not_calculated",
       positionSizingReason:
         "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
@@ -1335,6 +1384,7 @@ async function explainNoSetup(
     const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
     const pricePlan = buildPricePlan(
       consensus.side,
+      symbol,
       market,
       regime,
       calibration,
@@ -1353,7 +1403,8 @@ async function explainNoSetup(
     const confidenceScore = clampInteger(
       Math.round(
         consensus.score + weightAdjustment - newsPenalty -
-          sessionContext.penalty - timeframePenalty - providerPenalty,
+          sessionContext.penalty - timeframePenalty - providerPenalty -
+          (pricePlan?.executionQuality.confidencePenalty ?? 0),
       ),
       0,
       100,
@@ -1373,6 +1424,10 @@ async function explainNoSetup(
         }x; LevelFlow requires at least ${
           calibration.minRewardRisk.toFixed(2)
         }x for this market.`,
+      );
+    } else if (pricePlan.executionQuality.confidencePenalty > 0) {
+      diagnostics.push(
+        `Estimated spread and slippage reduced the setup score by ${pricePlan.executionQuality.confidencePenalty}.`,
       );
     }
   }
@@ -1767,19 +1822,15 @@ async function refreshGlobalStrategyWeights() {
   }
 
   const payloads = Array.from(grouped.entries()).map(([setupKey, stats]) => {
-    const resolved = stats.wins + stats.losses;
-    const sampleWeight = resolved >= 20 ? 1 : resolved >= 8 ? resolved / 20 : 0;
-    const winRate = stats.wins / Math.max(resolved, 1);
-    const adjustment = Math.max(-10, Math.min(10, (winRate - 0.5) * 20)) *
-      sampleWeight;
+    const learningWeight = calculateLearningWeight(stats);
 
     return {
       ambiguous: stats.ambiguous,
       analyzer_version: ANALYZER_VERSION,
-      confidence_adjustment: roundPrice(adjustment),
+      confidence_adjustment: roundPrice(learningWeight.confidenceAdjustment),
       last_reviewed_at: new Date().toISOString(),
       losses: stats.losses,
-      sample_weight: roundPrice(sampleWeight),
+      sample_weight: roundPrice(learningWeight.sampleWeight),
       setup_key: setupKey,
       total_setups: stats.total,
       wins: stats.wins,
@@ -2376,6 +2427,7 @@ function voteVolumeProfile(market: MarketContext): StrategyVote {
 
 function buildPricePlan(
   side: Side,
+  symbol: SupportedSymbol,
   market: MarketContext,
   regime: Regime,
   calibration: CategoryCalibration,
@@ -2471,11 +2523,26 @@ function buildPricePlan(
   if (!Number.isFinite(rewardRisk) || riskDistance <= 0) {
     return null;
   }
+  const executionQuality = estimateExecutionQuality({
+    assetType: getAssetType(symbol),
+    atr,
+    availableTimeframes: market.availableTimeframes,
+    dailyAtr,
+    entryPrice,
+    latestClose: latest.close,
+    providerWarnings: market.providerWarnings,
+    side,
+    stopLoss,
+    symbol,
+    takeProfit,
+  });
 
   return {
     atr,
     entryPrice,
-    rewardRisk,
+    executionQuality,
+    grossRewardRisk: rewardRisk,
+    rewardRisk: executionQuality.effectiveRewardRisk,
     stopLogic:
       "Structure invalidation with ATR buffer and daily-volatility floor.",
     stopLoss,
@@ -2786,6 +2853,26 @@ function getCorrelationGroup(symbol: string) {
   return Object.entries(correlationGroups).find(([, symbols]) =>
     symbols.includes(symbol)
   )?.[0] ?? symbol;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function asExecutionQuality(value: unknown): ExecutionQuality | null {
+  const record = asRecord(value);
+  return typeof record.label === "string" && typeof record.score === "number"
+    ? record as unknown as ExecutionQuality
+    : null;
+}
+
+function formatTitle(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
 }
 
 async function fetchSingle<T>(token: string, path: string) {

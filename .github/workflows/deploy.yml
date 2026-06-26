@@ -111,3 +111,16 @@ jobs:
           git push origin main
         env:
           LEVELFLOW_PAGES_TOKEN: ${{ secrets.LEVELFLOW_PAGES_TOKEN }}
+
+      - name: Verify production security headers
+        run: |
+          headers="$(mktemp)"
+          curl -fsSI "https://levelflow.windwardline.com/?v=${GITHUB_SHA}" > "$headers"
+          grep -iq "^content-security-policy: .*frame-ancestors 'none'" "$headers"
+          grep -iq "^content-security-policy: .*object-src 'none'" "$headers"
+          grep -iq "^x-frame-options: DENY" "$headers"
+          grep -iq "^x-content-type-options: nosniff" "$headers"
+          grep -iq "^referrer-policy: strict-origin-when-cross-origin" "$headers"
+          grep -iq "^permissions-policy: .*camera=()" "$headers"
+          grep -iq "^cross-origin-opener-policy: same-origin" "$headers"
+          rm -f "$headers"
