@@ -365,7 +365,7 @@ function HistoryPanel({
               Insights
             </h2>
             <p className="mt-1 text-sm leading-6 text-slate">
-              See which ideas were shown, how they finished, and where
+              See which setups were shown, how they finished, and where
               performance is improving.
             </p>
           </div>
@@ -388,7 +388,7 @@ function HistoryPanel({
         </div>
 
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-          <StatPill label="Total ideas" value={summary.total.toString()} />
+          <StatPill label="Total setups" value={summary.total.toString()} />
           <StatPill
             label="Overall win rate"
             value={summary.winRate === null ? "Pending" : `${summary.winRate}%`}
@@ -486,7 +486,7 @@ function HistoryPanel({
                 </h3>
                 <span className="shrink-0 text-sm font-semibold text-slate">
                   {group.items.length}{" "}
-                  {group.items.length === 1 ? "idea" : "ideas"}
+                  {group.items.length === 1 ? "setup" : "setups"}
                 </span>
               </div>
               <div className="grid gap-3">
@@ -499,12 +499,12 @@ function HistoryPanel({
         </div>
         {!loading && setups.length === 0 ? (
           <p className="mt-4 text-sm leading-6 text-slate">
-            No ideas have been logged yet.
+            No setups have been logged yet.
           </p>
         ) : null}
         {!loading && setups.length > 0 && filteredSetups.length === 0 ? (
           <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
-            No ideas match the current filters.
+            No setups match the current filters.
           </p>
         ) : null}
       </section>
@@ -521,7 +521,7 @@ function HistoryPanel({
           </div>
           <div className="grid gap-3">
             <HistoryPerformanceRow
-              label="Finished ideas"
+              label="Finished setups"
               value={summary.resolved.toString()}
               detail={`${summary.wins} reached target / ${summary.losses} hit stop`}
               tone="neutral"
@@ -583,7 +583,7 @@ function HistoryPanel({
           </div>
           {categoryStats.length === 0 ? (
             <p className="text-sm leading-6 text-slate">
-              Market results will appear after ideas are logged.
+              Market results will appear after setups are logged.
             </p>
           ) : null}
         </section>
@@ -608,7 +608,7 @@ function HistoryPanel({
           </div>
           {stats.length === 0 ? (
             <p className="text-sm leading-6 text-slate">
-              Market results will appear after ideas are reviewed.
+              Market results will appear after setups are reviewed.
             </p>
           ) : null}
         </section>
@@ -620,7 +620,7 @@ function HistoryPanel({
 function OverviewPanel() {
   const valueCards = [
     {
-      body: "LevelFlow reviews the selected market and shows one current limit idea only when the chart, timing, and risk are strong enough.",
+      body: "LevelFlow reviews the selected market and shows one current limit setup only when the chart, timing, and risk are strong enough.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "One focused answer",
     },
@@ -630,7 +630,7 @@ function OverviewPanel() {
       title: "Market context in one pass",
     },
     {
-      body: "Entry, stop, target, confidence, and the reason for the idea are shown together before you decide what to do next.",
+      body: "Entry, stop, target, confidence, and the reason for the setup are shown together before you decide what to do next.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       title: "Review support, not trade placement",
     },
@@ -656,7 +656,7 @@ function OverviewPanel() {
             </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
               LevelFlow refreshes the chart, checks the market from several
-              angles, accounts for timing risk, and presents the next limit idea
+              angles, accounts for timing risk, and presents the next limit setup
               when the evidence is strong enough.
             </p>
           </div>
@@ -702,9 +702,9 @@ function OverviewPanel() {
             <p className="mt-3 text-sm leading-6 text-slate">
               Most trading tools add more noise. LevelFlow narrows the decision:
               if the quality, timing, and reward are not there, it clears the
-              prior idea and shows no trade idea. If the idea passes, it shows
+              prior setup and shows no trade setup. If the setup passes, it shows
               the side, entry, stop, target, confidence, and reason in one
-              place. Finished ideas across LevelFlow also improve future
+              place. Finished setups across LevelFlow also improve future
               reviews, so the product learns from the full review history
               rather than one user at a time.
             </p>
@@ -854,7 +854,7 @@ function HistoryStatRow({
         <div className="min-w-0">
           <p className="truncate font-semibold text-navy">{label}</p>
           <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
-            {stat.count} ideas
+            {stat.count} setups
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-navy">
@@ -910,7 +910,7 @@ function ConfidenceBandRow({
         <div>
           <p className="font-semibold text-navy">{label}</p>
           <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
-            {count} ideas / {resolved} finished
+            {count} setups / {resolved} finished
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-navy">
@@ -1174,13 +1174,13 @@ function ProfilePanel({
           </div>
           <div className="grid gap-3">
             <ProfileDetailRow label="Signed in" value={profile.email} />
-            <ProfileDetailRow label="Saved ideas" value={summary.total.toString()} />
-            <ProfileDetailRow label="Finished ideas" value={summary.resolved.toString()} />
+            <ProfileDetailRow label="Saved setups" value={summary.total.toString()} />
+            <ProfileDetailRow label="Finished setups" value={summary.resolved.toString()} />
             <ProfileDetailRow
               label="Win rate"
               value={summary.winRate === null ? "Building" : `${summary.winRate}%`}
             />
-            <ProfileDetailRow label="Last idea" value={latestIdea ? formatDate(latestIdea.created_at) : "None yet"} />
+            <ProfileDetailRow label="Last setup" value={latestIdea ? formatDate(latestIdea.created_at) : "None yet"} />
           </div>
         </section>
       </div>
@@ -1214,7 +1214,7 @@ function GuidePanel() {
       title: "Read the chart",
     },
     {
-      body: "Click Review market. LevelFlow clears stale results, refreshes the market, and either shows a current idea or says no idea passed.",
+      body: "Click Review market. LevelFlow clears stale results, refreshes the market, and either shows a current setup or says no setup passed.",
       icon: <Radar className="h-5 w-5" aria-hidden="true" />,
       number: "03",
       title: "Run the review",
@@ -1223,10 +1223,10 @@ function GuidePanel() {
       body: "Review the side, entry, stop, target, confidence, and reason before taking any action outside LevelFlow.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
-      title: "Review the idea",
+      title: "Review the setup",
     },
     {
-      body: "Use Insights to review past ideas, final results, and score ranges without changing your current chart.",
+      body: "Use Insights to review past setups, final results, and score ranges without changing your current chart.",
       icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
       title: "Review insights",
@@ -1250,7 +1250,7 @@ function GuidePanel() {
       title: "Timing",
     },
     {
-      body: "Risk checks the stop, target, and payoff before an idea can appear.",
+      body: "Risk checks the stop, target, and payoff before a setup can appear.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "Risk",
     },
@@ -1258,17 +1258,17 @@ function GuidePanel() {
 
   const outputItems = [
     {
-      body: "The direction of the idea. Buy limits wait below market; sell limits wait above market.",
+      body: "The direction of the setup. Buy limits wait below market; sell limits wait above market.",
       label: "Order",
       value: "Buy / sell limit",
     },
     {
-      body: "The price where the idea becomes active. LevelFlow does not generate market or stop entries.",
+      body: "The price where the setup becomes active. LevelFlow does not generate market or stop entries.",
       label: "Entry",
       value: "Limit price",
     },
     {
-      body: "The price area where the idea is no longer valid.",
+      body: "The price area where the setup is no longer valid.",
       label: "Stop",
       value: "Risk price",
     },
@@ -1278,7 +1278,7 @@ function GuidePanel() {
       value: "Take profit",
     },
     {
-      body: "A reference level after the idea has moved in favor.",
+      body: "A reference level after the setup has moved in favor.",
       label: "Reference",
       value: "Break-even",
     },
@@ -1286,7 +1286,7 @@ function GuidePanel() {
 
   const confidenceBands = [
     {
-      body: "Enough agreement, timing quality, and payoff for LevelFlow to show an idea.",
+      body: "Enough agreement, timing quality, and payoff for LevelFlow to show a setup.",
       range: "66+",
       title: "Qualified",
     },
@@ -1296,9 +1296,9 @@ function GuidePanel() {
       title: "High agreement",
     },
     {
-      body: "No current idea meets the review threshold. No idea is a valid result.",
+      body: "No current setup meets the review threshold. No setup is a valid result.",
       range: "Blocked",
-      title: "No idea",
+      title: "No setup",
     },
   ];
 
@@ -1323,7 +1323,7 @@ function GuidePanel() {
             <p className="max-w-3xl text-base leading-7 text-slate">
               Start with the chart, run the review, then inspect the levels and
               reason. Market Scan can help decide what to look at next, while
-              Insights tracks how ideas finish over time.
+              Insights tracks how setups finish over time.
             </p>
           </div>
 
@@ -1379,7 +1379,7 @@ function GuidePanel() {
               Output
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              What the idea includes
+              What the setup includes
             </h2>
           </div>
           <div className="grid gap-3">
@@ -1462,8 +1462,8 @@ function GuidePreviewCard() {
         </div>
       </div>
       <div className="rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-xs font-semibold leading-5 text-bullish">
-        Example only. Live ideas refresh from the selected market and only
-        appear when the current idea passes review.
+        Example only. Live setups refresh from the selected market and only
+        appear when the current setup passes review.
       </div>
     </div>
   );

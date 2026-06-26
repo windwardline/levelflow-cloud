@@ -121,10 +121,10 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       }
       setAnalysisState({ requestedAt: Date.now(), response: nextResult, symbol: requestedSymbol });
       if (nextResult.setup) {
-        setAdvisorNotice(nextResult.deduplicated ? `${requestedLabel} current idea refreshed.` : `${requestedLabel} limit idea saved.`);
+        setAdvisorNotice(nextResult.deduplicated ? `${requestedLabel} current setup refreshed.` : `${requestedLabel} limit setup saved.`);
         onSetupsChanged();
       } else {
-        setAdvisorNotice(nextResult.reason ?? `No current ${requestedLabel} limit idea passed review.`);
+        setAdvisorNotice(nextResult.reason ?? `No current ${requestedLabel} limit setup passed review.`);
         onSetupsChanged();
       }
     } catch {
@@ -170,7 +170,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market review</h2>
-              <p className="mt-1 text-sm text-slate">Select a market, review the chart, then ask LevelFlow for the current limit idea.</p>
+              <p className="mt-1 text-sm text-slate">Select a market, review the chart, then ask LevelFlow for the current limit setup.</p>
             </div>
             <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
               <RefreshCw className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -292,7 +292,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
                 },
                 symbol: nextSymbol,
               });
-              setAdvisorNotice("Selected from Market Scan. Review market to refresh and save this idea.");
+              setAdvisorNotice("Selected from Market Scan. Review market to refresh and save this setup.");
             } else {
               setAnalysisState(null);
               setAdvisorNotice("");
@@ -308,7 +308,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <div className="mb-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-slate">Recent ideas</p>
+              <p className="text-sm font-semibold text-slate">Recent setups</p>
               <h3 className="text-lg font-semibold tracking-normal text-navy">Latest activity</h3>
             </div>
           </div>
@@ -333,7 +333,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
               <MetricRow label="Still tracking" value={symbolStat.pending.toString()} />
             </div>
           ) : (
-            <p className="text-sm leading-6 text-slate">No saved ideas for this market yet.</p>
+            <p className="text-sm leading-6 text-slate">No saved setups for this market yet.</p>
           )}
         </section>
       </aside>
@@ -396,7 +396,7 @@ function MarketScanPanel({
   const blockedCount = result?.blocked.length ?? 0;
   const emptyMessage = result
     ? "No current market passed the scan. Try again after the next candle or scheduled event window."
-    : "Scan all active markets to find the strongest current limit ideas.";
+    : "Scan all active markets to find the strongest current limit setups.";
 
   return (
     <section className="terminal-panel p-5">
@@ -478,7 +478,7 @@ function DeskStatusStrip({
   stat: SecurityStat | undefined;
   symbol: SupportedSymbol;
 }) {
-  const stateLabel = analysisStatus === "analyzing" ? "Reviewing" : result?.setup ? "Idea ready" : result?.blocked ? "No idea" : "Ready";
+  const stateLabel = analysisStatus === "analyzing" ? "Reviewing" : result?.setup ? "Setup ready" : result?.blocked ? "No setup" : "Ready";
 
   return (
     <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -553,7 +553,7 @@ function RecommendationPanel({
         </button>
         <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
           {result?.deduplicated ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-          {notice || "Current idea ready for review."}
+          {notice || "Current setup ready for review."}
         </div>
         <QualityReceipt receipt={receipt} />
       </div>
@@ -571,7 +571,7 @@ function RecommendationPanel({
       </div>
       <div>
         <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
-        <p className="mt-1">{notice || "Select a market, review the chart, then ask LevelFlow for the current limit idea."}</p>
+        <p className="mt-1">{notice || "Select a market, review the chart, then ask LevelFlow for the current limit setup."}</p>
       </div>
     </div>
   );
@@ -587,7 +587,7 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
       </div>
       <div>
         <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Analyzing {symbol}</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Building the current idea</h3>
+        <h3 className="mt-1 text-lg font-semibold text-navy">Building the current setup</h3>
       </div>
       <div className="grid gap-2">
         {steps.map((step) => (
@@ -617,9 +617,9 @@ function NoSetupPanel({ notice, result, symbol }: { notice: string; result: Anal
         <XCircle className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No trade idea</p>
+        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No trade setup</p>
         <h3 className="mt-1 text-lg font-semibold text-navy">Nothing passed review</h3>
-        <p className="mt-1">LevelFlow cleared the prior display for {formatSecurityLabel(symbol)} and did not find a current limit idea strong enough to show.</p>
+        <p className="mt-1">LevelFlow cleared the prior display for {formatSecurityLabel(symbol)} and did not find a current limit setup strong enough to show.</p>
       </div>
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3">
         <p className="text-xs font-semibold uppercase tracking-normal text-slate">Primary reason</p>
@@ -656,7 +656,7 @@ function QualityReceipt({ receipt }: { receipt: QualityReceiptData }) {
     <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3">
       <div className="flex items-center gap-2">
         <FileSearch className="h-4 w-4 text-bullish" aria-hidden="true" />
-        <h3 className="font-semibold text-navy">Why this idea</h3>
+        <h3 className="font-semibold text-navy">Why this setup</h3>
       </div>
       <div className="grid gap-2">
         {receipt.items.map((item) => (
@@ -741,7 +741,7 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
       value: asNumber(sessionContext.penalty) ? "Event risk" : "Clean",
     },
     {
-      detail: sampleSize && sampleSize > 0 ? `${sampleSize} finished ideas included.` : "More finished ideas are needed.",
+      detail: sampleSize && sampleSize > 0 ? `${sampleSize} finished setups included.` : "More finished setups are needed.",
       label: "Past results",
       tone: weightAdjustment && weightAdjustment > 0 ? "bullish" : weightAdjustment && weightAdjustment < 0 ? "danger" : "neutral",
       value: formatScoreAdjustment(weightAdjustment),
@@ -811,7 +811,7 @@ function formatScoreAdjustment(value: number | null) {
 function cleanReviewMessage(value: string) {
   return value
     .replace(/No clear direction passed review: buy \d+(?:\.\d+)?, sell \d+(?:\.\d+)?, block \d+(?:\.\d+)?\./i, "The chart did not show a clear enough direction.")
-    .replace(/Committee favored (buy|sell), but the adjusted score was (\d+); LevelFlow requires 66 or higher\./i, (_match, side: string, score: string) => `The ${side.toLowerCase()} case reached ${score}/100. LevelFlow shows ideas at 66/100 or higher.`)
+    .replace(/Committee favored (buy|sell), but the adjusted score was (\d+); LevelFlow requires 66 or higher\./i, (_match, side: string, score: string) => `The ${side.toLowerCase()} case reached ${score}/100. LevelFlow shows setups at 66/100 or higher.`)
     .replace(/Payoff was ([0-9.]+)x; LevelFlow requires at least 1\.35x\./i, (_match, payoff: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff).`)
     .replace(/Limit entry failed price validation, so no limit-order setup was shown\./i, "A valid limit entry was not available at the current price.")
     .replace(/Limit entry failed price validation, so no limit-order idea was shown\./i, "A valid limit entry was not available at the current price.")
@@ -821,12 +821,11 @@ function cleanReviewMessage(value: string) {
     .replace(/provider/gi, "chart feed")
     .replace(/analyzer confidence/gi, "review")
     .replace(/analyzer/gi, "LevelFlow")
-    .replace(/Correlation filter kept existing ([A-Z0-9]+) setup with equal or higher confidence\./i, "A related market already has a stronger current idea.")
+    .replace(/Correlation filter kept existing ([A-Z0-9]+) setup with equal or higher confidence\./i, "A related market already has a stronger current setup.")
     .replace(/did not return enough bars for this instrument\./i, "does not have enough recent chart history for this market yet.")
     .replace(/Not enough .* daily bars returned for review\./i, "The chart feed does not have enough daily history for this market yet.")
     .replace(/setup family/gi, "pattern")
-    .replace(/resolved outcomes/gi, "finished ideas")
-    .replace(/setup/gi, "idea")
+    .replace(/resolved outcomes/gi, "finished setups")
     .replace(/reward-to-risk/gi, "payoff")
     .replace(/ATR/gi, "volatility")
     .replace(/liquidity/gi, "price levels")
@@ -904,7 +903,7 @@ function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMar
 
 function SetupList({ setups }: { setups: TradeSetupRow[] }) {
   if (setups.length === 0) {
-    return <p className="text-sm leading-6 text-slate">No ideas yet.</p>;
+    return <p className="text-sm leading-6 text-slate">No setups yet.</p>;
   }
 
   return (

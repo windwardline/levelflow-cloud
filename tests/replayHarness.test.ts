@@ -69,6 +69,24 @@ describe("trade analyzer replay harness", () => {
     );
   });
 
+  it("cuts off forex reviews before the Friday New York close", () => {
+    const fridayAfternoon = Date.parse("2026-06-12T20:45:00.000Z");
+
+    assert.equal(
+      new Date(getSetupExpiryTime("EURUSD", fridayAfternoon)).toISOString(),
+      "2026-06-12T20:54:00.000Z",
+    );
+  });
+
+  it("cuts off futures reviews before the Friday New York close", () => {
+    const fridayAfternoon = Date.parse("2026-06-12T20:45:00.000Z");
+
+    assert.equal(
+      new Date(getSetupExpiryTime("ESUSD", fridayAfternoon)).toISOString(),
+      "2026-06-12T20:55:00.000Z",
+    );
+  });
+
   it("flags same-bar target and stop touches as needing review", () => {
     const setup = buildSetup({
       entry: 100,

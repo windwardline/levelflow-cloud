@@ -12,7 +12,7 @@ export const OUTCOME_COPY: Record<
   }
 > = {
   still_tracking: {
-    description: "The idea is still inside its review window or does not have a final result yet.",
+    description: "The setup is still inside its review window or does not have a final result yet.",
     filterLabel: "Still tracking",
     label: "Still tracking",
     shortLabel: "Tracking",
@@ -36,7 +36,7 @@ export const OUTCOME_COPY: Record<
     shortLabel: "Review",
   },
   entry_not_filled: {
-    description: "The limit entry did not fill before the review window ended or the idea was no longer valid.",
+    description: "The limit entry did not fill before the review window ended or the setup was no longer valid.",
     filterLabel: "Entry not filled",
     label: "Entry not filled",
     shortLabel: "No fill",
