@@ -1,6 +1,6 @@
 # Deployment Notes
 
-The current production-ready path is a static React frontend backed directly by Supabase Auth, Edge Functions, and Postgres RLS. This supports live login, profile preferences, market review, limit-idea generation, and user-owned recommendation history once Supabase is configured.
+The current production-ready path is a static React frontend backed directly by Supabase Auth, Edge Functions, and Postgres RLS. This supports live login, profile preferences, market review, limit-setup generation, and user-owned recommendation history once Supabase is configured.
 
 ## Hosted Frontend
 
@@ -18,7 +18,7 @@ The app intentionally renders a setup-required state when Supabase is missing, i
 
 Run `supabase/init.sql` in the Supabase SQL editor for a fresh project, then apply the migrations in `supabase/migrations`. The bootstrap SQL creates the current product surface only:
 
-- User-owned profile, idea, outcome, notice, and economic-event tables.
+- User-owned profile, setup, outcome, notice, and economic-event tables.
 - A service-role-only analyzer rate-limit table and RPC function.
 - RLS policies for authenticated users.
 - Realtime publication membership with `REPLICA IDENTITY FULL` where cross-session dashboards need old/new row data.
@@ -38,7 +38,7 @@ The browser app remains static. Market-data and analyzer work runs through Supab
 Deployed functions:
 
 - `market-data`: authenticated FMP market-data access.
-- `trade-analyzer`: authenticated FMP-backed, multi-timeframe limit-idea generation.
+- `trade-analyzer`: authenticated FMP-backed, multi-timeframe limit-setup generation.
 - `news-calendar`: token-protected economic-calendar ingestion.
 
 Database cron jobs:
