@@ -1132,15 +1132,15 @@ function buildScanRationale(
   const reasons = [
     `${setup.side.toUpperCase()} setup scored ${setup.confidenceScore}/100.`,
     `${formatTitle(String(marketRegime.name ?? "current"))} conditions.`,
-    `Effective payoff ${Number(confluence.rewardRisk ?? 0).toFixed(2)}x.`,
+    `Payoff ${Number(confluence.rewardRisk ?? 0).toFixed(2)}x after trading-cost checks.`,
     executionQuality
-      ? `${executionQuality.label} execution quality.`
-      : "Execution quality checked.",
+      ? `${executionQuality.label} trading-cost check.`
+      : "Trading-cost check complete.",
     String(sessionContext.label ?? "Session checked."),
   ];
   const agreementRatio = Number(consensus.agreementRatio ?? 0);
   if (agreementRatio > 0) {
-    reasons.push(`${Math.round(agreementRatio * 100)}% directional agreement.`);
+    reasons.push(`${Math.round(agreementRatio * 100)}% direction agreement.`);
   }
 
   return reasons.slice(0, 5);

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
+import { buildProfileReviewPattern } from "../src/lib/profileInsights";
 import {
   coerceToSupportedUsTimeZone,
   formatUsTimeZoneOptionLabel,
@@ -315,6 +316,32 @@ describe("recommendation outcomes", () => {
   });
 });
 
+describe("profile insights", () => {
+  it("summarizes the user's most reviewed markets without changing asset sort rules", () => {
+    const setups = [
+      buildTradeSetup({ created_at: "2026-06-20T12:00:00.000Z", id: "1", outcome: "take_profit", symbol: "EURUSD" }),
+      buildTradeSetup({ created_at: "2026-06-21T12:00:00.000Z", id: "2", outcome: "stop_loss", symbol: "EURUSD" }),
+      buildTradeSetup({ created_at: "2026-06-22T12:00:00.000Z", id: "3", outcome: "pending", symbol: "BTCUSD" }),
+      buildTradeSetup({ created_at: "2026-06-23T12:00:00.000Z", id: "4", outcome: "take_profit", symbol: "AUDUSD" }),
+      buildTradeSetup({ created_at: "2026-06-24T12:00:00.000Z", id: "5", outcome: "pending", symbol: "AUDUSD" }),
+      buildTradeSetup({ created_at: "2026-06-25T12:00:00.000Z", id: "6", outcome: "pending", symbol: "XAUUSD" }),
+    ];
+
+    assert.deepEqual(
+      buildProfileReviewPattern(setups).map((item) => ({
+        count: item.count,
+        symbol: item.symbol,
+        winRate: item.winRate,
+      })),
+      [
+        { count: 2, symbol: "AUDUSD", winRate: 100 },
+        { count: 2, symbol: "EURUSD", winRate: 50 },
+        { count: 1, symbol: "BTCUSD", winRate: null },
+      ],
+    );
+  });
+});
+
 describe("database schema", () => {
   it("uses provider-neutral market symbol naming in the current baseline schema", () => {
     const initSql = readFileSync("supabase/init.sql", "utf8");
@@ -342,6 +369,36 @@ describe("database schema", () => {
     );
   });
 });
+
+function buildTradeSetup({
+  created_at,
+  id,
+  outcome,
+  symbol,
+}: {
+  created_at: string;
+  id: string;
+  outcome: string;
+  symbol: string;
+}): TradeSetupRow {
+  return {
+    analyzer_version: "test",
+    breakeven_trigger_price: 1.02,
+    confidence_score: 80,
+    confluence: {},
+    correlation_group: null,
+    created_at,
+    id,
+    limit_entry: 1,
+    risk_model: {},
+    side: "buy",
+    status: "generated",
+    stop_loss: 0.98,
+    symbol,
+    take_profit: 1.04,
+    trade_outcomes: [{ outcome, realized_pnl: null }],
+  };
+}
 
 function buildSetup({
   outcome,

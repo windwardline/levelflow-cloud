@@ -164,7 +164,7 @@ function MarketScanRow({
   const rationale = candidate.rationale?.length ? candidate.rationale : [
     `${candidate.confidenceScore ?? 0}% confidence.`,
     `${formatPayoff(candidate.rewardRisk)} after review.`,
-    candidate.executionLabel ? `${candidate.executionLabel} execution quality.` : "Execution quality checked.",
+    candidate.executionLabel ? `${candidate.executionLabel} trading-cost check.` : "Trading-cost check complete.",
   ];
 
   return (
