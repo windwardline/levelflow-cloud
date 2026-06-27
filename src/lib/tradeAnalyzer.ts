@@ -51,12 +51,14 @@ export type MarketScanCandidate = {
   assetType: string;
   blocked?: boolean;
   confidenceScore?: number;
+  correlationGroup?: string;
   entryPrice?: number;
   executionLabel?: string;
   executionScore?: number;
   marketRegime?: string;
   rationale?: string[];
   reason?: string;
+  relatedSymbols?: SupportedSymbol[];
   rewardRisk?: number;
   side?: "buy" | "sell";
   setup?: AnalyzerSetup;

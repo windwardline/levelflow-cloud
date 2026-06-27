@@ -14,6 +14,10 @@ import {
   type ExecutionQuality,
 } from "./executionQuality.ts";
 import { calculateLearningWeight } from "./learning.ts";
+import {
+  parseFmpQuoteSnapshot,
+  type QuoteSnapshot,
+} from "./quotes.ts";
 
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
@@ -35,6 +39,7 @@ const RATE_LIMITS: Record<string, number> = {
 };
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 const MARKET_DATA_FETCH_TIMEOUT_MS = 12_000;
+const QUOTE_FETCH_TIMEOUT_MS = 6_000;
 const CANDLE_CACHE_TTL_MS: Record<Timeframe, number> = {
   "15min": 45_000,
   "1hour": 90_000,
@@ -302,6 +307,7 @@ type MarketContext = {
   primary: Bar[];
   primaryTimeframe: Timeframe;
   providerWarnings: string[];
+  quote: QuoteSnapshot | null;
   timeframes: Partial<Record<Timeframe, Bar[]>>;
 };
 
@@ -368,12 +374,14 @@ type MarketScanCandidate = {
   assetType: string;
   blocked?: boolean;
   confidenceScore?: number;
+  correlationGroup?: string;
   entryPrice?: number;
   executionLabel?: string;
   executionScore?: number;
   marketRegime?: string;
   rationale?: string[];
   reason?: string;
+  relatedSymbols?: SupportedSymbol[];
   rewardRisk?: number;
   side?: Side;
   setup?: unknown;
@@ -1087,11 +1095,13 @@ async function scanOpportunity(
       opportunity: {
         assetType: getAssetType(symbol),
         confidenceScore: setup.confidenceScore,
+        correlationGroup: group,
         entryPrice: setup.entryPrice,
         executionLabel: String(setup.riskModel.executionQuality?.label ?? ""),
         executionScore: Number(setup.riskModel.executionQuality?.score ?? 0),
         marketRegime: String(setup.confluence.marketRegime?.name ?? ""),
         rationale: buildScanRationale(setup),
+        relatedSymbols: getRelatedScanSymbols(group, symbol),
         rewardRisk: Number(setup.confluence.rewardRisk ?? 0),
         setup,
         side: setup.side,
@@ -1118,6 +1128,16 @@ async function scanOpportunity(
       },
     };
   }
+}
+
+function getRelatedScanSymbols(group: string, symbol: SupportedSymbol) {
+  return (correlationGroups[group] ?? [])
+    .filter((candidate) =>
+      candidate !== symbol &&
+      defaultScanSymbols.includes(candidate) &&
+      candidate in symbolMap
+    )
+    .slice(0, 6);
 }
 
 function buildScanRationale(
@@ -1859,7 +1879,10 @@ function extractSetupKey(
 
 async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
   const providerWarnings: string[] = [];
-  const daily = await fetchFmpBars(fmpSymbol, "1day");
+  const [daily, quote] = await Promise.all([
+    fetchFmpBars(fmpSymbol, "1day"),
+    fetchFmpQuoteSnapshot(fmpSymbol),
+  ]);
   const timeframes: Partial<Record<Timeframe, Bar[]>> = { "1day": daily };
 
   await Promise.all(
@@ -1893,8 +1916,67 @@ async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
     primary,
     primaryTimeframe,
     providerWarnings,
+    quote,
     timeframes,
   };
+}
+
+async function fetchFmpQuoteSnapshot(
+  fmpSymbol: string,
+): Promise<QuoteSnapshot | null> {
+  const endpoint = new URL(
+    `${FMP_API_BASE_URL.replace(/\/$/, "")}/quote`,
+  );
+  endpoint.searchParams.set("symbol", fmpSymbol);
+  endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
+
+  const startedAt = performance.now();
+  try {
+    const response = await fetchWithTimeout(
+      endpoint,
+      {},
+      QUOTE_FETCH_TIMEOUT_MS,
+    );
+    const durationMs = Math.round(performance.now() - startedAt);
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      await recordAnalyzerEvent({
+        action: "quote_fetch",
+        durationMs,
+        message: `FMP quote request failed (${response.status})`,
+        providerSymbol: fmpSymbol,
+        status: "error",
+      });
+      return null;
+    }
+
+    const payload = JSON.parse(responseText) as unknown;
+    const quote = parseFmpQuoteSnapshot(payload);
+    if (!quote) {
+      return null;
+    }
+
+    if (durationMs >= SLOW_PROVIDER_CALL_MS) {
+      await recordAnalyzerEvent({
+        action: "quote_fetch",
+        durationMs,
+        providerSymbol: fmpSymbol,
+        status: "slow_provider",
+      });
+    }
+
+    return quote;
+  } catch (error) {
+    await recordAnalyzerEvent({
+      action: "quote_fetch",
+      durationMs: Math.round(performance.now() - startedAt),
+      message: error instanceof Error ? error.message : "FMP quote failed",
+      providerSymbol: fmpSymbol,
+      status: "error",
+    });
+    return null;
+  }
 }
 
 async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
@@ -2531,6 +2613,7 @@ function buildPricePlan(
     entryPrice,
     latestClose: latest.close,
     providerWarnings: market.providerWarnings,
+    quotedSpread: market.quote?.spread ?? null,
     side,
     stopLoss,
     symbol,
