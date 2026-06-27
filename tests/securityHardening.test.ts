@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { cleanExternalUrl } from "../src/lib/urlSafety";
 
 describe("security hardening", () => {
   it("keeps analyzer rate limits service-role only", () => {
@@ -47,5 +48,15 @@ describe("security hardening", () => {
     assert.match(hardeningDoc, /DENY/);
     assert.match(hardeningDoc, /Permissions-Policy/);
     assert.match(hardeningDoc, /Cross-Origin-Opener-Policy/);
+  });
+
+  it("allows only HTTPS payment links from deployment variables", () => {
+    assert.equal(
+      cleanExternalUrl(" https://buy.stripe.com/example "),
+      "https://buy.stripe.com/example",
+    );
+    assert.equal(cleanExternalUrl("javascript:alert(1)"), "");
+    assert.equal(cleanExternalUrl("http://example.com/donate"), "");
+    assert.equal(cleanExternalUrl("mailto:support@windwardline.com"), "");
   });
 });

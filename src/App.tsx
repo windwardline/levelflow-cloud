@@ -52,6 +52,10 @@ import {
   type ThemeMode,
   type UserProfile,
 } from "./lib/profile";
+import {
+  buildProfileReviewPattern,
+  type ProfileReviewPatternItem,
+} from "./lib/profileInsights";
 import { supabase } from "./lib/supabase";
 import {
   compareAssetCategories,
@@ -569,7 +573,7 @@ function HistoryPanel({
               Market trends
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              By Market
+              By market
             </h2>
           </div>
           <div className="grid gap-3">
@@ -594,7 +598,7 @@ function HistoryPanel({
               Market trends
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              Most Reviewed
+              Most reviewed
             </h2>
           </div>
           <div className="grid gap-3">
@@ -977,12 +981,27 @@ function ProfilePanel({
     sessions.find((session) => session.isPreferred) ??
     sessions.find((session) => session.id === "north_america") ??
     sessions[0];
-  const latestIdea = setups[0];
+  const latestSetup = setups[0];
+  const reviewPattern = useMemo(
+    () => buildProfileReviewPattern(setups),
+    [setups],
+  );
   const selectedTimeZone = getUsTimeZoneOption(timezone);
   const selectedTimeZoneAbbreviation = getTimeZoneAbbreviation(
     selectedTimeZone.value,
     profileNow,
   );
+  const hasUnsavedChanges =
+    displayName !== profile.displayName ||
+    timezone !== profile.defaultTimezone ||
+    defaultTimeframe !== profile.defaultTimeframe ||
+    preferredSession !== profile.preferredSession ||
+    themeMode !== profile.themePreference;
+  const saveButtonLabel = saveStatus === "saving"
+    ? "Saving..."
+    : saveStatus === "saved" && !hasUnsavedChanges
+    ? "Profile saved"
+    : "Save profile";
 
   useEffect(() => {
     setDisplayName(profile.displayName);
@@ -1105,11 +1124,7 @@ function ProfilePanel({
           type="submit"
           disabled={saveStatus === "saving"}
         >
-          {saveStatus === "saving"
-            ? "Saving..."
-            : saveStatus === "saved"
-              ? "Profile saved"
-              : "Save profile"}
+          {saveButtonLabel}
         </button>
       </form>
 
@@ -1122,7 +1137,7 @@ function ProfilePanel({
                 Today
               </p>
               <h2 className="text-2xl font-semibold tracking-normal text-navy">
-                Market Clock
+                Market clock
               </h2>
             </div>
           </div>
@@ -1180,10 +1195,77 @@ function ProfilePanel({
               label="Win rate"
               value={summary.winRate === null ? "Building" : `${summary.winRate}%`}
             />
-            <ProfileDetailRow label="Last setup" value={latestIdea ? formatDate(latestIdea.created_at) : "None yet"} />
+            <ProfileDetailRow label="Last setup" value={latestSetup ? formatDate(latestSetup.created_at) : "None yet"} />
           </div>
         </section>
+
+        <section className="terminal-panel p-5 sm:p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <LineChart className="h-5 w-5 text-navy" aria-hidden="true" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+                Pattern
+              </p>
+              <h2 className="text-2xl font-semibold tracking-normal text-navy">
+                Review pattern
+              </h2>
+            </div>
+          </div>
+          <div className="grid gap-3">
+            {reviewPattern.map((item) => (
+              <ProfileReviewPatternRow item={item} key={item.symbol} />
+            ))}
+          </div>
+          {reviewPattern.length === 0 ? (
+            <p className="text-sm leading-6 text-slate">
+              Review patterns will appear after setups are saved.
+            </p>
+          ) : null}
+        </section>
       </div>
+    </div>
+  );
+}
+
+function ProfileReviewPatternRow({ item }: { item: ProfileReviewPatternItem }) {
+  return (
+    <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3 text-sm">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-navy">
+            {formatSecurityLabel(item.symbol)}
+          </p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+            {item.category}
+          </p>
+        </div>
+        <p className="shrink-0 text-right font-semibold text-navy">
+          {item.count} {item.count === 1 ? "setup" : "setups"}
+        </p>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+        <ProfileMiniMetric
+          label="Win rate"
+          value={item.winRate === null ? "Building" : `${item.winRate}%`}
+        />
+        <ProfileMiniMetric
+          label="Finished"
+          value={`${item.wins + item.losses}`}
+        />
+        <ProfileMiniMetric
+          label="Latest"
+          value={formatCompactDate(item.latestAt)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProfileMiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-white px-2 py-2">
+      <p className="truncate font-semibold text-navy">{value}</p>
+      <p className="truncate text-slate">{label}</p>
     </div>
   );
 }
@@ -1946,6 +2028,18 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatCompactDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
 function formatProfileTime(date: Date, timeZone: string) {

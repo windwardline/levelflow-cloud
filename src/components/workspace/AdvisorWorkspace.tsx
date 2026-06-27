@@ -265,7 +265,7 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
               <span>{activeMarketCount} active markets</span>
               <span className="hidden sm:inline">/</span>
-              <span>Live chart data</span>
+              <span>Verified chart feed</span>
             </div>
           </div>
         </div>
@@ -370,7 +370,7 @@ function DataHealthPanel({
         </div>
       </div>
       <div className="grid gap-2 text-sm">
-        <MetricRow label="Feed" value="Live" />
+        <MetricRow label="Feed" value="Chart feed" />
         <MetricRow label="Candles loaded" value={loading ? "Refreshing" : String(data?.resultsCount ?? 0)} />
         <MetricRow label="Last updated" value={lastUpdated} />
         <MetricRow label="Active markets" value={String(activeMarketCount)} />
@@ -406,7 +406,7 @@ function DeskStatusStrip({
 
   return (
     <div className="mt-4 grid gap-2 sm:grid-cols-2">
-      <DeskStatusItem label="Data" value={loading ? "Refreshing" : "Live"} detail={latestClose === null ? "Awaiting price" : `Latest ${formatPrice(symbol, latestClose)}`} />
+      <DeskStatusItem label="Data" value={loading ? "Refreshing" : "Ready"} detail={latestClose === null ? "Awaiting price" : `Latest ${formatPrice(symbol, latestClose)}`} />
       <DeskStatusItem label="Session" value={clockStatus} detail="Local clock" />
       <DeskStatusItem label="Advisor" value={stateLabel} detail="Fresh review" />
       <DeskStatusItem
@@ -640,7 +640,7 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
       value: formatStrategyName(String(marketRegime.name ?? "current")),
     },
     {
-      detail: `Buy strength ${formatMaybeNumber(consensus.buyScore)}, sell strength ${formatMaybeNumber(consensus.sellScore)}, caution ${formatMaybeNumber(consensus.blockScore)}.`,
+      detail: `Buy case ${formatMaybeNumber(consensus.buyScore)}/100, sell case ${formatMaybeNumber(consensus.sellScore)}/100, caution ${formatMaybeNumber(consensus.blockScore)}/100.`,
       label: "Direction",
       tone: setup.side === "buy" ? "bullish" : "danger",
       value: `${setup.side.toUpperCase()} view`,
@@ -698,8 +698,8 @@ function buildExecutionDetail(
   const gross = grossRewardRisk ? `${grossRewardRisk.toFixed(2)}x` : "gross payoff";
   const effective = rewardRisk ? `${rewardRisk.toFixed(2)}x` : "effective payoff";
   const cost = spread && slippage
-    ? `Estimated spread ${formatNumber(spread)}, slippage ${formatNumber(slippage)}.`
-    : "Estimated spread and slippage checked.";
+    ? `Estimated trading costs ${formatNumber(spread + slippage)}.`
+    : "Estimated trading costs checked.";
 
   return `${cost} Payoff moved from ${gross} to ${effective}${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
 }

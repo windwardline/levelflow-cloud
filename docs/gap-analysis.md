@@ -1,6 +1,6 @@
 # LevelFlow Gap Analysis
 
-Last reviewed: 2026-06-26
+Last reviewed: 2026-06-27
 
 ## Current Strengths
 
@@ -26,6 +26,9 @@ Last reviewed: 2026-06-26
 - Market Scan now has group and quality filters, compact ranking cards, and short rationale previews.
 - The largest Advisor workspace file was reduced by moving Market Scan into a focused component. The analyzer also now keeps execution-quality and learning math in focused pure modules.
 - CI now includes source-level analyzer abuse checks and a production security-header gate.
+- Profile now includes a data-backed review pattern card, so it shows useful user activity instead of static repetition.
+- Donation URLs from deployment variables are sanitized to HTTPS-only external links before they can render.
+- Advisor copy now distinguishes verified chart-feed data from live execution data and describes trading-cost impact in plainer language.
 
 ## Gaps to Close
 
@@ -39,6 +42,7 @@ Last reviewed: 2026-06-26
 - Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
 - Split the largest UI file into focused panels. `src/App.tsx` is doing shell, history, insights, guide, about, profile, and utility work in one file.
+- Persist the user’s preferred default tab or last workspace section if real usage shows traders routinely start outside Advisor.
 
 ### Back End
 
@@ -51,6 +55,7 @@ Last reviewed: 2026-06-26
 - Add authenticated E2E secrets to local or CI environments where full signed-in browser tests should run. The test entrypoint is present and skips cleanly without those credentials.
 - Add rate-limit and abuse tests for analyzer actions, especially Market Scan.
 - Expand abuse tests from source-level checks to live authenticated request bursts against a disposable test user.
+- Add a recurring dependency and bundle-size review so package drift does not quietly weaken performance or security.
 
 ## Priority Order
 
@@ -60,3 +65,4 @@ Last reviewed: 2026-06-26
 4. Split `src/App.tsx` into shell, insights, guide, about, and profile modules.
 5. Add deployment automation for Supabase migrations.
 6. Add live authenticated abuse tests against a disposable test user.
+7. Add recurring dependency and bundle-size review to the release checklist.

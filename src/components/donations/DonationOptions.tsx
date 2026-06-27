@@ -16,7 +16,7 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
       {links.length > 0 ? (
         <div className={`mt-4 grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
           {links.map((link) => (
-            <a key={link.label} className="secondary-button justify-between" href={link.url} target="_blank" rel="noreferrer">
+            <a key={link.label} className="secondary-button justify-between" href={link.url} target="_blank" rel="noopener noreferrer">
               <span className="flex min-w-0 items-center gap-2">
                 <Gift className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{link.label}</span>
