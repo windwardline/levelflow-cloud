@@ -693,13 +693,16 @@ function buildExecutionDetail(
   rewardRisk: number | null,
 ) {
   const penalty = asNumber(executionQuality.confidencePenalty) ?? 0;
-  const spread = asNumber(executionQuality.estimatedSpread);
-  const slippage = asNumber(executionQuality.estimatedSlippage);
+  const roundTripCost = asNumber(executionQuality.estimatedRoundTripCost);
+  const spreadSource = String(executionQuality.spreadSource ?? "modeled");
   const gross = grossRewardRisk ? `${grossRewardRisk.toFixed(2)}x` : "gross payoff";
   const effective = rewardRisk ? `${rewardRisk.toFixed(2)}x` : "effective payoff";
-  const cost = spread && slippage
-    ? `Estimated trading costs ${formatNumber(spread + slippage)}.`
-    : "Estimated trading costs checked.";
+  const costBasis = spreadSource === "quoted"
+    ? "Live spread and modeled slippage"
+    : "Modeled spread and slippage";
+  const cost = roundTripCost
+    ? `${costBasis} ${formatNumber(roundTripCost)}.`
+    : `${costBasis} checked.`;
 
   return `${cost} Payoff moved from ${gross} to ${effective}${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
 }

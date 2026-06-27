@@ -8,6 +8,7 @@ export type ExecutionQualityInput = {
   entryPrice: number;
   latestClose: number;
   providerWarnings: string[];
+  quotedSpread?: number | null;
   side: "buy" | "sell";
   stopLoss: number;
   symbol: string;
@@ -22,8 +23,11 @@ export type ExecutionQuality = {
   estimatedSpread: number;
   grossRewardRisk: number;
   label: "Clean" | "Acceptable" | "Thin" | "Poor";
+  modeledSpread: number;
   notes: string[];
+  quotedSpread: number | null;
   score: number;
+  spreadSource: "quoted" | "modeled";
 };
 
 type ExecutionProfile = {
@@ -79,13 +83,18 @@ export function estimateExecutionQuality(
   const dailyAtr = Math.max(Math.abs(input.dailyAtr), atr);
   const riskDistance = Math.abs(input.entryPrice - input.stopLoss);
   const rewardDistance = Math.abs(input.takeProfit - input.entryPrice);
-  const estimatedSpread = roundPrice(
+  const modeledSpread = roundPrice(
     Math.max(
       latestClose * (profile.spreadBps / 10_000),
       atr * profile.atrSpreadFactor,
       profile.minimumCost,
     ),
   );
+  const quotedSpread = normalizeQuotedSpread(input.quotedSpread);
+  const estimatedSpread = quotedSpread === null
+    ? modeledSpread
+    : roundPrice(Math.max(quotedSpread, profile.minimumCost));
+  const spreadSource = quotedSpread === null ? "modeled" : "quoted";
   const estimatedSlippage = roundPrice(
     Math.max(
       latestClose * (profile.slippageBps / 10_000),
@@ -105,6 +114,9 @@ export function estimateExecutionQuality(
   const entryCushion = Math.abs(input.latestClose - input.entryPrice);
   const notes: string[] = [];
 
+  if (spreadSource === "quoted") {
+    notes.push("Live bid/ask spread was used.");
+  }
   let penalty = Math.round(costToRisk * 90);
   if (entryCushion < estimatedSpread * 2) {
     penalty += 3;
@@ -148,8 +160,11 @@ export function estimateExecutionQuality(
     estimatedSpread,
     grossRewardRisk: roundPrice(grossRewardRisk),
     label,
+    modeledSpread,
     notes,
+    quotedSpread,
     score,
+    spreadSource,
   };
 }
 
@@ -159,4 +174,12 @@ function clampInteger(value: number, min: number, max: number) {
 
 function roundPrice(value: number) {
   return Number.isFinite(value) ? Number(value.toFixed(5)) : 0;
+}
+
+function normalizeQuotedSpread(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  return roundPrice(value);
 }

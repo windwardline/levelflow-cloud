@@ -166,6 +166,9 @@ function MarketScanRow({
     `${formatPayoff(candidate.rewardRisk)} after review.`,
     candidate.executionLabel ? `${candidate.executionLabel} trading-cost check.` : "Trading-cost check complete.",
   ];
+  const relatedMarkets = (candidate.relatedSymbols ?? [])
+    .slice(0, 3)
+    .map((symbol) => formatSecurityLabel(symbol));
 
   return (
     <button
@@ -194,6 +197,15 @@ function MarketScanRow({
         <Target className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span className="truncate">{levelPreview}</span>
       </div>
+
+      {relatedMarkets.length > 0 ? (
+        <div className="flex min-w-0 items-center gap-2 rounded-md border border-slate/15 bg-white px-2 py-1.5 text-xs font-medium text-slate">
+          <Filter className="h-3.5 w-3.5 shrink-0 text-bullish" aria-hidden="true" />
+          <span className="min-w-0 truncate">
+            Related markets: {relatedMarkets.join(", ")}
+          </span>
+        </div>
+      ) : null}
 
       <div className="grid gap-1.5">
         {rationale.slice(0, 3).map((reason) => (
