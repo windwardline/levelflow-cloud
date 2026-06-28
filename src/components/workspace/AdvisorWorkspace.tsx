@@ -5,6 +5,7 @@ import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import { MarketScanPanel } from "./MarketScanPanel";
 import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
+import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
 import type { UserProfile } from "../../lib/profile";
@@ -871,7 +872,9 @@ function SetupList({ setups }: { setups: TradeSetupRow[] }) {
           </div>
           <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-xs text-slate">
             <span>{formatDate(setup.created_at)}</span>
-            <span>{Number(setup.confidence_score)}% confidence</span>
+            <span>
+              {formatConfidenceWithTier(setup.confidence_score)}
+            </span>
           </div>
         </div>
       ))}

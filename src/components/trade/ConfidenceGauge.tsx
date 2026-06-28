@@ -1,11 +1,20 @@
+import { getConfidenceTier } from "../../lib/confidenceTiers";
+
 type ConfidenceGaugeProps = {
   score: number;
   label?: string;
 };
 
-export function ConfidenceGauge({ score, label = "Confidence Score" }: ConfidenceGaugeProps) {
+export function ConfidenceGauge({ score, label = "Confidence" }: ConfidenceGaugeProps) {
   const clamped = Math.max(0, Math.min(100, score));
-  const stroke = clamped >= 75 ? "#5B8266" : clamped >= 55 ? "#B98948" : "#A94D4D";
+  const tier = getConfidenceTier(clamped);
+  const stroke = clamped >= 85
+    ? "#5B8266"
+    : clamped >= 75
+      ? "#4E6F5A"
+      : clamped >= 66
+        ? "#B98948"
+        : "#A94D4D";
 
   return (
     <div className="w-full min-w-0">
@@ -31,7 +40,9 @@ export function ConfidenceGauge({ score, label = "Confidence Score" }: Confidenc
         </svg>
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
           <span className="text-4xl font-semibold tracking-normal text-navy">{clamped}</span>
-          <span className="text-xs font-medium uppercase tracking-normal text-slate">{label}</span>
+          <span className="text-xs font-medium uppercase tracking-normal text-slate">
+            {tier ? `${tier.label} ${label}` : label}
+          </span>
         </div>
       </div>
     </div>

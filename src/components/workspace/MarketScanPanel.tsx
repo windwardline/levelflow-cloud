@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
 import { Filter, Loader2, RefreshCw, Search, ShieldCheck, Target } from "lucide-react";
 import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, type SecurityType } from "../../lib/symbolMap";
+import {
+  CONFIDENCE_TIERS,
+  formatConfidenceWithTier,
+  type ConfidenceTierId,
+} from "../../lib/confidenceTiers";
 import type { MarketScanCandidate, MarketScanResponse } from "../../lib/tradeAnalyzer";
 
-type ConfidenceBand = "all" | "best" | "strong" | "qualified";
+type ConfidenceBand = "all" | ConfidenceTierId;
 type CategoryFilter = "all" | SecurityType;
 
 type MarketScanPanelProps = {
@@ -14,10 +19,12 @@ type MarketScanPanelProps = {
 };
 
 const CONFIDENCE_BANDS: Array<{ label: string; min: number; value: ConfidenceBand }> = [
-  { label: "All qualified", min: 0, value: "all" },
-  { label: "Best", min: 85, value: "best" },
-  { label: "Strong", min: 75, value: "strong" },
-  { label: "Qualified", min: 66, value: "qualified" },
+  { label: "All tiers", min: 0, value: "all" },
+  ...[...CONFIDENCE_TIERS].reverse().map((tier) => ({
+    label: tier.label,
+    min: tier.min,
+    value: tier.id,
+  })),
 ];
 
 export function MarketScanPanel({
@@ -140,7 +147,9 @@ function MarketScanSummary({
       {topCandidate ? (
         <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-white px-2 py-2">
           <span className="min-w-0 truncate text-navy">Top: {formatSecurityLabel(topCandidate.symbol)}</span>
-          <span className="shrink-0 text-bullish">{topCandidate.confidenceScore ?? 0}%</span>
+          <span className="shrink-0 text-bullish">
+            {formatConfidenceWithTier(topCandidate.confidenceScore)}
+          </span>
         </div>
       ) : null}
     </div>
@@ -162,7 +171,7 @@ function MarketScanRow({
     ? `Entry ${formatNumber(candidate.entryPrice)} / Target ${formatNumber(candidate.takeProfit)}`
     : "Load chart for details";
   const rationale = candidate.rationale?.length ? candidate.rationale : [
-    `${candidate.confidenceScore ?? 0}% confidence.`,
+    `${formatConfidenceWithTier(candidate.confidenceScore)} confidence.`,
     `${formatPayoff(candidate.rewardRisk)} after review.`,
     candidate.executionLabel ? `${candidate.executionLabel} trading-cost check.` : "Trading-cost check complete.",
   ];
@@ -188,7 +197,7 @@ function MarketScanRow({
       </div>
 
       <div className="grid gap-2 rounded-lg bg-white px-3 py-2 text-xs sm:grid-cols-3">
-        <Metric label="Confidence" value={`${candidate.confidenceScore ?? 0}%`} />
+        <Metric label="Confidence" value={formatConfidenceWithTier(candidate.confidenceScore)} />
         <Metric label="Payoff" value={formatPayoff(candidate.rewardRisk)} />
         <Metric label="Execution" value={candidate.executionLabel || "Checked"} />
       </div>
