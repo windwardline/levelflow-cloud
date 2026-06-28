@@ -1,6 +1,6 @@
 # LevelFlow Gap Analysis
 
-Last reviewed: 2026-06-27
+Last reviewed: 2026-06-28
 
 ## Current Strengths
 
@@ -17,6 +17,7 @@ Last reviewed: 2026-06-27
 - Same-candle target/stop ambiguity now reduces global learning weight before it can adjust future confidence.
 - Futures setups now apply contract-specific tick-size rounding and minimum tick-distance checks before execution quality and confidence are calculated.
 - Spot metals now use a dedicated metals session label and maintenance-window handling instead of falling through to generic FX or futures wording.
+- Strategy votes now use conservative category profiles, so crypto, forex, futures, and metals emphasize the same review lenses differently before the final confidence, payoff, timing, and execution checks.
 
 ## Recently Closed
 
@@ -31,6 +32,8 @@ Last reviewed: 2026-06-27
 - The largest Advisor workspace file was reduced by moving Market Scan into a focused component. The analyzer also now keeps execution-quality and learning math in focused pure modules.
 - Profile and theme controls are split out of the top-level app shell, and FMP quote parsing is isolated for test coverage.
 - Donate is split out of the top-level app shell, and returning users resume from their last primary workspace tab.
+- Guide, About, and Insights are split out of the top-level app shell; `App.tsx` now owns shell, auth, navigation, and workspace orchestration instead of full panel rendering.
+- Analyzer session rules are split into a focused module with deterministic coverage for crypto, forex, futures, and spot metals.
 - CI now includes source-level analyzer abuse checks, explicit deploy permissions, deploy concurrency, a job timeout, and a production security-header gate.
 - CI now verifies migration files, can apply remote Supabase migrations when `SUPABASE_DB_PASSWORD` is configured, audits high-severity dependencies, and enforces a bundle-size budget after production build.
 - Live authenticated E2E coverage now checks that repeated analyzer scan requests are rate-limited without server errors when CI test-user secrets are present.
@@ -48,11 +51,11 @@ Last reviewed: 2026-06-27
 
 - Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
-- Continue splitting `src/App.tsx`. Profile, theme controls, and donate are separated now; history, guide, about, and shell utilities should move next as usage stabilizes.
+- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell is now small; the next frontend target is the 900-line Advisor workspace.
 
 ### Back End
 
-- Continue splitting the analyzer Edge Function. Calibration, replay, execution quality, quote parsing, and learning math are separated now; strategy votes, market loading, and Supabase persistence should be split next.
+- Continue splitting the analyzer Edge Function. Calibration, replay, execution quality, quote parsing, learning math, session rules, futures contract rules, and strategy profiles are separated now; strategy vote implementations, market loading, and Supabase persistence should be split next.
 - Add a small internal operations view for `market_data_health` and `analyzer_events` once there is enough live data to make it useful.
 
 ### Security and Reliability
@@ -64,8 +67,8 @@ Last reviewed: 2026-06-27
 
 ## Priority Order
 
-1. Split strategy votes, data loading, and persistence into dedicated analyzer modules.
-2. Split `src/App.tsx` into shell, insights, guide, about, and utility modules.
+1. Split strategy vote implementations, data loading, and persistence into dedicated analyzer modules.
+2. Split the Advisor workspace into focused chart, setup, and data-status panels once the current product surface stabilizes.
 3. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
 4. Add broker-specific execution data if a supported integration becomes available.
 5. Tighten bundle budgets as additional code-splitting lands.
