@@ -23,7 +23,7 @@ import { AuthScreen } from "./components/auth/AuthScreen";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { ProfilePanel } from "./components/workspace/ProfilePanel";
 import { ThemeToggle } from "./components/workspace/ThemeToggle";
-import { DonationOptions } from "./components/donations/DonationOptions";
+import { DonatePanel } from "./components/donations/DonatePanel";
 import { LegalLinks } from "./components/legal/LegalLinks";
 import { useAuthSession } from "./hooks/useAuthSession";
 import {
@@ -102,11 +102,30 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
     value: "profile",
   },
 ];
+const PERSISTED_TABS = new Set<AppTab>([
+  "advisor",
+  "history",
+  "guide",
+  "profile",
+  "about",
+]);
+const LAST_TAB_STORAGE_KEY = "levelflow-last-tab";
+
+function getInitialAppTab(): AppTab {
+  if (typeof window === "undefined") {
+    return "advisor";
+  }
+
+  const stored = window.localStorage.getItem(LAST_TAB_STORAGE_KEY);
+  return stored && PERSISTED_TABS.has(stored as AppTab)
+    ? stored as AppTab
+    : "advisor";
+}
 
 export default function App() {
   const theme = useThemePreference();
   const { session, loading } = useAuthSession();
-  const [activeTab, setActiveTab] = useState<AppTab>("advisor");
+  const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
   const setupState = useTradeSetups();
   const profileState = useUserProfile(
     session?.user.id ?? null,
@@ -119,6 +138,14 @@ export default function App() {
       setupState.refreshSetups({ forceOutcomeRefresh: true });
     }
   }, [activeTab, session, setupState.refreshSetups]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !PERSISTED_TABS.has(activeTab)) {
+      return;
+    }
+
+    window.localStorage.setItem(LAST_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -247,7 +274,9 @@ export default function App() {
           />
         ) : null}
         {activeTab === "guide" ? <GuidePanel /> : null}
-        {activeTab === "donate" ? <DonatePanel /> : null}
+        {activeTab === "donate" ? (
+          <DonatePanel supportEmail={SUPPORT_EMAIL} />
+        ) : null}
 
         <footer className="pb-4">
           <LegalLinks />
@@ -1314,44 +1343,6 @@ function GuideConfidenceBand({
         <h3 className="font-semibold text-navy">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
       </div>
-    </div>
-  );
-}
-
-function DonatePanel() {
-  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent(
-    "I would like the current donation link for LevelFlow development and maintenance.",
-  )}`;
-
-  return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(280px,0.4fr)]">
-      <section className="terminal-panel p-5 sm:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <Gift className="h-5 w-5 text-navy" aria-hidden="true" />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-              Development fund
-            </p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">
-              Donate
-            </h2>
-          </div>
-        </div>
-        <DonationOptions fallbackHref={donationFallbackHref} />
-      </section>
-      <section className="terminal-panel p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-          What donations support
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-          App costs
-        </h2>
-        <p className="mt-4 text-sm leading-6 text-slate">
-          Donations go toward market data, authentication email delivery,
-          hosting, database capacity, testing, and continued LevelFlow
-          development.
-        </p>
-      </section>
     </div>
   );
 }

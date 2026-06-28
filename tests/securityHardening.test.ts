@@ -31,6 +31,9 @@ describe("security hardening", () => {
   it("keeps deploy-time security header verification in CI", () => {
     const workflow = readFileSync(".github/workflows/deploy.yml", "utf8");
 
+    assert.match(workflow, /permissions:\s*\n\s*contents: read/);
+    assert.match(workflow, /concurrency:\s*\n\s*group: deploy-\$\{\{ github\.ref \}\}/);
+    assert.match(workflow, /timeout-minutes: 20/);
     assert.match(workflow, /Verify production security headers/);
     assert.match(workflow, /content-security-policy/);
     assert.match(workflow, /x-frame-options/);

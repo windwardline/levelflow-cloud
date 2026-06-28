@@ -15,6 +15,8 @@ Last reviewed: 2026-06-27
 - Spread, slippage, execution quality, gross payoff, and effective payoff are included before a setup can pass review.
 - When FMP returns a usable bid/ask quote, execution quality uses that live spread before falling back to modeled spread estimates.
 - Same-candle target/stop ambiguity now reduces global learning weight before it can adjust future confidence.
+- Futures setups now apply contract-specific tick-size rounding and minimum tick-distance checks before execution quality and confidence are calculated.
+- Spot metals now use a dedicated metals session label and maintenance-window handling instead of falling through to generic FX or futures wording.
 
 ## Recently Closed
 
@@ -28,7 +30,8 @@ Last reviewed: 2026-06-27
 - Market Scan candidates now include related-market context so clustered opportunities are easier to interpret.
 - The largest Advisor workspace file was reduced by moving Market Scan into a focused component. The analyzer also now keeps execution-quality and learning math in focused pure modules.
 - Profile and theme controls are split out of the top-level app shell, and FMP quote parsing is isolated for test coverage.
-- CI now includes source-level analyzer abuse checks and a production security-header gate.
+- Donate is split out of the top-level app shell, and returning users resume from their last primary workspace tab.
+- CI now includes source-level analyzer abuse checks, explicit deploy permissions, deploy concurrency, a job timeout, and a production security-header gate.
 - CI now verifies migration files, can apply remote Supabase migrations when `SUPABASE_DB_PASSWORD` is configured, audits high-severity dependencies, and enforces a bundle-size budget after production build.
 - Live authenticated E2E coverage now checks that repeated analyzer scan requests are rate-limited without server errors when CI test-user secrets are present.
 - Profile now includes a data-backed review pattern card, so it shows useful user activity instead of static repetition.
@@ -45,8 +48,7 @@ Last reviewed: 2026-06-27
 
 - Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
-- Continue splitting `src/App.tsx`. Profile and theme controls are separated now; history, guide, about, donate, and shell utilities should move next as usage stabilizes.
-- Persist the user’s preferred default tab or last workspace section if real usage shows traders routinely start outside Advisor.
+- Continue splitting `src/App.tsx`. Profile, theme controls, and donate are separated now; history, guide, about, and shell utilities should move next as usage stabilizes.
 
 ### Back End
 
@@ -63,7 +65,7 @@ Last reviewed: 2026-06-27
 ## Priority Order
 
 1. Split strategy votes, data loading, and persistence into dedicated analyzer modules.
-2. Split `src/App.tsx` into shell, insights, guide, about, donate, and utility modules.
+2. Split `src/App.tsx` into shell, insights, guide, about, and utility modules.
 3. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
 4. Add broker-specific execution data if a supported integration becomes available.
 5. Tighten bundle budgets as additional code-splitting lands.

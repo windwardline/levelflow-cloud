@@ -18,6 +18,7 @@ import {
   parseFmpQuoteSnapshot,
   type QuoteSnapshot,
 } from "./quotes.ts";
+import { applyFuturesTickRules } from "./futures.ts";
 
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
@@ -25,7 +26,7 @@ const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const ANALYZER_VERSION = "2026.06.26.execution-quality";
+const ANALYZER_VERSION = "2026.06.27.futures-tick-rules";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
   "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
@@ -1147,17 +1148,24 @@ function buildScanRationale(
   const riskModel = setup.riskModel as Record<string, unknown>;
   const consensus = asRecord(confluence.consensus);
   const marketRegime = asRecord(confluence.marketRegime);
+  const orderConstruction = asRecord(confluence.orderConstruction);
   const sessionContext = asRecord(confluence.sessionContext);
   const executionQuality = asExecutionQuality(riskModel.executionQuality);
   const reasons = [
     `${setup.side.toUpperCase()} setup scored ${setup.confidenceScore}/100.`,
     `${formatTitle(String(marketRegime.name ?? "current"))} conditions.`,
     `Payoff ${Number(confluence.rewardRisk ?? 0).toFixed(2)}x after trading-cost checks.`,
+  ];
+  const tickValidation = orderConstruction.tickValidation;
+  if (typeof tickValidation === "string" && tickValidation.length > 0) {
+    reasons.push(tickValidation);
+  }
+  reasons.push(
     executionQuality
       ? `${executionQuality.label} trading-cost check.`
       : "Trading-cost check complete.",
     String(sessionContext.label ?? "Session checked."),
-  ];
+  );
   const agreementRatio = Number(consensus.agreementRatio ?? 0);
   if (agreementRatio > 0) {
     reasons.push(`${Math.round(agreementRatio * 100)}% direction agreement.`);
@@ -1337,8 +1345,13 @@ async function analyzeSetup(
       grossRewardRisk: Number(pricePlan.grossRewardRisk.toFixed(2)),
       rewardRisk: Number(pricePlan.rewardRisk.toFixed(2)),
       orderConstruction: {
+        contractSpec: pricePlan.contractSpec,
+        futuresTickAdjustments: pricePlan.futuresTickAdjustments,
         orderType: "limit",
         latestClose: market.latest.close,
+        tickValidation: pricePlan.contractSpec
+          ? `Prices rounded to the ${pricePlan.contractSpec.contractLabel} tick size.`
+          : null,
         validation: consensus.side === "buy"
           ? "buy limit entry below latest close"
           : "sell limit entry above latest close",
@@ -1355,6 +1368,7 @@ async function analyzeSetup(
       atr: pricePlan.atr,
       dailyAtr: averageTrueRange(market.daily, 14),
       executionQuality: pricePlan.executionQuality,
+      futuresContract: pricePlan.contractSpec,
       positionSizingStatus: "not_calculated",
       positionSizingReason:
         "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
@@ -2525,17 +2539,17 @@ function buildPricePlan(
     (regime.name === "trend"
       ? calibration.entryOffsetTrend
       : calibration.entryOffsetDefault);
-  const entryPrice = side === "buy"
+  let entryPrice = side === "buy"
     ? latest.close - entryOffset
     : latest.close + entryOffset;
   const stopBuffer = Math.max(
     atr * calibration.stopAtrMultiplier,
     dailyAtr * calibration.dailyStopAtrMultiplier,
   );
-  const stopLoss = side === "buy"
+  let stopLoss = side === "buy"
     ? Math.min(structure.latestSwingLow - stopBuffer, entryPrice - atr * 1.25)
     : Math.max(structure.latestSwingHigh + stopBuffer, entryPrice + atr * 1.25);
-  const riskDistance = Math.abs(entryPrice - stopLoss);
+  let riskDistance = Math.abs(entryPrice - stopLoss);
   const minimumLimitDistance = Math.max(
     atr * 0.05,
     Math.abs(latest.close) * 0.00005,
@@ -2592,6 +2606,24 @@ function buildPricePlan(
     takeProfit = entryPrice - riskDistance * 2;
   }
 
+  const assetType = getAssetType(symbol);
+  const futuresTickPlan = assetType === "futures"
+    ? applyFuturesTickRules({
+      entryPrice,
+      side,
+      stopLoss,
+      symbol,
+      takeProfit,
+    })
+    : null;
+
+  if (futuresTickPlan) {
+    entryPrice = futuresTickPlan.entryPrice;
+    stopLoss = futuresTickPlan.stopLoss;
+    takeProfit = futuresTickPlan.takeProfit;
+    riskDistance = Math.abs(entryPrice - stopLoss);
+  }
+
   if (side === "buy" && roundPrice(takeProfit) <= roundPrice(entryPrice)) {
     return null;
   }
@@ -2606,7 +2638,7 @@ function buildPricePlan(
     return null;
   }
   const executionQuality = estimateExecutionQuality({
-    assetType: getAssetType(symbol),
+    assetType,
     atr,
     availableTimeframes: market.availableTimeframes,
     dailyAtr,
@@ -2622,8 +2654,10 @@ function buildPricePlan(
 
   return {
     atr,
+    contractSpec: futuresTickPlan?.contractSpec ?? null,
     entryPrice,
     executionQuality,
+    futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
     grossRewardRisk: rewardRisk,
     rewardRisk: executionQuality.effectiveRewardRisk,
     stopLogic:
@@ -2683,7 +2717,8 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
     };
   }
 
-  if (assetType === "futures") {
+  if (assetType === "futures" || assetType === "metals") {
+    const isMetals = assetType === "metals";
     const eastern = getZonedParts(now, "America/New_York");
     const minutes = eastern.hour * 60 + eastern.minute;
     const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 &&
@@ -2694,28 +2729,35 @@ function getSessionContext(symbol: SupportedSymbol): SessionContext {
     if (maintenanceBreak) {
       return {
         block: true,
-        label: "Futures maintenance window",
-        marketKind: "futures",
+        label: isMetals
+          ? "Spot metals maintenance window"
+          : "Futures maintenance window",
+        marketKind: isMetals ? "metals" : "futures",
         penalty: 100,
-        reason:
-          "The futures market is in its daily maintenance window.",
+        reason: isMetals
+          ? "The spot metals market is in its daily maintenance window."
+          : "The futures market is in its daily maintenance window.",
       };
     }
 
     if (fridayClose || sundayPreopen || eastern.weekday === 6) {
       return {
         block: true,
-        label: "Futures weekend liquidity risk",
-        marketKind: "futures",
+        label: isMetals
+          ? "Spot metals weekend liquidity risk"
+          : "Futures weekend liquidity risk",
+        marketKind: isMetals ? "metals" : "futures",
         penalty: 100,
-        reason: "The futures market is outside its active weekly session.",
+        reason: isMetals
+          ? "The spot metals market is outside its active weekly session."
+          : "The futures market is outside its active weekly session.",
       };
     }
 
     return {
       block: false,
-      label: "Primary futures session",
-      marketKind: "futures",
+      label: isMetals ? "Spot metals session" : "Primary futures session",
+      marketKind: isMetals ? "metals" : "futures",
       penalty: 0,
     };
   }

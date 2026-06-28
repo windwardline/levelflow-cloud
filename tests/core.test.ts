@@ -5,6 +5,10 @@ import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
 import { buildProfileReviewPattern } from "../src/lib/profileInsights";
 import {
+  getAssetType,
+  getCategoryCalibration,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
   coerceToSupportedUsTimeZone,
   formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
@@ -84,6 +88,26 @@ describe("asset catalog", () => {
     );
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), false);
+  });
+});
+
+describe("trade analyzer category handling", () => {
+  it("keeps asset categories on distinct analyzer calibrations", () => {
+    assert.equal(getAssetType("BTCUSD"), "crypto");
+    assert.equal(getAssetType("EURUSD"), "forex");
+    assert.equal(getAssetType("ESUSD"), "futures");
+    assert.equal(getAssetType("XAUUSD"), "metals");
+
+    const crypto = getCategoryCalibration("BTCUSD");
+    const forex = getCategoryCalibration("EURUSD");
+    const futures = getCategoryCalibration("ESUSD");
+    const metals = getCategoryCalibration("XAUUSD");
+
+    assert.ok(crypto.defaultReviewHours > futures.defaultReviewHours);
+    assert.ok(crypto.minRewardRisk > forex.minRewardRisk);
+    assert.ok(forex.newsPenaltyPerEvent >= crypto.newsPenaltyPerEvent);
+    assert.ok(metals.stopAtrMultiplier > forex.stopAtrMultiplier);
+    assert.ok(futures.defaultReviewHours < metals.defaultReviewHours);
   });
 });
 
@@ -199,6 +223,19 @@ describe("market clocks", () => {
     assert.equal(rolloverPause.statusLabel, "Closed");
     assert.equal(rolloverPause.nextEventLabel, "Opens");
     assert.equal(rolloverPause.countdownLabel, "5m");
+  });
+
+  it("uses a dedicated spot metals session instead of the futures label", () => {
+    const maintenanceWindow = getMarketClock(
+      "XAUUSD",
+      "America/Chicago",
+      new Date("2026-06-15T21:30:00.000Z"),
+    );
+
+    assert.equal(maintenanceWindow.marketLabel, "Spot metals session");
+    assert.equal(maintenanceWindow.statusLabel, "Closed");
+    assert.equal(maintenanceWindow.nextEventLabel, "Opens");
+    assert.equal(maintenanceWindow.countdownLabel, "30m");
   });
 
   it("returns all global sessions with the selected session highlighted", () => {
