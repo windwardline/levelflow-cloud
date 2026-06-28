@@ -10,6 +10,11 @@ import {
   type SetupOutcome,
 } from "../../lib/outcomes";
 import {
+  CONFIDENCE_TIERS,
+  formatConfidenceTierRange,
+  formatConfidenceWithTier,
+} from "../../lib/confidenceTiers";
+import {
   compareAssetCategories,
   compareAssetSymbols,
   formatSecurityLabel,
@@ -446,7 +451,7 @@ function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         />
         <HistoryMetric
           label="Confidence"
-          value={`${Number(setup.confidence_score)}%`}
+          value={formatConfidenceWithTier(setup.confidence_score)}
         />
         <HistoryMetric
           label="Payoff"
@@ -556,12 +561,14 @@ function ConfidenceBandRow({
   ambiguous,
   count,
   label,
+  range,
   resolved,
   winRate,
 }: {
   ambiguous: number;
   count: number;
   label: string;
+  range: string;
   resolved: number;
   winRate: number | null;
 }) {
@@ -573,7 +580,7 @@ function ConfidenceBandRow({
         <div>
           <p className="font-semibold text-navy">{label}</p>
           <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
-            {count} setups / {resolved} finished
+            {range} / {count} setups / {resolved} finished
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-navy">
@@ -669,35 +676,16 @@ function groupHistorySetups(
 }
 
 function buildConfidenceBands(setups: TradeSetupRow[]) {
-  const bands = [
-    {
+  const bands = CONFIDENCE_TIERS.map((tier) => ({
       ambiguous: 0,
       count: 0,
-      label: "Qualified: 66-74",
+      label: tier.label,
       losses: 0,
-      max: 74,
-      min: 66,
+      max: tier.max,
+      min: tier.min,
+      range: formatConfidenceTierRange(tier),
       wins: 0,
-    },
-    {
-      ambiguous: 0,
-      count: 0,
-      label: "Strong: 75-84",
-      losses: 0,
-      max: 84,
-      min: 75,
-      wins: 0,
-    },
-    {
-      ambiguous: 0,
-      count: 0,
-      label: "Best: 85-100",
-      losses: 0,
-      max: 100,
-      min: 85,
-      wins: 0,
-    },
-  ];
+  }));
 
   for (const setup of setups) {
     const score = Number(setup.confidence_score);
@@ -724,6 +712,7 @@ function buildConfidenceBands(setups: TradeSetupRow[]) {
       ambiguous: band.ambiguous,
       count: band.count,
       label: band.label,
+      range: band.range,
       resolved,
       winRate: resolved > 0 ? Math.round((band.wins / resolved) * 100) : null,
     };

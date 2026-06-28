@@ -13,6 +13,10 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import {
+  CONFIDENCE_TIERS,
+  formatConfidenceTierRange,
+} from "../../lib/confidenceTiers";
 
 type GuidePanelProps = {
   supportEmail: string;
@@ -100,24 +104,6 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       body: "A reference level after the setup has moved in favor.",
       label: "Reference",
       value: "Break-even",
-    },
-  ];
-
-  const confidenceBands = [
-    {
-      body: "Enough agreement, timing quality, and payoff for LevelFlow to show a setup.",
-      range: "66+",
-      title: "Qualified",
-    },
-    {
-      body: "Stronger agreement across direction, location, timing, and recent results.",
-      range: "80+",
-      title: "High agreement",
-    },
-    {
-      body: "No current setup meets the review threshold. No setup is a valid result.",
-      range: "Blocked",
-      title: "No setup",
     },
   ];
 
@@ -221,12 +207,23 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
               Confidence is a 0-100 quality score. It reflects market agreement,
               payoff, timing, event risk, data quality, and past results.
+              A setup only appears after it passes the required review for that
+              market.
             </p>
           </div>
           <div className="grid gap-3">
-            {confidenceBands.map((band) => (
-              <GuideConfidenceBand key={band.range} {...band} />
+            {CONFIDENCE_TIERS.map((tier) => (
+              <GuideConfidenceBand
+                key={tier.id}
+                body={tier.body}
+                range={formatConfidenceTierRange(tier)}
+                title={tier.label}
+              />
             ))}
+            <p className="rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
+              If the current market does not pass review, LevelFlow clears the
+              previous setup instead of showing a stale one.
+            </p>
           </div>
         </div>
       </section>
@@ -264,7 +261,7 @@ function GuidePreviewCard() {
             Sell limit
           </span>
           <span className="text-sm font-semibold text-navy">
-            87% confidence
+            Best, 87%
           </span>
         </div>
         <div className="grid gap-2 text-sm">

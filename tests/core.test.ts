@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
+import {
+  CONFIDENCE_TIERS,
+  formatConfidenceTierRange,
+  formatConfidenceWithTier,
+  getConfidenceTier,
+} from "../src/lib/confidenceTiers";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
 import { buildProfileReviewPattern } from "../src/lib/profileInsights";
 import {
@@ -108,6 +114,40 @@ describe("trade analyzer category handling", () => {
     assert.ok(forex.newsPenaltyPerEvent >= crypto.newsPenaltyPerEvent);
     assert.ok(metals.stopAtrMultiplier > forex.stopAtrMultiplier);
     assert.ok(futures.defaultReviewHours < metals.defaultReviewHours);
+  });
+});
+
+describe("confidence tiers", () => {
+  it("keeps setup confidence labels on one shared scale", () => {
+    assert.deepEqual(
+      CONFIDENCE_TIERS.map((tier) => ({
+        id: tier.id,
+        label: tier.label,
+        range: formatConfidenceTierRange(tier),
+      })),
+      [
+        { id: "qualified", label: "Qualified", range: "66-74" },
+        { id: "strong", label: "Strong", range: "75-84" },
+        { id: "best", label: "Best", range: "85-100" },
+      ],
+    );
+  });
+
+  it("classifies confidence scores at tier boundaries", () => {
+    assert.equal(getConfidenceTier(65), null);
+    assert.equal(getConfidenceTier(66)?.label, "Qualified");
+    assert.equal(getConfidenceTier(74)?.label, "Qualified");
+    assert.equal(getConfidenceTier(75)?.label, "Strong");
+    assert.equal(getConfidenceTier(84)?.label, "Strong");
+    assert.equal(getConfidenceTier(85)?.label, "Best");
+    assert.equal(getConfidenceTier(100)?.label, "Best");
+  });
+
+  it("formats compact confidence labels consistently", () => {
+    assert.equal(formatConfidenceWithTier(73.6), "Qualified 74%");
+    assert.equal(formatConfidenceWithTier("80"), "Strong 80%");
+    assert.equal(formatConfidenceWithTier(91), "Best 91%");
+    assert.equal(formatConfidenceWithTier(null), "Pending");
   });
 });
 
