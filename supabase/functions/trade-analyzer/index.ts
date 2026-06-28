@@ -19,6 +19,11 @@ import {
   type QuoteSnapshot,
 } from "./quotes.ts";
 import { applyFuturesTickRules } from "./futures.ts";
+import {
+  getSessionContext,
+  type SessionContext,
+} from "./sessions.ts";
+import { applyStrategyProfile } from "./strategyProfiles.ts";
 
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
@@ -26,7 +31,7 @@ const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const ANALYZER_VERSION = "2026.06.27.futures-tick-rules";
+const ANALYZER_VERSION = "2026.06.28.category-strategy-profiles";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
   "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
   .split(",")
@@ -293,9 +298,11 @@ type NewsEvent = {
 };
 
 type StrategyVote = {
+  baseScore?: number;
   confidence: number;
   direction: Direction;
   name: string;
+  profileWeight?: number;
   rationale: string;
   score: number;
   timeframe: Timeframe | "multi";
@@ -318,14 +325,6 @@ type Regime = {
   rationale: string;
   trendStrength: number;
   volatilityPercentile: number;
-};
-
-type SessionContext = {
-  block: boolean;
-  label: string;
-  marketKind: string;
-  penalty: number;
-  reason?: string;
 };
 
 type ExistingSetupRow = {
@@ -1236,7 +1235,7 @@ async function analyzeSetup(
 ) {
   const calibration = getCategoryCalibration(symbol);
   const regime = classifyRegime(market);
-  const votes = runStrategyCommittee(market, regime);
+  const votes = runStrategyCommittee(symbol, market, regime);
   const consensus = scoreConsensus(votes, regime);
   if (!consensus.side) {
     return null;
@@ -1390,7 +1389,7 @@ async function explainNoSetup(
 ) {
   const calibration = getCategoryCalibration(symbol);
   const regime = classifyRegime(market);
-  const votes = runStrategyCommittee(market, regime);
+  const votes = runStrategyCommittee(symbol, market, regime);
   const consensus = scoreConsensus(votes, regime);
   const diagnostics: string[] = [];
 
@@ -2132,7 +2131,11 @@ async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
   return bars.map((bar) => ({ ...bar }));
 }
 
-function runStrategyCommittee(market: MarketContext, regime: Regime) {
+function runStrategyCommittee(
+  symbol: SupportedSymbol,
+  market: MarketContext,
+  regime: Regime,
+) {
   const votes: StrategyVote[] = [
     voteMultiTimeframeAlignment(market, regime),
     voteSmartMoneyConcepts(market),
@@ -2144,7 +2147,9 @@ function runStrategyCommittee(market: MarketContext, regime: Regime) {
     voteVolumeProfile(market),
   ];
 
-  return votes.filter((vote) => vote.score > 0 || vote.direction === "block");
+  return applyStrategyProfile(getAssetType(symbol), votes).filter((vote) =>
+    vote.score > 0 || vote.direction === "block"
+  );
 }
 
 function scoreConsensus(votes: StrategyVote[], regime: Regime) {
@@ -2702,146 +2707,6 @@ function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
     return true;
   }
   return symbolCurrencies[symbol]?.includes(currency) ?? currency === "USD";
-}
-
-function getSessionContext(symbol: SupportedSymbol): SessionContext {
-  const now = new Date();
-  const assetType = getAssetType(symbol);
-
-  if (assetType === "crypto") {
-    return {
-      block: false,
-      label: "Continuous digital asset session",
-      marketKind: "crypto",
-      penalty: 0,
-    };
-  }
-
-  if (assetType === "futures" || assetType === "metals") {
-    const isMetals = assetType === "metals";
-    const eastern = getZonedParts(now, "America/New_York");
-    const minutes = eastern.hour * 60 + eastern.minute;
-    const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 &&
-      minutes >= 17 * 60 && minutes < 18 * 60;
-    const fridayClose = eastern.weekday === 5 && minutes >= 16 * 60 + 30;
-    const sundayPreopen = eastern.weekday === 7 && minutes < 18 * 60;
-
-    if (maintenanceBreak) {
-      return {
-        block: true,
-        label: isMetals
-          ? "Spot metals maintenance window"
-          : "Futures maintenance window",
-        marketKind: isMetals ? "metals" : "futures",
-        penalty: 100,
-        reason: isMetals
-          ? "The spot metals market is in its daily maintenance window."
-          : "The futures market is in its daily maintenance window.",
-      };
-    }
-
-    if (fridayClose || sundayPreopen || eastern.weekday === 6) {
-      return {
-        block: true,
-        label: isMetals
-          ? "Spot metals weekend liquidity risk"
-          : "Futures weekend liquidity risk",
-        marketKind: isMetals ? "metals" : "futures",
-        penalty: 100,
-        reason: isMetals
-          ? "The spot metals market is outside its active weekly session."
-          : "The futures market is outside its active weekly session.",
-      };
-    }
-
-    return {
-      block: false,
-      label: isMetals ? "Spot metals session" : "Primary futures session",
-      marketKind: isMetals ? "metals" : "futures",
-      penalty: 0,
-    };
-  }
-
-  const eastern = getZonedParts(now, "America/New_York");
-  const london = getZonedParts(now, "Europe/London");
-  const easternMinutes = eastern.hour * 60 + eastern.minute;
-  const londonMinutes = london.hour * 60 + london.minute;
-  const easternWeekday = eastern.weekday >= 1 && eastern.weekday <= 5;
-  const londonWeekday = london.weekday >= 1 && london.weekday <= 5;
-  const dailyRollover = eastern.weekday >= 1 && eastern.weekday <= 4 &&
-    easternMinutes >= 16 * 60 + 59 && easternMinutes < 17 * 60 + 5;
-  const londonNyOverlap = easternWeekday && londonWeekday &&
-    easternMinutes >= 8 * 60 && easternMinutes < 12 * 60 &&
-    londonMinutes >= 13 * 60 && londonMinutes < 17 * 60;
-  const londonOpen = londonWeekday && londonMinutes >= 8 * 60 &&
-    londonMinutes < 10 * 60;
-  const lateSession = easternWeekday && easternMinutes >= 16 * 60 &&
-    easternMinutes < 17 * 60;
-  const fridayClose = eastern.weekday === 5 &&
-    easternMinutes >= 16 * 60 + 30;
-  const weekend = eastern.weekday === 6 ||
-    (eastern.weekday === 7 && easternMinutes < 17 * 60 + 5);
-
-  return {
-    block: weekend || dailyRollover,
-    label: weekend
-      ? "FX weekend closure"
-      : dailyRollover
-      ? "FX rollover pause"
-      : fridayClose
-      ? "Late Friday FX session"
-      : londonNyOverlap
-      ? "London/New York overlap"
-      : londonOpen
-      ? "London open"
-      : lateSession
-      ? "Late-session risk"
-      : "Normal session",
-    marketKind: "forex",
-    penalty: weekend || dailyRollover
-      ? 100
-      : fridayClose
-      ? 10
-      : lateSession
-      ? 3
-      : 0,
-    reason: weekend
-      ? "The FX market is outside its active weekly session."
-      : dailyRollover
-      ? "The FX market is in its daily rollover pause."
-      : fridayClose
-      ? "Late Friday liquidity conditions reduce setup quality."
-      : lateSession
-      ? "Late-session liquidity can reduce follow-through."
-      : undefined,
-  };
-}
-
-function getZonedParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    timeZone,
-    weekday: "short",
-  }).formatToParts(date);
-  const lookup = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
-  const weekdayMap: Record<string, number> = {
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-    Sun: 7,
-  };
-  return {
-    hour: Number(lookup.hour ?? 0),
-    minute: Number(lookup.minute ?? 0),
-    weekday: weekdayMap[lookup.weekday ?? "Mon"] ?? 1,
-  };
 }
 
 function pickPrimaryTimeframe(
