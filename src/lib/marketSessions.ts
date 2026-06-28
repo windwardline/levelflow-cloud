@@ -1,7 +1,7 @@
 import { getSecurityOption, type SupportedSymbol } from "./symbolMap";
 import type { PreferredSession } from "./profile";
 
-type MarketKind = "crypto" | "forex" | "futures";
+type MarketKind = "crypto" | "forex" | "futures" | "metals";
 
 type ZonedParts = {
   day: number;
@@ -52,7 +52,13 @@ type GlobalSessionDefinition = {
 
 export function getMarketClock(symbol: SupportedSymbol, userTimeZone: string, now = new Date()): MarketClock {
   const option = getSecurityOption(symbol);
-  const kind: MarketKind = option.assetType === "Crypto" ? "crypto" : option.assetType === "Forex" ? "forex" : "futures";
+  const kind: MarketKind = option.assetType === "Crypto"
+    ? "crypto"
+    : option.assetType === "Futures"
+    ? "futures"
+    : option.assetType === "Metals"
+    ? "metals"
+    : "forex";
 
   if (kind === "crypto") {
     return {
@@ -68,9 +74,13 @@ export function getMarketClock(symbol: SupportedSymbol, userTimeZone: string, no
     };
   }
 
-  const marketTimeZone = kind === "forex" ? "America/New_York" : "America/New_York";
-  const marketLabel = kind === "forex" ? "Global FX session" : "Primary futures session";
-  const isOpen = kind === "forex" ? isForexOpen(now, marketTimeZone) : isFuturesOpen(now, marketTimeZone);
+  const marketTimeZone = "America/New_York";
+  const marketLabel = kind === "forex"
+    ? "Global FX session"
+    : kind === "metals"
+    ? "Spot metals session"
+    : "Primary futures session";
+  const isOpen = isMarketOpen(now, marketTimeZone, kind);
   const nextEvent = findNextMarketEvent(now, marketTimeZone, kind);
 
   return {
@@ -105,15 +115,15 @@ export function getGlobalSessions(userTimeZone: string, preferredSession: Prefer
 }
 
 function findNextMarketEvent(now: Date, timeZone: string, kind: MarketKind) {
-  const currentOpen = kind === "forex" ? isForexOpen(now, timeZone) : isFuturesOpen(now, timeZone);
+  const currentOpen = isMarketOpen(now, timeZone, kind);
   const candidates = buildMarketCandidates(now, timeZone, kind)
     .filter((candidate) => candidate.getTime() > now.getTime())
     .sort((first, second) => first.getTime() - second.getTime());
 
   for (const candidate of candidates) {
     const before = new Date(candidate.getTime() - 60_000);
-    const afterOpen = kind === "forex" ? isForexOpen(candidate, timeZone) : isFuturesOpen(candidate, timeZone);
-    const beforeOpen = kind === "forex" ? isForexOpen(before, timeZone) : isFuturesOpen(before, timeZone);
+    const afterOpen = isMarketOpen(candidate, timeZone, kind);
+    const beforeOpen = isMarketOpen(before, timeZone, kind);
     if (afterOpen !== beforeOpen) {
       return {
         date: candidate,
@@ -123,6 +133,12 @@ function findNextMarketEvent(now: Date, timeZone: string, kind: MarketKind) {
   }
 
   return null;
+}
+
+function isMarketOpen(date: Date, timeZone: string, kind: MarketKind) {
+  return kind === "forex"
+    ? isForexOpen(date, timeZone)
+    : isFuturesStyleMarketOpen(date, timeZone);
 }
 
 function buildMarketCandidates(now: Date, timeZone: string, kind: MarketKind) {
@@ -158,7 +174,7 @@ function isForexOpen(date: Date, timeZone: string) {
   return false;
 }
 
-function isFuturesOpen(date: Date, timeZone: string) {
+function isFuturesStyleMarketOpen(date: Date, timeZone: string) {
   const parts = getZonedParts(date, timeZone);
   const minutes = parts.hour * 60 + parts.minute;
 

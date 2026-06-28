@@ -632,6 +632,7 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
   const providerWarnings = asStringArray(confluence.providerWarnings).concat(result?.providerWarnings ?? []);
   const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents) ? confluence.upcomingNewsEvents.length : 0;
   const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
+  const tickValidation = typeof orderConstruction.tickValidation === "string" ? orderConstruction.tickValidation : "";
 
   const items: QualityReceiptItem[] = [
     {
@@ -646,7 +647,10 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
       value: `${setup.side.toUpperCase()} view`,
     },
     {
-      detail: String(orderConstruction.validation ?? "Entry is built as a limit order away from the latest close."),
+      detail: [
+        String(orderConstruction.validation ?? "Entry is built as a limit order away from the latest close."),
+        tickValidation,
+      ].filter(Boolean).join(" "),
       label: "Order type",
       value: "Limit only",
     },
