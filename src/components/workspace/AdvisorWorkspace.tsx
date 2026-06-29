@@ -602,7 +602,7 @@ function QualityReceipt({ receipt }: { receipt: QualityReceiptData }) {
               <div key={`${vote.name}:${vote.direction}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm">
                 <span className="min-w-0 truncate font-semibold text-navy">{formatStrategyName(vote.name)}</span>
                 <span className={vote.direction === "buy" ? "text-bullish" : vote.direction === "sell" ? "text-danger" : "text-slate"}>
-                  {vote.direction} / {vote.score}
+                  {formatVoteSupport(vote.direction)}
                 </span>
               </div>
             ))}
@@ -645,7 +645,7 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
       detail: `Buy case ${formatMaybeNumber(consensus.buyScore)}/100, sell case ${formatMaybeNumber(consensus.sellScore)}/100, caution ${formatMaybeNumber(consensus.blockScore)}/100.`,
       label: "Direction",
       tone: setup.side === "buy" ? "bullish" : "danger",
-      value: `${setup.side.toUpperCase()} view`,
+      value: setup.side === "buy" ? "Buy view" : "Sell view",
     },
     {
       detail: [
@@ -768,11 +768,13 @@ function formatScoreAdjustment(value: number | null) {
 function cleanReviewMessage(value: string) {
   return value
     .replace(/No clear direction passed review: buy \d+(?:\.\d+)?, sell \d+(?:\.\d+)?, block \d+(?:\.\d+)?\./i, "The chart did not show a clear enough direction.")
-    .replace(/Committee favored (buy|sell), but the adjusted score was (\d+); LevelFlow requires 66 or higher\./i, (_match, side: string, score: string) => `The ${side.toLowerCase()} case reached ${score}/100. LevelFlow shows setups at 66/100 or higher.`)
-    .replace(/Payoff was ([0-9.]+)x; LevelFlow requires at least 1\.35x\./i, (_match, payoff: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff).`)
+    .replace(/The current (buy|sell) setup scored (\d+); LevelFlow requires (\d+) or higher for this market\./i, (_match, side: string, score: string, threshold: string) => `The ${side.toLowerCase()} case reached ${score}/100. This market needs ${threshold}/100 or higher.`)
+    .replace(/Payoff was ([0-9.]+)x; LevelFlow requires at least ([0-9.]+)x for this market\./i, (_match, payoff: string, required: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff; ${required}x required).`)
     .replace(/Limit entry failed price validation, so no limit-order setup was shown\./i, "A valid limit entry was not available at the current price.")
     .replace(/Fewer than three review timeframes were available from the provider\./i, "Some chart intervals are missing, so LevelFlow is waiting for better coverage.")
     .replace(/\d+ major scheduled event(?:s)? reduced setup quality\./i, "Upcoming scheduled news reduced timing quality.")
+    .replace(/Estimated spread and slippage reduced the setup score by (\d+)\./i, (_match, penalty: string) => `Trading costs reduced the score by ${penalty}.`)
+    .replace(/reduced confidence\./gi, "reduced timing quality.")
     .replace(/FMP/gi, "The chart feed")
     .replace(/provider/gi, "chart feed")
     .replace(/analyzer confidence/gi, "review")
@@ -787,6 +789,19 @@ function cleanReviewMessage(value: string) {
     .replace(/liquidity/gi, "price levels")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function formatVoteSupport(direction: string) {
+  if (direction === "buy") {
+    return "Buy support";
+  }
+  if (direction === "sell") {
+    return "Sell support";
+  }
+  if (direction === "block") {
+    return "Caution";
+  }
+  return "Neutral";
 }
 
 function uniqueReviewMessages(values: string[]) {

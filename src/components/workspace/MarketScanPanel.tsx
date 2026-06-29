@@ -3,6 +3,7 @@ import { Filter, Loader2, RefreshCw, Search, ShieldCheck, Target } from "lucide-
 import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, type SecurityType } from "../../lib/symbolMap";
 import {
   CONFIDENCE_TIERS,
+  formatConfidenceTierRange,
   formatConfidenceWithTier,
   type ConfidenceTierId,
 } from "../../lib/confidenceTiers";
@@ -21,7 +22,7 @@ type MarketScanPanelProps = {
 const CONFIDENCE_BANDS: Array<{ label: string; min: number; value: ConfidenceBand }> = [
   { label: "All tiers", min: 0, value: "all" },
   ...[...CONFIDENCE_TIERS].reverse().map((tier) => ({
-    label: tier.label,
+    label: `${tier.label} (${formatConfidenceTierRange(tier)}%)`,
     min: tier.min,
     value: tier.id,
   })),
