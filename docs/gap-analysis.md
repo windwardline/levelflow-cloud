@@ -24,12 +24,14 @@ Last reviewed: 2026-06-29
 - Historical replay coverage now verifies target, stop, no-fill expiry, and same-candle ambiguous outcomes through the shared replay module.
 - Forex, crypto, futures, and metals now use category-specific thresholds, payoff floors, news/provider penalties, ATR construction, and review windows.
 - FMP candle requests are cached briefly inside the analyzer Edge Function to reduce duplicate scan latency and provider pressure.
+- Analyzer market loading is now isolated in `marketLoader.ts`, including FMP candle/quote fetches, candle caching, primary timeframe selection, and market-data telemetry.
+- Analyzer price construction is now isolated in `pricePlan.ts`, and targets now choose the nearest qualifying objective after the payoff floor instead of the farthest possible objective.
 - `market_data_health` persists symbol-level provider health, available timeframes, candle counts, latest bar time, and warnings.
 - `analyzer_events` captures structured backend events for blocked reviews, scan failures, provider errors, slow FMP calls, cache hits, and successful reviews.
 - Legacy `pending_orders` persistence is consolidated into `trade_setups`; the app records setups and outcomes, not executable orders.
 - Market Scan now has group and quality filters, compact ranking cards, and short rationale previews.
 - Market Scan candidates now include related-market context so clustered opportunities are easier to interpret.
-- The largest Advisor workspace file was reduced by moving Market Scan into a focused component. The analyzer also now keeps strategy voting, indicators, symbol routing, execution quality, and learning math in focused pure modules.
+- The largest Advisor workspace file was reduced by moving Market Scan and setup-quality receipts into focused components. The analyzer also now keeps strategy voting, indicators, symbol routing, market loading, price planning, execution quality, and learning math in focused modules.
 - Profile and theme controls are split out of the top-level app shell, and FMP quote parsing is isolated for test coverage.
 - Donate is split out of the top-level app shell, and returning users resume from their last primary workspace tab.
 - Guide, About, and Insights are split out of the top-level app shell; `App.tsx` now owns shell, auth, navigation, and workspace orchestration instead of full panel rendering.
@@ -51,11 +53,11 @@ Last reviewed: 2026-06-29
 
 - Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
-- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell is now small; the next frontend target is the 900-line Advisor workspace.
+- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell is now small; the Advisor workspace has been reduced meaningfully, with chart/status orchestration still the next natural split point.
 
 ### Back End
 
-- Continue splitting the analyzer Edge Function. Calibration, strategy voting, indicators, replay, execution quality, quote parsing, learning math, session rules, futures contract rules, strategy profiles, and symbol routing are separated now; market loading and Supabase persistence should be split next.
+- Continue splitting the analyzer Edge Function. Calibration, strategy voting, indicators, replay, market loading, price planning, execution quality, quote parsing, learning math, session rules, futures contract rules, strategy profiles, and symbol routing are separated now; Supabase persistence should be split next.
 - Add a small internal operations view for `market_data_health` and `analyzer_events` once there is enough live data to make it useful.
 
 ### Security and Reliability
@@ -67,8 +69,8 @@ Last reviewed: 2026-06-29
 
 ## Priority Order
 
-1. Split analyzer market loading and Supabase persistence into dedicated modules.
-2. Split the Advisor workspace into focused chart, setup, and data-status panels once the current product surface stabilizes.
+1. Split analyzer Supabase persistence into a dedicated module.
+2. Split the Advisor workspace into focused chart and data-status panels once the current product surface stabilizes.
 3. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
 4. Add broker-specific execution data if a supported integration becomes available.
 5. Tighten bundle budgets as additional code-splitting lands.

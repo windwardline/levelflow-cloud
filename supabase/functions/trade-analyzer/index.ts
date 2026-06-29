@@ -1,9 +1,5 @@
-import {
-  type CategoryCalibration,
-  getAssetType,
-  getCategoryCalibration,
-} from "./calibration.ts";
-import { averageTrueRange, findStructureLevels } from "./indicators.ts";
+import { getAssetType, getCategoryCalibration } from "./calibration.ts";
+import { averageTrueRange } from "./indicators.ts";
 import {
   classifyRegime,
   runStrategyCommittee,
@@ -11,26 +7,19 @@ import {
 } from "./strategies.ts";
 import {
   type Bar,
-  intradayTimeframes,
   type MarketContext,
   type Regime,
   type Side,
   type StrategyVote,
   type SupportedSymbol,
-  type Timeframe,
 } from "./types.ts";
 import {
   evaluateSetupOutcome,
   getSetupExpiryTime,
   type ResolvedOutcome,
 } from "./replay.ts";
-import {
-  estimateExecutionQuality,
-  type ExecutionQuality,
-} from "./executionQuality.ts";
+import { type ExecutionQuality } from "./executionQuality.ts";
 import { calculateLearningWeight } from "./learning.ts";
-import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
-import { applyFuturesTickRules } from "./futures.ts";
 import { getSessionContext, type SessionContext } from "./sessions.ts";
 import {
   defaultScanSymbols,
@@ -42,9 +31,13 @@ import {
   isTemporarilyUnavailableSymbol,
   resolveProviderSymbols,
 } from "./symbols.ts";
+import { buildPricePlan } from "./pricePlan.ts";
+import {
+  fetchFirstAvailableMarketContext,
+  fetchFmpBars,
+  type ProviderContextResult,
+} from "./marketLoader.ts";
 
-const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
-  "https://financialmodelingprep.com/stable";
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
@@ -62,30 +55,10 @@ const RATE_LIMITS: Record<string, number> = {
   scan_opportunities: 8,
 };
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
-const MARKET_DATA_FETCH_TIMEOUT_MS = 12_000;
-const QUOTE_FETCH_TIMEOUT_MS = 6_000;
-const CANDLE_CACHE_TTL_MS: Record<Timeframe, number> = {
-  "15min": 45_000,
-  "1hour": 90_000,
-  "4hour": 180_000,
-  "1day": 10 * 60_000,
-};
-const SLOW_PROVIDER_CALL_MS = 2_500;
-const candleCache = new Map<string, { bars: Bar[]; expiresAt: number }>();
-
 type AnalyzeRequest = {
   action?: "analyze" | "refresh_outcomes" | "scan_opportunities";
   symbols?: string[];
   symbol?: string;
-};
-
-type FmpBar = {
-  close?: number;
-  date?: string;
-  high?: number;
-  low?: number;
-  open?: number;
-  volume?: number;
 };
 
 type NewsEvent = {
@@ -131,12 +104,6 @@ type UpsertedSetupResult = {
   deduplicated: boolean;
   setupId: string;
   updated: boolean;
-};
-
-type ProviderContextResult = {
-  fmpSymbol: string | null;
-  marketContext: MarketContext | null;
-  providerFailures: string[];
 };
 
 type MarketScanCandidate = {
@@ -362,7 +329,11 @@ Deno.serve(async (req) => {
     }
 
     const { fmpSymbol, marketContext, providerFailures } =
-      await fetchFirstAvailableMarketContext(providerSymbols);
+      await fetchFirstAvailableMarketContext(
+        providerSymbols,
+        recordAnalyzerEvent,
+        fetchWithTimeout,
+      );
     await recordMarketDataHealth(
       symbol,
       fmpSymbol,
@@ -556,48 +527,6 @@ Deno.serve(async (req) => {
   }
 });
 
-async function fetchFirstAvailableMarketContext(
-  providerSymbols: string[],
-): Promise<ProviderContextResult> {
-  const providerFailures: string[] = [];
-
-  for (const [index, providerSymbol] of providerSymbols.entries()) {
-    try {
-      const marketContext = await fetchMarketContext(providerSymbol);
-      if (marketContext.daily.length >= 80) {
-        if (index > 0) {
-          marketContext.providerWarnings.unshift(
-            `Using FMP fallback symbol ${providerSymbol}; primary ${
-              providerSymbols[0]
-            } was unavailable.`,
-          );
-        }
-        return {
-          fmpSymbol: providerSymbol,
-          marketContext,
-          providerFailures,
-        };
-      }
-
-      providerFailures.push(
-        `${providerSymbol}: insufficient daily history (${marketContext.daily.length} bars)`,
-      );
-    } catch (error) {
-      providerFailures.push(
-        `${providerSymbol}: ${
-          error instanceof Error ? error.message : "FMP request failed"
-        }`,
-      );
-    }
-  }
-
-  return {
-    fmpSymbol: null,
-    marketContext: null,
-    providerFailures,
-  };
-}
-
 async function recordMarketDataHealth(
   symbol: SupportedSymbol,
   providerSymbol: string | null,
@@ -755,7 +684,11 @@ async function scanOpportunity(
     }
 
     const { fmpSymbol, marketContext, providerFailures } =
-      await fetchFirstAvailableMarketContext(providerSymbols);
+      await fetchFirstAvailableMarketContext(
+        providerSymbols,
+        recordAnalyzerEvent,
+        fetchWithTimeout,
+      );
     await recordMarketDataHealth(
       symbol,
       fmpSymbol,
@@ -1408,7 +1341,12 @@ async function refreshUserOutcomes(
       if (!barsByProviderSymbol.has(providerSymbol)) {
         barsByProviderSymbol.set(
           providerSymbol,
-          fetchFmpBars(providerSymbol, "15min"),
+          fetchFmpBars(
+            providerSymbol,
+            "15min",
+            recordAnalyzerEvent,
+            fetchWithTimeout,
+          ),
         );
       }
       const bars = await barsByProviderSymbol.get(providerSymbol)!;
@@ -1657,395 +1595,6 @@ function extractSetupKey(
     : correlationGroup || symbol;
 }
 
-async function fetchMarketContext(fmpSymbol: string): Promise<MarketContext> {
-  const providerWarnings: string[] = [];
-  const [daily, quote] = await Promise.all([
-    fetchFmpBars(fmpSymbol, "1day"),
-    fetchFmpQuoteSnapshot(fmpSymbol),
-  ]);
-  const timeframes: Partial<Record<Timeframe, Bar[]>> = { "1day": daily };
-
-  await Promise.all(
-    intradayTimeframes.map(async (timeframe) => {
-      try {
-        const bars = await fetchFmpBars(fmpSymbol, timeframe);
-        if (bars.length >= 40) {
-          timeframes[timeframe] = bars;
-        }
-      } catch (error) {
-        providerWarnings.push(
-          `${timeframe}: ${
-            error instanceof Error
-              ? error.message
-              : "FMP intraday request failed"
-          }`,
-        );
-      }
-    }),
-  );
-
-  const availableTimeframes = (["1day", ...intradayTimeframes] as Timeframe[])
-    .filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
-  const primaryTimeframe = pickPrimaryTimeframe(timeframes);
-  const primary = timeframes[primaryTimeframe] ?? daily;
-
-  return {
-    availableTimeframes,
-    daily,
-    latest: primary.at(-1) ?? daily.at(-1)!,
-    primary,
-    primaryTimeframe,
-    providerWarnings,
-    quote,
-    timeframes,
-  };
-}
-
-async function fetchFmpQuoteSnapshot(
-  fmpSymbol: string,
-): Promise<QuoteSnapshot | null> {
-  const endpoint = new URL(
-    `${FMP_API_BASE_URL.replace(/\/$/, "")}/quote`,
-  );
-  endpoint.searchParams.set("symbol", fmpSymbol);
-  endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
-
-  const startedAt = performance.now();
-  try {
-    const response = await fetchWithTimeout(
-      endpoint,
-      {},
-      QUOTE_FETCH_TIMEOUT_MS,
-    );
-    const durationMs = Math.round(performance.now() - startedAt);
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      await recordAnalyzerEvent({
-        action: "quote_fetch",
-        durationMs,
-        message: `FMP quote request failed (${response.status})`,
-        providerSymbol: fmpSymbol,
-        status: "error",
-      });
-      return null;
-    }
-
-    const payload = JSON.parse(responseText) as unknown;
-    const quote = parseFmpQuoteSnapshot(payload);
-    if (!quote) {
-      return null;
-    }
-
-    if (durationMs >= SLOW_PROVIDER_CALL_MS) {
-      await recordAnalyzerEvent({
-        action: "quote_fetch",
-        durationMs,
-        providerSymbol: fmpSymbol,
-        status: "slow_provider",
-      });
-    }
-
-    return quote;
-  } catch (error) {
-    await recordAnalyzerEvent({
-      action: "quote_fetch",
-      durationMs: Math.round(performance.now() - startedAt),
-      message: error instanceof Error ? error.message : "FMP quote failed",
-      providerSymbol: fmpSymbol,
-      status: "error",
-    });
-    return null;
-  }
-}
-
-async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
-  const cacheKey = `${fmpSymbol}:${timeframe}`;
-  const cached = candleCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    await recordAnalyzerEvent({
-      action: "market_data_fetch",
-      cacheHit: true,
-      providerSymbol: fmpSymbol,
-      status: "cache_hit",
-      metadata: {
-        bars: cached.bars.length,
-        timeframe,
-      },
-    });
-    return cached.bars.map((bar) => ({ ...bar }));
-  }
-
-  const endpoint = timeframe === "1day"
-    ? new URL(
-      `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-price-eod/full`,
-    )
-    : new URL(
-      `${FMP_API_BASE_URL.replace(/\/$/, "")}/historical-chart/${timeframe}`,
-    );
-  endpoint.searchParams.set("symbol", fmpSymbol);
-  endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
-
-  const startedAt = performance.now();
-  let response: Response;
-  let responseText = "";
-  try {
-    response = await fetchWithTimeout(
-      endpoint,
-      {},
-      MARKET_DATA_FETCH_TIMEOUT_MS,
-    );
-    responseText = await response.text();
-  } catch (error) {
-    const durationMs = Math.round(performance.now() - startedAt);
-    await recordAnalyzerEvent({
-      action: "market_data_fetch",
-      durationMs,
-      message: error instanceof Error ? error.message : "FMP request failed",
-      providerSymbol: fmpSymbol,
-      status: durationMs >= SLOW_PROVIDER_CALL_MS ? "slow_provider" : "error",
-      metadata: {
-        timeframe,
-      },
-    });
-    throw error;
-  }
-
-  const durationMs = Math.round(performance.now() - startedAt);
-  if (!response.ok) {
-    const message = `FMP ${timeframe} request failed (${response.status}): ${
-      responseText.slice(0, 160)
-    }`;
-    await recordAnalyzerEvent({
-      action: "market_data_fetch",
-      durationMs,
-      message,
-      providerSymbol: fmpSymbol,
-      status: "error",
-      metadata: {
-        responseStatus: response.status,
-        timeframe,
-      },
-    });
-    throw new Error(message);
-  }
-
-  if (durationMs >= SLOW_PROVIDER_CALL_MS) {
-    await recordAnalyzerEvent({
-      action: "market_data_fetch",
-      durationMs,
-      providerSymbol: fmpSymbol,
-      status: "slow_provider",
-      metadata: {
-        timeframe,
-      },
-    });
-  }
-
-  let payload: unknown;
-  try {
-    payload = JSON.parse(responseText);
-  } catch {
-    await recordAnalyzerEvent({
-      action: "market_data_fetch",
-      durationMs,
-      message: `FMP ${timeframe} response was not JSON`,
-      providerSymbol: fmpSymbol,
-      status: "error",
-      metadata: {
-        timeframe,
-      },
-    });
-    throw new Error(`FMP ${timeframe} response was not JSON`);
-  }
-
-  if (!Array.isArray(payload)) {
-    await recordAnalyzerEvent({
-      action: "market_data_fetch",
-      durationMs,
-      message: `FMP ${timeframe} response was not an array`,
-      providerSymbol: fmpSymbol,
-      status: "error",
-      metadata: {
-        timeframe,
-      },
-    });
-    throw new Error(`FMP ${timeframe} response was not an array`);
-  }
-
-  const bars = (payload as FmpBar[])
-    .filter((point) =>
-      typeof point.date === "string" && typeof point.open === "number" &&
-      typeof point.high === "number" && typeof point.low === "number" &&
-      typeof point.close === "number"
-    )
-    .map((point) => ({
-      close: point.close as number,
-      high: point.high as number,
-      low: point.low as number,
-      open: point.open as number,
-      time: toTimestamp(point.date as string),
-      volume: point.volume ?? 0,
-    }))
-    .sort((first, second) => first.time - second.time)
-    .slice(timeframe === "1day" ? -260 : -500);
-
-  candleCache.set(cacheKey, {
-    bars,
-    expiresAt: Date.now() + CANDLE_CACHE_TTL_MS[timeframe],
-  });
-
-  return bars.map((bar) => ({ ...bar }));
-}
-
-function buildPricePlan(
-  side: Side,
-  symbol: SupportedSymbol,
-  market: MarketContext,
-  regime: Regime,
-  calibration: CategoryCalibration,
-) {
-  const bars = market.primary;
-  const daily = market.daily;
-  const latest = bars.at(-1)!;
-  const atr = averageTrueRange(bars, 14);
-  const dailyAtr = averageTrueRange(daily, 14);
-  const structure = findStructureLevels(bars);
-  const dailyStructure = findStructureLevels(daily);
-  const entryOffset = atr *
-    (regime.name === "trend"
-      ? calibration.entryOffsetTrend
-      : calibration.entryOffsetDefault);
-  let entryPrice = side === "buy"
-    ? latest.close - entryOffset
-    : latest.close + entryOffset;
-  const stopBuffer = Math.max(
-    atr * calibration.stopAtrMultiplier,
-    dailyAtr * calibration.dailyStopAtrMultiplier,
-  );
-  let stopLoss = side === "buy"
-    ? Math.min(structure.latestSwingLow - stopBuffer, entryPrice - atr * 1.25)
-    : Math.max(structure.latestSwingHigh + stopBuffer, entryPrice + atr * 1.25);
-  let riskDistance = Math.abs(entryPrice - stopLoss);
-  const minimumLimitDistance = Math.max(
-    atr * 0.05,
-    Math.abs(latest.close) * 0.00005,
-    0.00001,
-  );
-
-  if (
-    side === "buy" &&
-    roundPrice(entryPrice) >= roundPrice(latest.close - minimumLimitDistance)
-  ) {
-    return null;
-  }
-
-  if (
-    side === "sell" &&
-    roundPrice(entryPrice) <= roundPrice(latest.close + minimumLimitDistance)
-  ) {
-    return null;
-  }
-
-  if (side === "buy" && roundPrice(stopLoss) >= roundPrice(entryPrice)) {
-    return null;
-  }
-
-  if (side === "sell" && roundPrice(stopLoss) <= roundPrice(entryPrice)) {
-    return null;
-  }
-
-  const liquidityTarget = side === "buy"
-    ? Math.max(structure.nextLiquidityHigh, dailyStructure.latestSwingHigh)
-    : Math.min(structure.nextLiquidityLow, dailyStructure.latestSwingLow);
-  const minimumTarget = side === "buy"
-    ? entryPrice + riskDistance * calibration.minimumTargetRewardRisk
-    : entryPrice - riskDistance * calibration.minimumTargetRewardRisk;
-  const volatilityTarget = side === "buy"
-    ? entryPrice +
-      Math.max(
-        atr * calibration.volatilityTargetAtrMultiplier,
-        dailyAtr * calibration.dailyTargetAtrMultiplier,
-      )
-    : entryPrice -
-      Math.max(
-        atr * calibration.volatilityTargetAtrMultiplier,
-        dailyAtr * calibration.dailyTargetAtrMultiplier,
-      );
-  let takeProfit = side === "buy"
-    ? Math.max(liquidityTarget, minimumTarget, volatilityTarget)
-    : Math.min(liquidityTarget, minimumTarget, volatilityTarget);
-
-  if (side === "buy" && takeProfit <= entryPrice) {
-    takeProfit = entryPrice + riskDistance * 2;
-  }
-  if (side === "sell" && takeProfit >= entryPrice) {
-    takeProfit = entryPrice - riskDistance * 2;
-  }
-
-  const assetType = getAssetType(symbol);
-  const futuresTickPlan = assetType === "futures"
-    ? applyFuturesTickRules({
-      entryPrice,
-      side,
-      stopLoss,
-      symbol,
-      takeProfit,
-    })
-    : null;
-
-  if (futuresTickPlan) {
-    entryPrice = futuresTickPlan.entryPrice;
-    stopLoss = futuresTickPlan.stopLoss;
-    takeProfit = futuresTickPlan.takeProfit;
-    riskDistance = Math.abs(entryPrice - stopLoss);
-  }
-
-  if (side === "buy" && roundPrice(takeProfit) <= roundPrice(entryPrice)) {
-    return null;
-  }
-
-  if (side === "sell" && roundPrice(takeProfit) >= roundPrice(entryPrice)) {
-    return null;
-  }
-
-  const rewardRisk = Math.abs(takeProfit - entryPrice) /
-    Math.max(riskDistance, 0.00001);
-  if (!Number.isFinite(rewardRisk) || riskDistance <= 0) {
-    return null;
-  }
-  const executionQuality = estimateExecutionQuality({
-    assetType,
-    atr,
-    availableTimeframes: market.availableTimeframes,
-    dailyAtr,
-    entryPrice,
-    latestClose: latest.close,
-    providerWarnings: market.providerWarnings,
-    quotedSpread: market.quote?.spread ?? null,
-    side,
-    stopLoss,
-    symbol,
-    takeProfit,
-  });
-
-  return {
-    atr,
-    contractSpec: futuresTickPlan?.contractSpec ?? null,
-    entryPrice,
-    executionQuality,
-    futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
-    grossRewardRisk: rewardRisk,
-    rewardRisk: executionQuality.effectiveRewardRisk,
-    stopLogic:
-      "Structure invalidation with ATR buffer and daily-volatility floor.",
-    stopLoss,
-    targetLogic:
-      "Liquidity target, minimum reward-to-risk, and volatility projection.",
-    takeProfit,
-  };
-}
-
 async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
   const activeStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const activeEnd = new Date(Date.now() + 20 * 60 * 1000).toISOString();
@@ -2079,21 +1628,6 @@ function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
     return true;
   }
   return isCurrencyRelevantForSymbol(symbol, currency);
-}
-
-function pickPrimaryTimeframe(
-  timeframes: Partial<Record<Timeframe, Bar[]>>,
-): Timeframe {
-  if ((timeframes["15min"]?.length ?? 0) >= 80) {
-    return "15min";
-  }
-  if ((timeframes["1hour"]?.length ?? 0) >= 80) {
-    return "1hour";
-  }
-  if ((timeframes["4hour"]?.length ?? 0) >= 60) {
-    return "4hour";
-  }
-  return "1day";
 }
 
 function buildSetupKey(
@@ -2354,16 +1888,6 @@ function clampInteger(value: number, min: number, max: number) {
     return min;
   }
   return Math.min(Math.max(Math.trunc(value), min), max);
-}
-
-function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value.includes("T")
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  const timestamp = new Date(normalized).getTime();
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
 }
 
 function roundPrice(value: number) {
