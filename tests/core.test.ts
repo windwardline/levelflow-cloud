@@ -15,6 +15,12 @@ import {
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
+  defaultScanSymbols,
+  getRelatedSymbols,
+  isTemporarilyUnavailableSymbol,
+  resolveProviderSymbols,
+} from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
   coerceToSupportedUsTimeZone,
   formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
@@ -114,6 +120,16 @@ describe("trade analyzer category handling", () => {
     assert.ok(forex.newsPenaltyPerEvent >= crypto.newsPenaltyPerEvent);
     assert.ok(metals.stopAtrMultiplier > forex.stopAtrMultiplier);
     assert.ok(futures.defaultReviewHours < metals.defaultReviewHours);
+  });
+
+  it("keeps analyzer symbol routing aligned with public availability", () => {
+    assert.deepEqual(resolveProviderSymbols("NSDQ"), ["^NDX", "QQQ"]);
+    assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), true);
+    assert.equal(defaultScanSymbols.includes("NSDQ"), false);
+    assert.deepEqual(getRelatedSymbols("EURUSD").slice(0, 2), [
+      "EURNZD",
+      "EURJPY",
+    ]);
   });
 });
 

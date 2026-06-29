@@ -2,8 +2,23 @@ import {
   type CategoryCalibration,
   getAssetType,
   getCategoryCalibration,
-  type RegimeName,
 } from "./calibration.ts";
+import { averageTrueRange, findStructureLevels } from "./indicators.ts";
+import {
+  classifyRegime,
+  runStrategyCommittee,
+  scoreConsensus,
+} from "./strategies.ts";
+import {
+  type Bar,
+  intradayTimeframes,
+  type MarketContext,
+  type Regime,
+  type Side,
+  type StrategyVote,
+  type SupportedSymbol,
+  type Timeframe,
+} from "./types.ts";
 import {
   evaluateSetupOutcome,
   getSetupExpiryTime,
@@ -14,16 +29,19 @@ import {
   type ExecutionQuality,
 } from "./executionQuality.ts";
 import { calculateLearningWeight } from "./learning.ts";
-import {
-  parseFmpQuoteSnapshot,
-  type QuoteSnapshot,
-} from "./quotes.ts";
+import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import { applyFuturesTickRules } from "./futures.ts";
+import { getSessionContext, type SessionContext } from "./sessions.ts";
 import {
-  getSessionContext,
-  type SessionContext,
-} from "./sessions.ts";
-import { applyStrategyProfile } from "./strategyProfiles.ts";
+  defaultScanSymbols,
+  getCorrelationGroup,
+  getRelatedSymbols,
+  isCurrencyRelevantForSymbol,
+  isEquityCalendarSensitiveSymbol,
+  isKnownSymbol,
+  isTemporarilyUnavailableSymbol,
+  resolveProviderSymbols,
+} from "./symbols.ts";
 
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
@@ -55,229 +73,10 @@ const CANDLE_CACHE_TTL_MS: Record<Timeframe, number> = {
 const SLOW_PROVIDER_CALL_MS = 2_500;
 const candleCache = new Map<string, { bars: Bar[]; expiresAt: number }>();
 
-type SymbolConfig = {
-  fallback?: string;
-  primary: string;
-};
-
-const symbolMap: Record<string, string | SymbolConfig> = {
-  EURUSD: "EURUSD",
-  GBPUSD: "GBPUSD",
-  USDJPY: "USDJPY",
-  AUDUSD: "AUDUSD",
-  USDCAD: "USDCAD",
-  USDCHF: "USDCHF",
-  NZDUSD: "NZDUSD",
-  NZDJPY: "NZDJPY",
-  NZDCHF: "NZDCHF",
-  NZDCAD: "NZDCAD",
-  GBPNZD: "GBPNZD",
-  GBPJPY: "GBPJPY",
-  GBPCHF: "GBPCHF",
-  GBPCAD: "GBPCAD",
-  GBPAUD: "GBPAUD",
-  EURNZD: "EURNZD",
-  EURJPY: "EURJPY",
-  EURGBP: "EURGBP",
-  EURCHF: "EURCHF",
-  EURCAD: "EURCAD",
-  EURAUD: "EURAUD",
-  CHFJPY: "CHFJPY",
-  CADJPY: "CADJPY",
-  CADCHF: "CADCHF",
-  AUDNZD: "AUDNZD",
-  AUDJPY: "AUDJPY",
-  AUDCHF: "AUDCHF",
-  AUDCAD: "AUDCAD",
-  XAUUSD: "XAUUSD",
-  XAGUSD: "XAGUSD",
-  ESUSD: "ESUSD",
-  GCUSD: "GCUSD",
-  SIUSD: "SIUSD",
-  BZUSD: "BZUSD",
-  SP: "^GSPC",
-  NSDQ: { primary: "^NDX", fallback: "QQQ" },
-  NIKKEI: "^N225",
-  DOW: "^DJI",
-  DAX: { primary: "^GDAXI", fallback: "DAX" },
-  ASX: { primary: "^AXJO", fallback: "EWA" },
-  WTI: { primary: "CLUSD", fallback: "USO" },
-  BRENT: "BZUSD",
-  XRPUSD: "XRPUSD",
-  SOLUSD: "SOLUSD",
-  LTCUSD: "LTCUSD",
-  ETHUSD: "ETHUSD",
-  BTCUSD: "BTCUSD",
-  BNBUSD: "BNBUSD",
-  BCHUSD: "BCHUSD",
-  ADAUSD: "ADAUSD",
-};
-
-for (const [symbol, value] of Object.entries(symbolMap)) {
-  if (typeof value === "string") {
-    symbolMap[symbol] = { primary: value };
-  }
-}
-
-const temporarilyUnavailableSymbols = new Set([
-  "SP",
-  "NSDQ",
-  "NIKKEI",
-  "DOW",
-  "DAX",
-  "ASX",
-  "WTI",
-  "BRENT",
-]);
-const equityCalendarSensitiveSymbols = new Set(["ESUSD", "SP", "NSDQ", "DOW"]);
-const symbolCurrencies: Record<SupportedSymbol, string[]> = {
-  EURUSD: ["EUR", "USD"],
-  GBPUSD: ["GBP", "USD"],
-  USDJPY: ["USD", "JPY"],
-  AUDUSD: ["AUD", "USD"],
-  USDCAD: ["USD", "CAD"],
-  USDCHF: ["USD", "CHF"],
-  NZDUSD: ["NZD", "USD"],
-  NZDJPY: ["NZD", "JPY"],
-  NZDCHF: ["NZD", "CHF"],
-  NZDCAD: ["NZD", "CAD"],
-  GBPNZD: ["GBP", "NZD"],
-  GBPJPY: ["GBP", "JPY"],
-  GBPCHF: ["GBP", "CHF"],
-  GBPCAD: ["GBP", "CAD"],
-  GBPAUD: ["GBP", "AUD"],
-  EURNZD: ["EUR", "NZD"],
-  EURJPY: ["EUR", "JPY"],
-  EURGBP: ["EUR", "GBP"],
-  EURCHF: ["EUR", "CHF"],
-  EURCAD: ["EUR", "CAD"],
-  EURAUD: ["EUR", "AUD"],
-  CHFJPY: ["CHF", "JPY"],
-  CADJPY: ["CAD", "JPY"],
-  CADCHF: ["CAD", "CHF"],
-  AUDNZD: ["AUD", "NZD"],
-  AUDJPY: ["AUD", "JPY"],
-  AUDCHF: ["AUD", "CHF"],
-  AUDCAD: ["AUD", "CAD"],
-  XAUUSD: ["USD"],
-  XAGUSD: ["USD"],
-  ESUSD: ["USD"],
-  GCUSD: ["USD"],
-  SIUSD: ["USD"],
-  BZUSD: ["USD"],
-  SP: ["USD"],
-  NSDQ: ["USD"],
-  NIKKEI: ["JPY"],
-  DOW: ["USD"],
-  DAX: ["EUR"],
-  ASX: ["AUD"],
-  WTI: ["USD"],
-  BRENT: ["USD"],
-  XRPUSD: ["USD"],
-  SOLUSD: ["USD"],
-  LTCUSD: ["USD"],
-  ETHUSD: ["USD"],
-  BTCUSD: ["USD"],
-  BNBUSD: ["USD"],
-  BCHUSD: ["USD"],
-  ADAUSD: ["USD"],
-};
-
-const correlationGroups: Record<string, string[]> = {
-  aud_crosses: [
-    "AUDUSD",
-    "AUDNZD",
-    "AUDJPY",
-    "AUDCHF",
-    "AUDCAD",
-    "EURAUD",
-    "GBPAUD",
-  ],
-  crypto: [
-    "XRPUSD",
-    "SOLUSD",
-    "LTCUSD",
-    "ETHUSD",
-    "BTCUSD",
-    "BNBUSD",
-    "BCHUSD",
-    "ADAUSD",
-  ],
-  energies: ["WTI", "BRENT"],
-  futures: ["ESUSD", "GCUSD", "SIUSD", "BZUSD"],
-  eur_crosses: [
-    "EURUSD",
-    "EURNZD",
-    "EURJPY",
-    "EURGBP",
-    "EURCHF",
-    "EURCAD",
-    "EURAUD",
-  ],
-  gbp_crosses: [
-    "GBPUSD",
-    "GBPNZD",
-    "GBPJPY",
-    "GBPCHF",
-    "GBPCAD",
-    "GBPAUD",
-    "EURGBP",
-  ],
-  jpy_crosses: [
-    "USDJPY",
-    "NZDJPY",
-    "GBPJPY",
-    "EURJPY",
-    "CHFJPY",
-    "CADJPY",
-    "AUDJPY",
-  ],
-  metals: ["XAUUSD", "XAGUSD"],
-  nzd_crosses: [
-    "NZDUSD",
-    "NZDJPY",
-    "NZDCHF",
-    "NZDCAD",
-    "AUDNZD",
-    "EURNZD",
-    "GBPNZD",
-  ],
-  us_indices: ["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX"],
-  usd_majors: [
-    "USDJPY",
-    "USDCHF",
-    "USDCAD",
-    "NZDUSD",
-    "GBPUSD",
-    "EURUSD",
-    "AUDUSD",
-  ],
-};
-
-const defaultScanSymbols = Object.keys(symbolMap).filter((symbol) =>
-  !temporarilyUnavailableSymbols.has(symbol)
-);
-
-const intradayTimeframes = ["4hour", "1hour", "15min"] as const;
-
-type SupportedSymbol = string;
-type Direction = "buy" | "sell" | "neutral" | "block";
-type Side = "buy" | "sell";
-type Timeframe = "1day" | (typeof intradayTimeframes)[number];
-
 type AnalyzeRequest = {
   action?: "analyze" | "refresh_outcomes" | "scan_opportunities";
   symbols?: string[];
   symbol?: string;
-};
-
-type Bar = {
-  close: number;
-  high: number;
-  low: number;
-  open: number;
-  time: number;
-  volume: number;
 };
 
 type FmpBar = {
@@ -295,36 +94,6 @@ type NewsEvent = {
   impact?: string;
   provider?: string;
   scheduled_at?: string;
-};
-
-type StrategyVote = {
-  baseScore?: number;
-  confidence: number;
-  direction: Direction;
-  name: string;
-  profileWeight?: number;
-  rationale: string;
-  score: number;
-  timeframe: Timeframe | "multi";
-};
-
-type MarketContext = {
-  availableTimeframes: Timeframe[];
-  daily: Bar[];
-  latest: Bar;
-  primary: Bar[];
-  primaryTimeframe: Timeframe;
-  providerWarnings: string[];
-  quote: QuoteSnapshot | null;
-  timeframes: Partial<Record<Timeframe, Bar[]>>;
-};
-
-type Regime = {
-  bias: Direction;
-  name: RegimeName;
-  rationale: string;
-  trendStrength: number;
-  volatilityPercentile: number;
 };
 
 type ExistingSetupRow = {
@@ -504,7 +273,7 @@ Deno.serve(async (req) => {
         ? body.symbol.trim()
         : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
-    if (temporarilyUnavailableSymbols.has(uiSymbol)) {
+    if (isTemporarilyUnavailableSymbol(uiSymbol)) {
       await recordAnalyzerEvent({
         action: "generate_setup",
         message: "Temporarily unavailable market group",
@@ -907,8 +676,8 @@ async function scanOpportunities(
         ? requestedSymbols
         : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(
           (symbol) =>
-            Boolean(symbol) && symbol in symbolMap &&
-            !temporarilyUnavailableSymbols.has(symbol),
+            Boolean(symbol) && isKnownSymbol(symbol) &&
+            !isTemporarilyUnavailableSymbol(symbol),
         ),
     ),
   );
@@ -1130,14 +899,10 @@ async function scanOpportunity(
   }
 }
 
-function getRelatedScanSymbols(group: string, symbol: SupportedSymbol) {
-  return (correlationGroups[group] ?? [])
-    .filter((candidate) =>
-      candidate !== symbol &&
-      defaultScanSymbols.includes(candidate) &&
-      candidate in symbolMap
-    )
-    .slice(0, 6);
+function getRelatedScanSymbols(_group: string, symbol: SupportedSymbol) {
+  return getRelatedSymbols(symbol).filter((candidate) =>
+    defaultScanSymbols.includes(candidate)
+  );
 }
 
 function buildScanRationale(
@@ -1153,7 +918,9 @@ function buildScanRationale(
   const reasons = [
     `${setup.side.toUpperCase()} setup scored ${setup.confidenceScore}/100.`,
     `${formatTitle(String(marketRegime.name ?? "current"))} conditions.`,
-    `Payoff ${Number(confluence.rewardRisk ?? 0).toFixed(2)}x after trading-cost checks.`,
+    `Payoff ${
+      Number(confluence.rewardRisk ?? 0).toFixed(2)
+    }x after trading-cost checks.`,
   ];
   const tickValidation = orderConstruction.tickValidation;
   if (typeof tickValidation === "string" && tickValidation.length > 0) {
@@ -1286,7 +1053,7 @@ async function analyzeSetup(
     market.providerWarnings.length * calibration.providerWarningPenalty,
   );
   const confidenceScore = clampInteger(
-      Math.round(
+    Math.round(
       consensus.score + weightAdjustment - newsPenalty -
         sessionContext.penalty - timeframePenalty - providerPenalty -
         pricePlan.executionQuality.confidencePenalty,
@@ -2131,401 +1898,6 @@ async function fetchFmpBars(fmpSymbol: string, timeframe: Timeframe) {
   return bars.map((bar) => ({ ...bar }));
 }
 
-function runStrategyCommittee(
-  symbol: SupportedSymbol,
-  market: MarketContext,
-  regime: Regime,
-) {
-  const votes: StrategyVote[] = [
-    voteMultiTimeframeAlignment(market, regime),
-    voteSmartMoneyConcepts(market),
-    voteTrendPullback(market, regime),
-    voteBreakoutFailure(market),
-    voteRangeMeanReversion(market, regime),
-    voteMomentumDivergence(market),
-    voteVolatilityExpansion(market, regime),
-    voteVolumeProfile(market),
-  ];
-
-  return applyStrategyProfile(getAssetType(symbol), votes).filter((vote) =>
-    vote.score > 0 || vote.direction === "block"
-  );
-}
-
-function scoreConsensus(votes: StrategyVote[], regime: Regime) {
-  const buyScore = votes.filter((vote) => vote.direction === "buy").reduce(
-    (sum, vote) => sum + vote.score,
-    0,
-  );
-  const sellScore = votes.filter((vote) => vote.direction === "sell").reduce(
-    (sum, vote) => sum + vote.score,
-    0,
-  );
-  const blockScore = votes.filter((vote) => vote.direction === "block").reduce(
-    (sum, vote) => sum + vote.score,
-    0,
-  );
-  const totalDirectional = buyScore + sellScore;
-
-  if (blockScore >= 30 || totalDirectional < 42) {
-    return {
-      buyScore,
-      sellScore,
-      blockScore,
-      score: 0,
-      side: null as Side | null,
-    };
-  }
-
-  const side: Side = buyScore >= sellScore ? "buy" : "sell";
-  const winningScore = Math.max(buyScore, sellScore);
-  const opposingScore = Math.min(buyScore, sellScore);
-  const agreementRatio = winningScore / Math.max(totalDirectional, 1);
-  const regimeBonus = regime.bias === side
-    ? 8
-    : regime.bias === "neutral"
-    ? 2
-    : -8;
-  const score = clampInteger(
-    Math.round(
-      30 + winningScore * 0.72 - opposingScore * 0.55 + agreementRatio * 18 +
-        regimeBonus,
-    ),
-    0,
-    100,
-  );
-
-  return {
-    agreementRatio: Number(agreementRatio.toFixed(3)),
-    blockScore,
-    buyScore,
-    score,
-    sellScore,
-    side,
-  };
-}
-
-function classifyRegime(market: MarketContext): Regime {
-  const bars = market.daily;
-  const latest = bars.at(-1)!;
-  const closes = bars.map((bar) => bar.close);
-  const ema20 = ema(closes, 20);
-  const ema50 = ema(closes, 50);
-  const atr = averageTrueRange(bars, 14);
-  const atrHistory = rollingAtr(bars, 14).slice(-80);
-  const volatilityPercentile = percentileRank(atrHistory, atr);
-  const trendStrength = Math.abs(ema20 - ema50) / Math.max(atr, 0.00001);
-  const compression = volatilityPercentile < 0.28 && trendStrength < 0.9;
-  const bias: Direction = latest.close > ema20 && ema20 > ema50
-    ? "buy"
-    : latest.close < ema20 && ema20 < ema50
-    ? "sell"
-    : "neutral";
-
-  if (compression) {
-    return {
-      bias,
-      name: "compression",
-      rationale:
-        "Volatility is compressed and directional trend strength is modest.",
-      trendStrength: Number(trendStrength.toFixed(3)),
-      volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
-    };
-  }
-
-  if (volatilityPercentile > 0.78 && trendStrength < 1.1) {
-    return {
-      bias: "neutral",
-      name: "volatile_chop",
-      rationale: "Volatility is elevated without clean trend separation.",
-      trendStrength: Number(trendStrength.toFixed(3)),
-      volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
-    };
-  }
-
-  if (trendStrength > 0.95 && bias !== "neutral") {
-    return {
-      bias,
-      name: "trend",
-      rationale:
-        "Moving average separation and price location support a trend regime.",
-      trendStrength: Number(trendStrength.toFixed(3)),
-      volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
-    };
-  }
-
-  return {
-    bias: "neutral",
-    name: "range",
-    rationale:
-      "Trend separation is limited; range and failed-breakout behavior should carry more weight.",
-    trendStrength: Number(trendStrength.toFixed(3)),
-    volatilityPercentile: Number(volatilityPercentile.toFixed(3)),
-  };
-}
-
-function voteMultiTimeframeAlignment(
-  market: MarketContext,
-  regime: Regime,
-): StrategyVote {
-  const timeframeBiases = market.availableTimeframes.map((timeframe) => ({
-    direction: directionalBias(market.timeframes[timeframe] ?? []),
-    timeframe,
-  }));
-  const buyCount =
-    timeframeBiases.filter((bias) => bias.direction === "buy").length;
-  const sellCount =
-    timeframeBiases.filter((bias) => bias.direction === "sell").length;
-  const direction: Direction = buyCount > sellCount
-    ? "buy"
-    : sellCount > buyCount
-    ? "sell"
-    : "neutral";
-  const alignedWithRegime = regime.bias === direction;
-  const agreement = Math.max(buyCount, sellCount) /
-    Math.max(timeframeBiases.length, 1);
-
-  return {
-    confidence: Number(agreement.toFixed(2)),
-    direction,
-    name: "multi_timeframe_bias",
-    rationale: `${
-      Math.max(buyCount, sellCount)
-    } of ${timeframeBiases.length} available timeframes align${
-      alignedWithRegime ? " with the higher-timeframe regime" : ""
-    }.`,
-    score: direction === "neutral"
-      ? 5
-      : Math.round(14 + agreement * 16 + Number(alignedWithRegime) * 6),
-    timeframe: "multi",
-  };
-}
-
-function voteSmartMoneyConcepts(market: MarketContext): StrategyVote {
-  const bars = market.primary;
-  const latest = bars.at(-1)!;
-  const previous = bars.at(-2)!;
-  const swing = findStructureLevels(bars);
-  const atr = averageTrueRange(bars, 14);
-  const sweptLow = latest.low < swing.latestSwingLow &&
-    latest.close > previous.close;
-  const sweptHigh = latest.high > swing.latestSwingHigh &&
-    latest.close < previous.close;
-  const fairValueGap = Math.abs(previous.high - latest.low) > atr * 0.35 ||
-    Math.abs(latest.high - previous.low) > atr * 0.35;
-  const changeOfCharacter = latest.close > swing.latestSwingHigh ||
-    latest.close < swing.latestSwingLow;
-  const direction: Direction = sweptLow
-    ? "buy"
-    : sweptHigh
-    ? "sell"
-    : changeOfCharacter
-    ? (latest.close > previous.close ? "buy" : "sell")
-    : "neutral";
-  const score = direction === "neutral"
-    ? 8
-    : 18 + Number(sweptLow || sweptHigh) * 16 + Number(fairValueGap) * 8 +
-      Number(changeOfCharacter) * 8;
-
-  return {
-    confidence: Number((score / 46).toFixed(2)),
-    direction,
-    name: "smart_money_liquidity",
-    rationale: sweptLow
-      ? "Liquidity sweep below structure with bullish recovery."
-      : sweptHigh
-      ? "Liquidity sweep above structure with bearish rejection."
-      : "No clean liquidity sweep; structure still informs invalidation.",
-    score,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
-function voteTrendPullback(
-  market: MarketContext,
-  regime: Regime,
-): StrategyVote {
-  const bars = market.primary;
-  const latest = bars.at(-1)!;
-  const closes = bars.map((bar) => bar.close);
-  const ema20 = ema(closes, 20);
-  const ema50 = ema(closes, 50);
-  const atr = averageTrueRange(bars, 14);
-  const nearValue = Math.abs(latest.close - ema20) <= atr * 0.75 ||
-    Math.abs(latest.close - ema50) <= atr * 0.9;
-  const upTrend = latest.close > ema50 && ema20 > ema50;
-  const downTrend = latest.close < ema50 && ema20 < ema50;
-  const direction: Direction = regime.name === "trend" && nearValue && upTrend
-    ? "buy"
-    : regime.name === "trend" && nearValue && downTrend
-    ? "sell"
-    : "neutral";
-
-  return {
-    confidence: direction === "neutral" ? 0.2 : 0.74,
-    direction,
-    name: "trend_pullback_to_value",
-    rationale: direction === "neutral"
-      ? "Trend pullback conditions are not clean enough."
-      : "Trend regime is active and price is pulling back toward value.",
-    score: direction === "neutral" ? 4 : 26,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
-function voteBreakoutFailure(market: MarketContext): StrategyVote {
-  const bars = market.primary;
-  const latest = bars.at(-1)!;
-  const previous = bars.at(-2)!;
-  const structure = findStructureLevels(bars);
-  const brokeHigh = previous.close <= structure.latestSwingHigh &&
-    latest.close > structure.latestSwingHigh;
-  const brokeLow = previous.close >= structure.latestSwingLow &&
-    latest.close < structure.latestSwingLow;
-  const failedHigh = latest.high > structure.latestSwingHigh &&
-    latest.close < structure.latestSwingHigh;
-  const failedLow = latest.low < structure.latestSwingLow &&
-    latest.close > structure.latestSwingLow;
-  const direction: Direction = brokeHigh || failedLow
-    ? "buy"
-    : brokeLow || failedHigh
-    ? "sell"
-    : "neutral";
-  const failure = failedHigh || failedLow;
-
-  return {
-    confidence: direction === "neutral" ? 0.15 : failure ? 0.76 : 0.68,
-    direction,
-    name: failure ? "failed_breakout_reversal" : "breakout_continuation",
-    rationale: failure
-      ? "A failed break outside structure signals reversal risk."
-      : direction === "neutral"
-      ? "No decisive structure break."
-      : "Price closed beyond recent structure.",
-    score: direction === "neutral" ? 5 : failure ? 24 : 21,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
-function voteRangeMeanReversion(
-  market: MarketContext,
-  regime: Regime,
-): StrategyVote {
-  const bars = market.primary;
-  const latest = bars.at(-1)!;
-  const range = findStructureLevels(bars);
-  const width = Math.max(
-    range.nextLiquidityHigh - range.nextLiquidityLow,
-    0.00001,
-  );
-  const location = (latest.close - range.nextLiquidityLow) / width;
-  const rsi = relativeStrengthIndex(bars, 14);
-  const buy = regime.name === "range" && location < 0.22 && rsi < 42;
-  const sell = regime.name === "range" && location > 0.78 && rsi > 58;
-  const direction: Direction = buy ? "buy" : sell ? "sell" : "neutral";
-
-  return {
-    confidence: direction === "neutral" ? 0.15 : 0.7,
-    direction,
-    name: "range_mean_reversion",
-    rationale: direction === "neutral"
-      ? "Range edge and oscillator conditions are not aligned."
-      : "Range regime with price extended at an edge and oscillator support.",
-    score: direction === "neutral" ? 4 : 22,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
-function voteMomentumDivergence(market: MarketContext): StrategyVote {
-  const bars = market.primary;
-  const recent = bars.slice(-24);
-  const first = recent[0];
-  const latest = recent.at(-1)!;
-  const rsi = relativeStrengthIndex(bars, 14);
-  const closes = bars.map((bar) => bar.close);
-  const macdSlope = ema(closes, 12) - ema(closes, 26);
-  const priceBias: Direction = latest.close >= first.close ? "buy" : "sell";
-  const oscillatorBias: Direction = rsi > 55 || macdSlope > 0
-    ? "buy"
-    : rsi < 45 || macdSlope < 0
-    ? "sell"
-    : "neutral";
-  const divergence = priceBias !== oscillatorBias &&
-    oscillatorBias !== "neutral";
-  const direction = divergence ? oscillatorBias : oscillatorBias;
-
-  return {
-    confidence: oscillatorBias === "neutral" ? 0.2 : divergence ? 0.62 : 0.72,
-    direction,
-    name: divergence ? "momentum_divergence" : "momentum_confirmation",
-    rationale: divergence
-      ? "Price direction and oscillator direction diverge."
-      : "RSI and MACD slope support directional momentum.",
-    score: oscillatorBias === "neutral" ? 5 : divergence ? 18 : 24,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
-function voteVolatilityExpansion(
-  market: MarketContext,
-  regime: Regime,
-): StrategyVote {
-  const bars = market.primary;
-  const latest = bars.at(-1)!;
-  const previous = bars.at(-2)!;
-  const atr = averageTrueRange(bars, 14);
-  const body = Math.abs(latest.close - latest.open);
-  const expanding = body > atr * 0.8 &&
-    Math.abs(latest.close - previous.close) > atr * 0.55;
-  const direction: Direction = expanding
-    ? (latest.close > latest.open ? "buy" : "sell")
-    : "neutral";
-  const compressionBonus = regime.name === "compression" ? 8 : 0;
-
-  return {
-    confidence: direction === "neutral" ? 0.1 : 0.7,
-    direction,
-    name: "volatility_expansion",
-    rationale: direction === "neutral"
-      ? "No clean expansion candle after compression."
-      : "Range expansion suggests directional participation.",
-    score: direction === "neutral" ? 3 : 18 + compressionBonus,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
-function voteVolumeProfile(market: MarketContext): StrategyVote {
-  const bars = market.primary.slice(-100);
-  const latest = bars.at(-1)!;
-  const totalVolume = bars.reduce((sum, bar) => sum + (bar.volume || 1), 0) ||
-    bars.length;
-  const pointOfControl =
-    bars.reduce((sum, bar) => sum + bar.close * (bar.volume || 1), 0) /
-    totalVolume;
-  const atr = averageTrueRange(bars, 14);
-  const nearPoc = Math.abs(latest.close - pointOfControl) <= atr * 0.35;
-  const stretchedAbove = latest.close > pointOfControl + atr * 1.1;
-  const stretchedBelow = latest.close < pointOfControl - atr * 1.1;
-  const direction: Direction = nearPoc
-    ? directionalBias(bars)
-    : stretchedBelow
-    ? "buy"
-    : stretchedAbove
-    ? "sell"
-    : "neutral";
-
-  return {
-    confidence: direction === "neutral" ? 0.18 : nearPoc ? 0.62 : 0.56,
-    direction,
-    name: nearPoc ? "volume_value_retest" : "volume_value_extension",
-    rationale: nearPoc
-      ? "Price is retesting volume-weighted value."
-      : "Price is extended away from volume-weighted value.",
-    score: direction === "neutral" ? 5 : nearPoc ? 18 : 14,
-    timeframe: market.primaryTimeframe,
-  };
-}
-
 function buildPricePlan(
   side: Side,
   symbol: SupportedSymbol,
@@ -2699,14 +2071,14 @@ async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
 
 function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
   if (event.provider === "fmp_earnings") {
-    return equityCalendarSensitiveSymbols.has(symbol);
+    return isEquityCalendarSensitiveSymbol(symbol);
   }
 
   const currency = event.currency?.toUpperCase();
   if (!currency) {
     return true;
   }
-  return symbolCurrencies[symbol]?.includes(currency) ?? currency === "USD";
+  return isCurrencyRelevantForSymbol(symbol, currency);
 }
 
 function pickPrimaryTimeframe(
@@ -2722,23 +2094,6 @@ function pickPrimaryTimeframe(
     return "4hour";
   }
   return "1day";
-}
-
-function directionalBias(bars: Bar[]): Direction {
-  if (bars.length < 30) {
-    return "neutral";
-  }
-  const latest = bars.at(-1)!;
-  const closes = bars.map((bar) => bar.close);
-  const ema20 = ema(closes, 20);
-  const ema50 = ema(closes, 50);
-  if (latest.close > ema20 && ema20 >= ema50) {
-    return "buy";
-  }
-  if (latest.close < ema20 && ema20 <= ema50) {
-    return "sell";
-  }
-  return "neutral";
 }
 
 function buildSetupKey(
@@ -2764,85 +2119,6 @@ function buildSetupKey(
     leaders || "balanced",
   ].join("_");
   return context.replace(/[^a-zA-Z0-9_+.-]/g, "_");
-}
-
-function findStructureLevels(bars: Bar[]) {
-  const recent = bars.slice(-80);
-  const structureSample = recent.slice(0, Math.max(1, recent.length - 5));
-  return {
-    latestSwingHigh: Math.max(...structureSample.map((bar) => bar.high)),
-    latestSwingLow: Math.min(...structureSample.map((bar) => bar.low)),
-    nextLiquidityHigh: Math.max(...recent.map((bar) => bar.high)),
-    nextLiquidityLow: Math.min(...recent.map((bar) => bar.low)),
-  };
-}
-
-function averageTrueRange(bars: Bar[], period: number) {
-  if (bars.length < 2) {
-    return 0;
-  }
-  const sample = bars.slice(-period - 1);
-  const ranges = sample.slice(1).map((bar, index) => {
-    const previousClose = sample[index].close;
-    return Math.max(
-      bar.high - bar.low,
-      Math.abs(bar.high - previousClose),
-      Math.abs(bar.low - previousClose),
-    );
-  });
-  return ranges.reduce((sum, range) => sum + range, 0) /
-    Math.max(ranges.length, 1);
-}
-
-function rollingAtr(bars: Bar[], period: number) {
-  const values: number[] = [];
-  for (let index = period + 1; index <= bars.length; index += 1) {
-    values.push(averageTrueRange(bars.slice(0, index), period));
-  }
-  return values.filter((value) => Number.isFinite(value) && value > 0);
-}
-
-function relativeStrengthIndex(bars: Bar[], period: number) {
-  const closes = bars.slice(-period - 1).map((bar) => bar.close);
-  let gains = 0;
-  let losses = 0;
-
-  for (let index = 1; index < closes.length; index += 1) {
-    const delta = closes[index] - closes[index - 1];
-    gains += Math.max(delta, 0);
-    losses += Math.max(-delta, 0);
-  }
-
-  if (losses === 0) {
-    return 100;
-  }
-
-  const relativeStrength = gains / losses;
-  return 100 - 100 / (1 + relativeStrength);
-}
-
-function ema(values: number[], period: number) {
-  if (values.length === 0) {
-    return 0;
-  }
-  const smoothing = 2 / (period + 1);
-  return values.slice(-period * 3).reduce(
-    (currentEma, value) => value * smoothing + currentEma * (1 - smoothing),
-    values[0],
-  );
-}
-
-function percentileRank(values: number[], current: number) {
-  if (values.length === 0) {
-    return 0.5;
-  }
-  return values.filter((value) => value <= current).length / values.length;
-}
-
-function getCorrelationGroup(symbol: string) {
-  return Object.entries(correlationGroups).find(([, symbols]) =>
-    symbols.includes(symbol)
-  )?.[0] ?? symbol;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -3071,21 +2347,6 @@ function fetchWithTimeout(
 
 function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-function resolveProviderSymbols(symbol: string) {
-  const normalized = normalizeSymbol(symbol);
-  const config = symbolMap[normalized] as SymbolConfig | undefined;
-  const sanitized = sanitizeFmpSymbol(symbol);
-  const symbols = config
-    ? [config.primary, config.fallback].filter(Boolean)
-    : [sanitized].filter(Boolean);
-  return Array.from(new Set(symbols)) as string[];
-}
-
-function sanitizeFmpSymbol(value: string) {
-  const symbol = value.toUpperCase().replace(/[^A-Z0-9.^_-]/g, "").slice(0, 32);
-  return symbol || null;
 }
 
 function clampInteger(value: number, min: number, max: number) {

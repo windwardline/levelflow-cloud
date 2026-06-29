@@ -1,6 +1,6 @@
 # LevelFlow Gap Analysis
 
-Last reviewed: 2026-06-28
+Last reviewed: 2026-06-29
 
 ## Current Strengths
 
@@ -29,7 +29,7 @@ Last reviewed: 2026-06-28
 - Legacy `pending_orders` persistence is consolidated into `trade_setups`; the app records setups and outcomes, not executable orders.
 - Market Scan now has group and quality filters, compact ranking cards, and short rationale previews.
 - Market Scan candidates now include related-market context so clustered opportunities are easier to interpret.
-- The largest Advisor workspace file was reduced by moving Market Scan into a focused component. The analyzer also now keeps execution-quality and learning math in focused pure modules.
+- The largest Advisor workspace file was reduced by moving Market Scan into a focused component. The analyzer also now keeps strategy voting, indicators, symbol routing, execution quality, and learning math in focused pure modules.
 - Profile and theme controls are split out of the top-level app shell, and FMP quote parsing is isolated for test coverage.
 - Donate is split out of the top-level app shell, and returning users resume from their last primary workspace tab.
 - Guide, About, and Insights are split out of the top-level app shell; `App.tsx` now owns shell, auth, navigation, and workspace orchestration instead of full panel rendering.
@@ -39,7 +39,7 @@ Last reviewed: 2026-06-28
 - Live authenticated E2E coverage now checks that repeated analyzer scan requests are rate-limited without server errors when CI test-user secrets are present.
 - Profile now includes a data-backed review pattern card, so it shows useful user activity instead of static repetition.
 - Donation URLs from deployment variables are sanitized to HTTPS-only external links before they can render.
-- Advisor copy now distinguishes verified chart-feed data from live execution data and describes trading-cost impact in plainer language.
+- Advisor copy now distinguishes verified chart-feed data from live execution data, describes trading-cost impact in plainer language, and avoids raw internal strategy scores in the setup receipt.
 
 ## Gaps to Close
 
@@ -55,7 +55,7 @@ Last reviewed: 2026-06-28
 
 ### Back End
 
-- Continue splitting the analyzer Edge Function. Calibration, replay, execution quality, quote parsing, learning math, session rules, futures contract rules, and strategy profiles are separated now; strategy vote implementations, market loading, and Supabase persistence should be split next.
+- Continue splitting the analyzer Edge Function. Calibration, strategy voting, indicators, replay, execution quality, quote parsing, learning math, session rules, futures contract rules, strategy profiles, and symbol routing are separated now; market loading and Supabase persistence should be split next.
 - Add a small internal operations view for `market_data_health` and `analyzer_events` once there is enough live data to make it useful.
 
 ### Security and Reliability
@@ -67,7 +67,7 @@ Last reviewed: 2026-06-28
 
 ## Priority Order
 
-1. Split strategy vote implementations, data loading, and persistence into dedicated analyzer modules.
+1. Split analyzer market loading and Supabase persistence into dedicated modules.
 2. Split the Advisor workspace into focused chart, setup, and data-status panels once the current product surface stabilizes.
 3. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
 4. Add broker-specific execution data if a supported integration becomes available.
