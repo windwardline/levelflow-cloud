@@ -33,6 +33,11 @@ import {
   formatSecurityLabel,
   sortAssetSymbols,
 } from "../src/lib/symbolMap";
+import {
+  buildConfidenceBands,
+  groupHistorySetups,
+  sortHistorySetups,
+} from "../src/components/workspace/historyUtils";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 describe("asset catalog", () => {
@@ -409,15 +414,151 @@ describe("recommendation outcomes", () => {
   });
 });
 
+describe("history workspace logic", () => {
+  it("uses the shared asset ordering when history is sorted by market", () => {
+    const setups = [
+      makeHistorySetup({
+        createdAt: "2026-06-16T13:00:00.000Z",
+        symbol: "ESUSD",
+      }),
+      makeHistorySetup({
+        createdAt: "2026-06-16T14:00:00.000Z",
+        symbol: "EURUSD",
+      }),
+      makeHistorySetup({
+        createdAt: "2026-06-16T15:00:00.000Z",
+        symbol: "BTCUSD",
+      }),
+    ];
+
+    assert.deepEqual(
+      sortHistorySetups(setups, "asset").map((setup) => setup.symbol),
+      ["BTCUSD", "EURUSD", "ESUSD"],
+    );
+  });
+
+  it("groups history statuses in the same order as the filter", () => {
+    const groups = groupHistorySetups(
+      [
+        makeHistorySetup({ outcome: "unfilled", symbol: "EURUSD" }),
+        makeHistorySetup({ outcome: "stop_loss", symbol: "BTCUSD" }),
+        makeHistorySetup({ outcome: "take_profit", symbol: "XAUUSD" }),
+        makeHistorySetup({ outcome: "ambiguous", symbol: "ESUSD" }),
+        makeHistorySetup({ symbol: "ETHUSD" }),
+      ],
+      "status",
+    );
+
+    assert.deepEqual(
+      groups.map((group) => group.label),
+      [
+        "Still tracking",
+        "Reached target",
+        "Hit stop",
+        "Needs review",
+        "Entry not filled",
+      ],
+    );
+  });
+
+  it("builds confidence bands without counting pending setups as resolved", () => {
+    const bands = buildConfidenceBands([
+      makeHistorySetup({ confidence: 70, outcome: "take_profit" }),
+      makeHistorySetup({ confidence: 80, outcome: "stop_loss" }),
+      makeHistorySetup({ confidence: 90, outcome: "ambiguous" }),
+      makeHistorySetup({ confidence: 92 }),
+    ]);
+
+    assert.deepEqual(
+      bands.map((band) => ({
+        count: band.count,
+        label: band.label,
+        resolved: band.resolved,
+        winRate: band.winRate,
+      })),
+      [
+        { count: 1, label: "Qualified", resolved: 1, winRate: 100 },
+        { count: 1, label: "Strong", resolved: 1, winRate: 0 },
+        { count: 2, label: "Best", resolved: 0, winRate: null },
+      ],
+    );
+  });
+});
+
+function makeHistorySetup({
+  confidence = 80,
+  createdAt = "2026-06-16T12:00:00.000Z",
+  outcome,
+  symbol = "EURUSD",
+}: {
+  confidence?: number;
+  createdAt?: string;
+  outcome?: "ambiguous" | "expired" | "stop_loss" | "take_profit" | "unfilled";
+  symbol?: string;
+}): TradeSetupRow {
+  return {
+    analyzer_version: "test",
+    breakeven_trigger_price: 1.2,
+    confidence_score: confidence,
+    confluence: { rewardRisk: 2.4, setupKey: "test_setup" },
+    correlation_group: symbol,
+    created_at: createdAt,
+    id: `${symbol}-${confidence}-${outcome ?? "pending"}`,
+    limit_entry: 1.1,
+    risk_model: {},
+    side: "buy",
+    status: outcome === "expired" ? "expired" : "active",
+    stop_loss: 1,
+    symbol,
+    take_profit: 1.3,
+    trade_outcomes: outcome
+      ? [{
+        outcome,
+        realized_pnl: null,
+      }]
+      : [],
+  };
+}
+
 describe("profile insights", () => {
   it("summarizes the user's most reviewed markets without changing asset sort rules", () => {
     const setups = [
-      buildTradeSetup({ created_at: "2026-06-20T12:00:00.000Z", id: "1", outcome: "take_profit", symbol: "EURUSD" }),
-      buildTradeSetup({ created_at: "2026-06-21T12:00:00.000Z", id: "2", outcome: "stop_loss", symbol: "EURUSD" }),
-      buildTradeSetup({ created_at: "2026-06-22T12:00:00.000Z", id: "3", outcome: "pending", symbol: "BTCUSD" }),
-      buildTradeSetup({ created_at: "2026-06-23T12:00:00.000Z", id: "4", outcome: "take_profit", symbol: "AUDUSD" }),
-      buildTradeSetup({ created_at: "2026-06-24T12:00:00.000Z", id: "5", outcome: "pending", symbol: "AUDUSD" }),
-      buildTradeSetup({ created_at: "2026-06-25T12:00:00.000Z", id: "6", outcome: "pending", symbol: "XAUUSD" }),
+      buildTradeSetup({
+        created_at: "2026-06-20T12:00:00.000Z",
+        id: "1",
+        outcome: "take_profit",
+        symbol: "EURUSD",
+      }),
+      buildTradeSetup({
+        created_at: "2026-06-21T12:00:00.000Z",
+        id: "2",
+        outcome: "stop_loss",
+        symbol: "EURUSD",
+      }),
+      buildTradeSetup({
+        created_at: "2026-06-22T12:00:00.000Z",
+        id: "3",
+        outcome: "pending",
+        symbol: "BTCUSD",
+      }),
+      buildTradeSetup({
+        created_at: "2026-06-23T12:00:00.000Z",
+        id: "4",
+        outcome: "take_profit",
+        symbol: "AUDUSD",
+      }),
+      buildTradeSetup({
+        created_at: "2026-06-24T12:00:00.000Z",
+        id: "5",
+        outcome: "pending",
+        symbol: "AUDUSD",
+      }),
+      buildTradeSetup({
+        created_at: "2026-06-25T12:00:00.000Z",
+        id: "6",
+        outcome: "pending",
+        symbol: "XAUUSD",
+      }),
     ];
 
     assert.deepEqual(

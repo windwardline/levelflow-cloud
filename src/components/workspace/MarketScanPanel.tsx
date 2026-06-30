@@ -1,13 +1,27 @@
 import { useMemo, useState } from "react";
-import { Filter, Loader2, RefreshCw, Search, ShieldCheck, Target } from "lucide-react";
-import { AVAILABLE_ASSET_GROUPS, formatSecurityLabel, type SecurityType } from "../../lib/symbolMap";
+import {
+  Filter,
+  Loader2,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Target,
+} from "lucide-react";
+import {
+  AVAILABLE_ASSET_GROUPS,
+  formatSecurityLabel,
+  type SecurityType,
+} from "../../lib/symbolMap";
 import {
   CONFIDENCE_TIERS,
+  type ConfidenceTierId,
   formatConfidenceTierRange,
   formatConfidenceWithTier,
-  type ConfidenceTierId,
 } from "../../lib/confidenceTiers";
-import type { MarketScanCandidate, MarketScanResponse } from "../../lib/tradeAnalyzer";
+import type {
+  MarketScanCandidate,
+  MarketScanResponse,
+} from "../../lib/tradeAnalyzer";
 
 type ConfidenceBand = "all" | ConfidenceTierId;
 type CategoryFilter = "all" | SecurityType;
@@ -19,7 +33,9 @@ type MarketScanPanelProps = {
   status: "idle" | "scanning";
 };
 
-const CONFIDENCE_BANDS: Array<{ label: string; min: number; value: ConfidenceBand }> = [
+const CONFIDENCE_BANDS: Array<
+  { label: string; min: number; value: ConfidenceBand }
+> = [
   { label: "All tiers", min: 0, value: "all" },
   ...[...CONFIDENCE_TIERS].reverse().map((tier) => ({
     label: `${tier.label} (${formatConfidenceTierRange(tier)}%)`,
@@ -38,12 +54,17 @@ export function MarketScanPanel({
   const [confidenceBand, setConfidenceBand] = useState<ConfidenceBand>("all");
   const opportunities = result?.opportunities ?? [];
   const blockedCount = result?.blocked.length ?? 0;
-  const selectedBand = CONFIDENCE_BANDS.find((band) => band.value === confidenceBand) ?? CONFIDENCE_BANDS[0];
+  const selectedBand =
+    CONFIDENCE_BANDS.find((band) => band.value === confidenceBand) ??
+      CONFIDENCE_BANDS[0];
   const filteredOpportunities = useMemo(
     () =>
       opportunities.filter((candidate) => {
-        const categoryMatch = categoryFilter === "all" || candidate.assetType === categoryFilter.toLowerCase() || candidate.assetType === categoryFilter;
-        const confidenceMatch = (candidate.confidenceScore ?? 0) >= selectedBand.min;
+        const categoryMatch = categoryFilter === "all" ||
+          candidate.assetType === categoryFilter.toLowerCase() ||
+          candidate.assetType === categoryFilter;
+        const confidenceMatch =
+          (candidate.confidenceScore ?? 0) >= selectedBand.min;
         return categoryMatch && confidenceMatch;
       }),
     [categoryFilter, opportunities, selectedBand.min],
@@ -58,10 +79,19 @@ export function MarketScanPanel({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate">Market scan</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">Best current markets</h3>
+          <h3 className="text-lg font-semibold tracking-normal text-navy">
+            Best current markets
+          </h3>
         </div>
-        <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={onScan} disabled={status === "scanning"}>
-          {status === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+        <button
+          className="secondary-button min-h-10 px-3 py-2"
+          type="button"
+          onClick={onScan}
+          disabled={status === "scanning"}
+        >
+          {status === "scanning"
+            ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
           Scan
         </button>
       </div>
@@ -70,7 +100,12 @@ export function MarketScanPanel({
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-slate">
             Group
-            <select className="field h-10 text-sm normal-case" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as CategoryFilter)}>
+            <select
+              className="field h-10 text-sm normal-case"
+              value={categoryFilter}
+              onChange={(event) =>
+                setCategoryFilter(event.target.value as CategoryFilter)}
+            >
               <option value="all">All markets</option>
               {AVAILABLE_ASSET_GROUPS.map((group) => (
                 <option key={group.label} value={group.label}>
@@ -81,7 +116,12 @@ export function MarketScanPanel({
           </label>
           <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-slate">
             Quality
-            <select className="field h-10 text-sm normal-case" value={confidenceBand} onChange={(event) => setConfidenceBand(event.target.value as ConfidenceBand)}>
+            <select
+              className="field h-10 text-sm normal-case"
+              value={confidenceBand}
+              onChange={(event) =>
+                setConfidenceBand(event.target.value as ConfidenceBand)}
+            >
               {CONFIDENCE_BANDS.map((band) => (
                 <option key={band.value} value={band.value}>
                   {band.label}
@@ -90,29 +130,45 @@ export function MarketScanPanel({
             </select>
           </label>
         </div>
-        <MarketScanSummary blockedCount={blockedCount} result={result} topCandidate={topCandidate} visibleCount={filteredOpportunities.length} />
+        <MarketScanSummary
+          blockedCount={blockedCount}
+          result={result}
+          topCandidate={topCandidate}
+          visibleCount={filteredOpportunities.length}
+        />
       </div>
 
-      {filteredOpportunities.length > 0 ? (
-        <div className="grid max-h-[640px] gap-3 overflow-y-auto pr-1">
-          {filteredOpportunities.map((candidate, index) => (
-            <MarketScanRow key={candidate.symbol} candidate={candidate} onSelectCandidate={onSelectCandidate} rank={index + 1} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-5 text-sm leading-6 text-slate">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-navy">
-            <Search className="h-5 w-5" aria-hidden="true" />
+      {filteredOpportunities.length > 0
+        ? (
+          <div className="grid max-h-[640px] gap-3 overflow-y-auto pr-1">
+            {filteredOpportunities.map((candidate, index) => (
+              <MarketScanRow
+                key={candidate.symbol}
+                candidate={candidate}
+                onSelectCandidate={onSelectCandidate}
+                rank={index + 1}
+              />
+            ))}
           </div>
-          {status === "scanning" ? "Checking active markets." : emptyMessage}
-        </div>
-      )}
+        )
+        : (
+          <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-5 text-sm leading-6 text-slate">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-navy">
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </div>
+            {status === "scanning" ? "Checking active markets." : emptyMessage}
+          </div>
+        )}
 
-      {result ? (
-        <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
-          {result.scanned} reviewed{blockedCount > 0 ? ` / ${blockedCount} not ready` : ""}. Select a row to load its chart.
-        </p>
-      ) : null}
+      {result
+        ? (
+          <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
+            {result.scanned}{" "}
+            reviewed{blockedCount > 0 ? ` / ${blockedCount} not ready` : ""}.
+            Select a row to load its chart.
+          </p>
+        )
+        : null}
     </section>
   );
 }
@@ -131,7 +187,8 @@ function MarketScanSummary({
   if (!result) {
     return (
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-semibold leading-5 text-slate">
-        Market Scan ranks only setups that pass the same review rules as the main advisor.
+        Market Scan ranks only setups that pass the same review rules as the
+        main advisor.
       </div>
     );
   }
@@ -141,18 +198,24 @@ function MarketScanSummary({
       <div className="flex min-w-0 items-center justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2">
           <Filter className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">{visibleCount} shown from {result.scanned} reviewed</span>
+          <span className="truncate">
+            {visibleCount} shown from {result.scanned} reviewed
+          </span>
         </span>
         <span className="shrink-0">{blockedCount} not ready</span>
       </div>
-      {topCandidate ? (
-        <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-white px-2 py-2">
-          <span className="min-w-0 truncate text-navy">Top: {formatSecurityLabel(topCandidate.symbol)}</span>
-          <span className="shrink-0 text-bullish">
-            {formatConfidenceWithTier(topCandidate.confidenceScore)}
-          </span>
-        </div>
-      ) : null}
+      {topCandidate
+        ? (
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-white px-2 py-2">
+            <span className="min-w-0 truncate text-navy">
+              Top: {formatSecurityLabel(topCandidate.symbol)}
+            </span>
+            <span className="shrink-0 text-bullish">
+              {formatConfidenceWithTier(topCandidate.confidenceScore)}
+            </span>
+          </div>
+        )
+        : null}
     </div>
   );
 }
@@ -167,14 +230,20 @@ function MarketScanRow({
   rank: number;
 }) {
   const isBuy = candidate.side === "buy";
-  const sideLabel = candidate.side ? `${candidate.side.toUpperCase()} LIMIT` : "Review";
+  const sideLabel = candidate.side
+    ? `${candidate.side.toUpperCase()} LIMIT`
+    : "Review";
   const levelPreview = candidate.entryPrice && candidate.takeProfit
-    ? `Entry ${formatNumber(candidate.entryPrice)} / Target ${formatNumber(candidate.takeProfit)}`
+    ? `Entry ${formatNumber(candidate.entryPrice)} / Target ${
+      formatNumber(candidate.takeProfit)
+    }`
     : "Load chart for details";
   const rationale = candidate.rationale?.length ? candidate.rationale : [
     `${formatConfidenceWithTier(candidate.confidenceScore)} confidence.`,
     `${formatPayoff(candidate.rewardRisk)} after review.`,
-    candidate.executionLabel ? `${candidate.executionLabel} trading-cost check.` : "Trading-cost check complete.",
+    candidate.executionLabel
+      ? `${candidate.executionLabel} cost check.`
+      : "Cost check complete.",
   ];
   const relatedMarkets = (candidate.relatedSymbols ?? [])
     .slice(0, 3)
@@ -189,18 +258,33 @@ function MarketScanRow({
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold text-navy">{rank}</span>
-            <p className="truncate font-semibold text-navy">{formatSecurityLabel(candidate.symbol)}</p>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold text-navy">
+              {rank}
+            </span>
+            <p className="truncate font-semibold text-navy">
+              {formatSecurityLabel(candidate.symbol)}
+            </p>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-normal text-slate">{formatAssetType(candidate.assetType)}</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+            {formatAssetType(candidate.assetType)}
+          </p>
         </div>
-        <span className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${isBuy ? "text-bullish" : "text-danger"}`}>{sideLabel}</span>
+        <span
+          className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${
+            isBuy ? "text-bullish" : "text-danger"
+          }`}
+        >
+          {sideLabel}
+        </span>
       </div>
 
       <div className="grid gap-2 rounded-lg bg-white px-3 py-2 text-xs sm:grid-cols-3">
-        <Metric label="Confidence" value={formatConfidenceWithTier(candidate.confidenceScore)} />
+        <Metric
+          label="Confidence"
+          value={formatConfidenceWithTier(candidate.confidenceScore)}
+        />
         <Metric label="Payoff" value={formatPayoff(candidate.rewardRisk)} />
-        <Metric label="Execution" value={candidate.executionLabel || "Checked"} />
+        <Metric label="Costs" value={candidate.executionLabel || "Checked"} />
       </div>
 
       <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-slate">
@@ -208,19 +292,30 @@ function MarketScanRow({
         <span className="truncate">{levelPreview}</span>
       </div>
 
-      {relatedMarkets.length > 0 ? (
-        <div className="flex min-w-0 items-center gap-2 rounded-md border border-slate/15 bg-white px-2 py-1.5 text-xs font-medium text-slate">
-          <Filter className="h-3.5 w-3.5 shrink-0 text-bullish" aria-hidden="true" />
-          <span className="min-w-0 truncate">
-            Related markets: {relatedMarkets.join(", ")}
-          </span>
-        </div>
-      ) : null}
+      {relatedMarkets.length > 0
+        ? (
+          <div className="flex min-w-0 items-center gap-2 rounded-md border border-slate/15 bg-white px-2 py-1.5 text-xs font-medium text-slate">
+            <Filter
+              className="h-3.5 w-3.5 shrink-0 text-bullish"
+              aria-hidden="true"
+            />
+            <span className="min-w-0 truncate">
+              Related markets: {relatedMarkets.join(", ")}
+            </span>
+          </div>
+        )
+        : null}
 
       <div className="grid gap-1.5">
         {rationale.slice(0, 3).map((reason) => (
-          <span key={reason} className="flex min-w-0 items-start gap-2 rounded-md bg-white px-2 py-1.5 text-xs leading-5 text-slate">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bullish" aria-hidden="true" />
+          <span
+            key={reason}
+            className="flex min-w-0 items-start gap-2 rounded-md bg-white px-2 py-1.5 text-xs leading-5 text-slate"
+          >
+            <ShieldCheck
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bullish"
+              aria-hidden="true"
+            />
             <span>{reason}</span>
           </span>
         ))}
@@ -232,7 +327,9 @@ function MarketScanRow({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="font-semibold uppercase tracking-normal text-slate">{label}</p>
+      <p className="font-semibold uppercase tracking-normal text-slate">
+        {label}
+      </p>
       <p className="mt-0.5 truncate font-semibold text-navy">{value}</p>
     </div>
   );

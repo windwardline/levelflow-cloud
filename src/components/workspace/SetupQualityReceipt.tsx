@@ -20,7 +20,9 @@ type SetupQualityReceiptProps = {
   setup: AnalyzerSetup;
 };
 
-export function SetupQualityReceipt({ result, setup }: SetupQualityReceiptProps) {
+export function SetupQualityReceipt(
+  { result, setup }: SetupQualityReceiptProps,
+) {
   const receipt = buildQualityReceipt(setup, result);
 
   return (
@@ -33,38 +35,70 @@ export function SetupQualityReceipt({ result, setup }: SetupQualityReceiptProps)
         {receipt.items.map((item) => (
           <div key={item.label} className="rounded-lg bg-white px-3 py-2">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-normal text-slate">{item.label}</p>
-              <p className={`text-right text-sm font-semibold ${item.tone === "bullish" ? "text-bullish" : item.tone === "danger" ? "text-danger" : "text-navy"}`}>{item.value}</p>
+              <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+                {item.label}
+              </p>
+              <p
+                className={`text-right text-sm font-semibold ${
+                  item.tone === "bullish"
+                    ? "text-bullish"
+                    : item.tone === "danger"
+                    ? "text-danger"
+                    : "text-navy"
+                }`}
+              >
+                {item.value}
+              </p>
             </div>
             <p className="mt-1 text-xs leading-5 text-slate">{item.detail}</p>
           </div>
         ))}
       </div>
-      {receipt.strategyVotes.length > 0 ? (
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-slate">Top checks</p>
-          <div className="grid gap-2">
-            {receipt.strategyVotes.slice(0, 3).map((vote) => (
-              <div key={`${vote.name}:${vote.direction}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm">
-                <span className="min-w-0 truncate font-semibold text-navy">{formatStrategyName(vote.name)}</span>
-                <span className={vote.direction === "buy" ? "text-bullish" : vote.direction === "sell" ? "text-danger" : "text-slate"}>
-                  {formatVoteSupport(vote.direction)}
-                </span>
-              </div>
-            ))}
+      {receipt.strategyVotes.length > 0
+        ? (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-slate">
+              Strongest checks
+            </p>
+            <div className="grid gap-2">
+              {receipt.strategyVotes.slice(0, 3).map((vote) => (
+                <div
+                  key={`${vote.name}:${vote.direction}`}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+                >
+                  <span className="min-w-0 truncate font-semibold text-navy">
+                    {formatStrategyName(vote.name)}
+                  </span>
+                  <span
+                    className={vote.direction === "buy"
+                      ? "text-bullish"
+                      : vote.direction === "sell"
+                      ? "text-danger"
+                      : "text-slate"}
+                  >
+                    {formatVoteSupport(vote.direction)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ) : null}
-      {receipt.blockers.length > 0 ? (
-        <div className="rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-xs font-semibold leading-5 text-warning">
-          Watch: {receipt.blockers.map(cleanReviewMessage).join(" ")}
-        </div>
-      ) : null}
+        )
+        : null}
+      {receipt.blockers.length > 0
+        ? (
+          <div className="rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-xs font-semibold leading-5 text-warning">
+            Note: {receipt.blockers.map(cleanReviewMessage).join(" ")}
+          </div>
+        )
+        : null}
     </div>
   );
 }
 
-function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | null): QualityReceiptData {
+function buildQualityReceipt(
+  setup: AnalyzerSetup,
+  result: AnalyzerResponse | null,
+): QualityReceiptData {
   const confluence = setup.confluence ?? {};
   const riskModel = setup.riskModel ?? {};
   const consensus = asRecord(confluence.consensus);
@@ -76,57 +110,95 @@ function buildQualityReceipt(setup: AnalyzerSetup, result: AnalyzerResponse | nu
   const grossRewardRisk = asNumber(confluence.grossRewardRisk);
   const weightAdjustment = asNumber(confluence.strategyWeightAdjustment);
   const sampleSize = asNumber(confluence.strategyWeightSampleSize);
-  const providerWarnings = asStringArray(confluence.providerWarnings).concat(result?.providerWarnings ?? []);
-  const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents) ? confluence.upcomingNewsEvents.length : 0;
+  const providerWarnings = asStringArray(confluence.providerWarnings).concat(
+    result?.providerWarnings ?? [],
+  );
+  const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents)
+    ? confluence.upcomingNewsEvents.length
+    : 0;
   const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
-  const tickValidation = typeof orderConstruction.tickValidation === "string" ? orderConstruction.tickValidation : "";
+  const tickValidation = typeof orderConstruction.tickValidation === "string"
+    ? orderConstruction.tickValidation
+    : "";
 
   const items: QualityReceiptItem[] = [
     {
-      detail: String(marketRegime.rationale ?? "Market condition was included in the review."),
+      detail: String(
+        marketRegime.rationale ??
+          "Market condition was included in the review.",
+      ),
       label: "Market condition",
       value: formatStrategyName(String(marketRegime.name ?? "current")),
     },
     {
-      detail: `Buy case ${formatMaybeNumber(consensus.buyScore)}/100, sell case ${formatMaybeNumber(consensus.sellScore)}/100, caution ${formatMaybeNumber(consensus.blockScore)}/100.`,
+      detail: `Buy case ${
+        formatMaybeNumber(consensus.buyScore)
+      }/100, sell case ${formatMaybeNumber(consensus.sellScore)}/100, caution ${
+        formatMaybeNumber(consensus.blockScore)
+      }/100.`,
       label: "Direction",
       tone: setup.side === "buy" ? "bullish" : "danger",
       value: setup.side === "buy" ? "Buy view" : "Sell view",
     },
     {
       detail: [
-        String(orderConstruction.validation ?? "Entry is built as a limit order away from the latest close."),
+        String(
+          orderConstruction.validation ??
+            "Entry is built as a limit order away from the latest close.",
+        ),
         tickValidation,
       ].filter(Boolean).join(" "),
       label: "Order type",
       value: "Limit only",
     },
     {
-      detail: String(riskModel.stopLogic ?? "Stop uses price structure and a volatility buffer."),
+      detail: String(
+        riskModel.stopLogic ??
+          "Stop uses price structure and a volatility buffer.",
+      ),
       label: "Risk",
       value: "Stop checked",
     },
     {
-      detail: String(riskModel.targetLogic ?? "Target uses price structure, volatility, and payoff checks."),
+      detail: String(
+        riskModel.targetLogic ??
+          "Target uses price structure, volatility, and payoff checks.",
+      ),
       label: "Target",
       value: formatPayoff(rewardRisk),
     },
     {
-      detail: buildExecutionDetail(executionQuality, grossRewardRisk, rewardRisk),
-      label: "Execution",
+      detail: buildExecutionDetail(
+        executionQuality,
+        grossRewardRisk,
+        rewardRisk,
+      ),
+      label: "Trading costs",
       tone: asNumber(executionQuality.confidencePenalty) ? "danger" : "neutral",
       value: String(executionQuality.label ?? "Checked"),
     },
     {
-      detail: `${String(sessionContext.label ?? "Session context")} ${upcomingNewsEvents > 0 ? `with ${upcomingNewsEvents} major upcoming event${upcomingNewsEvents === 1 ? "" : "s"}.` : "with no major event penalty."}`,
+      detail: `${String(sessionContext.label ?? "Session context")} ${
+        upcomingNewsEvents > 0
+          ? `with ${upcomingNewsEvents} major upcoming event${
+            upcomingNewsEvents === 1 ? "" : "s"
+          }.`
+          : "with no major event penalty."
+      }`,
       label: "Timing",
       tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
       value: asNumber(sessionContext.penalty) ? "Event risk" : "Clean",
     },
     {
-      detail: sampleSize && sampleSize > 0 ? `${sampleSize} finished setups included.` : "More finished setups are needed.",
+      detail: sampleSize && sampleSize > 0
+        ? `${sampleSize} finished setups included.`
+        : "More finished setups are needed.",
       label: "Past results",
-      tone: weightAdjustment && weightAdjustment > 0 ? "bullish" : weightAdjustment && weightAdjustment < 0 ? "danger" : "neutral",
+      tone: weightAdjustment && weightAdjustment > 0
+        ? "bullish"
+        : weightAdjustment && weightAdjustment < 0
+        ? "danger"
+        : "neutral",
       value: formatScoreAdjustment(weightAdjustment),
     },
   ];
@@ -146,16 +218,24 @@ function buildExecutionDetail(
   const penalty = asNumber(executionQuality.confidencePenalty) ?? 0;
   const roundTripCost = asNumber(executionQuality.estimatedRoundTripCost);
   const spreadSource = String(executionQuality.spreadSource ?? "modeled");
-  const gross = grossRewardRisk ? `${grossRewardRisk.toFixed(2)}x` : "gross payoff";
-  const effective = rewardRisk ? `${rewardRisk.toFixed(2)}x` : "effective payoff";
+  const gross = grossRewardRisk
+    ? `${grossRewardRisk.toFixed(2)}x`
+    : "gross payoff";
+  const effective = rewardRisk
+    ? `${rewardRisk.toFixed(2)}x`
+    : "effective payoff";
   const costBasis = spreadSource === "quoted"
-    ? "Live spread and modeled slippage"
-    : "Modeled spread and slippage";
+    ? "Current spread and estimated order cost"
+    : "Estimated spread and order cost";
   const cost = roundTripCost
     ? `${costBasis} ${formatNumber(roundTripCost)}.`
     : `${costBasis} checked.`;
 
-  return `${cost} Payoff moved from ${gross} to ${effective}${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
+  return `${cost} Payoff after costs is ${effective}${
+    grossRewardRisk && rewardRisk && gross !== effective
+      ? ` instead of ${gross}`
+      : ""
+  }${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
 }
 
 function normalizeStrategyVotes(value: unknown) {
@@ -177,7 +257,9 @@ function normalizeStrategyVotes(value: unknown) {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function asNumber(value: unknown) {
@@ -186,12 +268,20 @@ function asNumber(value: unknown) {
 }
 
 function asStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string =>
+      typeof item === "string" && item.trim().length > 0
+    )
+    : [];
 }
 
 function formatMaybeNumber(value: unknown) {
   const number = asNumber(value);
-  return number === null ? "Pending" : Number.isInteger(number) ? String(number) : number.toFixed(2);
+  return number === null
+    ? "Pending"
+    : Number.isInteger(number)
+    ? String(number)
+    : number.toFixed(2);
 }
 
 function formatPayoff(value: number | null | undefined) {
