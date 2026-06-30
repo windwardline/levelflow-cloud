@@ -1,6 +1,6 @@
 # LevelFlow Gap Analysis
 
-Last reviewed: 2026-06-29
+Last reviewed: 2026-06-30
 
 ## Current Strengths
 
@@ -31,7 +31,7 @@ Last reviewed: 2026-06-29
 - Legacy `pending_orders` persistence is consolidated into `trade_setups`; the app records setups and outcomes, not executable orders.
 - Market Scan now has group and quality filters, compact ranking cards, and short rationale previews.
 - Market Scan candidates now include related-market context so clustered opportunities are easier to interpret.
-- The largest Advisor workspace file was reduced by moving Market Scan and setup-quality receipts into focused components. The analyzer also now keeps strategy voting, indicators, symbol routing, market loading, price planning, execution quality, and learning math in focused modules.
+- The largest Advisor workspace file was reduced by moving Market Scan and setup-quality receipts into focused components. The analyzer also now keeps strategy voting, indicators, symbol routing, market loading, price planning, execution quality, Supabase persistence, and learning math in focused modules.
 - Profile and theme controls are split out of the top-level app shell, and FMP quote parsing is isolated for test coverage.
 - Donate is split out of the top-level app shell, and returning users resume from their last primary workspace tab.
 - Guide, About, and Insights are split out of the top-level app shell; `App.tsx` now owns shell, auth, navigation, and workspace orchestration instead of full panel rendering.
@@ -42,6 +42,8 @@ Last reviewed: 2026-06-29
 - Profile now includes a data-backed review pattern card, so it shows useful user activity instead of static repetition.
 - Donation URLs from deployment variables are sanitized to HTTPS-only external links before they can render.
 - Advisor copy now distinguishes verified chart-feed data from live execution data, describes trading-cost impact in plainer language, and avoids raw internal strategy scores in the setup receipt.
+- Analyzer Supabase persistence, auth lookup, admin REST calls, RPC calls, and fetch timeouts are isolated in `supabaseRest.ts`.
+- History filtering, grouping, confidence-band math, and setup cards are split out of `HistoryPanel.tsx` with test coverage for shared asset ordering and status grouping.
 
 ## Gaps to Close
 
@@ -53,11 +55,11 @@ Last reviewed: 2026-06-29
 
 - Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
-- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell is now small; the Advisor workspace has been reduced meaningfully, with chart/status orchestration still the next natural split point.
+- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell is now small; the Advisor and History workspaces have been reduced meaningfully, with chart/status orchestration still the next natural split point.
 
 ### Back End
 
-- Continue splitting the analyzer Edge Function. Calibration, strategy voting, indicators, replay, market loading, price planning, execution quality, quote parsing, learning math, session rules, futures contract rules, strategy profiles, and symbol routing are separated now; Supabase persistence should be split next.
+- Continue splitting the analyzer Edge Function where it improves reviewability. Calibration, strategy voting, indicators, replay, market loading, price planning, execution quality, quote parsing, learning math, session rules, futures contract rules, Supabase persistence, strategy profiles, and symbol routing are separated now.
 - Add a small internal operations view for `market_data_health` and `analyzer_events` once there is enough live data to make it useful.
 
 ### Security and Reliability
@@ -69,8 +71,7 @@ Last reviewed: 2026-06-29
 
 ## Priority Order
 
-1. Split analyzer Supabase persistence into a dedicated module.
-2. Split the Advisor workspace into focused chart and data-status panels once the current product surface stabilizes.
-3. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
-4. Add broker-specific execution data if a supported integration becomes available.
-5. Tighten bundle budgets as additional code-splitting lands.
+1. Split the Advisor workspace into focused chart and data-status panels once the current product surface stabilizes.
+2. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
+3. Add broker-specific execution data if a supported integration becomes available.
+4. Tighten bundle budgets as additional code-splitting lands.

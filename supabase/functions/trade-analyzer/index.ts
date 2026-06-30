@@ -37,11 +37,23 @@ import {
   fetchFmpBars,
   type ProviderContextResult,
 } from "./marketLoader.ts";
+import {
+  adminFetchRows,
+  adminInsertRows,
+  adminRpcRows,
+  adminUpsertRows,
+  fetchRows,
+  fetchSingle,
+  fetchWithTimeout,
+  getAuthenticatedUser,
+  hasSupabaseAdminConfig,
+  hasSupabaseRuntimeConfig,
+  insertSingle,
+  updateRows,
+  upsertRows,
+} from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const ANALYZER_VERSION = "2026.06.28.category-strategy-profiles";
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
   "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
@@ -54,7 +66,6 @@ const RATE_LIMITS: Record<string, number> = {
   refresh_outcomes: 12,
   scan_opportunities: 8,
 };
-const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 type AnalyzeRequest = {
   action?: "analyze" | "refresh_outcomes" | "scan_opportunities";
   symbols?: string[];
@@ -157,7 +168,7 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { error: "Method not allowed" }, 405);
     }
 
-    if (!FMP_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!FMP_API_KEY || !hasSupabaseRuntimeConfig()) {
       return jsonResponse(req, {
         error: "Analyzer provider configuration is incomplete",
       }, 500);
@@ -571,7 +582,7 @@ async function recordMarketDataHealth(
 }
 
 async function recordAnalyzerEvent(event: AnalyzerEventPayload) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasSupabaseAdminConfig()) {
     return;
   }
 
@@ -1458,7 +1469,7 @@ function normalizeActionName(action: unknown) {
 }
 
 async function claimAnalyzerRequest(userId: string, action: string) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasSupabaseAdminConfig()) {
     throw new Error(
       "SUPABASE_SERVICE_ROLE_KEY is required for analyzer rate limiting.",
     );
@@ -1489,7 +1500,7 @@ async function claimAnalyzerRequest(userId: string, action: string) {
 }
 
 async function refreshGlobalStrategyWeights() {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasSupabaseAdminConfig()) {
     return {
       skipped: true,
       updated: 0,
@@ -1675,208 +1686,8 @@ function formatTitle(value: string) {
     .trim();
 }
 
-async function fetchSingle<T>(token: string, path: string) {
-  const rows = await fetchRows<T>(
-    token,
-    /(?:^|[?&])limit=/.test(path)
-      ? path
-      : `${path}${path.includes("?") ? "&" : "?"}limit=1`,
-  );
-  return rows[0] ?? null;
-}
-
-async function fetchRows<T>(token: string, path: string): Promise<T[]> {
-  const response = await supabaseFetch(token, path);
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  return (await response.json()) as T[];
-}
-
-async function insertSingle(
-  token: string,
-  table: string,
-  payload: Record<string, unknown>,
-) {
-  const response = await supabaseFetch(token, table, {
-    body: JSON.stringify(payload),
-    headers: {
-      Prefer: "return=representation",
-    },
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  const rows = (await response.json()) as Array<{ id: string }>;
-  return rows[0];
-}
-
-async function updateRows<T = unknown>(
-  token: string,
-  path: string,
-  payload: Record<string, unknown>,
-): Promise<T[]> {
-  const response = await supabaseFetch(token, path, {
-    body: JSON.stringify(payload),
-    headers: {
-      Prefer: "return=representation",
-    },
-    method: "PATCH",
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  return (await response.json()) as T[];
-}
-
-async function upsertRows<T = unknown>(
-  token: string,
-  table: string,
-  payload: Record<string, unknown> | Array<Record<string, unknown>>,
-  onConflict: string,
-): Promise<T[]> {
-  const response = await supabaseFetch(
-    token,
-    `${table}?on_conflict=${encodeURIComponent(onConflict)}`,
-    {
-      body: JSON.stringify(payload),
-      headers: {
-        Prefer: "resolution=merge-duplicates,return=representation",
-      },
-      method: "POST",
-    },
-  );
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  return (await response.json()) as T[];
-}
-
-async function adminFetchRows<T>(path: string): Promise<T[]> {
-  const response = await adminSupabaseFetch(path);
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  return (await response.json()) as T[];
-}
-
-async function adminInsertRows<T = unknown>(
-  table: string,
-  payload: Record<string, unknown> | Array<Record<string, unknown>>,
-): Promise<T[]> {
-  const response = await adminSupabaseFetch(table, {
-    body: JSON.stringify(payload),
-    headers: {
-      Prefer: "return=minimal",
-    },
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  if (response.status === 204) {
-    return [];
-  }
-  return (await response.json()) as T[];
-}
-
-async function adminRpcRows<T>(
-  functionName: string,
-  payload: Record<string, unknown>,
-): Promise<T[]> {
-  const response = await adminSupabaseFetch(`rpc/${functionName}`, {
-    body: JSON.stringify(payload),
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  return (await response.json()) as T[];
-}
-
-async function adminUpsertRows<T = unknown>(
-  table: string,
-  payload: Record<string, unknown> | Array<Record<string, unknown>>,
-  onConflict: string,
-): Promise<T[]> {
-  const response = await adminSupabaseFetch(
-    `${table}?on_conflict=${encodeURIComponent(onConflict)}`,
-    {
-      body: JSON.stringify(payload),
-      headers: {
-        Prefer: "resolution=merge-duplicates,return=representation",
-      },
-      method: "POST",
-    },
-  );
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  return (await response.json()) as T[];
-}
-
-async function supabaseFetch(
-  token: string,
-  path: string,
-  init: RequestInit = {},
-) {
-  return fetchWithTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY ?? "",
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  }, SUPABASE_FETCH_TIMEOUT_MS);
-}
-
-async function adminSupabaseFetch(path: string, init: RequestInit = {}) {
-  return fetchWithTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
-      apikey: SUPABASE_SERVICE_ROLE_KEY ?? "",
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  }, SUPABASE_FETCH_TIMEOUT_MS);
-}
-
-async function getAuthenticatedUser(token: string | null) {
-  if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return null;
-  }
-
-  const response = await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-  }, SUPABASE_FETCH_TIMEOUT_MS);
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const user = await response.json();
-  return typeof user?.id === "string" ? user : null;
-}
-
 function getBearerToken(req: Request) {
   return req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? null;
-}
-
-function fetchWithTimeout(
-  input: string | URL,
-  init: RequestInit = {},
-  timeoutMs = SUPABASE_FETCH_TIMEOUT_MS,
-) {
-  return fetch(input, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
-  });
 }
 
 function normalizeSymbol(value: string) {
