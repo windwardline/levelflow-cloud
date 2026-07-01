@@ -37,9 +37,10 @@ import {
   fetchFmpBars,
   type ProviderContextResult,
 } from "./marketLoader.ts";
+import { corsHeaders, getBearerToken, jsonResponse } from "./http.ts";
+import { recordAnalyzerEvent, recordMarketDataHealth } from "./telemetry.ts";
 import {
   adminFetchRows,
-  adminInsertRows,
   adminRpcRows,
   adminUpsertRows,
   fetchRows,
@@ -55,11 +56,6 @@ import {
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const ANALYZER_VERSION = "2026.06.28.category-strategy-profiles";
-const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMITS: Record<string, number> = {
   generate_setup: 24,
@@ -135,27 +131,6 @@ type MarketScanCandidate = {
   stopLoss?: number;
   symbol: SupportedSymbol;
   takeProfit?: number;
-};
-
-type AnalyzerEventStatus =
-  | "blocked"
-  | "cache_hit"
-  | "error"
-  | "scan_failure"
-  | "slow_provider"
-  | "success";
-
-type AnalyzerEventPayload = {
-  action: string;
-  assetType?: string | null;
-  cacheHit?: boolean | null;
-  durationMs?: number | null;
-  message?: string | null;
-  metadata?: Record<string, unknown>;
-  providerSymbol?: string | null;
-  status: AnalyzerEventStatus;
-  symbol?: string | null;
-  userId?: string | null;
 };
 
 Deno.serve(async (req) => {
@@ -537,73 +512,6 @@ Deno.serve(async (req) => {
     );
   }
 });
-
-async function recordMarketDataHealth(
-  symbol: SupportedSymbol,
-  providerSymbol: string | null,
-  marketContext: MarketContext | null,
-  providerFailures: string[],
-) {
-  try {
-    const providerWarnings = [
-      ...providerFailures,
-      ...(marketContext?.providerWarnings ?? []),
-    ];
-    const status = !marketContext
-      ? "unavailable"
-      : providerWarnings.length > 0 ||
-          marketContext.availableTimeframes.length < 4
-      ? "limited"
-      : "ready";
-
-    await adminUpsertRows("market_data_health", {
-      asset_type: getAssetType(symbol),
-      available_timeframes: marketContext?.availableTimeframes ?? [],
-      daily_bars: marketContext?.daily.length ?? 0,
-      intraday_bars: marketContext?.availableTimeframes
-        .filter((timeframe) => timeframe !== "1day")
-        .reduce(
-          (total, timeframe) =>
-            total + (marketContext?.timeframes[timeframe]?.length ?? 0),
-          0,
-        ) ?? 0,
-      last_checked_at: new Date().toISOString(),
-      latest_bar_at: marketContext?.latest
-        ? new Date(marketContext.latest.time).toISOString()
-        : null,
-      provider_symbol: providerSymbol,
-      provider_warnings: providerWarnings,
-      status,
-      symbol,
-    }, "symbol");
-  } catch (error) {
-    console.warn("market data health recording failed", error);
-  }
-}
-
-async function recordAnalyzerEvent(event: AnalyzerEventPayload) {
-  if (!hasSupabaseAdminConfig()) {
-    return;
-  }
-
-  try {
-    await adminInsertRows("analyzer_events", {
-      action: event.action,
-      asset_type: event.assetType ??
-        (event.symbol ? getAssetType(event.symbol) : null),
-      cache_hit: event.cacheHit ?? false,
-      duration_ms: event.durationMs ?? null,
-      message: event.message ?? null,
-      metadata: event.metadata ?? {},
-      provider_symbol: event.providerSymbol ?? null,
-      status: event.status,
-      symbol: event.symbol ?? null,
-      user_id: event.userId ?? null,
-    });
-  } catch (error) {
-    console.warn("analyzer event recording failed", error);
-  }
-}
 
 async function scanOpportunities(
   token: string,
@@ -1686,10 +1594,6 @@ function formatTitle(value: string) {
     .trim();
 }
 
-function getBearerToken(req: Request) {
-  return req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? null;
-}
-
 function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -1703,28 +1607,4 @@ function clampInteger(value: number, min: number, max: number) {
 
 function roundPrice(value: number) {
   return Number(value.toFixed(8));
-}
-
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("Origin");
-  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
-    ? origin
-    : ALLOWED_ORIGINS[0] ?? "https://levelflow.windwardline.com";
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
-}
-
-function jsonResponse(req: Request, body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-    },
-    status,
-  });
 }
