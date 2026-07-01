@@ -44,6 +44,8 @@ Last reviewed: 2026-06-30
 - Advisor copy now distinguishes verified chart-feed data from live execution data, describes trading-cost impact in plainer language, and avoids raw internal strategy scores in the setup receipt.
 - Analyzer Supabase persistence, auth lookup, admin REST calls, RPC calls, and fetch timeouts are isolated in `supabaseRest.ts`.
 - History filtering, grouping, confidence-band math, and setup cards are split out of `HistoryPanel.tsx` with test coverage for shared asset ordering and status grouping.
+- Advisor recommendation display, market status cards, session clocks, recent activity, and shared formatting are now split out of `AdvisorWorkspace.tsx`, leaving the workspace focused on orchestration, data loading, and user actions.
+- Analyzer HTTP response handling and telemetry/data-health recording are now split out of the Edge Function entrypoint, keeping request routing separate from cross-cutting infrastructure.
 
 ## Gaps to Close
 
@@ -55,7 +57,7 @@ Last reviewed: 2026-06-30
 
 - Continue tightening review copy as more real usage comes in. The no-setup state now shows a primary reason and limited detail, but real-user sessions will reveal which phrases still feel too technical.
 - Add richer chart tools only where Lightweight Charts supports them cleanly. Current zoom, scroll, reset, scale, crosshair, OHLC, and setup lines are present; full TradingView-style drawing tools would require either a different charting product or custom drawing overlays.
-- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell is now small; the Advisor and History workspaces have been reduced meaningfully, with chart/status orchestration still the next natural split point.
+- Continue splitting heavy workspace panels where doing so clarifies ownership. The app shell, Advisor workspace, and History workspace have been reduced meaningfully; future splits should target only areas that improve reviewability or test coverage.
 
 ### Back End
 
@@ -71,7 +73,6 @@ Last reviewed: 2026-06-30
 
 ## Priority Order
 
-1. Split the Advisor workspace into focused chart and data-status panels once the current product surface stabilizes.
-2. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
-3. Add broker-specific execution data if a supported integration becomes available.
-4. Tighten bundle budgets as additional code-splitting lands.
+1. Add a small internal operations view after enough `market_data_health` and `analyzer_events` data exists.
+2. Add broker-specific execution data if a supported integration becomes available.
+3. Tighten bundle budgets as additional code-splitting lands.

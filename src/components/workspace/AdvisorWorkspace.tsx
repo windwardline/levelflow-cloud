@@ -1,18 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Brain, CheckCircle2, Clipboard, Clock, Loader2, RefreshCw, ShieldCheck, Target, XCircle } from "lucide-react";
+import { Brain, Loader2, RefreshCw } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
-import { ConfidenceGauge } from "../trade/ConfidenceGauge";
+import { RecommendationPanel } from "./AdvisorRecommendationPanel";
+import {
+  DataHealthPanel,
+  DeskStatusStrip,
+  MarketClockPanel,
+  MarketResultsPanel,
+  RecentSetupsPanel,
+} from "./AdvisorStatusPanels";
+import { formatPrice, formatTimeframe, TIMEFRAMES } from "./advisorFormat";
 import { MarketScanPanel } from "./MarketScanPanel";
-import { SetupQualityReceipt } from "./SetupQualityReceipt";
 import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
-import { uniqueReviewMessages } from "./reviewCopy";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
-import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
-import { fetchMarketData, type ChartTimeframe, type MarketDataResponse } from "../../lib/marketData";
+import {
+  type ChartTimeframe,
+  fetchMarketData,
+  type MarketDataResponse,
+} from "../../lib/marketData";
 import type { UserProfile } from "../../lib/profile";
-import { AVAILABLE_ASSET_GROUPS, AVAILABLE_ASSET_SYMBOLS, formatSecurityLabel, getSecurityOption, TEMPORARILY_HIDDEN_ASSET_TYPES, type SupportedSymbol } from "../../lib/symbolMap";
-import { generateTradeSetup, scanMarketOpportunities, type AnalyzerResponse, type AnalyzerSetup, type MarketScanResponse, type TradeSetupRow } from "../../lib/tradeAnalyzer";
+import {
+  AVAILABLE_ASSET_GROUPS,
+  AVAILABLE_ASSET_SYMBOLS,
+  formatSecurityLabel,
+  getSecurityOption,
+  type SupportedSymbol,
+} from "../../lib/symbolMap";
+import {
+  type AnalyzerResponse,
+  generateTradeSetup,
+  type MarketScanResponse,
+  scanMarketOpportunities,
+  type TradeSetupRow,
+} from "../../lib/tradeAnalyzer";
 
 type AdvisorWorkspaceProps = {
   onSetupsChanged: () => void;
@@ -27,23 +48,24 @@ type AnalysisState = {
   symbol: SupportedSymbol;
 };
 
-const TIMEFRAMES: Array<{ label: string; value: ChartTimeframe }> = [
-  { label: "15 minutes", value: "15min" },
-  { label: "1 hour", value: "1hour" },
-  { label: "4 hours", value: "4hour" },
-  { label: "Daily", value: "1day" },
-];
-
-export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups }: AdvisorWorkspaceProps) {
+export function AdvisorWorkspace(
+  { onSetupsChanged, profile, setupStats, setups }: AdvisorWorkspaceProps,
+) {
   const [symbol, setSymbol] = useState<SupportedSymbol>("EURUSD");
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>(profile.defaultTimeframe);
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>(
+    profile.defaultTimeframe,
+  );
   const [timeframeTouched, setTimeframeTouched] = useState(false);
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketNotice, setMarketNotice] = useState("Loading market context.");
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const [analysisState, setAnalysisState] = useState<AnalysisState | null>(null);
-  const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">("idle");
+  const [analysisState, setAnalysisState] = useState<AnalysisState | null>(
+    null,
+  );
+  const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">(
+    "idle",
+  );
   const [advisorNotice, setAdvisorNotice] = useState("");
   const [scanResult, setScanResult] = useState<MarketScanResponse | null>(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
@@ -52,12 +74,28 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
   const selectedSymbolRef = useRef<SupportedSymbol>("EURUSD");
 
   const selectedAsset = getSecurityOption(symbol);
-  const activeResult = analysisState?.symbol === symbol ? analysisState.response : null;
+  const activeResult = analysisState?.symbol === symbol
+    ? analysisState.response
+    : null;
   const setup = activeResult?.setup ?? null;
   const symbolStat = setupStats.find((stat) => stat.symbol === symbol);
-  const activeMarketCount = AVAILABLE_ASSET_GROUPS.reduce((sum, group) => sum + group.options.length, 0);
-  const marketClock = useMemo(() => getMarketClock(symbol, profile.defaultTimezone, clockNow), [clockNow, profile.defaultTimezone, symbol]);
-  const globalSessions = useMemo(() => getGlobalSessions(profile.defaultTimezone, profile.preferredSession, clockNow), [clockNow, profile.defaultTimezone, profile.preferredSession]);
+  const activeMarketCount = AVAILABLE_ASSET_GROUPS.reduce(
+    (sum, group) => sum + group.options.length,
+    0,
+  );
+  const marketClock = useMemo(
+    () => getMarketClock(symbol, profile.defaultTimezone, clockNow),
+    [clockNow, profile.defaultTimezone, symbol],
+  );
+  const globalSessions = useMemo(
+    () =>
+      getGlobalSessions(
+        profile.defaultTimezone,
+        profile.preferredSession,
+        clockNow,
+      ),
+    [clockNow, profile.defaultTimezone, profile.preferredSession],
+  );
 
   useEffect(() => {
     if (!timeframeTouched) {
@@ -82,15 +120,25 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       setMarketNotice("Loading market context.");
 
       try {
-        const nextData = await fetchMarketData({ days: timeframe === "1day" ? 180 : 21, symbol, timeframe });
+        const nextData = await fetchMarketData({
+          days: timeframe === "1day" ? 180 : 21,
+          symbol,
+          timeframe,
+        });
         if (!cancelled) {
           setMarketData(nextData);
-          setMarketNotice(`${nextData.resultsCount} ${formatTimeframe(timeframe)} candles loaded.`);
+          setMarketNotice(
+            `${nextData.resultsCount} ${
+              formatTimeframe(timeframe)
+            } candles loaded.`,
+          );
         }
       } catch {
         if (!cancelled) {
           setMarketData(null);
-          setMarketNotice("Verified market data is not available for this market yet.");
+          setMarketNotice(
+            "Verified market data is not available for this market yet.",
+          );
         }
       } finally {
         if (!cancelled) {
@@ -114,7 +162,11 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 
     setAnalyzerStatus("analyzing");
     setAdvisorNotice(`Analyzing ${requestedLabel}.`);
-    setAnalysisState({ requestedAt: Date.now(), response: null, symbol: requestedSymbol });
+    setAnalysisState({
+      requestedAt: Date.now(),
+      response: null,
+      symbol: requestedSymbol,
+    });
     if (requestedSymbol !== symbol) {
       setSymbol(requestedSymbol);
     }
@@ -124,18 +176,35 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
       if (requestIdRef.current !== requestId) {
         return;
       }
-      setAnalysisState({ requestedAt: Date.now(), response: nextResult, symbol: requestedSymbol });
+      setAnalysisState({
+        requestedAt: Date.now(),
+        response: nextResult,
+        symbol: requestedSymbol,
+      });
       if (nextResult.setup) {
-        setAdvisorNotice(nextResult.deduplicated ? `${requestedLabel} current setup refreshed.` : `${requestedLabel} limit setup saved.`);
+        setAdvisorNotice(
+          nextResult.deduplicated
+            ? `${requestedLabel} current setup refreshed.`
+            : `${requestedLabel} limit setup saved.`,
+        );
         onSetupsChanged();
       } else {
-        setAdvisorNotice(nextResult.reason ?? `No current ${requestedLabel} limit setup passed review.`);
+        setAdvisorNotice(
+          nextResult.reason ??
+            `No current ${requestedLabel} limit setup passed review.`,
+        );
         onSetupsChanged();
       }
     } catch {
       if (requestIdRef.current === requestId) {
-        setAnalysisState({ requestedAt: Date.now(), response: null, symbol: requestedSymbol });
-        setAdvisorNotice(`Market context is refreshing for ${requestedLabel}. Try again shortly.`);
+        setAnalysisState({
+          requestedAt: Date.now(),
+          response: null,
+          symbol: requestedSymbol,
+        });
+        setAdvisorNotice(
+          `Market context is refreshing for ${requestedLabel}. Try again shortly.`,
+        );
       }
     } finally {
       if (requestIdRef.current === requestId) {
@@ -173,12 +242,27 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
         <div className="border-b border-slate/15 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">Advisor</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">Market review</h2>
-              <p className="mt-1 text-sm text-slate">Select a market, review the chart, then ask LevelFlow for the current limit setup.</p>
+              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+                Advisor
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+                Market review
+              </h2>
+              <p className="mt-1 text-sm text-slate">
+                Select a market, review the chart, then ask LevelFlow for the
+                current limit setup.
+              </p>
             </div>
-            <button className="secondary-button min-h-10 px-3 py-2" type="button" onClick={() => setRefreshNonce((value) => value + 1)} disabled={marketLoading}>
-              <RefreshCw className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`} aria-hidden="true" />
+            <button
+              className="secondary-button min-h-10 px-3 py-2"
+              type="button"
+              onClick={() => setRefreshNonce((value) => value + 1)}
+              disabled={marketLoading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`}
+                aria-hidden="true"
+              />
               Refresh
             </button>
           </div>
@@ -230,8 +314,20 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
             </label>
 
             <div className="flex items-end">
-              <button className="primary-button w-full lg:min-w-48" type="button" disabled={analyzerStatus === "analyzing" || marketLoading} onClick={analyze}>
-                {analyzerStatus === "analyzing" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Brain className="h-4 w-4" aria-hidden="true" />}
+              <button
+                className="primary-button w-full lg:min-w-48"
+                type="button"
+                disabled={analyzerStatus === "analyzing" || marketLoading}
+                onClick={analyze}
+              >
+                {analyzerStatus === "analyzing"
+                  ? (
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  )
+                  : <Brain className="h-4 w-4" aria-hidden="true" />}
                 Review market
               </button>
             </div>
@@ -252,17 +348,30 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           <MarketClockPanel clock={marketClock} sessions={globalSessions} />
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate">{selectedAsset.assetType}</p>
-              <h3 className="text-xl font-semibold tracking-normal text-navy">{formatSecurityLabel(symbol)}</h3>
+              <p className="text-sm font-semibold text-slate">
+                {selectedAsset.assetType}
+              </p>
+              <h3 className="text-xl font-semibold tracking-normal text-navy">
+                {formatSecurityLabel(symbol)}
+              </h3>
             </div>
             <div className="text-left sm:text-right">
-              <p className="text-xs font-semibold uppercase tracking-normal text-slate">Latest close</p>
+              <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+                Latest close
+              </p>
               <p className="text-lg font-semibold tracking-normal text-navy">
-                {typeof marketData?.latestClose === "number" ? formatPrice(symbol, marketData.latestClose) : "Pending"}
+                {typeof marketData?.latestClose === "number"
+                  ? formatPrice(symbol, marketData.latestClose)
+                  : "Pending"}
               </p>
             </div>
           </div>
-          <MarketChart data={marketData?.points ?? []} loading={marketLoading} setup={setup} viewKey={`${symbol}:${timeframe}`} />
+          <MarketChart
+            data={marketData?.points ?? []}
+            loading={marketLoading}
+            setup={setup}
+            viewKey={`${symbol}:${timeframe}`}
+          />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <p className="font-medium text-slate">{marketNotice}</p>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
@@ -276,7 +385,13 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
 
       <aside className="grid content-start gap-5">
         <section className="terminal-panel p-5">
-          <RecommendationPanel notice={advisorNotice} result={activeResult} setup={setup} status={analyzerStatus} symbol={symbol} />
+          <RecommendationPanel
+            notice={advisorNotice}
+            result={activeResult}
+            setup={setup}
+            status={analyzerStatus}
+            symbol={symbol}
+          />
         </section>
 
         <MarketScanPanel
@@ -297,7 +412,9 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
                 },
                 symbol: nextSymbol,
               });
-              setAdvisorNotice("Selected from Market Scan. Review market to refresh and save this setup.");
+              setAdvisorNotice(
+                "Selected from Market Scan. Review market to refresh and save this setup.",
+              );
             } else {
               setAnalysisState(null);
               setAdvisorNotice("");
@@ -307,379 +424,22 @@ export function AdvisorWorkspace({ onSetupsChanged, profile, setupStats, setups 
           status={scanStatus}
         />
 
-        <DataHealthPanel activeMarketCount={activeMarketCount} data={marketData} loading={marketLoading} notice={marketNotice} />
+        <DataHealthPanel
+          activeMarketCount={activeMarketCount}
+          data={marketData}
+          loading={marketLoading}
+          notice={marketNotice}
+        />
 
-        <VolatilityWindowPanel symbol={symbol} timezone={profile.defaultTimezone} />
+        <VolatilityWindowPanel
+          symbol={symbol}
+          timezone={profile.defaultTimezone}
+        />
 
-        <section className="terminal-panel p-5">
-          <div className="mb-4 flex items-center gap-3">
-            <Clock className="h-5 w-5 text-navy" aria-hidden="true" />
-            <div>
-              <p className="text-sm font-semibold text-slate">Recent setups</p>
-              <h3 className="text-lg font-semibold tracking-normal text-navy">Latest activity</h3>
-            </div>
-          </div>
-          <SetupList setups={setups.slice(0, 5)} />
-        </section>
+        <RecentSetupsPanel setups={setups} />
 
-        <section className="terminal-panel p-5">
-          <div className="mb-4 flex items-center gap-3">
-            <BarChart3 className="h-5 w-5 text-navy" aria-hidden="true" />
-            <div>
-              <p className="text-sm font-semibold text-slate">Market results</p>
-              <h3 className="text-lg font-semibold tracking-normal text-navy">{selectedAsset.symbol}</h3>
-            </div>
-          </div>
-          {symbolStat ? (
-            <div className="grid gap-2 text-sm">
-              <MetricRow label="Setups shown" value={symbolStat.count.toString()} />
-              <MetricRow label="Average confidence" value={`${symbolStat.averageConfidence}%`} />
-              <MetricRow label="Win rate" value={symbolStat.winRate === null ? "Learning" : `${symbolStat.winRate}%`} />
-              <MetricRow label="Reached target" value={symbolStat.wins.toString()} />
-              <MetricRow label="Hit stop" value={symbolStat.losses.toString()} />
-              <MetricRow label="Still tracking" value={symbolStat.pending.toString()} />
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-slate">No saved setups for this market yet.</p>
-          )}
-        </section>
+        <MarketResultsPanel stat={symbolStat} symbol={symbol} />
       </aside>
     </div>
   );
-}
-
-function DataHealthPanel({
-  activeMarketCount,
-  data,
-  loading,
-  notice,
-}: {
-  activeMarketCount: number;
-  data: MarketDataResponse | null;
-  loading: boolean;
-  notice: string;
-}) {
-  const hiddenCategories = Array.from(TEMPORARILY_HIDDEN_ASSET_TYPES).sort();
-  const lastUpdated = data?.asOf ? formatTimestamp(data.asOf) : "Awaiting refresh";
-  const status = loading ? "Refreshing" : data?.resultsCount ? "Ready" : "Needs data";
-
-  return (
-    <section className="terminal-panel p-5">
-      <div className="mb-4 flex items-center gap-3">
-        <CheckCircle2 className="h-5 w-5 text-bullish" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-semibold text-slate">Market data</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">{status}</h3>
-        </div>
-      </div>
-      <div className="grid gap-2 text-sm">
-        <MetricRow label="Feed" value="Chart feed" />
-        <MetricRow label="Candles loaded" value={loading ? "Refreshing" : String(data?.resultsCount ?? 0)} />
-        <MetricRow label="Last updated" value={lastUpdated} />
-        <MetricRow label="Active markets" value={String(activeMarketCount)} />
-      </div>
-      <p className="mt-3 text-sm leading-6 text-slate">{notice}</p>
-      {hiddenCategories.length > 0 ? (
-        <p className="mt-3 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-xs font-semibold leading-5 text-warning">
-          {hiddenCategories.join(" and ")} are hidden until their chart data is verified.
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-function DeskStatusStrip({
-  analysisStatus,
-  clockStatus,
-  latestClose,
-  loading,
-  result,
-  stat,
-  symbol,
-}: {
-  analysisStatus: "idle" | "analyzing";
-  clockStatus: string;
-  latestClose: number | null;
-  loading: boolean;
-  result: AnalyzerResponse | null;
-  stat: SecurityStat | undefined;
-  symbol: SupportedSymbol;
-}) {
-  const stateLabel = analysisStatus === "analyzing" ? "Reviewing" : result?.setup ? "Setup ready" : result?.blocked ? "No setup" : "Ready";
-
-  return (
-    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-      <DeskStatusItem label="Data" value={loading ? "Refreshing" : "Ready"} detail={latestClose === null ? "Awaiting price" : `Latest ${formatPrice(symbol, latestClose)}`} />
-      <DeskStatusItem label="Session" value={clockStatus} detail="Local clock" />
-      <DeskStatusItem label="Advisor" value={stateLabel} detail="Fresh review" />
-      <DeskStatusItem
-        label="Market history"
-        value={stat ? `${stat.count} reviewed` : "No history"}
-        detail={stat?.winRate === null || !stat ? "Results building" : `${stat.winRate}% win rate`}
-      />
-    </div>
-  );
-}
-
-function DeskStatusItem({ detail, label, value }: { detail: string; label: string; value: string }) {
-  return (
-    <div className="grid min-h-[72px] min-w-0 content-center rounded-lg border border-slate/15 bg-canvas px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-normal text-slate">{label}</p>
-      <div className="mt-1 flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 text-base font-semibold leading-6 text-navy">{value}</p>
-        <p className="min-w-0 text-sm font-medium leading-5 text-slate">{detail}</p>
-      </div>
-    </div>
-  );
-}
-
-function RecommendationPanel({
-  notice,
-  result,
-  setup,
-  status,
-  symbol,
-}: {
-  notice: string;
-  result: AnalyzerResponse | null;
-  setup: AnalyzerSetup | null;
-  status: "idle" | "analyzing";
-  symbol: SupportedSymbol;
-}) {
-  if (status === "analyzing") {
-    return <AnalysisProgress symbol={symbol} />;
-  }
-
-  if (setup) {
-    const isBuy = setup.side === "buy";
-    const levelSummary = `${setup.side.toUpperCase()} LIMIT ${setup.symbol} @ ${formatNumber(setup.entryPrice)} | SL ${formatNumber(setup.stopLoss)} | TP ${formatNumber(setup.takeProfit)}`;
-
-    return (
-      <div className="grid gap-4">
-        <div className={`rounded-lg px-4 py-3 text-center text-xl font-bold tracking-normal ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
-          {setup.side.toUpperCase()} LIMIT
-        </div>
-        <ConfidenceGauge score={setup.confidenceScore} />
-        <div className="grid gap-2 text-sm">
-          <MetricRow label="Limit entry" value={formatNumber(setup.entryPrice)} valueClassName={isBuy ? "text-bullish" : "text-danger"} />
-          <MetricRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
-          <MetricRow label="Take profit" value={formatNumber(setup.takeProfit)} />
-          <MetricRow label="Break-even reference" value={formatNumber(setup.breakevenTriggerPrice)} />
-          {setup.expiresAt ? <MetricRow label="Review by" value={formatTimestamp(setup.expiresAt)} /> : null}
-        </div>
-        <button
-          className="secondary-button w-full"
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(levelSummary);
-          }}
-        >
-          <Clipboard className="h-4 w-4" aria-hidden="true" />
-          Copy levels
-        </button>
-        <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
-          {result?.deduplicated ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-          {notice || "Current setup ready for review."}
-        </div>
-        <SetupQualityReceipt result={result} setup={setup} />
-      </div>
-    );
-  }
-
-  if (result?.blocked || result?.reason || result?.providerWarnings?.length) {
-    return <NoSetupPanel notice={notice} result={result} symbol={symbol} />;
-  }
-
-  return (
-    <div className="grid gap-4 text-sm leading-6 text-slate">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-white">
-        <Target className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
-        <p className="mt-1">{notice || "Select a market, review the chart, then ask LevelFlow for the current limit setup."}</p>
-      </div>
-    </div>
-  );
-}
-
-function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
-  const steps = ["Refreshing chart data", "Checking direction", "Checking timing risk", "Building limit levels"];
-
-  return (
-    <div className="grid gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-white">
-        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">Analyzing {symbol}</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Building the current setup</h3>
-      </div>
-      <div className="grid gap-2">
-        {steps.map((step) => (
-          <div key={step} className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-2 text-sm font-semibold text-slate">
-            <span className="h-2 w-2 rounded-full bg-bullish" />
-            {step}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function NoSetupPanel({ notice, result, symbol }: { notice: string; result: AnalyzerResponse; symbol: SupportedSymbol }) {
-  const reasons = uniqueReviewMessages([
-    result.reason ?? notice,
-    ...(result.analysisDiagnostics ?? []),
-    ...(result.providerWarnings ?? []),
-    result.learningRefresh?.reason ? result.learningRefresh.reason : "",
-  ]);
-  const primaryReason = reasons[0] ?? "The current mix of direction, timing, and payoff is not strong enough.";
-  const supportingReasons = reasons.slice(1, 4);
-
-  return (
-    <div className="grid gap-4 text-sm leading-6 text-slate">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/15 text-warning">
-        <XCircle className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">No trade setup</p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">Nothing passed review</h3>
-        <p className="mt-1">LevelFlow cleared the prior display for {formatSecurityLabel(symbol)} and did not find a current limit setup strong enough to show.</p>
-      </div>
-      <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3">
-        <p className="text-xs font-semibold uppercase tracking-normal text-slate">Primary reason</p>
-        <p className="mt-1 font-medium text-navy">{primaryReason}</p>
-      </div>
-      {supportingReasons.length > 0 ? (
-        <div className="grid gap-2">
-          {supportingReasons.map((reason) => (
-            <div key={reason} className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 font-medium text-slate">
-              {reason}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function MarketClockPanel({ clock, sessions }: { clock: ReturnType<typeof getMarketClock>; sessions: ReturnType<typeof getGlobalSessions> }) {
-  return (
-    <div className="mb-4 grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas p-3 xl:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.45fr)]">
-      <div className="min-w-0 rounded-lg border border-slate/10 bg-white p-3">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <p className="min-w-0 text-xs font-semibold uppercase tracking-normal text-slate">{clock.marketLabel}</p>
-          <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-bold uppercase ${clock.isOpen ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"}`}>
-            {clock.statusLabel}
-          </span>
-        </div>
-        <p className="mt-2 text-lg font-semibold text-navy">
-          {clock.nextEventLabel}: {clock.countdownLabel}
-        </p>
-        <div className="mt-2 grid gap-1 text-xs leading-5 text-slate">
-          <span>User time: {clock.userTime}</span>
-          <span>Market time: {clock.marketTime}</span>
-          <span>
-            Next event: {clock.nextEventUserTime} / {clock.nextEventMarketTime}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid min-w-0 gap-2">
-        {sessions.map((session) => (
-          <div
-            key={session.id}
-            className={`grid min-w-0 gap-2 rounded-lg border px-3 py-2.5 sm:grid-cols-[minmax(132px,0.85fr)_minmax(124px,0.65fr)_minmax(158px,1fr)] sm:items-center ${
-              session.isPreferred ? "border-bullish/40 bg-bullish/10" : "border-slate/15 bg-white"
-            }`}
-          >
-            <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate font-semibold text-navy">{session.label}</p>
-                <span className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${session.isOpen ? "text-bullish" : "text-slate"}`}>{session.isOpen ? "Open" : "Closed"}</span>
-              </div>
-              <p className="mt-0.5 truncate text-xs text-slate">{session.marketTime}</p>
-            </div>
-            <p className="min-w-0 text-xs font-semibold text-navy">
-              <span className="whitespace-nowrap">{session.nextEventLabel}</span> in {session.countdownLabel}
-            </p>
-            <p className="min-w-0 text-xs text-slate">{session.nextEventUserTime} local</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SetupList({ setups }: { setups: TradeSetupRow[] }) {
-  if (setups.length === 0) {
-    return <p className="text-sm leading-6 text-slate">No setups yet.</p>;
-  }
-
-  return (
-    <div className="grid gap-2">
-      {setups.map((setup) => (
-        <div key={setup.id} className="min-w-0 rounded-lg border border-slate/15 bg-canvas px-3 py-2">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <p className="min-w-0 font-semibold text-navy">{setup.symbol}</p>
-            <span className={`text-xs font-bold uppercase ${setup.side === "buy" ? "text-bullish" : "text-danger"}`}>{setup.side} limit</span>
-          </div>
-          <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-xs text-slate">
-            <span>{formatDate(setup.created_at)}</span>
-            <span>
-              {formatConfidenceWithTier(setup.confidence_score)}
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function MetricRow({ label, value, valueClassName = "text-navy" }: { label: string; value: string; valueClassName?: string }) {
-  return (
-    <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-lg bg-canvas px-3 py-2">
-      <span className="min-w-0 text-slate">{label}</span>
-      <span className={`min-w-0 text-right font-semibold ${valueClassName}`}>{value}</span>
-    </div>
-  );
-}
-
-function formatPrice(symbol: string, value: number) {
-  const maximumFractionDigits = symbol.includes("USD") && !symbol.startsWith("US") ? 5 : 2;
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits,
-    minimumFractionDigits: maximumFractionDigits,
-  });
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 5,
-  });
-}
-
-function formatTimeframe(timeframe: ChartTimeframe) {
-  return TIMEFRAMES.find((option) => option.value === timeframe)?.label.toLowerCase() ?? timeframe;
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function formatTimestamp(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Awaiting refresh";
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
 }
