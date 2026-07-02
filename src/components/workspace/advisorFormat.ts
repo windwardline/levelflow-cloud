@@ -1,11 +1,10 @@
-import type { ChartTimeframe } from "../../lib/marketData";
+import {
+  CHART_TIMEFRAME_OPTIONS,
+  type ChartTimeframe,
+  chartTimeframeLabel,
+} from "../../lib/marketData";
 
-export const TIMEFRAMES: Array<{ label: string; value: ChartTimeframe }> = [
-  { label: "15 minutes", value: "15min" },
-  { label: "1 hour", value: "1hour" },
-  { label: "4 hours", value: "4hour" },
-  { label: "Daily", value: "1day" },
-];
+export const TIMEFRAMES = [...CHART_TIMEFRAME_OPTIONS];
 
 export function formatPrice(symbol: string, value: number) {
   const maximumFractionDigits =
@@ -23,8 +22,7 @@ export function formatNumber(value: number) {
 }
 
 export function formatTimeframe(timeframe: ChartTimeframe) {
-  return TIMEFRAMES.find((option) => option.value === timeframe)?.label
-    .toLowerCase() ?? timeframe;
+  return chartTimeframeLabel(timeframe).toLowerCase();
 }
 
 export function formatDate(value: string) {

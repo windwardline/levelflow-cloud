@@ -1,7 +1,13 @@
 import { getSecurityOption, type SupportedSymbol } from "./symbolMap";
 import type { PreferredSession } from "./profile";
 
-type MarketKind = "crypto" | "forex" | "futures" | "metals";
+type MarketKind =
+  | "crypto"
+  | "energies"
+  | "forex"
+  | "futures"
+  | "indices"
+  | "metals";
 
 type ZonedParts = {
   day: number;
@@ -54,8 +60,12 @@ export function getMarketClock(symbol: SupportedSymbol, userTimeZone: string, no
   const option = getSecurityOption(symbol);
   const kind: MarketKind = option.assetType === "Crypto"
     ? "crypto"
+    : option.assetType === "Energies"
+    ? "energies"
     : option.assetType === "Futures"
     ? "futures"
+    : option.assetType === "Indices"
+    ? "indices"
     : option.assetType === "Metals"
     ? "metals"
     : "forex";
@@ -77,6 +87,10 @@ export function getMarketClock(symbol: SupportedSymbol, userTimeZone: string, no
   const marketTimeZone = "America/New_York";
   const marketLabel = kind === "forex"
     ? "Global FX session"
+    : kind === "energies"
+    ? "Energy session"
+    : kind === "indices"
+    ? "Index session"
     : kind === "metals"
     ? "Spot metals session"
     : "Primary futures session";

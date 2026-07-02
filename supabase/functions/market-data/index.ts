@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
   .map((origin) => origin.trim())
   .filter(Boolean);
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
-const MARKET_DATA_FETCH_TIMEOUT_MS = 12_000;
+const MARKET_DATA_FETCH_TIMEOUT_MS = 15_000;
 
 type SymbolConfig = {
   fallback?: string;
@@ -47,10 +47,19 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   AUDCAD: "AUDCAD",
   XAUUSD: "XAUUSD",
   XAGUSD: "XAGUSD",
+  BZUSD: "BZUSD",
+  CLUSD: "CLUSD",
   ESUSD: "ESUSD",
   GCUSD: "GCUSD",
+  HGUSD: "HGUSD",
+  MGCUSD: "MGCUSD",
+  NGUSD: "NGUSD",
+  NQUSD: "NQUSD",
+  RTYUSD: "RTYUSD",
   SIUSD: "SIUSD",
-  BZUSD: "BZUSD",
+  YMUSD: "YMUSD",
+  ZBUSD: "ZBUSD",
+  ZNUSD: "ZNUSD",
   SP: "^GSPC",
   NSDQ: { primary: "^NDX", fallback: "QQQ" },
   NIKKEI: "^N225",
@@ -75,18 +84,9 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
   }
 }
 
-const temporarilyUnavailableSymbols = new Set([
-  "SP",
-  "NSDQ",
-  "NIKKEI",
-  "DOW",
-  "DAX",
-  "ASX",
-  "WTI",
-  "BRENT",
-]);
+const temporarilyUnavailableSymbols = new Set<string>();
 
-const intradayTimeframes = ["15min", "1hour", "4hour"] as const;
+const intradayTimeframes = ["1min", "5min", "15min", "1hour", "4hour"] as const;
 
 type SupportedSymbol = string;
 type ChartTimeframe = "1day" | (typeof intradayTimeframes)[number];
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
       .sort((first, second) =>
         sortableTime(first.time) - sortableTime(second.time)
       )
-      .slice(timeframe === "1day" ? -260 : -500);
+      .slice(-maxPointsForTimeframe(timeframe));
 
     const latest = points.at(-1);
 
@@ -295,11 +295,8 @@ async function fetchFmpBars(
     );
   endpoint.searchParams.set("symbol", providerSymbol);
   endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
-
-  if (timeframe === "1day") {
-    endpoint.searchParams.set("from", from);
-    endpoint.searchParams.set("to", to);
-  }
+  endpoint.searchParams.set("from", from);
+  endpoint.searchParams.set("to", to);
 
   const response = await fetchWithTimeout(
     endpoint,
@@ -351,15 +348,66 @@ function normalizeTimeframe(value: unknown): ChartTimeframe {
 function resolveDateWindow(body: MarketDataRequest, timeframe: ChartTimeframe) {
   const to = isIsoDate(body.to) ? body.to : isoDate(new Date());
   const dayCount = clampInteger(
-    body.days ?? (timeframe === "1day" ? 120 : 14),
+    body.days ?? defaultDayCount(timeframe),
     2,
-    timeframe === "1day" ? 260 : 60,
+    maxDayCount(timeframe),
   );
   const defaultFromDate = new Date(`${to}T00:00:00.000Z`);
   defaultFromDate.setUTCDate(defaultFromDate.getUTCDate() - dayCount);
   const from = isIsoDate(body.from) ? body.from : isoDate(defaultFromDate);
 
   return { from, to };
+}
+
+function defaultDayCount(timeframe: ChartTimeframe) {
+  switch (timeframe) {
+    case "1min":
+      return 3;
+    case "5min":
+      return 10;
+    case "15min":
+      return 45;
+    case "1hour":
+      return 90;
+    case "4hour":
+      return 180;
+    case "1day":
+      return 520;
+  }
+}
+
+function maxDayCount(timeframe: ChartTimeframe) {
+  switch (timeframe) {
+    case "1min":
+      return 7;
+    case "5min":
+      return 30;
+    case "15min":
+      return 90;
+    case "1hour":
+      return 180;
+    case "4hour":
+      return 365;
+    case "1day":
+      return 1_500;
+  }
+}
+
+function maxPointsForTimeframe(timeframe: ChartTimeframe) {
+  switch (timeframe) {
+    case "1min":
+      return 1_800;
+    case "5min":
+      return 2_400;
+    case "15min":
+      return 3_000;
+    case "1hour":
+      return 2_000;
+    case "4hour":
+      return 1_200;
+    case "1day":
+      return 1_000;
+  }
 }
 
 function clampInteger(value: number, min: number, max: number) {

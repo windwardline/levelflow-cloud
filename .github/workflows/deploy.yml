@@ -74,22 +74,6 @@ jobs:
           npm audit --audit-level=high
           npm test
 
-      - name: Run browser tests
-        run: npm run test:e2e
-        env:
-          LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
-          LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-
-      - name: Build frontend
-        run: |
-          npm run build
-          npm run check:bundle
-        env:
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-
       - name: Configure Supabase function secrets
         run: |
           cat > /tmp/levelflow-function-secrets.env <<'EOF'
@@ -111,7 +95,7 @@ jobs:
             echo "SUPABASE_DB_PASSWORD is not configured; verified migration files, skipped remote migration apply."
             exit 0
           fi
-          npx supabase db push --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --include-all --yes
+          npx supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --include-all --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -120,6 +104,22 @@ jobs:
         run: npx supabase functions deploy market-data trade-analyzer news-calendar --project-ref "$SUPABASE_PROJECT_REF" --use-api
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Run browser tests
+        run: npm run test:e2e
+        env:
+          LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
+          LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+
+      - name: Build frontend
+        run: |
+          npm run build
+          npm run check:bundle
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
       - name: Publish GitHub Pages artifact
         run: |

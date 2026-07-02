@@ -25,7 +25,7 @@ describe("trade analyzer session context", () => {
     assert.equal(session.label, "FX rollover pause");
   });
 
-  it("uses futures maintenance rules only for futures", () => {
+  it("uses futures maintenance rules for futures-style markets", () => {
     const session = getSessionContext(
       "ESUSD",
       new Date("2026-06-15T21:30:00.000Z"),
@@ -34,6 +34,22 @@ describe("trade analyzer session context", () => {
     assert.equal(session.block, true);
     assert.equal(session.marketKind, "futures");
     assert.equal(session.label, "Futures maintenance window");
+
+    const indexSession = getSessionContext(
+      "SP",
+      new Date("2026-06-15T21:30:00.000Z"),
+    );
+    const energySession = getSessionContext(
+      "WTI",
+      new Date("2026-06-15T21:30:00.000Z"),
+    );
+
+    assert.equal(indexSession.block, true);
+    assert.equal(indexSession.marketKind, "indices");
+    assert.equal(indexSession.label, "Index maintenance window");
+    assert.equal(energySession.block, true);
+    assert.equal(energySession.marketKind, "energies");
+    assert.equal(energySession.label, "Energy maintenance window");
   });
 
   it("uses dedicated spot metals session rules", () => {

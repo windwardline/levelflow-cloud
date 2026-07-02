@@ -48,6 +48,14 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     slippageBps: 2.5,
     spreadBps: 3.5,
   },
+  energies: {
+    atrSlippageFactor: 0.01,
+    atrSpreadFactor: 0.014,
+    maxPenalty: 11,
+    minimumCost: 0.001,
+    slippageBps: 1.1,
+    spreadBps: 1.8,
+  },
   forex: {
     atrSlippageFactor: 0.006,
     atrSpreadFactor: 0.01,
@@ -63,6 +71,14 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     minimumCost: 0.01,
     slippageBps: 0.8,
     spreadBps: 1.4,
+  },
+  indices: {
+    atrSlippageFactor: 0.008,
+    atrSpreadFactor: 0.012,
+    maxPenalty: 10,
+    minimumCost: 0.01,
+    slippageBps: 0.7,
+    spreadBps: 1.1,
   },
   metals: {
     atrSlippageFactor: 0.008,

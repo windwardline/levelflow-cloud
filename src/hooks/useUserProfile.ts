@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ChartTimeframe } from "../lib/marketData";
+import { isChartTimeframe } from "../lib/marketData";
 import {
   buildDefaultProfile,
   coerceToSupportedUsTimeZone,
@@ -146,11 +146,6 @@ function rowToProfile(row: ProfileRow, fallback: UserProfile): UserProfile {
       ? row.theme_preference
       : fallback.themePreference,
   };
-}
-
-function isChartTimeframe(value: string | null): value is ChartTimeframe {
-  return value === "15min" || value === "1hour" || value === "4hour" ||
-    value === "1day";
 }
 
 function isThemeMode(value: string | null): value is ThemeMode {

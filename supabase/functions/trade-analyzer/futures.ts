@@ -27,6 +27,12 @@ const FUTURES_CONTRACT_SPECS: Record<string, FuturesContractSpec> = {
     minTargetTicks: 16,
     tickSize: 0.01,
   },
+  CLUSD: {
+    contractLabel: "WTI crude oil futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.01,
+  },
   ESUSD: {
     contractLabel: "E-mini S&P 500 futures",
     minStopTicks: 4,
@@ -39,11 +45,59 @@ const FUTURES_CONTRACT_SPECS: Record<string, FuturesContractSpec> = {
     minTargetTicks: 12,
     tickSize: 0.1,
   },
+  HGUSD: {
+    contractLabel: "Copper futures",
+    minStopTicks: 10,
+    minTargetTicks: 20,
+    tickSize: 0.0005,
+  },
+  MGCUSD: {
+    contractLabel: "Micro gold futures",
+    minStopTicks: 6,
+    minTargetTicks: 12,
+    tickSize: 0.1,
+  },
+  NGUSD: {
+    contractLabel: "Natural gas futures",
+    minStopTicks: 12,
+    minTargetTicks: 24,
+    tickSize: 0.001,
+  },
+  NQUSD: {
+    contractLabel: "E-mini Nasdaq 100 futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.25,
+  },
+  RTYUSD: {
+    contractLabel: "E-mini Russell 2000 futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.1,
+  },
   SIUSD: {
     contractLabel: "Silver futures",
     minStopTicks: 8,
     minTargetTicks: 16,
     tickSize: 0.005,
+  },
+  YMUSD: {
+    contractLabel: "E-mini Dow futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 1,
+  },
+  ZBUSD: {
+    contractLabel: "U.S. Treasury bond futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.03125,
+  },
+  ZNUSD: {
+    contractLabel: "10-year Treasury note futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.015625,
   },
 };
 

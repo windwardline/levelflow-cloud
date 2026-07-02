@@ -1,7 +1,12 @@
 import type { RegimeName } from "./calibration.ts";
 import type { QuoteSnapshot } from "./quotes.ts";
 
-export const intradayTimeframes = ["4hour", "1hour", "15min"] as const;
+export const signalTimeframes = ["4hour", "1hour", "15min"] as const;
+export const executionTimeframes = ["5min", "1min"] as const;
+export const intradayTimeframes = [
+  ...signalTimeframes,
+  ...executionTimeframes,
+] as const;
 
 export type SupportedSymbol = string;
 export type Direction = "buy" | "sell" | "neutral" | "block";
@@ -21,6 +26,7 @@ export type MarketContext = {
   availableTimeframes: Timeframe[];
   daily: Bar[];
   latest: Bar;
+  latestTimeframe: Timeframe;
   primary: Bar[];
   primaryTimeframe: Timeframe;
   providerWarnings: string[];

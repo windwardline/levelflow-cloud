@@ -87,6 +87,19 @@ describe("trade analyzer replay harness", () => {
     );
   });
 
+  it("uses futures-style Friday cutoffs for indices and energies", () => {
+    const fridayAfternoon = Date.parse("2026-06-12T20:45:00.000Z");
+
+    assert.equal(
+      new Date(getSetupExpiryTime("SP", fridayAfternoon)).toISOString(),
+      "2026-06-12T20:55:00.000Z",
+    );
+    assert.equal(
+      new Date(getSetupExpiryTime("WTI", fridayAfternoon)).toISOString(),
+      "2026-06-12T20:55:00.000Z",
+    );
+  });
+
   it("flags same-bar target and stop touches as needing review", () => {
     const setup = buildSetup({
       entry: 100,

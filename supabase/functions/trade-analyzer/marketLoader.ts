@@ -12,6 +12,8 @@ const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const MARKET_DATA_FETCH_TIMEOUT_MS = 12_000;
 const QUOTE_FETCH_TIMEOUT_MS = 6_000;
 const CANDLE_CACHE_TTL_MS: Record<Timeframe, number> = {
+  "1min": 20_000,
+  "5min": 30_000,
   "15min": 45_000,
   "1hour": 90_000,
   "4hour": 180_000,
@@ -143,11 +145,14 @@ async function fetchMarketContext(
     .filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
   const primaryTimeframe = pickPrimaryTimeframe(timeframes);
   const primary = timeframes[primaryTimeframe] ?? daily;
+  const latestTimeframe = pickLatestTimeframe(timeframes);
+  const latestSource = timeframes[latestTimeframe] ?? primary;
 
   return {
     availableTimeframes,
     daily,
-    latest: primary.at(-1) ?? daily.at(-1)!,
+    latest: latestSource.at(-1) ?? primary.at(-1) ?? daily.at(-1)!,
+    latestTimeframe,
     primary,
     primaryTimeframe,
     providerWarnings,
@@ -247,6 +252,9 @@ export async function fetchFmpBars(
     );
   endpoint.searchParams.set("symbol", fmpSymbol);
   endpoint.searchParams.set("apikey", FMP_API_KEY ?? "");
+  const window = defaultDateWindow(timeframe);
+  endpoint.searchParams.set("from", window.from);
+  endpoint.searchParams.set("to", window.to);
 
   const startedAt = performance.now();
   let response: Response;
@@ -350,7 +358,7 @@ export async function fetchFmpBars(
       volume: point.volume ?? 0,
     }))
     .sort((first, second) => first.time - second.time)
-    .slice(timeframe === "1day" ? -260 : -500);
+    .slice(-maxBarsForTimeframe(timeframe));
 
   candleCache.set(cacheKey, {
     bars,
@@ -373,6 +381,71 @@ function pickPrimaryTimeframe(
     return "4hour";
   }
   return "1day";
+}
+
+function pickLatestTimeframe(
+  timeframes: Partial<Record<Timeframe, Bar[]>>,
+): Timeframe {
+  if ((timeframes["1min"]?.length ?? 0) > 0) {
+    return "1min";
+  }
+  if ((timeframes["5min"]?.length ?? 0) > 0) {
+    return "5min";
+  }
+  if ((timeframes["15min"]?.length ?? 0) > 0) {
+    return "15min";
+  }
+  if ((timeframes["1hour"]?.length ?? 0) > 0) {
+    return "1hour";
+  }
+  if ((timeframes["4hour"]?.length ?? 0) > 0) {
+    return "4hour";
+  }
+  return "1day";
+}
+
+function defaultDateWindow(timeframe: Timeframe) {
+  const toDate = new Date();
+  const fromDate = new Date(toDate);
+  fromDate.setUTCDate(fromDate.getUTCDate() - defaultLookbackDays(timeframe));
+  return {
+    from: fromDate.toISOString().slice(0, 10),
+    to: toDate.toISOString().slice(0, 10),
+  };
+}
+
+function defaultLookbackDays(timeframe: Timeframe) {
+  switch (timeframe) {
+    case "1min":
+      return 3;
+    case "5min":
+      return 10;
+    case "15min":
+      return 45;
+    case "1hour":
+      return 90;
+    case "4hour":
+      return 180;
+    case "1day":
+      return 1_500;
+  }
+}
+
+function maxBarsForTimeframe(timeframe: Timeframe) {
+  switch (timeframe) {
+    case "1min":
+      return 1_800;
+    case "5min":
+      return 2_400;
+    case "15min":
+      return 3_000;
+    case "1hour":
+      return 2_000;
+    case "4hour":
+      return 1_200;
+    case "1day":
+      return 1_000;
+  }
 }
 
 function toTimestamp(value: string) {
