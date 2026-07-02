@@ -118,6 +118,34 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   test.setTimeout(60_000);
 
+  const client = createClient(supabaseUrl!, supabaseKey!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  const signedIn = await client.auth.signInWithPassword({
+    email: testEmail!,
+    password: testPassword!,
+  });
+  expect(signedIn.error).toBeFalsy();
+
+  const marketDataResponse = await client.functions.invoke("market-data", {
+    body: {
+      symbol: "EURUSD",
+      timeframe: "1min",
+    },
+  });
+  const marketData = marketDataResponse.data as {
+    error?: string;
+    resultsCount?: number;
+    timeframe?: string;
+  } | null;
+  expect(marketDataResponse.error).toBeFalsy();
+  expect(marketData?.error).toBeFalsy();
+  expect(marketData?.timeframe).toBe("1min");
+  expect(marketData?.resultsCount ?? 0).toBeGreaterThan(0);
+
   await page.goto("/");
 
   await expect(page.getByText(/candles loaded/i)).toBeVisible({
@@ -126,19 +154,7 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
 
   const timeframeSelect = page.getByLabel("Advisor chart timeframe");
   if ((await timeframeSelect.inputValue()) !== "1min") {
-    const oneMinuteResponse = page.waitForResponse(async (response) => {
-      if (!response.url().includes("/functions/v1/market-data")) {
-        return false;
-      }
-      return response.request().postData()?.includes('"timeframe":"1min"') ??
-        false;
-    });
     await timeframeSelect.selectOption("1min");
-    const response = await oneMinuteResponse;
-    expect(response.ok()).toBe(true);
-    const payload = await response.json();
-    expect(payload.timeframe).toBe("1min");
-    expect(payload.resultsCount).toBeGreaterThan(0);
   }
 
   await expect(timeframeSelect).toHaveValue("1min");
