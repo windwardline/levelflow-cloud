@@ -89,7 +89,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       title: "Location",
     },
     {
-      body: "Timing checks sessions, upcoming events, chart coverage, and related markets.",
+      body: "Timing checks sessions, news, rates, chart coverage, and related markets.",
       icon: <Activity className="h-5 w-5" aria-hidden="true" />,
       title: "Timing",
     },
@@ -249,7 +249,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate">
               Confidence is a 0-100 quality score. It reflects market agreement,
-              payoff, timing, event risk, data quality, and past results.
+              payoff, timing, news, rates, data quality, and past results.
               A setup only appears after it passes the required review for that
               market.
             </p>

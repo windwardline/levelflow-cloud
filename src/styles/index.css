@@ -46,6 +46,60 @@
 }
 
 @layer components {
+  .auth-shell {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(115deg, rgba(91, 130, 102, 0.1), rgba(91, 130, 102, 0) 32%),
+      linear-gradient(180deg, rgba(17, 28, 56, 0.06), rgba(247, 248, 244, 0) 42%),
+      #f7f8f4;
+  }
+
+  .auth-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(17, 28, 56, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17, 28, 56, 0.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.54), transparent 58%);
+    mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.54), transparent 58%);
+    pointer-events: none;
+  }
+
+  .auth-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .auth-signal-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .auth-signal {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+    border-left: 2px solid rgba(91, 130, 102, 0.48);
+    padding: 0.25rem 0 0.25rem 0.875rem;
+  }
+
+  @media (min-width: 640px) {
+    .auth-signal-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .auth-login-panel {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.72) inset,
+      0 24px 70px rgba(17, 28, 56, 0.16),
+      0 0 0 1px rgba(255, 255, 255, 0.58) inset;
+  }
+
   .terminal-panel {
     position: relative;
     min-width: 0;
@@ -189,7 +243,6 @@
     border-color: #5b8266;
     box-shadow: 0 0 0 3px rgba(91, 130, 102, 0.14);
   }
-
 }
 
 @layer utilities {
@@ -245,6 +298,27 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.05) inset,
       0 22px 54px rgba(0, 0, 0, 0.34);
+  }
+
+  html[data-theme="dark"] .auth-shell {
+    background:
+      linear-gradient(115deg, rgba(143, 189, 156, 0.12), rgba(143, 189, 156, 0) 34%),
+      linear-gradient(180deg, rgba(91, 130, 102, 0.08), rgba(11, 17, 28, 0) 42%),
+      #0b111c;
+  }
+
+  html[data-theme="dark"] .auth-shell::before {
+    background-image:
+      linear-gradient(rgba(230, 237, 246, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(230, 237, 246, 0.04) 1px, transparent 1px);
+  }
+
+  html[data-theme="dark"] .auth-signal {
+    border-left-color: rgba(143, 189, 156, 0.5);
+  }
+
+  html[data-theme="dark"] .auth-input-shell {
+    background: #0f1724;
   }
 
   html[data-theme="dark"] .secondary-button {

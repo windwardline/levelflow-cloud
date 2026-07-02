@@ -106,6 +106,7 @@ function buildQualityReceipt(
   const orderConstruction = asRecord(confluence.orderConstruction);
   const sessionContext = asRecord(confluence.sessionContext);
   const newsContext = asRecord(confluence.newsContext);
+  const macroRateContext = asRecord(confluence.macroRateContext);
   const executionQuality = asRecord(riskModel.executionQuality);
   const rewardRisk = asNumber(confluence.rewardRisk);
   const grossRewardRisk = asNumber(confluence.grossRewardRisk);
@@ -206,6 +207,22 @@ function buildQualityReceipt(
     },
   ];
 
+  if (typeof macroRateContext.source === "string") {
+    const rateAdjustment = asNumber(macroRateContext.adjustment);
+    items.splice(7, 0, {
+      detail: String(
+        macroRateContext.detail ?? "Treasury-rate context was checked.",
+      ),
+      label: "Rates",
+      tone: rateAdjustment && rateAdjustment < 0
+        ? "danger"
+        : rateAdjustment && rateAdjustment > 0
+        ? "bullish"
+        : "neutral",
+      value: formatRateAdjustment(rateAdjustment),
+    });
+  }
+
   return {
     blockers: Array.from(new Set(providerWarnings)).slice(0, 3),
     items,
@@ -302,6 +319,13 @@ function formatScoreAdjustment(value: number | null) {
     return "Cooling";
   }
   return "Neutral";
+}
+
+function formatRateAdjustment(value: number | null) {
+  if (value === null || value === 0) {
+    return "Checked";
+  }
+  return value > 0 ? "Supports" : "Caution";
 }
 
 function formatVoteSupport(direction: string) {

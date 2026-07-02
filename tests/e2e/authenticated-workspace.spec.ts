@@ -88,7 +88,9 @@ test("authenticated workspace exposes core premium navigation without stale help
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Profile" }).click();
-  await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Activity", exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Review activity" }),
   ).toBeVisible();

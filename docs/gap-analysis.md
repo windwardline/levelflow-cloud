@@ -37,6 +37,9 @@ Last reviewed: 2026-07-02
 - FMP economic calendar, earnings calendar, and targeted market headlines now
   contribute to timing risk. Scheduled high-impact events can block setups;
   medium events and recent market-moving headlines reduce confidence.
+- FMP Treasury-rate data now contributes to setup quality as a small macro
+  confluence check for USD pairs, metals, indices, crypto, and Treasury
+  futures.
 
 ## Recently Closed
 
@@ -108,6 +111,8 @@ Last reviewed: 2026-07-02
   historical lookbacks, lower-timeframe execution freshness in the analyzer,
   15-minute timing-window analysis, and authenticated E2E coverage for
   one-minute chart loading.
+- FMP Ultimate macro support now adds Treasury-rate context to the same shared
+  scoring path used by direct Advisor review and Market Scan.
 - FMP Ultimate symbol verification now enables Indices and Energies, expands
   usable futures coverage, and keeps empty FMP futures symbols out of the
   public selector.
