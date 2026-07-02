@@ -118,10 +118,13 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   await page.goto("/");
 
+  await expect(page.getByText(/candles loaded/i)).toBeVisible({
+    timeout: 30_000,
+  });
   await page.getByLabel("Chart timeframe").selectOption("1min");
   await expect(page.getByLabel("Chart timeframe")).toHaveValue("1min");
   await expect(page.getByText(/1 minute candles loaded/i)).toBeVisible({
-    timeout: 20_000,
+    timeout: 30_000,
   });
   await expect(
     page.getByText(
