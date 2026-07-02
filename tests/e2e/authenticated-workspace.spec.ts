@@ -157,10 +157,13 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     await timeframeSelect.selectOption("1min");
   }
 
-  await expect(timeframeSelect).toHaveValue("1min");
-  await expect(page.getByText(/1 minute candles loaded/i)).toBeVisible({
-    timeout: 30_000,
+  const advisorPanel = page.locator("section", {
+    has: page.getByRole("heading", { name: "Market review" }),
   });
+  await expect(timeframeSelect).toHaveValue("1min");
+  await expect(
+    advisorPanel.getByText(/1 minute candles loaded/i),
+  ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByText(
       "Verified market data is not available for this market yet.",
