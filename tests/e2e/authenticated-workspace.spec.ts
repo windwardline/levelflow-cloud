@@ -124,7 +124,7 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     timeout: 30_000,
   });
 
-  const timeframeSelect = page.getByLabel("Chart timeframe", { exact: true });
+  const timeframeSelect = page.getByLabel("Advisor chart timeframe");
   if ((await timeframeSelect.inputValue()) !== "1min") {
     const oneMinuteResponse = page.waitForResponse(async (response) => {
       if (!response.url().includes("/functions/v1/market-data")) {
