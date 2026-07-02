@@ -14,6 +14,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 import {
+  advisorExecutionIntervalLabel,
+  advisorSignalIntervalLabel,
+} from "../../lib/advisorReview";
+import {
   CONFIDENCE_TIERS,
   formatConfidenceTierRange,
 } from "../../lib/confidenceTiers";
@@ -25,7 +29,7 @@ type GuidePanelProps = {
 export function GuidePanel({ supportEmail }: GuidePanelProps) {
   const workflow = [
     {
-      body: "Choose the market and chart interval. The 1 hour default gives a balanced starting view.",
+      body: "Choose the market and chart view. The 1 hour default gives a balanced starting point.",
       icon: <Crosshair className="h-5 w-5" aria-hidden="true" />,
       number: "01",
       title: "Select the market",
@@ -53,6 +57,23 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       icon: <History className="h-5 w-5" aria-hidden="true" />,
       number: "05",
       title: "Review insights",
+    },
+  ];
+  const timeframeItems = [
+    {
+      body: "Your selected interval controls the visible chart. It does not limit LevelFlow to that single view.",
+      label: "Chart view",
+      value: "Your choice",
+    },
+    {
+      body: "LevelFlow compares these intervals for direction, location, and quality.",
+      label: "Setup review",
+      value: advisorSignalIntervalLabel(),
+    },
+    {
+      body: `${advisorExecutionIntervalLabel()} help validate the latest price when available. Refresh after the Valid until time before using levels.`,
+      label: "Current price",
+      value: "Valid until",
     },
   ];
 
@@ -157,6 +178,28 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
               {...step}
               isLast={index === workflow.length - 1}
             />
+          ))}
+        </div>
+      </section>
+
+      <section className="terminal-panel p-5 sm:p-6">
+        <div className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              Timeframes
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              Chart view versus setup review
+            </h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-slate">
+            The chart view is for inspection. The setup review uses a fixed,
+            broader set of intervals.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {timeframeItems.map((item) => (
+            <GuideScopeCard key={item.label} {...item} />
           ))}
         </div>
       </section>
@@ -359,6 +402,26 @@ function GuideLensCard({
         </div>
         <h3 className="font-semibold text-navy">{title}</h3>
       </div>
+      <p className="text-sm leading-6 text-slate">{body}</p>
+    </div>
+  );
+}
+
+function GuideScopeCard({
+  body,
+  label,
+  value,
+}: {
+  body: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="grid min-w-0 gap-2 rounded-lg border border-slate/15 bg-canvas p-4">
+      <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+        {label}
+      </p>
+      <p className="text-lg font-semibold text-navy">{value}</p>
       <p className="text-sm leading-6 text-slate">{body}</p>
     </div>
   );

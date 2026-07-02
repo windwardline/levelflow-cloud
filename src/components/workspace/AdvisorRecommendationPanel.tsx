@@ -67,7 +67,7 @@ export function RecommendationPanel({
           {setup.expiresAt
             ? (
               <MetricRow
-                label="Review by"
+                label="Valid until"
                 value={formatTimestamp(setup.expiresAt)}
               />
             )

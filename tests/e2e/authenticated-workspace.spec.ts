@@ -90,7 +90,7 @@ test("authenticated workspace exposes core premium navigation without stale help
   await page.getByRole("button", { name: "Profile" }).click();
   await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Review pattern" }),
+    page.getByRole("heading", { name: "Review activity" }),
   ).toBeVisible();
   await expect(page.getByText("Current Settings")).toHaveCount(0);
   await expect(page.getByText("Starting chart")).toHaveCount(0);
@@ -152,7 +152,7 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     timeout: 30_000,
   });
 
-  const timeframeSelect = page.getByLabel("Advisor chart timeframe");
+  const timeframeSelect = page.getByLabel("Advisor chart view");
   if ((await timeframeSelect.inputValue()) !== "1min") {
     await timeframeSelect.selectOption("1min");
   }

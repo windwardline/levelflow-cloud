@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Brain, Loader2, RefreshCw } from "lucide-react";
+import {
+  Brain,
+  Clock3,
+  Layers3,
+  LineChart,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
 import {
@@ -9,7 +16,12 @@ import {
   MarketResultsPanel,
   RecentSetupsPanel,
 } from "./AdvisorStatusPanels";
-import { formatPrice, formatTimeframe, TIMEFRAMES } from "./advisorFormat";
+import {
+  formatPrice,
+  formatTimeframe,
+  formatTimestamp,
+  TIMEFRAMES,
+} from "./advisorFormat";
 import { MarketScanPanel } from "./MarketScanPanel";
 import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
@@ -25,6 +37,7 @@ import {
   AVAILABLE_ASSET_SYMBOLS,
   formatSecurityLabel,
   getSecurityOption,
+  type SecurityType,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
@@ -34,6 +47,12 @@ import {
   scanMarketOpportunities,
   type TradeSetupRow,
 } from "../../lib/tradeAnalyzer";
+import {
+  advisorChartViewLabel,
+  advisorExecutionIntervalLabel,
+  advisorSignalIntervalLabel,
+  reviewWindowLabel,
+} from "../../lib/advisorReview";
 
 type AdvisorWorkspaceProps = {
   onSetupsChanged: () => void;
@@ -295,9 +314,9 @@ export function AdvisorWorkspace(
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-navy">
-              Chart timeframe
+              Chart view
               <select
-                aria-label="Advisor chart timeframe"
+                aria-label="Advisor chart view"
                 className="field"
                 value={timeframe}
                 onChange={(event) => {
@@ -332,6 +351,12 @@ export function AdvisorWorkspace(
               </button>
             </div>
           </div>
+
+          <AdvisorReviewScope
+            assetType={selectedAsset.assetType}
+            timeframe={timeframe}
+            validUntil={setup?.expiresAt ?? null}
+          />
 
           <DeskStatusStrip
             analysisStatus={analyzerStatus}
@@ -440,6 +465,59 @@ export function AdvisorWorkspace(
 
         <MarketResultsPanel stat={symbolStat} symbol={symbol} />
       </aside>
+    </div>
+  );
+}
+
+function AdvisorReviewScope({
+  assetType,
+  timeframe,
+  validUntil,
+}: {
+  assetType: SecurityType;
+  timeframe: ChartTimeframe;
+  validUntil: string | null;
+}) {
+  const items = [
+    {
+      detail: "Changes the visible chart only.",
+      icon: <LineChart className="h-4 w-4" aria-hidden="true" />,
+      label: "Chart view",
+      value: advisorChartViewLabel(timeframe),
+    },
+    {
+      detail: `${advisorExecutionIntervalLabel()} help validate the latest price.`,
+      icon: <Layers3 className="h-4 w-4" aria-hidden="true" />,
+      label: "Advisor checks",
+      value: advisorSignalIntervalLabel(),
+    },
+    {
+      detail: validUntil
+        ? "Refresh after this time before using the levels."
+        : "Any setup shown will use this window.",
+      icon: <Clock3 className="h-4 w-4" aria-hidden="true" />,
+      label: "Valid until",
+      value: validUntil ? formatTimestamp(validUntil) : reviewWindowLabel(assetType),
+    },
+  ];
+
+  return (
+    <div className="mt-4 grid gap-2 md:grid-cols-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="grid min-w-0 gap-1 rounded-lg border border-slate/15 bg-canvas px-3 py-3"
+        >
+          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
+            <span className="shrink-0 text-bullish">{item.icon}</span>
+            <span className="truncate">{item.label}</span>
+          </div>
+          <p className="truncate text-sm font-semibold text-navy">
+            {item.value}
+          </p>
+          <p className="text-xs leading-5 text-slate">{item.detail}</p>
+        </div>
+      ))}
     </div>
   );
 }

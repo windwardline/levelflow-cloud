@@ -89,6 +89,32 @@ const equityCalendarSensitiveSymbols = new Set([
   "YMUSD",
 ]);
 
+const headlineNewsSymbols: Record<string, string[]> = {
+  ASX: ["EWA", "^AXJO"],
+  BRENT: ["BNO", "BZUSD"],
+  BZUSD: ["BNO", "BZUSD"],
+  CLUSD: ["USO", "CLUSD"],
+  DAX: ["EWG", "^GDAXI"],
+  DOW: ["DIA", "^DJI", "YMUSD"],
+  ESUSD: ["SPY", "^GSPC", "ESUSD"],
+  GCUSD: ["GLD", "GCUSD", "XAUUSD"],
+  HGUSD: ["CPER", "HGUSD"],
+  MGCUSD: ["GLD", "MGCUSD", "XAUUSD"],
+  NGUSD: ["UNG", "NGUSD"],
+  NIKKEI: ["EWJ", "^N225"],
+  NQUSD: ["QQQ", "^NDX", "NQUSD"],
+  NSDQ: ["QQQ", "^NDX", "NQUSD"],
+  RTYUSD: ["IWM", "RTYUSD"],
+  SIUSD: ["SLV", "SIUSD", "XAGUSD"],
+  SP: ["SPY", "^GSPC", "ESUSD"],
+  WTI: ["USO", "CLUSD"],
+  XAGUSD: ["SLV", "SIUSD", "XAGUSD"],
+  XAUUSD: ["GLD", "GCUSD", "XAUUSD"],
+  YMUSD: ["DIA", "^DJI", "YMUSD"],
+  ZBUSD: ["TLT", "ZBUSD"],
+  ZNUSD: ["IEF", "ZNUSD"],
+};
+
 const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   EURUSD: ["EUR", "USD"],
   GBPUSD: ["GBP", "USD"],
@@ -257,6 +283,38 @@ export function isCurrencyRelevantForSymbol(
   currency: string,
 ) {
   return symbolCurrencies[symbol]?.includes(currency) ?? currency === "USD";
+}
+
+export function isHeadlineNewsRelevantForSymbol(
+  symbol: SupportedSymbol,
+  newsSymbol: string | null | undefined,
+) {
+  if (!newsSymbol) {
+    return false;
+  }
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const normalizedNewsSymbol = normalizeSymbol(newsSymbol);
+  const directSymbols = [
+    normalizedSymbol,
+    normalizedSymbol.replace(/USD$/, ""),
+  ].filter(Boolean);
+  const proxySymbols = headlineNewsSymbols[normalizedSymbol] ?? [];
+
+  return [...directSymbols, ...proxySymbols].some((candidate) =>
+    normalizeSymbol(candidate) === normalizedNewsSymbol
+  );
+}
+
+export function getHeadlineNewsSymbols(symbols: SupportedSymbol[]) {
+  const candidates = new Set<string>();
+  for (const symbol of symbols) {
+    const normalized = normalizeSymbol(symbol);
+    candidates.add(normalized);
+    for (const proxy of headlineNewsSymbols[normalized] ?? []) {
+      candidates.add(proxy);
+    }
+  }
+  return Array.from(candidates);
 }
 
 export function getCorrelationGroup(symbol: string) {

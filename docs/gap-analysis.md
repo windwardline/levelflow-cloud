@@ -1,6 +1,6 @@
 # LevelFlow Gap Analysis
 
-Last reviewed: 2026-06-30
+Last reviewed: 2026-07-02
 
 ## Current Strengths
 
@@ -34,6 +34,9 @@ Last reviewed: 2026-06-30
   forex, futures, indices, and metals emphasize the same review lenses
   differently before the final confidence, payoff, timing, and execution
   checks.
+- FMP economic calendar, earnings calendar, and targeted market headlines now
+  contribute to timing risk. Scheduled high-impact events can block setups;
+  medium events and recent market-moving headlines reduce confidence.
 
 ## Recently Closed
 
@@ -108,6 +111,9 @@ Last reviewed: 2026-06-30
 - FMP Ultimate symbol verification now enables Indices and Energies, expands
   usable futures coverage, and keeps empty FMP futures symbols out of the
   public selector.
+- Advisor and Guide copy now separate chart view from setup review intervals,
+  and setup cards use a plain Valid until timestamp for the current review
+  window.
 
 ## Gaps to Close
 

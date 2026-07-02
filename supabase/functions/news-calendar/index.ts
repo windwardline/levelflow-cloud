@@ -25,12 +25,73 @@ type EconomicEvent = {
   country?: string;
   currency: string;
   event_name: string;
+  event_type: "scheduled" | "earnings" | "headline";
   external_id: string;
   impact: "low" | "medium" | "high";
   provider: string;
   raw_payload: Record<string, unknown>;
   scheduled_at: string;
+  symbol?: string;
+  url?: string;
 };
+
+const FOREX_NEWS_SYMBOLS = [
+  "AUDCAD",
+  "AUDCHF",
+  "AUDJPY",
+  "AUDNZD",
+  "AUDUSD",
+  "CADCHF",
+  "CADJPY",
+  "CHFJPY",
+  "EURAUD",
+  "EURCAD",
+  "EURCHF",
+  "EURGBP",
+  "EURJPY",
+  "EURNZD",
+  "EURUSD",
+  "GBPAUD",
+  "GBPCAD",
+  "GBPCHF",
+  "GBPJPY",
+  "GBPNZD",
+  "GBPUSD",
+  "NZDCAD",
+  "NZDCHF",
+  "NZDJPY",
+  "NZDUSD",
+  "USDCAD",
+  "USDCHF",
+  "USDJPY",
+];
+const CRYPTO_NEWS_SYMBOLS = [
+  "ADAUSD",
+  "BCHUSD",
+  "BNBUSD",
+  "BTCUSD",
+  "ETHUSD",
+  "LTCUSD",
+  "SOLUSD",
+  "XRPUSD",
+];
+const STOCK_NEWS_SYMBOLS = [
+  "BNO",
+  "CPER",
+  "DIA",
+  "EWG",
+  "EWJ",
+  "EWA",
+  "GLD",
+  "IEF",
+  "IWM",
+  "QQQ",
+  "SLV",
+  "SPY",
+  "TLT",
+  "UNG",
+  "USO",
+];
 
 Deno.serve(async (req) => {
   try {
@@ -115,6 +176,7 @@ async function fetchFmpEvents(
 ): Promise<EconomicEvent[]> {
   const economicEvents = await fetchFmpEconomicEvents(windowStart, windowEnd);
   let earningsEvents: EconomicEvent[] = [];
+  let headlineEvents: EconomicEvent[] = [];
 
   try {
     earningsEvents = await fetchFmpEarningsEvents(windowStart, windowEnd);
@@ -122,7 +184,13 @@ async function fetchFmpEvents(
     earningsEvents = [];
   }
 
-  return [...economicEvents, ...earningsEvents];
+  try {
+    headlineEvents = await fetchFmpHeadlineEvents(windowStart, windowEnd);
+  } catch {
+    headlineEvents = [];
+  }
+
+  return [...economicEvents, ...earningsEvents, ...headlineEvents];
 }
 
 async function fetchFmpEconomicEvents(
@@ -161,6 +229,7 @@ async function fetchFmpEconomicEvents(
     return {
       country: optionalString(event.country),
       currency: String(event.currency ?? "USD"),
+      event_type: "scheduled",
       event_name: String(event.event ?? event.name ?? "Economic Event"),
       external_id: stableExternalId(
         "fmp",
@@ -218,6 +287,7 @@ async function fetchFmpEarningsEvents(
       {
         country: "US",
         currency: "USD",
+        event_type: "earnings" as const,
         event_name: `${symbol} earnings`,
         external_id: stableExternalId("fmp_earnings", symbol, date, event.time),
         impact: "high" as const,
@@ -226,6 +296,102 @@ async function fetchFmpEarningsEvents(
         scheduled_at: parseEarningsDate(date, event.time),
       },
     ];
+  });
+}
+
+async function fetchFmpHeadlineEvents(
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<EconomicEvent[]> {
+  if (!FMP_API_KEY) {
+    return [];
+  }
+
+  const [forexNews, cryptoNews, stockNews] = await Promise.all([
+    fetchFmpNewsEndpoint("forex", FOREX_NEWS_SYMBOLS, windowStart, windowEnd),
+    fetchFmpNewsEndpoint("crypto", CRYPTO_NEWS_SYMBOLS, windowStart, windowEnd),
+    fetchFmpNewsEndpoint("stock", STOCK_NEWS_SYMBOLS, windowStart, windowEnd),
+  ]);
+
+  return [...forexNews, ...cryptoNews, ...stockNews];
+}
+
+async function fetchFmpNewsEndpoint(
+  category: "crypto" | "forex" | "stock",
+  symbols: string[],
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<EconomicEvent[]> {
+  const url = new URL(
+    `${FMP_API_BASE_URL.replace(/\/$/, "")}/news/${category}`,
+  );
+  url.searchParams.set("symbols", symbols.join(","));
+  url.searchParams.set("page", "0");
+  url.searchParams.set("limit", "100");
+  url.searchParams.set("apikey", FMP_API_KEY ?? "");
+
+  const response = await fetchWithTimeout(url, {}, PROVIDER_FETCH_TIMEOUT_MS);
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `FMP ${category} news request failed (${response.status}): ${
+        responseText.slice(0, 180)
+      }`,
+    );
+  }
+
+  const payload = JSON.parse(responseText);
+  if (!Array.isArray(payload)) {
+    throw new Error(`FMP ${category} news response was not an array`);
+  }
+
+  return payload.flatMap((rawItem) => {
+    const item = rawItem as Record<string, unknown>;
+    const publishedAt = parseDate(
+      item.publishedDate ?? item.date ?? item.created_at,
+    );
+    const publishedTime = new Date(publishedAt).getTime();
+    if (
+      publishedTime < windowStart.getTime() ||
+      publishedTime > windowEnd.getTime()
+    ) {
+      return [];
+    }
+
+    const symbolsFromItem = extractNewsSymbols(item)
+      .filter((symbol) => symbols.includes(symbol));
+    if (symbolsFromItem.length === 0) {
+      return [];
+    }
+
+    const title = String(
+      item.title ?? item.headline ?? item.site ?? "Market headline",
+    );
+    const text = String(item.text ?? item.content ?? item.summary ?? "");
+    const url = optionalString(item.url ?? item.link);
+
+    return symbolsFromItem.slice(0, 4).map((symbol) => ({
+      country: category === "stock" ? "US" : undefined,
+      currency: currencyForHeadlineSymbol(symbol),
+      event_name: title,
+      event_type: "headline" as const,
+      external_id: stableExternalId(
+        "fmp_news",
+        category,
+        symbol,
+        publishedAt,
+        url ?? title,
+      ),
+      impact: classifyHeadlineImpact(`${title} ${text}`),
+      provider: "fmp_news",
+      raw_payload: {
+        ...item,
+        newsCategory: category,
+      },
+      scheduled_at: publishedAt,
+      symbol,
+      url,
+    }));
   });
 }
 
@@ -262,6 +428,7 @@ async function fetchFinnhubEvents(
     return {
       country: optionalString(event.country),
       currency: String(event.currency ?? "USD"),
+      event_type: "scheduled",
       event_name: String(event.event ?? "Economic Event"),
       external_id: stableExternalId(
         "finnhub",
@@ -315,6 +482,84 @@ function optionalString(value: unknown) {
   return value ? String(value) : undefined;
 }
 
+function extractNewsSymbols(item: Record<string, unknown>) {
+  const rawSymbols = [
+    item.symbol,
+    item.ticker,
+    item.tickers,
+    item.symbols,
+  ].filter(Boolean);
+  const symbols = rawSymbols.flatMap((value) => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    return String(value).split(",");
+  });
+
+  return Array.from(
+    new Set(
+      symbols
+        .map((symbol) => normalizeSymbol(String(symbol)))
+        .filter((symbol) => symbol.length > 0),
+    ),
+  );
+}
+
+function currencyForHeadlineSymbol(symbol: string) {
+  if (/^[A-Z]{6}$/.test(symbol)) {
+    return symbol.slice(-3);
+  }
+  return "USD";
+}
+
+function classifyHeadlineImpact(value: string): "low" | "medium" | "high" {
+  const normalized = value.toLowerCase();
+  const highImpactPatterns = [
+    /\brate\b/,
+    /\binflation\b/,
+    /\bcpi\b/,
+    /\bpce\b/,
+    /\bnfp\b/,
+    /\bpayrolls?\b/,
+    /\bfed\b/,
+    /\becb\b/,
+    /\bopec\b/,
+    /\binventory\b/,
+    /\bwar\b/,
+    /\bsanction/,
+    /\btariff/,
+    /\bdefault\b/,
+    /\bbankruptcy\b/,
+    /\bhack(ed|ing)?\b/,
+    /\betf\b/,
+  ];
+  const mediumImpactPatterns = [
+    /\bcentral bank\b/,
+    /\btreasury\b/,
+    /\byield\b/,
+    /\bgdp\b/,
+    /\bpmi\b/,
+    /\bjobs?\b/,
+    /\bcrude\b/,
+    /\boil\b/,
+    /\bgold\b/,
+    /\bsilver\b/,
+    /\bcrypto\b/,
+    /\bbitcoin\b/,
+    /\bethereum\b/,
+    /\bregulat/,
+    /\bearnings?\b/,
+  ];
+
+  if (highImpactPatterns.some((pattern) => pattern.test(normalized))) {
+    return "high";
+  }
+  if (mediumImpactPatterns.some((pattern) => pattern.test(normalized))) {
+    return "medium";
+  }
+  return "low";
+}
+
 function normalizeImpact(value: unknown): "low" | "medium" | "high" {
   const normalized = String(value ?? "").toLowerCase();
   if (normalized.includes("high") || normalized === "3") {
@@ -328,6 +573,10 @@ function normalizeImpact(value: unknown): "low" | "medium" | "high" {
 
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function normalizeSymbol(value: string) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
 function fetchWithTimeout(

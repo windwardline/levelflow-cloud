@@ -20,6 +20,7 @@ import {
 } from "./replay.ts";
 import { type ExecutionQuality } from "./executionQuality.ts";
 import { calculateLearningWeight } from "./learning.ts";
+import { scoreSetupConfidence } from "./scoring.ts";
 import { getSessionContext, type SessionContext } from "./sessions.ts";
 import {
   defaultScanSymbols,
@@ -27,6 +28,7 @@ import {
   getRelatedSymbols,
   isCurrencyRelevantForSymbol,
   isEquityCalendarSensitiveSymbol,
+  isHeadlineNewsRelevantForSymbol,
   isKnownSymbol,
   isTemporarilyUnavailableSymbol,
   resolveProviderSymbols,
@@ -70,10 +72,21 @@ type AnalyzeRequest = {
 
 type NewsEvent = {
   currency?: string;
+  event_type?: "scheduled" | "earnings" | "headline";
   event_name?: string;
   impact?: string;
   provider?: string;
   scheduled_at?: string;
+  symbol?: string | null;
+  url?: string | null;
+};
+
+type NewsContext = {
+  active: NewsEvent[];
+  blocking: NewsEvent[];
+  headlineCount: number;
+  penaltyUnits: number;
+  upcoming: NewsEvent[];
 };
 
 type ExistingSetupRow = {
@@ -147,15 +160,14 @@ type CurrentMarketReview =
     symbol: SupportedSymbol;
   }
   | {
-    activeNewsEvents: NewsEvent[];
     blocked: false;
     correlationGroup: string;
     fmpSymbol: string;
     marketContext: MarketContext;
+    newsContext: NewsContext;
     providerFailures: string[];
     setup: ReviewedSetup;
     symbol: SupportedSymbol;
-    upcomingNewsEvents: NewsEvent[];
   };
 
 Deno.serve(async (req) => {
@@ -294,8 +306,7 @@ Deno.serve(async (req) => {
       review.fmpSymbol,
       review.correlationGroup,
       review.setup,
-      review.activeNewsEvents,
-      review.upcomingNewsEvents,
+      review.newsContext,
     );
 
     await recordAnalyzerEvent({
@@ -441,20 +452,19 @@ async function reviewCurrentMarket(
     };
   }
 
-  const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
-    await fetchRelevantNews(token, normalizedSymbol);
-  if (activeNewsEvents.length > 0) {
+  const newsContext = await fetchRelevantNews(token, normalizedSymbol);
+  if (newsContext.blocking.length > 0) {
     await recordAnalyzerEvent({
       action,
       message: "Active major scheduled event",
-      metadata: { activeNewsEvents },
+      metadata: { activeNewsEvents: newsContext.blocking },
       status: eventStatus,
       symbol: normalizedSymbol,
       userId,
     });
     return {
       blocked: true,
-      newsEvents: activeNewsEvents,
+      newsEvents: newsContext.blocking,
       reason: "A major scheduled event is active for this market.",
       symbol: normalizedSymbol,
     };
@@ -531,8 +541,7 @@ async function reviewCurrentMarket(
     fmpSymbol,
     correlationGroup,
     marketContext,
-    activeNewsEvents,
-    upcomingNewsEvents,
+    newsContext,
     sessionContext,
   );
   if (!setup) {
@@ -540,7 +549,7 @@ async function reviewCurrentMarket(
       token,
       normalizedSymbol,
       marketContext,
-      upcomingNewsEvents,
+      newsContext,
       sessionContext,
     );
     await recordAnalyzerEvent({
@@ -558,7 +567,7 @@ async function reviewCurrentMarket(
       analysisDiagnostics,
       blocked: true,
       providerWarnings: marketContext.providerWarnings,
-      reason: "No current limit-order setup met the review threshold.",
+      reason: "No current limit setup met the review threshold.",
       symbol: normalizedSymbol,
     };
   }
@@ -592,15 +601,14 @@ async function reviewCurrentMarket(
   }
 
   return {
-    activeNewsEvents,
     blocked: false,
     correlationGroup,
     fmpSymbol,
     marketContext,
+    newsContext,
     providerFailures,
     setup,
     symbol: normalizedSymbol,
-    upcomingNewsEvents,
   };
 }
 
@@ -772,8 +780,7 @@ async function analyzeSetup(
   fmpSymbol: string,
   correlationGroup: string,
   market: MarketContext,
-  activeNewsEvents: NewsEvent[],
-  upcomingNewsEvents: NewsEvent[],
+  newsContext: NewsContext,
   sessionContext: SessionContext,
 ) {
   const calibration = getCategoryCalibration(symbol);
@@ -817,26 +824,17 @@ async function analyzeSetup(
     return null;
   }
 
-  const newsPenalty = Math.min(
-    calibration.maxNewsPenalty,
-    upcomingNewsEvents.length * calibration.newsPenaltyPerEvent,
-  );
-  const timeframePenalty = market.availableTimeframes.length < 3
-    ? calibration.timeframePenalty
-    : 0;
-  const providerPenalty = Math.min(
-    calibration.maxProviderPenalty,
-    market.providerWarnings.length * calibration.providerWarningPenalty,
-  );
-  const confidenceScore = clampInteger(
-    Math.round(
-      consensus.score + weightAdjustment - newsPenalty -
-        sessionContext.penalty - timeframePenalty - providerPenalty -
-        pricePlan.executionQuality.confidencePenalty,
-    ),
-    0,
-    100,
-  );
+  const scoreBreakdown = scoreSetupConfidence({
+    availableTimeframeCount: market.availableTimeframes.length,
+    calibration,
+    consensusScore: consensus.score,
+    executionPenalty: pricePlan.executionQuality.confidencePenalty,
+    providerWarningCount: market.providerWarnings.length,
+    sessionPenalty: sessionContext.penalty,
+    newsPenaltyUnits: newsContext.penaltyUnits,
+    weightAdjustment,
+  });
+  const confidenceScore = scoreBreakdown.confidenceScore;
 
   if (
     confidenceScore < calibration.confidenceThreshold ||
@@ -887,6 +885,13 @@ async function analyzeSetup(
       executionQuality: pricePlan.executionQuality,
       grossRewardRisk: Number(pricePlan.grossRewardRisk.toFixed(2)),
       rewardRisk: Number(pricePlan.rewardRisk.toFixed(2)),
+      scoreBreakdown,
+      newsContext: {
+        activeEvents: newsContext.active.length,
+        headlineEvents: newsContext.headlineCount,
+        penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
+        upcomingEvents: newsContext.upcoming.length,
+      },
       orderConstruction: {
         contractSpec: pricePlan.contractSpec,
         futuresTickAdjustments: pricePlan.futuresTickAdjustments,
@@ -905,7 +910,7 @@ async function analyzeSetup(
       strategyWeightSampleSize: Number(weight?.total_setups ?? 0),
       strategyWeightSampleWeight: Number(weight?.sample_weight ?? 0),
       analyzerVersion: ANALYZER_VERSION,
-      upcomingNewsEvents,
+      upcomingNewsEvents: newsContext.upcoming,
     },
     riskModel: {
       atr: pricePlan.atr,
@@ -915,8 +920,10 @@ async function analyzeSetup(
       positionSizingStatus: "not_calculated",
       positionSizingReason:
         "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
-      activeNewsEventsTracked: activeNewsEvents.length,
-      upcomingNewsEventsTracked: upcomingNewsEvents.length,
+      activeNewsEventsTracked: newsContext.active.length,
+      headlineNewsEventsTracked: newsContext.headlineCount,
+      newsPenaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
+      upcomingNewsEventsTracked: newsContext.upcoming.length,
       reviewWindowExpiresAt: expiresAt,
       stopLogic: pricePlan.stopLogic,
       targetLogic: pricePlan.targetLogic,
@@ -928,7 +935,7 @@ async function explainNoSetup(
   token: string,
   symbol: SupportedSymbol,
   market: MarketContext,
-  upcomingNewsEvents: NewsEvent[],
+  newsContext: NewsContext,
   sessionContext: SessionContext,
 ) {
   const calibration = getCategoryCalibration(symbol);
@@ -966,33 +973,24 @@ async function explainNoSetup(
       regime,
       calibration,
     );
-    const newsPenalty = Math.min(
-      calibration.maxNewsPenalty,
-      upcomingNewsEvents.length * calibration.newsPenaltyPerEvent,
-    );
-    const timeframePenalty = market.availableTimeframes.length < 3
-      ? calibration.timeframePenalty
-      : 0;
-    const providerPenalty = Math.min(
-      calibration.maxProviderPenalty,
-      market.providerWarnings.length * calibration.providerWarningPenalty,
-    );
-    const confidenceScore = clampInteger(
-      Math.round(
-        consensus.score + weightAdjustment - newsPenalty -
-          sessionContext.penalty - timeframePenalty - providerPenalty -
-          (pricePlan?.executionQuality.confidencePenalty ?? 0),
-      ),
-      0,
-      100,
-    );
+    const scoreBreakdown = scoreSetupConfidence({
+      availableTimeframeCount: market.availableTimeframes.length,
+      calibration,
+      consensusScore: consensus.score,
+      executionPenalty: pricePlan?.executionQuality.confidencePenalty ?? 0,
+      providerWarningCount: market.providerWarnings.length,
+      sessionPenalty: sessionContext.penalty,
+      newsPenaltyUnits: newsContext.penaltyUnits,
+      weightAdjustment,
+    });
+    const confidenceScore = scoreBreakdown.confidenceScore;
 
     diagnostics.push(
       `The current ${consensus.side} setup scored ${confidenceScore}; LevelFlow requires ${calibration.confidenceThreshold} or higher for this market.`,
     );
     if (!pricePlan) {
       diagnostics.push(
-        "Limit entry failed price validation, so no limit-order setup was shown.",
+        "Limit entry failed price validation, so no limit setup was shown.",
       );
     } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
       diagnostics.push(
@@ -1009,11 +1007,9 @@ async function explainNoSetup(
     }
   }
 
-  if (upcomingNewsEvents.length > 0) {
+  if (newsContext.penaltyUnits > 0) {
     diagnostics.push(
-      `${upcomingNewsEvents.length} major scheduled event${
-        upcomingNewsEvents.length === 1 ? "" : "s"
-      } reduced setup quality.`,
+      "Scheduled events or recent market headlines reduced setup quality.",
     );
   }
   if (sessionContext.penalty > 0) {
@@ -1037,8 +1033,7 @@ async function upsertActiveSetup(
   fmpSymbol: string,
   group: string,
   setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>,
-  activeNewsEvents: NewsEvent[],
-  upcomingNewsEvents: NewsEvent[],
+  newsContext: NewsContext,
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
@@ -1068,8 +1063,10 @@ async function upsertActiveSetup(
         limit_entry: setup.entryPrice,
         provider_symbol: fmpSymbol,
         news_context: {
-          activeEvents: activeNewsEvents,
-          upcomingEvents: upcomingNewsEvents,
+          activeEvents: newsContext.active,
+          headlineEvents: newsContext.headlineCount,
+          penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
+          upcomingEvents: newsContext.upcoming,
         },
         risk_model: setup.riskModel,
         side: setup.side,
@@ -1109,8 +1106,10 @@ async function upsertActiveSetup(
     confluence: setup.confluence,
     risk_model: setup.riskModel,
     news_context: {
-      activeEvents: activeNewsEvents,
-      upcomingEvents: upcomingNewsEvents,
+      activeEvents: newsContext.active,
+      headlineEvents: newsContext.headlineCount,
+      penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
+      upcomingEvents: newsContext.upcoming,
     },
     correlation_group: group,
     status: "generated",
@@ -1440,29 +1439,46 @@ function extractSetupKey(
 }
 
 async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
-  const activeStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  const activeEnd = new Date(Date.now() + 20 * 60 * 1000).toISOString();
-  const upcomingEnd = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+  const now = Date.now();
+  const headlineStart = new Date(now - 6 * 60 * 60 * 1000).toISOString();
+  const activeStart = new Date(now - 10 * 60 * 1000).toISOString();
+  const activeEnd = new Date(now + 20 * 60 * 1000).toISOString();
+  const upcomingEnd = new Date(now + 6 * 60 * 60 * 1000).toISOString();
   const rows = await fetchRows<NewsEvent>(
     token,
-    `economic_events?select=provider,currency,event_name,impact,scheduled_at&impact=eq.high&scheduled_at=gte.${
-      encodeURIComponent(activeStart)
+    `economic_events?select=provider,currency,event_name,event_type,impact,scheduled_at,symbol,url&impact=in.(medium,high)&scheduled_at=gte.${
+      encodeURIComponent(headlineStart)
     }&scheduled_at=lte.${encodeURIComponent(upcomingEnd)}`,
   );
   const relevant = rows.filter((event) => isNewsRelevant(symbol, event));
+  const active = relevant.filter((event) =>
+    event.event_type !== "headline" &&
+    typeof event.scheduled_at === "string" &&
+    event.scheduled_at >= activeStart && event.scheduled_at <= activeEnd
+  );
+  const blocking = active.filter(isBlockingNewsEvent);
+  const upcoming = relevant.filter((event) =>
+    typeof event.scheduled_at === "string" &&
+    (event.event_type === "headline"
+      ? event.scheduled_at >= headlineStart &&
+        event.scheduled_at <= new Date(now).toISOString()
+      : event.scheduled_at > activeEnd && event.scheduled_at <= upcomingEnd)
+  );
 
   return {
-    active: relevant.filter((event) =>
-      typeof event.scheduled_at === "string" &&
-      event.scheduled_at >= activeStart && event.scheduled_at <= activeEnd
-    ),
-    upcoming: relevant.filter((event) =>
-      typeof event.scheduled_at === "string" && event.scheduled_at > activeEnd
-    ),
+    active,
+    blocking,
+    headlineCount: upcoming.filter((event) => event.event_type === "headline")
+      .length,
+    penaltyUnits: calculateNewsPenaltyUnits(active, upcoming),
+    upcoming,
   };
 }
 
 function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
+  if (event.symbol) {
+    return isHeadlineNewsRelevantForSymbol(symbol, event.symbol);
+  }
   if (event.provider === "fmp_earnings") {
     return isEquityCalendarSensitiveSymbol(symbol);
   }
@@ -1472,6 +1488,22 @@ function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
     return true;
   }
   return isCurrencyRelevantForSymbol(symbol, currency);
+}
+
+function isBlockingNewsEvent(event: NewsEvent) {
+  return event.event_type !== "headline" && event.impact === "high";
+}
+
+function calculateNewsPenaltyUnits(active: NewsEvent[], upcoming: NewsEvent[]) {
+  const nonBlockingActive = active.filter((event) => !isBlockingNewsEvent(event));
+  const weightedEvents = [...nonBlockingActive, ...upcoming];
+
+  return weightedEvents.reduce((sum, event) => {
+    if (event.event_type === "headline") {
+      return sum + (event.impact === "high" ? 0.5 : 0.25);
+    }
+    return sum + (event.impact === "high" ? 1 : 0.5);
+  }, 0);
 }
 
 function buildSetupKey(
@@ -1521,13 +1553,6 @@ function formatTitle(value: string) {
 
 function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-function clampInteger(value: number, min: number, max: number) {
-  if (!Number.isFinite(value)) {
-    return min;
-  }
-  return Math.min(Math.max(Math.trunc(value), min), max);
 }
 
 function roundPrice(value: number) {

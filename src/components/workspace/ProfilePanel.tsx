@@ -182,7 +182,7 @@ export function ProfilePanel({
             </select>
           </label>
           <label className="grid gap-2 text-sm font-semibold text-navy">
-            Default chart timeframe
+            Default chart view
             <select
               className="field"
               value={defaultTimeframe}
@@ -304,10 +304,10 @@ export function ProfilePanel({
             <LineChart className="h-5 w-5 text-navy" aria-hidden="true" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-                Pattern
+                History
               </p>
               <h2 className="text-2xl font-semibold tracking-normal text-navy">
-                Review pattern
+                Review activity
               </h2>
             </div>
           </div>
@@ -319,7 +319,7 @@ export function ProfilePanel({
           {reviewPattern.length === 0
             ? (
               <p className="text-sm leading-6 text-slate">
-                Review patterns will appear after setups are saved.
+                Review activity will appear after setups are saved.
               </p>
             )
             : null}

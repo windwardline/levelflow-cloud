@@ -1,4 +1,8 @@
 import { Layers3, ShieldCheck, Target } from "lucide-react";
+import {
+  advisorExecutionIntervalLabel,
+  advisorSignalIntervalLabel,
+} from "../../lib/advisorReview";
 
 export function OverviewPanel() {
   const valueCards = [
@@ -21,7 +25,9 @@ export function OverviewPanel() {
 
   const proofItems = [
     { label: "Order type", value: "Limit only" },
-    { label: "Default chart", value: "1 hour" },
+    { label: "Default chart", value: "1 hour view" },
+    { label: "Setup review", value: advisorSignalIntervalLabel() },
+    { label: "Price check", value: advisorExecutionIntervalLabel() },
     { label: "Data", value: "Live charts + events" },
     { label: "Learning", value: "Shared across LevelFlow" },
   ];
@@ -39,8 +45,8 @@ export function OverviewPanel() {
             </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
               LevelFlow refreshes the chart, checks the market from several
-              angles, accounts for timing risk, and presents the next limit setup
-              when the evidence is strong enough.
+              angles, accounts for timing risk, and presents the next limit
+              setup when the evidence is strong enough.
             </p>
           </div>
           <div className="grid gap-2 rounded-lg border border-slate/15 bg-canvas p-4">
@@ -88,7 +94,7 @@ export function OverviewPanel() {
               prior setup and shows no trade setup. If the setup passes, it shows
               the side, entry, stop, target, confidence, and reason in one
               place. Finished setups across LevelFlow also improve future
-              reviews, so the product learns from the full review history
+              reviews, so the product learns from the full setup history
               rather than one user at a time.
             </p>
           </div>
