@@ -57,6 +57,32 @@ describe("futures tick rules", () => {
     assert.equal(plan.takeProfit, 31.315);
   });
 
+  it("uses CME-style ticks for additional verified futures feeds", () => {
+    assert.equal(getFuturesContractSpec("NQUSD")?.tickSize, 0.25);
+    assert.equal(getFuturesContractSpec("YMUSD")?.tickSize, 1);
+    assert.equal(getFuturesContractSpec("RTYUSD")?.tickSize, 0.1);
+    assert.equal(getFuturesContractSpec("CLUSD")?.tickSize, 0.01);
+    assert.equal(getFuturesContractSpec("NGUSD")?.tickSize, 0.001);
+    assert.equal(getFuturesContractSpec("HGUSD")?.tickSize, 0.0005);
+    assert.equal(getFuturesContractSpec("ZBUSD")?.tickSize, 0.03125);
+    assert.equal(getFuturesContractSpec("ZNUSD")?.tickSize, 0.015625);
+  });
+
+  it("rounds treasury futures to fractional ticks", () => {
+    const plan = applyFuturesTickRules({
+      entryPrice: 109.517,
+      side: "buy",
+      stopLoss: 109.503,
+      symbol: "ZNUSD",
+      takeProfit: 109.559,
+    });
+
+    assert.ok(plan);
+    assert.equal(plan.entryPrice, 109.515625);
+    assert.equal(plan.stopLoss, 109.453125);
+    assert.equal(plan.takeProfit, 109.640625);
+  });
+
   it("does not apply contract rules to unsupported symbols", () => {
     assert.equal(getFuturesContractSpec("EURUSD"), null);
     assert.equal(

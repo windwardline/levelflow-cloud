@@ -22,10 +22,7 @@ export type SecurityGroup = {
   options: SecurityOption[];
 };
 
-export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>([
-  "Indices",
-  "Energies",
-]);
+export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>();
 const ASSET_CATEGORY_ORDER: SecurityType[] = [
   "Crypto",
   "Energies",
@@ -175,6 +172,20 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
     options: [
       {
         assetType: "Futures",
+        description: "Brent Crude Oil Futures",
+        fmpSymbol: "BZUSD",
+        label: "BZ - Brent Crude Oil Futures",
+        symbol: "BZUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "WTI Crude Oil Futures",
+        fmpSymbol: "CLUSD",
+        label: "CL - WTI Crude Oil Futures",
+        symbol: "CLUSD",
+      },
+      {
+        assetType: "Futures",
         description: "E-Mini S&P 500 Futures",
         fmpSymbol: "ESUSD",
         label: "ES - E-Mini S&P 500 Futures",
@@ -189,6 +200,41 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
       },
       {
         assetType: "Futures",
+        description: "Copper Futures",
+        fmpSymbol: "HGUSD",
+        label: "HG - Copper Futures",
+        symbol: "HGUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Micro Gold Futures",
+        fmpSymbol: "MGCUSD",
+        label: "MGC - Micro Gold Futures",
+        symbol: "MGCUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Natural Gas Futures",
+        fmpSymbol: "NGUSD",
+        label: "NG - Natural Gas Futures",
+        symbol: "NGUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "E-Mini Nasdaq 100 Futures",
+        fmpSymbol: "NQUSD",
+        label: "NQ - E-Mini Nasdaq 100 Futures",
+        symbol: "NQUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "E-Mini Russell 2000 Futures",
+        fmpSymbol: "RTYUSD",
+        label: "RTY - E-Mini Russell 2000 Futures",
+        symbol: "RTYUSD",
+      },
+      {
+        assetType: "Futures",
         description: "Silver Futures",
         fmpSymbol: "SIUSD",
         label: "SI - Silver Futures",
@@ -196,10 +242,24 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
       },
       {
         assetType: "Futures",
-        description: "Brent Crude Oil Futures",
-        fmpSymbol: "BZUSD",
-        label: "BZ - Brent Crude Oil Futures",
-        symbol: "BZUSD",
+        description: "E-Mini Dow Futures",
+        fmpSymbol: "YMUSD",
+        label: "YM - E-Mini Dow Futures",
+        symbol: "YMUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "U.S. Treasury Bond Futures",
+        fmpSymbol: "ZBUSD",
+        label: "ZB - U.S. Treasury Bond Futures",
+        symbol: "ZBUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "10-Year Treasury Note Futures",
+        fmpSymbol: "ZNUSD",
+        label: "ZN - 10-Year Treasury Note Futures",
+        symbol: "ZNUSD",
       },
     ],
   },
@@ -284,7 +344,21 @@ export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
     "BCHUSD",
     "ADAUSD",
   ],
-  futures: ["ESUSD", "GCUSD", "SIUSD", "BZUSD"],
+  futures: [
+    "BZUSD",
+    "CLUSD",
+    "ESUSD",
+    "GCUSD",
+    "HGUSD",
+    "MGCUSD",
+    "NGUSD",
+    "NQUSD",
+    "RTYUSD",
+    "SIUSD",
+    "YMUSD",
+    "ZBUSD",
+    "ZNUSD",
+  ],
   energies: ["WTI", "BRENT"],
   eur_crosses: [
     "EURUSD",

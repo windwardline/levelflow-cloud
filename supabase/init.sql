@@ -50,7 +50,7 @@ create table if not exists public.profiles (
       'Pacific/Guam'
     )
   ),
-  constraint profiles_default_timeframe_valid check (default_timeframe in ('15min', '1hour', '4hour', '1day')),
+  constraint profiles_default_timeframe_valid check (default_timeframe in ('1min', '5min', '15min', '1hour', '4hour', '1day')),
   constraint profiles_theme_preference_valid check (theme_preference in ('light', 'dark', 'system')),
   constraint profiles_preferred_session_valid check (preferred_session in ('any', 'asia', 'europe', 'north_america', 'australia'))
 );
@@ -148,7 +148,7 @@ create table if not exists public.analyzer_rate_limits (
 
 create table if not exists public.market_data_health (
   symbol text primary key,
-  asset_type text not null check (asset_type in ('crypto', 'forex', 'futures', 'metals')),
+  asset_type text not null check (asset_type in ('crypto', 'energies', 'forex', 'futures', 'indices', 'metals')),
   provider_symbol text,
   status text not null check (status in ('ready', 'limited', 'unavailable')),
   latest_bar_at timestamptz,
@@ -167,7 +167,7 @@ create table if not exists public.analyzer_events (
   action text not null,
   status text not null check (status in ('blocked', 'cache_hit', 'error', 'scan_failure', 'slow_provider', 'success')),
   symbol text,
-  asset_type text check (asset_type is null or asset_type in ('crypto', 'forex', 'futures', 'metals')),
+  asset_type text check (asset_type is null or asset_type in ('crypto', 'energies', 'forex', 'futures', 'indices', 'metals')),
   provider_symbol text,
   cache_hit boolean not null default false,
   duration_ms integer check (duration_ms is null or duration_ms >= 0),

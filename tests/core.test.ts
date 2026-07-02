@@ -15,6 +15,11 @@ import {
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
+  executionTimeframes,
+  intradayTimeframes,
+  signalTimeframes,
+} from "../supabase/functions/trade-analyzer/types.ts";
+import {
   defaultScanSymbols,
   getRelatedSymbols,
   isTemporarilyUnavailableSymbol,
@@ -27,6 +32,11 @@ import {
   US_TIME_ZONE_GROUPS,
   US_TIME_ZONE_OPTIONS,
 } from "../src/lib/profile";
+import {
+  CHART_TIMEFRAME_OPTIONS,
+  defaultMarketDataDays,
+  isChartTimeframe,
+} from "../src/lib/marketData";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
@@ -44,7 +54,7 @@ describe("asset catalog", () => {
   it("keeps the public asset list focused and sorted by category, base, then quote", () => {
     assert.deepEqual(
       AVAILABLE_ASSET_GROUPS.map((group) => group.label),
-      ["Crypto", "Forex", "Futures", "Metals"],
+      ["Crypto", "Energies", "Forex", "Futures", "Indices", "Metals"],
     );
 
     const forex = AVAILABLE_ASSET_GROUPS.find(
@@ -74,12 +84,24 @@ describe("asset catalog", () => {
       "SOLUSD",
       "XRPUSD",
     ]);
+
+    const energies = AVAILABLE_ASSET_GROUPS.find(
+      (group) => group.label === "Energies",
+    )?.options.map((option) => option.symbol);
+    assert.deepEqual(energies, ["BRENT", "WTI"]);
+
+    const indices = AVAILABLE_ASSET_GROUPS.find(
+      (group) => group.label === "Indices",
+    )?.options.map((option) => option.symbol);
+    assert.deepEqual(indices, ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"]);
   });
 
   it("formats user-facing asset labels without provider fallback details", () => {
     assert.equal(formatSecurityLabel("EURUSD"), "EUR/USD - Euro / U.S. Dollar");
     assert.equal(formatSecurityLabel("XAUUSD"), "XAU/USD - Gold / U.S. Dollar");
     assert.equal(formatSecurityLabel("BZUSD"), "BZ - Brent Crude Oil Futures");
+    assert.equal(formatSecurityLabel("CLUSD"), "CL - WTI Crude Oil Futures");
+    assert.equal(formatSecurityLabel("SP"), "SP - S&P 500 Index");
   });
 
   it("uses the same category, base, quote ordering for asset lists outside the selector", () => {
@@ -90,9 +112,11 @@ describe("asset catalog", () => {
         "AUDJPY",
         "BTCUSD",
         "ESUSD",
+        "SP",
+        "WTI",
         "EURUSD",
       ]),
-      ["BTCUSD", "ETHUSD", "AUDJPY", "EURUSD", "ESUSD", "XAUUSD"],
+      ["BTCUSD", "ETHUSD", "WTI", "AUDJPY", "EURUSD", "ESUSD", "SP", "XAUUSD"],
     );
   });
 
@@ -103,25 +127,59 @@ describe("asset catalog", () => {
         group.options.map((option) => option.symbol)
       ),
     );
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), false);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), true);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
 });
 
 describe("trade analyzer category handling", () => {
+  it("routes manual reviews and market scans through one market-review pipeline", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const sharedReviewCalls = source.match(/reviewCurrentMarket\(/g) ?? [];
+
+    assert.equal(sharedReviewCalls.length >= 3, true);
+    assert.match(source, /reviewCurrentMarket\([\s\S]*"generate_setup"/);
+    assert.match(source, /reviewCurrentMarket\([\s\S]*"scan_opportunities"/);
+    assert.equal(
+      source.includes("async function reviewCurrentMarket"),
+      true,
+    );
+  });
+
+  it("loads Ultimate intraday data without replacing the signal timeframes", () => {
+    assert.deepEqual(signalTimeframes, ["4hour", "1hour", "15min"]);
+    assert.deepEqual(executionTimeframes, ["5min", "1min"]);
+    assert.deepEqual(intradayTimeframes, [
+      "4hour",
+      "1hour",
+      "15min",
+      "5min",
+      "1min",
+    ]);
+  });
+
   it("keeps asset categories on distinct analyzer calibrations", () => {
     assert.equal(getAssetType("BTCUSD"), "crypto");
+    assert.equal(getAssetType("WTI"), "energies");
     assert.equal(getAssetType("EURUSD"), "forex");
     assert.equal(getAssetType("ESUSD"), "futures");
+    assert.equal(getAssetType("SP"), "indices");
     assert.equal(getAssetType("XAUUSD"), "metals");
 
     const crypto = getCategoryCalibration("BTCUSD");
+    const energies = getCategoryCalibration("WTI");
     const forex = getCategoryCalibration("EURUSD");
     const futures = getCategoryCalibration("ESUSD");
+    const indices = getCategoryCalibration("SP");
     const metals = getCategoryCalibration("XAUUSD");
 
     assert.ok(crypto.defaultReviewHours > futures.defaultReviewHours);
+    assert.ok(energies.stopAtrMultiplier > futures.stopAtrMultiplier);
     assert.ok(crypto.minRewardRisk > forex.minRewardRisk);
+    assert.ok(indices.newsPenaltyPerEvent > futures.newsPenaltyPerEvent);
     assert.ok(forex.newsPenaltyPerEvent >= crypto.newsPenaltyPerEvent);
     assert.ok(metals.stopAtrMultiplier > forex.stopAtrMultiplier);
     assert.ok(futures.defaultReviewHours < metals.defaultReviewHours);
@@ -129,8 +187,10 @@ describe("trade analyzer category handling", () => {
 
   it("keeps analyzer symbol routing aligned with public availability", () => {
     assert.deepEqual(resolveProviderSymbols("NSDQ"), ["^NDX", "QQQ"]);
-    assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), true);
-    assert.equal(defaultScanSymbols.includes("NSDQ"), false);
+    assert.deepEqual(resolveProviderSymbols("WTI"), ["CLUSD", "USO"]);
+    assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
+    assert.equal(defaultScanSymbols.includes("NSDQ"), true);
+    assert.equal(defaultScanSymbols.includes("WTI"), true);
     assert.deepEqual(getRelatedSymbols("EURUSD").slice(0, 2), [
       "EURNZD",
       "EURJPY",
@@ -173,6 +233,17 @@ describe("confidence tiers", () => {
 });
 
 describe("profile preferences", () => {
+  it("exposes Ultimate-ready intraday chart timeframes", () => {
+    assert.deepEqual(
+      CHART_TIMEFRAME_OPTIONS.map((option) => option.value),
+      ["1min", "5min", "15min", "1hour", "4hour", "1day"],
+    );
+    assert.equal(isChartTimeframe("1min"), true);
+    assert.equal(isChartTimeframe("5min"), true);
+    assert.equal(defaultMarketDataDays("1min"), 3);
+    assert.equal(defaultMarketDataDays("1day"), 520);
+  });
+
   it("groups U.S. time zones by Daylight Saving Time observance", () => {
     assert.deepEqual(
       US_TIME_ZONE_GROUPS.map((group) => ({

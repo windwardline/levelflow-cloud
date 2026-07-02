@@ -2,15 +2,18 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, CalendarClock, LineChart } from "lucide-react";
 import type { OutcomeSummary } from "../../hooks/useTradeSetups";
-import type { ChartTimeframe } from "../../lib/marketData";
+import {
+  CHART_TIMEFRAME_OPTIONS,
+  type ChartTimeframe,
+} from "../../lib/marketData";
 import { getGlobalSessions } from "../../lib/marketSessions";
 import {
   formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
   getUsTimeZoneOption,
   PREFERRED_SESSION_OPTIONS,
-  US_TIME_ZONE_GROUPS,
   type ThemeMode,
+  US_TIME_ZONE_GROUPS,
   type UserProfile,
 } from "../../lib/profile";
 import {
@@ -64,8 +67,7 @@ export function ProfilePanel({
     () => getGlobalSessions(timezone, preferredSession, profileNow),
     [preferredSession, profileNow, timezone],
   );
-  const focusedSession =
-    sessions.find((session) => session.isPreferred) ??
+  const focusedSession = sessions.find((session) => session.isPreferred) ??
     sessions.find((session) => session.id === "north_america") ??
     sessions[0];
   const latestSetup = setups[0];
@@ -78,8 +80,7 @@ export function ProfilePanel({
     selectedTimeZone.value,
     profileNow,
   );
-  const hasUnsavedChanges =
-    displayName !== profile.displayName ||
+  const hasUnsavedChanges = displayName !== profile.displayName ||
     timezone !== profile.defaultTimezone ||
     defaultTimeframe !== profile.defaultTimeframe ||
     preferredSession !== profile.preferredSession ||
@@ -171,8 +172,7 @@ export function ProfilePanel({
               onChange={(event) =>
                 setPreferredSession(
                   event.target.value as UserProfile["preferredSession"],
-                )
-              }
+                )}
             >
               {PREFERRED_SESSION_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -187,13 +187,13 @@ export function ProfilePanel({
               className="field"
               value={defaultTimeframe}
               onChange={(event) =>
-                setDefaultTimeframe(event.target.value as ChartTimeframe)
-              }
+                setDefaultTimeframe(event.target.value as ChartTimeframe)}
             >
-              <option value="15min">15 minutes</option>
-              <option value="1hour">1 hour</option>
-              <option value="4hour">4 hours</option>
-              <option value="1day">Daily</option>
+              {CHART_TIMEFRAME_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
           <div className="grid gap-2 text-sm font-semibold text-navy">
@@ -201,11 +201,13 @@ export function ProfilePanel({
             <ThemeToggle mode={themeMode} onChange={onThemeChange} />
           </div>
         </div>
-        {saveError ? (
-          <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
-            {saveError}
-          </p>
-        ) : null}
+        {saveError
+          ? (
+            <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+              {saveError}
+            </p>
+          )
+          : null}
         <button
           className="primary-button mt-5"
           type="submit"
@@ -245,19 +247,17 @@ export function ProfilePanel({
             />
             <ProfileDetailRow
               label="Session focus"
-              value={
-                focusedSession
-                  ? `${focusedSession.label} ${focusedSession.isOpen ? "open" : "closed"}`
-                  : "No preference"
-              }
+              value={focusedSession
+                ? `${focusedSession.label} ${
+                  focusedSession.isOpen ? "open" : "closed"
+                }`
+                : "No preference"}
             />
             <ProfileDetailRow
               label="Next session event"
-              value={
-                focusedSession
-                  ? `${focusedSession.nextEventLabel} in ${focusedSession.countdownLabel}`
-                  : "Tracking all sessions"
-              }
+              value={focusedSession
+                ? `${focusedSession.nextEventLabel} in ${focusedSession.countdownLabel}`
+                : "Tracking all sessions"}
             />
           </div>
         </section>
@@ -276,13 +276,26 @@ export function ProfilePanel({
           </div>
           <div className="grid gap-3">
             <ProfileDetailRow label="Signed in" value={profile.email} />
-            <ProfileDetailRow label="Saved setups" value={summary.total.toString()} />
-            <ProfileDetailRow label="Finished setups" value={summary.resolved.toString()} />
+            <ProfileDetailRow
+              label="Saved setups"
+              value={summary.total.toString()}
+            />
+            <ProfileDetailRow
+              label="Finished setups"
+              value={summary.resolved.toString()}
+            />
             <ProfileDetailRow
               label="Win rate"
-              value={summary.winRate === null ? "Building" : `${summary.winRate}%`}
+              value={summary.winRate === null
+                ? "Building"
+                : `${summary.winRate}%`}
             />
-            <ProfileDetailRow label="Last setup" value={latestSetup ? formatDate(latestSetup.created_at) : "None yet"} />
+            <ProfileDetailRow
+              label="Last setup"
+              value={latestSetup
+                ? formatDate(latestSetup.created_at)
+                : "None yet"}
+            />
           </div>
         </section>
 
@@ -303,11 +316,13 @@ export function ProfilePanel({
               <ProfileReviewPatternRow item={item} key={item.symbol} />
             ))}
           </div>
-          {reviewPattern.length === 0 ? (
-            <p className="text-sm leading-6 text-slate">
-              Review patterns will appear after setups are saved.
-            </p>
-          ) : null}
+          {reviewPattern.length === 0
+            ? (
+              <p className="text-sm leading-6 text-slate">
+                Review patterns will appear after setups are saved.
+              </p>
+            )
+            : null}
         </section>
       </div>
     </div>

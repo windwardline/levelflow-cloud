@@ -23,8 +23,41 @@ export function getSessionContext(
     };
   }
 
-  if (assetType === "futures" || assetType === "metals") {
+  if (
+    assetType === "futures" || assetType === "metals" ||
+    assetType === "energies" || assetType === "indices"
+  ) {
     const isMetals = assetType === "metals";
+    const isEnergies = assetType === "energies";
+    const isIndices = assetType === "indices";
+    const marketKind = isMetals
+      ? "metals"
+      : isEnergies
+      ? "energies"
+      : isIndices
+      ? "indices"
+      : "futures";
+    const sessionLabel = isMetals
+      ? "Spot metals session"
+      : isEnergies
+      ? "Energy session"
+      : isIndices
+      ? "Index session"
+      : "Primary futures session";
+    const maintenanceLabel = isMetals
+      ? "Spot metals maintenance window"
+      : isEnergies
+      ? "Energy maintenance window"
+      : isIndices
+      ? "Index maintenance window"
+      : "Futures maintenance window";
+    const weekendLabel = isMetals
+      ? "Spot metals weekend closure"
+      : isEnergies
+      ? "Energy weekend closure"
+      : isIndices
+      ? "Index weekend closure"
+      : "Futures weekend closure";
     const eastern = getZonedParts(now, "America/New_York");
     const minutes = eastern.hour * 60 + eastern.minute;
     const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 &&
@@ -35,35 +68,27 @@ export function getSessionContext(
     if (maintenanceBreak) {
       return {
         block: true,
-        label: isMetals
-          ? "Spot metals maintenance window"
-          : "Futures maintenance window",
-        marketKind: isMetals ? "metals" : "futures",
+        label: maintenanceLabel,
+        marketKind,
         penalty: 100,
-        reason: isMetals
-          ? "The spot metals market is in its daily maintenance window."
-          : "The futures market is in its daily maintenance window.",
+        reason: "This market is in its daily maintenance window.",
       };
     }
 
     if (fridayClose || sundayPreopen || eastern.weekday === 6) {
       return {
         block: true,
-        label: isMetals
-          ? "Spot metals weekend liquidity risk"
-          : "Futures weekend liquidity risk",
-        marketKind: isMetals ? "metals" : "futures",
+        label: weekendLabel,
+        marketKind,
         penalty: 100,
-        reason: isMetals
-          ? "The spot metals market is outside its active weekly session."
-          : "The futures market is outside its active weekly session.",
+        reason: "This market is outside its active weekly session.",
       };
     }
 
     return {
       block: false,
-      label: isMetals ? "Spot metals session" : "Primary futures session",
-      marketKind: isMetals ? "metals" : "futures",
+      label: sessionLabel,
+      marketKind,
       penalty: 0,
     };
   }

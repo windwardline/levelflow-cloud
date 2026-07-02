@@ -32,6 +32,7 @@ export function buildPricePlan(
   const bars = market.primary;
   const daily = market.daily;
   const latest = bars.at(-1)!;
+  const currentClose = market.latest.close;
   const atr = averageTrueRange(bars, 14);
   const dailyAtr = averageTrueRange(daily, 14);
   const structure = findStructureLevels(bars);
@@ -53,20 +54,20 @@ export function buildPricePlan(
   let riskDistance = Math.abs(entryPrice - stopLoss);
   const minimumLimitDistance = Math.max(
     atr * 0.05,
-    Math.abs(latest.close) * 0.00005,
+    Math.abs(currentClose) * 0.00005,
     0.00001,
   );
 
   if (
     side === "buy" &&
-    roundPrice(entryPrice) >= roundPrice(latest.close - minimumLimitDistance)
+    roundPrice(entryPrice) >= roundPrice(currentClose - minimumLimitDistance)
   ) {
     return null;
   }
 
   if (
     side === "sell" &&
-    roundPrice(entryPrice) <= roundPrice(latest.close + minimumLimitDistance)
+    roundPrice(entryPrice) <= roundPrice(currentClose + minimumLimitDistance)
   ) {
     return null;
   }
@@ -146,7 +147,7 @@ export function buildPricePlan(
     availableTimeframes: market.availableTimeframes,
     dailyAtr,
     entryPrice,
-    latestClose: latest.close,
+    latestClose: currentClose,
     providerWarnings: market.providerWarnings,
     quotedSpread: market.quote?.spread ?? null,
     side,

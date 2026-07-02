@@ -1,4 +1,10 @@
-export type AssetType = "crypto" | "forex" | "futures" | "metals";
+export type AssetType =
+  | "crypto"
+  | "energies"
+  | "forex"
+  | "futures"
+  | "indices"
+  | "metals";
 export type RegimeName = "compression" | "range" | "trend" | "volatile_chop";
 
 export type CategoryCalibration = {
@@ -30,21 +36,24 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
     "SOLUSD",
     "XRPUSD",
   ],
+  energies: ["BRENT", "WTI"],
   forex: [],
   futures: [
-    "ASX",
-    "BRENT",
     "BZUSD",
-    "DAX",
-    "DOW",
+    "CLUSD",
     "ESUSD",
     "GCUSD",
-    "NIKKEI",
-    "NSDQ",
+    "HGUSD",
+    "MGCUSD",
+    "NGUSD",
+    "NQUSD",
+    "RTYUSD",
     "SIUSD",
-    "SP",
-    "WTI",
+    "YMUSD",
+    "ZBUSD",
+    "ZNUSD",
   ],
+  indices: ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"],
   metals: ["XAGUSD", "XAUUSD"],
 };
 
@@ -65,6 +74,23 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
     volatilityTargetAtrMultiplier: 3.8,
+  },
+  energies: {
+    confidenceThreshold: 69,
+    dailyStopAtrMultiplier: 0.16,
+    dailyTargetAtrMultiplier: 0.42,
+    defaultReviewHours: 5,
+    entryOffsetDefault: 0.6,
+    entryOffsetTrend: 0.48,
+    maxNewsPenalty: 8,
+    maxProviderPenalty: 7,
+    minimumTargetRewardRisk: 1.9,
+    minRewardRisk: 1.45,
+    newsPenaltyPerEvent: 3,
+    providerWarningPenalty: 3,
+    stopAtrMultiplier: 1.38,
+    timeframePenalty: 5,
+    volatilityTargetAtrMultiplier: 3.6,
   },
   forex: {
     confidenceThreshold: 66,
@@ -100,6 +126,23 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     timeframePenalty: 5,
     volatilityTargetAtrMultiplier: 3.4,
   },
+  indices: {
+    confidenceThreshold: 68,
+    dailyStopAtrMultiplier: 0.14,
+    dailyTargetAtrMultiplier: 0.36,
+    defaultReviewHours: 4,
+    entryOffsetDefault: 0.56,
+    entryOffsetTrend: 0.44,
+    maxNewsPenalty: 9,
+    maxProviderPenalty: 7,
+    minimumTargetRewardRisk: 1.85,
+    minRewardRisk: 1.38,
+    newsPenaltyPerEvent: 4,
+    providerWarningPenalty: 3,
+    stopAtrMultiplier: 1.28,
+    timeframePenalty: 5,
+    volatilityTargetAtrMultiplier: 3.3,
+  },
   metals: {
     confidenceThreshold: 68,
     dailyStopAtrMultiplier: 0.14,
@@ -126,6 +169,12 @@ export function getAssetType(symbol: string): AssetType {
   }
   if (ASSET_TYPE_BY_SYMBOL.metals.includes(normalized)) {
     return "metals";
+  }
+  if (ASSET_TYPE_BY_SYMBOL.energies.includes(normalized)) {
+    return "energies";
+  }
+  if (ASSET_TYPE_BY_SYMBOL.indices.includes(normalized)) {
+    return "indices";
   }
   if (ASSET_TYPE_BY_SYMBOL.futures.includes(normalized)) {
     return "futures";

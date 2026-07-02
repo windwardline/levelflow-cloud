@@ -55,7 +55,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.06.28.category-strategy-profiles";
+const ANALYZER_VERSION = "2026.07.02.fmp-ultimate-market-expansion";
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMITS: Record<string, number> = {
   generate_setup: 24,
@@ -132,6 +132,31 @@ type MarketScanCandidate = {
   symbol: SupportedSymbol;
   takeProfit?: number;
 };
+
+type ReviewActionName = "generate_setup" | "scan_opportunities";
+type ReviewedSetup = NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>;
+type CurrentMarketReview =
+  | {
+    analysisDiagnostics?: string[];
+    blocked: true;
+    correlationGroup?: string;
+    newsEvents?: NewsEvent[];
+    providerWarnings?: string[];
+    reason: string;
+    statusCode?: number;
+    symbol: SupportedSymbol;
+  }
+  | {
+    activeNewsEvents: NewsEvent[];
+    blocked: false;
+    correlationGroup: string;
+    fmpSymbol: string;
+    marketContext: MarketContext;
+    providerFailures: string[];
+    setup: ReviewedSetup;
+    symbol: SupportedSymbol;
+    upcomingNewsEvents: NewsEvent[];
+  };
 
 Deno.serve(async (req) => {
   try {
@@ -226,263 +251,64 @@ Deno.serve(async (req) => {
         ? body.symbol.trim()
         : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
-    if (isTemporarilyUnavailableSymbol(uiSymbol)) {
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "Temporarily unavailable market group",
-        status: "blocked",
-        symbol: uiSymbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        blocked: true,
-        reason:
-          "This market group is temporarily unavailable while LevelFlow verifies chart coverage.",
-        symbol: uiSymbol,
-      });
-    }
-
-    const providerSymbols = resolveProviderSymbols(requestedSymbol);
-    if (providerSymbols.length === 0) {
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "Unsupported market symbol",
-        status: "blocked",
-        symbol: uiSymbol,
-        userId: user.id,
-      });
-      return jsonResponse(
-        req,
-        { error: "Unsupported LevelFlow market symbol" },
-        400,
-      );
-    }
-
     const symbol = uiSymbol as SupportedSymbol;
     const outcomeRefresh = await refreshUserOutcomes(token, user.id, {
       limit: 24,
       symbols: [symbol],
     });
     const learningRefresh = await refreshGlobalStrategyWeights();
-    const sessionContext = getSessionContext(symbol);
-    if (sessionContext.block) {
-      await invalidateActiveSetupsForSymbol(
-        token,
-        user.id,
-        symbol,
-        sessionContext.reason ?? "The market session is not open.",
-      );
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: sessionContext.label,
-        metadata: { sessionContext },
-        status: "blocked",
-        symbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        blocked: true,
-        reason: sessionContext.reason ?? "The market session is not open.",
-        learningRefresh,
-        outcomeRefresh,
-      });
-    }
 
-    const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
-      await fetchRelevantNews(token, symbol);
-    if (activeNewsEvents.length > 0) {
-      await invalidateActiveSetupsForSymbol(
-        token,
-        user.id,
-        symbol,
-        "A major scheduled event is active for this market.",
-      );
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "Active major scheduled event",
-        metadata: { activeNewsEvents },
-        status: "blocked",
-        symbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        blocked: true,
-        reason: "A major scheduled event is active for this market.",
-        newsEvents: activeNewsEvents,
-        learningRefresh,
-        outcomeRefresh,
-      });
-    }
-
-    const { fmpSymbol, marketContext, providerFailures } =
-      await fetchFirstAvailableMarketContext(
-        providerSymbols,
-        recordAnalyzerEvent,
-        fetchWithTimeout,
-      );
-    await recordMarketDataHealth(
+    const review = await reviewCurrentMarket(
+      token,
+      user.id,
       symbol,
-      fmpSymbol,
-      marketContext,
-      providerFailures,
+      "generate_setup",
     );
-    if (!fmpSymbol || !marketContext) {
+    if (review.blocked) {
       await invalidateActiveSetupsForSymbol(
         token,
         user.id,
         symbol,
-        "FMP did not return enough bars for this instrument.",
+        review.reason,
       );
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "Market data unavailable",
-        metadata: { providerFailures },
-        providerSymbol: fmpSymbol,
-        status: "blocked",
-        symbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        blocked: true,
-        learningRefresh,
-        reason: "FMP did not return enough bars for this instrument.",
-        providerWarnings: providerFailures,
-        outcomeRefresh,
-      });
-    }
-
-    if (marketContext.daily.length < 80) {
-      await invalidateActiveSetupsForSymbol(
-        token,
-        user.id,
-        symbol,
-        "Not enough FMP daily bars returned for analyzer confidence.",
-      );
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "Insufficient daily history",
-        metadata: {
-          dailyBars: marketContext.daily.length,
-          providerFailures,
-          providerWarnings: marketContext.providerWarnings,
+      return jsonResponse(
+        req,
+        {
+          analysisDiagnostics: review.analysisDiagnostics,
+          blocked: true,
+          correlationGroup: review.correlationGroup,
+          learningRefresh,
+          newsEvents: review.newsEvents,
+          outcomeRefresh,
+          providerWarnings: review.providerWarnings,
+          reason: review.reason,
         },
-        providerSymbol: fmpSymbol,
-        status: "blocked",
-        symbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        blocked: true,
-        reason: "Not enough FMP daily bars returned for analyzer confidence.",
-        providerWarnings: [
-          ...providerFailures,
-          ...marketContext.providerWarnings,
-        ],
-        learningRefresh,
-        outcomeRefresh,
-      });
-    }
-
-    const group = getCorrelationGroup(symbol);
-    const setup = await analyzeSetup(
-      token,
-      user.id,
-      symbol,
-      fmpSymbol,
-      group,
-      marketContext,
-      activeNewsEvents,
-      upcomingNewsEvents,
-      sessionContext,
-    );
-    if (!setup) {
-      const analysisDiagnostics = await explainNoSetup(
-        token,
-        symbol,
-        marketContext,
-        upcomingNewsEvents,
-        sessionContext,
+        review.statusCode,
       );
-      await invalidateActiveSetupsForSymbol(
-        token,
-        user.id,
-        symbol,
-        "No current limit-order setup met the review threshold.",
-      );
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "No current limit setup met review threshold",
-        metadata: { analysisDiagnostics },
-        providerSymbol: fmpSymbol,
-        status: "blocked",
-        symbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        analysisDiagnostics,
-        blocked: true,
-        reason: "No current limit-order setup met the review threshold.",
-        providerWarnings: marketContext.providerWarnings,
-        learningRefresh,
-        outcomeRefresh,
-      });
-    }
-
-    const strongerExisting = await findStrongerActiveCorrelatedSetup(
-      token,
-      user.id,
-      group,
-      symbol,
-      setup.confidenceScore,
-    );
-    if (strongerExisting) {
-      await invalidateActiveSetupsForSymbol(
-        token,
-        user.id,
-        symbol,
-        `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
-      );
-      await recordAnalyzerEvent({
-        action: "generate_setup",
-        message: "Correlation filter kept stronger active setup",
-        metadata: { correlationGroup: group, strongerExisting },
-        providerSymbol: fmpSymbol,
-        status: "blocked",
-        symbol,
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        blocked: true,
-        reason:
-          `Correlation filter kept existing ${strongerExisting.symbol} setup with equal or higher confidence.`,
-        correlationGroup: group,
-        learningRefresh,
-        outcomeRefresh,
-      });
     }
 
     const savedSetup = await upsertActiveSetup(
       token,
       user.id,
       symbol,
-      fmpSymbol,
-      group,
-      setup,
-      activeNewsEvents,
-      upcomingNewsEvents,
+      review.fmpSymbol,
+      review.correlationGroup,
+      review.setup,
+      review.activeNewsEvents,
+      review.upcomingNewsEvents,
     );
 
     await recordAnalyzerEvent({
       action: "generate_setup",
       metadata: {
-        confidenceScore: setup.confidenceScore,
+        confidenceScore: review.setup.confidenceScore,
         deduplicated: savedSetup.deduplicated,
-        rewardRisk: setup.confluence.rewardRisk,
-        side: setup.side,
+        rewardRisk: review.setup.confluence.rewardRisk,
+        side: review.setup.side,
         setupId: savedSetup.setupId,
         updated: savedSetup.updated,
       },
-      providerSymbol: fmpSymbol,
+      providerSymbol: review.fmpSymbol,
       status: "success",
       symbol,
       userId: user.id,
@@ -497,7 +323,7 @@ Deno.serve(async (req) => {
       learningRefresh,
       outcomeRefresh,
       setupId: savedSetup.setupId,
-      setup,
+      setup: review.setup,
       updated: savedSetup.updated,
     });
   } catch (error) {
@@ -556,6 +382,228 @@ async function scanOpportunities(
   };
 }
 
+async function reviewCurrentMarket(
+  token: string,
+  userId: string,
+  symbol: SupportedSymbol,
+  action: ReviewActionName,
+): Promise<CurrentMarketReview> {
+  const eventStatus = action === "generate_setup" ? "blocked" : "scan_failure";
+  const normalizedSymbol = normalizeSymbol(symbol) as SupportedSymbol;
+
+  if (isTemporarilyUnavailableSymbol(normalizedSymbol)) {
+    await recordAnalyzerEvent({
+      action,
+      message: "Temporarily unavailable market group",
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      reason:
+        "This market group is temporarily unavailable while LevelFlow verifies chart coverage.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  const providerSymbols = resolveProviderSymbols(normalizedSymbol);
+  if (providerSymbols.length === 0) {
+    await recordAnalyzerEvent({
+      action,
+      message: "Unsupported market symbol",
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      reason: "Unsupported LevelFlow market symbol.",
+      statusCode: 400,
+      symbol: normalizedSymbol,
+    };
+  }
+
+  const sessionContext = getSessionContext(normalizedSymbol);
+  if (sessionContext.block) {
+    await recordAnalyzerEvent({
+      action,
+      message: sessionContext.label,
+      metadata: { sessionContext },
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      reason: sessionContext.reason ?? "The market session is not open.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
+    await fetchRelevantNews(token, normalizedSymbol);
+  if (activeNewsEvents.length > 0) {
+    await recordAnalyzerEvent({
+      action,
+      message: "Active major scheduled event",
+      metadata: { activeNewsEvents },
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      newsEvents: activeNewsEvents,
+      reason: "A major scheduled event is active for this market.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  const { fmpSymbol, marketContext, providerFailures } =
+    await fetchFirstAvailableMarketContext(
+      providerSymbols,
+      recordAnalyzerEvent,
+      fetchWithTimeout,
+    );
+  await recordMarketDataHealth(
+    normalizedSymbol,
+    fmpSymbol,
+    marketContext,
+    providerFailures,
+  );
+
+  if (!fmpSymbol || !marketContext) {
+    if (action === "scan_opportunities" && providerFailures.length > 0) {
+      console.warn(
+        "scan market data unavailable",
+        normalizedSymbol,
+        providerFailures[0],
+      );
+    }
+    await recordAnalyzerEvent({
+      action,
+      message: "Market data unavailable",
+      metadata: { providerFailures },
+      providerSymbol: fmpSymbol,
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      providerWarnings: providerFailures,
+      reason: "FMP did not return enough bars for this instrument.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  if (marketContext.daily.length < 80) {
+    await recordAnalyzerEvent({
+      action,
+      message: "Insufficient daily history",
+      metadata: {
+        dailyBars: marketContext.daily.length,
+        providerFailures,
+        providerWarnings: marketContext.providerWarnings,
+      },
+      providerSymbol: fmpSymbol,
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      providerWarnings: [
+        ...providerFailures,
+        ...marketContext.providerWarnings,
+      ],
+      reason: "Not enough FMP daily bars returned for analyzer confidence.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  const correlationGroup = getCorrelationGroup(normalizedSymbol);
+  const setup = await analyzeSetup(
+    token,
+    userId,
+    normalizedSymbol,
+    fmpSymbol,
+    correlationGroup,
+    marketContext,
+    activeNewsEvents,
+    upcomingNewsEvents,
+    sessionContext,
+  );
+  if (!setup) {
+    const analysisDiagnostics = await explainNoSetup(
+      token,
+      normalizedSymbol,
+      marketContext,
+      upcomingNewsEvents,
+      sessionContext,
+    );
+    await recordAnalyzerEvent({
+      action,
+      message: action === "generate_setup"
+        ? "No current limit setup met review threshold"
+        : "No current limit setup met scan threshold",
+      metadata: { analysisDiagnostics },
+      providerSymbol: fmpSymbol,
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      analysisDiagnostics,
+      blocked: true,
+      providerWarnings: marketContext.providerWarnings,
+      reason: "No current limit-order setup met the review threshold.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  const strongerExisting = await findStrongerActiveCorrelatedSetup(
+    token,
+    userId,
+    correlationGroup,
+    normalizedSymbol,
+    setup.confidenceScore,
+  );
+  if (strongerExisting) {
+    await recordAnalyzerEvent({
+      action,
+      message: action === "generate_setup"
+        ? "Correlation filter kept stronger active setup"
+        : "Correlation filter skipped scan candidate",
+      metadata: { correlationGroup, strongerExisting },
+      providerSymbol: fmpSymbol,
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      correlationGroup,
+      reason:
+        `A related market already has an equal or stronger current setup: ${strongerExisting.symbol}.`,
+      symbol: normalizedSymbol,
+    };
+  }
+
+  return {
+    activeNewsEvents,
+    blocked: false,
+    correlationGroup,
+    fmpSymbol,
+    marketContext,
+    providerFailures,
+    setup,
+    symbol: normalizedSymbol,
+    upcomingNewsEvents,
+  };
+}
+
 async function scanOpportunity(
   token: string,
   userId: string,
@@ -564,149 +612,19 @@ async function scanOpportunity(
   blocked?: MarketScanCandidate;
   opportunity?: MarketScanCandidate;
 }> {
-  const providerSymbols = resolveProviderSymbols(symbol);
-  if (providerSymbols.length === 0) {
-    return {
-      blocked: {
-        assetType: getAssetType(symbol),
-        blocked: true,
-        reason: "Unsupported market symbol.",
-        symbol,
-      },
-    };
-  }
-
   try {
-    const sessionContext = getSessionContext(symbol);
-    if (sessionContext.block) {
-      return {
-        blocked: {
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason: sessionContext.reason ?? "The market session is not open.",
-          symbol,
-        },
-      };
-    }
-
-    const { active: activeNewsEvents, upcoming: upcomingNewsEvents } =
-      await fetchRelevantNews(token, symbol);
-    if (activeNewsEvents.length > 0) {
-      return {
-        blocked: {
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason: "A major scheduled event is active.",
-          symbol,
-        },
-      };
-    }
-
-    const { fmpSymbol, marketContext, providerFailures } =
-      await fetchFirstAvailableMarketContext(
-        providerSymbols,
-        recordAnalyzerEvent,
-        fetchWithTimeout,
-      );
-    await recordMarketDataHealth(
-      symbol,
-      fmpSymbol,
-      marketContext,
-      providerFailures,
-    );
-    if (!fmpSymbol || !marketContext || marketContext.daily.length < 80) {
-      if (providerFailures.length > 0) {
-        console.warn(
-          "scan market data unavailable",
-          symbol,
-          providerFailures[0],
-        );
-      }
-      await recordAnalyzerEvent({
-        action: "scan_opportunities",
-        message: "Market data unavailable during scan",
-        metadata: {
-          dailyBars: marketContext?.daily.length ?? 0,
-          providerFailures,
-        },
-        providerSymbol: fmpSymbol,
-        status: "scan_failure",
-        symbol,
-        userId,
-      });
-      return {
-        blocked: {
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason: "Chart data is not ready for this market yet.",
-          symbol,
-        },
-      };
-    }
-
-    const group = getCorrelationGroup(symbol);
-    const setup = await analyzeSetup(
+    const review = await reviewCurrentMarket(
       token,
       userId,
       symbol,
-      fmpSymbol,
-      group,
-      marketContext,
-      activeNewsEvents,
-      upcomingNewsEvents,
-      sessionContext,
+      "scan_opportunities",
     );
-    if (!setup) {
-      const diagnostics = await explainNoSetup(
-        token,
-        symbol,
-        marketContext,
-        upcomingNewsEvents,
-        sessionContext,
-      );
-      await recordAnalyzerEvent({
-        action: "scan_opportunities",
-        message: "No current limit setup met scan threshold",
-        metadata: { diagnostics },
-        providerSymbol: fmpSymbol,
-        status: "scan_failure",
-        symbol,
-        userId,
-      });
+    if (review.blocked) {
       return {
         blocked: {
           assetType: getAssetType(symbol),
           blocked: true,
-          reason: diagnostics[0] ??
-            "No current limit-order setup passed review.",
-          symbol,
-        },
-      };
-    }
-
-    const strongerExisting = await findStrongerActiveCorrelatedSetup(
-      token,
-      userId,
-      group,
-      symbol,
-      setup.confidenceScore,
-    );
-    if (strongerExisting) {
-      await recordAnalyzerEvent({
-        action: "scan_opportunities",
-        message: "Correlation filter skipped scan candidate",
-        metadata: { strongerExisting },
-        providerSymbol: fmpSymbol,
-        status: "scan_failure",
-        symbol,
-        userId,
-      });
-      return {
-        blocked: {
-          assetType: getAssetType(symbol),
-          blocked: true,
-          reason:
-            `A related market already has an equal or stronger current setup: ${strongerExisting.symbol}.`,
+          reason: review.reason,
           symbol,
         },
       };
@@ -715,20 +633,26 @@ async function scanOpportunity(
     return {
       opportunity: {
         assetType: getAssetType(symbol),
-        confidenceScore: setup.confidenceScore,
-        correlationGroup: group,
-        entryPrice: setup.entryPrice,
-        executionLabel: String(setup.riskModel.executionQuality?.label ?? ""),
-        executionScore: Number(setup.riskModel.executionQuality?.score ?? 0),
-        marketRegime: String(setup.confluence.marketRegime?.name ?? ""),
-        rationale: buildScanRationale(setup),
-        relatedSymbols: getRelatedScanSymbols(group, symbol),
-        rewardRisk: Number(setup.confluence.rewardRisk ?? 0),
-        setup,
-        side: setup.side,
-        stopLoss: setup.stopLoss,
+        confidenceScore: review.setup.confidenceScore,
+        correlationGroup: review.correlationGroup,
+        entryPrice: review.setup.entryPrice,
+        executionLabel: String(
+          review.setup.riskModel.executionQuality?.label ?? "",
+        ),
+        executionScore: Number(
+          review.setup.riskModel.executionQuality?.score ?? 0,
+        ),
+        marketRegime: String(
+          review.setup.confluence.marketRegime?.name ?? "",
+        ),
+        rationale: buildScanRationale(review.setup),
+        relatedSymbols: getRelatedScanSymbols(review.correlationGroup, symbol),
+        rewardRisk: Number(review.setup.confluence.rewardRisk ?? 0),
+        setup: review.setup,
+        side: review.setup.side,
+        stopLoss: review.setup.stopLoss,
         symbol,
-        takeProfit: setup.takeProfit,
+        takeProfit: review.setup.takeProfit,
       },
     };
   } catch (error) {
@@ -951,6 +875,7 @@ async function analyzeSetup(
       marketRegime: regime,
       strategyVotes: votes,
       activeTimeframes: market.availableTimeframes,
+      currentPriceTimeframe: market.latestTimeframe,
       primaryTimeframe: market.primaryTimeframe,
       providerWarnings: market.providerWarnings,
       categoryCalibration: {

@@ -154,7 +154,10 @@ function voteMultiTimeframeAlignment(
   market: MarketContext,
   regime: Regime,
 ): StrategyVote {
-  const timeframeBiases = market.availableTimeframes.map((timeframe) => ({
+  const reviewTimeframes = market.availableTimeframes.filter((timeframe) =>
+    timeframe !== "1min"
+  );
+  const timeframeBiases = reviewTimeframes.map((timeframe) => ({
     direction: directionalBias(market.timeframes[timeframe] ?? []),
     timeframe,
   }));

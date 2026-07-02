@@ -35,6 +35,17 @@ describe("strategy category profiles", () => {
     );
   });
 
+  it("uses distinct profiles for indices and energies", () => {
+    assert.ok(
+      getStrategyProfileWeight("indices", "multi_timeframe_bias") >
+        getStrategyProfileWeight("energies", "multi_timeframe_bias"),
+    );
+    assert.ok(
+      getStrategyProfileWeight("energies", "volatility_expansion") >
+        getStrategyProfileWeight("indices", "volatility_expansion"),
+    );
+  });
+
   it("keeps original scores available after applying category profiles", () => {
     const [volatilityVote] = applyStrategyProfile("crypto", baseVotes);
 

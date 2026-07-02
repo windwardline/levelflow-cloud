@@ -25,7 +25,9 @@ test.beforeEach(async ({ page }) => {
 
   if (error || !data.session) {
     throw new Error(
-      `Unable to authenticate LevelFlow E2E user: ${error?.message ?? "No session returned"}`,
+      `Unable to authenticate LevelFlow E2E user: ${
+        error?.message ?? "No session returned"
+      }`,
     );
   }
 
@@ -42,15 +44,13 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test("authenticated workspace exposes core premium navigation without stale help text", async ({
-  page,
-}) => {
+test("authenticated workspace exposes core premium navigation without stale help text", async ({ page }) => {
   await page.goto("/");
 
   const navLabels = await page
     .locator("nav button")
     .evaluateAll((buttons) =>
-      buttons.map((button) => button.textContent?.trim()),
+      buttons.map((button) => button.textContent?.trim())
     );
   expect(navLabels).toEqual([
     "Advisor",
@@ -96,9 +96,7 @@ test("authenticated workspace exposes core premium navigation without stale help
   await expect(page.getByText("Starting chart")).toHaveCount(0);
 });
 
-test("advisor market scan exposes filters and rationale-ready surface", async ({
-  page,
-}) => {
+test("advisor market scan exposes filters and rationale-ready surface", async ({ page }) => {
   await page.goto("/");
 
   await expect(
@@ -115,4 +113,19 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
   await expect(
     page.getByRole("heading", { name: "Best time window" }),
   ).toBeVisible();
+});
+
+test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByLabel("Chart timeframe").selectOption("1min");
+  await expect(page.getByLabel("Chart timeframe")).toHaveValue("1min");
+  await expect(page.getByText(/1 minute candles loaded/i)).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(
+    page.getByText(
+      "Verified market data is not available for this market yet.",
+    ),
+  ).toHaveCount(0);
 });

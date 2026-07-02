@@ -121,7 +121,6 @@ export function AdvisorWorkspace(
 
       try {
         const nextData = await fetchMarketData({
-          days: timeframe === "1day" ? 180 : 21,
           symbol,
           timeframe,
         });

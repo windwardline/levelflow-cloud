@@ -73,6 +73,39 @@ describe("execution quality model", () => {
       true,
     );
   });
+
+  it("models index and energy execution with distinct cost floors", () => {
+    const indexQuality = estimateExecutionQuality({
+      assetType: "indices",
+      atr: 42,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min", "5min"],
+      dailyAtr: 180,
+      entryPrice: 7478,
+      latestClose: 7485,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 7420,
+      symbol: "SP",
+      takeProfit: 7600,
+    });
+    const energyQuality = estimateExecutionQuality({
+      assetType: "energies",
+      atr: 0.55,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min", "5min"],
+      dailyAtr: 2.1,
+      entryPrice: 67.2,
+      latestClose: 67.75,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 66.25,
+      symbol: "WTI",
+      takeProfit: 69.2,
+    });
+
+    assert.equal(indexQuality.estimatedSpread >= 0.01, true);
+    assert.equal(energyQuality.estimatedSpread >= 0.001, true);
+    assert.notEqual(indexQuality.estimatedSpread, energyQuality.estimatedSpread);
+  });
 });
 
 describe("FMP quote parsing", () => {

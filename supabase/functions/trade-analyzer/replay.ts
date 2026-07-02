@@ -211,8 +211,12 @@ function getUpcomingWeeklyCloseTime(symbol: string, fromTimestamp: number) {
   }
 
   const marketTimeZone = "America/New_York";
-  const closeHour = getAssetType(symbol) === "futures" ? 17 : 16;
-  const closeMinute = getAssetType(symbol) === "futures" ? 0 : 59;
+  const assetType = getAssetType(symbol);
+  const usesFuturesStyleClose = assetType === "futures" ||
+    assetType === "indices" || assetType === "energies" ||
+    assetType === "metals";
+  const closeHour = usesFuturesStyleClose ? 17 : 16;
+  const closeMinute = usesFuturesStyleClose ? 0 : 59;
   const from = new Date(fromTimestamp);
 
   for (let dayOffset = 0; dayOffset <= 7; dayOffset += 1) {

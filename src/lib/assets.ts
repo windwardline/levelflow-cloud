@@ -1,4 +1,4 @@
-const basePath = import.meta.env.BASE_URL;
+const basePath = import.meta.env?.BASE_URL ?? "/";
 
 export const brandAssets = {
   mark: `${basePath}brand/windward-capital-mark-tight.jpg`,
