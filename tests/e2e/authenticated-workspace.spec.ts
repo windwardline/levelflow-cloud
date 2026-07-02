@@ -116,12 +116,27 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
 });
 
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
+  test.setTimeout(60_000);
+
   await page.goto("/");
 
   await expect(page.getByText(/candles loaded/i)).toBeVisible({
     timeout: 30_000,
   });
+
+  const oneMinuteResponse = page.waitForResponse(async (response) => {
+    if (!response.url().includes("/functions/v1/market-data")) {
+      return false;
+    }
+    return response.request().postData()?.includes('"timeframe":"1min"') ??
+      false;
+  });
   await page.getByLabel("Chart timeframe").selectOption("1min");
+  const response = await oneMinuteResponse;
+  expect(response.ok()).toBe(true);
+  const payload = await response.json();
+  expect(payload.timeframe).toBe("1min");
+  expect(payload.resultsCount).toBeGreaterThan(0);
   await expect(page.getByLabel("Chart timeframe")).toHaveValue("1min");
   await expect(page.getByText(/1 minute candles loaded/i)).toBeVisible({
     timeout: 30_000,
