@@ -35,7 +35,7 @@ jobs:
       - name: Check required secrets
         run: |
           missing=0
-          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN LEVELFLOW_PAGES_TOKEN NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD LEVELFLOW_PAGES_TOKEN NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "Missing required secret: ${name}"
               missing=1
@@ -49,6 +49,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           NEWS_SYNC_TOKEN: ${{ secrets.NEWS_SYNC_TOKEN }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
@@ -91,10 +92,6 @@ jobs:
 
       - name: Apply Supabase migrations
         run: |
-          if [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "SUPABASE_DB_PASSWORD is not configured; verified migration files, skipped remote migration apply."
-            exit 0
-          fi
           npx supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --include-all --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

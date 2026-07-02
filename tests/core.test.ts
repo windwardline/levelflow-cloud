@@ -139,6 +139,11 @@ describe("trade analyzer category handling", () => {
       "utf8",
     );
     const sharedReviewCalls = source.match(/reviewCurrentMarket\(/g) ?? [];
+    const sharedReviewStart = source.indexOf(
+      "async function reviewCurrentMarket",
+    );
+    const sharedReviewEnd = source.indexOf("async function scanOpportunity");
+    const sharedReviewSource = source.slice(sharedReviewStart, sharedReviewEnd);
 
     assert.equal(sharedReviewCalls.length >= 3, true);
     assert.match(source, /reviewCurrentMarket\([\s\S]*"generate_setup"/);
@@ -147,6 +152,17 @@ describe("trade analyzer category handling", () => {
       source.includes("async function reviewCurrentMarket"),
       true,
     );
+    assert.equal(
+      (source.match(/fetchFirstAvailableMarketContext\(/g) ?? []).length,
+      1,
+    );
+    assert.equal((source.match(/await analyzeSetup\(/g) ?? []).length, 1);
+    assert.equal(sharedReviewSource.includes("fetchRelevantNews("), true);
+    assert.equal(
+      sharedReviewSource.includes("fetchFirstAvailableMarketContext("),
+      true,
+    );
+    assert.equal(sharedReviewSource.includes("await analyzeSetup("), true);
   });
 
   it("loads Ultimate intraday data without replacing the signal timeframes", () => {
