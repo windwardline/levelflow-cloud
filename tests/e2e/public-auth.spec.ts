@@ -9,8 +9,8 @@ test("public login screen presents LevelFlow without stale auth copy", async ({
     page.getByRole("heading", { name: "LevelFlow" }),
   ).toBeVisible();
   await expect(page.getByText("A Windward Line product")).toBeVisible();
-  if ((await page.getByText("No password required.").count()) > 0) {
-    await expect(page.getByText("No password required.")).toBeVisible();
+  if ((await page.getByText("No password is required.").count()) > 0) {
+    await expect(page.getByText("No password is required.")).toBeVisible();
   } else {
     await expect(
       page.getByRole("heading", { name: "Cloud access pending" }),

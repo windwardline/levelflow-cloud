@@ -22,6 +22,7 @@ describe("setup confidence scoring", () => {
     assert.equal(score.providerPenalty, 6);
     assert.equal(score.sessionPenalty, 3);
     assert.equal(score.executionPenalty, 4);
+    assert.equal(score.macroAdjustment, 0);
     assert.equal(score.weightAdjustment, 1);
     assert.equal(score.confidenceScore, 61);
   });
@@ -41,6 +42,23 @@ describe("setup confidence scoring", () => {
 
     assert.equal(score.newsPenalty, 1.75);
     assert.equal(score.confidenceScore, 78);
+  });
+
+  it("applies macro-rate context without changing the shared score path", () => {
+    const score = scoreSetupConfidence({
+      availableTimeframeCount: 5,
+      calibration: getCategoryCalibration("XAUUSD"),
+      consensusScore: 76,
+      executionPenalty: 1,
+      macroAdjustment: -2,
+      providerWarningCount: 0,
+      sessionPenalty: 0,
+      upcomingEventCount: 0,
+      weightAdjustment: 1,
+    });
+
+    assert.equal(score.macroAdjustment, -2);
+    assert.equal(score.confidenceScore, 74);
   });
 
   it("keeps strong setups high when data coverage and timing are clean", () => {

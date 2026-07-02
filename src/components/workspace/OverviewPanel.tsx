@@ -12,7 +12,7 @@ export function OverviewPanel() {
       title: "One focused answer",
     },
     {
-      body: "The review checks direction, price location, volatility, session timing, event risk, and past results.",
+      body: "The review checks direction, price location, volatility, session timing, news, rates, and past results.",
       icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
       title: "Market context in one pass",
     },
@@ -28,7 +28,7 @@ export function OverviewPanel() {
     { label: "Default chart", value: "1 hour view" },
     { label: "Setup review", value: advisorSignalIntervalLabel() },
     { label: "Price check", value: advisorExecutionIntervalLabel() },
-    { label: "Data", value: "Live charts + events" },
+    { label: "Data", value: "Charts, news, rates" },
     { label: "Learning", value: "Shared across LevelFlow" },
   ];
 

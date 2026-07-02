@@ -5,6 +5,7 @@ export type ConfidenceScoreInput = {
   calibration: CategoryCalibration;
   consensusScore: number;
   executionPenalty: number;
+  macroAdjustment?: number;
   newsPenaltyUnits?: number;
   providerWarningCount: number;
   sessionPenalty: number;
@@ -15,6 +16,7 @@ export type ConfidenceScoreInput = {
 export type ConfidenceScoreBreakdown = {
   confidenceScore: number;
   executionPenalty: number;
+  macroAdjustment: number;
   newsPenalty: number;
   providerPenalty: number;
   sessionPenalty: number;
@@ -39,9 +41,9 @@ export function scoreSetupConfidence(
   );
   const confidenceScore = clampInteger(
     Math.round(
-      input.consensusScore + input.weightAdjustment - newsPenalty -
-        input.sessionPenalty - timeframePenalty - providerPenalty -
-        input.executionPenalty,
+      input.consensusScore + input.weightAdjustment +
+        (input.macroAdjustment ?? 0) - newsPenalty - input.sessionPenalty -
+        timeframePenalty - providerPenalty - input.executionPenalty,
     ),
     0,
     100,
@@ -50,6 +52,7 @@ export function scoreSetupConfidence(
   return {
     confidenceScore,
     executionPenalty: input.executionPenalty,
+    macroAdjustment: input.macroAdjustment ?? 0,
     newsPenalty,
     providerPenalty,
     sessionPenalty: input.sessionPenalty,

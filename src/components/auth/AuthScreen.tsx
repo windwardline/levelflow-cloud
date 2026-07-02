@@ -6,8 +6,11 @@ import {
   Chrome,
   Gift,
   KeyRound,
+  LineChart,
   Loader2,
   Mail,
+  ShieldCheck,
+  TimerReset,
 } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { LegalLinks } from "../legal/LegalLinks";
@@ -28,7 +31,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [message, setMessage] = useState(
-    "Enter your email to receive a secure magic link. No password required.",
+    "Enter your email. We'll send one secure link to open your workspace.",
   );
   const [error, setError] = useState("");
   const [donationsOpen, setDonationsOpen] = useState(() => {
@@ -94,7 +97,9 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
   const appleAuthEnabled = import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
   const oauthEnabled = googleAuthEnabled || appleAuthEnabled;
-  const headline = isSupabaseConfigured ? "Sign in" : "Cloud access pending";
+  const headline = isSupabaseConfigured
+    ? "Open your workspace"
+    : "Cloud access pending";
   const body = isSupabaseConfigured
     ? message
     : "Cloud access is not connected yet. Once configured, sign-in will open the live workspace.";
@@ -102,17 +107,35 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     "I would like the current donation link for LevelFlow development and maintenance.",
   )}`;
 
+  const productSignals = [
+    {
+      icon: LineChart,
+      label: "Live charts",
+      value: "Verified market data",
+    },
+    {
+      icon: TimerReset,
+      label: "Timing",
+      value: "Sessions, news, rates",
+    },
+    {
+      icon: ShieldCheck,
+      label: "Trade quality",
+      value: "Limit setups only",
+    },
+  ];
+
   return (
-    <main className="min-h-screen bg-canvas text-ink">
+    <main className="auth-shell min-h-screen bg-canvas text-ink">
       {themeControl ? (
         <div className="fixed right-4 top-4 z-20">{themeControl}</div>
       ) : null}
-      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 pb-6 pt-24 sm:px-8 sm:py-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-8">
+      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-10 px-5 pb-8 pt-24 sm:px-8 sm:py-8 lg:grid-cols-[1.05fr_0.85fr]">
+        <div className="space-y-10">
           <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
               <img
-                className="h-14 w-14 rounded-lg object-contain"
+                className="h-14 w-14 rounded-lg object-contain shadow-sm"
                 src={brandAssets.mark}
                 alt="Windward Line mark"
               />
@@ -129,18 +152,34 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               LevelFlow
             </h1>
             <p className="max-w-xl text-base leading-7 text-slate">
-              A premium workspace for charts, timing, and limit setups.
+              A premium operating layer for market review.
             </p>
+          </div>
+          <div className="auth-signal-grid max-w-2xl">
+            {productSignals.map((signal) => {
+              const Icon = signal.icon;
+              return (
+                <div className="auth-signal" key={signal.label}>
+                  <Icon className="h-4 w-4 text-bullish" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-navy">
+                      {signal.label}
+                    </p>
+                    <p className="text-sm text-slate">{signal.value}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="terminal-panel mx-auto w-full max-w-md p-6">
+        <div className="terminal-panel auth-login-panel mx-auto w-full max-w-md p-6">
           <div className="mb-6 space-y-2">
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
             <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
-              Private workspace
+              Secure entry
             </p>
             <h2 className="text-2xl font-semibold tracking-normal text-navy">
               {headline}
@@ -164,7 +203,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             >
               Email
             </label>
-            <div className="flex items-center rounded-lg border border-slate/25 bg-white px-3 focus-within:border-bullish">
+            <div className="auth-input-shell flex items-center rounded-lg border border-slate/25 bg-white px-3 focus-within:border-bullish">
               <Mail className="h-4 w-4 text-slate" aria-hidden="true" />
               <input
                 id="email"
@@ -188,6 +227,9 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               )}
               Send magic link
             </button>
+            <p className="text-xs font-medium leading-5 text-slate">
+              No password is required.
+            </p>
           </form>
 
           {status === "sent" ? (

@@ -20,6 +20,11 @@ import {
 } from "./replay.ts";
 import { type ExecutionQuality } from "./executionQuality.ts";
 import { calculateLearningWeight } from "./learning.ts";
+import {
+  calculateMacroRateAdjustment,
+  fetchMacroRateContext,
+  type MacroRateContext,
+} from "./macroContext.ts";
 import { scoreSetupConfidence } from "./scoring.ts";
 import { getSessionContext, type SessionContext } from "./sessions.ts";
 import {
@@ -533,6 +538,7 @@ async function reviewCurrentMarket(
     };
   }
 
+  const macroRateContext = await fetchMacroRateContext(fetchWithTimeout);
   const correlationGroup = getCorrelationGroup(normalizedSymbol);
   const setup = await analyzeSetup(
     token,
@@ -542,6 +548,7 @@ async function reviewCurrentMarket(
     correlationGroup,
     marketContext,
     newsContext,
+    macroRateContext,
     sessionContext,
   );
   if (!setup) {
@@ -550,6 +557,7 @@ async function reviewCurrentMarket(
       normalizedSymbol,
       marketContext,
       newsContext,
+      macroRateContext,
       sessionContext,
     );
     await recordAnalyzerEvent({
@@ -781,6 +789,7 @@ async function analyzeSetup(
   correlationGroup: string,
   market: MarketContext,
   newsContext: NewsContext,
+  macroRateContext: MacroRateContext,
   sessionContext: SessionContext,
 ) {
   const calibration = getCategoryCalibration(symbol);
@@ -824,11 +833,17 @@ async function analyzeSetup(
     return null;
   }
 
+  const macroRateAdjustment = calculateMacroRateAdjustment(
+    symbol,
+    consensus.side,
+    macroRateContext,
+  );
   const scoreBreakdown = scoreSetupConfidence({
     availableTimeframeCount: market.availableTimeframes.length,
     calibration,
     consensusScore: consensus.score,
     executionPenalty: pricePlan.executionQuality.confidencePenalty,
+    macroAdjustment: macroRateAdjustment.adjustment,
     providerWarningCount: market.providerWarnings.length,
     sessionPenalty: sessionContext.penalty,
     newsPenaltyUnits: newsContext.penaltyUnits,
@@ -886,6 +901,18 @@ async function analyzeSetup(
       grossRewardRisk: Number(pricePlan.grossRewardRisk.toFixed(2)),
       rewardRisk: Number(pricePlan.rewardRisk.toFixed(2)),
       scoreBreakdown,
+      macroRateContext: {
+        adjustment: macroRateAdjustment.adjustment,
+        curveSpreadBps: macroRateContext.curveSpreadBps,
+        detail: macroRateAdjustment.detail,
+        latestDate: macroRateContext.latestDate,
+        source: macroRateContext.source,
+        stance: macroRateAdjustment.stance,
+        tenYearChangeBps: macroRateContext.tenYearChangeBps,
+        tenYearYield: macroRateContext.tenYearYield,
+        twoYearYield: macroRateContext.twoYearYield,
+        unavailableReason: macroRateContext.unavailableReason ?? null,
+      },
       newsContext: {
         activeEvents: newsContext.active.length,
         headlineEvents: newsContext.headlineCount,
@@ -924,6 +951,13 @@ async function analyzeSetup(
       headlineNewsEventsTracked: newsContext.headlineCount,
       newsPenaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
       upcomingNewsEventsTracked: newsContext.upcoming.length,
+      macroRateContext: {
+        adjustment: macroRateAdjustment.adjustment,
+        curveSpreadBps: macroRateContext.curveSpreadBps,
+        source: macroRateContext.source,
+        stance: macroRateAdjustment.stance,
+        tenYearChangeBps: macroRateContext.tenYearChangeBps,
+      },
       reviewWindowExpiresAt: expiresAt,
       stopLogic: pricePlan.stopLogic,
       targetLogic: pricePlan.targetLogic,
@@ -936,6 +970,7 @@ async function explainNoSetup(
   symbol: SupportedSymbol,
   market: MarketContext,
   newsContext: NewsContext,
+  macroRateContext: MacroRateContext,
   sessionContext: SessionContext,
 ) {
   const calibration = getCategoryCalibration(symbol);
@@ -973,11 +1008,17 @@ async function explainNoSetup(
       regime,
       calibration,
     );
+    const macroRateAdjustment = calculateMacroRateAdjustment(
+      symbol,
+      consensus.side,
+      macroRateContext,
+    );
     const scoreBreakdown = scoreSetupConfidence({
       availableTimeframeCount: market.availableTimeframes.length,
       calibration,
       consensusScore: consensus.score,
       executionPenalty: pricePlan?.executionQuality.confidencePenalty ?? 0,
+      macroAdjustment: macroRateAdjustment.adjustment,
       providerWarningCount: market.providerWarnings.length,
       sessionPenalty: sessionContext.penalty,
       newsPenaltyUnits: newsContext.penaltyUnits,
@@ -1003,6 +1044,11 @@ async function explainNoSetup(
     } else if (pricePlan.executionQuality.confidencePenalty > 0) {
       diagnostics.push(
         `Estimated spread and slippage reduced the setup score by ${pricePlan.executionQuality.confidencePenalty}.`,
+      );
+    }
+    if (macroRateAdjustment.adjustment < 0) {
+      diagnostics.push(
+        "Current Treasury-rate movement worked against the setup.",
       );
     }
   }
@@ -1495,7 +1541,9 @@ function isBlockingNewsEvent(event: NewsEvent) {
 }
 
 function calculateNewsPenaltyUnits(active: NewsEvent[], upcoming: NewsEvent[]) {
-  const nonBlockingActive = active.filter((event) => !isBlockingNewsEvent(event));
+  const nonBlockingActive = active.filter((event) =>
+    !isBlockingNewsEvent(event)
+  );
   const weightedEvents = [...nonBlockingActive, ...upcoming];
 
   return weightedEvents.reduce((sum, event) => {
