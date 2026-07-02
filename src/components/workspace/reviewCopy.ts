@@ -3,7 +3,7 @@ export function cleanReviewMessage(value: string) {
     .replace(/No clear direction passed review: buy \d+(?:\.\d+)?, sell \d+(?:\.\d+)?, block \d+(?:\.\d+)?\./i, "The chart did not show a clear enough direction.")
     .replace(/The current (buy|sell) setup scored (\d+); LevelFlow requires (\d+) or higher for this market\./i, (_match, side: string, score: string, threshold: string) => `The ${side.toLowerCase()} case reached ${score}/100. This market needs ${threshold}/100 or higher.`)
     .replace(/Payoff was ([0-9.]+)x; LevelFlow requires at least ([0-9.]+)x for this market\./i, (_match, payoff: string, required: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff; ${required}x required).`)
-    .replace(/Limit entry failed price validation, so no limit-order setup was shown\./i, "A valid limit entry was not available at the current price.")
+    .replace(/Limit entry failed price validation, so no limit(?:-order)? setup was shown\./i, "A valid limit entry was not available at the current price.")
     .replace(/Fewer than three review timeframes were available from the provider\./i, "Some chart intervals are missing, so LevelFlow is waiting for better coverage.")
     .replace(/\d+ major scheduled event(?:s)? reduced setup quality\./i, "Upcoming scheduled news reduced timing quality.")
     .replace(/Estimated spread and slippage reduced the setup score by (\d+)\./i, (_match, penalty: string) => `Trading costs reduced the score by ${penalty}.`)

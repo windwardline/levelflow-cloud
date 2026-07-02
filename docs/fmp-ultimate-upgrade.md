@@ -1,6 +1,6 @@
 # FMP Ultimate Upgrade
 
-Last reviewed: 2026-07-01
+Last reviewed: 2026-07-02
 
 ## Confirmed Plan Value
 
@@ -23,7 +23,7 @@ engine.
 
 ## Verified New Market Coverage
 
-The upgraded key was checked against the E8 instrument screenshots and FMP's
+The upgraded key was checked against the provided instrument screenshots and FMP's
 current stable chart endpoints. These feeds returned usable 1-minute,
 5-minute, and daily candles:
 
@@ -45,7 +45,10 @@ symbols MES, MNQ, MYM, or MCL, so those are intentionally not exposed.
 - Kept 15-minute as the primary analyzer signal lens to avoid overfitting to
   one-minute noise.
 - Uses the freshest available lower-timeframe bar as the current-price reference
-  when validating limit-order placement.
+  when validating limit entries.
+- Added FMP targeted forex, crypto, and stock/proxy headlines as a conservative
+  timing-risk input. Headlines can reduce confidence when they are recent and
+  market-moving, but they do not create trade direction by themselves.
 - Upgraded the timing-edge card from 1-hour sampling to 15-minute sampling.
 - Enabled verified Indices and Energies in the Advisor selector and Market
   Scan.
@@ -57,9 +60,8 @@ symbols MES, MNQ, MYM, or MCL, so those are intentionally not exposed.
 
 ## Intentionally Deferred
 
-- FMP market news is not yet used as a confidence input. The app already uses
-  structured economic and earnings events. Free-form news headlines should not
-  alter setups until there is a tested sentiment/event classifier with
+- Free-form headline sentiment is not used as a directional signal. LevelFlow
+  uses headlines only as timing risk until a tested sentiment model exists with
   false-positive controls.
 - Bulk and batch endpoints are still not used because LevelFlow's verified
   symbol list is small enough for controlled per-symbol requests. Batch

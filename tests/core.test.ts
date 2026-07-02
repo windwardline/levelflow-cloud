@@ -21,6 +21,7 @@ import {
 } from "../supabase/functions/trade-analyzer/types.ts";
 import {
   defaultScanSymbols,
+  isHeadlineNewsRelevantForSymbol,
   getRelatedSymbols,
   isTemporarilyUnavailableSymbol,
   resolveProviderSymbols,
@@ -37,6 +38,12 @@ import {
   defaultMarketDataDays,
   isChartTimeframe,
 } from "../src/lib/marketData";
+import {
+  ADVISOR_EXECUTION_INTERVALS,
+  ADVISOR_SIGNAL_INTERVALS,
+  REVIEW_WINDOW_HOURS_BY_ASSET_TYPE,
+  reviewWindowLabel,
+} from "../src/lib/advisorReview";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
@@ -212,6 +219,17 @@ describe("trade analyzer category handling", () => {
       "EURJPY",
     ]);
   });
+
+  it("maps targeted headline symbols to the matching market only", () => {
+    assert.equal(isHeadlineNewsRelevantForSymbol("EURUSD", "EURUSD"), true);
+    assert.equal(isHeadlineNewsRelevantForSymbol("BTCUSD", "BTC"), true);
+    assert.equal(isHeadlineNewsRelevantForSymbol("SP", "SPY"), true);
+    assert.equal(isHeadlineNewsRelevantForSymbol("ESUSD", "SPY"), true);
+    assert.equal(isHeadlineNewsRelevantForSymbol("XAUUSD", "GLD"), true);
+    assert.equal(isHeadlineNewsRelevantForSymbol("WTI", "USO"), true);
+    assert.equal(isHeadlineNewsRelevantForSymbol("EURUSD", "SPY"), false);
+    assert.equal(isHeadlineNewsRelevantForSymbol("BTCUSD", "QQQ"), false);
+  });
 });
 
 describe("confidence tiers", () => {
@@ -258,6 +276,24 @@ describe("profile preferences", () => {
     assert.equal(isChartTimeframe("5min"), true);
     assert.equal(defaultMarketDataDays("1min"), 3);
     assert.equal(defaultMarketDataDays("1day"), 520);
+  });
+
+  it("keeps advisor review intervals and valid windows aligned with backend rules", () => {
+    assert.deepEqual(ADVISOR_SIGNAL_INTERVALS, ["4H", "1H", "15M"]);
+    assert.deepEqual(ADVISOR_EXECUTION_INTERVALS, ["5M", "1M"]);
+    assert.equal(
+      REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Crypto,
+      getCategoryCalibration("BTCUSD").defaultReviewHours,
+    );
+    assert.equal(
+      REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Forex,
+      getCategoryCalibration("EURUSD").defaultReviewHours,
+    );
+    assert.equal(
+      REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Futures,
+      getCategoryCalibration("ESUSD").defaultReviewHours,
+    );
+    assert.equal(reviewWindowLabel("Indices"), "Up to 4 hours");
   });
 
   it("groups U.S. time zones by Daylight Saving Time observance", () => {

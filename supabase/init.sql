@@ -114,9 +114,12 @@ create table if not exists public.economic_events (
   external_id text not null,
   country text,
   currency text not null,
+  symbol text,
+  event_type text not null default 'scheduled' check (event_type in ('scheduled', 'earnings', 'headline')),
   event_name text not null,
   impact text not null check (impact in ('low', 'medium', 'high')),
   scheduled_at timestamptz not null,
+  url text,
   raw_payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -307,6 +310,7 @@ create index if not exists trade_outcomes_user_outcome_idx on public.trade_outco
 create index if not exists trade_outcomes_analyzer_version_idx on public.trade_outcomes (analyzer_version, reviewed_at desc);
 create index if not exists strategy_weightings_global_version_idx on public.strategy_weightings_global (analyzer_version, total_setups desc);
 create index if not exists economic_events_scheduled_impact_idx on public.economic_events (scheduled_at, impact);
+create index if not exists economic_events_symbol_scheduled_idx on public.economic_events (symbol, scheduled_at desc, impact);
 create index if not exists analyzer_rate_limits_updated_idx on public.analyzer_rate_limits (updated_at desc);
 create index if not exists system_notices_user_active_idx on public.system_notices (user_id, active_from, active_until);
 create index if not exists market_data_health_status_idx on public.market_data_health (status, last_checked_at desc);

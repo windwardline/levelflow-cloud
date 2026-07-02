@@ -105,6 +105,7 @@ function buildQualityReceipt(
   const marketRegime = asRecord(confluence.marketRegime);
   const orderConstruction = asRecord(confluence.orderConstruction);
   const sessionContext = asRecord(confluence.sessionContext);
+  const newsContext = asRecord(confluence.newsContext);
   const executionQuality = asRecord(riskModel.executionQuality);
   const rewardRisk = asNumber(confluence.rewardRisk);
   const grossRewardRisk = asNumber(confluence.grossRewardRisk);
@@ -115,7 +116,9 @@ function buildQualityReceipt(
   );
   const upcomingNewsEvents = Array.isArray(confluence.upcomingNewsEvents)
     ? confluence.upcomingNewsEvents.length
-    : 0;
+    : asNumber(newsContext.upcomingEvents) ?? 0;
+  const headlineNewsEvents = asNumber(newsContext.headlineEvents) ?? 0;
+  const timingRiskCount = upcomingNewsEvents + headlineNewsEvents;
   const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
   const tickValidation = typeof orderConstruction.tickValidation === "string"
     ? orderConstruction.tickValidation
@@ -179,11 +182,11 @@ function buildQualityReceipt(
     },
     {
       detail: `${String(sessionContext.label ?? "Session context")} ${
-        upcomingNewsEvents > 0
-          ? `with ${upcomingNewsEvents} major upcoming event${
-            upcomingNewsEvents === 1 ? "" : "s"
-          }.`
-          : "with no major event penalty."
+        timingRiskCount > 0
+          ? `with ${timingRiskCount} event or headline ${
+            timingRiskCount === 1 ? "factor" : "factors"
+          } affecting timing.`
+          : "with no event or headline penalty."
       }`,
       label: "Timing",
       tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
