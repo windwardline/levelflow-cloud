@@ -4,7 +4,7 @@ const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+  "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5175,http://localhost:5175")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);

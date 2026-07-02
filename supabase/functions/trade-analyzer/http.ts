@@ -1,5 +1,5 @@
 const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173")
+  "https://levelflow.windwardline.com,https://windwardline.github.io,http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5175,http://localhost:5175")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
