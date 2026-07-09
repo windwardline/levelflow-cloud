@@ -188,7 +188,7 @@ function MarketScanSummary({
     return (
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-semibold leading-5 text-slate">
         Market Scan uses the same review rules as the main advisor and shows
-        only the strongest setup from each related market group.
+        only the strongest setup when closely linked markets qualify together.
       </div>
     );
   }

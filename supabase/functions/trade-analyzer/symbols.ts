@@ -74,7 +74,10 @@ const normalizedSymbolMap: Record<string, SymbolConfig> = Object.fromEntries(
   ]),
 );
 
-const temporarilyUnavailableSymbols = new Set<string>();
+// Hidden until the chart feed is verified against the matching traded CFD.
+const temporarilyUnavailableSymbols = new Set<string>([
+  "ASX",
+]);
 
 const equityCalendarSensitiveSymbols = new Set([
   "ASX",
@@ -177,6 +180,9 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   ADAUSD: ["USD"],
 };
 
+// These are intentionally not full asset categories. A group should only
+// contain markets that are close substitutes or strongly linked enough that
+// showing both would duplicate the same trade idea.
 const correlationGroups: Record<string, string[]> = {
   aud_crosses: [
     "AUDUSD",
@@ -184,34 +190,17 @@ const correlationGroups: Record<string, string[]> = {
     "AUDJPY",
     "AUDCHF",
     "AUDCAD",
-    "EURAUD",
-    "GBPAUD",
   ],
-  crypto: [
-    "XRPUSD",
-    "SOLUSD",
-    "LTCUSD",
-    "ETHUSD",
-    "BTCUSD",
-    "BNBUSD",
-    "BCHUSD",
-    "ADAUSD",
-  ],
-  energies: ["WTI", "BRENT"],
-  futures: [
+  cad_crosses: ["USDCAD", "CADJPY", "CADCHF"],
+  chf_crosses: ["USDCHF", "CHFJPY"],
+  crypto_majors: ["BTCUSD", "ETHUSD"],
+  crypto_momentum: ["ADAUSD", "BNBUSD", "SOLUSD"],
+  crypto_payment: ["BCHUSD", "LTCUSD", "XRPUSD"],
+  crude_oil: [
+    "WTI",
+    "BRENT",
     "BZUSD",
     "CLUSD",
-    "ESUSD",
-    "GCUSD",
-    "HGUSD",
-    "MGCUSD",
-    "NGUSD",
-    "NQUSD",
-    "RTYUSD",
-    "SIUSD",
-    "YMUSD",
-    "ZBUSD",
-    "ZNUSD",
   ],
   eur_crosses: [
     "EURUSD",
@@ -229,37 +218,20 @@ const correlationGroups: Record<string, string[]> = {
     "GBPCHF",
     "GBPCAD",
     "GBPAUD",
-    "EURGBP",
   ],
+  gold: ["XAUUSD", "GCUSD", "MGCUSD"],
   jpy_crosses: [
     "USDJPY",
     "NZDJPY",
-    "GBPJPY",
-    "EURJPY",
-    "CHFJPY",
-    "CADJPY",
-    "AUDJPY",
   ],
-  metals: ["XAUUSD", "XAGUSD"],
   nzd_crosses: [
     "NZDUSD",
-    "NZDJPY",
     "NZDCHF",
     "NZDCAD",
-    "AUDNZD",
-    "EURNZD",
-    "GBPNZD",
   ],
-  us_indices: ["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX"],
-  usd_majors: [
-    "USDJPY",
-    "USDCHF",
-    "USDCAD",
-    "NZDUSD",
-    "GBPUSD",
-    "EURUSD",
-    "AUDUSD",
-  ],
+  silver: ["XAGUSD", "SIUSD"],
+  treasury_futures: ["ZBUSD", "ZNUSD"],
+  us_equity_indices: ["SP", "NSDQ", "DOW", "ESUSD", "NQUSD", "RTYUSD", "YMUSD"],
 };
 
 export const defaultScanSymbols = Object.keys(normalizedSymbolMap).filter(

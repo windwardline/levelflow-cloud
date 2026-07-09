@@ -7,7 +7,7 @@ import {
 export function OverviewPanel() {
   const valueCards = [
     {
-      body: "LevelFlow reviews the selected market and shows one current limit setup only when the chart, timing, risk, and related-market check are strong enough.",
+      body: "LevelFlow reviews the selected market and shows one current limit setup only when the chart, timing, risk, and closely linked market check are strong enough.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "One focused answer",
     },
@@ -91,7 +91,7 @@ export function OverviewPanel() {
             <p className="mt-3 text-sm leading-6 text-slate">
               Most trading tools add more noise. LevelFlow narrows the decision:
               if the quality, timing, and reward are not there, it clears the
-              prior setup and shows no trade setup. If closely related markets
+              prior setup and shows no trade setup. If closely linked markets
               qualify at the same time, it keeps the stronger setup in view. If
               the setup passes, it shows the side, entry, stop, target,
               confidence, and reason in one place. Finished setups across

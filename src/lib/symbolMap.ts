@@ -23,6 +23,10 @@ export type SecurityGroup = {
 };
 
 export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>();
+// Hidden until the chart feed is verified against the matching traded CFD.
+export const TEMPORARILY_HIDDEN_ASSET_SYMBOLS = new Set<SupportedSymbol>([
+  "ASX",
+]);
 const ASSET_CATEGORY_ORDER: SecurityType[] = [
   "Crypto",
   "Energies",
@@ -303,9 +307,15 @@ export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap(
   (group) => group.options,
 );
 
-export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS.filter(
-  (group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label),
-);
+export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS
+  .filter((group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label))
+  .map((group) => ({
+    ...group,
+    options: group.options.filter(
+      (option) => !TEMPORARILY_HIDDEN_ASSET_SYMBOLS.has(option.symbol),
+    ),
+  }))
+  .filter((group) => group.options.length > 0);
 
 export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap(
   (group) => group.options,
@@ -331,35 +341,18 @@ export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
     "AUDJPY",
     "AUDCHF",
     "AUDCAD",
-    "EURAUD",
-    "GBPAUD",
   ],
-  crypto: [
-    "XRPUSD",
-    "SOLUSD",
-    "LTCUSD",
-    "ETHUSD",
-    "BTCUSD",
-    "BNBUSD",
-    "BCHUSD",
-    "ADAUSD",
-  ],
-  futures: [
+  cad_crosses: ["USDCAD", "CADJPY", "CADCHF"],
+  chf_crosses: ["USDCHF", "CHFJPY"],
+  crypto_majors: ["BTCUSD", "ETHUSD"],
+  crypto_momentum: ["ADAUSD", "BNBUSD", "SOLUSD"],
+  crypto_payment: ["BCHUSD", "LTCUSD", "XRPUSD"],
+  crude_oil: [
+    "WTI",
+    "BRENT",
     "BZUSD",
     "CLUSD",
-    "ESUSD",
-    "GCUSD",
-    "HGUSD",
-    "MGCUSD",
-    "NGUSD",
-    "NQUSD",
-    "RTYUSD",
-    "SIUSD",
-    "YMUSD",
-    "ZBUSD",
-    "ZNUSD",
   ],
-  energies: ["WTI", "BRENT"],
   eur_crosses: [
     "EURUSD",
     "EURNZD",
@@ -376,37 +369,20 @@ export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
     "GBPCHF",
     "GBPCAD",
     "GBPAUD",
-    "EURGBP",
   ],
+  gold: ["XAUUSD", "GCUSD", "MGCUSD"],
   jpy_crosses: [
     "USDJPY",
     "NZDJPY",
-    "GBPJPY",
-    "EURJPY",
-    "CHFJPY",
-    "CADJPY",
-    "AUDJPY",
   ],
-  metals: ["XAUUSD", "XAGUSD"],
   nzd_crosses: [
     "NZDUSD",
-    "NZDJPY",
     "NZDCHF",
     "NZDCAD",
-    "AUDNZD",
-    "EURNZD",
-    "GBPNZD",
   ],
-  us_indices: ["SP", "NSDQ", "NIKKEI", "DOW", "DAX", "ASX"],
-  usd_majors: [
-    "USDJPY",
-    "USDCHF",
-    "USDCAD",
-    "NZDUSD",
-    "GBPUSD",
-    "EURUSD",
-    "AUDUSD",
-  ],
+  silver: ["XAGUSD", "SIUSD"],
+  treasury_futures: ["ZBUSD", "ZNUSD"],
+  us_equity_indices: ["SP", "NSDQ", "DOW", "ESUSD", "NQUSD", "RTYUSD", "YMUSD"],
 };
 
 export function toFmpSymbol(symbol: string) {

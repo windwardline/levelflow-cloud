@@ -84,7 +84,10 @@ for (const [symbol, value] of Object.entries(symbolMap)) {
   }
 }
 
-const temporarilyUnavailableSymbols = new Set<string>();
+// Hidden until the chart feed is verified against the matching traded CFD.
+const temporarilyUnavailableSymbols = new Set<string>([
+  "ASX",
+]);
 
 const intradayTimeframes = ["1min", "5min", "15min", "1hour", "4hour"] as const;
 
