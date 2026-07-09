@@ -21,6 +21,7 @@ import {
 } from "../supabase/functions/trade-analyzer/types.ts";
 import {
   defaultScanSymbols,
+  getCorrelationGroup as getAnalyzerCorrelationGroup,
   isHeadlineNewsRelevantForSymbol,
   getRelatedSymbols,
   isTemporarilyUnavailableSymbol,
@@ -47,7 +48,10 @@ import {
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
+  CORRELATION_GROUPS,
   formatSecurityLabel,
+  getCorrelationGroup as getUiCorrelationGroup,
+  isAvailableAssetSymbol,
   sortAssetSymbols,
 } from "../src/lib/symbolMap";
 import {
@@ -100,7 +104,9 @@ describe("asset catalog", () => {
     const indices = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Indices",
     )?.options.map((option) => option.symbol);
-    assert.deepEqual(indices, ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"]);
+    assert.deepEqual(indices, ["DAX", "DOW", "NIKKEI", "NSDQ", "SP"]);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("ASX"), false);
+    assert.equal(isAvailableAssetSymbol("ASX"), false);
   });
 
   it("formats user-facing asset labels without provider fallback details", () => {
@@ -234,13 +240,60 @@ describe("trade analyzer category handling", () => {
   it("keeps analyzer symbol routing aligned with public availability", () => {
     assert.deepEqual(resolveProviderSymbols("NSDQ"), ["^NDX", "QQQ"]);
     assert.deepEqual(resolveProviderSymbols("WTI"), ["CLUSD", "USO"]);
+    assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO", "EWA"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
+    assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
     assert.equal(defaultScanSymbols.includes("NSDQ"), true);
     assert.equal(defaultScanSymbols.includes("WTI"), true);
+    assert.equal(defaultScanSymbols.includes("ASX"), false);
     assert.deepEqual(getRelatedSymbols("EURUSD").slice(0, 2), [
       "EURNZD",
       "EURJPY",
     ]);
+  });
+
+  it("limits related-market checks to intentional linked sets", () => {
+    assert.equal(
+      getAnalyzerCorrelationGroup("EURUSD"),
+      getAnalyzerCorrelationGroup("EURJPY"),
+    );
+    assert.notEqual(
+      getAnalyzerCorrelationGroup("EURUSD"),
+      getAnalyzerCorrelationGroup("AUDJPY"),
+    );
+    assert.equal(
+      getAnalyzerCorrelationGroup("SP"),
+      getAnalyzerCorrelationGroup("ESUSD"),
+    );
+    assert.notEqual(
+      getAnalyzerCorrelationGroup("DAX"),
+      getAnalyzerCorrelationGroup("SP"),
+    );
+    assert.equal(
+      getAnalyzerCorrelationGroup("XAUUSD"),
+      getAnalyzerCorrelationGroup("GCUSD"),
+    );
+    assert.notEqual(
+      getAnalyzerCorrelationGroup("XAUUSD"),
+      getAnalyzerCorrelationGroup("XAGUSD"),
+    );
+    assert.deepEqual(getRelatedSymbols("BTCUSD"), ["ETHUSD"]);
+    assert.equal(
+      getAnalyzerCorrelationGroup("AUDJPY"),
+      getUiCorrelationGroup("AUDJPY"),
+    );
+    assert.equal(
+      getAnalyzerCorrelationGroup("NQUSD"),
+      getUiCorrelationGroup("NQUSD"),
+    );
+  });
+
+  it("keeps each visible market in at most one linked set", () => {
+    const groupedSymbols = Object.values(CORRELATION_GROUPS).flat();
+    const duplicates = groupedSymbols.filter(
+      (symbol, index) => groupedSymbols.indexOf(symbol) !== index,
+    );
+    assert.deepEqual(duplicates, []);
   });
 
   it("maps targeted headline symbols to the matching market only", () => {

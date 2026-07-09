@@ -64,8 +64,9 @@ Last reviewed: 2026-07-02
   app records setups and outcomes, not executable orders.
 - Market Scan now has group and quality filters, compact ranking cards, and
   short rationale previews.
-- Market Scan candidates now include related-market context so clustered
-  opportunities are easier to interpret.
+- Market Scan candidates now include closely linked market context so overlapping
+  opportunities are easier to interpret without treating whole asset categories
+  as one trade.
 - The largest Advisor workspace file was reduced by moving Market Scan and
   setup-quality receipts into focused components. The analyzer also now keeps
   strategy voting, indicators, symbol routing, market loading, price planning,

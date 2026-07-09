@@ -108,7 +108,7 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
   await expect(page.getByLabel("Quality")).toHaveValue("all");
   await expect(
     page.getByText(
-      "Market Scan uses the same review rules as the main advisor and shows only the strongest setup from each related market group.",
+      "Market Scan uses the same review rules as the main advisor and shows only the strongest setup when closely linked markets qualify together.",
     ),
   ).toBeVisible();
   await expect(page.getByText("Timing edge")).toBeVisible();

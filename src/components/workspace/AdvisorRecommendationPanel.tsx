@@ -182,7 +182,8 @@ function NoSetupPanel({
   const primaryReason = reasons[0] ??
     "The current mix of direction, timing, and payoff is not strong enough.";
   const supportingReasons = reasons.slice(1, 4);
-  const relatedMarketBlocked = /stronger related setup/i.test(primaryReason);
+  const relatedMarketBlocked = /stronger (?:related|closely linked) setup/i
+    .test(primaryReason);
 
   return (
     <div className="grid gap-4 text-sm leading-6 text-slate">
@@ -198,7 +199,7 @@ function NoSetupPanel({
         </h3>
         <p className="mt-1">
           {relatedMarketBlocked
-            ? `${formatSecurityLabel(symbol)} is not shown because a closely related market has the better current setup.`
+            ? `${formatSecurityLabel(symbol)} is not shown because a closely linked market has the better current setup.`
             : (
               <>
                 LevelFlow cleared the prior display for{" "}

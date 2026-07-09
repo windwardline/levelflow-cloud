@@ -605,7 +605,7 @@ async function reviewCurrentMarket(
       blocked: true,
       correlationGroup,
       reason:
-        `A stronger related-market setup is already active on ${strongerExisting.symbol}.`,
+        `A stronger closely linked setup is already active on ${strongerExisting.symbol}.`,
       symbol: normalizedSymbol,
     };
   }
@@ -761,7 +761,7 @@ function buildRelatedMarketBlockedCandidate(
     confidenceScore: blockedCandidate.confidenceScore,
     correlationGroup: blockedCandidate.correlationGroup,
     reason:
-      `Showing ${winner.symbol} instead; it is the strongest current setup in this related market group.`,
+      `Showing ${winner.symbol} instead; it is the strongest current setup among closely linked markets.`,
     symbol: blockedCandidate.symbol,
   };
 }

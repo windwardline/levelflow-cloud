@@ -28,13 +28,17 @@ The upgraded key was checked against the provided instrument screenshots and FMP
 current stable chart endpoints. These feeds returned usable 1-minute,
 5-minute, and daily candles:
 
-- Indices: SP (`^GSPC`), NSDQ (`^NDX`), NIKKEI (`^N225`), DOW (`^DJI`), DAX
-  (`^GDAXI`), and ASX (`^AXJO`).
+- Indices: SP (`^GSPC`), NSDQ (`^NDX`), NIKKEI (`^N225`), DOW (`^DJI`), and
+  DAX (`^GDAXI`).
 - Energies: WTI (`CLUSD`) and BRENT (`BZUSD`).
 - Futures: BZ, CL, ES, GC, HG, MGC, NG, NQ, RTY, SI, YM, ZB, and ZN.
 
 FMP did not return usable chart data for the checked micro equity-index futures
 symbols MES, MNQ, MYM, or MCL, so those are intentionally not exposed.
+ASX remains in the internal catalog but is hidden from the selector, Market Scan,
+and direct chart requests until a chart feed is verified against the matching
+traded CFD. FMP `^AXJO` returned candles, but it should not be treated as
+confirmed E8-aligned chart data.
 
 ## Implemented Use
 
@@ -56,7 +60,7 @@ symbols MES, MNQ, MYM, or MCL, so those are intentionally not exposed.
   with or works against the setup.
 - Upgraded the timing-edge card from 1-hour sampling to 15-minute sampling.
 - Enabled verified Indices and Energies in the Advisor selector and Market
-  Scan.
+  Scan, excluding ASX until an E8-aligned feed is confirmed.
 - Added category-specific analyzer calibration, strategy weights, execution
   cost modeling, and session labels for Indices and Energies.
 - Expanded verified futures coverage and added contract tick-size handling for

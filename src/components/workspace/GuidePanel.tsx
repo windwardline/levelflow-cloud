@@ -89,7 +89,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       title: "Location",
     },
     {
-      body: "Timing checks sessions, news, rates, chart coverage, and related markets.",
+      body: "Timing checks sessions, news, rates, chart coverage, and closely linked markets.",
       icon: <Activity className="h-5 w-5" aria-hidden="true" />,
       title: "Timing",
     },
@@ -149,8 +149,8 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
             <p className="max-w-3xl text-base leading-7 text-slate">
               Start with the chart, run the review, then inspect the levels and
               reason. Market Scan helps decide what to look at next by showing
-              the strongest setup from each related market group. Insights
-              tracks how setups finish over time.
+              the strongest setup when closely linked markets qualify together.
+              Insights tracks how setups finish over time.
             </p>
           </div>
 
@@ -267,8 +267,8 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
             <p className="rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
               If the current market does not pass review, LevelFlow clears the
               previous setup instead of showing a stale one. When closely
-              related markets qualify together, LevelFlow keeps the stronger
-              setup in view.
+              linked markets qualify together, LevelFlow keeps the stronger
+              setup in view. This is not a whole-category filter.
             </p>
           </div>
         </div>
