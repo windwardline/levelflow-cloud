@@ -388,10 +388,12 @@ async function scanOpportunities(
       blocked.push(result.blocked);
     }
   }
+  const ranked = collapseRelatedMarketOpportunities(opportunities);
+  blocked.push(...ranked.blocked);
 
   return {
     blocked,
-    opportunities: opportunities.sort((first, second) =>
+    opportunities: ranked.opportunities.sort((first, second) =>
       (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)
     ),
     scanned: normalizedSymbols.length,
@@ -603,7 +605,7 @@ async function reviewCurrentMarket(
       blocked: true,
       correlationGroup,
       reason:
-        `A related market already has an equal or stronger current setup: ${strongerExisting.symbol}.`,
+        `A stronger related-market setup is already active on ${strongerExisting.symbol}.`,
       symbol: normalizedSymbol,
     };
   }
@@ -689,6 +691,79 @@ async function scanOpportunity(
       },
     };
   }
+}
+
+function collapseRelatedMarketOpportunities(
+  opportunities: MarketScanCandidate[],
+) {
+  const grouped = new Map<string, MarketScanCandidate[]>();
+  const blocked: MarketScanCandidate[] = [];
+
+  for (const candidate of opportunities) {
+    const group = candidate.correlationGroup ?? candidate.symbol;
+    grouped.set(group, [...(grouped.get(group) ?? []), candidate]);
+  }
+
+  const winners: MarketScanCandidate[] = [];
+  for (const candidates of grouped.values()) {
+    const sorted = [...candidates].sort((first, second) =>
+      compareScanCandidates(second, first)
+    );
+    const winner = sorted[0];
+    if (!winner) {
+      continue;
+    }
+    winners.push(winner);
+    blocked.push(
+      ...sorted.slice(1).map((candidate) =>
+        buildRelatedMarketBlockedCandidate(candidate, winner)
+      ),
+    );
+  }
+
+  return {
+    blocked,
+    opportunities: winners,
+  };
+}
+
+function compareScanCandidates(
+  first: MarketScanCandidate,
+  second: MarketScanCandidate,
+) {
+  const confidenceDifference = (first.confidenceScore ?? 0) -
+    (second.confidenceScore ?? 0);
+  if (confidenceDifference !== 0) {
+    return confidenceDifference;
+  }
+
+  const rewardDifference = (first.rewardRisk ?? 0) - (second.rewardRisk ?? 0);
+  if (rewardDifference !== 0) {
+    return rewardDifference;
+  }
+
+  const executionDifference = (first.executionScore ?? 0) -
+    (second.executionScore ?? 0);
+  if (executionDifference !== 0) {
+    return executionDifference;
+  }
+
+  return second.symbol.localeCompare(first.symbol);
+}
+
+function buildRelatedMarketBlockedCandidate(
+  blockedCandidate: MarketScanCandidate,
+  winner: MarketScanCandidate,
+): MarketScanCandidate {
+  return {
+    assetType: blockedCandidate.assetType,
+    blocked: true,
+    confidenceScore: blockedCandidate.confidenceScore,
+    correlationGroup: blockedCandidate.correlationGroup,
+    reason:
+      `Showing ${winner.symbol} instead; it is the strongest current setup in this related market group.`,
+    symbol: blockedCandidate.symbol,
+  };
 }
 
 function getRelatedScanSymbols(_group: string, symbol: SupportedSymbol) {

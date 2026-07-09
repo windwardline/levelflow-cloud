@@ -7,7 +7,7 @@ import {
 export function OverviewPanel() {
   const valueCards = [
     {
-      body: "LevelFlow reviews the selected market and shows one current limit setup only when the chart, timing, and risk are strong enough.",
+      body: "LevelFlow reviews the selected market and shows one current limit setup only when the chart, timing, risk, and related-market check are strong enough.",
       icon: <Target className="h-5 w-5" aria-hidden="true" />,
       title: "One focused answer",
     },
@@ -45,8 +45,8 @@ export function OverviewPanel() {
             </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
               LevelFlow refreshes the chart, checks the market from several
-              angles, accounts for timing risk, and presents the next limit
-              setup when the evidence is strong enough.
+              angles, accounts for timing risk, and presents the strongest
+              current limit setup when the evidence is strong enough.
             </p>
           </div>
           <div className="grid gap-2 rounded-lg border border-slate/15 bg-canvas p-4">
@@ -91,11 +91,12 @@ export function OverviewPanel() {
             <p className="mt-3 text-sm leading-6 text-slate">
               Most trading tools add more noise. LevelFlow narrows the decision:
               if the quality, timing, and reward are not there, it clears the
-              prior setup and shows no trade setup. If the setup passes, it shows
-              the side, entry, stop, target, confidence, and reason in one
-              place. Finished setups across LevelFlow also improve future
-              reviews, so the product learns from the full setup history
-              rather than one user at a time.
+              prior setup and shows no trade setup. If closely related markets
+              qualify at the same time, it keeps the stronger setup in view. If
+              the setup passes, it shows the side, entry, stop, target,
+              confidence, and reason in one place. Finished setups across
+              LevelFlow also improve future reviews, so the product learns from
+              the full setup history rather than one user at a time.
             </p>
           </div>
           <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">

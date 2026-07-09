@@ -438,7 +438,7 @@ export function AdvisorWorkspace(
                 symbol: nextSymbol,
               });
               setAdvisorNotice(
-                "Selected from Market Scan. Review market to refresh and save this setup.",
+                "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
               );
             } else {
               setAnalysisState(null);
