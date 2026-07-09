@@ -164,7 +164,7 @@ export function MarketScanPanel({
         ? (
           <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
             {result.scanned}{" "}
-            reviewed{blockedCount > 0 ? ` / ${blockedCount} not ready` : ""}.
+            reviewed{blockedCount > 0 ? ` / ${blockedCount} not shown` : ""}.
             Select a row to load its chart.
           </p>
         )
@@ -187,8 +187,8 @@ function MarketScanSummary({
   if (!result) {
     return (
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-semibold leading-5 text-slate">
-        Market Scan ranks only setups that pass the same review rules as the
-        main advisor.
+        Market Scan uses the same review rules as the main advisor and shows
+        only the strongest setup from each related market group.
       </div>
     );
   }
@@ -202,7 +202,7 @@ function MarketScanSummary({
             {visibleCount} shown from {result.scanned} reviewed
           </span>
         </span>
-        <span className="shrink-0">{blockedCount} not ready</span>
+        <span className="shrink-0">{blockedCount} not shown</span>
       </div>
       {topCandidate
         ? (
@@ -300,7 +300,7 @@ function MarketScanRow({
               aria-hidden="true"
             />
             <span className="min-w-0 truncate">
-              Related markets: {relatedMarkets.join(", ")}
+              Related markets checked: {relatedMarkets.join(", ")}
             </span>
           </div>
         )

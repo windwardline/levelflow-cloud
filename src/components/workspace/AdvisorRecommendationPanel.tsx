@@ -182,6 +182,7 @@ function NoSetupPanel({
   const primaryReason = reasons[0] ??
     "The current mix of direction, timing, and payoff is not strong enough.";
   const supportingReasons = reasons.slice(1, 4);
+  const relatedMarketBlocked = /stronger related setup/i.test(primaryReason);
 
   return (
     <div className="grid gap-4 text-sm leading-6 text-slate">
@@ -193,12 +194,18 @@ function NoSetupPanel({
           No trade setup
         </p>
         <h3 className="mt-1 text-lg font-semibold text-navy">
-          Nothing passed review
+          {relatedMarketBlocked ? "Related market is stronger" : "Nothing passed review"}
         </h3>
         <p className="mt-1">
-          LevelFlow cleared the prior display for {formatSecurityLabel(symbol)}
-          {" "}
-          and did not find a current limit setup strong enough to show.
+          {relatedMarketBlocked
+            ? `${formatSecurityLabel(symbol)} is not shown because a closely related market has the better current setup.`
+            : (
+              <>
+                LevelFlow cleared the prior display for{" "}
+                {formatSecurityLabel(symbol)} and did not find a current limit
+                setup strong enough to show.
+              </>
+            )}
         </p>
       </div>
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3">

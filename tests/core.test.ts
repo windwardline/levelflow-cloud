@@ -172,6 +172,29 @@ describe("trade analyzer category handling", () => {
     assert.equal(sharedReviewSource.includes("await analyzeSetup("), true);
   });
 
+  it("collapses market scan candidates to one setup per related group", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const scanStart = source.indexOf("async function scanOpportunities");
+    const scanEnd = source.indexOf("async function reviewCurrentMarket");
+    const scanSource = source.slice(scanStart, scanEnd);
+
+    assert.equal(
+      source.includes("function collapseRelatedMarketOpportunities"),
+      true,
+    );
+    assert.equal(
+      source.includes("function compareScanCandidates"),
+      true,
+    );
+    assert.equal(
+      scanSource.includes("collapseRelatedMarketOpportunities(opportunities)"),
+      true,
+    );
+  });
+
   it("loads Ultimate intraday data without replacing the signal timeframes", () => {
     assert.deepEqual(signalTimeframes, ["4hour", "1hour", "15min"]);
     assert.deepEqual(executionTimeframes, ["5min", "1min"]);
