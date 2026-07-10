@@ -59,6 +59,11 @@ import {
   groupHistorySetups,
   sortHistorySetups,
 } from "../src/components/workspace/historyUtils";
+import {
+  countMarketScanCandidatesInCategory,
+  filterMarketScanCandidates,
+  getMarketScanSymbolsForCategory,
+} from "../src/components/workspace/marketScanFilters";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 describe("asset catalog", () => {
@@ -143,6 +148,21 @@ describe("asset catalog", () => {
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), true);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
+
+  it("scans only the selected market category when the scan filter is set", () => {
+    assert.deepEqual(getMarketScanSymbolsForCategory("Metals"), [
+      "XAGUSD",
+      "XAUUSD",
+    ]);
+    assert.deepEqual(getMarketScanSymbolsForCategory("Energies"), [
+      "BRENT",
+      "WTI",
+    ]);
+    assert.equal(
+      getMarketScanSymbolsForCategory("all").length,
+      AVAILABLE_ASSET_SYMBOLS.length,
+    );
+  });
 });
 
 describe("trade analyzer category handling", () => {
@@ -198,6 +218,42 @@ describe("trade analyzer category handling", () => {
     assert.equal(
       scanSource.includes("collapseRelatedMarketOpportunities(opportunities)"),
       true,
+    );
+  });
+
+  it("keeps market scan summaries scoped to the selected category", () => {
+    const candidates = [
+      {
+        assetType: "forex",
+        confidenceScore: 98,
+        symbol: "EURUSD",
+      },
+      {
+        assetType: "metals",
+        confidenceScore: 91,
+        symbol: "XAUUSD",
+      },
+      {
+        assetType: "metals",
+        confidenceScore: 82,
+        symbol: "XAGUSD",
+      },
+    ];
+
+    const visibleMetals = filterMarketScanCandidates(candidates, "Metals", 0);
+
+    assert.deepEqual(
+      visibleMetals.map((candidate) => candidate.symbol),
+      ["XAUUSD", "XAGUSD"],
+    );
+    assert.equal(visibleMetals[0]?.symbol, "XAUUSD");
+    assert.equal(countMarketScanCandidatesInCategory(candidates, "Metals"), 2);
+    assert.equal(countMarketScanCandidatesInCategory(candidates, "Forex"), 1);
+    assert.deepEqual(
+      filterMarketScanCandidates(candidates, "Metals", 90).map((candidate) =>
+        candidate.symbol
+      ),
+      ["XAUUSD"],
     );
   });
 
