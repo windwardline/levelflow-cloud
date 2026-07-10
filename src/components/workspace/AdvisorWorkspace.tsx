@@ -231,10 +231,13 @@ export function AdvisorWorkspace(
     }
   }
 
-  async function scanMarkets() {
+  async function scanMarkets(
+    symbols: SupportedSymbol[] = AVAILABLE_ASSET_SYMBOLS,
+  ) {
+    const scanSymbols = symbols.length > 0 ? symbols : AVAILABLE_ASSET_SYMBOLS;
     setScanStatus("scanning");
     try {
-      setScanResult(await scanMarketOpportunities(AVAILABLE_ASSET_SYMBOLS));
+      setScanResult(await scanMarketOpportunities(scanSymbols));
     } catch {
       setScanResult({
         advisoryOnly: true,
@@ -247,7 +250,7 @@ export function AdvisorWorkspace(
           },
         ],
         opportunities: [],
-        scanned: 0,
+        scanned: scanSymbols.length,
       });
     } finally {
       setScanStatus("idle");

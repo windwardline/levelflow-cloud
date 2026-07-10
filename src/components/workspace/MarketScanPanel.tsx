@@ -10,7 +10,7 @@ import {
 import {
   AVAILABLE_ASSET_GROUPS,
   formatSecurityLabel,
-  type SecurityType,
+  type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
   CONFIDENCE_TIERS,
@@ -22,12 +22,17 @@ import type {
   MarketScanCandidate,
   MarketScanResponse,
 } from "../../lib/tradeAnalyzer";
+import {
+  countMarketScanCandidatesInCategory,
+  filterMarketScanCandidates,
+  getMarketScanSymbolsForCategory,
+  type MarketScanCategoryFilter,
+} from "./marketScanFilters";
 
 type ConfidenceBand = "all" | ConfidenceTierId;
-type CategoryFilter = "all" | SecurityType;
 
 type MarketScanPanelProps = {
-  onScan: () => void;
+  onScan: (symbols: SupportedSymbol[]) => void;
   onSelectCandidate: (candidate: MarketScanCandidate) => void;
   result: MarketScanResponse | null;
   status: "idle" | "scanning";
@@ -50,26 +55,36 @@ export function MarketScanPanel({
   result,
   status,
 }: MarketScanPanelProps) {
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<MarketScanCategoryFilter>(
+    "all",
+  );
   const [confidenceBand, setConfidenceBand] = useState<ConfidenceBand>("all");
   const opportunities = result?.opportunities ?? [];
-  const blockedCount = result?.blocked.length ?? 0;
   const selectedBand =
     CONFIDENCE_BANDS.find((band) => band.value === confidenceBand) ??
       CONFIDENCE_BANDS[0];
+  const scanSymbols = useMemo(
+    () => getMarketScanSymbolsForCategory(categoryFilter),
+    [categoryFilter],
+  );
   const filteredOpportunities = useMemo(
     () =>
-      opportunities.filter((candidate) => {
-        const categoryMatch = categoryFilter === "all" ||
-          candidate.assetType === categoryFilter.toLowerCase() ||
-          candidate.assetType === categoryFilter;
-        const confidenceMatch =
-          (candidate.confidenceScore ?? 0) >= selectedBand.min;
-        return categoryMatch && confidenceMatch;
-      }),
+      filterMarketScanCandidates(
+        opportunities,
+        categoryFilter,
+        selectedBand.min,
+      ),
     [categoryFilter, opportunities, selectedBand.min],
   );
-  const topCandidate = opportunities[0] ?? null;
+  const blockedCount = useMemo(
+    () =>
+      countMarketScanCandidatesInCategory(
+        result?.blocked ?? [],
+        categoryFilter,
+      ),
+    [categoryFilter, result?.blocked],
+  );
+  const topCandidate = filteredOpportunities[0] ?? null;
   const emptyMessage = result
     ? "No markets match the current scan filters."
     : "Scan every active market to find the strongest current limit setups.";
@@ -86,8 +101,8 @@ export function MarketScanPanel({
         <button
           className="secondary-button min-h-10 px-3 py-2"
           type="button"
-          onClick={onScan}
-          disabled={status === "scanning"}
+          onClick={() => onScan(scanSymbols)}
+          disabled={status === "scanning" || scanSymbols.length === 0}
         >
           {status === "scanning"
             ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -104,7 +119,9 @@ export function MarketScanPanel({
               className="field h-10 text-sm normal-case"
               value={categoryFilter}
               onChange={(event) =>
-                setCategoryFilter(event.target.value as CategoryFilter)}
+                setCategoryFilter(
+                  event.target.value as MarketScanCategoryFilter,
+                )}
             >
               <option value="all">All markets</option>
               {AVAILABLE_ASSET_GROUPS.map((group) => (
