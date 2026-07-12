@@ -15,8 +15,8 @@
 - Real user email login: needs a real magic-link confirmation from the account owner.
 - Profile persistence: real-user validation should confirm profile preference updates, theme selection, and history loading.
 - Legal pages: `risk-disclaimer.html`, `privacy.html`, and `terms.html` are published under `/legal/`.
-- CORS: Edge Functions restrict browser CORS to `https://levelflow.windwardline.com`, `https://windwardline.github.io`, and local development origins.
-- Custom domain: `levelflow.windwardline.com` is the intended production URL. DNS, GitHub Pages, and Supabase Auth redirect settings must all include this host.
+- CORS: Edge Functions restrict browser CORS to `https://levelflow.windwardline.com` and local development origins.
+- Custom domain: `levelflow.windwardline.com` is the intended production URL. Cloudflare DNS, the Vercel project domain, and Supabase Auth redirect settings must all include this host.
 - Market access: only verified instruments are visible in the app. Indices and Energies are enabled after FMP Ultimate chart verification; futures symbols that returned empty FMP data remain hidden.
 
 ## Full Launch Gate
