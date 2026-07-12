@@ -1,8 +1,8 @@
 # LevelFlow Security Hardening
 
-## Cloudflare response headers
+## Production response headers
 
-Apply these headers to `https://levelflow.windwardline.com/*` with a Cloudflare Response Header Transform Rule. The `levelflow.windwardline.com` DNS record must remain proxied through Cloudflare; DNS-only records bypass response-header transforms.
+These headers are enforced by `vercel.json` (`public/vercel.json` in this repo, copied into the build and published to the hosting repo). The app is hosted on Vercel; `levelflow.windwardline.com` is a DNS-only Cloudflare record pointing at Vercel, so Cloudflare transform rules do not apply — the checked-in `vercel.json` is the enforcement point.
 
 | Header | Value |
 | --- | --- |
@@ -13,7 +13,7 @@ Apply these headers to `https://levelflow.windwardline.com/*` with a Cloudflare 
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()` |
 | `Cross-Origin-Opener-Policy` | `same-origin` |
 
-This app is hosted from GitHub Pages behind Cloudflare, so checked-in `_headers` files are not sufficient. The Cloudflare zone rule is the enforcement point.
+The CI deploy workflow verifies these headers against the live site after every deploy (`Verify production security headers` step), so a regression in `vercel.json` fails the pipeline.
 
 ## Authenticated E2E tests
 
