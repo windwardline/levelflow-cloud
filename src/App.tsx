@@ -33,6 +33,9 @@ import { supabase } from "./lib/supabase";
 type AppTab = "advisor" | "history" | "guide" | "profile" | "about" | "donate";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
+// Support is a shared inbox across apps, so every mailto names the app it
+// came from — otherwise an inbound message arrives with no way to route it.
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow — support request")}`;
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   {
@@ -160,7 +163,7 @@ export default function App() {
             </div>
             <a
               className="secondary-button hidden min-h-10 px-3 py-2 lg:inline-flex"
-              href={`mailto:${SUPPORT_EMAIL}`}
+              href={SUPPORT_MAILTO}
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
               Contact
