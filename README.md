@@ -22,6 +22,23 @@ npm run build
 
 Run `supabase/init.sql` in the Supabase SQL editor or through your migration workflow before using a fresh project.
 
+## Continuous Integration and Deployment
+
+`ci.yml` runs typechecks, tests, and the build on every push and pull request
+to `main`.
+
+`deploy.yml` runs on a push to `main`: checks, Supabase migrations, Edge
+Function deploys, browser tests, then the frontend build. The built `dist/` is
+synced to
+[windwardline/levelflow-cloud-app](https://github.com/windwardline/levelflow-cloud-app),
+which Vercel serves at [levelflow.windwardline.com](https://levelflow.windwardline.com).
+
+That sync compares by **checksum**, not by size and timestamp. Vite's content
+hashes are fixed width, so renaming a bundle leaves `index.html` exactly the
+same size — a size-and-timestamp comparison can skip it and publish a new
+bundle alongside an `index.html` still pointing at the old one, which takes the
+app down with a 404 on its entry script.
+
 ## Production Checklist
 
 1. Create or select a Supabase project.
