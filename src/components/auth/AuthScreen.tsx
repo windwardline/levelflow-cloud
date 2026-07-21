@@ -22,6 +22,8 @@ import { supabase } from "../../lib/supabase";
 type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
 const SUPPORT_EMAIL = "support@windwardline.com";
+// Shared inbox across apps — name the app so inbound mail can be routed.
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow — support request")}`;
 
 type AuthScreenProps = {
   themeControl?: ReactNode;
@@ -282,7 +284,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           ) : null}
 
           <div className="mt-6 grid gap-3 border-t border-slate/15 pt-4 sm:grid-cols-2">
-            <a className="secondary-button" href={`mailto:${SUPPORT_EMAIL}`}>
+            <a className="secondary-button" href={SUPPORT_MAILTO}>
               <Mail className="h-4 w-4" aria-hidden="true" />
               Contact
             </a>
