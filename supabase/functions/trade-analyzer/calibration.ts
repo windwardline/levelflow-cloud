@@ -136,8 +136,10 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.36,
     defaultReviewHours: 4,
-    entryOffsetDefault: 0.56,
-    entryOffsetTrend: 0.44,
+    // Deep limit offsets never filled on index cash sessions (0/15 in
+    // production); entries must sit close to the market.
+    entryOffsetDefault: 0.18,
+    entryOffsetTrend: 0.12,
     maxNewsPenalty: 9,
     maxProviderPenalty: 7,
     minimumTargetRewardRisk: 1.85,

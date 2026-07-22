@@ -195,6 +195,15 @@ describe("price plan integration", () => {
     assert.ok(plan.stopLoss < plan.entryPrice);
   });
 
+  it("keeps indices entry offsets shallow enough to fill in a cash session", () => {
+    // Production data: 15 of 15 index setups expired unfilled with offsets
+    // near 0.5 ATR. Index entries must sit close to the market.
+    const calibration = getCategoryCalibration("SP");
+
+    assert.ok(calibration.entryOffsetDefault <= 0.2);
+    assert.ok(calibration.entryOffsetTrend <= 0.15);
+  });
+
   it("defines a tp1 multiplier for every asset category", () => {
     for (
       const symbol of ["BTCUSD", "WTI", "EURUSD", "ESUSD", "SP", "XAUUSD"]
