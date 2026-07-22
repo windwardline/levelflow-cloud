@@ -21,7 +21,7 @@ end $$;
 
 do $$
 begin
-  create type public.trade_outcome_status as enum ('pending', 'unfilled', 'take_profit', 'stop_loss', 'breakeven', 'manual_close', 'expired', 'ambiguous');
+  create type public.trade_outcome_status as enum ('pending', 'unfilled', 'take_profit', 'tp1_partial', 'stop_loss', 'breakeven', 'manual_close', 'expired', 'expired_in_profit', 'expired_at_loss', 'ambiguous');
 exception when duplicate_object then null;
 end $$;
 
@@ -64,6 +64,7 @@ create table if not exists public.trade_setups (
   limit_entry numeric(18,8) not null check (limit_entry > 0),
   stop_loss numeric(18,8) not null check (stop_loss > 0),
   take_profit numeric(18,8) not null check (take_profit > 0),
+  take_profit_1 numeric(18,8) check (take_profit_1 is null or take_profit_1 > 0),
   breakeven_trigger_price numeric(18,8) not null check (breakeven_trigger_price > 0),
   confidence_score smallint not null check (confidence_score between 0 and 100),
   analyzer_version text not null default '2026.06.16.global-learning',

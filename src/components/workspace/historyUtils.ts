@@ -30,6 +30,9 @@ export const ALL_HISTORY_FILTER = "all";
 export const HISTORY_STATUS_ORDER: SetupOutcome[] = [
   "still_tracking",
   "target_reached",
+  "partial_target",
+  "expired_in_profit",
+  "expired_in_loss",
   "stopped_out",
   "unclear_path",
   "entry_not_filled",
@@ -124,7 +127,7 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
     }
     const outcome = getSetupOutcome(setup);
     band.count += 1;
-    if (outcome === "target_reached") {
+    if (outcome === "target_reached" || outcome === "partial_target") {
       band.wins += 1;
     } else if (outcome === "stopped_out") {
       band.losses += 1;
@@ -155,10 +158,13 @@ export function getOutcomeLabel(outcome: SetupOutcome) {
 }
 
 export function getOutcomeClassName(outcome: SetupOutcome) {
-  if (outcome === "target_reached") {
+  if (outcome === "target_reached" || outcome === "partial_target") {
     return "bg-bullish/10 text-bullish";
   }
-  if (outcome === "stopped_out") {
+  if (outcome === "expired_in_profit") {
+    return "bg-bullish/10 text-bullish";
+  }
+  if (outcome === "stopped_out" || outcome === "expired_in_loss") {
     return "bg-danger/10 text-danger";
   }
   if (outcome === "entry_not_filled") {

@@ -108,6 +108,7 @@ type ExistingSetupRow = {
   status: string;
   symbol: string;
   take_profit: number | string;
+  take_profit_1?: number | string | null;
 };
 
 type SetupForOutcome = ExistingSetupRow & {
@@ -117,12 +118,15 @@ type SetupForOutcome = ExistingSetupRow & {
 type OutcomeRefreshSummary = {
   ambiguous: number;
   expired: number;
+  expiredAtLoss: number;
+  expiredInProfit: number;
   failed: number;
   pending: number;
   placed: number;
   reviewed: number;
   stopLoss: number;
   takeProfit: number;
+  tp1Partial: number;
 };
 
 type UpsertedSetupResult = {
@@ -149,6 +153,7 @@ type MarketScanCandidate = {
   stopLoss?: number;
   symbol: SupportedSymbol;
   takeProfit?: number;
+  takeProfit1?: number;
 };
 
 type ReviewActionName = "generate_setup" | "scan_opportunities";
@@ -671,6 +676,7 @@ async function scanOpportunity(
         stopLoss: review.setup.stopLoss,
         symbol,
         takeProfit: review.setup.takeProfit,
+        takeProfit1: review.setup.takeProfit1,
       },
     };
   } catch (error) {
@@ -936,11 +942,9 @@ async function analyzeSetup(
   const lotSize = 0.01;
   const expiresAt = new Date(getSetupExpiryTime(symbol, Date.now()))
     .toISOString();
-  const breakevenTriggerPrice = consensus.side === "buy"
-    ? pricePlan.entryPrice +
-      Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5
-    : pricePlan.entryPrice -
-      Math.abs(pricePlan.takeProfit - pricePlan.entryPrice) * 0.5;
+  // TP1 is the breakeven trigger: once the first target banks, the runner
+  // is protected at entry.
+  const breakevenTriggerPrice = pricePlan.takeProfit1;
 
   return {
     symbol,
@@ -953,6 +957,7 @@ async function analyzeSetup(
     entryPrice: roundPrice(pricePlan.entryPrice),
     stopLoss: roundPrice(pricePlan.stopLoss),
     takeProfit: roundPrice(pricePlan.takeProfit),
+    takeProfit1: roundPrice(pricePlan.takeProfit1),
     breakevenTriggerPrice: roundPrice(breakevenTriggerPrice),
     lotSize,
     confidenceScore,
@@ -1033,6 +1038,7 @@ async function analyzeSetup(
         stance: macroRateAdjustment.stance,
         tenYearChangeBps: macroRateContext.tenYearChangeBps,
       },
+      expectedWindowMove: roundPrice(pricePlan.expectedWindowMove),
       reviewWindowExpiresAt: expiresAt,
       stopLogic: pricePlan.stopLogic,
       targetLogic: pricePlan.targetLogic,
@@ -1158,7 +1164,7 @@ async function upsertActiveSetup(
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
+    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
       encodeURIComponent(userId)
     }&symbol=eq.${
       encodeURIComponent(
@@ -1194,6 +1200,7 @@ async function upsertActiveSetup(
         status: "generated",
         stop_loss: setup.stopLoss,
         take_profit: setup.takeProfit,
+        take_profit_1: setup.takeProfit1,
       },
     );
 
@@ -1221,6 +1228,7 @@ async function upsertActiveSetup(
     limit_entry: setup.entryPrice,
     stop_loss: setup.stopLoss,
     take_profit: setup.takeProfit,
+    take_profit_1: setup.takeProfit1,
     breakeven_trigger_price: setup.breakevenTriggerPrice,
     confidence_score: setup.confidenceScore,
     analyzer_version: ANALYZER_VERSION,
@@ -1268,12 +1276,15 @@ async function refreshUserOutcomes(
   const summary: OutcomeRefreshSummary = {
     ambiguous: 0,
     expired: 0,
+    expiredAtLoss: 0,
+    expiredInProfit: 0,
     failed: 0,
     pending: 0,
     placed: 0,
     reviewed: 0,
     stopLoss: 0,
     takeProfit: 0,
+    tp1Partial: 0,
   };
   const symbolFilter = options.symbols && options.symbols.length > 0
     ? `&symbol=in.(${
@@ -1283,7 +1294,7 @@ async function refreshUserOutcomes(
   const limit = Math.max(1, Math.min(options.limit ?? 120, 120));
   const setups = await fetchRows<SetupForOutcome>(
     token,
-    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${
+    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,risk_model,correlation_group,status,created_at&user_id=eq.${
       encodeURIComponent(
         userId,
       )
@@ -1334,10 +1345,16 @@ async function refreshUserOutcomes(
 
       if (evaluation.outcome === "take_profit") {
         summary.takeProfit += 1;
+      } else if (evaluation.outcome === "tp1_partial") {
+        summary.tp1Partial += 1;
       } else if (evaluation.outcome === "stop_loss") {
         summary.stopLoss += 1;
       } else if (evaluation.outcome === "ambiguous") {
         summary.ambiguous += 1;
+      } else if (evaluation.outcome === "expired_in_profit") {
+        summary.expiredInProfit += 1;
+      } else if (evaluation.outcome === "expired_at_loss") {
+        summary.expiredAtLoss += 1;
       } else {
         summary.expired += 1;
       }
@@ -1465,7 +1482,7 @@ async function refreshGlobalStrategyWeights() {
   const outcomes = await adminFetchRows<{ outcome: string; setup_id: string }>(
     `trade_outcomes?select=setup_id,outcome&analyzer_version=eq.${
       encodeURIComponent(ANALYZER_VERSION)
-    }&outcome=in.(take_profit,stop_loss,ambiguous)&order=reviewed_at.desc&limit=2500`,
+    }&outcome=in.(take_profit,tp1_partial,stop_loss,ambiguous)&order=reviewed_at.desc&limit=2500`,
   );
   const setupIds = Array.from(
     new Set(outcomes.map((outcome) => outcome.setup_id).filter(Boolean)),
@@ -1500,8 +1517,8 @@ async function refreshGlobalStrategyWeights() {
     }
     const outcome = outcomeRow.outcome;
     if (
-      outcome !== "take_profit" && outcome !== "stop_loss" &&
-      outcome !== "ambiguous"
+      outcome !== "take_profit" && outcome !== "tp1_partial" &&
+      outcome !== "stop_loss" && outcome !== "ambiguous"
     ) {
       continue;
     }
@@ -1513,7 +1530,7 @@ async function refreshGlobalStrategyWeights() {
     const current = grouped.get(setupKey) ??
       { ambiguous: 0, losses: 0, total: 0, wins: 0 };
     current.total += 1;
-    if (outcome === "take_profit") {
+    if (outcome === "take_profit" || outcome === "tp1_partial") {
       current.wins += 1;
     } else if (outcome === "stop_loss") {
       current.losses += 1;
