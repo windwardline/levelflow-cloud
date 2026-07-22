@@ -1,0 +1,189 @@
+import {
+  type CategoryCalibration,
+  getCategoryCalibration,
+} from "./calibration.ts";
+import { buildPricePlan } from "./pricePlan.ts";
+import {
+  evaluateSetupOutcome,
+  type ReplayBar,
+  type ResolvedOutcome,
+} from "./replay.ts";
+import {
+  classifyRegime,
+  runStrategyCommittee,
+  scoreConsensus,
+} from "./strategies.ts";
+import type { Bar, MarketContext } from "./types.ts";
+
+export type SweepOutcomeRecord = {
+  outcome: Exclude<ResolvedOutcome, "pending">;
+  realizedR: number;
+};
+
+export type SweepSummary = {
+  expectancyR: number;
+  filled: number;
+  stopRate: number;
+  total: number;
+  tp1HitRate: number;
+  unfilled: number;
+};
+
+export type SweepResult = {
+  decisionPoints: number;
+  outcomes: SweepOutcomeRecord[];
+  summary: SweepSummary;
+};
+
+export function simulateSymbol(input: {
+  calibrationOverride?: Partial<CategoryCalibration>;
+  dailyBars: Bar[];
+  primaryBars: Bar[];
+  stepBars: number;
+  symbol: string;
+  warmupBars: number;
+}): SweepResult {
+  const calibration: CategoryCalibration = {
+    ...getCategoryCalibration(input.symbol),
+    ...input.calibrationOverride,
+  };
+  const outcomes: SweepOutcomeRecord[] = [];
+  // Force every simulated setup past its review window so outcomes resolve.
+  const resolutionTime = (input.primaryBars.at(-1)?.time ?? 0) +
+    14 * 24 * 60 * 60 * 1000;
+  let decisionPoints = 0;
+
+  for (
+    let index = input.warmupBars;
+    index < input.primaryBars.length - 1;
+    index += input.stepBars
+  ) {
+    const history = input.primaryBars.slice(0, index + 1);
+    const latest = history.at(-1)!;
+    const daily = input.dailyBars.filter((bar) => bar.time <= latest.time);
+    if (daily.length < 40) {
+      continue;
+    }
+    decisionPoints += 1;
+
+    const primary = history.slice(-240);
+    const market: MarketContext = {
+      availableTimeframes: ["1day", "15min"],
+      daily,
+      latest,
+      latestTimeframe: "15min",
+      primary,
+      primaryTimeframe: "15min",
+      providerWarnings: [],
+      quote: null,
+      timeframes: { "15min": primary, "1day": daily },
+    };
+    const regime = classifyRegime(market);
+    const votes = runStrategyCommittee(input.symbol, market, regime);
+    const consensus = scoreConsensus(votes, regime);
+    if (!consensus.side) {
+      continue;
+    }
+    const plan = buildPricePlan(
+      consensus.side,
+      input.symbol,
+      market,
+      regime,
+      calibration,
+    );
+    if (!plan) {
+      continue;
+    }
+
+    const futureBars: ReplayBar[] = input.primaryBars.slice(index + 1);
+    const evaluation = evaluateSetupOutcome(
+      {
+        created_at: new Date(latest.time).toISOString(),
+        limit_entry: plan.entryPrice,
+        side: consensus.side,
+        stop_loss: plan.stopLoss,
+        symbol: input.symbol,
+        take_profit: plan.takeProfit,
+        take_profit_1: plan.takeProfit1,
+      },
+      futureBars,
+      resolutionTime,
+    );
+    if (evaluation.state !== "resolved") {
+      continue;
+    }
+
+    outcomes.push({
+      outcome: evaluation.outcome,
+      realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
+    });
+  }
+
+  return {
+    decisionPoints,
+    outcomes,
+    summary: summarizeSweepOutcomes(outcomes),
+  };
+}
+
+export function summarizeSweepOutcomes(
+  records: SweepOutcomeRecord[],
+): SweepSummary {
+  const total = records.length;
+  const filledRecords = records.filter((record) =>
+    record.outcome !== "unfilled"
+  );
+  const filled = filledRecords.length;
+  const tp1Hits = filledRecords.filter((record) =>
+    record.outcome === "take_profit" || record.outcome === "tp1_partial"
+  ).length;
+  const stops = filledRecords.filter((record) =>
+    record.outcome === "stop_loss"
+  ).length;
+  const expectancy = filled > 0
+    ? filledRecords.reduce((sum, record) => sum + record.realizedR, 0) / filled
+    : 0;
+
+  return {
+    expectancyR: roundStat(expectancy),
+    filled,
+    stopRate: filled > 0 ? roundStat(stops / filled) : 0,
+    total,
+    tp1HitRate: filled > 0 ? roundStat(tp1Hits / filled) : 0,
+    unfilled: total - filled,
+  };
+}
+
+function realizedRFor(
+  outcome: Exclude<ResolvedOutcome, "pending">,
+  feedback: Record<string, unknown>,
+  plan: { entryPrice: number; stopLoss: number; takeProfit: number; takeProfit1: number },
+) {
+  const risk = Math.abs(plan.entryPrice - plan.stopLoss);
+  if (risk <= 0) {
+    return 0;
+  }
+  const runnerR = Math.abs(plan.takeProfit - plan.entryPrice) / risk;
+  const tp1R = Math.abs(plan.takeProfit1 - plan.entryPrice) / risk;
+
+  // Ladder accounting: half the position banks at TP1, half rides the runner.
+  switch (outcome) {
+    case "take_profit":
+      return roundStat(0.5 * tp1R + 0.5 * runnerR);
+    case "tp1_partial":
+      return roundStat(0.5 * tp1R);
+    case "stop_loss":
+      return -1;
+    case "expired_in_profit":
+    case "expired_at_loss": {
+      const realized = Number(feedback.realizedR);
+      return Number.isFinite(realized) ? realized : 0;
+    }
+    default:
+      return 0;
+  }
+}
+
+function roundStat(value: number) {
+  return Number(value.toFixed(4));
+}
