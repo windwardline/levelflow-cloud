@@ -65,6 +65,7 @@ export type MarketScanCandidate = {
   stopLoss?: number;
   symbol: SupportedSymbol;
   takeProfit?: number;
+  takeProfit1?: number;
 };
 
 export type MarketScanResponse = {

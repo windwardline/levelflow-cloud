@@ -39,6 +39,7 @@ import {
   resolveProviderSymbols,
 } from "./symbols.ts";
 import { buildPricePlan } from "./pricePlan.ts";
+import { rankOpportunities } from "./scanRanking.ts";
 import {
   fetchFirstAvailableMarketContext,
   fetchFmpBars,
@@ -398,9 +399,7 @@ async function scanOpportunities(
 
   return {
     blocked,
-    opportunities: ranked.opportunities.sort((first, second) =>
-      (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)
-    ),
+    opportunities: rankOpportunities(ranked.opportunities),
     scanned: normalizedSymbols.length,
   };
 }

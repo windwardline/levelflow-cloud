@@ -258,7 +258,38 @@ export function AdvisorWorkspace(
   }
 
   return (
-    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid gap-5">
+      <MarketScanPanel
+        onScan={scanMarkets}
+        onSelectCandidate={(candidate) => {
+          const nextSymbol = candidate.symbol;
+          requestIdRef.current += 1;
+          selectedSymbolRef.current = nextSymbol;
+          setSymbol(nextSymbol);
+          setAnalyzerStatus("idle");
+          if (candidate.setup) {
+            setAnalysisState({
+              requestedAt: Date.now(),
+              response: {
+                advisoryOnly: true,
+                message: "Selected from Market Scan.",
+                setup: candidate.setup,
+              },
+              symbol: nextSymbol,
+            });
+            setAdvisorNotice(
+              "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
+            );
+          } else {
+            setAnalysisState(null);
+            setAdvisorNotice("");
+          }
+        }}
+        result={scanResult}
+        status={scanStatus}
+      />
+
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="terminal-panel overflow-hidden">
         <div className="border-b border-slate/15 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -422,36 +453,6 @@ export function AdvisorWorkspace(
           />
         </section>
 
-        <MarketScanPanel
-          onScan={scanMarkets}
-          onSelectCandidate={(candidate) => {
-            const nextSymbol = candidate.symbol;
-            requestIdRef.current += 1;
-            selectedSymbolRef.current = nextSymbol;
-            setSymbol(nextSymbol);
-            setAnalyzerStatus("idle");
-            if (candidate.setup) {
-              setAnalysisState({
-                requestedAt: Date.now(),
-                response: {
-                  advisoryOnly: true,
-                  message: "Selected from Market Scan.",
-                  setup: candidate.setup,
-                },
-                symbol: nextSymbol,
-              });
-              setAdvisorNotice(
-                "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
-              );
-            } else {
-              setAnalysisState(null);
-              setAdvisorNotice("");
-            }
-          }}
-          result={scanResult}
-          status={scanStatus}
-        />
-
         <DataHealthPanel
           activeMarketCount={activeMarketCount}
           data={marketData}
@@ -468,6 +469,7 @@ export function AdvisorWorkspace(
 
         <MarketResultsPanel stat={symbolStat} symbol={symbol} />
       </aside>
+      </div>
     </div>
   );
 }
