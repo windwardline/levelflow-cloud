@@ -28,6 +28,54 @@ export function findStructureLevels(bars: Bar[]) {
   };
 }
 
+export function findSwingPivots(bars: Bar[], strength: number) {
+  const highs: number[] = [];
+  const lows: number[] = [];
+
+  for (let index = strength; index < bars.length - strength; index += 1) {
+    const candidate = bars[index];
+    let isPivotHigh = true;
+    let isPivotLow = true;
+
+    for (let offset = 1; offset <= strength; offset += 1) {
+      const before = bars[index - offset];
+      const after = bars[index + offset];
+      if (before.high >= candidate.high || after.high >= candidate.high) {
+        isPivotHigh = false;
+      }
+      if (before.low <= candidate.low || after.low <= candidate.low) {
+        isPivotLow = false;
+      }
+      if (!isPivotHigh && !isPivotLow) {
+        break;
+      }
+    }
+
+    if (isPivotHigh) {
+      highs.push(candidate.high);
+    }
+    if (isPivotLow) {
+      lows.push(candidate.low);
+    }
+  }
+
+  return { highs, lows };
+}
+
+export function nearestLevelBeyond(
+  side: "buy" | "sell",
+  entry: number,
+  levels: number[],
+) {
+  const beyond = levels.filter((level) =>
+    side === "buy" ? level > entry : level < entry
+  );
+  if (beyond.length === 0) {
+    return null;
+  }
+  return side === "buy" ? Math.min(...beyond) : Math.max(...beyond);
+}
+
 export function averageTrueRange(bars: Bar[], period: number) {
   if (bars.length < 2) {
     return 0;

@@ -5,7 +5,11 @@ import {
   type ExecutionQuality,
 } from "./executionQuality.ts";
 import { applyFuturesTickRules, type FuturesContractSpec } from "./futures.ts";
-import { averageTrueRange, findStructureLevels } from "./indicators.ts";
+import {
+  averageTrueRange,
+  findSwingPivots,
+  nearestLevelBeyond,
+} from "./indicators.ts";
 import type { MarketContext, Regime, Side, SupportedSymbol } from "./types.ts";
 
 export type PricePlan = {
@@ -13,6 +17,7 @@ export type PricePlan = {
   contractSpec: FuturesContractSpec | null;
   entryPrice: number;
   executionQuality: ExecutionQuality;
+  expectedWindowMove: number;
   futuresTickAdjustments: string[];
   grossRewardRisk: number;
   rewardRisk: number;
@@ -20,6 +25,7 @@ export type PricePlan = {
   stopLoss: number;
   targetLogic: string;
   takeProfit: number;
+  takeProfit1: number;
 };
 
 export function buildPricePlan(
@@ -35,8 +41,8 @@ export function buildPricePlan(
   const currentClose = market.latest.close;
   const atr = averageTrueRange(bars, 14);
   const dailyAtr = averageTrueRange(daily, 14);
-  const structure = findStructureLevels(bars);
-  const dailyStructure = findStructureLevels(daily);
+  const pivots = findSwingPivots(bars, 3);
+  const dailyPivots = findSwingPivots(daily, 2);
   const entryOffset = atr *
     (regime.name === "trend"
       ? calibration.entryOffsetTrend
@@ -48,9 +54,20 @@ export function buildPricePlan(
     atr * calibration.stopAtrMultiplier,
     dailyAtr * calibration.dailyStopAtrMultiplier,
   );
+  const nearestStopPivot = nearestLevelBeyond(
+    side === "buy" ? "sell" : "buy",
+    entryPrice,
+    side === "buy" ? pivots.lows : pivots.highs,
+  );
   let stopLoss = side === "buy"
-    ? Math.min(structure.latestSwingLow - stopBuffer, entryPrice - atr * 1.25)
-    : Math.max(structure.latestSwingHigh + stopBuffer, entryPrice + atr * 1.25);
+    ? Math.min(
+      (nearestStopPivot ?? entryPrice) - stopBuffer,
+      entryPrice - atr * 1.25,
+    )
+    : Math.max(
+      (nearestStopPivot ?? entryPrice) + stopBuffer,
+      entryPrice + atr * 1.25,
+    );
   let riskDistance = Math.abs(entryPrice - stopLoss);
   const minimumLimitDistance = Math.max(
     atr * 0.05,
@@ -80,35 +97,27 @@ export function buildPricePlan(
     return null;
   }
 
-  const liquidityTarget = side === "buy"
-    ? Math.max(structure.nextLiquidityHigh, dailyStructure.latestSwingHigh)
-    : Math.min(structure.nextLiquidityLow, dailyStructure.latestSwingLow);
-  const minimumTarget = side === "buy"
-    ? entryPrice + riskDistance * calibration.minimumTargetRewardRisk
-    : entryPrice - riskDistance * calibration.minimumTargetRewardRisk;
-  const volatilityTarget = side === "buy"
-    ? entryPrice +
-      Math.max(
-        atr * calibration.volatilityTargetAtrMultiplier,
-        dailyAtr * calibration.dailyTargetAtrMultiplier,
-      )
-    : entryPrice -
-      Math.max(
-        atr * calibration.volatilityTargetAtrMultiplier,
-        dailyAtr * calibration.dailyTargetAtrMultiplier,
-      );
-  let takeProfit = selectHighestProbabilityTarget(side, {
-    liquidityTarget,
-    minimumTarget,
-    volatilityTarget,
+  const ladder = buildLadderTargets({
+    atr,
+    calibration,
+    dailyAtr,
+    entryPrice,
+    pivotLevels: [
+      ...pivots.highs,
+      ...pivots.lows,
+      ...dailyPivots.highs,
+      ...dailyPivots.lows,
+    ],
+    riskDistance,
+    side,
   });
 
-  if (side === "buy" && takeProfit <= entryPrice) {
-    takeProfit = entryPrice + riskDistance * 2;
+  if (!ladder) {
+    return null;
   }
-  if (side === "sell" && takeProfit >= entryPrice) {
-    takeProfit = entryPrice - riskDistance * 2;
-  }
+
+  let takeProfit = ladder.runnerTarget;
+  let takeProfit1 = ladder.takeProfit1;
 
   const assetType = getAssetType(symbol);
   const futuresTickPlan = assetType === "futures"
@@ -126,6 +135,7 @@ export function buildPricePlan(
     stopLoss = futuresTickPlan.stopLoss;
     takeProfit = futuresTickPlan.takeProfit;
     riskDistance = Math.abs(entryPrice - stopLoss);
+    takeProfit1 = clampBetween(takeProfit1, entryPrice, takeProfit);
   }
 
   if (side === "buy" && roundPrice(takeProfit) <= roundPrice(entryPrice)) {
@@ -133,6 +143,14 @@ export function buildPricePlan(
   }
 
   if (side === "sell" && roundPrice(takeProfit) >= roundPrice(entryPrice)) {
+    return null;
+  }
+
+  if (side === "buy" && roundPrice(takeProfit1) <= roundPrice(entryPrice)) {
+    return null;
+  }
+
+  if (side === "sell" && roundPrice(takeProfit1) >= roundPrice(entryPrice)) {
     return null;
   }
 
@@ -161,39 +179,81 @@ export function buildPricePlan(
     contractSpec: futuresTickPlan?.contractSpec ?? null,
     entryPrice,
     executionQuality,
+    expectedWindowMove: ladder.expectedWindowMove,
     futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
     grossRewardRisk: rewardRisk,
     rewardRisk: executionQuality.effectiveRewardRisk,
     stopLogic:
-      "Price-structure invalidation with a volatility buffer and daily volatility floor.",
+      "Invalidation beyond the nearest confirmed swing pivot with a volatility buffer.",
     stopLoss,
     targetLogic:
-      "Nearest qualifying target from price structure, volatility, and payoff checks.",
+      "TP1 sized to the review window's expected move; runner at the nearest structural liquidity level.",
     takeProfit,
+    takeProfit1,
   };
 }
 
-export function selectHighestProbabilityTarget(
-  side: Side,
-  targets: {
-    liquidityTarget: number;
-    minimumTarget: number;
-    volatilityTarget: number;
-  },
-) {
-  const candidates = [targets.liquidityTarget, targets.volatilityTarget]
-    .filter(Number.isFinite)
-    .map((target) =>
-      side === "buy"
-        ? Math.max(target, targets.minimumTarget)
-        : Math.min(target, targets.minimumTarget)
-    );
+function clampBetween(value: number, boundA: number, boundB: number) {
+  const lower = Math.min(boundA, boundB);
+  const upper = Math.max(boundA, boundB);
+  return Math.min(Math.max(value, lower), upper);
+}
 
-  if (candidates.length === 0) {
-    return targets.minimumTarget;
+export type LadderCalibration = {
+  defaultReviewHours: number;
+  minimumTargetRewardRisk: number;
+  tp1AtrMultiplier: number;
+};
+
+export type LadderTargets = {
+  expectedWindowMove: number;
+  runnerTarget: number;
+  takeProfit1: number;
+};
+
+const TP1_WINDOW_SHARE = 0.6;
+
+export function buildLadderTargets(input: {
+  atr: number;
+  calibration: LadderCalibration;
+  dailyAtr: number;
+  entryPrice: number;
+  pivotLevels: number[];
+  riskDistance: number;
+  side: Side;
+}): LadderTargets | null {
+  const { atr, calibration, dailyAtr, entryPrice, riskDistance, side } = input;
+  const expectedWindowMove = dailyAtr *
+    Math.sqrt(calibration.defaultReviewHours / 24);
+  const tp1Distance = Math.min(
+    atr * calibration.tp1AtrMultiplier,
+    expectedWindowMove * TP1_WINDOW_SHARE,
+  );
+  const runnerTarget = nearestLevelBeyond(
+    side,
+    entryPrice,
+    input.pivotLevels,
+  );
+
+  if (runnerTarget === null || tp1Distance <= 0) {
+    return null;
   }
 
-  return side === "buy" ? Math.min(...candidates) : Math.max(...candidates);
+  const runnerDistance = Math.abs(runnerTarget - entryPrice);
+  if (runnerDistance < riskDistance * calibration.minimumTargetRewardRisk) {
+    return null;
+  }
+  if (runnerDistance <= tp1Distance) {
+    return null;
+  }
+
+  return {
+    expectedWindowMove,
+    runnerTarget,
+    takeProfit1: side === "buy"
+      ? entryPrice + tp1Distance
+      : entryPrice - tp1Distance,
+  };
 }
 
 function roundPrice(value: number) {
