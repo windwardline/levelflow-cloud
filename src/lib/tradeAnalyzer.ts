@@ -65,6 +65,7 @@ export type MarketScanCandidate = {
   stopLoss?: number;
   symbol: SupportedSymbol;
   takeProfit?: number;
+  takeProfit1?: number;
 };
 
 export type MarketScanResponse = {
@@ -90,6 +91,7 @@ export type TradeSetupRow = {
   stop_loss: number | string;
   symbol: string;
   take_profit: number | string;
+  take_profit_1?: number | string | null;
   trade_outcomes?: Array<{
     exit_at?: string | null;
     feedback?: Record<string, unknown> | null;
@@ -188,7 +190,7 @@ export async function fetchTradeSetups() {
   let query = supabase
     .from("trade_setups")
     .select(
-      "id, symbol, side, limit_entry, stop_loss, take_profit, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
+      "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
     )
     .order("created_at", { ascending: false })
     .limit(80);

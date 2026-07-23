@@ -251,9 +251,13 @@ function MarketScanRow({
     ? `${candidate.side.toUpperCase()} LIMIT`
     : "Review";
   const levelPreview = candidate.entryPrice && candidate.takeProfit
-    ? `Entry ${formatNumber(candidate.entryPrice)} / Target ${
-      formatNumber(candidate.takeProfit)
-    }`
+    ? candidate.takeProfit1
+      ? `Entry ${formatNumber(candidate.entryPrice)} / TP1 ${
+        formatNumber(candidate.takeProfit1)
+      } / Runner ${formatNumber(candidate.takeProfit)}`
+      : `Entry ${formatNumber(candidate.entryPrice)} / Target ${
+        formatNumber(candidate.takeProfit)
+      }`
     : "Load chart for details";
   const rationale = candidate.rationale?.length ? candidate.rationale : [
     `${formatConfidenceWithTier(candidate.confidenceScore)} confidence.`,

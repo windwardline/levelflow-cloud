@@ -22,6 +22,7 @@ export type CategoryCalibration = {
   providerWarningPenalty: number;
   stopAtrMultiplier: number;
   timeframePenalty: number;
+  tp1AtrMultiplier: number;
   volatilityTargetAtrMultiplier: number;
 };
 
@@ -73,6 +74,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.8,
   },
   energies: {
@@ -90,6 +92,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.38,
     timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.6,
   },
   forex: {
@@ -107,6 +110,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 2,
     stopAtrMultiplier: 1.2,
     timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.2,
   },
   futures: {
@@ -124,6 +128,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.4,
   },
   indices: {
@@ -131,8 +136,10 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.36,
     defaultReviewHours: 4,
-    entryOffsetDefault: 0.56,
-    entryOffsetTrend: 0.44,
+    // Deep limit offsets never filled on index cash sessions (0/15 in
+    // production); entries must sit close to the market.
+    entryOffsetDefault: 0.18,
+    entryOffsetTrend: 0.12,
     maxNewsPenalty: 9,
     maxProviderPenalty: 7,
     minimumTargetRewardRisk: 1.85,
@@ -141,6 +148,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.28,
     timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.3,
   },
   metals: {
@@ -158,6 +166,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.32,
     timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.5,
   },
 };

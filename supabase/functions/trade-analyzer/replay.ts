@@ -16,13 +16,17 @@ export type ReplaySetup = {
   stop_loss: number | string;
   symbol: string;
   take_profit: number | string;
+  take_profit_1?: number | string | null;
 };
 
 export type ResolvedOutcome =
   | "ambiguous"
+  | "expired_at_loss"
+  | "expired_in_profit"
   | "pending"
   | "stop_loss"
   | "take_profit"
+  | "tp1_partial"
   | "unfilled";
 
 export type ReplayOutcome =
@@ -108,73 +112,92 @@ export function evaluateSetupOutcome(
   }
 
   const filledAt = new Date(createdBars[fillIndex].time).toISOString();
+  const tp1Raw = Number(setup.take_profit_1);
+  const takeProfit1 = Number.isFinite(tp1Raw) && tp1Raw > 0 ? tp1Raw : null;
+  const riskDistance = Math.abs(entry - stopLoss);
+  const isBuy = setup.side === "buy";
+  const reachedFavorable = (level: number, bar: ReplayBar) =>
+    isBuy ? bar.high >= level : bar.low <= level;
+  const reachedAdverse = (level: number, bar: ReplayBar) =>
+    isBuy ? bar.low <= level : bar.high >= level;
   let maxFavorableMove = 0;
   let maxAdverseMove = 0;
+  let tp1Hit = false;
+  let lastClose = entry;
 
   for (const bar of createdBars.slice(fillIndex)) {
-    if (setup.side === "buy") {
-      maxFavorableMove = Math.max(maxFavorableMove, bar.high - entry);
-      maxAdverseMove = Math.max(maxAdverseMove, entry - bar.low);
-      const targetHit = bar.high >= takeProfit;
-      const stopHit = bar.low <= stopLoss;
+    maxFavorableMove = Math.max(
+      maxFavorableMove,
+      isBuy ? bar.high - entry : entry - bar.low,
+    );
+    maxAdverseMove = Math.max(
+      maxAdverseMove,
+      isBuy ? entry - bar.low : bar.high - entry,
+    );
+    lastClose = bar.close;
 
-      if (stopHit || targetHit) {
-        return {
-          exitAt: new Date(bar.time).toISOString(),
-          feedback: {
-            ambiguousSameBar: stopHit && targetHit,
-            maxAdverseMove: roundPrice(maxAdverseMove),
-            maxFavorableMove: roundPrice(maxFavorableMove),
-            source: "price_path_review",
-          },
-          filledAt,
-          outcome: stopHit && targetHit
-            ? "ambiguous"
-            : stopHit
-            ? "stop_loss"
-            : "take_profit",
-          state: "resolved",
-        };
-      }
-    } else {
-      maxFavorableMove = Math.max(maxFavorableMove, entry - bar.low);
-      maxAdverseMove = Math.max(maxAdverseMove, bar.high - entry);
-      const targetHit = bar.low <= takeProfit;
-      const stopHit = bar.high >= stopLoss;
+    // Once TP1 is banked, the remaining runner is protected at breakeven.
+    const effectiveStop = tp1Hit ? entry : stopLoss;
+    const stopHit = reachedAdverse(effectiveStop, bar);
+    const targetHit = reachedFavorable(takeProfit, bar);
+    const tp1Touched = !tp1Hit && takeProfit1 !== null &&
+      reachedFavorable(takeProfit1, bar);
 
-      if (stopHit || targetHit) {
-        return {
-          exitAt: new Date(bar.time).toISOString(),
-          feedback: {
-            ambiguousSameBar: stopHit && targetHit,
-            maxAdverseMove: roundPrice(maxAdverseMove),
-            maxFavorableMove: roundPrice(maxFavorableMove),
-            source: "price_path_review",
-          },
-          filledAt,
-          outcome: stopHit && targetHit
-            ? "ambiguous"
-            : stopHit
-            ? "stop_loss"
-            : "take_profit",
-          state: "resolved",
-        };
-      }
+    if (stopHit || targetHit) {
+      const outcome: Exclude<ResolvedOutcome, "pending"> =
+        stopHit && targetHit
+          ? "ambiguous"
+          : targetHit
+          ? "take_profit"
+          : tp1Hit
+          ? "tp1_partial"
+          : tp1Touched
+          ? "ambiguous"
+          : "stop_loss";
+      return {
+        exitAt: new Date(bar.time).toISOString(),
+        feedback: {
+          ambiguousSameBar: stopHit && (targetHit || tp1Touched),
+          maxAdverseMove: roundPrice(maxAdverseMove),
+          maxFavorableMove: roundPrice(maxFavorableMove),
+          source: "price_path_review",
+          tp1Hit: tp1Hit || tp1Touched,
+        },
+        filledAt,
+        outcome,
+        state: "resolved",
+      };
+    }
+
+    if (tp1Touched) {
+      tp1Hit = true;
     }
   }
 
   if (now > expiresAt) {
+    const realizedR = riskDistance > 0
+      ? Number(
+        (((isBuy ? 1 : -1) * (lastClose - entry)) / riskDistance).toFixed(4),
+      )
+      : 0;
     return {
       exitAt: new Date(expiresAt).toISOString(),
       feedback: {
         maxAdverseMove: roundPrice(maxAdverseMove),
         maxFavorableMove: roundPrice(maxFavorableMove),
-        reason:
-          "Entry filled, but neither target nor stop was reached before the setup review window ended.",
+        realizedR,
+        reason: tp1Hit
+          ? "TP1 was reached, but the runner target was not hit before the review window ended."
+          : "Entry filled, but neither target nor stop was reached before the setup review window ended.",
         source: "price_path_review",
+        tp1Hit,
       },
       filledAt,
-      outcome: "ambiguous",
+      outcome: tp1Hit
+        ? "tp1_partial"
+        : realizedR > 0
+        ? "expired_in_profit"
+        : "expired_at_loss",
       state: "resolved",
     };
   }
@@ -184,6 +207,7 @@ export function evaluateSetupOutcome(
       maxAdverseMove: roundPrice(maxAdverseMove),
       maxFavorableMove: roundPrice(maxFavorableMove),
       source: "price_path_review",
+      tp1Hit,
     },
     filledAt,
     state: "placed",
