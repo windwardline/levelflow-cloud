@@ -74,7 +74,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
-    tp1AtrMultiplier: 0.9,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.8,
   },
   energies: {
@@ -92,7 +92,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.38,
     timeframePenalty: 5,
-    tp1AtrMultiplier: 0.8,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.6,
   },
   forex: {
@@ -110,7 +110,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 2,
     stopAtrMultiplier: 1.2,
     timeframePenalty: 5,
-    tp1AtrMultiplier: 0.7,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.2,
   },
   futures: {
@@ -128,7 +128,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
-    tp1AtrMultiplier: 0.8,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.4,
   },
   indices: {
@@ -148,7 +148,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.28,
     timeframePenalty: 5,
-    tp1AtrMultiplier: 0.8,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.3,
   },
   metals: {
@@ -166,7 +166,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     providerWarningPenalty: 3,
     stopAtrMultiplier: 1.32,
     timeframePenalty: 5,
-    tp1AtrMultiplier: 0.8,
+    tp1AtrMultiplier: 0.5,
     volatilityTargetAtrMultiplier: 3.5,
   },
 };
