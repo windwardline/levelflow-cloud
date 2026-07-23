@@ -32,8 +32,28 @@ export type SweepSummary = {
 export type SweepResult = {
   decisionPoints: number;
   outcomes: SweepOutcomeRecord[];
+  rejections: {
+    noConsensus: number;
+    planRejected: number;
+  };
   summary: SweepSummary;
 };
+
+export function resampleBars(bars: Bar[], groupSize: number): Bar[] {
+  const resampled: Bar[] = [];
+  for (let index = 0; index + groupSize <= bars.length; index += groupSize) {
+    const group = bars.slice(index, index + groupSize);
+    resampled.push({
+      close: group.at(-1)!.close,
+      high: Math.max(...group.map((bar) => bar.high)),
+      low: Math.min(...group.map((bar) => bar.low)),
+      open: group[0].open,
+      time: group[0].time,
+      volume: group.reduce((sum, bar) => sum + bar.volume, 0),
+    });
+  }
+  return resampled;
+}
 
 export function simulateSymbol(input: {
   calibrationOverride?: Partial<CategoryCalibration>;
@@ -52,6 +72,7 @@ export function simulateSymbol(input: {
   const resolutionTime = (input.primaryBars.at(-1)?.time ?? 0) +
     14 * 24 * 60 * 60 * 1000;
   let decisionPoints = 0;
+  const rejections = { noConsensus: 0, planRejected: 0 };
 
   for (
     let index = input.warmupBars;
@@ -67,8 +88,11 @@ export function simulateSymbol(input: {
     decisionPoints += 1;
 
     const primary = history.slice(-240);
+    // Mirror the live analyzer's timeframe coverage by resampling 15min bars.
+    const hourly = resampleBars(history.slice(-960), 4).slice(-240);
+    const fourHour = resampleBars(history.slice(-3840), 16).slice(-240);
     const market: MarketContext = {
-      availableTimeframes: ["1day", "15min"],
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
       daily,
       latest,
       latestTimeframe: "15min",
@@ -76,12 +100,18 @@ export function simulateSymbol(input: {
       primaryTimeframe: "15min",
       providerWarnings: [],
       quote: null,
-      timeframes: { "15min": primary, "1day": daily },
+      timeframes: {
+        "15min": primary,
+        "1day": daily,
+        "1hour": hourly,
+        "4hour": fourHour,
+      },
     };
     const regime = classifyRegime(market);
     const votes = runStrategyCommittee(input.symbol, market, regime);
     const consensus = scoreConsensus(votes, regime);
     if (!consensus.side) {
+      rejections.noConsensus += 1;
       continue;
     }
     const plan = buildPricePlan(
@@ -92,6 +122,7 @@ export function simulateSymbol(input: {
       calibration,
     );
     if (!plan) {
+      rejections.planRejected += 1;
       continue;
     }
 
@@ -110,6 +141,9 @@ export function simulateSymbol(input: {
       resolutionTime,
     );
     if (evaluation.state !== "resolved") {
+      // No future bars inside the review window; count with plan rejections
+      // so decision-point accounting stays exact.
+      rejections.planRejected += 1;
       continue;
     }
 
@@ -122,6 +156,7 @@ export function simulateSymbol(input: {
   return {
     decisionPoints,
     outcomes,
+    rejections,
     summary: summarizeSweepOutcomes(outcomes),
   };
 }

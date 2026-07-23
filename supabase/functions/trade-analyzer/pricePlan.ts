@@ -229,20 +229,22 @@ export function buildLadderTargets(input: {
     atr * calibration.tp1AtrMultiplier,
     expectedWindowMove * TP1_WINDOW_SHARE,
   );
-  const runnerTarget = nearestLevelBeyond(
-    side,
-    entryPrice,
-    input.pivotLevels,
+  // The runner is the nearest structural level that also clears the payoff
+  // floor — pivots inside the minimum distance are skipped, not stretched.
+  const minimumRunnerDistance = riskDistance *
+    calibration.minimumTargetRewardRisk;
+  const qualifyingLevels = input.pivotLevels.filter((level) =>
+    side === "buy"
+      ? level >= entryPrice + minimumRunnerDistance
+      : level <= entryPrice - minimumRunnerDistance
   );
+  const runnerTarget = nearestLevelBeyond(side, entryPrice, qualifyingLevels);
 
   if (runnerTarget === null || tp1Distance <= 0) {
     return null;
   }
 
   const runnerDistance = Math.abs(runnerTarget - entryPrice);
-  if (runnerDistance < riskDistance * calibration.minimumTargetRewardRisk) {
-    return null;
-  }
   if (runnerDistance <= tp1Distance) {
     return null;
   }

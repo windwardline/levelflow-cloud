@@ -67,6 +67,23 @@ describe("ladder targets", () => {
     assert.equal(ladder, null);
   });
 
+  it("skips past too-close pivots to the nearest qualifying runner", () => {
+    // Nearest pivot 102.5 is inside the 1.9 * risk 2 = 3.8 minimum distance;
+    // the runner must advance to 104, the nearest level that qualifies.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: ladderCalibration,
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [102.5, 104, 108],
+      riskDistance: 2,
+      side: "buy",
+    });
+
+    assert.ok(ladder);
+    assert.equal(ladder.runnerTarget, 104);
+  });
+
   it("rejects the setup when the runner cannot clear the minimum reward risk", () => {
     // Nearest pivot is 104 (4 away); 1.9 * risk 3 = 5.7 required.
     const ladder = buildLadderTargets({
