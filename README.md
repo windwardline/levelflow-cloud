@@ -28,16 +28,12 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
 to `main`.
 
 `deploy.yml` runs on a push to `main`: checks, Supabase migrations, Edge
-Function deploys, browser tests, then the frontend build. The built `dist/` is
-synced to
-[windwardline/levelflow-cloud-app](https://github.com/windwardline/levelflow-cloud-app),
-which Vercel serves at [levelflow.windwardline.com](https://levelflow.windwardline.com).
-
-That sync compares by **checksum**, not by size and timestamp. Vite's content
-hashes are fixed width, so renaming a bundle leaves `index.html` exactly the
-same size — a size-and-timestamp comparison can skip it and publish a new
-bundle alongside an `index.html` still pointing at the old one, which takes the
-app down with a 404 on its entry script.
+Function deploys, browser tests, and a frontend build gate. Vercel builds and
+deploys the frontend directly from this repo on the same push (`vercel.json`
+sets the framework, build command, and security headers) and serves it at
+[levelflow.windwardline.com](https://levelflow.windwardline.com). The Vercel
+build runs independently of `deploy.yml`, so a frontend that depends on a new
+migration should land one push after the migration.
 
 ## Production Checklist
 
