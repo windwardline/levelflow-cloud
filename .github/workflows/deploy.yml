@@ -35,7 +35,7 @@ jobs:
       - name: Check required secrets
         run: |
           missing=0
-          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD LEVELFLOW_PAGES_TOKEN NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "Missing required secret: ${name}"
               missing=1
@@ -43,7 +43,6 @@ jobs:
           done
           exit "$missing"
         env:
-          LEVELFLOW_PAGES_TOKEN: ${{ secrets.LEVELFLOW_PAGES_TOKEN }}
           LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
           LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
@@ -119,24 +118,17 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
-      - name: Publish frontend build
-        run: |
-          git clone "https://x-access-token:${LEVELFLOW_PAGES_TOKEN}@github.com/windwardline/levelflow-cloud-app.git" /tmp/levelflow-cloud-app
-          rsync -a --checksum --delete --exclude='.git' --exclude='.github' --exclude='.gitignore' --exclude='.htmlvalidate.json' --exclude='README.md' dist/ /tmp/levelflow-cloud-app/
-          cd /tmp/levelflow-cloud-app
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet && exit 0
-          git commit -m "Publish LevelFlow build"
-          git push origin main
-        env:
-          LEVELFLOW_PAGES_TOKEN: ${{ secrets.LEVELFLOW_PAGES_TOKEN }}
-
+      # Vercel builds and deploys the frontend from this repo on push to main
+      # (project levelflow-cloud-app). The build above is a gate only; the
+      # header check below polls prod, which Vercel updates independently of
+      # this workflow.
       - name: Verify production security headers
         run: |
           headers="$(mktemp)"
-          curl -fsSI "https://levelflow.windwardline.com/?v=${GITHUB_SHA}" > "$headers"
+          for attempt in $(seq 1 10); do
+            curl -fsSI "https://levelflow.windwardline.com/?v=${GITHUB_SHA}" > "$headers" && break
+            sleep 30
+          done
           grep -iq "^content-security-policy: .*frame-ancestors 'none'" "$headers"
           grep -iq "^content-security-policy: .*object-src 'none'" "$headers"
           grep -iq "^x-frame-options: DENY" "$headers"
