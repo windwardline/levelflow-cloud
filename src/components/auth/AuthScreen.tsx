@@ -16,6 +16,7 @@ import type { Provider } from "@supabase/supabase-js";
 import { LegalLinks } from "../legal/LegalLinks";
 import { DonationOptions } from "../donations/DonationOptions";
 import { brandAssets } from "../../lib/assets";
+import { describeAuthEmailError } from "../../lib/authErrors";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
 
@@ -60,8 +61,13 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     });
 
     if (magicLinkError) {
+      console.error(
+        "[auth] magic link send failed:",
+        magicLinkError.status ?? "",
+        magicLinkError.code ?? magicLinkError.message,
+      );
       setStatus("idle");
-      setError("The sign-in link could not be sent. Try again shortly.");
+      setError(describeAuthEmailError(magicLinkError));
       return;
     }
 
@@ -90,6 +96,11 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     });
 
     if (oauthError) {
+      console.error(
+        "[auth] oauth sign-in failed:",
+        oauthError.status ?? "",
+        oauthError.code ?? oauthError.message,
+      );
       setStatus("idle");
       setError("That sign-in option is not available right now.");
     }
