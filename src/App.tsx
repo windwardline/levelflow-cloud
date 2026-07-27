@@ -166,7 +166,7 @@ export default function App() {
               href={SUPPORT_MAILTO}
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
-              Contact
+              Help
             </a>
             <button
               className="secondary-button min-h-10 px-3 py-2"

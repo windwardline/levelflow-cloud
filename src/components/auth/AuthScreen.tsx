@@ -297,7 +297,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           <div className="mt-6 grid gap-3 border-t border-slate/15 pt-4 sm:grid-cols-2">
             <a className="secondary-button" href={SUPPORT_MAILTO}>
               <Mail className="h-4 w-4" aria-hidden="true" />
-              Contact
+              Help
             </a>
             <button
               className="secondary-button"

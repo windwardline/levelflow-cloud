@@ -278,7 +278,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-              Contact
+              Help
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
               Questions or data issues
