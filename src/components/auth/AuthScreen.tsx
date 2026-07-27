@@ -24,7 +24,7 @@ type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
 const SUPPORT_EMAIL = "help@windwardline.com";
 // Shared inbox across apps — name the app so inbound mail can be routed.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow — support request")}`;
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[LevelFlow] Help")}`;
 
 type AuthScreenProps = {
   themeControl?: ReactNode;
@@ -116,7 +116,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const body = isSupabaseConfigured
     ? message
     : "Cloud access is not connected yet. Once configured, sign-in will open the live workspace.";
-  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent(
+  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[LevelFlow] Development support")}&body=${encodeURIComponent(
     "I would like the current donation link for LevelFlow development and maintenance.",
   )}`;
 

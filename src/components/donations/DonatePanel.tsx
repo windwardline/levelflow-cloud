@@ -6,7 +6,7 @@ type DonatePanelProps = {
 };
 
 export function DonatePanel({ supportEmail }: DonatePanelProps) {
-  const donationFallbackHref = `mailto:${supportEmail}?subject=${encodeURIComponent("LevelFlow development support")}&body=${encodeURIComponent(
+  const donationFallbackHref = `mailto:${supportEmail}?subject=${encodeURIComponent("[LevelFlow] Development support")}&body=${encodeURIComponent(
     "I would like the current donation link for LevelFlow development and maintenance.",
   )}`;
 

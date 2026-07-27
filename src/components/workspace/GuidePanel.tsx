@@ -288,7 +288,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
               off.
             </p>
           </div>
-          <a className="secondary-button shrink-0" href={`mailto:${supportEmail}`}>
+          <a className="secondary-button shrink-0" href={`mailto:${supportEmail}?subject=${encodeURIComponent("[LevelFlow] Help")}`}>
             <Mail className="h-4 w-4" aria-hidden="true" />
             {supportEmail}
           </a>
