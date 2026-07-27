@@ -21,5 +21,5 @@ test("public login screen presents LevelFlow without stale auth copy", async ({
   ).toBeVisible();
   await expect(page.getByText(/6-digit|six-digit/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Donate" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Contact" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Help" })).toBeVisible();
 });
