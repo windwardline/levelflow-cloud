@@ -22,7 +22,7 @@ import { supabase } from "../../lib/supabase";
 
 type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
-const SUPPORT_EMAIL = "support@windwardline.com";
+const SUPPORT_EMAIL = "help@windwardline.com";
 // Shared inbox across apps — name the app so inbound mail can be routed.
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow — support request")}`;
 

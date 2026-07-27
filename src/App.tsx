@@ -32,10 +32,10 @@ import { supabase } from "./lib/supabase";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "about" | "donate";
 
-const SUPPORT_EMAIL = "support@windwardline.com";
+const SUPPORT_EMAIL = "help@windwardline.com";
 // Support is a shared inbox across apps, so every mailto names the app it
 // came from — otherwise an inbound message arrives with no way to route it.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("LevelFlow — support request")}`;
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[LevelFlow] Help")}`;
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   {
