@@ -1,6 +1,5 @@
 const basePath = import.meta.env?.BASE_URL ?? "/";
 
 export const brandAssets = {
-  mark: `${basePath}brand/windward-capital-mark-tight.jpg`,
-  logo: `${basePath}brand/windward-capital-logo-tight.jpg`,
+  mark: `${basePath}brand/windward-line-mark.svg`,
 };
