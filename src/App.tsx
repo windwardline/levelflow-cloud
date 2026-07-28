@@ -137,7 +137,7 @@ export default function App() {
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <img

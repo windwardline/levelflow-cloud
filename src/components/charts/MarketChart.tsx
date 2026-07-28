@@ -193,7 +193,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
 
   return (
     <div className="relative min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-white">
-      <div className="absolute left-3 top-3 z-10 hidden max-w-[calc(100%-8.5rem)] rounded-lg border border-slate/15 bg-white/90 px-3 py-2 text-xs font-semibold text-slate shadow-sm sm:block">
+      <div className="absolute left-3 top-3 z-10 hidden max-w-[calc(100%-8.5rem)] rounded-lg border border-slate/15 bg-white/90 px-3 py-2 text-xs font-semibold text-slate shadow-xs sm:block">
         {hoverBar ? (
           <span className="whitespace-nowrap">
             O {formatChartPrice(hoverBar.open)} H {formatChartPrice(hoverBar.high)} L {formatChartPrice(hoverBar.low)} C {formatChartPrice(hoverBar.close)}
@@ -205,7 +205,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
           </span>
         )}
       </div>
-      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-slate/15 bg-white/90 p-1 shadow-sm">
+      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-slate/15 bg-white/90 p-1 shadow-xs">
         <ChartToolButton label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
           <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
         </ChartToolButton>
