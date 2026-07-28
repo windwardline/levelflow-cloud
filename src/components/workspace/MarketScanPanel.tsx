@@ -59,7 +59,6 @@ export function MarketScanPanel({
     "all",
   );
   const [confidenceBand, setConfidenceBand] = useState<ConfidenceBand>("all");
-  const opportunities = result?.opportunities ?? [];
   const selectedBand =
     CONFIDENCE_BANDS.find((band) => band.value === confidenceBand) ??
       CONFIDENCE_BANDS[0];
@@ -70,11 +69,11 @@ export function MarketScanPanel({
   const filteredOpportunities = useMemo(
     () =>
       filterMarketScanCandidates(
-        opportunities,
+        result?.opportunities ?? [],
         categoryFilter,
         selectedBand.min,
       ),
-    [categoryFilter, opportunities, selectedBand.min],
+    [categoryFilter, result?.opportunities, selectedBand.min],
   );
   const blockedCount = useMemo(
     () =>

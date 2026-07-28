@@ -2,7 +2,7 @@
 
 ## Production response headers
 
-These headers are enforced by `vercel.json` (`public/vercel.json` in this repo, copied into the build and published to the hosting repo). The app is hosted on Vercel; `levelflow.windwardline.com` is a DNS-only Cloudflare record pointing at Vercel, so Cloudflare transform rules do not apply — the checked-in `vercel.json` is the enforcement point.
+These headers are enforced by the checked-in `vercel.json` at the repo root; Vercel builds and deploys the frontend directly from this repo. `levelflow.windwardline.com` is a DNS-only Cloudflare record pointing at Vercel, so Cloudflare transform rules do not apply — `vercel.json` is the enforcement point.
 
 | Header | Value |
 | --- | --- |

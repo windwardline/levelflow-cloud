@@ -8,11 +8,12 @@ describe("volatility timing windows", () => {
     const points = buildHourlyPoints();
     const window = findBestVolatilityWindow(points, "America/New_York");
 
-    assert.equal(window?.startHourUtc, 13);
-    assert.equal(window?.endHourUtc, 15);
-    assert.equal(window?.sessionLabel, "Europe");
-    assert.equal(window?.averageMovePct > window?.baselineMovePct!, true);
-    assert.equal(window?.sampleCount, 20);
+    assert.ok(window);
+    assert.equal(window.startHourUtc, 13);
+    assert.equal(window.endHourUtc, 15);
+    assert.equal(window.sessionLabel, "Europe");
+    assert.equal(window.averageMovePct > window.baselineMovePct, true);
+    assert.equal(window.sampleCount, 20);
   });
 
   it("formats the recommendation in the user's selected local time zone", () => {

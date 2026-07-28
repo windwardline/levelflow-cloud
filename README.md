@@ -4,7 +4,7 @@ LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market rev
 
 ## Architecture
 
-- `public/brand/` contains optimized Windward Capital logo assets for the hosted app.
+- `public/brand/` contains the Windward Line house mark; LevelFlow's own favicon set lives at the `public/` root.
 - `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, legal links, and charting components.
 - `supabase/functions/` contains the production backend: authenticated market data, trade analysis, and calendar ingestion Edge Functions.
 - `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
@@ -15,6 +15,7 @@ LevelFlow Cloud is a React/Vite and Supabase platform for disciplined market rev
 ```bash
 npm install
 npm run dev
+npm run lint
 npm test
 npm run test:e2e
 npm run build
@@ -24,8 +25,8 @@ Run `supabase/init.sql` in the Supabase SQL editor or through your migration wor
 
 ## Continuous Integration and Deployment
 
-`ci.yml` runs typechecks, tests, and the build on every push and pull request
-to `main`.
+`ci.yml` runs typechecks, lint, tests, and the build on every push and pull
+request to `main`.
 
 `deploy.yml` runs on a push to `main`: checks, Supabase migrations, Edge
 Function deploys, browser tests, and a frontend build gate. Vercel builds and

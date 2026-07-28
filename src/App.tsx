@@ -95,11 +95,12 @@ export default function App() {
     theme.setMode,
   );
 
+  const { refreshSetups } = setupState;
   useEffect(() => {
     if (session && activeTab === "history") {
-      setupState.refreshSetups({ forceOutcomeRefresh: true });
+      refreshSetups({ forceOutcomeRefresh: true });
     }
-  }, [activeTab, session, setupState.refreshSetups]);
+  }, [activeTab, session, refreshSetups]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !PERSISTED_TABS.has(activeTab)) {

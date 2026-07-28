@@ -43,9 +43,8 @@ import { rankOpportunities } from "./scanRanking.ts";
 import {
   fetchFirstAvailableMarketContext,
   fetchFmpBars,
-  type ProviderContextResult,
 } from "./marketLoader.ts";
-import { corsHeaders, getBearerToken, jsonResponse } from "./http.ts";
+import { corsHeaders, getBearerToken, jsonResponse } from "../_shared/http.ts";
 import { recordAnalyzerEvent, recordMarketDataHealth } from "./telemetry.ts";
 import {
   adminFetchRows,
@@ -63,7 +62,10 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.07.02.fmp-ultimate-market-expansion";
+const ANALYZER_VERSION = "2026.07.22.tp1-runner-ladder";
+// Global learning aggregates up to 2,500 outcome rows; once per warm
+// instance per interval is enough — it is auxiliary to every request.
+const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMITS: Record<string, number> = {
   generate_setup: 24,
@@ -234,7 +236,7 @@ Deno.serve(async (req) => {
 
     if (body.action === "refresh_outcomes") {
       const outcomeRefresh = await refreshUserOutcomes(token, user.id);
-      const learningRefresh = await refreshGlobalStrategyWeights();
+      const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
       await recordAnalyzerEvent({
         action: "refresh_outcomes",
         metadata: { outcomeRefresh, learningRefresh },
@@ -250,7 +252,7 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "scan_opportunities") {
-      const learningRefresh = await refreshGlobalStrategyWeights();
+      const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
       const scan = await scanOpportunities(token, user.id, body.symbols);
       await recordAnalyzerEvent({
         action: "scan_opportunities",
@@ -279,7 +281,7 @@ Deno.serve(async (req) => {
       limit: 24,
       symbols: [symbol],
     });
-    const learningRefresh = await refreshGlobalStrategyWeights();
+    const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
 
     const review = await reviewCurrentMarket(
       token,
@@ -288,12 +290,7 @@ Deno.serve(async (req) => {
       "generate_setup",
     );
     if (review.blocked) {
-      await invalidateActiveSetupsForSymbol(
-        token,
-        user.id,
-        symbol,
-        review.reason,
-      );
+      await invalidateActiveSetupsForSymbol(token, user.id, symbol);
       return jsonResponse(
         req,
         {
@@ -1172,7 +1169,6 @@ async function upsertActiveSetup(
     }&status=in.(generated,placed)&order=created_at.desc&limit=1`,
   );
   const activeSetup = rows[0] ?? null;
-  const expiresAt = setup.expiresAt;
 
   if (activeSetup && activeSetup.side === setup.side) {
     await updateRows(
@@ -1211,12 +1207,7 @@ async function upsertActiveSetup(
   }
 
   if (activeSetup) {
-    await invalidateActiveSetupsForSymbol(
-      token,
-      userId,
-      symbol,
-      "A newer analysis produced a different current setup.",
-    );
+    await invalidateActiveSetupsForSymbol(token, userId, symbol);
   }
 
   const tradeSetup = await insertSingle(token, "trade_setups", {
@@ -1250,11 +1241,12 @@ async function upsertActiveSetup(
   };
 }
 
+// The user-facing reason is already recorded via analyzer_events; the
+// setup row only tracks the status flip.
 async function invalidateActiveSetupsForSymbol(
   token: string,
   userId: string,
   symbol: SupportedSymbol,
-  reason: string,
 ) {
   await updateRows(
     token,
@@ -1468,7 +1460,44 @@ async function claimAnalyzerRequest(userId: string, action: string) {
   };
 }
 
-async function refreshGlobalStrategyWeights() {
+type LearningRefreshSummary = {
+  reason?: string;
+  skipped: boolean;
+  throttled?: boolean;
+  updated: number;
+};
+
+let lastLearningRefreshAt = 0;
+let lastLearningRefresh: LearningRefreshSummary = {
+  skipped: true,
+  updated: 0,
+  reason: "Global learning has not refreshed in this instance yet.",
+};
+
+async function refreshGlobalStrategyWeightsThrottled(): Promise<
+  LearningRefreshSummary
+> {
+  if (Date.now() - lastLearningRefreshAt < LEARNING_REFRESH_INTERVAL_MS) {
+    return { ...lastLearningRefresh, throttled: true };
+  }
+
+  lastLearningRefreshAt = Date.now();
+  try {
+    lastLearningRefresh = await refreshGlobalStrategyWeights();
+  } catch (error) {
+    console.error("global learning refresh failed", error);
+    lastLearningRefresh = {
+      skipped: true,
+      updated: 0,
+      reason: "Global learning refresh failed; see function logs.",
+    };
+  }
+  return lastLearningRefresh;
+}
+
+async function refreshGlobalStrategyWeights(): Promise<
+  LearningRefreshSummary
+> {
   if (!hasSupabaseAdminConfig()) {
     return {
       skipped: true,
