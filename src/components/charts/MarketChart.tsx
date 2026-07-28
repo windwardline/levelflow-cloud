@@ -108,6 +108,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       chartRef.current = null;
       candleSeriesRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only chart creation; theme changes are applied by the effect below
   }, []);
 
   useEffect(() => {

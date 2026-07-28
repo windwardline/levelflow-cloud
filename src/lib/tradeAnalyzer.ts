@@ -187,7 +187,7 @@ export async function fetchTradeSetups() {
     throw new Error("Supabase is not configured.");
   }
 
-  let query = supabase
+  const query = supabase
     .from("trade_setups")
     .select(
       "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",

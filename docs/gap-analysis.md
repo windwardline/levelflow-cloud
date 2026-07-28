@@ -155,9 +155,9 @@ Last reviewed: 2026-07-02
 
 ### Security and Reliability
 
-- Add the `SUPABASE_DB_PASSWORD` GitHub secret when the team wants CI to apply
-  migrations automatically. Until then, CI verifies migration file integrity and
-  skips remote apply without failing deployment.
+- `SUPABASE_DB_PASSWORD` is a required deploy secret. Every deploy verifies
+  migration files, then applies them with `supabase db push` before Edge
+  Functions deploy.
 - Keep local authenticated E2E optional. CI has the dedicated test-user secrets;
   local runs skip signed-in tests unless those variables are set in the shell.
 - Expand live abuse tests beyond Market Scan if new analyzer actions are

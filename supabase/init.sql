@@ -317,6 +317,7 @@ create index if not exists system_notices_user_active_idx on public.system_notic
 create index if not exists market_data_health_status_idx on public.market_data_health (status, last_checked_at desc);
 create index if not exists analyzer_events_action_status_idx on public.analyzer_events (action, status, created_at desc);
 create index if not exists analyzer_events_symbol_idx on public.analyzer_events (symbol, created_at desc);
+create index if not exists analyzer_events_user_id_idx on public.analyzer_events (user_id);
 
 alter table public.profiles enable row level security;
 alter table public.trade_setups enable row level security;

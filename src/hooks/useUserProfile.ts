@@ -72,7 +72,8 @@ export function useUserProfile(
         : fallback;
       setProfile(nextProfile);
       onThemeChange(nextProfile.themePreference);
-    } catch {
+    } catch (error) {
+      console.error("[profile] load failed; showing defaults", error);
       setProfile(fallback);
     } finally {
       setLoading(false);

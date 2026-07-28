@@ -2,7 +2,7 @@
 
 ## Current Production Surface
 
-- Frontend: GitHub Pages custom domain at `https://levelflow.windwardline.com/` with the legacy GitHub Pages URL retained as a fallback during DNS propagation.
+- Frontend: Vercel builds and deploys from this repo on push to `main`, serving `https://levelflow.windwardline.com/` through a DNS-only Cloudflare record.
 - Auth and database: Supabase project `usrtpoftuvhpmyhlhqlg`.
 - Market data: Supabase Edge Function `market-data`, backed by the FMP key configured in GitHub/Supabase secrets.
 - Market analyzer: Supabase Edge Function `trade-analyzer`, using daily/intraday bars, scheduled-event records, session rules, correlation filtering, limit-only outputs, and RLS-owned inserts.
@@ -24,5 +24,5 @@
 - Economic calendar provider: FMP is selected through `ECONOMIC_CALENDAR_PROVIDER=fmp`; production should be re-tested whenever the FMP plan or key changes.
 - Supabase should remain on a paid tier before external users depend on uptime, log retention, email branding, and sustained auth volume.
 - Trade execution is outside the active product scope. LevelFlow remains a market-review product.
-- Deployment secrets are configured for source build, Supabase function deploys, and Pages artifact publishing. If any token is revoked, update the matching GitHub Actions secret.
+- Deployment secrets are configured for the deploy-workflow gate and Supabase function deploys; Vercel builds the frontend from this repo directly. If any token is revoked, update the matching GitHub Actions secret.
 - Legacy local Supabase CLI token can be revoked after no more local CLI work is needed.

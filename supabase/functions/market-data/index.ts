@@ -1,13 +1,10 @@
+import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-const ALLOWED_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ??
-  "https://levelflow.windwardline.com,http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5175,http://localhost:5175")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 const MARKET_DATA_FETCH_TIMEOUT_MS = 15_000;
 
@@ -91,7 +88,6 @@ const temporarilyUnavailableSymbols = new Set<string>([
 
 const intradayTimeframes = ["1min", "5min", "15min", "1hour", "4hour"] as const;
 
-type SupportedSymbol = string;
 type ChartTimeframe = "1day" | (typeof intradayTimeframes)[number];
 
 type MarketDataRequest = {
@@ -454,26 +450,3 @@ function fetchWithTimeout(
   });
 }
 
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("Origin");
-  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
-    ? origin
-    : ALLOWED_ORIGINS[0] ?? "https://levelflow.windwardline.com";
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
-}
-
-function jsonResponse(req: Request, body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    headers: {
-      ...corsHeaders(req),
-      "Content-Type": "application/json",
-    },
-    status,
-  });
-}

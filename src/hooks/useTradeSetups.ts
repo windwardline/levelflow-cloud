@@ -68,8 +68,9 @@ export function useTradeSetups() {
       if (shouldRefreshOutcomes) {
         try {
           await refreshTradeOutcomes();
-          lastOutcomeRefreshAt = Date.now();
-        } catch {
+        } catch (error) {
+          console.warn("[history] outcome refresh failed; history may lag", error);
+        } finally {
           lastOutcomeRefreshAt = Date.now();
         }
       }

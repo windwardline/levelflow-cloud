@@ -3,8 +3,8 @@ import { useState } from "react";
 import {
   Apple,
   ArrowRight,
-  Chrome,
   Gift,
+  Globe,
   KeyRound,
   LineChart,
   Loader2,
@@ -269,7 +269,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
                     onClick={() => signInWithOAuth("google")}
                     disabled={isBusy || !isSupabaseConfigured}
                   >
-                    <Chrome className="h-4 w-4" aria-hidden="true" />
+                    <Globe className="h-4 w-4" aria-hidden="true" />
                     Google
                   </button>
                 ) : null}
