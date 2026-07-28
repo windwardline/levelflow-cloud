@@ -37,6 +37,7 @@ export type SweepResult = {
     belowThreshold: number;
     noConsensus: number;
     planRejected: number;
+    regimeBlocked: number;
   };
   summary: SweepSummary;
 };
@@ -74,7 +75,12 @@ export function simulateSymbol(input: {
   const resolutionTime = (input.primaryBars.at(-1)?.time ?? 0) +
     14 * 24 * 60 * 60 * 1000;
   let decisionPoints = 0;
-  const rejections = { belowThreshold: 0, noConsensus: 0, planRejected: 0 };
+  const rejections = {
+    belowThreshold: 0,
+    noConsensus: 0,
+    planRejected: 0,
+    regimeBlocked: 0,
+  };
 
   for (
     let index = input.warmupBars;
@@ -110,6 +116,10 @@ export function simulateSymbol(input: {
       },
     };
     const regime = classifyRegime(market);
+    if (calibration.blockedRegimes?.includes(regime.name)) {
+      rejections.regimeBlocked += 1;
+      continue;
+    }
     const votes = runStrategyCommittee(input.symbol, market, regime);
     const consensus = scoreConsensus(votes, regime);
     if (!consensus.side) {

@@ -47,7 +47,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       title: "Run the review",
     },
     {
-      body: "Review the side, entry, stop, target, confidence, and reason before taking any action outside LevelFlow.",
+      body: "Review the side, entry, stop, TP1 (bank half, stop to entry), runner target, confidence, and reason before taking any action outside LevelFlow.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
       title: "Review the setup",

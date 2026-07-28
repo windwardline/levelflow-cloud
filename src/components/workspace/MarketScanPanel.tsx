@@ -101,8 +101,9 @@ export function MarketScanPanel({
         <button
           className="secondary-button min-h-10 px-3 py-2"
           type="button"
-          onClick={() => onScan(scanSymbols)}
-          disabled={status === "scanning" || scanSymbols.length === 0}
+          onClick={() => onScan(categoryFilter === "all" ? [] : scanSymbols)}
+          disabled={status === "scanning" ||
+            (categoryFilter !== "all" && scanSymbols.length === 0)}
         >
           {status === "scanning"
             ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -122,9 +123,15 @@ export function MarketScanPanel({
                 const nextCategory = event.target
                   .value as MarketScanCategoryFilter;
                 setCategoryFilter(nextCategory);
-                // A group change re-scans that group immediately so counts
-                // and rows always describe the symbols actually reviewed.
-                onScan(getMarketScanSymbolsForCategory(nextCategory));
+                // A group change re-scans immediately so counts and rows
+                // always describe the symbols actually reviewed. "All"
+                // sends an empty list: the server scans its curated
+                // measured-edge universe.
+                onScan(
+                  nextCategory === "all"
+                    ? []
+                    : getMarketScanSymbolsForCategory(nextCategory),
+                );
               }}
             >
               <option value="all">All markets</option>
@@ -210,7 +217,9 @@ function MarketScanSummary({
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-semibold leading-5 text-slate">
         Market Scan uses the same review rules as the main advisor and shows
         only the strongest setup when closely linked markets qualify together.
-        Cost ratings: Clean and Acceptable mean spread and slippage leave the
+        The all-markets default focuses on markets where the model has
+        measured edge; choosing a group scans that entire group. Cost
+        ratings: Clean and Acceptable mean spread and slippage leave the
         payoff intact; Thin and Poor mean costs eat a meaningful share of it.
       </div>
     );

@@ -219,11 +219,17 @@ function buildStats(setups: TradeSetupRow[]) {
     categoryStat.averageConfidence += Number(setup.confidence_score);
     summary.total += 1;
 
-    if (outcome === "target_reached") {
+    // Ladder accounting: a win is any money-positive resolution (full
+    // target, banked TP1, or profitable expiry); a loss is any
+    // money-negative one. Anything else would misreport the ladder model.
+    if (
+      outcome === "target_reached" || outcome === "partial_target" ||
+      outcome === "expired_in_profit"
+    ) {
       current.wins += 1;
       categoryStat.wins += 1;
       summary.wins += 1;
-    } else if (outcome === "stopped_out") {
+    } else if (outcome === "stopped_out" || outcome === "expired_in_loss") {
       current.losses += 1;
       categoryStat.losses += 1;
       summary.losses += 1;

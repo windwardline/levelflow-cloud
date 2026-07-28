@@ -34,7 +34,6 @@ import {
 import type { UserProfile } from "../../lib/profile";
 import {
   AVAILABLE_ASSET_GROUPS,
-  AVAILABLE_ASSET_SYMBOLS,
   formatSecurityLabel,
   getSecurityOption,
   type SecurityType,
@@ -231,10 +230,10 @@ export function AdvisorWorkspace(
     }
   }
 
-  async function scanMarkets(
-    symbols: SupportedSymbol[] = AVAILABLE_ASSET_SYMBOLS,
-  ) {
-    const scanSymbols = symbols.length > 0 ? symbols : AVAILABLE_ASSET_SYMBOLS;
+  async function scanMarkets(symbols: SupportedSymbol[] = []) {
+    // An empty list means "all markets": the server applies its curated
+    // default universe (markets with measured model edge).
+    const scanSymbols = symbols.length > 0 ? symbols : undefined;
     setScanStatus("scanning");
     try {
       setScanResult(await scanMarketOpportunities(scanSymbols));
@@ -250,7 +249,7 @@ export function AdvisorWorkspace(
           },
         ],
         opportunities: [],
-        scanned: scanSymbols.length,
+        scanned: scanSymbols?.length ?? 0,
       });
     } finally {
       setScanStatus("idle");

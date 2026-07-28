@@ -17,7 +17,7 @@ export function OverviewPanel() {
       title: "Market context in one pass",
     },
     {
-      body: "Entry, stop, target, confidence, and the reason for the setup are shown together before you decide what to do next.",
+      body: "Entry, stop, TP1 and runner targets, confidence, and the reason for the setup are shown together before you decide what to do next.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       title: "Review support, not trade placement",
     },

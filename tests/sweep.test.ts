@@ -43,7 +43,10 @@ function dailyBars(count: number): Bar[] {
 
 describe("replay sweep", () => {
   it("simulates a symbol across time and resolves outcomes from future bars", () => {
+    // The synthetic oscillator registers as volatile chop; disable the
+    // regime gate here — this test verifies outcome resolution, not policy.
     const result = simulateSymbol({
+      calibrationOverride: { blockedRegimes: [] },
       dailyBars: dailyBars(80),
       primaryBars: triangleBars(600),
       stepBars: 16,
@@ -88,7 +91,8 @@ describe("replay sweep", () => {
     assert.equal(
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
-        result.rejections.planRejected + result.rejections.belowThreshold,
+        result.rejections.planRejected + result.rejections.belowThreshold +
+        result.rejections.regimeBlocked,
     );
   });
 
