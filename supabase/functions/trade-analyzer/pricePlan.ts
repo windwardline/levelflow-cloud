@@ -59,14 +59,24 @@ export function buildPricePlan(
     entryPrice,
     side === "buy" ? pivots.lows : pivots.highs,
   );
+  // Structure may pull the stop nearer than the volatility ceiling, never
+  // beyond it: a stop the review window cannot defend is a swing-trade stop
+  // on an intraday setup (production: 5-10 ATR stops, 50% expired open).
+  const maxStopDistance = atr * calibration.maxStopAtrMultiplier;
   let stopLoss = side === "buy"
-    ? Math.min(
-      (nearestStopPivot ?? entryPrice) - stopBuffer,
-      entryPrice - atr * 1.25,
+    ? Math.max(
+      Math.min(
+        (nearestStopPivot ?? entryPrice) - stopBuffer,
+        entryPrice - atr * 1.25,
+      ),
+      entryPrice - maxStopDistance,
     )
-    : Math.max(
-      (nearestStopPivot ?? entryPrice) + stopBuffer,
-      entryPrice + atr * 1.25,
+    : Math.min(
+      Math.max(
+        (nearestStopPivot ?? entryPrice) + stopBuffer,
+        entryPrice + atr * 1.25,
+      ),
+      entryPrice + maxStopDistance,
     );
   let riskDistance = Math.abs(entryPrice - stopLoss);
   const minimumLimitDistance = Math.max(
@@ -184,10 +194,10 @@ export function buildPricePlan(
     grossRewardRisk: rewardRisk,
     rewardRisk: executionQuality.effectiveRewardRisk,
     stopLogic:
-      "Invalidation beyond the nearest confirmed swing pivot with a volatility buffer.",
+      "Invalidation beyond the nearest confirmed swing pivot with a volatility buffer, capped at the window's volatility ceiling.",
     stopLoss,
     targetLogic:
-      "TP1 sized to the review window's expected move; runner at the nearest structural liquidity level.",
+      "TP1 banks a risk-scaled partial; the runner is the nearest structural level the review window can statistically reach.",
     takeProfit,
     takeProfit1,
   };
@@ -202,7 +212,9 @@ function clampBetween(value: number, boundA: number, boundB: number) {
 export type LadderCalibration = {
   defaultReviewHours: number;
   minimumTargetRewardRisk: number;
+  runnerWindowShare: number;
   tp1AtrMultiplier: number;
+  tp1RiskShare: number;
 };
 
 export type LadderTargets = {
@@ -225,24 +237,33 @@ export function buildLadderTargets(input: {
   const { atr, calibration, dailyAtr, entryPrice, riskDistance, side } = input;
   const expectedWindowMove = dailyAtr *
     Math.sqrt(calibration.defaultReviewHours / 24);
+  // TP1 must be meaningful in R terms, not a fixed ATR crumb: the partial
+  // is a share of risk, floored by the ATR multiplier, capped by what the
+  // window can deliver.
   const tp1Distance = Math.min(
-    atr * calibration.tp1AtrMultiplier,
+    Math.max(
+      riskDistance * calibration.tp1RiskShare,
+      atr * calibration.tp1AtrMultiplier,
+    ),
     expectedWindowMove * TP1_WINDOW_SHARE,
   );
-  // The runner is the nearest structural level that also clears the payoff
-  // floor — pivots inside the minimum distance are skipped, not stretched.
+  // The payoff floor is a feasibility filter, not a target-stretcher: if the
+  // required distance exceeds what the window can statistically reach, the
+  // setup is rejected instead of decorated with an unreachable target.
+  const runnerLimit = expectedWindowMove * calibration.runnerWindowShare;
   const minimumRunnerDistance = riskDistance *
     calibration.minimumTargetRewardRisk;
-  const qualifyingLevels = input.pivotLevels.filter((level) =>
-    side === "buy"
-      ? level >= entryPrice + minimumRunnerDistance
-      : level <= entryPrice - minimumRunnerDistance
-  );
-  const runnerTarget = nearestLevelBeyond(side, entryPrice, qualifyingLevels);
-
-  if (runnerTarget === null || tp1Distance <= 0) {
+  if (minimumRunnerDistance > runnerLimit || tp1Distance <= 0) {
     return null;
   }
+  const qualifyingLevels = input.pivotLevels.filter((level) => {
+    const distance = side === "buy" ? level - entryPrice : entryPrice - level;
+    return distance >= minimumRunnerDistance && distance <= runnerLimit;
+  });
+  // Nearest structural level inside the reachable band; with no structure in
+  // the band, the expected-move objective itself is the runner.
+  const runnerTarget = nearestLevelBeyond(side, entryPrice, qualifyingLevels) ??
+    (side === "buy" ? entryPrice + runnerLimit : entryPrice - runnerLimit);
 
   const runnerDistance = Math.abs(runnerTarget - entryPrice);
   if (runnerDistance <= tp1Distance) {

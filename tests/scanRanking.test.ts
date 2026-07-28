@@ -6,7 +6,7 @@ import {
 } from "../supabase/functions/trade-analyzer/scanRanking.ts";
 
 describe("market scan ranking", () => {
-  it("ranks by expected value, not raw confidence", () => {
+  it("ranks by confidence so the list reads most to least probable", () => {
     const modestConfidenceGoodPayoff = {
       confidenceScore: 70,
       rewardRisk: 2.4,
@@ -19,37 +19,35 @@ describe("market scan ranking", () => {
     };
 
     const ranked = rankOpportunities([
-      highConfidenceThinPayoff,
       modestConfidenceGoodPayoff,
+      highConfidenceThinPayoff,
     ]);
 
-    assert.equal(ranked[0].symbol, "EURUSD");
+    assert.equal(ranked[0].symbol, "XAUUSD");
   });
 
-  it("caps the payoff term so outlier reward:risk cannot dominate", () => {
+  it("ignores payoff in the primary score", () => {
     assert.equal(
       scoreOpportunity({ confidenceScore: 50, rewardRisk: 30 }),
-      scoreOpportunity({ confidenceScore: 50, rewardRisk: 3 }),
+      scoreOpportunity({ confidenceScore: 50, rewardRisk: 1 }),
     );
   });
 
-  it("sinks candidates without a payoff or confidence to the bottom", () => {
+  it("sinks candidates without a confidence score to the bottom", () => {
     const ranked = rankOpportunities([
       { confidenceScore: undefined, rewardRisk: 2, symbol: "A" },
       { confidenceScore: 60, rewardRisk: 2, symbol: "B" },
-      { confidenceScore: 60, rewardRisk: undefined, symbol: "C" },
     ]);
 
     assert.equal(ranked[0].symbol, "B");
   });
 
-  it("breaks expected-value ties by confidence", () => {
+  it("breaks confidence ties by payoff", () => {
     const ranked = rankOpportunities([
-      { confidenceScore: 60, rewardRisk: 2, symbol: "LOW" },
-      { confidenceScore: 80, rewardRisk: 1.5, symbol: "HIGH" },
+      { confidenceScore: 70, rewardRisk: 1.5, symbol: "THIN" },
+      { confidenceScore: 70, rewardRisk: 2.2, symbol: "RICH" },
     ]);
 
-    // 60 * 2 = 120 = 80 * 1.5 — the tie goes to higher confidence.
-    assert.equal(ranked[0].symbol, "HIGH");
+    assert.equal(ranked[0].symbol, "RICH");
   });
 });

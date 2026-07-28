@@ -14,7 +14,9 @@ import type {
 const ladderCalibration = {
   defaultReviewHours: 6,
   minimumTargetRewardRisk: 1.9,
+  runnerWindowShare: 1,
   tp1AtrMultiplier: 0.8,
+  tp1RiskShare: 0.8,
 };
 
 describe("ladder targets", () => {
@@ -53,7 +55,9 @@ describe("ladder targets", () => {
     assert.equal(ladder.takeProfit1, 103);
   });
 
-  it("rejects the setup instead of stretching when no pivot lies beyond entry", () => {
+  it("falls back to the expected-move objective when no structural level qualifies", () => {
+    // No pivot sits in the reachable band, so the runner is the window's own
+    // expected-move objective: entry + runnerWindowShare * expectedWindowMove.
     const ladder = buildLadderTargets({
       atr: 2,
       calibration: ladderCalibration,
@@ -64,7 +68,58 @@ describe("ladder targets", () => {
       side: "buy",
     });
 
+    assert.ok(ladder);
+    assert.equal(ladder.runnerTarget, 105);
+  });
+
+  it("rejects the setup when the payoff floor is unreachable inside the window", () => {
+    // minimumRunnerDistance = 1.9 * risk 3 = 5.7 exceeds the window's
+    // reachable move of 5; the setup is rejected, not stretched.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: ladderCalibration,
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [104, 108, 120],
+      riskDistance: 3,
+      side: "buy",
+    });
+
     assert.equal(ladder, null);
+  });
+
+  it("keeps the runner inside the reachable band even when structure sits farther", () => {
+    // The only pivots beyond the floor are outside the reachable band, so the
+    // runner caps at the expected-move objective instead of chasing them.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: ladderCalibration,
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [108, 112],
+      riskDistance: 2,
+      side: "buy",
+    });
+
+    assert.ok(ladder);
+    assert.equal(ladder.runnerTarget, 105);
+  });
+
+  it("banks a risk-scaled TP1 rather than a fixed ATR crumb", () => {
+    // tp1 = max(risk 4 * 0.8 = 3.2, atr 2 * 0.8 = 1.6) capped by
+    // 0.6 * expectedWindowMove 5 = 3.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: { ...ladderCalibration, minimumTargetRewardRisk: 1.2 },
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [104.9],
+      riskDistance: 4,
+      side: "buy",
+    });
+
+    assert.ok(ladder);
+    assert.equal(ladder.takeProfit1, 103);
   });
 
   it("skips past too-close pivots to the nearest qualifying runner", () => {
@@ -151,10 +206,12 @@ describe("price plan integration", () => {
         volume: 1_000,
       });
     }
+    // Daily range is ~10x the 15-minute ATR, matching real intraday-to-daily
+    // volatility ratios, so window-feasibility math behaves like production.
     const daily: Bar[] = Array.from({ length: 80 }, (_, index) => ({
       close: 100 + (index % 2 === 0 ? 0.5 : -0.5),
-      high: 101,
-      low: 99,
+      high: 103.2,
+      low: 96.8,
       open: 100,
       time: index * 86_400_000,
       volume: 10_000,

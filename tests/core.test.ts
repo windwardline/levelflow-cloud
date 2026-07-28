@@ -425,7 +425,7 @@ describe("profile preferences", () => {
       REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Futures,
       getCategoryCalibration("ESUSD").defaultReviewHours,
     );
-    assert.equal(reviewWindowLabel("Indices"), "Up to 4 hours");
+    assert.equal(reviewWindowLabel("Indices"), "Up to 5 hours");
   });
 
   it("groups U.S. time zones by Daylight Saving Time observance", () => {

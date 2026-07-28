@@ -36,6 +36,22 @@ export function uniqueReviewMessages(values: string[]) {
   );
 }
 
+// Plain-language gloss for the execution-quality labels so "Thin" or
+// "Poor" never appears without an explanation of what it costs the trader.
+const EXECUTION_LABEL_DESCRIPTIONS: Record<string, string> = {
+  Clean: "Trading costs (spread + slippage) are a small fraction of the risk.",
+  Acceptable: "Trading costs are noticeable but leave the payoff intact.",
+  Thin:
+    "Trading costs eat a meaningful share of the payoff — consider smaller size or better pricing.",
+  Poor:
+    "Trading costs are high relative to this setup's risk; the payoff after costs is weak.",
+};
+
+export function describeExecutionLabel(label: string | null | undefined) {
+  return (label && EXECUTION_LABEL_DESCRIPTIONS[label]) ??
+    "Estimated spread and slippage were checked against the setup's risk.";
+}
+
 export function formatStrategyName(value: string) {
   return value
     .replace(/_/g, " ")
