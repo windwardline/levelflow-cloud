@@ -127,9 +127,12 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
     }
     const outcome = getSetupOutcome(setup);
     band.count += 1;
-    if (outcome === "target_reached" || outcome === "partial_target") {
+    if (
+      outcome === "target_reached" || outcome === "partial_target" ||
+      outcome === "expired_in_profit"
+    ) {
       band.wins += 1;
-    } else if (outcome === "stopped_out") {
+    } else if (outcome === "stopped_out" || outcome === "expired_in_loss") {
       band.losses += 1;
     } else if (outcome === "unclear_path") {
       band.ambiguous += 1;

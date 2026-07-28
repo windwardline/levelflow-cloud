@@ -24,6 +24,7 @@ import {
   getCorrelationGroup as getAnalyzerCorrelationGroup,
   isHeadlineNewsRelevantForSymbol,
   getRelatedSymbols,
+  isKnownSymbol,
   isTemporarilyUnavailableSymbol,
   resolveProviderSymbols,
 } from "../supabase/functions/trade-analyzer/symbols.ts";
@@ -299,8 +300,16 @@ describe("trade analyzer category handling", () => {
     assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO", "EWA"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
     assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
-    assert.equal(defaultScanSymbols.includes("NSDQ"), true);
+    // Cash indices, CHF-quote pairs, and crypto alts stay reviewable but are
+    // curated out of the default all-market scan (measured-edge universe).
+    assert.equal(defaultScanSymbols.includes("NSDQ"), false);
+    assert.equal(defaultScanSymbols.includes("USDCHF"), false);
+    assert.equal(defaultScanSymbols.includes("SOLUSD"), false);
+    assert.equal(isKnownSymbol("NSDQ"), true);
+    assert.equal(isKnownSymbol("USDCHF"), true);
     assert.equal(defaultScanSymbols.includes("WTI"), true);
+    assert.equal(defaultScanSymbols.includes("YMUSD"), true);
+    assert.equal(defaultScanSymbols.includes("BTCUSD"), true);
     assert.equal(defaultScanSymbols.includes("ASX"), false);
     assert.deepEqual(getRelatedSymbols("EURUSD").slice(0, 2), [
       "EURNZD",

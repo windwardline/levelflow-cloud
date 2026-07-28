@@ -234,8 +234,37 @@ const correlationGroups: Record<string, string[]> = {
   us_equity_indices: ["SP", "NSDQ", "DOW", "ESUSD", "NQUSD", "RTYUSD", "YMUSD"],
 };
 
+// Character groups the 2026-07-28 universe sweep measured as edge-negative
+// for the current model: CHF-quote pairs (managed-franc grind), crypto
+// alt-coins (noisier microstructure than BTC/ETH), and cash-index sessions
+// (truncated windows; the index futures YM/NQ/ES cover that exposure with
+// measured positive expectancy). The default all-market scan highlights
+// markets where the model has demonstrated edge; users can still scan any
+// group explicitly or review any symbol directly in the advisor.
+const scanDeprioritizedSymbols = new Set<string>([
+  "USDCHF",
+  "AUDCHF",
+  "GBPCHF",
+  "EURCHF",
+  "NZDCHF",
+  "CADCHF",
+  "ADAUSD",
+  "BCHUSD",
+  "BNBUSD",
+  "LTCUSD",
+  "SOLUSD",
+  "XRPUSD",
+  "SP",
+  "NSDQ",
+  "DOW",
+  "NIKKEI",
+  "DAX",
+]);
+
 export const defaultScanSymbols = Object.keys(normalizedSymbolMap).filter(
-  (symbol) => !temporarilyUnavailableSymbols.has(symbol),
+  (symbol) =>
+    !temporarilyUnavailableSymbols.has(symbol) &&
+    !scanDeprioritizedSymbols.has(symbol),
 );
 
 export function isKnownSymbol(symbol: string) {

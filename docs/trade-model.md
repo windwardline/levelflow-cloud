@@ -1,7 +1,7 @@
 # LevelFlow Trade Model
 
 Model version: `2026.07.28.window-feasible-ladder`
-Last reviewed: 2026-07-28
+Last reviewed: 2026-07-28 (round 3)
 
 ## Geometry
 
@@ -54,6 +54,27 @@ Sweep of 2026-07-28 (60 days, 10 symbols, out-of-sample):
   validated against the fresh outcome cohort this version starts.
 - NGUSD setups fail the effective-payoff gate almost always — its trading
   costs were never viable; the honest model shows fewer or no NG setups.
+
+## Round-3 universe findings (2026-07-28)
+
+Every supported symbol was swept individually (58 symbols, 60 days,
+walk-forward). Durable character groups emerged:
+
+- CHF-quote pairs: 7 of 7 OOS-negative. CAD/NZD-quote pairs: 8 of 8
+  positive. Metals and index futures positive; cash indices negative on
+  small truncated-session samples; crypto majors positive, alts negative.
+- A volatile-chop regime gate and character-group threshold bumps were
+  implemented and A/B swept. Neither validated: effects were inconsistent
+  across symbols and threshold bumps shrank samples without repairing
+  expectancy (in no-edge groups the confidence score does not
+  discriminate). The unvalidated knobs were reverted; the regime-gate
+  mechanism (`blockedRegimes`) remains available and tested for future
+  cohort evidence.
+- The adopted, durable response is scan curation: the default all-market
+  scan covers only markets with measured edge (CHF-quote pairs, crypto
+  alts, and cash indices are excluded). Every symbol remains reviewable
+  directly, and explicit group scans cover the full group. Curation is
+  data-driven and should be revisited as the live cohort accumulates.
 
 ## Cohorts
 

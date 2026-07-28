@@ -871,6 +871,9 @@ async function analyzeSetup(
 ) {
   const calibration = getCategoryCalibration(symbol);
   const regime = classifyRegime(market);
+  if (calibration.blockedRegimes?.includes(regime.name)) {
+    return null;
+  }
   const votes = runStrategyCommittee(symbol, market, regime);
   const consensus = scoreConsensus(votes, regime);
   if (!consensus.side) {
@@ -1055,6 +1058,12 @@ async function explainNoSetup(
   const votes = runStrategyCommittee(symbol, market, regime);
   const consensus = scoreConsensus(votes, regime);
   const diagnostics: string[] = [];
+
+  if (calibration.blockedRegimes?.includes(regime.name)) {
+    diagnostics.push(
+      "Market conditions are in elevated-volatility chop; LevelFlow does not open new setups in this regime.",
+    );
+  }
 
   if (!consensus.side) {
     diagnostics.push(

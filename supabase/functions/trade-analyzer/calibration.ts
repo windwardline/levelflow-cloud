@@ -8,6 +8,10 @@ export type AssetType =
 export type RegimeName = "compression" | "range" | "trend" | "volatile_chop";
 
 export type CategoryCalibration = {
+  // Regimes in which no new setup may be initiated, regardless of score.
+  // Entering elevated-volatility chop is a losing proposition across
+  // classes; structure and signals both degrade.
+  blockedRegimes?: RegimeName[];
   confidenceThreshold: number;
   dailyTargetAtrMultiplier: number;
   dailyStopAtrMultiplier: number;
