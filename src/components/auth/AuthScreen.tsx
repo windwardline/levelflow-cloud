@@ -148,7 +148,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-3">
               <img
-                className="h-14 w-14 rounded-lg object-contain shadow-sm"
+                className="h-14 w-14 rounded-lg object-contain shadow-xs"
                 src={brandAssets.mark}
                 alt="Windward Line mark"
               />
@@ -220,7 +220,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               <Mail className="h-4 w-4 text-slate" aria-hidden="true" />
               <input
                 id="email"
-                className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-navy outline-none"
+                className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-navy outline-hidden"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
