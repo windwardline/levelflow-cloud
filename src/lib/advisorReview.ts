@@ -8,12 +8,12 @@ export const ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"] as const;
 export const ADVISOR_EXECUTION_INTERVALS = ["5M", "1M"] as const;
 
 export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
-  Crypto: 8,
-  Energies: 5,
-  Forex: 6,
-  Futures: 4,
-  Indices: 4,
-  Metals: 6,
+  Crypto: 12,
+  Energies: 6,
+  Forex: 8,
+  Futures: 6,
+  Indices: 5,
+  Metals: 8,
 };
 
 export function advisorChartViewLabel(timeframe: ChartTimeframe) {

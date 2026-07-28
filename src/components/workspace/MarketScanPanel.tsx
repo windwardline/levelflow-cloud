@@ -28,6 +28,7 @@ import {
   getMarketScanSymbolsForCategory,
   type MarketScanCategoryFilter,
 } from "./marketScanFilters";
+import { describeExecutionLabel } from "./reviewCopy";
 
 type ConfidenceBand = "all" | ConfidenceTierId;
 
@@ -117,10 +118,14 @@ export function MarketScanPanel({
             <select
               className="field h-10 text-sm normal-case"
               value={categoryFilter}
-              onChange={(event) =>
-                setCategoryFilter(
-                  event.target.value as MarketScanCategoryFilter,
-                )}
+              onChange={(event) => {
+                const nextCategory = event.target
+                  .value as MarketScanCategoryFilter;
+                setCategoryFilter(nextCategory);
+                // A group change re-scans that group immediately so counts
+                // and rows always describe the symbols actually reviewed.
+                onScan(getMarketScanSymbolsForCategory(nextCategory));
+              }}
             >
               <option value="all">All markets</option>
               {AVAILABLE_ASSET_GROUPS.map((group) => (
@@ -205,6 +210,8 @@ function MarketScanSummary({
       <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-semibold leading-5 text-slate">
         Market Scan uses the same review rules as the main advisor and shows
         only the strongest setup when closely linked markets qualify together.
+        Cost ratings: Clean and Acceptable mean spread and slippage leave the
+        payoff intact; Thin and Poor mean costs eat a meaningful share of it.
       </div>
     );
   }
@@ -304,7 +311,11 @@ function MarketScanRow({
           value={formatConfidenceWithTier(candidate.confidenceScore)}
         />
         <Metric label="Payoff" value={formatPayoff(candidate.rewardRisk)} />
-        <Metric label="Costs" value={candidate.executionLabel || "Checked"} />
+        <Metric
+          label="Costs"
+          title={describeExecutionLabel(candidate.executionLabel)}
+          value={candidate.executionLabel || "Checked"}
+        />
       </div>
 
       <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-slate">
@@ -344,9 +355,11 @@ function MarketScanRow({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric(
+  { label, title, value }: { label: string; title?: string; value: string },
+) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" title={title}>
       <p className="font-semibold uppercase tracking-normal text-slate">
         {label}
       </p>

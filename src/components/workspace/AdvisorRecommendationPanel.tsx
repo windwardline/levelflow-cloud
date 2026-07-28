@@ -10,7 +10,11 @@ import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { SetupQualityReceipt } from "./SetupQualityReceipt";
-import { uniqueReviewMessages } from "./reviewCopy";
+import {
+  describeExecutionLabel,
+  formatStrategyName,
+  uniqueReviewMessages,
+} from "./reviewCopy";
 import { formatNumber, formatTimestamp } from "./advisorFormat";
 import { MetricRow } from "./AdvisorMetricRow";
 
@@ -33,11 +37,20 @@ export function RecommendationPanel({
 
   if (setup) {
     const isBuy = setup.side === "buy";
+    const hasLadder = typeof setup.takeProfit1 === "number" &&
+      setup.takeProfit1 > 0;
+    const executionLabel = String(
+      (setup.riskModel as Record<string, Record<string, unknown>>)
+        ?.executionQuality?.label ?? "",
+    );
+    const rewardRisk = Number(
+      (setup.confluence as Record<string, unknown>)?.rewardRisk ?? 0,
+    );
     const levelSummary = `${setup.side.toUpperCase()} LIMIT ${setup.symbol} @ ${
       formatNumber(setup.entryPrice)
-    } | SL ${formatNumber(setup.stopLoss)} | TP ${
-      formatNumber(setup.takeProfit)
-    }`;
+    } | SL ${formatNumber(setup.stopLoss)}${
+      hasLadder ? ` | TP1 ${formatNumber(setup.takeProfit1!)}` : ""
+    } | ${hasLadder ? "Runner" : "TP"} ${formatNumber(setup.takeProfit)}`;
 
     return (
       <div className="grid gap-4">
@@ -49,6 +62,35 @@ export function RecommendationPanel({
           {setup.side.toUpperCase()} LIMIT
         </div>
         <ConfidenceGauge score={setup.confidenceScore} />
+        <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs">
+          <div className="min-w-0">
+            <p className="font-semibold uppercase tracking-normal text-slate">
+              Confidence
+            </p>
+            <p className="mt-0.5 truncate font-semibold text-navy">
+              {Math.round(setup.confidenceScore)}%
+            </p>
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold uppercase tracking-normal text-slate">
+              Payoff
+            </p>
+            <p className="mt-0.5 truncate font-semibold text-navy">
+              {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
+            </p>
+          </div>
+          <div
+            className="min-w-0"
+            title={describeExecutionLabel(executionLabel)}
+          >
+            <p className="font-semibold uppercase tracking-normal text-slate">
+              Costs
+            </p>
+            <p className="mt-0.5 truncate font-semibold text-navy">
+              {executionLabel || "Checked"}
+            </p>
+          </div>
+        </div>
         <div className="grid gap-2 text-sm">
           <MetricRow
             label="Limit entry"
@@ -56,13 +98,17 @@ export function RecommendationPanel({
             valueClassName={isBuy ? "text-bullish" : "text-danger"}
           />
           <MetricRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
+          {hasLadder
+            ? (
+              <MetricRow
+                label="TP1 — bank half"
+                value={formatNumber(setup.takeProfit1!)}
+              />
+            )
+            : null}
           <MetricRow
-            label="Take profit"
+            label={hasLadder ? "Runner target" : "Take profit"}
             value={formatNumber(setup.takeProfit)}
-          />
-          <MetricRow
-            label="Break-even reference"
-            value={formatNumber(setup.breakevenTriggerPrice)}
           />
           {setup.expiresAt
             ? (
@@ -73,6 +119,34 @@ export function RecommendationPanel({
             )
             : null}
         </div>
+        {hasLadder
+          ? (
+            <ol className="grid gap-1.5 rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs leading-5 text-slate">
+              <li>
+                <span className="font-semibold text-navy">1.</span>{" "}
+                Limit order fills at the entry price.
+              </li>
+              <li>
+                <span className="font-semibold text-navy">2.</span>{" "}
+                At TP1, close half the position and move the stop to the entry
+                price — the rest of the trade can no longer lose.
+              </li>
+              <li>
+                <span className="font-semibold text-navy">3.</span>{" "}
+                The remaining half targets the runner level until the
+                valid-until time.
+              </li>
+            </ol>
+          )
+          : null}
+        {setup.correlationGroup
+          ? (
+            <p className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-medium leading-5 text-slate">
+              Closely linked market group: {formatStrategyName(setup.correlationGroup)}. Only the
+              strongest setup in a linked group is shown at a time.
+            </p>
+          )
+          : null}
         <button
           className="secondary-button w-full"
           type="button"

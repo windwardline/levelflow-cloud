@@ -16,6 +16,7 @@ export type AnalyzerSetup = {
   stopLoss: number;
   symbol: SupportedSymbol;
   takeProfit: number;
+  takeProfit1?: number;
 };
 
 export type AnalyzerResponse = {

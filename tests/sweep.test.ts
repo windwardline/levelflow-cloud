@@ -28,11 +28,13 @@ function triangleBars(count: number, period = 20, amplitude = 4): Bar[] {
   });
 }
 
+// Daily range ~10x the 15-minute ATR so window-feasibility math matches
+// real intraday-to-daily volatility ratios.
 function dailyBars(count: number): Bar[] {
   return Array.from({ length: count }, (_, index) => ({
     close: 100 + (index % 2 === 0 ? 0.5 : -0.5),
-    high: 101,
-    low: 99,
+    high: 103.2,
+    low: 96.8,
     open: 100,
     time: startTime - count * 86_400_000 + index * 86_400_000,
     volume: 10_000,
@@ -86,7 +88,7 @@ describe("replay sweep", () => {
     assert.equal(
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
-        result.rejections.planRejected,
+        result.rejections.planRejected + result.rejections.belowThreshold,
     );
   });
 

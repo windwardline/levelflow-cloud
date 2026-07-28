@@ -8,6 +8,7 @@ import {
   type ReplayBar,
   type ResolvedOutcome,
 } from "./replay.ts";
+import { scoreSetupConfidence } from "./scoring.ts";
 import {
   classifyRegime,
   runStrategyCommittee,
@@ -33,6 +34,7 @@ export type SweepResult = {
   decisionPoints: number;
   outcomes: SweepOutcomeRecord[];
   rejections: {
+    belowThreshold: number;
     noConsensus: number;
     planRejected: number;
   };
@@ -72,7 +74,7 @@ export function simulateSymbol(input: {
   const resolutionTime = (input.primaryBars.at(-1)?.time ?? 0) +
     14 * 24 * 60 * 60 * 1000;
   let decisionPoints = 0;
-  const rejections = { noConsensus: 0, planRejected: 0 };
+  const rejections = { belowThreshold: 0, noConsensus: 0, planRejected: 0 };
 
   for (
     let index = input.warmupBars;
@@ -123,6 +125,28 @@ export function simulateSymbol(input: {
     );
     if (!plan) {
       rejections.planRejected += 1;
+      continue;
+    }
+
+    // Mirror the live analyzer's acceptance gates: confidence threshold and
+    // effective payoff floor. News, session, macro, and learning inputs are
+    // zero offline, matching a clean-conditions review.
+    const scoreBreakdown = scoreSetupConfidence({
+      availableTimeframeCount: market.availableTimeframes.length,
+      calibration,
+      consensusScore: consensus.score,
+      executionPenalty: plan.executionQuality.confidencePenalty,
+      macroAdjustment: 0,
+      newsPenaltyUnits: 0,
+      providerWarningCount: 0,
+      sessionPenalty: 0,
+      weightAdjustment: 0,
+    });
+    if (
+      scoreBreakdown.confidenceScore < calibration.confidenceThreshold ||
+      plan.rewardRisk < calibration.minRewardRisk
+    ) {
+      rejections.belowThreshold += 1;
       continue;
     }
 

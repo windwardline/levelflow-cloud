@@ -3,18 +3,12 @@ export type RankableOpportunity = {
   rewardRisk?: number;
 };
 
-// Payoff is capped so a single outlier reward:risk cannot outrank a setup
-// with genuinely better hit odds. Calibrated P(TP1) replaces this proxy once
-// the replay sweep produces per-class hit-rate curves.
-const REWARD_RISK_CAP = 3;
-
+// Confidence is the probability proxy and the primary sort: the scan lists
+// setups from most to least likely, full stop. Payoff breaks ties only —
+// multiplying it in scrambled probability order without adding information.
 export function scoreOpportunity(candidate: RankableOpportunity) {
   const confidence = Number(candidate.confidenceScore);
-  const rewardRisk = Number(candidate.rewardRisk);
-  if (!Number.isFinite(confidence) || !Number.isFinite(rewardRisk)) {
-    return 0;
-  }
-  return confidence * Math.min(Math.max(rewardRisk, 0), REWARD_RISK_CAP);
+  return Number.isFinite(confidence) ? confidence : 0;
 }
 
 export function rankOpportunities<T extends RankableOpportunity>(
@@ -22,6 +16,6 @@ export function rankOpportunities<T extends RankableOpportunity>(
 ): T[] {
   return [...candidates].sort((first, second) =>
     scoreOpportunity(second) - scoreOpportunity(first) ||
-    (second.confidenceScore ?? 0) - (first.confidenceScore ?? 0)
+    (second.rewardRisk ?? 0) - (first.rewardRisk ?? 0)
   );
 }
