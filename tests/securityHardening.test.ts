@@ -148,5 +148,10 @@ describe("security hardening", () => {
     assert.match(script, /"smtp_sender_name":\s*"Levelflow"/);
     assert.match(script, /security find-generic-password/);
     assert.doesNotMatch(script, /re_[A-Za-z0-9]{10,}/); // no hardcoded Resend key
+    assert.match(script, /--fail-with-body/);
+    // Failure diagnostics must pass through the message filter, never a
+    // raw body echo that could carry smtp_pass back to the terminal.
+    assert.doesNotMatch(script, /echo "\$resp"/);
+    assert.match(script, /PATCH failed/);
   });
 });
