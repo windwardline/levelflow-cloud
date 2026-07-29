@@ -188,7 +188,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
         <div className="terminal-panel auth-login-panel mx-auto w-full max-w-md p-6">
           <div className="mb-6 space-y-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-paper">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
             <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
