@@ -15,6 +15,18 @@ export function getSessionContext(
   const assetType = getAssetType(symbol);
 
   if (assetType === "crypto") {
+    // 12:00-18:00 UTC measured negative on both walk-forward splits across
+    // 3+ years (US-session momentum flows work against pullback entries).
+    if (isLowEdgeUtcWindow(now)) {
+      return {
+        block: true,
+        label: "Crypto low-edge window",
+        marketKind: "crypto",
+        penalty: 100,
+        reason:
+          "Measured results for crypto setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so LevelFlow does not open new crypto setups in this window.",
+      };
+    }
     return {
       block: false,
       label: "Continuous digital asset session",
@@ -85,6 +97,19 @@ export function getSessionContext(
       };
     }
 
+    // Futures only (not metals/energies/indices): 12:00-18:00 UTC measured
+    // negative on both walk-forward splits across 3+ years.
+    if (marketKind === "futures" && isLowEdgeUtcWindow(now)) {
+      return {
+        block: true,
+        label: "Futures low-edge window",
+        marketKind,
+        penalty: 100,
+        reason:
+          "Measured results for futures setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so LevelFlow does not open new futures setups in this window.",
+      };
+    }
+
     return {
       block: false,
       label: sessionLabel,
@@ -146,6 +171,11 @@ export function getSessionContext(
       ? "Late-session liquidity can reduce follow-through."
       : undefined,
   };
+}
+
+function isLowEdgeUtcWindow(now: Date) {
+  const hour = now.getUTCHours();
+  return hour >= 12 && hour < 18;
 }
 
 function getZonedParts(date: Date, timeZone: string) {

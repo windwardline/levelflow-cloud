@@ -1,7 +1,7 @@
 # LevelFlow Trade Model
 
-Model version: `2026.07.28.window-feasible-ladder`
-Last reviewed: 2026-07-28 (round 3)
+Model version: `2026.07.28.session-hour-gates`
+Last reviewed: 2026-07-28 (round 4)
 
 ## Geometry
 
@@ -101,6 +101,36 @@ regime, payoff, outcome). 31,466 records across all 58 symbols produced:
   broadly OOS-positive regime — consistent with the pullback-limit style.
   Closing the remaining gap is the standing calibration program: pinned
   replay plus the live outcome cohort now accumulating.
+
+## Round-4 calibration (2026-07-28, 1,200-day session-aware replay)
+
+The harness became session-aware (bar-time session context: blocks and
+penalties now apply in replay exactly as in production) and the bar cache
+anchors to the run day, so the window always rolls forward with time.
+148,465 records across all 58 symbols over ~3.3 years produced:
+
+- **Range-emphasis rejected.** The 150-day "range is the good regime"
+  finding did not survive the 8x sample: regime score adjustments moved
+  expectancy by less than ±0.01R with split disagreement everywhere. The
+  mechanism (`regimeScoreAdjustments`) remains available, unconfigured.
+- **Low-edge hour gates validated.** Setups opened 12:00-18:00 UTC were
+  negative on BOTH splits for crypto and futures (US-session momentum
+  flows against pullback entries; the London/NY overlap similarly tested
+  negative for forex — the "liquidity is always good" prior is wrong for
+  this style). Crypto and futures no longer open setups in that window.
+- **Durability table (150d vs 1,200d):** every previously curated group
+  re-confirmed negative in both independent windows. Four new durable
+  negatives joined the scan curation: AUDCAD, AUDUSD, GBPAUD, GBPJPY.
+  Durable positives: BRENT, BZUSD, EURGBP, GCUSD.
+- **First OOS-positive whole-system configuration.** Gates + curation
+  moved 16-month out-of-sample expectancy from -0.008R to +0.003R per
+  filled setup (n=18,410), with the training split improving in lockstep
+  (+0.027 to +0.035). Per class OOS: metals +0.041, energies +0.032,
+  futures +0.007, forex +0.004, crypto -0.008, indices -0.073 (curated
+  out of the default scan). Small, real, and measured — not a promise.
+- Next designed feature: a COT positioning vote (weekly CFTC data maps to
+  the full universe via FMP), which requires an honest historical join in
+  the replay before it can gate.
 
 ## Cohorts
 
