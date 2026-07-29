@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
       deduplicated: savedSetup.deduplicated,
       message: savedSetup.updated
         ? "Updated the current setup without creating a duplicate entry."
-        : "Built a current limit setup. LevelFlow does not place trades.",
+        : "Built a current limit setup. Levelflow does not place trades.",
       learningRefresh,
       outcomeRefresh,
       setupId: savedSetup.setupId,
@@ -425,7 +425,7 @@ async function reviewCurrentMarket(
     return {
       blocked: true,
       reason:
-        "This market group is temporarily unavailable while LevelFlow verifies chart coverage.",
+        "This market group is temporarily unavailable while Levelflow verifies chart coverage.",
       symbol: normalizedSymbol,
     };
   }
@@ -441,7 +441,7 @@ async function reviewCurrentMarket(
     });
     return {
       blocked: true,
-      reason: "Unsupported LevelFlow market symbol.",
+      reason: "Unsupported Levelflow market symbol.",
       statusCode: 400,
       symbol: normalizedSymbol,
     };
@@ -1031,7 +1031,7 @@ async function analyzeSetup(
       futuresContract: pricePlan.contractSpec,
       positionSizingStatus: "not_calculated",
       positionSizingReason:
-        "LevelFlow records directional market setups only; position sizing should be handled in the trader's execution platform.",
+        "Levelflow records directional market setups only; position sizing should be handled in the trader's execution platform.",
       activeNewsEventsTracked: newsContext.active.length,
       headlineNewsEventsTracked: newsContext.headlineCount,
       newsPenaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
@@ -1067,7 +1067,7 @@ async function explainNoSetup(
 
   if (calibration.blockedRegimes?.includes(regime.name)) {
     diagnostics.push(
-      "Market conditions are in elevated-volatility chop; LevelFlow does not open new setups in this regime.",
+      "Market conditions are in elevated-volatility chop; Levelflow does not open new setups in this regime.",
     );
   }
 
@@ -1123,7 +1123,7 @@ async function explainNoSetup(
     const confidenceScore = scoreBreakdown.confidenceScore;
 
     diagnostics.push(
-      `The current ${consensus.side} setup scored ${confidenceScore}; LevelFlow requires ${calibration.confidenceThreshold} or higher for this market.`,
+      `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
     );
     if (!pricePlan) {
       diagnostics.push(
@@ -1133,7 +1133,7 @@ async function explainNoSetup(
       diagnostics.push(
         `Payoff was ${
           pricePlan.rewardRisk.toFixed(2)
-        }x; LevelFlow requires at least ${
+        }x; Levelflow requires at least ${
           calibration.minRewardRisk.toFixed(2)
         }x for this market.`,
       );

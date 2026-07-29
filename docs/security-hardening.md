@@ -1,4 +1,4 @@
-# LevelFlow Security Hardening
+# Levelflow Security Hardening
 
 ## Production response headers
 

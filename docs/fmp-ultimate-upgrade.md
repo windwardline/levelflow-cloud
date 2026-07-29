@@ -4,7 +4,7 @@ Last reviewed: 2026-07-02
 
 ## Confirmed Plan Value
 
-FMP's Ultimate plan adds materially more useful data for LevelFlow than Premium:
+FMP's Ultimate plan adds materially more useful data for Levelflow than Premium:
 
 - 3,000 API calls per minute instead of 750.
 - Global coverage.
@@ -14,7 +14,7 @@ FMP's Ultimate plan adds materially more useful data for LevelFlow than Premium:
 - Earnings transcripts, ETF and mutual fund holdings, and 13F institutional
   holdings.
 
-For LevelFlow's current market-review workflow, the most valuable items are
+For Levelflow's current market-review workflow, the most valuable items are
 1-minute intraday charting, deeper intraday lookbacks, full historical daily
 context, broader provider coverage, Treasury-rate context, targeted market
 headlines, economic calendars, earnings calendars, and higher call capacity for
@@ -69,7 +69,7 @@ confirmed E8-aligned chart data.
 
 ## Intentionally Deferred
 
-- Free-form headline sentiment is not used as a directional signal. LevelFlow
+- Free-form headline sentiment is not used as a directional signal. Levelflow
   uses headlines only as timing risk until a tested sentiment model exists with
   false-positive controls.
 - Sector performance is not yet used directly. It is useful for future
@@ -77,7 +77,7 @@ confirmed E8-aligned chart data.
   behavior before changing setup confidence.
 - Economic indicator history is not yet used beyond the live event calendar.
   It is a good candidate for a later macro-regime layer after backtesting
-  release-surprise behavior against LevelFlow's traded markets.
-- Bulk and batch endpoints are still not used because LevelFlow's verified
+  release-surprise behavior against Levelflow's traded markets.
+- Bulk and batch endpoints are still not used because Levelflow's verified
   symbol list is small enough for controlled per-symbol requests. Batch
   endpoints become more valuable if the public market universe expands.

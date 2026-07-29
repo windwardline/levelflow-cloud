@@ -6,8 +6,8 @@ type DonatePanelProps = {
 };
 
 export function DonatePanel({ supportEmail }: DonatePanelProps) {
-  const donationFallbackHref = `mailto:${supportEmail}?subject=${encodeURIComponent("[LevelFlow] Development support")}&body=${encodeURIComponent(
-    "I would like the current donation link for LevelFlow development and maintenance.",
+  const donationFallbackHref = `mailto:${supportEmail}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
+    "I would like the current donation link for Levelflow development and maintenance.",
   )}`;
 
   return (
@@ -35,7 +35,7 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
         </h2>
         <p className="mt-4 text-sm leading-6 text-slate">
           Donations go toward market data, authentication email delivery,
-          hosting, database capacity, testing, and continued LevelFlow
+          hosting, database capacity, testing, and continued Levelflow
           development.
         </p>
       </section>

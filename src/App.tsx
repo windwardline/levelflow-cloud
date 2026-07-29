@@ -35,7 +35,7 @@ type AppTab = "advisor" | "history" | "guide" | "profile" | "about" | "donate";
 const SUPPORT_EMAIL = "help@windwardline.com";
 // Support is a shared inbox across apps, so every mailto names the app it
 // came from — otherwise an inbound message arrives with no way to route it.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[LevelFlow] Help")}`;
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
 
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   {
@@ -115,7 +115,7 @@ export default function App() {
       <main className="flex min-h-screen items-center justify-center bg-canvas px-6 text-navy">
         <div className="terminal-panel w-full max-w-sm p-6 text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-navy/90" />
-          <p className="font-semibold">Opening LevelFlow</p>
+          <p className="font-semibold">Opening Levelflow</p>
         </div>
       </main>
     );
@@ -150,7 +150,7 @@ export default function App() {
                 Windward Line
               </p>
               <h1 className="wordmark truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">
-                LevelFlow
+                Levelflow
               </h1>
               <p className="truncate text-xs font-medium text-slate">
                 Welcome, {profileDisplayName(profile)}
@@ -192,7 +192,7 @@ export default function App() {
 
           <nav
             className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
-            aria-label="LevelFlow sections"
+            aria-label="Levelflow sections"
           >
             {TABS.map((tab) => (
               <button

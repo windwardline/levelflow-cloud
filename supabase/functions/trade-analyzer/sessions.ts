@@ -24,7 +24,7 @@ export function getSessionContext(
         marketKind: "crypto",
         penalty: 100,
         reason:
-          "Measured results for crypto setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so LevelFlow does not open new crypto setups in this window.",
+          "Measured results for crypto setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so Levelflow does not open new crypto setups in this window.",
       };
     }
     return {
@@ -106,7 +106,7 @@ export function getSessionContext(
         marketKind,
         penalty: 100,
         reason:
-          "Measured results for futures setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so LevelFlow does not open new futures setups in this window.",
+          "Measured results for futures setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so Levelflow does not open new futures setups in this window.",
       };
     }
 

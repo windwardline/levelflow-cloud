@@ -34,7 +34,7 @@ export type CotContext = {
 };
 
 export type CotContractMapping = {
-  // Net positioning is inverted when the LevelFlow symbol quotes USD first
+  // Net positioning is inverted when the Levelflow symbol quotes USD first
   // (a long JPY futures position is short USDJPY).
   invert: boolean;
   primary: string;

@@ -8,7 +8,7 @@ const testPassword = process.env.LEVELFLOW_E2E_PASSWORD;
 
 test.skip(
   !supabaseUrl || !supabaseKey || !testEmail || !testPassword,
-  "Set LevelFlow E2E Supabase and dedicated test-user credentials to run authenticated browser tests.",
+  "Set Levelflow E2E Supabase and dedicated test-user credentials to run authenticated browser tests.",
 );
 
 test.beforeEach(async ({ page }) => {
@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 
   if (error || !data.session) {
     throw new Error(
-      `Unable to authenticate LevelFlow E2E user: ${
+      `Unable to authenticate Levelflow E2E user: ${
         error?.message ?? "No session returned"
       }`,
     );
@@ -69,7 +69,7 @@ test("authenticated workspace exposes core premium navigation without stale help
   await expect(
     page.getByRole("heading", { name: "Review support, not trade placement" }),
   ).toBeVisible();
-  await expect(page.getByText("Shared across LevelFlow")).toBeVisible();
+  await expect(page.getByText("Shared across Levelflow")).toBeVisible();
 
   await page.getByRole("button", { name: "Insights" }).click();
   await expect(
@@ -81,10 +81,10 @@ test("authenticated workspace exposes core premium navigation without stale help
 
   await page.getByRole("button", { name: "Guide" }).click();
   await expect(
-    page.getByRole("heading", { name: "How to use LevelFlow" }),
+    page.getByRole("heading", { name: "How to use Levelflow" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "What LevelFlow checks" }),
+    page.getByRole("heading", { name: "What Levelflow checks" }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Profile" }).click();

@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test("public login screen presents LevelFlow without stale auth copy", async ({
+test("public login screen presents Levelflow without stale auth copy", async ({
   page,
 }) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "LevelFlow" }),
+    page.getByRole("heading", { name: "Levelflow" }),
   ).toBeVisible();
   await expect(page.getByText("A Windward Line product")).toBeVisible();
   if ((await page.getByText("No password is required.").count()) > 0) {
@@ -33,7 +33,7 @@ test("mobile viewport keeps every public feature reachable", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "LevelFlow" }),
+    page.getByRole("heading", { name: "Levelflow" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Send magic link" }),

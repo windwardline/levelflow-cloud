@@ -24,7 +24,7 @@ export const CONFIDENCE_TIERS: ConfidenceTier[] = [
     min: 75,
   },
   {
-    body: "Ranks among the clearest current opportunities LevelFlow can show.",
+    body: "Ranks among the clearest current opportunities Levelflow can show.",
     id: "best",
     label: "Best",
     max: 100,

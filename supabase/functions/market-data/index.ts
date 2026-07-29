@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
         req,
         {
           error:
-            "This market is temporarily unavailable while LevelFlow verifies chart coverage.",
+            "This market is temporarily unavailable while Levelflow verifies chart coverage.",
           symbol: uiSymbol,
         },
         400,
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
     if (providerSymbols.length === 0) {
       return jsonResponse(
         req,
-        { error: "Unsupported LevelFlow market symbol" },
+        { error: "Unsupported Levelflow market symbol" },
         400,
       );
     }

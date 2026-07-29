@@ -1,4 +1,4 @@
-# LevelFlow Gap Analysis
+# Levelflow Gap Analysis
 
 Last reviewed: 2026-07-02
 

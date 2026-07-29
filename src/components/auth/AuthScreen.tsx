@@ -24,7 +24,7 @@ type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
 const SUPPORT_EMAIL = "help@windwardline.com";
 // Shared inbox across apps — name the app so inbound mail can be routed.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[LevelFlow] Help")}`;
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
 
 type AuthScreenProps = {
   themeControl?: ReactNode;
@@ -116,8 +116,8 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const body = isSupabaseConfigured
     ? message
     : "Cloud access is not connected yet. Once configured, sign-in will open the live workspace.";
-  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[LevelFlow] Development support")}&body=${encodeURIComponent(
-    "I would like the current donation link for LevelFlow development and maintenance.",
+  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
+    "I would like the current donation link for Levelflow development and maintenance.",
   )}`;
 
   const productSignals = [
@@ -162,7 +162,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               </div>
             </div>
             <h1 className="wordmark text-6xl font-semibold tracking-normal text-navy sm:text-7xl">
-              LevelFlow
+              Levelflow
             </h1>
             <p className="max-w-xl text-base leading-7 text-slate">
               A premium operating layer for market review.

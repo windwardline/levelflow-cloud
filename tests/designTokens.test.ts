@@ -49,4 +49,10 @@ describe("design tokens", () => {
     assert.match(s, /:focus-visible\s*\{[^}]*var\(--color-accent\)/s);
     assert.match(s, /prefers-reduced-motion/);
   });
+
+  it("carries the Levelflow name, not the legacy casing", () => {
+    const html = readFileSync("index.html", "utf8");
+    assert.match(html, /<title>Levelflow — Market review<\/title>/);
+    assert.doesNotMatch(html, /LevelFlow/);
+  });
 });
