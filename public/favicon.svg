@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- LevelFlow: three levels, one flow. Palette from tailwind.config.ts:
+  <!-- Levelflow: three levels, one flow. Palette from tailwind.config.ts:
        canvas ground, navy levels, bullish flow. -->
   <rect width="64" height="64" fill="#F7F8F4"/>
   <g fill="#111C38">
