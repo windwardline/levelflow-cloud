@@ -1,12 +1,13 @@
 import type { SecurityType } from "./symbolMap";
 
-// Measured outcomes from the 2026-07-28 instrumented replay: 1,200 days
-// (rolling window anchored at run time), all 58 supported symbols,
-// session-aware, walk-forward test split only, accepted setups that
-// filled, under the shipped configuration (chop gate, low-edge hour
-// gates, measured-edge curation). "Money-positive" counts any resolution
-// that ended profitable under ladder accounting (full target, banked
-// TP1, profitable expiry). These are historical frequencies, not
+// Measured outcomes from the 2026-07-29 instrumented replay: each symbol's
+// full available history (discovered at run time and rolling — forex reaches
+// 2010, gold 2013, CME futures 2023), all 58 supported symbols,
+// session-aware, walk-forward test split only, accepted setups that filled,
+// under the shipped configuration (chop gate, low-edge hour gates,
+// measured-edge curation, buy-side tilt). "Money-positive" counts any
+// resolution that ended profitable under ladder accounting (full target,
+// banked TP1, profitable expiry). These are historical frequencies, not
 // predictions or promises.
 export type ReplayRecord = {
   moneyPositiveRate: number;
@@ -14,12 +15,12 @@ export type ReplayRecord = {
 };
 
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
-  Crypto: { moneyPositiveRate: 0.56, sampleSize: 2193 },
-  Energies: { moneyPositiveRate: 0.58, sampleSize: 546 },
-  Forex: { moneyPositiveRate: 0.57, sampleSize: 12282 },
-  Futures: { moneyPositiveRate: 0.57, sampleSize: 2352 },
-  Indices: { moneyPositiveRate: 0.55, sampleSize: 511 },
-  Metals: { moneyPositiveRate: 0.61, sampleSize: 526 },
+  Crypto: { moneyPositiveRate: 0.56, sampleSize: 1569 },
+  Energies: { moneyPositiveRate: 0.63, sampleSize: 174 },
+  Forex: { moneyPositiveRate: 0.6, sampleSize: 17616 },
+  Futures: { moneyPositiveRate: 0.61, sampleSize: 641 },
+  Indices: { moneyPositiveRate: 0.57, sampleSize: 219 },
+  Metals: { moneyPositiveRate: 0.55, sampleSize: 261 },
 };
 
 export function describeReplayRecord(assetType: SecurityType) {

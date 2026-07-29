@@ -12,8 +12,17 @@
 //     [--cache-dir path]   pin bars to disk so later runs reuse identical data
 //     [--capture-all]      evaluate below-threshold setups too (calibration)
 //     [--emit path.jsonl]  write one JSON line per evaluated setup
+//     [--days max]         discover each symbol's full history (rolling from
+//                          the run date) instead of a fixed lookback
+//     [--discover]         report discovered depth per symbol and exit
 
 import type { CategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  combineCotSeries,
+  type CotReportRow,
+  getCotContractMapping,
+  netPctFromReport,
+} from "../supabase/functions/trade-analyzer/cotContext.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
@@ -27,6 +36,7 @@ type SweepArgs = {
   cacheDir: string | undefined;
   captureAll: boolean;
   days: number;
+  discover: boolean;
   emit: string | undefined;
   grid: Array<Partial<CategoryCalibration>>;
   step: number;
@@ -77,12 +87,28 @@ async function main() {
         () => fetchDailyBars(providerSymbol, args.days + 240),
       ),
     ]);
+    if (args.discover) {
+      const first = primaryBars[0];
+      const last = primaryBars.at(-1);
+      const span = first && last
+        ? Math.round((last.time - first.time) / 86_400_000)
+        : 0;
+      console.log(
+        `${symbol}\t${providerSymbol}\t${primaryBars.length}\t${
+          first ? isoDate(new Date(first.time)) : "-"
+        }\t${span}`,
+      );
+      continue;
+    }
+
     if (primaryBars.length < WARMUP_BARS * 2) {
       console.warn(
         `Skipping ${symbol}: only ${primaryBars.length} intraday bars.`,
       );
       continue;
     }
+
+    const cotReports = await loadCotReports(args.cacheDir, symbol);
 
     const splitIndex = Math.floor(primaryBars.length * TRAIN_SHARE);
     const splits = [
@@ -96,6 +122,7 @@ async function main() {
         const result = simulateSymbol({
           calibrationOverride: override,
           captureAll: args.captureAll,
+          cotReports,
           dailyBars,
           primaryBars: split.bars,
           stepBars: args.step,
@@ -138,6 +165,79 @@ async function main() {
   }
 }
 
+// Positioning history is weekly and slow-moving, so it caches by contract
+// (not by run day) and is shared across every symbol that maps to it.
+async function loadCotReports(
+  cacheDir: string | undefined,
+  symbol: string,
+): Promise<CotReportRow[]> {
+  const mapping = getCotContractMapping(symbol);
+  if (!mapping) {
+    return [];
+  }
+  const [primary, secondary] = await Promise.all([
+    fetchCotContract(cacheDir, mapping.primary),
+    mapping.secondary
+      ? fetchCotContract(cacheDir, mapping.secondary)
+      : Promise.resolve([]),
+  ]);
+  if (primary.length === 0) {
+    return [];
+  }
+  return combineCotSeries(
+    primary,
+    mapping.secondary ? secondary : undefined,
+    mapping.invert,
+  );
+}
+
+async function fetchCotContract(
+  cacheDir: string | undefined,
+  contract: string,
+): Promise<CotReportRow[]> {
+  const { mkdir, readFile, writeFile } = await import("node:fs/promises");
+  const path = cacheDir ? `${cacheDir}/cot-${contract}.json` : null;
+  if (path) {
+    try {
+      const cached = JSON.parse(await readFile(path, "utf8")) as CotReportRow[];
+      if (Array.isArray(cached)) {
+        return cached;
+      }
+    } catch {
+      // Cache miss: fetch below.
+    }
+  }
+
+  const endpoint = new URL(`${FMP_API_BASE_URL}/commitment-of-traders-report`);
+  endpoint.searchParams.set("symbol", contract);
+  endpoint.searchParams.set("from", "2009-01-01");
+  endpoint.searchParams.set("to", isoDate(new Date()));
+  endpoint.searchParams.set("apikey", API_KEY!);
+  const response = await fetch(endpoint);
+  if (!response.ok) {
+    console.warn(`COT fetch failed for ${contract}: ${response.status}`);
+    return [];
+  }
+  const payload = await response.json();
+  const rows: CotReportRow[] = [];
+  if (Array.isArray(payload)) {
+    for (const raw of payload as Array<Record<string, unknown>>) {
+      const netPct = netPctFromReport(raw);
+      const date = Date.parse(String(raw.date ?? "").replace(" ", "T") + "Z");
+      if (netPct !== null && Number.isFinite(date)) {
+        rows.push({ date, netPct });
+      }
+    }
+  }
+  rows.sort((first, second) => first.date - second.date);
+  if (path && rows.length > 0) {
+    await mkdir(cacheDir!, { recursive: true });
+    await writeFile(path, JSON.stringify(rows));
+  }
+  await sleep(250);
+  return rows;
+}
+
 async function cachedBars(
   cacheDir: string | undefined,
   key: string,
@@ -170,7 +270,9 @@ function parseArgs(argv: string[]): SweepArgs {
   const symbols = (get("symbols") ?? "EURUSD").split(",").map((value) =>
     value.trim().toUpperCase()
   ).filter(Boolean);
-  const days = Number(get("days") ?? 60);
+  const daysArg = get("days") ?? "60";
+  // "max" discovers each symbol's full available history from the run date.
+  const days = daysArg === "max" ? MAX_DEPTH_DAYS : Number(daysArg);
   const step = Number(get("step") ?? 16);
   const gridSpec = get("grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
@@ -189,6 +291,7 @@ function parseArgs(argv: string[]): SweepArgs {
     cacheDir: get("cache-dir"),
     captureAll: argv.includes("--capture-all"),
     days,
+    discover: argv.includes("--discover"),
     emit: get("emit"),
     grid,
     step,
@@ -196,24 +299,57 @@ function parseArgs(argv: string[]): SweepArgs {
   };
 }
 
+// FMP caps a single intraday response near 3,000 rows. A 30-day window stays
+// complete for every supported market (~2,040 forex bars) and cuts request
+// count ~4x versus 8-day chunks, which is what makes multi-year depth
+// practical.
+const INTRADAY_CHUNK_DAYS = 30;
+// Walking back stops after this many consecutive empty windows, which is how
+// the end of a symbol's history is detected rather than assumed. Three
+// windows (90 days) clears any plausible holiday or provider gap.
+const EMPTY_WINDOW_STREAK_LIMIT = 3;
+// Safety ceiling only — it must never be the binding constraint, so it sits
+// above every confirmed provider floor. Measured 2026-07-29 by walking back
+// until history ended: forex begins 2010-01 (~6,050 days), XAUUSD 2013-07
+// (~4,760), ^GSPC 2020-02 (~2,350), ^NDX 2020-08 (~2,175), crypto and XAGUSD
+// ~1,060-1,200, and CME futures 2023-09/10 (~1,031-1,038). Depth is
+// discovered per symbol at run time, never assumed.
+const MAX_DEPTH_DAYS = 7_000;
+
+// Walks backward from now until history genuinely ends, so every symbol
+// contributes its full available depth and the window rolls forward with the
+// run date. Depth is discovered per symbol, never hardcoded.
 async function fetchIntradayBars(
   providerSymbol: string,
   days: number,
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
-  const chunkDays = 8;
+  const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
   const now = Date.now();
-  for (let offset = days; offset > 0; offset -= chunkDays) {
+  let emptyStreak = 0;
+
+  for (
+    let offset = INTRADAY_CHUNK_DAYS;
+    offset <= ceiling + INTRADAY_CHUNK_DAYS;
+    offset += INTRADAY_CHUNK_DAYS
+  ) {
     const from = new Date(now - offset * 86_400_000);
-    const to = new Date(
-      now - Math.max(offset - chunkDays, 0) * 86_400_000,
-    );
+    const to = new Date(now - (offset - INTRADAY_CHUNK_DAYS) * 86_400_000);
     const endpoint = new URL(`${FMP_API_BASE_URL}/historical-chart/15min`);
     endpoint.searchParams.set("symbol", providerSymbol);
     endpoint.searchParams.set("from", isoDate(from));
     endpoint.searchParams.set("to", isoDate(to));
     endpoint.searchParams.set("apikey", API_KEY!);
-    bars.push(...await fetchBars(endpoint));
+    const chunk = await fetchBars(endpoint);
+    if (chunk.length === 0) {
+      emptyStreak += 1;
+      if (emptyStreak >= EMPTY_WINDOW_STREAK_LIMIT) {
+        break;
+      }
+    } else {
+      emptyStreak = 0;
+      bars.push(...chunk);
+    }
     await sleep(250);
   }
   return dedupeSort(bars);

@@ -1,7 +1,7 @@
 # LevelFlow Trade Model
 
-Model version: `2026.07.28.session-hour-gates`
-Last reviewed: 2026-07-28 (round 4)
+Model version: `2026.07.29.deep-history-side-tilt`
+Last reviewed: 2026-07-29 (round 5)
 
 ## Geometry
 
@@ -131,6 +131,59 @@ anchors to the run day, so the window always rolls forward with time.
 - Next designed feature: a COT positioning vote (weekly CFTC data maps to
   the full universe via FMP), which requires an honest historical join in
   the replay before it can gate.
+
+## Round-5 calibration (2026-07-29, full available history + COT)
+
+Depth became self-discovering (see the table below) and CFTC positioning was
+added as a first-class, replay-joined input. 124,483 records across all 58
+symbols on each symbol's full history produced:
+
+- **Depth was the single largest accuracy gain of any round.** On the full
+  window the whole system measures **+0.032R train / +0.042R test per filled
+  setup, ~59% money-positive** — versus +0.003R on the 1,200-day window. The
+  short window was not wrong so much as blind: 16 years of forex contains
+  regimes a 3-year sample cannot show.
+- **COT positioning: implemented, tested, and rejected as a gate.** Contract
+  mapping covers the universe (crosses net both legs, USD-first pairs
+  invert), percentiles rank against each contract's own trailing history, and
+  publication lag is enforced in `buildCotContext` with a test that fails on
+  lookahead. But the contrarian effect did not validate: train showed no
+  spread between joining and fading a crowded book (+0.028 vs +0.028), the
+  effect appeared only in test, and the two crowding directions contradicted
+  each other (fading crowded longs +0.147, fading crowded shorts −0.021).
+  `cotScoreAdjustment` therefore ships at zero — the mechanism is ready if
+  the live cohort ever supports it.
+- **Validated: a buy-side tilt.** Sell setups beat buy setups on *both*
+  splits for forex (train +0.042 vs +0.023, test +0.118 vs −0.010) and
+  futures (train −0.016 vs −0.035, test +0.110 vs +0.054), consistently
+  across every COT percentile bucket and every regime. Buys remained
+  profitable in the training era, so they are not blocked — they carry a
+  −6 confidence bar in those two classes. That value improves both splits
+  (train +0.0272→+0.0288, test +0.0418→+0.0459) and keeps 91% of setups; a
+  deeper tilt improves test further but not train, so 6 is the honest choice.
+- Per-class OOS on the shipped config: energies +0.106, futures +0.077,
+  forex +0.045, crypto +0.021, metals −0.061, indices −0.090 (curated out).
+
+## Confirmed provider history depth (measured 2026-07-29)
+
+Replay depth is **discovered per symbol at run time**, not configured: the
+fetcher walks backward in 30-day windows until three consecutive windows come
+back empty, which is the end of that symbol's history. The window therefore
+rolls forward automatically with every run, and the safety ceiling
+(`MAX_DEPTH_DAYS`) sits above every real floor so it never binds.
+
+| Market group | History begins | Approx. days |
+| --- | --- | --- |
+| Forex (all 28 pairs) | 2010-01 | ~6,050 |
+| XAUUSD | 2013-07 | ~4,760 |
+| SP (`^GSPC`) | 2020-02 | ~2,350 |
+| NSDQ (`^NDX`) | 2020-08 | ~2,175 |
+| Crypto, XAGUSD | 2023-04 / 2023-08 | ~1,060–1,200 |
+| CME futures, DOW, DAX, NIKKEI | 2023-09 / 2023-10 | ~1,031–1,038 |
+
+CFTC positioning (COT) reports are available weekly from 2010, deeper than
+the deepest intraday series, so every replay decision point can carry a real
+positioning percentile.
 
 ## Cohorts
 

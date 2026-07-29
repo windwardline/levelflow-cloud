@@ -8,6 +8,11 @@ import {
   type ReplayBar,
   type ResolvedOutcome,
 } from "./replay.ts";
+import {
+  buildCotContext,
+  type CotReportRow,
+  cotScoreAdjustment,
+} from "./cotContext.ts";
 import { scoreSetupConfidence } from "./scoring.ts";
 import { getSessionContext } from "./sessions.ts";
 import {
@@ -22,12 +27,15 @@ export type SweepOutcomeRecord = {
   // evaluated (capture-all calibration mode).
   accepted: boolean;
   confidenceScore: number;
+  cotPercentile: number | null;
+  cotStance: string;
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
   regime: string;
   rewardRisk: number;
   sessionLabel: string;
   sessionPenalty: number;
+  side: string;
   time: number;
 };
 
@@ -74,6 +82,10 @@ export function simulateSymbol(input: {
   // Calibration mode: evaluate outcomes for below-threshold setups too and
   // skip the regime gate, so offline analysis sees the full distribution.
   captureAll?: boolean;
+  // Positioning history for this symbol, already leg-combined and inverted.
+  // buildCotContext enforces the publication lag, so passing full history is
+  // safe: only reports published before the decision bar are ever visible.
+  cotReports?: CotReportRow[];
   dailyBars: Bar[];
   primaryBars: Bar[];
   stepBars: number;
@@ -169,16 +181,26 @@ export function simulateSymbol(input: {
     // Mirror the live analyzer's acceptance gates: confidence threshold and
     // effective payoff floor. News, session, macro, and learning inputs are
     // zero offline, matching a clean-conditions review.
+    const cotContext = buildCotContext(
+      input.cotReports ?? [],
+      latest.time,
+    );
     const scoreBreakdown = scoreSetupConfidence({
       availableTimeframeCount: market.availableTimeframes.length,
       calibration,
       consensusScore: consensus.score,
+      cotAdjustment: cotScoreAdjustment(
+        cotContext,
+        consensus.side,
+        calibration.cotScoreAdjustment ?? 0,
+      ),
       executionPenalty: plan.executionQuality.confidencePenalty,
       macroAdjustment: 0,
       newsPenaltyUnits: 0,
       providerWarningCount: 0,
       regimeAdjustment: calibration.regimeScoreAdjustments?.[regime.name] ?? 0,
       sessionPenalty: sessionContext.penalty,
+      sideAdjustment: calibration.sideScoreAdjustments?.[consensus.side] ?? 0,
       weightAdjustment: 0,
     });
     const accepted =
@@ -213,12 +235,15 @@ export function simulateSymbol(input: {
     outcomes.push({
       accepted,
       confidenceScore: scoreBreakdown.confidenceScore,
+      cotPercentile: cotContext.percentile,
+      cotStance: cotContext.stance,
       outcome: evaluation.outcome,
       realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
       regime: regime.name,
       rewardRisk: plan.rewardRisk,
       sessionLabel: sessionContext.label,
       sessionPenalty: sessionContext.penalty,
+      side: consensus.side,
       time: latest.time,
     });
   }
