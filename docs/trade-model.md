@@ -139,10 +139,14 @@ added as a first-class, replay-joined input. 124,483 records across all 58
 symbols on each symbol's full history produced:
 
 - **Depth was the single largest accuracy gain of any round.** On the full
-  window the whole system measures **+0.032R train / +0.042R test per filled
-  setup, ~59% money-positive** — versus +0.003R on the 1,200-day window. The
-  short window was not wrong so much as blind: 16 years of forex contains
-  regimes a 3-year sample cannot show.
+  window the whole system measures **+0.030R train / +0.044R test per filled
+  setup, ~59-60% money-positive** on the shipped configuration — versus
+  +0.003R on the 1,200-day window. The short window was not wrong so much as
+  blind: 16 years of forex contains regimes a 3-year sample cannot show.
+  (These figures were re-derived in the post-round review on the corrected
+  basis: chop-regime records excluded, as the shipped config actually
+  trades. The capture-all `accepted` flag now honors the regime gate so
+  offline aggregates cannot drift from production behavior again.)
 - **COT positioning: implemented, tested, and rejected as a gate.** Contract
   mapping covers the universe (crosses net both legs, USD-first pairs
   invert), percentiles rank against each contract's own trailing history, and
@@ -158,11 +162,13 @@ symbols on each symbol's full history produced:
   futures (train −0.016 vs −0.035, test +0.110 vs +0.054), consistently
   across every COT percentile bucket and every regime. Buys remained
   profitable in the training era, so they are not blocked — they carry a
-  −6 confidence bar in those two classes. That value improves both splits
-  (train +0.0272→+0.0288, test +0.0418→+0.0459) and keeps 91% of setups; a
-  deeper tilt improves test further but not train, so 6 is the honest choice.
-- Per-class OOS on the shipped config: energies +0.106, futures +0.077,
-  forex +0.045, crypto +0.021, metals −0.061, indices −0.090 (curated out).
+  −6 confidence bar in those two classes. Validated apples-to-apples on
+  identical records with all gates honored: train +0.0287→+0.0299 and test
+  +0.0357→+0.0435, keeping ~91% of setups. A deeper tilt improves test
+  further but not train, so 6 is the honest choice.
+- Per-class OOS on the shipped config (corrected basis): energies +0.155,
+  futures +0.091, forex +0.045, crypto +0.032, metals −0.071, indices
+  −0.081 (curated out).
 
 ## Confirmed provider history depth (measured 2026-07-29)
 

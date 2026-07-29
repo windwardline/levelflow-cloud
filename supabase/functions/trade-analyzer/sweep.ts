@@ -203,9 +203,14 @@ export function simulateSymbol(input: {
       sideAdjustment: calibration.sideScoreAdjustments?.[consensus.side] ?? 0,
       weightAdjustment: 0,
     });
+    // "Accepted" means production would take this setup, so it must honor
+    // every gate — including the regime gate that capture-all bypasses for
+    // record collection. Otherwise offline aggregates silently include
+    // chop-regime setups the live system never trades.
     const accepted =
       scoreBreakdown.confidenceScore >= calibration.confidenceThreshold &&
-      plan.rewardRisk >= calibration.minRewardRisk;
+      plan.rewardRisk >= calibration.minRewardRisk &&
+      !calibration.blockedRegimes?.includes(regime.name);
     if (!accepted && !input.captureAll) {
       rejections.belowThreshold += 1;
       continue;

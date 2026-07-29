@@ -15,12 +15,12 @@ export type ReplayRecord = {
 };
 
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
-  Crypto: { moneyPositiveRate: 0.56, sampleSize: 1569 },
-  Energies: { moneyPositiveRate: 0.63, sampleSize: 174 },
-  Forex: { moneyPositiveRate: 0.6, sampleSize: 17616 },
-  Futures: { moneyPositiveRate: 0.61, sampleSize: 641 },
-  Indices: { moneyPositiveRate: 0.57, sampleSize: 219 },
-  Metals: { moneyPositiveRate: 0.55, sampleSize: 261 },
+  Crypto: { moneyPositiveRate: 0.57, sampleSize: 1437 },
+  Energies: { moneyPositiveRate: 0.66, sampleSize: 140 },
+  Forex: { moneyPositiveRate: 0.6, sampleSize: 14631 },
+  Futures: { moneyPositiveRate: 0.61, sampleSize: 554 },
+  Indices: { moneyPositiveRate: 0.57, sampleSize: 182 },
+  Metals: { moneyPositiveRate: 0.54, sampleSize: 241 },
 };
 
 export function describeReplayRecord(assetType: SecurityType) {
