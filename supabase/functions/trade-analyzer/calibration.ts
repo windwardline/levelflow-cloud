@@ -108,7 +108,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
     tp1AtrMultiplier: 0.5,
-    tp1RiskShare: 0.6,
+    tp1RiskShare: 0.4,
     volatilityTargetAtrMultiplier: 3.8,
   },
   energies: {
@@ -180,7 +180,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
-    tp1RiskShare: 0.6,
+    tp1RiskShare: 0.4,
     volatilityTargetAtrMultiplier: 3.4,
   },
   indices: {
@@ -228,7 +228,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     stopAtrMultiplier: 1.32,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
-    tp1RiskShare: 0.6,
+    tp1RiskShare: 0.4,
     volatilityTargetAtrMultiplier: 3.5,
   },
 };
@@ -249,6 +249,10 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   EURJPY: { confidenceThreshold: 82 },
   // Natural gas runs far hotter than the energy class baseline.
   NGUSD: { confidenceThreshold: 70, maxStopAtrMultiplier: 2.8 },
+  // Oil trends: earlier TP1 banking fails the test split for both oil
+  // futures (r10), matching cash energies' rejection of 0.6 in r8.
+  BZUSD: { tp1RiskShare: 0.6 },
+  CLUSD: { tp1RiskShare: 0.6 },
   // Silver carries roughly twice gold's relative volatility.
   XAGUSD: { maxStopAtrMultiplier: 2.8 },
 };
