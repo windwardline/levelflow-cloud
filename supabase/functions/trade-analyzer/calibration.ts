@@ -75,6 +75,7 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
 
 const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   crypto: {
+    blockedRegimes: ["volatile_chop"],
     // Sweep 2026-07-28: crypto OOS expectancy is positive only at high
     // selectivity (ETH +0.21R at 82); lower thresholds trade more and lose.
     confidenceThreshold: 82,
@@ -98,6 +99,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     volatilityTargetAtrMultiplier: 3.8,
   },
   energies: {
+    blockedRegimes: ["volatile_chop"],
     confidenceThreshold: 69,
     dailyStopAtrMultiplier: 0.16,
     dailyTargetAtrMultiplier: 0.42,
@@ -119,6 +121,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     volatilityTargetAtrMultiplier: 3.6,
   },
   forex: {
+    blockedRegimes: ["volatile_chop"],
     confidenceThreshold: 66,
     dailyStopAtrMultiplier: 0.12,
     dailyTargetAtrMultiplier: 0.35,
@@ -140,6 +143,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     volatilityTargetAtrMultiplier: 3.2,
   },
   futures: {
+    blockedRegimes: ["volatile_chop"],
     confidenceThreshold: 68,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.38,
@@ -161,6 +165,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     volatilityTargetAtrMultiplier: 3.4,
   },
   indices: {
+    blockedRegimes: ["volatile_chop"],
     confidenceThreshold: 68,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.36,
@@ -184,6 +189,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     volatilityTargetAtrMultiplier: 3.3,
   },
   metals: {
+    blockedRegimes: ["volatile_chop"],
     // Sweep 2026-07-28: metals expectancy improves monotonically with
     // selectivity (XAU +0.18R, XAG +0.04R OOS at 82).
     confidenceThreshold: 82,

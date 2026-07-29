@@ -17,8 +17,15 @@ import {
 import type { Bar, MarketContext } from "./types.ts";
 
 export type SweepOutcomeRecord = {
+  // False when the setup failed the confidence/payoff gates but was still
+  // evaluated (capture-all calibration mode).
+  accepted: boolean;
+  confidenceScore: number;
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
+  regime: string;
+  rewardRisk: number;
+  time: number;
 };
 
 export type SweepSummary = {
@@ -60,6 +67,9 @@ export function resampleBars(bars: Bar[], groupSize: number): Bar[] {
 
 export function simulateSymbol(input: {
   calibrationOverride?: Partial<CategoryCalibration>;
+  // Calibration mode: evaluate outcomes for below-threshold setups too and
+  // skip the regime gate, so offline analysis sees the full distribution.
+  captureAll?: boolean;
   dailyBars: Bar[];
   primaryBars: Bar[];
   stepBars: number;
@@ -116,7 +126,9 @@ export function simulateSymbol(input: {
       },
     };
     const regime = classifyRegime(market);
-    if (calibration.blockedRegimes?.includes(regime.name)) {
+    if (
+      !input.captureAll && calibration.blockedRegimes?.includes(regime.name)
+    ) {
       rejections.regimeBlocked += 1;
       continue;
     }
@@ -152,10 +164,10 @@ export function simulateSymbol(input: {
       sessionPenalty: 0,
       weightAdjustment: 0,
     });
-    if (
-      scoreBreakdown.confidenceScore < calibration.confidenceThreshold ||
-      plan.rewardRisk < calibration.minRewardRisk
-    ) {
+    const accepted =
+      scoreBreakdown.confidenceScore >= calibration.confidenceThreshold &&
+      plan.rewardRisk >= calibration.minRewardRisk;
+    if (!accepted && !input.captureAll) {
       rejections.belowThreshold += 1;
       continue;
     }
@@ -182,8 +194,13 @@ export function simulateSymbol(input: {
     }
 
     outcomes.push({
+      accepted,
+      confidenceScore: scoreBreakdown.confidenceScore,
       outcome: evaluation.outcome,
       realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
+      regime: regime.name,
+      rewardRisk: plan.rewardRisk,
+      time: latest.time,
     });
   }
 
@@ -191,7 +208,10 @@ export function simulateSymbol(input: {
     decisionPoints,
     outcomes,
     rejections,
-    summary: summarizeSweepOutcomes(outcomes),
+    // Summary keeps its accepted-only semantics in both modes.
+    summary: summarizeSweepOutcomes(
+      outcomes.filter((record) => record.accepted),
+    ),
   };
 }
 
