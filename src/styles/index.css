@@ -19,19 +19,44 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
-  --color-navy: #111c38;
-  --color-slate: #808a95;
-  --color-bullish: #5b8266;
-  --color-canvas: #f7f8f4;
-  --color-ink: #162033;
-  --color-warning: #b98948;
-  --color-danger: #a94d4d;
+  --color-paper: #F4F1EA;
+  --color-sheet: #FDFCF9;
+  --color-ink: #1B1B1B;
+  --color-ink-muted: #6B675E;
+  --color-hairline: #D8D2C4;
+  --color-accent: #2244FF;
+  --color-accent-pressed: #1A35CC;
+  --color-buy: #177245;
+  --color-sell: #B3261E;
+  --color-caution: #9A6B00;
+
+  /* Legacy aliases: old utility names resolve to the new palette until
+     Stages 2-3 migrate every usage, then these are deleted. */
+  --color-navy: var(--color-ink);
+  --color-slate: var(--color-ink-muted);
+  --color-bullish: var(--color-accent);
+  --color-canvas: var(--color-paper);
+  --color-warning: var(--color-caution);
+  --color-danger: var(--color-sell);
 
   --shadow-terminal: 0 24px 60px rgba(17, 28, 56, 0.14);
 
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk Variable", "Space Grotesk", var(--font-sans);
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+html[data-theme="dark"] {
+  --color-paper: #161411;
+  --color-sheet: #1E1B16;
+  --color-ink: #EDE7DA;
+  --color-ink-muted: #969082;
+  --color-hairline: #35322B;
+  --color-accent: #5A78FF;
+  --color-accent-pressed: #4763E0;
+  --color-buy: #4CC38A;
+  --color-sell: #E5766E;
+  --color-caution: #D9A441;
 }
 
 /*
@@ -55,7 +80,7 @@
 
   html {
     min-width: 320px;
-    background: #f7f8f4;
+    background: var(--color-paper);
     -webkit-text-size-adjust: 100%;
   }
 
@@ -63,24 +88,18 @@
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background:
-      linear-gradient(110deg, rgba(91, 130, 102, 0.08), rgba(91, 130, 102, 0) 28%),
-      linear-gradient(180deg, rgba(17, 28, 56, 0.05), rgba(247, 248, 244, 0) 34%),
-      #f7f8f4;
-    color: #162033;
+    background: var(--color-paper);
+    color: var(--color-ink);
     font-family: var(--font-sans);
   }
 
   html[data-theme="dark"] {
-    background: #0b111c;
+    background: var(--color-paper);
   }
 
   html[data-theme="dark"] body {
-    background:
-      linear-gradient(110deg, rgba(143, 189, 156, 0.1), rgba(143, 189, 156, 0) 30%),
-      linear-gradient(180deg, rgba(91, 130, 102, 0.08), rgba(11, 17, 28, 0) 34%),
-      #0b111c;
-    color: #e6edf6;
+    background: var(--color-paper);
+    color: var(--color-ink);
   }
 
   button,
@@ -95,10 +114,7 @@
   .auth-shell {
     position: relative;
     overflow: hidden;
-    background:
-      linear-gradient(115deg, rgba(91, 130, 102, 0.1), rgba(91, 130, 102, 0) 32%),
-      linear-gradient(180deg, rgba(17, 28, 56, 0.06), rgba(247, 248, 244, 0) 42%),
-      #f7f8f4;
+    background: var(--color-paper);
   }
 
   .auth-shell::before {
@@ -106,8 +122,8 @@
     position: absolute;
     inset: 0;
     background-image:
-      linear-gradient(rgba(17, 28, 56, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17, 28, 56, 0.045) 1px, transparent 1px);
+      linear-gradient(rgba(27, 27, 27, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27, 27, 27, 0.05) 1px, transparent 1px);
     background-size: 56px 56px;
     -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.54), transparent 58%);
     mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0.54), transparent 58%);
@@ -298,28 +314,28 @@
 
   html[data-theme="dark"] .bg-white,
   html[data-theme="dark"] .bg-white\/90 {
-    background-color: rgba(16, 24, 38, 0.94);
+    background-color: #1E1B16;
   }
 
   html[data-theme="dark"] .bg-white\/70,
   html[data-theme="dark"] .bg-white\/80 {
-    background-color: rgba(16, 24, 38, 0.78);
+    background-color: #1E1B16;
   }
 
   html[data-theme="dark"] .text-ink,
   html[data-theme="dark"] .text-navy {
-    color: #e6edf6;
+    color: #EDE7DA;
   }
 
   html[data-theme="dark"] .text-slate {
-    color: #aab6c5;
+    color: #969082;
   }
 
   html[data-theme="dark"] .border-slate\/10,
   html[data-theme="dark"] .border-slate\/15,
   html[data-theme="dark"] .border-slate\/20,
   html[data-theme="dark"] .border-slate\/25 {
-    border-color: rgba(170, 182, 197, 0.18);
+    border-color: rgba(150, 144, 130, 0.28);
   }
 
   html[data-theme="dark"] .terminal-panel {
@@ -347,10 +363,7 @@
   }
 
   html[data-theme="dark"] .auth-shell {
-    background:
-      linear-gradient(115deg, rgba(143, 189, 156, 0.12), rgba(143, 189, 156, 0) 34%),
-      linear-gradient(180deg, rgba(91, 130, 102, 0.08), rgba(11, 17, 28, 0) 42%),
-      #0b111c;
+    background: var(--color-paper);
   }
 
   html[data-theme="dark"] .auth-shell::before {
