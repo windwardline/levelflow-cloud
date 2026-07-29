@@ -37,4 +37,16 @@ describe("design tokens", () => {
     assert.match(s, /--color-bullish:\s*var\(--color-accent\)/);
     assert.match(s, /--color-canvas:\s*var\(--color-paper\)/);
   });
+
+  it("restyles the kit in editorial language", () => {
+    const s = css();
+    assert.match(s, /\.wordmark\s*\{[^}]*var\(--font-display\)/s);
+    assert.match(s, /\.terminal-panel\s*\{[^}]*var\(--color-sheet\)/s);
+    assert.doesNotMatch(s, /backdrop-filter/);
+    assert.match(s, /\.primary-button\s*\{[^}]*var\(--color-accent\)/s);
+    assert.match(s, /\.nav-button-active\s*\{[^}]*border-bottom[^}]*var\(--color-accent\)/s);
+    assert.match(s, /\.link-accent/);
+    assert.match(s, /:focus-visible\s*\{[^}]*var\(--color-accent\)/s);
+    assert.match(s, /prefers-reduced-motion/);
+  });
 });

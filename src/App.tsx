@@ -149,7 +149,7 @@ export default function App() {
               <p className="text-[0.7rem] font-semibold uppercase tracking-normal text-slate sm:text-xs">
                 Windward Line
               </p>
-              <h1 className="truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">
+              <h1 className="wordmark truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">
                 LevelFlow
               </h1>
               <p className="truncate text-xs font-medium text-slate">
