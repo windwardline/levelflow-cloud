@@ -14,8 +14,8 @@ function ratio(a: string, b: string): number {
   return (l1 + 0.05) / (l2 + 0.05);
 }
 
-const LIGHT = { paper: "#F4F1EA", sheet: "#FDFCF9", ink: "#1B1B1B", muted: "#6B675E", accent: "#2244FF", buy: "#177245", sell: "#B3261E", caution: "#8A5B00" };
-const DARK = { paper: "#161411", sheet: "#1E1B16", ink: "#EDE7DA", muted: "#969082", accent: "#5A78FF", buy: "#4CC38A", sell: "#E5766E", caution: "#D9A441" };
+const LIGHT = { paper: "#F4F1EA", sheet: "#FDFCF9", ink: "#1B1B1B", muted: "#6B675E", accent: "#2244FF", pressed: "#1A35CC", buy: "#177245", sell: "#B3261E", caution: "#8A5B00" };
+const DARK = { paper: "#161411", sheet: "#1E1B16", ink: "#EDE7DA", muted: "#969082", accent: "#6B86FF", pressed: "#7D95FF", buy: "#4CC38A", sell: "#E5766E", caution: "#D9A441" };
 
 describe("palette contrast (WCAG)", () => {
   for (const [name, t] of [["light", LIGHT], ["dark", DARK]] as const) {
@@ -27,7 +27,13 @@ describe("palette contrast (WCAG)", () => {
           assert.ok(ratio(sem, bg) >= 4.5, `${name} ${sem} on ${bg} ${ratio(sem, bg).toFixed(2)}`);
         }
       }
-      assert.ok(ratio("#FFFFFF", t.accent) >= 4.5, `${name} white on accent ${ratio("#FFFFFF", t.accent).toFixed(2)}`);
+      if (name === "light") {
+        assert.ok(ratio("#FFFFFF", t.accent) >= 4.5, `${name} white on accent ${ratio("#FFFFFF", t.accent).toFixed(2)}`);
+        assert.ok(ratio("#FFFFFF", t.pressed) >= 4.5, `${name} white on pressed ${ratio("#FFFFFF", t.pressed).toFixed(2)}`);
+      } else {
+        assert.ok(ratio(t.paper, t.accent) >= 4.5, `${name} paper on accent ${ratio(t.paper, t.accent).toFixed(2)}`);
+        assert.ok(ratio(t.paper, t.pressed) >= 4.5, `${name} paper on pressed ${ratio(t.paper, t.pressed).toFixed(2)}`);
+      }
     });
   }
 });

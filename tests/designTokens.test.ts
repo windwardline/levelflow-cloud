@@ -28,7 +28,7 @@ describe("design tokens", () => {
       assert.match(s, new RegExp(`${pair[0]}:\\s*${pair[1]}`, "i"), pair.join(" "));
     }
     const dark = s.split('html[data-theme="dark"]')[1] ?? "";
-    for (const hex of ["#161411", "#1E1B16", "#EDE7DA", "#969082", "#35322B", "#6B86FF", "#4763E0", "#4CC38A", "#E5766E", "#D9A441"]) {
+    for (const hex of ["#161411", "#1E1B16", "#EDE7DA", "#969082", "#35322B", "#6B86FF", "#7D95FF", "#4CC38A", "#E5766E", "#D9A441"]) {
       assert.match(s, new RegExp(hex, "i"), `dark value ${hex} present`);
     }
     assert.ok(dark.length > 0, "dark override block exists");

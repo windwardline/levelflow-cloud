@@ -52,8 +52,8 @@ html[data-theme="dark"] {
   --color-ink: #EDE7DA;
   --color-ink-muted: #969082;
   --color-hairline: #35322B;
-  --color-accent: #5A78FF;
-  --color-accent-pressed: #4763E0;
+  --color-accent: #6B86FF;
+  --color-accent-pressed: #7D95FF;
   --color-buy: #4CC38A;
   --color-sell: #E5766E;
   --color-caution: #D9A441;
@@ -336,6 +336,13 @@ html[data-theme="dark"] {
   html[data-theme="dark"] .secondary-button:hover:not(:disabled) {
     border-color: var(--color-accent);
     color: var(--color-accent);
+  }
+
+  html[data-theme="dark"] .primary-button {
+    color: var(--color-paper);
+  }
+  html[data-theme="dark"] .primary-button:hover:not(:disabled) {
+    color: var(--color-paper);
   }
 
   html[data-theme="dark"] .nav-button {

@@ -40,8 +40,8 @@ jobs in both.
 | Ink (text) | `#1B1B1B` | `#EDE7DA` cream |
 | Muted ink | `#6B675E` | `#969082` |
 | Hairline | `#D8D2C4` | `#35322B` |
-| Accent (brand) | `#2244FF` electric blue | `#5A78FF` |
-| Accent pressed | `#1A35CC` | `#4763E0` |
+| Accent (brand) | `#2244FF` electric blue | `#6B86FF` |
+| Accent pressed | `#1A35CC` | `#7D95FF` |
 | Buy / long | `#177245` emerald | `#4CC38A` |
 | Sell / short | `#B3261E` | `#E5766E` |
 | Caution | `#8A5B00` | `#D9A441` |
