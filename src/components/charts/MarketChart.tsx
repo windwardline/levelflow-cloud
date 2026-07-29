@@ -193,7 +193,11 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
 
   return (
     <div className="relative min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-white">
-      <div className="absolute left-3 top-3 z-10 hidden max-w-[calc(100%-8.5rem)] rounded-lg border border-slate/15 bg-white/90 px-3 py-2 text-xs font-semibold text-slate shadow-xs sm:block">
+      <div
+        className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-slate/15 bg-white/90 px-3 py-2 text-xs font-semibold text-slate shadow-xs ${
+          hoverBar ? "block" : "hidden sm:block"
+        }`}
+      >
         {hoverBar ? (
           <span className="whitespace-nowrap">
             O {formatChartPrice(hoverBar.open)} H {formatChartPrice(hoverBar.high)} L {formatChartPrice(hoverBar.low)} C {formatChartPrice(hoverBar.close)}
