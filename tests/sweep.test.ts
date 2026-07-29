@@ -66,6 +66,30 @@ describe("replay sweep", () => {
     }
   });
 
+  it("blocks decision points inside an active high-impact news window", () => {
+    // First decision point sits at warmup index 120: startTime + 120 bars.
+    const firstDecisionTime = startTime + 120 * 900_000;
+    const result = simulateSymbol({
+      dailyBars: dailyBars(80),
+      newsEvents: [
+        { currency: "USD", impact: "high", time: firstDecisionTime },
+      ],
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+
+    assert.ok(result.rejections.newsBlocked >= 1);
+    assert.equal(
+      result.decisionPoints,
+      result.outcomes.length + result.rejections.noConsensus +
+        result.rejections.planRejected + result.rejections.belowThreshold +
+        result.rejections.regimeBlocked + result.rejections.sessionBlocked +
+        result.rejections.newsBlocked,
+    );
+  });
+
   it("marks regime-blocked setups as not accepted even in capture-all", () => {
     // The synthetic oscillator classifies as volatile chop, which every
     // class blocks by default. Capture-all still evaluates the records,
@@ -111,7 +135,8 @@ describe("replay sweep", () => {
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
         result.rejections.planRejected + result.rejections.belowThreshold +
-        result.rejections.regimeBlocked + result.rejections.sessionBlocked,
+        result.rejections.regimeBlocked + result.rejections.sessionBlocked +
+        result.rejections.newsBlocked,
     );
   });
 

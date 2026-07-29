@@ -1,7 +1,7 @@
 # LevelFlow Trade Model
 
-Model version: `2026.07.29.deep-history-side-tilt`
-Last reviewed: 2026-07-29 (round 5)
+Model version: `2026.07.29.per-symbol-curves`
+Last reviewed: 2026-07-29 (round 6)
 
 ## Geometry
 
@@ -169,6 +169,31 @@ symbols on each symbol's full history produced:
 - Per-class OOS on the shipped config (corrected basis): energies +0.155,
   futures +0.091, forex +0.045, crypto +0.032, metals −0.071, indices
   −0.081 (curated out).
+
+## Round-6 calibration (2026-07-29, per-symbol curves + news-aware replay)
+
+- **Per-symbol threshold curves.** With full-history samples (forex pairs
+  carry 400-630 OOS setups each), per-symbol expectancy-vs-cutoff curves
+  became statistically legitimate. The gate (raises only; both walk-forward
+  splits must improve by >=0.01R; train n>=300, test n>=150) passed exactly
+  2 of 33 eligible symbols: EURGBP and EURJPY, both 66 -> 82. The other 31
+  showed flat curves or split disagreement and correctly keep class
+  thresholds — the EURUSD case (train +0.058, test −0.051) is the
+  archetypal overfit the gate exists to block.
+- **News-aware replay.** Scheduled medium/high-impact events (FMP calendar,
+  74,764 events from 2013) now join the replay at decision time: active
+  high-impact events block reviews and the remainder feed the score
+  penalty, mirroring production exactly. Measured effect on expectancy:
+  neutral (train +0.000, test +0.001) while removing the event-window
+  setups production would refuse — a fidelity ship. Noted for future
+  study: penalized-but-accepted setups slightly outperformed clean ones in
+  training, so the medium-impact penalty weight deserves examination once
+  the live cohort can arbitrate.
+- Final shipped configuration on the full window: **+0.032R train /
+  +0.044R test per filled setup, 58.8% / 59.8% money-positive** — the
+  strongest measured state to date. Per-class OOS: energies +0.152,
+  futures +0.083, forex +0.046, crypto +0.032, metals −0.064, indices
+  −0.097 (curated out).
 
 ## Confirmed provider history depth (measured 2026-07-29)
 
