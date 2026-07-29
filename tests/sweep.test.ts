@@ -45,8 +45,10 @@ describe("replay sweep", () => {
   it("simulates a symbol across time and resolves outcomes from future bars", () => {
     // The synthetic oscillator registers as volatile chop; disable the
     // regime gate here — this test verifies outcome resolution, not policy.
+    // Ladder geometry is pinned for the same reason: the shipped tight
+    // runner rejects this fixture's synthetic payoffs outright.
     const result = simulateSymbol({
-      calibrationOverride: { blockedRegimes: [] },
+      calibrationOverride: { blockedRegimes: [], runnerWindowShare: 1, tp1RiskShare: 0.8 },
       dailyBars: dailyBars(80),
       primaryBars: triangleBars(600),
       stepBars: 16,
@@ -94,7 +96,10 @@ describe("replay sweep", () => {
     // The synthetic oscillator classifies as volatile chop, which every
     // class blocks by default. Capture-all still evaluates the records,
     // but none may carry accepted=true.
+    // Geometry pinned like the resolution test above: capture-all still
+    // requires the plan gate to produce records at all.
     const result = simulateSymbol({
+      calibrationOverride: { runnerWindowShare: 1, tp1RiskShare: 0.8 },
       captureAll: true,
       dailyBars: dailyBars(80),
       primaryBars: triangleBars(600),

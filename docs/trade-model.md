@@ -293,6 +293,35 @@ reliability rows re-based for crypto, metals, futures. Indices (1.2)
 and energies (0.8) keep their round-8 values — both rejected earlier
 banking when tested.
 
+## Round-11 calibration (2026-07-30, runners re-tuned under the early bank)
+
+The runner objective was tuned in round 8 when TP1 banked at 0.6–0.8×
+risk; rounds 9–10 moved the bank to 0.4× for most classes, so the
+runner side of the interaction was unmeasured. Full-depth grids per
+class (same warm caches) answered: **tighter runners win under the
+early bank**, with the same two coherent exceptions as before.
+
+| Class | Runner | Train expR | Test expR |
+| --- | --- | --- | --- |
+| Forex 0.8 → 0.6 | +0.108 → +0.122 | +0.131 → +0.138 |
+| Futures 0.8 → 0.6* | +0.075 → +0.082 | +0.100 → +0.113 |
+| Crypto 1.1 → 0.8 | +0.079 → +0.081 | +0.063 → +0.068 |
+| Metals 1.0 → 0.8 | +0.092 → +0.100 | +0.049 → +0.066 |
+
+*Oil futures (`BZUSD`/`CLUSD`) rejected every tighter runner on test —
+their overrides now pin both knobs (tp1 0.6, runner 0.8). Indices
+rejected all variants (train/test disagree) and keep 1.1; energies
+were out of scope (their TP1 never moved, so their r8 runner remains
+conditioned correctly).
+
+Two structural notes. First, 0.6 is the floor by design, not by
+timidity: the runner objective share meets TP1's 0.6×window-move cap
+there, so probing lower would invert the ladder. Second, tightening
+the runner shrinks acceptance through the payoff gate (forex accepts
+~30% fewer setups on test) — the config trades quantity for quality,
+and the reliability table's sample sizes shrink accordingly. Version
+`2026.07.30.tight-runners`; reliability rows re-based.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the

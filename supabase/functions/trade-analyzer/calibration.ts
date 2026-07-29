@@ -104,7 +104,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.3,
     newsPenaltyPerEvent: 1,
     providerWarningPenalty: 3,
-    runnerWindowShare: 1.1,
+    runnerWindowShare: 0.8,
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
     tp1AtrMultiplier: 0.5,
@@ -151,7 +151,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 2,
-    runnerWindowShare: 0.8,
+    runnerWindowShare: 0.6,
     stopAtrMultiplier: 1.2,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -176,7 +176,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
-    runnerWindowShare: 0.8,
+    runnerWindowShare: 0.6,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -224,7 +224,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
-    runnerWindowShare: 1,
+    runnerWindowShare: 0.8,
     stopAtrMultiplier: 1.32,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -251,8 +251,8 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   NGUSD: { confidenceThreshold: 70, maxStopAtrMultiplier: 2.8 },
   // Oil trends: earlier TP1 banking fails the test split for both oil
   // futures (r10), matching cash energies' rejection of 0.6 in r8.
-  BZUSD: { tp1RiskShare: 0.6 },
-  CLUSD: { tp1RiskShare: 0.6 },
+  BZUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
+  CLUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
   // Silver carries roughly twice gold's relative volatility.
   XAGUSD: { maxStopAtrMultiplier: 2.8 },
 };
