@@ -44,7 +44,7 @@ jobs in both.
 | Accent pressed | `#1A35CC` | `#4763E0` |
 | Buy / long | `#177245` emerald | `#4CC38A` |
 | Sell / short | `#B3261E` | `#E5766E` |
-| Caution | `#9A6B00` | `#D9A441` |
+| Caution | `#8A5B00` | `#D9A441` |
 
 Dark stays warm (paper-derived), never graphite — the editorial character
 must survive the inversion. Every text pairing ships WCAG AA minimum, body

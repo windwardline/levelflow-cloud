@@ -28,7 +28,7 @@
   --color-accent-pressed: #1A35CC;
   --color-buy: #177245;
   --color-sell: #B3261E;
-  --color-caution: #9A6B00;
+  --color-caution: #8A5B00;
 
   /* Legacy aliases: old utility names resolve to the new palette until
      Stages 2-3 migrate every usage, then these are deleted. */
