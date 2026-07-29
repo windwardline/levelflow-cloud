@@ -152,10 +152,22 @@ Deno.serve(async (req) => {
       windowStart: windowStart.toISOString(),
     });
   } catch (error) {
-    console.error("news-calendar sync failed", error);
-    return jsonResponse({ error: "News calendar sync failed." }, 500);
+    const detail = describeError(error);
+    console.error("news-calendar sync failed", detail);
+    return jsonResponse({ detail, error: "News calendar sync failed." }, 500);
   }
 });
+
+// Network-level fetch errors embed the full request URL — including the
+// provider apikey — so credentials must be stripped before the message is
+// logged or returned to the (token-authenticated) caller.
+function describeError(error: unknown) {
+  const message = error instanceof Error
+    ? `${error.name}: ${error.message}`
+    : String(error);
+  return message.replace(/(apikey|token)=[^&\s")]+/gi, "$1=REDACTED")
+    .slice(0, 400);
+}
 
 function isAuthorized(req: Request) {
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
