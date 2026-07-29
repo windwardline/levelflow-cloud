@@ -195,7 +195,7 @@ export function RecommendationPanel({
         <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
         <p className="mt-1">
           {notice ||
-            "Select a market, review the chart, then ask LevelFlow for the current limit setup."}
+            "Select a market, review the chart, then ask Levelflow for the current limit setup."}
         </p>
       </div>
     </div>
@@ -276,7 +276,7 @@ function NoSetupPanel({
             ? `${formatSecurityLabel(symbol)} is not shown because a closely linked market has the better current setup.`
             : (
               <>
-                LevelFlow cleared the prior display for{" "}
+                Levelflow cleared the prior display for{" "}
                 {formatSecurityLabel(symbol)} and did not find a current limit
                 setup strong enough to show.
               </>

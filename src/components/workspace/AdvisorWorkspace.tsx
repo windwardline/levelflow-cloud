@@ -305,7 +305,7 @@ export function AdvisorWorkspace(
                 Market review
               </h2>
               <p className="mt-1 text-sm text-slate">
-                Select a market, review the chart, then ask LevelFlow for the
+                Select a market, review the chart, then ask Levelflow for the
                 current limit setup.
               </p>
             </div>

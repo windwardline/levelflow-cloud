@@ -1,4 +1,4 @@
-# LevelFlow Launch Readiness
+# Levelflow Launch Readiness
 
 ## Current Production Surface
 
@@ -23,6 +23,6 @@
 
 - Economic calendar provider: FMP is selected through `ECONOMIC_CALENDAR_PROVIDER=fmp`; production should be re-tested whenever the FMP plan or key changes.
 - Supabase should remain on a paid tier before external users depend on uptime, log retention, email branding, and sustained auth volume.
-- Trade execution is outside the active product scope. LevelFlow remains a market-review product.
+- Trade execution is outside the active product scope. Levelflow remains a market-review product.
 - Deployment secrets are configured for the deploy-workflow gate and Supabase function deploys; Vercel builds the frontend from this repo directly. If any token is revoked, update the matching GitHub Actions secret.
 - Legacy local Supabase CLI token can be revoked after no more local CLI work is needed.

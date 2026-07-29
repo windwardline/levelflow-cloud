@@ -8,7 +8,7 @@ const testPassword = process.env.LEVELFLOW_E2E_PASSWORD;
 
 test.skip(
   !supabaseUrl || !supabaseKey || !testEmail || !testPassword,
-  "Set LevelFlow E2E Supabase and dedicated test-user credentials to run analyzer abuse tests.",
+  "Set Levelflow E2E Supabase and dedicated test-user credentials to run analyzer abuse tests.",
 );
 
 test("trade analyzer caps repeated market scans without server errors", async () => {
@@ -25,7 +25,7 @@ test("trade analyzer caps repeated market scans without server errors", async ()
 
   if (error || !data.session) {
     throw new Error(
-      `Unable to authenticate LevelFlow E2E user: ${error?.message ?? "No session returned"}`,
+      `Unable to authenticate Levelflow E2E user: ${error?.message ?? "No session returned"}`,
     );
   }
 

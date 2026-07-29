@@ -1,4 +1,4 @@
-# LevelFlow Trade Model
+# Levelflow Trade Model
 
 Model version: `2026.07.29.per-symbol-curves`
 Last reviewed: 2026-07-29 (round 6)

@@ -41,13 +41,13 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       title: "Read the chart",
     },
     {
-      body: "Click Review market. LevelFlow clears stale results, refreshes the market, and either shows a current setup or explains why this market is standing aside.",
+      body: "Click Review market. Levelflow clears stale results, refreshes the market, and either shows a current setup or explains why this market is standing aside.",
       icon: <Radar className="h-5 w-5" aria-hidden="true" />,
       number: "03",
       title: "Run the review",
     },
     {
-      body: "Review the side, entry, stop, TP1 (bank half, stop to entry), runner target, confidence, and reason before taking any action outside LevelFlow.",
+      body: "Review the side, entry, stop, TP1 (bank half, stop to entry), runner target, confidence, and reason before taking any action outside Levelflow.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       number: "04",
       title: "Review the setup",
@@ -61,12 +61,12 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
   ];
   const timeframeItems = [
     {
-      body: "Your selected interval controls the visible chart. It does not limit LevelFlow to that single view.",
+      body: "Your selected interval controls the visible chart. It does not limit Levelflow to that single view.",
       label: "Chart view",
       value: "Your choice",
     },
     {
-      body: "LevelFlow compares these intervals for direction, location, and quality.",
+      body: "Levelflow compares these intervals for direction, location, and quality.",
       label: "Setup review",
       value: advisorSignalIntervalLabel(),
     },
@@ -107,7 +107,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
       value: "Buy / sell limit",
     },
     {
-      body: "The price where the setup becomes active. LevelFlow does not generate market or stop entries.",
+      body: "The price where the setup becomes active. Levelflow does not generate market or stop entries.",
       label: "Entry",
       value: "Limit price",
     },
@@ -142,7 +142,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
                   Guide
                 </p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-normal text-navy">
-                  How to use LevelFlow
+                  How to use Levelflow
                 </h2>
               </div>
             </div>
@@ -212,7 +212,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
               Review
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
-              What LevelFlow checks
+              What Levelflow checks
             </h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -265,9 +265,9 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
               />
             ))}
             <p className="rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
-              If the current market does not pass review, LevelFlow clears the
+              If the current market does not pass review, Levelflow clears the
               previous setup instead of showing a stale one. When closely
-              linked markets qualify together, LevelFlow keeps the stronger
+              linked markets qualify together, Levelflow keeps the stronger
               setup in view. This is not a whole-category filter.
             </p>
           </div>
@@ -288,7 +288,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
               off.
             </p>
           </div>
-          <a className="secondary-button shrink-0" href={`mailto:${supportEmail}?subject=${encodeURIComponent("[LevelFlow] Help")}`}>
+          <a className="secondary-button shrink-0" href={`mailto:${supportEmail}?subject=${encodeURIComponent("[Levelflow] Help")}`}>
             <Mail className="h-4 w-4" aria-hidden="true" />
             {supportEmail}
           </a>

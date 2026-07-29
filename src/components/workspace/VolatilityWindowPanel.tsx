@@ -111,7 +111,7 @@ export function VolatilityWindowPanel({
         : (
           <p className="text-sm leading-6 text-slate">
             {notice ||
-              "More intraday candles are needed before LevelFlow can show a data-backed timing window."}
+              "More intraday candles are needed before Levelflow can show a data-backed timing window."}
           </p>
         )}
     </section>

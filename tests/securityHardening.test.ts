@@ -118,4 +118,15 @@ describe("security hardening", () => {
     assert.equal(cleanExternalUrl("http://example.com/donate"), "");
     assert.equal(cleanExternalUrl("mailto:support@windwardline.com"), "");
   });
+
+  it("renames auth mail branding only with the full SMTP block", () => {
+    const script = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
+    for (const key of ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_admin_email", "smtp_sender_name", "smtp_max_frequency", "mailer_subjects_magic_link"]) {
+      assert.match(script, new RegExp(key), key);
+    }
+    assert.match(script, /Your Levelflow sign-in link/);
+    assert.match(script, /"smtp_sender_name":\s*"Levelflow"/);
+    assert.match(script, /security find-generic-password/);
+    assert.doesNotMatch(script, /re_[A-Za-z0-9]{10,}/); // no hardcoded Resend key
+  });
 });

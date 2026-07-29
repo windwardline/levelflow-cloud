@@ -1,4 +1,4 @@
--- LevelFlow Cloud Supabase bootstrap.
+-- Levelflow Cloud Supabase bootstrap.
 -- Run this in a new Supabase project, then apply the migrations in
 -- supabase/migrations before deploying Edge Functions.
 
