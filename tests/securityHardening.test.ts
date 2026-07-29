@@ -69,6 +69,21 @@ describe("security hardening", () => {
     assert.match(watchdog, /'sync_watchdog'/);
   });
 
+  it("gives scheduled sync calls headroom beyond pg_net's 5s default", () => {
+    const timeouts = readFileSync(
+      "supabase/migrations/20260729190000_raise_sync_call_timeouts.sql",
+      "utf8",
+    );
+
+    // A slow-but-successful function run must not register as a failure,
+    // or the watchdog alarms on runs that lost no data.
+    assert.match(timeouts, /levelflow-news-calendar-sync/);
+    assert.match(timeouts, /levelflow-outcome-sync/);
+    const timeoutCount =
+      timeouts.match(/timeout_milliseconds := 15000/g)?.length ?? 0;
+    assert.equal(timeoutCount, 2);
+  });
+
   it("keeps deploy-time security header verification in CI", () => {
     const workflow = readFileSync(".github/workflows/deploy.yml", "utf8");
 
