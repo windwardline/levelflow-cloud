@@ -234,6 +234,38 @@ gate (classes that kept their runner have byte-identical setup counts).
 Version `2026.07.29.ladder-geometry-v2`; reliability table re-based to the
 combined run's test split.
 
+## Round-9 calibration (2026-07-29, forex per-symbol tp1 curves)
+
+The round asked whether individual forex pairs want individual TP1
+banking shares. The grid (28 pairs, full depth, fresh caches, variants
+0.5/0.8/1.0 against the shipped 0.6, conditioned on the shipped
+runner 0.8) answered with uniformity instead: **0.5 improved on 0.6 for
+28/28 pairs on both splits** (24/28 passed the strict per-symbol gate of
+≥+0.01R on both splits with n floors), and no pair preferred a higher
+share. The monotone slope obligated one probe below: 0.4 beat 0.5 on
+both splits for 27/28 pairs (EURGBP split the difference by ±0.004 on
+test) and beat the 0.6 baseline everywhere.
+
+Shipped: class-level `tp1RiskShare 0.4` for forex — no per-symbol
+overrides, because the durable finding is that none are warranted. On
+identical setup populations (131,746 train / 69,390 test filled
+setups):
+
+| Config | Train expR | Test expR | Test money-positive |
+| --- | --- | --- | --- |
+| 0.6 (prior) | +0.066 | +0.092 | 70.5% |
+| 0.5 | +0.084 | +0.111 | 76.7% |
+| **0.4 (shipped)** | **+0.108** | **+0.131** | **83.7%** |
+
+Mechanism, not curve-fit: first-target hit rates rise to 78–87% and
+stop-out rates nearly halve, because half the position banks before
+ordinary pullbacks reach the stop; the runner objective (0.8× window
+move) is unchanged and carries the upside. The knob self-limits below
+this range — TP1 never drops beneath the 0.5×ATR floor — so 0.4 is
+where measurement stopped mattering, not merely where we stopped
+measuring. Version `2026.07.29.forex-tp1-early-bank`; forex reliability
+row re-based to the 0.4 test split.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
