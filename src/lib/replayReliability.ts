@@ -17,12 +17,12 @@ export type ReplayRecord = {
 };
 
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
-  Crypto: { moneyPositiveRate: 0.57, sampleSize: 1380 },
-  Energies: { moneyPositiveRate: 0.65, sampleSize: 127 },
-  Forex: { moneyPositiveRate: 0.6, sampleSize: 13308 },
-  Futures: { moneyPositiveRate: 0.61, sampleSize: 532 },
-  Indices: { moneyPositiveRate: 0.56, sampleSize: 166 },
-  Metals: { moneyPositiveRate: 0.55, sampleSize: 223 },
+  Crypto: { moneyPositiveRate: 0.66, sampleSize: 7629 },
+  Energies: { moneyPositiveRate: 0.57, sampleSize: 606 },
+  Forex: { moneyPositiveRate: 0.7, sampleSize: 69108 },
+  Futures: { moneyPositiveRate: 0.65, sampleSize: 2716 },
+  Indices: { moneyPositiveRate: 0.51, sampleSize: 952 },
+  Metals: { moneyPositiveRate: 0.64, sampleSize: 1258 },
 };
 
 export function describeReplayRecord(assetType: SecurityType) {
@@ -33,7 +33,7 @@ export function describeReplayRecord(assetType: SecurityType) {
   const rate = Math.round(record.moneyPositiveRate * 100);
   return {
     detail:
-      `In a 150-day historical replay, filled ${assetType} setups ended money-positive ${rate}% of the time across ${record.sampleSize} out-of-sample setups. This measures how often, not how much — follow the ladder to manage size.`,
+      `In a full-history replay, filled ${assetType} setups ended money-positive ${rate}% of the time across ${record.sampleSize} out-of-sample setups. This measures how often, not how much — follow the ladder to manage size.`,
     value: `${rate}% money-positive`,
   };
 }

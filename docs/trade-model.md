@@ -195,6 +195,45 @@ symbols on each symbol's full history produced:
   futures +0.083, forex +0.046, crypto +0.032, metals −0.064, indices
   −0.097 (curated out).
 
+## Round-8 calibration (2026-07-29, ladder-geometry revalidation)
+
+The exit ladder's two class-level knobs were grid-swept at full depth on
+the warm pinned caches — `tp1RiskShare` (0.6/1.0/1.2 vs 0.8 baseline) and
+`runnerWindowShare` (0.8/1.2 vs 1.0–1.1) — 58 symbols, both splits,
+~1.99M grid records. One coherent story emerged: at this review horizon,
+closer objectives earn more than ambitious ones.
+
+Axis-aligned winners under the both-splits gate:
+
+- `tp1RiskShare 0.6` (bank TP1 earlier): forex, crypto, metals, futures.
+  Energies failed (kept 0.8). Indices INVERTED — later banking (1.2)
+  reduces losses on both splits, broad across 4 of 5 symbols on test.
+- `runnerWindowShare 0.8` (nearer runner objective): forex, energies,
+  futures. Crypto, metals, indices keep their current runner.
+
+Because forex, energies, and futures change both knobs, the combination
+was re-validated as a single candidate against the same caches. It passed
+every class and the whole system on both splits — the largest validated
+improvement since depth discovery:
+
+| Scope | Train expR | Test expR |
+| --- | --- | --- |
+| Whole system | +0.034 → +0.063 | +0.050 → +0.082 |
+| Forex | +0.035 → +0.066 | +0.055 → +0.091 |
+| Crypto | +0.041 → +0.053 | +0.039 → +0.052 |
+| Metals | +0.043 → +0.045 | +0.001 → +0.008 |
+| Energies | +0.021 → +0.043 | +0.016 → +0.028 |
+| Futures | +0.014 → +0.041 | +0.004 → +0.038 |
+| Indices | −0.051 → −0.037 | −0.090 → −0.060 |
+
+Test-split money-positive rates rose with expectancy (forex 60.5% → 70.5%)
+because earlier TP1 banking converts near-miss reversals into banked
+partials. The tighter runner window also acts as a feasibility filter: the
+three runner-0.8 classes accept ~8.5% fewer setups through the payoff
+gate (classes that kept their runner have byte-identical setup counts).
+Version `2026.07.29.ladder-geometry-v2`; reliability table re-based to the
+combined run's test split.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
