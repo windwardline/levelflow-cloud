@@ -293,7 +293,7 @@ export function AdvisorWorkspace(
         status={scanStatus}
       />
 
-      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="terminal-panel overflow-hidden">
         <div className="border-b border-slate/15 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">

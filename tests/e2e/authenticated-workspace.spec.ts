@@ -173,6 +173,30 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   ).toHaveCount(0);
 });
 
+test("laptop-width desktop shows the advisor rail beside the chart", async ({ page }) => {
+  // Real desktop windows are usually 1000-1500 CSS px wide (Windows display
+  // scaling, non-maximized Mac windows). The workspace previously went
+  // side-by-side only at 1536px, so nearly every desktop saw the stacked
+  // mobile layout. Guard the split at a realistic laptop width.
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto("/");
+
+  const advisorPanel = page.locator("section", {
+    has: page.getByRole("heading", { name: "Market review" }),
+  }).first();
+  const rail = page.locator("aside").first();
+
+  await expect(advisorPanel).toBeVisible();
+  await expect(rail).toBeVisible();
+
+  const panelBox = await advisorPanel.boundingBox();
+  const railBox = await rail.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(railBox).not.toBeNull();
+  expect(railBox!.x).toBeGreaterThanOrEqual(panelBox!.x + panelBox!.width - 8);
+  expect(railBox!.y).toBeLessThan(panelBox!.y + panelBox!.height);
+});
+
 test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
   // Labels may collapse to icons on small screens, but every control keeps
   // its accessible name and stays reachable: no desktop-only features.
