@@ -23,3 +23,27 @@ test("public login screen presents LevelFlow without stale auth copy", async ({
   await expect(page.getByRole("button", { name: "Donate" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Help" })).toBeVisible();
 });
+
+test("mobile viewport keeps every public feature reachable", async ({
+  page,
+}) => {
+  // The mobile layout may stack and collapse labels to icons, but it must
+  // never remove functionality: identical controls, identical actions.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("heading", { name: "LevelFlow" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Send magic link" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Donate" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Help" })).toBeVisible();
+
+  const horizontalOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth -
+    document.documentElement.clientWidth
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
+});

@@ -172,3 +172,30 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     ),
   ).toHaveCount(0);
 });
+
+test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
+  // Labels may collapse to icons on small screens, but every control keeps
+  // its accessible name and stays reachable: no desktop-only features.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  await expect(page.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Donate" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+
+  for (const tab of ["Advisor", "Insights", "Guide", "About", "Profile"]) {
+    await expect(page.getByRole("button", { name: tab })).toBeVisible();
+  }
+
+  await expect(
+    page.getByRole("heading", { name: "Best current markets" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Group")).toBeVisible();
+  await expect(page.getByLabel("Quality")).toBeVisible();
+
+  const horizontalOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth -
+    document.documentElement.clientWidth
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
+});

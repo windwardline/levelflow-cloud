@@ -163,13 +163,15 @@ export default function App() {
               <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
             </div>
             <a
-              className="secondary-button hidden min-h-10 px-3 py-2 lg:inline-flex"
+              aria-label="Help"
+              className="secondary-button min-h-10 px-3 py-2"
               href={SUPPORT_MAILTO}
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
-              Help
+              <span className="hidden sm:inline">Help</span>
             </a>
             <button
+              aria-label="Donate"
               className="secondary-button min-h-10 px-3 py-2"
               type="button"
               onClick={() => setActiveTab("donate")}
@@ -178,6 +180,7 @@ export default function App() {
               <span className="hidden sm:inline">Donate</span>
             </button>
             <button
+              aria-label="Sign out"
               className="secondary-button min-h-10 px-3 py-2"
               type="button"
               onClick={() => supabase?.auth.signOut()}
