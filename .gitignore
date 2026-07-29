@@ -11,3 +11,6 @@ test-results
 *.tsbuildinfo
 .DS_Store
 .vercel
+
+# Visual brainstorming companion sessions
+.superpowers/
