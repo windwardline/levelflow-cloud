@@ -1,3 +1,7 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/600.css";
 @import "tailwindcss";
 
 @theme {
@@ -25,7 +29,9 @@
 
   --shadow-terminal: 0 24px 60px rgba(17, 28, 56, 0.14);
 
-  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", "Space Grotesk", var(--font-sans);
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 /*
@@ -62,7 +68,7 @@
       linear-gradient(180deg, rgba(17, 28, 56, 0.05), rgba(247, 248, 244, 0) 34%),
       #f7f8f4;
     color: #162033;
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
   }
 
   html[data-theme="dark"] {
