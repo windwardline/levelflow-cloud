@@ -28,6 +28,32 @@ describe("security hardening", () => {
     );
   });
 
+  it("keeps scheduled sync endpoints token-gated and deployed", () => {
+    const outcomeSync = readFileSync(
+      "supabase/functions/outcome-sync/index.ts",
+      "utf8",
+    );
+    const configToml = readFileSync("supabase/config.toml", "utf8");
+    const workflow = readFileSync(".github/workflows/deploy.yml", "utf8");
+
+    // The sync endpoint must refuse unauthenticated calls before any work.
+    assert.match(outcomeSync, /if \(!isAuthorized\(req\)\)/);
+    assert.match(
+      outcomeSync,
+      /NEWS_SYNC_TOKEN && token === NEWS_SYNC_TOKEN/,
+    );
+    // Platform JWT verification is off only for the token-gated jobs.
+    assert.match(
+      configToml,
+      /\[functions\.outcome-sync\]\s*\nverify_jwt = false/,
+    );
+    // The function ships with every deploy.
+    assert.match(
+      workflow,
+      /functions deploy market-data trade-analyzer news-calendar outcome-sync/,
+    );
+  });
+
   it("keeps deploy-time security header verification in CI", () => {
     const workflow = readFileSync(".github/workflows/deploy.yml", "utf8");
 

@@ -125,6 +125,23 @@ export async function adminInsertRows<T = unknown>(
   return (await response.json()) as T[];
 }
 
+export async function adminUpdateRows<T = unknown>(
+  path: string,
+  payload: Record<string, unknown>,
+): Promise<T[]> {
+  const response = await adminSupabaseFetch(path, {
+    body: JSON.stringify(payload),
+    headers: {
+      Prefer: "return=representation",
+    },
+    method: "PATCH",
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
 export async function adminRpcRows<T>(
   functionName: string,
   payload: Record<string, unknown>,
