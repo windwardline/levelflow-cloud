@@ -1,0 +1,12 @@
+version: 2
+
+# scripts/ops/update-auth-brand.sh trips generic SMTP-credential detectors
+# because it PATCHes the full Supabase SMTP block (smtp_host/smtp_user/
+# smtp_pass keys are structural: any auth-config PATCH must carry every
+# sibling field or GoTrue clears them). The password is sys.argv[1] — a
+# runtime reference filled from the macOS Keychain; no literal secret has
+# ever existed in this file. Verified 2026-07-29: GitHub secret scanning
+# clean, zero key-pattern matches across full history.
+secret:
+  ignored-paths:
+    - scripts/ops/update-auth-brand.sh
