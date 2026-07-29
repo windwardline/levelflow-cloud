@@ -54,6 +54,21 @@ describe("security hardening", () => {
     );
   });
 
+  it("watches scheduled sync jobs for silent failure", () => {
+    const watchdog = readFileSync(
+      "supabase/migrations/20260729040000_scheduled_sync_watchdog.sql",
+      "utf8",
+    );
+
+    // Cron firing is not proof of success: both the transport failures and
+    // the data-freshness symptom must be surfaced.
+    assert.match(watchdog, /levelflow-sync-watchdog/);
+    assert.match(watchdog, /net\._http_response/);
+    assert.match(watchdog, /status_code >= 300/);
+    assert.match(watchdog, /future_events = 0/);
+    assert.match(watchdog, /'sync_watchdog'/);
+  });
+
   it("keeps deploy-time security header verification in CI", () => {
     const workflow = readFileSync(".github/workflows/deploy.yml", "utf8");
 
