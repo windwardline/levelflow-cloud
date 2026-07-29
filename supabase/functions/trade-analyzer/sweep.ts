@@ -13,14 +13,30 @@ import {
   type CotReportRow,
   cotScoreAdjustment,
 } from "./cotContext.ts";
+import {
+  calculateNewsPenaltyUnits,
+  isBlockingNewsEvent,
+  NEWS_ACTIVE_AFTER_MS,
+  NEWS_ACTIVE_BEFORE_MS,
+  NEWS_UPCOMING_HORIZON_MS,
+} from "./newsRules.ts";
 import { scoreSetupConfidence } from "./scoring.ts";
 import { getSessionContext } from "./sessions.ts";
+import { isCurrencyRelevantForSymbol } from "./symbols.ts";
 import {
   classifyRegime,
   runStrategyCommittee,
   scoreConsensus,
 } from "./strategies.ts";
 import type { Bar, MarketContext } from "./types.ts";
+
+// Scheduled macro event for the replay news join (medium/high impact only,
+// currency uppercased), sorted by time ascending.
+export type SweepNewsEvent = {
+  currency: string;
+  impact: "medium" | "high";
+  time: number;
+};
 
 export type SweepOutcomeRecord = {
   // False when the setup failed the confidence/payoff gates but was still
@@ -29,6 +45,7 @@ export type SweepOutcomeRecord = {
   confidenceScore: number;
   cotPercentile: number | null;
   cotStance: string;
+  newsPenalty: number;
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
   regime: string;
@@ -53,6 +70,7 @@ export type SweepResult = {
   outcomes: SweepOutcomeRecord[];
   rejections: {
     belowThreshold: number;
+    newsBlocked: number;
     noConsensus: number;
     planRejected: number;
     regimeBlocked: number;
@@ -87,6 +105,10 @@ export function simulateSymbol(input: {
   // safe: only reports published before the decision bar are ever visible.
   cotReports?: CotReportRow[];
   dailyBars: Bar[];
+  // Scheduled macro events, sorted by time ascending. Blocking and penalty
+  // rules mirror the live analyzer; schedules are known in advance, so the
+  // join is honest at decision time.
+  newsEvents?: SweepNewsEvent[];
   primaryBars: Bar[];
   stepBars: number;
   symbol: string;
@@ -103,11 +125,16 @@ export function simulateSymbol(input: {
   let decisionPoints = 0;
   const rejections = {
     belowThreshold: 0,
+    newsBlocked: 0,
     noConsensus: 0,
     planRejected: 0,
     regimeBlocked: 0,
     sessionBlocked: 0,
   };
+  const newsEvents = input.newsEvents ?? [];
+  // Decision points advance chronologically, so a moving pointer keeps the
+  // relevant-event window scan linear across the whole simulation.
+  let newsStartIndex = 0;
 
   for (
     let index = input.warmupBars;
@@ -153,6 +180,43 @@ export function simulateSymbol(input: {
       rejections.sessionBlocked += 1;
       continue;
     }
+    // News join: mirror the live analyzer's scheduled-event handling.
+    // Active high-impact events block the review outright; active-medium
+    // and upcoming events feed the score penalty.
+    const windowStart = latest.time - NEWS_ACTIVE_BEFORE_MS;
+    const upcomingEnd = latest.time + NEWS_UPCOMING_HORIZON_MS;
+    while (
+      newsStartIndex < newsEvents.length &&
+      newsEvents[newsStartIndex].time < windowStart
+    ) {
+      newsStartIndex += 1;
+    }
+    const activeNews = [];
+    const upcomingNews = [];
+    for (let n = newsStartIndex; n < newsEvents.length; n += 1) {
+      const event = newsEvents[n];
+      if (event.time > upcomingEnd) {
+        break;
+      }
+      if (!isCurrencyRelevantForSymbol(input.symbol, event.currency)) {
+        continue;
+      }
+      const shaped = { event_type: "scheduled" as const, impact: event.impact };
+      if (event.time <= latest.time + NEWS_ACTIVE_AFTER_MS) {
+        activeNews.push(shaped);
+      } else {
+        upcomingNews.push(shaped);
+      }
+    }
+    if (activeNews.some(isBlockingNewsEvent)) {
+      rejections.newsBlocked += 1;
+      continue;
+    }
+    const newsPenaltyUnits = calculateNewsPenaltyUnits(
+      activeNews,
+      upcomingNews,
+    );
+
     const regime = classifyRegime(market);
     if (
       !input.captureAll && calibration.blockedRegimes?.includes(regime.name)
@@ -196,7 +260,7 @@ export function simulateSymbol(input: {
       ),
       executionPenalty: plan.executionQuality.confidencePenalty,
       macroAdjustment: 0,
-      newsPenaltyUnits: 0,
+      newsPenaltyUnits,
       providerWarningCount: 0,
       regimeAdjustment: calibration.regimeScoreAdjustments?.[regime.name] ?? 0,
       sessionPenalty: sessionContext.penalty,
@@ -242,6 +306,7 @@ export function simulateSymbol(input: {
       confidenceScore: scoreBreakdown.confidenceScore,
       cotPercentile: cotContext.percentile,
       cotStance: cotContext.stance,
+      newsPenalty: newsPenaltyUnits,
       outcome: evaluation.outcome,
       realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
       regime: regime.name,

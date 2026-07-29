@@ -240,6 +240,13 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   string,
   Partial<CategoryCalibration>
 > = {
+  // Per-symbol threshold curves (2026-07-29, full-history records, raises
+  // only, both walk-forward splits must improve vs the class default with
+  // train n>=300 / test n>=150): 2 of 33 eligible symbols passed.
+  // EURGBP: train -0.033->-0.023, test +0.118->+0.130 at 82.
+  EURGBP: { confidenceThreshold: 82 },
+  // EURJPY: train +0.033->+0.083, test +0.027->+0.067 at 82.
+  EURJPY: { confidenceThreshold: 82 },
   // Natural gas runs far hotter than the energy class baseline.
   NGUSD: { confidenceThreshold: 70, maxStopAtrMultiplier: 2.8 },
   // Silver carries roughly twice gold's relative volatility.

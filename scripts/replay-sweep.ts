@@ -23,6 +23,7 @@ import {
   getCotContractMapping,
   netPctFromReport,
 } from "../supabase/functions/trade-analyzer/cotContext.ts";
+import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
@@ -65,6 +66,9 @@ async function main() {
   ]];
 
   const emitLines: string[] = [];
+  const newsEvents = args.discover
+    ? []
+    : await loadEconomicCalendar(args.cacheDir);
   for (const symbol of args.symbols) {
     const providerSymbol = resolveProviderSymbols(symbol)[0];
     if (!providerSymbol) {
@@ -124,6 +128,7 @@ async function main() {
           captureAll: args.captureAll,
           cotReports,
           dailyBars,
+          newsEvents,
           primaryBars: split.bars,
           stepBars: args.step,
           symbol,
@@ -163,6 +168,69 @@ async function main() {
     await writeFile(args.emit, emitLines.join("\n") + "\n");
     console.log(`Emitted ${emitLines.length} setup records to ${args.emit}`);
   }
+}
+
+// Scheduled macro calendar for the replay news join. FMP coverage begins in
+// 2013; earlier decision points simply see no events, matching the live
+// system's behavior when no events exist. Cached per run day like bars.
+async function loadEconomicCalendar(
+  cacheDir: string | undefined,
+): Promise<SweepNewsEvent[]> {
+  const { mkdir, readFile, writeFile } = await import("node:fs/promises");
+  const anchor = isoDate(new Date());
+  const path = cacheDir ? `${cacheDir}/econ-calendar-${anchor}.json` : null;
+  if (path) {
+    try {
+      const cached = JSON.parse(await readFile(path, "utf8"));
+      if (Array.isArray(cached) && cached.length > 0) {
+        return cached as SweepNewsEvent[];
+      }
+    } catch {
+      // Cache miss: fetch below.
+    }
+  }
+
+  const events: SweepNewsEvent[] = [];
+  const start = Date.parse("2013-01-01T00:00:00Z");
+  const chunkMs = 90 * 86_400_000;
+  for (let from = start; from < Date.now(); from += chunkMs) {
+    const endpoint = new URL(`${FMP_API_BASE_URL}/economic-calendar`);
+    endpoint.searchParams.set("from", isoDate(new Date(from)));
+    endpoint.searchParams.set(
+      "to",
+      isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
+    );
+    endpoint.searchParams.set("apikey", API_KEY!);
+    const response = await fetch(endpoint);
+    if (!response.ok) {
+      console.warn(`Calendar fetch failed (${response.status}); continuing.`);
+      continue;
+    }
+    const payload = await response.json();
+    if (Array.isArray(payload)) {
+      for (const raw of payload as Array<Record<string, unknown>>) {
+        const impact = String(raw.impact ?? "").toLowerCase();
+        if (impact !== "high" && impact !== "medium") {
+          continue;
+        }
+        const time = Date.parse(
+          String(raw.date ?? "").replace(" ", "T") + "Z",
+        );
+        const currency = String(raw.currency ?? "").toUpperCase();
+        if (Number.isFinite(time) && currency) {
+          events.push({ currency, impact, time });
+        }
+      }
+    }
+    await sleep(150);
+  }
+  events.sort((first, second) => first.time - second.time);
+  console.log(`Loaded ${events.length} medium/high scheduled events.`);
+  if (path && events.length > 0) {
+    await mkdir(cacheDir!, { recursive: true });
+    await writeFile(path, JSON.stringify(events));
+  }
+  return events;
 }
 
 // Positioning history is weekly and slow-moving, so it caches by contract

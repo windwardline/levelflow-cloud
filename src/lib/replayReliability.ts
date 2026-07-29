@@ -5,7 +5,9 @@ import type { SecurityType } from "./symbolMap";
 // 2010, gold 2013, CME futures 2023), all 58 supported symbols,
 // session-aware, walk-forward test split only, accepted setups that filled,
 // under the shipped configuration (chop gate, low-edge hour gates,
-// measured-edge curation, buy-side tilt). "Money-positive" counts any
+// measured-edge curation, buy-side tilt, per-symbol threshold overrides)
+// with the replay news-aware: scheduled high-impact events block reviews
+// exactly as production does. "Money-positive" counts any
 // resolution that ended profitable under ladder accounting (full target,
 // banked TP1, profitable expiry). These are historical frequencies, not
 // predictions or promises.
@@ -15,12 +17,12 @@ export type ReplayRecord = {
 };
 
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
-  Crypto: { moneyPositiveRate: 0.57, sampleSize: 1437 },
-  Energies: { moneyPositiveRate: 0.66, sampleSize: 140 },
-  Forex: { moneyPositiveRate: 0.6, sampleSize: 14631 },
-  Futures: { moneyPositiveRate: 0.61, sampleSize: 554 },
-  Indices: { moneyPositiveRate: 0.57, sampleSize: 182 },
-  Metals: { moneyPositiveRate: 0.54, sampleSize: 241 },
+  Crypto: { moneyPositiveRate: 0.57, sampleSize: 1380 },
+  Energies: { moneyPositiveRate: 0.65, sampleSize: 127 },
+  Forex: { moneyPositiveRate: 0.6, sampleSize: 13308 },
+  Futures: { moneyPositiveRate: 0.61, sampleSize: 532 },
+  Indices: { moneyPositiveRate: 0.56, sampleSize: 166 },
+  Metals: { moneyPositiveRate: 0.55, sampleSize: 223 },
 };
 
 export function describeReplayRecord(assetType: SecurityType) {

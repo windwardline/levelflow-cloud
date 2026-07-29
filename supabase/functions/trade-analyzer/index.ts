@@ -45,6 +45,10 @@ import {
   fetchFmpBars,
 } from "./marketLoader.ts";
 import { corsHeaders, getBearerToken, jsonResponse } from "../_shared/http.ts";
+import {
+  calculateNewsPenaltyUnits,
+  isBlockingNewsEvent,
+} from "./newsRules.ts";
 import { recordAnalyzerEvent, recordMarketDataHealth } from "./telemetry.ts";
 import {
   adminFetchRows,
@@ -62,7 +66,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.07.29.deep-history-side-tilt";
+const ANALYZER_VERSION = "2026.07.29.per-symbol-curves";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -1671,23 +1675,6 @@ function isNewsRelevant(symbol: SupportedSymbol, event: NewsEvent) {
   return isCurrencyRelevantForSymbol(symbol, currency);
 }
 
-function isBlockingNewsEvent(event: NewsEvent) {
-  return event.event_type !== "headline" && event.impact === "high";
-}
-
-function calculateNewsPenaltyUnits(active: NewsEvent[], upcoming: NewsEvent[]) {
-  const nonBlockingActive = active.filter((event) =>
-    !isBlockingNewsEvent(event)
-  );
-  const weightedEvents = [...nonBlockingActive, ...upcoming];
-
-  return weightedEvents.reduce((sum, event) => {
-    if (event.event_type === "headline") {
-      return sum + (event.impact === "high" ? 0.5 : 0.25);
-    }
-    return sum + (event.impact === "high" ? 1 : 0.5);
-  }, 0);
-}
 
 function buildSetupKey(
   symbol: SupportedSymbol,
