@@ -1,4 +1,6 @@
 import { FileSearch } from "lucide-react";
+import { describeReplayRecord } from "../../lib/replayReliability";
+import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { cleanReviewMessage, formatStrategyName } from "./reviewCopy";
 
@@ -193,6 +195,7 @@ function buildQualityReceipt(
       tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
       value: asNumber(sessionContext.penalty) ? "Event risk" : "Clean",
     },
+    ...buildReplayRecordItems(setup),
     {
       detail: sampleSize && sampleSize > 0
         ? `${sampleSize} finished setups included.`
@@ -228,6 +231,20 @@ function buildQualityReceipt(
     items,
     strategyVotes,
   };
+}
+
+function buildReplayRecordItems(setup: AnalyzerSetup): QualityReceiptItem[] {
+  const record = describeReplayRecord(
+    getSecurityOption(setup.symbol).assetType,
+  );
+  if (!record) {
+    return [];
+  }
+  return [{
+    detail: record.detail,
+    label: "Replay record",
+    value: record.value,
+  }];
 }
 
 function buildExecutionDetail(

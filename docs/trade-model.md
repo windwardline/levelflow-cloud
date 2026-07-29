@@ -76,6 +76,32 @@ walk-forward). Durable character groups emerged:
   directly, and explicit group scans cover the full group. Curation is
   data-driven and should be revisited as the live cohort accumulates.
 
+## Round-3b calibration (2026-07-28, 150-day instrumented replay)
+
+The sweep gained a bar cache (pinned, drift-free A/B), a capture-all mode
+that evaluates below-threshold setups, and per-setup emission (score,
+regime, payoff, outcome). 31,466 records across all 58 symbols produced:
+
+- **Score-expectancy curves are flat.** The confidence score ranks
+  committee agreement, not outcomes; raising thresholds is not a money
+  lever anywhere except marginally for BTC/ETH. Thresholds therefore stay
+  put, and the UI now shows *measured* replay frequencies instead of
+  implying predictive power the score does not have.
+- **The volatile-chop gate validated**: zero-or-negative OOS in every
+  group, improvement on both splits over identical pinned bars
+  (+0.003R train, +0.008R test per filled setup). `blockedRegimes:
+  ["volatile_chop"]` is active for all classes; model version
+  `2026.07.28.chop-gate-validated`.
+- **A 60-day mirage caught**: the CAD/NZD-quote group's earlier 8/8
+  positive collapsed to ~0.00R at 150 days. Windows lie; the pinned
+  150-day harness is the new minimum bar for calibration evidence.
+- Honest system state: after gating, OOS expectancy per filled setup is
+  futures +0.06, energies +0.01, forex −0.03, crypto −0.05, metals −0.06,
+  indices −0.23 (curated out of the default scan). Range is the only
+  broadly OOS-positive regime — consistent with the pullback-limit style.
+  Closing the remaining gap is the standing calibration program: pinned
+  replay plus the live outcome cohort now accumulating.
+
 ## Cohorts
 
 `ANALYZER_VERSION` scopes global learning. Any change to setup

@@ -9,6 +9,9 @@
 //   FMP_API_KEY=... npx tsx scripts/replay-sweep.ts \
 //     --symbols EURUSD,XAUUSD,SP --days 60 \
 //     --grid tp1AtrMultiplier=0.5,0.7,0.9 [--step 16]
+//     [--cache-dir path]   pin bars to disk so later runs reuse identical data
+//     [--capture-all]      evaluate below-threshold setups too (calibration)
+//     [--emit path.jsonl]  write one JSON line per evaluated setup
 
 import type { CategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
@@ -21,7 +24,10 @@ const WARMUP_BARS = 240;
 const TRAIN_SHARE = 0.6;
 
 type SweepArgs = {
+  cacheDir: string | undefined;
+  captureAll: boolean;
   days: number;
+  emit: string | undefined;
   grid: Array<Partial<CategoryCalibration>>;
   step: number;
   symbols: string[];
@@ -48,6 +54,7 @@ async function main() {
     "expectancyR",
   ]];
 
+  const emitLines: string[] = [];
   for (const symbol of args.symbols) {
     const providerSymbol = resolveProviderSymbols(symbol)[0];
     if (!providerSymbol) {
@@ -55,8 +62,16 @@ async function main() {
       continue;
     }
     const [primaryBars, dailyBars] = await Promise.all([
-      fetchIntradayBars(providerSymbol, args.days),
-      fetchDailyBars(providerSymbol, args.days + 240),
+      cachedBars(
+        args.cacheDir,
+        `${providerSymbol}-15min-${args.days}`,
+        () => fetchIntradayBars(providerSymbol, args.days),
+      ),
+      cachedBars(
+        args.cacheDir,
+        `${providerSymbol}-daily-${args.days}`,
+        () => fetchDailyBars(providerSymbol, args.days + 240),
+      ),
     ]);
     if (primaryBars.length < WARMUP_BARS * 2) {
       console.warn(
@@ -76,12 +91,23 @@ async function main() {
       for (const split of splits) {
         const result = simulateSymbol({
           calibrationOverride: override,
+          captureAll: args.captureAll,
           dailyBars,
           primaryBars: split.bars,
           stepBars: args.step,
           symbol,
           warmupBars: WARMUP_BARS,
         });
+        if (args.emit) {
+          for (const record of result.outcomes) {
+            emitLines.push(JSON.stringify({
+              split: split.name,
+              symbol,
+              variant,
+              ...record,
+            }));
+          }
+        }
         rows.push([
           symbol,
           variant,
@@ -101,6 +127,35 @@ async function main() {
   }
 
   printTable(rows);
+  if (args.emit) {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(args.emit, emitLines.join("\n") + "\n");
+    console.log(`Emitted ${emitLines.length} setup records to ${args.emit}`);
+  }
+}
+
+async function cachedBars(
+  cacheDir: string | undefined,
+  key: string,
+  fetcher: () => Promise<Bar[]>,
+): Promise<Bar[]> {
+  if (!cacheDir) {
+    return fetcher();
+  }
+  const { mkdir, readFile, writeFile } = await import("node:fs/promises");
+  const path = `${cacheDir}/${key}.json`;
+  try {
+    const cached = JSON.parse(await readFile(path, "utf8")) as Bar[];
+    if (Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+  } catch {
+    // Cache miss: fall through to a live fetch and pin it.
+  }
+  const bars = await fetcher();
+  await mkdir(cacheDir, { recursive: true });
+  await writeFile(path, JSON.stringify(bars));
+  return bars;
 }
 
 function parseArgs(argv: string[]): SweepArgs {
@@ -126,7 +181,15 @@ function parseArgs(argv: string[]): SweepArgs {
       }
     }
   }
-  return { days, grid, step, symbols };
+  return {
+    cacheDir: get("cache-dir"),
+    captureAll: argv.includes("--capture-all"),
+    days,
+    emit: get("emit"),
+    grid,
+    step,
+    symbols,
+  };
 }
 
 async function fetchIntradayBars(
