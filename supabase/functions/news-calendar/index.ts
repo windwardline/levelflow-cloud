@@ -1,3 +1,5 @@
+import { type EconomicEvent, toEventRow } from "./eventRows.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const NEWS_SYNC_TOKEN = Deno.env.get("NEWS_SYNC_TOKEN");
@@ -18,22 +20,9 @@ const MARKET_MOVING_EARNINGS_SYMBOLS = new Set([
   "NVDA",
   "TSLA",
 ]);
+
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 const PROVIDER_FETCH_TIMEOUT_MS = 12_000;
-
-type EconomicEvent = {
-  country?: string;
-  currency: string;
-  event_name: string;
-  event_type: "scheduled" | "earnings" | "headline";
-  external_id: string;
-  impact: "low" | "medium" | "high";
-  provider: string;
-  raw_payload: Record<string, unknown>;
-  scheduled_at: string;
-  symbol?: string;
-  url?: string;
-};
 
 const FOREX_NEWS_SYMBOLS = [
   "AUDCAD",
@@ -128,7 +117,7 @@ Deno.serve(async (req) => {
     const response = await fetchWithTimeout(
       `${SUPABASE_URL}/rest/v1/economic_events?on_conflict=provider,external_id`,
       {
-        body: JSON.stringify(events),
+        body: JSON.stringify(events.map(toEventRow)),
         headers: {
           Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
           apikey: SUPABASE_SERVICE_ROLE_KEY,
