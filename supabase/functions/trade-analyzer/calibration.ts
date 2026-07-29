@@ -155,7 +155,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     stopAtrMultiplier: 1.2,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
-    tp1RiskShare: 0.6,
+    tp1RiskShare: 0.4,
     volatilityTargetAtrMultiplier: 3.2,
   },
   futures: {
