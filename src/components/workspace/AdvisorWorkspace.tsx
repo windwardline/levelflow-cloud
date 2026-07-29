@@ -179,6 +179,10 @@ export function AdvisorWorkspace(
 
     setAnalyzerStatus("analyzing");
     setAdvisorNotice(`Analyzing ${requestedLabel}.`);
+    // The engine always analyzes live provider data server-side; refreshing
+    // the visible chart at the same moment keeps what the user sees in
+    // step with the data the setup was built on.
+    setRefreshNonce((value) => value + 1);
     setAnalysisState({
       requestedAt: Date.now(),
       response: null,
@@ -259,6 +263,7 @@ export function AdvisorWorkspace(
   return (
     <div className="grid gap-5">
       <MarketScanPanel
+        onResetResult={() => setScanResult(null)}
         onScan={scanMarkets}
         onSelectCandidate={(candidate) => {
           const nextSymbol = candidate.symbol;

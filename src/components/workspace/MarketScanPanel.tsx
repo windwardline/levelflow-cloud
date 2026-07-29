@@ -33,6 +33,7 @@ import { describeExecutionLabel } from "./reviewCopy";
 type ConfidenceBand = "all" | ConfidenceTierId;
 
 type MarketScanPanelProps = {
+  onResetResult: () => void;
   onScan: (symbols: SupportedSymbol[]) => void;
   onSelectCandidate: (candidate: MarketScanCandidate) => void;
   result: MarketScanResponse | null;
@@ -51,6 +52,7 @@ const CONFIDENCE_BANDS: Array<
 ];
 
 export function MarketScanPanel({
+  onResetResult,
   onScan,
   onSelectCandidate,
   result,
@@ -123,15 +125,10 @@ export function MarketScanPanel({
                 const nextCategory = event.target
                   .value as MarketScanCategoryFilter;
                 setCategoryFilter(nextCategory);
-                // A group change re-scans immediately so counts and rows
-                // always describe the symbols actually reviewed. "All"
-                // sends an empty list: the server scans its curated
-                // measured-edge universe.
-                onScan(
-                  nextCategory === "all"
-                    ? []
-                    : getMarketScanSymbolsForCategory(nextCategory),
-                );
+                // The engine never runs without an explicit Scan click.
+                // Changing the group clears the previous result so stale
+                // counts can never describe a different symbol set.
+                onResetResult();
               }}
             >
               <option value="all">All markets</option>
