@@ -266,6 +266,33 @@ where measurement stopped mattering, not merely where we stopped
 measuring. Version `2026.07.29.forex-tp1-early-bank`; forex reliability
 row re-based to the 0.4 test split.
 
+## Round-10 calibration (2026-07-29, early bank extended to the other classes)
+
+Forex's round-9 mechanism — bank half before ordinary pullbacks reach
+the stop — is not forex-specific. The same grid (tp1RiskShare 0.4/0.5
+vs the shipped 0.6) ran for crypto (8 symbols), metals (2), and
+futures (13) at full depth. All three classes pass the both-splits
+gate at 0.4, with one coherent exception: the oil futures.
+
+| Class | Train expR | Test expR | Test money-positive |
+| --- | --- | --- | --- |
+| Crypto 0.6 → 0.4 | +0.053 → +0.079 | +0.032 → +0.063 | 64.9% → 77.5% |
+| Metals 0.6 → 0.4 | +0.045 → +0.092 | +0.013 → +0.049 | 65.5% → 77.0% |
+| Futures 0.6 → 0.4* | +0.041 → +0.075 | +0.060 → +0.100 | 66.8% → 76.4% |
+
+*Shipped futures config: class 0.4 with `BZUSD`/`CLUSD` overridden to
+keep 0.6 — both oil futures REGRESS on the test split at any earlier
+bank (BZ −0.024, CL −0.041 at 0.4), exactly as cash energies rejected
+0.6 in round 8. Oil trends where the rest of the universe pulls back;
+later banking is its validated shape. The table's futures row shows
+the shipped combination measured on records (0.4 ex-oil + 0.6 oil).
+
+Setup populations are identical across variants per class (the knob
+touches exits only). Version `2026.07.29.early-bank-classes`;
+reliability rows re-based for crypto, metals, futures. Indices (1.2)
+and energies (0.8) keep their round-8 values — both rejected earlier
+banking when tested.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
