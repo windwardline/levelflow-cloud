@@ -9,6 +9,7 @@ import {
   type ResolvedOutcome,
 } from "./replay.ts";
 import { scoreSetupConfidence } from "./scoring.ts";
+import { getSessionContext } from "./sessions.ts";
 import {
   classifyRegime,
   runStrategyCommittee,
@@ -25,6 +26,8 @@ export type SweepOutcomeRecord = {
   realizedR: number;
   regime: string;
   rewardRisk: number;
+  sessionLabel: string;
+  sessionPenalty: number;
   time: number;
 };
 
@@ -45,6 +48,7 @@ export type SweepResult = {
     noConsensus: number;
     planRejected: number;
     regimeBlocked: number;
+    sessionBlocked: number;
   };
   summary: SweepSummary;
 };
@@ -90,6 +94,7 @@ export function simulateSymbol(input: {
     noConsensus: 0,
     planRejected: 0,
     regimeBlocked: 0,
+    sessionBlocked: 0,
   };
 
   for (
@@ -125,6 +130,17 @@ export function simulateSymbol(input: {
         "4hour": fourHour,
       },
     };
+    // Session context is evaluated at the bar's own time, mirroring the
+    // live analyzer. Session blocks (weekends, rollover, maintenance) are
+    // hard closures and apply in every mode.
+    const sessionContext = getSessionContext(
+      input.symbol,
+      new Date(latest.time),
+    );
+    if (sessionContext.block) {
+      rejections.sessionBlocked += 1;
+      continue;
+    }
     const regime = classifyRegime(market);
     if (
       !input.captureAll && calibration.blockedRegimes?.includes(regime.name)
@@ -161,7 +177,8 @@ export function simulateSymbol(input: {
       macroAdjustment: 0,
       newsPenaltyUnits: 0,
       providerWarningCount: 0,
-      sessionPenalty: 0,
+      regimeAdjustment: calibration.regimeScoreAdjustments?.[regime.name] ?? 0,
+      sessionPenalty: sessionContext.penalty,
       weightAdjustment: 0,
     });
     const accepted =
@@ -200,6 +217,8 @@ export function simulateSymbol(input: {
       realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
       regime: regime.name,
       rewardRisk: plan.rewardRisk,
+      sessionLabel: sessionContext.label,
+      sessionPenalty: sessionContext.penalty,
       time: latest.time,
     });
   }

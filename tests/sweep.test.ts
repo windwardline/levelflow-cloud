@@ -92,7 +92,7 @@ describe("replay sweep", () => {
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
         result.rejections.planRejected + result.rejections.belowThreshold +
-        result.rejections.regimeBlocked,
+        result.rejections.regimeBlocked + result.rejections.sessionBlocked,
     );
   });
 

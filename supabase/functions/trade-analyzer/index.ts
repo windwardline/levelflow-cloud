@@ -62,7 +62,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.07.28.chop-gate-validated";
+const ANALYZER_VERSION = "2026.07.28.session-hour-gates";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -925,6 +925,7 @@ async function analyzeSetup(
     executionPenalty: pricePlan.executionQuality.confidencePenalty,
     macroAdjustment: macroRateAdjustment.adjustment,
     providerWarningCount: market.providerWarnings.length,
+    regimeAdjustment: calibration.regimeScoreAdjustments?.[regime.name] ?? 0,
     sessionPenalty: sessionContext.penalty,
     newsPenaltyUnits: newsContext.penaltyUnits,
     weightAdjustment,
@@ -1106,6 +1107,7 @@ async function explainNoSetup(
       executionPenalty: pricePlan?.executionQuality.confidencePenalty ?? 0,
       macroAdjustment: macroRateAdjustment.adjustment,
       providerWarningCount: market.providerWarnings.length,
+      regimeAdjustment: calibration.regimeScoreAdjustments?.[regime.name] ?? 0,
       sessionPenalty: sessionContext.penalty,
       newsPenaltyUnits: newsContext.penaltyUnits,
       weightAdjustment,

@@ -8,6 +8,9 @@ export type ConfidenceScoreInput = {
   macroAdjustment?: number;
   newsPenaltyUnits?: number;
   providerWarningCount: number;
+  // Calibrated per-regime adjustment (e.g., range emphasis); negative
+  // values de-emphasize regimes with weak measured follow-through.
+  regimeAdjustment?: number;
   sessionPenalty: number;
   upcomingEventCount?: number;
   weightAdjustment: number;
@@ -19,6 +22,7 @@ export type ConfidenceScoreBreakdown = {
   macroAdjustment: number;
   newsPenalty: number;
   providerPenalty: number;
+  regimeAdjustment: number;
   sessionPenalty: number;
   timeframePenalty: number;
   weightAdjustment: number;
@@ -42,7 +46,8 @@ export function scoreSetupConfidence(
   const confidenceScore = clampInteger(
     Math.round(
       input.consensusScore + input.weightAdjustment +
-        (input.macroAdjustment ?? 0) - newsPenalty - input.sessionPenalty -
+        (input.macroAdjustment ?? 0) + (input.regimeAdjustment ?? 0) -
+        newsPenalty - input.sessionPenalty -
         timeframePenalty - providerPenalty - input.executionPenalty,
     ),
     0,
@@ -55,6 +60,7 @@ export function scoreSetupConfidence(
     macroAdjustment: input.macroAdjustment ?? 0,
     newsPenalty,
     providerPenalty,
+    regimeAdjustment: input.regimeAdjustment ?? 0,
     sessionPenalty: input.sessionPenalty,
     timeframePenalty,
     weightAdjustment: input.weightAdjustment,

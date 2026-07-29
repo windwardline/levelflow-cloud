@@ -13,6 +13,10 @@ export type CategoryCalibration = {
   // classes; structure and signals both degrade.
   blockedRegimes?: RegimeName[];
   confidenceThreshold: number;
+  // Per-regime score adjustments derived from measured follow-through
+  // (positive emphasizes, negative de-emphasizes). Applied inside the
+  // shared confidence score path.
+  regimeScoreAdjustments?: Partial<Record<RegimeName, number>>;
   dailyTargetAtrMultiplier: number;
   dailyStopAtrMultiplier: number;
   defaultReviewHours: number;

@@ -61,15 +61,19 @@ async function main() {
       console.warn(`Skipping ${symbol}: no provider symbol.`);
       continue;
     }
+    // Cache keys carry the run-day anchor: the replay window is always
+    // relative to now, so a later day's run refetches the rolled-forward
+    // window while same-day runs stay pinned for drift-free A/B.
+    const anchor = isoDate(new Date());
     const [primaryBars, dailyBars] = await Promise.all([
       cachedBars(
         args.cacheDir,
-        `${providerSymbol}-15min-${args.days}`,
+        `${providerSymbol}-15min-${args.days}-${anchor}`,
         () => fetchIntradayBars(providerSymbol, args.days),
       ),
       cachedBars(
         args.cacheDir,
-        `${providerSymbol}-daily-${args.days}`,
+        `${providerSymbol}-daily-${args.days}-${anchor}`,
         () => fetchDailyBars(providerSymbol, args.days + 240),
       ),
     ]);

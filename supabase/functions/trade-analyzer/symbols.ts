@@ -248,6 +248,12 @@ const scanDeprioritizedSymbols = new Set<string>([
   "EURCHF",
   "NZDCHF",
   "CADCHF",
+  // Durable negatives across independent 150-day and 1,200-day windows
+  // (2026-07-28 round-4 durability table).
+  "AUDCAD",
+  "AUDUSD",
+  "GBPAUD",
+  "GBPJPY",
   "ADAUSD",
   "BCHUSD",
   "BNBUSD",
