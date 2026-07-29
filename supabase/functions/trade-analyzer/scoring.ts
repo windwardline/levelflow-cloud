@@ -4,6 +4,8 @@ export type ConfidenceScoreInput = {
   availableTimeframeCount: number;
   calibration: CategoryCalibration;
   consensusScore: number;
+  // Calibrated CFTC positioning adjustment (contrarian at crowded extremes).
+  cotAdjustment?: number;
   executionPenalty: number;
   macroAdjustment?: number;
   newsPenaltyUnits?: number;
@@ -12,18 +14,23 @@ export type ConfidenceScoreInput = {
   // values de-emphasize regimes with weak measured follow-through.
   regimeAdjustment?: number;
   sessionPenalty: number;
+  // Calibrated per-side adjustment (buy setups carry a higher bar where
+  // measured results justify it).
+  sideAdjustment?: number;
   upcomingEventCount?: number;
   weightAdjustment: number;
 };
 
 export type ConfidenceScoreBreakdown = {
   confidenceScore: number;
+  cotAdjustment: number;
   executionPenalty: number;
   macroAdjustment: number;
   newsPenalty: number;
   providerPenalty: number;
   regimeAdjustment: number;
   sessionPenalty: number;
+  sideAdjustment: number;
   timeframePenalty: number;
   weightAdjustment: number;
 };
@@ -46,7 +53,8 @@ export function scoreSetupConfidence(
   const confidenceScore = clampInteger(
     Math.round(
       input.consensusScore + input.weightAdjustment +
-        (input.macroAdjustment ?? 0) + (input.regimeAdjustment ?? 0) -
+        (input.macroAdjustment ?? 0) + (input.regimeAdjustment ?? 0) +
+        (input.cotAdjustment ?? 0) + (input.sideAdjustment ?? 0) -
         newsPenalty - input.sessionPenalty -
         timeframePenalty - providerPenalty - input.executionPenalty,
     ),
@@ -56,12 +64,14 @@ export function scoreSetupConfidence(
 
   return {
     confidenceScore,
+    cotAdjustment: input.cotAdjustment ?? 0,
     executionPenalty: input.executionPenalty,
     macroAdjustment: input.macroAdjustment ?? 0,
     newsPenalty,
     providerPenalty,
     regimeAdjustment: input.regimeAdjustment ?? 0,
     sessionPenalty: input.sessionPenalty,
+    sideAdjustment: input.sideAdjustment ?? 0,
     timeframePenalty,
     weightAdjustment: input.weightAdjustment,
   };

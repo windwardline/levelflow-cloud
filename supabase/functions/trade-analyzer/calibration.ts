@@ -13,6 +13,15 @@ export type CategoryCalibration = {
   // classes; structure and signals both degrade.
   blockedRegimes?: RegimeName[];
   confidenceThreshold: number;
+  // Score magnitude applied when CFTC speculative positioning sits at a
+  // crowded extreme (contrarian). Zero until calibration validates it.
+  cotScoreAdjustment?: number;
+  // Per-side score adjustments. Sell setups measured better than buy setups
+  // on both walk-forward splits for forex and futures over the full
+  // available history, so buys carry a higher bar in those classes. This
+  // tilts selection; it never blocks a side outright, because buys remained
+  // profitable in the training era.
+  sideScoreAdjustments?: Partial<Record<"buy" | "sell", number>>;
   // Per-regime score adjustments derived from measured follow-through
   // (positive emphasizes, negative de-emphasizes). Applied inside the
   // shared confidence score path.
@@ -127,6 +136,9 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   forex: {
     blockedRegimes: ["volatile_chop"],
     confidenceThreshold: 66,
+    // Sweep 2026-07-29 (2010-2026, both splits): sells outperformed buys
+    // (train +0.042 vs +0.023, test +0.118 vs -0.010).
+    sideScoreAdjustments: { buy: -6 },
     dailyStopAtrMultiplier: 0.12,
     dailyTargetAtrMultiplier: 0.35,
     defaultReviewHours: 8,
@@ -149,6 +161,9 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   futures: {
     blockedRegimes: ["volatile_chop"],
     confidenceThreshold: 68,
+    // Sweep 2026-07-29: sells outperformed buys on both splits
+    // (train -0.016 vs -0.035, test +0.110 vs +0.054).
+    sideScoreAdjustments: { buy: -6 },
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.38,
     defaultReviewHours: 6,
