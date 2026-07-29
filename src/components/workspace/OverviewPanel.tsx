@@ -68,7 +68,7 @@ export function OverviewPanel() {
       <section className="grid gap-4 lg:grid-cols-3">
         {valueCards.map((card) => (
           <article key={card.title} className="terminal-panel p-5 sm:p-6">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-white">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-paper">
               {card.icon}
             </div>
             <h3 className="text-xl font-semibold tracking-normal text-navy">

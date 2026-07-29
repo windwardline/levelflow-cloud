@@ -134,7 +134,7 @@ export function GuidePanel({ supportEmail }: GuidePanelProps) {
         <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)] lg:items-stretch">
           <div className="min-w-0">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-navy text-white">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-navy text-paper">
                 <BookOpen className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
@@ -375,7 +375,7 @@ function GuideProcessStep({
         </div>
       ) : null}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-paper">
           {icon}
         </div>
         <span className="text-xs font-bold uppercase tracking-normal text-bullish">

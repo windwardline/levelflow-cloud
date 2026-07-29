@@ -4,6 +4,8 @@ All **text-on-background** color pairs in the Levelflow palette, measured per WC
 
 Dark theme uses paper-colored text on accent fills — no single accent can satisfy both text-on-sheet and white-fill contrast in dark.
 
+The same ruling covers solid ink fills (icon badges): glyphs are paper, never white — `ink` and `paper` re-value together between themes, while a fixed white glyph reads 1.23:1 on the dark-theme ink fill. tests/contrast.test.ts scans src for any `bg-<token>` paired with `text-white`/`text-black` and fails pairings that miss AA in either theme; tests/e2e/public-auth.spec.ts asserts the badge's computed styles in both themes.
+
 ## Light Theme
 
 | Text Color | Background | Ratio | Threshold | Status |
@@ -22,6 +24,7 @@ Dark theme uses paper-colored text on accent fills — no single accent can sati
 | caution (#8A5B00) | sheet (#FDFCF9) | 5.72 | 4.5 AA | ✓ |
 | white (#FFFFFF) | accent (#2244FF) | 6.29 | 4.5 AA | ✓ |
 | white (#FFFFFF) | pressed (#1A35CC) | 8.66 | 4.5 AA | ✓ |
+| paper (#F4F1EA) | ink (#1B1B1B) | 15.27 | 4.5 AA | ✓ |
 
 ## Dark Theme
 
@@ -41,6 +44,7 @@ Dark theme uses paper-colored text on accent fills — no single accent can sati
 | caution (#D9A441) | sheet (#1E1B16) | 7.63 | 4.5 AA | ✓ |
 | paper (#161411) | accent (#6B86FF) | 5.67 | 4.5 AA | ✓ |
 | paper (#161411) | pressed (#7D95FF) | 6.67 | 4.5 AA | ✓ |
+| paper (#161411) | ink (#EDE7DA) | 14.92 | 4.5 AA | ✓ |
 
 ## Non-text boundaries (accepted deviation)
 

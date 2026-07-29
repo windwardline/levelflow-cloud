@@ -188,7 +188,7 @@ export function RecommendationPanel({
 
   return (
     <div className="grid gap-4 text-sm leading-6 text-slate">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-white">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-paper">
         <Target className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
@@ -212,7 +212,7 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-white">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-paper">
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
       </div>
       <div>
