@@ -66,6 +66,25 @@ describe("replay sweep", () => {
     }
   });
 
+  it("marks regime-blocked setups as not accepted even in capture-all", () => {
+    // The synthetic oscillator classifies as volatile chop, which every
+    // class blocks by default. Capture-all still evaluates the records,
+    // but none may carry accepted=true.
+    const result = simulateSymbol({
+      captureAll: true,
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+
+    assert.ok(result.outcomes.length > 0);
+    for (const record of result.outcomes) {
+      assert.equal(record.accepted, false);
+    }
+  });
+
   it("resamples 15min bars into higher-timeframe bars", () => {
     const bars = triangleBars(8);
     const hourly = resampleBars(bars, 4);
