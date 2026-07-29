@@ -39,8 +39,6 @@
   --color-warning: var(--color-caution);
   --color-danger: var(--color-sell);
 
-  --shadow-terminal: 0 24px 60px rgba(17, 28, 56, 0.14);
-
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk Variable", "Space Grotesk", var(--font-sans);
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
@@ -273,10 +271,14 @@ html[data-theme="dark"] {
 }
 
 @layer utilities {
-  html[data-theme="dark"] .bg-canvas {
-    background-color: #0f1724;
-  }
-
+  /*
+    This block is a legacy shim: everything here either (a) still does real
+    work that the token cascade can't supply on its own, or (b) is one of
+    the two Tailwind built-in colors (white) that isn't part of our @theme
+    alias chain and so never re-values automatically. Anything whose value
+    was merely repeating what --color-* re-valuation already provides was
+    deleted — see the Stage 1 final-review fix-wave report for the mapping.
+  */
   html[data-theme="dark"] .bg-white,
   html[data-theme="dark"] .bg-white\/90 {
     background-color: #1E1B16;
@@ -287,30 +289,11 @@ html[data-theme="dark"] {
     background-color: #1E1B16;
   }
 
-  html[data-theme="dark"] .text-ink,
-  html[data-theme="dark"] .text-navy {
-    color: #EDE7DA;
-  }
-
-  html[data-theme="dark"] .text-slate {
-    color: #969082;
-  }
-
   html[data-theme="dark"] .border-slate\/10,
   html[data-theme="dark"] .border-slate\/15,
   html[data-theme="dark"] .border-slate\/20,
   html[data-theme="dark"] .border-slate\/25 {
     border-color: rgba(150, 144, 130, 0.28);
-  }
-
-  html[data-theme="dark"] .terminal-panel {
-    border-color: var(--color-hairline);
-    background: var(--color-sheet);
-    box-shadow: 0 1px 2px rgba(27, 27, 27, 0.05);
-  }
-
-  html[data-theme="dark"] .auth-shell {
-    background: var(--color-paper);
   }
 
   html[data-theme="dark"] .auth-shell::before {
@@ -319,55 +302,8 @@ html[data-theme="dark"] {
       linear-gradient(90deg, rgba(230, 237, 246, 0.04) 1px, transparent 1px);
   }
 
-  html[data-theme="dark"] .auth-signal {
-    border-left-color: var(--color-accent);
-  }
-
-  html[data-theme="dark"] .auth-input-shell {
-    background: #0f1724;
-  }
-
-  html[data-theme="dark"] .secondary-button {
-    border-color: var(--color-ink);
-    background: transparent;
-    color: var(--color-ink);
-  }
-
-  html[data-theme="dark"] .secondary-button:hover:not(:disabled) {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-
   html[data-theme="dark"] .primary-button {
     color: var(--color-paper);
-  }
-  html[data-theme="dark"] .primary-button:hover:not(:disabled) {
-    color: var(--color-paper);
-  }
-
-  html[data-theme="dark"] .nav-button {
-    color: var(--color-ink-muted);
-  }
-
-  html[data-theme="dark"] .nav-button:hover {
-    background: transparent;
-    color: var(--color-ink);
-  }
-
-  html[data-theme="dark"] .nav-button-active {
-    border-bottom-color: var(--color-accent);
-    background: transparent;
-    color: var(--color-ink);
-  }
-
-  html[data-theme="dark"] .field {
-    border-color: var(--color-hairline);
-    background: var(--color-sheet);
-    color: var(--color-ink);
-  }
-
-  html[data-theme="dark"] .field:focus {
-    border-color: var(--color-accent);
   }
 
   html[data-theme="dark"] input::placeholder {

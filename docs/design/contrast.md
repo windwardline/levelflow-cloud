@@ -1,6 +1,6 @@
-# WCAG Contrast Ratios
+# WCAG Contrast Ratios — Text Pairs
 
-All color pairs in the Levelflow palette, measured per WCAG 2.1 standards. Enforced by tests/contrast.test.ts; a palette change that breaks AA fails CI.
+All **text-on-background** color pairs in the Levelflow palette, measured per WCAG 2.1 standards. Enforced by tests/contrast.test.ts; a palette change that breaks AA fails CI. Non-text UI boundaries (hairlines, sheet/paper surface separation) are governed by the separate WCAG 1.4.11 threshold and are covered in their own section below, not this table.
 
 Dark theme uses paper-colored text on accent fills — no single accent can satisfy both text-on-sheet and white-fill contrast in dark.
 
@@ -41,3 +41,18 @@ Dark theme uses paper-colored text on accent fills — no single accent can sati
 | caution (#D9A441) | sheet (#1E1B16) | 7.63 | 4.5 AA | ✓ |
 | paper (#161411) | accent (#6B86FF) | 5.67 | 4.5 AA | ✓ |
 | paper (#161411) | pressed (#7D95FF) | 6.67 | 4.5 AA | ✓ |
+
+## Non-text boundaries (accepted deviation)
+
+These are UI *component boundaries* under WCAG 1.4.11 (Non-text Contrast), not text — hairline borders and the sheet/paper surface separation. Measured values:
+
+| Boundary | Ratio |
+|---|---|
+| Light hairline (#D8D2C4) on paper (#F4F1EA) | 1.34 |
+| Light hairline (#D8D2C4) on sheet (#FDFCF9) | 1.47 |
+| Dark hairline (#35322B) on paper (#161411) | 1.44 |
+| Dark hairline (#35322B) on sheet (#1E1B16) | 1.34 |
+| Light sheet (#FDFCF9) vs. paper (#F4F1EA) | 1.10 |
+| Dark sheet (#1E1B16) vs. paper (#161411) | 1.07 |
+
+Hairline boundaries are a deliberate editorial choice below WCAG 1.4.11's 3:1 threshold for UI component boundaries; fields and sheets also separate via spacing and shadow, and this deviation is accepted at spec level.

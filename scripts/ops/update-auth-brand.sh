@@ -3,6 +3,10 @@
 # Run this yourself: it PATCHes Supabase auth config, and any auth-config
 # PATCH must carry the FULL SMTP block — partial updates clear sibling
 # fields and GoTrue silently falls back to the built-in mailer.
+# Before confirming the PATCH: check the printed Current values — if
+# smtp_admin_email is not login@windwardline.com, edit this script's value
+# to match reality first (the full-block PATCH must preserve reality, not
+# assumptions).
 set -euo pipefail
 
 PROJECT_REF="usrtpoftuvhpmyhlhqlg"
@@ -19,7 +23,7 @@ curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
 read -r -p "PATCH sender name + magic-link subject to 'Levelflow'? [y/N] " yn
 [ "$yn" = "y" ] || { echo "aborted"; exit 0; }
 
-curl -sS -X PATCH "$API" \
+resp="$(curl -fsS -X PATCH "$API" \
   -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d "$(python3 - "$RESEND_KEY" <<'PY'
@@ -35,7 +39,7 @@ print(json.dumps({
   "mailer_subjects_magic_link": "Your Levelflow sign-in link",
 }))
 PY
-)" >/dev/null
+)")" || { echo "PATCH failed"; echo "$resp"; exit 1; }
 
 echo "== Verifying =="
 curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \

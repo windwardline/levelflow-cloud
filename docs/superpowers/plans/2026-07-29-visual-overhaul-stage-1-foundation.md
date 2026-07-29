@@ -1,5 +1,7 @@
 # Levelflow Visual Overhaul — Stage 1: Foundation — Implementation Plan
 
+*Amended in flight: dark accent #6B86FF, dark pressed #7D95FF (paper-colored button text in dark), light caution #8A5B00 — per the contrast-enforcement design ruling; the spec's Section 3 table is authoritative.*
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Land the Swiss Editorial foundation — self-hosted fonts, both-theme design tokens, restyled core component kit, the wholesale Levelflow rename, and the operator script for the two auth-config brand strings — as one shippable PR.
