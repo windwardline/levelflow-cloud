@@ -23,10 +23,7 @@ curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
 read -r -p "PATCH sender name + magic-link subject to 'Levelflow'? [y/N] " yn
 [ "$yn" = "y" ] || { echo "aborted"; exit 0; }
 
-resp="$(curl -fsS -X PATCH "$API" \
-  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "$(python3 - "$RESEND_KEY" <<'PY'
+PAYLOAD="$(python3 - "$RESEND_KEY" <<'PY'
 import json, sys
 print(json.dumps({
   "smtp_host": "smtp.resend.com",
@@ -39,7 +36,21 @@ print(json.dumps({
   "mailer_subjects_magic_link": "Your Levelflow sign-in link",
 }))
 PY
-)")" || { echo "PATCH failed"; echo "$resp"; exit 1; }
+)"
+
+if ! resp="$(curl -sS --fail-with-body -X PATCH "$API" \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD")"; then
+  echo "PATCH failed:"
+  printf '%s' "$resp" | python3 -c "import sys,json
+try:
+    b = json.load(sys.stdin)
+    print(b.get('message') or b.get('error') or 'no message in response')
+except Exception:
+    print('non-JSON error response')"
+  exit 1
+fi
 
 echo "== Verifying =="
 curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \

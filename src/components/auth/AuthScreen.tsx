@@ -1,17 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
-import {
-  Apple,
-  ArrowRight,
-  Gift,
-  Globe,
-  KeyRound,
-  LineChart,
-  Loader2,
-  Mail,
-  ShieldCheck,
-  TimerReset,
-} from "lucide-react";
+import { Apple, ArrowRight, Gift, Globe, Loader2, Mail } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { LegalLinks } from "../legal/LegalLinks";
 import { DonationOptions } from "../donations/DonationOptions";
@@ -45,7 +34,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) {
-      setError("Cloud access is not connected for this deployment.");
+      setError("Cloud connection is not configured.");
       return;
     }
 
@@ -81,7 +70,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     provider: Extract<Provider, "google" | "apple">,
   ) {
     if (!supabase) {
-      setError("Cloud access is not connected for this deployment.");
+      setError("Cloud connection is not configured.");
       return;
     }
 
@@ -112,87 +101,49 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const oauthEnabled = googleAuthEnabled || appleAuthEnabled;
   const headline = isSupabaseConfigured
     ? "Open your workspace"
-    : "Cloud access pending";
+    : "Cloud connection pending";
   const body = isSupabaseConfigured
     ? message
-    : "Cloud access is not connected yet. Once configured, sign-in will open the live workspace.";
+    : "Levelflow isn't connected to the cloud yet.";
   const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
     "I would like the current donation link for Levelflow development and maintenance.",
   )}`;
-
-  const productSignals = [
-    {
-      icon: LineChart,
-      label: "Live charts",
-      value: "Verified market data",
-    },
-    {
-      icon: TimerReset,
-      label: "Timing",
-      value: "Sessions, news, rates",
-    },
-    {
-      icon: ShieldCheck,
-      label: "Trade quality",
-      value: "Limit setups only",
-    },
-  ];
 
   return (
     <main className="auth-shell min-h-screen bg-canvas text-ink">
       {themeControl ? (
         <div className="fixed right-4 top-4 z-20">{themeControl}</div>
       ) : null}
-      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-10 px-5 pb-8 pt-24 sm:px-8 sm:py-8 lg:grid-cols-[1.05fr_0.85fr]">
-        <div className="space-y-10">
-          <div className="max-w-2xl space-y-6">
-            <div className="flex items-center gap-3">
-              <img
-                className="h-14 w-14 rounded-lg object-contain shadow-xs"
-                src={brandAssets.mark}
-                alt="Windward Line mark"
-              />
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-normal text-slate">
-                  A Windward Line product
-                </p>
-                <p className="text-sm font-medium text-bullish">
-                  Market review, refined
-                </p>
-              </div>
-            </div>
-            <h1 className="wordmark text-6xl font-semibold tracking-normal text-navy sm:text-7xl">
-              Levelflow
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-slate">
-              A premium operating layer for market review.
-            </p>
-          </div>
-          <div className="auth-signal-grid max-w-2xl">
-            {productSignals.map((signal) => {
-              const Icon = signal.icon;
-              return (
-                <div className="auth-signal" key={signal.label}>
-                  <Icon className="h-4 w-4 text-bullish" aria-hidden="true" />
-                  <div>
-                    <p className="text-sm font-semibold text-navy">
-                      {signal.label}
-                    </p>
-                    <p className="text-sm text-slate">{signal.value}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-10 px-5 pb-8 pt-24 sm:px-8 sm:py-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
+            Market review — <span className="text-accent">daily edition</span>
+          </p>
+          <h1 className="wordmark front-hero-word">Levelflow</h1>
+          <div className="front-rule" aria-hidden="true" />
+          <p className="max-w-md text-lg leading-8 text-ink">
+            One page that reads the market for you: live charts, timing, and
+            only the trade setups that survive review.
+          </p>
+          <svg className="front-chartline" viewBox="0 0 480 96" aria-hidden="true">
+            <polyline points="0,72 60,64 120,68 180,44 240,52 300,28 360,34 480,12"
+              fill="none" stroke="var(--color-accent)" strokeWidth="3" />
+            <circle cx="480" cy="12" r="4" fill="var(--color-accent)" />
+          </svg>
+          <dl className="grid max-w-md gap-4 sm:grid-cols-3">
+            <div><dt className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-ink-muted">Live charts</dt>
+            <dd className="mt-1 text-sm text-ink">prices you can verify</dd></div>
+            <div><dt className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-ink-muted">Timing</dt>
+            <dd className="mt-1 text-sm text-ink">sessions, news, and rates</dd></div>
+            <div><dt className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-ink-muted">Selective</dt>
+            <dd className="mt-1 text-sm text-ink">only setups that pass review</dd></div>
+          </dl>
         </div>
 
-        <div className="terminal-panel auth-login-panel mx-auto w-full max-w-md p-6">
+        <div className="terminal-panel auth-login-panel w-full p-6 sm:p-8">
           <div className="mb-6 space-y-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-paper">
-              <KeyRound className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
-              Secure entry
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
+              Sign in
             </p>
             <h2 className="text-2xl font-semibold tracking-normal text-navy">
               {headline}
@@ -202,7 +153,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
           {!isSupabaseConfigured ? (
             <div className="mb-5 rounded-lg border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-semibold text-navy">
-              Waiting for cloud project details.
+              Waiting for connection details.
               <span className="mt-2 block font-medium text-slate">
                 App URL: {appConfig.appUrl}
               </span>
@@ -322,6 +273,12 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           </div>
         </div>
       </section>
+      <div className="mx-auto w-full max-w-7xl px-5 sm:px-8">
+        <footer className="colophon">
+          <img src={brandAssets.mark} alt="" className="h-5 w-5 rounded-sm opacity-80" />
+          <span>A Windward Line production</span>
+        </footer>
+      </div>
     </main>
   );
 }

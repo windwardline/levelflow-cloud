@@ -1,99 +1,206 @@
+/* Editorial color tokens from design spec Section 3 */
+:root {
+  --color-base: #F4F1EA;
+  --color-sheet: #FDFCF9;
+  --color-ink: #1B1B1B;
+  --color-ink-muted: #6B675E;
+  --color-hairline: #D8D2C4;
+  --color-accent: #2244FF;
+  --color-accent-pressed: #1A35CC;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-base: #161411;
+    --color-sheet: #1E1B16;
+    --color-ink: #EDE7DA;
+    --color-ink-muted: #969082;
+    --color-hairline: #35322B;
+    --color-accent: #6B86FF;
+    --color-accent-pressed: #7D95FF;
+  }
+}
+
+/*
+  The app's explicit theme choice (legal-theme.js mirrors the stored
+  preference into html[data-theme]) beats the OS signal above in both
+  directions — otherwise a user who picked "light" on a dark-OS device
+  would see the media query win on every static page.
+*/
+html[data-theme="dark"] {
+  --color-base: #161411;
+  --color-sheet: #1E1B16;
+  --color-ink: #EDE7DA;
+  --color-ink-muted: #969082;
+  --color-hairline: #35322B;
+  --color-accent: #6B86FF;
+  --color-accent-pressed: #7D95FF;
+}
+
+html[data-theme="light"] {
+  --color-base: #F4F1EA;
+  --color-sheet: #FDFCF9;
+  --color-ink: #1B1B1B;
+  --color-ink-muted: #6B675E;
+  --color-hairline: #D8D2C4;
+  --color-accent: #2244FF;
+  --color-accent-pressed: #1A35CC;
+}
+
 html {
-  min-width: 320px;
-  background: #f7f8f4;
+  background: var(--color-base);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background:
-    linear-gradient(110deg, rgba(91, 130, 102, 0.08), rgba(91, 130, 102, 0) 28%),
-    linear-gradient(180deg, rgba(17, 28, 56, 0.035), rgba(247, 248, 244, 0) 38%),
-    #f7f8f4;
-  color: #162033;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 15px;
   line-height: 1.65;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 main {
+  flex: 1;
+  max-width: 44rem;
   margin: 0 auto;
-  max-width: 860px;
   padding: 48px 20px;
+  width: 100%;
 }
 
-img {
-  height: 48px;
-  width: 48px;
-  object-fit: contain;
+.page-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  margin: 0 0 8px 0;
+  font-weight: 500;
 }
 
 h1 {
-  color: #111c38;
-  font-size: clamp(2rem, 7vw, 4rem);
-  line-height: 1;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0 0 32px 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 section {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(128, 138, 149, 0.22);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--color-sheet);
+  color: var(--color-ink);
   padding: 24px;
-  box-shadow: 0 16px 36px rgba(17, 28, 56, 0.1);
+  margin: 0 0 32px 0;
 }
 
-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0) 34%),
-    linear-gradient(315deg, rgba(91, 130, 102, 0.1), rgba(91, 130, 102, 0) 42%);
-  opacity: 0.64;
-  pointer-events: none;
+section p {
+  margin: 0 0 16px 0;
 }
 
-section > * {
-  position: relative;
+section p:last-child {
+  margin-bottom: 0;
 }
 
 a {
-  color: #365a42;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  font-weight: 500;
+}
+
+a:visited {
+  color: var(--color-accent);
+}
+
+a:hover {
+  color: var(--color-accent-pressed);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+footer {
+  background: var(--color-base);
+  color: var(--color-ink-muted);
+  text-align: center;
+  padding: 32px 20px;
+  margin-top: auto;
+  border-top: 1px solid var(--color-hairline);
+  font-size: 13px;
+}
+
+footer p {
+  margin: 0 0 12px 0;
+}
+
+footer p:last-child {
+  margin-bottom: 0;
+}
+
+/*
+  404 page only. Scoped under body.not-found (set on public/404.html)
+  instead of shipping as an inline <style> block, which production CSP
+  (style-src 'self', no unsafe-inline) blocks outright.
+*/
+body.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+body.not-found main {
+  max-width: 32rem;
+  padding: 48px 20px;
+}
+
+body.not-found .page-eyebrow {
+  margin-bottom: 16px;
+}
+
+body.not-found h1 {
+  font-size: 48px;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 32px 0;
+  line-height: 1.1;
 }
 
-html[data-theme="dark"] {
-  background: #0b111c;
+body.not-found .not-found-body {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-ink);
+  margin: 0 0 32px 0;
 }
 
-html[data-theme="dark"] body {
-  background:
-    linear-gradient(110deg, rgba(143, 189, 156, 0.1), rgba(143, 189, 156, 0) 30%),
-    linear-gradient(180deg, rgba(91, 130, 102, 0.08), rgba(11, 17, 28, 0) 34%),
-    #0b111c;
-  color: #e6edf6;
+body.not-found .back-link {
+  display: inline-block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  padding: 8px 0;
 }
 
-html[data-theme="dark"] h1 {
-  color: #e6edf6;
+body.not-found .back-link:hover {
+  color: var(--color-accent-pressed);
 }
 
-html[data-theme="dark"] section {
-  border-color: rgba(170, 182, 197, 0.18);
-  background: rgba(16, 24, 38, 0.94);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+body.not-found .back-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-html[data-theme="dark"] section::before {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 34%),
-    linear-gradient(315deg, rgba(143, 189, 156, 0.12), rgba(143, 189, 156, 0) 44%);
-  opacity: 0.74;
-}
-
-html[data-theme="dark"] a {
-  color: #8fbd9c;
+body.not-found footer {
+  margin-top: 64px;
 }
