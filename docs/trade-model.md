@@ -355,6 +355,52 @@ record the replay never found, the policy reverses. Version
 `2026.07.30.indices-no-edge-policy` (the session gate changes setup
 construction; the curation alone would not have bumped it).
 
+## Round-13 calibration (2026-07-30, tight stop caps)
+
+`maxStopAtrMultiplier` grids per class at full depth, walked through
+three probe waves because every class kept winning at its grid's tight
+edge (the monotone-edge rule fired twice). Both-splits gate at every
+step; each config compared on its own accepted population.
+
+| Class | Shipped | Final | Test delta (R) | Test money-positive |
+| --- | --- | --- | --- | --- |
+| Forex | 2.2 | **1.4** | +0.054 | 74.9% → 78.3% |
+| Futures | 2.2 | **1.4** | +0.075 | 66.7% → 70.6% |
+| Metals | 2.4 | **1.6** | +0.055 | 69.4% → 72.2% |
+| Crypto | 2.8 | **1.8** | +0.059 | 70.2% → 74.9% |
+| Energies | 2.4 | 2.4 | every variant fails | unchanged |
+
+Mechanism, honestly stated: a tighter cap shrinks the risk denominator,
+which raises reward-to-risk — more candidates clear the payoff gate
+(accepted populations grew every wave) and each win pays more R, so
+R-expectancy alone could inflate on arithmetic. The gate did not rest on
+that number: the money-positive rate — which has no denominator — rose
+on the test split in every class at every wave, and the filled-only
+test-split rates in the reliability table rose too (forex .84→.88,
+futures .77→.81, metals .78→.84, crypto .78→.83). Improvement stopped
+being probed, not being found: per the standing stop-rule the round
+ships the best measured set after the committed final wave.
+
+Per-symbol notes:
+- **XAGUSD's loose-stop override (2.8) is deleted** — silver alone
+  passes the metals 1.6 cap emphatically (train +0.100R, test +0.071R).
+- **NGUSD produced zero accepted setups** in the full-history replay
+  under every variant including baseline — its override is inert and
+  untestable; kept unchanged pending an acceptance audit. HGUSD shows
+  the same drought (zero emitted records all waves).
+- **Oil needs no stop exception**: BZ/CL pass 1.4 inside the futures
+  class (test +0.035R), unlike their tp1/runner behavior in r10/r11.
+
+Open question the round could not answer from existing emits: how often
+the cap now BINDS (overrides the pivot-anchored stop). At these caps the
+ladder may be predominantly ATR-stopped rather than structure-stopped —
+fine if true, but it should be measured, not assumed. Cap-binding
+instrumentation is the leading next-round lever.
+
+Version `2026.07.30.tight-stop-caps`. Reliability table re-based on the
+final-config replay (test split, filled setups, `tp1_partial` counted by
+ladder accounting as always).
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the

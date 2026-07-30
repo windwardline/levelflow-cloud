@@ -99,7 +99,9 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.5,
     maxNewsPenalty: 4,
     maxProviderPenalty: 8,
-    maxStopAtrMultiplier: 2.8,
+    // r13: 2.8 -> 1.8 walked forward through three probe waves; tighter
+    // passed both splits at every step (test +0.059R, 74.9% money-positive).
+    maxStopAtrMultiplier: 1.8,
     minimumTargetRewardRisk: 1.7,
     minRewardRisk: 1.3,
     newsPenaltyPerEvent: 1,
@@ -146,7 +148,9 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.42,
     maxNewsPenalty: 8,
     maxProviderPenalty: 6,
-    maxStopAtrMultiplier: 2.2,
+    // r13: 2.2 -> 1.4 walked forward through three probe waves; tighter
+    // passed both splits at every step (test +0.054R, 78.3% money-positive).
+    maxStopAtrMultiplier: 1.4,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 3,
@@ -171,7 +175,10 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.46,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    maxStopAtrMultiplier: 2.2,
+    // r13: 2.2 -> 1.4 walked forward through three probe waves; tighter
+    // passed both splits at every step (test +0.075R, 70.6% money-positive),
+    // oil included (BZ/CL 1.4 test +0.035R).
+    maxStopAtrMultiplier: 1.4,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
@@ -219,7 +226,9 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.48,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    maxStopAtrMultiplier: 2.4,
+    // r13: 2.4 -> 1.6 walked forward through three probe waves; tighter
+    // passed both splits at every step (test +0.055R, 72.2% money-positive).
+    maxStopAtrMultiplier: 1.6,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
@@ -248,13 +257,14 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // EURJPY: train +0.033->+0.083, test +0.027->+0.067 at 82.
   EURJPY: { confidenceThreshold: 82 },
   // Natural gas runs far hotter than the energy class baseline.
+  // r13: NGUSD produced zero accepted setups in the full-history replay
+  // under every stop-cap variant including baseline — this override is
+  // currently inert and untestable. Kept as-is pending an acceptance audit.
   NGUSD: { confidenceThreshold: 70, maxStopAtrMultiplier: 2.8 },
   // Oil trends: earlier TP1 banking fails the test split for both oil
   // futures (r10), matching cash energies' rejection of 0.6 in r8.
   BZUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
   CLUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
-  // Silver carries roughly twice gold's relative volatility.
-  XAGUSD: { maxStopAtrMultiplier: 2.8 },
 };
 
 export function getAssetType(symbol: string): AssetType {
