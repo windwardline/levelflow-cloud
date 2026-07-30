@@ -30,6 +30,10 @@ never scrolls, each column scrolls independently.
   anchors.
 - **Right rail (~300px)**: "Current trades" (§8).
 
+**Platform parity (owner ruling, standing)**: every ruling in this spec
+applies to desktop and mobile alike unless the owner explicitly scopes it
+to one. A refinement stated once binds both compositions.
+
 **Copy discipline (owner ruling)**: no process-narration labels and no
 self-explanatory blurbs. A line of copy ships only when it changes what
 the user does. Ruled out by name: "Reviewing — any market, scanned or
@@ -180,12 +184,12 @@ about showing availability.
 - **Scope menu**: a closed group or market renders muted with
   "closed · opens {when}" in place of its "scan N" affordance. `{when}`
   is the **exact reopen moment in the user's local machine timezone**
-  (`Intl.DateTimeFormat`), and it always carries the day whenever the
-  reopen is not today — "opens Sun 5:00 pm", "opens Mon 9:30 am" —
-  because the weekend is the case that matters most: crypto trades while
-  every other class waits for its Sunday open. Date included when the
-  reopen is beyond the coming week (holidays). Same treatment in the
-  mobile sheet.
+  (`Intl.DateTimeFormat`) and **always carries its day** — "opens today
+  6:00 pm", "opens Sun 5:00 pm" — never a bare time the reader must
+  interpret. The weekend is the case that matters most: crypto trades
+  while every other class waits for its Sunday open. Date included when
+  the reopen is beyond the coming week (holidays). Identical treatment on
+  desktop and in the mobile sheet.
 - **Scan**: closed markets are skipped and the scanned count reflects only
   markets actually attempted — the count line stays honest without extra
   copy; the menu carries the why.
