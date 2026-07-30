@@ -34,7 +34,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) {
-      setError("Cloud access is not connected for this deployment.");
+      setError("Cloud connection is not configured.");
       return;
     }
 
@@ -70,7 +70,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     provider: Extract<Provider, "google" | "apple">,
   ) {
     if (!supabase) {
-      setError("Cloud access is not connected for this deployment.");
+      setError("Cloud connection is not configured.");
       return;
     }
 
@@ -104,7 +104,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     : "Cloud access pending";
   const body = isSupabaseConfigured
     ? message
-    : "This copy of Levelflow isn't connected to the cloud yet.";
+    : "Levelflow isn't connected to the cloud yet.";
   const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
     "I would like the current donation link for Levelflow development and maintenance.",
   )}`;
