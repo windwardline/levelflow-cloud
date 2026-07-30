@@ -32,8 +32,11 @@ never scrolls, each column scrolls independently.
 
 **Copy discipline (owner ruling)**: no process-narration labels and no
 self-explanatory blurbs. A line of copy ships only when it changes what
-the user does (e.g. the fresh-scan note earns its place; "closed trades
-move to Insights" does not).
+the user does. Ruled out by name: "Reviewing — any market, scanned or
+not", "Fresh chart data on every scan — you decide when", "Strongest
+first, by confidence", the trades-rail footnote. Ruled in: the
+closed-market reopen time (§10b) — it tells the user when to come back.
+Behavior that speaks for itself gets no caption.
 
 **Scrollbars**: every scrollable column uses thin overlay scrollbars —
 `scrollbar-width: thin; scrollbar-color: var(--hairline) transparent` plus
@@ -73,8 +76,8 @@ pinning test).**
 
 - **User-initiated only** (click-only engine, unchanged) and **fresh chart
   data on every scan** — no cached bars on the scan path; assert in e2e
-  that consecutive scans hit the provider fetch path. Copy near the
-  button: "Fresh chart data on every scan — you decide when."
+  that consecutive scans hit the provider fetch path. No copy narrating
+  either behavior (§2 copy discipline).
 - **Count accuracy**: the line reads "`{scope} — {scanned} scanned ·
   {qualified} qualify · {time}`". `scanned` = symbols actually attempted
   (server truth), `qualified` = opportunities returned. The current UI
@@ -82,9 +85,8 @@ pinning test).**
   the new line must come from server numbers only. Server adds a
   `qualified` count to the scan response (today: `scanned` exists,
   qualified is implicit as `opportunities.length` — make it explicit).
-- Sort note under the count: "Strongest first, by confidence."
 - Row: symbol, "Buy/Sell · confidence N", cost chip (Clean / Acceptable /
-  Thin).
+  Thin). No sort caption — the order itself is the communication.
 
 ## 6. Confidence presentation
 
@@ -176,10 +178,14 @@ news blocking, Friday-close cutoffs on expiry); this section is purely
 about showing availability.
 
 - **Scope menu**: a closed group or market renders muted with
-  "closed · opens {time}" in place of its "scan N" affordance — the time
-  in the **user's local timezone** from the machine
-  (`Intl.DateTimeFormat`), day-qualified when not today ("opens Sun
-  5:00 pm"). Same treatment in the mobile sheet.
+  "closed · opens {when}" in place of its "scan N" affordance. `{when}`
+  is the **exact reopen moment in the user's local machine timezone**
+  (`Intl.DateTimeFormat`), and it always carries the day whenever the
+  reopen is not today — "opens Sun 5:00 pm", "opens Mon 9:30 am" —
+  because the weekend is the case that matters most: crypto trades while
+  every other class waits for its Sunday open. Date included when the
+  reopen is beyond the coming week (holidays). Same treatment in the
+  mobile sheet.
 - **Scan**: closed markets are skipped and the scanned count reflects only
   markets actually attempted — the count line stays honest without extra
   copy; the menu carries the why.
