@@ -61,7 +61,7 @@ main {
   font-weight: 500;
 }
 
-.page-wordmark {
+h1 {
   font-size: 34px;
   font-weight: 700;
   color: var(--color-ink);
@@ -70,23 +70,13 @@ main {
   letter-spacing: -0.02em;
 }
 
-h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 24px 0;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
 h2 {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-ink);
   margin: 24px 0 16px 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: 13px;
 }
 
 section {
