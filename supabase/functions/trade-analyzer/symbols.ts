@@ -265,6 +265,13 @@ const scanDeprioritizedSymbols = new Set<string>([
   "DOW",
   "NIKKEI",
   "DAX",
+  // r14 acceptance audit: zero accepted setups across full history under
+  // every gate variant — session blocks, confidence, and payoff each starve
+  // what the others let through. Scanning them spends review slots on
+  // guaranteed nothing; both stay individually reviewable and in explicit
+  // group scans.
+  "NGUSD",
+  "HGUSD",
 ]);
 
 // Cash indices carry no measured edge at any tested lever (round 12:

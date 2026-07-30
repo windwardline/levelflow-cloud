@@ -1048,6 +1048,7 @@ async function analyzeSetup(
       expectedWindowMove: roundPrice(pricePlan.expectedWindowMove),
       reviewWindowExpiresAt: expiresAt,
       stopLogic: pricePlan.stopLogic,
+      stopProvenance: pricePlan.stopProvenance,
       targetLogic: pricePlan.targetLogic,
     },
   };

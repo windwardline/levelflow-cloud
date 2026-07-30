@@ -12,6 +12,11 @@ import {
 } from "./indicators.ts";
 import type { MarketContext, Regime, Side, SupportedSymbol } from "./types.ts";
 
+// Which anchor set the stop: the pivot-buffered structural level, the
+// 1.25-ATR minimum width (also covers the no-pivot buffer fallback), or the
+// class volatility cap clipping the structural stop nearer.
+export type StopProvenance = "pivot" | "volatility_floor" | "cap";
+
 export type PricePlan = {
   atr: number;
   contractSpec: FuturesContractSpec | null;
@@ -23,6 +28,7 @@ export type PricePlan = {
   rewardRisk: number;
   stopLogic: string;
   stopLoss: number;
+  stopProvenance: StopProvenance;
   targetLogic: string;
   takeProfit: number;
   takeProfit1: number;
@@ -63,21 +69,37 @@ export function buildPricePlan(
   // beyond it: a stop the review window cannot defend is a swing-trade stop
   // on an intraday setup (production: 5-10 ATR stops, 50% expired open).
   const maxStopDistance = atr * calibration.maxStopAtrMultiplier;
-  let stopLoss = side === "buy"
-    ? Math.max(
-      Math.min(
-        (nearestStopPivot ?? entryPrice) - stopBuffer,
-        entryPrice - atr * 1.25,
-      ),
-      entryPrice - maxStopDistance,
+  // Structural candidate before the cap: the farther of the pivot-buffered
+  // stop (entry-buffered when no pivot exists) and the 1.25-ATR minimum
+  // width. Recording which anchor survives the cap is the r14 instrumentation
+  // — at tight caps the ladder must prove, not assume, it is still
+  // structure-stopped.
+  const pivotBufferedStop = nearestStopPivot === null ? null : (side === "buy"
+    ? nearestStopPivot - stopBuffer
+    : nearestStopPivot + stopBuffer);
+  const structuralStop = side === "buy"
+    ? Math.min(
+      pivotBufferedStop ?? entryPrice - stopBuffer,
+      entryPrice - atr * 1.25,
     )
-    : Math.min(
-      Math.max(
-        (nearestStopPivot ?? entryPrice) + stopBuffer,
-        entryPrice + atr * 1.25,
-      ),
-      entryPrice + maxStopDistance,
+    : Math.max(
+      pivotBufferedStop ?? entryPrice + stopBuffer,
+      entryPrice + atr * 1.25,
     );
+  const capStop = side === "buy"
+    ? entryPrice - maxStopDistance
+    : entryPrice + maxStopDistance;
+  const capBinds = side === "buy"
+    ? structuralStop < capStop
+    : structuralStop > capStop;
+  const stopProvenance: StopProvenance = capBinds
+    ? "cap"
+    : pivotBufferedStop !== null && structuralStop === pivotBufferedStop
+    ? "pivot"
+    : "volatility_floor";
+  let stopLoss = side === "buy"
+    ? Math.max(structuralStop, capStop)
+    : Math.min(structuralStop, capStop);
   let riskDistance = Math.abs(entryPrice - stopLoss);
   const minimumLimitDistance = Math.max(
     atr * 0.05,
@@ -196,6 +218,7 @@ export function buildPricePlan(
     stopLogic:
       "Invalidation beyond the nearest confirmed swing pivot with a volatility buffer, capped at the window's volatility ceiling.",
     stopLoss,
+    stopProvenance,
     targetLogic:
       "TP1 banks a risk-scaled partial; the runner is the nearest structural level the review window can statistically reach.",
     takeProfit,

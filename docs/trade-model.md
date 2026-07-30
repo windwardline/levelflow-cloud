@@ -401,6 +401,55 @@ Version `2026.07.30.tight-stop-caps`. Reliability table re-based on the
 final-config replay (test split, filled setups, `tp1_partial` counted by
 ladder accounting as always).
 
+## Round-14 instrumentation (2026-07-30, stop provenance + acceptance audit)
+
+Round 13 ended with an open question: at these caps, does the pivot still
+anchor stops, or has the cap become the stop? Round 14 instruments instead
+of guessing. `buildPricePlan` now classifies every stop's provenance —
+`pivot` (structure won), `volatility_floor` (the 1.25-ATR minimum width or
+the no-pivot buffer), or `cap` (the class ceiling clipped structure) — and
+the fact flows to the live setup's `risk_model` and every replay record.
+The sweep also attributes acceptance rejections to the exact failing gate
+(`belowConfidence` / `belowPayoff` / `regimeGated`) and prints all gate
+columns.
+
+Measured at shipped config, full history, accepted setups:
+
+| Class | Cap-bound | Pivot | Floor | expR cap vs pivot |
+| --- | --- | --- | --- | --- |
+| Futures | 97.1% | 2.2% | 0.7% | 0.146 vs 0.157 |
+| Metals | 87.4% | 12.1% | 0.5% | 0.147 vs 0.097 |
+| Forex | 84.5% | 9.7% | 5.7% | 0.167 vs 0.170 |
+| Crypto | 80.9% | 18.8% | 0.3% | 0.113 vs 0.133 |
+| Energies | 67.1% | 30.2% | 2.7% | 0.027 vs 0.072 |
+| Indices | 67.0% | 30.6% | 2.5% | −0.055 vs 0.101 |
+
+The honest reading: **the model is now an ATR-stop model with a structural
+override in a minority of cases**, and that is fine — provenance parity
+holds where it matters (forex within 0.003R; metals prefers the cap;
+crypto's pivot edge is modest). The two classes with real structure
+preference are exactly the two that rejected tighter caps: energies (kept
+2.4) and no-edge indices. Round 13's ship stands validated post-hoc, and
+the geometry section's framing is updated by this table rather than by
+assumption. Live setups now accrue provenance in the cohort, so a future
+round can condition on it with production evidence.
+
+Acceptance audit: NGUSD and HGUSD produced **zero accepted setups across
+full history** — not one dominant gate but distributed starvation (NGUSD
+train, of 2,427 decisions: 699 session-blocked, 415 regime-blocked, 419
+plan-rejected, 565 below confidence even at its lowered 70 threshold, 235
+below payoff). Both symbols joined `scanDeprioritizedSymbols`: the default
+scan stops spending review slots on guaranteed nothing, while individual
+review and explicit group scans keep them reachable. NGUSD's inert
+calibration override stays, documented, pending live-cohort evidence.
+
+No `ANALYZER_VERSION` bump: provenance recording and scan curation change
+no setup construction (R12 precedent). Next lever identified: per-class
+session-hour curves at full depth — the 12:00–18:00 UTC gate was validated
+once at 1,200 days for crypto/futures only; full-history per-hour curves
+across all classes can close more dead windows (or reopen wrong ones)
+under the same both-splits gate.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
