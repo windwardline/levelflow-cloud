@@ -8,6 +8,7 @@ const ROOTS = [
   "src/components/charts",
   "src/components/trade",
   "src/components/donations",
+  "src/components/auth",
 ];
 const LIB_FILES = [
   "src/lib/outcomes.ts",
@@ -64,6 +65,14 @@ function stringLiterals(source: string): string[] {
 }
 
 describe("plain language on working surfaces", () => {
+  it("keeps the per-file skip list empty (Task 7 tightens the guard for good)", () => {
+    assert.equal(
+      SKIPPED_FILES.length,
+      0,
+      "every surface must be scanned directly — no more deferred rewrites",
+    );
+  });
+
   const files = ROOTS.flatMap((root) =>
     readdirSync(root)
       .filter((file) => file.endsWith(".tsx") || file.endsWith(".ts"))

@@ -110,7 +110,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   )}`;
 
   return (
-    <main className="auth-shell min-h-screen bg-canvas text-ink">
+    <main className="auth-shell min-h-screen bg-paper text-ink">
       {themeControl ? (
         <div className="fixed right-4 top-4 z-20">{themeControl}</div>
       ) : null}
@@ -145,16 +145,16 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
               Sign in
             </p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">
+            <h2 className="text-2xl font-semibold tracking-normal text-ink">
               {headline}
             </h2>
-            <p className="text-sm leading-6 text-slate">{body}</p>
+            <p className="text-sm leading-6 text-ink-muted">{body}</p>
           </div>
 
           {!isSupabaseConfigured ? (
-            <div className="mb-5 rounded-lg border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-semibold text-navy">
+            <div className="mb-5 rounded-lg border border-caution/25 bg-caution/10 px-4 py-3 text-sm font-semibold text-ink">
               Waiting for connection details.
-              <span className="mt-2 block font-medium text-slate">
+              <span className="mt-2 block font-medium text-ink-muted">
                 App URL: {appConfig.appUrl}
               </span>
             </div>
@@ -162,16 +162,16 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
 
           <form className="space-y-4" onSubmit={sendMagicLink}>
             <label
-              className="block text-sm font-medium text-navy"
+              className="block text-sm font-medium text-ink"
               htmlFor="email"
             >
               Email
             </label>
-            <div className="auth-input-shell flex items-center rounded-lg border border-slate/25 bg-white px-3 focus-within:border-bullish">
-              <Mail className="h-4 w-4 text-slate" aria-hidden="true" />
+            <div className="field auth-input-shell flex items-center focus-within:border-accent">
+              <Mail className="h-4 w-4 text-ink-muted" aria-hidden="true" />
               <input
                 id="email"
-                className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-navy outline-hidden"
+                className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-ink outline-hidden"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -191,13 +191,13 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               )}
               Send magic link
             </button>
-            <p className="text-xs font-medium leading-5 text-slate">
+            <p className="text-xs font-medium leading-5 text-ink-muted">
               No password is required.
             </p>
           </form>
 
           {status === "sent" ? (
-            <div className="mt-4 rounded-lg border border-bullish/25 bg-bullish/10 px-3 py-2 text-sm font-semibold text-bullish">
+            <div className="mt-4 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-sm font-semibold text-accent">
               Check your inbox and open the magic link to continue.
             </div>
           ) : null}
@@ -205,11 +205,11 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           {oauthEnabled ? (
             <>
               <div className="my-6 flex items-center gap-3">
-                <span className="h-px flex-1 bg-slate/20" />
-                <span className="text-xs font-semibold uppercase tracking-normal text-slate">
+                <span className="h-px flex-1 bg-ink-muted/20" />
+                <span className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
                   Other sign-in options
                 </span>
-                <span className="h-px flex-1 bg-slate/20" />
+                <span className="h-px flex-1 bg-ink-muted/20" />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -240,12 +240,12 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           ) : null}
 
           {error ? (
-            <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
+            <p className="mt-4 rounded-lg bg-sell/10 px-3 py-2 text-sm font-medium text-sell">
               {error}
             </p>
           ) : null}
 
-          <div className="mt-6 grid gap-3 border-t border-slate/15 pt-4 sm:grid-cols-2">
+          <div className="mt-6 grid gap-3 border-t border-ink-muted/15 pt-4 sm:grid-cols-2">
             <a className="secondary-button" href={SUPPORT_MAILTO}>
               <Mail className="h-4 w-4" aria-hidden="true" />
               Help
@@ -268,7 +268,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               />
             </div>
           ) : null}
-          <div className="mt-6 border-t border-slate/15 pt-4">
+          <div className="mt-6 border-t border-ink-muted/15 pt-4">
             <LegalLinks />
           </div>
         </div>

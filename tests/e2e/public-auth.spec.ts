@@ -68,7 +68,9 @@ test("email input shell honors an explicit theme in both directions", async ({
   await page.evaluate(() => {
     document.documentElement.dataset.theme = "light";
   });
-  await expect(shell).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  // The shell adopted the `.field` kit class in Task 7 (was bg-white/border-slate).
+  // Background is now --color-sheet (#FDFCF9), not pure white.
+  await expect(shell).toHaveCSS("background-color", "rgb(253, 252, 249)");
   await expect(email).toHaveCSS("color", "rgb(27, 27, 27)");
 });
 
@@ -83,7 +85,6 @@ test("static pages keep to the viewport on phones", async ({ page }) => {
   }
 });
 
-
 test("signed-out visitors see the parking page, not sign-in", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.getByText("Under construction")).toBeVisible();
@@ -96,4 +97,16 @@ test("the quiet entry path reveals sign-in and persists for the session", async 
   await expect(page.getByLabel("Email")).toBeVisible();
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.getByLabel("Email")).toBeVisible();
+});
+
+test("system theme mode produces data-theme from the OS preference", async ({
+  page,
+}) => {
+  // Stage 2's rewrite kept only the explicit-theme half of this guard (above).
+  // This restores the other half: with no stored preference, the app must
+  // read the OS color scheme itself and write data-theme accordingly.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/?enter");
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });

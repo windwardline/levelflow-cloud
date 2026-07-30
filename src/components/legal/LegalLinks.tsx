@@ -12,10 +12,10 @@ export function LegalLinks({ align = "center" }: LegalLinksProps) {
   return (
     <nav
       aria-label="Legal"
-      className={`flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate ${align === "center" ? "justify-center" : "justify-start"}`}
+      className={`flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-ink-muted ${align === "center" ? "justify-center" : "justify-start"}`}
     >
       {legalLinks.map((link) => (
-        <a className="transition hover:text-navy" href={link.href} key={link.href} target="_blank" rel="noopener noreferrer">
+        <a className="transition hover:text-ink" href={link.href} key={link.href} target="_blank" rel="noopener noreferrer">
           {link.label}
         </a>
       ))}
