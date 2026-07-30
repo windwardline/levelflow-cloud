@@ -546,6 +546,61 @@ tokens age out within the hour, everyone re-enters through a fresh
 sign-in. Profiles and preferences untouched. Version
 `2026.07.30.binary-menu`.
 
+## Round-17 calibration (2026-07-30, patient entries)
+
+The last unswept core-geometry knobs: the entry offsets that set how far
+from the market the limit order waits. Three grid waves per knob per
+class at full depth, then a combined confirmation run.
+
+**Default offsets** (non-trend regimes): shallower failed everywhere;
+crypto and metals found interior peaks — 0.62 → **0.78** and 0.6 →
+**0.75** (each beats both its neighbors on both splits; the 0.9 probes
+turn down). Forex's deeper candidate was noise (+0.0003 test) and
+futures/energies rejected change — all three keep their values.
+
+**Trend offsets** — the round's finding. The design premise said trends
+deserve entries closer to the market (0.42-0.5 vs 0.55-0.62 defaults).
+The measurement says the opposite: every traded class wants MORE
+patience in trends, and by wide margins:
+
+| Class | Trend offset | Test delta (R) |
+| --- | --- | --- |
+| Forex | 0.42 → **0.55** | +0.016 (statistical tie with 0.7; less extreme wins) |
+| Futures | 0.46 → **0.75** | +0.038 |
+| Metals | 0.48 → **0.78** | +0.034 |
+| Crypto | 0.5 → **0.8** | +0.027 |
+| Energies | 0.48 unchanged | both candidates fail |
+
+Futures and crypto were still rising at their final probes; the
+standing stop-rule shipped best-measured rather than chasing (ledgered
+for a future revisit with fresh eyes, not micro-iteration).
+
+**Combined confirmation** (all winners at once vs the same-cache
+baseline): every class passes with deltas matching the sum of the
+separately-measured effects — crypto to the third decimal — and
+untouched energies came back byte-identical, proving both the
+disjoint-regime partition argument and the drift-free cache. Final
+test expectancies per accepted setup: forex **0.191**, futures
+**0.189**, metals **0.172**, crypto **0.155**. Reliability table
+re-based (test split, filled): forex .89/63,118, metals .89/981,
+crypto .87/6,106, futures .83/2,368.
+
+Version `2026.07.30.patient-entries`. Same round, the research
+infrastructure hardened: the calibration cache became durable and
+incremental (`scripts/calibrationCache.ts` rolling stores, anchor pins
+for drift-free same-day A/B, legacy seeding verified byte-identical)
+and tops itself up daily under launchd (`--warm-only` +
+`scripts/ops/daily-cache-topup.sh`) — cold mornings retired.
+
+Next lever identified: **confidence-threshold curves re-derived under
+the current engine.** The confidence gate rejects more candidates than
+every other gate combined (e.g. gold: 6,661 of 11,193 train decisions),
+and its thresholds predate the entire r8-r17 rebuild — the r15
+curation re-derivation proved old-geometry verdicts can flip wholesale.
+The r17 emits make the curves free to derive; if the score ranks
+outcomes under the new geometry, thresholds become a validated lever in
+either direction.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
