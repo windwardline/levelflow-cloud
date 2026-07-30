@@ -36,6 +36,7 @@ import {
   isHeadlineNewsRelevantForSymbol,
   isKnownSymbol,
   isTemporarilyUnavailableSymbol,
+  noScanSymbols,
   resolveProviderSymbols,
 } from "./symbols.ts";
 import { buildPricePlan } from "./pricePlan.ts";
@@ -66,7 +67,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.07.30.tight-runners";
+const ANALYZER_VERSION = "2026.07.30.indices-no-edge-policy";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -374,7 +375,8 @@ async function scanOpportunities(
         : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(
           (symbol) =>
             Boolean(symbol) && isKnownSymbol(symbol) &&
-            !isTemporarilyUnavailableSymbol(symbol),
+            !isTemporarilyUnavailableSymbol(symbol) &&
+            !noScanSymbols.has(symbol),
         ),
     ),
   );

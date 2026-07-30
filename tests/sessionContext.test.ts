@@ -39,6 +39,24 @@ describe("trade analyzer session context", () => {
     assert.equal(metals.block, false);
   });
 
+  it("blocks cash indices during the measured low-edge UTC window", () => {
+    // Round 12: 12:00-18:00 UTC measured negative on both splits for the
+    // index class; the gate closes the worst window for individual reviews.
+    const blocked = getSessionContext(
+      "SP",
+      new Date("2026-06-15T13:30:00.000Z"),
+    );
+    assert.equal(blocked.block, true);
+    assert.equal(blocked.marketKind, "indices");
+    assert.equal(blocked.label, "Index low-edge window");
+
+    const open = getSessionContext(
+      "SP",
+      new Date("2026-06-15T09:30:00.000Z"),
+    );
+    assert.equal(open.block, false);
+  });
+
   it("blocks forex during the New York rollover pause", () => {
     const session = getSessionContext(
       "EURUSD",

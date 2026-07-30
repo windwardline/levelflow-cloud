@@ -97,16 +97,21 @@ export function getSessionContext(
       };
     }
 
-    // Futures only (not metals/energies/indices): 12:00-18:00 UTC measured
-    // negative on both walk-forward splits across 3+ years.
-    if (marketKind === "futures" && isLowEdgeUtcWindow(now)) {
+    // Futures and cash indices: 12:00-18:00 UTC measured negative on both
+    // walk-forward splits (futures across 3+ years; indices across their
+    // full history, round 12 — their worst stretch by a wide margin).
+    if (
+      (marketKind === "futures" || marketKind === "indices") &&
+      isLowEdgeUtcWindow(now)
+    ) {
+      const kindLabel = marketKind === "futures" ? "Futures" : "Index";
       return {
         block: true,
-        label: "Futures low-edge window",
+        label: `${kindLabel} low-edge window`,
         marketKind,
         penalty: 100,
         reason:
-          "Measured results for futures setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so Levelflow does not open new futures setups in this window.",
+          `Measured results for ${marketKind === "futures" ? "futures" : "index"} setups opened between 12:00 and 18:00 UTC were negative across every replay split, so Levelflow does not open new setups here in this window.`,
       };
     }
 

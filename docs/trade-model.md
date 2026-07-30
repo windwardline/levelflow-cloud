@@ -322,6 +322,39 @@ the runner shrinks acceptance through the payoff gate (forex accepts
 and the reliability table's sample sizes shrink accordingly. Version
 `2026.07.30.tight-runners`; reliability rows re-based.
 
+## Round-12 calibration (2026-07-30, the indices verdict)
+
+Cash indices (SP, NSDQ, DOW, NIKKEI, DAX) got their dedicated round
+after rejecting every generic knob since round 8. From 2,375
+current-config records at full depth, every index-specific lever fails:
+
+- **Threshold curves diverge**: train improves monotonically with the
+  cutoff (+0.073 at ≥90) while test stays negative at every level
+  (−0.042 to −0.064). The confidence score does not rank index
+  outcomes out-of-sample — disqualifying on its own.
+- **Sessions**: 12:00–18:00 UTC is the worst stretch (−0.055 train /
+  −0.094 test); even the best bucket (06–12) is negative on both
+  splits (−0.006/−0.014).
+- **Regimes**: all negative on both splits.
+
+Shipped policy — the honest conclusion:
+1. **No scan path includes cash indices** (`noScanSymbols`, enforced
+   server-side in the scan handler and mirrored in the UI's scannable
+   groups). They remain individually reviewable in the advisor so the
+   live cohort can earn them back.
+2. **The 12:00–18:00 UTC low-edge gate extends to indices** — for
+   whoever reviews them anyway, the worst window is closed. Removing
+   that bucket improves both splits arithmetically (blended
+   −0.037/−0.060 → remaining −0.006/−0.014).
+3. **The quality receipt says it plainly** when a market's measured
+   record is weak (money-positive < 55%): scans skip it, review with
+   care.
+
+The road back is cohort evidence: if live index outcomes accumulate a
+record the replay never found, the policy reverses. Version
+`2026.07.30.indices-no-edge-policy` (the session gate changes setup
+construction; the curation alone would not have bumped it).
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the

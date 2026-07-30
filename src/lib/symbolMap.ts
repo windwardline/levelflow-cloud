@@ -317,6 +317,13 @@ export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS
   }))
   .filter((group) => group.options.length > 0);
 
+// Cash indices have no measured edge (round 12) — every scan path skips
+// them. They stay in AVAILABLE_ASSET_GROUPS so the advisor's market select
+// keeps them individually reviewable and the live cohort can earn them back.
+export const SCANNABLE_ASSET_GROUPS = AVAILABLE_ASSET_GROUPS.filter(
+  (group) => group.label !== "Indices",
+);
+
 export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap(
   (group) => group.options,
 );

@@ -8,7 +8,7 @@ import {
   Target,
 } from "lucide-react";
 import {
-  AVAILABLE_ASSET_GROUPS,
+  SCANNABLE_ASSET_GROUPS,
   formatSecurityLabel,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
@@ -132,7 +132,7 @@ export function MarketScanPanel({
               }}
             >
               <option value="all">All markets</option>
-              {AVAILABLE_ASSET_GROUPS.map((group) => (
+              {SCANNABLE_ASSET_GROUPS.map((group) => (
                 <option key={group.label} value={group.label}>
                   {group.label}
                 </option>
