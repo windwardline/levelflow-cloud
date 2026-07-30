@@ -56,6 +56,9 @@ export type SweepOutcomeRecord = {
   // Which anchor set the stop (r14 cap-binding instrumentation).
   stopProvenance: string;
   time: number;
+  // Per-method committee votes (r16 weight audit): compact
+  // {n: name, d: direction, s: weighted score} per strategy.
+  votes: Array<{ n: string; d: string; s: number }>;
 };
 
 export type SweepSummary = {
@@ -334,6 +337,11 @@ export function simulateSymbol(input: {
       side: consensus.side,
       stopProvenance: plan.stopProvenance,
       time: latest.time,
+      votes: votes.map((vote) => ({
+        n: vote.name,
+        d: vote.direction,
+        s: vote.score,
+      })),
     });
   }
 

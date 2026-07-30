@@ -498,6 +498,40 @@ The curation policy, stated durably (owner directive, r15):
 Version `2026.07.30.measured-menu` (the generation refusal and the
 energies hour gate both change setup construction).
 
+## Round-16 calibration (2026-07-30, the committee-weight audit)
+
+The eight-method committee's hand-set per-class weights — untouched since
+inception, the largest untested surface left — got the full treatment:
+per-method votes now ride every replay record (`votes: [{n,d,s}]`,
+mirroring the r14 provenance pattern), and per-method vote-vs-outcome
+curves were derived per class at full depth (238k accepted records).
+
+The curves themselves: mostly flat. Among accepted setups, whether a
+method voted with the taken side barely predicts outcome — the method-
+level echo of round-3b's "score-expectancy curves are flat." A few
+spreads were consistent on both splits (forex volume-profile positive,
+forex momentum/multi-timeframe negative, metals momentum positive), so
+conservative weight nudges became candidates — with the derivation
+itself flagging the collider risk: conditional-on-acceptance spreads
+are not causal weights.
+
+The full A/B (candidate weights vs same-cache baseline, each config's
+own accepted population) returned the honest verdict: **forex
+−0.000/−0.000, futures +0.001/−0.000, crypto −0.002/−0.001 — fail;
+metals +0.001/+0.002 — nominally positive but noise-scale**, an order
+of magnitude below any prior ship. Round-3 precedent applied: every
+weight change reverted, metals included. The hand-set weights are
+approximately optimal at this selectivity; the acceptance gates already
+extract what the committee knows.
+
+What ships: the vote instrumentation (permanent — every future round
+can condition on committee composition for free) and this null, which
+retires speculative re-weighting as a lever. No `ANALYZER_VERSION`
+bump (emit-only change). Next lever identified: **entry-offset grids**
+(`entryOffsetDefault` / `entryOffsetTrend`) — core geometry that sets
+fill rate and entry quality, never swept at any depth, and directly
+grid-sweepable with the standard machinery.
+
 ### Round-16 menu amendment (owner directive) and the clean slate
 
 The menu is binary now. BNBUSD's mixed record (train −0.030 / test
