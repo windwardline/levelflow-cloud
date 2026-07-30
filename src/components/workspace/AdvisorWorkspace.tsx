@@ -34,6 +34,7 @@ import {
 import type { UserProfile } from "../../lib/profile";
 import {
   AVAILABLE_ASSET_GROUPS,
+  AVAILABLE_ASSET_OPTIONS,
   formatSecurityLabel,
   getSecurityOption,
   type SecurityType,
@@ -55,8 +56,9 @@ import {
 
 type AdvisorWorkspaceProps = {
   onSetupsChanged: () => void;
-  // Accepted ahead of the consuming task (nav-driven symbol requests land
-  // when the advisor recomposes); unused until then.
+  // A cross-link elsewhere in the app (Insights, Profile) asked to open a
+  // specific market here. token is a nonce so requesting the same symbol
+  // twice in a row still re-selects it.
   openRequest?: { symbol: string; token: number } | null;
   profile: UserProfile;
   setupStats: SecurityStat[];
@@ -70,7 +72,8 @@ type AnalysisState = {
 };
 
 export function AdvisorWorkspace(
-  { onSetupsChanged, profile, setupStats, setups }: AdvisorWorkspaceProps,
+  { onSetupsChanged, openRequest, profile, setupStats, setups }:
+    AdvisorWorkspaceProps,
 ) {
   const [symbol, setSymbol] = useState<SupportedSymbol>("EURUSD");
   const [timeframe, setTimeframe] = useState<ChartTimeframe>(
@@ -127,6 +130,25 @@ export function AdvisorWorkspace(
   useEffect(() => {
     selectedSymbolRef.current = symbol;
   }, [symbol]);
+
+  useEffect(() => {
+    const requestedSymbol = openRequest?.symbol;
+    if (!requestedSymbol) {
+      return;
+    }
+    const isAvailable = AVAILABLE_ASSET_OPTIONS.some(
+      (option) => option.symbol === requestedSymbol,
+    );
+    if (!isAvailable) {
+      return;
+    }
+    requestIdRef.current += 1;
+    selectedSymbolRef.current = requestedSymbol;
+    setSymbol(requestedSymbol);
+    setAnalyzerStatus("idle");
+    setAnalysisState(null);
+    setAdvisorNotice("");
+  }, [openRequest?.symbol, openRequest?.token]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(new Date()), 60_000);
@@ -298,16 +320,16 @@ export function AdvisorWorkspace(
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="terminal-panel overflow-hidden">
-        <div className="border-b border-slate/15 px-4 py-4 sm:px-6">
+        <div className="border-b border-hairline px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
                 Advisor
               </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+              <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
                 Market review
-              </h2>
-              <p className="mt-1 text-sm text-slate">
+              </h1>
+              <p className="mt-1 text-sm text-ink-muted">
                 Select a market, review the chart, then ask Levelflow for the
                 current limit setup.
               </p>
@@ -327,7 +349,7 @@ export function AdvisorWorkspace(
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(220px,1.5fr)_minmax(160px,0.55fr)_auto]">
-            <label className="grid gap-2 text-sm font-semibold text-navy">
+            <label className="grid gap-2 text-sm font-semibold text-ink">
               Market
               <select
                 className="field"
@@ -354,7 +376,7 @@ export function AdvisorWorkspace(
               </select>
             </label>
 
-            <label className="grid gap-2 text-sm font-semibold text-navy">
+            <label className="grid gap-2 text-sm font-semibold text-ink">
               Chart view
               <select
                 aria-label="Advisor chart view"
@@ -414,18 +436,18 @@ export function AdvisorWorkspace(
           <MarketClockPanel clock={marketClock} sessions={globalSessions} />
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate">
+              <p className="text-sm font-semibold text-ink-muted">
                 {selectedAsset.assetType}
               </p>
-              <h3 className="text-xl font-semibold tracking-normal text-navy">
+              <h3 className="text-xl font-semibold tracking-normal text-ink">
                 {formatSecurityLabel(symbol)}
               </h3>
             </div>
             <div className="text-left sm:text-right">
-              <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+              <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
                 Latest close
               </p>
-              <p className="text-lg font-semibold tracking-normal text-navy">
+              <p className="font-mono text-lg font-semibold tabular-nums tracking-normal text-ink">
                 {typeof marketData?.latestClose === "number"
                   ? formatPrice(symbol, marketData.latestClose)
                   : "Pending"}
@@ -439,9 +461,11 @@ export function AdvisorWorkspace(
             viewKey={`${symbol}:${timeframe}`}
           />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-            <p className="font-medium text-slate">{marketNotice}</p>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
-              <span>{activeMarketCount} active markets</span>
+            <p className="font-medium text-ink-muted">{marketNotice}</p>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+              <span className="font-mono tabular-nums">
+                {activeMarketCount} active markets
+              </span>
               <span className="hidden sm:inline">/</span>
               <span>Verified chart feed</span>
             </div>
@@ -518,16 +542,16 @@ function AdvisorReviewScope({
       {items.map((item) => (
         <div
           key={item.label}
-          className="grid min-w-0 gap-1 rounded-lg border border-slate/15 bg-canvas px-3 py-3"
+          className="grid min-w-0 gap-1 rounded-lg border border-hairline bg-paper px-3 py-3"
         >
-          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
-            <span className="shrink-0 text-bullish">{item.icon}</span>
+          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+            <span className="shrink-0 text-accent">{item.icon}</span>
             <span className="truncate">{item.label}</span>
           </div>
-          <p className="truncate text-sm font-semibold text-navy">
+          <p className="truncate font-mono text-sm font-semibold tabular-nums text-ink">
             {item.value}
           </p>
-          <p className="text-xs leading-5 text-slate">{item.detail}</p>
+          <p className="text-xs leading-5 text-ink-muted">{item.detail}</p>
         </div>
       ))}
     </div>

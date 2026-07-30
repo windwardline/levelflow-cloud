@@ -121,9 +121,11 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
   await expect(page.getByLabel("Quality")).toHaveValue("all");
   await expect(
     page.getByText(
-      "Market Scan uses the same review rules as the main advisor and shows only the strongest setup when closely linked markets qualify together.",
+      "Scan shows the strongest qualifying setup among closely linked markets.",
     ),
   ).toBeVisible();
+  await expect(page.getByText("Clean", { exact: true })).toBeVisible();
+  await expect(page.getByText("Poor", { exact: true })).toBeVisible();
   await expect(page.getByText("Timing edge")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Best time window" }),

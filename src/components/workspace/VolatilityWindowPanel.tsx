@@ -51,10 +51,10 @@ export function VolatilityWindowPanel({
   return (
     <section className="terminal-panel p-5">
       <div className="mb-4 flex items-center gap-3">
-        <Clock3 className="h-5 w-5 text-navy" aria-hidden="true" />
+        <Clock3 className="h-5 w-5 text-ink" aria-hidden="true" />
         <div>
-          <p className="text-sm font-semibold text-slate">Timing edge</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">
+          <p className="text-sm font-semibold text-ink-muted">Timing edge</p>
+          <h3 className="text-lg font-semibold tracking-normal text-ink">
             Best time window
           </h3>
         </div>
@@ -62,21 +62,21 @@ export function VolatilityWindowPanel({
 
       {loading
         ? (
-          <p className="text-sm leading-6 text-slate">
+          <p className="text-sm leading-6 text-ink-muted">
             Measuring recent intraday movement.
           </p>
         )
         : window
         ? (
           <div className="grid gap-3">
-            <div className="rounded-lg border border-bullish/20 bg-bullish/10 px-3 py-3">
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <div className="rounded-lg border border-accent/20 bg-accent/10 px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
                 {window.sessionLabel}
               </p>
-              <p className="mt-1 text-xl font-semibold text-navy">
+              <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-ink">
                 {window.localWindowLabel}
               </p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+              <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
                 {window.utcWindowLabel}
               </p>
             </div>
@@ -98,9 +98,9 @@ export function VolatilityWindowPanel({
                 value={`${window.sampleCount} candles / ${window.confidence}`}
               />
             </div>
-            <p className="flex items-start gap-2 text-xs font-medium leading-5 text-slate">
+            <p className="flex items-start gap-2 text-xs font-medium leading-5 text-ink-muted">
               <TrendingUp
-                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bullish"
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
                 aria-hidden="true"
               />
               Based on recent 15-minute candles for this selected market. Use it
@@ -109,7 +109,7 @@ export function VolatilityWindowPanel({
           </div>
         )
         : (
-          <p className="text-sm leading-6 text-slate">
+          <p className="text-sm leading-6 text-ink-muted">
             {notice ||
               "More intraday candles are needed before Levelflow can show a data-backed timing window."}
           </p>
@@ -120,9 +120,9 @@ export function VolatilityWindowPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-lg bg-canvas px-3 py-2">
-      <span className="min-w-0 text-slate">{label}</span>
-      <span className="min-w-0 text-right font-semibold text-navy">
+    <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
+      <span className="min-w-0 text-ink-muted">{label}</span>
+      <span className="min-w-0 text-right font-mono font-semibold tabular-nums text-ink">
         {value}
       </span>
     </div>

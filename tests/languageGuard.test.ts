@@ -20,10 +20,8 @@ const BANNED = [/\bTP1\b/, /\brunner\b/i, /out-of-sample/i, /\bATR\b/];
 // listed, with the owning task noted, until that task's recomposition
 // removes it. Task 7 asserts this list is empty.
 const SKIPPED_FILES = [
-  "MarketScanPanel.tsx", // Task 4 — advisor context recomposition
   "OverviewPanel.tsx", // Task 6 — guide/about/profile/donate recomposition
   "GuidePanel.tsx", // Task 6 — guide/about/profile/donate recomposition
-  "AdvisorWorkspace.tsx", // Task 4 — advisor context recomposition
   "outcomes.ts", // Task 5 — insights recomposition
 ];
 
