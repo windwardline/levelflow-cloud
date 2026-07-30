@@ -23,6 +23,38 @@ type MarketChartProps = {
   viewKey?: string;
 };
 
+export type ChartTheme = {
+  sheet: string;
+  ink: string;
+  inkMuted: string;
+  hairline: string;
+  accent: string;
+  buy: string;
+  sell: string;
+};
+
+/**
+ * Resolves the Stage-1 design tokens to concrete color strings for the
+ * canvas-drawn chart, which cannot consume `var(--color-*)` references the
+ * way DOM/CSS can. Defaults to reading the live document, but accepts an
+ * injectable source (any `getPropertyValue` provider, e.g. a plain object)
+ * so it can be unit-tested without a DOM — see tests/chartTheme.test.ts.
+ */
+export function readChartTheme(
+  source: Pick<CSSStyleDeclaration, "getPropertyValue"> = getComputedStyle(document.documentElement),
+): ChartTheme {
+  const v = (name: string) => source.getPropertyValue(name).trim();
+  return {
+    sheet: v("--color-sheet"),
+    ink: v("--color-ink"),
+    inkMuted: v("--color-ink-muted"),
+    hairline: v("--color-hairline"),
+    accent: v("--color-accent"),
+    buy: v("--color-buy"),
+    sell: v("--color-sell"),
+  };
+}
+
 export function MarketChart({ data, loading = false, setup = null, viewKey = "default" }: MarketChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -30,10 +62,12 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
   const priceLinesRef = useRef<IPriceLine[]>([]);
   const lastFitKeyRef = useRef("");
   const [hoverBar, setHoverBar] = useState<CandlestickData<Time> | null>(null);
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? "light");
+  // Not the theme itself — just a tick that bumps whenever data-theme changes,
+  // so the effects below know to re-read fresh colors from readChartTheme().
+  const [themeVersion, setThemeVersion] = useState(0);
 
   useEffect(() => {
-    const observer = new MutationObserver(() => setTheme(document.documentElement.dataset.theme ?? "light"));
+    const observer = new MutationObserver(() => setThemeVersion((version) => version + 1));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => observer.disconnect();
   }, []);
@@ -43,35 +77,39 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       return;
     }
 
-    const palette = chartPalette(theme);
+    const theme = readChartTheme();
     const chart = createChart(containerRef.current, {
       height: containerRef.current.clientHeight || 440,
       layout: {
-        background: { type: ColorType.Solid, color: palette.background },
-        textColor: palette.text,
+        background: { type: ColorType.Solid, color: theme.sheet },
+        textColor: theme.inkMuted,
       },
       grid: {
-        vertLines: { color: palette.grid },
-        horzLines: { color: palette.grid },
+        vertLines: { color: theme.hairline },
+        horzLines: { color: theme.hairline },
       },
       rightPriceScale: {
-        borderColor: palette.border,
+        borderColor: theme.hairline,
       },
       timeScale: {
-        borderColor: palette.border,
+        borderColor: theme.hairline,
         rightOffset: 8,
+      },
+      crosshair: {
+        vertLine: { color: theme.accent },
+        horzLine: { color: theme.accent },
       },
       handleScale: true,
       handleScroll: true,
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      borderDownColor: "#A94D4D",
-      borderUpColor: "#5B8266",
-      downColor: "#A94D4D",
-      wickDownColor: "#A94D4D",
-      wickUpColor: "#5B8266",
-      upColor: "#5B8266",
+      borderDownColor: theme.sell,
+      borderUpColor: theme.buy,
+      downColor: theme.sell,
+      wickDownColor: theme.sell,
+      wickUpColor: theme.buy,
+      upColor: theme.buy,
     });
 
     chartRef.current = chart;
@@ -108,28 +146,44 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       chartRef.current = null;
       candleSeriesRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only chart creation; theme changes are applied by the effect below
+    // Mount-only chart creation; theme changes are applied by the effect below.
   }, []);
 
   useEffect(() => {
-    const palette = chartPalette(theme);
-    chartRef.current?.applyOptions({
+    if (!chartRef.current || !candleSeriesRef.current) {
+      return;
+    }
+
+    const theme = readChartTheme();
+    chartRef.current.applyOptions({
       layout: {
-        background: { type: ColorType.Solid, color: palette.background },
-        textColor: palette.text,
+        background: { type: ColorType.Solid, color: theme.sheet },
+        textColor: theme.inkMuted,
       },
       grid: {
-        vertLines: { color: palette.grid },
-        horzLines: { color: palette.grid },
+        vertLines: { color: theme.hairline },
+        horzLines: { color: theme.hairline },
       },
       rightPriceScale: {
-        borderColor: palette.border,
+        borderColor: theme.hairline,
       },
       timeScale: {
-        borderColor: palette.border,
+        borderColor: theme.hairline,
+      },
+      crosshair: {
+        vertLine: { color: theme.accent },
+        horzLine: { color: theme.accent },
       },
     });
-  }, [theme]);
+    candleSeriesRef.current.applyOptions({
+      borderDownColor: theme.sell,
+      borderUpColor: theme.buy,
+      downColor: theme.sell,
+      wickDownColor: theme.sell,
+      wickUpColor: theme.buy,
+      upColor: theme.buy,
+    });
+  }, [themeVersion]);
 
   useEffect(() => {
     if (!candleSeriesRef.current || !chartRef.current) {
@@ -159,14 +213,12 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       return;
     }
 
-    const entryColor = setup.side === "buy" ? "#3F7A52" : "#A94D4D";
-    const riskColor = "#A94D4D";
-    const targetColor = theme === "dark" ? "#DDE6F2" : "#111C38";
+    const theme = readChartTheme();
 
     priceLinesRef.current = [
       series.createPriceLine({
         axisLabelVisible: true,
-        color: entryColor,
+        color: theme.accent,
         lineStyle: LineStyle.Solid,
         lineWidth: 2,
         price: setup.entryPrice,
@@ -174,7 +226,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       }),
       series.createPriceLine({
         axisLabelVisible: true,
-        color: riskColor,
+        color: theme.sell,
         lineStyle: LineStyle.Dashed,
         lineWidth: 2,
         price: setup.stopLoss,
@@ -182,19 +234,19 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       }),
       series.createPriceLine({
         axisLabelVisible: true,
-        color: targetColor,
+        color: theme.buy,
         lineStyle: LineStyle.Dotted,
         lineWidth: 2,
         price: setup.takeProfit,
         title: "TARGET",
       }),
     ];
-  }, [setup, theme]);
+  }, [setup, themeVersion]);
 
   return (
-    <div className="relative min-w-0 overflow-hidden rounded-lg border border-slate/15 bg-white">
+    <div className="relative min-w-0 overflow-hidden rounded-lg border border-hairline bg-sheet">
       <div
-        className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-slate/15 bg-white/90 px-3 py-2 text-xs font-semibold text-slate shadow-xs ${
+        className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-hairline bg-sheet px-3 py-2 text-xs font-semibold text-ink-muted shadow-xs ${
           hoverBar ? "block" : "hidden sm:block"
         }`}
       >
@@ -209,7 +261,7 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
           </span>
         )}
       </div>
-      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-slate/15 bg-white/90 p-1 shadow-xs">
+      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-hairline bg-sheet p-1 shadow-xs">
         <ChartToolButton label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
           <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
         </ChartToolButton>
@@ -230,9 +282,9 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
         </ChartToolButton>
       </div>
       <div ref={containerRef} className="h-[390px] w-full sm:h-[500px] xl:h-[560px]" />
-      {loading && <div className="absolute inset-0 grid place-items-center bg-white/70 text-sm font-semibold text-navy">Loading market data</div>}
+      {loading && <div className="absolute inset-0 grid place-items-center bg-sheet text-sm font-semibold text-ink">Loading market data</div>}
       {!loading && data.length === 0 && (
-        <div className="absolute inset-0 grid place-items-center bg-white/80 px-6 text-center text-sm font-semibold text-slate">No chart data available yet</div>
+        <div className="absolute inset-0 grid place-items-center bg-sheet px-6 text-center text-sm font-semibold text-ink-muted">No chart data available yet</div>
       )}
       {setup ? <SetupZoneSummary setup={setup} /> : null}
     </div>
@@ -246,22 +298,22 @@ function SetupZoneSummary({ setup }: { setup: ChartSetup }) {
   const rewardRisk = reward / Math.max(risk, 0.00001);
 
   return (
-    <div className="grid gap-2 border-t border-slate/15 bg-white/95 px-3 py-3 text-xs font-semibold text-slate sm:grid-cols-4">
+    <div className="grid gap-2 border-t border-hairline bg-sheet px-3 py-3 text-xs font-semibold text-ink-muted sm:grid-cols-4">
       <div>
-        <p className="uppercase tracking-normal text-slate">Entry</p>
-        <p className={isBuy ? "mt-1 text-bullish" : "mt-1 text-danger"}>{formatChartPrice(setup.entryPrice)}</p>
+        <p className="uppercase tracking-normal text-ink-muted">Entry</p>
+        <p className={isBuy ? "mt-1 text-buy" : "mt-1 text-sell"}>{formatChartPrice(setup.entryPrice)}</p>
       </div>
       <div>
-        <p className="uppercase tracking-normal text-slate">Stop</p>
-        <p className="mt-1 text-danger">{formatChartPrice(setup.stopLoss)}</p>
+        <p className="uppercase tracking-normal text-ink-muted">Stop</p>
+        <p className="mt-1 text-sell">{formatChartPrice(setup.stopLoss)}</p>
       </div>
       <div>
-        <p className="uppercase tracking-normal text-slate">Target</p>
-        <p className="mt-1 text-navy">{formatChartPrice(setup.takeProfit)}</p>
+        <p className="uppercase tracking-normal text-ink-muted">Target</p>
+        <p className="mt-1 text-ink">{formatChartPrice(setup.takeProfit)}</p>
       </div>
       <div>
-        <p className="uppercase tracking-normal text-slate">Payoff</p>
-        <p className="mt-1 text-navy">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}x` : "Pending"}</p>
+        <p className="uppercase tracking-normal text-ink-muted">Payoff</p>
+        <p className="mt-1 text-ink">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}x` : "Pending"}</p>
       </div>
     </div>
   );
@@ -271,7 +323,7 @@ function ChartToolButton({ children, label, onClick }: { children: ReactNode; la
   return (
     <button
       aria-label={label}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate transition hover:bg-bullish/10 hover:text-bullish"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition hover:bg-accent/10 hover:text-accent"
       title={label}
       type="button"
       onClick={onClick}
@@ -343,24 +395,6 @@ function scrollChart(chart: IChartApi | null, direction: -1 | 1) {
   const span = range.to - range.from;
   const offset = Math.max(span * 0.28, 4) * direction;
   chart.timeScale().setVisibleLogicalRange({ from: range.from + offset, to: range.to + offset });
-}
-
-function chartPalette(theme: string) {
-  if (theme === "dark") {
-    return {
-      background: "#101826",
-      border: "rgba(216, 224, 234, 0.16)",
-      grid: "rgba(216, 224, 234, 0.08)",
-      text: "#D8E0EA",
-    };
-  }
-
-  return {
-    background: "#FFFFFF",
-    border: "rgba(128, 138, 149, 0.25)",
-    grid: "rgba(128, 138, 149, 0.12)",
-    text: "#52606D",
-  };
 }
 
 function formatChartPrice(value: number) {

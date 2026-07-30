@@ -8,13 +8,8 @@ type ConfidenceGaugeProps = {
 export function ConfidenceGauge({ score, label = "Confidence" }: ConfidenceGaugeProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const tier = getConfidenceTier(clamped);
-  const stroke = clamped >= 85
-    ? "#5B8266"
-    : clamped >= 75
-      ? "#4E6F5A"
-      : clamped >= 66
-        ? "#B98948"
-        : "#A94D4D";
+  const colors = readGaugeColors();
+  const stroke = clamped >= 80 ? colors.buy : clamped >= 65 ? colors.caution : colors.sell;
 
   return (
     <div className="w-full min-w-0">
@@ -23,9 +18,9 @@ export function ConfidenceGauge({ score, label = "Confidence" }: ConfidenceGauge
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"
             fill="none"
-            stroke="rgba(128, 138, 149, 0.22)"
+            stroke={colors.track}
             strokeLinecap="round"
-            strokeWidth="18"
+            strokeWidth="2"
             pathLength={100}
           />
           <path
@@ -33,18 +28,37 @@ export function ConfidenceGauge({ score, label = "Confidence" }: ConfidenceGauge
             fill="none"
             stroke={stroke}
             strokeLinecap="round"
-            strokeWidth="18"
+            strokeWidth="2"
             pathLength={100}
             strokeDasharray={`${clamped} 100`}
           />
         </svg>
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center">
-          <span className="text-4xl font-semibold tracking-normal text-navy">{clamped}</span>
-          <span className="text-xs font-medium uppercase tracking-normal text-slate">
+          <span className="font-display text-5xl text-ink tabular-nums">{clamped}</span>
+          <span className="text-xs uppercase tracking-wide text-ink-muted">
             {tier ? `${tier.label} ${label}` : label}
           </span>
         </div>
       </div>
     </div>
   );
+}
+
+/**
+ * Reads the gauge's arc colors from the Stage-1 design tokens at render
+ * time. This is an inline SVG (not a canvas), so a plain per-render
+ * getComputedStyle read is enough — the component re-renders whenever
+ * `score` changes. Unlike MarketChart, this does not install a
+ * MutationObserver for a theme flip with no score change; see the Task 2
+ * report for that tradeoff.
+ */
+function readGaugeColors() {
+  const css = getComputedStyle(document.documentElement);
+  const v = (name: string) => css.getPropertyValue(name).trim();
+  return {
+    buy: v("--color-buy"),
+    caution: v("--color-caution"),
+    sell: v("--color-sell"),
+    track: v("--color-hairline"),
+  };
 }
