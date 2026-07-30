@@ -22,12 +22,18 @@ never scrolls, each column scrolls independently.
   (E8 Markets, green dot); Sign out.
 - **Left rail (~264px)**: the scan. Eyebrow "Scan" + `Scan now` button;
   scope dropdown (§4); scoped count line; results list (§5).
-- **Stage (center)**: "Reviewing — any market, scanned or not" eyebrow;
-  market picker (same order contract as §4); side tag; confidence unit
-  (§6); chart with dashed level lines; below it a two-column sheet: ladder
-  with per-value copy (§7) | "Why this setup" rows (Market / Location /
-  Timing / Costs / Record) + "How this works" link into Guide anchors.
-- **Right rail (~300px)**: "Your current trades" (§8).
+- **Stage (center)**: no surface title or eyebrow — the market picker IS
+  the header (same order contract as §4), followed by the side tag,
+  confidence unit (§6), chart with dashed level lines, then a two-column
+  sheet: ladder with per-value copy (§7) | "Why this setup" rows (Market /
+  Location / Timing / Costs / Record) + "How this works" link into Guide
+  anchors.
+- **Right rail (~300px)**: "Current trades" (§8).
+
+**Copy discipline (owner ruling)**: no process-narration labels and no
+self-explanatory blurbs. A line of copy ships only when it changes what
+the user does (e.g. the fresh-scan note earns its place; "closed trades
+move to Insights" does not).
 
 **Scrollbars**: every scrollable column uses thin overlay scrollbars —
 `scrollbar-width: thin; scrollbar-color: var(--hairline) transparent` plus
@@ -102,9 +108,10 @@ hardcode.
   When price reaches Target 1, close half and move your stop to your
   entry — profit locked either way."
 
-## 8. Your current trades (right rail / Trades tab)
+## 8. Current trades (right rail / Trades tab)
 
-- Title: **"Your current trades"**. Only two statuses live here, each with
+- Title: **"Current trades"**. No explanatory footnote — the surface is
+  self-explanatory. Only two statuses live here, each with
   a chip: **Pending** (order placed, not filled — caution color) and
   **Open** (filled — buy color). Closed trades leave the rail; Insights
   holds them.
@@ -144,18 +151,46 @@ hardcode.
 
 - Head: "Insights" + record band (setups this week · money-positive % ·
   net R · best market).
-- One filter row: Origin (All / Scans / Reviews), Market (scope menu §4),
-  Status (All / Open / Pending / Closed), Period.
-- Day-grouped table: Market · Side · From (Review/Scan tag) · Confidence ·
+- One filter row: Market (scope menu §4), Status (All / Open / Pending /
+  Closed), Period. **No origin filter and no origin column in the UI**
+  (owner ruling: from the user's seat every logged setup arrives the same
+  way; the distinction adds nothing). The database `origin` field (§9)
+  stays as silent bookkeeping for engine analysis only.
+- Day-grouped table: Market · Side · Confidence ·
   Entry · Stop · Target 1 · Target 2 · Result. Results carry outcome +
   realized R where resolved ("Open · +0.8R", "Target 2 · +2.1R",
   "Stopped · −1.0R", "Banked half · +0.4R", "Pending", "Unfilled",
   "Not taken" for scan-origin setups never placed).
-- Footer: "Every setup Levelflow generates is saved here automatically —
-  scans included, taken or not. Your record is tracked per broker: E8
-  Markets."
+- Footer: "Every setup Levelflow generates is saved here automatically,
+  taken or not. Your record is tracked per broker: E8 Markets."
 - `realizedR` lives in `trade_outcomes.feedback` jsonb (no column) — read
   it there; `realized_pnl` is always null today.
+
+## 10b. Market availability (replaces the session clocks)
+
+The old build's four session clocks are not carried forward, but their
+job — telling the user what is tradeable right now — is, in a quieter
+form. The engine already enforces the underlying rules (session-aware
+scoring and penalties, per-class low-edge UTC hour gates, high-impact
+news blocking, Friday-close cutoffs on expiry); this section is purely
+about showing availability.
+
+- **Scope menu**: a closed group or market renders muted with
+  "closed · opens {time}" in place of its "scan N" affordance — the time
+  in the **user's local timezone** from the machine
+  (`Intl.DateTimeFormat`), day-qualified when not today ("opens Sun
+  5:00 pm"). Same treatment in the mobile sheet.
+- **Scan**: closed markets are skipped and the scanned count reflects only
+  markets actually attempted — the count line stays honest without extra
+  copy; the menu carries the why.
+- **Stage**: reviewing a closed market shows a quiet inline notice with
+  the next-open time in local time instead of a chart error.
+- **Implementation**: a small `marketHours` module — per-class calendars
+  (forex/metals 24/5 with the Sunday open and Friday NY close, CME
+  complex incl. the daily 5–6 pm ET maintenance break and weekends,
+  crypto 24/7) — unit-tested against known boundary times, sharing
+  constants with the existing weekly-close logic
+  (`getUpcomingWeeklyCloseTime`) rather than duplicating them.
 
 ## 11. Guide and Profile
 
@@ -164,6 +199,16 @@ hardcode.
   callout; a "what the words mean here" definition list including Bank
   half / Move your stop to your entry / Pending. Existing GuidePanel
   teaching allowlist carries over.
+- **The About tab is retired.** Its relevant, non-redundant content MUST
+  be absorbed into Guide (checklist, from OverviewPanel.tsx): limit
+  orders only; the review intervals (setup review 4H/1H/15M, price check
+  5M/1M); what a review checks (direction, price location, volatility,
+  session timing, news, rates, closely linked markets, past results);
+  the honesty rule that a stale setup is cleared and "no setup" is a
+  real answer; the correlation rule (closely linked markets qualify
+  together → the stronger setup is kept); learning is shared across
+  Levelflow; and the boundary — Levelflow reviews markets, it does not
+  place trades. Marketing positioning copy does not carry over.
 - **Profile**: single ~620px column — Account (email, member since, sign
   out), Broker (E8 chip + "Setups are tuned to this broker's markets and
   costs, and your Insights record is kept per broker."), Appearance
@@ -192,8 +237,10 @@ calibration change.
   `qualified`.
 - e2e at 375px and 1280px, authed: scope menu order (All markets → groups
   alphabetical → base/quote-sorted markets), per-value copy, trades-rail
-  refresh-on-navigation, scan persistence visible in Insights with origin
-  tags.
+  refresh-on-navigation, scan persistence visible in Insights.
+- marketHours unit tests at boundary times (Friday close, Sunday open,
+  CME daily break, crypto always-open) + local-time rendering check.
+- Guide review against the §11 About-content checklist before ship.
 - Contrast suite unchanged (existing tokens only).
 - Live verify on production behind the parking gate before close.
 
