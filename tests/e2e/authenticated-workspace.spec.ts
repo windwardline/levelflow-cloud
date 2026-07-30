@@ -132,6 +132,65 @@ test("advisor market scan exposes filters and rationale-ready surface", async ({
   ).toBeVisible();
 });
 
+test("a How this works link opens the Guide at the section it names", async ({ page }) => {
+  await page.goto("/");
+
+  // The scan legend's link is always on screen, so this half of the
+  // disclosure contract is checkable without waiting on live market data.
+  const scanNote = page.locator("p", {
+    hasText:
+      "Scan shows the strongest qualifying setup among closely linked markets.",
+  });
+  await scanNote.getByRole("button", { name: "How this works" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "How to use Levelflow" }),
+  ).toBeVisible();
+  const costRatings = page.locator("#cost-ratings");
+  await expect(costRatings).toBeVisible();
+  await expect(costRatings).toBeInViewport();
+  await expect(
+    costRatings.getByRole("heading", { name: "Cost ratings" }),
+  ).toBeVisible();
+});
+
+test("a receipt How this works link lands on the Guide's replay record", async ({ page }) => {
+  // The receipt only exists once a review has run, so this test asks the
+  // live analyzer for one (and, like any review, saves it against the
+  // dedicated E2E user). A market that is standing aside returns no setup
+  // and therefore no receipt — a legitimate outcome, not a failure — so the
+  // test skips itself rather than pinning behavior on market conditions.
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Review market" }).click();
+
+  const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
+  const hasReceipt = await receiptHeading
+    .waitFor({ state: "visible", timeout: 90_000 })
+    .then(() => true)
+    .catch(() => false);
+  test.skip(
+    !hasReceipt,
+    "No qualifying setup right now, so there is no receipt on screen to click.",
+  );
+
+  // Innermost element holding both the row label and a link: the Replay
+  // record row itself, whose link is the only one scoped to it.
+  const replayRow = page
+    .locator("div")
+    .filter({ has: page.getByText("Replay record", { exact: true }) })
+    .filter({ has: page.getByRole("button", { name: "How this works" }) })
+    .last();
+  await replayRow.getByRole("button", { name: "How this works" }).click();
+
+  const replayRecord = page.locator("#replay-record");
+  await expect(replayRecord).toBeVisible();
+  await expect(replayRecord).toBeInViewport();
+  await expect(
+    replayRecord.getByRole("heading", { name: "Replay record" }),
+  ).toBeVisible();
+});
+
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   test.setTimeout(60_000);
 

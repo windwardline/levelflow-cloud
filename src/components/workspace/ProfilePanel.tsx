@@ -23,6 +23,7 @@ import {
 import { formatSecurityLabel } from "../../lib/symbolMap";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { ThemeToggle } from "./ThemeToggle";
+import { useWorkspaceNav } from "./WorkspaceNav";
 
 type ProfilePanelProps = {
   onSave: (
@@ -52,6 +53,7 @@ export function ProfilePanel({
   summary,
   themeMode,
 }: ProfilePanelProps) {
+  const nav = useWorkspaceNav();
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [timezone, setTimezone] = useState(profile.defaultTimezone);
   const [defaultTimeframe, setDefaultTimeframe] = useState<ChartTimeframe>(
@@ -129,15 +131,15 @@ export function ProfilePanel({
     <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]">
       <form className="terminal-panel p-5 sm:p-6" onSubmit={saveProfile}>
         <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+          <p className="text-xs font-semibold uppercase tracking-normal text-accent">
             Profile
           </p>
-          <h2 className="text-2xl font-semibold tracking-normal text-navy">
+          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
             Preferences
-          </h2>
+          </h1>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Name
             <input
               className="field"
@@ -146,7 +148,7 @@ export function ProfilePanel({
               placeholder="Trader name"
             />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             U.S. time zone
             <select
               className="field"
@@ -164,7 +166,7 @@ export function ProfilePanel({
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Preferred session
             <select
               className="field"
@@ -181,7 +183,7 @@ export function ProfilePanel({
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Default chart view
             <select
               className="field"
@@ -196,14 +198,14 @@ export function ProfilePanel({
               ))}
             </select>
           </label>
-          <div className="grid gap-2 text-sm font-semibold text-navy">
+          <div className="grid gap-2 text-sm font-semibold text-ink">
             Theme
             <ThemeToggle mode={themeMode} onChange={onThemeChange} />
           </div>
         </div>
         {saveError
           ? (
-            <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+            <p className="mt-4 rounded-lg border border-sell/25 bg-sell/10 px-3 py-2 text-sm font-semibold text-sell">
               {saveError}
             </p>
           )
@@ -220,12 +222,12 @@ export function ProfilePanel({
       <div className="grid gap-5">
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
-            <CalendarClock className="h-5 w-5 text-navy" aria-hidden="true" />
+            <CalendarClock className="h-5 w-5 text-ink" aria-hidden="true" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
                 Today
               </p>
-              <h2 className="text-2xl font-semibold tracking-normal text-navy">
+              <h2 className="text-2xl font-semibold tracking-normal text-ink">
                 Market clock
               </h2>
             </div>
@@ -263,29 +265,41 @@ export function ProfilePanel({
         </section>
 
         <section className="terminal-panel p-5 sm:p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <Activity className="h-5 w-5 text-navy" aria-hidden="true" />
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
-                Account
-              </p>
-              <h2 className="text-2xl font-semibold tracking-normal text-navy">
-                Activity
-              </h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Activity className="h-5 w-5 text-ink" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-normal text-accent">
+                  Account
+                </p>
+                <h2 className="text-2xl font-semibold tracking-normal text-ink">
+                  Activity
+                </h2>
+              </div>
             </div>
+            <button
+              className="tertiary-link"
+              type="button"
+              onClick={() => nav.openInsights()}
+            >
+              All insights
+            </button>
           </div>
           <div className="grid gap-3">
             <ProfileDetailRow label="Signed in" value={profile.email} />
             <ProfileDetailRow
               label="Saved setups"
+              mono
               value={summary.total.toString()}
             />
             <ProfileDetailRow
               label="Finished setups"
+              mono
               value={summary.resolved.toString()}
             />
             <ProfileDetailRow
               label="Win rate"
+              mono
               value={summary.winRate === null
                 ? "Building"
                 : `${summary.winRate}%`}
@@ -301,12 +315,12 @@ export function ProfilePanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
-            <LineChart className="h-5 w-5 text-navy" aria-hidden="true" />
+            <LineChart className="h-5 w-5 text-ink" aria-hidden="true" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
                 History
               </p>
-              <h2 className="text-2xl font-semibold tracking-normal text-navy">
+              <h2 className="text-2xl font-semibold tracking-normal text-ink">
                 Review activity
               </h2>
             </div>
@@ -318,7 +332,7 @@ export function ProfilePanel({
           </div>
           {reviewPattern.length === 0
             ? (
-              <p className="text-sm leading-6 text-slate">
+              <p className="text-sm leading-6 text-ink-muted">
                 Review activity will appear after setups are saved.
               </p>
             )
@@ -330,18 +344,20 @@ export function ProfilePanel({
 }
 
 function ProfileReviewPatternRow({ item }: { item: ProfileReviewPatternItem }) {
+  const nav = useWorkspaceNav();
+
   return (
-    <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3 text-sm">
+    <div className="rounded-lg border border-hairline bg-paper px-3 py-3 text-sm">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold text-navy">
+          <p className="truncate font-semibold text-ink">
             {formatSecurityLabel(item.symbol)}
           </p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
             {item.category}
           </p>
         </div>
-        <p className="shrink-0 text-right font-semibold text-navy">
+        <p className="shrink-0 text-right font-mono font-semibold tabular-nums text-ink">
           {item.count} {item.count === 1 ? "setup" : "setups"}
         </p>
       </div>
@@ -359,24 +375,45 @@ function ProfileReviewPatternRow({ item }: { item: ProfileReviewPatternItem }) {
           value={formatCompactDate(item.latestAt)}
         />
       </div>
+      <div className="mt-2 flex justify-end">
+        <button
+          className="tertiary-link"
+          type="button"
+          onClick={() => nav.openAdvisor(item.symbol)}
+        >
+          Open in Advisor
+        </button>
+      </div>
     </div>
   );
 }
 
 function ProfileMiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-lg bg-white px-2 py-2">
-      <p className="truncate font-semibold text-navy">{value}</p>
-      <p className="truncate text-slate">{label}</p>
+    <div className="min-w-0 rounded-lg border border-hairline bg-sheet px-2 py-2">
+      <p className="truncate font-mono font-semibold tabular-nums text-ink">
+        {value}
+      </p>
+      <p className="truncate text-ink-muted">{label}</p>
     </div>
   );
 }
 
-function ProfileDetailRow({ label, value }: { label: string; value: string }) {
+function ProfileDetailRow({
+  label,
+  mono = false,
+  value,
+}: {
+  label: string;
+  mono?: boolean;
+  value: string;
+}) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-sm">
-      <span className="min-w-0 text-slate">{label}</span>
-      <span className="min-w-0 text-right font-semibold text-navy">
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-hairline bg-paper px-3 py-2 text-sm">
+      <span className="min-w-0 text-ink-muted">{label}</span>
+      <span
+        className={`min-w-0 text-right font-semibold text-ink ${mono ? "font-mono tabular-nums" : ""}`}
+      >
         {value}
       </span>
     </div>

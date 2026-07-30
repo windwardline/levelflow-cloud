@@ -14,15 +14,34 @@ const LIB_FILES = [
   "src/lib/replayReliability.ts",
   "src/lib/advisorReview.ts",
 ];
-const BANNED = [/\bTP1\b/, /\brunner\b/i, /out-of-sample/i, /\bATR\b/];
+const TP1 = /\bTP1\b/;
+const RUNNER = /\brunner\b/i;
+const BANNED = [TP1, RUNNER, /out-of-sample/i, /\bATR\b/];
 
-// Files whose plain-language rewrite lands in a later task. Each stays
+// Files whose plain-language rewrite lands in a later task. Each stayed
 // listed, with the owning task noted, until that task's recomposition
-// removes it. Task 7 asserts this list is empty.
-const SKIPPED_FILES = [
-  "OverviewPanel.tsx", // Task 6 — guide/about/profile/donate recomposition
-  "GuidePanel.tsx", // Task 6 — guide/about/profile/donate recomposition
-];
+// removed it. Task 6 emptied the list; Task 7 asserts it stays empty.
+const SKIPPED_FILES: string[] = [];
+
+// The Guide is the teaching surface. Spec §7 licenses it — and only it — to
+// name the precise vocabulary parenthetically ("first target (TP1)", "second
+// target (the runner)") so a reader can map Levelflow's plain copy onto the
+// terms they will meet in every other tool. That license covers exactly those
+// two words: the Guide is still forbidden the terms nobody may show, so the
+// carve-out narrows the pattern list for one file instead of dropping the
+// file out of the scan.
+const TAUGHT_IN_THE_GUIDE = new Map<string, RegExp[]>([
+  ["GuidePanel.tsx", [TP1, RUNNER]],
+]);
+
+function bannedPatternsFor(file: string): RegExp[] {
+  for (const [taughtIn, taught] of TAUGHT_IN_THE_GUIDE) {
+    if (file.endsWith(taughtIn)) {
+      return BANNED.filter((pattern) => !taught.includes(pattern));
+    }
+  }
+  return BANNED;
+}
 
 // Extracts real string/template literal contents only. A naive "any quote
 // to the next matching quote" scan misreads an English contraction or
@@ -55,8 +74,9 @@ describe("plain language on working surfaces", () => {
     const isSkipped = SKIPPED_FILES.some((skipped) => file.endsWith(skipped));
     const runner = isSkipped ? it.skip : it;
     runner(`${file} has no banned quant vocabulary in string literals`, () => {
+      const patterns = bannedPatternsFor(file);
       for (const literal of stringLiterals(readFileSync(file, "utf8"))) {
-        for (const banned of BANNED) {
+        for (const banned of patterns) {
           assert.doesNotMatch(
             literal,
             banned,

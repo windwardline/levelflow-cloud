@@ -108,6 +108,10 @@ export default function App() {
   // tab isn't active, so insightsSymbol has to be cleared once adopted or
   // a later plain tab revisit would silently reapply a stale market filter.
   const clearInsightsSymbol = useCallback(() => setInsightsSymbol(null), []);
+  // Third of the same shape: an unconsumed guideAnchor would scroll the
+  // Guide back down to the last-linked section every time the user opened
+  // the tab from the tab bar, instead of starting at the top.
+  const clearGuideAnchor = useCallback(() => setGuideAnchor(null), []);
 
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
@@ -270,7 +274,11 @@ export default function App() {
             />
           ) : null}
           {activeTab === "guide" ? (
-            <GuidePanel anchor={guideAnchor} supportEmail={SUPPORT_EMAIL} />
+            <GuidePanel
+              anchor={guideAnchor}
+              onAnchorHandled={clearGuideAnchor}
+              supportEmail={SUPPORT_EMAIL}
+            />
           ) : null}
           {activeTab === "donate" ? (
             <DonatePanel supportEmail={SUPPORT_EMAIL} />

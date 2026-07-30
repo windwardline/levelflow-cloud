@@ -17,7 +17,7 @@ export function OverviewPanel() {
       title: "Market context in one pass",
     },
     {
-      body: "Entry, stop, TP1 and runner targets, confidence, and the reason for the setup are shown together before you decide what to do next.",
+      body: "Entry, stop, and two profit targets, confidence, and the reason for the setup are shown together before you decide what to do next.",
       icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
       title: "Review support, not trade placement",
     },
@@ -37,26 +37,26 @@ export function OverviewPanel() {
       <section className="terminal-panel overflow-hidden">
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)] lg:items-center">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               What Levelflow is
             </p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-navy sm:text-4xl">
+            <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-ink sm:text-4xl">
               A premium market review workspace for disciplined traders
-            </h2>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate">
+            </h1>
+            <p className="mt-4 max-w-3xl text-base leading-7 text-ink-muted">
               Levelflow refreshes the chart, checks the market from several
               angles, accounts for timing risk, and presents the strongest
               current limit setup when the evidence is strong enough.
             </p>
           </div>
-          <div className="grid gap-2 rounded-lg border border-slate/15 bg-canvas p-4">
+          <div className="grid gap-2 rounded-lg border border-hairline bg-paper p-4">
             {proofItems.map((item) => (
               <div
                 key={item.label}
-                className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+                className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-sheet px-3 py-2 text-sm"
               >
-                <span className="min-w-0 text-slate">{item.label}</span>
-                <span className="shrink-0 font-semibold text-navy">
+                <span className="min-w-0 text-ink-muted">{item.label}</span>
+                <span className="shrink-0 font-semibold text-ink">
                   {item.value}
                 </span>
               </div>
@@ -68,13 +68,13 @@ export function OverviewPanel() {
       <section className="grid gap-4 lg:grid-cols-3">
         {valueCards.map((card) => (
           <article key={card.title} className="terminal-panel p-5 sm:p-6">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-navy text-paper">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-ink text-paper">
               {card.icon}
             </div>
-            <h3 className="text-xl font-semibold tracking-normal text-navy">
+            <h2 className="text-xl font-semibold tracking-normal text-ink">
               {card.title}
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-slate">{card.body}</p>
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-ink-muted">{card.body}</p>
           </article>
         ))}
       </section>
@@ -82,13 +82,13 @@ export function OverviewPanel() {
       <section className="terminal-panel p-5 sm:p-6">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.42fr)]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               Why it matters
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
               Cleaner decisions, less noise
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate">
+            <p className="mt-3 text-sm leading-6 text-ink-muted">
               Most trading tools add more noise. Levelflow narrows the decision:
               if the quality, timing, and reward are not there, it clears the
               prior setup and shows no trade setup. If closely linked markets
@@ -99,11 +99,11 @@ export function OverviewPanel() {
               the full setup history rather than one user at a time.
             </p>
           </div>
-          <div className="rounded-lg border border-bullish/25 bg-bullish/10 p-4">
-            <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
+          <div className="rounded-lg border border-hairline bg-paper p-4">
+            <p className="text-sm font-semibold uppercase tracking-normal text-accent">
               Important boundary
             </p>
-            <p className="mt-2 text-sm leading-6 text-navy">
+            <p className="mt-2 text-sm leading-6 text-ink">
               Levelflow does not place trades. It helps traders review the
               market, compare evidence, and decide with more discipline.
             </p>

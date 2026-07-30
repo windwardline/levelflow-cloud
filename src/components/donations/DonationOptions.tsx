@@ -11,8 +11,8 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
   const compact = mode === "compact";
 
   return (
-    <div className={compact ? "rounded-lg border border-slate/15 bg-canvas p-3" : ""}>
-      <p className="text-sm leading-6 text-slate">Donations support market data, email, hosting, and development.</p>
+    <div className={compact ? "rounded-lg border border-hairline bg-paper p-3" : ""}>
+      <p className="text-sm leading-6 text-ink-muted">Donations support market data, email, hosting, and development.</p>
       {links.length > 0 ? (
         <div className={`mt-4 grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
           {links.map((link) => (
@@ -32,10 +32,10 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
         </a>
       )}
       {links.length > 0 && !compact ? (
-        <div className="mt-4 grid gap-2 text-xs leading-5 text-slate">
+        <div className="mt-4 grid gap-2 text-xs leading-5 text-ink-muted">
           {links.map((link) => (
             <p key={link.url}>
-              <span className="font-semibold text-navy">{link.label}:</span> {link.description}
+              <span className="font-semibold text-ink">{link.label}:</span> {link.description}
             </p>
           ))}
         </div>
