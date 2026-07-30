@@ -245,6 +245,46 @@ describe("trade analyzer replay harness", () => {
       true,
     );
   });
+
+  // Regression for the r19/r20 window-grid artifact: a review-hours override
+  // must govern outcome resolution, not just setup construction. A variant
+  // measured with shortened geometry but file-length resolution time reports
+  // inflated results.
+  it("lets a review-hours override govern resolution", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+    });
+    const bars = [
+      buildBar(60, 102, 100.5, 101),
+      buildBar(300, 101, 99.5, 100.6),
+      buildBar(390, 105.5, 100.4, 105.2),
+    ];
+    const now = createdAt + 9 * 60 * 60 * 1000;
+
+    assert.equal(
+      getSetupExpiryTime("EURUSD", createdAt, 4),
+      createdAt + 4 * 60 * 60 * 1000,
+    );
+
+    const fileWindow = evaluateSetupOutcome(setup, bars, now);
+    assert.equal(fileWindow.state, "resolved");
+    assert.equal(
+      fileWindow.state === "resolved" ? fileWindow.outcome : null,
+      "take_profit",
+    );
+
+    const shortWindow = evaluateSetupOutcome(setup, bars, now, {
+      reviewHours: 4,
+    });
+    assert.equal(shortWindow.state, "resolved");
+    assert.equal(
+      shortWindow.state === "resolved" ? shortWindow.outcome : null,
+      "unfilled",
+    );
+  });
 });
 
 function buildSetup({
