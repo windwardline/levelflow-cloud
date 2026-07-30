@@ -97,7 +97,7 @@ describe("security hardening", () => {
 
     // The measured no-trade list (r15): server truth in noTradeSymbols,
     // scan exclusion aliased to it, UI mirror in NO_TRADE_SYMBOLS.
-    for (const sym of ["SP", "NSDQ", "DOW", "NIKKEI", "DAX", "NGUSD", "HGUSD"]) {
+    for (const sym of ["SP", "NSDQ", "DOW", "NIKKEI", "DAX", "NGUSD", "HGUSD", "BNBUSD"]) {
       assert.match(symbols, new RegExp(`noTradeSymbols = new Set<string>\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`));
       assert.match(symbolMap, new RegExp(`NO_TRADE_SYMBOLS = new Set\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`));
     }

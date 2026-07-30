@@ -498,6 +498,20 @@ The curation policy, stated durably (owner directive, r15):
 Version `2026.07.30.measured-menu` (the generation refusal and the
 energies hour gate both change setup construction).
 
+### Round-16 menu amendment (owner directive) and the clean slate
+
+The menu is binary now. BNBUSD's mixed record (train −0.030 / test
++0.099, split disagreement) does not meet the provable bar — it joined
+the no-trade list and the "deprioritized" middle tier was retired: a
+market is measured-in or fully out. With the menu settled, all user
+trade history reset (`20260730070000_clean_slate_binary_menu.sql`,
+mirroring the round-2 precedent: setups, outcomes, learned weightings)
+so every user's record starts on the current engine, and all sessions
+were revoked in the same migration — refresh stops immediately, access
+tokens age out within the hour, everyone re-enters through a fresh
+sign-in. Profiles and preferences untouched. Version
+`2026.07.30.binary-menu`.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the

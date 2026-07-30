@@ -96,13 +96,13 @@ describe("asset catalog", () => {
     assert.deepEqual(crypto, [
       "ADAUSD",
       "BCHUSD",
-      "BNBUSD",
       "BTCUSD",
       "ETHUSD",
       "LTCUSD",
       "SOLUSD",
       "XRPUSD",
     ]);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("BNBUSD"), false);
 
     const energies = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Energies",
@@ -305,9 +305,9 @@ describe("trade analyzer category handling", () => {
     assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO", "EWA"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
     assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
-    // r15 re-derivation: the old CHF-pair and crypto-alt exclusions retired
-    // (both-splits positive under the current model); cash indices moved to
-    // the measured no-trade list and stay out of every scan.
+    // r15 re-derivation retired the old CHF-pair and crypto-alt exclusions;
+    // r16 made the menu binary — the only exclusions are the measured
+    // no-trade list (cash indices, NGUSD, HGUSD, BNBUSD), out of every scan.
     assert.equal(defaultScanSymbols.includes("NSDQ"), false);
     assert.equal(defaultScanSymbols.includes("USDCHF"), true);
     assert.equal(defaultScanSymbols.includes("SOLUSD"), true);

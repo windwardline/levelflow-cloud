@@ -322,6 +322,7 @@ export const NO_TRADE_SYMBOLS = new Set([
   "DAX",
   "NGUSD",
   "HGUSD",
+  "BNBUSD",
 ]);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS
