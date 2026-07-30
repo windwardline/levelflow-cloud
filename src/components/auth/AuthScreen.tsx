@@ -101,7 +101,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const oauthEnabled = googleAuthEnabled || appleAuthEnabled;
   const headline = isSupabaseConfigured
     ? "Open your workspace"
-    : "Cloud access pending";
+    : "Cloud connection pending";
   const body = isSupabaseConfigured
     ? message
     : "Levelflow isn't connected to the cloud yet.";

@@ -14,7 +14,7 @@ test("public login screen presents Levelflow without stale auth copy", async ({
     await expect(page.getByText("No password is required.")).toBeVisible();
   } else {
     await expect(
-      page.getByRole("heading", { name: "Cloud access pending" }),
+      page.getByRole("heading", { name: "Cloud connection pending" }),
     ).toBeVisible();
   }
   await expect(
