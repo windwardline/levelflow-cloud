@@ -22,6 +22,7 @@ import type {
   MarketScanCandidate,
   MarketScanResponse,
 } from "../../lib/tradeAnalyzer";
+import { HowThisWorksLink } from "./HowThisWorksLink";
 import {
   countMarketScanCandidatesInCategory,
   filterMarketScanCandidates,
@@ -95,8 +96,8 @@ export function MarketScanPanel({
     <section className="terminal-panel p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate">Market scan</p>
-          <h3 className="text-lg font-semibold tracking-normal text-navy">
+          <p className="text-sm font-semibold text-ink-muted">Market scan</p>
+          <h3 className="text-lg font-semibold tracking-normal text-ink">
             Best current markets
           </h3>
         </div>
@@ -116,7 +117,7 @@ export function MarketScanPanel({
 
       <div className="mb-4 grid gap-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-slate">
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
             Group
             <select
               className="field h-10 text-sm normal-case"
@@ -139,7 +140,7 @@ export function MarketScanPanel({
               ))}
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-slate">
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
             Quality
             <select
               className="field h-10 text-sm normal-case"
@@ -155,12 +156,30 @@ export function MarketScanPanel({
             </select>
           </label>
         </div>
-        <MarketScanSummary
-          blockedCount={blockedCount}
-          result={result}
-          topCandidate={topCandidate}
-          visibleCount={filteredOpportunities.length}
-        />
+
+        <div className="rounded-lg border border-hairline bg-paper px-3 py-3">
+          <p className="text-xs leading-5 text-ink-muted">
+            Scan shows the strongest qualifying setup among closely linked
+            markets. <HowThisWorksLink anchor="cost-ratings" />
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="chip text-buy">Clean</span>
+            <span className="chip text-ink-muted">Acceptable</span>
+            <span className="chip text-caution">Thin</span>
+            <span className="chip text-sell">Poor</span>
+          </div>
+        </div>
+
+        {result
+          ? (
+            <MarketScanSummary
+              blockedCount={blockedCount}
+              result={result}
+              topCandidate={topCandidate}
+              visibleCount={filteredOpportunities.length}
+            />
+          )
+          : null}
       </div>
 
       {filteredOpportunities.length > 0
@@ -177,8 +196,8 @@ export function MarketScanPanel({
           </div>
         )
         : (
-          <div className="rounded-lg border border-slate/15 bg-canvas px-4 py-5 text-sm leading-6 text-slate">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-navy">
+          <div className="rounded-lg border border-hairline bg-paper px-4 py-5 text-sm leading-6 text-ink-muted">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sheet text-ink">
               <Search className="h-5 w-5" aria-hidden="true" />
             </div>
             {status === "scanning" ? "Checking active markets." : emptyMessage}
@@ -187,7 +206,7 @@ export function MarketScanPanel({
 
       {result
         ? (
-          <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-slate">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-ink-muted">
             {result.scanned}{" "}
             reviewed{blockedCount > 0 ? ` / ${blockedCount} not shown` : ""}.
             Select a row to load its chart.
@@ -205,41 +224,30 @@ function MarketScanSummary({
   visibleCount,
 }: {
   blockedCount: number;
-  result: MarketScanResponse | null;
+  result: MarketScanResponse;
   topCandidate: MarketScanCandidate | null;
   visibleCount: number;
 }) {
-  if (!result) {
-    return (
-      <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-semibold leading-5 text-slate">
-        Market Scan uses the same review rules as the main advisor and shows
-        only the strongest setup when closely linked markets qualify together.
-        The all-markets default focuses on markets where the model has
-        measured edge; choosing a group scans that entire group. Cost
-        ratings: Clean and Acceptable mean spread and slippage leave the
-        payoff intact; Thin and Poor mean costs eat a meaningful share of it.
-      </div>
-    );
-  }
-
   return (
-    <div className="grid gap-2 rounded-lg border border-slate/15 bg-canvas p-3 text-xs font-semibold leading-5 text-slate">
+    <div className="grid gap-2 rounded-lg border border-hairline bg-paper p-3 text-xs font-semibold leading-5 text-ink-muted">
       <div className="flex min-w-0 items-center justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2">
           <Filter className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">
+          <span className="truncate font-mono tabular-nums">
             {visibleCount} shown from {result.scanned} reviewed
           </span>
         </span>
-        <span className="shrink-0">{blockedCount} not shown</span>
+        <span className="shrink-0 font-mono tabular-nums">
+          {blockedCount} not shown
+        </span>
       </div>
       {topCandidate
         ? (
-          <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-white px-2 py-2">
-            <span className="min-w-0 truncate text-navy">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-sheet px-2 py-2">
+            <span className="min-w-0 truncate text-ink">
               Top: {formatSecurityLabel(topCandidate.symbol)}
             </span>
-            <span className="shrink-0 text-bullish">
+            <span className="shrink-0 font-mono tabular-nums text-accent">
               {formatConfidenceWithTier(topCandidate.confidenceScore)}
             </span>
           </div>
@@ -259,15 +267,13 @@ function MarketScanRow({
   rank: number;
 }) {
   const isBuy = candidate.side === "buy";
-  const sideLabel = candidate.side
-    ? `${candidate.side.toUpperCase()} LIMIT`
-    : "Review";
+  const sideLabel = candidate.side ? `${candidate.side} limit` : "Review";
   const levelPreview = candidate.entryPrice && candidate.takeProfit
     ? candidate.takeProfit1
-      ? `Entry ${formatNumber(candidate.entryPrice)} / TP1 ${
+      ? `Entry ${formatNumber(candidate.entryPrice)} · First target ${
         formatNumber(candidate.takeProfit1)
-      } / Runner ${formatNumber(candidate.takeProfit)}`
-      : `Entry ${formatNumber(candidate.entryPrice)} / Target ${
+      } · Second target ${formatNumber(candidate.takeProfit)}`
+      : `Entry ${formatNumber(candidate.entryPrice)} · Target ${
         formatNumber(candidate.takeProfit)
       }`
     : "Load chart for details";
@@ -284,39 +290,40 @@ function MarketScanRow({
 
   return (
     <button
-      className="grid min-w-0 gap-3 rounded-lg border border-slate/15 bg-canvas px-3 py-3 text-left transition hover:border-bullish/40 hover:bg-bullish/10"
+      className="grid min-w-0 gap-3 rounded-lg border border-hairline bg-paper px-3 py-3 text-left transition hover:border-accent/40 hover:bg-accent/10"
       type="button"
       onClick={() => onSelectCandidate(candidate)}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold text-navy">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sheet font-mono text-xs font-bold tabular-nums text-ink">
               {rank}
             </span>
-            <p className="truncate font-semibold text-navy">
+            <p className="truncate font-semibold text-ink">
               {formatSecurityLabel(candidate.symbol)}
             </p>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+          <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
             {formatAssetType(candidate.assetType)}
           </p>
         </div>
-        <span
-          className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${
-            isBuy ? "text-bullish" : "text-danger"
-          }`}
-        >
+        <span className={`chip shrink-0 ${isBuy ? "text-buy" : "text-sell"}`}>
           {sideLabel}
         </span>
       </div>
 
-      <div className="grid gap-2 rounded-lg bg-white px-3 py-2 text-xs sm:grid-cols-3">
+      <div className="grid gap-2 rounded-lg bg-sheet px-3 py-2 text-xs sm:grid-cols-3">
         <Metric
           label="Confidence"
+          mono
           value={formatConfidenceWithTier(candidate.confidenceScore)}
         />
-        <Metric label="Payoff" value={formatPayoff(candidate.rewardRisk)} />
+        <Metric
+          label="Payoff"
+          mono
+          value={formatPayoff(candidate.rewardRisk)}
+        />
         <Metric
           label="Costs"
           title={describeExecutionLabel(candidate.executionLabel)}
@@ -324,16 +331,18 @@ function MarketScanRow({
         />
       </div>
 
-      <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-slate">
+      <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-ink-muted">
         <Target className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="truncate">{levelPreview}</span>
+        <span className="truncate font-mono tabular-nums">
+          {levelPreview}
+        </span>
       </div>
 
       {relatedMarkets.length > 0
         ? (
-          <div className="flex min-w-0 items-center gap-2 rounded-md border border-slate/15 bg-white px-2 py-1.5 text-xs font-medium text-slate">
+          <div className="flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-sheet px-2 py-1.5 text-xs font-medium text-ink-muted">
             <Filter
-              className="h-3.5 w-3.5 shrink-0 text-bullish"
+              className="h-3.5 w-3.5 shrink-0 text-accent"
               aria-hidden="true"
             />
             <span className="min-w-0 truncate">
@@ -347,10 +356,10 @@ function MarketScanRow({
         {rationale.slice(0, 3).map((reason) => (
           <span
             key={reason}
-            className="flex min-w-0 items-start gap-2 rounded-md bg-white px-2 py-1.5 text-xs leading-5 text-slate"
+            className="flex min-w-0 items-start gap-2 rounded-md bg-sheet px-2 py-1.5 text-xs leading-5 text-ink-muted"
           >
             <ShieldCheck
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bullish"
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
               aria-hidden="true"
             />
             <span>{reason}</span>
@@ -362,14 +371,25 @@ function MarketScanRow({
 }
 
 function Metric(
-  { label, title, value }: { label: string; title?: string; value: string },
+  { label, mono = false, title, value }: {
+    label: string;
+    mono?: boolean;
+    title?: string;
+    value: string;
+  },
 ) {
   return (
     <div className="min-w-0" title={title}>
-      <p className="font-semibold uppercase tracking-normal text-slate">
+      <p className="font-semibold uppercase tracking-normal text-ink-muted">
         {label}
       </p>
-      <p className="mt-0.5 truncate font-semibold text-navy">{value}</p>
+      <p
+        className={`mt-0.5 truncate font-semibold text-ink ${
+          mono ? "font-mono tabular-nums" : ""
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

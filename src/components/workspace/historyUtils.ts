@@ -161,22 +161,22 @@ export function getOutcomeLabel(outcome: SetupOutcome) {
 }
 
 export function getOutcomeClassName(outcome: SetupOutcome) {
-  if (outcome === "target_reached" || outcome === "partial_target") {
-    return "bg-bullish/10 text-bullish";
-  }
-  if (outcome === "expired_in_profit") {
-    return "bg-bullish/10 text-bullish";
+  if (
+    outcome === "target_reached" || outcome === "partial_target" ||
+    outcome === "expired_in_profit"
+  ) {
+    return "text-buy";
   }
   if (outcome === "stopped_out" || outcome === "expired_in_loss") {
-    return "bg-danger/10 text-danger";
+    return "text-sell";
   }
   if (outcome === "entry_not_filled") {
-    return "bg-warning/15 text-warning";
+    return "text-caution";
   }
   if (outcome === "unclear_path") {
-    return "bg-slate/10 text-slate";
+    return "text-ink-muted";
   }
-  return "bg-navy/10 text-navy";
+  return "text-ink";
 }
 
 export function formatPriceValue(

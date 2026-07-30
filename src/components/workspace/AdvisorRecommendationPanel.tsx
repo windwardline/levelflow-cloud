@@ -9,6 +9,7 @@ import {
 import { ConfidenceGauge } from "../trade/ConfidenceGauge";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
+import { HowThisWorksLink } from "./HowThisWorksLink";
 import { SetupQualityReceipt } from "./SetupQualityReceipt";
 import {
   describeExecutionLabel,
@@ -49,33 +50,36 @@ export function RecommendationPanel({
     const levelSummary = `${setup.side.toUpperCase()} LIMIT ${setup.symbol} @ ${
       formatNumber(setup.entryPrice)
     } | SL ${formatNumber(setup.stopLoss)}${
-      hasLadder ? ` | TP1 ${formatNumber(setup.takeProfit1!)}` : ""
-    } | ${hasLadder ? "Runner" : "TP"} ${formatNumber(setup.takeProfit)}`;
+      hasLadder ? ` | First target ${formatNumber(setup.takeProfit1!)}` : ""
+    } | ${hasLadder ? "Second target" : "Target"} ${
+      formatNumber(setup.takeProfit)
+    }`;
 
     return (
       <div className="grid gap-4">
-        <div
-          className={`rounded-lg px-4 py-3 text-center text-xl font-bold tracking-normal ${
-            isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"
-          }`}
-        >
-          {setup.side.toUpperCase()} LIMIT
+        <div className="flex justify-center">
+          <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>
+            {isBuy ? "Buy" : "Sell"} limit
+          </span>
         </div>
         <ConfidenceGauge score={setup.confidenceScore} />
-        <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs">
+        <div className="grid grid-cols-3 gap-2 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs">
           <div className="min-w-0">
-            <p className="font-semibold uppercase tracking-normal text-slate">
+            <p className="font-semibold uppercase tracking-normal text-ink-muted">
               Confidence
             </p>
-            <p className="mt-0.5 truncate font-semibold text-navy">
+            <p className="mt-0.5 truncate font-mono font-semibold tabular-nums text-ink">
               {Math.round(setup.confidenceScore)}%
+            </p>
+            <p className="mt-1">
+              <HowThisWorksLink anchor="confidence-tiers" />
             </p>
           </div>
           <div className="min-w-0">
-            <p className="font-semibold uppercase tracking-normal text-slate">
+            <p className="font-semibold uppercase tracking-normal text-ink-muted">
               Payoff
             </p>
-            <p className="mt-0.5 truncate font-semibold text-navy">
+            <p className="mt-0.5 truncate font-mono font-semibold tabular-nums text-ink">
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
             </p>
           </div>
@@ -83,10 +87,10 @@ export function RecommendationPanel({
             className="min-w-0"
             title={describeExecutionLabel(executionLabel)}
           >
-            <p className="font-semibold uppercase tracking-normal text-slate">
+            <p className="font-semibold uppercase tracking-normal text-ink-muted">
               Costs
             </p>
-            <p className="mt-0.5 truncate font-semibold text-navy">
+            <p className="mt-0.5 truncate font-semibold text-ink">
               {executionLabel || "Checked"}
             </p>
           </div>
@@ -95,19 +99,19 @@ export function RecommendationPanel({
           <MetricRow
             label="Limit entry"
             value={formatNumber(setup.entryPrice)}
-            valueClassName={isBuy ? "text-bullish" : "text-danger"}
+            valueClassName={isBuy ? "text-buy" : "text-sell"}
           />
           <MetricRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
           {hasLadder
             ? (
               <MetricRow
-                label="TP1 — bank half"
+                label="First target — bank half"
                 value={formatNumber(setup.takeProfit1!)}
               />
             )
             : null}
           <MetricRow
-            label={hasLadder ? "Runner target" : "Take profit"}
+            label={hasLadder ? "Second target" : "Target"}
             value={formatNumber(setup.takeProfit)}
           />
           {setup.expiresAt
@@ -121,27 +125,18 @@ export function RecommendationPanel({
         </div>
         {hasLadder
           ? (
-            <ol className="grid gap-1.5 rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs leading-5 text-slate">
-              <li>
-                <span className="font-semibold text-navy">1.</span>{" "}
-                Limit order fills at the entry price.
-              </li>
-              <li>
-                <span className="font-semibold text-navy">2.</span>{" "}
-                At TP1, close half the position and move the stop to the entry
-                price — the rest of the trade can no longer lose.
-              </li>
-              <li>
-                <span className="font-semibold text-navy">3.</span>{" "}
-                The remaining half targets the runner level until the
-                valid-until time.
-              </li>
-            </ol>
+            <div className="grid gap-1.5 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs leading-5 text-ink-muted">
+              <p>
+                At the first target, sell half and move the stop to your
+                entry. The rest aims for the second target.
+              </p>
+              <HowThisWorksLink anchor="targets-and-stops" />
+            </div>
           )
           : null}
         {setup.correlationGroup
           ? (
-            <p className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 text-xs font-medium leading-5 text-slate">
+            <p className="rounded-lg border border-hairline bg-paper px-3 py-2 text-xs font-medium leading-5 text-ink-muted">
               Closely linked market group: {formatStrategyName(setup.correlationGroup)}. Only the
               strongest setup in a linked group is shown at a time.
             </p>
@@ -159,7 +154,7 @@ export function RecommendationPanel({
         </button>
         <div
           className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${
-            isBuy ? "bg-bullish/10 text-bullish" : "bg-danger/10 text-danger"
+            isBuy ? "bg-buy/10 text-buy" : "bg-sell/10 text-sell"
           }`}
         >
           {result?.deduplicated
@@ -187,12 +182,12 @@ export function RecommendationPanel({
   }
 
   return (
-    <div className="grid gap-4 text-sm leading-6 text-slate">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-paper">
+    <div className="grid gap-4 text-sm leading-6 text-ink-muted">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink text-paper">
         <Target className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-navy">Ready for review</h3>
+        <h3 className="text-lg font-semibold text-ink">Ready for review</h3>
         <p className="mt-1">
           {notice ||
             "Select a market, review the chart, then ask Levelflow for the current limit setup."}
@@ -212,14 +207,14 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy text-paper">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink text-paper">
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
       </div>
       <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
+        <p className="text-sm font-semibold uppercase tracking-normal text-accent">
           Analyzing {symbol}
         </p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">
+        <h3 className="mt-1 text-lg font-semibold text-ink">
           Building the current setup
         </h3>
       </div>
@@ -227,9 +222,9 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
         {steps.map((step) => (
           <div
             key={step}
-            className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-2 text-sm font-semibold text-slate"
+            className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2 text-sm font-semibold text-ink-muted"
           >
-            <span className="h-2 w-2 rounded-full bg-bullish" />
+            <span className="h-2 w-2 rounded-full bg-accent" />
             {step}
           </div>
         ))}
@@ -260,15 +255,15 @@ function NoSetupPanel({
     .test(primaryReason);
 
   return (
-    <div className="grid gap-4 text-sm leading-6 text-slate">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/15 text-warning">
+    <div className="grid gap-4 text-sm leading-6 text-ink-muted">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-caution/15 text-caution">
         <XCircle className="h-5 w-5" aria-hidden="true" />
       </div>
       <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-bullish">
+        <p className="text-sm font-semibold uppercase tracking-normal text-accent">
           No trade setup
         </p>
-        <h3 className="mt-1 text-lg font-semibold text-navy">
+        <h3 className="mt-1 text-lg font-semibold text-ink">
           {relatedMarketBlocked ? "Related market is stronger" : "Nothing passed review"}
         </h3>
         <p className="mt-1">
@@ -283,11 +278,11 @@ function NoSetupPanel({
             )}
         </p>
       </div>
-      <div className="rounded-lg border border-slate/15 bg-canvas px-3 py-3">
-        <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+      <div className="rounded-lg border border-hairline bg-paper px-3 py-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
           Primary reason
         </p>
-        <p className="mt-1 font-medium text-navy">{primaryReason}</p>
+        <p className="mt-1 font-medium text-ink">{primaryReason}</p>
       </div>
       {supportingReasons.length > 0
         ? (
@@ -295,7 +290,7 @@ function NoSetupPanel({
             {supportingReasons.map((reason) => (
               <div
                 key={reason}
-                className="rounded-lg border border-slate/15 bg-canvas px-3 py-2 font-medium text-slate"
+                className="rounded-lg border border-hairline bg-paper px-3 py-2 font-medium text-ink-muted"
               >
                 {reason}
               </div>

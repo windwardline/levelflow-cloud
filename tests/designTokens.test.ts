@@ -32,10 +32,12 @@ describe("design tokens", () => {
       assert.match(s, new RegExp(hex, "i"), `dark value ${hex} present`);
     }
     assert.ok(dark.length > 0, "dark override block exists");
-    // Legacy aliases bridge old utility names until Stages 2-3 migrate them.
-    assert.match(s, /--color-navy:\s*var\(--color-ink\)/);
-    assert.match(s, /--color-bullish:\s*var\(--color-accent\)/);
-    assert.match(s, /--color-canvas:\s*var\(--color-paper\)/);
+    // Stage 3 (Task 7) deletes the legacy alias bridge entirely once every
+    // usage is migrated — assert the six aliases are gone for good.
+    assert.doesNotMatch(
+      s,
+      /--color-navy|--color-slate|--color-bullish|--color-canvas|--color-warning|--color-danger/,
+    );
   });
 
   it("restyles the kit in editorial language", () => {
@@ -61,5 +63,14 @@ describe("design tokens", () => {
     for (const hex of ["#F4F1EA", "#FDFCF9", "#1B1B1B", "#6B675E", "#D8D2C4", "#2244FF", "#1A35CC", "#161411", "#1E1B16", "#EDE7DA", "#969082", "#35322B", "#6B86FF", "#7D95FF"]) {
       assert.match(legal, new RegExp(hex, "i"), `legal.css hex ${hex} present`);
     }
+  });
+
+  it("carries forward the Stage-2 explicit-theme override blocks on the static legal page", () => {
+    // The app's stored theme choice beats the OS media query on every static
+    // page (legal-theme.js mirrors it into html[data-theme]) — both the dark
+    // and light override blocks must stay so an explicit choice always wins.
+    const legal = readFileSync("public/legal/legal.css", "utf8");
+    assert.match(legal, /html\[data-theme="dark"\]\s*\{/);
+    assert.match(legal, /html\[data-theme="light"\]\s*\{/);
   });
 });

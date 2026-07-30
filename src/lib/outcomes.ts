@@ -32,10 +32,10 @@ export const OUTCOME_COPY: Record<
     shortLabel: "Target",
   },
   partial_target: {
-    description: "The first target (TP1) was reached; the runner target was not hit before breakeven or the review window.",
-    filterLabel: "TP1 reached",
-    label: "TP1 reached",
-    shortLabel: "TP1",
+    description: "The first target was reached; the second target was not reached before breakeven or the review window.",
+    filterLabel: "First target reached",
+    label: "First target reached",
+    shortLabel: "Target 1",
   },
   expired_in_profit: {
     description: "The entry filled and the review window ended with price in profit, without reaching target or stop.",

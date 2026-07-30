@@ -33,13 +33,15 @@ export function ThemeToggle({
 
   return (
     <div
-      className="inline-flex rounded-lg border border-slate/20 bg-white p-1"
+      className="inline-flex rounded-lg border border-hairline bg-sheet p-1"
       aria-label="Theme"
     >
       {options.map((option) => (
+        // min-h-11 keeps every theme control at the 44px hit target the
+        // accessibility bar asks for; the icons stay small inside it.
         <button
           key={option.value}
-          className={`flex min-h-8 items-center gap-1.5 rounded-md px-2 text-xs font-bold transition ${mode === option.value ? "bg-bullish/15 text-bullish" : "text-slate hover:text-navy"}`}
+          className={`flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs font-bold transition ${mode === option.value ? "bg-accent/10 text-accent" : "text-ink-muted hover:text-ink"}`}
           type="button"
           onClick={() => onChange(option.value)}
         >

@@ -26,13 +26,26 @@ import {
 
 export function HistoryPanel({
   categoryStats,
+  initialSymbol,
   loading,
+  onInitialSymbolHandled,
   setups,
   stats,
   summary,
 }: {
   categoryStats: CategoryStat[];
+  // A cross-link elsewhere in the app (Advisor, Profile) asked to filter
+  // Insights to one market. Adopted once per change so the user can still
+  // clear the filter afterwards without it snapping back.
+  initialSymbol?: string | null;
   loading: boolean;
+  // Called once the effect below has adopted initialSymbol, so the caller
+  // (App) can clear it. HistoryPanel unmounts whenever its tab isn't
+  // active, so without this the same request would still be sitting there
+  // on the next mount and would re-apply itself over a market the user
+  // picked in the meantime — the same stale-remount shape openRequest had
+  // before AdvisorWorkspace grew onOpenRequestHandled.
+  onInitialSymbolHandled?: () => void;
   setups: TradeSetupRow[];
   stats: SecurityStat[];
   summary: OutcomeSummary;
@@ -70,6 +83,13 @@ export function HistoryPanel({
       setAssetFilter(ALL_HISTORY_FILTER);
     }
   }, [assetFilter, assets]);
+
+  useEffect(() => {
+    if (initialSymbol) {
+      setAssetFilter(initialSymbol);
+      onInitialSymbolHandled?.();
+    }
+  }, [initialSymbol, onInitialSymbolHandled]);
 
   const filteredSetups = useMemo(() => {
     return sortHistorySetups(
@@ -115,19 +135,19 @@ export function HistoryPanel({
       <section className="terminal-panel p-5 sm:p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               Results
             </p>
-            <h2 className="text-2xl font-semibold tracking-normal text-navy">
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
               Insights
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-slate">
+            </h1>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
               See which setups were shown, how they finished, and where
               performance is improving.
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-sm font-semibold text-slate">
+            <p className="text-sm font-semibold text-ink-muted">
               {loading
                 ? "Loading"
                 : `${filteredSetups.length} of ${setups.length} shown`}
@@ -135,7 +155,7 @@ export function HistoryPanel({
             {activeFilterCount > 0
               ? (
                 <button
-                  className="mt-1 text-sm font-bold text-bullish"
+                  className="tertiary-link"
                   type="button"
                   onClick={clearFilters}
                 >
@@ -158,11 +178,11 @@ export function HistoryPanel({
           <StatPill label="Still tracking" value={summary.pending.toString()} />
         </div>
 
-        <div className="mb-5 grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3 md:grid-cols-2 xl:grid-cols-5">
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+        <div className="mb-5 grid gap-3 rounded-lg border border-hairline bg-paper p-3 md:grid-cols-2 xl:grid-cols-5">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Status
             <select
-              className="field min-h-11"
+              className="field"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as HistoryStatusFilter)}
@@ -175,10 +195,10 @@ export function HistoryPanel({
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Category
             <select
-              className="field min-h-11"
+              className="field"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
@@ -190,10 +210,10 @@ export function HistoryPanel({
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Market
             <select
-              className="field min-h-11"
+              className="field"
               value={assetFilter}
               onChange={(event) => setAssetFilter(event.target.value)}
             >
@@ -205,10 +225,10 @@ export function HistoryPanel({
               ))}
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Group by
             <select
-              className="field min-h-11"
+              className="field"
               value={groupBy}
               onChange={(event) =>
                 setGroupBy(event.target.value as HistoryGroupBy)}
@@ -219,10 +239,10 @@ export function HistoryPanel({
               <option value="asset">Market</option>
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-navy">
+          <label className="grid gap-2 text-sm font-semibold text-ink">
             Sort
             <select
-              className="field min-h-11"
+              className="field"
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as HistorySort)}
             >
@@ -237,11 +257,11 @@ export function HistoryPanel({
         <div className="grid gap-4">
           {groupedSetups.map((group) => (
             <section key={group.key} className="min-w-0">
-              <div className="mb-2 flex min-w-0 items-center justify-between gap-3 border-b border-slate/15 pb-2">
-                <h3 className="min-w-0 text-lg font-semibold text-navy">
+              <div className="mb-2 flex min-w-0 items-center justify-between gap-3 border-b border-hairline pb-2">
+                <h3 className="min-w-0 text-lg font-semibold text-ink">
                   {group.label}
                 </h3>
-                <span className="shrink-0 text-sm font-semibold text-slate">
+                <span className="shrink-0 text-sm font-semibold text-ink-muted">
                   {group.items.length}{" "}
                   {group.items.length === 1 ? "setup" : "setups"}
                 </span>
@@ -256,14 +276,14 @@ export function HistoryPanel({
         </div>
         {!loading && setups.length === 0
           ? (
-            <p className="mt-4 text-sm leading-6 text-slate">
+            <p className="mt-4 text-sm leading-6 text-ink-muted">
               No setups have been logged yet.
             </p>
           )
           : null}
         {!loading && setups.length > 0 && filteredSetups.length === 0
           ? (
-            <p className="mt-4 rounded-lg border border-slate/15 bg-canvas px-4 py-3 text-sm leading-6 text-slate">
+            <p className="mt-4 rounded-lg border border-hairline bg-paper px-4 py-3 text-sm leading-6 text-ink-muted">
               No setups match the current filters.
             </p>
           )
@@ -273,14 +293,14 @@ export function HistoryPanel({
       <aside className="grid content-start gap-5">
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               Performance
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
               Resolution
             </h2>
           </div>
-          <div className="grid gap-3">
+          <div>
             <HistoryPerformanceRow
               label="Finished setups"
               value={summary.resolved.toString()}
@@ -303,21 +323,21 @@ export function HistoryPanel({
               label="Still tracking"
               value={summary.pending.toString()}
               detail={OUTCOME_COPY.still_tracking.description}
-              tone={summary.pending > 0 ? "bullish" : "neutral"}
+              tone={summary.pending > 0 ? "accent" : "neutral"}
             />
           </div>
         </section>
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               Confidence
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
               By score range
             </h2>
           </div>
-          <div className="grid gap-3">
+          <div>
             {confidenceBands.map((band) => (
               <ConfidenceBandRow key={band.label} {...band} />
             ))}
@@ -326,14 +346,14 @@ export function HistoryPanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               Market trends
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
               By market
             </h2>
           </div>
-          <div className="grid gap-3">
+          <div>
             {categoryStats.map((stat) => (
               <HistoryStatRow
                 key={stat.category}
@@ -344,7 +364,7 @@ export function HistoryPanel({
           </div>
           {categoryStats.length === 0
             ? (
-              <p className="text-sm leading-6 text-slate">
+              <p className="text-sm leading-6 text-ink-muted">
                 Market results will appear after setups are logged.
               </p>
             )
@@ -353,14 +373,14 @@ export function HistoryPanel({
 
         <section className="terminal-panel p-5 sm:p-6">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-normal text-bullish">
+            <p className="text-xs font-semibold uppercase tracking-normal text-accent">
               Market trends
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-navy">
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
               Most reviewed
             </h2>
           </div>
-          <div className="grid gap-3">
+          <div>
             {stats.slice(0, 8).map((stat) => (
               <HistoryStatRow
                 key={stat.symbol}
@@ -371,7 +391,7 @@ export function HistoryPanel({
           </div>
           {stats.length === 0
             ? (
-              <p className="text-sm leading-6 text-slate">
+              <p className="text-sm leading-6 text-ink-muted">
                 Market results will appear after setups are reviewed.
               </p>
             )
@@ -390,22 +410,22 @@ function HistoryPerformanceRow({
 }: {
   detail: string;
   label: string;
-  tone: "bullish" | "neutral";
+  tone: "accent" | "neutral";
   value: string;
 }) {
   return (
-    <div
-      className={`rounded-lg border px-3 py-3 ${
-        tone === "bullish"
-          ? "border-bullish/25 bg-bullish/10"
-          : "border-slate/15 bg-canvas"
-      }`}
-    >
+    <div className="border-b border-hairline py-4 last:border-b-0 last:pb-0">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold text-navy">{label}</p>
-        <p className="text-lg font-semibold text-navy">{value}</p>
+        <p className="font-semibold text-ink">{label}</p>
+        <p
+          className={`font-mono text-lg font-semibold tabular-nums ${
+            tone === "accent" ? "text-accent" : "text-ink"
+          }`}
+        >
+          {value}
+        </p>
       </div>
-      <p className="mt-1 text-sm leading-5 text-slate">{detail}</p>
+      <p className="mt-1 text-sm leading-5 text-ink-muted">{detail}</p>
     </div>
   );
 }
@@ -423,40 +443,48 @@ function HistoryStatRow({
   const barWidth = stat.winRate === null ? 0 : stat.winRate;
 
   return (
-    <div className="rounded-lg border border-slate/15 bg-canvas p-3">
+    <div className="border-b border-hairline py-4 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold text-navy">{label}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+          <p className="truncate font-semibold text-ink">{label}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
             {stat.count} setups
           </p>
         </div>
-        <p className="shrink-0 text-sm font-semibold text-navy">
+        <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
           {resolvedLabel}
         </p>
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-hairline">
         <div
-          className="h-full rounded-full bg-bullish"
+          className="h-full rounded-full bg-accent"
           style={{ width: `${barWidth}%` }}
         />
       </div>
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
         <div>
-          <p className="font-semibold text-navy">{stat.wins}</p>
-          <p className="text-slate">Target</p>
+          <p className="font-mono font-semibold tabular-nums text-ink">
+            {stat.wins}
+          </p>
+          <p className="text-ink-muted">Target</p>
         </div>
         <div>
-          <p className="font-semibold text-navy">{stat.losses}</p>
-          <p className="text-slate">Stop</p>
+          <p className="font-mono font-semibold tabular-nums text-ink">
+            {stat.losses}
+          </p>
+          <p className="text-ink-muted">Stop</p>
         </div>
         <div>
-          <p className="font-semibold text-navy">{stat.pending}</p>
-          <p className="text-slate">Tracking</p>
+          <p className="font-mono font-semibold tabular-nums text-ink">
+            {stat.pending}
+          </p>
+          <p className="text-ink-muted">Tracking</p>
         </div>
         <div>
-          <p className="font-semibold text-navy">{stat.ambiguous}</p>
-          <p className="text-slate">Review</p>
+          <p className="font-mono font-semibold tabular-nums text-ink">
+            {stat.ambiguous}
+          </p>
+          <p className="text-ink-muted">Review</p>
         </div>
       </div>
     </div>
@@ -481,27 +509,27 @@ function ConfidenceBandRow({
   const barWidth = winRate ?? 0;
 
   return (
-    <div className="rounded-lg border border-slate/15 bg-canvas p-3">
+    <div className="border-b border-hairline py-4 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-semibold text-navy">{label}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-slate">
+          <p className="font-semibold text-ink">{label}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
             {range} / {count} setups / {resolved} finished
           </p>
         </div>
-        <p className="shrink-0 text-sm font-semibold text-navy">
+        <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
           {winRate === null ? "Learning" : `${winRate}% win rate`}
         </p>
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-hairline">
         <div
-          className="h-full rounded-full bg-bullish"
+          className="h-full rounded-full bg-accent"
           style={{ width: `${barWidth}%` }}
         />
       </div>
       {ambiguous > 0
         ? (
-          <p className="mt-2 text-xs font-semibold text-slate">
+          <p className="mt-2 text-xs font-semibold text-ink-muted">
             {ambiguous} need review
           </p>
         )
@@ -512,9 +540,9 @@ function ConfidenceBandRow({
 
 function StatPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-white px-2 py-2">
-      <p className="font-semibold text-navy">{value}</p>
-      <p className="text-slate">{label}</p>
+    <div className="rounded-lg border border-hairline bg-sheet px-2 py-2">
+      <p className="font-mono font-semibold tabular-nums text-ink">{value}</p>
+      <p className="text-ink-muted">{label}</p>
     </div>
   );
 }
