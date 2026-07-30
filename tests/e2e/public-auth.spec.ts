@@ -49,3 +49,25 @@ test("mobile viewport keeps every public feature reachable", async ({
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
 });
+
+test("email input shell honors an explicit theme in both directions", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  const email = page.getByLabel("Email");
+  const shell = email.locator("..");
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = "dark";
+  });
+  await expect(shell).toHaveCSS("background-color", "rgb(30, 27, 22)");
+  await expect(email).toHaveCSS("color", "rgb(237, 231, 218)");
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = "light";
+  });
+  await expect(shell).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(email).toHaveCSS("color", "rgb(27, 27, 27)");
+});

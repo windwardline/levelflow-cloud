@@ -7,9 +7,6 @@
   --color-hairline: #D8D2C4;
   --color-accent: #2244FF;
   --color-accent-pressed: #1A35CC;
-  --color-buy: #177245;
-  --color-sell: #B3261E;
-  --color-caution: #8A5B00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,10 +18,33 @@
     --color-hairline: #35322B;
     --color-accent: #6B86FF;
     --color-accent-pressed: #7D95FF;
-    --color-buy: #4CC38A;
-    --color-sell: #E5766E;
-    --color-caution: #D9A441;
   }
+}
+
+/*
+  The app's explicit theme choice (legal-theme.js mirrors the stored
+  preference into html[data-theme]) beats the OS signal above in both
+  directions — otherwise a user who picked "light" on a dark-OS device
+  would see the media query win on every static page.
+*/
+html[data-theme="dark"] {
+  --color-base: #161411;
+  --color-sheet: #1E1B16;
+  --color-ink: #EDE7DA;
+  --color-ink-muted: #969082;
+  --color-hairline: #35322B;
+  --color-accent: #6B86FF;
+  --color-accent-pressed: #7D95FF;
+}
+
+html[data-theme="light"] {
+  --color-base: #F4F1EA;
+  --color-sheet: #FDFCF9;
+  --color-ink: #1B1B1B;
+  --color-ink-muted: #6B675E;
+  --color-hairline: #D8D2C4;
+  --color-accent: #2244FF;
+  --color-accent-pressed: #1A35CC;
 }
 
 html {
@@ -68,15 +88,6 @@ h1 {
   margin: 0 0 32px 0;
   line-height: 1.2;
   letter-spacing: -0.02em;
-}
-
-h2 {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 24px 0 16px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 section {
@@ -133,6 +144,63 @@ footer p:last-child {
   margin-bottom: 0;
 }
 
-footer a {
+/*
+  404 page only. Scoped under body.not-found (set on public/404.html)
+  instead of shipping as an inline <style> block, which production CSP
+  (style-src 'self', no unsafe-inline) blocks outright.
+*/
+body.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+body.not-found main {
+  max-width: 32rem;
+  padding: 48px 20px;
+}
+
+body.not-found .page-eyebrow {
+  margin-bottom: 16px;
+}
+
+body.not-found h1 {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 32px 0;
+  line-height: 1.1;
+}
+
+body.not-found .not-found-body {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-ink);
+  margin: 0 0 32px 0;
+}
+
+body.not-found .back-link {
+  display: inline-block;
+  font-size: 15px;
+  font-weight: 500;
   color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  padding: 8px 0;
+}
+
+body.not-found .back-link:hover {
+  color: var(--color-accent-pressed);
+}
+
+body.not-found .back-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+body.not-found footer {
+  margin-top: 64px;
 }

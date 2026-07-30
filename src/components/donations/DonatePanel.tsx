@@ -34,7 +34,7 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
           App costs
         </h2>
         <p className="mt-4 text-sm leading-6 text-slate">
-          Donations support market data, email, hosting, and development.
+          Levelflow runs on paid market-data, email, and hosting plans.
         </p>
       </section>
     </div>

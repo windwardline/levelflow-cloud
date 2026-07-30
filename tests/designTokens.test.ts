@@ -55,4 +55,11 @@ describe("design tokens", () => {
     assert.match(html, /<title>Levelflow — Market review<\/title>/);
     assert.doesNotMatch(html, /LevelFlow/);
   });
+
+  it("pins the static-page palette to the same spec hexes", () => {
+    const legal = readFileSync("public/legal/legal.css", "utf8");
+    for (const hex of ["#F4F1EA", "#FDFCF9", "#1B1B1B", "#6B675E", "#D8D2C4", "#2244FF", "#1A35CC", "#161411", "#1E1B16", "#EDE7DA", "#969082", "#35322B", "#6B86FF", "#7D95FF"]) {
+      assert.match(legal, new RegExp(hex, "i"), `legal.css hex ${hex} present`);
+    }
+  });
 });
