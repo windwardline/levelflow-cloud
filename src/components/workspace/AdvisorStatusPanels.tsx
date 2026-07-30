@@ -243,7 +243,7 @@ export function MarketResultsPanel({
           </div>
         </div>
         <button
-          className="text-xs text-ink-muted underline decoration-hairline underline-offset-4 transition-colors hover:text-accent hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="tertiary-link"
           type="button"
           onClick={() => nav.openInsights()}
         >
@@ -334,7 +334,7 @@ function SetupList({ setups }: { setups: TradeSetupRow[] }) {
           </div>
           <div className="mt-1.5 flex justify-end">
             <button
-              className="text-xs text-ink-muted underline decoration-hairline underline-offset-4 transition-colors hover:text-accent hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="tertiary-link"
               type="button"
               onClick={() => nav.openInsights(setup.symbol)}
             >

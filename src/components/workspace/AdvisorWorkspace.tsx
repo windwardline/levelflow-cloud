@@ -55,6 +55,12 @@ import {
 } from "../../lib/advisorReview";
 
 type AdvisorWorkspaceProps = {
+  // Called once the effect below has applied openRequest, so the caller
+  // (App) can clear it. AdvisorWorkspace unmounts whenever its tab isn't
+  // active, so without this the same request would still be sitting there
+  // on the next mount and would re-apply itself over a symbol the user
+  // picked in the meantime.
+  onOpenRequestHandled?: () => void;
   onSetupsChanged: () => void;
   // A cross-link elsewhere in the app (Insights, Profile) asked to open a
   // specific market here. token is a nonce so requesting the same symbol
@@ -72,8 +78,14 @@ type AnalysisState = {
 };
 
 export function AdvisorWorkspace(
-  { onSetupsChanged, openRequest, profile, setupStats, setups }:
-    AdvisorWorkspaceProps,
+  {
+    onOpenRequestHandled,
+    onSetupsChanged,
+    openRequest,
+    profile,
+    setupStats,
+    setups,
+  }: AdvisorWorkspaceProps,
 ) {
   const [symbol, setSymbol] = useState<SupportedSymbol>("EURUSD");
   const [timeframe, setTimeframe] = useState<ChartTimeframe>(
@@ -148,7 +160,8 @@ export function AdvisorWorkspace(
     setAnalyzerStatus("idle");
     setAnalysisState(null);
     setAdvisorNotice("");
-  }, [openRequest?.symbol, openRequest?.token]);
+    onOpenRequestHandled?.();
+  }, [onOpenRequestHandled, openRequest?.symbol, openRequest?.token]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(new Date()), 60_000);

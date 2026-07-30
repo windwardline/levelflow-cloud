@@ -255,6 +255,32 @@ html[data-theme="dark"] {
   }
   .field:focus { border-color: var(--color-accent); box-shadow: none; }
 
+  /*
+    Tertiary buttons/links (spec §5: "tertiary = text + underline") render
+    small — text-xs, no visible padding — but still need a real hit target.
+    min-height sets the box to 44px; the matching negative margin pulls that
+    extra height back out of the surrounding flow so the visible text line
+    doesn't shift or add gap. The result: the same compact underline, a
+    44px-tall click/tap area centered on it, and no help needed from
+    whatever flex row or paragraph the link sits inside.
+  */
+  .tertiary-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -0.875rem;
+    color: var(--color-ink-muted);
+    font-size: 0.75rem;
+    text-decoration-line: underline;
+    text-decoration-color: var(--color-hairline);
+    text-underline-offset: 4px;
+    transition: color 140ms ease-out, text-decoration-color 140ms ease-out;
+  }
+  .tertiary-link:hover {
+    color: var(--color-accent);
+    text-decoration-color: var(--color-accent);
+  }
+
   .link-accent {
     color: var(--color-ink);
     text-decoration: none;

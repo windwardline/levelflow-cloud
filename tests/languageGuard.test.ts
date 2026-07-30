@@ -22,7 +22,6 @@ const BANNED = [/\bTP1\b/, /\brunner\b/i, /out-of-sample/i, /\bATR\b/];
 const SKIPPED_FILES = [
   "OverviewPanel.tsx", // Task 6 — guide/about/profile/donate recomposition
   "GuidePanel.tsx", // Task 6 — guide/about/profile/donate recomposition
-  "outcomes.ts", // Task 5 — insights recomposition
 ];
 
 // Extracts real string/template literal contents only. A naive "any quote

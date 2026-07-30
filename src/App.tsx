@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Compass,
@@ -97,6 +97,13 @@ export default function App() {
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
   const [advisorRequest, setAdvisorRequest] = useState<{ symbol: string; token: number } | null>(null);
   const [insightsSymbol, setInsightsSymbol] = useState<string | null>(null);
+
+  // AdvisorWorkspace only exists in the tree while its tab is active, so
+  // switching tabs away and back remounts it fresh. Without clearing the
+  // request once it's been applied, that remount would see the same
+  // (stale) openRequest again and re-select its symbol, silently
+  // overriding whatever market the user had since chosen.
+  const clearAdvisorRequest = useCallback(() => setAdvisorRequest(null), []);
 
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
@@ -227,6 +234,7 @@ export default function App() {
         <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
+              onOpenRequestHandled={clearAdvisorRequest}
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}
               profile={profile}
