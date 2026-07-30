@@ -296,7 +296,7 @@ describe("trade analyzer category handling", () => {
     assert.ok(indices.newsPenaltyPerEvent > futures.newsPenaltyPerEvent);
     assert.ok(forex.newsPenaltyPerEvent >= crypto.newsPenaltyPerEvent);
     assert.ok(metals.stopAtrMultiplier > forex.stopAtrMultiplier);
-    assert.ok(futures.defaultReviewHours < metals.defaultReviewHours);
+    assert.ok(metals.defaultReviewHours < futures.defaultReviewHours);
   });
 
   it("keeps analyzer symbol routing aligned with public availability", () => {

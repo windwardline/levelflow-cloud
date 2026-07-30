@@ -24,11 +24,11 @@ function intervalLabel(code: string) {
 
 export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
   Crypto: 12,
-  Energies: 6,
+  Energies: 3,
   Forex: 8,
   Futures: 6,
   Indices: 5,
-  Metals: 8,
+  Metals: 4,
 };
 
 export function advisorChartViewLabel(timeframe: ChartTimeframe) {
