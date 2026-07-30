@@ -137,7 +137,10 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   forex: {
     blockedRegimes: ["volatile_chop"],
-    confidenceThreshold: 66,
+    // r18: the score does not rank forex outcomes at any band — the old
+    // gate was pure volume tax. 55 admits +44% setups at identical
+    // per-setup quality (test -0.0002R, money-positive rate unchanged).
+    confidenceThreshold: 55,
     // Sweep 2026-07-29 (2010-2026, both splits): sells outperformed buys
     // (train +0.042 vs +0.023, test +0.118 vs -0.010).
     sideScoreAdjustments: { buy: -6 },
@@ -218,7 +221,10 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     blockedRegimes: ["volatile_chop"],
     // Sweep 2026-07-28: metals expectancy improves monotonically with
     // selectivity (XAU +0.18R, XAG +0.04R OOS at 82).
-    confidenceThreshold: 82,
+    // r18: metals' score genuinely ranks outcomes under the rebuilt engine
+    // (0.131 -> 0.196R by band); 90 is the ceiling with viable samples
+    // (95 collapses acceptance to nothing).
+    confidenceThreshold: 90,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.4,
     defaultReviewHours: 8,
@@ -249,13 +255,6 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   string,
   Partial<CategoryCalibration>
 > = {
-  // Per-symbol threshold curves (2026-07-29, full-history records, raises
-  // only, both walk-forward splits must improve vs the class default with
-  // train n>=300 / test n>=150): 2 of 33 eligible symbols passed.
-  // EURGBP: train -0.033->-0.023, test +0.118->+0.130 at 82.
-  EURGBP: { confidenceThreshold: 82 },
-  // EURJPY: train +0.033->+0.083, test +0.027->+0.067 at 82.
-  EURJPY: { confidenceThreshold: 82 },
   // Natural gas runs far hotter than the energy class baseline.
   // r13: NGUSD produced zero accepted setups in the full-history replay
   // under every stop-cap variant including baseline — this override is
