@@ -17,9 +17,10 @@ Copied from `docs/superpowers/specs/2026-07-29-levelflow-visual-overhaul-design.
 - **Plain language (spec §7).** Working surfaces never show: `TP1`, `runner`, `out-of-sample`, `ATR`, regime jargon, or raw interval codes (`4H`, `1H`, `15M`, `5M`, `1M`, `1D`) as visible text. Replacements are pinned per task below. The Guide MAY teach precise terms parenthetically ("first target (TP1)"). Theme labels stay exactly Light / Dark / System. Sentence case, no exclamation points, one short context line max per card; depth goes to the Guide behind a `How this works` link.
 - **One disclosure pattern.** The only progressive-disclosure mechanism is `HowThisWorksLink` (Task 1) pointing at a fixed Guide anchor set: `how-review-works`, `targets-and-stops`, `confidence-tiers`, `replay-record`, `cost-ratings`, `timeframes`. Tasks 3–5 link only to anchors in this list; Task 6 creates the matching sections.
 - **Component kit (spec §5).** Sheets = sheet bg + hairline border; chips = small bordered marks (`.chip`, Task 3), never filled pills; tables/ladders/stat numerals = IBM Plex Mono (`font-mono tabular-nums`); tab bar stays the editorial contents-bar (already token-correct); confidence gauge is numeral-forward.
-- **Accessibility (spec §9).** AA minimum both themes (CI-enforced by `tests/contrast.test.ts` — keep green), focus-visible 2px accent outline, ≥44px interactive hit targets, existing aria-labels carry forward.
+- **Accessibility (spec §9).** AA minimum both themes (CI-enforced by `tests/contrast.test.ts` — keep green), focus-visible 2px accent outline, ≥44px interactive hit targets, existing aria-labels carry forward. Each tab surface exposes exactly one `h1` — the panel's title — added during that surface's recomposition task (Tasks 3–6); the header wordmark remains a `<p>`.
 - **Out of scope (spec §11).** No changes to trading logic, auth mechanics, data flow, or the analyzer. Presentation-layer label strings in `src/lib/` (outcomes.ts, replayReliability.ts, advisorReview.ts) ARE in scope — they are UI copy.
-- **Tests.** Each task keeps `npx tsc --noEmit`, `npx eslint . --max-warnings 0`, `npm test`, `npm run build` green. E2e copy pins that break because copy changed intentionally are updated in the same task, and the task report must list each updated pin.
+- **Leave-it-clean scoping (Task-1 ruling).** The migration rule applies to files a task recomposes or restyles. A mechanical touch — adding an optional prop with a no-op default to a file another task owns — does NOT trigger a file-wide alias migration; the owning task migrates it, and Task 7's repo-wide grep is the backstop that nothing is missed.
+- **Tests.** Unit tests use Node's built-in runner (`node --test` via `npm test`) — NOT Vitest; follow the idiom in `tests/designTokens.test.ts` (`node:test` + `node:assert`). Each task keeps `npm run check` (the real typecheck — bare `npx tsc --noEmit` is a silent no-op under the solution-style root tsconfig), `npx eslint . --max-warnings 0`, `npm test`, `npm run build` green. Authed e2e specs skip without Supabase E2E credentials — run what executes locally (public e2e) per task; the full authed e2e run is a mandatory pre-ship gate in Task 7. E2e copy pins that break because copy changed intentionally are updated in the same task, and the task report must list each updated pin.
 - **Commits.** Conventional Commits, one scoped commit per step group, no AI trailer.
 
 ---
@@ -180,9 +181,10 @@ Receipt rows gain one `<HowThisWorksLink anchor="how-review-works" />` in the pa
 **Language guard test (`tests/languageGuard.test.ts`) — the stage's copy gate:**
 
 ```ts
+import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
 
 const ROOTS = ["src/components/workspace", "src/components/charts", "src/components/trade", "src/components/donations"];
 const LIB_FILES = ["src/lib/outcomes.ts", "src/lib/replayReliability.ts", "src/lib/advisorReview.ts"];
@@ -198,7 +200,7 @@ describe("plain language on working surfaces", () => {
     it(`${file} has no banned quant vocabulary in string literals`, () => {
       for (const literal of stringLiterals(readFileSync(file, "utf8"))) {
         for (const banned of BANNED) {
-          expect(literal, `${file}: "${literal.slice(0, 60)}"`).not.toMatch(banned);
+          assert.doesNotMatch(literal, banned, `${file}: "${literal.slice(0, 60)}"`);
         }
       }
     });
