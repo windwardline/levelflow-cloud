@@ -241,15 +241,6 @@ const correlationGroups: Record<string, string[]> = {
 // measured positive expectancy). The default all-market scan highlights
 // markets where the model has demonstrated edge; users can still scan any
 // group explicitly or review any symbol directly in the advisor.
-const scanDeprioritizedSymbols = new Set<string>([
-  // r15 re-derivation at full depth under the current model: the r3/r4-era
-  // durable negatives (CHF-quote pairs, AUDCAD/AUDUSD/GBPAUD/GBPJPY, alt
-  // crypto) all measure both-splits POSITIVE now — those verdicts belonged
-  // to the pre-r8 geometry and are retired. Only BNBUSD stays (train
-  // -0.030 / test +0.099, split disagreement).
-  "BNBUSD",
-]);
-
 // The measured no-trade list: assets whose evidence clearly says Levelflow
 // should not produce setups. No scan includes them and setup generation is
 // refused server-side — they are not an option, period (owner directive,
@@ -262,6 +253,9 @@ const scanDeprioritizedSymbols = new Set<string>([
 //   mixed-weak, SP weak — the category verdict stands).
 // - NGUSD/HGUSD (r14 audit: zero accepted setups across full history;
 //   generation can only ever return "no setup").
+// - BNBUSD (r16, owner standard: a mixed record — train -0.030 / test
+//   +0.099, split disagreement — does not meet the provable bar; the menu
+//   is binary now, measured-in or fully out).
 export const noTradeSymbols = new Set<string>([
   "SP",
   "NSDQ",
@@ -270,6 +264,7 @@ export const noTradeSymbols = new Set<string>([
   "DAX",
   "NGUSD",
   "HGUSD",
+  "BNBUSD",
 ]);
 
 // Scan-path exclusion set: everything no-trade, by definition.
@@ -278,7 +273,6 @@ export const noScanSymbols = noTradeSymbols;
 export const defaultScanSymbols = Object.keys(normalizedSymbolMap).filter(
   (symbol) =>
     !temporarilyUnavailableSymbols.has(symbol) &&
-    !scanDeprioritizedSymbols.has(symbol) &&
     !noScanSymbols.has(symbol),
 );
 
