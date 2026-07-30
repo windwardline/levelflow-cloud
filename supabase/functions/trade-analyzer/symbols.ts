@@ -267,10 +267,23 @@ const scanDeprioritizedSymbols = new Set<string>([
   "DAX",
 ]);
 
+// Cash indices carry no measured edge at any tested lever (round 12:
+// threshold curves diverge train-vs-test, every session bucket and regime
+// negative on both splits). They stay individually reviewable so the live
+// cohort can earn them back, but no scan path includes them.
+export const noScanSymbols = new Set<string>([
+  "SP",
+  "NSDQ",
+  "DOW",
+  "NIKKEI",
+  "DAX",
+]);
+
 export const defaultScanSymbols = Object.keys(normalizedSymbolMap).filter(
   (symbol) =>
     !temporarilyUnavailableSymbols.has(symbol) &&
-    !scanDeprioritizedSymbols.has(symbol),
+    !scanDeprioritizedSymbols.has(symbol) &&
+    !noScanSymbols.has(symbol),
 );
 
 export function isKnownSymbol(symbol: string) {

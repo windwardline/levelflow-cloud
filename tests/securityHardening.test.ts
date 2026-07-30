@@ -84,6 +84,26 @@ describe("security hardening", () => {
     assert.equal(timeoutCount, 2);
   });
 
+  it("keeps cash indices out of every scan path", () => {
+    const symbols = readFileSync(
+      "supabase/functions/trade-analyzer/symbols.ts",
+      "utf8",
+    );
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const symbolMap = readFileSync("src/lib/symbolMap.ts", "utf8");
+
+    for (const idx of ["SP", "NSDQ", "DOW", "NIKKEI", "DAX"]) {
+      assert.match(symbols, new RegExp(`noScanSymbols[\\s\\S]*?"${idx}"`));
+    }
+    // The server filters requested scan symbols, not just the default list.
+    assert.match(analyzer, /!noScanSymbols\.has\(symbol\)/);
+    // The UI's scan dropdown uses the filtered group list.
+    assert.match(symbolMap, /SCANNABLE_ASSET_GROUPS/);
+  });
+
   it("keeps deploy-time security header verification in CI", () => {
     const workflow = readFileSync(".github/workflows/deploy.yml", "utf8");
 
