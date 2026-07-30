@@ -289,6 +289,20 @@ html[data-theme="dark"] {
   outline-offset: 2px;
 }
 
+/*
+  Tailwind's generated `min-h-10` utility lives in the utilities layer,
+  which always outranks the components layer above regardless of
+  specificity — so on the five .secondary-button call sites that also
+  carry min-h-10 (header Help/Donate/Sign out, Advisor's Refresh, Market
+  scan's Scan), it silently dropped the kit's 44px floor to 40px. This
+  rule sits outside any @layer, the same trick :focus-visible above
+  already relies on, so it outranks both layers and restores 44px
+  everywhere without touching any of the five call sites.
+*/
+.secondary-button.min-h-10 {
+  min-height: 44px;
+}
+
 @layer utilities {
   /*
     This block does real dark-mode work the token cascade can't supply on

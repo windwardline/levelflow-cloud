@@ -152,6 +152,12 @@ export function AdvisorWorkspace(
       (option) => option.symbol === requestedSymbol,
     );
     if (!isAvailable) {
+      // Consume the request even though it can't be applied — mirrors
+      // HistoryPanel's initialSymbol handling (HistoryPanel.tsx:87-92).
+      // Without this, a symbol outside the menu leaves openRequest set
+      // forever and re-fires this effect on every later Advisor mount.
+      // Selection is left untouched.
+      onOpenRequestHandled?.();
       return;
     }
     requestIdRef.current += 1;

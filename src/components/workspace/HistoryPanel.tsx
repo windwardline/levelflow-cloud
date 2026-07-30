@@ -155,7 +155,7 @@ export function HistoryPanel({
             {activeFilterCount > 0
               ? (
                 <button
-                  className="mt-1 text-sm font-bold text-accent"
+                  className="tertiary-link"
                   type="button"
                   onClick={clearFilters}
                 >
