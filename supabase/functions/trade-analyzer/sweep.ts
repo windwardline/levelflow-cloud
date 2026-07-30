@@ -53,6 +53,8 @@ export type SweepOutcomeRecord = {
   sessionLabel: string;
   sessionPenalty: number;
   side: string;
+  // Which anchor set the stop (r14 cap-binding instrumentation).
+  stopProvenance: string;
   time: number;
 };
 
@@ -69,11 +71,17 @@ export type SweepResult = {
   decisionPoints: number;
   outcomes: SweepOutcomeRecord[];
   rejections: {
+    // belowThreshold = belowConfidence + belowPayoff + regimeGated: the
+    // combined acceptance-gate tally, kept for continuity; the split fields
+    // attribute exactly which gate rejected (r14 acceptance audit).
+    belowConfidence: number;
+    belowPayoff: number;
     belowThreshold: number;
     newsBlocked: number;
     noConsensus: number;
     planRejected: number;
     regimeBlocked: number;
+    regimeGated: number;
     sessionBlocked: number;
   };
   summary: SweepSummary;
@@ -124,11 +132,14 @@ export function simulateSymbol(input: {
     14 * 24 * 60 * 60 * 1000;
   let decisionPoints = 0;
   const rejections = {
+    belowConfidence: 0,
+    belowPayoff: 0,
     belowThreshold: 0,
     newsBlocked: 0,
     noConsensus: 0,
     planRejected: 0,
     regimeBlocked: 0,
+    regimeGated: 0,
     sessionBlocked: 0,
   };
   const newsEvents = input.newsEvents ?? [];
@@ -271,11 +282,18 @@ export function simulateSymbol(input: {
     // every gate — including the regime gate that capture-all bypasses for
     // record collection. Otherwise offline aggregates silently include
     // chop-regime setups the live system never trades.
-    const accepted =
-      scoreBreakdown.confidenceScore >= calibration.confidenceThreshold &&
-      plan.rewardRisk >= calibration.minRewardRisk &&
-      !calibration.blockedRegimes?.includes(regime.name);
+    const belowConfidence =
+      scoreBreakdown.confidenceScore < calibration.confidenceThreshold;
+    const belowPayoff = plan.rewardRisk < calibration.minRewardRisk;
+    const regimeGated = calibration.blockedRegimes?.includes(regime.name) ??
+      false;
+    const accepted = !belowConfidence && !belowPayoff && !regimeGated;
     if (!accepted && !input.captureAll) {
+      // First failing gate wins the attribution; belowThreshold stays the
+      // combined tally so long-running analyses keep their column.
+      if (belowConfidence) rejections.belowConfidence += 1;
+      else if (belowPayoff) rejections.belowPayoff += 1;
+      else rejections.regimeGated += 1;
       rejections.belowThreshold += 1;
       continue;
     }
@@ -314,6 +332,7 @@ export function simulateSymbol(input: {
       sessionLabel: sessionContext.label,
       sessionPenalty: sessionContext.penalty,
       side: consensus.side,
+      stopProvenance: plan.stopProvenance,
       time: latest.time,
     });
   }

@@ -114,6 +114,78 @@ describe("replay sweep", () => {
     }
   });
 
+  it("records stop provenance on every setup and reports cap binding", () => {
+    // Geometry pinned like the resolution test; capture-all so gate policy
+    // cannot hide records. A generous cap cannot bind, so provenance must be
+    // structural (pivot or the 1.25-ATR volatility floor).
+    const uncapped = simulateSymbol({
+      calibrationOverride: {
+        maxStopAtrMultiplier: 50,
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      captureAll: true,
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(uncapped.outcomes.length > 0);
+    for (const record of uncapped.outcomes) {
+      assert.ok(
+        record.stopProvenance === "pivot" ||
+          record.stopProvenance === "volatility_floor",
+        `unexpected provenance ${record.stopProvenance}`,
+      );
+    }
+
+    // A cap tighter than the 1.25-ATR minimum width always clips: every
+    // record must attribute its stop to the cap.
+    const capped = simulateSymbol({
+      calibrationOverride: {
+        maxStopAtrMultiplier: 0.5,
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      captureAll: true,
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(capped.outcomes.length > 0);
+    for (const record of capped.outcomes) {
+      assert.equal(record.stopProvenance, "cap");
+    }
+  });
+
+  it("splits acceptance-gate rejections by the failing gate", () => {
+    // Impossible confidence bar: every consensus setup rejects on the
+    // confidence gate, and the combined tally must equal the split sum.
+    const result = simulateSymbol({
+      calibrationOverride: {
+        blockedRegimes: [],
+        confidenceThreshold: 101,
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(result.rejections.belowThreshold > 0);
+    assert.equal(result.rejections.belowConfidence, result.rejections.belowThreshold);
+    assert.equal(
+      result.rejections.belowThreshold,
+      result.rejections.belowConfidence + result.rejections.belowPayoff +
+        result.rejections.regimeGated,
+    );
+  });
+
   it("resamples 15min bars into higher-timeframe bars", () => {
     const bars = triangleBars(8);
     const hourly = resampleBars(bars, 4);
