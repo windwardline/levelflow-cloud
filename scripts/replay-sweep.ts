@@ -18,6 +18,10 @@
 
 import type { CategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
+  DEFAULT_CACHE_DIR,
+  loadRollingSeries,
+} from "./calibrationCache.ts";
+import {
   combineCotSeries,
   type CotReportRow,
   getCotContractMapping,
@@ -50,6 +54,9 @@ async function main() {
     process.exit(1);
   }
   const args = parseArgs(process.argv.slice(2));
+  // Durable by default (r17 hardening): mornings reuse the rolling store
+  // and top up incrementally instead of refetching whole windows.
+  args.cacheDir = args.cacheDir ?? DEFAULT_CACHE_DIR;
   const rows: string[][] = [[
     "symbol",
     "variant",
@@ -84,16 +91,26 @@ async function main() {
     // window while same-day runs stay pinned for drift-free A/B.
     const anchor = isoDate(new Date());
     const [primaryBars, dailyBars] = await Promise.all([
-      cachedBars(
-        args.cacheDir,
-        `${providerSymbol}-15min-${args.days}-${anchor}`,
-        () => fetchIntradayBars(providerSymbol, args.days),
-      ),
-      cachedBars(
-        args.cacheDir,
-        `${providerSymbol}-daily-${args.days}-${anchor}`,
-        () => fetchDailyBars(providerSymbol, args.days + 240),
-      ),
+      loadRollingSeries<Bar>({
+        anchor,
+        cacheDir: args.cacheDir!,
+        fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
+        fetchSince: (sinceMs) =>
+          fetchIntradayBars(providerSymbol, args.days, sinceMs),
+        key: `${providerSymbol}-15min-${args.days}`,
+        legacyPrefix: `${providerSymbol}-15min-${args.days}-`,
+        timeOf: (bar) => bar.time,
+      }),
+      loadRollingSeries<Bar>({
+        anchor,
+        cacheDir: args.cacheDir!,
+        fetchFull: () => fetchDailyBars(providerSymbol, args.days + 240),
+        fetchSince: (sinceMs) =>
+          fetchDailyBars(providerSymbol, args.days + 240, sinceMs),
+        key: `${providerSymbol}-daily-${args.days}`,
+        legacyPrefix: `${providerSymbol}-daily-${args.days}-`,
+        timeOf: (bar) => bar.time,
+      }),
     ]);
     if (args.discover) {
       const first = primaryBars[0];
@@ -184,22 +201,23 @@ async function main() {
 async function loadEconomicCalendar(
   cacheDir: string | undefined,
 ): Promise<SweepNewsEvent[]> {
-  const { mkdir, readFile, writeFile } = await import("node:fs/promises");
   const anchor = isoDate(new Date());
-  const path = cacheDir ? `${cacheDir}/econ-calendar-${anchor}.json` : null;
-  if (path) {
-    try {
-      const cached = JSON.parse(await readFile(path, "utf8"));
-      if (Array.isArray(cached) && cached.length > 0) {
-        return cached as SweepNewsEvent[];
-      }
-    } catch {
-      // Cache miss: fetch below.
-    }
-  }
+  return loadRollingSeries<SweepNewsEvent>({
+    anchor,
+    cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
+    fetchFull: () => fetchCalendarEvents(Date.parse("2013-01-01T00:00:00Z")),
+    fetchSince: (sinceMs) => fetchCalendarEvents(sinceMs),
+    key: "econ-calendar",
+    legacyPrefix: "econ-calendar-",
+    timeOf: (event) => event.time,
+  });
+}
 
+async function fetchCalendarEvents(
+  startMs: number,
+): Promise<SweepNewsEvent[]> {
   const events: SweepNewsEvent[] = [];
-  const start = Date.parse("2013-01-01T00:00:00Z");
+  const start = startMs;
   const chunkMs = 90 * 86_400_000;
   for (let from = start; from < Date.now(); from += chunkMs) {
     const endpoint = new URL(`${FMP_API_BASE_URL}/economic-calendar`);
@@ -233,11 +251,7 @@ async function loadEconomicCalendar(
     await sleep(150);
   }
   events.sort((first, second) => first.time - second.time);
-  console.log(`Loaded ${events.length} medium/high scheduled events.`);
-  if (path && events.length > 0) {
-    await mkdir(cacheDir!, { recursive: true });
-    await writeFile(path, JSON.stringify(events));
-  }
+  console.log(`Fetched ${events.length} medium/high scheduled events.`);
   return events;
 }
 
@@ -314,29 +328,6 @@ async function fetchCotContract(
   return rows;
 }
 
-async function cachedBars(
-  cacheDir: string | undefined,
-  key: string,
-  fetcher: () => Promise<Bar[]>,
-): Promise<Bar[]> {
-  if (!cacheDir) {
-    return fetcher();
-  }
-  const { mkdir, readFile, writeFile } = await import("node:fs/promises");
-  const path = `${cacheDir}/${key}.json`;
-  try {
-    const cached = JSON.parse(await readFile(path, "utf8")) as Bar[];
-    if (Array.isArray(cached) && cached.length > 0) {
-      return cached;
-    }
-  } catch {
-    // Cache miss: fall through to a live fetch and pin it.
-  }
-  const bars = await fetcher();
-  await mkdir(cacheDir, { recursive: true });
-  await writeFile(path, JSON.stringify(bars));
-  return bars;
-}
 
 function parseArgs(argv: string[]): SweepArgs {
   const get = (flag: string) => {
@@ -398,6 +389,7 @@ const MAX_DEPTH_DAYS = 7_000;
 async function fetchIntradayBars(
   providerSymbol: string,
   days: number,
+  sinceMs?: number,
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
   const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
@@ -411,6 +403,11 @@ async function fetchIntradayBars(
   ) {
     const from = new Date(now - offset * 86_400_000);
     const to = new Date(now - (offset - INTRADAY_CHUNK_DAYS) * 86_400_000);
+    // Top-up mode: chunks walk backward, so the first chunk that ends
+    // before the floor means everything older is already stored.
+    if (sinceMs !== undefined && to.getTime() < sinceMs) {
+      break;
+    }
     const endpoint = new URL(`${FMP_API_BASE_URL}/historical-chart/15min`);
     endpoint.searchParams.set("symbol", providerSymbol);
     endpoint.searchParams.set("from", isoDate(from));
@@ -434,10 +431,12 @@ async function fetchIntradayBars(
 async function fetchDailyBars(
   providerSymbol: string,
   days: number,
+  sinceMs?: number,
 ): Promise<Bar[]> {
   const endpoint = new URL(`${FMP_API_BASE_URL}/historical-price-eod/full`);
   endpoint.searchParams.set("symbol", providerSymbol);
-  endpoint.searchParams.set("from", isoDate(new Date(Date.now() - days * 86_400_000)));
+  const floor = Math.max(Date.now() - days * 86_400_000, sinceMs ?? 0);
+  endpoint.searchParams.set("from", isoDate(new Date(floor)));
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
   return dedupeSort(await fetchBars(endpoint));
