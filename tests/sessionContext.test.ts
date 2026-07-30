@@ -57,6 +57,24 @@ describe("trade analyzer session context", () => {
     assert.equal(open.block, false);
   });
 
+  it("blocks energies during their measured low-edge hours", () => {
+    // Round 15: hours {3,4,12,15,19,21} UTC negative on both splits at
+    // full history; excluding them lifts both splits from ~0.04R to ~0.08R.
+    const blocked = getSessionContext(
+      "WTI",
+      new Date("2026-06-15T03:30:00.000Z"),
+    );
+    assert.equal(blocked.block, true);
+    assert.equal(blocked.marketKind, "energies");
+    assert.equal(blocked.label, "Energy low-edge hour");
+
+    const open = getSessionContext(
+      "WTI",
+      new Date("2026-06-15T08:30:00.000Z"),
+    );
+    assert.equal(open.block, false);
+  });
+
   it("blocks forex during the New York rollover pause", () => {
     const session = getSessionContext(
       "EURUSD",

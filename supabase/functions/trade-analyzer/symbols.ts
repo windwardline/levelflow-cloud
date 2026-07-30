@@ -242,49 +242,38 @@ const correlationGroups: Record<string, string[]> = {
 // markets where the model has demonstrated edge; users can still scan any
 // group explicitly or review any symbol directly in the advisor.
 const scanDeprioritizedSymbols = new Set<string>([
-  "USDCHF",
-  "AUDCHF",
-  "GBPCHF",
-  "EURCHF",
-  "NZDCHF",
-  "CADCHF",
-  // Durable negatives across independent 150-day and 1,200-day windows
-  // (2026-07-28 round-4 durability table).
-  "AUDCAD",
-  "AUDUSD",
-  "GBPAUD",
-  "GBPJPY",
-  "ADAUSD",
-  "BCHUSD",
+  // r15 re-derivation at full depth under the current model: the r3/r4-era
+  // durable negatives (CHF-quote pairs, AUDCAD/AUDUSD/GBPAUD/GBPJPY, alt
+  // crypto) all measure both-splits POSITIVE now — those verdicts belonged
+  // to the pre-r8 geometry and are retired. Only BNBUSD stays (train
+  // -0.030 / test +0.099, split disagreement).
   "BNBUSD",
-  "LTCUSD",
-  "SOLUSD",
-  "XRPUSD",
+]);
+
+// The measured no-trade list: assets whose evidence clearly says Levelflow
+// should not produce setups. No scan includes them and setup generation is
+// refused server-side — they are not an option, period (owner directive,
+// r15). They remain full members of the symbol map and the replay universe:
+// every calibration round re-derives their record from accruing FMP history,
+// and this list shrinks the round the evidence flips (exactly how 14
+// symbols left the deprioritized list in r15).
+// - Cash indices (r12 dedicated round: confidence does not rank outcomes
+//   out-of-sample; r15 re-check: DAX/NSDQ negative both splits, DOW/NIKKEI
+//   mixed-weak, SP weak — the category verdict stands).
+// - NGUSD/HGUSD (r14 audit: zero accepted setups across full history;
+//   generation can only ever return "no setup").
+export const noTradeSymbols = new Set<string>([
   "SP",
   "NSDQ",
   "DOW",
   "NIKKEI",
   "DAX",
-  // r14 acceptance audit: zero accepted setups across full history under
-  // every gate variant — session blocks, confidence, and payoff each starve
-  // what the others let through. Scanning them spends review slots on
-  // guaranteed nothing; both stay individually reviewable and in explicit
-  // group scans.
   "NGUSD",
   "HGUSD",
 ]);
 
-// Cash indices carry no measured edge at any tested lever (round 12:
-// threshold curves diverge train-vs-test, every session bucket and regime
-// negative on both splits). They stay individually reviewable so the live
-// cohort can earn them back, but no scan path includes them.
-export const noScanSymbols = new Set<string>([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-]);
+// Scan-path exclusion set: everything no-trade, by definition.
+export const noScanSymbols = noTradeSymbols;
 
 export const defaultScanSymbols = Object.keys(normalizedSymbolMap).filter(
   (symbol) =>

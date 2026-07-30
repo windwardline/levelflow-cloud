@@ -18,7 +18,7 @@ export type ReplayRecord = {
 
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
   Crypto: { moneyPositiveRate: 0.83, sampleSize: 6405 },
-  Energies: { moneyPositiveRate: 0.57, sampleSize: 606 },
+  Energies: { moneyPositiveRate: 0.6, sampleSize: 474 },
   Forex: { moneyPositiveRate: 0.88, sampleSize: 63953 },
   Futures: { moneyPositiveRate: 0.81, sampleSize: 2476 },
   Indices: { moneyPositiveRate: 0.51, sampleSize: 952 },

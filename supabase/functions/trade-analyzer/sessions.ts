@@ -97,6 +97,23 @@ export function getSessionContext(
       };
     }
 
+    // Energies: six UTC hours measured negative on both walk-forward splits
+    // at full history (r15 per-hour curves; excluding them lifts both
+    // splits from ~0.04R to ~0.08R per accepted setup).
+    if (
+      marketKind === "energies" &&
+      ENERGIES_LOW_EDGE_UTC_HOURS.has(now.getUTCHours())
+    ) {
+      return {
+        block: true,
+        label: "Energy low-edge hour",
+        marketKind,
+        penalty: 100,
+        reason:
+          "Measured results for energy setups opened in this hour were negative across every replay split, so Levelflow does not open new setups here right now.",
+      };
+    }
+
     // Futures and cash indices: 12:00-18:00 UTC measured negative on both
     // walk-forward splits (futures across 3+ years; indices across their
     // full history, round 12 — their worst stretch by a wide margin).
@@ -182,6 +199,11 @@ function isLowEdgeUtcWindow(now: Date) {
   const hour = now.getUTCHours();
   return hour >= 12 && hour < 18;
 }
+
+// r15 per-hour curves, full history: the energy hours negative on both
+// walk-forward splits. Scattered rather than one window — the arbiter was
+// the split agreement, not shape.
+const ENERGIES_LOW_EDGE_UTC_HOURS = new Set([3, 4, 12, 15, 19, 21]);
 
 function getZonedParts(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
