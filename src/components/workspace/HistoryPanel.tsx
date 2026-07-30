@@ -28,6 +28,7 @@ export function HistoryPanel({
   categoryStats,
   initialSymbol,
   loading,
+  onInitialSymbolHandled,
   setups,
   stats,
   summary,
@@ -38,6 +39,13 @@ export function HistoryPanel({
   // clear the filter afterwards without it snapping back.
   initialSymbol?: string | null;
   loading: boolean;
+  // Called once the effect below has adopted initialSymbol, so the caller
+  // (App) can clear it. HistoryPanel unmounts whenever its tab isn't
+  // active, so without this the same request would still be sitting there
+  // on the next mount and would re-apply itself over a market the user
+  // picked in the meantime — the same stale-remount shape openRequest had
+  // before AdvisorWorkspace grew onOpenRequestHandled.
+  onInitialSymbolHandled?: () => void;
   setups: TradeSetupRow[];
   stats: SecurityStat[];
   summary: OutcomeSummary;
@@ -79,8 +87,9 @@ export function HistoryPanel({
   useEffect(() => {
     if (initialSymbol) {
       setAssetFilter(initialSymbol);
+      onInitialSymbolHandled?.();
     }
-  }, [initialSymbol]);
+  }, [initialSymbol, onInitialSymbolHandled]);
 
   const filteredSetups = useMemo(() => {
     return sortHistorySetups(

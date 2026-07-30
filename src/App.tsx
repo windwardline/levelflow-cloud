@@ -104,6 +104,10 @@ export default function App() {
   // (stale) openRequest again and re-select its symbol, silently
   // overriding whatever market the user had since chosen.
   const clearAdvisorRequest = useCallback(() => setAdvisorRequest(null), []);
+  // Same shape, same reason: HistoryPanel unmounts whenever the Insights
+  // tab isn't active, so insightsSymbol has to be cleared once adopted or
+  // a later plain tab revisit would silently reapply a stale market filter.
+  const clearInsightsSymbol = useCallback(() => setInsightsSymbol(null), []);
 
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
@@ -248,6 +252,7 @@ export default function App() {
               categoryStats={setupState.categoryStats}
               initialSymbol={insightsSymbol}
               loading={setupState.loading}
+              onInitialSymbolHandled={clearInsightsSymbol}
               setups={setupState.setups}
               stats={setupState.stats}
               summary={setupState.outcomeSummary}
