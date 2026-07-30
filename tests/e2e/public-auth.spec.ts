@@ -71,3 +71,14 @@ test("email input shell honors an explicit theme in both directions", async ({
   await expect(shell).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(email).toHaveCSS("color", "rgb(27, 27, 27)");
 });
+
+test("static pages keep to the viewport on phones", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  for (const path of ["/legal/privacy.html", "/legal/terms.html", "/legal/risk-disclaimer.html", "/404.html"]) {
+    await page.goto(path, { waitUntil: "networkidle" });
+    const overflowX = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflowX, `${path} bleeds ${overflowX}px past the viewport`).toBe(0);
+  }
+});
