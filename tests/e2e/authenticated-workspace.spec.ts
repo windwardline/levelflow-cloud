@@ -44,6 +44,19 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test("authenticated workspace leads with the Levelflow wordmark, not the Windward Line brand", async ({ page }) => {
+  await page.goto("/");
+
+  const header = page.locator("header");
+  await expect(header.getByText("Levelflow", { exact: true })).toBeVisible();
+  await expect(header.getByText("Windward Line")).toHaveCount(0);
+
+  // "Windward Line" surfaces exactly once on the authed page: the footer
+  // colophon, matching the public (unauthenticated) pages' pattern.
+  await expect(page.getByText("Windward Line")).toHaveCount(1);
+  await expect(page.getByText("A Windward Line production")).toBeVisible();
+});
+
 test("authenticated workspace exposes core premium navigation without stale help text", async ({ page }) => {
   await page.goto("/");
 

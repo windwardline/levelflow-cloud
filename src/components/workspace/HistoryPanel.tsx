@@ -32,6 +32,9 @@ export function HistoryPanel({
   summary,
 }: {
   categoryStats: CategoryStat[];
+  // Accepted ahead of the consuming task (nav-driven symbol filter lands
+  // when Insights recomposes); unused until then.
+  initialSymbol?: string | null;
   loading: boolean;
   setups: TradeSetupRow[];
   stats: SecurityStat[];

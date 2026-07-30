@@ -21,8 +21,12 @@ import {
   CONFIDENCE_TIERS,
   formatConfidenceTierRange,
 } from "../../lib/confidenceTiers";
+import type { GuideAnchor } from "./WorkspaceNav";
 
 type GuidePanelProps = {
+  // Accepted ahead of the consuming task (anchor-scroll wiring lands with
+  // the Guide section rebuild); unused until then.
+  anchor?: GuideAnchor | null;
   supportEmail: string;
 };
 

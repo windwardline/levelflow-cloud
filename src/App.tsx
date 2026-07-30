@@ -19,12 +19,16 @@ import { OverviewPanel } from "./components/workspace/OverviewPanel";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { ProfilePanel } from "./components/workspace/ProfilePanel";
 import { ThemeToggle } from "./components/workspace/ThemeToggle";
+import {
+  WorkspaceNavContext,
+  type GuideAnchor,
+  type WorkspaceNav,
+} from "./components/workspace/WorkspaceNav";
 import { DonatePanel } from "./components/donations/DonatePanel";
 import { LegalLinks } from "./components/legal/LegalLinks";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
-import { brandAssets } from "./lib/assets";
 import {
   buildDefaultProfile,
   profileDisplayName,
@@ -90,6 +94,15 @@ export default function App() {
   const theme = useThemePreference();
   const { session, loading } = useAuthSession();
   const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
+  const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
+  const [advisorRequest, setAdvisorRequest] = useState<{ symbol: string; token: number } | null>(null);
+  const [insightsSymbol, setInsightsSymbol] = useState<string | null>(null);
+
+  const workspaceNav = useMemo<WorkspaceNav>(() => ({
+    openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
+    openAdvisor: (symbol) => { setAdvisorRequest({ symbol, token: Date.now() }); setActiveTab("advisor"); },
+    openInsights: (symbol) => { setInsightsSymbol(symbol ?? null); setActiveTab("history"); },
+  }), []);
   const setupState = useTradeSetups();
   const profileState = useUserProfile(
     session?.user.id ?? null,
@@ -114,9 +127,9 @@ export default function App() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-canvas px-6 text-navy">
+      <main className="flex min-h-screen items-center justify-center bg-paper px-6 text-ink">
         <div className="terminal-panel w-full max-w-sm p-6 text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-navy/90" />
+          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-ink/90" />
           <p className="font-semibold">Opening Levelflow</p>
         </div>
       </main>
@@ -147,121 +160,116 @@ export default function App() {
     buildDefaultProfile(session.user.id, session.user.email ?? "");
 
   return (
-    <main className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-20 border-b border-slate/15 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <img
-              className="h-10 w-10 shrink-0 rounded-lg object-contain sm:h-11 sm:w-11"
-              src={brandAssets.mark}
-              alt="Windward Line mark"
-            />
-            <div className="min-w-0">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-normal text-slate sm:text-xs">
-                Windward Line
-              </p>
-              <h1 className="wordmark truncate text-xl font-semibold tracking-normal text-navy sm:text-2xl">
-                Levelflow
-              </h1>
-              <p className="truncate text-xs font-medium text-slate">
-                Welcome, {profileDisplayName(profile)}
-              </p>
-            </div>
-            <div className="ml-auto sm:hidden">
-              <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
-            </div>
-            <div className="ml-auto hidden sm:block">
-              <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
-            </div>
-            <a
-              aria-label="Help"
-              className="secondary-button min-h-10 px-3 py-2"
-              href={SUPPORT_MAILTO}
-            >
-              <Mail className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Help</span>
-            </a>
-            <button
-              aria-label="Donate"
-              className="secondary-button min-h-10 px-3 py-2"
-              type="button"
-              onClick={() => setActiveTab("donate")}
-            >
-              <Gift className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Donate</span>
-            </button>
-            <button
-              aria-label="Sign out"
-              className="secondary-button min-h-10 px-3 py-2"
-              type="button"
-              onClick={() => supabase?.auth.signOut()}
-            >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
-          </div>
-
-          <nav
-            className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
-            aria-label="Levelflow sections"
-          >
-            {TABS.map((tab) => (
-              <button
-                key={tab.value}
-                className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
-                type="button"
-                onClick={() => setActiveTab(tab.value)}
+    <WorkspaceNavContext.Provider value={workspaceNav}>
+      <main className="min-h-screen bg-paper text-ink">
+        <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
+          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="min-w-0">
+                <p className="wordmark text-lg text-ink">Levelflow</p>
+                <p className="truncate text-xs text-ink-muted">
+                  Welcome, {profileDisplayName(profile)}
+                </p>
+              </div>
+              <div className="ml-auto sm:hidden">
+                <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
+              </div>
+              <div className="ml-auto hidden sm:block">
+                <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
+              </div>
+              <a
+                aria-label="Help"
+                className="secondary-button min-h-10 px-3 py-2"
+                href={SUPPORT_MAILTO}
               >
-                {tab.icon}
-                {tab.label}
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Help</span>
+              </a>
+              <button
+                aria-label="Donate"
+                className="secondary-button min-h-10 px-3 py-2"
+                type="button"
+                onClick={() => setActiveTab("donate")}
+              >
+                <Gift className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Donate</span>
               </button>
-            ))}
-          </nav>
+              <button
+                aria-label="Sign out"
+                className="secondary-button min-h-10 px-3 py-2"
+                type="button"
+                onClick={() => supabase?.auth.signOut()}
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            </div>
+
+            <nav
+              className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
+              aria-label="Levelflow sections"
+            >
+              {TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
+          {activeTab === "advisor" ? (
+            <AdvisorWorkspace
+              onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
+              openRequest={advisorRequest}
+              profile={profile}
+              setupStats={setupState.stats}
+              setups={setupState.setups}
+            />
+          ) : null}
+          {activeTab === "about" ? <OverviewPanel /> : null}
+          {activeTab === "history" ? (
+            <HistoryPanel
+              categoryStats={setupState.categoryStats}
+              initialSymbol={insightsSymbol}
+              loading={setupState.loading}
+              setups={setupState.setups}
+              stats={setupState.stats}
+              summary={setupState.outcomeSummary}
+            />
+          ) : null}
+          {activeTab === "profile" ? (
+            <ProfilePanel
+              onSave={profileState.saveProfile}
+              onThemeChange={theme.setMode}
+              profile={profile}
+              saveStatus={profileState.status}
+              setups={setupState.setups}
+              summary={setupState.outcomeSummary}
+              themeMode={theme.mode}
+            />
+          ) : null}
+          {activeTab === "guide" ? (
+            <GuidePanel anchor={guideAnchor} supportEmail={SUPPORT_EMAIL} />
+          ) : null}
+          {activeTab === "donate" ? (
+            <DonatePanel supportEmail={SUPPORT_EMAIL} />
+          ) : null}
         </div>
-      </header>
 
-      <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
-        {activeTab === "advisor" ? (
-          <AdvisorWorkspace
-            onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
-            profile={profile}
-            setupStats={setupState.stats}
-            setups={setupState.setups}
-          />
-        ) : null}
-        {activeTab === "about" ? <OverviewPanel /> : null}
-        {activeTab === "history" ? (
-          <HistoryPanel
-            categoryStats={setupState.categoryStats}
-            loading={setupState.loading}
-            setups={setupState.setups}
-            stats={setupState.stats}
-            summary={setupState.outcomeSummary}
-          />
-        ) : null}
-        {activeTab === "profile" ? (
-          <ProfilePanel
-            onSave={profileState.saveProfile}
-            onThemeChange={theme.setMode}
-            profile={profile}
-            saveStatus={profileState.status}
-            setups={setupState.setups}
-            summary={setupState.outcomeSummary}
-            themeMode={theme.mode}
-          />
-        ) : null}
-        {activeTab === "guide" ? (
-          <GuidePanel supportEmail={SUPPORT_EMAIL} />
-        ) : null}
-        {activeTab === "donate" ? (
-          <DonatePanel supportEmail={SUPPORT_EMAIL} />
-        ) : null}
-
-        <footer className="pb-4">
+        <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-12">
+          <p className="colophon">A Windward Line production</p>
           <LegalLinks />
         </footer>
-      </div>
-    </main>
+      </main>
+    </WorkspaceNavContext.Provider>
   );
 }
 

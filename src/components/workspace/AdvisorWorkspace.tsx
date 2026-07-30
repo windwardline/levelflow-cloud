@@ -55,6 +55,9 @@ import {
 
 type AdvisorWorkspaceProps = {
   onSetupsChanged: () => void;
+  // Accepted ahead of the consuming task (nav-driven symbol requests land
+  // when the advisor recomposes); unused until then.
+  openRequest?: { symbol: string; token: number } | null;
   profile: UserProfile;
   setupStats: SecurityStat[];
   setups: TradeSetupRow[];
