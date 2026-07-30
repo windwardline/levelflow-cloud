@@ -640,6 +640,49 @@ the window every geometry scale derives from
 (`expectedWindowMove = dailyATR × sqrt(reviewHours/24)`), per-class
 values never swept at any depth, directly grid-sweepable.
 
+## Round-19 calibration (2026-07-30, review windows)
+
+The review window (`defaultReviewHours`) — the horizon every geometry
+scale derives from (`expectedWindowMove = dailyATR × sqrt(reviewHours/24)`)
+and the deadline the window-feasibility model enforces — swept per class
+for the first time at full depth, two probe waves (A: one step shorter and
+one longer than shipped; B: one further edge probe where A improved).
+Because the window feeds the feasibility gate, shorter windows make the
+engine pickier: acceptance falls and the question is whether per-setup
+quality rises enough on both splits to justify it.
+
+- **Metals: 8 → 4.** Monotone through both waves (5h: +0.010/+0.004;
+  4h: **+0.0147 train / +0.0089 test**, money-positive 75.2 → 76.3%,
+  volume −14.8%). The stop rule ships the best measured value after the
+  committed probe wave.
+- **Energies: 6 → 3.** The largest both-splits gain of the round
+  (4h: +0.010/+0.033; 3h: **+0.0385 train / +0.0451 test** — test
+  expectancy 0.081 → 0.126, +56% relative). Volume −43.8% is the price
+  of a class whose edge lives in its first hours; the class keeps its
+  low-edge hour gates on top.
+- **Forex: keep 8.** Both probes pass the formal gate but the test gains
+  (+0.002 at 5h, +0.0036 at 4h) sit inside the ±0.005 noise band while
+  volume collapses (−27%, then −41%). A noise-level per-setup gain does
+  not buy 41% of the flagship class's accepted volume.
+- **Crypto: keep 12.** The 8h candidate was thin (+0.0013/+0.0033,
+  BNB excluded to match the tradable menu) and the committed 6h probe
+  breaks the train split (−0.0013) — the trend is noise, not structure.
+  16h also fails. No change.
+- **Futures: keep 6.** Wave A (4h/9h) produced no both-splits
+  improvement; no wave B.
+
+Reliability re-based where windows changed: metals **.90/389** (rate
+held on the smaller, stricter population), energies **.60 → .62/265**.
+Version `2026.07.30.review-windows`.
+
+Next lever identified: **ladder-geometry re-probe under the new
+windows**. The window change rescales every derived geometry quantity
+for metals and energies (`expectedWindowMove` shrank by √2 and √2
+respectively), and the tp1/runner/stop multipliers were last derived
+under the old 8h/6h horizons. Re-probing geometry for the two changed
+classes is the direct follow-through; the unchanged classes' geometry
+remains valid.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
