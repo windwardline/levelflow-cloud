@@ -2,9 +2,12 @@ import { FileSearch } from "lucide-react";
 import { describeReplayRecord } from "../../lib/replayReliability";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
+import { HowThisWorksLink } from "./HowThisWorksLink";
 import { cleanReviewMessage, formatStrategyName } from "./reviewCopy";
+import type { GuideAnchor } from "./WorkspaceNav";
 
 type QualityReceiptItem = {
+  anchor?: GuideAnchor;
   detail: string;
   label: string;
   tone?: "bullish" | "danger" | "neutral";
@@ -28,55 +31,70 @@ export function SetupQualityReceipt(
   const receipt = buildQualityReceipt(setup, result);
 
   return (
-    <div className="grid gap-3 rounded-lg border border-slate/15 bg-canvas p-3">
-      <div className="flex items-center gap-2">
-        <FileSearch className="h-4 w-4 text-bullish" aria-hidden="true" />
-        <h3 className="font-semibold text-navy">Why this setup</h3>
+    <div className="grid gap-3 rounded-lg border border-hairline bg-paper p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <FileSearch className="h-4 w-4 text-accent" aria-hidden="true" />
+          <h3 className="font-semibold text-ink">Why this setup</h3>
+        </div>
+        <HowThisWorksLink anchor="how-review-works" />
       </div>
       <div className="grid gap-2">
         {receipt.items.map((item) => (
-          <div key={item.label} className="rounded-lg bg-white px-3 py-2">
+          <div
+            key={item.label}
+            className="rounded-lg border border-hairline bg-sheet px-3 py-2"
+          >
             <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-normal text-slate">
+              <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
                 {item.label}
               </p>
               <p
                 className={`text-right text-sm font-semibold ${
                   item.tone === "bullish"
-                    ? "text-bullish"
+                    ? "text-accent"
                     : item.tone === "danger"
-                    ? "text-danger"
-                    : "text-navy"
+                    ? "text-sell"
+                    : "text-ink"
                 }`}
               >
                 {item.value}
               </p>
             </div>
-            <p className="mt-1 text-xs leading-5 text-slate">{item.detail}</p>
+            <p className="mt-1 text-xs leading-5 text-ink-muted">
+              {item.detail}
+            </p>
+            {item.anchor
+              ? (
+                <p className="mt-1">
+                  <HowThisWorksLink anchor={item.anchor} />
+                </p>
+              )
+              : null}
           </div>
         ))}
       </div>
       {receipt.strategyVotes.length > 0
         ? (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-slate">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
               Strongest checks
             </p>
             <div className="grid gap-2">
               {receipt.strategyVotes.slice(0, 3).map((vote) => (
                 <div
                   key={`${vote.name}:${vote.direction}`}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-sheet px-3 py-2 text-sm"
                 >
-                  <span className="min-w-0 truncate font-semibold text-navy">
+                  <span className="min-w-0 truncate font-semibold text-ink">
                     {formatStrategyName(vote.name)}
                   </span>
                   <span
                     className={vote.direction === "buy"
-                      ? "text-bullish"
+                      ? "text-buy"
                       : vote.direction === "sell"
-                      ? "text-danger"
-                      : "text-slate"}
+                      ? "text-sell"
+                      : "text-ink-muted"}
                   >
                     {formatVoteSupport(vote.direction)}
                   </span>
@@ -88,7 +106,7 @@ export function SetupQualityReceipt(
         : null}
       {receipt.blockers.length > 0
         ? (
-          <div className="rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-xs font-semibold leading-5 text-warning">
+          <div className="rounded-lg border border-caution/25 bg-caution/10 px-3 py-2 text-xs font-semibold leading-5 text-caution">
             Note: {receipt.blockers.map(cleanReviewMessage).join(" ")}
           </div>
         )
@@ -241,6 +259,7 @@ function buildReplayRecordItems(setup: AnalyzerSetup): QualityReceiptItem[] {
     return [];
   }
   return [{
+    anchor: "replay-record",
     detail: record.detail,
     label: "Replay record",
     value: record.value,

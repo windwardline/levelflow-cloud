@@ -33,7 +33,7 @@ export function describeReplayRecord(assetType: SecurityType) {
   const rate = Math.round(record.moneyPositiveRate * 100);
   const weakRecord = record.moneyPositiveRate < 0.55;
   const base =
-    `In a full-history replay, filled ${assetType} setups ended money-positive ${rate}% of the time across ${record.sampleSize} out-of-sample setups. This measures how often, not how much — follow the ladder to manage size.`;
+    `Across ${record.sampleSize} past ${assetType} setups reserved for honest testing, filled setups ended money-positive ${rate}% of the time.`;
   return {
     detail: weakRecord
       ? `${base} This market's historical record is weak, so Levelflow's scans skip it — review it here only with care.`

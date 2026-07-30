@@ -49,7 +49,7 @@ const EXECUTION_LABEL_DESCRIPTIONS: Record<string, string> = {
 
 export function describeExecutionLabel(label: string | null | undefined) {
   return (label && EXECUTION_LABEL_DESCRIPTIONS[label]) ??
-    "Estimated spread and slippage were checked against the setup's risk.";
+    "Trading costs were checked against what the setup risks.";
 }
 
 export function formatStrategyName(value: string) {
