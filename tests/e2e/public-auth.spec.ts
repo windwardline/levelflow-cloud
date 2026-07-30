@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("public login screen presents Levelflow without stale auth copy", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?enter");
 
   await expect(
     page.getByRole("heading", { name: "Levelflow" }),
@@ -31,7 +31,7 @@ test("mobile viewport keeps every public feature reachable", async ({
   // The mobile layout may stack and collapse labels to icons, but it must
   // never remove functionality: identical controls, identical actions.
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/");
+  await page.goto("/?enter");
 
   await expect(
     page.getByRole("heading", { name: "Levelflow" }),
@@ -54,7 +54,7 @@ test("email input shell honors an explicit theme in both directions", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/");
+  await page.goto("/?enter");
 
   const email = page.getByLabel("Email");
   const shell = email.locator("..");
@@ -81,4 +81,19 @@ test("static pages keep to the viewport on phones", async ({ page }) => {
     );
     expect(overflowX, `${path} bleeds ${overflowX}px past the viewport`).toBe(0);
   }
+});
+
+
+test("signed-out visitors see the parking page, not sign-in", async ({ page }) => {
+  await page.goto("/", { waitUntil: "networkidle" });
+  await expect(page.getByText("Under construction")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Levelflow" })).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveCount(0);
+});
+
+test("the quiet entry path reveals sign-in and persists for the session", async ({ page }) => {
+  await page.goto("/?enter", { waitUntil: "networkidle" });
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await page.goto("/", { waitUntil: "networkidle" });
+  await expect(page.getByLabel("Email")).toBeVisible();
 });

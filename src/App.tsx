@@ -11,6 +11,8 @@ import {
   User,
 } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
+import { ParkingScreen } from "./components/auth/ParkingScreen";
+import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
 import { GuidePanel } from "./components/workspace/GuidePanel";
 import { HistoryPanel } from "./components/workspace/HistoryPanel";
 import { OverviewPanel } from "./components/workspace/OverviewPanel";
@@ -122,6 +124,15 @@ export default function App() {
   }
 
   if (!session) {
+    if (PARKING_GATE && !parkingBypassActive()) {
+      return (
+        <ParkingScreen
+          themeControl={
+            <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
+          }
+        />
+      );
+    }
     return (
       <AuthScreen
         themeControl={
