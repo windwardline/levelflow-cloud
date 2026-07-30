@@ -161,6 +161,26 @@ describe("replay sweep", () => {
     }
   });
 
+  it("emits per-method committee votes on every record", () => {
+    const result = simulateSymbol({
+      calibrationOverride: { blockedRegimes: [], runnerWindowShare: 1, tp1RiskShare: 0.8 },
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(result.outcomes.length > 0);
+    for (const record of result.outcomes) {
+      assert.ok(Array.isArray(record.votes) && record.votes.length > 0);
+      for (const vote of record.votes) {
+        assert.equal(typeof vote.n, "string");
+        assert.ok(["buy", "sell", "block", "neutral"].includes(vote.d));
+        assert.equal(typeof vote.s, "number");
+      }
+    }
+  });
+
   it("splits acceptance-gate rejections by the failing gate", () => {
     // Impossible confidence bar: every consensus setup rejects on the
     // confidence gate, and the combined tally must equal the split sum.
