@@ -314,6 +314,7 @@ export function simulateSymbol(input: {
       },
       futureBars,
       resolutionTime,
+      { reviewHours: calibration.defaultReviewHours },
     );
     if (evaluation.state !== "resolved") {
       // No future bars inside the review window; count with plan rejections

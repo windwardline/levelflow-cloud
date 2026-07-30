@@ -683,6 +683,70 @@ under the old 8h/6h horizons. Re-probing geometry for the two changed
 classes is the direct follow-through; the unchanged classes' geometry
 remains valid.
 
+**Correction (Round 20, same day): this round's shipped changes were
+reverted.** The grid variants were measured through a harness defect —
+see Round 20. The honest full-depth verdict is that 4h/3h windows are
+worse than 8h/6h on both splits for both classes. The keep decisions
+(forex, crypto, futures) survive: their variants were inflated by the
+same defect and still failed to clear the bar.
+
+## Round-20 calibration (2026-07-30, the window-grid artifact)
+
+Round 20 opened as the ladder-geometry re-probe under the new windows and
+instead caught its own premise. The geometry baselines would not
+reproduce Round 19's winning-variant numbers on what should have been the
+same population — identical acceptance counts (metals 382/460), identical
+pinned bars (no cache file written between the runs), yet 85 of 842
+records carried different realized outcomes, scattered across 2013–2014
+rather than clustered at the data tail. Outcome flips ran one way:
+`tp1_partial → unfilled`, `take_profit → tp1_partial`.
+
+Root cause: **grid variants of `defaultReviewHours` never reached outcome
+resolution.** `simulateSymbol` merges the variant into the calibration
+object used for setup construction, but `evaluateSetupOutcome` derived
+its expiry from `getSetupExpiryTime`, which reads the calibration module
+directly. A window variant therefore built short-window geometry and then
+granted it the file's longer window to resolve — systematically inflating
+every shortened-window variant. Round 19 was the first grid ever run on a
+resolution-time knob, which is why eleven prior rounds of
+construction-time grids (thresholds, offsets, geometry, caps) never
+tripped it; their knobs are fully consumed before acceptance.
+
+The clean measurements existed on both sides of the ship: Round 19's own
+baselines (file at 8h/6h) and Round 20's baselines (file at 4h/3h), taken
+on byte-identical pinned bars. Honest verdict, both splits, full depth:
+
+- **Metals: 8h wins.** True 4h 0.1894/0.1463 vs true 8h 0.1932/0.1894 —
+  the shipped change cost −0.043 test expectancy.
+- **Energies: 6h wins.** True 3h 0.0474/0.0467 vs true 6h 0.0793/0.0808 —
+  worse on both splits.
+
+Shipped in response: `evaluateSetupOutcome` and `getSetupExpiryTime`
+accept a review-hours override and the sweep passes its variant value —
+with a regression test that resolves the same setup under both windows
+and demands different outcomes. Calibration reverted to metals 8h /
+energies 6h, UI mirror and reliability rows restored (metals .90/453,
+energies .60/474), version `2026.07.30.windows-restored`. The wave-A
+geometry grids run before the discovery were discarded: internally
+consistent, but measured under windows that were about to revert.
+
+Method lesson, stated durably: **a new grid key is only trustworthy after
+its variant machinery is validated — reproduce one variant as a
+file-edit baseline and demand matching numbers before reading the grid.**
+Cross-run baseline reconciliation (this round's accidental control) is
+now part of the round template: when a new round's baseline disagrees
+with the prior round's shipped-variant numbers beyond noise, stop and
+reconcile before interpreting anything.
+
+Next lever identified: **the ladder-geometry re-probe is moot** — the
+windows are back on the basis under which geometry was derived
+(rounds 8–13). The next standing candidates: (a) the r18-ledgered forex
+threshold-40 probe (+95% accepted volume at −0.0006 test, a pure volume
+lever awaiting a product decision); (b) full-depth session-hour curves
+for crypto/futures beyond the single 12–18 UTC gate; (c) news-conditioned
+acceptance (the r6 curiosity that penalized-but-accepted setups
+outperform, never re-examined at full depth).
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the

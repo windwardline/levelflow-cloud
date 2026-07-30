@@ -50,12 +50,17 @@ export function evaluateSetupOutcome(
   setup: ReplaySetup,
   bars: ReplayBar[],
   now = Date.now(),
+  options?: { reviewHours?: number },
 ): ReplayOutcome {
   const entry = Number(setup.limit_entry);
   const stopLoss = Number(setup.stop_loss);
   const takeProfit = Number(setup.take_profit);
   const createdAt = new Date(setup.created_at).getTime();
-  const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+  const expiresAt = getSetupExpiryTime(
+    setup.symbol,
+    createdAt,
+    options?.reviewHours,
+  );
   const createdBars = bars.filter((bar) =>
     bar.time >= createdAt && bar.time <= expiresAt
   );
@@ -214,10 +219,19 @@ export function evaluateSetupOutcome(
   };
 }
 
-export function getSetupExpiryTime(symbol: string, createdAt: number) {
+// reviewHoursOverride exists for the sweep: grid variants of the review
+// window must govern resolution too, not just setup construction. Live
+// callers omit it and get the shipped calibration.
+export function getSetupExpiryTime(
+  symbol: string,
+  createdAt: number,
+  reviewHoursOverride?: number,
+) {
   const calibration = getCategoryCalibration(symbol);
-  const defaultExpiry = createdAt +
-    calibration.defaultReviewHours * 60 * 60 * 1000;
+  const reviewHours = Number.isFinite(reviewHoursOverride)
+    ? reviewHoursOverride as number
+    : calibration.defaultReviewHours;
+  const defaultExpiry = createdAt + reviewHours * 60 * 60 * 1000;
   const weeklyClose = getUpcomingWeeklyCloseTime(symbol, createdAt);
   if (!weeklyClose) {
     return defaultExpiry;
