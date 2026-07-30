@@ -95,8 +95,8 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     dailyStopAtrMultiplier: 0.16,
     dailyTargetAtrMultiplier: 0.42,
     defaultReviewHours: 12,
-    entryOffsetDefault: 0.62,
-    entryOffsetTrend: 0.5,
+    entryOffsetDefault: 0.78,
+    entryOffsetTrend: 0.8,
     maxNewsPenalty: 4,
     maxProviderPenalty: 8,
     // r13: 2.8 -> 1.8 walked forward through three probe waves; tighter
@@ -145,7 +145,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     dailyTargetAtrMultiplier: 0.35,
     defaultReviewHours: 8,
     entryOffsetDefault: 0.55,
-    entryOffsetTrend: 0.42,
+    entryOffsetTrend: 0.55,
     maxNewsPenalty: 8,
     maxProviderPenalty: 6,
     // r13: 2.2 -> 1.4 walked forward through three probe waves; tighter
@@ -172,7 +172,7 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     dailyTargetAtrMultiplier: 0.38,
     defaultReviewHours: 6,
     entryOffsetDefault: 0.58,
-    entryOffsetTrend: 0.46,
+    entryOffsetTrend: 0.75,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
     // r13: 2.2 -> 1.4 walked forward through three probe waves; tighter
@@ -222,8 +222,8 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.4,
     defaultReviewHours: 8,
-    entryOffsetDefault: 0.6,
-    entryOffsetTrend: 0.48,
+    entryOffsetDefault: 0.75,
+    entryOffsetTrend: 0.78,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
     // r13: 2.4 -> 1.6 walked forward through three probe waves; tighter
