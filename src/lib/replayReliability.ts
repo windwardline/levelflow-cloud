@@ -1,14 +1,14 @@
 import type { SecurityType } from "./symbolMap";
 
-// Measured outcomes from the 2026-07-29 instrumented replay: each symbol's
+// Measured outcomes from the 2026-07-30 instrumented replay: each symbol's
 // full available history (discovered at run time and rolling — forex reaches
-// 2010, gold 2013, CME futures 2023), all 58 supported symbols,
+// 2010, gold 2013, CME futures 2023), all supported symbols,
 // session-aware, walk-forward test split only, accepted setups that filled,
 // under the shipped configuration (chop gate, low-edge hour gates,
-// measured-edge curation, buy-side tilt, per-symbol threshold overrides)
-// with the replay news-aware: scheduled high-impact events block reviews
-// exactly as production does. "Money-positive" counts any
-// resolution that ended profitable under ladder accounting (full target,
+// measured-edge curation, buy-side tilt, per-symbol threshold overrides,
+// r13 tight stop caps) with the replay news-aware: scheduled high-impact
+// events block reviews exactly as production does. "Money-positive" counts
+// any resolution that ended profitable under ladder accounting (full target,
 // banked TP1, profitable expiry). These are historical frequencies, not
 // predictions or promises.
 export type ReplayRecord = {
@@ -17,12 +17,12 @@ export type ReplayRecord = {
 };
 
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
-  Crypto: { moneyPositiveRate: 0.78, sampleSize: 6686 },
+  Crypto: { moneyPositiveRate: 0.83, sampleSize: 6405 },
   Energies: { moneyPositiveRate: 0.57, sampleSize: 606 },
-  Forex: { moneyPositiveRate: 0.84, sampleSize: 48250 },
-  Futures: { moneyPositiveRate: 0.77, sampleSize: 2174 },
+  Forex: { moneyPositiveRate: 0.88, sampleSize: 63953 },
+  Futures: { moneyPositiveRate: 0.81, sampleSize: 2476 },
   Indices: { moneyPositiveRate: 0.51, sampleSize: 952 },
-  Metals: { moneyPositiveRate: 0.78, sampleSize: 1171 },
+  Metals: { moneyPositiveRate: 0.84, sampleSize: 1059 },
 };
 
 export function describeReplayRecord(assetType: SecurityType) {
