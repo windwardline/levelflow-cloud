@@ -601,6 +601,45 @@ The r17 emits make the curves free to derive; if the score ranks
 outcomes under the new geometry, thresholds become a validated lever in
 either direction.
 
+## Round-18 calibration (2026-07-30, earned confidence)
+
+The confidence gate — the engine's largest filter — audited under the
+rebuilt engine, with capture-all curves isolating the score dimension
+(records clearing the payoff and regime gates, bucketed by score band,
+both splits). The verdict differs by class, so the treatment does too:
+
+- **Metals: the score earned meaning.** Expectancy rises monotonically
+  by band (0.131/0.119 below 60 → 0.196/0.189 at 90+) — the rebuilt
+  engine gave metals' score genuine ranking power the old engine never
+  had. Threshold 82 → **90** (+0.033 train / +0.018 test, money-positive
+  75.2%, samples healthy at 447/540); 95 collapses acceptance (0 train /
+  53 test) and is rejected. Metals confidence tiers now describe
+  measured quality differences.
+- **Forex: the score still ranks nothing** — every band flat, including
+  the 117k-record sub-60 band the gate was rejecting at identical
+  quality. The old threshold was pure volume tax. Pre-registered rule
+  (equal quality: test expectancy within ±0.005, volume +≥25%,
+  money-positive within 1pt) passed at both probes; the less-extreme
+  candidate ships: 66 → **55**, +44% accepted volume at unchanged
+  per-setup quality (the 40 probe, +95% volume at −0.0006, is ledgered
+  for a future step). The r6-era EURGBP/EURJPY raises to 82 delete —
+  their evidentiary basis dissolved under the new engine and both
+  measured fine at 55 in-run.
+- **Energies: the gate works** — the sub-60 band is genuinely negative
+  (−0.022/−0.027, 47% positive). Unchanged.
+- **Futures and crypto: no clean structure** — noisy-flat curves, no
+  candidates, documented rather than tuned.
+
+Reliability re-based where populations changed: forex .89 across
+**90,907** test setups (the rate held while the sample grew 44% — the
+volume claim in user-facing form), metals **.90/453**. Version
+`2026.07.30.earned-confidence`.
+
+Next lever identified: **review-window grids** (`defaultReviewHours`) —
+the window every geometry scale derives from
+(`expectedWindowMove = dailyATR × sqrt(reviewHours/24)`), per-class
+values never swept at any depth, directly grid-sweepable.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
