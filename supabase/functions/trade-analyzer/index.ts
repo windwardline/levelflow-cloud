@@ -37,6 +37,7 @@ import {
   isKnownSymbol,
   isTemporarilyUnavailableSymbol,
   noScanSymbols,
+  noTradeSymbols,
   resolveProviderSymbols,
 } from "./symbols.ts";
 import { buildPricePlan } from "./pricePlan.ts";
@@ -67,7 +68,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.07.30.tight-stop-caps";
+const ANALYZER_VERSION = "2026.07.30.measured-menu";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -415,6 +416,25 @@ async function reviewCurrentMarket(
 ): Promise<CurrentMarketReview> {
   const eventStatus = action === "generate_setup" ? "blocked" : "scan_failure";
   const normalizedSymbol = normalizeSymbol(symbol) as SupportedSymbol;
+
+  // The measured no-trade list is enforced here, not just in the UI: these
+  // markets' records clearly say no setups (owner directive, r15). They stay
+  // in the replay universe, and this block lifts the round the evidence does.
+  if (noTradeSymbols.has(normalizedSymbol)) {
+    await recordAnalyzerEvent({
+      action,
+      message: "No-trade market (measured record)",
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      reason:
+        "Levelflow's measured record says this market does not earn setups, so reviews are off for it. It stays under analysis and returns if the data changes.",
+      symbol: normalizedSymbol,
+    };
+  }
 
   if (isTemporarilyUnavailableSymbol(normalizedSymbol)) {
     await recordAnalyzerEvent({

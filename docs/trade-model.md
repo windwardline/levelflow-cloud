@@ -450,6 +450,54 @@ once at 1,200 days for crypto/futures only; full-history per-hour curves
 across all classes can close more dead windows (or reopen wrong ones)
 under the same both-splits gate.
 
+## Round-15 calibration (2026-07-30, session-hour curves + the measured menu)
+
+Per-class per-UTC-hour expectancy curves at full depth (from the r14
+baseline emits — 238k accepted records with timestamps):
+
+- **Forex, futures, crypto, metals: no hour is negative on both splits.**
+  The existing 12–18 UTC gates show up as the absent rows they created;
+  nothing new closes, nothing wrongly-closed reopens. A null result,
+  honestly earned.
+- **Energies: six hours fail both splits** ({03,04,12,15,19,21} UTC).
+  Excluding them lifts the class from +0.036/+0.041R to **+0.079/+0.081R**
+  per accepted setup (the R12 arithmetic method: hour blocks only subtract
+  records). Shipped as the energies low-edge hour set; the energies
+  reliability row improves to 0.60/474 and sheds its weak-record caution.
+- Indices' 09:00 both-negative hour is moot — see below.
+
+**The curation re-derivation and the measured menu.** The r3/r4-era scan
+exclusions (CHF-quote pairs, AUDCAD/AUDUSD/GBPAUD/GBPJPY, alt crypto) were
+verdicts on the pre-r8 geometry. Re-derived at full depth under the current
+model, **every one measures both-splits positive** (e.g. AUDCAD +0.174
+train/+0.169 test, 79% money-positive) — all fourteen return to the default
+scan. Only BNBUSD stays deprioritized (split disagreement). This is the
+reintroduction path working exactly as designed.
+
+The curation policy, stated durably (owner directive, r15):
+
+1. **Identities are permanent.** Symbol names, display labels, and chart
+   sources are byte-preserved from the E8-aligned build (verified against
+   the pre-round commit); exclusions are separate sets layered on top.
+   Nothing is ever deleted from the map.
+2. **Everything stays under analysis forever.** The replay universe is the
+   full symbol map — excluded assets included — and FMP history accrues
+   for all of it regardless of user activity. Every calibration round
+   re-derives the verdicts; today fourteen symbols came back by exactly
+   that mechanism.
+3. **Three visibility tiers.** `scanDeprioritizedSymbols` (out of the
+   default scan only; group scans and individual review unchanged — today:
+   BNBUSD). `noTradeSymbols` (the evidence clearly says no: no scan path
+   AND setup generation refused server-side with a plain reason — today:
+   the five cash indices, NGUSD, HGUSD). Everything else: fully live.
+4. **No-trade is enforced at the server**, not the UI: the advisor's
+   market list simply omits these markets, and the analyzer refuses them
+   even if asked directly. Past setups on them remain visible in history —
+   history is history.
+
+Version `2026.07.30.measured-menu` (the generation refusal and the
+energies hour gate both change setup construction).
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the

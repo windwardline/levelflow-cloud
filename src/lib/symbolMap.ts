@@ -307,22 +307,39 @@ export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap(
   (group) => group.options,
 );
 
+// The measured no-trade list (mirrors the server's noTradeSymbols in
+// supabase/functions/trade-analyzer/symbols.ts — the server enforces it
+// regardless of what any client shows). These markets' records clearly say
+// no setups: cash indices (round 12) and NGUSD/HGUSD (round 14, zero
+// accepted setups across full history). They keep their identities and
+// chart sources, and every calibration round re-derives their record from
+// accruing FMP history — the list shrinks when the evidence flips.
+export const NO_TRADE_SYMBOLS = new Set([
+  "SP",
+  "NSDQ",
+  "DOW",
+  "NIKKEI",
+  "DAX",
+  "NGUSD",
+  "HGUSD",
+]);
+
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS
   .filter((group) => !TEMPORARILY_HIDDEN_ASSET_TYPES.has(group.label))
   .map((group) => ({
     ...group,
     options: group.options.filter(
-      (option) => !TEMPORARILY_HIDDEN_ASSET_SYMBOLS.has(option.symbol),
+      (option) =>
+        !TEMPORARILY_HIDDEN_ASSET_SYMBOLS.has(option.symbol) &&
+        !NO_TRADE_SYMBOLS.has(option.symbol),
     ),
   }))
   .filter((group) => group.options.length > 0);
 
-// Cash indices have no measured edge (round 12) — every scan path skips
-// them. They stay in AVAILABLE_ASSET_GROUPS so the advisor's market select
-// keeps them individually reviewable and the live cohort can earn them back.
-export const SCANNABLE_ASSET_GROUPS = AVAILABLE_ASSET_GROUPS.filter(
-  (group) => group.label !== "Indices",
-);
+// All no-trade markets are already out of AVAILABLE_ASSET_GROUPS; the scan
+// list is the same set today. The alias stays so scan surfaces keep their
+// own name for it.
+export const SCANNABLE_ASSET_GROUPS = AVAILABLE_ASSET_GROUPS;
 
 export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap(
   (group) => group.options,

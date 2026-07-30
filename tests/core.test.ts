@@ -71,7 +71,9 @@ describe("asset catalog", () => {
   it("keeps the public asset list focused and sorted by category, base, then quote", () => {
     assert.deepEqual(
       AVAILABLE_ASSET_GROUPS.map((group) => group.label),
-      ["Crypto", "Energies", "Forex", "Futures", "Indices", "Metals"],
+      // Indices vanished in r15: every member is on the measured no-trade
+      // list, so the group has no generatable options.
+      ["Crypto", "Energies", "Forex", "Futures", "Metals"],
     );
 
     const forex = AVAILABLE_ASSET_GROUPS.find(
@@ -109,8 +111,11 @@ describe("asset catalog", () => {
 
     const indices = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Indices",
-    )?.options.map((option) => option.symbol);
-    assert.deepEqual(indices, ["DAX", "DOW", "NIKKEI", "NSDQ", "SP"]);
+    );
+    assert.equal(indices, undefined);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("NGUSD"), false);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("HGUSD"), false);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("ASX"), false);
     assert.equal(isAvailableAssetSymbol("ASX"), false);
   });
@@ -146,7 +151,7 @@ describe("asset catalog", () => {
         group.options.map((option) => option.symbol)
       ),
     );
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), true);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
 
@@ -300,11 +305,15 @@ describe("trade analyzer category handling", () => {
     assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO", "EWA"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
     assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
-    // Cash indices, CHF-quote pairs, and crypto alts stay reviewable but are
-    // curated out of the default all-market scan (measured-edge universe).
+    // r15 re-derivation: the old CHF-pair and crypto-alt exclusions retired
+    // (both-splits positive under the current model); cash indices moved to
+    // the measured no-trade list and stay out of every scan.
     assert.equal(defaultScanSymbols.includes("NSDQ"), false);
-    assert.equal(defaultScanSymbols.includes("USDCHF"), false);
-    assert.equal(defaultScanSymbols.includes("SOLUSD"), false);
+    assert.equal(defaultScanSymbols.includes("USDCHF"), true);
+    assert.equal(defaultScanSymbols.includes("SOLUSD"), true);
+    assert.equal(defaultScanSymbols.includes("BNBUSD"), false);
+    assert.equal(defaultScanSymbols.includes("NGUSD"), false);
+    assert.equal(defaultScanSymbols.includes("HGUSD"), false);
     assert.equal(isKnownSymbol("NSDQ"), true);
     assert.equal(isKnownSymbol("USDCHF"), true);
     assert.equal(defaultScanSymbols.includes("WTI"), true);
