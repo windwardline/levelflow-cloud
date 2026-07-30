@@ -40,6 +40,7 @@ const TRAIN_SHARE = 0.6;
 type SweepArgs = {
   cacheDir: string | undefined;
   captureAll: boolean;
+  warmOnly: boolean;
   days: number;
   discover: boolean;
   emit: string | undefined;
@@ -134,6 +135,17 @@ async function main() {
     }
 
     const cotReports = await loadCotReports(args.cacheDir, symbol);
+
+    // --warm-only: the daily top-up path. Caches are now loaded (and
+    // therefore topped up and pinned for today) — no simulation.
+    if (args.warmOnly) {
+      console.log(
+        `${symbol}\twarm\t${primaryBars.length} intraday bars through ${
+          isoDate(new Date(primaryBars.at(-1)?.time ?? 0))
+        }`,
+      );
+      continue;
+    }
 
     const splitIndex = Math.floor(primaryBars.length * TRAIN_SHARE);
     const splits = [
@@ -357,6 +369,7 @@ function parseArgs(argv: string[]): SweepArgs {
   return {
     cacheDir: get("cache-dir"),
     captureAll: argv.includes("--capture-all"),
+    warmOnly: argv.includes("--warm-only"),
     days,
     discover: argv.includes("--discover"),
     emit: get("emit"),
