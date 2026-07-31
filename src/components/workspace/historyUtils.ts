@@ -450,10 +450,10 @@ export function buildRecordBand(
 
   for (const setup of setups) {
     // classifyWinLoss (lib/outcomes.ts) is the single source of truth for
-    // money-positive vs. money-negative, shared with useTradeSetups.ts's
-    // buildStats so the two can't drift apart on a future outcome-taxonomy
-    // change. Pending, unfilled, and ambiguous setups classify "neither"
-    // and affect neither side of the ratio.
+    // money-positive vs. money-negative — tests/outcomes.test.ts's drift
+    // guard counts every call site so an inline copy can't creep back in on
+    // a future outcome-taxonomy change. Pending, unfilled, and ambiguous
+    // setups classify "neither" and affect neither side of the ratio.
     const outcome = getSetupOutcome(setup);
     const winLoss = classifyWinLoss(outcome);
 
