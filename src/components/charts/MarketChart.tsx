@@ -33,8 +33,9 @@ type MarketChartProps = {
   loading?: boolean;
   /**
    * Supplied by the Desk stage only: renders the mobile-only "Expand chart"
-   * control in the tool cluster (spec §17). The overlay's own instance passes
-   * nothing, so an expanded chart never offers to expand itself again.
+   * control in the chart's bottom-right corner (spec §17). The overlay's own
+   * instance passes nothing, so an expanded chart never offers to expand
+   * itself again.
    */
   onExpand?: () => void;
   setup?: ChartSetup | null;

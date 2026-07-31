@@ -1,4 +1,10 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -41,7 +47,7 @@ export function ExpandedChartOverlay(
   const closeRef = useRef<HTMLButtonElement>(null);
   // The element that had focus when the dialog opened — the trigger, in every
   // real path here. Captured rather than passed in as a ref so the trigger can
-  // stay where the composition wants it (inside the chart's tool cluster)
+  // stay where the mock puts it (inside the chart's own bottom-right corner)
   // without threading a ref up through MarketChart's props.
   const previouslyFocusedRef = useRef<Element | null>(null);
 
@@ -63,7 +69,7 @@ export function ExpandedChartOverlay(
     };
   }, []);
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
       onClose();
