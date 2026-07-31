@@ -23,6 +23,7 @@ import type {
   MarketScanCandidate,
   MarketScanResponse,
 } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import {
   filterMarketScanCandidatesByScope,
@@ -354,10 +355,4 @@ function formatAssetType(value: string) {
 
 function formatPayoff(value: number | null | undefined) {
   return value ? `${value.toFixed(2)}x` : "Pending";
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 5,
-  });
 }

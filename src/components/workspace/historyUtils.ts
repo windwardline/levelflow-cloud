@@ -15,6 +15,7 @@ import {
   type SecurityType,
 } from "../../lib/symbolMap";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "./advisorFormat";
 
 export type HistoryGroupBy = "date" | "category" | "asset" | "status";
 export type HistorySort = "newest" | "oldest" | "confidence" | "asset";
@@ -265,10 +266,4 @@ function getHistoryGroup(
     ? "unknown-date"
     : date.toISOString().slice(0, 10);
   return { key, label: formatHistoryDateGroup(date) };
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 5,
-  });
 }

@@ -2,6 +2,7 @@ import { FileSearch } from "lucide-react";
 import { describeReplayRecord } from "../../lib/replayReliability";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import { cleanReviewMessage, formatStrategyName } from "./reviewCopy";
 import type { GuideAnchor } from "./WorkspaceNav";
@@ -375,10 +376,4 @@ function formatVoteSupport(direction: string) {
     return "Caution";
   }
   return "Neutral";
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 5,
-  });
 }

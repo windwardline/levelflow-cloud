@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   formatCopyValue,
@@ -6,6 +8,7 @@ import {
   formatRelativeTime,
   MAX_PRICE_DECIMALS,
 } from "../src/components/workspace/advisorFormat.ts";
+import { formatPriceValue } from "../src/components/workspace/historyUtils.ts";
 
 // A real tick-aligned futures price that only round-trips correctly at
 // eight decimal places (fix round 2, both cases below): ZNUSD (10-year
@@ -100,6 +103,60 @@ describe("formatNumber", () => {
     // Locale-grouped is fine; a lost digit is not. "109", some single
     // non-digit decimal separator, then all six digits "515625" intact.
     assert.match(formatNumber(ZN_TICK_ALIGNED_PRICE), /^109\D515625$/);
+  });
+});
+
+// Fix round 3: historyUtils.ts, MarketScanPanel.tsx, and
+// SetupQualityReceipt.tsx each carried their own byte-identical local copy
+// of formatNumber's pre-fix body — same literal `maximumFractionDigits: 5`
+// object, same ZN-grid truncation, just duplicated three times instead of
+// shared. All three now import the formatNumber tested above instead of
+// defining their own (verified first: all three were byte-identical to
+// each other and to formatNumber's own pre-fix body, so unifying changes
+// nothing about their rendering except the cap; confirmed no import cycle
+// — advisorFormat.ts's only dependency chain is lib/marketData.ts ->
+// lib/symbolMap.ts + lib/supabase.ts, and nothing under src/lib imports
+// back from src/components).
+describe("price precision cap stays centralized (fix round 3)", () => {
+  it('never lets the literal "maximumFractionDigits: 5" reappear anywhere in src — a fifth duplicate must fail the build, not quietly ship', () => {
+    const files = readdirSync("src", { recursive: true })
+      .map(String)
+      .filter((f) => /\.tsx?$/.test(f));
+    const offenders: string[] = [];
+    for (const rel of files) {
+      const source = readFileSync(join("src", rel), "utf8");
+      if (/maximumFractionDigits:\s*5\b/.test(source)) {
+        offenders.push(rel);
+      }
+    }
+    assert.deepEqual(
+      offenders,
+      [],
+      "the 5-decimal cap must only ever exist as advisorFormat's own " +
+        "(now-retired) history, never a fresh literal",
+    );
+  });
+
+  // historyUtils.ts's formatPriceValue is exported and pure — cheaply
+  // reachable without rendering, per the coordinator's "at minimum"
+  // instruction. MarketScanPanel.tsx's formatNumber call lives inline
+  // inside the unexported MarketScanRow component, building a template
+  // literal from component-local values; SetupQualityReceipt.tsx's lives
+  // inside the unexported buildExecutionDetail. Neither is a separately
+  // importable pure function, and this repo's test stack has no jsdom to
+  // render either component through (confidenceUnit.test.tsx's header
+  // comment documents the same limitation). Exporting or refactoring
+  // either purely to make it testable is outside this round's "nothing
+  // else" instruction, so both are skipped here, per that instruction's
+  // own allowance — their correctness rests on now sharing the exact
+  // formatNumber implementation tested above, not on a duplicate that
+  // could silently drift.
+  it("renders a ZN futures 1/64-tick price unmangled through historyUtils.formatPriceValue", () => {
+    assert.equal(
+      formatPriceValue(ZN_TICK_ALIGNED_PRICE),
+      formatNumber(ZN_TICK_ALIGNED_PRICE),
+    );
+    assert.match(formatPriceValue(ZN_TICK_ALIGNED_PRICE), /^109\D515625$/);
   });
 });
 
