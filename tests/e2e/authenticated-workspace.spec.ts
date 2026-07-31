@@ -643,13 +643,17 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   const scanSection = page.locator("section", {
     has: page.getByRole("heading", { name: "Best current markets" }),
   });
-  const scannedSymbolLabel = (
+  // Collect EVERY symbol the scan surfaced, not just the top row: a symbol
+  // with a live placed position is deliberately skipped by persistence (the
+  // scan must never rewrite a live trade), so any single row — including
+  // the strongest — can be legitimately absent from Insights. The honest
+  // assertion is that the scan's qualifying set intersects the ledger.
+  const scannedSymbolLabels = (
     await scanSection
       .locator("p.truncate.font-semibold.text-ink")
-      .first()
-      .textContent()
-  )?.trim();
-  expect(scannedSymbolLabel).toBeTruthy();
+      .allTextContents()
+  ).map((label) => label.trim()).filter(Boolean);
+  expect(scannedSymbolLabels.length).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
@@ -682,5 +686,11 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
       )
     );
   const insightsLabels = rawSymbols.map((symbol) => formatSecurityLabel(symbol));
-  expect(insightsLabels).toContain(scannedSymbolLabel);
+  const persisted = scannedSymbolLabels.filter((label) =>
+    insightsLabels.includes(label)
+  );
+  expect(
+    persisted.length,
+    `none of the scan's qualifying markets (${scannedSymbolLabels.join(", ")}) reached the Insights ledger`,
+  ).toBeGreaterThan(0);
 });
