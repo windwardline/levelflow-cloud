@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M — Scan v3 (fixed viewport)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+html, body { height:100%; }
+body { max-width:375px; margin:0 auto; border-inline:1px solid var(--hairline); display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
+.top { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--hairline); flex-shrink:0; }
+.top .wm { font-size:18px; font-weight:700; }
+.top .r { display:flex; gap:10px; align-items:center; }
+.broker.sm { padding:5px 9px; font-size:12px; }
+.avatar { width:34px; height:34px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--sheet); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+.pinned { flex-shrink:0; padding:12px 16px 0; }
+.controls { display:flex; gap:8px; }
+.controls select.scope { flex:1; min-width:0; font-size:13.5px; font-weight:700; padding:9px 10px; border:1.5px solid var(--accent); border-radius:6px; background:var(--sheet); color:var(--ink); }
+.controls .tf { font-size:12.5px; font-weight:700; padding:9px 10px; border:1px solid var(--hairline); border-radius:6px; background:var(--sheet); color:var(--ink); }
+.controls .btn { padding:9px 16px; font-size:13px; }
+.mkthead { display:flex; align-items:center; gap:8px; margin:12px 0 6px; min-width:0; }
+.mkthead .sym { font-size:19px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.mkthead .side { color:var(--buy); font-size:12px; font-weight:700; white-space:nowrap; }
+.mkthead .conf { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.mkthead .conf .n { font-size:13px; font-weight:700; }
+.meter { position:relative; width:64px; height:4px; background:var(--hairline); border-radius:2px; }
+.meter .fill { position:absolute; left:0; top:0; bottom:0; width:86%; background:var(--accent); border-radius:2px; }
+.meter .bar { position:absolute; left:55%; top:-3px; bottom:-3px; width:2px; background:var(--ink); }
+.chart { background:var(--sheet); border:1px solid var(--hairline); height:168px; position:relative; overflow:hidden; }
+.chart .grid { position:absolute; inset:0; background-image:linear-gradient(var(--hairline) 1px, transparent 1px), linear-gradient(90deg, var(--hairline) 1px, transparent 1px); background-size:100% 42px, 48px 100%; opacity:.5; }
+.cndl { position:absolute; width:5px; }
+.lvl { position:absolute; left:0; right:0; border-top:2px dashed; font-size:9px; font-weight:700; padding:1px 6px 0; }
+.expand { position:absolute; right:6px; top:6px; font-size:10.5px; font-weight:600; color:var(--muted); background:color-mix(in srgb, var(--paper) 82%, transparent); border:1px solid var(--hairline); border-radius:5px; padding:4px 8px; }
+.scroll { flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--hairline) transparent; padding:0 16px 12px; }
+.copy { display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:center; border-bottom:1px solid var(--hairline); padding:6px 2px; }
+.copy .k { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; font-weight:600; }
+.copy .v { font-size:15.5px; font-weight:700; }
+.copy .cbtn { border:1px solid var(--hairline); background:var(--sheet); border-radius:6px; padding:5px 10px; font-size:11.5px; font-weight:600; }
+.whyline { padding:8px 2px; font-size:12px; color:var(--ink); border-bottom:1px solid var(--hairline); }
+.whyline .link { font-weight:600; }
+.count { font-size:11px; color:var(--muted); margin:12px 0 2px; font-family:var(--mono, monospace); }
+.mkt { padding:11px 2px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:center; }
+.mkt.sel { box-shadow: inset 3px 0 0 var(--accent); background:var(--sheet); padding-left:10px; }
+.mkt .sym { font-weight:700; font-size:14.5px; }
+.mkt .meta { font-size:11px; color:var(--muted); }
+.mkt .chip { font-size:10px; font-weight:700; }
+.footnote { margin-top:10px; font-size:11.5px; color:var(--muted); }
+.tabs { flex-shrink:0; display:flex; border-top:1px solid var(--hairline); background:var(--paper); }
+.tabs .t { flex:1; text-align:center; padding:12px 0 14px; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--muted); }
+.tabs .t.on { color:var(--accent); }
+.tabs .t .badge { display:inline-block; min-width:16px; padding:1px 4px; margin-left:4px; border-radius:8px; background:var(--caution); color:var(--paper); font-size:9px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="wm display">Levelflow</span>
+  <span class="r"><span class="broker sm"><span class="dot"></span> E8</span><span class="avatar">L</span></span>
+</header>
+
+<div class="pinned">
+  <div class="controls">
+    <select class="scope"><option>All markets</option></select>
+    <select class="tf"><option>1H</option></select>
+    <button class="btn">Scan</button>
+  </div>
+  <div class="mkthead">
+    <span class="sym">EUR/USD</span>
+    <span class="side">BUY LIMIT</span>
+    <span class="conf"><span class="n mono">86</span><span class="meter"><span class="fill"></span><span class="bar"></span></span></span>
+  </div>
+  <div class="chart">
+    <div class="grid"></div>
+    <div class="cndl" style="left:10%; top:52%; height:34px; background:var(--sell);"></div>
+    <div class="cndl" style="left:18%; top:44%; height:44px; background:var(--buy);"></div>
+    <div class="cndl" style="left:26%; top:40%; height:34px; background:var(--buy);"></div>
+    <div class="cndl" style="left:34%; top:45%; height:38px; background:var(--sell);"></div>
+    <div class="cndl" style="left:42%; top:34%; height:42px; background:var(--buy);"></div>
+    <div class="cndl" style="left:50%; top:30%; height:32px; background:var(--buy);"></div>
+    <div class="cndl" style="left:58%; top:35%; height:36px; background:var(--sell);"></div>
+    <div class="cndl" style="left:66%; top:27%; height:40px; background:var(--buy);"></div>
+    <div class="cndl" style="left:74%; top:23%; height:30px; background:var(--buy);"></div>
+    <div class="lvl" style="top:11%; color:var(--buy); border-color:var(--buy);">T2 · 1.09480</div>
+    <div class="lvl" style="top:31%; color:var(--buy); border-color:var(--buy);">T1 · 1.09120</div>
+    <div class="lvl" style="top:57%; color:var(--accent); border-color:var(--accent);">ENTRY · 1.08840</div>
+    <div class="lvl" style="top:79%; color:var(--sell); border-color:var(--sell);">STOP · 1.08560</div>
+    <span class="expand">Expand chart</span>
+  </div>
+</div>
+
+<div class="scroll">
+  <div class="copy"><span class="k">Entry</span><span class="v mono">1.08840</span><button class="cbtn">Copy</button></div>
+  <div class="copy"><span class="k">Stop</span><span class="v mono" style="color:var(--sell)">1.08560</span><button class="cbtn">Copy</button></div>
+  <div class="copy"><span class="k">Target 1 · bank half</span><span class="v mono" style="color:var(--buy)">1.09120</span><button class="cbtn" style="color:var(--buy)">Copied</button></div>
+  <div class="copy"><span class="k">Target 2 · take-profit</span><span class="v mono" style="color:var(--buy)">1.09480</span><button class="cbtn">Copy</button></div>
+  <div class="whyline">Steady uptrend; filled forex setups ended money-positive 89% of the time. <span class="link">Why</span></div>
+
+  <div class="count mono">All markets — 32 scanned · 5 qualify · 5:11 pm</div>
+  <div class="mkt"><div><div class="sym">XAU/USD</div><div class="meta">Buy · confidence 91</div></div><span class="chip" style="color:var(--buy)">Clean</span></div>
+  <div class="mkt sel"><div><div class="sym">EUR/USD</div><div class="meta">Buy · confidence 86</div></div><span class="chip" style="color:var(--buy)">Clean</span></div>
+  <div class="mkt"><div><div class="sym">BTC/USD</div><div class="meta">Sell · confidence 84</div></div><span class="chip" style="color:var(--muted)">Accept.</span></div>
+  <div class="mkt"><div><div class="sym">GBP/JPY</div><div class="meta">Sell · confidence 78</div></div><span class="chip" style="color:var(--muted)">Accept.</span></div>
+  <div class="mkt"><div><div class="sym">ES <span style="color:var(--muted); font-weight:400;">· S&amp;P 500</span></div><div class="meta">Buy · confidence 74</div></div><span class="chip" style="color:var(--muted)">Accept.</span></div>
+</div>
+
+<nav class="tabs">
+  <span class="t on">Scan</span>
+  <span class="t">Trades <span class="badge">1</span></span>
+  <span class="t">Insights</span>
+</nav>
+</body>
+</html>

@@ -455,3 +455,25 @@ these words ("Pending & open" stays the unresolved bucket per §17b). The
 Guide's "What the words mean here" section teaches these exact
 definitions (the owner approved the definition lines verbatim — use them
 as the deck text, replacing/adding entries as needed).
+
+### §17e. Approved: the mobile merge and the Profile revamp (2026-07-31)
+
+Owner approved, mocks committed as composition authority:
+
+- **docs/design/mockups/m-scan-v3.html** — the merged mobile Scan surface
+  (supersedes m-scan-v1/m-mobile-v3's separate Review+Scan tabs): fixed
+  viewport; pinned control row (scope menu · 2-char timeframe · Scan) +
+  market head + compact chart w/ Expand chart; one scrolling region below
+  (single-line ladder copy rows, one-line why + Why, count line,
+  qualified list; selection swaps the chart). Scanning a single-market
+  scope IS the review — one surface, one verb. Bottom bar is THREE tabs:
+  Scan · Trades (count badge) · Insights; Profile and Guide live in the
+  avatar menu.
+- **docs/design/mockups/p-profile-v2.html** — Profile as the flat
+  editorial settings sheet (supersedes p-profile-v1): hairline rows
+  (Account / Broker / Appearance / Support), label + approved terse
+  descriptions left ("Sign-in and membership." / "Markets, costs, and
+  record follow the broker." / "Saved to your account." / "We read every
+  note."), content right, no cards; the standardized §17c footer pinned
+  at page bottom. Description rule, standing: a row description says only
+  what the row cannot show.
