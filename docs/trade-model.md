@@ -74,10 +74,33 @@ whim. Two triggers, whichever comes first:
    order by resolved_filled desc;
    ```
 
-2. **Season trigger (fallback):** ~90 days pass with no class reaching
-   500. A quarter of new provider bars justifies a re-validation sweep
-   (every gate is re-derivable — r22's `--ignore-low-edge`
-   instrumentation exists for exactly this).
+2. **Season trigger (the owner's chosen mechanism, 2026-07-30):**
+   quarterly re-validation on new provider bars, first pass
+   **2026-10-28**, then every ~13 weeks. The owner runs it from a
+   calendar reminder carrying the kickoff prompt below; if the cohort
+   trigger fires earlier, the same prompt applies — the cohort simply
+   becomes part of that pass. Every gate is re-derivable (r22's
+   `--ignore-low-edge` instrumentation exists for exactly this).
+
+The kickoff prompt (authoritative — when this arrives in a fresh
+session it is a directive to execute this protocol, not a question):
+
+> It's time for the seasonal recalibration of the Levelflow engine, per
+> the Resumption Protocol in docs/trade-model.md (arc stopped
+> 2026-07-30 after Round 23). Begin with the compliance audit. Check
+> the cohort counts with the protocol's SQL and reconcile whatever live
+> cohort exists against replay expectations, class by class. Then run
+> the seasonal re-validation on the provider data accrued since the
+> last pass: re-derive the state-of-record table at full depth under
+> the standing discipline — pre-registered rules before results,
+> walk-forward both-splits gate, cross-run reconciliation on
+> same-anchor runs, no concurrent same-symbol sweeps, no change for
+> its own sake. Ship only what improves both splits; validate and
+> leave alone everything else; update the state-of-record docs, the
+> calibrationState test pins, and memories either way. As always:
+> test, verify, commit, push, merge, clean up, and verify live in
+> production. Conclude with an honest read: did new data reopen any
+> lever, and when should the next seasonal pass run?
 
 When either trigger fires, open the session with:
 
