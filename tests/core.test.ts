@@ -550,8 +550,15 @@ describe("confidence tiers", () => {
         // (the old MarketResultsPanel) dropped out of this list when I7
         // retired that panel, and spec §16 deleted the file outright along
         // with the rest of the Desk's status furniture.
+        //
+        // MarketScanPanel dropped out with the same recomposition: the mock's
+        // rail row (a-desk-v3.html:152) carries one meta line — "Buy ·
+        // confidence 86", from marketScanFilters.formatScanRowMeta — in place
+        // of the tiered "Qualified 86%" metric grid, so nothing there resolves
+        // a class threshold anymore. formatConfidenceWithTier's own threshold
+        // behavior is pinned directly above; historyUtils is its last call
+        // site.
         "src/components/workspace/historyUtils.ts",
-        "src/components/workspace/MarketScanPanel.tsx",
       ]
     ) {
       assert.match(

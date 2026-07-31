@@ -153,37 +153,72 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   ).toBeVisible();
 });
 
-test("market scan exposes the scope menu and rationale-ready surface", async ({ page }) => {
+test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no panel furniture", async ({ page }) => {
   await page.goto("/");
 
+  // Spec §16 deleted the rail's panel title block and its legend box; the
+  // eyebrow + Scan now row and the closing footnote are what stand in their
+  // place (a-desk-v3.html:88, :158). Both directions are checked here, per
+  // that section's standing review discipline.
+  const rail = page.getByTestId("market-scan-rail");
+  await expect(rail).toBeVisible();
+  await expect(rail.getByRole("heading", { name: "Scan", exact: true }))
+    .toBeVisible();
+  await expect(rail.getByRole("button", { name: "Scan now" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Best current markets" }),
+    rail.getByText(
+      "Every setup Levelflow generates is saved to Insights automatically.",
+    ),
   ).toBeVisible();
-  const scopeMenuButton = page.getByRole("button", { name: "Scan scope" });
+
+  const scopeMenuButton = rail.getByRole("button", { name: "Scan scope" });
   await expect(scopeMenuButton).toBeVisible();
   await expect(scopeMenuButton).toContainText("All markets");
+
   // m3 retired the legacy Quality band filter (spec §5's rail has none) and
   // I7 retired the stacked VolatilityWindowPanel ("Timing edge"/"Best time
-  // window") below the stage — neither exists to check for anymore.
+  // window") below the stage — neither exists to check for anymore. Spec §16
+  // retired the rest of the rail's chrome:
+  await expect(
+    page.getByRole("heading", { name: "Best current markets" }),
+  ).toHaveCount(0);
   await expect(
     page.getByText(
       "Scan shows the strongest qualifying setup among closely linked markets.",
     ),
-  ).toBeVisible();
-  await expect(page.getByText("Clean", { exact: true })).toBeVisible();
-  await expect(page.getByText("Poor", { exact: true })).toBeVisible();
+  ).toHaveCount(0);
+  await expect(page.getByText("Acceptable", { exact: true })).toHaveCount(0);
 });
 
 test("a How this works link opens the Guide at the section it names", async ({ page }) => {
+  // The scan rail's legend carried the only always-on-screen How this works
+  // link; spec §16 deleted that box and moved the cost-ratings disclosure onto
+  // the Costs row inside "Why this setup", where a cost rating is actually
+  // explained. That row only exists once a review has produced a setup, so
+  // this now follows the same live-dependency and honest-skip pattern as the
+  // file's other review-driven specs.
+  test.setTimeout(120_000);
   await page.goto("/");
+  await page.getByRole("button", { name: "Review market" }).click();
 
-  // The scan legend's link is always on screen, so this half of the
-  // disclosure contract is checkable without waiting on live market data.
-  const scanNote = page.locator("p", {
-    hasText:
-      "Scan shows the strongest qualifying setup among closely linked markets.",
-  });
-  await scanNote.getByRole("button", { name: "How this works" }).click();
+  const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
+  const hasReceipt = await receiptHeading
+    .waitFor({ state: "visible", timeout: 90_000 })
+    .then(() => true)
+    .catch(() => false);
+  test.skip(
+    !hasReceipt,
+    "No qualifying setup right now, so there is no Costs row on screen to click.",
+  );
+
+  // Innermost element holding both the row label and a link: the Trading
+  // costs row itself, whose link is the only one scoped to it.
+  const costsRow = page
+    .locator("div")
+    .filter({ has: page.getByText("Trading costs", { exact: true }) })
+    .filter({ has: page.getByRole("button", { name: "How this works" }) })
+    .last();
+  await costsRow.getByRole("button", { name: "How this works" }).click();
 
   await expect(
     page.getByRole("heading", { name: "How to use Levelflow" }),
@@ -393,10 +428,14 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await page.keyboard.press("Escape");
 
   // Review is the default tab; Scan and Trades are one tap away and carry
-  // full functionality there, not a stripped-down subset.
+  // full functionality there, not a stripped-down subset. The tab bar's own
+  // "Scan" button and the rail's "Scan now" no longer collide on one name
+  // (spec §16 renamed the rail's action to the mock's wording), so the exact
+  // tab match below stays unambiguous.
   await page.getByRole("button", { name: "Scan", exact: true }).click();
+  await expect(page.getByTestId("market-scan-rail")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Best current markets" }),
+    page.getByRole("button", { name: "Scan now" }),
   ).toBeVisible();
 
   // Same Trades badge caveat as above.
@@ -655,9 +694,8 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
     "No market qualified on this scan, so there is nothing new to check for in Insights.",
   );
 
-  const scanSection = page.locator("section", {
-    has: page.getByRole("heading", { name: "Best current markets" }),
-  });
+  // Scoped by testid since spec §16 deleted the heading this used to locate.
+  const scanSection = page.getByTestId("market-scan-rail");
   // Collect EVERY symbol the scan surfaced, not just the top row: a symbol
   // with a live placed position is deliberately skipped by persistence (the
   // scan must never rewrite a live trade), so any single row — including
@@ -665,7 +703,7 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // assertion is that the scan's qualifying set intersects the ledger.
   const scannedSymbolLabels = (
     await scanSection
-      .locator("p.truncate.font-semibold.text-ink")
+      .locator("span.truncate.font-bold.text-ink")
       .allTextContents()
   ).map((label) => label.trim()).filter(Boolean);
   expect(scannedSymbolLabels.length).toBeGreaterThan(0);

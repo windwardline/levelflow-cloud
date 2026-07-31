@@ -138,10 +138,11 @@ export function AdvisorWorkspace(
     ? analysisState.response
     : null;
   const setup = activeResult?.setup ?? null;
-  // The stagehead's confidence meta line says when this review ran (spec §16,
-  // replacing the deleted VALID UNTIL card). analysisState.requestedAt is an
-  // epoch milliseconds stamp; formatTimestamp works on the same ISO strings
-  // every other timestamp on this surface comes from the server as.
+  // The stagehead's confidence meta line says when this review ran, alongside
+  // the setup's own expiry (spec §16 folds both into one quiet line in place of
+  // the deleted metric card). analysisState.requestedAt is an epoch
+  // milliseconds stamp; formatTimestamp works on the same ISO strings every
+  // other timestamp on this surface arrives from the server as.
   const reviewedAt = analysisState && analysisState.symbol === symbol
     ? new Date(analysisState.requestedAt).toISOString()
     : null;
@@ -392,6 +393,7 @@ export function AdvisorWorkspace(
           onSelectSymbol={selectSymbolForReview}
           result={scanResult}
           scanCompletedAt={scanCompletedAt}
+          selectedSymbol={symbol}
           status={scanStatus}
         />
       </div>
@@ -401,9 +403,11 @@ export function AdvisorWorkspace(
           confidence unit under it, with the chart-view control and the one
           primary action (Review market) opposite — then the chart sheet, then
           the setup sheet attached hairline-flush beneath it. No surface title,
-          no status tiles, no metric cards: the killed DeskStatusStrip /
-          MarketClockPanel / CHART VIEW·ADVISOR CHECKS·VALID UNTIL furniture is
-          what the owner rejected as box-on-box.
+          no status tiles, no session cards, no metric cards, no second action:
+          that furniture is what the owner rejected as box-on-box, and
+          tests/deskComposition.test.ts pins its absence — so the retired
+          component and card names appear nowhere in this file, comments
+          included.
           flex-col rather than grid: an unconstrained grid's implicit auto
           rows shrink to fit the scroll container's height instead of
           overflowing it, which silently defeats the scrolling this column

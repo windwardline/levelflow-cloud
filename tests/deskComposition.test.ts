@@ -91,16 +91,13 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     assert.equal(existsSync(DELETED_METRIC_ROW), false);
   });
 
-  it("leaves no import of DeskStatusStrip, MarketClockPanel or MetricRow anywhere in src", () => {
-    // Prose in comments may still explain what was retired and why; what must
-    // never come back is a real reference that renders one.
-    const offenders = allSourceFiles("src").filter((file) => {
-      const source = readFileSync(file, "utf8");
-      return /from "\.\/AdvisorStatusPanels"|from "\.\/AdvisorMetricRow"/.test(
-        source,
-      ) ||
-        /<DeskStatusStrip\b|<MarketClockPanel\b|<MetricRow\b/.test(source);
-    });
+  it("leaves no reference to DeskStatusStrip, MarketClockPanel or MetricRow anywhere in src", () => {
+    // Names, not just imports: neither the deleted modules nor the components
+    // they exported may be referred to by any surface, comments included.
+    const offenders = allSourceFiles("src").filter((file) =>
+      /AdvisorStatusPanels|AdvisorMetricRow|DeskStatusStrip|MarketClockPanel/
+        .test(readFileSync(file, "utf8"))
+    );
     assert.deepEqual(offenders, []);
   });
 
@@ -114,18 +111,24 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
   });
 
   it("carries no CHART VIEW / ADVISOR CHECKS / VALID UNTIL metric cards", () => {
-    assert.doesNotMatch(stage, /AdvisorReviewScope/);
-    assert.doesNotMatch(stage, /Advisor checks/);
-    assert.doesNotMatch(stage, /advisorChartViewLabel/);
+    // Case-insensitive on purpose: the killed card titles rendered uppercase
+    // via CSS, so a prose mention in either casing would be a live risk of the
+    // string creeping back. The stage names none of them, comments included.
+    assert.doesNotMatch(stage, /AdvisorReviewScope/i);
+    assert.doesNotMatch(stage, /advisor checks/i);
+    assert.doesNotMatch(stage, /advisorChartViewLabel/i);
     // "Valid until" survives only as the confidence meta line's own wording,
     // built inside ConfidenceUnit — never as a labeled card on the stage.
-    assert.doesNotMatch(stage, /Valid until/);
-    assert.doesNotMatch(panel, /label="Valid until"/);
+    assert.doesNotMatch(stage, /valid until/i);
+    assert.doesNotMatch(panel, /valid until/i);
   });
 
   it("carries no standalone stage Refresh button — Review market is the one action", () => {
     assert.doesNotMatch(stage, /RefreshCw/);
     assert.doesNotMatch(stage, />\s*Refresh\s*</);
+    // Exactly one action lives in the stagehead.
+    assert.equal(stage.match(/className="primary-button"/g)?.length, 1);
+    assert.doesNotMatch(stage, /secondary-button/);
   });
 
   it("carries no Latest close metric box and no duplicated market heading", () => {
@@ -155,10 +158,102 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
   });
 });
 
+describe("scan rail composition — the mock's elements are present (a-desk-v3.html:87-158)", () => {
+  const rail = readFileSync(RAIL, "utf8");
+
+  it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
+    assert.match(rail, /uppercase tracking-normal text-ink-muted">\s*Scan\s*</);
+    assert.match(rail, /Scan now/);
+  });
+
+  it("keeps the scope menu and the server-truth count line, mono and unboxed", () => {
+    assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}label="Scan scope"/);
+    assert.match(rail, /className="mt-2 font-mono text-xs leading-5 text-ink-muted"/);
+    assert.match(rail, /\{formatScopeCountLine\(scope, result, scanCompletedAt \?\? new Date\(\)\)\}/);
+  });
+
+  it("renders each row as market + one meta line + cost chip, nothing more", () => {
+    assert.match(rail, /\{formatSecurityLabel\(candidate\.symbol\)\}/);
+    assert.match(
+      rail,
+      /\{formatScanRowMeta\(candidate\.side, candidate\.confidenceScore\)\}/,
+    );
+    assert.match(rail, /\{candidate\.executionLabel \|\| "Checked"\}/);
+  });
+
+  it("marks the stage's market as the selected row: sheet fill plus a 3px inset accent edge", () => {
+    assert.match(rail, /selected=\{candidate\.symbol === selectedSymbol\}/);
+    assert.match(rail, /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/);
+    assert.match(rail, /bg-sheet/);
+  });
+
+  it("closes with the approved footnote, verbatim", () => {
+    assert.ok(
+      rail.includes(
+        "Every setup Levelflow generates is saved to Insights automatically.",
+      ),
+    );
+  });
+});
+
+describe("scan rail composition — the kill list is absent (spec §16)", () => {
+  const rail = readFileSync(RAIL, "utf8");
+
+  it("carries no panel title block — neither the eyebrow nor the heading under it", () => {
+    // The eyebrow is matched as rendered element text rather than a bare
+    // substring: "Market scan could not complete. Try again shortly." is the
+    // failed-scan message and stays. The heading below it is matched outright,
+    // comments included, so the string cannot creep back in any form.
+    assert.doesNotMatch(rail, />\s*Market scan\s*</);
+    assert.doesNotMatch(rail, /Best current markets/);
+  });
+
+  it("carries no legend box — no four-chip cost key, no boxed explanation", () => {
+    assert.doesNotMatch(rail, /Acceptable/);
+    assert.doesNotMatch(
+      rail,
+      /Scan shows the strongest qualifying setup among closely linked/,
+    );
+    assert.doesNotMatch(rail, /rounded-lg border border-hairline bg-paper/);
+  });
+
+  it("carries no empty-state illustration box — the empty state is one muted line", () => {
+    assert.doesNotMatch(rail, /\bSearch\b/);
+    assert.match(
+      rail,
+      /<p className="mt-2 text-sm leading-6 text-ink-muted">\s*\{status === "scanning" \? "Checking active markets\." : emptyMessage\}/,
+    );
+  });
+
+  it("drops the per-row rank badge, metric grid, level preview and rationale bullets", () => {
+    for (
+      const retired of [
+        "rank",
+        "levelPreview",
+        "rationale",
+        "relatedMarkets",
+        "formatPayoff",
+        "formatAssetType",
+      ]
+    ) {
+      assert.ok(
+        !rail.includes(retired),
+        `the mock's row carries no ${retired} — it must not survive here`,
+      );
+    }
+  });
+
+  it("is a plain column, not a terminal-panel", () => {
+    assert.doesNotMatch(rail, /terminal-panel/);
+  });
+});
+
 describe("progressive disclosure survives the kill list", () => {
   it("keeps a cost-ratings How this works link now that the rail's legend box is gone", () => {
+    // Either reference form counts — a JSX prop or a receipt item's own
+    // `anchor:` field — the same two shapes tests/guideAnchors.test.ts scans.
     const linked = allSourceFiles("src/components").some((file) =>
-      /anchor="cost-ratings"/.test(readFileSync(file, "utf8"))
+      /anchor[=:]\s*"cost-ratings"/.test(readFileSync(file, "utf8"))
     );
     assert.ok(
       linked,

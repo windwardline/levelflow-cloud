@@ -321,10 +321,15 @@ export type ScopeMenuProps = {
 // Accessible "collapsible dropdown listbox" (button + popup, WAI-ARIA APG),
 // not a native <select> - closed markets need to render muted and
 // unselectable with their own reopen affordance, which a native <option>
-// cannot do. The popup renders through a portal because its two hosts
-// (MarketScanPanel, AdvisorWorkspace's stage header) both sit inside
-// `.terminal-panel`, which clips overflow for its rounded corners/shadow;
-// an absolutely-positioned popup would be clipped there.
+// cannot do. That is why spec §16's stagehead heading (a-desk-v3.html:165
+// draws it as a <select>) is this component in its "heading" variant rather
+// than a real select: the mock's own open menu below it (:92-149) is the muted
+// rows and reopen labels a native option list has no way to render.
+//
+// The popup renders through a portal because both hosts sit inside a clipping
+// ancestor - each Desk column is its own `overflow-y-auto` scroll container
+// (AdvisorWorkspace's deskColumnClassName) - so an absolutely-positioned popup
+// would be cut off at the column edge.
 export function ScopeMenu(
   {
     label,

@@ -219,7 +219,10 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
   });
 
   // m2: spec §2's universal scrollbar treatment applies to every scrollable
-  // column, the scan rail's own results list included.
+  // column, the scan rail's own results list included. Spec §16 recomposed
+  // that list — hairline-separated rows instead of gapped cards, capped at the
+  // mock's own 404px menu height (a-desk-v3.html:21) — but the .scrolly
+  // treatment and the overflow that makes it visible both stay.
   it("gives the results list the .scrolly thin-scrollbar treatment (m2)", () => {
     const source = readFileSync(
       "src/components/workspace/MarketScanPanel.tsx",
@@ -227,7 +230,7 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
     );
     assert.match(
       source,
-      /className="scrolly grid max-h-\[640px\] gap-3 overflow-y-auto pr-1"/,
+      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto"/,
     );
   });
 
