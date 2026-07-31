@@ -1,0 +1,24 @@
+:root {
+  --paper: #F4F1EA; --sheet: #FDFCF9; --ink: #1B1B1B; --muted: #6B675E;
+  --hairline: #D8D2C4; --accent: #2244FF; --accent-press: #1A35CC;
+  --buy: #177245; --sell: #B3261E; --caution: #8A5B00;
+}
+html[data-theme="dark"] {
+  --paper: #161411; --sheet: #1E1B16; --ink: #EDE7DA; --muted: #969082;
+  --hairline: #35322B; --accent: #6B86FF; --accent-press: #7D95FF;
+  --buy: #4CC38A; --sell: #E5766E; --caution: #D9A441;
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: -apple-system, "Inter", "Segoe UI", sans-serif; font-size: 15px; line-height: 1.5; }
+.mono { font-family: "SF Mono", "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.display { font-family: "Avenir Next", "Space Grotesk", -apple-system, sans-serif; letter-spacing: -0.02em; }
+.eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid color-mix(in srgb, currentColor 40%, transparent); border-radius: 2px; padding: 1px 7px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.rule { height: 3px; background: var(--accent); width: 56px; }
+.hl { border-color: var(--hairline); }
+a, .link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; font-weight: 500; cursor: pointer; }
+.btn { background: var(--accent); color: #fff; border: none; border-radius: 4px; padding: 10px 18px; font-weight: 600; font-size: 14px; }
+.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); border-radius: 4px; padding: 9px 16px; font-weight: 600; font-size: 14px; }
+.broker { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid var(--hairline); background: var(--sheet); border-radius: 6px; padding: 7px 12px; font-weight: 700; font-size: 13px; }
+.broker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--buy); }
+.broker .cev { color: var(--muted); font-size: 10px; }

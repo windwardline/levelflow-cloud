@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile — current trades</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { padding-bottom: 76px; }
+.mtop { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--hairline); }
+.mtop .wm { font-size:17px; font-weight:700; }
+.phead { display:flex; justify-content:space-between; align-items:baseline; padding:16px 16px 6px; }
+.phead .t { font-size:19px; font-weight:700; }
+.stamp { font-size:11.5px; color:var(--muted); }
+.pos { border:1px solid var(--hairline); background:var(--sheet); border-radius:8px; padding:14px; margin:10px 16px; }
+.pos .h { display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:15px; }
+.pos .step { margin-top:10px; font-size:13px; padding:10px 12px; border-left:3px solid var(--caution); background:color-mix(in srgb, var(--caution) 8%, transparent); }
+.pos .step.done { border-left-color:var(--buy); background:color-mix(in srgb, var(--buy) 7%, transparent); }
+.pos .step .when { color:var(--muted); font-weight:500; }
+.pos .lvls { display:flex; gap:16px; margin-top:10px; font-size:12.5px; }
+.pos .lvls b { display:block; font-size:14px; }
+.footnote { margin:14px 16px; font-size:12px; color:var(--muted); }
+.tabbar { position:fixed; bottom:0; left:0; right:0; background:var(--sheet); border-top:1px solid var(--hairline); display:flex; }
+.tabbar div { flex:1; text-align:center; padding:10px 0 12px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--muted); }
+.tabbar .on { color:var(--accent); }
+.tabbar .ic { font-size:19px; display:block; margin-bottom:2px; }
+.tabbar .badge { position:relative; }
+.tabbar .badge::after { content:"2"; position:absolute; top:-3px; right:24%; background:var(--caution); color:#fff; border-radius:8px; font-size:9px; padding:0 5px; }
+</style>
+</head>
+<body>
+<header class="mtop">
+  <span class="wm display">Levelflow</span>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="broker" style="padding:5px 9px; font-size:12px;"><span class="dot"></span> E8 <span class="cev">▾</span></span>
+    <span style="width:34px; height:34px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--sheet); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">T</span>
+  </div>
+</header>
+
+<div class="phead">
+  <span class="t display">Current trades</span>
+  <span class="stamp">as of 5:12 pm · <span class="link">refresh</span></span>
+</div>
+
+<div class="pos">
+  <div class="h"><span>XAU/USD · Buy <span class="chip" style="color:var(--buy); margin-left:4px;">Open</span></span><span class="mono" style="color:var(--buy)">+0.8R</span></div>
+  <div class="step">Target 1 hit <span class="when">14 min ago</span> — <b>bank half, move stop to 2,384.20</b></div>
+  <div class="lvls mono"><span>SL<b>2,384.20</b></span><span>T2<b>2,412.60</b></span></div>
+</div>
+
+<div class="pos">
+  <div class="h"><span>GBP/JPY · Sell <span class="chip" style="color:var(--caution); margin-left:4px;">Pending</span></span><span class="mono" style="color:var(--muted)">—</span></div>
+  <div class="step done">Order pending at 191.240 — nothing to do yet</div>
+  <div class="lvls mono"><span>SL<b>191.980</b></span><span>T1<b>190.760</b></span><span>T2<b>190.020</b></span></div>
+</div>
+
+<nav class="tabbar">
+  <div><span class="ic">◎</span>Review</div>
+  <div><span class="ic">⌕</span>Scan</div>
+  <div class="badge on"><span class="ic">▤</span>Trades</div>
+  <div><span class="ic">◫</span>Insights</div>
+</nav>
+</body>
+</html>

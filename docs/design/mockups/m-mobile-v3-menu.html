@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile v3 — scan menu</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { overflow:hidden; }
+.mtop { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--hairline); }
+.mtop .wm { font-size:17px; font-weight:700; }
+.sheet { position:fixed; inset:57px 0 0 0; background:var(--sheet); display:flex; flex-direction:column; }
+.sheethead { display:flex; justify-content:space-between; align-items:center; padding:14px 16px 10px; border-bottom:1px solid var(--hairline); }
+.sheethead .t { font-size:16px; font-weight:700; }
+.sheethead .x { font-size:20px; color:var(--muted); padding:6px 10px; }
+.scrolly { overflow-y:auto; scrollbar-width:thin; scrollbar-color: var(--hairline) transparent; }
+.scrolly::-webkit-scrollbar { width:6px; }
+.scrolly::-webkit-scrollbar-thumb { background:var(--hairline); border-radius:3px; }
+.scrolly::-webkit-scrollbar-track { background:transparent; }
+.menu { flex:1; }
+.menu .grp { font-size:14px; font-weight:700; padding:11px 16px 7px; display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid var(--hairline); }
+.menu .grp .n { font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+.menu .opt { font-size:14px; font-weight:500; padding:10px 16px 10px 28px; }
+.menu .opt .d { color:var(--muted); font-weight:400; }
+.menu .opt.on { background:color-mix(in srgb, var(--accent) 10%, transparent); color:var(--accent); font-weight:700; }
+.menu .n2 { display:flex; flex-direction:column; align-items:flex-end; text-align:right; font-size:11px; line-height:1.4; color:var(--muted); font-weight:500; }
+</style>
+</head>
+<body>
+<header class="mtop">
+  <span class="wm display">Levelflow</span>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="broker" style="padding:5px 9px; font-size:12px;"><span class="dot"></span> E8 <span class="cev">▾</span></span>
+    <span style="width:34px; height:34px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--sheet); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">T</span>
+  </div>
+</header>
+
+<div class="sheet">
+  <div class="sheethead"><span class="t">Choose what to scan</span><span class="x">✕</span></div>
+  <div class="menu scrolly">
+    <div class="opt on" style="padding-left:16px;">All markets</div>
+    <div class="grp">Crypto <span class="n">scan 7</span></div>
+    <div class="opt">ADA/USD</div>
+    <div class="opt">BCH/USD</div>
+    <div class="opt">BTC/USD</div>
+    <div class="opt">ETH/USD</div>
+    <div class="opt">LTC/USD</div>
+    <div class="opt">SOL/USD</div>
+    <div class="opt">XRP/USD</div>
+    <div class="grp" style="color:var(--muted)">Energies <span class="n">opens 6:00p Sun</span></div>
+    <div class="opt" style="color:var(--muted)">Brent Oil</div>
+    <div class="opt" style="color:var(--muted)">US Oil</div>
+    <div class="grp" style="color:var(--muted)">Forex <span class="n">opens 5:00p Sun</span></div>
+    <div class="opt" style="color:var(--muted)">AUD/CAD</div>
+    <div class="opt" style="color:var(--muted)">AUD/CHF</div>
+    <div class="opt" style="color:var(--muted)">AUD/JPY</div>
+    <div class="opt" style="color:var(--muted)">AUD/NZD</div>
+    <div class="opt" style="color:var(--muted)">AUD/USD</div>
+    <div class="opt" style="color:var(--muted)">CAD/CHF</div>
+    <div class="opt" style="color:var(--muted)">CAD/JPY</div>
+    <div class="opt" style="color:var(--muted)">CHF/JPY</div>
+    <div class="opt" style="color:var(--muted)">EUR/AUD</div>
+    <div class="opt" style="color:var(--muted)">EUR/CAD</div>
+    <div class="opt" style="color:var(--muted)">EUR/CHF</div>
+    <div class="opt" style="color:var(--muted)">EUR/GBP</div>
+    <div class="opt" style="color:var(--muted)">EUR/JPY</div>
+    <div class="opt" style="color:var(--muted)">EUR/NZD</div>
+    <div class="opt" style="color:var(--muted)">EUR/USD</div>
+    <div class="opt" style="color:var(--muted)">GBP/AUD</div>
+    <div class="opt" style="color:var(--muted)">GBP/CAD</div>
+    <div class="opt" style="color:var(--muted)">GBP/CHF</div>
+    <div class="opt" style="color:var(--muted)">GBP/JPY</div>
+    <div class="opt" style="color:var(--muted)">GBP/NZD</div>
+    <div class="opt" style="color:var(--muted)">GBP/USD</div>
+    <div class="opt" style="color:var(--muted)">NZD/CAD</div>
+    <div class="opt" style="color:var(--muted)">NZD/CHF</div>
+    <div class="opt" style="color:var(--muted)">NZD/JPY</div>
+    <div class="opt" style="color:var(--muted)">NZD/USD</div>
+    <div class="opt" style="color:var(--muted)">USD/CAD</div>
+    <div class="opt" style="color:var(--muted)">USD/CHF</div>
+    <div class="opt" style="color:var(--muted)">USD/JPY</div>
+    <div class="grp" style="color:var(--muted)">Futures <span class="n">opens 6:00p Sun</span></div>
+    <div class="opt" style="color:var(--muted)">BZ <span class="d">· Brent</span></div>
+    <div class="opt" style="color:var(--muted)">CL <span class="d">· WTI</span></div>
+    <div class="opt" style="color:var(--muted)">ES <span class="d">· S&amp;P 500</span></div>
+    <div class="opt" style="color:var(--muted)">GC <span class="d">· Gold</span></div>
+    <div class="opt" style="color:var(--muted)">MGC <span class="d">· Micro Gold</span></div>
+    <div class="opt" style="color:var(--muted)">NQ <span class="d">· Nasdaq 100</span></div>
+    <div class="opt" style="color:var(--muted)">RTY <span class="d">· Russell 2000</span></div>
+    <div class="opt" style="color:var(--muted)">SI <span class="d">· Silver</span></div>
+    <div class="opt" style="color:var(--muted)">YM <span class="d">· Dow</span></div>
+    <div class="opt" style="color:var(--muted)">ZB <span class="d">· 30-Yr Bond</span></div>
+    <div class="opt" style="color:var(--muted)">ZN <span class="d">· 10-Yr Note</span></div>
+    <div class="grp" style="color:var(--muted)">Metals <span class="n">opens 5:00p Sun</span></div>
+    <div class="opt" style="color:var(--muted)">XAG/USD <span class="d">· Silver</span></div>
+    <div class="opt" style="color:var(--muted)">XAU/USD <span class="d">· Gold</span></div>
+  </div>
+</div>
+</body>
+</html>
