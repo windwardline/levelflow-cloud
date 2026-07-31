@@ -136,15 +136,6 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     assert.deepEqual(offenders, []);
   });
 
-  it("keeps market-session clocks out of every rendered component (GLOBAL FX SESSION cards are gone)", () => {
-    // marketSessions.ts stays for the engine-facing unit tests that pin its
-    // calendars (tests/core.test.ts); nothing on a surface may render it.
-    const offenders = allSourceFiles("src/components").filter((file) =>
-      readFileSync(file, "utf8").includes('from "../../lib/marketSessions"')
-    );
-    assert.deepEqual(offenders, []);
-  });
-
   it("carries no CHART VIEW / ADVISOR CHECKS / VALID UNTIL metric cards", () => {
     // Case-insensitive on purpose: the killed card titles rendered uppercase
     // via CSS, so a prose mention in either casing would be a live risk of the

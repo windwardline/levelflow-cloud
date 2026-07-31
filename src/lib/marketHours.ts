@@ -223,8 +223,7 @@ function addEasternCalendarDays(
 // Converts an America/New_York wall-clock instant to the UTC Date it
 // represents. Guess the UTC instant that has the wanted digits, read back
 // what that guess actually reads as in ET, then correct by the difference -
-// the same DST-safe trick used by src/lib/marketSessions.ts and
-// supabase/functions/trade-analyzer/replay.ts.
+// the same DST-safe trick used by supabase/functions/trade-analyzer/replay.ts.
 function zonedWallClockToUtc(
   year: number,
   month: number,
