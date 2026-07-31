@@ -128,15 +128,15 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
       <GuideToc sections={GUIDE_SECTIONS} />
 
       <article className="min-w-0">
-        <div>
-          <h1 className="border-b-2 border-ink pb-3.5 text-3xl font-semibold tracking-normal text-ink">
-            How to use Levelflow
-          </h1>
-          <p className="mt-4 max-w-[62ch] text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
-            Ten short sections, in the same words your platform already
-            uses.
-          </p>
-        </div>
+        {/* Fix wave 2B, FIX 7 (A5-C1): the un-approved subtitle that used to
+            sit here narrated the page's own shape and section count in
+            prose — the visible TOC already shows that, and the count was
+            hardcoded against GUIDE_SECTIONS.length with nothing to keep
+            them in sync. Deleted outright, no replacement copy; the h1
+            needs no wrapper once it's the article's only intro element. */}
+        <h1 className="border-b-2 border-ink pb-3.5 text-3xl font-semibold tracking-normal text-ink">
+          How to use Levelflow
+        </h1>
 
         <GuideSection
           id="how-review-works"

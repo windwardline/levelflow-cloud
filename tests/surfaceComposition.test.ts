@@ -60,8 +60,11 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     );
   });
 
-  it("caps body copy at the mock's 62ch reading measure, both the intro and every section", () => {
-    assert.match(guide, /max-w-\[62ch\].*text-ink-muted sm:text-base sm:leading-7"/);
+  it("caps section body copy at the mock's 62ch reading measure", () => {
+    // Fix wave 2B, FIX 7 deleted the intro's own 62ch paragraph (the
+    // unapproved subtitle — see the kill-list test below), so this no
+    // longer also needs to prove the intro's copy independently from
+    // every section's; the one exact match is now the whole claim.
     assert.match(
       guide,
       /className="mt-3 grid max-w-\[62ch\] gap-3 text-sm leading-6 text-ink-muted sm:text-base sm:leading-7"/,
@@ -120,6 +123,20 @@ describe("Guide composition — the kill list is absent (spec §16)", () => {
     assert.doesNotMatch(guide, /h-12 w-12/);
     assert.doesNotMatch(guide, />\s*Guide\s*<\/p>/);
     assert.doesNotMatch(guide, /text-accent/);
+  });
+
+  // Fix wave 2B, FIX 7 (completeness-audit-1 A5-C1). This sentence sat
+  // between the ruled h1 and the first section, and was the only Guide
+  // sentence appearing in neither the owner-approved content deck nor the
+  // desk-design spec: it narrated the page's own shape (the visible TOC
+  // already shows "ten short sections") and hardcoded "Ten" against the
+  // GUIDE_SECTIONS array length, so it would rot silently if a section
+  // were ever added or removed. The deck's "same words your platform
+  // already uses" premise is the deck's own front matter, not reader-facing
+  // copy this page needs to restate.
+  it("deletes the un-approved subtitle narrating the page's own shape (A5-C1) — no replacement copy added", () => {
+    assert.doesNotMatch(guide, /Ten short sections/);
+    assert.doesNotMatch(guide, /same words your platform already uses/);
   });
 
   it("deleted the per-section numeral badge square — sections carry a plain text eyebrow instead", () => {
