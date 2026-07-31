@@ -125,20 +125,41 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     page.getByRole("heading", { name: "What Levelflow does" }),
   ).toBeVisible();
 
-  // Spec §17, placement (b): the article ends with a short Support section,
-  // two tertiary links. Scoped to the article so the footer's own Help/Donate
-  // row further down the same page can't satisfy this by accident — the whole
-  // point of the ruling is that both placements exist.
-  const guideArticle = page.locator("article");
+  // Spec §17, placement (b): the Guide closes with a short Support block, two
+  // tertiary links. Scoped to the block so the footer's own Help/Donate row
+  // further down the same page can't satisfy this by accident — the whole point
+  // of the ruling is that both placements exist. Scoped by testid rather than
+  // by "article" because §17c's TOC numbering moved this block outside the
+  // numbered article (see the wave-4 report).
+  const guideSupport = page.getByTestId("guide-support");
   await expect(
-    guideArticle.getByRole("heading", { name: "Support", exact: true }),
+    guideSupport.getByRole("heading", { name: "Support", exact: true }),
   ).toBeVisible();
   await expect(
-    guideArticle.getByRole("link", { name: "Email support" }),
+    guideSupport.getByRole("link", { name: "Email support" }),
   ).toBeVisible();
   await expect(
-    guideArticle.getByRole("button", { name: "Donate", exact: true }),
+    guideSupport.getByRole("button", { name: "Donate", exact: true }),
   ).toBeVisible();
+
+  // §17c: the TOC entries carry their sections' own numbers, and the index
+  // lists the deck's ten numbered sections — not this Support block.
+  const toc = page.locator('nav[aria-label="Guide sections"]');
+  const tocEntries = await toc.locator("a").allTextContents();
+  expect(tocEntries).toHaveLength(10);
+  expect(tocEntries[0]).toContain("01");
+  expect(tocEntries[9]).toContain("10");
+  await expect(toc.getByRole("link", { name: /Support/ })).toHaveCount(0);
+
+  // And it does not move when scrolling begins: its sticky offset is its own
+  // resting offset (measured 89px — masthead plus the page's top padding).
+  const tocBox = toc.boundingBox();
+  const restingTop = (await tocBox)?.y ?? -1;
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(async () => (await toc.boundingBox())?.y ?? -1)
+    .toBe(restingTop);
+  await page.mouse.wheel(0, -400);
 
   // Spec §17, placement (a): the footer's link row carries Help and Donate
   // beside the legal trio, on every scrolling surface. Scoped to the footer
