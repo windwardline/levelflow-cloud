@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import { formatReopen } from "../src/lib/marketHours";
 import {
   AVAILABLE_ASSET_GROUPS,
+  AVAILABLE_ASSET_OPTIONS,
+  formatSecurityDisplaySymbol,
   formatSecurityLabel,
+  getSecurityOption,
   type SupportedSymbol,
 } from "../src/lib/symbolMap";
 import {
@@ -16,6 +19,7 @@ import {
   MOBILE_SHEET_BREAKPOINT_PX,
   moveScopeMenuHighlight,
   resolveRowActivation,
+  scopeTriggerLabel,
   shouldUseSheetLayout,
   showsAffordance,
   type ScanScope,
@@ -434,6 +438,154 @@ describe("formatScopeCountLine renders server counts verbatim", () => {
         localClockTime(now)
       }`,
     );
+  });
+});
+
+// Spec §16: the recomposed stagehead renders the market picker as the Desk's
+// display heading (a-desk-v3.html:165), where the full descriptive label runs
+// far past the stage at that size. Only that variant shortens; every list,
+// menu and scan row keeps the full label, which is what the e2e row-order
+// specs and formatScopeCountLine above are pinned to.
+describe("formatSecurityDisplaySymbol (stagehead heading form)", () => {
+  it("keeps only the ticker half of the label, dropping the description", () => {
+    assert.equal(formatSecurityDisplaySymbol("EURUSD"), "EUR/USD");
+    assert.equal(formatSecurityDisplaySymbol("XAUUSD"), "XAU/USD");
+    assert.equal(formatSecurityDisplaySymbol("ESUSD"), "ES");
+  });
+
+  it("recovers the display symbol exactly for every listed market, never an empty string", () => {
+    for (const option of AVAILABLE_ASSET_OPTIONS) {
+      const display = formatSecurityDisplaySymbol(option.symbol);
+      assert.ok(display.length > 0, `${option.symbol} produced no display form`);
+      assert.equal(option.label.startsWith(display), true);
+      assert.doesNotMatch(display, / - /);
+    }
+  });
+
+  it("falls back to the whole label when an option is not built from a description suffix", () => {
+    // getSecurityOption's unknown-symbol fallback sets label === description
+    // === the raw symbol, so there is no suffix to strip and the raw symbol is
+    // the right answer.
+    const unknown = "NOT_A_MARKET";
+    assert.equal(getSecurityOption(unknown).label, unknown);
+    assert.equal(formatSecurityDisplaySymbol(unknown), unknown);
+  });
+});
+
+describe("scopeTriggerLabel", () => {
+  it("shortens a symbol scope only for the heading variant", () => {
+    const scope: ScanScope = { kind: "symbol", symbol: "EURUSD" };
+    assert.equal(scopeTriggerLabel(scope, "heading"), "EUR/USD");
+    assert.equal(scopeTriggerLabel(scope, "field"), formatSecurityLabel("EURUSD"));
+  });
+
+  it("leaves the non-symbol scopes identical in both variants", () => {
+    for (
+      const scope of [
+        { kind: "all" },
+        { assetType: "Forex", kind: "group" },
+      ] as ScanScope[]
+    ) {
+      assert.equal(
+        scopeTriggerLabel(scope, "heading"),
+        describeScanScope(scope),
+      );
+      assert.equal(scopeTriggerLabel(scope, "field"), describeScanScope(scope));
+    }
+  });
+});
+
+// Spec §16 draws neither picker with a visible field caption: the stage's
+// market name IS the heading, and the rail leads with its own "Scan" eyebrow.
+// Suppressing the caption must not cost any element its accessible name, and
+// no aria-labelledby may point at an element that is not rendered.
+describe("ScopeMenu labelling with the caption suppressed (source-pinned — see header comment)", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/ScopeMenu.tsx",
+    "utf8",
+  );
+
+  // Fix round 2 (final review, Important 3): the trigger took a bare
+  // aria-label={label} whenever the caption was suppressed — and aria-label
+  // REPLACES element content in the name computation, so the selected market
+  // (which lives in that content) dropped out of the accessible name of the
+  // stage's primary control: "Market, collapsed, button", with no way to hear
+  // which market is on the stage. The caption is now always rendered and only
+  // visually hidden, so the labelledby chain stays valid in both modes and
+  // always announces caption + current value.
+  it("names the trigger off the caption AND the value in both modes — never a bare aria-label", () => {
+    const trigger = SOURCE.match(
+      /<button\n?\s*ref=\{triggerRef\}[\s\S]*?\n\s*>/,
+    )?.[0] ?? "";
+    assert.ok(trigger.length > 0, "expected to find the trigger button");
+    assert.match(
+      trigger,
+      /aria-labelledby=\{`\$\{baseId\}-label \$\{baseId\}-value`\}/,
+    );
+    assert.doesNotMatch(trigger, /aria-label=/);
+    // And the value element the second half of that chain resolves to.
+    assert.match(
+      SOURCE,
+      /<span id=\{`\$\{baseId\}-value`\}[\s\S]{0,120}\{scopeTriggerLabel\(value, variant\)\}/,
+    );
+  });
+
+  // Fix round 1: the trigger got its half right and both listboxes did not.
+  // With showLabel={false} at both call sites, aria-labelledby={`${baseId}-
+  // label`} on a <ul role="listbox"> pointed at an element that was not
+  // rendered at all — a dangling IDREF, so the opened menu announced as an
+  // unnamed listbox. Round 2 keeps every listbox named; what changed is that
+  // the reference is now always resolvable (see the always-rendered caption
+  // below), so the conditional pair it needed is no longer needed and both
+  // lists name themselves the one way.
+  it("names BOTH listboxes off the caption — no dangling IDREF, no unnamed listbox", () => {
+    const listboxes = SOURCE.match(/<ul\b[\s\S]*?role="listbox"/g) ?? [];
+    assert.equal(
+      listboxes.length,
+      2,
+      "expected exactly two listboxes: the anchored popup and the mobile sheet",
+    );
+    for (const listbox of listboxes) {
+      assert.match(listbox, /aria-labelledby=\{`\$\{baseId\}-label`\}/);
+      assert.doesNotMatch(listbox, /aria-label=/);
+    }
+  });
+
+  it("renders the caption span unconditionally, hiding it visually rather than removing it", () => {
+    // This is what makes every reference above resolvable in both modes, so it
+    // is the assertion that must fail if anyone puts the caption back behind a
+    // showLabel ternary. The className is the conditional part, not the node.
+    assert.match(
+      SOURCE,
+      /<span\n\s*id=\{`\$\{baseId\}-label`\}\n\s*className=\{showLabel\n\s*\? "[^"]+"\n\s*: "sr-only"\}/,
+    );
+    assert.doesNotMatch(
+      SOURCE,
+      /\{showLabel\s*\n?\s*\?[\s\S]{0,300}id=\{`\$\{baseId\}-label`\}/,
+    );
+  });
+
+  it("keeps the sheet dialog's own title reference intact", () => {
+    assert.match(SOURCE, /aria-labelledby=\{`\$\{baseId\}-sheet-title`\}/);
+  });
+
+  it("renders the trigger's own text through scopeTriggerLabel, never describeScanScope directly", () => {
+    assert.match(SOURCE, /\{scopeTriggerLabel\(value, variant\)\}/);
+  });
+
+  // Fix round 1: p-0 at text-2xl left the stage's primary control a ~32px
+  // target. The kit's floor is 44px everywhere else (.field 48px,
+  // .primary-button / .tertiary-link / .cpv-copy 44px, the rail rows' min-h-11),
+  // and the heading must reach it without growing visually — min-height plus a
+  // matching negative block margin, the same trick index.css already uses.
+  it("gives the heading trigger a 44px hit area without inflating the heading", () => {
+    const heading = SOURCE.match(
+      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
+    )?.[1] ?? "";
+    assert.ok(heading.length > 0, "expected to find the heading trigger classes");
+    assert.match(heading, /\bmin-h-11\b/);
+    assert.match(heading, /-my-1\.5/);
+    assert.match(heading, /\bp-0\b/);
   });
 });
 

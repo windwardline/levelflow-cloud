@@ -1,7 +1,3 @@
-import {
-  chartTimeframeLabel,
-  type ChartTimeframe,
-} from "./marketData";
 import type { SecurityType } from "./symbolMap";
 
 export const ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"] as const;
@@ -46,10 +42,6 @@ export const CONFIDENCE_THRESHOLD_BY_ASSET_TYPE: Record<SecurityType, number> = 
   Indices: 68,
   Metals: 90,
 };
-
-export function advisorChartViewLabel(timeframe: ChartTimeframe) {
-  return chartTimeframeLabel(timeframe);
-}
 
 export function advisorSignalIntervalLabel() {
   return ADVISOR_SIGNAL_INTERVALS.map(intervalLabel).join(", ");

@@ -217,8 +217,3 @@ export function getTimeZoneAbbreviation(timeZone: string, date = new Date()) {
   }
   return abbreviation;
 }
-
-export function profileDisplayName(profile: UserProfile | null) {
-  const name = profile?.displayName.trim();
-  return name || "Trader";
-}

@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, X } from "lucide-react";
 import {
   AVAILABLE_ASSET_GROUPS,
+  formatSecurityDisplaySymbol,
   formatSecurityLabel,
   type SecurityGroup,
   type SecurityType,
@@ -100,6 +101,20 @@ export function describeScanScope(scope: ScanScope): string {
     return scope.assetType;
   }
   return formatSecurityLabel(scope.symbol);
+}
+
+// What the trigger button itself shows. The "heading" variant is the Desk
+// stagehead's display heading (spec §16, a-desk-v3.html:165), where the full
+// descriptive label ("EUR/USD - Euro / U.S. Dollar") would run past the whole
+// stage at heading size — it shows the ticker alone. Every other presentation,
+// the option rows included, stays on the full label.
+export function scopeTriggerLabel(
+  scope: ScanScope,
+  variant: "field" | "heading",
+): string {
+  return variant === "heading" && scope.kind === "symbol"
+    ? formatSecurityDisplaySymbol(scope.symbol)
+    : describeScanScope(scope);
 }
 
 // The open-state affordance ("Scan N") only ever applies to "all"/"group"
@@ -241,6 +256,10 @@ export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean
 // `lg:`-generated media query.
 export const MOBILE_SHEET_BREAKPOINT_PX = 1024;
 
+// Floor for the anchored popup under a "heading" trigger — see the style
+// prop on the popup below for why only that variant needs one.
+const HEADING_MENU_MIN_WIDTH_PX = 288;
+
 export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
   return viewportWidthPx < MOBILE_SHEET_BREAKPOINT_PX;
 }
@@ -269,11 +288,19 @@ function useScopeMenuSheetMode(): boolean {
 }
 
 export type ScopeMenuProps = {
-  /** Visible + accessible label above the trigger button (e.g. "Scan scope", "Market"). */
+  /** Accessible label for the trigger (e.g. "Scan scope", "Market"), and the sheet's title. */
   label: string;
   /** Injectable clock for tests; defaults to `new Date()`. */
   now?: Date;
   onSelect: (scope: ScanScope) => void;
+  /**
+   * Whether `label` also renders as a visible caption above the trigger.
+   * Spec §16's recomposed Desk draws neither picker with one (the stage's
+   * market name IS the stagehead heading, and the rail leads with its own
+   * "Scan" eyebrow), so both call sites pass false and the trigger carries
+   * `label` as its aria-label instead — same accessible name, no caption.
+   */
+  showLabel?: boolean;
   /**
    * Restricts the menu to symbol selection: no "All markets" row, and group
    * rows become inert section headers. Used for the stage's direct-review
@@ -281,17 +308,38 @@ export type ScopeMenuProps = {
    */
   symbolOnly?: boolean;
   value: ScanScope;
+  /**
+   * "field" is the kit's bordered form control (the scan rail's scope
+   * picker). "heading" renders the trigger as the stagehead's display
+   * heading — the market name at heading size on bare paper
+   * (a-desk-v3.html:165) — while keeping the identical listbox behavior,
+   * closed-market muting and reopen affordances included.
+   */
+  variant?: "field" | "heading";
 };
 
 // Accessible "collapsible dropdown listbox" (button + popup, WAI-ARIA APG),
 // not a native <select> - closed markets need to render muted and
 // unselectable with their own reopen affordance, which a native <option>
-// cannot do. The popup renders through a portal because its two hosts
-// (MarketScanPanel, AdvisorWorkspace's stage header) both sit inside
-// `.terminal-panel`, which clips overflow for its rounded corners/shadow;
-// an absolutely-positioned popup would be clipped there.
+// cannot do. That is why spec §16's stagehead heading (a-desk-v3.html:165
+// draws it as a <select>) is this component in its "heading" variant rather
+// than a real select: the mock's own open menu below it (:92-149) is the muted
+// rows and reopen labels a native option list has no way to render.
+//
+// The popup renders through a portal because both hosts sit inside a clipping
+// ancestor - each Desk column is its own `overflow-y-auto` scroll container
+// (AdvisorWorkspace's deskColumnClassName) - so an absolutely-positioned popup
+// would be cut off at the column edge.
 export function ScopeMenu(
-  { label, now, onSelect, symbolOnly = false, value }: ScopeMenuProps,
+  {
+    label,
+    now,
+    onSelect,
+    showLabel = true,
+    symbolOnly = false,
+    value,
+    variant = "field",
+  }: ScopeMenuProps,
 ) {
   const baseId = useId();
   const sheet = useScopeMenuSheetMode();
@@ -480,10 +528,20 @@ export function ScopeMenu(
   }
 
   return (
-    <div ref={rootRef} className="grid gap-1">
+    <div ref={rootRef} className={variant === "heading" ? "grid min-w-0" : "grid min-w-0 gap-1"}>
+      {/* Spec §16 suppresses the visible caption on both pickers, but the
+          caption is what every element here takes its name from — so the node
+          always renders and only its styling changes. Hiding it with .sr-only
+          (clipped, not display:none) keeps it in the accessibility tree, so
+          each aria-labelledby below resolves in both modes. Removing it
+          instead is what cost the trigger its selected value: a bare
+          aria-label REPLACES element content in the name computation, and the
+          value lives in that content. */}
       <span
         id={`${baseId}-label`}
-        className="text-xs font-semibold uppercase tracking-normal text-ink-muted"
+        className={showLabel
+          ? "text-xs font-semibold uppercase tracking-normal text-ink-muted"
+          : "sr-only"}
       >
         {label}
       </span>
@@ -491,8 +549,19 @@ export function ScopeMenu(
         ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="listbox"
+        // Caption + current value, always: a screen-reader user on the stage
+        // has to hear which market is loaded, and the heading trigger is the
+        // only place the selected market appears.
         aria-labelledby={`${baseId}-label ${baseId}-value`}
-        className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"
+        // The heading variant carries no padding (the market name IS the
+        // stagehead heading), which on its own leaves the stage's primary
+        // control a ~32px target. min-h-11 restores the kit's 44px floor and
+        // the matching negative block margin pulls the extra height back out
+        // of the flow, so the heading's optics are untouched — the same trick
+        // .tertiary-link and .cpv-copy use in index.css.
+        className={variant === "heading"
+          ? "-my-1.5 flex min-h-11 min-w-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
+          : "field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"}
         id={baseId}
         type="button"
         onClick={() => (open ? close() : openMenu())}
@@ -504,7 +573,7 @@ export function ScopeMenu(
         }}
       >
         <span id={`${baseId}-value`} className="truncate">
-          {describeScanScope(value)}
+          {scopeTriggerLabel(value, variant)}
         </span>
         <ChevronDown
           className="h-4 w-4 shrink-0 text-ink-muted"
@@ -558,7 +627,19 @@ export function ScopeMenu(
                 aria-labelledby={`${baseId}-label`}
                 className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
                 role="listbox"
-                style={{ left: position.left, top: position.top, width: position.width }}
+                // The anchored popup normally matches its trigger's width. A
+                // "heading" trigger is only as wide as the ticker it shows
+                // ("ES"), which would squeeze every descriptive option label
+                // to nothing — the floor applies to that variant alone so the
+                // ≥lg scan-rail popup keeps its exact previous geometry.
+                style={{
+                  left: position.left,
+                  minWidth: variant === "heading"
+                    ? HEADING_MENU_MIN_WIDTH_PX
+                    : undefined,
+                  top: position.top,
+                  width: position.width,
+                }}
                 tabIndex={-1}
                 onKeyDown={handleListKeyDown}
               >

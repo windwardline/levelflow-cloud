@@ -56,10 +56,29 @@ describe("design tokens", () => {
     assert.match(s, /\.terminal-panel\s*\{[^}]*var\(--color-sheet\)/s);
     assert.doesNotMatch(s, /backdrop-filter/);
     assert.match(s, /\.primary-button\s*\{[^}]*var\(--color-accent\)/s);
-    assert.match(s, /\.nav-button-active\s*\{[^}]*border-bottom[^}]*var\(--color-accent\)/s);
     assert.match(s, /\.link-accent/);
     assert.match(s, /:focus-visible\s*\{[^}]*var\(--color-accent\)/s);
     assert.match(s, /prefers-reduced-motion/);
+  });
+
+  // This assertion used to pin `.nav-button-active`'s accent underline. Spec
+  // §16 killed the icon-chip nav pills those two classes styled, replacing
+  // them with the masthead's literal-utility text nav (App.tsx), and
+  // hand-written @layer components rules ship whether or not anything uses
+  // them — so the styles were dead weight in every bundle. Deleted here in the
+  // same change as the CSS, since a stale assertion is what would otherwise
+  // have kept them alive.
+  it("ships no styles for the retired nav pills", () => {
+    assert.doesNotMatch(css(), /nav-button/);
+  });
+
+  // Tailwind v4 detects content by scanning raw text, so a plan or spec that
+  // merely names a utility generates it — 24 selectors in the bundle came from
+  // docs/ alone (the mockups' own tokens.css and a plan sentence describing the
+  // wrapper the masthead replaced). Excluding docs/ is the only fix that holds,
+  // since accurate history has to go on naming what it replaced.
+  it("scans only real source for classes — docs prose never generates CSS", () => {
+    assert.match(css(), /@source not "\.\.\/\.\.\/docs";/);
   });
 
   it("carries the Levelflow name, not the legacy casing", () => {

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile v3 — trade-first</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { padding-bottom: 76px; }
+.mtop { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--hairline); }
+.mtop .wm { font-size:17px; font-weight:700; }
+.mkt { padding:14px 16px 4px; }
+.mkt select { width:100%; font-size:16px; font-weight:700; padding:12px; border:1.5px solid var(--hairline); border-radius:8px; background:var(--sheet); color:var(--ink); }
+.chart { margin:12px 16px; background:var(--sheet); border:1px solid var(--hairline); border-radius:6px; height:170px; position:relative; overflow:hidden; }
+.chart .grid { position:absolute; inset:0; background-image:linear-gradient(var(--hairline) 1px, transparent 1px); background-size:100% 44px; opacity:.5; }
+.lvl { position:absolute; left:0; right:0; border-top:2px dashed; font-size:9.5px; font-weight:700; padding:1px 8px 0; }
+.expand { position:absolute; right:8px; bottom:6px; font-size:11px; color:var(--accent); font-weight:600; }
+.shead { padding:4px 16px; display:flex; justify-content:space-between; align-items:center; }
+.confline { display:flex; align-items:center; gap:8px; padding:6px 16px 0; }
+.confline .lbl { font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; }
+.confline .n { font-size:13.5px; font-weight:700; }
+.meter { position:relative; flex:1; max-width:130px; height:4px; background:var(--hairline); border-radius:2px; }
+.meter .fill { position:absolute; left:0; top:0; bottom:0; width:86%; background:var(--accent); border-radius:2px; }
+.meter .bar { position:absolute; left:55%; top:-3px; bottom:-3px; width:2px; background:var(--ink); }
+.confnote { padding:3px 16px 0; font-size:11px; color:var(--muted); }
+.copy { margin:8px 16px 0; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--hairline); background:var(--sheet); border-radius:8px; padding:13px 14px; }
+.copy .k { font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; }
+.copy .v { font-size:22px; font-weight:700; }
+.copy .cp { font-size:12px; font-weight:700; color:var(--accent); border:1.5px solid var(--accent); border-radius:6px; padding:9px 13px; min-height:44px; display:flex; align-items:center; }
+.copy.copied .cp { color:var(--buy); border-color:var(--buy); }
+.why { margin:12px 16px; font-size:13px; }
+.tabbar { position:fixed; bottom:0; left:0; right:0; background:var(--sheet); border-top:1px solid var(--hairline); display:flex; }
+.tabbar div { flex:1; text-align:center; padding:10px 0 12px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--muted); }
+.tabbar .on { color:var(--accent); }
+.tabbar .ic { font-size:19px; display:block; margin-bottom:2px; }
+.tabbar .badge { position:relative; }
+.tabbar .badge::after { content:"2"; position:absolute; top:-3px; right:24%; background:var(--caution); color:#fff; border-radius:8px; font-size:9px; padding:0 5px; }
+</style>
+</head>
+<body>
+<header class="mtop">
+  <span class="wm display">Levelflow</span>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="broker" style="padding:5px 9px; font-size:12px;"><span class="dot"></span> E8 <span class="cev">▾</span></span>
+    <span style="width:34px; height:34px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--sheet); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">T</span>
+  </div>
+</header>
+
+<div class="mkt"><select><option>EUR/USD — Euro / U.S. Dollar</option></select></div>
+
+<div class="chart">
+  <div class="grid"></div>
+  <div class="lvl" style="top:12%; color:var(--buy); border-color:var(--buy);">T2 1.09480</div>
+  <div class="lvl" style="top:34%; color:var(--buy); border-color:var(--buy);">T1 1.09120</div>
+  <div class="lvl" style="top:58%; color:var(--accent); border-color:var(--accent);">ENTRY 1.08840</div>
+  <div class="lvl" style="top:80%; color:var(--sell); border-color:var(--sell);">STOP 1.08560</div>
+  <span class="expand">Expand chart ↗</span>
+</div>
+
+<div class="shead">
+  <span class="eyebrow">Buy limit · payoff 2.3:1</span>
+  <span class="chip" style="color:var(--buy)">Clean costs</span>
+</div>
+<div class="confline">
+  <span class="lbl">Confidence</span>
+  <span class="n mono">86<span style="color:var(--muted); font-weight:500;"> of 100</span></span>
+  <span class="meter"><span class="fill"></span><span class="bar"></span></span>
+</div>
+<p class="confnote">Forex setups must score 55 to qualify — this one clears it with room.</p>
+
+<div class="copy"><div><div class="k">Entry</div><div class="v mono">1.08840</div></div><span class="cp">⧉ Copy</span></div>
+<div class="copy"><div><div class="k">Stop</div><div class="v mono" style="color:var(--sell)">1.08560</div></div><span class="cp">⧉ Copy</span></div>
+<div class="copy copied"><div><div class="k">Target 1 · bank half</div><div class="v mono" style="color:var(--buy)">1.09120</div></div><span class="cp">✓ Copied</span></div>
+<div class="copy"><div><div class="k">Target 2 · take-profit</div><div class="v mono" style="color:var(--buy)">1.09480</div></div><span class="cp">⧉ Copy</span></div>
+
+<p class="why">Steady uptrend, pulling back to a defended level. Forex setups like this ended money-positive <b>89%</b> of 90,907 tested. <span class="link">Why</span></p>
+
+<nav class="tabbar">
+  <div class="on"><span class="ic">◎</span>Review</div>
+  <div><span class="ic">⌕</span>Scan</div>
+  <div class="badge"><span class="ic">▤</span>Trades</div>
+  <div><span class="ic">◫</span>Insights</div>
+</nav>
+</body>
+</html>

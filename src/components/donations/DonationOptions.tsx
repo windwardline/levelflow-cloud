@@ -11,7 +11,7 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
   const compact = mode === "compact";
 
   return (
-    <div className={compact ? "rounded-lg border border-hairline bg-paper p-3" : ""}>
+    <div className={compact ? "border-t border-ink-muted/15 pt-4" : ""}>
       <p className="text-sm leading-6 text-ink-muted">Donations support market data, email, hosting, and development.</p>
       {links.length > 0 ? (
         <div className={`mt-4 grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>

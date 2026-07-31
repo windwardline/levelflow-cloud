@@ -12,13 +12,12 @@ import {
   CircleUser,
   Gift,
   History,
-  LayoutDashboard,
   LineChart,
   ListChecks,
+  Loader2,
   LogOut,
   Mail,
   Radar,
-  User,
   UserRound,
   X,
 } from "lucide-react";
@@ -47,7 +46,6 @@ import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
 import {
   buildDefaultProfile,
-  profileDisplayName,
   type ThemeMode,
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
@@ -64,27 +62,14 @@ const SUPPORT_EMAIL = "help@windwardline.com";
 // came from — otherwise an inbound message arrives with no way to route it.
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
 
-const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
-  {
-    icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />,
-    label: "Desk",
-    value: "advisor",
-  },
-  {
-    icon: <History className="h-4 w-4" aria-hidden="true" />,
-    label: "Insights",
-    value: "history",
-  },
-  {
-    icon: <BookOpen className="h-4 w-4" aria-hidden="true" />,
-    label: "Guide",
-    value: "guide",
-  },
-  {
-    icon: <User className="h-4 w-4" aria-hidden="true" />,
-    label: "Profile",
-    value: "profile",
-  },
+// Text only: spec §16 killed icon-chip nav on desktop, and the masthead
+// renders {tab.label} alone. The mobile tab bar keeps its own separate icon
+// set (MOBILE_TAB_ITEMS) — these four were built on every load and discarded.
+const TABS: Array<{ label: string; value: AppTab }> = [
+  { label: "Desk", value: "advisor" },
+  { label: "Insights", value: "history" },
+  { label: "Guide", value: "guide" },
+  { label: "Profile", value: "profile" },
 ];
 const PERSISTED_TABS = new Set<AppTab>([
   "advisor",
@@ -218,12 +203,18 @@ export default function App() {
   }, [activeTab]);
 
   if (loading) {
+    // Fix wave 2B: no mock covers this pre-auth data-loading gate, but it
+    // was the branch's one unjustified boxed-card survivor (final review's
+    // own inventory) — flattened to a minimal centered wordmark and the
+    // system's own spinner idiom (Loader2 + animate-spin), the same
+    // pairing every other loading state in the app already uses.
     return (
-      <main className="flex min-h-screen items-center justify-center bg-paper px-6 text-ink">
-        <div className="terminal-panel w-full max-w-sm p-6 text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-ink/90" />
-          <p className="font-semibold">Opening Levelflow</p>
-        </div>
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center text-ink">
+        <p className="wordmark text-2xl">Levelflow</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-ink-muted">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Opening Levelflow
+        </p>
       </main>
     );
   }
@@ -251,6 +242,15 @@ export default function App() {
     profileState.profile ??
     buildDefaultProfile(session.user.id, session.user.email ?? "");
 
+  // The mobile account trigger is an initial-in-circle (m-mobile-v3.html:44).
+  // The letter comes from the signed-in email rather than a profile display
+  // name: the email is the identity every session has, it is what the avatar
+  // is standing in for, and it never changes shape while a profile save is in
+  // flight. Empty when a session somehow carries no email — the trigger falls
+  // back to its icon rather than rendering a blank circle.
+  const accountInitial = (session.user.email ?? "").trim().charAt(0)
+    .toUpperCase();
+
   // The Desk (≥lg) is a fixed-height, three-column shell that never scrolls
   // as a page — each column scrolls itself (spec §2). Every other tab keeps
   // the ordinary scrolling page. main's grid-rows-[auto_1fr] hands the
@@ -274,10 +274,10 @@ export default function App() {
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
                 account avatar — Guide/Profile/Donate/Sign out all live
-                behind that one button instead of the nav pills and icon
-                row below, which stay exactly as they've always been, just
-                gated to ≥lg via lg:contents so hiding them at <lg can't
-                touch their own layout at ≥lg. */}
+                behind that one button instead of the single-row masthead
+                below (wordmark + text nav + broker chip + Sign out; spec
+                §16), gated to ≥lg via `hidden … lg:flex` so hiding it at
+                <lg can't touch its own layout at ≥lg. */}
             <div
               className="flex min-w-0 items-center justify-between gap-3 lg:hidden"
               data-testid="mobile-header"
@@ -286,8 +286,9 @@ export default function App() {
                 Levelflow
               </p>
               <div className="flex shrink-0 items-center gap-2">
-                <BrokerChip />
+                <BrokerChip compact />
                 <MobileAccountMenu
+                  initial={accountInitial}
                   onOpenDonate={() => setActiveTab("donate")}
                   onOpenGuide={() => setActiveTab("guide")}
                   onOpenProfile={() => setActiveTab("profile")}
@@ -297,62 +298,43 @@ export default function App() {
               </div>
             </div>
 
-            <div className="hidden lg:contents" data-testid="desktop-header">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="min-w-0">
-                  <p className="wordmark text-lg text-ink">Levelflow</p>
-                  <p className="truncate text-xs text-ink-muted">
-                    Welcome, {profileDisplayName(profile)}
-                  </p>
-                </div>
-                <div className="ml-auto">
-                  <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
-                </div>
+            <div
+              className="hidden items-center justify-between lg:flex"
+              data-testid="desktop-header"
+            >
+              <div className="flex items-center gap-6">
+                <p className="wordmark text-xl text-ink">Levelflow</p>
+                <nav
+                  aria-label="Levelflow sections"
+                  className="flex items-center gap-6"
+                >
+                  {TABS.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      className={`text-xs font-semibold uppercase tracking-[0.12em] ${
+                        activeTab === tab.value
+                          ? "text-ink border-b-2 border-accent pb-1"
+                          : "text-ink-muted hover:text-ink"
+                      }`}
+                      onClick={() => setActiveTab(tab.value)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="flex items-center gap-3">
                 <BrokerChip />
-                <a
-                  aria-label="Help"
-                  className="secondary-button min-h-10 px-3 py-2"
-                  href={SUPPORT_MAILTO}
-                >
-                  <Mail className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Help</span>
-                </a>
                 <button
-                  aria-label="Donate"
-                  className="secondary-button min-h-10 px-3 py-2"
-                  type="button"
-                  onClick={() => setActiveTab("donate")}
-                >
-                  <Gift className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Donate</span>
-                </button>
-                <button
-                  aria-label="Sign out"
                   className="secondary-button min-h-10 px-3 py-2"
                   type="button"
                   onClick={() => supabase?.auth.signOut()}
                 >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  Sign out
                 </button>
               </div>
-
-              <nav
-                className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
-                aria-label="Levelflow sections"
-              >
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.value}
-                    className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
             </div>
           </div>
         </header>
@@ -371,7 +353,6 @@ export default function App() {
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}
               profile={profile}
-              setupStats={setupState.stats}
               setups={setupState.setups}
             />
           ) : null}
@@ -386,10 +367,12 @@ export default function App() {
           {activeTab === "profile" ? (
             <ProfilePanel
               memberSince={session.user.created_at}
+              onOpenDonate={() => setActiveTab("donate")}
               onSave={profileState.saveProfile}
               onSignOut={() => supabase?.auth.signOut()}
               onThemeChange={theme.setMode}
               profile={profile}
+              supportMailto={SUPPORT_MAILTO}
               themeMode={theme.mode}
             />
           ) : null}
@@ -405,10 +388,19 @@ export default function App() {
             so the page-wide footer would just duplicate them there — the
             one tab where it's skipped outright rather than merely lg:hidden
             like the Desk tab above it. */}
+        {/* F4 fix wave 2B: below lg, MobileTabBar is fixed to the viewport
+            bottom (>=56px with its safe-area inset) — the same reason the
+            scrolling content wrapper above carries pb-24. This footer is a
+            sibling that renders after that wrapper, so at full scroll it's
+            the trailing thing on the page and needs the identical
+            clearance itself; pb-8 alone let the bar overlay the colophon's
+            padding and the LegalLinks row right above it. lg:pb-8 keeps
+            >=lg exactly as it rendered before — there's no fixed bar to
+            clear there. */}
         {activeTab !== "profile"
           ? (
             <footer
-              className={`mx-auto w-full max-w-7xl px-4 pb-8 pt-12 ${
+              className={`mx-auto w-full max-w-7xl px-4 pb-24 pt-12 lg:pb-8 ${
                 isDeskTab ? "lg:hidden" : ""
               }`}
             >
@@ -495,11 +487,12 @@ const MOBILE_TAB_ITEMS: Array<
 ];
 
 // Spec §3: the mobile-only primary navigation, replacing the top nav pills
-// below lg (those stay put at ≥lg — see the header's lg:contents split
-// above). Persistent across every tab, not just the Desk one, so Review is
-// always one tap away even from Guide or Profile — matching "Guide and
-// Profile reachable via the avatar/menu, not the tab bar" (they're
-// deliberately absent from these four buttons, not from the bar itself).
+// below lg (the masthead's own text nav stays put at ≥lg — see the header's
+// `lg:hidden` / `hidden lg:flex` pair above). Persistent across every tab,
+// not just the Desk one, so Review is always one tap away even from Guide or
+// Profile — matching "Guide and Profile reachable via the avatar/menu, not
+// the tab bar" (they're deliberately absent from these four buttons, not from
+// the bar itself).
 function MobileTabBar({
   active,
   onSelect,
@@ -525,7 +518,12 @@ function MobileTabBar({
               key={item.value}
               aria-current={isActive ? "page" : undefined}
               aria-label={badge ? `${item.label}, ${badge} current` : item.label}
-              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+              // The mock's tab type (m-mobile-v3.html:32): 10.5px bold
+              // uppercase at .06em tracking. Un-prefixed on purpose — the
+              // whole nav is lg:hidden, so these are mobile rules already.
+              // Casing is CSS only; the accessible name comes from the
+              // aria-label above, so the e2e nav-name contracts are untouched.
+              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] ${
                 isActive ? "text-accent" : "text-ink-muted"
               }`}
               type="button"
@@ -535,9 +533,17 @@ function MobileTabBar({
                 {item.icon}
                 {badge
                   ? (
+                    // The mock puts this chip on --caution
+                    // (m-mobile-v3.html:36). The count behind it is unchanged:
+                    // currentTradeBadgeCount, the same pending/open filter the
+                    // Trades tab itself renders — the fill is a color, not a
+                    // new "needs action" claim the data cannot support. The
+                    // mock's own #fff would collapse on the dark theme's gold
+                    // caution (~1.9:1), so the content stays on text-paper,
+                    // which re-values with the fill (tests/contrast.test.ts).
                     <span
                       aria-hidden="true"
-                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 font-mono text-[10px] font-bold leading-none text-paper"
+                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-caution px-1 font-mono text-[10px] font-bold leading-none tracking-normal text-paper"
                     >
                       {badge}
                     </span>
@@ -560,12 +566,16 @@ function MobileTabBar({
 // users could reach before becomes unreachable now that the header no
 // longer shows those buttons directly.
 function MobileAccountMenu({
+  initial,
   onOpenDonate,
   onOpenGuide,
   onOpenProfile,
   onSignOut,
   supportMailto,
 }: {
+  // The signed-in email's first letter, uppercased — see App's accountInitial.
+  // Empty when the session carries no email, which the trigger handles.
+  initial: string;
   onOpenDonate: () => void;
   onOpenGuide: () => void;
   onOpenProfile: () => void;
@@ -649,13 +659,20 @@ function MobileAccountMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-hairline bg-sheet text-ink transition hover:border-accent/40"
+        // The mock's avatar (m-mobile-v3.html:44, and unchanged behind the
+        // open sheet at m-mobile-v3-menu.html:33): a circle on sheet with a
+        // 1.5px hairline border carrying the account's initial in 13px bold.
+        // Held at the kit's 44px tap target rather than the mock's 34px —
+        // spec §16 trims padding and type size, never the hit area. The open
+        // state keeps its ✕ so the trigger still says what tapping it does;
+        // neither mock draws this menu open.
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-hairline bg-sheet text-[13px] font-bold text-ink transition hover:border-accent/40"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
         {open
           ? <X className="h-5 w-5" aria-hidden="true" />
-          : <CircleUser className="h-5 w-5" aria-hidden="true" />}
+          : initial || <CircleUser className="h-5 w-5" aria-hidden="true" />}
       </button>
 
       {open

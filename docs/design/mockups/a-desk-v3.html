@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A — The Desk v3</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+.top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--hairline); background:color-mix(in srgb, var(--paper) 92%, transparent); }
+.top .wm { font-size:20px; font-weight:700; }
+.top nav { display:flex; gap:22px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; color:var(--muted); }
+.top nav .on { color:var(--ink); border-bottom:2px solid var(--accent); padding-bottom:3px; }
+.layout { display:grid; grid-template-columns: 264px 1fr 300px; height: calc(100vh - 61px); }
+body { overflow:hidden; }
+.scrolly { overflow-y:auto; scrollbar-width:thin; scrollbar-color: var(--hairline) transparent; }
+.scrolly::-webkit-scrollbar { width:6px; }
+.scrolly::-webkit-scrollbar-thumb { background:var(--hairline); border-radius:3px; }
+.scrolly::-webkit-scrollbar-track { background:transparent; }
+.railL { border-right:1px solid var(--hairline); padding:18px 16px; }
+.scanhead { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+.count { font-size:12px; color:var(--muted); }
+.menu { margin-top:6px; border:1.5px solid var(--accent); border-radius:6px; background:var(--sheet); box-shadow:0 6px 18px color-mix(in srgb, var(--ink) 12%, transparent); max-height:404px; }
+.menu .grp { font-size:12.5px; font-weight:700; padding:6px 12px 4px; display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid var(--hairline); }
+.menu .grp .n { font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+.menu .opt { font-size:12.5px; font-weight:500; padding:4px 12px 4px 24px; }
+.menu .opt .d { color:var(--muted); font-weight:400; }
+.menu .opt.on { background:color-mix(in srgb, var(--accent) 10%, transparent); color:var(--accent); font-weight:700; }
+.menu .grp.closed, .menu .opt.closed { color:var(--muted); }
+.menu .closed .n, .menu .opt .off { font-size:10.5px; color:var(--muted); font-weight:500; float:right; }
+.menu .n2 { display:flex; flex-direction:column; align-items:flex-end; text-align:right; font-size:10.5px; line-height:1.4; color:var(--muted); font-weight:500; }
+.mkt { padding:10px 10px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+.mkt.sel { background:var(--sheet); box-shadow: inset 3px 0 0 var(--accent); }
+.mkt .sym { font-weight:700; font-size:13.5px; }
+.mkt .meta { font-size:11px; color:var(--muted); }
+.stage { padding:22px 28px; }
+.stagehead { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px; }
+.conf { display:flex; align-items:center; gap:10px; margin-top:7px; }
+.conf .lbl { font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; }
+.conf .n { font-size:15px; font-weight:700; }
+.meter { position:relative; width:150px; height:5px; background:var(--hairline); border-radius:3px; }
+.meter .fill { position:absolute; left:0; top:0; bottom:0; width:86%; background:var(--accent); border-radius:3px; }
+.meter .bar { position:absolute; left:55%; top:-3px; bottom:-3px; width:2px; background:var(--ink); }
+.confnote { font-size:11.5px; color:var(--muted); margin-top:4px; }
+.chart { background:var(--sheet); border:1px solid var(--hairline); height:320px; position:relative; overflow:hidden; }
+.chart .grid { position:absolute; inset:0; background-image:linear-gradient(var(--hairline) 1px, transparent 1px), linear-gradient(90deg, var(--hairline) 1px, transparent 1px); background-size:100% 68px, 96px 100%; opacity:.5; }
+.cndl { position:absolute; width:7px; }
+.lvl { position:absolute; left:0; right:0; border-top:2px dashed; font-size:10.5px; font-weight:700; padding:2px 8px 0; }
+.setup { display:grid; grid-template-columns: 1.1fr .9fr; gap:0; border:1px solid var(--hairline); border-top:none; background:var(--sheet); }
+.ladder { padding:18px 22px; border-right:1px solid var(--hairline); }
+.lrow { display:flex; justify-content:space-between; align-items:baseline; padding:9px 0; border-bottom:1px solid var(--hairline); }
+.lrow:last-child { border-bottom:none; }
+.lrow .k { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+.lrow .v { font-size:20px; font-weight:700; }
+.why { padding:18px 22px; }
+.wrow { display:flex; gap:10px; padding:6px 0; font-size:13px; align-items:baseline; }
+.wrow .t { color:var(--muted); min-width:74px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+.railR { border-left:1px solid var(--hairline); padding:18px 16px; background:color-mix(in srgb, var(--sheet) 55%, var(--paper)); }
+.rrhead { display:flex; justify-content:space-between; align-items:baseline; }
+.stamp { font-size:11px; color:var(--muted); }
+.stamp .link { font-size:11px; }
+.pos { border:1px solid var(--hairline); background:var(--sheet); padding:12px 14px; margin-top:10px; }
+.pos .h { display:flex; justify-content:space-between; font-weight:700; font-size:13.5px; }
+.pos .step { margin-top:8px; font-size:12px; padding:8px 10px; border-left:3px solid var(--caution); background:color-mix(in srgb, var(--caution) 8%, transparent); }
+.pos .step.done { border-left-color:var(--buy); background:color-mix(in srgb, var(--buy) 7%, transparent); }
+.pos .step .when { color:var(--muted); font-weight:500; }
+.pos .lvls { display:flex; gap:12px; margin-top:8px; font-size:12px; }
+.pos .lvls b { display:block; font-size:13px; }
+.footnote { margin-top:14px; font-size:12px; color:var(--muted); }
+.cpv { cursor:pointer; }
+.cpv i { font-style:normal; font-size:13px; color:var(--muted); opacity:.55; }
+.cpv.copied i { color:var(--buy); opacity:1; }
+.canon { margin-top:12px; font-size:12.5px; color:var(--muted); line-height:1.55; border-top:1px solid var(--hairline); padding-top:10px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div style="display:flex; align-items:center; gap:26px;">
+    <span class="wm display">Levelflow</span>
+    <nav><span class="on">Desk</span><span>Insights</span><span>Guide</span><span>Profile</span></nav>
+  </div>
+  <div style="display:flex; gap:12px; align-items:center;">
+    <span class="broker"><span class="dot"></span> E8 Markets <span class="cev">▾</span></span>
+    <button class="ghost" style="padding:7px 12px; font-size:12.5px;">Sign out</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="railL scrolly">
+    <div class="scanhead"><span class="eyebrow">Scan</span><button class="btn" style="padding:5px 12px; font-size:12px;">Scan now</button></div>
+    <select style="width:100%; margin-top:8px; font-size:13.5px; font-weight:700; padding:9px 10px; border:1.5px solid var(--accent); border-radius:6px 6px 0 0; background:var(--sheet); color:var(--ink);">
+      <option>All markets</option>
+    </select>
+    <div class="menu scrolly" style="border-top:none; border-radius:0 0 6px 6px;">
+      <div class="opt on" style="padding-left:12px; padding-top:7px;">All markets</div>
+      <div class="grp">Crypto <span class="n">scan 7</span></div>
+      <div class="opt">ADA/USD</div>
+      <div class="opt">BCH/USD</div>
+      <div class="opt">BTC/USD</div>
+      <div class="opt">ETH/USD</div>
+      <div class="opt">LTC/USD</div>
+      <div class="opt">SOL/USD</div>
+      <div class="opt">XRP/USD</div>
+      <div class="grp closed">Energies <span class="n">opens 6:00p Wed</span></div>
+      <div class="opt closed">Brent Oil</div>
+      <div class="opt closed">US Oil</div>
+      <div class="grp">Forex <span class="n">scan 28</span></div>
+      <div class="opt">AUD/CAD</div>
+      <div class="opt">AUD/CHF</div>
+      <div class="opt">AUD/JPY</div>
+      <div class="opt">AUD/NZD</div>
+      <div class="opt">AUD/USD</div>
+      <div class="opt">CAD/CHF</div>
+      <div class="opt">CAD/JPY</div>
+      <div class="opt">CHF/JPY</div>
+      <div class="opt">EUR/AUD</div>
+      <div class="opt">EUR/CAD</div>
+      <div class="opt">EUR/CHF</div>
+      <div class="opt">EUR/GBP</div>
+      <div class="opt">EUR/JPY</div>
+      <div class="opt">EUR/NZD</div>
+      <div class="opt">EUR/USD</div>
+      <div class="opt">GBP/AUD</div>
+      <div class="opt">GBP/CAD</div>
+      <div class="opt">GBP/CHF</div>
+      <div class="opt">GBP/JPY</div>
+      <div class="opt">GBP/NZD</div>
+      <div class="opt">GBP/USD</div>
+      <div class="opt">NZD/CAD</div>
+      <div class="opt">NZD/CHF</div>
+      <div class="opt">NZD/JPY</div>
+      <div class="opt">NZD/USD</div>
+      <div class="opt">USD/CAD</div>
+      <div class="opt">USD/CHF</div>
+      <div class="opt">USD/JPY</div>
+      <div class="grp">Futures <span class="n">scan 11</span></div>
+      <div class="opt">BZ <span class="d">· Brent</span></div>
+      <div class="opt">CL <span class="d">· WTI</span></div>
+      <div class="opt">ES <span class="d">· S&amp;P 500</span></div>
+      <div class="opt">GC <span class="d">· Gold</span></div>
+      <div class="opt">MGC <span class="d">· Micro Gold</span></div>
+      <div class="opt">NQ <span class="d">· Nasdaq 100</span></div>
+      <div class="opt">RTY <span class="d">· Russell 2000</span></div>
+      <div class="opt">SI <span class="d">· Silver</span></div>
+      <div class="opt">YM <span class="d">· Dow</span></div>
+      <div class="opt">ZB <span class="d">· 30-Yr Bond</span></div>
+      <div class="opt">ZN <span class="d">· 10-Yr Note</span></div>
+      <div class="grp">Metals <span class="n">scan 2</span></div>
+      <div class="opt">XAG/USD <span class="d">· Silver</span></div>
+      <div class="opt">XAU/USD <span class="d">· Gold</span></div>
+    </div>
+    <div class="count mono" style="margin-top:8px;">All markets — 32 scanned · 5 qualify · 5:11 pm</div>
+    <div style="margin-top:8px;">
+      <div class="mkt"><div><div class="sym">XAU/USD</div><div class="meta">Buy · confidence 91</div></div><span class="chip" style="color:var(--buy)">Clean</span></div>
+      <div class="mkt sel"><div><div class="sym">EUR/USD</div><div class="meta">Buy · confidence 86</div></div><span class="chip" style="color:var(--buy)">Clean</span></div>
+      <div class="mkt"><div><div class="sym">BTC/USD</div><div class="meta">Buy · confidence 84</div></div><span class="chip" style="color:var(--muted)">Accept.</span></div>
+      <div class="mkt"><div><div class="sym">GBP/JPY</div><div class="meta">Sell · confidence 78</div></div><span class="chip" style="color:var(--muted)">Accept.</span></div>
+      <div class="mkt"><div><div class="sym">ES Futures</div><div class="meta">Buy · confidence 74</div></div><span class="chip" style="color:var(--muted)">Accept.</span></div>
+    </div>
+    <p class="footnote">Every setup Levelflow generates is saved to Insights automatically.</p>
+  </aside>
+
+  <main class="stage scrolly">
+    <div class="stagehead">
+      <div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <select class="display" style="font-size:24px; font-weight:700; border:none; background:transparent; color:var(--ink); padding:0;"><option>EUR/USD</option></select>
+          <span style="color:var(--buy); font-size:15px; font-weight:700;">BUY LIMIT</span>
+        </div>
+        <div class="conf">
+          <span class="lbl">Confidence</span>
+          <span class="n mono">86<span style="color:var(--muted); font-weight:500;"> of 100</span></span>
+          <span class="meter"><span class="fill"></span><span class="bar"></span></span>
+        </div>
+        <p class="confnote">Forex setups must score 55 to qualify — this one clears it with room to spare.</p>
+      </div>
+      <div style="display:flex; gap:10px;"><button class="ghost">1 hour ▾</button><button class="btn">Review market</button></div>
+    </div>
+    <div class="chart">
+      <div class="grid"></div>
+      <div class="cndl" style="left:8%; top:55%; height:56px; background:var(--sell);"></div>
+      <div class="cndl" style="left:14%; top:48%; height:72px; background:var(--buy);"></div>
+      <div class="cndl" style="left:20%; top:42%; height:54px; background:var(--buy);"></div>
+      <div class="cndl" style="left:26%; top:47%; height:62px; background:var(--sell);"></div>
+      <div class="cndl" style="left:32%; top:38%; height:68px; background:var(--buy);"></div>
+      <div class="cndl" style="left:38%; top:33%; height:52px; background:var(--buy);"></div>
+      <div class="cndl" style="left:44%; top:39%; height:57px; background:var(--sell);"></div>
+      <div class="cndl" style="left:50%; top:31%; height:66px; background:var(--buy);"></div>
+      <div class="cndl" style="left:56%; top:27%; height:48px; background:var(--buy);"></div>
+      <div class="cndl" style="left:62%; top:33%; height:54px; background:var(--sell);"></div>
+      <div class="cndl" style="left:68%; top:25%; height:60px; background:var(--buy);"></div>
+      <div class="cndl" style="left:74%; top:22%; height:44px; background:var(--buy);"></div>
+      <div class="lvl" style="top:18%; color:var(--buy); border-color:var(--buy);">TARGET 2 · 1.09480</div>
+      <div class="lvl" style="top:38%; color:var(--buy); border-color:var(--buy);">TARGET 1 · 1.09120</div>
+      <div class="lvl" style="top:62%; color:var(--accent); border-color:var(--accent);">ENTRY · 1.08840</div>
+      <div class="lvl" style="top:82%; color:var(--sell); border-color:var(--sell);">STOP · 1.08560</div>
+    </div>
+    <div class="setup">
+      <div class="ladder">
+        <p class="eyebrow" style="margin-bottom:6px;">The setup · payoff <span class="mono">2.3 : 1</span></p>
+        <div class="lrow"><span class="k">Entry</span><span class="v mono cpv">1.08840 <i>⧉</i></span></div>
+        <div class="lrow"><span class="k">Stop</span><span class="v mono cpv" style="color:var(--sell)">1.08560 <i>⧉</i></span></div>
+        <div class="lrow"><span class="k">Target 1 · bank half</span><span class="v mono cpv copied" style="color:var(--buy)">1.09120 <i>✓</i></span></div>
+        <div class="lrow"><span class="k">Target 2 · take-profit</span><span class="v mono cpv" style="color:var(--buy)">1.09480 <i>⧉</i></span></div>
+        <p class="canon">Set your take-profit at Target&nbsp;2. When price reaches Target&nbsp;1, close half and move your stop to your entry — profit locked either way.</p>
+      </div>
+      <div class="why">
+        <p class="eyebrow" style="margin-bottom:6px;">Why this setup <span class="link" style="text-transform:none; letter-spacing:0; font-weight:500;">How this works</span></p>
+        <div class="wrow"><span class="t">Market</span><span>Steady uptrend on the daily chart</span></div>
+        <div class="wrow"><span class="t">Location</span><span>Price is pulling back to a level buyers defended twice</span></div>
+        <div class="wrow"><span class="t">Timing</span><span>London session, typical range is healthy</span></div>
+        <div class="wrow"><span class="t">Costs</span><span style="color:var(--buy); font-weight:600;">Clean — spread leaves the payoff intact</span></div>
+        <div class="wrow"><span class="t">Record</span><span>Filled forex setups ended money-positive 89% of the time across 90,907 tested</span></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="railR scrolly">
+    <div class="rrhead">
+      <p class="eyebrow">Current trades</p>
+      <span class="stamp">as of 5:12 pm · <span class="link">refresh</span></span>
+    </div>
+    <div class="pos">
+      <div class="h"><span>XAU/USD · Buy <span class="chip" style="color:var(--buy); margin-left:4px;">Open</span></span><span class="mono" style="color:var(--buy)">+0.8R</span></div>
+      <div class="step">Target 1 hit <span class="when">14 min ago</span> — <b>bank half, move stop to 2,384.20</b></div>
+      <div class="lvls mono"><span class="muted">SL<b>2,384.20</b></span><span>T2<b>2,412.60</b></span></div>
+    </div>
+    <div class="pos">
+      <div class="h"><span>GBP/JPY · Sell <span class="chip" style="color:var(--caution); margin-left:4px;">Pending</span></span><span class="mono" style="color:var(--muted)">—</span></div>
+      <div class="step done">Order pending at 191.240 — nothing to do yet</div>
+      <div class="lvls mono"><span>SL<b>191.980</b></span><span>T1<b>190.760</b></span><span>T2<b>190.020</b></span></div>
+    </div>
+    <p style="margin-top:16px;"><span class="link" style="font-size:13px;">All results → Insights</span></p>
+  </aside>
+</div>
+</body>
+</html>

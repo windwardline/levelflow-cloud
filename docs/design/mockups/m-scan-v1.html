@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile — scan</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { padding-bottom: 76px; }
+.mtop { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--hairline); }
+.mtop .wm { font-size:17px; font-weight:700; }
+.controls { display:flex; gap:10px; padding:14px 16px 6px; }
+.scope { flex:1; display:flex; justify-content:space-between; align-items:center; border:1.5px solid var(--hairline); border-radius:8px; padding:11px 14px; font-size:15px; font-weight:700; background:var(--sheet); }
+.scope .cev { color:var(--muted); font-size:11px; }
+.go { border:none; background:var(--accent); color:#fff; border-radius:8px; padding:11px 18px; font-size:14px; font-weight:700; }
+.note { padding:4px 16px; font-size:11.5px; color:var(--muted); }
+.count { padding:10px 16px 2px; font-size:12.5px; color:var(--muted); display:flex; justify-content:space-between; }
+.mkt { margin:8px 16px 0; border:1px solid var(--hairline); background:var(--sheet); border-radius:8px; padding:13px 14px; display:flex; justify-content:space-between; align-items:center; }
+.mkt.sel { box-shadow: inset 3px 0 0 var(--accent); }
+.mkt .sym { font-weight:700; font-size:15px; }
+.mkt .meta { font-size:12px; color:var(--muted); margin-top:1px; }
+.footnote { margin:14px 16px; font-size:12px; color:var(--muted); }
+.tabbar { position:fixed; bottom:0; left:0; right:0; background:var(--sheet); border-top:1px solid var(--hairline); display:flex; }
+.tabbar div { flex:1; text-align:center; padding:10px 0 12px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--muted); }
+.tabbar .on { color:var(--accent); }
+.tabbar .ic { font-size:19px; display:block; margin-bottom:2px; }
+.tabbar .badge { position:relative; }
+.tabbar .badge::after { content:"2"; position:absolute; top:-3px; right:24%; background:var(--caution); color:#fff; border-radius:8px; font-size:9px; padding:0 5px; }
+</style>
+</head>
+<body>
+<header class="mtop">
+  <span class="wm display">Levelflow</span>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="broker" style="padding:5px 9px; font-size:12px;"><span class="dot"></span> E8 <span class="cev">▾</span></span>
+    <span style="width:34px; height:34px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--sheet); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">T</span>
+  </div>
+</header>
+
+<div class="controls">
+  <span class="scope">All markets <span class="cev">▾</span></span>
+  <button class="go">Scan now</button>
+</div>
+<div class="count"><span class="mono">34 scanned · 6 qualify · 6:41 pm</span></div>
+
+<div class="mkt"><div><div class="sym">XAU/USD</div><div class="meta">Buy · confidence 91 · Clean costs</div></div><span class="chip" style="color:var(--buy)">91</span></div>
+<div class="mkt sel"><div><div class="sym">EUR/USD</div><div class="meta">Buy · confidence 86 · Clean costs</div></div><span class="chip" style="color:var(--buy)">86</span></div>
+<div class="mkt"><div><div class="sym">BTC/USD</div><div class="meta">Buy · confidence 84 · Acceptable costs</div></div><span class="chip" style="color:var(--muted)">84</span></div>
+<div class="mkt"><div><div class="sym">GBP/JPY</div><div class="meta">Sell · confidence 78 · Acceptable costs</div></div><span class="chip" style="color:var(--muted)">78</span></div>
+<div class="mkt"><div><div class="sym">ES · S&amp;P 500</div><div class="meta">Buy · confidence 74 · Acceptable costs</div></div><span class="chip" style="color:var(--muted)">74</span></div>
+
+<p class="footnote">Tap a result to review it — every setup here is already saved to Insights.</p>
+
+<nav class="tabbar">
+  <div><span class="ic">◎</span>Review</div>
+  <div class="on"><span class="ic">⌕</span>Scan</div>
+  <div class="badge"><span class="ic">▤</span>Trades</div>
+  <div><span class="ic">◫</span>Insights</div>
+</nav>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide v1</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+.top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--hairline); }
+.top .wm { font-size:20px; font-weight:700; }
+.top nav { display:flex; gap:22px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; color:var(--muted); }
+.top nav .on { color:var(--ink); border-bottom:2px solid var(--accent); padding-bottom:3px; }
+.wrap { display:grid; grid-template-columns: 230px 1fr; max-width:1020px; margin:0 auto; gap:36px; padding:28px; }
+.toc { position:sticky; top:20px; align-self:start; border-right:1px solid var(--hairline); padding-right:22px; }
+.toc .h { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:10px; }
+.toc a { display:block; font-size:13.5px; font-weight:500; color:var(--ink); text-decoration:none; padding:6px 0; }
+.toc a.on { color:var(--accent); font-weight:700; border-left:3px solid var(--accent); padding-left:10px; margin-left:-13px; }
+article h1 { font-size:30px; font-weight:700; border-bottom:2px solid var(--ink); padding-bottom:14px; }
+article h2 { font-size:19px; font-weight:700; margin:26px 0 8px; }
+article p { font-size:14.5px; margin-bottom:10px; max-width:62ch; }
+.callout { border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 6%, transparent); padding:12px 16px; font-size:14px; margin:14px 0; max-width:62ch; }
+dl { max-width:62ch; }
+dt { font-weight:700; font-size:13.5px; margin-top:10px; }
+dd { font-size:13.5px; color:var(--muted); margin-left:0; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div style="display:flex; align-items:center; gap:26px;">
+    <span class="wm display">Levelflow</span>
+    <nav><span>Desk</span><span>Insights</span><span class="on">Guide</span><span>Profile</span></nav>
+  </div>
+  <div style="display:flex; gap:12px; align-items:center;">
+    <span class="broker"><span class="dot"></span> E8 Markets <span class="cev">▾</span></span>
+    <button class="ghost" style="padding:7px 12px; font-size:12.5px;">Sign out</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <p class="h">Guide</p>
+    <a>How Levelflow reads a market</a>
+    <a class="on">The setup, level by level</a>
+    <a>Managing the trade</a>
+    <a>Costs and spreads</a>
+    <a>The record behind the scores</a>
+    <a>Plain-language glossary</a>
+  </nav>
+  <article>
+    <h1 class="display">The setup, level by level</h1>
+    <p>Every setup is four prices. <b>Entry</b> is where the order waits. <b>Stop</b> is where the idea is wrong and the trade closes at a controlled loss. <b>Target&nbsp;1</b> and <b>Target&nbsp;2</b> are where profit gets taken — in two steps, not one.</p>
+    <h2>The two-target plan</h2>
+    <div class="callout">Set your take-profit at <b>Target&nbsp;2</b>. When price reaches <b>Target&nbsp;1</b>, close half and move your stop to your entry — profit locked either way.</div>
+    <p>Half the position banks real profit at the nearer target; the other half keeps working toward the farther one with the risk already removed. Your platform won't place this automatically — the Desk keeps every level on screen so you can make the two moves by hand when Target&nbsp;1 hits.</p>
+    <h2>What the words mean here</h2>
+    <dl>
+      <dt>Bank half</dt><dd>Close half your position and take that profit now.</dd>
+      <dt>Move your stop to your entry</dt><dd>Change the stop-loss order to the price you entered at — from here the worst case is breaking even on what's left.</dd>
+      <dt>Pending</dt><dd>Your order is placed but hasn't filled yet. Nothing to do.</dd>
+    </dl>
+  </article>
+</div>
+</body>
+</html>

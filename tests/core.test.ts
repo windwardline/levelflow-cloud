@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { getGlobalSessions, getMarketClock } from "../src/lib/marketSessions";
 import {
   CONFIDENCE_TIERS,
   formatConfidenceTierRange,
@@ -548,10 +547,17 @@ describe("confidence tiers", () => {
         // into a day-grouped table; its confidence-formatting call site
         // moved to historyUtils.ts's formatSetupConfidence. AdvisorStatusPanels.tsx
         // (the old MarketResultsPanel) dropped out of this list when I7
-        // retired that panel — DeskStatusStrip and MarketClockPanel, all
-        // that remains there, never format a confidence score.
+        // retired that panel, and spec §16 deleted the file outright along
+        // with the rest of the Desk's status furniture.
+        //
+        // MarketScanPanel dropped out with the same recomposition: the mock's
+        // rail row (a-desk-v3.html:152) carries one meta line — "Buy ·
+        // confidence 86", from marketScanFilters.formatScanRowMeta — in place
+        // of the tiered "Qualified 86%" metric grid, so nothing there resolves
+        // a class threshold anymore. formatConfidenceWithTier's own threshold
+        // behavior is pinned directly above; historyUtils is its last call
+        // site.
         "src/components/workspace/historyUtils.ts",
-        "src/components/workspace/MarketScanPanel.tsx",
       ]
     ) {
       assert.match(
@@ -709,122 +715,6 @@ describe("profile preferences", () => {
       ),
       "MST",
     );
-  });
-});
-
-describe("market clocks", () => {
-  it("uses timezone-aware market status for forex", () => {
-    const beforeFridayClose = new Date("2026-06-12T20:30:00.000Z");
-    const clock = getMarketClock(
-      "EURUSD",
-      "America/Chicago",
-      beforeFridayClose,
-    );
-
-    assert.equal(clock.marketLabel, "Global FX session");
-    assert.equal(clock.statusLabel, "Open");
-    assert.equal(clock.nextEventLabel, "Closes");
-    assert.equal(clock.countdownLabel, "29m");
-  });
-
-  it("accounts for the daily New York rollover pause in the global FX session", () => {
-    const rolloverPause = getMarketClock(
-      "EURUSD",
-      "America/New_York",
-      new Date("2026-06-15T21:00:00.000Z"),
-    );
-
-    assert.equal(rolloverPause.statusLabel, "Closed");
-    assert.equal(rolloverPause.nextEventLabel, "Opens");
-    assert.equal(rolloverPause.countdownLabel, "5m");
-  });
-
-  it("uses a dedicated spot metals session instead of the futures label", () => {
-    const maintenanceWindow = getMarketClock(
-      "XAUUSD",
-      "America/Chicago",
-      new Date("2026-06-15T21:30:00.000Z"),
-    );
-
-    assert.equal(maintenanceWindow.marketLabel, "Spot metals session");
-    assert.equal(maintenanceWindow.statusLabel, "Closed");
-    assert.equal(maintenanceWindow.nextEventLabel, "Opens");
-    assert.equal(maintenanceWindow.countdownLabel, "30m");
-  });
-
-  it("returns all global sessions with the selected session highlighted", () => {
-    const sessions = getGlobalSessions(
-      "America/New_York",
-      "north_america",
-      new Date("2026-06-12T14:00:00.000Z"),
-    );
-
-    assert.deepEqual(
-      sessions.map((session) => session.label),
-      ["Asia", "Europe", "North America", "Australia"],
-    );
-    assert.equal(
-      sessions.find((session) => session.id === "north_america")?.isPreferred,
-      true,
-    );
-  });
-
-  it("uses each session center's local hours instead of fixed UTC offsets", () => {
-    const cases = [
-      {
-        id: "asia",
-        now: "2026-06-12T00:30:00.000Z",
-      },
-      {
-        id: "europe",
-        now: "2026-01-12T08:30:00.000Z",
-      },
-      {
-        id: "north_america",
-        now: "2026-06-12T12:30:00.000Z",
-      },
-      {
-        id: "australia",
-        now: "2026-06-12T06:30:00.000Z",
-      },
-    ] as const;
-
-    for (const testCase of cases) {
-      const sessions = getGlobalSessions(
-        "America/New_York",
-        "any",
-        new Date(testCase.now),
-      );
-      assert.equal(
-        sessions.find((session) => session.id === testCase.id)?.isOpen,
-        true,
-      );
-    }
-  });
-
-  it("keeps regional trading sessions closed on the weekend", () => {
-    const sessions = getGlobalSessions(
-      "America/New_York",
-      "any",
-      new Date("2026-06-13T14:00:00.000Z"),
-    );
-
-    assert.equal(sessions.every((session) => !session.isOpen), true);
-  });
-
-  it("finds the next local session after a daylight-saving clock change", () => {
-    const sessions = getGlobalSessions(
-      "America/New_York",
-      "any",
-      new Date("2026-10-30T22:30:00.000Z"),
-    );
-    const northAmerica = sessions.find((session) =>
-      session.id === "north_america"
-    );
-
-    assert.equal(northAmerica?.isOpen, false);
-    assert.equal(northAmerica?.nextEventLabel, "Opens");
-    assert.equal(northAmerica?.nextEventUserTime, "8:00 AM EST");
   });
 });
 

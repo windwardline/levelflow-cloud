@@ -14,10 +14,12 @@ import { ThemeToggle } from "./ThemeToggle";
 // so nothing here is a silent removal of the only place that data lived.
 // The underlying profile record (useUserProfile/profile.ts) is untouched —
 // this is composition, not a data change: existing stored values for the
-// now-unexposed fields keep working (e.g. the header's "Welcome, {name}"
-// text), they simply have no editing UI left to change them going forward.
+// now-unexposed fields (displayName included) keep working wherever they're
+// still read, they simply have no editing UI left to change them going
+// forward.
 type ProfilePanelProps = {
   memberSince: string;
+  onOpenDonate: () => void;
   onSave: (
     input: Pick<
       UserProfile,
@@ -31,15 +33,18 @@ type ProfilePanelProps = {
   onSignOut: () => void;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
+  supportMailto: string;
   themeMode: ThemeMode;
 };
 
 export function ProfilePanel({
   memberSince,
+  onOpenDonate,
   onSave,
   onSignOut,
   onThemeChange,
   profile,
+  supportMailto,
   themeMode,
 }: ProfilePanelProps) {
   // The retired Preferences form surfaced a save failure inline, not just
@@ -71,24 +76,24 @@ export function ProfilePanel({
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[620px] gap-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-          Profile
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
-          Your account
-        </h1>
-      </div>
+    <div className="mx-auto grid w-full max-w-[620px] gap-4">
+      {/* `.phead` (p-profile-v1.html:11): the 2px ink rule under the title,
+          the same one Insights and Guide already carry — Profile was the one
+          surface of the three drawing its h1 unruled. */}
+      <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink">
+        Profile
+      </h1>
 
-      <section className="terminal-panel p-5 sm:p-6">
+      <section className="terminal-panel px-[22px] py-[18px]">
         <div className="mb-4 flex items-center gap-3">
           <UserRound className="h-5 w-5 text-ink" aria-hidden="true" />
           <h2 className="text-lg font-semibold tracking-normal text-ink">
             Account
           </h2>
         </div>
-        <div className="grid gap-3">
+        {/* No gap: the mock's rows stack flush, each carrying its own 8px
+            block padding, now that they are lines rather than boxes. */}
+        <div className="grid">
           <ProfileDetailRow label="Email" value={profile.email} />
           <ProfileDetailRow
             label="Member since"
@@ -105,7 +110,7 @@ export function ProfilePanel({
         </button>
       </section>
 
-      <section className="terminal-panel p-5 sm:p-6">
+      <section className="terminal-panel px-[22px] py-[18px]">
         <div className="mb-4 flex items-center gap-3">
           <Landmark className="h-5 w-5 text-ink" aria-hidden="true" />
           <h2 className="text-lg font-semibold tracking-normal text-ink">
@@ -119,7 +124,7 @@ export function ProfilePanel({
         </p>
       </section>
 
-      <section className="terminal-panel p-5 sm:p-6">
+      <section className="terminal-panel px-[22px] py-[18px]">
         <div className="mb-4 flex items-center gap-3">
           <Palette className="h-5 w-5 text-ink" aria-hidden="true" />
           <h2 className="text-lg font-semibold tracking-normal text-ink">
@@ -137,6 +142,31 @@ export function ProfilePanel({
           : null}
       </section>
 
+      {/* spec §16 relocation: Help (mailto) and Donate move here from the
+          killed desktop header buttons — the mobile account menu already
+          carries both, so this keeps them reachable once the desktop
+          masthead drops to wordmark + nav + broker chip + Sign out. */}
+      <section className="terminal-panel px-[22px] py-[18px]">
+        {/* Same element and class as the three card headings above — it was an
+            <h3> among <h2> siblings, which is a heading-order jump for anyone
+            navigating this column by structure. */}
+        <h2 className="mb-4 text-lg font-semibold tracking-normal text-ink">
+          Support
+        </h2>
+        <div className="flex flex-col items-start gap-2">
+          <a className="tertiary-link" href={supportMailto}>
+            Email support
+          </a>
+          <button
+            className="tertiary-link"
+            type="button"
+            onClick={onOpenDonate}
+          >
+            Donate
+          </button>
+        </div>
+      </section>
+
       <div className="grid gap-3 px-1">
         <LegalLinks align="left" />
         <p className="colophon">A Windward Line production</p>
@@ -145,9 +175,12 @@ export function ProfilePanel({
   );
 }
 
+// `.row` (p-profile-v1.html:17-19): a bare flex line inside the card, padded
+// on the block axis only. It used to carry its own border and fill, which made
+// every detail a card inside a card on the one surface with real cards.
 function ProfileDetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-hairline bg-paper px-3 py-2 text-sm">
+    <div className="flex min-w-0 items-center justify-between gap-3 py-2 text-sm">
       <span className="min-w-0 text-ink-muted">{label}</span>
       <span className="min-w-0 text-right font-semibold text-ink">
         {value}

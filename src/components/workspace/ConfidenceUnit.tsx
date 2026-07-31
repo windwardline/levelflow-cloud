@@ -1,5 +1,7 @@
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
 import type { SecurityType } from "../../lib/symbolMap";
+import { formatTimestamp } from "./advisorFormat";
+import { HowThisWorksLink } from "./HowThisWorksLink";
 
 // "Within 5 points of the bar" reads as inclusive: a margin of exactly 5
 // still gets the softened note, only 6+ earns "room to spare" (pinned at
@@ -36,46 +38,91 @@ export function buildConfidenceNote(
   return `${assetType} setups must score ${threshold} to qualify — ${clears}`;
 }
 
+// Spec §16 kills the stage's VALID UNTIL metric card; its datum lands here
+// instead, as one quiet line under the confidence note rather than a box of
+// its own ("Reviewed {time} · valid until {time}"). Either half can be
+// missing — a scan-selected candidate carries no review stamp of its own
+// until Review market runs, and a setup without an expiry has no window to
+// print — so the line is assembled from whichever parts actually exist and
+// nothing is fabricated to fill a gap. Returns "" when neither exists, and
+// the component then renders no line at all.
+export function buildConfidenceMeta(
+  reviewedAt: string | null,
+  validUntil: string | null,
+): string {
+  if (reviewedAt && validUntil) {
+    return `Reviewed ${formatTimestamp(reviewedAt)} · valid until ${
+      formatTimestamp(validUntil)
+    }`;
+  }
+  if (reviewedAt) {
+    return `Reviewed ${formatTimestamp(reviewedAt)}`;
+  }
+  if (validUntil) {
+    return `Valid until ${formatTimestamp(validUntil)}`;
+  }
+  return "";
+}
+
 // The canonical confidence unit (design spec §6): a labeled "N of 100"
 // value, a slim meter with a tick at the class's own qualifying threshold,
 // and a one-line note anchoring the number to that bar. Replaces every
 // bare-number confidence display on the Desk stage — never render a raw
 // score without this context.
+//
+// Spec §16 / a-desk-v3.html:168-173: this sits directly under the stagehead's
+// market heading as flat type on paper — no card, no border, no fill. The
+// killed VALID UNTIL card's datum rides along on the meta line below the
+// note (buildConfidenceMeta above).
 export function ConfidenceUnit(
-  { assetType, score }: { assetType: SecurityType; score: number },
+  { assetType, reviewedAt = null, score, validUntil = null }: {
+    assetType: SecurityType;
+    reviewedAt?: string | null;
+    score: number;
+    validUntil?: string | null;
+  },
 ) {
   const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[assetType];
   const fillPercent = clampConfidencePercent(score);
   const tickPercent = clampConfidencePercent(threshold);
+  const meta = buildConfidenceMeta(reviewedAt, validUntil);
 
   return (
-    <div className="grid gap-2 rounded-lg border border-hairline bg-paper px-3 py-3">
-      <div className="flex items-baseline justify-between gap-3">
+    <div className="mt-2 grid min-w-0 gap-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
           Confidence
         </span>
-        <span className="font-mono text-sm font-semibold tabular-nums text-ink">
+        <span className="font-mono text-[15px] font-bold tabular-nums text-ink">
           {formatConfidenceValue(score)}
         </span>
-      </div>
-      <div
-        className="relative h-[5px] w-[150px] max-w-full"
-        aria-hidden="true"
-      >
-        <div className="absolute inset-0 overflow-hidden rounded-full bg-hairline">
-          <div
-            className="h-full rounded-full bg-accent"
-            style={{ width: `${fillPercent}%` }}
+        <span
+          className="relative h-[5px] w-[150px] max-w-full"
+          aria-hidden="true"
+        >
+          <span className="absolute inset-0 overflow-hidden rounded-full bg-hairline">
+            <span
+              className="block h-full rounded-full bg-accent"
+              style={{ width: `${fillPercent}%` }}
+            />
+          </span>
+          <span
+            className="absolute inset-y-0 w-px bg-ink"
+            style={{ left: `${tickPercent}%` }}
           />
-        </div>
-        <div
-          className="absolute inset-y-0 w-px bg-ink"
-          style={{ left: `${tickPercent}%` }}
-        />
+        </span>
       </div>
       <p className="text-xs leading-5 text-ink-muted">
-        {buildConfidenceNote(assetType, score, threshold)}
+        {buildConfidenceNote(assetType, score, threshold)}{" "}
+        <HowThisWorksLink anchor="confidence-tiers" />
       </p>
+      {meta
+        ? (
+          <p className="font-mono text-xs leading-5 text-ink-muted">
+            {meta}
+          </p>
+        )
+        : null}
     </div>
   );
 }

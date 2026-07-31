@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  buildConfidenceMeta,
   buildConfidenceNote,
   clampConfidencePercent,
   formatConfidenceValue,
 } from "../src/components/workspace/ConfidenceUnit";
+import { formatTimestamp } from "../src/components/workspace/advisorFormat";
 import { formatScanRowMeta } from "../src/components/workspace/marketScanFilters";
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../src/lib/advisorReview";
 import type { SecurityType } from "../src/lib/symbolMap";
@@ -104,10 +106,67 @@ describe("buildConfidenceNote", () => {
   });
 });
 
+// Spec §16 folds the killed VALID UNTIL metric card's datum into the
+// confidence unit's own meta line. Both halves are optional: a scan-selected
+// candidate has no review stamp until Review market runs, and a setup without
+// an expiry has no window to print.
+describe("buildConfidenceMeta", () => {
+  const REVIEWED = "2026-07-31T14:05:00.000Z";
+  const EXPIRES = "2026-07-31T18:05:00.000Z";
+  const shown = (value: string) => formatTimestamp(value);
+
+  it("renders both stamps as one line, review first", () => {
+    assert.equal(
+      buildConfidenceMeta(REVIEWED, EXPIRES),
+      `Reviewed ${shown(REVIEWED)} · valid until ${shown(EXPIRES)}`,
+    );
+  });
+
+  it("drops the missing half instead of printing an empty or invented one", () => {
+    assert.equal(
+      buildConfidenceMeta(REVIEWED, null),
+      `Reviewed ${shown(REVIEWED)}`,
+    );
+    assert.equal(
+      buildConfidenceMeta(null, EXPIRES),
+      `Valid until ${shown(EXPIRES)}`,
+    );
+  });
+
+  it("returns an empty string when there is nothing to stamp, so no line renders at all", () => {
+    assert.equal(buildConfidenceMeta(null, null), "");
+  });
+});
+
 describe("ConfidenceUnit component shape (source-pinned — see header comment)", () => {
   it('labels the value "Confidence" and renders it through the value formatter, never a bare number', () => {
     assert.match(CONFIDENCE_UNIT_SOURCE, />\s*Confidence\s*</);
     assert.match(CONFIDENCE_UNIT_SOURCE, /\{formatConfidenceValue\(score\)\}/);
+  });
+
+  // Spec §16: the unit sits on the stagehead's bare paper, not in a card —
+  // the bordered/filled wrapper it used to draw was part of the box-on-box
+  // the owner rejected. The meter's own hairline track and accent fill stay
+  // (pinned below); what must not come back is a frame around the whole unit.
+  it("draws no card of its own — no border, no paper fill around the unit", () => {
+    const root = CONFIDENCE_UNIT_SOURCE.match(
+      /return \(\n\s*<div className="([^"]*)"/,
+    )?.[1] ?? "";
+    assert.ok(root.length > 0, "expected to find the component's root div");
+    assert.doesNotMatch(root, /\bborder\b/);
+    assert.doesNotMatch(root, /\bbg-paper\b/);
+    assert.doesNotMatch(root, /\brounded/);
+  });
+
+  it("renders the meta line only when there is something to stamp", () => {
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /\{meta\s*\n?\s*\?[\s\S]{0,200}\{meta\}/,
+    );
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /const meta = buildConfidenceMeta\(reviewedAt, validUntil\);/,
+    );
   });
 
   it("resolves its qualifying threshold from the live calibration mirror, not a literal", () => {
@@ -160,7 +219,13 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
   });
 
   // m2: spec §2's universal scrollbar treatment applies to every scrollable
-  // column, the scan rail's own results list included.
+  // column, the scan rail's own results list included. Spec §16 recomposed
+  // that list — hairline-separated rows instead of gapped cards, capped at the
+  // mock's own 404px menu height (a-desk-v3.html:21) — but the .scrolly
+  // treatment and the overflow that makes it visible both stay. Fix wave 2C
+  // appended the mobile mock's own arrangement (m-scan-v1.html:45-51: cards
+  // stacked down a scrolling page rather than a nested scroller) behind
+  // `max-lg:`, which leaves this ≥lg contract exactly where it was.
   it("gives the results list the .scrolly thin-scrollbar treatment (m2)", () => {
     const source = readFileSync(
       "src/components/workspace/MarketScanPanel.tsx",
@@ -168,7 +233,7 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
     );
     assert.match(
       source,
-      /className="scrolly grid max-h-\[640px\] gap-3 overflow-y-auto pr-1"/,
+      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto max-lg:/,
     );
   });
 
@@ -188,14 +253,28 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
 });
 
 describe("AdvisorRecommendationPanel wiring (source-pinned — see header comment)", () => {
-  it("wires ConfidenceUnit into the stage in place of the old bare-number cell and gauge", () => {
-    const source = readFileSync(
+  // Spec §16 moved the confidence unit out of this panel and up into the
+  // stagehead, directly under the market heading (a-desk-v3.html:168-173) —
+  // so the "wired in, never a bare number" contract now belongs to
+  // AdvisorWorkspace, and this panel must no longer render one of its own
+  // (two confidence units on one stage is exactly the duplication the
+  // recomposition removes).
+  it("wires ConfidenceUnit into the stagehead, never a bare number, and never a second copy in the panel", () => {
+    const stage = readFileSync(
+      "src/components/workspace/AdvisorWorkspace.tsx",
+      "utf8",
+    );
+    const panel = readFileSync(
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
       "utf8",
     );
-    assert.match(source, /<ConfidenceUnit\b/);
-    assert.doesNotMatch(source, /<ConfidenceGauge\b/);
-    assert.doesNotMatch(source, /\{Math\.round\(setup\.confidenceScore\)\}%/);
+    assert.match(stage, /<ConfidenceUnit\b/);
+    assert.match(stage, /score=\{setup\.confidenceScore\}/);
+    assert.doesNotMatch(panel, /<ConfidenceUnit\b/);
+    for (const source of [stage, panel]) {
+      assert.doesNotMatch(source, /<ConfidenceGauge\b/);
+      assert.doesNotMatch(source, /\{Math\.round\(setup\.confidenceScore\)\}%/);
+    }
   });
 
   // Spec §7: the bundled "Copy levels" button and its levelSummary
@@ -264,9 +343,11 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
       "utf8",
     );
+    // formatTimestamp left this file with the "Valid until" ladder row, which
+    // spec §16 folds into the stagehead's confidence meta line instead.
     assert.match(
       source,
-      /import \{ formatCopyValue, formatNumber, formatTimestamp \} from "\.\/advisorFormat";/,
+      /import \{ formatCopyValue, formatNumber \} from "\.\/advisorFormat";/,
     );
     const writeTextCalls =
       source.match(/navigator\.clipboard\.writeText\([^)]*\)/g) ?? [];
@@ -306,8 +387,16 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
       "utf8",
     );
-    // Real button semantics (spec §7: keyboard accessible), not a div.
-    assert.match(source, /<button\b[^>]*\bclassName="cpv-copy"/);
+    // Real button semantics (spec §7: keyboard accessible), not a div. Fix
+    // wave 2C grew the mobile mock's bordered "⧉ Copy" button
+    // (m-mobile-v3.html:28) out of this same control, so the className is now
+    // a copied/idle pair — both branches keep .cpv-copy as their base, which
+    // is what leaves the ≥lg icon affordance (44px target, negative margin,
+    // muted tone) exactly as it was.
+    const copyButtonTag = source.match(/<button\b[^>]*\bonClick=\{onCopy\}/)?.[0] ??
+      "";
+    assert.ok(copyButtonTag.length > 0, "expected the ladder's copy button");
+    assert.equal((copyButtonTag.match(/\bcpv-copy\b/g) ?? []).length, 2);
     // The ✓ state is transient (~2s) and keyed by field via copiedField,
     // not a single flag — copying one row never shows a false ✓ on
     // another, and the icon swap reads straight off that same state.

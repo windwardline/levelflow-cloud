@@ -1,29 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Check,
-  CheckCircle2,
-  Copy,
-  Loader2,
-  ShieldCheck,
-  Target,
-  XCircle,
-} from "lucide-react";
-import {
-  formatSecurityLabel,
-  getSecurityOption,
-  type SupportedSymbol,
-} from "../../lib/symbolMap";
+import { Check, CheckCircle2, Copy, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
-import { ConfidenceUnit } from "./ConfidenceUnit";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import { SetupQualityReceipt } from "./SetupQualityReceipt";
-import {
-  describeExecutionLabel,
-  formatStrategyName,
-  uniqueReviewMessages,
-} from "./reviewCopy";
-import { formatCopyValue, formatNumber, formatTimestamp } from "./advisorFormat";
-import { MetricRow } from "./AdvisorMetricRow";
+import { formatStrategyName, uniqueReviewMessages } from "./reviewCopy";
+import { formatCopyValue, formatNumber } from "./advisorFormat";
 
 // Spec §7, verbatim, load-bearing: the exact wording the design authority
 // signed off on. Render it as-is everywhere the ladder values appear —
@@ -31,6 +13,15 @@ import { MetricRow } from "./AdvisorMetricRow";
 const LADDER_TARGET_INSTRUCTION =
   "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
 
+// The stage's setup sheet (spec §16, a-desk-v3.html:196-213): the sheet
+// itself is the ONE frame — AdvisorWorkspace draws it, attached hairline-flush
+// under the chart — so nothing in here carries a border, radius or fill of its
+// own. With a setup showing, the sheet splits into the ladder (left) and "Why
+// this setup" (right); every other state fills it as a single padded column.
+//
+// The side tag, the confidence unit and the valid-until stamp all moved up to
+// the stagehead (AdvisorWorkspace + ConfidenceUnit) — this panel starts at the
+// ladder.
 export function RecommendationPanel({
   notice,
   result,
@@ -83,125 +74,110 @@ export function RecommendationPanel({
 
   if (setup) {
     const isBuy = setup.side === "buy";
-    const assetType = getSecurityOption(symbol).assetType;
     const hasLadder = typeof setup.takeProfit1 === "number" &&
       setup.takeProfit1 > 0;
-    const executionLabel = String(
-      (setup.riskModel as Record<string, Record<string, unknown>>)
-        ?.executionQuality?.label ?? "",
-    );
     const rewardRisk = Number(
       (setup.confluence as Record<string, unknown>)?.rewardRisk ?? 0,
     );
 
     return (
-      <div className="grid gap-4">
-        <div className="flex justify-center">
-          <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>
-            {isBuy ? "Buy" : "Sell"} limit
-          </span>
-        </div>
-        <ConfidenceUnit assetType={assetType} score={setup.confidenceScore} />
-        <p>
-          <HowThisWorksLink anchor="confidence-tiers" />
-        </p>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs">
-          <div className="min-w-0">
-            <p className="font-semibold uppercase tracking-normal text-ink-muted">
-              Payoff
-            </p>
-            <p className="mt-0.5 truncate font-mono font-semibold tabular-nums text-ink">
+      <div className="grid min-w-0 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="min-w-0 border-b border-hairline px-5 py-4 lg:border-b-0 lg:border-r">
+          {/* Payoff was its own metric box before spec §16; the mock folds it
+              into the ladder's eyebrow (a-desk-v3.html:198). Costs kept their
+              own row inside "Why this setup" all along. */}
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+            The setup · payoff{" "}
+            <span className="font-mono tabular-nums">
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
-            </p>
+            </span>
+          </p>
+          {/* Flush hairline rows at ≥lg (a-desk-v3.html:199-202); below lg the
+              mock separates the cards by 8px (m-mobile-v3.html:25 `.copy`). */}
+          <div className="grid max-lg:gap-2">
+            <CopyableMetricRow
+              copied={copiedField === "entry"}
+              label="Limit entry"
+              onCopy={() => handleCopy("entry", formatCopyValue(setup.entryPrice))}
+              value={formatNumber(setup.entryPrice)}
+              valueClassName={isBuy ? "text-buy" : "text-sell"}
+            />
+            <CopyableMetricRow
+              copied={copiedField === "stop"}
+              label="Stop loss"
+              onCopy={() => handleCopy("stop", formatCopyValue(setup.stopLoss))}
+              value={formatNumber(setup.stopLoss)}
+              valueClassName="text-sell"
+            />
+            {hasLadder
+              ? (
+                <CopyableMetricRow
+                  copied={copiedField === "target1"}
+                  label="Target 1 · bank half"
+                  onCopy={() => handleCopy("target1", formatCopyValue(setup.takeProfit1!))}
+                  value={formatNumber(setup.takeProfit1!)}
+                  valueClassName="text-buy"
+                />
+              )
+              : null}
+            <CopyableMetricRow
+              copied={copiedField === "target2"}
+              label={hasLadder ? "Target 2 · take-profit" : "Target"}
+              onCopy={() => handleCopy("target2", formatCopyValue(setup.takeProfit))}
+              value={formatNumber(setup.takeProfit)}
+              valueClassName="text-buy"
+            />
           </div>
-          <div
-            className="min-w-0"
-            title={describeExecutionLabel(executionLabel)}
-          >
-            <p className="font-semibold uppercase tracking-normal text-ink-muted">
-              Costs
-            </p>
-            <p className="mt-0.5 truncate font-semibold text-ink">
-              {executionLabel || "Checked"}
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-2 text-sm">
-          <CopyableMetricRow
-            copied={copiedField === "entry"}
-            label="Limit entry"
-            onCopy={() => handleCopy("entry", formatCopyValue(setup.entryPrice))}
-            value={formatNumber(setup.entryPrice)}
-            valueClassName={isBuy ? "text-buy" : "text-sell"}
-          />
-          <CopyableMetricRow
-            copied={copiedField === "stop"}
-            label="Stop loss"
-            onCopy={() => handleCopy("stop", formatCopyValue(setup.stopLoss))}
-            value={formatNumber(setup.stopLoss)}
-          />
           {hasLadder
             ? (
-              <CopyableMetricRow
-                copied={copiedField === "target1"}
-                label="Target 1 · bank half"
-                onCopy={() => handleCopy("target1", formatCopyValue(setup.takeProfit1!))}
-                value={formatNumber(setup.takeProfit1!)}
-              />
+              <p className="mt-3 border-t border-hairline pt-2.5 text-xs leading-5 text-ink-muted">
+                {LADDER_TARGET_INSTRUCTION}{" "}
+                <HowThisWorksLink anchor="targets-and-stops" />
+              </p>
             )
             : null}
-          <CopyableMetricRow
-            copied={copiedField === "target2"}
-            label={hasLadder ? "Target 2 · take-profit" : "Target"}
-            onCopy={() => handleCopy("target2", formatCopyValue(setup.takeProfit))}
-            value={formatNumber(setup.takeProfit)}
-          />
-          {setup.expiresAt
+          {setup.correlationGroup
             ? (
-              <MetricRow
-                label="Valid until"
-                value={formatTimestamp(setup.expiresAt)}
-              />
+              <p className="mt-2 text-xs font-medium leading-5 text-ink-muted">
+                Closely linked market group: {formatStrategyName(setup.correlationGroup)}. Only the
+                strongest setup in a linked group is shown at a time.
+              </p>
+            )
+            : null}
+          {/* A5: this line used to fall back to "Current setup ready for
+              review." — a caption on a ladder the reader can already see is
+              ready. Same discipline the stage applies to its own marketNotice
+              (AdvisorWorkspace): render the element only when there is
+              something to say, so an empty notice leaves no margin behind
+              either. */}
+          {notice
+            ? (
+              <p
+                className={isBuy
+                  ? "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-buy"
+                  : "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-sell"}
+              >
+                {result?.deduplicated
+                  ? (
+                    <CheckCircle2
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  )
+                  : (
+                    <ShieldCheck
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  )}
+                {notice}
+              </p>
             )
             : null}
         </div>
-        {hasLadder
-          ? (
-            <div className="grid gap-1.5 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs leading-5 text-ink-muted">
-              <p>{LADDER_TARGET_INSTRUCTION}</p>
-              <HowThisWorksLink anchor="targets-and-stops" />
-            </div>
-          )
-          : null}
-        {setup.correlationGroup
-          ? (
-            <p className="rounded-lg border border-hairline bg-paper px-3 py-2 text-xs font-medium leading-5 text-ink-muted">
-              Closely linked market group: {formatStrategyName(setup.correlationGroup)}. Only the
-              strongest setup in a linked group is shown at a time.
-            </p>
-          )
-          : null}
-        <div
-          className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${
-            isBuy ? "bg-buy/10 text-buy" : "bg-sell/10 text-sell"
-          }`}
-        >
-          {result?.deduplicated
-            ? (
-              <CheckCircle2
-                className="mt-0.5 h-4 w-4 shrink-0"
-                aria-hidden="true"
-              />
-            )
-            : (
-              <ShieldCheck
-                className="mt-0.5 h-4 w-4 shrink-0"
-                aria-hidden="true"
-              />
-            )}
-          {notice || "Current setup ready for review."}
+        <div className="min-w-0 px-5 py-4">
+          <SetupQualityReceipt result={result} setup={setup} />
         </div>
-        <SetupQualityReceipt result={result} setup={setup} />
       </div>
     );
   }
@@ -211,17 +187,12 @@ export function RecommendationPanel({
   }
 
   return (
-    <div className="grid gap-4 text-sm leading-6 text-ink-muted">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink text-paper">
-        <Target className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-ink">Ready for review</h3>
-        <p className="mt-1">
-          {notice ||
-            "Select a market, review the chart, then ask Levelflow for the current limit setup."}
-        </p>
-      </div>
+    <div className="grid min-w-0 gap-1 px-5 py-4 text-sm leading-6 text-ink-muted">
+      <h3 className="text-base font-semibold text-ink">Ready for review</h3>
+      <p>
+        {notice ||
+          "Select a market, review the chart, then ask Levelflow for the current limit setup."}
+      </p>
     </div>
   );
 }
@@ -235,6 +206,17 @@ export function RecommendationPanel({
 // advisorFormat.ts — so no label, side, or symbol ever rides along, but
 // also so a grouped/locale-formatted display value never corrupts a
 // pasted price either.
+//
+// Below lg the same row is the mock's `.copy` card (m-mobile-v3.html:25-29,
+// 70-73): the label stacked over a 22px value, an 8px-radius hairline card on
+// sheet, and the affordance grown into a bordered button that says what it
+// does. Reached without touching the ≥lg DOM: the row wraps, the label takes
+// the first line, and the value/button wrapper dissolves to `display: contents`
+// so both become items of that wrapped row. At ≥lg the wrapper is a real box
+// again, holding value and ⧉ together at the row's right edge exactly as
+// before. `max-lg:last:border-b` is not redundant with `max-lg:border` — the
+// un-prefixed `last:border-b-0` that keeps ≥lg's final row flush carries a
+// pseudo-class and so outranks a plain border utility on specificity.
 function CopyableMetricRow({
   copied,
   label,
@@ -249,23 +231,30 @@ function CopyableMetricRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
-      <span className="min-w-0 text-ink-muted">{label}</span>
-      <span className="flex min-w-0 items-center gap-1">
+    <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:flex-wrap max-lg:items-center max-lg:gap-y-0 max-lg:rounded-lg max-lg:border max-lg:bg-sheet max-lg:px-3.5 max-lg:py-3 max-lg:last:border-b">
+      <span className="min-w-0 text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:w-full">
+        {label}
+      </span>
+      <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
         <span
-          className={`min-w-0 text-right font-mono font-semibold tabular-nums ${valueClassName}`}
+          className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums max-lg:text-left max-lg:text-[22px] ${valueClassName}`}
         >
           {value}
         </span>
         <button
           aria-label={copied ? `${label} copied` : `Copy ${label}`}
-          className="cpv-copy"
+          className={copied
+            ? "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border-[1.5px] max-lg:border-buy max-lg:px-3 max-lg:text-xs max-lg:font-bold max-lg:text-buy"
+            : "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border-[1.5px] max-lg:border-accent max-lg:px-3 max-lg:text-xs max-lg:font-bold max-lg:text-accent"}
           onClick={onCopy}
           type="button"
         >
           {copied
             ? <Check aria-hidden="true" className="h-4 w-4 text-buy" />
             : <Copy aria-hidden="true" className="h-4 w-4" />}
+          {/* The mock's own button text (:28-29). aria-label still supplies the
+              accessible name, so every copy contract keeps its exact wording. */}
+          <span className="lg:hidden">{copied ? "Copied" : "Copy"}</span>
         </button>
       </span>
     </div>
@@ -281,27 +270,23 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
   ];
 
   return (
-    <div className="grid gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink text-paper">
-        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-accent">
-          Analyzing {symbol}
-        </p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">
-          Building the current setup
-        </h3>
-      </div>
-      <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2 px-5 py-4">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-accent">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+        Analyzing {symbol}
+      </p>
+      <h3 className="text-base font-semibold text-ink">
+        Building the current setup
+      </h3>
+      <div className="grid gap-1">
         {steps.map((step) => (
-          <div
+          <p
             key={step}
-            className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2 text-sm font-semibold text-ink-muted"
+            className="flex items-center gap-2 text-sm font-medium text-ink-muted"
           >
-            <span className="h-2 w-2 rounded-full bg-accent" />
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
             {step}
-          </div>
+          </p>
         ))}
       </div>
     </div>
@@ -330,45 +315,38 @@ function NoSetupPanel({
     .test(primaryReason);
 
   return (
-    <div className="grid gap-4 text-sm leading-6 text-ink-muted">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-caution/15 text-caution">
-        <XCircle className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-normal text-accent">
-          No trade setup
-        </p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">
-          {relatedMarketBlocked ? "Related market is stronger" : "Nothing passed review"}
-        </h3>
-        <p className="mt-1">
-          {relatedMarketBlocked
-            ? `${formatSecurityLabel(symbol)} is not shown because a closely linked market has the better current setup.`
-            : (
-              <>
-                Levelflow cleared the prior display for{" "}
-                {formatSecurityLabel(symbol)} and did not find a current limit
-                setup strong enough to show.
-              </>
-            )}
-        </p>
-      </div>
-      <div className="rounded-lg border border-hairline bg-paper px-3 py-3">
+    <div className="grid min-w-0 gap-2 px-5 py-4 text-sm leading-6 text-ink-muted">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-caution">
+        <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        No trade setup
+      </p>
+      <h3 className="text-base font-semibold text-ink">
+        {relatedMarketBlocked ? "Related market is stronger" : "Nothing passed review"}
+      </h3>
+      <p>
+        {relatedMarketBlocked
+          ? `${formatSecurityLabel(symbol)} is not shown because a closely linked market has the better current setup.`
+          : (
+            <>
+              Levelflow cleared the prior display for{" "}
+              {formatSecurityLabel(symbol)} and did not find a current limit
+              setup strong enough to show.
+            </>
+          )}
+      </p>
+      <div className="mt-1 border-t border-hairline pt-2">
         <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
           Primary reason
         </p>
-        <p className="mt-1 font-medium text-ink">{primaryReason}</p>
+        <p className="mt-0.5 font-medium text-ink">{primaryReason}</p>
       </div>
       {supportingReasons.length > 0
         ? (
-          <div className="grid gap-2">
+          <div className="grid gap-1">
             {supportingReasons.map((reason) => (
-              <div
-                key={reason}
-                className="rounded-lg border border-hairline bg-paper px-3 py-2 font-medium text-ink-muted"
-              >
+              <p key={reason} className="text-xs font-medium leading-5">
                 {reason}
-              </div>
+              </p>
             ))}
           </div>
         )

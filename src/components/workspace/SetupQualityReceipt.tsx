@@ -1,24 +1,38 @@
-import { FileSearch } from "lucide-react";
+import { useId, useState } from "react";
 import { describeReplayRecord } from "../../lib/replayReliability";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
-import { cleanReviewMessage, formatStrategyName } from "./reviewCopy";
+import { cleanReviewMessage, describeExecutionLabel } from "./reviewCopy";
 import type { GuideAnchor } from "./WorkspaceNav";
 
-type QualityReceiptItem = {
+// The mock writes one sentence per row. Where a category has no honest datum
+// for this setup, the row says so with the same em dash the rest of the app
+// uses for a missing value (historyUtils.formatPriceValue) — never a sentence
+// about the review having happened, which is the process narration spec §2
+// rules out and which these rows used to carry as their fallbacks.
+const ABSENT = "—";
+
+// The mock's one mobile line (m-mobile-v3.html:75) reads as the setup's
+// character followed by its record — which is exactly the Market row's
+// sentence followed by the Record row's. So the summary is assembled from
+// rows this panel already builds, in the mock's own order: no sentence is
+// written for mobile that the ≥lg panel doesn't already say.
+const WHY_SUMMARY_LABELS = ["Market", "Record"];
+
+type QualityReceiptRow = {
   anchor?: GuideAnchor;
-  detail: string;
   label: string;
-  tone?: "bullish" | "danger" | "neutral";
-  value: string;
+  sentence: string;
+  // Costs is the one colored row in the mock (a-desk-v3.html:210) — everything
+  // else is plain ink.
+  tone?: "positive" | "negative";
 };
 
 type QualityReceiptData = {
   blockers: string[];
-  items: QualityReceiptItem[];
-  strategyVotes: Array<{ direction: string; name: string; score: number }>;
+  rows: QualityReceiptRow[];
 };
 
 type SetupQualityReceiptProps = {
@@ -26,94 +40,119 @@ type SetupQualityReceiptProps = {
   setup: AnalyzerSetup;
 };
 
+// Spec §16 / a-desk-v3.html:205-212: the right half of the stage's setup
+// sheet. Five quiet label/sentence rows on the sheet's own paper — the
+// per-item cards this used to draw were exactly the box-on-box the owner
+// rejected. The sheet (AdvisorWorkspace) is the only frame; nothing here has a
+// border or a fill.
+// "Why this setup" stays a real heading (the mock draws it as an eyebrow, but
+// dropping the h3 would strip the section's only landmark and the accessible
+// name two e2e specs locate the receipt by) — eyebrow styling, heading
+// semantics.
+//
+// Below lg the mobile mock draws this panel as one sentence and a "Why" link
+// (m-mobile-v3.html:75), not five labeled rows: the phone's stage is the chart
+// and the copy ladder, and the breakdown is a tap away. The rows themselves are
+// unchanged — the disclosure can only ever subtract them below lg, never at the
+// ≥lg width where a-desk-v3.html draws all five.
 export function SetupQualityReceipt(
   { result, setup }: SetupQualityReceiptProps,
 ) {
   const receipt = buildQualityReceipt(setup, result);
+  const summary = buildWhySummary(receipt.rows);
+  const [rowsOpen, setRowsOpen] = useState(false);
+  const rowsId = useId();
+  // With nothing to condense there is nothing to disclose, so the rows carry
+  // themselves at every width rather than hiding behind a toggle whose summary
+  // would be blank — the same "the element speaks only when there is something
+  // to say" discipline the stage applies to its own notices.
+  const rowsShown = rowsOpen || summary.length === 0;
 
   return (
-    <div className="grid gap-3 rounded-lg border border-hairline bg-paper p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <FileSearch className="h-4 w-4 text-accent" aria-hidden="true" />
-          <h3 className="font-semibold text-ink">Why this setup</h3>
-        </div>
+    <div className="grid min-w-0 gap-0.5">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+          Why this setup
+        </h3>
         <HowThisWorksLink anchor="how-review-works" />
       </div>
-      <div className="grid gap-2">
-        {receipt.items.map((item) => (
+      {summary
+        ? (
+          <p className="text-[13px] leading-5 lg:hidden">
+            {summary}{" "}
+            <button
+              aria-controls={rowsId}
+              aria-expanded={rowsOpen}
+              className="tertiary-link"
+              type="button"
+              onClick={() => setRowsOpen((open) => !open)}
+            >
+              Why
+            </button>
+          </p>
+        )
+        : null}
+      <div
+        className={rowsShown
+          ? "grid min-w-0 gap-0.5"
+          : "grid min-w-0 gap-0.5 max-lg:hidden"}
+        id={rowsId}
+      >
+        {receipt.rows.map((row) => (
           <div
-            key={item.label}
-            className="rounded-lg border border-hairline bg-sheet px-3 py-2"
+            key={row.label}
+            className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1.5 text-[13px] leading-5"
           >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                {item.label}
-              </p>
-              <p
-                className={`text-right text-sm font-semibold ${
-                  item.tone === "bullish"
-                    ? "text-accent"
-                    : item.tone === "danger"
-                    ? "text-sell"
-                    : "text-ink"
-                }`}
-              >
-                {item.value}
-              </p>
-            </div>
-            <p className="mt-1 text-xs leading-5 text-ink-muted">
-              {item.detail}
-            </p>
-            {item.anchor
-              ? (
-                <p className="mt-1">
-                  <HowThisWorksLink anchor={item.anchor} />
-                </p>
-              )
-              : null}
+            <span className="min-w-[74px] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+              {row.label}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className={sentenceToneClassName(row.tone)}>
+                {row.sentence}
+              </span>
+              {row.anchor
+                ? (
+                  <>
+                    {" "}
+                    <HowThisWorksLink anchor={row.anchor} />
+                  </>
+                )
+                : null}
+            </span>
           </div>
         ))}
       </div>
-      {receipt.strategyVotes.length > 0
-        ? (
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-              Strongest checks
-            </p>
-            <div className="grid gap-2">
-              {receipt.strategyVotes.slice(0, 3).map((vote) => (
-                <div
-                  key={`${vote.name}:${vote.direction}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-sheet px-3 py-2 text-sm"
-                >
-                  <span className="min-w-0 truncate font-semibold text-ink">
-                    {formatStrategyName(vote.name)}
-                  </span>
-                  <span
-                    className={vote.direction === "buy"
-                      ? "text-buy"
-                      : vote.direction === "sell"
-                      ? "text-sell"
-                      : "text-ink-muted"}
-                  >
-                    {formatVoteSupport(vote.direction)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-        : null}
       {receipt.blockers.length > 0
         ? (
-          <div className="rounded-lg border border-caution/25 bg-caution/10 px-3 py-2 text-xs font-semibold leading-5 text-caution">
+          <p className="mt-2 border-t border-hairline pt-2 text-xs font-semibold leading-5 text-caution">
             Note: {receipt.blockers.map(cleanReviewMessage).join(" ")}
-          </div>
+          </p>
         )
         : null}
     </div>
   );
+}
+
+// A category with no honest datum renders as an em dash in its own row; it
+// contributes nothing to the summary rather than dropping a bare dash into the
+// middle of a sentence.
+function buildWhySummary(rows: QualityReceiptRow[]): string {
+  return WHY_SUMMARY_LABELS
+    .map((label) => rows.find((row) => row.label === label)?.sentence ?? ABSENT)
+    .filter((sentence) => sentence !== ABSENT)
+    .join(" ");
+}
+
+function sentenceToneClassName(
+  tone: QualityReceiptRow["tone"],
+): string | undefined {
+  if (tone === "positive") {
+    return "font-semibold text-buy";
+  }
+  if (tone === "negative") {
+    return "font-semibold text-sell";
+  }
+  return undefined;
 }
 
 function buildQualityReceipt(
@@ -122,17 +161,11 @@ function buildQualityReceipt(
 ): QualityReceiptData {
   const confluence = setup.confluence ?? {};
   const riskModel = setup.riskModel ?? {};
-  const consensus = asRecord(confluence.consensus);
   const marketRegime = asRecord(confluence.marketRegime);
   const orderConstruction = asRecord(confluence.orderConstruction);
   const sessionContext = asRecord(confluence.sessionContext);
   const newsContext = asRecord(confluence.newsContext);
-  const macroRateContext = asRecord(confluence.macroRateContext);
   const executionQuality = asRecord(riskModel.executionQuality);
-  const rewardRisk = asNumber(confluence.rewardRisk);
-  const grossRewardRisk = asNumber(confluence.grossRewardRisk);
-  const weightAdjustment = asNumber(confluence.strategyWeightAdjustment);
-  const sampleSize = asNumber(confluence.strategyWeightSampleSize);
   const providerWarnings = asStringArray(confluence.providerWarnings).concat(
     result?.providerWarnings ?? [],
   );
@@ -140,177 +173,91 @@ function buildQualityReceipt(
     ? confluence.upcomingNewsEvents.length
     : asNumber(newsContext.upcomingEvents) ?? 0;
   const headlineNewsEvents = asNumber(newsContext.headlineEvents) ?? 0;
-  const timingRiskCount = upcomingNewsEvents + headlineNewsEvents;
-  const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
-  const tickValidation = typeof orderConstruction.tickValidation === "string"
-    ? orderConstruction.tickValidation
-    : "";
-
-  const items: QualityReceiptItem[] = [
-    {
-      detail: String(
-        marketRegime.rationale ??
-          "Market condition was included in the review.",
-      ),
-      label: "Market condition",
-      value: formatStrategyName(String(marketRegime.name ?? "current")),
-    },
-    {
-      detail: `Buy case ${
-        formatMaybeNumber(consensus.buyScore)
-      }/100, sell case ${formatMaybeNumber(consensus.sellScore)}/100, caution ${
-        formatMaybeNumber(consensus.blockScore)
-      }/100.`,
-      label: "Direction",
-      tone: setup.side === "buy" ? "bullish" : "danger",
-      value: setup.side === "buy" ? "Buy view" : "Sell view",
-    },
-    {
-      detail: [
-        String(
-          orderConstruction.validation ??
-            "Entry is built as a limit order away from the latest close.",
-        ),
-        tickValidation,
-      ].filter(Boolean).join(" "),
-      label: "Order type",
-      value: "Limit only",
-    },
-    {
-      detail: String(
-        riskModel.stopLogic ??
-          "Stop uses price structure and a volatility buffer.",
-      ),
-      label: "Risk",
-      value: "Stop checked",
-    },
-    {
-      detail: String(
-        riskModel.targetLogic ??
-          "Target uses price structure, volatility, and payoff checks.",
-      ),
-      label: "Target",
-      value: formatPayoff(rewardRisk),
-    },
-    {
-      detail: buildExecutionDetail(
-        executionQuality,
-        grossRewardRisk,
-        rewardRisk,
-      ),
-      label: "Trading costs",
-      tone: asNumber(executionQuality.confidencePenalty) ? "danger" : "neutral",
-      value: String(executionQuality.label ?? "Checked"),
-    },
-    {
-      detail: `${String(sessionContext.label ?? "Session context")} ${
-        timingRiskCount > 0
-          ? `with ${timingRiskCount} event or headline ${
-            timingRiskCount === 1 ? "factor" : "factors"
-          } affecting timing.`
-          : "with no event or headline penalty."
-      }`,
-      label: "Timing",
-      tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
-      value: asNumber(sessionContext.penalty) ? "Event risk" : "Clean",
-    },
-    ...buildReplayRecordItems(setup),
-    {
-      detail: sampleSize && sampleSize > 0
-        ? `${sampleSize} finished setups included.`
-        : "More finished setups are needed.",
-      label: "Past results",
-      tone: weightAdjustment && weightAdjustment > 0
-        ? "bullish"
-        : weightAdjustment && weightAdjustment < 0
-        ? "danger"
-        : "neutral",
-      value: formatScoreAdjustment(weightAdjustment),
-    },
-  ];
-
-  if (typeof macroRateContext.source === "string") {
-    const rateAdjustment = asNumber(macroRateContext.adjustment);
-    items.splice(7, 0, {
-      detail: String(
-        macroRateContext.detail ?? "Treasury-rate context was checked.",
-      ),
-      label: "Rates",
-      tone: rateAdjustment && rateAdjustment < 0
-        ? "danger"
-        : rateAdjustment && rateAdjustment > 0
-        ? "bullish"
-        : "neutral",
-      value: formatRateAdjustment(rateAdjustment),
-    });
-  }
-
-  return {
-    blockers: Array.from(new Set(providerWarnings)).slice(0, 3),
-    items,
-    strategyVotes,
-  };
-}
-
-function buildReplayRecordItems(setup: AnalyzerSetup): QualityReceiptItem[] {
+  const costRating = asText(executionQuality.label);
+  const costPenalty = asNumber(executionQuality.confidencePenalty) ?? 0;
   const record = describeReplayRecord(
     getSecurityOption(setup.symbol).assetType,
   );
-  if (!record) {
-    return [];
-  }
-  return [{
-    anchor: "replay-record",
-    detail: record.detail,
-    label: "Replay record",
-    value: record.value,
-  }];
+
+  const rows: QualityReceiptRow[] = [
+    {
+      // The regime check's own one-line reason — "Moving average separation
+      // and price location support a trend regime."
+      label: "Market",
+      sentence: asText(marketRegime.rationale) || ABSENT,
+    },
+    {
+      label: "Location",
+      sentence: buildLocationSentence(orderConstruction),
+    },
+    {
+      label: "Timing",
+      sentence: buildTimingSentence(
+        sessionContext,
+        upcomingNewsEvents + headlineNewsEvents,
+      ),
+    },
+    {
+      // Spec §16 deletes the scan rail's legend box, which carried the only
+      // "cost-ratings" disclosure link in the app. The Costs row is where a
+      // cost rating is actually explained, so the link lands here instead —
+      // same treatment the Record row already used.
+      anchor: "cost-ratings",
+      label: "Costs",
+      sentence: costRating
+        ? `${costRating} — ${describeExecutionLabel(costRating)}`
+        : ABSENT,
+      tone: costRating
+        ? costPenalty > 0 ? "negative" : "positive"
+        : undefined,
+    },
+    {
+      anchor: "replay-record",
+      label: "Record",
+      // Already one sentence with its real numbers in it.
+      sentence: record?.detail ?? ABSENT,
+    },
+  ];
+
+  return {
+    blockers: Array.from(new Set(providerWarnings)).slice(0, 3),
+    rows,
+  };
 }
 
-function buildExecutionDetail(
-  executionQuality: Record<string, unknown>,
-  grossRewardRisk: number | null,
-  rewardRisk: number | null,
+// Where price sits relative to the level is the entry-zone check the analyzer
+// already runs: which side of the latest close a limit entry has to sit on,
+// and the close it is measured against. Both fields arrive with the setup —
+// nothing here is inferred.
+function buildLocationSentence(orderConstruction: Record<string, unknown>) {
+  const validation = asText(orderConstruction.validation);
+  if (!validation) {
+    return ABSENT;
+  }
+  const base = capitalizeFirst(validation.replace(/\.\s*$/, ""));
+  const latestClose = asNumber(orderConstruction.latestClose);
+  return latestClose === null
+    ? `${base}.`
+    : `${base} of ${formatNumber(latestClose)}.`;
+}
+
+function buildTimingSentence(
+  sessionContext: Record<string, unknown>,
+  timingRiskCount: number,
 ) {
-  const penalty = asNumber(executionQuality.confidencePenalty) ?? 0;
-  const roundTripCost = asNumber(executionQuality.estimatedRoundTripCost);
-  const spreadSource = String(executionQuality.spreadSource ?? "modeled");
-  const gross = grossRewardRisk
-    ? `${grossRewardRisk.toFixed(2)}x`
-    : "gross payoff";
-  const effective = rewardRisk
-    ? `${rewardRisk.toFixed(2)}x`
-    : "effective payoff";
-  const costBasis = spreadSource === "quoted"
-    ? "Current spread and estimated order cost"
-    : "Estimated spread and order cost";
-  const cost = roundTripCost
-    ? `${costBasis} ${formatNumber(roundTripCost)}.`
-    : `${costBasis} checked.`;
-
-  return `${cost} Payoff after costs is ${effective}${
-    grossRewardRisk && rewardRisk && gross !== effective
-      ? ` instead of ${gross}`
-      : ""
-  }${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
+  const label = asText(sessionContext.label);
+  if (!label) {
+    return ABSENT;
+  }
+  return timingRiskCount > 0
+    ? `${label} with ${timingRiskCount} event or headline ${
+      timingRiskCount === 1 ? "factor" : "factors"
+    } affecting timing.`
+    : `${label} with no event or headline penalty.`;
 }
 
-function normalizeStrategyVotes(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => {
-      const vote = asRecord(item);
-      return {
-        direction: String(vote.direction ?? "neutral"),
-        name: String(vote.name ?? "strategy"),
-        score: asNumber(vote.score) ?? 0,
-      };
-    })
-    .filter((vote) => vote.score > 0)
-    .sort((first, second) => second.score - first.score);
+function capitalizeFirst(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -324,56 +271,14 @@ function asNumber(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
+function asText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function asStringArray(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string =>
       typeof item === "string" && item.trim().length > 0
     )
     : [];
-}
-
-function formatMaybeNumber(value: unknown) {
-  const number = asNumber(value);
-  return number === null
-    ? "Pending"
-    : Number.isInteger(number)
-    ? String(number)
-    : number.toFixed(2);
-}
-
-function formatPayoff(value: number | null | undefined) {
-  return value ? `${value.toFixed(2)}x payoff` : "Target pending";
-}
-
-function formatScoreAdjustment(value: number | null) {
-  if (value === null) {
-    return "Building";
-  }
-  if (value > 0) {
-    return "Improving";
-  }
-  if (value < 0) {
-    return "Cooling";
-  }
-  return "Neutral";
-}
-
-function formatRateAdjustment(value: number | null) {
-  if (value === null || value === 0) {
-    return "Checked";
-  }
-  return value > 0 ? "Supports" : "Caution";
-}
-
-function formatVoteSupport(direction: string) {
-  if (direction === "buy") {
-    return "Buy support";
-  }
-  if (direction === "sell") {
-    return "Sell support";
-  }
-  if (direction === "block") {
-    return "Caution";
-  }
-  return "Neutral";
 }

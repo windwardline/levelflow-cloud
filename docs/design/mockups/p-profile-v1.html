@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile v1</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+.top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--hairline); }
+.top .wm { font-size:20px; font-weight:700; }
+.top nav { display:flex; gap:22px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; color:var(--muted); }
+.top nav .on { color:var(--ink); border-bottom:2px solid var(--accent); padding-bottom:3px; }
+.page { max-width:620px; margin:0 auto; padding:28px; }
+.phead { border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:8px; }
+.phead h1 { font-size:30px; font-weight:700; }
+.card { background:var(--sheet); border:1px solid var(--hairline); margin-top:16px; padding:18px 22px; }
+.card .h { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:12px; }
+.row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
+.row .k { font-size:13px; color:var(--muted); }
+.row .v { font-size:14px; font-weight:600; }
+.seg { display:inline-flex; border:1.5px solid var(--hairline); border-radius:6px; overflow:hidden; }
+.seg span { padding:7px 14px; font-size:12.5px; font-weight:600; color:var(--muted); border-right:1px solid var(--hairline); }
+.seg span:last-child { border-right:none; }
+.seg .on { background:var(--accent); color:#fff; }
+.legal { margin-top:20px; font-size:12px; color:var(--muted); display:flex; gap:14px; }
+.legal .link { font-size:12px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div style="display:flex; align-items:center; gap:26px;">
+    <span class="wm display">Levelflow</span>
+    <nav><span>Desk</span><span>Insights</span><span>Guide</span><span class="on">Profile</span></nav>
+  </div>
+  <div style="display:flex; gap:12px; align-items:center;">
+    <span class="broker"><span class="dot"></span> E8 Markets <span class="cev">▾</span></span>
+    <button class="ghost" style="padding:7px 12px; font-size:12.5px;">Sign out</button>
+  </div>
+</header>
+
+<div class="page">
+  <div class="phead"><h1 class="display">Profile</h1></div>
+
+  <div class="card">
+    <p class="h">Account</p>
+    <div class="row"><span class="k">Email</span><span class="v">trader@example.com</span></div>
+    <div class="row"><span class="k">Member since</span><span class="v">July 2026</span></div>
+    <div class="row"><span class="k">Session</span><button class="ghost" style="padding:7px 14px; font-size:12.5px;">Sign out</button></div>
+  </div>
+
+  <div class="card">
+    <p class="h">Broker</p>
+    <div class="row"><span class="k">Trading with</span><span class="broker"><span class="dot"></span> E8 Markets</span></div>
+    <p style="font-size:12.5px; color:var(--muted); margin-top:6px;">Setups are tuned to this broker's markets and costs, and your Insights record is kept per broker.</p>
+  </div>
+
+  <div class="card">
+    <p class="h">Appearance</p>
+    <div class="row">
+      <span class="k">Theme</span>
+      <span class="seg"><span>Light</span><span>Dark</span><span class="on">System</span></span>
+    </div>
+  </div>
+
+  <div class="legal">
+    <span class="link">Terms</span><span class="link">Privacy</span><span class="link">Risk disclosure</span>
+    <span style="margin-left:auto;">A Windward Line production</span>
+  </div>
+</div>
+</body>
+</html>

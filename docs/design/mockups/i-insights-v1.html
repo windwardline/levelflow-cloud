@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insights v1</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+.top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--hairline); }
+.top .wm { font-size:20px; font-weight:700; }
+.top nav { display:flex; gap:22px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; color:var(--muted); }
+.top nav .on { color:var(--ink); border-bottom:2px solid var(--accent); padding-bottom:3px; }
+.page { max-width:1180px; margin:0 auto; padding:24px 28px; }
+.phead { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--ink); padding-bottom:14px; }
+.phead h1 { font-size:30px; font-weight:700; }
+.stats { display:flex; gap:34px; }
+.stat .n { font-size:24px; font-weight:700; }
+.stat .l { font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:700; }
+.filters { display:flex; gap:10px; align-items:center; padding:14px 0; border-bottom:1px solid var(--hairline); flex-wrap:wrap; }
+.seg { display:inline-flex; border:1.5px solid var(--hairline); border-radius:6px; overflow:hidden; }
+.seg span { padding:7px 13px; font-size:12.5px; font-weight:600; color:var(--muted); border-right:1px solid var(--hairline); }
+.seg span:last-child { border-right:none; }
+.seg .on { background:var(--accent); color:#fff; }
+.fsel { border:1.5px solid var(--hairline); border-radius:6px; padding:7px 12px; font-size:12.5px; font-weight:600; background:var(--sheet); color:var(--ink); }
+.flabel { font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:700; margin-right:2px; }
+.dayhead { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:700; margin:20px 0 6px; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:700; padding:7px 10px; border-bottom:2px solid var(--ink); }
+th.r, td.r { text-align:right; }
+td { padding:11px 10px; border-bottom:1px solid var(--hairline); font-size:13.5px; background:var(--sheet); }
+td.sym { font-weight:700; }
+.tag { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; font-weight:700; border:1px solid var(--hairline); border-radius:2px; padding:1px 6px; color:var(--muted); }
+.res { font-weight:700; font-size:12px; }
+.footnote { margin-top:16px; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div style="display:flex; align-items:center; gap:26px;">
+    <span class="wm display">Levelflow</span>
+    <nav><span>Desk</span><span class="on">Insights</span><span>Guide</span><span>Profile</span></nav>
+  </div>
+  <div style="display:flex; gap:12px; align-items:center;">
+    <span class="broker"><span class="dot"></span> E8 Markets <span class="cev">▾</span></span>
+    <button class="ghost" style="padding:7px 12px; font-size:12.5px;">Sign out</button>
+  </div>
+</header>
+
+<div class="page">
+  <div class="phead">
+    <h1 class="display">Insights</h1>
+    <div class="stats">
+      <div class="stat"><div class="n display mono">14</div><div class="l">Setups this week</div></div>
+      <div class="stat"><div class="n display mono" style="color:var(--buy)">71%</div><div class="l">Money-positive</div></div>
+      <div class="stat"><div class="n display mono" style="color:var(--buy)">+4.2R</div><div class="l">Net this week</div></div>
+      <div class="stat"><div class="n display mono">XAU</div><div class="l">Best market</div></div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <span class="flabel">Market</span>
+    <select class="fsel"><option>All markets</option></select>
+    <span class="flabel" style="margin-left:12px;">Status</span>
+    <span class="seg"><span class="on">All</span><span>Open</span><span>Pending</span><span>Closed</span></span>
+    <span class="flabel" style="margin-left:12px;">Period</span>
+    <select class="fsel"><option>Last 30 days</option></select>
+  </div>
+
+  <p class="dayhead">Today — Wednesday, July 30</p>
+  <table>
+    <tr><th>Market</th><th>Side</th><th class="r">Confidence</th><th class="r">Entry</th><th class="r">Stop</th><th class="r">Target 1</th><th class="r">Target 2</th><th>Result</th></tr>
+    <tr>
+      <td class="sym">XAU/USD</td><td><span class="chip" style="color:var(--buy)">Buy</span></td>
+      <td class="mono r">91</td><td class="mono r">2,371.40</td><td class="mono r">2,358.60</td><td class="mono r">2,384.20</td><td class="mono r">2,412.60</td>
+      <td><span class="res" style="color:var(--buy)">Open · +0.8R</span></td>
+    </tr>
+    <tr>
+      <td class="sym">EUR/USD</td><td><span class="chip" style="color:var(--buy)">Buy</span></td>
+      <td class="mono r">86</td><td class="mono r">1.08840</td><td class="mono r">1.08560</td><td class="mono r">1.09120</td><td class="mono r">1.09480</td>
+      <td><span class="res" style="color:var(--muted)">Not taken</span></td>
+    </tr>
+    <tr>
+      <td class="sym">GBP/JPY</td><td><span class="chip" style="color:var(--sell)">Sell</span></td>
+      <td class="mono r">78</td><td class="mono r">191.240</td><td class="mono r">191.980</td><td class="mono r">190.760</td><td class="mono r">190.020</td>
+      <td><span class="res" style="color:var(--caution)">Pending</span></td>
+    </tr>
+  </table>
+
+  <p class="dayhead">Tuesday, July 29</p>
+  <table>
+    <tr>
+      <td class="sym">BTC/USD</td><td><span class="chip" style="color:var(--buy)">Buy</span></td>
+      <td class="mono r">84</td><td class="mono r">117,240</td><td class="mono r">115,980</td><td class="mono r">118,420</td><td class="mono r">121,760</td>
+      <td><span class="res" style="color:var(--buy)">Target 2 · +2.1R</span></td>
+    </tr>
+    <tr>
+      <td class="sym">US Oil</td><td><span class="chip" style="color:var(--sell)">Sell</span></td>
+      <td class="mono r">71</td><td class="mono r">77.85</td><td class="mono r">78.90</td><td class="mono r">76.40</td><td class="mono r">75.15</td>
+      <td><span class="res" style="color:var(--sell)">Stopped · −1.0R</span></td>
+    </tr>
+    <tr>
+      <td class="sym">ES · S&amp;P 500</td><td><span class="chip" style="color:var(--buy)">Buy</span></td>
+      <td class="mono r">74</td><td class="mono r">5,582</td><td class="mono r">5,558</td><td class="mono r">5,608</td><td class="mono r">5,642</td>
+      <td><span class="res" style="color:var(--muted)">Unfilled</span></td>
+    </tr>
+    <tr>
+      <td class="sym">XAG/USD</td><td><span class="chip" style="color:var(--buy)">Buy</span></td>
+      <td class="mono r">90</td><td class="mono r">30.84</td><td class="mono r">30.52</td><td class="mono r">31.18</td><td class="mono r">31.66</td>
+      <td><span class="res" style="color:var(--buy)">Banked half · +0.4R</span></td>
+    </tr>
+  </table>
+
+  <p class="footnote">Every setup Levelflow generates is saved here automatically, taken or not. Your record is tracked per broker: <b>E8 Markets</b>.</p>
+</div>
+</body>
+</html>

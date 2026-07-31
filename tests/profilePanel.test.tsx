@@ -59,3 +59,38 @@ describe("ProfilePanel theme-save failure notice (fix round 1, item 4)", () => {
     assert.equal(matches.length, 1);
   });
 });
+
+// Final review, Minor 5: three details on a surface the owner will open at
+// re-present. Both directions, same discipline as the Desk guards.
+describe("Profile composition (p-profile-v1.html:11-19, source-pinned)", () => {
+  it("rules the h1 like Insights and Guide — the mock's 2px ink phead", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /<h1 className="border-b-2 border-ink pb-3\.5 text-2xl font-semibold tracking-normal text-ink">\s*Profile\s*<\/h1>/,
+    );
+  });
+
+  it("draws detail rows as the mock's plain lines — no card inside a card", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /<div className="flex min-w-0 items-center justify-between gap-3 py-2 text-sm">/,
+    );
+    assert.doesNotMatch(PANEL_SOURCE, /rounded-lg border border-hairline bg-paper/);
+  });
+
+  it("gives every card heading the same element and class — no h3 among h2 siblings", () => {
+    const headings = PANEL_SOURCE.match(/<h[23] className="[^"]*"/g) ?? [];
+    assert.equal(headings.length, 4, "Account, Broker, Appearance, Support");
+    for (const heading of headings) {
+      assert.match(heading, /^<h2 className="(?:mb-4 )?text-lg font-semibold tracking-normal text-ink"$/);
+    }
+  });
+
+  it("keeps the four cards the mock draws as cards", () => {
+    assert.equal(
+      (PANEL_SOURCE.match(/terminal-panel px-\[22px\] py-\[18px\]/g) ?? [])
+        .length,
+      4,
+    );
+  });
+});

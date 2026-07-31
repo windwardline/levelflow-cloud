@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LegalLinks } from "../legal/LegalLinks";
 
 // The construction soft gate's face: the parking composition from the
 // static twin (public/construction.html), rendered by the app so the
@@ -22,7 +23,13 @@ export function ParkingScreen({ themeControl }: { themeControl?: ReactNode }) {
           measured before they ship. Sign-in is paused while the work lands.
         </p>
       </div>
-      <footer className="mt-10 pb-6">
+      {/* F1/Finding 5: the parking gate is every signed-out visitor's
+          actual public face while PARKING_GATE is true, so it needs the
+          same quiet path to Terms/Privacy/Risk disclaimer AuthScreen's
+          card footer already gives — reusing ProfilePanel's non-card
+          "LegalLinks above colophon" grid, since this footer isn't a card. */}
+      <footer className="mt-10 grid gap-3 pb-6">
+        <LegalLinks />
         <p className="colophon">A Windward Line production</p>
       </footer>
     </main>

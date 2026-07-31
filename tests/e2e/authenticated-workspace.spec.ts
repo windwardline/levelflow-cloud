@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { marketAvailability } from "../../src/lib/marketHours";
 import {
   AVAILABLE_ASSET_GROUPS,
-  formatSecurityLabel,
+  formatSecurityDisplaySymbol,
 } from "../../src/lib/symbolMap";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -68,8 +68,8 @@ function expectedScopeMenuLabels(): string[] {
 test("authenticated workspace leads with the Levelflow wordmark, not the Windward Line brand", async ({ page }) => {
   await page.goto("/");
 
-  // App.tsx mounts both the mobile (lg:hidden) and desktop (hidden
-  // lg:contents) headers at every viewport width — only CSS decides which
+  // App.tsx mounts both the mobile (`lg:hidden`) and desktop (`hidden
+  // lg:flex`) headers at every viewport width — only CSS decides which
   // one is actually visible, and getByText does not filter on that. This
   // test runs at Playwright's default desktop viewport, so it scopes to
   // the desktop-header block specifically rather than tripping a
@@ -127,7 +127,7 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
 
   await page.getByRole("button", { name: "Profile", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Your account" }),
+    page.getByRole("heading", { name: "Profile", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Account", exact: true }),
@@ -138,39 +138,103 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   await expect(
     page.getByRole("heading", { name: "Appearance", exact: true }),
   ).toBeVisible();
+
+  // Spec §16 relocation: Help (mailto) and Donate moved off the killed
+  // desktop header buttons onto a Support card here, so they stay reachable
+  // at desktop widths (the mobile account menu already carried both).
+  await expect(
+    page.getByRole("heading", { name: "Support", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Email support" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
 });
 
-test("market scan exposes the scope menu and rationale-ready surface", async ({ page }) => {
+test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no panel furniture", async ({ page }) => {
   await page.goto("/");
 
+  // Spec §16 deleted the rail's panel title block and its legend box; the
+  // eyebrow + Scan now row and the closing footnote are what stand in their
+  // place (a-desk-v3.html:88, :158). Both directions are checked here, per
+  // that section's standing review discipline.
+  const rail = page.getByTestId("market-scan-rail");
+  await expect(rail).toBeVisible();
+  await expect(rail.getByRole("heading", { name: "Scan", exact: true }))
+    .toBeVisible();
+  await expect(rail.getByRole("button", { name: "Scan now" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Best current markets" }),
+    rail.getByText(
+      "Every setup Levelflow generates is saved to Insights automatically.",
+    ),
   ).toBeVisible();
-  const scopeMenuButton = page.getByRole("button", { name: "Scan scope" });
+
+  const scopeMenuButton = rail.getByRole("button", { name: "Scan scope" });
   await expect(scopeMenuButton).toBeVisible();
   await expect(scopeMenuButton).toContainText("All markets");
+
   // m3 retired the legacy Quality band filter (spec §5's rail has none) and
   // I7 retired the stacked VolatilityWindowPanel ("Timing edge"/"Best time
-  // window") below the stage — neither exists to check for anymore.
+  // window") below the stage — neither exists to check for anymore. Spec §16
+  // retired the rest of the rail's chrome:
+  await expect(
+    page.getByRole("heading", { name: "Best current markets" }),
+  ).toHaveCount(0);
   await expect(
     page.getByText(
       "Scan shows the strongest qualifying setup among closely linked markets.",
     ),
-  ).toBeVisible();
-  await expect(page.getByText("Clean", { exact: true })).toBeVisible();
-  await expect(page.getByText("Poor", { exact: true })).toBeVisible();
+  ).toHaveCount(0);
+
+  // The legend's other half was a standing key of all four cost ratings,
+  // belonging to no market. Asserted structurally rather than by rating text:
+  // "Clean", "Acceptable", "Thin" and "Poor" are live executionLabel values
+  // that the new row chip legitimately renders, so an absence assertion on any
+  // of those strings would fail on real scan data for a reason that has
+  // nothing to do with the kill list. What defines the legend is a rating chip
+  // that is not attached to a market — every chip the recomposed rail draws
+  // sits inside its own result row.
+  const chipsOutsideARow = await rail
+    .locator("span.chip")
+    .evaluateAll((chips) =>
+      chips.filter((chip) => chip.closest("button") === null).length
+    );
+  expect(chipsOutsideARow).toBe(0);
 });
 
 test("a How this works link opens the Guide at the section it names", async ({ page }) => {
+  // The scan rail's legend carried the only always-on-screen How this works
+  // link; spec §16 deleted that box and moved the cost-ratings disclosure onto
+  // the Costs row inside "Why this setup", where a cost rating is actually
+  // explained. That row only exists once a review has produced a setup, so
+  // this now follows the same live-dependency and honest-skip pattern as the
+  // file's other review-driven specs.
+  test.setTimeout(120_000);
   await page.goto("/");
+  await page.getByRole("button", { name: "Review market" }).click();
 
-  // The scan legend's link is always on screen, so this half of the
-  // disclosure contract is checkable without waiting on live market data.
-  const scanNote = page.locator("p", {
-    hasText:
-      "Scan shows the strongest qualifying setup among closely linked markets.",
-  });
-  await scanNote.getByRole("button", { name: "How this works" }).click();
+  const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
+  const hasReceipt = await receiptHeading
+    .waitFor({ state: "visible", timeout: 90_000 })
+    .then(() => true)
+    .catch(() => false);
+  test.skip(
+    !hasReceipt,
+    "No qualifying setup right now, so there is no Costs row on screen to click.",
+  );
+
+  // Innermost element holding both the row label and a link: the Costs row
+  // itself, whose link is the only one scoped to it. The label is "Costs"
+  // since the panel was recomposed to the mock's five rows
+  // (a-desk-v3.html:210) — "Trading costs" was the pre-recomposition wording.
+  const costsRow = page
+    .locator("div")
+    .filter({ has: page.getByText("Costs", { exact: true }) })
+    .filter({ has: page.getByRole("button", { name: "How this works" }) })
+    .last();
+  await costsRow.getByRole("button", { name: "How this works" }).click();
 
   await expect(
     page.getByRole("heading", { name: "How to use Levelflow" }),
@@ -206,11 +270,13 @@ test("a receipt How this works link lands on the Guide's record section", async 
     "No qualifying setup right now, so there is no receipt on screen to click.",
   );
 
-  // Innermost element holding both the row label and a link: the Replay
-  // record row itself, whose link is the only one scoped to it.
+  // Innermost element holding both the row label and a link: the Record row
+  // itself, whose link is the only one scoped to it. The label is "Record"
+  // since the panel was recomposed to the mock's five rows
+  // (a-desk-v3.html:211) — "Replay record" was the pre-recomposition wording.
   const replayRow = page
     .locator("div")
-    .filter({ has: page.getByText("Replay record", { exact: true }) })
+    .filter({ has: page.getByText("Record", { exact: true }) })
     .filter({ has: page.getByRole("button", { name: "How this works" }) })
     .last();
   await replayRow.getByRole("button", { name: "How this works" }).click();
@@ -218,10 +284,10 @@ test("a receipt How this works link lands on the Guide's record section", async 
   const replayRecord = page.locator("#replay-record");
   await expect(replayRecord).toBeVisible();
   await expect(replayRecord).toBeInViewport();
-  // Renamed from "Replay record" to "The record" in the Guide's ten-section
-  // deck (spec §11); the receipt's own row label (matched above) and the
-  // #replay-record anchor id are both unchanged — only this section
-  // heading's wording moved.
+  // The Guide's own section is titled "The record" (spec §11's ten-section
+  // deck); the receipt's row label is "Record" (a-desk-v3.html:211). Different
+  // wording on purpose — the #replay-record anchor id is what ties them, and
+  // it has never changed.
   await expect(
     replayRecord.getByRole("heading", { name: "The record", exact: true }),
   ).toBeVisible();
@@ -269,34 +335,36 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
 
   await page.goto("/");
 
-  // .first() is deliberate, not incidental: before I7 retired the stacked
-  // status panels below the stage, AdvisorStatusPanels' DataHealthPanel
-  // duplicated this exact phrase (both its own "N candles loaded" notice
-  // and, separately, a bare "Candles loaded" MetricRow label also matched
-  // the regex) alongside the stage's own marketNotice — three elements for
-  // one assertion. The stage's marketNotice is the only survivor today, but
-  // .first() stays as a standing guard against a future surface
-  // reintroducing the phrase, not because more than one match is expected
-  // right now.
-  await expect(page.getByText(/candles loaded/i).first()).toBeVisible({
+  // The stage used to narrate this load ("N 1 hour candles loaded.") and this
+  // assertion read that sentence. Spec §2's copy discipline rules out process
+  // narration, so the string is gone and the chart's own overlays are the
+  // observable instead: it covers itself while loading and says so when it has
+  // no data, so both being absent is the same fact the sentence used to
+  // report — with the added value of coming from the chart rather than from a
+  // separate line that could disagree with it.
+  await expect(page.getByText("Loading market data")).toHaveCount(0, {
     timeout: 30_000,
   });
+  await expect(page.getByText("No chart data available yet")).toHaveCount(0);
+  await expect(page.getByText(/candles loaded/i)).toHaveCount(0);
 
-  // Renamed from "Advisor chart view": the visible wrapping <label> already
-  // reads "Chart view", and the stale "Advisor" prefix predates the Desk
-  // rename (that word is retired from every other user-facing label).
+  // Renamed from "Advisor chart view" when the stale "Advisor" prefix was
+  // retired from every user-facing label. Spec §16 then dropped the visible
+  // wrapping <label> with the rest of the stage's form chrome — the control is
+  // a ghost select in the stagehead now — so the name comes from its
+  // aria-label, deliberately kept byte-identical so this contract holds.
   const timeframeSelect = page.getByLabel("Chart view", { exact: true });
   if ((await timeframeSelect.inputValue()) !== "1min") {
     await timeframeSelect.selectOption("1min");
   }
 
   await expect(timeframeSelect).toHaveValue("1min");
-  // The stage carries no surface title or eyebrow above the chart (spec §2
-  // copy discipline), so there is no heading to scope this notice to — same
-  // .first() guard as above, for the same reason.
-  await expect(page.getByText(/1 minute candles loaded/i).first()).toBeVisible({
+  // Same observable for the re-fetch the timeframe change triggers: the chart
+  // re-enters its loading overlay and must come out of it with data.
+  await expect(page.getByText("Loading market data")).toHaveCount(0, {
     timeout: 30_000,
   });
+  await expect(page.getByText("No chart data available yet")).toHaveCount(0);
   await expect(
     page.getByText(
       "Verified market data is not available for this market yet.",
@@ -334,7 +402,7 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
 test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
   // Mobile is its own composition (spec §3), not a narrowed desktop: the
   // top nav pills are gone entirely (display:none via the header's
-  // lg:contents split); primary navigation is a bottom tab bar (Review /
+  // `hidden lg:flex` gate); primary navigation is a bottom tab bar (Review /
   // Scan / Trades / Insights), and Guide / Profile / Donate / Help / Sign
   // out all move behind one account-avatar menu in the header.
   await page.setViewportSize({ width: 375, height: 812 });
@@ -346,7 +414,12 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   // both the wordmark and the E8 Markets chip (BrokerChip renders in both).
   const header = page.getByTestId("mobile-header");
   await expect(header.getByText("Levelflow", { exact: true })).toBeVisible();
-  await expect(header.getByText("E8 Markets")).toBeVisible();
+  // The mobile masthead compacts the broker pill to "E8" (m-mobile-v3.html:43);
+  // the accessible name stays "E8 Markets" via aria-label. exact:true keeps
+  // this from also matching the full desktop label, which is mounted (hidden)
+  // in the sibling header at this width.
+  await expect(header.getByText("E8", { exact: true })).toBeVisible();
+  await expect(header.getByLabel("E8 Markets")).toBeVisible();
 
   for (const tab of ["Review", "Scan", "Trades", "Insights"]) {
     // The Trades button's aria-label grows to "Trades, N current" once a
@@ -378,10 +451,14 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await page.keyboard.press("Escape");
 
   // Review is the default tab; Scan and Trades are one tap away and carry
-  // full functionality there, not a stripped-down subset.
+  // full functionality there, not a stripped-down subset. The tab bar's own
+  // "Scan" button and the rail's "Scan now" no longer collide on one name
+  // (spec §16 renamed the rail's action to the mock's wording), so the exact
+  // tab match below stays unambiguous.
   await page.getByRole("button", { name: "Scan", exact: true }).click();
+  await expect(page.getByTestId("market-scan-rail")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Best current markets" }),
+    page.getByRole("button", { name: "Scan now" }),
   ).toBeVisible();
 
   // Same Trades badge caveat as above.
@@ -640,9 +717,8 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
     "No market qualified on this scan, so there is nothing new to check for in Insights.",
   );
 
-  const scanSection = page.locator("section", {
-    has: page.getByRole("heading", { name: "Best current markets" }),
-  });
+  // Scoped by testid since spec §16 deleted the heading this used to locate.
+  const scanSection = page.getByTestId("market-scan-rail");
   // Collect EVERY symbol the scan surfaced, not just the top row: a symbol
   // with a live placed position is deliberately skipped by persistence (the
   // scan must never rewrite a live trade), so any single row — including
@@ -650,7 +726,7 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // assertion is that the scan's qualifying set intersects the ledger.
   const scannedSymbolLabels = (
     await scanSection
-      .locator("p.truncate.font-semibold.text-ink")
+      .locator("span.truncate.font-bold.text-ink")
       .allTextContents()
   ).map((label) => label.trim()).filter(Boolean);
   expect(scannedSymbolLabels.length).toBeGreaterThan(0);
@@ -660,13 +736,14 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
     page.getByRole("heading", { name: "Insights", exact: true }),
   ).toBeVisible();
 
-  // Insights' Market column renders the raw ticker (e.g. "EURUSD"), not the
-  // scan rail's long descriptive label (e.g. "EUR/USD - Euro / U.S.
-  // Dollar") — the "Open {symbol} in Advisor" row button's aria-label is
-  // the stable, parseable link between the two views. The ledger's own
-  // fetch is async and the heading becoming visible doesn't guarantee its
-  // rows have landed yet, so evaluateAll (which reads the DOM once, with no
-  // retry) waits behind a poll for at least one row first.
+  // Insights' Market column renders the raw ticker (e.g. "EURUSD"), while the
+  // scan rail's row shows the display form (e.g. "EUR/USD", spec §16's mock
+  // row) — the "Open {symbol} in Advisor" row button's aria-label is the
+  // stable, parseable link between the two views, mapped through the same
+  // formatter the rail row itself uses. The ledger's own fetch is async and
+  // the heading becoming visible doesn't guarantee its rows have landed yet,
+  // so evaluateAll (which reads the DOM once, with no retry) waits behind a
+  // poll for at least one row first.
   const openInAdvisorButtons = page.getByRole("button", {
     name: /^Open .+ in Advisor$/,
   });
@@ -685,7 +762,9 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
         label.replace(/^Open /, "").replace(/ in Advisor$/, "")
       )
     );
-  const insightsLabels = rawSymbols.map((symbol) => formatSecurityLabel(symbol));
+  const insightsLabels = rawSymbols.map((symbol) =>
+    formatSecurityDisplaySymbol(symbol)
+  );
   const persisted = scannedSymbolLabels.filter((label) =>
     insightsLabels.includes(label)
   );

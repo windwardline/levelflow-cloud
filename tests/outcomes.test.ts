@@ -100,11 +100,13 @@ describe("classifyWinLoss — single source of truth for the ladder's win/loss s
     const expectedCallSites: Record<string, number> = {
       // buildRecordBand, buildConfidenceBands, getOutcomeClassName.
       "src/components/workspace/historyUtils.ts": 3,
-      // buildStats.
-      "src/hooks/useTradeSetups.ts": 1,
       // profileInsights.ts (buildProfileReviewPattern) was the fourth call
       // site until it was deleted as a UI-unused orphan — ConfidenceGauge's
       // sibling orphan, both swept in the same final fix wave.
+      // useTradeSetups.ts's buildStats was the other original call site
+      // until the Desk recomposition (spec §16) deleted its last consumer
+      // (the DATA/SESSION/ADVISOR/MARKET HISTORY tiles) and the whole
+      // per-symbol stats machinery went with it, 2026-07-31.
     };
 
     for (const [file, expectedCount] of Object.entries(expectedCallSites)) {

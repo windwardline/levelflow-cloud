@@ -13,8 +13,13 @@ import {
 } from "lightweight-charts";
 import type { MarketDataPoint } from "../../lib/marketData";
 import type { AnalyzerSetup } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "../workspace/advisorFormat";
 
-type ChartSetup = Pick<AnalyzerSetup, "entryPrice" | "side" | "stopLoss" | "takeProfit">;
+// Every level the mock's chart draws (a-desk-v3.html:191-194), which is every
+// level the ladder lists — takeProfit1 included. `side` is deliberately absent:
+// the mock colors these lines by role (target buy, entry accent, stop sell),
+// never by direction, and the stagehead's own tag is what names the side.
+type ChartSetup = Pick<AnalyzerSetup, "entryPrice" | "stopLoss" | "takeProfit" | "takeProfit1">;
 
 type MarketChartProps = {
   data: MarketDataPoint[];
@@ -214,37 +219,54 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
     }
 
     const theme = readChartTheme();
+    // Same gate the ladder puts on its own Target 1 row
+    // (AdvisorRecommendationPanel), so the chart never draws a level the
+    // ladder is not listing — the inconsistency this replaced.
+    const hasLadder = typeof setup.takeProfit1 === "number" &&
+      setup.takeProfit1 > 0;
 
-    priceLinesRef.current = [
+    // The mock's four lines, in its own reading order and label grammar
+    // (a-desk-v3.html:191-194): "TARGET 2 · 1.09480", "TARGET 1 · 1.09120",
+    // "ENTRY · 1.08840", "STOP · 1.08560". Colors come from the live tokens
+    // read above rather than from CSS, because a canvas cannot resolve
+    // var(--color-*) — the MutationObserver's themeVersion is what re-runs
+    // this effect on a theme flip.
+    const levels = [
+      {
+        color: theme.buy,
+        label: hasLadder ? "TARGET 2" : "TARGET",
+        price: setup.takeProfit,
+      },
+      ...(hasLadder
+        ? [{ color: theme.buy, label: "TARGET 1", price: setup.takeProfit1! }]
+        : []),
+      { color: theme.accent, label: "ENTRY", price: setup.entryPrice },
+      { color: theme.sell, label: "STOP", price: setup.stopLoss },
+    ];
+
+    priceLinesRef.current = levels.map((level) =>
       series.createPriceLine({
         axisLabelVisible: true,
-        color: theme.accent,
-        lineStyle: LineStyle.Solid,
-        lineWidth: 2,
-        price: setup.entryPrice,
-        title: `${setup.side.toUpperCase()} LIMIT`,
-      }),
-      series.createPriceLine({
-        axisLabelVisible: true,
-        color: theme.sell,
+        color: level.color,
         lineStyle: LineStyle.Dashed,
         lineWidth: 2,
-        price: setup.stopLoss,
-        title: "STOP",
-      }),
-      series.createPriceLine({
-        axisLabelVisible: true,
-        color: theme.buy,
-        lineStyle: LineStyle.Dotted,
-        lineWidth: 2,
-        price: setup.takeProfit,
-        title: "TARGET",
-      }),
-    ];
+        price: level.price,
+        // formatNumber is the ladder's own display formatter, so a line's
+        // price reads byte-identical to the ladder row beside it — the local
+        // formatChartPrice below caps at two decimals over 100 and would
+        // print a futures level that never appears in the ladder.
+        title: `${level.label} · ${formatNumber(level.price)}`,
+      })
+    );
   }, [setup, themeVersion]);
 
   return (
-    <div className="relative min-w-0 overflow-hidden rounded-lg border border-hairline bg-sheet">
+    // Spec §16 / a-desk-v3.html:177: this IS the stage's chart sheet — a
+    // square-cornered hairline border on sheet, so the setup sheet below it can
+    // attach border-t-0 with no rounded corner or second frame in between. Kept
+    // as this component's own root (rather than an outer wrapper in
+    // AdvisorWorkspace) so there is exactly one frame around the chart.
+    <div className="relative min-w-0 overflow-hidden border border-hairline bg-sheet">
       <div
         className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-hairline bg-sheet px-3 py-2 text-xs font-semibold text-ink-muted shadow-xs ${
           hoverBar ? "block" : "hidden sm:block"
@@ -286,35 +308,6 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
       {!loading && data.length === 0 && (
         <div className="absolute inset-0 grid place-items-center bg-sheet px-6 text-center text-sm font-semibold text-ink-muted">No chart data available yet</div>
       )}
-      {setup ? <SetupZoneSummary setup={setup} /> : null}
-    </div>
-  );
-}
-
-function SetupZoneSummary({ setup }: { setup: ChartSetup }) {
-  const isBuy = setup.side === "buy";
-  const risk = Math.abs(setup.entryPrice - setup.stopLoss);
-  const reward = Math.abs(setup.takeProfit - setup.entryPrice);
-  const rewardRisk = reward / Math.max(risk, 0.00001);
-
-  return (
-    <div className="grid gap-2 border-t border-hairline bg-sheet px-3 py-3 text-xs font-semibold text-ink-muted sm:grid-cols-4">
-      <div>
-        <p className="uppercase tracking-normal text-ink-muted">Entry</p>
-        <p className={isBuy ? "mt-1 text-buy" : "mt-1 text-sell"}>{formatChartPrice(setup.entryPrice)}</p>
-      </div>
-      <div>
-        <p className="uppercase tracking-normal text-ink-muted">Stop</p>
-        <p className="mt-1 text-sell">{formatChartPrice(setup.stopLoss)}</p>
-      </div>
-      <div>
-        <p className="uppercase tracking-normal text-ink-muted">Target</p>
-        <p className="mt-1 text-ink">{formatChartPrice(setup.takeProfit)}</p>
-      </div>
-      <div>
-        <p className="uppercase tracking-normal text-ink-muted">Payoff</p>
-        <p className="mt-1 text-ink">{Number.isFinite(rewardRisk) ? `${rewardRisk.toFixed(2)}x` : "Pending"}</p>
-      </div>
     </div>
   );
 }

@@ -133,33 +133,33 @@ describe("buildRemainingLevels", () => {
     tp1Banked: true,
   };
 
-  it("shows Entry, Stop, Target 1, and Target 2 while pending (nothing has happened yet)", () => {
+  it("shows Entry, SL, T1, and T2 while pending (nothing has happened yet)", () => {
     const levels = buildRemainingLevels(buildSetup(), pendingState);
     assert.deepEqual(
       levels.map((level) => level.label),
-      ["Entry", "Stop", "Target 1", "Target 2"],
+      ["Entry", "SL", "T1", "T2"],
     );
   });
 
-  it("drops Entry once filled, keeping Stop and both targets pre-Target-1", () => {
+  it("drops Entry once filled, keeping SL and both targets pre-T1", () => {
     const levels = buildRemainingLevels(
       buildSetup({ status: "placed" }),
       openPreT1State,
     );
     assert.deepEqual(
       levels.map((level) => level.label),
-      ["Stop", "Target 1", "Target 2"],
+      ["SL", "T1", "T2"],
     );
   });
 
-  it("drops Target 1 once it has already been banked (state.tp1Banked)", () => {
+  it("drops T1 once it has already been banked (state.tp1Banked)", () => {
     const levels = buildRemainingLevels(
       buildSetup({ status: "placed" }),
       openT1HitState,
     );
     assert.deepEqual(
       levels.map((level) => level.label),
-      ["Stop", "Target 2"],
+      ["SL", "T2"],
     );
   });
 
@@ -170,7 +170,7 @@ describe("buildRemainingLevels", () => {
     );
     assert.deepEqual(
       levels.map((level) => level.label),
-      ["Entry", "Stop", "Target"],
+      ["Entry", "SL", "Target"],
     );
   });
 
@@ -179,7 +179,7 @@ describe("buildRemainingLevels", () => {
       buildSetup({ stop_loss: 1.083 }),
       pendingState,
     );
-    const stop = levels.find((level) => level.label === "Stop");
+    const stop = levels.find((level) => level.label === "SL");
     assert.ok(stop);
     assert.equal(
       stop.value,
@@ -192,7 +192,7 @@ describe("buildRemainingLevels", () => {
       buildSetup({ stop_loss: "not-a-number" }),
       pendingState,
     );
-    const stop = levels.find((level) => level.label === "Stop");
+    const stop = levels.find((level) => level.label === "SL");
     assert.equal(stop?.value, "—");
   });
 });
@@ -204,6 +204,10 @@ describe("CurrentTradesRail markup (source-pinned — see header comment)", () =
 
   it('titles the surface exactly "Current trades", no footnote (spec §8 copy discipline)', () => {
     assert.match(RAIL_SOURCE, />\s*Current trades\s*</);
+  });
+
+  it("closes with the mock's one cross-link and nothing else (a-desk-v3.html:231)", () => {
+    assert.match(RAIL_SOURCE, />\s*All results → Insights\s*</);
   });
 
   it("colors the status chip by caution/buy tone, never sell or a literal hex", () => {
@@ -228,9 +232,14 @@ describe("CurrentTradesRail markup (source-pinned — see header comment)", () =
     assert.match(RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
   });
 
-  it("never invents its own fetch machinery — refresh always defers to the onRefresh prop", () => {
+  it("never invents its own fetch machinery or nav — refresh defers to the onRefresh prop, the cross-link to WorkspaceNav", () => {
+    // Exhaustive by design: the surface has exactly two controls, and neither
+    // may grow a fetch or a routing mechanism of its own.
     const onClickHandlers = RAIL_SOURCE.match(/onClick=\{[^}]*\}/g) ?? [];
-    assert.deepEqual(onClickHandlers, ["onClick={handleRefresh}"]);
+    assert.deepEqual(onClickHandlers, [
+      "onClick={handleRefresh}",
+      "onClick={() => nav.openInsights()}",
+    ]);
     assert.match(RAIL_SOURCE, /onRefresh\(\)/);
   });
 });

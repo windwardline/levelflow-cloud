@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { BookOpen } from "lucide-react";
 import type { GuideAnchor } from "./WorkspaceNav";
 
 // The Guide renders docs/superpowers/specs/2026-07-30-levelflow-guide-content.md
@@ -125,29 +124,19 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
   }, [anchor, onAnchorHandled]);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[200px_minmax(0,1fr)] lg:items-start lg:gap-8">
+    <div className="mx-auto grid max-w-[1020px] gap-9 lg:grid-cols-[230px_1fr] lg:items-start">
       <GuideToc sections={GUIDE_SECTIONS} />
 
-      <div className="grid gap-5">
-        <section className="terminal-panel p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ink text-paper">
-              <BookOpen className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-                Guide
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-normal text-ink">
-                How to use Levelflow
-              </h1>
-            </div>
-          </div>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
-            Ten short sections, in the same words your platform already
-            uses.
-          </p>
-        </section>
+      <article className="min-w-0">
+        {/* Fix wave 2B, FIX 7 (A5-C1): the un-approved subtitle that used to
+            sit here narrated the page's own shape and section count in
+            prose — the visible TOC already shows that, and the count was
+            hardcoded against GUIDE_SECTIONS.length with nothing to keep
+            them in sync. Deleted outright, no replacement copy; the h1
+            needs no wrapper once it's the article's only intro element. */}
+        <h1 className="border-b-2 border-ink pb-3.5 text-3xl font-semibold tracking-normal text-ink">
+          How to use Levelflow
+        </h1>
 
         <GuideSection
           id="how-review-works"
@@ -186,7 +175,7 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
           title="The setup, level by level"
         >
           <p>A setup is four prices, named the way your platform names them:</p>
-          <ul className="grid gap-2">
+          <ul className="grid list-disc gap-2 ps-5">
             <GuideBullet>
               <strong className="text-ink">Entry</strong> — where your limit
               order waits. A buy limit waits below the current price; a
@@ -222,26 +211,26 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
           number="03"
           title="Taking and managing the trade"
         >
-          <blockquote className="rounded-lg border-2 border-accent bg-accent/10 px-4 py-4 text-base font-semibold leading-7 text-ink sm:text-lg">
+          <blockquote className="border-l-[3px] border-accent bg-accent/5 py-3 pl-4 pr-4 text-base font-semibold leading-7 text-ink sm:text-lg">
             {CANONICAL_LADDER_INSTRUCTION}
           </blockquote>
           <p>In platform terms, that is three moments:</p>
-          <ol className="grid gap-2">
-            <GuideBullet marker="1">
+          <ol className="grid list-decimal gap-2 ps-5">
+            <GuideBullet>
               <strong className="text-ink">Place the trade.</strong> Open a
               buy or sell limit at the Entry price. Set the stop loss and
               set the take-profit at Target 2. Until price reaches your
               entry, the order shows as{" "}
               <strong className="text-ink">pending</strong> — nothing to do.
             </GuideBullet>
-            <GuideBullet marker="2">
+            <GuideBullet>
               <strong className="text-ink">Target 1 hits.</strong> Close
               half the position (a partial close), and modify the stop
               loss to your entry price. Half your profit is real money
               now, and the rest of the trade can no longer cost you
               anything.
             </GuideBullet>
-            <GuideBullet marker="3">
+            <GuideBullet>
               <strong className="text-ink">The finish.</strong> The
               remaining half either reaches Target 2 — your take-profit
               closes it — or comes back to your entry and closes flat.
@@ -294,7 +283,7 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
             platform, and it is paid out of your profit. Levelflow sizes
             it against the setup before showing anything:
           </p>
-          <ul className="grid gap-2">
+          <ul className="grid list-disc gap-2 ps-5">
             <GuideBullet>
               <strong className="text-ink">Clean</strong> — costs are
               small next to the distance between entry and stop. The
@@ -371,41 +360,45 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
           number="10"
           title="What the words mean here"
         >
-          <dl className="grid gap-2">
+          <dl className="grid gap-3">
             {VOCABULARY.map((item) => (
-              <div
-                key={item.term}
-                className="rounded-lg border border-hairline bg-paper px-4 py-3"
-              >
+              <div key={item.term}>
                 <dt className="font-semibold text-ink">{item.term}</dt>
                 <dd className="mt-1">{item.body}</dd>
               </div>
             ))}
           </dl>
         </GuideSection>
-      </div>
+      </article>
     </div>
   );
 }
 
+// Spec §16: the TOC is composition chrome, not part of the deck's own copy —
+// it exists below lg not at all (mobile reads the article straight through)
+// and above lg as a sticky index down the left rail. "Contents" (not the
+// mock's literal "Guide" eyebrow text) avoids repeating the masthead's own
+// already-active "Guide" nav label immediately beside it.
 function GuideToc({ sections }: { sections: GuideSectionMeta[] }) {
   return (
     <nav
       aria-label="Guide sections"
-      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 lg:self-start"
+      className="hidden lg:block sticky top-20 self-start border-r border-hairline pr-5"
     >
-      {sections.map((section) => (
-        <a
-          key={section.id}
-          className="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-ink lg:whitespace-normal"
-          href={`#${section.id}`}
-        >
-          <span className="font-mono text-xs tabular-nums text-ink-muted">
-            {section.number}
-          </span>
-          {section.title}
-        </a>
-      ))}
+      <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        Contents
+      </p>
+      <div className="grid gap-1">
+        {sections.map((section) => (
+          <a
+            key={section.id}
+            className="flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-ink"
+            href={`#${section.id}`}
+          >
+            {section.title}
+          </a>
+        ))}
+      </div>
     </nav>
   );
 }
@@ -422,44 +415,31 @@ function GuideSection({
   title: string;
 }) {
   return (
-    <section className="terminal-panel scroll-mt-28 p-5 sm:p-6" id={id}>
-      <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink font-mono text-xs font-bold tabular-nums text-paper">
-          {number}
-        </span>
-        <h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">
-          {title}
-        </h2>
-      </div>
-      <div className="grid gap-3 text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
+    <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id={id}>
+      <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        {number}
+      </p>
+      <h2 className="mt-1 text-xl font-semibold tracking-normal text-ink sm:text-2xl">
+        {title}
+      </h2>
+      <div className="mt-3 grid max-w-[62ch] gap-3 text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
         {children}
       </div>
     </section>
   );
 }
 
-// Shared card for every "term — definition" bullet in §2/§3/§6 (§10 uses a
-// real <dl> instead — see the definition-list block above). `marker` gives
-// §3's three ordered moments a numeral badge since Tailwind's preflight
-// strips native <ol>/<ul> markers app-wide; omitted, it renders as a plain
-// unordered bullet card.
-function GuideBullet({
-  children,
-  marker,
-}: {
-  children: ReactNode;
-  marker?: string;
-}) {
-  return (
-    <li className="flex gap-3 rounded-lg border border-hairline bg-paper px-4 py-3">
-      {marker
-        ? (
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink font-mono text-xs font-bold tabular-nums text-paper">
-            {marker}
-          </span>
-        )
-        : null}
-      <span>{children}</span>
-    </li>
-  );
+// Shared wrapper for every "term — definition" bullet in §2/§3/§6 (§10 uses
+// a real <dl> instead — see the definition-list block above). Fix round 1:
+// the controller ruled that spec §16's authority clause ("where this
+// spec's prose and a mockup's composition disagree, the mockup governs
+// composition") overrides the kill-list's narrower "per-section" wording —
+// g-guide-v1.html draws no boxes at any level, so these list items lose
+// their card treatment too, flattening to plain flowing list content. §3's
+// three ordered moments now number the native way (list-decimal on the
+// parent <ol>, restoring exactly the marker Tailwind's preflight strips
+// app-wide) instead of a custom numeral badge, so this component no longer
+// needs a `marker` prop at all.
+function GuideBullet({ children }: { children: ReactNode }) {
+  return <li>{children}</li>;
 }

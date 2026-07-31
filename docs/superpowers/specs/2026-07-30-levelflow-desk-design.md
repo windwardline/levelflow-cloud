@@ -273,3 +273,69 @@ pending|unfilled|take_profit|stop_loss|breakeven|manual_close|expired|
 ambiguous|tp1_partial|expired_in_profit|expired_at_loss; "resting" does
 not occur in src today; "Copy levels" occurs once
 (AdvisorRecommendationPanel.tsx:153).
+
+## 16. Visual-fidelity remediation (2026-07-31, binding)
+
+The 2026-07-31 ship implemented this spec's behaviors but not the approved
+composition: production kept the old app chrome and stage furniture inside
+the new grid, and the owner rejected it against the mockups ("still the
+box-on-box formatting, much of the old features remain"). Root cause: the
+plan scoped the shell as "a rearrangement, not a redesign," so no task
+deleted the legacy chrome, and reviews verified new-element presence but
+never old-element absence.
+
+**Authority.** The owner-approved mockups are committed at
+`docs/design/mockups/` (`a-desk-v3.html`, `i-insights-v1.html`,
+`g-guide-v1.html`, `p-profile-v1.html`, `m-mobile-v3.html`,
+`m-mobile-v3-menu.html`, `m-scan-v1.html`, `m-trades-v1.html`,
+`tokens.css`, plus reference PNGs). Where this spec's prose and a mockup's
+composition disagree, **the mockup governs composition; the spec governs
+behavior, data, and copy rulings.** Copy lines the owner ruled out by name
+stay out even if a mockup iteration carries them.
+
+**Kill-list (must be absent from the authed app):**
+
+- The "Welcome, {display name}" greeting — deleted, both platforms.
+- The header theme toggle (authed app) — the Profile Appearance card is
+  the only theme control. Parking/Auth screens keep their compact toggle
+  (out of the mockups' scope).
+- Header Help and Donate buttons (desktop) — relocated, see below.
+- The two-row header — replaced by the single-row masthead
+  (a-desk-v3.html:75-84): wordmark + inline text nav
+  (Desk/Insights/Guide/Profile; uppercase, letterspaced, muted; active =
+  ink + 2px accent underline) + broker chip + ghost Sign out.
+- Icon-chip nav buttons (`nav-button` pills) on desktop — replaced by the
+  masthead text links.
+- `DeskStatusStrip` and `MarketClockPanel` (DATA/SESSION/ADVISOR/MARKET
+  HISTORY tiles; GLOBAL FX SESSION cards) — deleted with their file.
+- The CHART VIEW / ADVISOR CHECKS / VALID UNTIL metric cards — deleted;
+  valid-until becomes one quiet line in the ConfidenceUnit meta
+  ("Reviewed {time} · valid until {time}"), no card.
+- The standalone stage Refresh button — Review market is the stage's one
+  action (fresh data every review); the trades rail keeps its own
+  refresh link.
+- The scan rail's panel title block ("Market scan / Best current
+  markets") and the legend box — replaced by the mock's quiet rail
+  (a-desk-v3.html:87-158): eyebrow Scan + Scan now, scope select, count
+  line, result rows, single footnote.
+- `terminal-panel` boxing on Desk/Insights/Guide surfaces — flat paper
+  with hairlines per mocks; boxes remain only where a mock draws a card
+  (position cards, Profile cards, Insights table container).
+
+**Relocations:** Help (mailto) and Donate move to a quiet Support card on
+Profile (two tertiary links) — the mobile avatar menu already carries
+both. This is an addition beyond p-profile-v1.html (which shows no
+support entry) so the features stay reachable on desktop; flagged for
+owner review at re-present.
+
+**Presentation rules from the mocks:** Desk columns scroll themselves with
+thin scrollbars (a-desk-v3.html:14-17 `.scrolly`); Guide is an editorial
+article (230px sticky TOC + flowing 62ch prose, hairline separations, no
+per-section cards; g-guide-v1.html:12-21); Profile is a 620px column
+("Profile" title + tight cards; p-profile-v1.html:12-15); Insights is a
+flat page (record band, inline filter row, one table; i-insights-v1.html).
+
+**Review discipline (new, standing):** every review of composition work
+must verify BOTH directions against the mock — required elements present
+AND kill-list elements absent — and name each direction explicitly in its
+report.
