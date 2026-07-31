@@ -121,7 +121,7 @@
 ### Task 9: Guide + Profile + mobile pass
 
 **Files:**
-- Modify: `GuidePanel.tsx` (About absorption checklist, spec §11 — all seven items; callout = canonical instruction; definition list), `ProfilePanel.tsx` (Account/Broker/Appearance cards per spec §11), delete `OverviewPanel.tsx` + its route/tab remnants
+- Modify: `GuidePanel.tsx` — render `docs/superpowers/specs/2026-07-30-levelflow-guide-content.md` verbatim (the owner-approved copy deck with its absorption map); callout = canonical instruction; §10 renders as the definition list, `ProfilePanel.tsx` (Account/Broker/Appearance cards per spec §11), delete `OverviewPanel.tsx` + its route/tab remnants
 - Modify: `App.tsx` + workspace components for the <lg tab bar (Review/Scan/Trades/Insights) with badge; account avatar → Profile/Sign out
 - Test: `tests/guideAnchors.test.ts`, e2e 375px in Task 10
 
