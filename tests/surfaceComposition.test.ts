@@ -240,4 +240,24 @@ describe("Insights composition — the kill list is absent (spec §16)", () => {
     assert.doesNotMatch(pheadClassName ?? "", /terminal-panel/);
     assert.doesNotMatch(filtersClassName ?? "", /terminal-panel/);
   });
+
+  // Fix wave 2B, FIX 5 (completeness-audit-2 beyond-checklist #7). The
+  // "no setups match the current filters" notice was the one string inside
+  // the single table frame still wearing the banned item-card shape
+  // (rounded-lg border border-hairline bg-paper) — the same shape this
+  // describe block already bans for the record band and the filter row.
+  // Flattened to match its own sibling empty state exactly, two lines
+  // above it in source ("No setups have been logged yet."), rather than
+  // inventing a new treatment.
+  it("flattens the empty-filter notice to the same plain muted line as its sibling empty state, no card", () => {
+    assert.doesNotMatch(
+      history,
+      /rounded-lg border border-hairline bg-paper px-4 py-3/,
+    );
+    const noticeBlock = history.match(
+      /<p className="([^"]*)">\s*No setups match the current filters\.\s*<\/p>/,
+    )?.[1];
+    assert.ok(noticeBlock, "expected to find the empty-filter notice");
+    assert.equal(noticeBlock, "mt-4 text-sm leading-6 text-ink-muted");
+  });
 });

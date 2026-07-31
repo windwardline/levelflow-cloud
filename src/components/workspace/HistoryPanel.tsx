@@ -225,7 +225,7 @@ export function HistoryPanel({
           : null}
         {!loading && setups.length > 0 && filteredSetups.length === 0
           ? (
-            <p className="mt-4 rounded-lg border border-hairline bg-paper px-4 py-3 text-sm leading-6 text-ink-muted">
+            <p className="mt-4 text-sm leading-6 text-ink-muted">
               No setups match the current filters.
             </p>
           )
