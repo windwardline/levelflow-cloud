@@ -306,195 +306,201 @@ export function AdvisorWorkspace(
   }
 
   return (
-    <div className="grid gap-5">
-      <MarketScanPanel
-        onResetResult={() => setScanResult(null)}
-        onScan={scanMarkets}
-        onSelectCandidate={(candidate) => {
-          const nextSymbol = candidate.symbol;
-          requestIdRef.current += 1;
-          selectedSymbolRef.current = nextSymbol;
-          setSymbol(nextSymbol);
-          setAnalyzerStatus("idle");
-          if (candidate.setup) {
-            setAnalysisState({
-              requestedAt: Date.now(),
-              response: {
-                advisoryOnly: true,
-                message: "Selected from Market Scan.",
-                setup: candidate.setup,
-              },
-              symbol: nextSymbol,
-            });
-            setAdvisorNotice(
-              "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
-            );
-          } else {
-            setAnalysisState(null);
-            setAdvisorNotice("");
-          }
-        }}
-        result={scanResult}
-        status={scanStatus}
-      />
+    // The Desk grid (spec §2): 264px scan rail / flexible stage / 300px
+    // trades rail, all three the same height and each independently
+    // scrollable — only at lg, where AdvisorWorkspace fills the fixed
+    // "viewport minus header" shell App.tsx hands it (App.tsx's
+    // grid-rows-[auto_1fr] + this flex-1 min-h-0). Below lg there's no
+    // height constraint here at all, so the three wrapper elements just
+    // stack in normal document flow — the pre-existing mobile behavior,
+    // untouched until Task 9's mobile pass.
+    <div className="grid min-w-0 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[264px_minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+      {/* Left rail: the scan. Task 4 replaces MarketScanPanel's internals;
+          here it only moves into its own column. */}
+      <div className="scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+        <MarketScanPanel
+          onResetResult={() => setScanResult(null)}
+          onScan={scanMarkets}
+          onSelectCandidate={(candidate) => {
+            const nextSymbol = candidate.symbol;
+            requestIdRef.current += 1;
+            selectedSymbolRef.current = nextSymbol;
+            setSymbol(nextSymbol);
+            setAnalyzerStatus("idle");
+            if (candidate.setup) {
+              setAnalysisState({
+                requestedAt: Date.now(),
+                response: {
+                  advisoryOnly: true,
+                  message: "Selected from Market Scan.",
+                  setup: candidate.setup,
+                },
+                symbol: nextSymbol,
+              });
+              setAdvisorNotice(
+                "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
+              );
+            } else {
+              setAnalysisState(null);
+              setAdvisorNotice("");
+            }
+          }}
+          result={scanResult}
+          status={scanStatus}
+        />
+      </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="terminal-panel overflow-hidden">
-        <div className="border-b border-hairline px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-                Advisor
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
-                Market review
-              </h1>
-              <p className="mt-1 text-sm text-ink-muted">
-                Select a market, review the chart, then ask Levelflow for the
-                current limit setup.
-              </p>
-            </div>
-            <button
-              className="secondary-button min-h-10 px-3 py-2"
-              type="button"
-              onClick={() => setRefreshNonce((value) => value + 1)}
-              disabled={marketLoading}
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              Refresh
-            </button>
-          </div>
-
-          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(220px,1.5fr)_minmax(160px,0.55fr)_auto]">
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              Market
-              <select
-                className="field"
-                value={symbol}
-                onChange={(event) => {
-                  const nextSymbol = event.target.value as SupportedSymbol;
-                  requestIdRef.current += 1;
-                  selectedSymbolRef.current = nextSymbol;
-                  setSymbol(nextSymbol);
-                  setAnalyzerStatus("idle");
-                  setAnalysisState(null);
-                  setAdvisorNotice("");
-                }}
-              >
-                {AVAILABLE_ASSET_GROUPS.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.options.map((option) => (
-                      <option key={option.symbol} value={option.symbol}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              Chart view
-              <select
-                aria-label="Advisor chart view"
-                className="field"
-                value={timeframe}
-                onChange={(event) => {
-                  setTimeframeTouched(true);
-                  setTimeframe(event.target.value as ChartTimeframe);
-                }}
-              >
-                {TIMEFRAMES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="flex items-end">
+      {/* Center stage: the market picker is the header — no surface title
+          or eyebrow above it (spec §2 copy discipline) — then the chart,
+          then the recommendation panel that used to sit in the sidebar.
+          flex-col rather than grid: an unconstrained grid's implicit auto
+          rows shrink to fit the scroll container's height instead of
+          overflowing it, which silently defeats the scrolling this column
+          exists for. Flex only avoids the same trap because every direct
+          child below is pinned shrink-0. */}
+      <div className="scrolly flex min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+        <section className="terminal-panel shrink-0 overflow-hidden">
+          <div className="border-b border-hairline px-4 py-4 sm:px-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-ink sm:max-w-sm">
+                Market
+                <select
+                  className="field"
+                  value={symbol}
+                  onChange={(event) => {
+                    const nextSymbol = event.target.value as SupportedSymbol;
+                    requestIdRef.current += 1;
+                    selectedSymbolRef.current = nextSymbol;
+                    setSymbol(nextSymbol);
+                    setAnalyzerStatus("idle");
+                    setAnalysisState(null);
+                    setAdvisorNotice("");
+                  }}
+                >
+                  {AVAILABLE_ASSET_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((option) => (
+                        <option key={option.symbol} value={option.symbol}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
               <button
-                className="primary-button w-full lg:min-w-48"
+                className="secondary-button min-h-10 px-3 py-2"
                 type="button"
-                disabled={analyzerStatus === "analyzing" || marketLoading}
-                onClick={analyze}
+                onClick={() => setRefreshNonce((value) => value + 1)}
+                disabled={marketLoading}
               >
-                {analyzerStatus === "analyzing"
-                  ? (
-                    <Loader2
-                      className="h-4 w-4 animate-spin"
-                      aria-hidden="true"
-                    />
-                  )
-                  : <Brain className="h-4 w-4" aria-hidden="true" />}
-                Review market
+                <RefreshCw
+                  className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`}
+                  aria-hidden="true"
+                />
+                Refresh
               </button>
             </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(200px,1fr)_auto]">
+              <label className="grid gap-2 text-sm font-semibold text-ink">
+                Chart view
+                <select
+                  aria-label="Advisor chart view"
+                  className="field"
+                  value={timeframe}
+                  onChange={(event) => {
+                    setTimeframeTouched(true);
+                    setTimeframe(event.target.value as ChartTimeframe);
+                  }}
+                >
+                  {TIMEFRAMES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex items-end">
+                <button
+                  className="primary-button w-full lg:min-w-48"
+                  type="button"
+                  disabled={analyzerStatus === "analyzing" || marketLoading}
+                  onClick={analyze}
+                >
+                  {analyzerStatus === "analyzing"
+                    ? (
+                      <Loader2
+                        className="h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                    )
+                    : <Brain className="h-4 w-4" aria-hidden="true" />}
+                  Review market
+                </button>
+              </div>
+            </div>
+
+            <AdvisorReviewScope
+              assetType={selectedAsset.assetType}
+              timeframe={timeframe}
+              validUntil={setup?.expiresAt ?? null}
+            />
+
+            <DeskStatusStrip
+              analysisStatus={analyzerStatus}
+              clockStatus={marketClock.statusLabel}
+              latestClose={marketData?.latestClose ?? null}
+              loading={marketLoading}
+              result={activeResult}
+              stat={symbolStat}
+              symbol={symbol}
+            />
           </div>
 
-          <AdvisorReviewScope
-            assetType={selectedAsset.assetType}
-            timeframe={timeframe}
-            validUntil={setup?.expiresAt ?? null}
-          />
-
-          <DeskStatusStrip
-            analysisStatus={analyzerStatus}
-            clockStatus={marketClock.statusLabel}
-            latestClose={marketData?.latestClose ?? null}
-            loading={marketLoading}
-            result={activeResult}
-            stat={symbolStat}
-            symbol={symbol}
-          />
-        </div>
-
-        <div className="p-4 sm:p-6">
-          <MarketClockPanel clock={marketClock} sessions={globalSessions} />
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-ink-muted">
-                {selectedAsset.assetType}
-              </p>
-              <h3 className="text-xl font-semibold tracking-normal text-ink">
-                {formatSecurityLabel(symbol)}
-              </h3>
+          <div className="p-4 sm:p-6">
+            <MarketClockPanel clock={marketClock} sessions={globalSessions} />
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-ink-muted">
+                  {selectedAsset.assetType}
+                </p>
+                <h3 className="text-xl font-semibold tracking-normal text-ink">
+                  {formatSecurityLabel(symbol)}
+                </h3>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+                  Latest close
+                </p>
+                <p className="font-mono text-lg font-semibold tabular-nums tracking-normal text-ink">
+                  {typeof marketData?.latestClose === "number"
+                    ? formatPrice(symbol, marketData.latestClose)
+                    : "Pending"}
+                </p>
+              </div>
             </div>
-            <div className="text-left sm:text-right">
-              <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                Latest close
-              </p>
-              <p className="font-mono text-lg font-semibold tabular-nums tracking-normal text-ink">
-                {typeof marketData?.latestClose === "number"
-                  ? formatPrice(symbol, marketData.latestClose)
-                  : "Pending"}
-              </p>
-            </div>
-          </div>
-          <MarketChart
-            data={marketData?.points ?? []}
-            loading={marketLoading}
-            setup={setup}
-            viewKey={`${symbol}:${timeframe}`}
-          />
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-            <p className="font-medium text-ink-muted">{marketNotice}</p>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-              <span className="font-mono tabular-nums">
-                {activeMarketCount} active markets
-              </span>
-              <span className="hidden sm:inline">/</span>
-              <span>Verified chart feed</span>
+            <MarketChart
+              data={marketData?.points ?? []}
+              loading={marketLoading}
+              setup={setup}
+              viewKey={`${symbol}:${timeframe}`}
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+              <p className="font-medium text-ink-muted">{marketNotice}</p>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+                <span className="font-mono tabular-nums">
+                  {activeMarketCount} active markets
+                </span>
+                <span className="hidden sm:inline">/</span>
+                <span>Verified chart feed</span>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <aside className="grid content-start gap-5">
-        <section className="terminal-panel p-5">
+        <section className="terminal-panel shrink-0 p-5">
           <RecommendationPanel
             notice={advisorNotice}
             result={activeResult}
@@ -503,24 +509,38 @@ export function AdvisorWorkspace(
             symbol={symbol}
           />
         </section>
-
-        <DataHealthPanel
-          activeMarketCount={activeMarketCount}
-          data={marketData}
-          loading={marketLoading}
-          notice={marketNotice}
-        />
-
-        <VolatilityWindowPanel
-          symbol={symbol}
-          timezone={profile.defaultTimezone}
-        />
-
-        <RecentSetupsPanel setups={setups} />
-
-        <MarketResultsPanel stat={symbolStat} symbol={symbol} />
-      </aside>
       </div>
+
+      {/* Right rail: for now, the same status panels that used to sit
+          beside the chart, unchanged. Task 7 replaces this column's
+          content with CurrentTradesRail. Same flex-col/shrink-0 reasoning
+          as the center stage above — none of these panels accept a
+          className, so each gets a shrink-0 wrapper instead. */}
+      <aside className="scrolly flex min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+        <div className="shrink-0">
+          <DataHealthPanel
+            activeMarketCount={activeMarketCount}
+            data={marketData}
+            loading={marketLoading}
+            notice={marketNotice}
+          />
+        </div>
+
+        <div className="shrink-0">
+          <VolatilityWindowPanel
+            symbol={symbol}
+            timezone={profile.defaultTimezone}
+          />
+        </div>
+
+        <div className="shrink-0">
+          <RecentSetupsPanel setups={setups} />
+        </div>
+
+        <div className="shrink-0">
+          <MarketResultsPanel stat={symbolStat} symbol={symbol} />
+        </div>
+      </aside>
     </div>
   );
 }

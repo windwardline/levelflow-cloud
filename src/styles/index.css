@@ -305,6 +305,30 @@ html[data-theme="dark"] {
 
 @layer utilities {
   /*
+    The Desk's three columns (spec §2) each scroll independently and share
+    one quiet overlay scrollbar instead of the browser's default chrome.
+    Firefox reads the two scrollbar-* properties; every other engine reads
+    the ::-webkit-scrollbar rules below. Both branches key off
+    --color-hairline so the thumb re-values with the theme like everything
+    else in the kit — this class only styles the scrollbar, the overflow
+    and height that make a column actually scroll are set where it's used.
+  */
+  .scrolly {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-hairline) transparent;
+  }
+  .scrolly::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrolly::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrolly::-webkit-scrollbar-thumb {
+    background: var(--color-hairline);
+    border-radius: 3px;
+  }
+
+  /*
     This block does real dark-mode work the token cascade can't supply on
     its own: opacity-tuned decorative values, and colors (button text,
     placeholder) that must flip independently of any token re-valuation.

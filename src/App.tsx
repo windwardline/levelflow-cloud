@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
-  Compass,
   Gift,
   History,
   LayoutDashboard,
@@ -15,7 +14,6 @@ import { ParkingScreen } from "./components/auth/ParkingScreen";
 import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
 import { GuidePanel } from "./components/workspace/GuidePanel";
 import { HistoryPanel } from "./components/workspace/HistoryPanel";
-import { OverviewPanel } from "./components/workspace/OverviewPanel";
 import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
 import { ProfilePanel } from "./components/workspace/ProfilePanel";
 import { ThemeToggle } from "./components/workspace/ThemeToggle";
@@ -36,7 +34,7 @@ import {
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
 
-type AppTab = "advisor" | "history" | "guide" | "profile" | "about" | "donate";
+type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
 
 const SUPPORT_EMAIL = "help@windwardline.com";
 // Support is a shared inbox across apps, so every mailto names the app it
@@ -46,7 +44,7 @@ const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[L
 const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
   {
     icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />,
-    label: "Advisor",
+    label: "Desk",
     value: "advisor",
   },
   {
@@ -60,11 +58,6 @@ const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
     value: "guide",
   },
   {
-    icon: <Compass className="h-4 w-4" aria-hidden="true" />,
-    label: "About",
-    value: "about",
-  },
-  {
     icon: <User className="h-4 w-4" aria-hidden="true" />,
     label: "Profile",
     value: "profile",
@@ -75,7 +68,6 @@ const PERSISTED_TABS = new Set<AppTab>([
   "history",
   "guide",
   "profile",
-  "about",
 ]);
 const LAST_TAB_STORAGE_KEY = "levelflow-last-tab";
 
@@ -174,9 +166,25 @@ export default function App() {
     profileState.profile ??
     buildDefaultProfile(session.user.id, session.user.email ?? "");
 
+  // The Desk (≥lg) is a fixed-height, three-column shell that never scrolls
+  // as a page — each column scrolls itself (spec §2). Every other tab keeps
+  // the ordinary scrolling page. main's grid-rows-[auto_1fr] hands the
+  // content row exactly "viewport minus header" without hardcoding the
+  // header's pixel height, and the footer steps out of the layout via
+  // lg:hidden so it can't add height the fixed shell has no room for; <lg
+  // never applies any of this, so the stacked flow (footer included) is
+  // untouched there.
+  const isDeskTab = activeTab === "advisor";
+
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
-      <main className="min-h-screen bg-paper text-ink">
+      <main
+        className={`bg-paper text-ink ${
+          isDeskTab
+            ? "min-h-screen lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
+            : "min-h-screen"
+        }`}
+      >
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -239,7 +247,11 @@ export default function App() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5">
+        <div
+          className={isDeskTab
+            ? "mx-auto w-full max-w-7xl px-4 py-4 sm:px-8 sm:py-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden"
+            : "mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5"}
+        >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
               onOpenRequestHandled={clearAdvisorRequest}
@@ -250,7 +262,6 @@ export default function App() {
               setups={setupState.setups}
             />
           ) : null}
-          {activeTab === "about" ? <OverviewPanel /> : null}
           {activeTab === "history" ? (
             <HistoryPanel
               categoryStats={setupState.categoryStats}
@@ -285,7 +296,11 @@ export default function App() {
           ) : null}
         </div>
 
-        <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-12">
+        <footer
+          className={`mx-auto w-full max-w-7xl px-4 pb-8 pt-12 ${
+            isDeskTab ? "lg:hidden" : ""
+          }`}
+        >
           <p className="colophon">A Windward Line production</p>
           <LegalLinks />
         </footer>
