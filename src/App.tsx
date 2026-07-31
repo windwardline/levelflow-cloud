@@ -273,13 +273,10 @@ export default function App() {
           ) : null}
           {activeTab === "history" ? (
             <HistoryPanel
-              categoryStats={setupState.categoryStats}
               initialSymbol={insightsSymbol}
               loading={setupState.loading}
               onInitialSymbolHandled={clearInsightsSymbol}
               setups={setupState.setups}
-              stats={setupState.stats}
-              summary={setupState.outcomeSummary}
             />
           ) : null}
           {activeTab === "profile" ? (

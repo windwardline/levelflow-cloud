@@ -575,7 +575,10 @@ describe("confidence tiers", () => {
     for (
       const file of [
         "src/components/workspace/AdvisorStatusPanels.tsx",
-        "src/components/workspace/HistorySetupCard.tsx",
+        // Insights recomposition (spec §10) folded the old HistorySetupCard
+        // into a day-grouped table; its confidence-formatting call site
+        // moved to historyUtils.ts's formatSetupConfidence.
+        "src/components/workspace/historyUtils.ts",
         "src/components/workspace/MarketScanPanel.tsx",
       ]
     ) {

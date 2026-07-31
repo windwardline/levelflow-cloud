@@ -1,0 +1,129 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+
+// No jsdom in this repo's unit-test stack (see
+// tests/currentTradesRail.test.tsx's header comment) — HistoryPanel.tsx's
+// markup is pinned against its real source text the same way that file and
+// tests/scopeMenu.test.tsx already do. The underlying logic HistoryPanel
+// wires together (result labels, record-band math, filtering, period
+// boundaries) is exercised directly and thoroughly in
+// tests/historyUtils.test.ts and tests/outcomes.test.ts.
+const PANEL_SOURCE = readFileSync(
+  "src/components/workspace/HistoryPanel.tsx",
+  "utf8",
+);
+
+const FOOTER_TEXT =
+  "Every setup Levelflow generates is saved here automatically, " +
+  "taken or not. Your record is tracked per broker: E8 Markets.";
+
+describe("HistoryPanel markup (source-pinned — see header comment)", () => {
+  it("titles the surface exactly Insights", () => {
+    assert.match(PANEL_SOURCE, />\s*Insights\s*</);
+  });
+
+  it("renders the footer copy exactly as spec §10 states it, verbatim", () => {
+    // The source may wrap the sentence across lines/template pieces; strip
+    // all whitespace runs to a single space on both sides before comparing
+    // so line-wrapping in the JSX can't silently drift the pinned copy.
+    const collapsedSource = PANEL_SOURCE.replace(/\s+/g, " ");
+    const collapsedFooter = FOOTER_TEXT.replace(/\s+/g, " ");
+    assert.ok(
+      collapsedSource.includes(collapsedFooter),
+      "HistoryPanel.tsx must render spec §10's footer sentence verbatim",
+    );
+  });
+
+  it("never names E8 Markets anywhere except that one footer sentence", () => {
+    const matches = PANEL_SOURCE.match(/E8 Markets/g) ?? [];
+    assert.equal(matches.length, 1);
+  });
+
+  it("renders the eight result-column headers in spec §10's exact order, with no Origin column", () => {
+    const headings = Array.from(
+      PANEL_SOURCE.matchAll(/<th[^>]*>\s*([^<{]+?)\s*<\/th>/g),
+      (match) => match[1].trim(),
+    );
+    assert.deepEqual(headings, [
+      "Market",
+      "Side",
+      "Confidence",
+      "Entry",
+      "Stop",
+      "Target 1",
+      "Target 2",
+      "Result",
+    ]);
+  });
+
+  it("labels the three filter controls exactly Market, Status, Period — no Origin filter", () => {
+    const labels = Array.from(
+      PANEL_SOURCE.matchAll(
+        /<label[^>]*>\s*\n?\s*([A-Za-z ]+)\s*\n?\s*<select/g,
+      ),
+      (match) => match[1].trim(),
+    );
+    assert.deepEqual(labels, ["Market", "Status", "Period"]);
+  });
+
+  it("never renders the word Origin anywhere in the panel's visible copy", () => {
+    assert.doesNotMatch(PANEL_SOURCE, />\s*Origin\s*</i);
+    assert.doesNotMatch(PANEL_SOURCE, /"Origin"/i);
+  });
+
+  it("offers exactly All / Open / Pending / Closed as the Status filter options, in that order", () => {
+    const optionsBlock = PANEL_SOURCE.match(
+      /STATUS_FILTER_OPTIONS[\s\S]*?=\s*\[([\s\S]*?)\];/,
+    )?.[1] ?? "";
+    const labels = Array.from(
+      optionsBlock.matchAll(/label:\s*"([^"]+)"/g),
+      (match) => match[1],
+    );
+    assert.deepEqual(labels, ["All", "Open", "Pending", "Closed"]);
+  });
+
+  it("offers exactly Last 7/30/90 days as the Period filter options, in that order", () => {
+    const optionsBlock = PANEL_SOURCE.match(
+      /PERIOD_OPTIONS[\s\S]*?=\s*\[([\s\S]*?)\];/,
+    )?.[1] ?? "";
+    const labels = Array.from(
+      optionsBlock.matchAll(/label:\s*"([^"]+)"/g),
+      (match) => match[1],
+    );
+    assert.deepEqual(labels, ["Last 7 days", "Last 30 days", "Last 90 days"]);
+  });
+
+  it("every select-based filter control uses the kit's 44px field styling", () => {
+    const selectOpenTags = PANEL_SOURCE.match(/<select\b[^>]*>/g) ?? [];
+    assert.ok(selectOpenTags.length >= 3);
+    for (const tag of selectOpenTags) {
+      assert.match(tag, /className="field"/);
+    }
+  });
+
+  it("scrolls the wide table horizontally inside its own wrapper, not the page", () => {
+    assert.match(PANEL_SOURCE, /overflow-x-auto/);
+  });
+
+  it("uses the shared formatNumber-backed price formatter for every price column, never a raw value", () => {
+    assert.match(PANEL_SOURCE, /formatPriceValue\(setup\.limit_entry\)/);
+    assert.match(PANEL_SOURCE, /formatPriceValue\(setup\.stop_loss\)/);
+    assert.match(PANEL_SOURCE, /formatPriceValue\(setup\.take_profit_1\)/);
+    assert.match(PANEL_SOURCE, /formatPriceValue\(setup\.take_profit\)/);
+  });
+
+  it("computes the Result column through formatInsightsResult, not an inline reimplementation", () => {
+    assert.match(PANEL_SOURCE, /formatInsightsResult\(setup, now\)/);
+  });
+
+  it("computes the record band and the table's day groups through the shared historyUtils functions", () => {
+    assert.match(PANEL_SOURCE, /buildRecordBand\(setups, now\)/);
+    assert.match(PANEL_SOURCE, /buildInsightsGroups\(filteredSetups\)/);
+    assert.match(PANEL_SOURCE, /filterInsightsSetups\(/);
+  });
+
+  it("never mentions resting or other banned quant jargon in a string literal (languageGuard already scans this file too)", () => {
+    assert.doesNotMatch(PANEL_SOURCE, /\bresting\b/i);
+  });
+});
