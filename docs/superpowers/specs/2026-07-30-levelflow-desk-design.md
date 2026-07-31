@@ -63,7 +63,9 @@ renders it as a full-screen sheet):
 
 1. **All markets** (first row)
 2. **Groups, alphabetical**: Crypto, Energies, Forex, Futures, Metals —
-   each group row itself selectable ("scan N" affordance on the row)
+   each group row itself selectable, with a right-aligned uppercase
+   affordance: "SCAN {N}" when open, availability label when closed
+   (§10b)
 3. **Markets nested under their group**, sorted alphabetically by base
    currency then quote currency
 
@@ -181,16 +183,17 @@ scoring and penalties, per-class low-edge UTC hour gates, high-impact
 news blocking, Friday-close cutoffs on expiry); this section is purely
 about showing availability.
 
-- **Scope menu**: a closed group or market renders muted, its right-hand
-  affordance replaced by a **stacked, right-aligned two-line label** —
-  line one "closed", line two "opens {time} {day}" — so long labels never
-  drift leftward into the row. The reopen moment is exact, in the
-  **user's local machine timezone** (`Intl.DateTimeFormat`), and the day
-  is **always present** — "opens 6:00 pm today", "opens 5:00 pm Sun" —
-  never a bare time the reader must interpret. The weekend is the case
-  that matters most: crypto trades while every other class waits for its
-  Sunday open. Date included when the reopen is beyond the coming week
-  (holidays). Identical treatment on desktop and in the mobile sheet.
+- **Scope menu**: a closed group or market renders muted and
+  unselectable — the grey state itself says "closed"; the word never
+  appears. Its right-aligned affordance (same slot as "SCAN {N}") reads
+  **"OPENS {H:MM}{A|P} {DDD}"** on one line — compact time, then the
+  **3-letter day, always present even when it is today** ("OPENS 6:00P
+  WED", "OPENS 5:00P SUN"). The reopen moment is exact, in the **user's
+  local machine timezone** (`Intl.DateTimeFormat`). The weekend is the
+  case that matters most: crypto trades while every other class waits
+  for its Sunday open. A date replaces the day when the reopen is beyond
+  the coming week (holidays). Identical treatment on desktop and in the
+  mobile sheet.
 - **Scan**: closed markets are skipped and the scanned count reflects only
   markets actually attempted — the count line stays honest without extra
   copy; the menu carries the why.
