@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   BookOpen,
   CircleUser,
@@ -272,6 +279,7 @@ export default function App() {
                 <div className="ml-auto">
                   <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
                 </div>
+                <BrokerChip />
                 <a
                   aria-label="Help"
                   className="secondary-button min-h-10 px-3 py-2"
@@ -536,6 +544,23 @@ function MobileAccountMenu({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Mirrors ScopeMenu.tsx's close()/closeAndFocusTrigger() split exactly
+  // (the established bar for this app's popovers): every path that
+  // dismisses the menu — Escape, Tab, an outside click, or picking an
+  // item — returns focus to the trigger, so a keyboard/screen-reader user
+  // is never left with focus stranded on a removed menu item or lost to
+  // the document body. useCallback (unlike ScopeMenu's plain function
+  // declarations) because this one's body reaches a ref's imperative
+  // .focus(), which this project's exhaustive-deps setup treats as a real
+  // capture rather than the setState-only pattern it recognizes as stable
+  // — a stable identity here keeps the effect below subscribing only on
+  // real open/close transitions instead of every unrelated re-render.
+  const closeAndFocusTrigger = useCallback(() => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -544,31 +569,53 @@ function MobileAccountMenu({
 
     function handlePointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
+        // Confirmed by live interactive testing, not assumed: a bare
+        // triggerRef.current?.focus() inside a mousedown handler does not
+        // stick when the click lands on a non-focusable element (a
+        // heading, plain text) — the browser's own default mousedown
+        // action reassigns focus to document.body immediately afterward,
+        // silently undoing it. preventDefault() suppresses exactly that
+        // default focus reassignment (it does not block the outside
+        // element's own subsequent click handler from firing) so the
+        // explicit refocus below actually wins.
+        event.preventDefault();
+        closeAndFocusTrigger();
       }
     }
 
     document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [closeAndFocusTrigger, open]);
+
+  // Attached to the root (trigger + menu together) rather than the menu
+  // alone, so it fires no matter which of the two currently has focus —
+  // right after opening (focus is still on the trigger button; a native
+  // click doesn't move it) as well as once focus has moved into a menu
+  // item. Tab is treated exactly like Escape, the same choice
+  // ScopeMenu.tsx's handleListKeyDown makes and documents: without it, a
+  // keyboard Tab could carry focus out into the rest of the page while
+  // the menu stayed visually open — the "no focus trap" gap this closes.
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!open) {
+      return;
+    }
+    if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      closeAndFocusTrigger();
+    }
+  }
 
   function select(action: () => void) {
-    setOpen(false);
+    closeAndFocusTrigger();
     action();
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative" onKeyDown={handleKeyDown}>
       <button
+        ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
@@ -606,7 +653,7 @@ function MobileAccountMenu({
               className="flex min-h-11 items-center gap-2 px-3 text-sm font-semibold text-ink transition hover:bg-accent/10"
               href={supportMailto}
               role="menuitem"
-              onClick={() => setOpen(false)}
+              onClick={() => closeAndFocusTrigger()}
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
               Help

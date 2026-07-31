@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Landmark, LogOut, Palette, UserRound } from "lucide-react";
 import type { ThemeMode, UserProfile } from "../../lib/profile";
 import { LegalLinks } from "../legal/LegalLinks";
@@ -41,6 +42,12 @@ export function ProfilePanel({
   profile,
   themeMode,
 }: ProfilePanelProps) {
+  // The retired Preferences form surfaced a save failure inline, not just
+  // to the console — reusing that exact border-sell/bg-sell/10/text-sell
+  // notice style below (fix round 1). Logging this one to the console
+  // alone would be the same silent failure that form never had.
+  const [themeSaveFailed, setThemeSaveFailed] = useState(false);
+
   // The Appearance card is the only remaining write path in this panel, and
   // it has no Save button of its own (spec §2 copy discipline: no
   // process-narration) — picking a theme both applies it live (App.tsx's
@@ -50,6 +57,7 @@ export function ProfilePanel({
   // unchanged so a theme-only save can never reset them.
   function handleThemeChange(mode: ThemeMode) {
     onThemeChange(mode);
+    setThemeSaveFailed(false);
     onSave({
       defaultTimeframe: profile.defaultTimeframe,
       defaultTimezone: profile.defaultTimezone,
@@ -58,6 +66,7 @@ export function ProfilePanel({
       themePreference: mode,
     }).catch((error) => {
       console.error("[profile] theme save failed", error);
+      setThemeSaveFailed(true);
     });
   }
 
@@ -118,6 +127,14 @@ export function ProfilePanel({
           </h2>
         </div>
         <ThemeToggle mode={themeMode} onChange={handleThemeChange} />
+        {themeSaveFailed
+          ? (
+            <p className="mt-3 rounded-lg border border-sell/25 bg-sell/10 px-3 py-2 text-sm font-semibold text-sell">
+              Appearance could not be saved. Try again after the connection
+              refreshes.
+            </p>
+          )
+          : null}
       </section>
 
       <div className="grid gap-3 px-1">

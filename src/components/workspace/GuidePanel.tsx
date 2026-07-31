@@ -9,11 +9,13 @@ import type { GuideAnchor } from "./WorkspaceNav";
 // taken are mechanical: markdown bullets become styled <li> cards, the
 // "N. Title" heading prefix becomes a separate numeral badge, and §10's
 // "Term — definition" bullets split into real <dt>/<dd> pairs (dropping the
-// now-redundant connecting dash, capitalizing the two definitions that used
-// to continue a sentence). No word is added, removed, or reworded. The
-// deck's own front matter (title, "authoritative copy" preamble, absorption
-// map) is explicitly meta — instructions to the builder, not reader-facing
-// copy — and is not rendered; only its numbered §1–§10 sections are.
+// now-redundant connecting dash; all six definitions get their leading word
+// capitalized, since the deck writes every one lowercase to continue the
+// "Term —" sentence, and each now opens a standalone <dd> instead). No word
+// is added, removed, or reworded. The deck's own front matter (title,
+// "authoritative copy" preamble, absorption map) is explicitly meta —
+// instructions to the builder, not reader-facing copy — and is not
+// rendered; only its numbered §1–§10 sections are.
 //
 // Anchor ids: the six GuideAnchor values (WorkspaceNav.tsx) are unchanged
 // so every existing HowThisWorksLink call site (MarketScanPanel,

@@ -281,4 +281,87 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
       );
     }
   });
+
+  // Fix round 1, item 1 (SPEC): spec §2/§12 put a broker chip on the ≥lg
+  // header too, not just Profile's Broker card and the mobile compact one —
+  // the desktop-freeze reading that originally omitted it didn't hold once
+  // weighed against the same spec text driving the mobile decision.
+  it("desktop header (the lg:contents block) also carries the broker chip, beside ThemeToggle", () => {
+    const desktopHeaderBlock = APP_SOURCE.match(
+      /<div className="hidden lg:contents">[\s\S]*?<\/nav>\s*<\/div>/,
+    )?.[0] ?? "";
+    assert.match(
+      desktopHeaderBlock,
+      /<ThemeToggle mode=\{theme\.mode\} onChange=\{theme\.setMode\} \/>[\s\S]{0,40}<BrokerChip \/>/,
+    );
+  });
+});
+
+// Fix round 1, item 2 (IMPORTANT): MobileAccountMenu had no focus trap and
+// no return-focus on Escape/outside-click/selection, unlike ScopeMenu's
+// established closeAndFocusTrigger bar. No jsdom in this harness means none
+// of this can be driven through actual key/click events (same limitation
+// documented at the top of this file and in tests/scopeMenu.test.tsx) — the
+// four dismissal paths are pinned against source text instead.
+describe("MobileAccountMenu focus management (source-pinned — see header comment)", () => {
+  const menuBlock = APP_SOURCE.match(
+    /function MobileAccountMenu[\s\S]*?\n}\n/,
+  )?.[0] ?? "";
+
+  it("an outside click closes and returns focus to the trigger, not just closing", () => {
+    // preventDefault() is load-bearing, confirmed by live interactive
+    // testing in a real browser (not merely assumed): without it, the
+    // browser's own default mousedown action reassigns focus to
+    // document.body immediately after triggerRef.current?.focus() runs,
+    // silently undoing the refocus whenever the outside click lands on a
+    // non-focusable element (a heading, plain text — exactly the common
+    // case for an outside click).
+    assert.match(
+      menuBlock,
+      /!rootRef\.current\?\.contains\(event\.target as Node\)\)\s*\{[\s\S]*?event\.preventDefault\(\);\s*closeAndFocusTrigger\(\);/,
+    );
+  });
+
+  it("Escape and Tab are both intercepted and both close-and-return-focus, mirroring ScopeMenu.tsx's own Tab handling", () => {
+    assert.match(menuBlock, /event\.key === "Escape" \|\| event\.key === "Tab"/);
+    assert.match(
+      menuBlock,
+      /event\.key === "Escape" \|\| event\.key === "Tab"\)\s*\{\s*event\.preventDefault\(\);\s*closeAndFocusTrigger\(\);/,
+    );
+  });
+
+  it("the keydown handler is wired on the root (trigger + menu together), so it fires regardless of which currently has focus", () => {
+    assert.match(
+      menuBlock,
+      /<div ref=\{rootRef\} className="relative" onKeyDown=\{handleKeyDown\}>/,
+    );
+  });
+
+  it("every item selection — all four MobileMenuItems and the Help mailto link — closes and returns focus, never a bare setOpen", () => {
+    const selectCalls = menuBlock.match(/onSelect=\{\(\) => select\([^)]*\)\}/g) ?? [];
+    assert.equal(
+      selectCalls.length,
+      4,
+      "expected Guide/Profile/Donate/Sign out to all route through select()",
+    );
+    assert.match(
+      menuBlock,
+      /href=\{supportMailto\}[\s\S]{0,150}onClick=\{\(\) => closeAndFocusTrigger\(\)\}/,
+    );
+    assert.doesNotMatch(menuBlock, /onClick=\{\(\) => setOpen\(false\)\}/);
+  });
+
+  it("select() itself always closes-and-refocuses before running the requested action", () => {
+    assert.match(
+      menuBlock,
+      /function select\(action: \(\) => void\) \{\s*closeAndFocusTrigger\(\);\s*action\(\);\s*\}/,
+    );
+  });
+
+  it("closeAndFocusTrigger has a stable identity (useCallback), so the outside-click effect only resubscribes on real open/close transitions", () => {
+    assert.match(
+      menuBlock,
+      /const closeAndFocusTrigger = useCallback\(\(\) => \{\s*setOpen\(false\);\s*triggerRef\.current\?\.focus\(\);\s*\}, \[\]\);/,
+    );
+  });
 });
