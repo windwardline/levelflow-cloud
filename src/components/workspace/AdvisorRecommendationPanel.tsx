@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import {
+  Check,
   CheckCircle2,
-  Clipboard,
+  Copy,
   Loader2,
   ShieldCheck,
   Target,
@@ -23,6 +25,12 @@ import {
 import { formatNumber, formatTimestamp } from "./advisorFormat";
 import { MetricRow } from "./AdvisorMetricRow";
 
+// Spec §7, verbatim, load-bearing: the exact wording the design authority
+// signed off on. Render it as-is everywhere the ladder values appear —
+// never paraphrase it, even to shorten a line.
+const LADDER_TARGET_INSTRUCTION =
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+
 export function RecommendationPanel({
   notice,
   result,
@@ -36,6 +44,29 @@ export function RecommendationPanel({
   status: "idle" | "analyzing";
   symbol: SupportedSymbol;
 }) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const copyResetRef = useRef<number | null>(null);
+
+  // The ✓ confirmation is transient (spec §7); a second copy before the
+  // first one clears must restart the clock, not race it, and a pending
+  // timer must never fire setState after the panel unmounts.
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current !== null) {
+        window.clearTimeout(copyResetRef.current);
+      }
+    };
+  }, []);
+
+  function handleCopy(field: string, value: string) {
+    void navigator.clipboard?.writeText(value);
+    if (copyResetRef.current !== null) {
+      window.clearTimeout(copyResetRef.current);
+    }
+    setCopiedField(field);
+    copyResetRef.current = window.setTimeout(() => setCopiedField(null), 2000);
+  }
+
   if (status === "analyzing") {
     return <AnalysisProgress symbol={symbol} />;
   }
@@ -52,13 +83,6 @@ export function RecommendationPanel({
     const rewardRisk = Number(
       (setup.confluence as Record<string, unknown>)?.rewardRisk ?? 0,
     );
-    const levelSummary = `${setup.side.toUpperCase()} LIMIT ${setup.symbol} @ ${
-      formatNumber(setup.entryPrice)
-    } | SL ${formatNumber(setup.stopLoss)}${
-      hasLadder ? ` | First target ${formatNumber(setup.takeProfit1!)}` : ""
-    } | ${hasLadder ? "Second target" : "Target"} ${
-      formatNumber(setup.takeProfit)
-    }`;
 
     return (
       <div className="grid gap-4">
@@ -93,22 +117,33 @@ export function RecommendationPanel({
           </div>
         </div>
         <div className="grid gap-2 text-sm">
-          <MetricRow
+          <CopyableMetricRow
+            copied={copiedField === "entry"}
             label="Limit entry"
+            onCopy={() => handleCopy("entry", formatNumber(setup.entryPrice))}
             value={formatNumber(setup.entryPrice)}
             valueClassName={isBuy ? "text-buy" : "text-sell"}
           />
-          <MetricRow label="Stop loss" value={formatNumber(setup.stopLoss)} />
+          <CopyableMetricRow
+            copied={copiedField === "stop"}
+            label="Stop loss"
+            onCopy={() => handleCopy("stop", formatNumber(setup.stopLoss))}
+            value={formatNumber(setup.stopLoss)}
+          />
           {hasLadder
             ? (
-              <MetricRow
-                label="First target — bank half"
+              <CopyableMetricRow
+                copied={copiedField === "target1"}
+                label="Target 1 · bank half"
+                onCopy={() => handleCopy("target1", formatNumber(setup.takeProfit1!))}
                 value={formatNumber(setup.takeProfit1!)}
               />
             )
             : null}
-          <MetricRow
-            label={hasLadder ? "Second target" : "Target"}
+          <CopyableMetricRow
+            copied={copiedField === "target2"}
+            label={hasLadder ? "Target 2 · take-profit" : "Target"}
+            onCopy={() => handleCopy("target2", formatNumber(setup.takeProfit))}
             value={formatNumber(setup.takeProfit)}
           />
           {setup.expiresAt
@@ -123,10 +158,7 @@ export function RecommendationPanel({
         {hasLadder
           ? (
             <div className="grid gap-1.5 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs leading-5 text-ink-muted">
-              <p>
-                At the first target, sell half and move the stop to your
-                entry. The rest aims for the second target.
-              </p>
+              <p>{LADDER_TARGET_INSTRUCTION}</p>
               <HowThisWorksLink anchor="targets-and-stops" />
             </div>
           )
@@ -139,16 +171,6 @@ export function RecommendationPanel({
             </p>
           )
           : null}
-        <button
-          className="secondary-button w-full"
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(levelSummary);
-          }}
-        >
-          <Clipboard className="h-4 w-4" aria-hidden="true" />
-          Copy levels
-        </button>
         <div
           className={`flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${
             isBuy ? "bg-buy/10 text-buy" : "bg-sell/10 text-sell"
@@ -190,6 +212,47 @@ export function RecommendationPanel({
             "Select a market, review the chart, then ask Levelflow for the current limit setup."}
         </p>
       </div>
+    </div>
+  );
+}
+
+// Spec §7: every ladder value (Entry, Stop, Target 1, Target 2) copies on
+// its own — the value plus a subtle ⧉ affordance that flips to a ✓ for a
+// couple of seconds. `value` is written to the clipboard exactly as shown,
+// with no label, side, or symbol stitched on.
+function CopyableMetricRow({
+  copied,
+  label,
+  onCopy,
+  value,
+  valueClassName = "text-ink",
+}: {
+  copied: boolean;
+  label: string;
+  onCopy: () => void;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex min-h-10 min-w-0 items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
+      <span className="min-w-0 text-ink-muted">{label}</span>
+      <span className="flex min-w-0 items-center gap-1">
+        <span
+          className={`min-w-0 text-right font-mono font-semibold tabular-nums ${valueClassName}`}
+        >
+          {value}
+        </span>
+        <button
+          aria-label={copied ? `${label} copied` : `Copy ${label}`}
+          className="cpv-copy"
+          onClick={onCopy}
+          type="button"
+        >
+          {copied
+            ? <Check aria-hidden="true" className="h-4 w-4 text-buy" />
+            : <Copy aria-hidden="true" className="h-4 w-4" />}
+        </button>
+      </span>
     </div>
   );
 }

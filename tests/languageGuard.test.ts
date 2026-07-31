@@ -17,7 +17,15 @@ const LIB_FILES = [
 ];
 const TP1 = /\bTP1\b/;
 const RUNNER = /\brunner\b/i;
-const BANNED = [TP1, RUNNER, /out-of-sample/i, /\bATR\b/];
+const BANNED = [
+  TP1,
+  RUNNER,
+  /out-of-sample/i,
+  /\bATR\b/,
+  // Spec §8: trade-state language is TradeLocker-aligned — "pending",
+  // never "resting" — for every order that's placed but not yet filled.
+  /\bresting\b/i,
+];
 
 // Files whose plain-language rewrite lands in a later task. Each stayed
 // listed, with the owning task noted, until that task's recomposition
@@ -95,4 +103,26 @@ describe("plain language on working surfaces", () => {
       }
     });
   }
+});
+
+// Spec §7's two-target instruction is verbatim and load-bearing: the exact
+// wording the design authority signed off on, not a paraphrase. Pin it
+// against the rendered source the same way the plain-language scan above
+// pins banned words, so a future copy edit that reworks the sentence (even
+// with equivalent meaning) fails loudly instead of drifting silently.
+const CANONICAL_LADDER_INSTRUCTION =
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+
+describe("canonical ladder instruction (spec §7)", () => {
+  it("renders the exact two-target sentence in AdvisorRecommendationPanel, verbatim", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.ok(
+      source.includes(CANONICAL_LADDER_INSTRUCTION),
+      "AdvisorRecommendationPanel.tsx must render spec §7's canonical " +
+        "take-profit/bank-half instruction verbatim",
+    );
+  });
 });

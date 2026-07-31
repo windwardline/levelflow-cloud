@@ -170,4 +170,95 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     assert.doesNotMatch(source, /<ConfidenceGauge\b/);
     assert.doesNotMatch(source, /\{Math\.round\(setup\.confidenceScore\)\}%/);
   });
+
+  // Spec §7: the bundled "Copy levels" button and its levelSummary
+  // clipboard plumbing are gone — per-value copy replaces both.
+  it('removes the bundled "Copy levels" button and its levelSummary plumbing', () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(source, /Copy levels/);
+    assert.doesNotMatch(source, /levelSummary/);
+    // The lucide Clipboard icon powered only that button; navigator's own
+    // lowercase `clipboard` API is unrelated and stays.
+    assert.doesNotMatch(source, /\bClipboard\b/);
+  });
+
+  it('labels the ladder rows exactly "Target 1 · bank half" and "Target 2 · take-profit" (spec §7)', () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.match(source, /label="Target 1 · bank half"/);
+    assert.match(
+      source,
+      /label=\{hasLadder \? "Target 2 · take-profit" : "Target"\}/,
+    );
+    // The retired labels don't linger anywhere in the file.
+    assert.doesNotMatch(source, /First target/);
+    assert.doesNotMatch(source, /Second target/);
+  });
+
+  // Spec §7: each ladder value copies on its own, writing exactly the raw
+  // value string — no label, side, or symbol stitched on the way the old
+  // "Copy levels" summary line did. No jsdom in this repo's unit-test
+  // stack (see the file header comment above), so there's no live
+  // navigator.clipboard to mock and no click to dispatch; instead this
+  // pins the one writeText call site to a bare `value` argument, and pins
+  // each row's onCopy to hand it the exact same formatNumber(...) string
+  // that row renders as its value prop — what you see is what you copy.
+  it("copies exactly the raw formatted value per row, through a single writeText(value) call site", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    const writeTextCalls =
+      source.match(/navigator\.clipboard\?\.writeText\([^)]*\)/g) ?? [];
+    assert.deepEqual(
+      writeTextCalls,
+      ["navigator.clipboard?.writeText(value)"],
+      "expected exactly one clipboard write site, taking the bare handler parameter",
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("entry", formatNumber\(setup\.entryPrice\)\)\}/,
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("stop", formatNumber\(setup\.stopLoss\)\)\}/,
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("target1", formatNumber\(setup\.takeProfit1!\)\)\}/,
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("target2", formatNumber\(setup\.takeProfit\)\)\}/,
+    );
+  });
+
+  it("flips each copy affordance to a checkmark for a bounded window, keyed per row", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    // Real button semantics (spec §7: keyboard accessible), not a div.
+    assert.match(source, /<button\b[^>]*\bclassName="cpv-copy"/);
+    // The ✓ state is transient (~2s) and keyed by field via copiedField,
+    // not a single flag — copying one row never shows a false ✓ on
+    // another, and the icon swap reads straight off that same state.
+    assert.match(
+      source,
+      /window\.setTimeout\(\(\) => setCopiedField\(null\), 2000\)/,
+    );
+    assert.match(
+      source,
+      /\? <Check aria-hidden="true" className="h-4 w-4 text-buy" \/>/,
+    );
+    assert.match(
+      source,
+      /: <Copy aria-hidden="true" className="h-4 w-4" \/>/,
+    );
+  });
 });

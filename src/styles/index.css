@@ -272,6 +272,25 @@ html[data-theme="dark"] {
     text-decoration-color: var(--color-accent);
   }
 
+  /*
+    Per-value ladder copy control (spec §7): visually a small ⧉/✓ glyph
+    beside the value it copies, but a real 44px tap target underneath.
+    Same trick as .tertiary-link above, applied on every side instead of
+    just the block axis, so the icon still sits snug against its value.
+  */
+  .cpv-copy {
+    display: inline-flex;
+    min-height: 44px;
+    min-width: 44px;
+    align-items: center;
+    justify-content: center;
+    margin: -0.875rem;
+    border-radius: 8px;
+    color: var(--color-ink-muted);
+    transition: color 140ms ease-out;
+  }
+  .cpv-copy:hover { color: var(--color-accent); }
+
   .link-accent {
     color: var(--color-ink);
     text-decoration: none;
