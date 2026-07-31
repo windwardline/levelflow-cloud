@@ -162,31 +162,61 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Profile", exact: true }).click();
+  // Scoped to the panel from here down: spec §17c gives Profile the shared
+  // footer too, so its Donate and the footer's are two buttons of the same
+  // accessible name on one page — unscoped, that is a strict-mode failure on
+  // the live run, and both are supposed to exist.
+  const profile = page.getByTestId("profile-panel");
   await expect(
-    page.getByRole("heading", { name: "Profile", exact: true }),
+    profile.getByRole("heading", { name: "Profile", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Account", exact: true }),
+    profile.getByRole("heading", { name: "Account", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Broker", exact: true }),
+    profile.getByRole("heading", { name: "Broker", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Appearance", exact: true }),
+    profile.getByRole("heading", { name: "Appearance", exact: true }),
   ).toBeVisible();
 
   // Spec §16 relocation: Help (mailto) and Donate moved off the killed
-  // desktop header buttons onto a Support card here, so they stay reachable
+  // desktop header buttons onto a Support row here, so they stay reachable
   // at desktop widths (the mobile account menu already carried both).
   await expect(
-    page.getByRole("heading", { name: "Support", exact: true }),
+    profile.getByRole("heading", { name: "Support", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Email support" }),
+    profile.getByRole("link", { name: "Email support" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Donate", exact: true }),
+    profile.getByRole("button", { name: "Donate", exact: true }),
   ).toBeVisible();
+
+  // Spec §17c: one footer on every scrolling view — Profile used to be the one
+  // surface that skipped it and drew its own legal block instead. Both the
+  // shared row and the absence of a second copy are checked.
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(page.getByText("A Windward Line production")).toHaveCount(1);
+  await expect(
+    page.getByRole("navigation", { name: "Legal" }),
+  ).toHaveCount(1);
+
+  // Donate is the last scrolling surface, and the shortest — the footer has to
+  // sit at the true bottom of the viewport there, not halfway up the page.
+  await footerSupport.getByRole("button", { name: "Donate", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Donate", exact: true }),
+  ).toBeVisible();
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(
+    page.locator("footer").getByRole("navigation", { name: "Legal" }),
+  ).toBeVisible();
+  const bottomGap = await page.locator("footer").evaluate((element) =>
+    window.innerHeight - element.getBoundingClientRect().bottom
+  );
+  expect(bottomGap).toBeLessThanOrEqual(1);
 });
 
 test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no panel furniture", async ({ page }) => {

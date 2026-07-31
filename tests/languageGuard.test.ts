@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 const ROOTS = [
+  // Non-recursive per root, so the app-chrome files that sit directly in
+  // src/components (AppFooter.tsx, spec §17c) need this entry of their own —
+  // without it a new surface could land there unscanned.
+  "src/components",
   "src/components/workspace",
   "src/components/charts",
   "src/components/donations",

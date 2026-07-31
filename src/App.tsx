@@ -21,6 +21,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { AppFooter } from "./components/AppFooter";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
 import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
@@ -40,7 +41,6 @@ import {
   type WorkspaceNav,
 } from "./components/workspace/WorkspaceNav";
 import { DonatePanel } from "./components/donations/DonatePanel";
-import { LegalLinks } from "./components/legal/LegalLinks";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
@@ -263,11 +263,17 @@ export default function App() {
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
+      {/* Spec §17c: a min-height flex column is what lets AppFooter's own
+          mt-auto put it at the true bottom of the viewport on a short page —
+          Donate and an empty Insights are both short — and directly after the
+          content on a long one. The Desk keeps its ≥lg grid override on top;
+          flex-direction is inert on a grid container, so the two coexist
+          without a second branch. */}
       <main
-        className={`bg-paper text-ink ${
+        className={`flex min-h-screen flex-col bg-paper text-ink ${
           isDeskTab
-            ? "min-h-screen lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
-            : "min-h-screen"
+            ? "lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
+            : ""
         }`}
       >
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
@@ -389,59 +395,16 @@ export default function App() {
           ) : null}
         </div>
 
-        {/* Profile now carries its own legal links + colophon (spec §11),
-            so the page-wide footer would just duplicate them there — the
-            one tab where it's skipped outright rather than merely lg:hidden
-            like the Desk tab above it. */}
-        {/* F4 fix wave 2B: below lg, MobileTabBar is fixed to the viewport
-            bottom (>=56px with its safe-area inset) — the same reason the
-            scrolling content wrapper above carries pb-24. This footer is a
-            sibling that renders after that wrapper, so at full scroll it's
-            the trailing thing on the page and needs the identical
-            clearance itself; pb-8 alone let the bar overlay the colophon's
-            padding and the LegalLinks row right above it. lg:pb-8 keeps
-            >=lg exactly as it rendered before — there's no fixed bar to
-            clear there. */}
-        {activeTab !== "profile"
-          ? (
-            <footer
-              className={`mx-auto w-full max-w-7xl px-4 pb-24 pt-12 lg:pb-8 ${
-                isDeskTab ? "lg:hidden" : ""
-              }`}
-            >
-              <p className="colophon">A Windward Line production</p>
-              {/* Spec §17: Help and Donate are first-class — "never hidden or
-                  buried, placed thoughtfully, same furniture and testing
-                  standards as everything else" — and the footer's link row is
-                  the first of the four places that ruling names. They sit
-                  beside the legal trio rather than inside it: LegalLinks is a
-                  <nav aria-label="Legal">, and a support link inside a group
-                  named Legal is misfiled for anyone navigating by landmark.
-                  Two navs in one flex row read as one line of quiet links.
-                  Donate fires the same setActiveTab("donate") the Profile
-                  Support card and the mobile account menu already use — no new
-                  nav mechanism for a third copy of one action. */}
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-                <LegalLinks />
-                <nav
-                  aria-label="Support"
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2"
-                >
-                  <a className="tertiary-link" href={SUPPORT_MAILTO}>
-                    Help
-                  </a>
-                  <button
-                    className="tertiary-link"
-                    type="button"
-                    onClick={() => setActiveTab("donate")}
-                  >
-                    Donate
-                  </button>
-                </nav>
-              </div>
-            </footer>
-          )
-          : null}
+        {/* Spec §17c: ONE footer, on every scrolling page and view — Profile
+            included, which used to render its own legal block and skip this
+            one. The component owns its composition, its dimensions, its
+            spacing and its own bottom-pinning; the only thing decided here is
+            the ruling's single exception, the Desk's fixed ≥lg shell. */}
+        <AppFooter
+          hiddenOnDesktopDesk={isDeskTab}
+          onOpenDonate={() => setActiveTab("donate")}
+          supportMailto={SUPPORT_MAILTO}
+        />
 
         <MobileTabBar
           active={activeMobileTab}

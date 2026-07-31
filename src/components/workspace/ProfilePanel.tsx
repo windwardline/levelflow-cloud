@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Landmark, LogOut, Palette, UserRound } from "lucide-react";
 import type { ThemeMode, UserProfile } from "../../lib/profile";
-import { LegalLinks } from "../legal/LegalLinks";
 import { BrokerChip } from "./BrokerChip";
 import { ThemeToggle } from "./ThemeToggle";
 
-// Spec §11: Profile collapses to one narrow settings column — Account,
-// Broker, Appearance, legal + colophon — dropping the old Preferences form
-// (display name / timezone / preferred session / default chart view) and
-// the read-only Market clock / Activity / Review activity cards entirely.
+// Spec §11: Profile collapses to one settings surface — Account, Broker,
+// Appearance, Support — dropping the old Preferences form (display name /
+// timezone / preferred session / default chart view) and the read-only Market
+// clock / Activity / Review activity cards entirely.
 // Spec §10b retires the session-clock concept those fields fed, and Task 8
 // moved every analytics view (win rate, per-market history) into Insights,
 // so nothing here is a silent removal of the only place that data lived.
@@ -76,7 +75,15 @@ export function ProfilePanel({
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[620px] gap-4">
+    // Spec §17c gave every scrolling surface the one shared page footer, this
+    // one included. That retired the legal/production block spec §11 put at
+    // the foot of this column — it would now be a second copy of what the
+    // footer itself carries — and it made this surface's own Donate ambiguous
+    // with the footer's. The testid is how e2e keeps the two apart.
+    <div
+      className="mx-auto grid w-full max-w-[620px] gap-4"
+      data-testid="profile-panel"
+    >
       {/* `.phead` (p-profile-v1.html:11): the 2px ink rule under the title,
           the same one Insights and Guide already carry — Profile was the one
           surface of the three drawing its h1 unruled. */}
@@ -166,11 +173,6 @@ export function ProfilePanel({
           </button>
         </div>
       </section>
-
-      <div className="grid gap-3 px-1">
-        <LegalLinks align="left" />
-        <p className="colophon">A Windward Line production</p>
-      </div>
     </div>
   );
 }

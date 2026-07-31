@@ -299,66 +299,31 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
 
   // Fix wave 2B, FIX 4 (completeness-audit-2 Finding 6). The scrolling
   // content wrapper reserves pb-24 below lg specifically to clear the fixed
-  // MobileTabBar (>= 56px with its safe-area inset). The page-wide footer
-  // is a sibling that renders *after* that wrapper, so it needs the same
-  // clearance on its own — before this fix it carried only pb-8, and at
-  // full scroll on Insights/Guide/Donate the tab bar overlaid the trailing
-  // padding and the LegalLinks row immediately above it. lg:pb-8 keeps the
-  // >=lg value exactly what pb-8 rendered before (no fixed tab bar exists
-  // there to clear), so this is mobile-only clearance, not a desktop
-  // visual change.
-  it("gives the page footer pb-24 clearance below lg to escape the fixed tab bar, collapsing back to pb-8 at lg (F4 fix wave 2B)", () => {
-    const footerClassName = APP_SOURCE.match(
-      /<footer\s+className=\{`([^`]*)`\}/,
-    )?.[1] ?? "";
+  // MobileTabBar (>= 56px with its safe-area inset). The footer trails that
+  // wrapper, so at full scroll it is the last thing on the page and needs the
+  // identical reserve — with pb-8 alone the bar overlaid its link row.
+  //
+  // Spec §17c moved the footer itself into src/components/AppFooter.tsx (one
+  // footer for every surface; tests/appFooter.test.ts owns its composition).
+  // What stays here is the claim that belongs to the mobile tab bar: the two
+  // elements it can overlay reserve the same clearance, read from both sources
+  // rather than restated as a number.
+  it("gives the footer the same tab-bar clearance the content wrapper reserves (F4 fix wave 2B)", () => {
+    const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
+    const wrapperClassNames = APP_SOURCE.match(
+      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+    )?.[0] ?? "";
     assert.ok(
-      footerClassName.length > 0,
-      "expected to find the page footer's template-literal className",
+      wrapperClassNames.length > 0,
+      "expected to find the scrolling content wrapper's class branches",
     );
-    assert.match(footerClassName, /\bpb-24\b/);
-    assert.match(footerClassName, /\blg:pb-8\b/);
-    // The literal string carries both; the ${isDeskTab ? "lg:hidden" : ""}
-    // interpolation must still be the only dynamic piece — this must stay
-    // a real, statically-analyzable "lg:pb-8" token for Tailwind's
-    // build-time scanner (tailwindVariantGuard.test.ts's C1 concern), not
-    // reassembled at runtime.
-    assert.doesNotMatch(footerClassName, /lg:\$\{/);
-  });
-
-  // Spec §17: "Help and Donate are first-class: never hidden or buried,
-  // placed thoughtfully, same furniture and testing standards as everything
-  // else. Placement set: (a) the page footer's link row carries Help and
-  // Donate beside the legal trio on every scrolling surface." They are
-  // tertiary-link furniture in the same row as LegalLinks — not inside its
-  // <nav aria-label="Legal">, which is a legal group and would be misnamed
-  // carrying them.
-  it("carries Help and Donate in the footer's link row, beside the legal trio (spec §17)", () => {
-    const footerBlock = APP_SOURCE.match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? "";
-    assert.ok(footerBlock.length > 0, "expected to find the page footer");
-    assert.match(footerBlock, /<LegalLinks \/>/);
-    assert.match(footerBlock, /aria-label="Support"/);
-    assert.match(footerBlock, /href=\{SUPPORT_MAILTO\}[\s\S]{0,120}Help/);
-    assert.match(
-      footerBlock,
-      /onClick=\{\(\) => setActiveTab\("donate"\)\}[\s\S]{0,120}Donate/,
-    );
-    // Same quiet treatment as the legal links themselves, both of them.
-    assert.equal(
-      (footerBlock.match(/className="tertiary-link"/g) ?? []).length,
-      2,
-    );
-    // One row: the legal nav and the support nav sit inside the same flex
-    // container, so the two groups read as one line rather than stacking.
-    assert.match(
-      footerBlock,
-      /className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"[\s\S]{0,400}<LegalLinks \/>[\s\S]{0,400}aria-label="Support"/,
-    );
-    // The colophon is untouched — still the footer's own first line, above
-    // the link row, exactly where it already sat.
-    assert.match(
-      footerBlock,
-      /<p className="colophon">A Windward Line production<\/p>\s*\{\/\*/,
-    );
+    for (const branch of wrapperClassNames.match(/"[^"]*"/g) ?? []) {
+      assert.match(branch, /\bpb-24\b/, `content wrapper branch ${branch}`);
+    }
+    assert.match(footerSource, /\bpb-24\b/);
+    // Real, statically-analyzable tokens for Tailwind's build-time scanner —
+    // never a variant prefix reassembled at runtime (C1).
+    assert.doesNotMatch(footerSource, /lg:\$\{/);
   });
 
   it("wires every Donate affordance through the one existing tab switch (spec §17)", () => {
@@ -367,18 +332,19 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     // not merely matched, so a future copy of the action cannot quietly grow
     // its own mechanism — the four call sites are §17's whole placement set
     // minus the one that needs no callback: the mobile account menu,
-    // ProfilePanel, the footer link row, and the Guide's Support section.
-    // The arrow form specifically, so the sentence naming this mechanism in
-    // the footer's own comment does not count itself into the total.
+    // ProfilePanel, AppFooter's link row, and the Guide's Support section.
+    // The arrow form specifically, so a sentence naming this mechanism in a
+    // comment does not count itself into the total.
     assert.equal(
       (APP_SOURCE.match(/\(\) => setActiveTab\("donate"\)/g) ?? []).length,
       4,
     );
     // Every surface that shows a support address takes the one shared mailto
-    // rather than rebuilding it: the account menu, Profile, and now the Guide.
+    // rather than rebuilding it: the account menu, Profile, the Guide, and the
+    // shared footer.
     assert.equal(
       (APP_SOURCE.match(/supportMailto=\{SUPPORT_MAILTO\}/g) ?? []).length,
-      3,
+      4,
     );
     assert.match(APP_SOURCE, /<GuidePanel[\s\S]{0,300}onOpenDonate=/);
   });
