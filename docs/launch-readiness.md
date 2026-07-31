@@ -12,6 +12,9 @@
 
 ## Private Beta Gate
 
+- Parking soft gate: production serves `construction.html` to visitors;
+  the owner enters the app via `/?enter` (session-scoped bypass,
+  `src/lib/parkingGate.ts`). Undo by flipping `PARKING_GATE` to false.
 - Real user email login: needs a real magic-link confirmation from the account owner.
 - Profile persistence: real-user validation should confirm profile preference updates, theme selection, and history loading.
 - Legal pages: `risk-disclaimer.html`, `privacy.html`, and `terms.html` are published under `/legal/`.

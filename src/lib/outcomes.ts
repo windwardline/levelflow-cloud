@@ -97,8 +97,3 @@ export function normalizeSetupOutcome(setup: Pick<TradeSetupRow, "status" | "tra
   return "still_tracking";
 }
 
-export function isResolvedOutcome(outcome: SetupOutcome) {
-  return outcome === "target_reached" || outcome === "partial_target" ||
-    outcome === "stopped_out" || outcome === "expired_in_profit" ||
-    outcome === "expired_in_loss";
-}
