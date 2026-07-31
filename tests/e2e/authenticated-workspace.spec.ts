@@ -331,7 +331,11 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(page.getByRole("menuitem", { name: "Profile" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Donate" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Help" })).toBeVisible();
+  // Help is an <a href={mailto}> here, but App.tsx sets an explicit
+  // role="menuitem" on it (matching its four sibling menu items) — that
+  // explicit role overrides the anchor's native "link" role in the
+  // accessibility tree, so it has to be queried the same way they are.
+  await expect(page.getByRole("menuitem", { name: "Help" })).toBeVisible();
   await page.keyboard.press("Escape");
 
   // Review is the default tab; Scan and Trades are one tap away and carry
