@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 // Full-page screenshots of the four authed surfaces at desktop and mobile
@@ -53,12 +53,18 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Each surface's "it rendered" signal is a stable landmark, not data: data
-// rows depend on what the test account holds that day.
+// rows depend on what the test account holds that day. The Desk's landmark is
+// resolved through getByTestId rather than a CSS selector carrying a tag name
+// — a type selector is exact, so 'div[data-testid=…]' matched nothing at all
+// (the element is a <section>, and the rail recomposition would have changed
+// it again). Every sibling call site in this directory already does it this
+// way; the landmark waits below take a Locator, so the desk entry supplies
+// one and the other three keep their text-scoped CSS.
 const SURFACES = [
-  { landmark: 'div[data-testid="current-trades-rail"]', name: "desk", nav: null },
-  { landmark: 'h1:has-text("Insights")', name: "insights", nav: "Insights" },
-  { landmark: "h1", name: "guide", nav: "Guide" },
-  { landmark: 'h1:has-text("Profile")', name: "profile", nav: "Profile" },
+  { landmark: (page: Page) => page.getByTestId("current-trades-rail"), name: "desk", nav: null },
+  { landmark: (page: Page) => page.locator('h1:has-text("Insights")'), name: "insights", nav: "Insights" },
+  { landmark: (page: Page) => page.locator("h1"), name: "guide", nav: "Guide" },
+  { landmark: (page: Page) => page.locator('h1:has-text("Profile")'), name: "profile", nav: "Profile" },
 ] as const;
 
 test("captures desktop composition proof", async ({ page }) => {
@@ -72,7 +78,7 @@ test("captures desktop composition proof", async ({ page }) => {
         .getByRole("button", { exact: true, name: surface.nav })
         .click();
     }
-    await page.locator(surface.landmark).first().waitFor({ state: "visible" });
+    await surface.landmark(page).first().waitFor({ state: "visible" });
     // Give the chart/webfonts a beat past the landmark so the capture is
     // representative, without asserting on paint internals.
     await page.waitForTimeout(1500);
@@ -100,7 +106,15 @@ test("captures mobile composition proof", async ({ page }) => {
   });
 
   for (const view of ["Scan", "Trades"] as const) {
-    await page.getByRole("button", { exact: true, name: view }).click();
+    // The Trades tab's accessible name grows to "Trades, N current" the moment
+    // the account holds a pending or open setup (App.tsx's MobileTabBar
+    // badge), so exact:true stops matching on exactly the accounts this
+    // capture is most worth having. Same locator and same reason as
+    // authenticated-workspace.spec.ts:416-423.
+    const tab = view === "Trades"
+      ? page.getByRole("button", { name: /^Trades(,|$)/ })
+      : page.getByRole("button", { exact: true, name: view });
+    await tab.click();
     await page.waitForTimeout(700);
     await page.screenshot({
       fullPage: true,

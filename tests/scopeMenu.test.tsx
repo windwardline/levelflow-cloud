@@ -497,31 +497,48 @@ describe("scopeTriggerLabel", () => {
 
 // Spec §16 draws neither picker with a visible field caption: the stage's
 // market name IS the heading, and the rail leads with its own "Scan" eyebrow.
-// Every element that took its name from that caption must then name itself, or
-// it loses its accessible name entirely — and aria-labelledby must not survive
-// alongside aria-label, since it would win and point at an element that is no
-// longer rendered.
+// Suppressing the caption must not cost any element its accessible name, and
+// no aria-labelledby may point at an element that is not rendered.
 describe("ScopeMenu labelling with the caption suppressed (source-pinned — see header comment)", () => {
   const SOURCE = readFileSync(
     "src/components/workspace/ScopeMenu.tsx",
     "utf8",
   );
 
-  it("names the trigger with aria-label exactly when the visible caption is suppressed", () => {
-    assert.match(SOURCE, /aria-label=\{showLabel \? undefined : label\}/);
+  // Fix round 2 (final review, Important 3): the trigger took a bare
+  // aria-label={label} whenever the caption was suppressed — and aria-label
+  // REPLACES element content in the name computation, so the selected market
+  // (which lives in that content) dropped out of the accessible name of the
+  // stage's primary control: "Market, collapsed, button", with no way to hear
+  // which market is on the stage. The caption is now always rendered and only
+  // visually hidden, so the labelledby chain stays valid in both modes and
+  // always announces caption + current value.
+  it("names the trigger off the caption AND the value in both modes — never a bare aria-label", () => {
+    const trigger = SOURCE.match(
+      /<button\n?\s*ref=\{triggerRef\}[\s\S]*?\n\s*>/,
+    )?.[0] ?? "";
+    assert.ok(trigger.length > 0, "expected to find the trigger button");
+    assert.match(
+      trigger,
+      /aria-labelledby=\{`\$\{baseId\}-label \$\{baseId\}-value`\}/,
+    );
+    assert.doesNotMatch(trigger, /aria-label=/);
+    // And the value element the second half of that chain resolves to.
     assert.match(
       SOURCE,
-      /aria-labelledby=\{showLabel \? `\$\{baseId\}-label \$\{baseId\}-value` : undefined\}/,
+      /<span id=\{`\$\{baseId\}-value`\}[\s\S]{0,120}\{scopeTriggerLabel\(value, variant\)\}/,
     );
   });
 
-  // Fix round 1: the trigger got this right and both listboxes did not. With
-  // showLabel={false} at both call sites, an unconditional
-  // aria-labelledby={`${baseId}-label`} on a <ul role="listbox"> is a dangling
-  // IDREF — it resolves to nothing, so the opened menu announced as an unnamed
-  // listbox. The trigger-only assertion above is exactly why the gate stayed
-  // green with that regression in place, so the list is pinned too now.
-  it("names BOTH listboxes the same conditional way — no dangling IDREF when the caption is suppressed", () => {
+  // Fix round 1: the trigger got its half right and both listboxes did not.
+  // With showLabel={false} at both call sites, aria-labelledby={`${baseId}-
+  // label`} on a <ul role="listbox"> pointed at an element that was not
+  // rendered at all — a dangling IDREF, so the opened menu announced as an
+  // unnamed listbox. Round 2 keeps every listbox named; what changed is that
+  // the reference is now always resolvable (see the always-rendered caption
+  // below), so the conditional pair it needed is no longer needed and both
+  // lists name themselves the one way.
+  it("names BOTH listboxes off the caption — no dangling IDREF, no unnamed listbox", () => {
     const listboxes = SOURCE.match(/<ul\b[\s\S]*?role="listbox"/g) ?? [];
     assert.equal(
       listboxes.length,
@@ -529,48 +546,27 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
       "expected exactly two listboxes: the anchored popup and the mobile sheet",
     );
     for (const listbox of listboxes) {
-      assert.match(listbox, /aria-label=\{showLabel \? undefined : label\}/);
-      assert.match(
-        listbox,
-        /aria-labelledby=\{showLabel \? `\$\{baseId\}-label` : undefined\}/,
-      );
+      assert.match(listbox, /aria-labelledby=\{`\$\{baseId\}-label`\}/);
+      assert.doesNotMatch(listbox, /aria-label=/);
     }
   });
 
-  it("leaves no unconditional reference to the caption id anywhere", () => {
-    // Catches the regression shape itself rather than listing the elements that
-    // must not have it: the caption renders only under showLabel, so every
-    // aria-labelledby naming it has to sit inside a showLabel ternary. The
-    // sheet dialog's own `-sheet-title` reference is unconditional and correct
-    // — that node always renders — so it is deliberately not matched here.
-    // One level of `${…}` nesting has to be allowed through: a naive [^}]*
-    // stops at the closing brace of `${baseId}` and truncates the attribute
-    // mid-template. Caption references are then identified by the template's
-    // literal suffix ("}-label"), not by a bare "-label" substring — which the
-    // attribute NAME "aria-labelledby" itself contains.
-    const references =
-      SOURCE.match(/aria-labelledby=\{(?:[^{}]|\$\{[^{}]*\})*\}/g) ?? [];
-    const captionReferences = references.filter((reference) =>
-      reference.includes("}-label")
-    );
-    assert.ok(
-      captionReferences.length > 0,
-      "expected to find the caption references this guards",
-    );
-    for (const reference of captionReferences) {
-      assert.match(
-        reference,
-        /showLabel \?/,
-        `unconditional caption reference: ${reference}`,
-      );
-    }
-  });
-
-  it("renders the caption span only when showLabel is set", () => {
+  it("renders the caption span unconditionally, hiding it visually rather than removing it", () => {
+    // This is what makes every reference above resolvable in both modes, so it
+    // is the assertion that must fail if anyone puts the caption back behind a
+    // showLabel ternary. The className is the conditional part, not the node.
     assert.match(
+      SOURCE,
+      /<span\n\s*id=\{`\$\{baseId\}-label`\}\n\s*className=\{showLabel\n\s*\? "[^"]+"\n\s*: "sr-only"\}/,
+    );
+    assert.doesNotMatch(
       SOURCE,
       /\{showLabel\s*\n?\s*\?[\s\S]{0,300}id=\{`\$\{baseId\}-label`\}/,
     );
+  });
+
+  it("keeps the sheet dialog's own title reference intact", () => {
+    assert.match(SOURCE, /aria-labelledby=\{`\$\{baseId\}-sheet-title`\}/);
   });
 
   it("renders the trigger's own text through scopeTriggerLabel, never describeScanScope directly", () => {

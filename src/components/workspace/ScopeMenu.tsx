@@ -529,29 +529,30 @@ export function ScopeMenu(
 
   return (
     <div ref={rootRef} className={variant === "heading" ? "grid min-w-0" : "grid min-w-0 gap-1"}>
-      {showLabel
-        ? (
-          <span
-            id={`${baseId}-label`}
-            className="text-xs font-semibold uppercase tracking-normal text-ink-muted"
-          >
-            {label}
-          </span>
-        )
-        : null}
+      {/* Spec §16 suppresses the visible caption on both pickers, but the
+          caption is what every element here takes its name from — so the node
+          always renders and only its styling changes. Hiding it with .sr-only
+          (clipped, not display:none) keeps it in the accessibility tree, so
+          each aria-labelledby below resolves in both modes. Removing it
+          instead is what cost the trigger its selected value: a bare
+          aria-label REPLACES element content in the name computation, and the
+          value lives in that content. */}
+      <span
+        id={`${baseId}-label`}
+        className={showLabel
+          ? "text-xs font-semibold uppercase tracking-normal text-ink-muted"
+          : "sr-only"}
+      >
+        {label}
+      </span>
       <button
         ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="listbox"
-        // With no visible caption there is no label element to point at, so
-        // the trigger carries the name itself. aria-label and aria-labelledby
-        // are mutually exclusive here on purpose: setting both would let the
-        // labelledby chain win and silently re-introduce a reference to an
-        // element that is no longer rendered. The same pairing is applied to
-        // both listboxes below — the caption is either there for everything
-        // that names itself off it, or for nothing.
-        aria-label={showLabel ? undefined : label}
-        aria-labelledby={showLabel ? `${baseId}-label ${baseId}-value` : undefined}
+        // Caption + current value, always: a screen-reader user on the stage
+        // has to hear which market is loaded, and the heading trigger is the
+        // only place the selected market appears.
+        aria-labelledby={`${baseId}-label ${baseId}-value`}
         // The heading variant carries no padding (the market name IS the
         // stagehead heading), which on its own leaves the stage's primary
         // control a ~32px target. min-h-11 restores the kit's 44px floor and
@@ -609,8 +610,7 @@ export function ScopeMenu(
                 <ul
                   ref={listRef}
                   aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
-                  aria-label={showLabel ? undefined : label}
-                  aria-labelledby={showLabel ? `${baseId}-label` : undefined}
+                  aria-labelledby={`${baseId}-label`}
                   className="scrolly flex-1 overflow-y-auto py-1"
                   role="listbox"
                   tabIndex={-1}
@@ -624,8 +624,7 @@ export function ScopeMenu(
               <ul
                 ref={listRef}
                 aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
-                aria-label={showLabel ? undefined : label}
-                aria-labelledby={showLabel ? `${baseId}-label` : undefined}
+                aria-labelledby={`${baseId}-label`}
                 className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
                 role="listbox"
                 // The anchored popup normally matches its trigger's width. A
