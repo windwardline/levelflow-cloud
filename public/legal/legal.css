@@ -151,6 +151,31 @@ footer p:last-child {
 }
 
 /*
+  Quiet legal-links row (F1/Finding 5) — the static twin's equivalent of
+  the app's <LegalLinks />: muted and small, not the accent, underlined
+  body-link style the generic `a` rule above sets for prose and the
+  back-link.
+*/
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  margin: 0 0 12px 0;
+}
+
+.legal-links a {
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.legal-links a:hover {
+  color: var(--color-ink);
+}
+
+/*
   404 page only. Scoped under body.not-found (set on public/404.html)
   instead of shipping as an inline <style> block, which production CSP
   (style-src 'self', no unsafe-inline) blocks outright.
