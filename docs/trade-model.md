@@ -785,6 +785,48 @@ per-hour curves can both validate existing gates (as absent rows) and
 find real ones (energies' six blocked hours). The same emit-driven
 method applies directly.
 
+## Round-22 calibration (2026-07-30, session hours at full depth)
+
+The 12–18 UTC gates on crypto and futures — the engine's shallowest
+evidence, validated once at 1,200 days in round 4 — re-derived at full
+depth. Doing it required instrumentation the harness never had: the
+low-edge gates block like market closures, so their hours were invisible
+to every sweep. `SessionContext.lowEdge` now marks measurement-only
+gates and the sweep's `--ignore-low-edge` flag sees through them —
+block bypassed AND penalty neutralized (the first run caught that the
+penalty alone re-hid the hours at the confidence gate: sessionBlocked 0,
+belowConfidence +5,451). Hard closures are never bypassed, by test.
+
+Full-depth per-hour curves, both splits, every hour visible:
+
+- **Futures: the gate is emphatically validated.** Hours 12–17 are the
+  weakest stretch of the day (test hours 16 and 17 negative at −0.007
+  and −0.028); removing the gate costs **−0.022 train / −0.027 test**
+  in aggregate. Keep, unchanged.
+- **Crypto: the gate is retained, but its story changed.** At full depth
+  the gated hours are no longer negative (the r4 finding at 1,200d) —
+  they are positive but dilutive: ungating adds +33% accepted volume at
+  train +0.002 / test **−0.008**, failing the both-splits bar. The gate
+  survives as a net-quality filter, and the user-facing refusal reason
+  now says exactly that ("run well below every other hour") instead of
+  the no-longer-true "were negative."
+- **No new low-edge hours in either class** — zero negative-both buckets
+  outside the gated window, matching r15's null for forex, futures,
+  crypto, and metals open hours.
+
+No calibration values change; the ships are the instrumentation and the
+honest copy. This is the second consecutive validation round.
+
+Next lever identified: **news-conditioned acceptance** — the round-6
+curiosity (news-penalized-but-accepted setups slightly outperformed
+clean ones on train) is the last substantive untested question in the
+replay data. Full-depth, both-splits examination of expectancy
+conditioned on news-penalty presence decides whether the penalty gates
+are calibrated, inverted, or inert. Per the owner's stopping rule: if it
+returns a null like this round did, the replay well is dry and the
+natural stopping point is reached — the engine then rests until
+genuinely new data exists (live cohort outcomes foremost).
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
