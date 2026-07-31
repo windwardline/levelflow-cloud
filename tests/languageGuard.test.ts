@@ -36,16 +36,21 @@ const BANNED = [
 // removed it. Task 6 emptied the list; Task 7 asserts it stays empty.
 const SKIPPED_FILES: string[] = [];
 
-// The Guide is the teaching surface. Spec §7 licenses it — and only it — to
-// name the precise vocabulary parenthetically ("first target (TP1)", "second
-// target (the runner)") so a reader can map Levelflow's plain copy onto the
-// terms they will meet in every other tool. That license covers exactly those
-// two words: the Guide is still forbidden the terms nobody may show, so the
-// carve-out narrows the pattern list for one file instead of dropping the
-// file out of the scan.
-const TAUGHT_IN_THE_GUIDE = new Map<string, RegExp[]>([
-  ["GuidePanel.tsx", [TP1, RUNNER]],
-]);
+// Task 9 shrank this to empty on purpose (binding decision: "the deck
+// contains no banned jargon, so SHRINK the allowlist to whatever the deck
+// actually needs — ideally empty"). GuidePanel used to carry a carve-out
+// here licensing it — and only it — to name "TP1"/"the runner"
+// parenthetically so a reader could map Levelflow's plain copy onto outside
+// vocabulary. The rebuilt Guide renders
+// docs/superpowers/specs/2026-07-30-levelflow-guide-content.md verbatim,
+// and that deck's own front matter retires both asides ("the platforms
+// don't use those words, so neither do we") — see
+// tests/guideAnchors.test.ts's "keeps the deleted teaching asides gone"
+// check for the content-side half of this. GuidePanel.tsx is now scanned
+// with the exact same BANNED list as every other working surface; the map
+// stays (rather than deleting the mechanism outright) in case a future
+// surface ever needs a narrowly-scoped carve-out again.
+const TAUGHT_IN_THE_GUIDE = new Map<string, RegExp[]>([]);
 
 function bannedPatternsFor(file: string): RegExp[] {
   for (const [taughtIn, taught] of TAUGHT_IN_THE_GUIDE) {
@@ -127,6 +132,23 @@ describe("canonical ladder instruction (spec §7)", () => {
       source.includes(CANONICAL_LADDER_INSTRUCTION),
       "AdvisorRecommendationPanel.tsx must render spec §7's canonical " +
         "take-profit/bank-half instruction verbatim",
+    );
+  });
+
+  // Task 9: the Guide deck (docs/superpowers/specs/
+  // 2026-07-30-levelflow-guide-content.md §3) features this same sentence
+  // as its accent callout — the third of the three places this exact
+  // string is now pinned, alongside tradeState.ts's open-pre-Target-1
+  // state (tests/tradeState.test.ts).
+  it("renders the exact two-target sentence in GuidePanel's §3 callout, verbatim", () => {
+    const source = readFileSync(
+      "src/components/workspace/GuidePanel.tsx",
+      "utf8",
+    );
+    assert.ok(
+      source.includes(CANONICAL_LADDER_INSTRUCTION),
+      "GuidePanel.tsx must render spec §7/§3's canonical take-profit/" +
+        "bank-half instruction verbatim",
     );
   });
 });

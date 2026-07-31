@@ -6,7 +6,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import {
   AVAILABLE_ASSET_GROUPS,
   formatSecurityLabel,
@@ -211,6 +211,50 @@ export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean
   return !symbolOnly;
 }
 
+// Mobile renders the menu as a full-screen sheet instead of an anchored
+// popup — spec §4's universal contract: "One dropdown, three scope kinds,
+// identical on desktop and mobile (mobile renders it as a full-screen
+// sheet)." That applies to every ScopeMenu instance (the stage's symbolOnly
+// picker and the scan scope selector alike), so the choice lives inside the
+// component itself rather than as a prop each of today's two call sites
+// would otherwise need to compute and thread through identically.
+//
+// 1024 mirrors --breakpoint-lg (src/styles/index.css) exactly rather than
+// introducing a second number that could drift from it. This is a plain
+// pixel comparison, not a rem media query, so it can't fall prey to the bug
+// that made index.css's breakpoints pixel-pinned in the first place (rem
+// breakpoints resolve against the browser's font-size setting); a
+// `min-width: 1024px` match here always agrees with Tailwind's own
+// `lg:`-generated media query.
+export const MOBILE_SHEET_BREAKPOINT_PX = 1024;
+
+export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
+  return viewportWidthPx < MOBILE_SHEET_BREAKPOINT_PX;
+}
+
+function useScopeMenuSheetMode(): boolean {
+  const [sheet, setSheet] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : shouldUseSheetLayout(window.innerWidth)
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const query = window.matchMedia(
+      `(min-width: ${MOBILE_SHEET_BREAKPOINT_PX}px)`,
+    );
+    const onChange = () => setSheet(!query.matches);
+    onChange();
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  return sheet;
+}
+
 export type ScopeMenuProps = {
   /** Visible + accessible label above the trigger button (e.g. "Scan scope", "Market"). */
   label: string;
@@ -237,6 +281,7 @@ export function ScopeMenu(
   { label, now, onSelect, symbolOnly = false, value }: ScopeMenuProps,
 ) {
   const baseId = useId();
+  const sheet = useScopeMenuSheetMode();
   const [open, setOpen] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [position, setPosition] = useState<
@@ -331,6 +376,50 @@ export function ScopeMenu(
     };
   }, [open]);
 
+  // Shared between the anchored popup and the full-screen sheet - the two
+  // presentations differ only in their outer container, never in what a row
+  // looks like or does (spec §4: "identical on desktop and mobile").
+  function renderOptionRows() {
+    return rows.map((row) => {
+      const selected = isSameScope(row.scope, value);
+      return (
+        <li
+          key={row.key}
+          aria-disabled={!row.interactive}
+          aria-selected={selected}
+          id={`${baseId}-${row.key}`}
+          role="option"
+          className={rowClassName(row, row.key === activeKey)}
+          onClick={() => activate(row)}
+          onMouseEnter={() => row.interactive && setActiveKey(row.key)}
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            {selected
+              ? (
+                <Check
+                  className="h-3.5 w-3.5 shrink-0 text-accent"
+                  aria-hidden="true"
+                />
+              )
+              : <span className="w-3.5 shrink-0" aria-hidden="true" />}
+            <span className="truncate">{row.label}</span>
+          </span>
+          {showsAffordance(row, symbolOnly)
+            ? (
+              <span className="shrink-0 font-mono text-xs font-semibold uppercase tracking-normal text-ink-muted">
+                {formatScopeMenuAffordance(
+                  row.availability,
+                  row.count ?? 0,
+                  clock,
+                )}
+              </span>
+            )
+            : null}
+        </li>
+      );
+    });
+  }
+
   function handleListKeyDown(event: ReactKeyboardEvent) {
     switch (event.key) {
       case "ArrowDown":
@@ -412,55 +501,57 @@ export function ScopeMenu(
 
       {open && position
         ? createPortal(
-          <ul
-            ref={listRef}
-            aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
-            aria-labelledby={`${baseId}-label`}
-            className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
-            role="listbox"
-            style={{ left: position.left, top: position.top, width: position.width }}
-            tabIndex={-1}
-            onKeyDown={handleListKeyDown}
-          >
-            {rows.map((row) => {
-              const selected = isSameScope(row.scope, value);
-              return (
-                <li
-                  key={row.key}
-                  aria-disabled={!row.interactive}
-                  aria-selected={selected}
-                  id={`${baseId}-${row.key}`}
-                  role="option"
-                  className={rowClassName(row, row.key === activeKey)}
-                  onClick={() => activate(row)}
-                  onMouseEnter={() => row.interactive && setActiveKey(row.key)}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    {selected
-                      ? (
-                        <Check
-                          className="h-3.5 w-3.5 shrink-0 text-accent"
-                          aria-hidden="true"
-                        />
-                      )
-                      : <span className="w-3.5 shrink-0" aria-hidden="true" />}
-                    <span className="truncate">{row.label}</span>
+          sheet
+            ? (
+              <div
+                aria-labelledby={`${baseId}-sheet-title`}
+                aria-modal="true"
+                className="fixed inset-0 z-30 flex flex-col bg-sheet"
+                role="dialog"
+              >
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+                  <span
+                    id={`${baseId}-sheet-title`}
+                    className="text-sm font-semibold text-ink"
+                  >
+                    {label}
                   </span>
-                  {showsAffordance(row, symbolOnly)
-                    ? (
-                      <span className="shrink-0 font-mono text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                        {formatScopeMenuAffordance(
-                          row.availability,
-                          row.count ?? 0,
-                          clock,
-                        )}
-                      </span>
-                    )
-                    : null}
-                </li>
-              );
-            })}
-          </ul>,
+                  <button
+                    aria-label="Close"
+                    className="cpv-copy"
+                    type="button"
+                    onClick={closeAndFocusTrigger}
+                  >
+                    <X className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </div>
+                <ul
+                  ref={listRef}
+                  aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
+                  aria-labelledby={`${baseId}-label`}
+                  className="scrolly flex-1 overflow-y-auto py-1"
+                  role="listbox"
+                  tabIndex={-1}
+                  onKeyDown={handleListKeyDown}
+                >
+                  {renderOptionRows()}
+                </ul>
+              </div>
+            )
+            : (
+              <ul
+                ref={listRef}
+                aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
+                aria-labelledby={`${baseId}-label`}
+                className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
+                role="listbox"
+                style={{ left: position.left, top: position.top, width: position.width }}
+                tabIndex={-1}
+                onKeyDown={handleListKeyDown}
+              >
+                {renderOptionRows()}
+              </ul>
+            ),
           document.body,
         )
         : null}

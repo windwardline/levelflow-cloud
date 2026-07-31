@@ -56,7 +56,35 @@ import {
   reviewWindowLabel,
 } from "../../lib/advisorReview";
 
+// Spec §3: mobile's bottom tab bar swaps between the same three columns the
+// ≥lg Desk always shows at once. "review" is the stage (chart, ladder, why
+// this setup), "scan" is the left rail (MarketScanPanel), "trades" is the
+// right rail (CurrentTradesRail). Owned here, not by App.tsx, because these
+// three names only ever mean something inside the Desk tab.
+export type DeskMobileView = "review" | "scan" | "trades";
+
+// Desktop (≥lg) is frozen: every column must go on rendering exactly as it
+// always has, so `lg:${display}` is unconditional here regardless of which
+// mobile tab is active — only the base (sub-lg) utility ever changes. Below
+// lg, exactly one column is ever visible at a time, matching the mobile tab
+// bar's own selection (spec §3); the CSS-only toggle (rather than
+// conditionally mounting/unmounting the three columns) is what lets Review,
+// Scan, and Trades share one AdvisorWorkspace instance and its state
+// (symbol, scanResult, clockNow…) instead of remounting and losing it on
+// every tab switch.
+export function deskColumnClassName(
+  isActiveOnMobile: boolean,
+  display: "block" | "flex",
+  className: string,
+): string {
+  return `${isActiveOnMobile ? display : "hidden"} lg:${display} ${className}`;
+}
+
 type AdvisorWorkspaceProps = {
+  // Which of the three columns is the sole visible one below lg (spec §3).
+  // Ignored at ≥lg, where all three always render — see the className
+  // helper below for exactly how that freeze is enforced.
+  mobileView: DeskMobileView;
   // Bound to useTradeSetups' forceOutcomeRefresh path (App.tsx). Wired to
   // Desk-tab activation there and to CurrentTradesRail's own manual refresh
   // here — the rail never grows fetch machinery of its own (spec §8).
@@ -85,6 +113,7 @@ type AnalysisState = {
 
 export function AdvisorWorkspace(
   {
+    mobileView,
     onForceOutcomeRefresh,
     onOpenRequestHandled,
     onSetupsChanged,
@@ -340,8 +369,15 @@ export function AdvisorWorkspace(
     // untouched until Task 9's mobile pass.
     <div className="grid min-w-0 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[264px_minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
       {/* Left rail: the scan. Task 4 replaces MarketScanPanel's internals;
-          here it only moves into its own column. */}
-      <div className="scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+          here it only moves into its own column. Below lg it is the "Scan"
+          tab's entire content (spec §3); at ≥lg it always shows. */}
+      <div
+        className={deskColumnClassName(
+          mobileView === "scan",
+          "block",
+          "scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
+        )}
+      >
         <MarketScanPanel
           onResetResult={() => {
             setScanResult(null);
@@ -379,8 +415,15 @@ export function AdvisorWorkspace(
           rows shrink to fit the scroll container's height instead of
           overflowing it, which silently defeats the scrolling this column
           exists for. Flex only avoids the same trap because every direct
-          child below is pinned shrink-0. */}
-      <div className="scrolly flex min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+          child below is pinned shrink-0. Below lg this is the "Review" tab's
+          entire content (spec §3); at ≥lg it always shows. */}
+      <div
+        className={deskColumnClassName(
+          mobileView === "review",
+          "flex",
+          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
+        )}
+      >
         <section className="terminal-panel shrink-0 overflow-hidden">
           <div className="border-b border-hairline px-4 py-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -556,8 +599,15 @@ export function AdvisorWorkspace(
           computed from setups+outcomes already loaded above. Force-refreshed
           on every Desk surface show (App.tsx's tab-activation effect) and on
           demand via the rail's own manual control; no fetch logic lives
-          here. */}
-      <aside className="scrolly flex min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+          here. Below lg this is the "Trades" tab's entire content (spec
+          §3); at ≥lg it always shows. */}
+      <aside
+        className={deskColumnClassName(
+          mobileView === "trades",
+          "flex",
+          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
+        )}
+      >
         <div className="shrink-0">
           <CurrentTradesRail
             now={clockNow}

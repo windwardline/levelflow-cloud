@@ -36,6 +36,26 @@ export function buildTradeCards(
   return cards;
 }
 
+// The mobile tab bar's Trades badge (spec §3: "badge = current-trade
+// count", App.tsx) — the exact same live/pending filter this rail itself
+// renders, so the badge can never disagree with what the Trades tab
+// actually shows. Lives here rather than in App.tsx so it stays importable
+// in this repo's jsdom-free unit-test stack: App.tsx's own module-level
+// TABS array embeds JSX that evaluates eagerly on import (unlike a
+// component function's JSX, which only runs once called), and several of
+// its other imports reach Vite-only globals (import.meta.env) with no
+// meaning under plain `tsx --test` — importing App.tsx directly always
+// throws in this harness, whereas this file already proves safe to import
+// (see tests/currentTradesRail.test.tsx). `now` only affects the age/
+// progress text inside each derived state, never whether a setup counts at
+// all, so this needs no ticking clock of its own.
+export function currentTradeBadgeCount(
+  setups: TradeSetupRow[],
+  now: Date,
+): number {
+  return buildTradeCards(setups, now).length;
+}
+
 export function formatProgressR(value: number | null): string {
   if (value === null) {
     return "—";

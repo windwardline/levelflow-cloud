@@ -1,20 +1,31 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
+  CircleUser,
   Gift,
   History,
   LayoutDashboard,
+  LineChart,
+  ListChecks,
   LogOut,
   Mail,
+  Radar,
   User,
+  UserRound,
+  X,
 } from "lucide-react";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
 import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
 import { GuidePanel } from "./components/workspace/GuidePanel";
 import { HistoryPanel } from "./components/workspace/HistoryPanel";
-import { AdvisorWorkspace } from "./components/workspace/AdvisorWorkspace";
+import {
+  AdvisorWorkspace,
+  type DeskMobileView,
+} from "./components/workspace/AdvisorWorkspace";
+import { BrokerChip } from "./components/workspace/BrokerChip";
+import { currentTradeBadgeCount } from "./components/workspace/CurrentTradesRail";
 import { ProfilePanel } from "./components/workspace/ProfilePanel";
 import { ThemeToggle } from "./components/workspace/ThemeToggle";
 import {
@@ -35,6 +46,11 @@ import {
 import { supabase } from "./lib/supabase";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
+// The four bottom-tab-bar destinations (spec §3). Three of them ("review" |
+// "scan" | "trades") are sub-views of the single "advisor" AppTab — see
+// deskMobileView below — so the tab bar's own selection model is a distinct,
+// slightly wider union from AppTab rather than a one-to-one mirror of it.
+type MobileTab = "review" | "scan" | "trades" | "insights";
 
 const SUPPORT_EMAIL = "help@windwardline.com";
 // Support is a shared inbox across apps, so every mailto names the app it
@@ -89,6 +105,15 @@ export default function App() {
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
   const [advisorRequest, setAdvisorRequest] = useState<{ symbol: string; token: number } | null>(null);
   const [insightsSymbol, setInsightsSymbol] = useState<string | null>(null);
+  // The mobile tab bar's own sub-selection within the Desk (spec §3: Review
+  // / Scan / Trades). Kept separate from activeTab rather than folded into
+  // it: all three map to the same "advisor" AppTab, so AdvisorWorkspace
+  // stays mounted (and its symbol/scanResult/clockNow state intact) while
+  // the bar flips between them — remounting on every tap would be a much
+  // worse mobile experience than desktop's "just look at another column".
+  const [deskMobileView, setDeskMobileView] = useState<DeskMobileView>(
+    "review",
+  );
 
   // AdvisorWorkspace only exists in the tree while its tab is active, so
   // switching tabs away and back remounts it fresh. Without clearing the
@@ -104,6 +129,25 @@ export default function App() {
   // Guide back down to the last-linked section every time the user opened
   // the tab from the tab bar, instead of starting at the top.
   const clearGuideAnchor = useCallback(() => setGuideAnchor(null), []);
+
+  // The tab bar's single selection model spans two pieces of state:
+  // Insights is a whole AppTab, Review/Scan/Trades are sub-views of the
+  // "advisor" one. selectMobileTab is the one place that maps a tap onto
+  // both; activeMobileTab is its read-side mirror, used only to decide
+  // which of the four buttons (if any) renders as current.
+  function selectMobileTab(tab: MobileTab) {
+    if (tab === "insights") {
+      setActiveTab("history");
+      return;
+    }
+    setActiveTab("advisor");
+    setDeskMobileView(tab);
+  }
+  const activeMobileTab: MobileTab | null = activeTab === "history"
+    ? "insights"
+    : activeTab === "advisor"
+    ? deskMobileView
+    : null;
 
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
@@ -195,73 +239,95 @@ export default function App() {
       >
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="min-w-0">
-                <p className="wordmark text-lg text-ink">Levelflow</p>
-                <p className="truncate text-xs text-ink-muted">
-                  Welcome, {profileDisplayName(profile)}
-                </p>
+            {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
+                account avatar — Guide/Profile/Donate/Sign out all live
+                behind that one button instead of the nav pills and icon
+                row below, which stay exactly as they've always been, just
+                gated to ≥lg via lg:contents so hiding them at <lg can't
+                touch their own layout at ≥lg. */}
+            <div className="flex min-w-0 items-center justify-between gap-3 lg:hidden">
+              <p className="wordmark min-w-0 truncate text-lg text-ink">
+                Levelflow
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <BrokerChip />
+                <MobileAccountMenu
+                  onOpenDonate={() => setActiveTab("donate")}
+                  onOpenGuide={() => setActiveTab("guide")}
+                  onOpenProfile={() => setActiveTab("profile")}
+                  onSignOut={() => supabase?.auth.signOut()}
+                  supportMailto={SUPPORT_MAILTO}
+                />
               </div>
-              <div className="ml-auto sm:hidden">
-                <ThemeToggle compact mode={theme.mode} onChange={theme.setMode} />
-              </div>
-              <div className="ml-auto hidden sm:block">
-                <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
-              </div>
-              <a
-                aria-label="Help"
-                className="secondary-button min-h-10 px-3 py-2"
-                href={SUPPORT_MAILTO}
-              >
-                <Mail className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Help</span>
-              </a>
-              <button
-                aria-label="Donate"
-                className="secondary-button min-h-10 px-3 py-2"
-                type="button"
-                onClick={() => setActiveTab("donate")}
-              >
-                <Gift className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Donate</span>
-              </button>
-              <button
-                aria-label="Sign out"
-                className="secondary-button min-h-10 px-3 py-2"
-                type="button"
-                onClick={() => supabase?.auth.signOut()}
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Sign out</span>
-              </button>
             </div>
 
-            <nav
-              className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
-              aria-label="Levelflow sections"
-            >
-              {TABS.map((tab) => (
-                <button
-                  key={tab.value}
-                  className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
-                  type="button"
-                  onClick={() => setActiveTab(tab.value)}
+            <div className="hidden lg:contents">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="min-w-0">
+                  <p className="wordmark text-lg text-ink">Levelflow</p>
+                  <p className="truncate text-xs text-ink-muted">
+                    Welcome, {profileDisplayName(profile)}
+                  </p>
+                </div>
+                <div className="ml-auto">
+                  <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
+                </div>
+                <a
+                  aria-label="Help"
+                  className="secondary-button min-h-10 px-3 py-2"
+                  href={SUPPORT_MAILTO}
                 >
-                  {tab.icon}
-                  {tab.label}
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Help</span>
+                </a>
+                <button
+                  aria-label="Donate"
+                  className="secondary-button min-h-10 px-3 py-2"
+                  type="button"
+                  onClick={() => setActiveTab("donate")}
+                >
+                  <Gift className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Donate</span>
                 </button>
-              ))}
-            </nav>
+                <button
+                  aria-label="Sign out"
+                  className="secondary-button min-h-10 px-3 py-2"
+                  type="button"
+                  onClick={() => supabase?.auth.signOut()}
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </button>
+              </div>
+
+              <nav
+                className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
+                aria-label="Levelflow sections"
+              >
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.value}
+                    className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
           </div>
         </header>
 
         <div
           className={isDeskTab
-            ? "mx-auto w-full max-w-7xl px-4 py-4 sm:px-8 sm:py-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden"
-            : "mx-auto max-w-7xl space-y-5 px-4 py-4 sm:px-8 sm:py-5"}
+            ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:py-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
+            : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:py-5 lg:pb-5"}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
+              mobileView={deskMobileView}
               onForceOutcomeRefresh={() => refreshSetups({ forceOutcomeRefresh: true })}
               onOpenRequestHandled={clearAdvisorRequest}
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
@@ -281,35 +347,44 @@ export default function App() {
           ) : null}
           {activeTab === "profile" ? (
             <ProfilePanel
+              memberSince={session.user.created_at}
               onSave={profileState.saveProfile}
+              onSignOut={() => supabase?.auth.signOut()}
               onThemeChange={theme.setMode}
               profile={profile}
-              saveStatus={profileState.status}
-              setups={setupState.setups}
-              summary={setupState.outcomeSummary}
               themeMode={theme.mode}
             />
           ) : null}
           {activeTab === "guide" ? (
-            <GuidePanel
-              anchor={guideAnchor}
-              onAnchorHandled={clearGuideAnchor}
-              supportEmail={SUPPORT_EMAIL}
-            />
+            <GuidePanel anchor={guideAnchor} onAnchorHandled={clearGuideAnchor} />
           ) : null}
           {activeTab === "donate" ? (
             <DonatePanel supportEmail={SUPPORT_EMAIL} />
           ) : null}
         </div>
 
-        <footer
-          className={`mx-auto w-full max-w-7xl px-4 pb-8 pt-12 ${
-            isDeskTab ? "lg:hidden" : ""
-          }`}
-        >
-          <p className="colophon">A Windward Line production</p>
-          <LegalLinks />
-        </footer>
+        {/* Profile now carries its own legal links + colophon (spec §11),
+            so the page-wide footer would just duplicate them there — the
+            one tab where it's skipped outright rather than merely lg:hidden
+            like the Desk tab above it. */}
+        {activeTab !== "profile"
+          ? (
+            <footer
+              className={`mx-auto w-full max-w-7xl px-4 pb-8 pt-12 ${
+                isDeskTab ? "lg:hidden" : ""
+              }`}
+            >
+              <p className="colophon">A Windward Line production</p>
+              <LegalLinks />
+            </footer>
+          )
+          : null}
+
+        <MobileTabBar
+          active={activeMobileTab}
+          onSelect={selectMobileTab}
+          tradeBadgeCount={currentTradeBadgeCount(setupState.setups, new Date())}
+        />
       </main>
     </WorkspaceNavContext.Provider>
   );
@@ -354,4 +429,219 @@ function useThemePreference() {
   }, [mode, resolvedMode]);
 
   return { mode, resolvedMode, setMode };
+}
+
+const MOBILE_TAB_ITEMS: Array<
+  { icon: ReactNode; label: string; value: MobileTab }
+> = [
+  {
+    icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
+    label: "Review",
+    value: "review",
+  },
+  {
+    icon: <Radar className="h-5 w-5" aria-hidden="true" />,
+    label: "Scan",
+    value: "scan",
+  },
+  {
+    icon: <ListChecks className="h-5 w-5" aria-hidden="true" />,
+    label: "Trades",
+    value: "trades",
+  },
+  {
+    icon: <History className="h-5 w-5" aria-hidden="true" />,
+    label: "Insights",
+    value: "insights",
+  },
+];
+
+// Spec §3: the mobile-only primary navigation, replacing the top nav pills
+// below lg (those stay put at ≥lg — see the header's lg:contents split
+// above). Persistent across every tab, not just the Desk one, so Review is
+// always one tap away even from Guide or Profile — matching "Guide and
+// Profile reachable via the avatar/menu, not the tab bar" (they're
+// deliberately absent from these four buttons, not from the bar itself).
+function MobileTabBar({
+  active,
+  onSelect,
+  tradeBadgeCount,
+}: {
+  active: MobileTab | null;
+  onSelect: (tab: MobileTab) => void;
+  tradeBadgeCount: number;
+}) {
+  return (
+    <nav
+      aria-label="Levelflow"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-hairline bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+    >
+      <div className="mx-auto grid max-w-7xl grid-cols-4">
+        {MOBILE_TAB_ITEMS.map((item) => {
+          const isActive = active === item.value;
+          const badge = item.value === "trades" && tradeBadgeCount > 0
+            ? tradeBadgeCount
+            : null;
+          return (
+            <button
+              key={item.value}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={badge ? `${item.label}, ${badge} current` : item.label}
+              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+                isActive ? "text-accent" : "text-ink-muted"
+              }`}
+              type="button"
+              onClick={() => onSelect(item.value)}
+            >
+              <span className="relative">
+                {item.icon}
+                {badge
+                  ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 font-mono text-[10px] font-bold leading-none text-paper"
+                    >
+                      {badge}
+                    </span>
+                  )
+                  : null}
+              </span>
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+// The mobile header's account avatar (spec §3: "account avatar button
+// (opens Profile / Sign out)"), extended to also carry Guide — the other
+// surface the binding decision moves off the tab bar — plus Donate for
+// parity with what the desktop icon row still offers, so nothing mobile
+// users could reach before becomes unreachable now that the header no
+// longer shows those buttons directly.
+function MobileAccountMenu({
+  onOpenDonate,
+  onOpenGuide,
+  onOpenProfile,
+  onSignOut,
+  supportMailto,
+}: {
+  onOpenDonate: () => void;
+  onOpenGuide: () => void;
+  onOpenProfile: () => void;
+  onSignOut: () => void;
+  supportMailto: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function select(action: () => void) {
+    setOpen(false);
+    action();
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Account menu"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-hairline bg-sheet text-ink transition hover:border-accent/40"
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open
+          ? <X className="h-5 w-5" aria-hidden="true" />
+          : <CircleUser className="h-5 w-5" aria-hidden="true" />}
+      </button>
+
+      {open
+        ? (
+          <div
+            className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
+            role="menu"
+          >
+            <MobileMenuItem
+              icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}
+              label="Guide"
+              onSelect={() => select(onOpenGuide)}
+            />
+            <MobileMenuItem
+              icon={<UserRound className="h-4 w-4" aria-hidden="true" />}
+              label="Profile"
+              onSelect={() => select(onOpenProfile)}
+            />
+            <MobileMenuItem
+              icon={<Gift className="h-4 w-4" aria-hidden="true" />}
+              label="Donate"
+              onSelect={() => select(onOpenDonate)}
+            />
+            <a
+              className="flex min-h-11 items-center gap-2 px-3 text-sm font-semibold text-ink transition hover:bg-accent/10"
+              href={supportMailto}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              Help
+            </a>
+            <div className="my-1 border-t border-hairline" />
+            <MobileMenuItem
+              icon={<LogOut className="h-4 w-4" aria-hidden="true" />}
+              label="Sign out"
+              onSelect={() => select(onSignOut)}
+            />
+          </div>
+        )
+        : null}
+    </div>
+  );
+}
+
+function MobileMenuItem({
+  icon,
+  label,
+  onSelect,
+}: {
+  icon: ReactNode;
+  label: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-semibold text-ink transition hover:bg-accent/10"
+      role="menuitem"
+      type="button"
+      onClick={onSelect}
+    >
+      {icon}
+      {label}
+    </button>
+  );
 }

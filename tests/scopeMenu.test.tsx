@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { formatReopen } from "../src/lib/marketHours";
 import {
@@ -12,8 +13,10 @@ import {
   effectiveRows,
   formatScopeCountLine,
   formatScopeMenuAffordance,
+  MOBILE_SHEET_BREAKPOINT_PX,
   moveScopeMenuHighlight,
   resolveRowActivation,
+  shouldUseSheetLayout,
   showsAffordance,
   type ScanScope,
   type ScopeMenuRow,
@@ -426,6 +429,82 @@ describe("formatScopeCountLine renders server counts verbatim", () => {
       `${formatSecurityLabel(symbol)} — 1 scanned · 1 qualify · ${
         localClockTime(now)
       }`,
+    );
+  });
+});
+
+// Task 9 (Guide + Profile + mobile pass): spec §4's universal contract —
+// "One dropdown, three scope kinds, identical on desktop and mobile (mobile
+// renders it as a full-screen sheet)" — applies to every ScopeMenu instance,
+// so the sheet/anchored-popup choice lives inside the component (a viewport
+// check) rather than a prop each of today's two call sites (MarketScanPanel,
+// AdvisorWorkspace's stage picker) would otherwise have to compute and pass
+// in identically. shouldUseSheetLayout is the pure decision function behind
+// that internal choice — exercised directly here the same way
+// effectiveRows/symbolOnly is above, since actually rendering <ScopeMenu>
+// hits the same esbuild/JSX limitation documented at the top of this file.
+describe("shouldUseSheetLayout (Task 9 mobile sheet)", () => {
+  it("mirrors --breakpoint-lg (src/styles/index.css) exactly, not a second hardcoded number", () => {
+    assert.equal(MOBILE_SHEET_BREAKPOINT_PX, 1024);
+  });
+
+  it("is a sheet just below the breakpoint", () => {
+    assert.equal(shouldUseSheetLayout(MOBILE_SHEET_BREAKPOINT_PX - 1), true);
+  });
+
+  it("is the anchored popup exactly at the breakpoint (lg's own min-width boundary)", () => {
+    assert.equal(shouldUseSheetLayout(MOBILE_SHEET_BREAKPOINT_PX), false);
+  });
+
+  it("is the anchored popup comfortably above the breakpoint", () => {
+    assert.equal(shouldUseSheetLayout(1280), false);
+  });
+
+  it("is a sheet at common phone widths", () => {
+    assert.equal(shouldUseSheetLayout(375), true);
+  });
+});
+
+// The sheet variant's own JSX can't be rendered in this harness either, so
+// its structure is pinned against source text — the same technique
+// tests/currentTradesRail.test.tsx and tests/historyPanel.test.tsx already
+// use for markup their own limitations keep them from rendering.
+describe("ScopeMenu sheet markup (source-pinned — see header comment)", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/ScopeMenu.tsx",
+    "utf8",
+  );
+
+  it("renders the sheet as an accessible modal dialog, full-screen", () => {
+    assert.match(SOURCE, /role="dialog"/);
+    assert.match(SOURCE, /aria-modal="true"/);
+    assert.match(SOURCE, /className="fixed inset-0 z-30 flex flex-col bg-sheet"/);
+  });
+
+  it("titles the sheet with the same label prop the trigger button already uses", () => {
+    // The sheet's <span id=...-sheet-title> must render {label}, not a
+    // second, independently-drifting title string.
+    assert.match(
+      SOURCE,
+      /id=\{`\$\{baseId\}-sheet-title`\}[\s\S]{0,160}>\s*\{label\}\s*<\/span>/,
+    );
+  });
+
+  it("gives the sheet a real, labeled close control", () => {
+    assert.match(SOURCE, /aria-label="Close"/);
+  });
+
+  it("shares row rendering between the sheet and the anchored popup via one function, never two copies", () => {
+    const calls = SOURCE.match(/\{renderOptionRows\(\)\}/g) ?? [];
+    assert.equal(calls.length, 2, "expected exactly one call per presentation");
+  });
+
+  it("keeps the anchored popup's own container classes byte-identical to before Task 9", () => {
+    // Desktop (≥lg) is frozen — pin the exact pre-Task-9 string so any
+    // future edit to the sheet branch can never leak into the ≥lg one.
+    assert.match(
+      SOURCE,
+      /className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"/,
     );
   });
 });
