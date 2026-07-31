@@ -138,9 +138,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   forex: {
     blockedRegimes: ["volatile_chop"],
     // r18: the score does not rank forex outcomes at any band — the old
-    // gate was pure volume tax. 55 admits +44% setups at identical
-    // per-setup quality (test -0.0002R, money-positive rate unchanged).
-    confidenceThreshold: 55,
+    // gate was pure volume tax. r21 confirmed the r18-ledgered 40 on
+    // fresh caches under the restored windows: quality flat on both
+    // splits (train -0.0004, test +0.0001), money-positive 78.6->78.7%,
+    // +35.5% accepted volume vs 55 — exactly the +35.4% r18's own curve
+    // predicted for 40-vs-55.
+    confidenceThreshold: 40,
     // Sweep 2026-07-29 (2010-2026, both splits): sells outperformed buys
     // (train +0.042 vs +0.023, test +0.118 vs -0.010).
     sideScoreAdjustments: { buy: -6 },

@@ -747,6 +747,44 @@ for crypto/futures beyond the single 12–18 UTC gate; (c) news-conditioned
 acceptance (the r6 curiosity that penalized-but-accepted setups
 outperform, never re-examined at full depth).
 
+## Round-21 calibration (2026-07-30, the forty gate)
+
+The r18-ledgered forex threshold-40 candidate, confirmed on fresh caches
+under the restored windows and shipped. Within-run A/B against the
+shipped 55: train −0.0004, test +0.0001, money-positive 78.6 → 78.7%,
+accepted volume **+35.5%** — roughly 49,000 more accepted test setups at
+statistically identical per-setup quality. The reliability row re-based:
+forex **.89 across 123,254** filled test setups (the rate held while the
+sample grew 36%). Version `2026.07.30.forex-gate-forty`.
+
+Two process notes, recorded in the open:
+
+- **This round's own pre-registration contained a derivation error.** It
+  demanded ≥+50% volume, citing r18's "+95%" — but that figure measured
+  40 against the old 66 gate; r18's own curve arithmetic predicts
+  40-vs-55 at +35.4%, and the fresh run measured +35.5%. The decision
+  therefore rode on r18's elder pre-registered equal-quality rule
+  (quality within ±0.005 both splits, volume ≥+25%, money-positive
+  within 1pt — all pass), not on a bar amended after the results. When a
+  registration is discovered to contradict the evidence it cites, the
+  correction is documented, never silently applied.
+- **The UTC-midnight anchor hazard.** The runs straddled 00:00 UTC, so
+  12 of 28 symbols re-anchored mid-run to the new day (fresh top-up,
+  re-phased fold boundaries) while 16 stayed on the prior pin. Harmless
+  within-run — every A/B compares identical folds on an identical data
+  view per symbol, and record-level reconciliation found **zero**
+  outcome discrepancies on shared records — but cross-run baseline
+  comparisons wobble when anchors mix. Standing rule: launch sweeps
+  clear of the UTC rollover, and reconcile cross-run numbers only
+  between same-anchor runs.
+
+Next lever identified: **full-depth session-hour curves for crypto and
+futures** — their only session gating is the single 12–18 UTC block
+validated at 1,200-day depth in round 4; round 15 proved full-depth
+per-hour curves can both validate existing gates (as absent rows) and
+find real ones (energies' six blocked hours). The same emit-driven
+method applies directly.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
