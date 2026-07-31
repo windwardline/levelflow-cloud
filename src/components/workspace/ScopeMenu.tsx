@@ -182,7 +182,7 @@ function isSameScope(a: ScanScope, b: ScanScope): boolean {
 // selectable. Closed groups keep their reopen affordance in this mode too
 // (it still explains why the symbols under it are muted); open ones show
 // nothing, since there is no scan action to take from here.
-function effectiveRows(
+export function effectiveRows(
   rows: ScopeMenuRow[],
   symbolOnly: boolean,
 ): ScopeMenuRow[] {
@@ -363,7 +363,15 @@ export function ScopeMenu(
         closeAndFocusTrigger();
         return;
       case "Tab":
-        close();
+        // The popup is portaled to document.body, outside the trigger's
+        // real position in the page's DOM order. Letting native Tab
+        // traversal continue from inside the portal would land focus
+        // somewhere unrelated to where the user actually is; closing and
+        // returning focus to the trigger (same as Escape) keeps the next
+        // real Tab press - Shift or not, "Tab" is the same event.key for
+        // both - continuing from the right spot in the page.
+        event.preventDefault();
+        closeAndFocusTrigger();
         return;
       default:
     }

@@ -9,6 +9,7 @@ import {
 import {
   buildScopeMenuRows,
   describeScanScope,
+  effectiveRows,
   formatScopeCountLine,
   formatScopeMenuAffordance,
   moveScopeMenuHighlight,
@@ -141,6 +142,94 @@ describe("showsAffordance", () => {
     assert.ok(closedGroup);
     assert.equal(showsAffordance(openGroup, true), false);
     assert.equal(showsAffordance(closedGroup, true), true);
+  });
+});
+
+describe("effectiveRows (symbolOnly mode: the stage's direct-review picker)", () => {
+  it("is an identity pass-through when symbolOnly is false", () => {
+    const rows = buildScopeMenuRows(WEDNESDAY_2PM_ET);
+    assert.deepEqual(effectiveRows(rows, false), rows);
+  });
+
+  it("drops 'All markets' entirely", () => {
+    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
+    assert.equal(rows.some((row) => row.scope.kind === "all"), false);
+    assert.equal(rows.some((row) => row.key === "all"), false);
+  });
+
+  it("keeps every group row present but neuters it - non-interactive even when its group is open, so keyboard Enter on a group fires nothing", () => {
+    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
+    const groupRows = rows.filter((row) => row.scope.kind === "group");
+
+    assert.equal(groupRows.length, AVAILABLE_ASSET_GROUPS.length);
+    for (const row of groupRows) {
+      assert.equal(row.interactive, false, row.key);
+      assert.equal(resolveRowActivation(row), null, row.key);
+    }
+  });
+
+  it("leaves every open market row activating with kind \"symbol\", unaffected by symbolOnly", () => {
+    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
+    const cryptoOptions = AVAILABLE_ASSET_GROUPS.find((group) =>
+      group.label === "Crypto"
+    )?.options ?? [];
+    assert.ok(cryptoOptions.length > 0);
+
+    for (const option of cryptoOptions) {
+      const row = rows.find((candidate) => candidate.key === `symbol:${option.symbol}`);
+      assert.ok(row, option.symbol);
+      assert.equal(row.interactive, true, option.symbol);
+      assert.deepEqual(resolveRowActivation(row), {
+        kind: "symbol",
+        symbol: option.symbol,
+      });
+    }
+  });
+
+  it("leaves a closed group's market rows inert too - symbolOnly only narrows what's selectable, never widens it", () => {
+    const rows = effectiveRows(buildScopeMenuRows(SATURDAY_NOON_ET), true);
+    const forexMarket = rows.find((row) => row.key === "symbol:EURUSD");
+    assert.ok(forexMarket);
+    assert.equal(forexMarket.interactive, false);
+    assert.equal(resolveRowActivation(forexMarket), null);
+  });
+
+  it("keyboard traversal on a fully-open menu skips 'All markets' and every group row, landing directly on the first market", () => {
+    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
+    const firstGroup = AVAILABLE_ASSET_GROUPS[0];
+    assert.ok(firstGroup);
+    const firstMarket = firstGroup.options[0];
+    assert.ok(firstMarket);
+
+    assert.equal(
+      moveScopeMenuHighlight(rows, null, 1),
+      `symbol:${firstMarket.symbol}`,
+    );
+  });
+
+  it("keyboard traversal only ever lands on market rows, and wraps between the first and last of them", () => {
+    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
+    const interactiveKeys = rows.filter((row) => row.interactive).map((row) => row.key);
+
+    assert.ok(interactiveKeys.length > 0);
+    assert.ok(interactiveKeys.every((key) => key.startsWith("symbol:")));
+
+    const firstKey = interactiveKeys[0] ?? null;
+    const lastKey = interactiveKeys[interactiveKeys.length - 1] ?? null;
+    assert.equal(moveScopeMenuHighlight(rows, lastKey, 1), firstKey);
+    assert.equal(moveScopeMenuHighlight(rows, firstKey, -1), lastKey);
+  });
+
+  it("on a mostly-closed menu, traversal reaches only crypto's markets - not even crypto's own group row, which symbolOnly neuters same as any other", () => {
+    const rows = effectiveRows(buildScopeMenuRows(SATURDAY_NOON_ET), true);
+    const cryptoGroup = AVAILABLE_ASSET_GROUPS.find((group) => group.label === "Crypto");
+    assert.ok(cryptoGroup);
+
+    const interactiveKeys = rows.filter((row) => row.interactive).map((row) => row.key);
+    assert.deepEqual(
+      interactiveKeys,
+      cryptoGroup.options.map((option) => `symbol:${option.symbol}`),
+    );
   });
 });
 
