@@ -460,7 +460,7 @@ export function AdvisorWorkspace(
               <label className="grid gap-2 text-sm font-semibold text-ink">
                 Chart view
                 <select
-                  aria-label="Advisor chart view"
+                  aria-label="Chart view"
                   className="field"
                   value={timeframe}
                   onChange={(event) => {

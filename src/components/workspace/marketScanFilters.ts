@@ -2,61 +2,17 @@ import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
   normalizeSymbol,
-  type SecurityType,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import type { MarketScanCandidate } from "../../lib/tradeAnalyzer";
 import type { ScanScope } from "./ScopeMenu";
 
-export type MarketScanCategoryFilter = "all" | SecurityType;
-
-export function getMarketScanSymbolsForCategory(
-  category: MarketScanCategoryFilter,
-): SupportedSymbol[] {
-  if (category === "all") {
-    return AVAILABLE_ASSET_SYMBOLS;
-  }
-
-  return AVAILABLE_ASSET_GROUPS.find((group) => group.label === category)
-    ?.options.map((option) => option.symbol) ?? [];
-}
-
-export function filterMarketScanCandidates(
-  candidates: MarketScanCandidate[],
-  category: MarketScanCategoryFilter,
-  minimumConfidence: number,
-) {
-  return candidates.filter((candidate) =>
-    matchesMarketScanCategory(candidate, category) &&
-    (candidate.confidenceScore ?? 0) >= minimumConfidence
-  );
-}
-
-export function countMarketScanCandidatesInCategory(
-  candidates: MarketScanCandidate[],
-  category: MarketScanCategoryFilter,
-) {
-  return candidates.filter((candidate) =>
-    matchesMarketScanCategory(candidate, category)
-  ).length;
-}
-
-function matchesMarketScanCategory(
-  candidate: MarketScanCandidate,
-  category: MarketScanCategoryFilter,
-) {
-  return category === "all" ||
-    normalizeAssetType(candidate.assetType) === normalizeAssetType(category);
-}
-
 function normalizeAssetType(value: string) {
   return value.toLowerCase().replace(/[^a-z]/g, "");
 }
 
-// Scope-aware counterparts of the category helpers above (kept separate,
-// not a replacement - tests/core.test.ts pins the category functions'
-// signatures directly). ScanScope (ScopeMenu.tsx) adds a "symbol" kind the
-// old MarketScanCategoryFilter union has no room for.
+// Scope-aware market-scan filtering, keyed on ScopeMenu.tsx's ScanScope
+// (which adds a "symbol" kind alongside "all" and per-group scoping).
 export function getMarketScanSymbolsForScope(
   scope: ScanScope,
 ): SupportedSymbol[] {
