@@ -131,6 +131,7 @@ export function HistoryPanel({
         <label className="grid gap-2 text-sm font-semibold text-ink">
           Market
           <select
+            aria-label="Market"
             className="field"
             value={marketFilterValue(marketScope)}
             onChange={(event) =>
@@ -154,6 +155,7 @@ export function HistoryPanel({
         <label className="grid gap-2 text-sm font-semibold text-ink">
           Status
           <select
+            aria-label="Status"
             className="field"
             value={statusFilter}
             onChange={(event) =>
@@ -169,6 +171,7 @@ export function HistoryPanel({
         <label className="grid gap-2 text-sm font-semibold text-ink">
           Period
           <select
+            aria-label="Period"
             className="field"
             value={periodDays}
             onChange={(event) =>

@@ -285,7 +285,7 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   // Renamed from "Advisor chart view": the visible wrapping <label> already
   // reads "Chart view", and the stale "Advisor" prefix predates the Desk
   // rename (that word is retired from every other user-facing label).
-  const timeframeSelect = page.getByLabel("Chart view");
+  const timeframeSelect = page.getByLabel("Chart view", { exact: true });
   if ((await timeframeSelect.inputValue()) !== "1min") {
     await timeframeSelect.selectOption("1min");
   }
