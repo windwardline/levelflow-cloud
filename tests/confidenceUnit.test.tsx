@@ -222,7 +222,10 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
   // column, the scan rail's own results list included. Spec §16 recomposed
   // that list — hairline-separated rows instead of gapped cards, capped at the
   // mock's own 404px menu height (a-desk-v3.html:21) — but the .scrolly
-  // treatment and the overflow that makes it visible both stay.
+  // treatment and the overflow that makes it visible both stay. Fix wave 2C
+  // appended the mobile mock's own arrangement (m-scan-v1.html:45-51: cards
+  // stacked down a scrolling page rather than a nested scroller) behind
+  // `max-lg:`, which leaves this ≥lg contract exactly where it was.
   it("gives the results list the .scrolly thin-scrollbar treatment (m2)", () => {
     const source = readFileSync(
       "src/components/workspace/MarketScanPanel.tsx",
@@ -230,7 +233,7 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
     );
     assert.match(
       source,
-      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto"/,
+      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto max-lg:/,
     );
   });
 

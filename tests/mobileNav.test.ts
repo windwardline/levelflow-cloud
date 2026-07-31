@@ -637,3 +637,118 @@ describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", (
     assert.match(BROKER_CHIP_SOURCE, />\s*E8 Markets\s*</);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Fix wave 2C — completeness audit 2, Finding 3 (D9). The three chrome
+// requirements D9 enumerates (top bar, bottom tab bar, one column per tab)
+// all passed while the mobile mocks' own INTERIORS were never built: below
+// lg the app served the desktop composition shrunk. These blocks pin each
+// interior the mocks actually draw, and — the half that matters just as
+// much — pin that every one of them is scoped so the approved, frozen >=lg
+// composition cannot move.
+//
+// Why `max-lg:` rather than the base + `lg:`-reset pairing the rest of this
+// branch uses: Tailwind emits breakpoint variants AFTER pseudo-class ones,
+// so an `lg:`-prefixed reset of a `hover:`/`last:` utility wins at >=lg and
+// silently kills the desktop hover fill or the row's last-child border. The
+// mobile treatments below therefore ride `max-lg:` (a `width < 1024px`
+// media query, the exact complement of `lg:`), which means the >=lg
+// cascade is untouched by construction — not merely by inspection. Same
+// literal-token discipline as everywhere else (C1,
+// tests/tailwindVariantGuard.test.ts): no variant prefix is ever assembled
+// at runtime.
+const SCAN_RAIL_SOURCE = readFileSync(
+  "src/components/workspace/MarketScanPanel.tsx",
+  "utf8",
+);
+
+// Every mobile-only utility in these files must be a real `max-lg:` token
+// (or sit on an element the mocks introduce for mobile alone), so the
+// desktop rules Tailwind generates are byte-identical to before this wave.
+function mobileOnlyClasses(source: string): string[] {
+  return Array.from(source.matchAll(/\bmax-lg:[^\s"'`{}]+/g), (m) => m[0]);
+}
+
+describe("mobile scan tab interiors (m-scan-v1.html, fix wave 2C)", () => {
+  it("puts the scope pill and Scan now side by side on one row below lg, with the eyebrow undrawn there (m-scan-v1.html:39-42)", () => {
+    // One container holds all three now. At >=lg it reproduces the old
+    // header row exactly — flex-wrap + the scope wrapper taking the second
+    // line, its 8px row gap standing in for the header row's old mb-2 — so
+    // a-desk-v3.html:88's eyebrow-opposite-Scan-now geometry is unchanged.
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="flex flex-wrap items-baseline justify-between gap-2 max-lg:flex-nowrap max-lg:items-center max-lg:gap-2\.5"/,
+    );
+    // The mock draws no "Scan" eyebrow on the mobile tab — the bottom tab
+    // bar already names the surface.
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:hidden"/,
+    );
+    // Scope first, Scan now second — the mock's own reading order below lg,
+    // and `order-last` is what floats the wrapper onto row two at >=lg.
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="order-last w-full min-w-0 max-lg:order-none max-lg:w-auto max-lg:flex-1"[\s\S]{0,200}<ScopeMenu/,
+    );
+    // Nowrap below lg means the button has to hold its width against the
+    // flex-1 scope pill; at >=lg the row has slack and never shrank it, so
+    // the floor is mobile-only rather than a new unconditional utility.
+    assert.match(SCAN_RAIL_SOURCE, /max-lg:shrink-0[\s\S]{0,400}Scan now/);
+  });
+
+  it("renders each result as the mock's inset card below lg, flat hairline rows at >=lg (m-scan-v1.html:17-20)", () => {
+    const branches = SCAN_RAIL_SOURCE.match(
+      /className=\{selected\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
+    );
+    assert.ok(branches, "expected to find the row's selected/unselected classes");
+    const [, selectedClasses, unselectedClasses] = branches;
+    for (const classes of [selectedClasses, unselectedClasses]) {
+      // `.mkt`: 8px radius, a full hairline border and the sheet fill, at
+      // the mock's 13/14 padding. The base `border-b` is what keeps >=lg's
+      // flush rows, so the card's other three sides are added, never
+      // swapped.
+      assert.match(classes, /max-lg:rounded-lg/);
+      assert.match(classes, /max-lg:border\b/);
+      assert.match(classes, /max-lg:px-3\.5/);
+      assert.match(classes, /max-lg:py-3/);
+    }
+    // `.mkt.sel` adds only the accent edge — the sheet fill is on every
+    // card below lg, but at >=lg it stays the selected row's own signal.
+    assert.match(selectedClasses, /(?:^|\s)bg-sheet(?:\s|$)/);
+    assert.match(unselectedClasses, /max-lg:bg-sheet/);
+    assert.doesNotMatch(unselectedClasses, /(?:^|\s)bg-sheet(?:\s|$)/);
+    assert.match(
+      selectedClasses,
+      /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/,
+    );
+    assert.doesNotMatch(unselectedClasses, /shadow-\[inset/);
+  });
+
+  it("stacks the cards down the page below lg instead of inside the rail's 404px scroller (m-scan-v1.html:45-49)", () => {
+    // The 404px cap and its own scroll area are the >=lg rail's geometry
+    // (a-desk-v3.html:21) — kept exactly, and lifted below lg where the
+    // page itself scrolls and the footnote follows the last card.
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto max-lg:grid max-lg:max-h-none max-lg:gap-2 max-lg:overflow-visible"/,
+    );
+  });
+
+  it("takes the mock's 15px symbol below lg without disturbing the e2e row selector", () => {
+    // tests/e2e/authenticated-workspace.spec.ts locates scanned symbols by
+    // `span.truncate.font-bold.text-ink` — those three survive verbatim.
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="block truncate text-sm font-bold text-ink max-lg:text-\[15px\]"/,
+    );
+  });
+
+  it("keeps every mobile treatment inside a real max-lg: token, so the >=lg cascade is untouched by construction", () => {
+    assert.ok(
+      mobileOnlyClasses(SCAN_RAIL_SOURCE).length > 0,
+      "expected the scan rail to carry mobile-only utilities",
+    );
+    assert.doesNotMatch(SCAN_RAIL_SOURCE, /max-lg:\$\{/);
+  });
+});

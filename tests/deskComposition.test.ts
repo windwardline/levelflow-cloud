@@ -401,7 +401,13 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
   const rail = readFileSync(RAIL, "utf8");
 
   it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
-    assert.match(rail, /uppercase tracking-normal text-ink-muted">\s*Scan\s*</);
+    // The eyebrow's own ≥lg treatment is unchanged; fix wave 2C appended
+    // `max-lg:hidden` because m-scan-v1.html draws no eyebrow on the mobile
+    // tab (the bottom tab bar already names that surface).
+    assert.match(
+      rail,
+      /uppercase tracking-normal text-ink-muted max-lg:hidden">\s*Scan\s*</,
+    );
     assert.match(rail, /Scan now/);
   });
 
@@ -433,12 +439,17 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
     );
     assert.ok(branches, "expected to find the row's selected/unselected classes");
     const [, selectedClasses, unselectedClasses] = branches;
-    assert.match(selectedClasses, /\bbg-sheet\b/);
+    // Un-prefixed, so it holds at ≥lg. Fix wave 2C gave every card a sheet
+    // fill below lg (m-scan-v1.html:17 `.mkt`), so the absence check on the
+    // unselected branch is anchored to the un-prefixed token specifically —
+    // a bare /bg-sheet/ would now also catch that mobile-only `max-lg:`
+    // utility and pass or fail for the wrong reason.
+    assert.match(selectedClasses, /(?:^|\s)bg-sheet(?:\s|$)/);
     assert.match(
       selectedClasses,
       /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/,
     );
-    assert.doesNotMatch(unselectedClasses, /\bbg-sheet\b/);
+    assert.doesNotMatch(unselectedClasses, /(?:^|\s)bg-sheet(?:\s|$)/);
     assert.doesNotMatch(unselectedClasses, /shadow-\[inset/);
   });
 
