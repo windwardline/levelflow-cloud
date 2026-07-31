@@ -1,5 +1,6 @@
 import { BarChart3, CheckCircle2, Clock } from "lucide-react";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
+import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
 import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import type { MarketDataResponse } from "../../lib/marketData";
@@ -329,7 +330,12 @@ function SetupList({ setups }: { setups: TradeSetupRow[] }) {
           <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-xs text-ink-muted">
             <span>{formatDate(setup.created_at)}</span>
             <span className="font-mono tabular-nums">
-              {formatConfidenceWithTier(setup.confidence_score)}
+              {formatConfidenceWithTier(
+                setup.confidence_score,
+                CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[
+                  getSecurityOption(setup.symbol).assetType
+                ],
+              )}
             </span>
           </div>
           <div className="mt-1.5 flex justify-end">

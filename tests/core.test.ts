@@ -534,6 +534,58 @@ describe("confidence tiers", () => {
     assert.equal(formatConfidenceWithTier(91), "Best 91%");
     assert.equal(formatConfidenceWithTier(null), "Pending");
   });
+
+  it("without a threshold, never labels a score the fixed 66-100 bands don't cover — exactly the old behavior", () => {
+    assert.equal(formatConfidenceWithTier(45), "45%");
+    assert.equal(formatConfidenceWithTier(65), "65%");
+  });
+
+  it("earns at least Qualified once a score clears its own class's threshold, even below the fixed 66 floor", () => {
+    const forexThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex;
+    assert.equal(
+      formatConfidenceWithTier(forexThreshold, forexThreshold),
+      "Qualified 40%",
+    );
+    assert.equal(formatConfidenceWithTier(55, forexThreshold), "Qualified 55%");
+    // A score that already lands in a real fixed band keeps that band's
+    // own label (Strong, not a downgraded "Qualified") — the threshold
+    // only ever fills the gap below 66, never overrides a real tier match.
+    assert.equal(formatConfidenceWithTier(76, forexThreshold), "Strong 76%");
+
+    const cryptoThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto;
+    assert.equal(
+      formatConfidenceWithTier(cryptoThreshold, cryptoThreshold),
+      "Strong 82%",
+    );
+
+    const metalsThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals;
+    assert.equal(
+      formatConfidenceWithTier(metalsThreshold, metalsThreshold),
+      "Best 90%",
+    );
+  });
+
+  it("treats the threshold boundary as inclusive and stays a bare, honest percentage below it", () => {
+    assert.equal(formatConfidenceWithTier(39, 40), "39%");
+    assert.equal(formatConfidenceWithTier(40, 40), "Qualified 40%");
+    assert.equal(formatConfidenceWithTier(41, 40), "Qualified 41%");
+  });
+
+  it("wires the class threshold into every formatConfidenceWithTier call site", () => {
+    for (
+      const file of [
+        "src/components/workspace/AdvisorStatusPanels.tsx",
+        "src/components/workspace/HistorySetupCard.tsx",
+        "src/components/workspace/MarketScanPanel.tsx",
+      ]
+    ) {
+      assert.match(
+        readFileSync(file, "utf8"),
+        /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE/,
+        `${file} must resolve its class threshold from the calibration mirror`,
+      );
+    }
+  });
 });
 
 describe("profile preferences", () => {

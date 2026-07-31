@@ -7,7 +7,12 @@ import {
   ShieldCheck,
   Target,
 } from "lucide-react";
-import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
+import {
+  formatSecurityLabel,
+  getSecurityOption,
+  type SupportedSymbol,
+} from "../../lib/symbolMap";
+import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
 import {
   CONFIDENCE_TIERS,
   type ConfidenceTierId,
@@ -207,6 +212,9 @@ function MarketScanRow({
 }) {
   const isBuy = candidate.side === "buy";
   const rowMeta = formatScanRowMeta(candidate.side, candidate.confidenceScore);
+  const confidenceThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[
+    getSecurityOption(candidate.symbol).assetType
+  ];
   const levelPreview = candidate.entryPrice && candidate.takeProfit
     ? candidate.takeProfit1
       ? `Entry ${formatNumber(candidate.entryPrice)} · First target ${
@@ -217,7 +225,9 @@ function MarketScanRow({
       }`
     : "Load chart for details";
   const rationale = candidate.rationale?.length ? candidate.rationale : [
-    `${formatConfidenceWithTier(candidate.confidenceScore)} confidence.`,
+    `${
+      formatConfidenceWithTier(candidate.confidenceScore, confidenceThreshold)
+    } confidence.`,
     `${formatPayoff(candidate.rewardRisk)} after review.`,
     candidate.executionLabel
       ? `${candidate.executionLabel} cost check.`
@@ -256,7 +266,10 @@ function MarketScanRow({
         <Metric
           label="Confidence"
           mono
-          value={formatConfidenceWithTier(candidate.confidenceScore)}
+          value={formatConfidenceWithTier(
+            candidate.confidenceScore,
+            confidenceThreshold,
+          )}
         />
         <Metric
           label="Payoff"

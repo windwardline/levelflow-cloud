@@ -1,3 +1,4 @@
+import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
 import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
@@ -75,7 +76,10 @@ export function HistorySetupCard({ setup }: { setup: TradeSetupRow }) {
         />
         <HistoryMetric
           label="Confidence"
-          value={formatConfidenceWithTier(setup.confidence_score)}
+          value={formatConfidenceWithTier(
+            setup.confidence_score,
+            CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[category],
+          )}
         />
         <HistoryMetric
           label="Payoff"
