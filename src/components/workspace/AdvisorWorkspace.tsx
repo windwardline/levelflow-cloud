@@ -23,6 +23,7 @@ import {
   TIMEFRAMES,
 } from "./advisorFormat";
 import { MarketScanPanel } from "./MarketScanPanel";
+import { ScopeMenu } from "./ScopeMenu";
 import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
@@ -104,6 +105,7 @@ export function AdvisorWorkspace(
   );
   const [advisorNotice, setAdvisorNotice] = useState("");
   const [scanResult, setScanResult] = useState<MarketScanResponse | null>(null);
+  const [scanCompletedAt, setScanCompletedAt] = useState<Date | null>(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
   const [clockNow, setClockNow] = useState(() => new Date());
   const requestIdRef = useRef(0);
@@ -215,6 +217,21 @@ export function AdvisorWorkspace(
     };
   }, [refreshNonce, symbol, timeframe]);
 
+  // Direct-review shortcut shared by the stage's own market picker and the
+  // scan scope menu's symbol selection (spec §4: selecting a symbol "drives
+  // the advisor selection like clicking a scan row does today"). Below,
+  // onSelectCandidate calls this too, then layers the candidate's own setup
+  // on top when it has one — clicking a scan row without an attached setup
+  // reduces to exactly this.
+  function selectSymbolForReview(nextSymbol: SupportedSymbol) {
+    requestIdRef.current += 1;
+    selectedSymbolRef.current = nextSymbol;
+    setSymbol(nextSymbol);
+    setAnalyzerStatus("idle");
+    setAnalysisState(null);
+    setAdvisorNotice("");
+  }
+
   async function analyze() {
     const requestedSymbol = selectedSymbolRef.current;
     const requestedLabel = formatSecurityLabel(requestedSymbol);
@@ -301,6 +318,7 @@ export function AdvisorWorkspace(
         scanned: scanSymbols?.length ?? 0,
       });
     } finally {
+      setScanCompletedAt(new Date());
       setScanStatus("idle");
     }
   }
@@ -319,14 +337,13 @@ export function AdvisorWorkspace(
           here it only moves into its own column. */}
       <div className="scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         <MarketScanPanel
-          onResetResult={() => setScanResult(null)}
+          onResetResult={() => {
+            setScanResult(null);
+            setScanCompletedAt(null);
+          }}
           onScan={scanMarkets}
           onSelectCandidate={(candidate) => {
-            const nextSymbol = candidate.symbol;
-            requestIdRef.current += 1;
-            selectedSymbolRef.current = nextSymbol;
-            setSymbol(nextSymbol);
-            setAnalyzerStatus("idle");
+            selectSymbolForReview(candidate.symbol);
             if (candidate.setup) {
               setAnalysisState({
                 requestedAt: Date.now(),
@@ -335,17 +352,16 @@ export function AdvisorWorkspace(
                   message: "Selected from Market Scan.",
                   setup: candidate.setup,
                 },
-                symbol: nextSymbol,
+                symbol: candidate.symbol,
               });
               setAdvisorNotice(
                 "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
               );
-            } else {
-              setAnalysisState(null);
-              setAdvisorNotice("");
             }
           }}
+          onSelectSymbol={selectSymbolForReview}
           result={scanResult}
+          scanCompletedAt={scanCompletedAt}
           status={scanStatus}
         />
       </div>
@@ -362,32 +378,21 @@ export function AdvisorWorkspace(
         <section className="terminal-panel shrink-0 overflow-hidden">
           <div className="border-b border-hairline px-4 py-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
-              <label className="grid min-w-0 flex-1 gap-2 text-sm font-semibold text-ink sm:max-w-sm">
-                Market
-                <select
-                  className="field"
-                  value={symbol}
-                  onChange={(event) => {
-                    const nextSymbol = event.target.value as SupportedSymbol;
-                    requestIdRef.current += 1;
-                    selectedSymbolRef.current = nextSymbol;
-                    setSymbol(nextSymbol);
-                    setAnalyzerStatus("idle");
-                    setAnalysisState(null);
-                    setAdvisorNotice("");
+              <div className="min-w-0 flex-1 sm:max-w-sm">
+                <ScopeMenu
+                  label="Market"
+                  symbolOnly
+                  value={{ kind: "symbol", symbol }}
+                  onSelect={(nextScope) => {
+                    // symbolOnly guarantees every selectable row (and thus
+                    // every scope this can fire with) is symbol-kind - see
+                    // ScopeMenu.tsx's effectiveRows.
+                    if (nextScope.kind === "symbol") {
+                      selectSymbolForReview(nextScope.symbol);
+                    }
                   }}
-                >
-                  {AVAILABLE_ASSET_GROUPS.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.options.map((option) => (
-                        <option key={option.symbol} value={option.symbol}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
               <button
                 className="secondary-button min-h-10 px-3 py-2"
                 type="button"
