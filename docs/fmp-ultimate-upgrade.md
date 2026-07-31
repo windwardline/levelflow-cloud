@@ -1,5 +1,10 @@
 # FMP Ultimate Upgrade
 
+> **Historical document (2026-07-02).** The upgrade decision it argues for
+> was made and shipped; depth realities are recorded in
+> [trade-model.md](/docs/trade-model.md) ("Confirmed provider history
+> depth"). Kept for provenance.
+
 Last reviewed: 2026-07-02
 
 ## Confirmed Plan Value

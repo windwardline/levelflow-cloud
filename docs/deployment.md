@@ -28,7 +28,7 @@ Apply migrations before deploying Edge Functions that depend on new database obj
 ```bash
 npx supabase db push --linked
 npx supabase secrets set FMP_API_KEY=your_financial_modeling_prep_key --project-ref your-project-ref
-npx supabase functions deploy market-data trade-analyzer news-calendar --project-ref your-project-ref
+npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
 ```
 
 ## Server Runtime
@@ -40,10 +40,14 @@ Deployed functions:
 - `market-data`: authenticated FMP market-data access.
 - `trade-analyzer`: authenticated FMP-backed, multi-timeframe limit-setup generation.
 - `news-calendar`: token-protected economic-calendar ingestion.
+- `outcome-sync`: token-protected scheduled outcome resolution across users.
 
 Database cron jobs:
 
-- `levelflow-news-calendar-sync`: hourly economic-calendar sync.
+- `levelflow-news-calendar-sync`: hourly economic-calendar sync (:07).
+- `levelflow-outcome-sync`: hourly pending-setup outcome resolution (:23).
+- `levelflow-sync-watchdog`: hourly health check (:41) — writes analyzer_events
+  errors when either sync stops running or the future calendar goes empty.
 
 The production backend runs through Supabase Edge Functions. Local experiments should target those functions rather than a separate Express server path.
 

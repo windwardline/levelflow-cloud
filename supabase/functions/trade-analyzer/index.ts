@@ -50,6 +50,9 @@ import { corsHeaders, getBearerToken, jsonResponse } from "../_shared/http.ts";
 import {
   calculateNewsPenaltyUnits,
   isBlockingNewsEvent,
+  NEWS_ACTIVE_AFTER_MS,
+  NEWS_ACTIVE_BEFORE_MS,
+  NEWS_UPCOMING_HORIZON_MS,
 } from "./newsRules.ts";
 import { recordAnalyzerEvent, recordMarketDataHealth } from "./telemetry.ts";
 import {
@@ -1405,7 +1408,8 @@ async function refreshUserOutcomes(
         outcome: evaluation.outcome,
         reviewedAt: new Date().toISOString(),
       });
-    } catch {
+    } catch (error) {
+      console.error("outcome refresh setup failed", setup.id, error);
       summary.failed += 1;
     }
   }
@@ -1446,7 +1450,7 @@ async function upsertOutcome(
     token,
     "trade_outcomes",
     {
-      analyzer_version: setup.analyzer_version ?? ANALYZER_VERSION,
+      analyzer_version: setup.analyzer_version ?? "unversioned",
       exit_at: outcome.exitAt ?? null,
       feedback: {
         ...outcome.feedback,
@@ -1648,10 +1652,10 @@ function extractSetupKey(
 
 async function fetchRelevantNews(token: string, symbol: SupportedSymbol) {
   const now = Date.now();
-  const headlineStart = new Date(now - 6 * 60 * 60 * 1000).toISOString();
-  const activeStart = new Date(now - 10 * 60 * 1000).toISOString();
-  const activeEnd = new Date(now + 20 * 60 * 1000).toISOString();
-  const upcomingEnd = new Date(now + 6 * 60 * 60 * 1000).toISOString();
+  const headlineStart = new Date(now - NEWS_UPCOMING_HORIZON_MS).toISOString();
+  const activeStart = new Date(now - NEWS_ACTIVE_BEFORE_MS).toISOString();
+  const activeEnd = new Date(now + NEWS_ACTIVE_AFTER_MS).toISOString();
+  const upcomingEnd = new Date(now + NEWS_UPCOMING_HORIZON_MS).toISOString();
   const rows = await fetchRows<NewsEvent>(
     token,
     `economic_events?select=provider,currency,event_name,event_type,impact,scheduled_at,symbol,url&impact=in.(medium,high)&scheduled_at=gte.${

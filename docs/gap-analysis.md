@@ -1,5 +1,10 @@
 # Levelflow Gap Analysis
 
+> **Historical document (2026-07-02).** Superseded by the window-feasible
+> rebuild, the 23-round calibration arc, and the visual overhaul — see
+> [trade-model.md](/docs/trade-model.md) for the current engine state.
+> Kept for provenance; do not act on its backlog.
+
 Last reviewed: 2026-07-02
 
 ## Current Strengths

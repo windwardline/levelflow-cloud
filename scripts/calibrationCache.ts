@@ -121,9 +121,13 @@ export async function loadRollingSeries<T>(input: {
     ? await fetchFull()
     : await fetchSince(lastTime - TOP_UP_OVERLAP_MS);
   store.items = mergeByTime(store.items, fresh, timeOf);
-  store.pinned[anchor] = store.items.length > 0
-    ? timeOf(store.items.at(-1)!)
-    : Date.now();
+  if (store.items.length === 0) {
+    // Never pin an empty series: one failed/empty provider response must
+    // not cement an empty cache for the rest of the anchor day. Unpinned,
+    // the next call retries the fetch.
+    return [];
+  }
+  store.pinned[anchor] = timeOf(store.items.at(-1)!);
 
   const pins = Object.keys(store.pinned).sort();
   for (const stale of pins.slice(0, Math.max(0, pins.length - PINS_KEPT))) {
