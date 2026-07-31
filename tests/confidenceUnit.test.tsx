@@ -200,18 +200,28 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     assert.doesNotMatch(source, /Second target/);
   });
 
-  // Spec §7: each ladder value copies on its own, writing exactly the raw
-  // value string — no label, side, or symbol stitched on the way the old
-  // "Copy levels" summary line did. No jsdom in this repo's unit-test
-  // stack (see the file header comment above), so there's no live
-  // navigator.clipboard to mock and no click to dispatch; instead this
-  // pins the one writeText call site to a bare `value` argument, and pins
-  // each row's onCopy to hand it the exact same formatNumber(...) string
-  // that row renders as its value prop — what you see is what you copy.
-  it("copies exactly the raw formatted value per row, through a single writeText(value) call site", () => {
+  // Spec §7: each ladder value copies on its own — but NOT the displayed
+  // string. formatNumber's `toLocaleString(undefined, ...)` defers to the
+  // runtime locale: any value >= 1000 gains a thousands separator
+  // ("117,240"), and under de-DE the decimal itself swaps to a comma —
+  // either way the payload corrupts on paste into a broker's price field,
+  // the entire point of this feature (fix round 1). Every row must route
+  // its clipboard payload through formatCopyValue instead — deterministic,
+  // en-US, ungrouped — while `value` (what's rendered) stays on
+  // formatNumber for a readable on-screen number. No jsdom in this repo's
+  // unit-test stack (see the file header comment above), so there's no
+  // live navigator.clipboard to mock and no click to dispatch; this pins
+  // the one writeText call site to a bare `value` argument, pins each
+  // row's onCopy to formatCopyValue specifically, and confirms
+  // formatNumber never leaks into a handleCopy(...) call.
+  it("copies each value through formatCopyValue, never formatNumber, via a single writeText(value) call site", () => {
     const source = readFileSync(
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
       "utf8",
+    );
+    assert.match(
+      source,
+      /import \{ formatCopyValue, formatNumber, formatTimestamp \} from "\.\/advisorFormat";/,
     );
     const writeTextCalls =
       source.match(/navigator\.clipboard\?\.writeText\([^)]*\)/g) ?? [];
@@ -222,20 +232,28 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("entry", formatNumber\(setup\.entryPrice\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("entry", formatCopyValue\(setup\.entryPrice\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("stop", formatNumber\(setup\.stopLoss\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("stop", formatCopyValue\(setup\.stopLoss\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("target1", formatNumber\(setup\.takeProfit1!\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("target1", formatCopyValue\(setup\.takeProfit1!\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("target2", formatNumber\(setup\.takeProfit\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("target2", formatCopyValue\(setup\.takeProfit\)\)\}/,
     );
+    // Belt and suspenders: no handleCopy(...) call anywhere reaches for
+    // formatNumber, the locale-dependent display formatter, by name.
+    assert.doesNotMatch(source, /handleCopy\([^)]*formatNumber/);
+    // formatNumber is still very much in the file — for `value=` display
+    // props — exactly four times, one per ladder row.
+    const displayFormatNumberCalls =
+      source.match(/value=\{formatNumber\(/g) ?? [];
+    assert.equal(displayFormatNumberCalls.length, 4);
   });
 
   it("flips each copy affordance to a checkmark for a bounded window, keyed per row", () => {

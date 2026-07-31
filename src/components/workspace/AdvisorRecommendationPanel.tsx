@@ -22,7 +22,7 @@ import {
   formatStrategyName,
   uniqueReviewMessages,
 } from "./reviewCopy";
-import { formatNumber, formatTimestamp } from "./advisorFormat";
+import { formatCopyValue, formatNumber, formatTimestamp } from "./advisorFormat";
 import { MetricRow } from "./AdvisorMetricRow";
 
 // Spec §7, verbatim, load-bearing: the exact wording the design authority
@@ -120,14 +120,14 @@ export function RecommendationPanel({
           <CopyableMetricRow
             copied={copiedField === "entry"}
             label="Limit entry"
-            onCopy={() => handleCopy("entry", formatNumber(setup.entryPrice))}
+            onCopy={() => handleCopy("entry", formatCopyValue(setup.entryPrice))}
             value={formatNumber(setup.entryPrice)}
             valueClassName={isBuy ? "text-buy" : "text-sell"}
           />
           <CopyableMetricRow
             copied={copiedField === "stop"}
             label="Stop loss"
-            onCopy={() => handleCopy("stop", formatNumber(setup.stopLoss))}
+            onCopy={() => handleCopy("stop", formatCopyValue(setup.stopLoss))}
             value={formatNumber(setup.stopLoss)}
           />
           {hasLadder
@@ -135,7 +135,7 @@ export function RecommendationPanel({
               <CopyableMetricRow
                 copied={copiedField === "target1"}
                 label="Target 1 · bank half"
-                onCopy={() => handleCopy("target1", formatNumber(setup.takeProfit1!))}
+                onCopy={() => handleCopy("target1", formatCopyValue(setup.takeProfit1!))}
                 value={formatNumber(setup.takeProfit1!)}
               />
             )
@@ -143,7 +143,7 @@ export function RecommendationPanel({
           <CopyableMetricRow
             copied={copiedField === "target2"}
             label={hasLadder ? "Target 2 · take-profit" : "Target"}
-            onCopy={() => handleCopy("target2", formatNumber(setup.takeProfit))}
+            onCopy={() => handleCopy("target2", formatCopyValue(setup.takeProfit))}
             value={formatNumber(setup.takeProfit)}
           />
           {setup.expiresAt
@@ -218,8 +218,13 @@ export function RecommendationPanel({
 
 // Spec §7: every ladder value (Entry, Stop, Target 1, Target 2) copies on
 // its own — the value plus a subtle ⧉ affordance that flips to a ✓ for a
-// couple of seconds. `value` is written to the clipboard exactly as shown,
-// with no label, side, or symbol stitched on.
+// couple of seconds. `value` is the readable, locale-formatted display
+// string (what this component renders); `onCopy` is a closure the caller
+// prepares with the actual clipboard payload baked in. The two are
+// deliberately NOT the same string — see formatCopyValue in
+// advisorFormat.ts — so no label, side, or symbol ever rides along, but
+// also so a grouped/locale-formatted display value never corrupts a
+// pasted price either.
 function CopyableMetricRow({
   copied,
   label,

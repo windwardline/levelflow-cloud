@@ -21,6 +21,23 @@ export function formatNumber(value: number) {
   });
 }
 
+// Clipboard payload for the per-value ladder copy (spec §7) — deliberately
+// NOT formatNumber's output. `toLocaleString(undefined, ...)` defers to
+// the runtime's locale: under a de-DE browser a price like 117240.5 both
+// gains a grouping separator AND swaps its decimal to a comma
+// ("117.240,5"), which corrupts on paste into a broker's price field
+// either way. Pinning "en-US" with grouping disabled makes the payload a
+// deterministic, round-trippable plain number ("117240.5") regardless of
+// the viewer's locale, while formatNumber keeps rendering the readable,
+// locale-formatted value on screen. Same 5-digit precision cap as
+// formatNumber so the two never disagree on rounding, only on shape.
+export function formatCopyValue(value: number) {
+  return value.toLocaleString("en-US", {
+    useGrouping: false,
+    maximumFractionDigits: 5,
+  });
+}
+
 export function formatTimeframe(timeframe: ChartTimeframe) {
   return chartTimeframeLabel(timeframe).toLowerCase();
 }
