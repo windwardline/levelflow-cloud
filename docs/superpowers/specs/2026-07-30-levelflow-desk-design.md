@@ -375,3 +375,17 @@ report.
   cross-links standard).
 - Still awaiting owner ruling (do NOT build until given): the merged
   mobile Scan surface (m-scan-v2 mock) and the 3-vs-4 bottom-tab count.
+
+### §17b. One lifecycle vocabulary (owner ruling, 2026-07-31)
+
+Pending and Unfilled are the same limit-order mechanism at two moments —
+Pending while the order waits inside its window, Unfilled once the window
+closed without a fill — and every surface uses exactly these words, at
+every opportunity: **Pending → Open (· ±R) → Unfilled / Banked half /
+Target 2 / Stopped / Expired in profit / Expired at loss.** "Still
+tracking" and "Tracking" are banned (languageGuard): any cell, chip,
+filter, or copy that named them renders the lifecycle word the state
+machine actually reports. The Status filter option spanning both
+unresolved states reads "Pending & open" — existing vocabulary only. The
+Guide's §10 definition ("Pending — your order is placed but has not
+filled") is already the canonical teaching and stays.
