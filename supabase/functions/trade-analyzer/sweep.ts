@@ -190,14 +190,17 @@ export function simulateSymbol(input: {
     // Session context is evaluated at the bar's own time, mirroring the
     // live analyzer. Session blocks (weekends, rollover, maintenance) are
     // hard closures and apply in every mode.
-    const sessionContext = getSessionContext(
+    let sessionContext = getSessionContext(
       input.symbol,
       new Date(latest.time),
     );
-    if (
-      sessionContext.block &&
-      !(input.ignoreLowEdge && sessionContext.lowEdge)
-    ) {
+    if (input.ignoreLowEdge && sessionContext.lowEdge) {
+      // Measurement mode: the hour must be scored as if ungated — the
+      // lowEdge penalty (100) would otherwise reject every decision at
+      // the confidence gate and the hours would stay invisible.
+      sessionContext = { ...sessionContext, block: false, penalty: 0 };
+    }
+    if (sessionContext.block) {
       rejections.sessionBlocked += 1;
       continue;
     }
