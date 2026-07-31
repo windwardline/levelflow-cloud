@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { deriveTradeState, type TradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
+import { useWorkspaceNav } from "./WorkspaceNav";
 
 export type CurrentTradesRailProps = {
   // True exactly when this rail is the active mobile sub-view (spec §3's
@@ -81,8 +82,17 @@ export function formatAsOf(date: Date): string {
 
 // The remaining ladder levels still relevant to watch, mono in the card
 // (spec §8). A level drops off once it's behind the trade: Entry once
-// filled, Target 1 once its bank-half instruction has already fired
-// (state.tp1Banked — see tradeState.ts's TP1-hit branch).
+// filled, the bank-half target once its instruction has already fired
+// (state.tp1Banked — see tradeState.ts's first-target branch).
+//
+// Captions are the mock's own (a-desk-v3.html:220,:226 `.lvls`, m-trades-v1
+// :50,:56): SL / T1 / T2, short enough to sit as mono pairs in a 300px rail.
+// Spec §16 gives copy rulings to the spec and composition to the mock; §8
+// specifies only "the remaining levels in mono" for this surface, so nothing
+// overrides the mock here — the ladder's own Entry / Stop / Target 1 /
+// Target 2 wording (spec §7) is unchanged where it belongs, in the setup
+// sheet. The two levels the mock never draws keep the words they already
+// had rather than inventing an abbreviation for them.
 export function buildRemainingLevels(
   setup: TradeSetupRow,
   state: TradeState,
@@ -93,19 +103,19 @@ export function buildRemainingLevels(
     levels.push({ label: "Entry", value: formatLevel(setup.limit_entry) });
   }
 
-  levels.push({ label: "Stop", value: formatLevel(setup.stop_loss) });
+  levels.push({ label: "SL", value: formatLevel(setup.stop_loss) });
 
   const hasLadder = Number.isFinite(Number(setup.take_profit_1)) &&
     Number(setup.take_profit_1) > 0;
   if (hasLadder && !state.tp1Banked) {
     levels.push({
-      label: "Target 1",
+      label: "T1",
       value: formatLevel(setup.take_profit_1),
     });
   }
 
   levels.push({
-    label: hasLadder ? "Target 2" : "Target",
+    label: hasLadder ? "T2" : "Target",
     value: formatLevel(setup.take_profit),
   });
 
@@ -120,6 +130,11 @@ function formatLevel(value: number | string | null | undefined): string {
 export function CurrentTradesRail(
   { isActiveOnMobile, now, onRefresh, setups }: CurrentTradesRailProps,
 ) {
+  // The mock's closing cross-link (a-desk-v3.html:231) rides the nav context
+  // that already exists — openInsights was declared on WorkspaceNav and
+  // supplied by App.tsx from the start; this is simply its first call site,
+  // the same consume-once flow HistoryPanel's rows use for openAdvisor.
+  const nav = useWorkspaceNav();
   // Captured once per mount, not re-derived from the ticking `now` prop:
   // AdvisorWorkspace (and this rail with it) fully unmounts and remounts on
   // every Desk tab switch, so this naturally re-baselines on every surface
@@ -150,9 +165,16 @@ export function CurrentTradesRail(
   }
 
   return (
-    <section className="terminal-panel p-4" data-testid="current-trades-rail">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold tracking-normal text-ink">
+    // Spec §16 / a-desk-v3.html:216-232: the column IS this surface's frame
+    // (AdvisorWorkspace's aside carries the mock's left hairline and railR
+    // tint), so the rail itself is plain paper — no panel of its own. Only
+    // the position cards below are framed, which is the one box both mocks
+    // draw here. The heading takes the same eyebrow treatment the scan rail
+    // uses (:218), with the freshness stamp opposite it on one baseline row
+    // (`.rrhead`, :217).
+    <section className="min-w-0" data-testid="current-trades-rail">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
           Current trades
         </h3>
         <p className="text-xs text-ink-muted">
@@ -168,14 +190,26 @@ export function CurrentTradesRail(
       </div>
 
       {cards.length === 0
-        ? <p className="text-sm leading-6 text-ink-muted">No current trades.</p>
+        ? <p className="mt-2 text-sm leading-6 text-ink-muted">No current trades.</p>
         : (
-          <div className="grid gap-2.5">
+          <div className="mt-2.5 grid gap-2.5">
             {cards.map(({ setup, state }) => (
               <TradeStateCard key={setup.id} setup={setup} state={state} />
             ))}
           </div>
         )}
+
+      {/* The mock's one closing link (:231). Insights is where closed trades
+          live, so this is the surface's own exit rather than a new feature. */}
+      <p className="mt-4">
+        <button
+          className="tertiary-link"
+          type="button"
+          onClick={() => nav.openInsights()}
+        >
+          All results → Insights
+        </button>
+      </p>
     </section>
   );
 }
@@ -192,7 +226,10 @@ function TradeStateCard({
   const levels = buildRemainingLevels(setup, state);
 
   return (
-    <article className="min-w-0 rounded-lg border border-hairline bg-paper p-3">
+    // `.pos` (a-desk-v3.html:60, m-trades-v1.html:12): hairline border on
+    // sheet at 12/14 padding — the one card treatment the mocks draw on this
+    // surface, kept now that the rail around it is flat.
+    <article className="min-w-0 rounded-lg border border-hairline bg-sheet px-3.5 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h4 className="truncate text-base font-semibold text-ink">
@@ -214,17 +251,17 @@ function TradeStateCard({
         {state.instruction}
       </p>
 
-      <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+      {/* `.lvls` (a-desk-v3.html:65): plain mono pairs, caption over value, no
+          fill and no frame — the pills that used to sit here were a third box
+          inside a card inside a panel. */}
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 font-mono text-xs">
         {levels.map((level) => (
-          <div
-            key={level.label}
-            className="flex items-center justify-between gap-2 rounded-md bg-sheet px-2 py-1.5"
-          >
-            <span className="text-ink-muted">{level.label}</span>
-            <span className="font-mono font-semibold tabular-nums text-ink">
+          <span key={level.label} className="text-ink-muted">
+            {level.label}
+            <b className="block text-[13px] font-semibold tabular-nums text-ink">
               {level.value}
-            </span>
-          </div>
+            </b>
+          </span>
         ))}
       </div>
     </article>

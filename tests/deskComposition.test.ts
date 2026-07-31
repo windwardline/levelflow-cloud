@@ -19,6 +19,7 @@ const STAGE = "src/components/workspace/AdvisorWorkspace.tsx";
 const PANEL = "src/components/workspace/AdvisorRecommendationPanel.tsx";
 const RECEIPT = "src/components/workspace/SetupQualityReceipt.tsx";
 const RAIL = "src/components/workspace/MarketScanPanel.tsx";
+const TRADES_RAIL = "src/components/workspace/CurrentTradesRail.tsx";
 const CHART = "src/components/charts/MarketChart.tsx";
 const DELETED_STATUS_PANELS = "src/components/workspace/AdvisorStatusPanels.tsx";
 const DELETED_METRIC_ROW = "src/components/workspace/AdvisorMetricRow.tsx";
@@ -294,6 +295,107 @@ describe("scan rail composition — the kill list is absent (spec §16)", () => 
 
   it("is a plain column, not a terminal-panel", () => {
     assert.doesNotMatch(rail, /terminal-panel/);
+  });
+});
+
+// Final review, Important 1: Current trades was the one Desk column the
+// remediation never swept, so it kept the terminal-panel box-on-box the
+// owner's rejection named by phrase — and the guards above had a hole exactly
+// there (the stage's absence check is scoped to [stage, panel, receipt], the
+// scan rail's to MarketScanPanel.tsx). Both mocks that draw this surface
+// (a-desk-v3.html:216-232 railR, m-trades-v1.html:44-54) frame only the
+// position cards; the column itself is the frame.
+describe("Current trades rail composition — the mock's elements are present (a-desk-v3.html:216-232)", () => {
+  const tradesRail = readFileSync(TRADES_RAIL, "utf8");
+
+  it("leads with the mock's eyebrow and the freshness stamp on one row, same treatment as the scan rail", () => {
+    assert.match(
+      tradesRail,
+      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">\s*Current trades\s*<\/h3>/,
+    );
+    // .rrhead (:217): one baseline-aligned row, heading opposite the stamp.
+    assert.match(
+      tradesRail,
+      /className="flex flex-wrap items-baseline justify-between gap-2"[\s\S]{0,200}Current trades/,
+    );
+    assert.match(tradesRail, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+  });
+
+  it("keeps the position card as the one frame the mock draws: hairline border on sheet at .pos's 12/14 padding", () => {
+    assert.match(
+      tradesRail,
+      /className="min-w-0 rounded-lg border border-hairline bg-sheet px-3\.5 py-3"/,
+    );
+  });
+
+  it("renders the remaining levels as the mock's plain mono pairs, label over value", () => {
+    // .lvls (:65): a flex row of mono spans, each label with its value in a
+    // block <b> under it. The label vocabulary is the mock's own.
+    assert.match(
+      tradesRail,
+      /className="mt-2 flex flex-wrap gap-x-3 gap-y-1\.5 font-mono text-xs"/,
+    );
+    assert.match(
+      tradesRail,
+      /<b className="block text-\[13px\] font-semibold tabular-nums text-ink">/,
+    );
+    // The mock's captions, not the ladder's long-form wording (spec §7 keeps
+    // that in the setup sheet). T2 is written as the laddered branch of the
+    // final target, so it is matched in that form rather than as a bare
+    // literal a future rewrite could satisfy from a comment.
+    assert.match(tradesRail, /levels\.push\(\{ label: "SL", value: formatLevel\(setup\.stop_loss\) \}\);/);
+    assert.match(tradesRail, /label: "T1",/);
+    assert.match(tradesRail, /label: hasLadder \? "T2" : "Target",/);
+  });
+
+  it("closes with the mock's All results → Insights link, wired through the existing workspace nav", () => {
+    // :231. No new nav system: openInsights already exists on
+    // WorkspaceNavContext (App.tsx supplies it), this is its first call site.
+    assert.match(tradesRail, /import \{ useWorkspaceNav \} from "\.\/WorkspaceNav";/);
+    assert.match(tradesRail, /const nav = useWorkspaceNav\(\);/);
+    assert.match(
+      tradesRail,
+      /onClick=\{\(\) => nav\.openInsights\(\)\}[\s\S]{0,80}All results → Insights/,
+    );
+  });
+
+  it("tints the railR column on the aside itself, per the mock (a-desk-v3.html:56)", () => {
+    // The tint belongs to the column, not to a panel inside it — that is the
+    // whole point of removing the wrapper. Custom-property names match
+    // src/styles/index.css's @theme block (--color-sheet / --color-paper).
+    assert.match(
+      stage,
+      /lg:bg-\[color-mix\(in_srgb,var\(--color-sheet\)_55%,var\(--color-paper\)\)\]/,
+    );
+  });
+});
+
+describe("Current trades rail composition — the kill list is absent (spec §16)", () => {
+  const tradesRail = readFileSync(TRADES_RAIL, "utf8");
+
+  it("is a plain column, not a terminal-panel — the aside is the frame now", () => {
+    assert.doesNotMatch(tradesRail, /terminal-panel/);
+  });
+
+  it("carries no pill-boxed levels row and no second card inside the position card", () => {
+    assert.doesNotMatch(tradesRail, /rounded-md bg-sheet/);
+    assert.doesNotMatch(tradesRail, /rounded-lg border border-hairline bg-paper/);
+    // Exactly one bordered frame in the file: the position card itself.
+    assert.equal(
+      (tradesRail.match(/border border-hairline/g) ?? []).length,
+      1,
+    );
+  });
+
+  it("drops the panel-title treatment the surface heading used to carry", () => {
+    assert.doesNotMatch(tradesRail, /text-lg font-semibold/);
+  });
+
+  it("keeps the surface's copy rulings (spec §8)", () => {
+    assert.doesNotMatch(tradesRail, /Your current trades/);
+    assert.doesNotMatch(tradesRail, /\bresting\b/i);
+    // Two statuses live here and no more.
+    assert.match(tradesRail, /isPending \? "Pending" : "Open"/);
   });
 });
 

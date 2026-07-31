@@ -197,7 +197,9 @@ describe("deskColumnClassName (AdvisorWorkspace.tsx mobile gating)", () => {
     // The rails carry the mock's column hairlines (a-desk-v3.html:18,:56 —
     // railL border-right, railR border-left) at >=lg only; the borders and
     // their breathing padding are lg:-prefixed so the mobile single-column
-    // views stay edge-to-edge.
+    // views stay edge-to-edge. railR also carries the mock's tint and its
+    // 16px inset (:56) — the column is the Current trades frame now, so the
+    // tint has to live here rather than on a panel inside it.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
       /deskColumnClassName\(\s*mobileView === "scan",\s*"block",\s*"scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4",\s*\)/,
@@ -208,7 +210,7 @@ describe("deskColumnClassName (AdvisorWorkspace.tsx mobile gating)", () => {
     );
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /deskColumnClassName\(\s*mobileView === "trades",\s*"flex",\s*"scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:pl-4 lg:pr-1",\s*\)/,
+      /deskColumnClassName\(\s*mobileView === "trades",\s*"flex",\s*"scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-\[color-mix\(in_srgb,var\(--color-sheet\)_55%,var\(--color-paper\)\)\] lg:pl-4 lg:pr-4",\s*\)/,
     );
   });
 });

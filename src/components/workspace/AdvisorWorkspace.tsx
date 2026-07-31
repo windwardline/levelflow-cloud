@@ -548,12 +548,17 @@ export function AdvisorWorkspace(
           on every Desk surface show (App.tsx's tab-activation effect) and on
           demand via the rail's own manual control; no fetch logic lives
           here. Below lg this is the "Trades" tab's entire content (spec
-          §3); at ≥lg it always shows. */}
+          §3); at ≥lg it always shows.
+          This column is the surface's frame (a-desk-v3.html:56 `.railR`):
+          left hairline, the mock's sheet-over-paper tint, and its 16px
+          inset — CurrentTradesRail itself draws no panel, so the tint has to
+          live here or nowhere. lg:-gated with the rest of the column
+          geometry, since below lg the rail is a full-width tab, not a rail. */}
       <aside
         className={deskColumnClassName(
           mobileView === "trades",
           "flex",
-          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:pl-4 lg:pr-1",
+          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-[color-mix(in_srgb,var(--color-sheet)_55%,var(--color-paper))] lg:pl-4 lg:pr-4",
         )}
       >
         <div className="shrink-0">
