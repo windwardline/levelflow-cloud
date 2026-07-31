@@ -21,6 +21,7 @@ import type {
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import {
   filterMarketScanCandidatesByScope,
+  formatScanRowMeta,
   getMarketScanSymbolsForScope,
 } from "./marketScanFilters";
 import { describeExecutionLabel } from "./reviewCopy";
@@ -205,7 +206,7 @@ function MarketScanRow({
   rank: number;
 }) {
   const isBuy = candidate.side === "buy";
-  const sideLabel = candidate.side ? `${candidate.side} limit` : "Review";
+  const rowMeta = formatScanRowMeta(candidate.side, candidate.confidenceScore);
   const levelPreview = candidate.entryPrice && candidate.takeProfit
     ? candidate.takeProfit1
       ? `Entry ${formatNumber(candidate.entryPrice)} · First target ${
@@ -247,7 +248,7 @@ function MarketScanRow({
           </p>
         </div>
         <span className={`chip shrink-0 ${isBuy ? "text-buy" : "text-sell"}`}>
-          {sideLabel}
+          {rowMeta}
         </span>
       </div>
 

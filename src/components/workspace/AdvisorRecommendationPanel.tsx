@@ -6,9 +6,13 @@ import {
   Target,
   XCircle,
 } from "lucide-react";
-import { ConfidenceGauge } from "../trade/ConfidenceGauge";
-import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
+import {
+  formatSecurityLabel,
+  getSecurityOption,
+  type SupportedSymbol,
+} from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
+import { ConfidenceUnit } from "./ConfidenceUnit";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import { SetupQualityReceipt } from "./SetupQualityReceipt";
 import {
@@ -38,6 +42,7 @@ export function RecommendationPanel({
 
   if (setup) {
     const isBuy = setup.side === "buy";
+    const assetType = getSecurityOption(symbol).assetType;
     const hasLadder = typeof setup.takeProfit1 === "number" &&
       setup.takeProfit1 > 0;
     const executionLabel = String(
@@ -62,19 +67,11 @@ export function RecommendationPanel({
             {isBuy ? "Buy" : "Sell"} limit
           </span>
         </div>
-        <ConfidenceGauge score={setup.confidenceScore} />
-        <div className="grid grid-cols-3 gap-2 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs">
-          <div className="min-w-0">
-            <p className="font-semibold uppercase tracking-normal text-ink-muted">
-              Confidence
-            </p>
-            <p className="mt-0.5 truncate font-mono font-semibold tabular-nums text-ink">
-              {Math.round(setup.confidenceScore)}%
-            </p>
-            <p className="mt-1">
-              <HowThisWorksLink anchor="confidence-tiers" />
-            </p>
-          </div>
+        <ConfidenceUnit assetType={assetType} score={setup.confidenceScore} />
+        <p>
+          <HowThisWorksLink anchor="confidence-tiers" />
+        </p>
+        <div className="grid grid-cols-2 gap-2 rounded-lg border border-hairline bg-paper px-3 py-2 text-xs">
           <div className="min-w-0">
             <p className="font-semibold uppercase tracking-normal text-ink-muted">
               Payoff

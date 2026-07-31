@@ -43,6 +43,7 @@ import {
 import {
   ADVISOR_EXECUTION_INTERVALS,
   ADVISOR_SIGNAL_INTERVALS,
+  CONFIDENCE_THRESHOLD_BY_ASSET_TYPE,
   REVIEW_WINDOW_HOURS_BY_ASSET_TYPE,
   reviewWindowLabel,
 } from "../src/lib/advisorReview";
@@ -563,6 +564,33 @@ describe("profile preferences", () => {
       getCategoryCalibration("ESUSD").defaultReviewHours,
     );
     assert.equal(reviewWindowLabel("Indices"), "Up to 5 hours");
+  });
+
+  it("keeps the confidence-threshold mirror aligned with live calibration for every asset class", () => {
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto,
+      getCategoryCalibration("BTCUSD").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Energies,
+      getCategoryCalibration("WTI").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex,
+      getCategoryCalibration("EURUSD").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Futures,
+      getCategoryCalibration("ESUSD").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Indices,
+      getCategoryCalibration("SP").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
+      getCategoryCalibration("XAUUSD").confidenceThreshold,
+    );
   });
 
   it("groups U.S. time zones by Daylight Saving Time observance", () => {

@@ -99,3 +99,21 @@ function matchesScanScope(
   return normalizeAssetType(candidate.assetType) ===
     normalizeAssetType(scope.assetType);
 }
+
+// Scan rail row meta (design spec §5): "Buy · confidence N" / "Sell ·
+// confidence N". Every real opportunity carries both a side and a score, so
+// the fallbacks below are defensive, not a documented product state — they
+// degrade to what's actually known rather than fabricating either half.
+export function formatScanRowMeta(
+  side: MarketScanCandidate["side"],
+  confidenceScore: MarketScanCandidate["confidenceScore"],
+): string {
+  if (!side) {
+    return "Review";
+  }
+  const sideLabel = side === "buy" ? "Buy" : "Sell";
+  return typeof confidenceScore === "number" &&
+      Number.isFinite(confidenceScore)
+    ? `${sideLabel} · confidence ${Math.round(confidenceScore)}`
+    : sideLabel;
+}
