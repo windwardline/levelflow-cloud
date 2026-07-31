@@ -193,10 +193,14 @@ describe("deskColumnClassName (AdvisorWorkspace.tsx mobile gating)", () => {
     );
   });
 
-  it("the three real Desk columns each call it with their own view and pre-Task-9 base classes intact", () => {
+  it("the three real Desk columns each call it with their own view and base classes intact", () => {
+    // The rails carry the mock's column hairlines (a-desk-v3.html:18,:56 —
+    // railL border-right, railR border-left) at >=lg only; the borders and
+    // their breathing padding are lg:-prefixed so the mobile single-column
+    // views stay edge-to-edge.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /deskColumnClassName\(\s*mobileView === "scan",\s*"block",\s*"scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",\s*\)/,
+      /deskColumnClassName\(\s*mobileView === "scan",\s*"block",\s*"scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4",\s*\)/,
     );
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
@@ -204,7 +208,7 @@ describe("deskColumnClassName (AdvisorWorkspace.tsx mobile gating)", () => {
     );
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /deskColumnClassName\(\s*mobileView === "trades",\s*"flex",\s*"scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",\s*\)/,
+      /deskColumnClassName\(\s*mobileView === "trades",\s*"flex",\s*"scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:pl-4 lg:pr-1",\s*\)/,
     );
   });
 });

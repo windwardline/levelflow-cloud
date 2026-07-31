@@ -111,6 +111,18 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
+      # Composition has to be seen, not just asserted (the Stage 3.5 lesson):
+      # visual-proof.spec.ts writes full-page captures of every authed
+      # surface here, and failures keep their traces for diagnosis.
+      - name: Upload visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-proof
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Build frontend
         run: |
           npm run build

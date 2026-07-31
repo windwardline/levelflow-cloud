@@ -369,7 +369,7 @@ export function AdvisorWorkspace(
         className={deskColumnClassName(
           mobileView === "scan",
           "block",
-          "scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
+          "scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4",
         )}
       >
         <MarketScanPanel
@@ -553,7 +553,7 @@ export function AdvisorWorkspace(
         className={deskColumnClassName(
           mobileView === "trades",
           "flex",
-          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
+          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:pl-4 lg:pr-1",
         )}
       >
         <div className="shrink-0">
