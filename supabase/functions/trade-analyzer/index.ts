@@ -111,6 +111,7 @@ type ExistingSetupRow = {
   created_at: string;
   id: string;
   limit_entry: number | string;
+  origin: SetupOrigin;
   provider_symbol: string;
   side: Side;
   stop_loss: number | string;
@@ -1272,7 +1273,7 @@ async function upsertActiveSetup(
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
+    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,origin,created_at&user_id=eq.${
       encodeURIComponent(userId)
     }&symbol=eq.${
       encodeURIComponent(
@@ -1283,6 +1284,14 @@ async function upsertActiveSetup(
   const activeSetup = rows[0] ?? null;
 
   if (activeSetup && activeSetup.side === setup.side) {
+    // Origin only ever moves scan -> review, never the reverse: a routine
+    // scan touching a symbol+side a human already reviewed must not
+    // silently drop that row out of global learning (origin = 'review'
+    // is the learning-eligible state).
+    const nextOrigin: SetupOrigin = activeSetup.origin === "review"
+      ? "review"
+      : origin;
+
     await updateRows(
       token,
       `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${
@@ -1302,7 +1311,7 @@ async function upsertActiveSetup(
           penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
           upcomingEvents: newsContext.upcoming,
         },
-        origin,
+        origin: nextOrigin,
         risk_model: setup.riskModel,
         side: setup.side,
         status: "generated",

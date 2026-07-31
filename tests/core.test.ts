@@ -260,6 +260,32 @@ describe("trade analyzer category handling", () => {
     assert.match(scanSource, /upsertActiveSetup\([\s\S]*?"scan",?\s*\);/);
   });
 
+  it("never lets a routine scan demote an existing review-origin setup", () => {
+    // No node-test harness reaches upsertActiveSetup's actual DB round
+    // trip (it's Deno-only code — see the other tests in this block); this
+    // reads the real source the same way, scoped to the function body.
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const upsertStart = source.indexOf("async function upsertActiveSetup");
+    const upsertEnd = source.indexOf(
+      "async function invalidateActiveSetupsForSymbol",
+    );
+    const upsertSource = source.slice(upsertStart, upsertEnd);
+
+    // The same-side dedupe UPDATE branch must not let a later scan flip an
+    // already-reviewed row's origin back to 'scan' and drop it out of
+    // global learning — origin only ever moves scan -> review. The insert
+    // branch (no existing row to dedupe against) still sets origin freely.
+    assert.equal(
+      upsertSource.includes('activeSetup.origin === "review"'),
+      true,
+    );
+    assert.equal(upsertSource.includes('? "review"'), true);
+    assert.equal(upsertSource.includes("origin: nextOrigin,"), true);
+  });
+
   it("scopes global learning weights to review-origin outcomes only", () => {
     const source = readFileSync(
       "supabase/functions/trade-analyzer/index.ts",
