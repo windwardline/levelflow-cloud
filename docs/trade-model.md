@@ -1,7 +1,124 @@
 # Levelflow Trade Model
 
-Model version: `2026.07.29.per-symbol-curves`
-Last reviewed: 2026-07-29 (round 6)
+Model version: `2026.07.30.forex-gate-forty`
+Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
+see "The stopping point" and "Resumption protocol" below)
+
+## Current engine state (2026-07-30)
+
+The state of record after 23 calibration rounds, every value derived at
+full available history under the walk-forward both-splits gate. The
+sections that follow this one explain the mechanisms; the round journal
+at the bottom is history.
+
+| Class | Threshold | Window | Stop cap | TP1 share | Runner share | Entry offsets (def/trend) | News cap |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Crypto | 82 | 12h | 1.8 | 0.4 | 0.8 | 0.78 / 0.80 | 4 |
+| Energies | 69 | 6h | 2.4 | 0.8 | 0.8 | 0.60 / 0.48 | 8 |
+| Forex | 40 | 8h | 1.4 | 0.4 | 0.6 | 0.55 / 0.55 | 8 |
+| Futures | 68 | 6h | 1.4 | 0.4 | 0.6 | 0.58 / 0.75 | 8 |
+| Indices | 68 | 5h | 1.8 | 1.2 | 1.1 | 0.18 / 0.12 | 9 |
+| Metals | 90 | 8h | 1.6 | 0.4 | 0.8 | 0.75 / 0.78 | 8 |
+
+Per-symbol overrides: BZUSD/CLUSD keep TP1 0.6 and runner 0.8 (oil
+trends; both reject earlier banking on test). NGUSD carries a legacy
+override that is inert — the symbol is no-trade.
+
+Session gates: 12:00–18:00 UTC blocked for crypto, futures, and indices
+(r22 full-depth validation — futures emphatic, crypto retained as a
+net-quality filter); energies additionally blocked at UTC hours 3, 4,
+12, 15, 19, 21 (r15). Chop-regime gate active for all classes (r3b).
+Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
+blocks reviews; penalties per the caps above (r23 validated them as
+calibrated).
+
+Tradable menu: 51 markets — 28 forex pairs, 7 crypto, 11 futures,
+2 metals, 2 energies. No-trade (server-refused, absent from the UI):
+SP, NSDQ, DOW, NIKKEI, DAX, NGUSD, HGUSD, BNBUSD. Reintroduction
+requires a fresh full-depth derivation, not a toggle.
+
+Measured record (test split, filled setups, money-positive): forex
+.89/123,254 · metals .90/453 · futures .83/2,368 · crypto .87/6,106 ·
+energies .60/474 · indices .51/952 (reviewable only, scans skip them).
+The UI's replay-record rows mirror these exactly
+(`src/lib/replayReliability.ts`).
+
+Operational loop, running without operator attention: hourly
+outcome-sync (cron :23) resolves pending setups; hourly news-calendar
+ingestion (cron :07) with a watchdog (cron :41); a launchd agent tops up
+the local replay cache daily at 07:00 so the replay basis stays current
+for the day the work resumes. Global learning accrues inside the
+`2026.07.30.forex-gate-forty` cohort. Production sits behind the parking
+soft gate (`/?enter`).
+
+## Resumption protocol (for the operator)
+
+The arc resumes when genuinely new data exists — not on a calendar
+whim. Two triggers, whichever comes first:
+
+1. **Cohort trigger (the one that matters):** any single class reaches
+   **~500 resolved, filled live outcomes** under the current version.
+   That is the smallest population the arc's own methods treated as
+   conditionable (per-symbol threshold curves used 300–800; bands below
+   ~150 were noise). Forex will get there first, and the Desk build's
+   scan persistence multiplies the accrual rate the day it ships. Check
+   the count in the Supabase SQL editor:
+
+   ```sql
+   select ts.asset_type, count(*) as resolved_filled
+   from trade_outcomes o
+   join trade_setups ts on ts.id = o.setup_id
+   where o.analyzer_version = '2026.07.30.forex-gate-forty'
+     and o.outcome not in ('pending', 'unfilled')
+   group by ts.asset_type
+   order by resolved_filled desc;
+   ```
+
+2. **Season trigger (the owner's chosen mechanism, 2026-07-30):**
+   quarterly re-validation on new provider bars, first pass
+   **2026-10-28**, then every ~13 weeks. The owner runs it from a
+   calendar reminder carrying the kickoff prompt below; if the cohort
+   trigger fires earlier, the same prompt applies — the cohort simply
+   becomes part of that pass. Every gate is re-derivable (r22's
+   `--ignore-low-edge` instrumentation exists for exactly this).
+
+The kickoff prompt (authoritative — when this arrives in a fresh
+session it is a directive to execute this protocol, not a question):
+
+> It's time for the seasonal recalibration of the Levelflow engine, per
+> the Resumption Protocol in docs/trade-model.md (arc stopped
+> 2026-07-30 after Round 23). Begin with the compliance audit. Check
+> the cohort counts with the protocol's SQL and reconcile whatever live
+> cohort exists against replay expectations, class by class. Then run
+> the seasonal re-validation on the provider data accrued since the
+> last pass: re-derive the state-of-record table at full depth under
+> the standing discipline — pre-registered rules before results,
+> walk-forward both-splits gate, cross-run reconciliation on
+> same-anchor runs, no concurrent same-symbol sweeps, no change for
+> its own sake. Ship only what improves both splits; validate and
+> leave alone everything else; update the state-of-record docs, the
+> calibrationState test pins, and memories either way. As always:
+> test, verify, commit, push, merge, clean up, and verify live in
+> production. Conclude with an honest read: did new data reopen any
+> lever, and when should the next seasonal pass run?
+
+When either trigger fires, open the session with:
+
+> "Begin the cohort round with the compliance audit. Then reconcile the
+> live cohort against replay expectations, class by class, and only
+> where they diverge re-open the specific gates — with the full
+> discipline: pre-registered rules before results, walk-forward
+> both-splits, cross-run reconciliation, and no change for its own
+> sake."
+
+The first cohort round is a **drift test, not a grid hunt**: per class,
+does the live money-positive rate and expectancy match what replay
+predicted for the same setups? Agreement validates the engine on data
+it has never seen — the strongest evidence this arc could never
+produce. Divergence localizes exactly which mechanism to re-open, and
+the round journal below documents how each was derived the first time.
+Between now and then: no rounds. The engine is not waiting for ideas;
+it is waiting for evidence.
 
 ## Geometry
 
@@ -784,6 +901,101 @@ validated at 1,200-day depth in round 4; round 15 proved full-depth
 per-hour curves can both validate existing gates (as absent rows) and
 find real ones (energies' six blocked hours). The same emit-driven
 method applies directly.
+
+## Round-22 calibration (2026-07-30, session hours at full depth)
+
+The 12–18 UTC gates on crypto and futures — the engine's shallowest
+evidence, validated once at 1,200 days in round 4 — re-derived at full
+depth. Doing it required instrumentation the harness never had: the
+low-edge gates block like market closures, so their hours were invisible
+to every sweep. `SessionContext.lowEdge` now marks measurement-only
+gates and the sweep's `--ignore-low-edge` flag sees through them —
+block bypassed AND penalty neutralized (the first run caught that the
+penalty alone re-hid the hours at the confidence gate: sessionBlocked 0,
+belowConfidence +5,451). Hard closures are never bypassed, by test.
+
+Full-depth per-hour curves, both splits, every hour visible:
+
+- **Futures: the gate is emphatically validated.** Hours 12–17 are the
+  weakest stretch of the day (test hours 16 and 17 negative at −0.007
+  and −0.028); removing the gate costs **−0.022 train / −0.027 test**
+  in aggregate. Keep, unchanged.
+- **Crypto: the gate is retained, but its story changed.** At full depth
+  the gated hours are no longer negative (the r4 finding at 1,200d) —
+  they are positive but dilutive: ungating adds +33% accepted volume at
+  train +0.002 / test **−0.008**, failing the both-splits bar. The gate
+  survives as a net-quality filter, and the user-facing refusal reason
+  now says exactly that ("run well below every other hour") instead of
+  the no-longer-true "were negative."
+- **No new low-edge hours in either class** — zero negative-both buckets
+  outside the gated window, matching r15's null for forex, futures,
+  crypto, and metals open hours.
+
+No calibration values change; the ships are the instrumentation and the
+honest copy. This is the second consecutive validation round.
+
+Next lever identified: **news-conditioned acceptance** — the round-6
+curiosity (news-penalized-but-accepted setups slightly outperformed
+clean ones on train) is the last substantive untested question in the
+replay data. Full-depth, both-splits examination of expectancy
+conditioned on news-penalty presence decides whether the penalty gates
+are calibrated, inverted, or inert. Per the owner's stopping rule: if it
+returns a null like this round did, the replay well is dry and the
+natural stopping point is reached — the engine then rests until
+genuinely new data exists (live cohort outcomes foremost).
+
+## Round-23 calibration (2026-07-30, news-conditioned acceptance — the closing null)
+
+The round-6 curiosity — news-penalized-but-accepted setups slightly
+outperforming clean ones — examined at full depth, in two phases.
+
+Phase 1 (conditioning, existing emits): forex null (+0.0008/+0.0003),
+metals and energies sign-flip between splits (null, thin samples), but
+crypto (+0.016/+0.014) and futures (+0.038/+0.012) show
+penalized-beats-clean on both splits with healthy samples.
+
+Phase 2 (the deciding A/B, per round 16's collider rule — conditioning
+suggests, only an experiment decides): `maxNewsPenalty` gridded to 0 and
+half-current for both classes. **Complete null.** Removing the penalty
+entirely admits only +1.1% volume (crypto) and +3.0% (futures) at
+flat-to-negative deltas; every variant fails the both-splits gate. The
+conditional spread was selection, not signal: setups that clear the same
+acceptance bar carrying a penalty are simply stronger underneath —
+the collider mechanism, now confirmed by experiment rather than
+inferred. The news penalties stay exactly as calibrated.
+
+## The stopping point (declared 2026-07-30)
+
+Round 23 closes the last substantive untested question in the replay
+data, and it is the third consecutive round without a both-splits
+improvement (r21 confirmed a ledgered volume lever; r22 validated
+existing gates; r23 is a null). Per the owner's standing rule — no
+change for its own sake; declare diminished returns when the well is
+dry — **the calibration arc stops here.**
+
+The engine rests at its measured best: test-split money-positive rates
+of forex .89/123,254, metals .90/453, futures .83/2,368, crypto
+.87/6,106, energies .60/474, with per-class geometry, thresholds, entry
+offsets, review windows, stop caps, session gates, news rules, and
+curation each derived at full depth under the walk-forward both-splits
+gate across 23 rounds.
+
+What reopens the work, in order of expected value:
+
+1. **Live cohort outcomes** under the current version — the learning
+   loop and Insights record accrue them continuously, and the Desk
+   build's scan-path persistence multiplies the accrual rate the day it
+   ships. A cohort large enough to condition on is the single dataset
+   this arc never had.
+2. **New provider history** — the daily cache top-up keeps the replay
+   basis rolling forward; a future season of data supports a
+   re-validation pass (the r22 method makes any gate re-derivable).
+3. **New markets or brokers** — per-broker calibration is a declared
+   product direction and would restart derivation on a new basis, not
+   re-tune this one.
+
+Until one of those exists, further grids would be curve-polishing, and
+the honest recommendation is none.
 
 ## Confirmed provider history depth (measured 2026-07-29)
 

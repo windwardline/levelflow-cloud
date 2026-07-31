@@ -19,8 +19,10 @@ export function getSessionContext(
   const assetType = getAssetType(symbol);
 
   if (assetType === "crypto") {
-    // 12:00-18:00 UTC measured negative on both walk-forward splits across
-    // 3+ years (US-session momentum flows work against pullback entries).
+    // 12:00-18:00 UTC: r4 (1,200d) measured these hours negative; r22 at
+    // full depth measured them positive but dilutive — ungating adds +33%
+    // volume at train +0.002 / test -0.008, failing the both-splits bar.
+    // The gate stays as a net-quality filter.
     if (isLowEdgeUtcWindow(now)) {
       return {
         block: true,
@@ -29,7 +31,7 @@ export function getSessionContext(
         marketKind: "crypto",
         penalty: 100,
         reason:
-          "Measured results for crypto setups opened between 12:00 and 18:00 UTC were negative across 3+ years of replay, so Levelflow does not open new crypto setups in this window.",
+          "Measured results for crypto setups opened between 12:00 and 18:00 UTC run well below every other hour across the full replay history, so Levelflow does not open new crypto setups in this window.",
       };
     }
     return {
@@ -120,9 +122,10 @@ export function getSessionContext(
       };
     }
 
-    // Futures and cash indices: 12:00-18:00 UTC measured negative on both
-    // walk-forward splits (futures across 3+ years; indices across their
-    // full history, round 12 — their worst stretch by a wide margin).
+    // Futures and cash indices: 12:00-18:00 UTC is the weakest stretch of
+    // the day (indices: full history, round 12; futures: r22 full-depth
+    // re-measurement — removing the gate costs -0.022 train / -0.027 test,
+    // with hours 16-17 negative on the test split).
     if (
       (marketKind === "futures" || marketKind === "indices") &&
       isLowEdgeUtcWindow(now)
@@ -135,7 +138,7 @@ export function getSessionContext(
         marketKind,
         penalty: 100,
         reason:
-          `Measured results for ${marketKind === "futures" ? "futures" : "index"} setups opened between 12:00 and 18:00 UTC were negative across every replay split, so Levelflow does not open new setups here in this window.`,
+          `Measured results for ${marketKind === "futures" ? "futures" : "index"} setups opened between 12:00 and 18:00 UTC are the weakest stretch of the day across the full replay history, so Levelflow does not open new setups here in this window.`,
       };
     }
 

@@ -91,7 +91,9 @@ export function MarketScanPanel({
       ),
     [scope, result?.opportunities, selectedBand.min],
   );
-  const emptyMessage = result
+  const emptyMessage = result?.failed
+    ? "Market scan could not complete. Try again shortly."
+    : result
     ? "No markets match the current scan filters."
     : "Scan every active market to find the strongest current limit setups.";
 
@@ -164,7 +166,7 @@ export function MarketScanPanel({
           </div>
         </div>
 
-        {result
+        {result && !result.failed
           ? (
             <p className="rounded-lg border border-hairline bg-paper px-3 py-3 text-xs font-semibold leading-5 text-ink-muted">
               {formatScopeCountLine(

@@ -72,6 +72,9 @@ export type MarketScanCandidate = {
 export type MarketScanResponse = {
   advisoryOnly?: boolean;
   blocked: MarketScanCandidate[];
+  // Set client-side when the scan request itself failed — a failed scan
+  // must never render like a scan that genuinely found nothing.
+  failed?: boolean;
   learningRefresh?: AnalyzerResponse["learningRefresh"];
   opportunities: MarketScanCandidate[];
   qualified: number;

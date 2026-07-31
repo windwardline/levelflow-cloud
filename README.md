@@ -6,7 +6,7 @@ Levelflow Cloud is a React/Vite and Supabase platform for disciplined market rev
 
 - `public/brand/` contains the Windward Line house mark; Levelflow's own favicon set lives at the `public/` root.
 - `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, legal links, and charting components.
-- `supabase/functions/` contains the production backend: authenticated market data, trade analysis, and calendar ingestion Edge Functions.
+- `supabase/functions/` contains the production backend: authenticated market data, trade analysis, calendar ingestion, and scheduled outcome-resolution Edge Functions.
 - `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
 - `.env.example` separates public browser keys from server-only service-role credentials.
 
@@ -60,6 +60,6 @@ migration should land one push after the migration.
 
 Market-data and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript. Levelflow does not place trades; trade execution is outside the active product scope.
 
-See [docs/trade-model.md](/docs/trade-model.md) for the trade-setup geometry, direction engine, and the replay-sweep acceptance bar.
+See [docs/trade-model.md](/docs/trade-model.md) for the current engine state of record — per-class calibration derived across a completed 23-round arc at full available history under a walk-forward both-splits gate, the measured per-class records the UI mirrors, and the resumption protocol for when live cohort data warrants reopening the work.
 See [docs/security-hardening.md](/docs/security-hardening.md) for the Cloudflare response-header policy and authenticated E2E test-user setup.
 See [docs/gap-analysis.md](/docs/gap-analysis.md) for the current improvement backlog across trade logic, frontend, backend, security, and reliability.

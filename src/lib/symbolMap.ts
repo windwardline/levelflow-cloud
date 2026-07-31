@@ -410,10 +410,6 @@ export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
   us_equity_indices: ["SP", "NSDQ", "DOW", "ESUSD", "NQUSD", "RTYUSD", "YMUSD"],
 };
 
-export function toFmpSymbol(symbol: string) {
-  return getSecurityOption(symbol).fmpSymbol;
-}
-
 export function getSecurityOption(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   const exactMatch = SECURITY_OPTIONS.find(

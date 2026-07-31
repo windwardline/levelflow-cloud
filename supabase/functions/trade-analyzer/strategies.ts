@@ -341,7 +341,7 @@ function voteMomentumDivergence(market: MarketContext): StrategyVote {
     : "neutral";
   const divergence = priceBias !== oscillatorBias &&
     oscillatorBias !== "neutral";
-  const direction = divergence ? oscillatorBias : oscillatorBias;
+  const direction = oscillatorBias;
 
   return {
     confidence: oscillatorBias === "neutral" ? 0.2 : divergence ? 0.62 : 0.72,

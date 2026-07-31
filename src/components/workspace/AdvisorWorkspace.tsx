@@ -340,17 +340,11 @@ export function AdvisorWorkspace(
     } catch {
       setScanResult({
         advisoryOnly: true,
-        blocked: [
-          {
-            assetType: "System",
-            blocked: true,
-            reason: "Market scan could not complete. Try again shortly.",
-            symbol: "SCAN",
-          },
-        ],
+        blocked: [],
+        failed: true,
         opportunities: [],
         qualified: 0,
-        scanned: scanSymbols?.length ?? 0,
+        scanned: 0,
       });
     } finally {
       setScanCompletedAt(new Date());
