@@ -24,12 +24,22 @@ describe("DonatePanel composition — ruled page head, matching Insights/Guide/P
     );
   });
 
-  it("uses ProfilePanel's own card treatment (hairline border, sheet bg, tight padding) for the donation options container — the one card that's warranted", () => {
-    assert.match(donatePanel, /terminal-panel px-\[22px\] py-\[18px\]/);
+  // Spec §17c's box-on-box sweep, standing: "a bordered sheet survives only
+  // where it is a true interactive affordance (result/position rows, form
+  // fields, buttons) or the mock-drawn Insights table frame — never as passive
+  // grouping." The donation options are affordances and keep their own borders;
+  // the sheet that wrapped them was a box drawn around buttons. This inverts
+  // the earlier guard, which pinned that wrapper as warranted.
+  it("wraps the donation options in no box at all — the options are the affordance (§17c)", () => {
+    assert.match(donatePanel, /<section className="mt-3">\s*<DonationOptions/);
+    assert.equal((donatePanel.match(/terminal-panel/g) ?? []).length, 0);
   });
 
-  it("carries exactly one terminal-panel — the donation options card — not two boxed cards side by side", () => {
-    assert.equal((donatePanel.match(/terminal-panel/g) ?? []).length, 1);
+  it("keeps the options' own button borders — flattening the wrapper is not flattening the links", () => {
+    assert.match(
+      donationOptions,
+      /className="secondary-button justify-between"/,
+    );
   });
 
   it("the supporting 'App costs' section is flat editorial body, not a second boxed card", () => {

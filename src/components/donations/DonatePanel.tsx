@@ -25,10 +25,13 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
         <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
           Development fund
         </p>
-        {/* ProfilePanel's own card treatment — hairline border, sheet bg,
-            tight padding — reused for the one block on this page that's a
-            real card: the interactive donation options. */}
-        <section className="mt-3 terminal-panel px-[22px] py-[18px]">
+        {/* Spec §17c's box-on-box sweep: "a bordered sheet survives only where
+            it is a true interactive affordance… never as passive grouping."
+            The donation options ARE affordances and keep their own borders —
+            each is a .secondary-button link — but the sheet that used to wrap
+            them was a box drawn around buttons, which is the shape the sweep
+            removes. Nothing else changes: the same options, the same wiring. */}
+        <section className="mt-3">
           <DonationOptions fallbackHref={donationFallbackHref} />
         </section>
       </div>
