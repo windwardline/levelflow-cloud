@@ -111,6 +111,44 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
       /<dl className="grid gap-3">\s*\{VOCABULARY\.map\(\(item\) => \(\s*<div key=\{item\.term\}>/,
     );
   });
+
+  // Spec §17, placement (b): "the Guide article ends with a short Support
+  // section (email + donate, tertiary links, no card chrome beyond the
+  // article's own rhythm)." This is the one part of the Guide that is NOT deck
+  // copy — §17 sanctions it by name, which is the citation this guard carries
+  // for these exact strings. The guards above pin the deck's verbatim
+  // rendering; this pins the sanctioned addition, so neither can be widened by
+  // accident into a licence for un-approved Guide copy.
+  it("ends the article with §17's Support section — two tertiary links, no card", () => {
+    const support = guide.match(/<section[^>]*id="support">[\s\S]*?<\/section>/)?.[0] ??
+      "";
+    assert.ok(support.length > 0, "expected the Support section");
+    // The article's own section rhythm: same hairline rule and top spacing
+    // every deck section carries, and the same h2 treatment.
+    assert.match(
+      support,
+      /<section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id="support">/,
+    );
+    assert.match(
+      support,
+      /<h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">\s*Support\s*</,
+    );
+    // Exactly two links, both tertiary, both wired to what already exists.
+    assert.equal((support.match(/className="tertiary-link"/g) ?? []).length, 2);
+    assert.match(support, /href=\{supportMailto\}[\s\S]{0,80}Email support/);
+    assert.match(support, /onClick=\{onOpenDonate\}/);
+    // No card chrome, and no numbered eyebrow — it is not a deck section, so
+    // it must not impersonate one in the TOC's numbering either.
+    assert.doesNotMatch(support, /terminal-panel|rounded|bg-sheet|bg-paper/);
+    assert.doesNotMatch(support, /uppercase/);
+    // It closes the article: nothing renders after it.
+    assert.match(guide, /<\/section>\s*<\/article>/);
+    // And the section is last in source order among the article's sections.
+    assert.ok(
+      guide.lastIndexOf('id="support"') > guide.lastIndexOf('id="vocabulary"'),
+      "the Support section must come after the deck's last section",
+    );
+  });
 });
 
 describe("Guide composition — the kill list is absent (spec §16)", () => {

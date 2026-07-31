@@ -325,6 +325,63 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     assert.doesNotMatch(footerClassName, /lg:\$\{/);
   });
 
+  // Spec §17: "Help and Donate are first-class: never hidden or buried,
+  // placed thoughtfully, same furniture and testing standards as everything
+  // else. Placement set: (a) the page footer's link row carries Help and
+  // Donate beside the legal trio on every scrolling surface." They are
+  // tertiary-link furniture in the same row as LegalLinks — not inside its
+  // <nav aria-label="Legal">, which is a legal group and would be misnamed
+  // carrying them.
+  it("carries Help and Donate in the footer's link row, beside the legal trio (spec §17)", () => {
+    const footerBlock = APP_SOURCE.match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? "";
+    assert.ok(footerBlock.length > 0, "expected to find the page footer");
+    assert.match(footerBlock, /<LegalLinks \/>/);
+    assert.match(footerBlock, /aria-label="Support"/);
+    assert.match(footerBlock, /href=\{SUPPORT_MAILTO\}[\s\S]{0,120}Help/);
+    assert.match(
+      footerBlock,
+      /onClick=\{\(\) => setActiveTab\("donate"\)\}[\s\S]{0,120}Donate/,
+    );
+    // Same quiet treatment as the legal links themselves, both of them.
+    assert.equal(
+      (footerBlock.match(/className="tertiary-link"/g) ?? []).length,
+      2,
+    );
+    // One row: the legal nav and the support nav sit inside the same flex
+    // container, so the two groups read as one line rather than stacking.
+    assert.match(
+      footerBlock,
+      /className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"[\s\S]{0,400}<LegalLinks \/>[\s\S]{0,400}aria-label="Support"/,
+    );
+    // The colophon is untouched — still the footer's own first line, above
+    // the link row, exactly where it already sat.
+    assert.match(
+      footerBlock,
+      /<p className="colophon">A Windward Line production<\/p>\s*\{\/\*/,
+    );
+  });
+
+  it("wires every Donate affordance through the one existing tab switch (spec §17)", () => {
+    // No new nav system (spec §17): setActiveTab("donate") is exactly what the
+    // mobile account menu and Profile's Support card already fired. Counted,
+    // not merely matched, so a future copy of the action cannot quietly grow
+    // its own mechanism — the four call sites are §17's whole placement set
+    // minus the one that needs no callback: the mobile account menu,
+    // ProfilePanel, the footer link row, and the Guide's Support section.
+    // The arrow form specifically, so the sentence naming this mechanism in
+    // the footer's own comment does not count itself into the total.
+    assert.equal(
+      (APP_SOURCE.match(/\(\) => setActiveTab\("donate"\)/g) ?? []).length,
+      4,
+    );
+    // Every surface that shows a support address takes the one shared mailto
+    // rather than rebuilding it: the account menu, Profile, and now the Guide.
+    assert.equal(
+      (APP_SOURCE.match(/supportMailto=\{SUPPORT_MAILTO\}/g) ?? []).length,
+      3,
+    );
+    assert.match(APP_SOURCE, /<GuidePanel[\s\S]{0,300}onOpenDonate=/);
+  });
 });
 
 // Spec §16 (2026-07-31, binding): the first ship kept the old two-row

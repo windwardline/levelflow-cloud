@@ -125,6 +125,42 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     page.getByRole("heading", { name: "What Levelflow does" }),
   ).toBeVisible();
 
+  // Spec §17, placement (b): the article ends with a short Support section,
+  // two tertiary links. Scoped to the article so the footer's own Help/Donate
+  // row further down the same page can't satisfy this by accident — the whole
+  // point of the ruling is that both placements exist.
+  const guideArticle = page.locator("article");
+  await expect(
+    guideArticle.getByRole("heading", { name: "Support", exact: true }),
+  ).toBeVisible();
+  await expect(
+    guideArticle.getByRole("link", { name: "Email support" }),
+  ).toBeVisible();
+  await expect(
+    guideArticle.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
+
+  // Spec §17, placement (a): the footer's link row carries Help and Donate
+  // beside the legal trio, on every scrolling surface. Scoped to the footer
+  // for the same reason.
+  const footerSupport = page.locator("footer").getByRole("navigation", {
+    name: "Support",
+  });
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(
+    footerSupport.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("footer").getByRole("navigation", { name: "Legal" }),
+  ).toBeVisible();
+
+  // And the row survives the surface change — Insights scrolls too.
+  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(
+    footerSupport.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
+
   await page.getByRole("button", { name: "Profile", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Profile", exact: true }),

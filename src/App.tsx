@@ -377,7 +377,12 @@ export default function App() {
             />
           ) : null}
           {activeTab === "guide" ? (
-            <GuidePanel anchor={guideAnchor} onAnchorHandled={clearGuideAnchor} />
+            <GuidePanel
+              anchor={guideAnchor}
+              onAnchorHandled={clearGuideAnchor}
+              onOpenDonate={() => setActiveTab("donate")}
+              supportMailto={SUPPORT_MAILTO}
+            />
           ) : null}
           {activeTab === "donate" ? (
             <DonatePanel supportEmail={SUPPORT_EMAIL} />
@@ -405,7 +410,35 @@ export default function App() {
               }`}
             >
               <p className="colophon">A Windward Line production</p>
-              <LegalLinks />
+              {/* Spec §17: Help and Donate are first-class — "never hidden or
+                  buried, placed thoughtfully, same furniture and testing
+                  standards as everything else" — and the footer's link row is
+                  the first of the four places that ruling names. They sit
+                  beside the legal trio rather than inside it: LegalLinks is a
+                  <nav aria-label="Legal">, and a support link inside a group
+                  named Legal is misfiled for anyone navigating by landmark.
+                  Two navs in one flex row read as one line of quiet links.
+                  Donate fires the same setActiveTab("donate") the Profile
+                  Support card and the mobile account menu already use — no new
+                  nav mechanism for a third copy of one action. */}
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                <LegalLinks />
+                <nav
+                  aria-label="Support"
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2"
+                >
+                  <a className="tertiary-link" href={SUPPORT_MAILTO}>
+                    Help
+                  </a>
+                  <button
+                    className="tertiary-link"
+                    type="button"
+                    onClick={() => setActiveTab("donate")}
+                  >
+                    Donate
+                  </button>
+                </nav>
+              </div>
             </footer>
           )
           : null}

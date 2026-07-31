@@ -131,9 +131,17 @@ type GuidePanelProps = {
   // stale-remount shape openRequest and initialSymbol both had.
   anchor?: GuideAnchor | null;
   onAnchorHandled?: () => void;
+  // Spec §17's Support section at the foot of the article. Threaded from
+  // App.tsx exactly as ProfilePanel's identical pair is — the Donate tab
+  // switch and the shared support mailto both already exist there, so this
+  // adds a second call site, not a second mechanism.
+  onOpenDonate: () => void;
+  supportMailto: string;
 };
 
-export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
+export function GuidePanel(
+  { anchor, onAnchorHandled, onOpenDonate, supportMailto }: GuidePanelProps,
+) {
   useEffect(() => {
     if (!anchor) {
       return;
@@ -395,6 +403,34 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
             ))}
           </dl>
         </GuideSection>
+
+        {/* Spec §17, placement (b): "the Guide article ends with a short
+            Support section (email + donate, tertiary links, no card chrome
+            beyond the article's own rhythm)." It is the article's own rhythm
+            exactly — the same hairline rule and heading treatment every deck
+            section above it carries — minus the numbered eyebrow, since this
+            is not one of the deck's ten sections and the TOC indexes those.
+            Two links, nothing else: the reader who needs help at the bottom of
+            the Guide is the reader the ruling is about. Donate fires the same
+            tab switch the footer, the Profile Support card and the mobile
+            account menu already use. */}
+        <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id="support">
+          <h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">
+            Support
+          </h2>
+          <div className="mt-3 flex flex-col items-start gap-2">
+            <a className="tertiary-link" href={supportMailto}>
+              Email support
+            </a>
+            <button
+              className="tertiary-link"
+              type="button"
+              onClick={onOpenDonate}
+            >
+              Donate
+            </button>
+          </div>
+        </section>
       </article>
     </div>
   );
