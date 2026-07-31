@@ -127,7 +127,7 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
 
   await page.getByRole("button", { name: "Profile", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Your account" }),
+    page.getByRole("heading", { name: "Profile", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Account", exact: true }),
@@ -137,6 +137,19 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Appearance", exact: true }),
+  ).toBeVisible();
+
+  // Spec §16 relocation: Help (mailto) and Donate moved off the killed
+  // desktop header buttons onto a Support card here, so they stay reachable
+  // at desktop widths (the mobile account menu already carried both).
+  await expect(
+    page.getByRole("heading", { name: "Support", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Email support" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Donate", exact: true }),
   ).toBeVisible();
 });
 

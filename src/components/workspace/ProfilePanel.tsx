@@ -14,10 +14,12 @@ import { ThemeToggle } from "./ThemeToggle";
 // so nothing here is a silent removal of the only place that data lived.
 // The underlying profile record (useUserProfile/profile.ts) is untouched —
 // this is composition, not a data change: existing stored values for the
-// now-unexposed fields keep working (e.g. the header's "Welcome, {name}"
-// text), they simply have no editing UI left to change them going forward.
+// now-unexposed fields (displayName included) keep working wherever they're
+// still read, they simply have no editing UI left to change them going
+// forward.
 type ProfilePanelProps = {
   memberSince: string;
+  onOpenDonate: () => void;
   onSave: (
     input: Pick<
       UserProfile,
@@ -31,15 +33,18 @@ type ProfilePanelProps = {
   onSignOut: () => void;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
+  supportMailto: string;
   themeMode: ThemeMode;
 };
 
 export function ProfilePanel({
   memberSince,
+  onOpenDonate,
   onSave,
   onSignOut,
   onThemeChange,
   profile,
+  supportMailto,
   themeMode,
 }: ProfilePanelProps) {
   // The retired Preferences form surfaced a save failure inline, not just
@@ -71,17 +76,12 @@ export function ProfilePanel({
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[620px] gap-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-          Profile
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
-          Your account
-        </h1>
-      </div>
+    <div className="mx-auto grid w-full max-w-[620px] gap-4">
+      <h1 className="text-2xl font-semibold tracking-normal text-ink">
+        Profile
+      </h1>
 
-      <section className="terminal-panel p-5 sm:p-6">
+      <section className="terminal-panel px-[22px] py-[18px]">
         <div className="mb-4 flex items-center gap-3">
           <UserRound className="h-5 w-5 text-ink" aria-hidden="true" />
           <h2 className="text-lg font-semibold tracking-normal text-ink">
@@ -105,7 +105,7 @@ export function ProfilePanel({
         </button>
       </section>
 
-      <section className="terminal-panel p-5 sm:p-6">
+      <section className="terminal-panel px-[22px] py-[18px]">
         <div className="mb-4 flex items-center gap-3">
           <Landmark className="h-5 w-5 text-ink" aria-hidden="true" />
           <h2 className="text-lg font-semibold tracking-normal text-ink">
@@ -119,7 +119,7 @@ export function ProfilePanel({
         </p>
       </section>
 
-      <section className="terminal-panel p-5 sm:p-6">
+      <section className="terminal-panel px-[22px] py-[18px]">
         <div className="mb-4 flex items-center gap-3">
           <Palette className="h-5 w-5 text-ink" aria-hidden="true" />
           <h2 className="text-lg font-semibold tracking-normal text-ink">
@@ -135,6 +135,28 @@ export function ProfilePanel({
             </p>
           )
           : null}
+      </section>
+
+      {/* spec §16 relocation: Help (mailto) and Donate move here from the
+          killed desktop header buttons — the mobile account menu already
+          carries both, so this keeps them reachable once the desktop
+          masthead drops to wordmark + nav + broker chip + Sign out. */}
+      <section className="terminal-panel px-[22px] py-[18px]">
+        <h3 className="mb-4 text-lg font-semibold tracking-normal text-ink">
+          Support
+        </h3>
+        <div className="flex flex-col items-start gap-2">
+          <a className="tertiary-link" href={supportMailto}>
+            Email support
+          </a>
+          <button
+            className="tertiary-link"
+            type="button"
+            onClick={onOpenDonate}
+          >
+            Donate
+          </button>
+        </div>
       </section>
 
       <div className="grid gap-3 px-1">
