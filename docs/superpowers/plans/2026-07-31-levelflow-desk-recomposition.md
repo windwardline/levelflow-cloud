@@ -17,7 +17,7 @@
 - Tailwind v4 scans source as text: never `` `lg:${x}` `` — `tests/tailwindVariantGuard.test.ts` enforces; keep it green.
 - Copy rulings stand: "pending" never "resting"; "Current trades" (no "Your"); ruled-out captions stay out ("Reviewing — any market, scanned or not", "Fresh chart data on every scan — you decide when", "Strongest first, by confidence"); no origin column/filter in Insights UI.
 - Update tests WITH the composition — never delete coverage wholesale; a test asserting killed furniture is rewritten to assert its absence or its replacement.
-- Full gate per task: `npx tsc --noEmit && npx eslint . --max-warnings 0 && npx vitest run` all green before commit. e2e: `npx playwright test --list` must collect cleanly (execution happens against the deploy).
+- Full gate per task: `npx tsc --noEmit && npx eslint . --max-warnings 0 && npm test` all green before commit. e2e: `npx playwright test --list` must collect cleanly (execution happens against the deploy).
 - Conventional Commits; no AI co-authorship trailer.
 
 ---
@@ -42,7 +42,7 @@
   - DELETE from this block: the "Welcome, {profileDisplayName(profile)}" line, the `<ThemeToggle …/>` instance, the Help `<a>` and Donate `<button>`. Remove now-unused imports (`Mail`, `Gift`, `ThemeToggle` if no other authed use, `profileDisplayName` if unused).
   - The old two-row structure (`lg:contents` wrapper holding a controls row + a `mt-3` nav row) collapses to the single row; keep `hidden lg:flex` gating with literal classes.
 
-- [ ] **Step 3: Run the gate; fix fallout.** `npx tsc --noEmit && npx eslint . --max-warnings 0 && npx vitest run`. Rewrite any test asserting the greeting/Help/Donate/theme-toggle in the header to assert the masthead composition instead (nav names present, greeting ABSENT: `expect(screen.queryByText(/Welcome,/)).toBeNull()`).
+- [ ] **Step 3: Run the gate; fix fallout.** `npx tsc --noEmit && npx eslint . --max-warnings 0 && npm test`. Rewrite any test asserting the greeting/Help/Donate/theme-toggle in the header to assert the masthead composition instead (nav names present, greeting ABSENT: `expect(screen.queryByText(/Welcome,/)).toBeNull()`).
 
 - [ ] **Step 4: Commit.** `git add -A && git commit -m "feat: single-row masthead — greeting, header theme toggle, Help/Donate chrome removed"`
 
