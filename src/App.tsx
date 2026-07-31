@@ -371,10 +371,19 @@ export default function App() {
             so the page-wide footer would just duplicate them there — the
             one tab where it's skipped outright rather than merely lg:hidden
             like the Desk tab above it. */}
+        {/* F4 fix wave 2B: below lg, MobileTabBar is fixed to the viewport
+            bottom (>=56px with its safe-area inset) — the same reason the
+            scrolling content wrapper above carries pb-24. This footer is a
+            sibling that renders after that wrapper, so at full scroll it's
+            the trailing thing on the page and needs the identical
+            clearance itself; pb-8 alone let the bar overlay the colophon's
+            padding and the LegalLinks row right above it. lg:pb-8 keeps
+            >=lg exactly as it rendered before — there's no fixed bar to
+            clear there. */}
         {activeTab !== "profile"
           ? (
             <footer
-              className={`mx-auto w-full max-w-7xl px-4 pb-8 pt-12 ${
+              className={`mx-auto w-full max-w-7xl px-4 pb-24 pt-12 lg:pb-8 ${
                 isDeskTab ? "lg:hidden" : ""
               }`}
             >

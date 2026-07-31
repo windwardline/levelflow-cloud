@@ -295,6 +295,34 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     }
   });
 
+  // Fix wave 2B, FIX 4 (completeness-audit-2 Finding 6). The scrolling
+  // content wrapper reserves pb-24 below lg specifically to clear the fixed
+  // MobileTabBar (>= 56px with its safe-area inset). The page-wide footer
+  // is a sibling that renders *after* that wrapper, so it needs the same
+  // clearance on its own — before this fix it carried only pb-8, and at
+  // full scroll on Insights/Guide/Donate the tab bar overlaid the trailing
+  // padding and the LegalLinks row immediately above it. lg:pb-8 keeps the
+  // >=lg value exactly what pb-8 rendered before (no fixed tab bar exists
+  // there to clear), so this is mobile-only clearance, not a desktop
+  // visual change.
+  it("gives the page footer pb-24 clearance below lg to escape the fixed tab bar, collapsing back to pb-8 at lg (F4 fix wave 2B)", () => {
+    const footerClassName = APP_SOURCE.match(
+      /<footer\s+className=\{`([^`]*)`\}/,
+    )?.[1] ?? "";
+    assert.ok(
+      footerClassName.length > 0,
+      "expected to find the page footer's template-literal className",
+    );
+    assert.match(footerClassName, /\bpb-24\b/);
+    assert.match(footerClassName, /\blg:pb-8\b/);
+    // The literal string carries both; the ${isDeskTab ? "lg:hidden" : ""}
+    // interpolation must still be the only dynamic piece — this must stay
+    // a real, statically-analyzable "lg:pb-8" token for Tailwind's
+    // build-time scanner (tailwindVariantGuard.test.ts's C1 concern), not
+    // reassembled at runtime.
+    assert.doesNotMatch(footerClassName, /lg:\$\{/);
+  });
+
 });
 
 // Spec §16 (2026-07-31, binding): the first ship kept the old two-row
