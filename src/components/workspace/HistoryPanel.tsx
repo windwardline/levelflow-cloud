@@ -89,46 +89,42 @@ export function HistoryPanel({
   const groupedSetups = buildInsightsGroups(filteredSetups);
 
   return (
-    <section className="terminal-panel p-5 sm:p-6">
-      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-            Results
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
+    <div className="mx-auto grid w-full max-w-[1180px] gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3.5">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-2xl font-semibold tracking-normal text-ink">
             Insights
           </h1>
+          {loading
+            ? <p className="text-sm font-semibold text-ink-muted">Loading</p>
+            : null}
         </div>
-        {loading
-          ? <p className="text-sm font-semibold text-ink-muted">Loading</p>
-          : null}
+        <div className="flex flex-wrap gap-8">
+          <StatBlock
+            label="Setups this week"
+            value={recordBand.setupsThisWeek.toString()}
+          />
+          <StatBlock
+            label="Money-positive"
+            value={recordBand.moneyPositivePercent === null
+              ? "Learning"
+              : `${recordBand.moneyPositivePercent}%`}
+          />
+          <StatBlock
+            label="Net R"
+            value={recordBand.netR === null
+              ? "—"
+              : formatSignedR(recordBand.netR)}
+          />
+          <StatBlock
+            label="Best market"
+            value={recordBand.bestMarket ?? "Learning"}
+          />
+        </div>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatPill
-          label="Setups this week"
-          value={recordBand.setupsThisWeek.toString()}
-        />
-        <StatPill
-          label="Money-positive"
-          value={recordBand.moneyPositivePercent === null
-            ? "Learning"
-            : `${recordBand.moneyPositivePercent}%`}
-        />
-        <StatPill
-          label="Net R"
-          value={recordBand.netR === null
-            ? "—"
-            : formatSignedR(recordBand.netR)}
-        />
-        <StatPill
-          label="Best market"
-          value={recordBand.bestMarket ?? "Learning"}
-        />
-      </div>
-
-      <div className="mb-5 grid gap-3 rounded-lg border border-hairline bg-paper p-3 sm:grid-cols-3">
-        <label className="grid gap-2 text-sm font-semibold text-ink">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">
+        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
           Market
           <select
             aria-label="Market"
@@ -152,7 +148,7 @@ export function HistoryPanel({
             ))}
           </select>
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-ink">
+        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
           Status
           <select
             aria-label="Status"
@@ -168,7 +164,7 @@ export function HistoryPanel({
             ))}
           </select>
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-ink">
+        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
           Period
           <select
             aria-label="Period"
@@ -186,59 +182,61 @@ export function HistoryPanel({
         </label>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-hairline text-left text-xs font-semibold uppercase tracking-normal text-ink-muted">
-              <th className="py-2 pr-3">Market</th>
-              <th className="py-2 pr-3">Side</th>
-              <th className="py-2 pr-3">Confidence</th>
-              <th className="py-2 pr-3">Entry</th>
-              <th className="py-2 pr-3">Stop</th>
-              <th className="py-2 pr-3">Target 1</th>
-              <th className="py-2 pr-3">Target 2</th>
-              <th className="py-2 pr-3">Result</th>
-            </tr>
-          </thead>
-          {groupedSetups.map((group) => (
-            <tbody key={group.key}>
-              <tr className="bg-sheet">
-                <th
-                  className="px-0 py-2 text-left text-xs font-semibold uppercase tracking-normal text-ink-muted"
-                  colSpan={8}
-                >
-                  {group.label} · {group.items.length}{" "}
-                  {group.items.length === 1 ? "setup" : "setups"}
-                </th>
+      <div className="terminal-panel p-3 sm:p-4">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-hairline text-left text-xs font-semibold uppercase tracking-normal text-ink-muted">
+                <th className="py-2 pr-3">Market</th>
+                <th className="py-2 pr-3">Side</th>
+                <th className="py-2 pr-3">Confidence</th>
+                <th className="py-2 pr-3">Entry</th>
+                <th className="py-2 pr-3">Stop</th>
+                <th className="py-2 pr-3">Target 1</th>
+                <th className="py-2 pr-3">Target 2</th>
+                <th className="py-2 pr-3">Result</th>
               </tr>
-              {group.items.map((setup) => (
-                <InsightsRow key={setup.id} now={now} setup={setup} />
-              ))}
-            </tbody>
-          ))}
-        </table>
+            </thead>
+            {groupedSetups.map((group) => (
+              <tbody key={group.key}>
+                <tr className="bg-sheet">
+                  <th
+                    className="px-0 py-2 text-left text-xs font-semibold uppercase tracking-normal text-ink-muted"
+                    colSpan={8}
+                  >
+                    {group.label} · {group.items.length}{" "}
+                    {group.items.length === 1 ? "setup" : "setups"}
+                  </th>
+                </tr>
+                {group.items.map((setup) => (
+                  <InsightsRow key={setup.id} now={now} setup={setup} />
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </div>
+
+        {!loading && setups.length === 0
+          ? (
+            <p className="mt-4 text-sm leading-6 text-ink-muted">
+              No setups have been logged yet.
+            </p>
+          )
+          : null}
+        {!loading && setups.length > 0 && filteredSetups.length === 0
+          ? (
+            <p className="mt-4 rounded-lg border border-hairline bg-paper px-4 py-3 text-sm leading-6 text-ink-muted">
+              No setups match the current filters.
+            </p>
+          )
+          : null}
       </div>
 
-      {!loading && setups.length === 0
-        ? (
-          <p className="mt-4 text-sm leading-6 text-ink-muted">
-            No setups have been logged yet.
-          </p>
-        )
-        : null}
-      {!loading && setups.length > 0 && filteredSetups.length === 0
-        ? (
-          <p className="mt-4 rounded-lg border border-hairline bg-paper px-4 py-3 text-sm leading-6 text-ink-muted">
-            No setups match the current filters.
-          </p>
-        )
-        : null}
-
-      <p className="mt-5 text-sm leading-6 text-ink-muted">
+      <p className="text-sm leading-6 text-ink-muted">
         Every setup Levelflow generates is saved here automatically, taken or
         not. Your record is tracked per broker: E8 Markets.
       </p>
-    </section>
+    </div>
   );
 }
 
@@ -308,11 +306,19 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
   );
 }
 
-function StatPill({ label, value }: { label: string; value: string }) {
+// Insights record band (spec §16): flat value+label pairs, no card chrome —
+// the mock draws these as bare text (i-insights-v1.html `.stat`), hairline-
+// separated from the filters below by the phead's own bottom rule rather
+// than by a border around each stat.
+function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-hairline bg-sheet px-2 py-2">
-      <p className="font-mono font-semibold tabular-nums text-ink">{value}</p>
-      <p className="text-ink-muted">{label}</p>
+    <div>
+      <p className="font-mono text-2xl font-semibold tabular-nums text-ink">
+        {value}
+      </p>
+      <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        {label}
+      </p>
     </div>
   );
 }

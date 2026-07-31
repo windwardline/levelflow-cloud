@@ -11,8 +11,10 @@ import { describe, it } from "node:test";
 // absent. Source-pinned (no jsdom in this repo's unit stack — see
 // tests/confidenceUnit.test.tsx's header for the established technique).
 const GUIDE = "src/components/workspace/GuidePanel.tsx";
+const HISTORY = "src/components/workspace/HistoryPanel.tsx";
 
 const guide = readFileSync(GUIDE, "utf8");
+const history = readFileSync(HISTORY, "utf8");
 
 describe("Guide composition — the mock's elements are present (g-guide-v1.html:12-21, :39-48)", () => {
   it("lays out the two-column article grid at the mock's exact measurements", () => {
@@ -103,5 +105,88 @@ describe("Guide composition — the kill list is absent (spec §16)", () => {
   it("the TOC no longer scrolls horizontally as a mobile pill row — it simply doesn't render below lg", () => {
     assert.doesNotMatch(guide, /overflow-x-auto/);
     assert.doesNotMatch(guide, /whitespace-nowrap/);
+  });
+});
+
+describe("Insights composition — the mock's elements are present (i-insights-v1.html)", () => {
+  it("caps the flat page at the mock's 1180px measure", () => {
+    assert.match(
+      history,
+      /className="mx-auto grid w-full max-w-\[1180px\] gap-5"/,
+    );
+  });
+
+  it("gives the phead (h1 + record band) the mock's 2px ink rule, no card", () => {
+    assert.match(
+      history,
+      /className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3\.5"/,
+    );
+  });
+
+  it("renders the record band as flat value+label blocks, no pill/card chrome", () => {
+    const statBlock = history.match(/function StatBlock[\s\S]*?\n}\n/)?.[0] ?? "";
+    assert.ok(statBlock.length > 0, "expected to find StatBlock");
+    assert.doesNotMatch(statBlock, /rounded/);
+    assert.doesNotMatch(statBlock, /border/);
+    assert.doesNotMatch(statBlock, /bg-/);
+  });
+
+  it("lays the filter row out inline with a hairline rule underneath, not a bordered card", () => {
+    assert.match(
+      history,
+      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4"/,
+    );
+  });
+
+  it("keeps the Market/Status/Period aria-labels on real selects inside the inline row (preserved contract)", () => {
+    const filtersBlock = history.match(
+      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">[\s\S]*?\n {6}<\/div>/,
+    )?.[0] ?? "";
+    for (const label of ["Market", "Status", "Period"]) {
+      assert.match(filtersBlock, new RegExp(`aria-label="${label}"`));
+    }
+    assert.equal((filtersBlock.match(/<select\b/g) ?? []).length, 3);
+  });
+
+  it("wraps the table in exactly one bordered container — the mock's allowed single box", () => {
+    assert.equal((history.match(/terminal-panel/g) ?? []).length, 1);
+    assert.match(history, /<div className="terminal-panel p-3 sm:p-4">/);
+  });
+});
+
+describe("Insights composition — the kill list is absent (spec §16)", () => {
+  it("deleted the old boxed record-band pills (StatPill) and the eyebrow above the h1", () => {
+    assert.doesNotMatch(history, /StatPill/);
+    assert.doesNotMatch(history, /rounded-lg border border-hairline bg-sheet px-2 py-2/);
+    assert.doesNotMatch(history, />\s*Results\s*</);
+  });
+
+  it("deleted the boxed filter-row card — Market/Status/Period no longer sit in a bordered panel", () => {
+    assert.doesNotMatch(
+      history,
+      /rounded-lg border border-hairline bg-paper p-3 sm:grid-cols-3/,
+    );
+  });
+
+  it("no terminal-panel wraps the phead or the filter row — each block's own className is exactly the flat one, nothing more", () => {
+    // The count-is-1 assertion above is necessary but not sufficient: a
+    // regression that wrapped phead+filters+table together in one outer
+    // panel (the pre-Task-3 shape) would *still* show exactly one
+    // terminal-panel in a naive count. This proves it independently by
+    // extracting each block's own className attribute and checking it does
+    // not contain the word — a real ancestor-panel regression would fail
+    // this even though the whole-file count stayed at 1. (Confirmed to fail
+    // against the pre-Task-3 source, where this attribute lookup finds
+    // "terminal-panel p-5 sm:p-6" instead.)
+    const pheadClassName = history.match(
+      /<div className="([^"]*border-b-2 border-ink pb-3\.5[^"]*)"/,
+    )?.[1];
+    const filtersClassName = history.match(
+      /<div className="([^"]*border-hairline pb-4[^"]*)"/,
+    )?.[1];
+    assert.ok(pheadClassName, "expected to find the phead block's className");
+    assert.ok(filtersClassName, "expected to find the filters block's className");
+    assert.doesNotMatch(pheadClassName ?? "", /terminal-panel/);
+    assert.doesNotMatch(filtersClassName ?? "", /terminal-panel/);
   });
 });
