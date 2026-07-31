@@ -549,14 +549,21 @@ describe("Current trades rail composition — the mock's elements are present (a
   const tradesRail = readFileSync(TRADES_RAIL, "utf8");
 
   it("leads with the mock's eyebrow and the freshness stamp on one row, same treatment as the scan rail", () => {
+    // The eyebrow's own ≥lg treatment is unchanged; fix wave 2C appended the
+    // mobile mock's 19px display head behind `max-lg:` (m-trades-v1.html:12),
+    // since below lg this rail is the Trades tab's whole page rather than a
+    // column beside two others.
     assert.match(
       tradesRail,
-      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">\s*Current trades\s*<\/h3>/,
+      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:[^"]*">\s*Current trades\s*<\/h3>/,
     );
     // .rrhead (:217): one baseline-aligned row, heading opposite the stamp.
+    // The window is 400 rather than 200 only because the heading's own class
+    // list grew with its `max-lg:` half above — the fact asserted here (the
+    // heading text sits inside that row container) is unchanged.
     assert.match(
       tradesRail,
-      /className="flex flex-wrap items-baseline justify-between gap-2"[\s\S]{0,200}Current trades/,
+      /className="flex flex-wrap items-baseline justify-between gap-2"[\s\S]{0,400}Current trades/,
     );
     assert.match(tradesRail, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
   });

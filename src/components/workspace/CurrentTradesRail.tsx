@@ -173,8 +173,14 @@ export function CurrentTradesRail(
     // uses (:218), with the freshness stamp opposite it on one baseline row
     // (`.rrhead`, :217).
     <section className="min-w-0" data-testid="current-trades-rail">
+      {/* Below lg this rail is not a rail — it is the Trades tab's whole page,
+          and m-trades-v1.html:11-12,40 heads it as one: 19px display type in
+          ink, sentence case (`.phead .t`). At ≥lg the heading stays the 12px
+          muted eyebrow the scan rail beside it uses (a-desk-v3.html:218). The
+          row itself and the stamp opposite it are the same shape in both
+          mocks, so neither is platform-specific. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:font-display max-lg:text-[19px] max-lg:font-bold max-lg:normal-case max-lg:tracking-[-0.02em] max-lg:text-ink">
           Current trades
         </h3>
         <p className="text-xs text-ink-muted">

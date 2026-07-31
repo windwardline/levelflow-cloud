@@ -242,6 +242,15 @@ export default function App() {
     profileState.profile ??
     buildDefaultProfile(session.user.id, session.user.email ?? "");
 
+  // The mobile account trigger is an initial-in-circle (m-mobile-v3.html:44).
+  // The letter comes from the signed-in email rather than a profile display
+  // name: the email is the identity every session has, it is what the avatar
+  // is standing in for, and it never changes shape while a profile save is in
+  // flight. Empty when a session somehow carries no email — the trigger falls
+  // back to its icon rather than rendering a blank circle.
+  const accountInitial = (session.user.email ?? "").trim().charAt(0)
+    .toUpperCase();
+
   // The Desk (≥lg) is a fixed-height, three-column shell that never scrolls
   // as a page — each column scrolls itself (spec §2). Every other tab keeps
   // the ordinary scrolling page. main's grid-rows-[auto_1fr] hands the
@@ -279,6 +288,7 @@ export default function App() {
               <div className="flex shrink-0 items-center gap-2">
                 <BrokerChip />
                 <MobileAccountMenu
+                  initial={accountInitial}
                   onOpenDonate={() => setActiveTab("donate")}
                   onOpenGuide={() => setActiveTab("guide")}
                   onOpenProfile={() => setActiveTab("profile")}
@@ -508,7 +518,12 @@ function MobileTabBar({
               key={item.value}
               aria-current={isActive ? "page" : undefined}
               aria-label={badge ? `${item.label}, ${badge} current` : item.label}
-              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+              // The mock's tab type (m-mobile-v3.html:32): 10.5px bold
+              // uppercase at .06em tracking. Un-prefixed on purpose — the
+              // whole nav is lg:hidden, so these are mobile rules already.
+              // Casing is CSS only; the accessible name comes from the
+              // aria-label above, so the e2e nav-name contracts are untouched.
+              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] ${
                 isActive ? "text-accent" : "text-ink-muted"
               }`}
               type="button"
@@ -518,9 +533,17 @@ function MobileTabBar({
                 {item.icon}
                 {badge
                   ? (
+                    // The mock puts this chip on --caution
+                    // (m-mobile-v3.html:36). The count behind it is unchanged:
+                    // currentTradeBadgeCount, the same pending/open filter the
+                    // Trades tab itself renders — the fill is a color, not a
+                    // new "needs action" claim the data cannot support. The
+                    // mock's own #fff would collapse on the dark theme's gold
+                    // caution (~1.9:1), so the content stays on text-paper,
+                    // which re-values with the fill (tests/contrast.test.ts).
                     <span
                       aria-hidden="true"
-                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 font-mono text-[10px] font-bold leading-none text-paper"
+                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-caution px-1 font-mono text-[10px] font-bold leading-none tracking-normal text-paper"
                     >
                       {badge}
                     </span>
@@ -543,12 +566,16 @@ function MobileTabBar({
 // users could reach before becomes unreachable now that the header no
 // longer shows those buttons directly.
 function MobileAccountMenu({
+  initial,
   onOpenDonate,
   onOpenGuide,
   onOpenProfile,
   onSignOut,
   supportMailto,
 }: {
+  // The signed-in email's first letter, uppercased — see App's accountInitial.
+  // Empty when the session carries no email, which the trigger handles.
+  initial: string;
   onOpenDonate: () => void;
   onOpenGuide: () => void;
   onOpenProfile: () => void;
@@ -632,13 +659,20 @@ function MobileAccountMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-hairline bg-sheet text-ink transition hover:border-accent/40"
+        // The mock's avatar (m-mobile-v3.html:44, and unchanged behind the
+        // open sheet at m-mobile-v3-menu.html:33): a circle on sheet with a
+        // 1.5px hairline border carrying the account's initial in 13px bold.
+        // Held at the kit's 44px tap target rather than the mock's 34px —
+        // spec §16 trims padding and type size, never the hit area. The open
+        // state keeps its ✕ so the trigger still says what tapping it does;
+        // neither mock draws this menu open.
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-hairline bg-sheet text-[13px] font-bold text-ink transition hover:border-accent/40"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
         {open
           ? <X className="h-5 w-5" aria-hidden="true" />
-          : <CircleUser className="h-5 w-5" aria-hidden="true" />}
+          : initial || <CircleUser className="h-5 w-5" aria-hidden="true" />}
       </button>
 
       {open

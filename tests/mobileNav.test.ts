@@ -870,3 +870,102 @@ describe("mobile review tab interiors (m-mobile-v3.html, fix wave 2C)", () => {
     assert.ok(mobileOnlyClasses(LADDER_SOURCE).length > 0);
   });
 });
+
+describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
+  const TRADES_RAIL_SOURCE = readFileSync(
+    "src/components/workspace/CurrentTradesRail.tsx",
+    "utf8",
+  );
+
+  it("titles the surface at the mock's 19px display scale below lg, keeping the >=lg eyebrow (m-trades-v1.html:11-12,40)", () => {
+    // `.phead .t`: 19px display type in ink, sentence case — a page head,
+    // because below lg this tab IS the page. At >=lg it stays the 12px muted
+    // eyebrow the scan rail beside it uses (a-desk-v3.html:218).
+    assert.match(
+      TRADES_RAIL_SOURCE,
+      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:font-display max-lg:text-\[19px\] max-lg:font-bold max-lg:normal-case max-lg:tracking-\[-0\.02em\] max-lg:text-ink">\s*Current trades\s*<\/h3>/,
+    );
+  });
+
+  it("leaves the freshness stamp and the row that carries both exactly as >=lg draws them", () => {
+    // `.phead` and `.rrhead` are the same shape in both mocks — heading
+    // opposite the stamp on one baseline row — so nothing about the container
+    // or the stamp is platform-specific.
+    assert.match(
+      TRADES_RAIL_SOURCE,
+      /className="flex flex-wrap items-baseline justify-between gap-2"/,
+    );
+    assert.match(TRADES_RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+  });
+});
+
+describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", () => {
+  const menuBlock = APP_SOURCE.match(
+    /function MobileAccountMenu[\s\S]*?\n}\n/,
+  )?.[0] ?? "";
+
+  it("draws the account trigger as the mock's initial-in-circle (m-mobile-v3.html:44, menu mock :33)", () => {
+    // A circle on sheet with a 1.5px hairline border carrying the signed-in
+    // email's first letter in 13px bold. The circle is the kit's 44px tap
+    // target rather than the mock's 34px — spec §16 trims padding and type,
+    // never the hit area — and every aria/focus contract is untouched.
+    assert.match(
+      menuBlock,
+      /className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-\[1\.5px\] border-hairline bg-sheet text-\[13px\] font-bold text-ink transition hover:border-accent\/40"/,
+    );
+    assert.match(menuBlock, /initial: string;/);
+    // No email on the session is a real possibility the types allow, so the
+    // circle falls back to the icon rather than rendering blank.
+    assert.match(
+      menuBlock,
+      /: initial \|\| <CircleUser className="h-5 w-5" aria-hidden="true" \/>/,
+    );
+    // Sourced from the session, uppercased, never from a profile display name.
+    assert.match(
+      APP_SOURCE,
+      /const accountInitial = \(session\.user\.email \?\? ""\)\.trim\(\)\.charAt\(0\)\s*\.toUpperCase\(\);/,
+    );
+    assert.match(APP_SOURCE, /initial=\{accountInitial\}/);
+  });
+
+  it("keeps the account menu's aria, role and focus contracts byte-intact through the avatar change", () => {
+    assert.match(menuBlock, /aria-expanded=\{open\}/);
+    assert.match(menuBlock, /aria-haspopup="menu"/);
+    assert.match(menuBlock, /aria-label="Account menu"/);
+    assert.match(menuBlock, /role="menu"/);
+    assert.match(menuBlock, /ref=\{triggerRef\}/);
+  });
+
+  it("sets the bottom-tab labels in the mock's uppercase letterspaced type (m-mobile-v3.html:32)", () => {
+    // 10.5px/700/uppercase at .06em tracking. No breakpoint guard needed or
+    // wanted: the whole nav is `lg:hidden`, so these are mobile rules already.
+    assert.match(
+      APP_SOURCE,
+      /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.06em\] \$\{/,
+    );
+    // The accessible name comes from the explicit aria-label, so CSS casing
+    // never reaches the e2e nav-name contracts (/^Trades(,|$)/ and friends).
+    assert.match(
+      APP_SOURCE,
+      /aria-label=\{badge \? `\$\{item\.label\}, \$\{badge\} current` : item\.label\}/,
+    );
+  });
+
+  it("puts the Trades badge on the caution token, still driven by the same live count (m-mobile-v3.html:36)", () => {
+    assert.match(
+      APP_SOURCE,
+      /className="absolute -right-2 -top-1\.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-caution px-1 font-mono text-\[10px\] font-bold leading-none tracking-normal text-paper"/,
+    );
+    // The count is unchanged: currentTradeBadgeCount, the same pending/open
+    // filter the Trades tab itself renders. No "needs action" semantic is
+    // invented — the mock's caution fill is a color, not a new claim.
+    assert.match(
+      APP_SOURCE,
+      /tradeBadgeCount=\{currentTradeBadgeCount\(setupState\.setups, new Date\(\)\)\}/,
+    );
+    assert.match(APP_SOURCE, /item\.value === "trades" && tradeBadgeCount > 0/);
+    // The mock's own #fff would collapse on the dark theme's gold caution
+    // (~1.9:1); text-paper re-values with the fill, per contrast.test.ts.
+    assert.doesNotMatch(APP_SOURCE, /bg-caution[^"]*text-white/);
+  });
+});
