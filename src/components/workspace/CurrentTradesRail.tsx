@@ -1,0 +1,190 @@
+import { useState } from "react";
+import { deriveTradeState, type TradeState } from "../../lib/tradeState";
+import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "./advisorFormat";
+
+export type CurrentTradesRailProps = {
+  // The rail's own clock for computing state/age at render time — passed in
+  // (AdvisorWorkspace's existing 60s clockNow tick) rather than started
+  // here, so this component adds no timer of its own.
+  now: Date;
+  // Bound to the existing useTradeSetups forceOutcomeRefresh path
+  // (App.tsx), never new fetch machinery of this component's own.
+  onRefresh: () => void;
+  setups: TradeSetupRow[];
+};
+
+type TradeCard = {
+  setup: TradeSetupRow;
+  state: TradeState;
+};
+
+// Exported for direct unit testing (no jsdom in this repo's stack — see
+// tests/confidenceUnit.test.tsx's header comment for the established
+// approach of exercising pure logic directly rather than rendering).
+export function buildTradeCards(
+  setups: TradeSetupRow[],
+  now: Date,
+): TradeCard[] {
+  const cards: TradeCard[] = [];
+  for (const setup of setups) {
+    const state = deriveTradeState(setup, now);
+    if (state) {
+      cards.push({ setup, state });
+    }
+  }
+  return cards;
+}
+
+export function formatProgressR(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}R`;
+}
+
+export function formatAsOf(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+// The remaining ladder levels still relevant to watch, mono in the card
+// (spec §8). A level drops off once it's behind the trade: Entry once
+// filled, Target 1 once its bank-half instruction has already fired
+// (state.eventAge is only ever set in that one substate — see
+// tradeState.ts's TP1-hit branch).
+export function buildRemainingLevels(
+  setup: TradeSetupRow,
+  state: TradeState,
+): Array<{ label: string; value: string }> {
+  const levels: Array<{ label: string; value: string }> = [];
+
+  if (state.status === "pending") {
+    levels.push({ label: "Entry", value: formatLevel(setup.limit_entry) });
+  }
+
+  levels.push({ label: "Stop", value: formatLevel(setup.stop_loss) });
+
+  const hasLadder = Number.isFinite(Number(setup.take_profit_1)) &&
+    Number(setup.take_profit_1) > 0;
+  const target1AlreadyBanked = state.eventAge !== undefined;
+  if (hasLadder && !target1AlreadyBanked) {
+    levels.push({
+      label: "Target 1",
+      value: formatLevel(setup.take_profit_1),
+    });
+  }
+
+  levels.push({
+    label: hasLadder ? "Target 2" : "Target",
+    value: formatLevel(setup.take_profit),
+  });
+
+  return levels;
+}
+
+function formatLevel(value: number | string | null | undefined): string {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? formatNumber(numeric) : "—";
+}
+
+export function CurrentTradesRail(
+  { now, onRefresh, setups }: CurrentTradesRailProps,
+) {
+  // Captured once per mount, not re-derived from the ticking `now` prop:
+  // AdvisorWorkspace (and this rail with it) fully unmounts and remounts on
+  // every Desk tab switch, so this naturally re-baselines on every surface
+  // show without a mount effect of its own duplicating the force-refresh
+  // App.tsx already triggers on tab activation.
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(() => now);
+  const cards = buildTradeCards(setups, now);
+
+  function handleRefresh() {
+    setLastRefreshedAt(new Date());
+    onRefresh();
+  }
+
+  return (
+    <section className="terminal-panel p-4" data-testid="current-trades-rail">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold tracking-normal text-ink">
+          Current trades
+        </h3>
+        <p className="text-xs text-ink-muted">
+          as of {formatAsOf(lastRefreshedAt)} ·{" "}
+          <button
+            className="tertiary-link"
+            type="button"
+            onClick={handleRefresh}
+          >
+            refresh
+          </button>
+        </p>
+      </div>
+
+      {cards.length === 0
+        ? <p className="text-sm leading-6 text-ink-muted">No current trades.</p>
+        : (
+          <div className="grid gap-2.5">
+            {cards.map(({ setup, state }) => (
+              <TradeStateCard key={setup.id} setup={setup} state={state} />
+            ))}
+          </div>
+        )}
+    </section>
+  );
+}
+
+function TradeStateCard({
+  setup,
+  state,
+}: {
+  setup: TradeSetupRow;
+  state: TradeState;
+}) {
+  const isBuy = setup.side === "buy";
+  const isPending = state.status === "pending";
+  const levels = buildRemainingLevels(setup, state);
+
+  return (
+    <article className="min-w-0 rounded-lg border border-hairline bg-paper p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h4 className="truncate text-base font-semibold text-ink">
+            {setup.symbol}
+          </h4>
+          <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>
+            {isBuy ? "Buy" : "Sell"}
+          </span>
+          <span className={`chip ${isPending ? "text-caution" : "text-buy"}`}>
+            {isPending ? "Pending" : "Open"}
+          </span>
+        </div>
+        <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
+          {formatProgressR(state.progressR)}
+        </p>
+      </div>
+
+      <p className="mt-2 text-sm leading-5 text-ink-muted">
+        {state.instruction}
+      </p>
+
+      <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+        {levels.map((level) => (
+          <div
+            key={level.label}
+            className="flex items-center justify-between gap-2 rounded-md bg-sheet px-2 py-1.5"
+          >
+            <span className="text-ink-muted">{level.label}</span>
+            <span className="font-mono font-semibold tabular-nums text-ink">
+              {level.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}

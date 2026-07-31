@@ -117,9 +117,17 @@ export default function App() {
     theme.setMode,
   );
 
+  // Insights (spec §10) and the Desk's Current trades rail (spec §8) both
+  // show live outcome state and must never open onto stale data: each
+  // force-refreshes outcomes, bypassing the 60s throttle, the moment its
+  // tab activates — including the very first render, since useEffect always
+  // runs once after mount regardless of deps, and "advisor" is the default
+  // tab (getInitialAppTab). AdvisorWorkspace also unmounts/remounts on every
+  // later switch back to Desk, so this one effect covers "on every surface
+  // show" without a duplicate refresh trigger inside the rail itself.
   const { refreshSetups } = setupState;
   useEffect(() => {
-    if (session && activeTab === "history") {
+    if (session && (activeTab === "advisor" || activeTab === "history")) {
       refreshSetups({ forceOutcomeRefresh: true });
     }
   }, [activeTab, session, refreshSetups]);
@@ -254,6 +262,7 @@ export default function App() {
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
+              onForceOutcomeRefresh={() => refreshSetups({ forceOutcomeRefresh: true })}
               onOpenRequestHandled={clearAdvisorRequest}
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}

@@ -14,6 +14,10 @@ const LIB_FILES = [
   "src/lib/outcomes.ts",
   "src/lib/replayReliability.ts",
   "src/lib/advisorReview.ts",
+  // Task 7: generates the Current trades rail's instruction copy directly
+  // (spec §8), so it needs the same scan as the other copy-producing lib
+  // files above, not just the components that render its output.
+  "src/lib/tradeState.ts",
 ];
 const TP1 = /\bTP1\b/;
 const RUNNER = /\brunner\b/i;

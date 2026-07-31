@@ -22,6 +22,7 @@ import {
   formatTimestamp,
   TIMEFRAMES,
 } from "./advisorFormat";
+import { CurrentTradesRail } from "./CurrentTradesRail";
 import { MarketScanPanel } from "./MarketScanPanel";
 import { ScopeMenu } from "./ScopeMenu";
 import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
@@ -56,6 +57,10 @@ import {
 } from "../../lib/advisorReview";
 
 type AdvisorWorkspaceProps = {
+  // Bound to useTradeSetups' forceOutcomeRefresh path (App.tsx). Wired to
+  // Desk-tab activation there and to CurrentTradesRail's own manual refresh
+  // here — the rail never grows fetch machinery of its own (spec §8).
+  onForceOutcomeRefresh: () => void;
   // Called once the effect below has applied openRequest, so the caller
   // (App) can clear it. AdvisorWorkspace unmounts whenever its tab isn't
   // active, so without this the same request would still be sitting there
@@ -80,6 +85,7 @@ type AnalysisState = {
 
 export function AdvisorWorkspace(
   {
+    onForceOutcomeRefresh,
     onOpenRequestHandled,
     onSetupsChanged,
     openRequest,
@@ -514,14 +520,13 @@ export function AdvisorWorkspace(
             symbol={symbol}
           />
         </section>
-      </div>
 
-      {/* Right rail: for now, the same status panels that used to sit
-          beside the chart, unchanged. Task 7 replaces this column's
-          content with CurrentTradesRail. Same flex-col/shrink-0 reasoning
-          as the center stage above — none of these panels accept a
-          className, so each gets a shrink-0 wrapper instead. */}
-      <aside className="scrolly flex min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+        {/* Task 7 relocates these four panels here from the right rail,
+            which CurrentTradesRail (spec §8) now owns exclusively. The
+            brief is silent on their new destination, so they land as
+            secondary stacked panels below the stage's own content instead
+            of being dropped — same shrink-0 wrapper reasoning as above,
+            since none of them accept a className. */}
         <div className="shrink-0">
           <DataHealthPanel
             activeMarketCount={activeMarketCount}
@@ -544,6 +549,21 @@ export function AdvisorWorkspace(
 
         <div className="shrink-0">
           <MarketResultsPanel stat={symbolStat} symbol={symbol} />
+        </div>
+      </div>
+
+      {/* Right rail: Current trades (spec §8) — live pending/open state,
+          computed from setups+outcomes already loaded above. Force-refreshed
+          on every Desk surface show (App.tsx's tab-activation effect) and on
+          demand via the rail's own manual control; no fetch logic lives
+          here. */}
+      <aside className="scrolly flex min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+        <div className="shrink-0">
+          <CurrentTradesRail
+            now={clockNow}
+            onRefresh={onForceOutcomeRefresh}
+            setups={setups}
+          />
         </div>
       </aside>
     </div>
