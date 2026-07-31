@@ -426,11 +426,12 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
 
   it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
     // The eyebrow's own ≥lg treatment is unchanged; fix wave 2C appended
-    // `max-lg:hidden` because m-scan-v1.html draws no eyebrow on the mobile
-    // tab (the bottom tab bar already names that surface).
+    // `max-lg:sr-only` because m-scan-v1.html draws no eyebrow on the mobile
+    // tab (the bottom tab bar already names that surface) — clipped, not
+    // removed, so the heading survives in the accessibility tree there.
     assert.match(
       rail,
-      /uppercase tracking-normal text-ink-muted max-lg:hidden">\s*Scan\s*</,
+      /uppercase tracking-normal text-ink-muted max-lg:sr-only">\s*Scan\s*</,
     );
     assert.match(rail, /Scan now/);
   });

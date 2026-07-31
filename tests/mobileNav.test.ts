@@ -679,11 +679,14 @@ describe("mobile scan tab interiors (m-scan-v1.html, fix wave 2C)", () => {
       SCAN_RAIL_SOURCE,
       /className="flex flex-wrap items-baseline justify-between gap-2 max-lg:flex-nowrap max-lg:items-center max-lg:gap-2\.5"/,
     );
-    // The mock draws no "Scan" eyebrow on the mobile tab — the bottom tab
-    // bar already names the surface.
+    // The mock draws no "Scan" eyebrow on the mobile tab — the bottom tab bar
+    // already names the surface. Clipped rather than display:none, the same
+    // reasoning ScopeMenu.tsx documents for its own suppressed caption: the
+    // heading stays in the accessibility tree, so mobile keeps a landmark for
+    // a surface that draws none.
     assert.match(
       SCAN_RAIL_SOURCE,
-      /className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:hidden"/,
+      /className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:sr-only"/,
     );
     // Scope first, Scan now second — the mock's own reading order below lg,
     // and `order-last` is what floats the wrapper onto row two at >=lg.

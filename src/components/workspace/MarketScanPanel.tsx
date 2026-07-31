@@ -93,9 +93,15 @@ export function MarketScanPanel({
           the old header row's mb-2, so nothing shifts. Below lg the mock draws
           no eyebrow at all (the tab bar already names the surface) and puts
           the scope pill and Scan now side by side on one row
-          (m-scan-v1.html:39-42). */}
+          (m-scan-v1.html:39-42).
+          The eyebrow goes .sr-only there rather than display:none — same
+          reasoning ScopeMenu.tsx documents for its own suppressed caption:
+          clipped keeps the heading in the accessibility tree, so a screen
+          reader on mobile still has a landmark for this surface even though
+          nothing is drawn. It is absolutely positioned that way, so it leaves
+          the flex row entirely and the two controls fill it. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 max-lg:flex-nowrap max-lg:items-center max-lg:gap-2.5">
-        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:hidden">
+        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:sr-only">
           Scan
         </h3>
         <div className="order-last w-full min-w-0 max-lg:order-none max-lg:w-auto max-lg:flex-1">
