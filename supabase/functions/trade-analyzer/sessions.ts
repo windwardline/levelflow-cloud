@@ -3,6 +3,10 @@ import { getAssetType } from "./calibration.ts";
 export type SessionContext = {
   block: boolean;
   label: string;
+  // Marks measurement-only gates (hours blocked on replay evidence, not
+  // market closures). The sweep's --ignore-low-edge flag sees through
+  // these to re-measure the hours; hard closures are never bypassed.
+  lowEdge?: boolean;
   marketKind: string;
   penalty: number;
   reason?: string;
@@ -21,6 +25,7 @@ export function getSessionContext(
       return {
         block: true,
         label: "Crypto low-edge window",
+        lowEdge: true,
         marketKind: "crypto",
         penalty: 100,
         reason:
@@ -107,6 +112,7 @@ export function getSessionContext(
       return {
         block: true,
         label: "Energy low-edge hour",
+        lowEdge: true,
         marketKind,
         penalty: 100,
         reason:
@@ -125,6 +131,7 @@ export function getSessionContext(
       return {
         block: true,
         label: `${kindLabel} low-edge window`,
+        lowEdge: true,
         marketKind,
         penalty: 100,
         reason:

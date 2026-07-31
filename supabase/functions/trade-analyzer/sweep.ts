@@ -111,6 +111,10 @@ export function simulateSymbol(input: {
   // Calibration mode: evaluate outcomes for below-threshold setups too and
   // skip the regime gate, so offline analysis sees the full distribution.
   captureAll?: boolean;
+  // Measurement mode: see through measurement-only session gates (the
+  // low-edge hour blocks) so per-hour curves can re-derive them. Hard
+  // market closures still block.
+  ignoreLowEdge?: boolean;
   // Positioning history for this symbol, already leg-combined and inverted.
   // buildCotContext enforces the publication lag, so passing full history is
   // safe: only reports published before the decision bar are ever visible.
@@ -190,7 +194,10 @@ export function simulateSymbol(input: {
       input.symbol,
       new Date(latest.time),
     );
-    if (sessionContext.block) {
+    if (
+      sessionContext.block &&
+      !(input.ignoreLowEdge && sessionContext.lowEdge)
+    ) {
       rejections.sessionBlocked += 1;
       continue;
     }
