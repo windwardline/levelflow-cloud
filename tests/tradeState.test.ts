@@ -67,6 +67,7 @@ describe("deriveTradeState — pending (spec §8)", () => {
       instruction: `Order pending at ${formattedPrice(1.0865)} — nothing to do yet`,
       progressR: null,
       status: "pending",
+      tp1Banked: false,
     });
   });
 
@@ -94,6 +95,32 @@ describe("deriveTradeState — pending (spec §8)", () => {
   });
 });
 
+describe("deriveTradeState — scan-origin gating (spec I1)", () => {
+  it("a scan-origin, unfilled setup earns no rail row — a candidate isn't an order", () => {
+    const setup = buildSetup({ origin: "scan", status: "generated" });
+    assert.equal(deriveTradeState(setup, NOW), null);
+  });
+
+  it("a review-origin, unfilled setup still keeps Pending", () => {
+    const setup = buildSetup({ origin: "review", status: "generated" });
+    assert.equal(deriveTradeState(setup, NOW)?.status, "pending");
+  });
+
+  it("an unfilled setup with no origin at all (pre-migration rows) still keeps Pending — only an explicit \"scan\" origin excludes it", () => {
+    const setup = buildSetup({ origin: undefined, status: "generated" });
+    assert.equal(deriveTradeState(setup, NOW)?.status, "pending");
+  });
+
+  it("a scan-origin setup that has actually been placed and filled still earns Open — the gate is only on the unfilled/generated state", () => {
+    const setup = buildSetup({
+      origin: "scan",
+      status: "placed",
+      trade_outcomes: [buildOutcome({ feedback: { tp1Hit: false } })],
+    });
+    assert.equal(deriveTradeState(setup, NOW)?.status, "open");
+  });
+});
+
 describe("deriveTradeState — open, pre-Target-1 (spec §8)", () => {
   it("a filled setup still short of Target 1 is Open with the canonical two-target instruction, verbatim", () => {
     const setup = buildSetup({
@@ -109,6 +136,7 @@ describe("deriveTradeState — open, pre-Target-1 (spec §8)", () => {
       instruction: CANONICAL_LADDER_INSTRUCTION,
       progressR: null,
       status: "open",
+      tp1Banked: false,
     });
   });
 
@@ -149,41 +177,28 @@ describe("deriveTradeState — open, pre-Target-1 (spec §8)", () => {
   });
 });
 
-describe("deriveTradeState — open, Target 1 already hit (spec §8)", () => {
-  it("banks the exact bank-half instruction with the entry price and a coarse age in minutes", () => {
+describe("deriveTradeState — open, Target 1 already hit (spec §8, I6)", () => {
+  it("banks the exact bank-half instruction with the entry price and no age — there is no genuine Target 1 timestamp to report one from", () => {
     const setup = buildSetup({
       limit_entry: 1.0865,
       status: "placed",
       trade_outcomes: [
         buildOutcome({
           feedback: { tp1Hit: true },
-          filled_at: "2026-07-30T11:46:00.000Z", // 14 minutes before NOW
+          filled_at: "2026-07-30T11:46:00.000Z",
         }),
       ],
     });
     assert.deepEqual(deriveTradeState(setup, NOW), {
-      eventAge: "14 min ago",
       instruction:
-        `Target 1 hit 14 min ago — bank half, move stop to ${formattedPrice(1.0865)}`,
+        `Target 1 hit — bank half, move stop to ${formattedPrice(1.0865)}`,
       progressR: null,
       status: "open",
+      tp1Banked: true,
     });
   });
 
-  it("buckets in whole hours once past 60 minutes", () => {
-    const setup = buildSetup({
-      status: "placed",
-      trade_outcomes: [
-        buildOutcome({
-          feedback: { tp1Hit: true },
-          filled_at: "2026-07-30T09:55:00.000Z", // 125 minutes before NOW
-        }),
-      ],
-    });
-    assert.equal(deriveTradeState(setup, NOW)?.eventAge, "2 h ago");
-  });
-
-  it("buckets in whole days once past 24 hours", () => {
+  it("never reports an age, however old filled_at is — it's the entry fill, not Target 1's own timestamp", () => {
     const setup = buildSetup({
       status: "placed",
       trade_outcomes: [
@@ -193,34 +208,9 @@ describe("deriveTradeState — open, Target 1 already hit (spec §8)", () => {
         }),
       ],
     });
-    assert.equal(deriveTradeState(setup, NOW)?.eventAge, "1 d ago");
-  });
-
-  it('reports "just now" for an age under a minute', () => {
-    const setup = buildSetup({
-      status: "placed",
-      trade_outcomes: [
-        buildOutcome({
-          feedback: { tp1Hit: true },
-          filled_at: "2026-07-30T11:59:40.000Z",
-        }),
-      ],
-    });
-    assert.equal(deriveTradeState(setup, NOW)?.eventAge, "just now");
-  });
-
-  it("falls back to reviewed_at when filled_at is missing", () => {
-    const setup = buildSetup({
-      status: "placed",
-      trade_outcomes: [
-        buildOutcome({
-          feedback: { tp1Hit: true },
-          filled_at: null,
-          reviewed_at: "2026-07-30T11:46:00.000Z",
-        }),
-      ],
-    });
-    assert.equal(deriveTradeState(setup, NOW)?.eventAge, "14 min ago");
+    const state = deriveTradeState(setup, NOW);
+    assert.equal("eventAge" in (state ?? {}), false);
+    assert.doesNotMatch(state?.instruction ?? "", /\bago\b|\bjust now\b/);
   });
 
   it("still reports progressR from feedback.realizedR alongside the bank-half instruction", () => {
@@ -234,6 +224,14 @@ describe("deriveTradeState — open, Target 1 already hit (spec §8)", () => {
       ],
     });
     assert.equal(deriveTradeState(setup, NOW)?.progressR, 0.5);
+  });
+
+  it("sets tp1Banked so the rail knows to drop Target 1 from the remaining levels (CurrentTradesRail.buildRemainingLevels)", () => {
+    const setup = buildSetup({
+      status: "placed",
+      trade_outcomes: [buildOutcome({ feedback: { tp1Hit: true } })],
+    });
+    assert.equal(deriveTradeState(setup, NOW)?.tp1Banked, true);
   });
 });
 

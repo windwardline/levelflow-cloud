@@ -1,72 +1,8 @@
-import { BarChart3, CheckCircle2, Clock } from "lucide-react";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
-import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
-import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
-import type { MarketDataResponse } from "../../lib/marketData";
-import {
-  getSecurityOption,
-  type SupportedSymbol,
-  TEMPORARILY_HIDDEN_ASSET_TYPES,
-} from "../../lib/symbolMap";
-import type { AnalyzerResponse, TradeSetupRow } from "../../lib/tradeAnalyzer";
-import { formatDate, formatPrice, formatRelativeTime } from "./advisorFormat";
-import { MetricRow } from "./AdvisorMetricRow";
-import { useWorkspaceNav } from "./WorkspaceNav";
-
-export function DataHealthPanel({
-  activeMarketCount,
-  data,
-  loading,
-  notice,
-}: {
-  activeMarketCount: number;
-  data: MarketDataResponse | null;
-  loading: boolean;
-  notice: string;
-}) {
-  const hiddenCategories = Array.from(TEMPORARILY_HIDDEN_ASSET_TYPES).sort();
-  const lastUpdated = data?.asOf
-    ? formatRelativeTime(data.asOf)
-    : "Awaiting refresh";
-  const status = loading
-    ? "Refreshing"
-    : data?.resultsCount
-    ? "Ready"
-    : "Needs data";
-
-  return (
-    <section className="terminal-panel p-5">
-      <div className="mb-4 flex items-center gap-3">
-        <CheckCircle2 className="h-5 w-5 text-accent" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-semibold text-ink-muted">Market data</p>
-          <h3 className="text-lg font-semibold tracking-normal text-ink">
-            {status}
-          </h3>
-        </div>
-      </div>
-      <div className="grid gap-2 text-sm">
-        <MetricRow label="Feed" value="Chart feed" />
-        <MetricRow
-          label="Candles loaded"
-          value={loading ? "Refreshing" : String(data?.resultsCount ?? 0)}
-        />
-        <MetricRow label="Updated" value={lastUpdated} />
-        <MetricRow label="Active markets" value={String(activeMarketCount)} />
-      </div>
-      <p className="mt-3 text-sm leading-6 text-ink-muted">{notice}</p>
-      {hiddenCategories.length > 0
-        ? (
-          <p className="mt-3 rounded-lg border border-caution/20 bg-caution/10 px-3 py-2 text-xs font-semibold leading-5 text-caution">
-            {hiddenCategories.join(" and ")}{" "}
-            are hidden until their chart data is verified.
-          </p>
-        )
-        : null}
-    </section>
-  );
-}
+import type { SupportedSymbol } from "../../lib/symbolMap";
+import type { AnalyzerResponse } from "../../lib/tradeAnalyzer";
+import { formatPrice } from "./advisorFormat";
 
 export function DeskStatusStrip({
   analysisStatus,
@@ -200,83 +136,6 @@ export function MarketClockPanel({
   );
 }
 
-export function RecentSetupsPanel({ setups }: { setups: TradeSetupRow[] }) {
-  return (
-    <section className="terminal-panel p-5">
-      <div className="mb-4 flex items-center gap-3">
-        <Clock className="h-5 w-5 text-ink" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-semibold text-ink-muted">
-            Recent setups
-          </p>
-          <h3 className="text-lg font-semibold tracking-normal text-ink">
-            Latest activity
-          </h3>
-        </div>
-      </div>
-      <SetupList setups={setups.slice(0, 5)} />
-    </section>
-  );
-}
-
-export function MarketResultsPanel({
-  stat,
-  symbol,
-}: {
-  stat: SecurityStat | undefined;
-  symbol: SupportedSymbol;
-}) {
-  const nav = useWorkspaceNav();
-  const selectedAsset = getSecurityOption(symbol);
-
-  return (
-    <section className="terminal-panel p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="h-5 w-5 text-ink" aria-hidden="true" />
-          <div>
-            <p className="text-sm font-semibold text-ink-muted">
-              Market results
-            </p>
-            <h3 className="text-lg font-semibold tracking-normal text-ink">
-              {selectedAsset.symbol}
-            </h3>
-          </div>
-        </div>
-        <button
-          className="tertiary-link"
-          type="button"
-          onClick={() => nav.openInsights()}
-        >
-          All results
-        </button>
-      </div>
-      {stat
-        ? (
-          <div className="grid gap-2 text-sm">
-            <MetricRow label="Setups shown" value={stat.count.toString()} />
-            <MetricRow
-              label="Average confidence"
-              value={`${stat.averageConfidence}%`}
-            />
-            <MetricRow
-              label="Win rate"
-              value={stat.winRate === null ? "Learning" : `${stat.winRate}%`}
-            />
-            <MetricRow label="Reached target" value={stat.wins.toString()} />
-            <MetricRow label="Hit stop" value={stat.losses.toString()} />
-            <MetricRow label="Still tracking" value={stat.pending.toString()} />
-          </div>
-        )
-        : (
-          <p className="text-sm leading-6 text-ink-muted">
-            No saved setups for this market yet.
-          </p>
-        )}
-    </section>
-  );
-}
-
 function DeskStatusItem({
   detail,
   label,
@@ -299,56 +158,6 @@ function DeskStatusItem({
           {detail}
         </p>
       </div>
-    </div>
-  );
-}
-
-function SetupList({ setups }: { setups: TradeSetupRow[] }) {
-  const nav = useWorkspaceNav();
-
-  if (setups.length === 0) {
-    return <p className="text-sm leading-6 text-ink-muted">No setups yet.</p>;
-  }
-
-  return (
-    <div className="grid gap-2">
-      {setups.map((setup) => (
-        <div
-          key={setup.id}
-          className="min-w-0 rounded-lg border border-hairline bg-paper px-3 py-2"
-        >
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <p className="min-w-0 font-semibold text-ink">{setup.symbol}</p>
-            <span
-              className={`chip ${
-                setup.side === "buy" ? "text-buy" : "text-sell"
-              }`}
-            >
-              {setup.side} limit
-            </span>
-          </div>
-          <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-xs text-ink-muted">
-            <span>{formatDate(setup.created_at)}</span>
-            <span className="font-mono tabular-nums">
-              {formatConfidenceWithTier(
-                setup.confidence_score,
-                CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[
-                  getSecurityOption(setup.symbol).assetType
-                ],
-              )}
-            </span>
-          </div>
-          <div className="mt-1.5 flex justify-end">
-            <button
-              className="tertiary-link"
-              type="button"
-              onClick={() => nav.openInsights(setup.symbol)}
-            >
-              View in Insights
-            </button>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

@@ -118,17 +118,19 @@ describe("buildRemainingLevels", () => {
     instruction: "Order pending at 1.0865 — nothing to do yet",
     progressR: null,
     status: "pending",
+    tp1Banked: false,
   };
   const openPreT1State: TradeState = {
     instruction: "canonical",
     progressR: null,
     status: "open",
+    tp1Banked: false,
   };
   const openT1HitState: TradeState = {
-    eventAge: "14 min ago",
     instruction: "bank half",
     progressR: null,
     status: "open",
+    tp1Banked: true,
   };
 
   it("shows Entry, Stop, Target 1, and Target 2 while pending (nothing has happened yet)", () => {
@@ -150,7 +152,7 @@ describe("buildRemainingLevels", () => {
     );
   });
 
-  it("drops Target 1 once it has already been banked (state.eventAge set)", () => {
+  it("drops Target 1 once it has already been banked (state.tp1Banked)", () => {
     const levels = buildRemainingLevels(
       buildSetup({ status: "placed" }),
       openT1HitState,
@@ -230,5 +232,19 @@ describe("CurrentTradesRail markup (source-pinned — see header comment)", () =
     const onClickHandlers = RAIL_SOURCE.match(/onClick=\{[^}]*\}/g) ?? [];
     assert.deepEqual(onClickHandlers, ["onClick={handleRefresh}"]);
     assert.match(RAIL_SOURCE, /onRefresh\(\)/);
+  });
+});
+
+// I2: the rail never remounts when mobile switches which Desk column is
+// showing, so its own mount-time lastRefreshedAt baseline can't re-stamp
+// itself for that transition on its own — this re-stamps it whenever the
+// rail becomes the active mobile view, pairing with App.tsx's own
+// force-refresh effect (mobileNav.test.ts) that does the real re-fetch.
+describe("CurrentTradesRail mobile freshness re-stamp (source-pinned, I2)", () => {
+  it("re-stamps lastRefreshedAt when isActiveOnMobile becomes true, guarded so leaving sets nothing", () => {
+    assert.match(
+      RAIL_SOURCE,
+      /useEffect\(\(\) => \{\s*if \(isActiveOnMobile\) \{\s*setLastRefreshedAt\(new Date\(\)\);\s*\}\s*\}, \[isActiveOnMobile\]\);/,
+    );
   });
 });

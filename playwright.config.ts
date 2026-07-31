@@ -8,6 +8,12 @@ export default defineConfig({
   },
   use: {
     baseURL: "http://127.0.0.1:5175",
+    // m1 made the ladder's copy ✓ success-conditional on the real
+    // navigator.clipboard.writeText promise resolving, so the "each ladder
+    // value copies independently" e2e test now genuinely exercises the
+    // write — headless Chromium doesn't reliably grant this without an
+    // explicit permission.
+    permissions: ["clipboard-read", "clipboard-write"],
     trace: "retain-on-failure",
   },
   webServer: {

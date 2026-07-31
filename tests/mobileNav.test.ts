@@ -263,8 +263,12 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   });
 
   it("mobile header carries the broker chip and an account menu, not the desktop icon row", () => {
+    // Anchored on data-testid="mobile-header" (added for the e2e suite's
+    // duplicate-header disambiguation - both headers render at every
+    // width, only CSS decides which is visible) rather than the bare
+    // className, since that's now the more stable, purpose-built handle.
     const mobileHeaderBlock = APP_SOURCE.match(
-      /<div className="flex min-w-0 items-center justify-between gap-3 lg:hidden">[\s\S]*?<\/div>\s*<\/div>/,
+      /<div\s+className="flex min-w-0 items-center justify-between gap-3 lg:hidden"\s+data-testid="mobile-header"\s*>[\s\S]*?<\/div>\s*<\/div>/,
     )?.[0] ?? "";
     assert.match(mobileHeaderBlock, /<BrokerChip \/>/);
     assert.match(mobileHeaderBlock, /<MobileAccountMenu/);
@@ -287,8 +291,9 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // the desktop-freeze reading that originally omitted it didn't hold once
   // weighed against the same spec text driving the mobile decision.
   it("desktop header (the lg:contents block) also carries the broker chip, beside ThemeToggle", () => {
+    // Same data-testid anchor reasoning as the mobile header test above.
     const desktopHeaderBlock = APP_SOURCE.match(
-      /<div className="hidden lg:contents">[\s\S]*?<\/nav>\s*<\/div>/,
+      /<div className="hidden lg:contents" data-testid="desktop-header">[\s\S]*?<\/nav>\s*<\/div>/,
     )?.[0] ?? "";
     assert.match(
       desktopHeaderBlock,
@@ -362,6 +367,102 @@ describe("MobileAccountMenu focus management (source-pinned — see header comme
     assert.match(
       menuBlock,
       /const closeAndFocusTrigger = useCallback\(\(\) => \{\s*setOpen\(false\);\s*triggerRef\.current\?\.focus\(\);\s*\}, \[\]\);/,
+    );
+  });
+});
+
+// I2: the mobile Trades sub-tab is a CSS-only toggle within the "advisor"
+// AppTab (deskColumnClassName above), never an AdvisorWorkspace remount, so
+// the pre-existing activeTab-only force-refresh effect never re-fires for
+// it on its own. Source-pinned for the same no-jsdom reason as the rest of
+// this file: no harness here fires the tab-bar clicks that would otherwise
+// exercise it live.
+describe("App.tsx mobile Trades force-refresh (source-pinned, I2)", () => {
+  it("re-fires refreshSetups when deskMobileView becomes \"trades\" while already on the Desk tab, without re-firing on every Review<->Scan swap", () => {
+    assert.match(
+      APP_SOURCE,
+      /useEffect\(\(\) => \{\s*if \(session && activeTab === "advisor" && deskMobileView === "trades"\) \{\s*refreshSetups\(\{ forceOutcomeRefresh: true \}\);\s*\}\s*\}, \[activeTab, deskMobileView, session, refreshSetups\]\);/,
+    );
+  });
+
+  it("leaves the original activeTab-only effect intact — Insights and the first Desk arrival still refresh regardless of deskMobileView", () => {
+    assert.match(
+      APP_SOURCE,
+      /useEffect\(\(\) => \{\s*if \(session && \(activeTab === "advisor" \|\| activeTab === "history"\)\) \{\s*refreshSetups\(\{ forceOutcomeRefresh: true \}\);\s*\}\s*\}, \[activeTab, session, refreshSetups\]\);/,
+    );
+  });
+});
+
+// I3: a jump to the Desk from elsewhere in the app (Insights' "Open X in
+// Advisor" row button, today's only nav.openAdvisor call site — see
+// tests/historyPanel.test.tsx) has to land mobile on "review", the sub-view
+// that actually shows the market it asked for — not whichever of Scan/
+// Trades happened to be selected before.
+describe("nav.openAdvisor also resets the mobile sub-view (source-pinned, I3)", () => {
+  it('sets deskMobileView("review") alongside the existing advisorRequest/activeTab side effects', () => {
+    assert.match(
+      APP_SOURCE,
+      /openAdvisor: \(symbol\) => \{\s*setAdvisorRequest\(\{ symbol, token: Date\.now\(\) \}\);\s*setActiveTab\("advisor"\);\s*setDeskMobileView\("review"\);\s*\},/,
+    );
+  });
+});
+
+// I3's second half: selecting a scan candidate is a decisive "go look at
+// this" action, so it should carry the same mobile-view reset — threaded
+// down as a callback prop rather than lifted into WorkspaceNav, since it's
+// entirely internal to one AdvisorWorkspace instance's own columns.
+describe("AdvisorWorkspace threads onMobileViewChange to the scan-row selection (source-pinned, I3)", () => {
+  it("declares onMobileViewChange in its props and App.tsx wires it straight to setDeskMobileView", () => {
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /onMobileViewChange: \(view: DeskMobileView\) => void;/,
+    );
+    assert.match(APP_SOURCE, /onMobileViewChange=\{setDeskMobileView\}/);
+  });
+
+  it('onSelectCandidate calls onMobileViewChange("review") alongside selectSymbolForReview, so tapping a scan row on mobile switches to the review column', () => {
+    const onSelectCandidateBlock = ADVISOR_WORKSPACE_SOURCE.match(
+      /onSelectCandidate=\{\(candidate\) => \{[\s\S]*?\n {10}\}\}/,
+    )?.[0] ?? "";
+    assert.match(onSelectCandidateBlock, /selectSymbolForReview\(candidate\.symbol\);/);
+    assert.match(onSelectCandidateBlock, /onMobileViewChange\("review"\);/);
+  });
+
+  it("CurrentTradesRail receives isActiveOnMobile so it can re-stamp its own freshness on the same transition (I2)", () => {
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /<CurrentTradesRail\s+isActiveOnMobile=\{mobileView === "trades"\}/,
+    );
+  });
+});
+
+// I4/spec §10b: reviewing a closed market shows a quiet reopen notice
+// instead of the generic chart-data error. Platform parity (spec §2) means
+// this isn't mobile-specific, but it lives alongside AdvisorWorkspace's
+// other source-pinned facts in this file rather than a fourth file just for
+// one check.
+describe("AdvisorWorkspace stage notice for a closed market (source-pinned, I4/§10b)", () => {
+  it("imports marketAvailability + formatReopen from the shared marketHours module", () => {
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /import \{ formatReopen, marketAvailability \} from "\.\.\/\.\.\/lib\/marketHours";/,
+    );
+  });
+
+  it('replaces the generic chart-error notice with "Closed · opens {time}" when the selected market is currently closed, leaving the open case unchanged', () => {
+    const catchBlock = ADVISOR_WORKSPACE_SOURCE.match(
+      /\} catch \{[\s\S]*?\} finally \{/,
+    )?.[0] ?? "";
+    assert.match(
+      catchBlock,
+      /marketAvailability\(\s*getSecurityOption\(symbol\)\.assetType,\s*symbol,/,
+    );
+    assert.match(catchBlock, /availability\.open/);
+    assert.match(catchBlock, /`Closed · opens \$\{/);
+    assert.match(catchBlock, /formatReopen\(availability\.opensAt, new Date\(\)\)/);
+    assert.match(
+      catchBlock,
+      /"Verified market data is not available for this market yet\."/,
     );
   });
 });

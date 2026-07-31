@@ -182,6 +182,16 @@ function isSameScope(a: ScanScope, b: ScanScope): boolean {
 // selectable. Closed groups keep their reopen affordance in this mode too
 // (it still explains why the symbols under it are muted); open ones show
 // nothing, since there is no scan action to take from here.
+//
+// I4: unlike the scan scope menu (where a closed market genuinely can't be
+// scanned - I5), the stage picker's whole job is direct review, and
+// reviewing a market has never required it to be open. Before this fix,
+// symbol rows inherited their group's `interactive: availability.open`
+// unconditionally, so on a weekend the stage could not select any
+// non-crypto market at all. Symbol rows are forced interactive here
+// regardless of availability; rowClassName still mutes a closed one's text
+// as the visual "closed" cue (spec #10b), it just no longer also disables
+// the click.
 export function effectiveRows(
   rows: ScopeMenuRow[],
   symbolOnly: boolean,
@@ -191,9 +201,12 @@ export function effectiveRows(
   }
   return rows
     .filter((row) => row.scope.kind !== "all")
-    .map((row) =>
-      row.scope.kind === "group" ? { ...row, interactive: false } : row
-    );
+    .map((row) => {
+      if (row.scope.kind === "group") {
+        return { ...row, interactive: false };
+      }
+      return row.interactive ? row : { ...row, interactive: true };
+    });
 }
 
 export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean {
@@ -567,6 +580,10 @@ function rowClassName(row: ScopeMenuRow, isActive: boolean): string {
     return `${base} ${indent} cursor-not-allowed text-ink-muted`;
   }
   const weight = row.nested ? "font-medium" : "font-semibold";
+  // I4: a symbolOnly market row stays clickable even when its group is
+  // closed (effectiveRows), but still reads as closed - muted text, same
+  // tone as the disabled case above, just without cursor-not-allowed.
+  const tone = row.availability.open ? "text-ink" : "text-ink-muted";
   const highlight = isActive ? "bg-accent/10" : "";
-  return `${base} ${indent} ${weight} text-ink ${highlight}`;
+  return `${base} ${indent} ${weight} ${tone} ${highlight}`;
 }

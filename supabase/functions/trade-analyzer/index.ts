@@ -1286,6 +1286,25 @@ async function upsertActiveSetup(
   );
   const activeSetup = rows[0] ?? null;
 
+  // C2: a scan is advisory background research, never an authority over a
+  // position that's already live. If the existing active row is "placed"
+  // (filled and live — see tradeState.ts's status-naming note for why
+  // "placed" means that, not "order placed"), a SCAN-origin call must leave
+  // it completely untouched: the same-side branch below would otherwise
+  // overwrite its levels and force status back to "generated" (demoting a
+  // filled trade to pending), and the opposite-side branch would fall
+  // through to invalidateActiveSetupsForSymbol and erase it outright.
+  // Review-origin calls are unaffected — a human reviewing the market is
+  // allowed to supersede what's live. No duplicate insert either: the
+  // existing live row already represents this symbol.
+  if (origin === "scan" && activeSetup && activeSetup.status === "placed") {
+    return {
+      deduplicated: true,
+      setupId: activeSetup.id,
+      updated: false,
+    };
+  }
+
   if (activeSetup && activeSetup.side === setup.side) {
     // Origin only ever moves scan -> review, never the reverse: a routine
     // scan touching a symbol+side a human already reviewed must not

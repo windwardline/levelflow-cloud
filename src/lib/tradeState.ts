@@ -4,10 +4,16 @@ import type { TradeSetupRow } from "./tradeAnalyzer";
 export type TradeStatus = "pending" | "open";
 
 export type TradeState = {
-  eventAge?: string;
   instruction: string;
   progressR: number | null;
   status: TradeStatus;
+  // Structural flag CurrentTradesRail's buildRemainingLevels uses to know
+  // whether Target 1 has already fired (and should drop off the remaining-
+  // levels list) — not a display value itself. Deliberately its own field
+  // rather than piggybacked on a display string (I6 fixed exactly that
+  // fragile coupling: this used to ride on `eventAge !== undefined`, which
+  // broke the moment eventAge's age display was removed).
+  tp1Banked: boolean;
 };
 
 // Spec §7, verbatim — the same pinned sentence AdvisorRecommendationPanel.tsx
@@ -49,7 +55,7 @@ const RESOLVED_OUTCOMES = new Set([
 /**
  * Derives the Current trades rail's live state for one setup (spec §8).
  *
- * Two DB-naming surprises this function has to reconcile (traced through
+ * DB-naming surprises this function has to reconcile (traced through
  * supabase/functions/trade-analyzer/replay.ts and outcome-sync/index.ts):
  * - setup.status "placed" does not mean "order placed, awaiting fill" — the
  *   engine only sets it once price has actually crossed the limit entry, so
@@ -61,18 +67,36 @@ const RESOLVED_OUTCOMES = new Set([
  *   That literal string is only ever written once the runner itself has
  *   fully resolved (stopped at breakeven or expired) — a closed trade, not
  *   an open one, hence its place in RESOLVED_OUTCOMES above.
+ * - There is no genuine "Target 1 hit at" timestamp anywhere in the schema:
+ *   outcomeRow.filled_at is the ENTRY fill, not Target 1's. The instruction
+ *   below used to (wrongly) report an age computed from it, e.g. "Target 1
+ *   hit 14 min ago" — removed (I6) rather than shown from the wrong clock.
+ * - A scan surfaces candidates for review, not orders placed with a broker
+ *   — an unfilled scan-origin row earns no rail entry at all (I1); a
+ *   review-origin one is a real limit order the user asked for, so it still
+ *   earns Pending.
  *
  * Returns null for anything closed/resolved: Insights holds those.
  */
 export function deriveTradeState(
   setup: TradeSetupRow,
-  now: Date,
+  // Unused since I6 dropped Target 1's age display (no genuine TP1
+  // timestamp exists to compute one from). Kept, not removed, so
+  // buildTradeCards/currentTradeBadgeCount don't need a signature change
+  // for what could be a real per-setup clock again the moment the engine
+  // writes an actual TP1 timestamp — same convention as marketHours.ts's
+  // `_symbol` parameter.
+  _now: Date,
 ): TradeState | null {
   if (setup.status === "generated") {
+    if (setup.origin === "scan") {
+      return null;
+    }
     return {
       instruction: `Order pending at ${formatEntry(setup)} — nothing to do yet`,
       progressR: null,
       status: "pending",
+      tp1Banked: false,
     };
   }
 
@@ -91,16 +115,12 @@ export function deriveTradeState(
   const progressR = asFiniteNumber(feedback.realizedR);
 
   if (feedback.tp1Hit === true) {
-    const age = formatEventAge(
-      outcomeRow?.filled_at ?? outcomeRow?.reviewed_at,
-      now,
-    );
     return {
-      eventAge: age,
       instruction:
-        `Target 1 hit ${age} — bank half, move stop to ${formatEntry(setup)}`,
+        `Target 1 hit — bank half, move stop to ${formatEntry(setup)}`,
       progressR,
       status: "open",
+      tp1Banked: true,
     };
   }
 
@@ -108,6 +128,7 @@ export function deriveTradeState(
     instruction: CANONICAL_LADDER_INSTRUCTION,
     progressR,
     status: "open",
+    tp1Banked: false,
   };
 }
 
@@ -124,37 +145,4 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function asFiniteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-// Coarse, spec-literal age phrasing (§8: "hit 14 min ago") — deliberately
-// not advisorFormat.ts's formatRelativeTime, whose "14 minutes ago" style
-// serves other panels but doesn't match the copy authority's own wording
-// for this rail.
-function formatEventAge(
-  value: string | null | undefined,
-  now: Date,
-): string {
-  const eventTime = value ? new Date(value).getTime() : Number.NaN;
-  if (Number.isNaN(eventTime)) {
-    return "recently";
-  }
-
-  const diffMinutes = Math.max(
-    0,
-    Math.round((now.getTime() - eventTime) / 60_000),
-  );
-  if (diffMinutes < 1) {
-    return "just now";
-  }
-  if (diffMinutes < 60) {
-    return `${diffMinutes} min ago`;
-  }
-
-  const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours} h ago`;
-  }
-
-  const diffDays = Math.round(diffHours / 24);
-  return `${diffDays} d ago`;
 }

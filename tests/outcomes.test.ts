@@ -102,8 +102,9 @@ describe("classifyWinLoss — single source of truth for the ladder's win/loss s
       "src/components/workspace/historyUtils.ts": 3,
       // buildStats.
       "src/hooks/useTradeSetups.ts": 1,
-      // buildProfileReviewPattern.
-      "src/lib/profileInsights.ts": 1,
+      // profileInsights.ts (buildProfileReviewPattern) was the fourth call
+      // site until it was deleted as a UI-unused orphan — ConfidenceGauge's
+      // sibling orphan, both swept in the same final fix wave.
     };
 
     for (const [file, expectedCount] of Object.entries(expectedCallSites)) {

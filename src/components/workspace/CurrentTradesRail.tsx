@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { deriveTradeState, type TradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 
 export type CurrentTradesRailProps = {
+  // True exactly when this rail is the active mobile sub-view (spec §3's
+  // "Trades" tab, i.e. AdvisorWorkspace's mobileView === "trades").
+  // Irrelevant at >=lg, where the rail is always visible regardless of
+  // mobileView. Used solely to re-stamp lastRefreshedAt the moment this
+  // surface is newly shown on mobile (I2) — App.tsx's own force-refresh
+  // effect is what actually re-fetches the data this rail renders; this
+  // only keeps the "as of" display honest about when that last happened.
+  isActiveOnMobile: boolean;
   // The rail's own clock for computing state/age at render time — passed in
   // (AdvisorWorkspace's existing 60s clockNow tick) rather than started
   // here, so this component adds no timer of its own.
@@ -74,8 +82,7 @@ export function formatAsOf(date: Date): string {
 // The remaining ladder levels still relevant to watch, mono in the card
 // (spec §8). A level drops off once it's behind the trade: Entry once
 // filled, Target 1 once its bank-half instruction has already fired
-// (state.eventAge is only ever set in that one substate — see
-// tradeState.ts's TP1-hit branch).
+// (state.tp1Banked — see tradeState.ts's TP1-hit branch).
 export function buildRemainingLevels(
   setup: TradeSetupRow,
   state: TradeState,
@@ -90,8 +97,7 @@ export function buildRemainingLevels(
 
   const hasLadder = Number.isFinite(Number(setup.take_profit_1)) &&
     Number(setup.take_profit_1) > 0;
-  const target1AlreadyBanked = state.eventAge !== undefined;
-  if (hasLadder && !target1AlreadyBanked) {
+  if (hasLadder && !state.tp1Banked) {
     levels.push({
       label: "Target 1",
       value: formatLevel(setup.take_profit_1),
@@ -112,7 +118,7 @@ function formatLevel(value: number | string | null | undefined): string {
 }
 
 export function CurrentTradesRail(
-  { now, onRefresh, setups }: CurrentTradesRailProps,
+  { isActiveOnMobile, now, onRefresh, setups }: CurrentTradesRailProps,
 ) {
   // Captured once per mount, not re-derived from the ticking `now` prop:
   // AdvisorWorkspace (and this rail with it) fully unmounts and remounts on
@@ -121,6 +127,22 @@ export function CurrentTradesRail(
   // App.tsx already triggers on tab activation.
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => now);
   const cards = buildTradeCards(setups, now);
+
+  // I2: on mobile, switching the bottom tab bar to Trades never remounts
+  // this component (deskColumnClassName's whole point is a CSS-only toggle
+  // that preserves AdvisorWorkspace's state across Review/Scan/Trades), so
+  // the mount-time baseline above never re-fires for that transition on its
+  // own. App.tsx pairs this with its own effect that actually re-fetches
+  // outcome data the moment mobileView becomes "trades" — this only keeps
+  // the "as of" stamp from silently going stale relative to that real
+  // refresh. Guarded to the true (became-visible) transition only: flipping
+  // away sets nothing, so leaving and returning still reads as a fresh show
+  // rather than a stale one.
+  useEffect(() => {
+    if (isActiveOnMobile) {
+      setLastRefreshedAt(new Date());
+    }
+  }, [isActiveOnMobile]);
 
   function handleRefresh() {
     setLastRefreshedAt(new Date());

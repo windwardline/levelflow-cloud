@@ -158,6 +158,33 @@ describe("MarketScanPanel row wiring (source-pinned — see header comment)", ()
     assert.match(source, /formatScanRowMeta\(/);
     assert.doesNotMatch(source, /\$\{candidate\.side\}\s*limit/);
   });
+
+  // m2: spec §2's universal scrollbar treatment applies to every scrollable
+  // column, the scan rail's own results list included.
+  it("gives the results list the .scrolly thin-scrollbar treatment (m2)", () => {
+    const source = readFileSync(
+      "src/components/workspace/MarketScanPanel.tsx",
+      "utf8",
+    );
+    assert.match(
+      source,
+      /className="scrolly grid max-h-\[640px\] gap-3 overflow-y-auto pr-1"/,
+    );
+  });
+
+  // m3: spec §5's rail has no band filter, and letting one hide rows made
+  // the visible list disagree with the server-truth scanned/qualified count
+  // line — the legacy Quality filter (and its confidence-banding state) is
+  // fully retired, not just hidden.
+  it("no longer offers a Quality band filter (m3)", () => {
+    const source = readFileSync(
+      "src/components/workspace/MarketScanPanel.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(source, /\bQuality\b/);
+    assert.doesNotMatch(source, /CONFIDENCE_BANDS/);
+    assert.doesNotMatch(source, /confidenceBand/i);
+  });
 });
 
 describe("AdvisorRecommendationPanel wiring (source-pinned — see header comment)", () => {
@@ -183,6 +210,21 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     // The lucide Clipboard icon powered only that button; navigator's own
     // lowercase `clipboard` API is unrelated and stays.
     assert.doesNotMatch(source, /\bClipboard\b/);
+  });
+
+  // m1: the ✓ must be success-conditional, not a synchronous UI flip
+  // independent of whether the clipboard write actually resolved.
+  it("only flips a field's copy state on a resolved navigator.clipboard.writeText, never unconditionally (m1)", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    const handleCopyBlock = source.match(
+      /async function handleCopy\([\s\S]*?\n  \}/,
+    )?.[0] ?? "";
+    assert.match(handleCopyBlock, /await navigator\.clipboard\.writeText\(value\);/);
+    assert.match(handleCopyBlock, /catch \{\s*return;\s*\}/);
+    assert.doesNotMatch(source, /void navigator\.clipboard\?\.writeText/);
   });
 
   it('labels the ladder rows exactly "Target 1 · bank half" and "Target 2 · take-profit" (spec §7)', () => {
@@ -213,7 +255,10 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
   // live navigator.clipboard to mock and no click to dispatch; this pins
   // the one writeText call site to a bare `value` argument, pins each
   // row's onCopy to formatCopyValue specifically, and confirms
-  // formatNumber never leaks into a handleCopy(...) call.
+  // formatNumber never leaks into a handleCopy(...) call. m1 dropped the
+  // optional-chained `navigator.clipboard?.writeText` for an explicit
+  // `if (!navigator.clipboard) return;` guard ahead of an awaited call, so
+  // the ✓ can be made conditional on the write's own resolution.
   it("copies each value through formatCopyValue, never formatNumber, via a single writeText(value) call site", () => {
     const source = readFileSync(
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
@@ -224,10 +269,10 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
       /import \{ formatCopyValue, formatNumber, formatTimestamp \} from "\.\/advisorFormat";/,
     );
     const writeTextCalls =
-      source.match(/navigator\.clipboard\?\.writeText\([^)]*\)/g) ?? [];
+      source.match(/navigator\.clipboard\.writeText\([^)]*\)/g) ?? [];
     assert.deepEqual(
       writeTextCalls,
-      ["navigator.clipboard?.writeText(value)"],
+      ["navigator.clipboard.writeText(value)"],
       "expected exactly one clipboard write site, taking the bare handler parameter",
     );
     assert.match(

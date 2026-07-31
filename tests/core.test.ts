@@ -9,7 +9,6 @@ import {
   getConfidenceTier,
 } from "../src/lib/confidenceTiers";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
-import { buildProfileReviewPattern } from "../src/lib/profileInsights";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -30,7 +29,6 @@ import {
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   coerceToSupportedUsTimeZone,
-  formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
   US_TIME_ZONE_GROUPS,
   US_TIME_ZONE_OPTIONS,
@@ -265,6 +263,34 @@ describe("trade analyzer category handling", () => {
     );
     assert.equal(upsertSource.includes('? "review"'), true);
     assert.equal(upsertSource.includes("origin: nextOrigin,"), true);
+  });
+
+  it("never lets a scan touch a live (placed) position — C2", () => {
+    // Same Deno-only reachability note as above: pin the guard in the real
+    // source rather than exercising the DB round trip.
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const upsertStart = source.indexOf("async function upsertActiveSetup");
+    const upsertEnd = source.indexOf(
+      "async function invalidateActiveSetupsForSymbol",
+    );
+    const upsertSource = source.slice(upsertStart, upsertEnd);
+
+    // A scan is advisory background research, never an authority over a
+    // position that's already filled and live — it must neither rewrite it
+    // (the same-side UPDATE branch) nor erase it (the opposite-side
+    // invalidateActiveSetupsForSymbol call), so the guard has to run before
+    // both, immediately after activeSetup is fetched.
+    const guardIndex = upsertSource.indexOf('origin === "scan"');
+    const sameSideIndex = upsertSource.indexOf(
+      "activeSetup.side === setup.side",
+    );
+    assert.notEqual(guardIndex, -1);
+    assert.notEqual(sameSideIndex, -1);
+    assert.equal(guardIndex < sameSideIndex, true);
+    assert.match(upsertSource, /activeSetup\.status === "placed"/);
   });
 
   it("scopes global learning weights to review-origin outcomes only", () => {
@@ -518,10 +544,12 @@ describe("confidence tiers", () => {
   it("wires the class threshold into every formatConfidenceWithTier call site", () => {
     for (
       const file of [
-        "src/components/workspace/AdvisorStatusPanels.tsx",
         // Insights recomposition (spec §10) folded the old HistorySetupCard
         // into a day-grouped table; its confidence-formatting call site
-        // moved to historyUtils.ts's formatSetupConfidence.
+        // moved to historyUtils.ts's formatSetupConfidence. AdvisorStatusPanels.tsx
+        // (the old MarketResultsPanel) dropped out of this list when I7
+        // retired that panel — DeskStatusStrip and MarketClockPanel, all
+        // that remains there, never format a confidence score.
         "src/components/workspace/historyUtils.ts",
         "src/components/workspace/MarketScanPanel.tsx",
       ]
@@ -593,39 +621,45 @@ describe("profile preferences", () => {
   });
 
   it("groups U.S. time zones by Daylight Saving Time observance", () => {
+    // Keyed on each option's IANA zone id, not a formatted label:
+    // formatUsTimeZoneOptionLabel was Profile's old timezone-picker
+    // formatter, removed as an orphan once Profile consolidated to spec
+    // §11's read-only column (no timezone editing UI left to feed).
+    // US_TIME_ZONE_GROUPS/US_TIME_ZONE_OPTIONS themselves stay — this pins
+    // their grouping, independent of any one consumer's formatting needs.
     assert.deepEqual(
       US_TIME_ZONE_GROUPS.map((group) => ({
         label: group.label,
-        options: group.options.map(formatUsTimeZoneOptionLabel),
+        options: group.options.map((option) => option.value),
       })),
       [
         {
           label: "Observes Daylight Saving Time",
           options: [
-            "Eastern Time - EDT/EST",
-            "Central Time - CDT/CST",
-            "Mountain Time - MDT/MST",
-            "Pacific Time - PDT/PST",
-            "Alaska Time - AKDT/AKST",
-            "Aleutian Time - HADT/HAST",
+            "America/New_York",
+            "America/Chicago",
+            "America/Denver",
+            "America/Los_Angeles",
+            "America/Anchorage",
+            "America/Adak",
           ],
         },
         {
           label: "Standard Time Year-Round",
           options: [
-            "Atlantic Time - AST",
-            "Arizona Time - MST",
-            "Hawaii Time - HST",
-            "Samoa Time - SST",
-            "Chamorro Time - ChST",
+            "America/Puerto_Rico",
+            "America/Phoenix",
+            "Pacific/Honolulu",
+            "Pacific/Pago_Pago",
+            "Pacific/Guam",
           ],
         },
       ],
     );
     assert.deepEqual(
-      US_TIME_ZONE_OPTIONS.map(formatUsTimeZoneOptionLabel),
+      US_TIME_ZONE_OPTIONS.map((option) => option.value),
       US_TIME_ZONE_GROUPS.flatMap((group) =>
-        group.options.map(formatUsTimeZoneOptionLabel)
+        group.options.map((option) => option.value)
       ),
     );
   });
@@ -939,91 +973,6 @@ function makeHistorySetup({
   };
 }
 
-describe("profile insights", () => {
-  it("summarizes the user's most reviewed markets without changing asset sort rules", () => {
-    const setups = [
-      buildTradeSetup({
-        created_at: "2026-06-20T12:00:00.000Z",
-        id: "1",
-        outcome: "take_profit",
-        symbol: "EURUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-21T12:00:00.000Z",
-        id: "2",
-        outcome: "stop_loss",
-        symbol: "EURUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-22T12:00:00.000Z",
-        id: "3",
-        outcome: "pending",
-        symbol: "BTCUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-23T12:00:00.000Z",
-        id: "4",
-        outcome: "take_profit",
-        symbol: "AUDUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-24T12:00:00.000Z",
-        id: "5",
-        outcome: "pending",
-        symbol: "AUDUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-25T12:00:00.000Z",
-        id: "6",
-        outcome: "pending",
-        symbol: "XAUUSD",
-      }),
-    ];
-
-    assert.deepEqual(
-      buildProfileReviewPattern(setups).map((item) => ({
-        count: item.count,
-        symbol: item.symbol,
-        winRate: item.winRate,
-      })),
-      [
-        { count: 2, symbol: "AUDUSD", winRate: 100 },
-        { count: 2, symbol: "EURUSD", winRate: 50 },
-        { count: 1, symbol: "BTCUSD", winRate: null },
-      ],
-    );
-  });
-
-  // Fix round 2: buildProfileReviewPattern used to check only
-  // "target_reached"/"stopped_out" directly, silently excluding a
-  // banked-half (tp1_partial) finish from both buckets. Now routed through
-  // classifyWinLoss (lib/outcomes.ts), the same helper the Insights
-  // ledger's record band uses, so Profile's win rate can't disagree with
-  // the ledger on the same trade.
-  it("counts a banked-half (tp1_partial) finish as a win, matching classifyWinLoss's app-wide semantics", () => {
-    const setups = [
-      buildTradeSetup({
-        created_at: "2026-06-20T12:00:00.000Z",
-        id: "1",
-        outcome: "tp1_partial",
-        symbol: "EURUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-21T12:00:00.000Z",
-        id: "2",
-        outcome: "stop_loss",
-        symbol: "EURUSD",
-      }),
-    ];
-
-    const [item] = buildProfileReviewPattern(setups);
-    assert.equal(item?.symbol, "EURUSD");
-    assert.equal(item?.wins, 1);
-    assert.equal(item?.losses, 1);
-    assert.equal(item?.winRate, 50);
-  });
-});
-
 describe("database schema", () => {
   it("uses provider-neutral market symbol naming in the current baseline schema", () => {
     const initSql = readFileSync("supabase/init.sql", "utf8");
@@ -1051,36 +1000,6 @@ describe("database schema", () => {
     );
   });
 });
-
-function buildTradeSetup({
-  created_at,
-  id,
-  outcome,
-  symbol,
-}: {
-  created_at: string;
-  id: string;
-  outcome: string;
-  symbol: string;
-}): TradeSetupRow {
-  return {
-    analyzer_version: "test",
-    breakeven_trigger_price: 1.02,
-    confidence_score: 80,
-    confluence: {},
-    correlation_group: null,
-    created_at,
-    id,
-    limit_entry: 1,
-    risk_model: {},
-    side: "buy",
-    status: "generated",
-    stop_loss: 0.98,
-    symbol,
-    take_profit: 1.04,
-    trade_outcomes: [{ outcome, realized_pnl: null }],
-  };
-}
 
 function buildSetup({
   outcome,

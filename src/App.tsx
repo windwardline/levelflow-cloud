@@ -158,7 +158,15 @@ export default function App() {
 
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
-    openAdvisor: (symbol) => { setAdvisorRequest({ symbol, token: Date.now() }); setActiveTab("advisor"); },
+    // I3: also lands mobile on the "review" sub-view — without this, a jump
+    // here (e.g. Insights' "Open X in Advisor" row button) could leave a
+    // mobile user staring at whichever Desk sub-tab (Scan/Trades) happened
+    // to be selected before, instead of the market they just asked to see.
+    openAdvisor: (symbol) => {
+      setAdvisorRequest({ symbol, token: Date.now() });
+      setActiveTab("advisor");
+      setDeskMobileView("review");
+    },
     openInsights: (symbol) => { setInsightsSymbol(symbol ?? null); setActiveTab("history"); },
   }), []);
   const setupState = useTradeSetups();
@@ -182,6 +190,24 @@ export default function App() {
       refreshSetups({ forceOutcomeRefresh: true });
     }
   }, [activeTab, session, refreshSetups]);
+
+  // I2: the mobile Trades sub-tab is a CSS-only toggle within the same
+  // "advisor" AppTab (AdvisorWorkspace's deskColumnClassName), never an
+  // AdvisorWorkspace remount, so the effect above — keyed only on
+  // activeTab — never re-fires when a mobile user simply switches which
+  // Desk column is showing. Without this, tapping into Trades on mobile
+  // could show outcome state up to 60s stale despite spec §8's "every time
+  // the surface is shown". Scoped to the "trades" transition specifically,
+  // not every Review<->Scan swap (neither has outcome state to go stale) —
+  // a separate effect rather than folding deskMobileView into the one
+  // above, so this doesn't also start re-firing on every sub-tab switch.
+  // No loop risk: this only re-runs when deskMobileView's own value
+  // actually changes, and calling refreshSetups never itself touches it.
+  useEffect(() => {
+    if (session && activeTab === "advisor" && deskMobileView === "trades") {
+      refreshSetups({ forceOutcomeRefresh: true });
+    }
+  }, [activeTab, deskMobileView, session, refreshSetups]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !PERSISTED_TABS.has(activeTab)) {
@@ -252,7 +278,10 @@ export default function App() {
                 row below, which stay exactly as they've always been, just
                 gated to ≥lg via lg:contents so hiding them at <lg can't
                 touch their own layout at ≥lg. */}
-            <div className="flex min-w-0 items-center justify-between gap-3 lg:hidden">
+            <div
+              className="flex min-w-0 items-center justify-between gap-3 lg:hidden"
+              data-testid="mobile-header"
+            >
               <p className="wordmark min-w-0 truncate text-lg text-ink">
                 Levelflow
               </p>
@@ -268,7 +297,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="hidden lg:contents">
+            <div className="hidden lg:contents" data-testid="desktop-header">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="min-w-0">
                   <p className="wordmark text-lg text-ink">Levelflow</p>
@@ -337,6 +366,7 @@ export default function App() {
             <AdvisorWorkspace
               mobileView={deskMobileView}
               onForceOutcomeRefresh={() => refreshSetups({ forceOutcomeRefresh: true })}
+              onMobileViewChange={setDeskMobileView}
               onOpenRequestHandled={clearAdvisorRequest}
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}

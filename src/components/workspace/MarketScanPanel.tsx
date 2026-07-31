@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Filter,
   Loader2,
@@ -13,12 +13,7 @@ import {
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
-import {
-  CONFIDENCE_TIERS,
-  type ConfidenceTierId,
-  formatConfidenceTierRange,
-  formatConfidenceWithTier,
-} from "../../lib/confidenceTiers";
+import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import type {
   MarketScanCandidate,
   MarketScanResponse,
@@ -27,13 +22,12 @@ import { formatNumber } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import {
   filterMarketScanCandidatesByScope,
+  filterSymbolsByAvailability,
   formatScanRowMeta,
   getMarketScanSymbolsForScope,
 } from "./marketScanFilters";
 import { describeExecutionLabel } from "./reviewCopy";
 import { formatScopeCountLine, ScopeMenu, type ScanScope } from "./ScopeMenu";
-
-type ConfidenceBand = "all" | ConfidenceTierId;
 
 type MarketScanPanelProps = {
   onResetResult: () => void;
@@ -53,17 +47,6 @@ type MarketScanPanelProps = {
   status: "idle" | "scanning";
 };
 
-const CONFIDENCE_BANDS: Array<
-  { label: string; min: number; value: ConfidenceBand }
-> = [
-  { label: "All tiers", min: 0, value: "all" },
-  ...[...CONFIDENCE_TIERS].reverse().map((tier) => ({
-    label: `${tier.label} (${formatConfidenceTierRange(tier)}%)`,
-    min: tier.min,
-    value: tier.id,
-  })),
-];
-
 export function MarketScanPanel({
   onResetResult,
   onScan,
@@ -74,22 +57,18 @@ export function MarketScanPanel({
   status,
 }: MarketScanPanelProps) {
   const [scope, setScope] = useState<ScanScope>({ kind: "all" });
-  const [confidenceBand, setConfidenceBand] = useState<ConfidenceBand>("all");
-  const selectedBand =
-    CONFIDENCE_BANDS.find((band) => band.value === confidenceBand) ??
-      CONFIDENCE_BANDS[0];
-  const scanSymbols = useMemo(
-    () => getMarketScanSymbolsForScope(scope),
-    [scope],
-  );
-  const filteredOpportunities = useMemo(
-    () =>
-      filterMarketScanCandidatesByScope(
-        result?.opportunities ?? [],
-        scope,
-        selectedBand.min,
-      ),
-    [scope, result?.opportunities, selectedBand.min],
+  const scanSymbols = getMarketScanSymbolsForScope(scope);
+  // I5: never sent straight to the server - a closed market has no chance
+  // of qualifying and would only inflate the server's `scanned` count with
+  // markets that were never really attempted. Computed fresh on every
+  // render rather than memoized (same reasoning as ScopeMenu.tsx's own
+  // clock: a `new Date()` dependency would defeat a memo anyway) so a scan
+  // fired right on a market's open/close boundary still sees the current
+  // answer.
+  const openScanSymbols = filterSymbolsByAvailability(scanSymbols, new Date());
+  const filteredOpportunities = filterMarketScanCandidatesByScope(
+    result?.opportunities ?? [],
+    scope,
   );
   const emptyMessage = result?.failed
     ? "Market scan could not complete. Try again shortly."
@@ -109,9 +88,8 @@ export function MarketScanPanel({
         <button
           className="secondary-button min-h-10 px-3 py-2"
           type="button"
-          onClick={() => onScan(scope.kind === "all" ? [] : scanSymbols)}
-          disabled={status === "scanning" ||
-            (scope.kind !== "all" && scanSymbols.length === 0)}
+          onClick={() => onScan(openScanSymbols)}
+          disabled={status === "scanning" || openScanSymbols.length === 0}
         >
           {status === "scanning"
             ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -121,37 +99,20 @@ export function MarketScanPanel({
       </div>
 
       <div className="mb-4 grid gap-2">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <ScopeMenu
-            label="Scan scope"
-            value={scope}
-            onSelect={(nextScope) => {
-              setScope(nextScope);
-              // The engine never runs without an explicit Scan click.
-              // Changing scope clears the previous result so stale counts
-              // can never describe a different symbol set.
-              onResetResult();
-              if (nextScope.kind === "symbol") {
-                onSelectSymbol(nextScope.symbol);
-              }
-            }}
-          />
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            Quality
-            <select
-              className="field h-10 text-sm normal-case"
-              value={confidenceBand}
-              onChange={(event) =>
-                setConfidenceBand(event.target.value as ConfidenceBand)}
-            >
-              {CONFIDENCE_BANDS.map((band) => (
-                <option key={band.value} value={band.value}>
-                  {band.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <ScopeMenu
+          label="Scan scope"
+          value={scope}
+          onSelect={(nextScope) => {
+            setScope(nextScope);
+            // The engine never runs without an explicit Scan click.
+            // Changing scope clears the previous result so stale counts
+            // can never describe a different symbol set.
+            onResetResult();
+            if (nextScope.kind === "symbol") {
+              onSelectSymbol(nextScope.symbol);
+            }
+          }}
+        />
 
         <div className="rounded-lg border border-hairline bg-paper px-3 py-3">
           <p className="text-xs leading-5 text-ink-muted">
@@ -181,7 +142,7 @@ export function MarketScanPanel({
 
       {filteredOpportunities.length > 0
         ? (
-          <div className="grid max-h-[640px] gap-3 overflow-y-auto pr-1">
+          <div className="scrolly grid max-h-[640px] gap-3 overflow-y-auto pr-1">
             {filteredOpportunities.map((candidate, index) => (
               <MarketScanRow
                 key={candidate.symbol}

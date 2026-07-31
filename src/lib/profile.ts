@@ -163,16 +163,6 @@ const US_TIME_ZONE_ALIASES: Record<string, string> = {
   "Pacific/Saipan": "Pacific/Guam",
 };
 
-export const PREFERRED_SESSION_OPTIONS: Array<
-  { label: string; value: PreferredSession }
-> = [
-  { label: "No preference", value: "any" },
-  { label: "Asia", value: "asia" },
-  { label: "Europe", value: "europe" },
-  { label: "North America", value: "north_america" },
-  { label: "Australia", value: "australia" },
-];
-
 export function buildDefaultProfile(id: string, email: string): UserProfile {
   return {
     defaultTimeframe: "1hour",
@@ -210,13 +200,6 @@ export function getUsTimeZoneOption(value: string | null | undefined) {
   const timezone = coerceToSupportedUsTimeZone(value);
   return US_TIME_ZONE_OPTIONS.find((option) => option.value === timezone) ??
     US_TIME_ZONE_OPTIONS[0];
-}
-
-export function formatUsTimeZoneOptionLabel(option: UsTimeZoneOption) {
-  const suffix = option.group === "adjusts"
-    ? `${option.daylightLabel}/${option.standardLabel}`
-    : option.standardLabel;
-  return `${option.label} - ${suffix}`;
 }
 
 export function getTimeZoneAbbreviation(timeZone: string, date = new Date()) {

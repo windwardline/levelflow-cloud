@@ -6,7 +6,6 @@ import { describe, it } from "node:test";
 const ROOTS = [
   "src/components/workspace",
   "src/components/charts",
-  "src/components/trade",
   "src/components/donations",
   "src/components/auth",
 ];

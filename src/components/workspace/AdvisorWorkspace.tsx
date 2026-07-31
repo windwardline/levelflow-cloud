@@ -9,13 +9,7 @@ import {
 } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
-import {
-  DataHealthPanel,
-  DeskStatusStrip,
-  MarketClockPanel,
-  MarketResultsPanel,
-  RecentSetupsPanel,
-} from "./AdvisorStatusPanels";
+import { DeskStatusStrip, MarketClockPanel } from "./AdvisorStatusPanels";
 import {
   formatPrice,
   formatTimeframe,
@@ -25,8 +19,8 @@ import {
 import { CurrentTradesRail } from "./CurrentTradesRail";
 import { MarketScanPanel } from "./MarketScanPanel";
 import { ScopeMenu } from "./ScopeMenu";
-import { VolatilityWindowPanel } from "./VolatilityWindowPanel";
 import type { SecurityStat } from "../../hooks/useTradeSetups";
+import { formatReopen, marketAvailability } from "../../lib/marketHours";
 import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import {
   type ChartTimeframe,
@@ -64,20 +58,31 @@ import {
 export type DeskMobileView = "review" | "scan" | "trades";
 
 // Desktop (≥lg) is frozen: every column must go on rendering exactly as it
-// always has, so `lg:${display}` is unconditional here regardless of which
-// mobile tab is active — only the base (sub-lg) utility ever changes. Below
-// lg, exactly one column is ever visible at a time, matching the mobile tab
+// always has, so lg:block/lg:flex apply unconditionally here regardless of
+// which mobile tab is active — only the base (sub-lg) utility ever changes.
+// Literal per-branch strings below, never the variant prefix and the
+// utility split apart by a template-literal interpolation (C1): Tailwind
+// v4's build-time scanner greps source text for complete,
+// statically-analyzable class tokens, and a class name assembled that way
+// never appears as a real "lg:block" or "lg:flex" substring anywhere in the
+// source — so .lg\:block/.lg\:flex were never generated into the built CSS
+// at all (confirmed absent from dist), and every column this helper gates
+// was silently display:none at every width, rail included. Below lg,
+// exactly one column is ever visible at a time, matching the mobile tab
 // bar's own selection (spec §3); the CSS-only toggle (rather than
-// conditionally mounting/unmounting the three columns) is what lets Review,
-// Scan, and Trades share one AdvisorWorkspace instance and its state
-// (symbol, scanResult, clockNow…) instead of remounting and losing it on
-// every tab switch.
+// conditionally mounting/unmounting the three columns) is what lets
+// Review, Scan, and Trades share one AdvisorWorkspace instance and its
+// state (symbol, scanResult, clockNow…) instead of remounting and losing
+// it on every tab switch.
 export function deskColumnClassName(
   isActiveOnMobile: boolean,
   display: "block" | "flex",
   className: string,
 ): string {
-  return `${isActiveOnMobile ? display : "hidden"} lg:${display} ${className}`;
+  const gating = display === "block"
+    ? (isActiveOnMobile ? "block lg:block" : "hidden lg:block")
+    : (isActiveOnMobile ? "flex lg:flex" : "hidden lg:flex");
+  return `${gating} ${className}`;
 }
 
 type AdvisorWorkspaceProps = {
@@ -89,6 +94,11 @@ type AdvisorWorkspaceProps = {
   // Desk-tab activation there and to CurrentTradesRail's own manual refresh
   // here — the rail never grows fetch machinery of its own (spec §8).
   onForceOutcomeRefresh: () => void;
+  // App.tsx's setDeskMobileView, threaded down so an in-workspace action can
+  // switch which mobile sub-view is showing (I3) — today that's selecting a
+  // scan candidate, which should land the user on "review" to actually see
+  // it, the same way App.tsx's own openAdvisor nav action does.
+  onMobileViewChange: (view: DeskMobileView) => void;
   // Called once the effect below has applied openRequest, so the caller
   // (App) can clear it. AdvisorWorkspace unmounts whenever its tab isn't
   // active, so without this the same request would still be sitting there
@@ -115,6 +125,7 @@ export function AdvisorWorkspace(
   {
     mobileView,
     onForceOutcomeRefresh,
+    onMobileViewChange,
     onOpenRequestHandled,
     onSetupsChanged,
     openRequest,
@@ -234,8 +245,21 @@ export function AdvisorWorkspace(
       } catch {
         if (!cancelled) {
           setMarketData(null);
+          // I4/spec §10b: a closed market's own quiet reopen notice replaces
+          // the generic chart error — `symbol` (not the outer `selectedAsset`)
+          // is read directly here since it's already an effect dependency,
+          // so this needs no extra one to stay lint-clean.
+          const availability = marketAvailability(
+            getSecurityOption(symbol).assetType,
+            symbol,
+            new Date(),
+          );
           setMarketNotice(
-            "Verified market data is not available for this market yet.",
+            availability.open
+              ? "Verified market data is not available for this market yet."
+              : `Closed · opens ${
+                formatReopen(availability.opensAt, new Date())
+              }.`,
           );
         }
       } finally {
@@ -380,6 +404,11 @@ export function AdvisorWorkspace(
           onScan={scanMarkets}
           onSelectCandidate={(candidate) => {
             selectSymbolForReview(candidate.symbol);
+            // I3: tapping a scan row is a decisive "go look at this" action
+            // (unlike scoping the scan itself), so on mobile it also jumps
+            // to the review column — otherwise the user stays parked on
+            // "Scan" and never sees what selecting the row actually did.
+            onMobileViewChange("review");
             if (candidate.setup) {
               setAnalysisState({
                 requestedAt: Date.now(),
@@ -557,36 +586,6 @@ export function AdvisorWorkspace(
             symbol={symbol}
           />
         </section>
-
-        {/* Task 7 relocates these four panels here from the right rail,
-            which CurrentTradesRail (spec §8) now owns exclusively. The
-            brief is silent on their new destination, so they land as
-            secondary stacked panels below the stage's own content instead
-            of being dropped — same shrink-0 wrapper reasoning as above,
-            since none of them accept a className. */}
-        <div className="shrink-0">
-          <DataHealthPanel
-            activeMarketCount={activeMarketCount}
-            data={marketData}
-            loading={marketLoading}
-            notice={marketNotice}
-          />
-        </div>
-
-        <div className="shrink-0">
-          <VolatilityWindowPanel
-            symbol={symbol}
-            timezone={profile.defaultTimezone}
-          />
-        </div>
-
-        <div className="shrink-0">
-          <RecentSetupsPanel setups={setups} />
-        </div>
-
-        <div className="shrink-0">
-          <MarketResultsPanel stat={symbolStat} symbol={symbol} />
-        </div>
       </div>
 
       {/* Right rail: Current trades (spec §8) — live pending/open state,
@@ -604,6 +603,7 @@ export function AdvisorWorkspace(
       >
         <div className="shrink-0">
           <CurrentTradesRail
+            isActiveOnMobile={mobileView === "trades"}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
             setups={setups}

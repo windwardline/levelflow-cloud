@@ -58,8 +58,18 @@ export function RecommendationPanel({
     };
   }, []);
 
-  function handleCopy(field: string, value: string) {
-    void navigator.clipboard?.writeText(value);
+  // m1: the ✓ is now success-conditional — it only appears once the write
+  // actually resolves, never on a rejected/unavailable clipboard, so it
+  // can't silently claim a copy that didn't happen.
+  async function handleCopy(field: string, value: string) {
+    if (!navigator.clipboard) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      return;
+    }
     if (copyResetRef.current !== null) {
       window.clearTimeout(copyResetRef.current);
     }

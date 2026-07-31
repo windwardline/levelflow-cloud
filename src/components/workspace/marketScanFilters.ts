@@ -1,6 +1,8 @@
+import { marketAvailability } from "../../lib/marketHours";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
+  getSecurityOption,
   normalizeSymbol,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
@@ -31,15 +33,38 @@ export function getMarketScanSymbolsForScope(
 // candidates already match the current scope by construction. This still
 // guards the case where scope changes while a scan is in flight and an
 // earlier request's response lands after a narrower scope is selected.
+// m3: no longer also filters by a minimum-confidence band — the rail's
+// legacy Quality filter is retired (spec §5 has none), since letting a
+// client-side band hide rows made the visible list disagree with the
+// server-truth scanned/qualified count line.
 export function filterMarketScanCandidatesByScope(
   candidates: MarketScanCandidate[],
   scope: ScanScope,
-  minimumConfidence: number,
 ) {
-  return candidates.filter((candidate) =>
-    matchesScanScope(candidate, scope) &&
-    (candidate.confidenceScore ?? 0) >= minimumConfidence
-  );
+  return candidates.filter((candidate) => matchesScanScope(candidate, scope));
+}
+
+// I5: the scan must never ask the server to attempt a market that's
+// currently closed - the engine has no calendar awareness of its own on
+// this path (marketHours.ts is a client-only module), so skipping closed
+// markets is entirely this filter's job, applied uniformly to every scope
+// including "all". "All" used to send an empty symbol list and let the
+// server fall back to its own curated default universe
+// (supabase/functions/trade-analyzer/symbols.ts's defaultScanSymbols) -
+// that curation already excludes the same no-trade/temporarily-unavailable
+// symbols AVAILABLE_ASSET_OPTIONS does client-side, so resolving "all" to
+// that same explicit list and filtering it here loses nothing while
+// finally letting closed markets drop out of it too. The server's own
+// `scanned` count (normalizedSymbols.length) then reflects exactly this
+// list's length - only markets actually attempted.
+export function filterSymbolsByAvailability(
+  symbols: SupportedSymbol[],
+  now: Date,
+): SupportedSymbol[] {
+  return symbols.filter((symbol) => {
+    const { assetType } = getSecurityOption(symbol);
+    return marketAvailability(assetType, symbol, now).open;
+  });
 }
 
 function matchesScanScope(

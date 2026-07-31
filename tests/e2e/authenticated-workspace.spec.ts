@@ -68,7 +68,13 @@ function expectedScopeMenuLabels(): string[] {
 test("authenticated workspace leads with the Levelflow wordmark, not the Windward Line brand", async ({ page }) => {
   await page.goto("/");
 
-  const header = page.locator("header");
+  // App.tsx mounts both the mobile (lg:hidden) and desktop (hidden
+  // lg:contents) headers at every viewport width — only CSS decides which
+  // one is actually visible, and getByText does not filter on that. This
+  // test runs at Playwright's default desktop viewport, so it scopes to
+  // the desktop-header block specifically rather than tripping a
+  // strict-mode violation against both wordmarks.
+  const header = page.getByTestId("desktop-header");
   await expect(header.getByText("Levelflow", { exact: true })).toBeVisible();
   await expect(header.getByText("Windward Line")).toHaveCount(0);
 
@@ -94,8 +100,14 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   // so an unscoped "nav button" query would double-count its Review/Scan/
   // Trades/Insights buttons alongside this one's Desk/Insights/Guide/
   // Profile.
-  const navLabels = await page
-    .locator('nav[aria-label="Levelflow sections"] button')
+  const nav = page.locator('nav[aria-label="Levelflow sections"]');
+  // evaluateAll reads the DOM once, with no auto-retry — awaiting a real
+  // button's visibility first means this can't race the auth-loading
+  // panel (App.tsx renders no <nav> at all while `loading` is true).
+  await expect(nav.getByRole("button", { name: "Desk", exact: true }))
+    .toBeVisible();
+  const navLabels = await nav
+    .locator("button")
     .evaluateAll((buttons) => buttons.map((button) => button.textContent?.trim()));
   expect(navLabels).toEqual(["Desk", "Insights", "Guide", "Profile"]);
   await expect(page.getByRole("button", { name: "About" })).toHaveCount(0);
@@ -128,7 +140,7 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   ).toBeVisible();
 });
 
-test("market scan exposes the scope menu, quality filter, and rationale-ready surface", async ({ page }) => {
+test("market scan exposes the scope menu and rationale-ready surface", async ({ page }) => {
   await page.goto("/");
 
   await expect(
@@ -137,7 +149,9 @@ test("market scan exposes the scope menu, quality filter, and rationale-ready su
   const scopeMenuButton = page.getByRole("button", { name: "Scan scope" });
   await expect(scopeMenuButton).toBeVisible();
   await expect(scopeMenuButton).toContainText("All markets");
-  await expect(page.getByLabel("Quality")).toHaveValue("all");
+  // m3 retired the legacy Quality band filter (spec §5's rail has none) and
+  // I7 retired the stacked VolatilityWindowPanel ("Timing edge"/"Best time
+  // window") below the stage — neither exists to check for anymore.
   await expect(
     page.getByText(
       "Scan shows the strongest qualifying setup among closely linked markets.",
@@ -145,10 +159,6 @@ test("market scan exposes the scope menu, quality filter, and rationale-ready su
   ).toBeVisible();
   await expect(page.getByText("Clean", { exact: true })).toBeVisible();
   await expect(page.getByText("Poor", { exact: true })).toBeVisible();
-  await expect(page.getByText("Timing edge")).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Best time window" }),
-  ).toBeVisible();
 });
 
 test("a How this works link opens the Guide at the section it names", async ({ page }) => {
@@ -219,6 +229,15 @@ test("a receipt How this works link lands on the Guide's record section", async 
 
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   test.setTimeout(60_000);
+  // Forex trades Sunday evening through Friday evening (America/New_York) —
+  // outside that window (or in a genuine provider gap), a 1-minute EURUSD
+  // fetch can legitimately return zero fresh candles. Same honest-skip
+  // pattern as the closed-market scope-menu test below, rather than pinning
+  // this to live market conditions.
+  test.skip(
+    !marketAvailability("Forex", "EURUSD", new Date()).open,
+    "Forex is closed right now, so there is no fresh one-minute data to check.",
+  );
 
   const client = createClient(supabaseUrl!, supabaseKey!, {
     auth: {
@@ -250,7 +269,16 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.getByText(/candles loaded/i)).toBeVisible({
+  // .first() is deliberate, not incidental: before I7 retired the stacked
+  // status panels below the stage, AdvisorStatusPanels' DataHealthPanel
+  // duplicated this exact phrase (both its own "N candles loaded" notice
+  // and, separately, a bare "Candles loaded" MetricRow label also matched
+  // the regex) alongside the stage's own marketNotice — three elements for
+  // one assertion. The stage's marketNotice is the only survivor today, but
+  // .first() stays as a standing guard against a future surface
+  // reintroducing the phrase, not because more than one match is expected
+  // right now.
+  await expect(page.getByText(/candles loaded/i).first()).toBeVisible({
     timeout: 30_000,
   });
 
@@ -264,9 +292,9 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
 
   await expect(timeframeSelect).toHaveValue("1min");
   // The stage carries no surface title or eyebrow above the chart (spec §2
-  // copy discipline), so there is no heading left to scope this notice to —
-  // it is the only "N minute candles loaded" text on the page regardless.
-  await expect(page.getByText(/1 minute candles loaded/i)).toBeVisible({
+  // copy discipline), so there is no heading to scope this notice to — same
+  // .first() guard as above, for the same reason.
+  await expect(page.getByText(/1 minute candles loaded/i).first()).toBeVisible({
     timeout: 30_000,
   });
   await expect(
@@ -312,13 +340,24 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
 
-  const header = page.locator("header");
+  // Same duplicate-header reason as the desktop wordmark test above: both
+  // App.tsx headers are always mounted, so this scopes to the mobile-header
+  // block specifically rather than tripping a strict-mode violation against
+  // both the wordmark and the E8 Markets chip (BrokerChip renders in both).
+  const header = page.getByTestId("mobile-header");
   await expect(header.getByText("Levelflow", { exact: true })).toBeVisible();
   await expect(header.getByText("E8 Markets")).toBeVisible();
 
   for (const tab of ["Review", "Scan", "Trades", "Insights"]) {
-    await expect(page.getByRole("button", { name: tab, exact: true }))
-      .toBeVisible();
+    // The Trades button's aria-label grows to "Trades, N current" once a
+    // live setup exists (App.tsx's MobileTabBar badge) — this suite creates
+    // one earlier in the file, so exact:true would fail here whenever that
+    // ran first. The other three tabs never carry a badge today, so they
+    // stay exact.
+    const locator = tab === "Trades"
+      ? page.getByRole("button", { name: /^Trades(,|$)/ })
+      : page.getByRole("button", { name: tab, exact: true });
+    await expect(locator).toBeVisible();
   }
 
   // Guide/Profile/Donate/Help/Sign out are real controls, just not directly
@@ -344,9 +383,9 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(
     page.getByRole("heading", { name: "Best current markets" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Quality")).toBeVisible();
 
-  await page.getByRole("button", { name: "Trades", exact: true }).click();
+  // Same Trades badge caveat as above.
+  await page.getByRole("button", { name: /^Trades(,|$)/ }).click();
   await expect(page.getByTestId("current-trades-rail")).toBeVisible();
 
   await page.getByRole("button", { name: "Insights", exact: true }).click();
@@ -414,12 +453,25 @@ test('a closed market\'s scope-menu row shows its local reopen time, never the w
   await page.getByRole("button", { name: "Scan scope" }).click();
   await expect(page.getByRole("listbox")).toBeVisible();
 
+  // Exact-matched against the row's own label text (rendered in its
+  // .truncate span), not a hasText substring on the whole row: several
+  // Futures options' full labels literally contain "Futures" (e.g. "BZ -
+  // Brent Crude Oil Futures"), so a substring match against the group name
+  // "Futures" could in principle also catch one of its own nested market
+  // rows ahead of the group row itself.
   const closedRow = page
     .locator('[role="option"]')
-    .filter({ hasText: closedGroup!.label })
+    .filter({ has: page.getByText(closedGroup!.label, { exact: true }) })
     .first();
   await expect(closedRow).toHaveAttribute("aria-disabled", "true");
-  await expect(closedRow).toContainText(/opens \d{1,2}:\d{2}[ap] [a-z]{3}/i);
+  // Accepts either of marketHours.formatReopen's renderings: the common
+  // weekday form ("Opens 6:00p Sun") and its month-day fallback for a
+  // reopen beyond the coming week ("Opens 6:00p Dec 25", or locale-reordered
+  // "25 Dec") — no calendar here actually produces that gap today, but the
+  // regex shouldn't silently break the day a holiday calendar does.
+  await expect(closedRow).toContainText(
+    /opens \d{1,2}:\d{2}[ap] ([a-z]{3}|[a-z]{3} \d{1,2}|\d{1,2} [a-z]{3})/i,
+  );
   await expect(closedRow).not.toContainText(/closed/i);
 });
 
@@ -438,13 +490,13 @@ test("the current-trades rail is present with a working refresh control", async 
 
   // The rail is allowed to be genuinely empty (spec §8: only Pending/Open
   // trades live here) — either state is fine, but exactly one of them must
-  // hold.
-  const cardCount = await rail.locator("article").count();
-  if (cardCount === 0) {
-    await expect(rail.getByText("No current trades.")).toBeVisible();
-  } else {
-    await expect(rail.locator("article").first()).toBeVisible();
-  }
+  // hold. A plain .count() right after the click doesn't retry and would
+  // race the async refresh the click just kicked off, so this waits for
+  // whichever real end state actually lands instead of reading the DOM
+  // once, immediately.
+  const emptyState = rail.getByText("No current trades.");
+  const firstCard = rail.locator("article").first();
+  await expect(emptyState.or(firstCard)).toBeVisible();
 });
 
 test("the trades rail force-refreshes outcomes on every Desk/Insights re-navigation, not just on mount", async ({ page }) => {
@@ -508,13 +560,11 @@ test("each ladder value copies independently, flipping its own button to a check
     "No qualifying setup right now, so there are no ladder values to copy.",
   );
 
-  // Clipboard permission is environment-dependent (headless Chromium needs
-  // explicit grants Playwright's default context doesn't carry), and
-  // AdvisorRecommendationPanel's handleCopy sets the ✓ state synchronously,
-  // independent of whether the underlying navigator.clipboard.writeText
-  // call itself resolves — so the button's own aria-label flip (spec §7:
-  // "flipping to ✓ on copy") is what this test checks instead of clipboard
-  // contents.
+  // m1: handleCopy now awaits navigator.clipboard.writeText and only flips
+  // to the ✓ state on resolve, so this genuinely exercises the clipboard
+  // write rather than just a synchronous UI flip — playwright.config.ts
+  // grants clipboard-read/clipboard-write so that write reliably resolves
+  // under headless Chromium instead of silently rejecting.
   const originalLabels = await page
     .getByRole("button", { name: /^Copy / })
     .evaluateAll((buttons) =>
@@ -525,9 +575,12 @@ test("each ladder value copies independently, flipping its own button to a check
   for (const fullLabel of originalLabels) {
     const fieldLabel = fullLabel.replace(/^Copy /, "");
     await page.getByRole("button", { name: fullLabel, exact: true }).click();
+    // The ✓ reverts after 2s (handleCopy's own setTimeout) — a tighter
+    // timeout than the file's default keeps this assertion inside that
+    // window instead of racing a slow poll past it.
     await expect(
       page.getByRole("button", { name: `${fieldLabel} copied`, exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 1500 });
   }
 });
 
@@ -606,9 +659,21 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // Insights' Market column renders the raw ticker (e.g. "EURUSD"), not the
   // scan rail's long descriptive label (e.g. "EUR/USD - Euro / U.S.
   // Dollar") — the "Open {symbol} in Advisor" row button's aria-label is
-  // the stable, parseable link between the two views.
-  const rawSymbols = await page
-    .getByRole("button", { name: /^Open .+ in Advisor$/ })
+  // the stable, parseable link between the two views. The ledger's own
+  // fetch is async and the heading becoming visible doesn't guarantee its
+  // rows have landed yet, so evaluateAll (which reads the DOM once, with no
+  // retry) waits behind a poll for at least one row first.
+  const openInAdvisorButtons = page.getByRole("button", {
+    name: /^Open .+ in Advisor$/,
+  });
+  await expect
+    .poll(() => openInAdvisorButtons.count(), {
+      message: "expected the Insights ledger to finish loading rows",
+      timeout: 15_000,
+    })
+    .toBeGreaterThan(0);
+
+  const rawSymbols = await openInAdvisorButtons
     .evaluateAll((buttons) =>
       buttons.map((button) => button.getAttribute("aria-label") ?? "")
     ).then((labels) =>

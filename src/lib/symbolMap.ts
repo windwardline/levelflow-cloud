@@ -337,11 +337,6 @@ export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS
   }))
   .filter((group) => group.options.length > 0);
 
-// All no-trade markets are already out of AVAILABLE_ASSET_GROUPS; the scan
-// list is the same set today. The alias stays so scan surfaces keep their
-// own name for it.
-export const SCANNABLE_ASSET_GROUPS = AVAILABLE_ASSET_GROUPS;
-
 export const AVAILABLE_ASSET_OPTIONS = AVAILABLE_ASSET_GROUPS.flatMap(
   (group) => group.options,
 );

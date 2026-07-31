@@ -24,7 +24,7 @@ import {
 
 // This suite tests ScopeMenu.tsx entirely through its exported pure
 // functions (row model, keyboard-highlight reducer, formatters), the same
-// approach tests/confidenceGauge.test.ts uses for ConfidenceGauge.tsx.
+// approach tests/confidenceUnit.test.tsx uses for ConfidenceUnit.tsx.
 // Actually rendering <ScopeMenu> is deliberately not attempted here: the
 // component has real JSX in its own body, and this repo's node:test runner
 // has no tsconfig covering tests/ (see tests/workspaceNav.test.tsx), so it
@@ -189,12 +189,18 @@ describe("effectiveRows (symbolOnly mode: the stage's direct-review picker)", ()
     }
   });
 
-  it("leaves a closed group's market rows inert too - symbolOnly only narrows what's selectable, never widens it", () => {
+  it("keeps a closed group's market rows selectable - reviewing a market never requires it to be open (I4)", () => {
+    // Scanning a closed market makes no sense (I5), but reviewing one does:
+    // the stage's picker is symbolOnly, and without this a weekend would
+    // leave every non-crypto market permanently unreachable from it.
     const rows = effectiveRows(buildScopeMenuRows(SATURDAY_NOON_ET), true);
     const forexMarket = rows.find((row) => row.key === "symbol:EURUSD");
     assert.ok(forexMarket);
-    assert.equal(forexMarket.interactive, false);
-    assert.equal(resolveRowActivation(forexMarket), null);
+    assert.equal(forexMarket.interactive, true);
+    assert.deepEqual(resolveRowActivation(forexMarket), {
+      kind: "symbol",
+      symbol: "EURUSD",
+    });
   });
 
   it("keyboard traversal on a fully-open menu skips 'All markets' and every group row, landing directly on the first market", () => {
@@ -223,16 +229,14 @@ describe("effectiveRows (symbolOnly mode: the stage's direct-review picker)", ()
     assert.equal(moveScopeMenuHighlight(rows, firstKey, -1), lastKey);
   });
 
-  it("on a mostly-closed menu, traversal reaches only crypto's markets - not even crypto's own group row, which symbolOnly neuters same as any other", () => {
+  it("on a mostly-closed menu, traversal still reaches every market - closed markets stay selectable for review (I4), only group rows stay neutered", () => {
     const rows = effectiveRows(buildScopeMenuRows(SATURDAY_NOON_ET), true);
-    const cryptoGroup = AVAILABLE_ASSET_GROUPS.find((group) => group.label === "Crypto");
-    assert.ok(cryptoGroup);
+    const allMarketKeys = AVAILABLE_ASSET_GROUPS.flatMap((group) =>
+      group.options.map((option) => `symbol:${option.symbol}`)
+    );
 
     const interactiveKeys = rows.filter((row) => row.interactive).map((row) => row.key);
-    assert.deepEqual(
-      interactiveKeys,
-      cryptoGroup.options.map((option) => `symbol:${option.symbol}`),
-    );
+    assert.deepEqual(interactiveKeys, allMarketKeys);
   });
 });
 
