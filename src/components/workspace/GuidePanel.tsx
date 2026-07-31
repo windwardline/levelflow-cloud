@@ -175,7 +175,7 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
           title="The setup, level by level"
         >
           <p>A setup is four prices, named the way your platform names them:</p>
-          <ul className="grid gap-2">
+          <ul className="grid list-disc gap-2 ps-5">
             <GuideBullet>
               <strong className="text-ink">Entry</strong> — where your limit
               order waits. A buy limit waits below the current price; a
@@ -215,22 +215,22 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
             {CANONICAL_LADDER_INSTRUCTION}
           </blockquote>
           <p>In platform terms, that is three moments:</p>
-          <ol className="grid gap-2">
-            <GuideBullet marker="1">
+          <ol className="grid list-decimal gap-2 ps-5">
+            <GuideBullet>
               <strong className="text-ink">Place the trade.</strong> Open a
               buy or sell limit at the Entry price. Set the stop loss and
               set the take-profit at Target 2. Until price reaches your
               entry, the order shows as{" "}
               <strong className="text-ink">pending</strong> — nothing to do.
             </GuideBullet>
-            <GuideBullet marker="2">
+            <GuideBullet>
               <strong className="text-ink">Target 1 hits.</strong> Close
               half the position (a partial close), and modify the stop
               loss to your entry price. Half your profit is real money
               now, and the rest of the trade can no longer cost you
               anything.
             </GuideBullet>
-            <GuideBullet marker="3">
+            <GuideBullet>
               <strong className="text-ink">The finish.</strong> The
               remaining half either reaches Target 2 — your take-profit
               closes it — or comes back to your entry and closes flat.
@@ -283,7 +283,7 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
             platform, and it is paid out of your profit. Levelflow sizes
             it against the setup before showing anything:
           </p>
-          <ul className="grid gap-2">
+          <ul className="grid list-disc gap-2 ps-5">
             <GuideBullet>
               <strong className="text-ink">Clean</strong> — costs are
               small next to the distance between entry and stop. The
@@ -360,12 +360,9 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
           number="10"
           title="What the words mean here"
         >
-          <dl className="grid gap-2">
+          <dl className="grid gap-3">
             {VOCABULARY.map((item) => (
-              <div
-                key={item.term}
-                className="rounded-lg border border-hairline bg-paper px-4 py-3"
-              >
+              <div key={item.term}>
                 <dt className="font-semibold text-ink">{item.term}</dt>
                 <dd className="mt-1">{item.body}</dd>
               </div>
@@ -432,28 +429,17 @@ function GuideSection({
   );
 }
 
-// Shared card for every "term — definition" bullet in §2/§3/§6 (§10 uses a
-// real <dl> instead — see the definition-list block above). `marker` gives
-// §3's three ordered moments a numeral badge since Tailwind's preflight
-// strips native <ol>/<ul> markers app-wide; omitted, it renders as a plain
-// unordered bullet card.
-function GuideBullet({
-  children,
-  marker,
-}: {
-  children: ReactNode;
-  marker?: string;
-}) {
-  return (
-    <li className="flex gap-3 rounded-lg border border-hairline bg-paper px-4 py-3">
-      {marker
-        ? (
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink font-mono text-xs font-bold tabular-nums text-paper">
-            {marker}
-          </span>
-        )
-        : null}
-      <span>{children}</span>
-    </li>
-  );
+// Shared wrapper for every "term — definition" bullet in §2/§3/§6 (§10 uses
+// a real <dl> instead — see the definition-list block above). Fix round 1:
+// the controller ruled that spec §16's authority clause ("where this
+// spec's prose and a mockup's composition disagree, the mockup governs
+// composition") overrides the kill-list's narrower "per-section" wording —
+// g-guide-v1.html draws no boxes at any level, so these list items lose
+// their card treatment too, flattening to plain flowing list content. §3's
+// three ordered moments now number the native way (list-decimal on the
+// parent <ol>, restoring exactly the marker Tailwind's preflight strips
+// app-wide) instead of a custom numeral badge, so this component no longer
+// needs a `marker` prop at all.
+function GuideBullet({ children }: { children: ReactNode }) {
+  return <li>{children}</li>;
 }

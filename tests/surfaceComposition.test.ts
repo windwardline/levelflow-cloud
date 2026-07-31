@@ -74,6 +74,40 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
       /<blockquote className="border-l-\[3px\] border-accent bg-accent\/5 py-3 pl-4 pr-4 text-base font-semibold leading-7 text-ink sm:text-lg">/,
     );
   });
+
+  // Fix round 1: the controller ruled that spec §16's authority clause
+  // ("where this spec's prose and a mockup's composition disagree, the
+  // mockup governs composition") overrides the kill-list's narrower
+  // "per-section" wording — g-guide-v1.html's dl/dt/dd and list styling
+  // draw no boxes at any level, so §2/§3/§6's item-level cards and §10's
+  // vocabulary term cards flatten too, not just the per-section wrappers.
+  it("flattens §2/§6's unordered lists to native bullets, no item cards", () => {
+    assert.equal(
+      (guide.match(/<ul className="grid list-disc gap-2 ps-5">/g) ?? [])
+        .length,
+      2,
+      "expected both §2 and §6 to use the same flat bulleted-list treatment",
+    );
+  });
+
+  it("flattens §3's three ordered moments to a native numbered list, no numeral badges", () => {
+    assert.match(guide, /<ol className="grid list-decimal gap-2 ps-5">/);
+  });
+
+  it("GuideBullet is a plain flowing list item now — no marker prop, no card", () => {
+    const guideBulletFunction =
+      guide.match(/function GuideBullet\([\s\S]*?\n}\n/)?.[0] ?? "";
+    assert.ok(guideBulletFunction.length > 0, "expected to find GuideBullet");
+    assert.match(guideBulletFunction, /return <li>\{children\}<\/li>;/);
+    assert.doesNotMatch(guideBulletFunction, /marker/i);
+  });
+
+  it("flattens §10's vocabulary pairs to a plain dl flow, no per-term cards", () => {
+    assert.match(
+      guide,
+      /<dl className="grid gap-3">\s*\{VOCABULARY\.map\(\(item\) => \(\s*<div key=\{item\.term\}>/,
+    );
+  });
 });
 
 describe("Guide composition — the kill list is absent (spec §16)", () => {
@@ -105,6 +139,23 @@ describe("Guide composition — the kill list is absent (spec §16)", () => {
   it("the TOC no longer scrolls horizontally as a mobile pill row — it simply doesn't render below lg", () => {
     assert.doesNotMatch(guide, /overflow-x-auto/);
     assert.doesNotMatch(guide, /whitespace-nowrap/);
+  });
+
+  // Fix round 1: item-level cards flattened per the controller's ruling
+  // (see the matching "present" tests above). Both of this file's prior
+  // legitimate uses of the card shape (GuideBullet, the vocabulary <dt>/
+  // <dd> wrapper) are gone now, so — unlike round 1's original submission,
+  // where this exact string still matched GuideBullet/Vocabulary on
+  // purpose — a blanket file-wide absence check is now correct.
+  it("carries no rounded-lg/border/bg-paper item card anywhere — not even the ones this task originally kept", () => {
+    assert.doesNotMatch(guide, /rounded-lg border border-hairline bg-paper/);
+  });
+
+  it("deleted §3's numeral-badge circle — no bg-ink numbered badge, no marker prop", () => {
+    assert.doesNotMatch(guide, /h-6 w-6/);
+    assert.doesNotMatch(guide, /rounded-full bg-ink/);
+    assert.doesNotMatch(guide, /\bmarker="/);
+    assert.doesNotMatch(guide, /marker\?:/);
   });
 });
 
