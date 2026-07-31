@@ -342,6 +342,16 @@ describe("desktop masthead composition (spec §16, source-pinned — see header 
     assert.match(desktopHeaderBlock, /\{tab\.label\}/);
   });
 
+  it("carries no icon data for TABS to render — the nav renders labels, so the icons were built and thrown away on every load", () => {
+    const tabsBlock = APP_SOURCE.match(/const TABS:[\s\S]*?\n\];/)?.[0] ?? "";
+    assert.ok(tabsBlock.length > 0, "expected to find the TABS array");
+    assert.doesNotMatch(tabsBlock, /icon/);
+    // And with the data gone, so are the two lucide imports that existed only
+    // to build it (MOBILE_TAB_ITEMS uses a different four).
+    assert.doesNotMatch(APP_SOURCE, /LayoutDashboard/);
+    assert.doesNotMatch(APP_SOURCE, /^\s*User,$/m);
+  });
+
   it("styles the nav text per the mock: uppercase/letterspaced always, active = ink + accent underline, inactive = muted with hover", () => {
     assert.match(
       desktopHeaderBlock,

@@ -119,6 +119,20 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.match(stage, /\{marketNotice\}/);
     assert.match(stage, /Closed · opens \$\{/);
   });
+
+  it("says nothing on a successful load — the notice speaks only when there is something to say", () => {
+    // Spec §2 rules out process narration, and the stage narrated every
+    // successful fetch ("{N} 1 hour candles loaded.") long after the
+    // remediation deleted every other status readout on this surface. The
+    // paragraph is conditional now, so an empty notice leaves no margin
+    // behind either.
+    assert.doesNotMatch(stage, /candles loaded/);
+    assert.match(stage, /setMarketNotice\(""\);/);
+    assert.match(
+      stage,
+      /\{marketNotice\n\s*\? \(\n\s*<p className="mt-3 text-sm font-medium text-ink-muted">/,
+    );
+  });
 });
 
 describe("Desk stage composition — the kill list is absent (spec §16)", () => {

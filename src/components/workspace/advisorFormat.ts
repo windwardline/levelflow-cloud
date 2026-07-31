@@ -1,8 +1,4 @@
-import {
-  CHART_TIMEFRAME_OPTIONS,
-  type ChartTimeframe,
-  chartTimeframeLabel,
-} from "../../lib/marketData";
+import { CHART_TIMEFRAME_OPTIONS } from "../../lib/marketData";
 
 export const TIMEFRAMES = [...CHART_TIMEFRAME_OPTIONS];
 
@@ -49,10 +45,6 @@ export function formatCopyValue(value: number) {
     useGrouping: false,
     maximumFractionDigits: MAX_PRICE_DECIMALS,
   });
-}
-
-export function formatTimeframe(timeframe: ChartTimeframe) {
-  return chartTimeframeLabel(timeframe).toLowerCase();
 }
 
 export function formatDate(value: string) {

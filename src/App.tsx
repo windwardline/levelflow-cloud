@@ -12,13 +12,11 @@ import {
   CircleUser,
   Gift,
   History,
-  LayoutDashboard,
   LineChart,
   ListChecks,
   LogOut,
   Mail,
   Radar,
-  User,
   UserRound,
   X,
 } from "lucide-react";
@@ -63,27 +61,14 @@ const SUPPORT_EMAIL = "help@windwardline.com";
 // came from — otherwise an inbound message arrives with no way to route it.
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
 
-const TABS: Array<{ icon: ReactNode; label: string; value: AppTab }> = [
-  {
-    icon: <LayoutDashboard className="h-4 w-4" aria-hidden="true" />,
-    label: "Desk",
-    value: "advisor",
-  },
-  {
-    icon: <History className="h-4 w-4" aria-hidden="true" />,
-    label: "Insights",
-    value: "history",
-  },
-  {
-    icon: <BookOpen className="h-4 w-4" aria-hidden="true" />,
-    label: "Guide",
-    value: "guide",
-  },
-  {
-    icon: <User className="h-4 w-4" aria-hidden="true" />,
-    label: "Profile",
-    value: "profile",
-  },
+// Text only: spec §16 killed icon-chip nav on desktop, and the masthead
+// renders {tab.label} alone. The mobile tab bar keeps its own separate icon
+// set (MOBILE_TAB_ITEMS) — these four were built on every load and discarded.
+const TABS: Array<{ label: string; value: AppTab }> = [
+  { label: "Desk", value: "advisor" },
+  { label: "Insights", value: "history" },
+  { label: "Guide", value: "guide" },
+  { label: "Profile", value: "profile" },
 ];
 const PERSISTED_TABS = new Set<AppTab>([
   "advisor",
@@ -476,11 +461,12 @@ const MOBILE_TAB_ITEMS: Array<
 ];
 
 // Spec §3: the mobile-only primary navigation, replacing the top nav pills
-// below lg (those stay put at ≥lg — see the header's lg:contents split
-// above). Persistent across every tab, not just the Desk one, so Review is
-// always one tap away even from Guide or Profile — matching "Guide and
-// Profile reachable via the avatar/menu, not the tab bar" (they're
-// deliberately absent from these four buttons, not from the bar itself).
+// below lg (the masthead's own text nav stays put at ≥lg — see the header's
+// `lg:hidden` / `hidden lg:flex` pair above). Persistent across every tab,
+// not just the Desk one, so Review is always one tap away even from Guide or
+// Profile — matching "Guide and Profile reachable via the avatar/menu, not
+// the tab bar" (they're deliberately absent from these four buttons, not from
+// the bar itself).
 function MobileTabBar({
   active,
   onSelect,

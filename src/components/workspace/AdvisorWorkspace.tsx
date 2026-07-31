@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
-import { formatTimeframe, TIMEFRAMES } from "./advisorFormat";
+import { TIMEFRAMES } from "./advisorFormat";
 import { ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
 import { MarketScanPanel } from "./MarketScanPanel";
@@ -212,11 +212,12 @@ export function AdvisorWorkspace(
         });
         if (!cancelled) {
           setMarketData(nextData);
-          setMarketNotice(
-            `${nextData.resultsCount} ${
-              formatTimeframe(timeframe)
-            } candles loaded.`,
-          );
+          // Nothing to say on success: spec §2's copy discipline rules out
+          // process narration, and the chart itself is the evidence that the
+          // data arrived (its own overlay covers the loading and empty
+          // states). This notice now speaks only when something is genuinely
+          // worth telling the reader — a closed market, or missing data.
+          setMarketNotice("");
         }
       } catch {
         if (!cancelled) {
@@ -535,11 +536,17 @@ export function AdvisorWorkspace(
             />
           </div>
 
-          {/* I4/spec §10b: the closed-market reopen notice, unchanged — the
-              approved treatment for a market that simply isn't trading. */}
-          <p className="mt-3 text-sm font-medium text-ink-muted">
-            {marketNotice}
-          </p>
+          {/* I4/spec §10b: the closed-market reopen notice, in its standing
+              position as the stage's last element. Rendered only when there is
+              a notice — an empty paragraph would leave its own margin behind
+              on every successful load. */}
+          {marketNotice
+            ? (
+              <p className="mt-3 text-sm font-medium text-ink-muted">
+                {marketNotice}
+              </p>
+            )
+            : null}
         </section>
       </div>
 

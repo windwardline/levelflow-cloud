@@ -68,8 +68,8 @@ function expectedScopeMenuLabels(): string[] {
 test("authenticated workspace leads with the Levelflow wordmark, not the Windward Line brand", async ({ page }) => {
   await page.goto("/");
 
-  // App.tsx mounts both the mobile (lg:hidden) and desktop (hidden
-  // lg:contents) headers at every viewport width — only CSS decides which
+  // App.tsx mounts both the mobile (`lg:hidden`) and desktop (`hidden
+  // lg:flex`) headers at every viewport width — only CSS decides which
   // one is actually visible, and getByText does not filter on that. This
   // test runs at Playwright's default desktop viewport, so it scopes to
   // the desktop-header block specifically rather than tripping a
@@ -331,18 +331,18 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
 
   await page.goto("/");
 
-  // .first() is deliberate, not incidental: before I7 retired the stacked
-  // status panels below the stage, AdvisorStatusPanels' DataHealthPanel
-  // duplicated this exact phrase (both its own "N candles loaded" notice
-  // and, separately, a bare "Candles loaded" MetricRow label also matched
-  // the regex) alongside the stage's own marketNotice — three elements for
-  // one assertion. The stage's marketNotice is the only survivor today, but
-  // .first() stays as a standing guard against a future surface
-  // reintroducing the phrase, not because more than one match is expected
-  // right now.
-  await expect(page.getByText(/candles loaded/i).first()).toBeVisible({
+  // The stage used to narrate this load ("N 1 hour candles loaded.") and this
+  // assertion read that sentence. Spec §2's copy discipline rules out process
+  // narration, so the string is gone and the chart's own overlays are the
+  // observable instead: it covers itself while loading and says so when it has
+  // no data, so both being absent is the same fact the sentence used to
+  // report — with the added value of coming from the chart rather than from a
+  // separate line that could disagree with it.
+  await expect(page.getByText("Loading market data")).toHaveCount(0, {
     timeout: 30_000,
   });
+  await expect(page.getByText("No chart data available yet")).toHaveCount(0);
+  await expect(page.getByText(/candles loaded/i)).toHaveCount(0);
 
   // Renamed from "Advisor chart view" when the stale "Advisor" prefix was
   // retired from every user-facing label. Spec §16 then dropped the visible
@@ -355,12 +355,12 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   }
 
   await expect(timeframeSelect).toHaveValue("1min");
-  // The stage carries no surface title or eyebrow above the chart (spec §2
-  // copy discipline), so there is no heading to scope this notice to — same
-  // .first() guard as above, for the same reason.
-  await expect(page.getByText(/1 minute candles loaded/i).first()).toBeVisible({
+  // Same observable for the re-fetch the timeframe change triggers: the chart
+  // re-enters its loading overlay and must come out of it with data.
+  await expect(page.getByText("Loading market data")).toHaveCount(0, {
     timeout: 30_000,
   });
+  await expect(page.getByText("No chart data available yet")).toHaveCount(0);
   await expect(
     page.getByText(
       "Verified market data is not available for this market yet.",
@@ -398,7 +398,7 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
 test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
   // Mobile is its own composition (spec §3), not a narrowed desktop: the
   // top nav pills are gone entirely (display:none via the header's
-  // lg:contents split); primary navigation is a bottom tab bar (Review /
+  // `hidden lg:flex` gate); primary navigation is a bottom tab bar (Review /
   // Scan / Trades / Insights), and Guide / Profile / Donate / Help / Sign
   // out all move behind one account-avatar menu in the header.
   await page.setViewportSize({ width: 375, height: 812 });

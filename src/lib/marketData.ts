@@ -55,11 +55,6 @@ export function isChartTimeframe(value: unknown): value is ChartTimeframe {
     CHART_TIMEFRAME_OPTIONS.some((option) => option.value === value);
 }
 
-export function chartTimeframeLabel(timeframe: ChartTimeframe) {
-  return CHART_TIMEFRAME_OPTIONS.find((option) => option.value === timeframe)
-    ?.label ?? timeframe;
-}
-
 export function defaultMarketDataDays(timeframe: ChartTimeframe) {
   switch (timeframe) {
     case "1min":
