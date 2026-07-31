@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { ExpandedChartOverlay } from "../charts/ExpandedChartOverlay";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
 import { TIMEFRAMES } from "./advisorFormat";
 import { ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
 import { MarketScanPanel } from "./MarketScanPanel";
-import { ScopeMenu } from "./ScopeMenu";
+import { ScopeMenu, scopeTriggerLabel } from "./ScopeMenu";
 import { formatReopen, marketAvailability } from "../../lib/marketHours";
 import {
   type ChartTimeframe,
@@ -137,6 +138,11 @@ export function AdvisorWorkspace(
   const [scanCompletedAt, setScanCompletedAt] = useState<Date | null>(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
   const [clockNow, setClockNow] = useState(() => new Date());
+  // Spec §17's mobile Expand chart. Owned here rather than inside MarketChart
+  // because the overlay mounts a second chart of its own: a component cannot
+  // render another instance of itself without the recursion reading as a
+  // puzzle, and the stage already holds every prop both instances need.
+  const [chartExpanded, setChartExpanded] = useState(false);
   const requestIdRef = useRef(0);
   const selectedSymbolRef = useRef<SupportedSymbol>("EURUSD");
 
@@ -522,9 +528,38 @@ export function AdvisorWorkspace(
           <MarketChart
             data={marketData?.points ?? []}
             loading={marketLoading}
+            onExpand={() => setChartExpanded(true)}
             setup={setup}
             viewKey={`${symbol}:${timeframe}`}
           />
+
+          {/* Spec §17: the mobile chart is compact inline (the mock's 170px)
+              because Expand chart hands over the whole viewport on demand. The
+              overlay mounts a SECOND MarketChart with the identical four props
+              above — same data, same level lines, its own MutationObserver on
+              data-theme — rather than moving the mounted one, which would tear
+              down the canvas and leave the inline container empty behind the
+              dialog. The trigger only exists below lg (MarketChart gates it
+              lg:hidden), so this state can only ever be true there. */}
+          {chartExpanded
+            ? (
+              <ExpandedChartOverlay
+                marketName={scopeTriggerLabel(
+                  { kind: "symbol", symbol },
+                  "heading",
+                )}
+                onClose={() => setChartExpanded(false)}
+              >
+                <MarketChart
+                  data={marketData?.points ?? []}
+                  fill
+                  loading={marketLoading}
+                  setup={setup}
+                  viewKey={`${symbol}:${timeframe}`}
+                />
+              </ExpandedChartOverlay>
+            )
+            : null}
 
           <div className="min-w-0 border border-hairline border-t-0 bg-sheet">
             <RecommendationPanel

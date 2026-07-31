@@ -524,6 +524,64 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
 });
 
+test("Expand chart opens the same chart full-viewport on mobile, and only on mobile", async ({ page }) => {
+  // Spec §17: the affordance, the overlay's dialog semantics, its 44px close
+  // target, Escape, focus in and back out, and the body scroll lock — the
+  // pieces only a real browser can confirm. The unit guards source-pin the
+  // attributes; this proves they actually behave.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  const trigger = page.getByRole("button", { name: "Expand chart" });
+  await expect(trigger).toBeVisible();
+  // The kit's tap floor, measured rather than asserted from the class list.
+  const triggerBox = await trigger.boundingBox();
+  expect(triggerBox!.height).toBeGreaterThanOrEqual(44);
+
+  await trigger.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("aria-modal", "true");
+
+  // Named by the market — the same display symbol the stagehead heading shows.
+  await expect(dialog).toContainText("EUR/USD");
+  // Full viewport, within a rounding pixel of it.
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox!.width).toBeGreaterThanOrEqual(374);
+  expect(dialogBox!.height).toBeGreaterThanOrEqual(811);
+
+  // Focus moved into the dialog, onto the close control.
+  const close = dialog.getByRole("button", { name: "Close" });
+  await expect(close).toBeFocused();
+  const closeBox = await close.boundingBox();
+  expect(closeBox!.height).toBeGreaterThanOrEqual(44);
+  expect(closeBox!.width).toBeGreaterThanOrEqual(44);
+
+  // The page behind it cannot scroll while it is open.
+  expect(
+    await page.evaluate(() => document.body.style.overflow),
+  ).toBe("hidden");
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  // Focus came back to the trigger, and the lock was released — restored to
+  // whatever it was before, not blanket-cleared.
+  await expect(trigger).toBeFocused();
+  expect(
+    await page.evaluate(() => document.body.style.overflow),
+  ).not.toBe("hidden");
+
+  // Reopen and close through the control itself, not the keyboard.
+  await trigger.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // max-lg only: the ≥lg Desk is frozen and its chart is already full-height.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.getByRole("button", { name: "Expand chart" })).toBeHidden();
+});
+
 test("scope menu lists All markets, then groups alphabetically, then base/quote-sorted markets — 1280px popup", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");

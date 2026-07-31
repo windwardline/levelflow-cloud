@@ -23,10 +23,31 @@ type ChartSetup = Pick<AnalyzerSetup, "entryPrice" | "stopLoss" | "takeProfit" |
 
 type MarketChartProps = {
   data: MarketDataPoint[];
+  /**
+   * Fills the height of whatever container the chart is in, instead of taking
+   * its own. Set by the full-viewport overlay (spec §17), which owns the
+   * height there; every other call site leaves it off and gets the inline
+   * heights below.
+   */
+  fill?: boolean;
   loading?: boolean;
+  /**
+   * Supplied by the Desk stage only: renders the mobile-only "Expand chart"
+   * control in the tool cluster (spec §17). The overlay's own instance passes
+   * nothing, so an expanded chart never offers to expand itself again.
+   */
+  onExpand?: () => void;
   setup?: ChartSetup | null;
   viewKey?: string;
 };
+
+// Spec §16 / a-desk-v3.html:177: the stage's chart sheet — a square-cornered
+// hairline border on sheet, so the setup sheet below it can attach border-t-0
+// with no rounded corner or second frame in between. A constant because the
+// overlay variant appends its own height to it (spec §17) and this must stay
+// one string rather than two that could drift.
+const CHART_SHEET =
+  "relative min-w-0 overflow-hidden border border-hairline bg-sheet";
 
 export type ChartTheme = {
   sheet: string;
@@ -60,7 +81,16 @@ export function readChartTheme(
   };
 }
 
-export function MarketChart({ data, loading = false, setup = null, viewKey = "default" }: MarketChartProps) {
+export function MarketChart(
+  {
+    data,
+    fill = false,
+    loading = false,
+    onExpand,
+    setup = null,
+    viewKey = "default",
+  }: MarketChartProps,
+) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -261,12 +291,11 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
   }, [setup, themeVersion]);
 
   return (
-    // Spec §16 / a-desk-v3.html:177: this IS the stage's chart sheet — a
-    // square-cornered hairline border on sheet, so the setup sheet below it can
-    // attach border-t-0 with no rounded corner or second frame in between. Kept
-    // as this component's own root (rather than an outer wrapper in
-    // AdvisorWorkspace) so there is exactly one frame around the chart.
-    <div className="relative min-w-0 overflow-hidden border border-hairline bg-sheet">
+    // CHART_SHEET (above) IS the stage's chart sheet, kept as this component's
+    // own root — rather than an outer wrapper in AdvisorWorkspace — so there is
+    // exactly one frame around the chart. The overlay's instance adds h-full:
+    // there the dialog owns the height and the sheet stretches to it.
+    <div className={fill ? `${CHART_SHEET} h-full` : CHART_SHEET}>
       <div
         className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-hairline bg-sheet px-3 py-2 text-xs font-semibold text-ink-muted shadow-xs ${
           hoverBar ? "block" : "hidden sm:block"
@@ -303,7 +332,39 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
           <Maximize2 className="h-4 w-4" aria-hidden="true" />
         </ChartToolButton>
       </div>
-      <div ref={containerRef} className="h-[390px] w-full sm:h-[500px] xl:h-[560px]" />
+      {/* Spec §17's Expand chart affordance, where the mobile mock draws it:
+          inside the chart's own bottom-right corner (m-mobile-v3.html:16,:56),
+          quiet accent text at 11px. Held at the kit's 44px tap floor, which
+          grows upward from the bottom edge so the label itself stays on the
+          mock's baseline. lg:hidden as a literal class — this exists below lg
+          only, where the inline chart is compact and the overlay is what a
+          reader reaches for; the ≥lg chart is already 500-560px tall and its
+          composition is frozen. */}
+      {onExpand
+        ? (
+          <button
+            className="absolute bottom-0 right-0 z-10 inline-flex min-h-11 items-end px-2 pb-1.5 text-[11px] font-semibold text-accent lg:hidden"
+            type="button"
+            onClick={onExpand}
+          >
+            Expand chart
+          </button>
+        )
+        : null}
+      {/* 170px below lg, the mock's own compact inline height
+          (m-mobile-v3.html:13), now that Expand chart gives a reader the whole
+          viewport when they want it. The ≥lg values are unchanged in what they
+          render (500px from lg, 560px from xl — exactly what the old
+          sm:/xl: pair produced there); expressing the lower bound as `lg:`
+          rather than `sm:` leaves max-lg: owning everything below the
+          breakpoint outright, instead of resting on which of two
+          equal-specificity media queries happens to be emitted last. */}
+      <div
+        ref={containerRef}
+        className={fill
+          ? "h-full w-full"
+          : "w-full max-lg:h-[170px] lg:h-[500px] xl:h-[560px]"}
+      />
       {loading && <div className="absolute inset-0 grid place-items-center bg-sheet text-sm font-semibold text-ink">Loading market data</div>}
       {!loading && data.length === 0 && (
         <div className="absolute inset-0 grid place-items-center bg-sheet px-6 text-center text-sm font-semibold text-ink-muted">No chart data available yet</div>

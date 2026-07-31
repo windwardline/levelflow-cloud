@@ -156,10 +156,18 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   it("attaches the setup sheet hairline-flush under the chart sheet — one frame each, no gap", () => {
     // The chart draws its own square-cornered sheet so the setup sheet's
     // border-t-0 lands on it; a rounded chart frame would leave a visible
-    // corner gap and read as two stacked cards again.
+    // corner gap and read as two stacked cards again. Spec §17's overlay
+    // variant appends its own height to that same string, so the sheet is now a
+    // named constant rather than an inline attribute — pinned here in the form
+    // it actually takes, and with both branches of its one use proved so the
+    // overlay cannot quietly acquire a second frame.
     assert.match(
       chart,
-      /className="relative min-w-0 overflow-hidden border border-hairline bg-sheet"/,
+      /const CHART_SHEET =\s*"relative min-w-0 overflow-hidden border border-hairline bg-sheet";/,
+    );
+    assert.match(
+      chart,
+      /className=\{fill \? `\$\{CHART_SHEET\} h-full` : CHART_SHEET\}/,
     );
     assert.match(
       stage,
@@ -465,6 +473,126 @@ describe("Desk chart level lines — the mock's four labeled lines (a-desk-v3.ht
     const gate = /typeof setup\.takeProfit1 === "number" &&\s*setup\.takeProfit1 > 0/;
     assert.match(chart, gate);
     assert.match(panel, gate);
+  });
+});
+
+// Spec §17: "Expand chart ships on mobile (owner: 'I do not want to skip
+// features just because we can'): an 'Expand chart' affordance opens the same
+// MarketChart full-viewport (100dvw/100dvh overlay) with its level lines and
+// theme reactivity; 44px close target, Escape and focus trap, aria-modal,
+// functional labels only. With it, the inline mobile chart may take the mock's
+// compact height." The mock draws the affordance inside the chart's own
+// bottom-right corner (m-mobile-v3.html:16,:56) at the compact 170px height
+// (:13). Source-pinned like the rest of this file — the accessibility contract
+// is exactly the kind of thing that regresses silently, so every attribute the
+// ruling names is pinned individually.
+describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
+  const overlay = readFileSync(
+    "src/components/charts/ExpandedChartOverlay.tsx",
+    "utf8",
+  );
+
+  it("draws the trigger inside the chart, mobile-only, functionally labelled", () => {
+    // Rendered only when a caller supplies onExpand, so the overlay's own
+    // second instance of the chart cannot offer to expand itself again.
+    assert.match(chart, /onExpand\?: \(\) => void;/);
+    assert.match(chart, /\{onExpand\s*\n?\s*\?/);
+    // The visible text IS the accessible name — functional, no aria-label
+    // paraphrasing it, and no decorative glyph riding along (the mock's ↗ is
+    // decoration, m-mobile-v3.html:56).
+    assert.match(chart, />\s*Expand chart\s*</);
+    assert.doesNotMatch(chart, /↗/);
+    // Mobile-only, as a literal class Tailwind's build-time scanner can see,
+    // on the button itself rather than a wrapper.
+    const trigger = chart.match(
+      /<button\n\s*className="([^"]*)"\n\s*type="button"\n\s*onClick=\{onExpand\}/,
+    )?.[1] ?? "";
+    assert.ok(trigger.length > 0, "expected the expand trigger's classes");
+    assert.match(trigger, /\blg:hidden\b/);
+    // The kit's 44px tap floor, at the mock's own corner placement.
+    assert.match(trigger, /\bmin-h-11\b/);
+    assert.match(trigger, /absolute bottom-0 right-0/);
+  });
+
+  it("mounts a second MarketChart with the same data, setup and view key", () => {
+    // "the same MarketChart … with its level lines and theme reactivity": a
+    // second instance of the same component with the same props, never an
+    // attempt to move the mounted one into the overlay.
+    const expanded = stage.match(
+      /<ExpandedChartOverlay[\s\S]*?<\/ExpandedChartOverlay>/,
+    )?.[0] ?? "";
+    assert.ok(expanded.length > 0, "expected the overlay call site");
+    assert.match(expanded, /data=\{marketData\?\.points \?\? \[\]\}/);
+    assert.match(expanded, /loading=\{marketLoading\}/);
+    assert.match(expanded, /setup=\{setup\}/);
+    assert.match(expanded, /viewKey=\{`\$\{symbol\}:\$\{timeframe\}`\}/);
+    assert.match(expanded, /\bfill\b/);
+    // Both instances read one prop set: the inline chart's own props are the
+    // same four expressions, so the two can never show different data.
+    const inline = stage.match(/<MarketChart\n[\s\S]*?\/>/)?.[0] ?? "";
+    for (
+      const prop of [
+        "data={marketData?.points ?? []}",
+        "loading={marketLoading}",
+        "setup={setup}",
+        "viewKey={`${symbol}:${timeframe}`}",
+      ]
+    ) {
+      assert.ok(inline.includes(prop), `inline chart is missing ${prop}`);
+    }
+  });
+
+  it("is a real modal dialog: full-viewport on paper, aria-modal, named by the market", () => {
+    assert.match(overlay, /role="dialog"/);
+    assert.match(overlay, /aria-modal="true"/);
+    assert.match(overlay, /aria-labelledby=\{titleId\}/);
+    assert.match(overlay, /h-\[100dvh\] w-\[100dvw\]/);
+    assert.match(overlay, /\bbg-paper\b/);
+    // The market name is the visible title the label resolves to.
+    assert.match(overlay, /id=\{titleId\}[\s\S]{0,160}\{marketName\}/);
+    assert.match(stage, /marketName=\{scopeTriggerLabel\(/);
+  });
+
+  it("closes on Escape and on a close control at the kit's 44px floor", () => {
+    assert.match(overlay, /aria-label="Close"/);
+    assert.match(overlay, /min-h-11 min-w-11/);
+    assert.match(overlay, /event\.key === "Escape"/);
+    assert.match(overlay, /onClose\(\)/);
+  });
+
+  it("moves focus in on open, traps Tab inside, and restores it on close", () => {
+    // Focus goes to the close control on open (not merely to the container),
+    // Tab and Shift+Tab cycle within the dialog rather than escaping to the
+    // page behind it, and whatever had focus before gets it back on close.
+    assert.match(overlay, /closeRef\.current\?\.focus\(\)/);
+    assert.match(overlay, /"Tab"/);
+    assert.match(overlay, /shiftKey/);
+    // Both wrap directions, which is what makes it a cycle rather than a
+    // one-way stop: Shift+Tab off the first control lands on the last, and Tab
+    // off the last lands on the first.
+    assert.match(overlay, /last\.focus\(\)/);
+    assert.match(overlay, /first\.focus\(\)/);
+    assert.match(overlay, /previouslyFocusedRef/);
+    assert.match(overlay, /restore[\s\S]{0,200}\.focus\(\)/);
+  });
+
+  it("locks body scroll while open and restores the prior value, not a hardcoded one", () => {
+    assert.match(overlay, /document\.body\.style\.overflow = "hidden"/);
+    assert.match(overlay, /previousOverflow/);
+  });
+
+  it("takes the mock's compact inline height below lg and leaves ≥lg exactly as it rendered", () => {
+    // m-mobile-v3.html:13 — 170px. The ≥lg values are the same two the sm:/xl:
+    // pair produced before (500px at lg, 560px at xl), now expressed as lg:/xl:
+    // so the max-lg rule owns everything below the breakpoint outright rather
+    // than depending on which of two equal-specificity media queries wins.
+    assert.match(chart, /max-lg:h-\[170px\]/);
+    assert.match(chart, /lg:h-\[500px\]/);
+    assert.match(chart, /xl:h-\[560px\]/);
+    assert.doesNotMatch(chart, /sm:h-\[500px\]/);
+    assert.doesNotMatch(chart, /h-\[390px\]/);
+    // The overlay's instance fills its own container instead.
+    assert.match(chart, /fill\s*\n?\s*\? "h-full w-full"/);
   });
 });
 
