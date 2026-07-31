@@ -1020,8 +1020,10 @@ positioning percentile.
 
 ## Cohorts
 
-`ANALYZER_VERSION` scopes global learning. Any change to setup
-construction, scoring, calibration, or outcome evaluation must bump it.
-History was reset at this version's deploy (migration
+`ANALYZER_VERSION` scopes global learning. Global learning reads
+review-origin outcomes only; scan-origin setups are record, not signal,
+until measured. Any change to setup construction, scoring, calibration,
+or outcome evaluation must bump it. History was reset at this version's
+deploy (migration
 `20260728220000_reset_history_for_window_feasible_model.sql`) because
 pre-fix outcomes measured an unreachable geometry, not market skill.

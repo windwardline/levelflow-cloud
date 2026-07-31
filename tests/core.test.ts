@@ -9,7 +9,6 @@ import {
   getConfidenceTier,
 } from "../src/lib/confidenceTiers";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
-import { buildProfileReviewPattern } from "../src/lib/profileInsights";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -30,7 +29,6 @@ import {
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   coerceToSupportedUsTimeZone,
-  formatUsTimeZoneOptionLabel,
   getTimeZoneAbbreviation,
   US_TIME_ZONE_GROUPS,
   US_TIME_ZONE_OPTIONS,
@@ -43,6 +41,7 @@ import {
 import {
   ADVISOR_EXECUTION_INTERVALS,
   ADVISOR_SIGNAL_INTERVALS,
+  CONFIDENCE_THRESHOLD_BY_ASSET_TYPE,
   REVIEW_WINDOW_HOURS_BY_ASSET_TYPE,
   reviewWindowLabel,
 } from "../src/lib/advisorReview";
@@ -60,12 +59,11 @@ import {
   groupHistorySetups,
   sortHistorySetups,
 } from "../src/components/workspace/historyUtils";
-import {
-  countMarketScanCandidatesInCategory,
-  filterMarketScanCandidates,
-  getMarketScanSymbolsForCategory,
-} from "../src/components/workspace/marketScanFilters";
-import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
+import type {
+  MarketScanCandidate,
+  MarketScanResponse,
+  TradeSetupRow,
+} from "../src/lib/tradeAnalyzer";
 
 describe("asset catalog", () => {
   it("keeps the public asset list focused and sorted by category, base, then quote", () => {
@@ -154,21 +152,6 @@ describe("asset catalog", () => {
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
-
-  it("scans only the selected market category when the scan filter is set", () => {
-    assert.deepEqual(getMarketScanSymbolsForCategory("Metals"), [
-      "XAGUSD",
-      "XAUUSD",
-    ]);
-    assert.deepEqual(getMarketScanSymbolsForCategory("Energies"), [
-      "BRENT",
-      "WTI",
-    ]);
-    assert.equal(
-      getMarketScanSymbolsForCategory("all").length,
-      AVAILABLE_ASSET_SYMBOLS.length,
-    );
-  });
 });
 
 describe("trade analyzer category handling", () => {
@@ -227,40 +210,104 @@ describe("trade analyzer category handling", () => {
     );
   });
 
-  it("keeps market scan summaries scoped to the selected category", () => {
-    const candidates = [
-      {
-        assetType: "forex",
-        confidenceScore: 98,
-        symbol: "EURUSD",
-      },
-      {
-        assetType: "metals",
-        confidenceScore: 91,
-        symbol: "XAUUSD",
-      },
-      {
-        assetType: "metals",
-        confidenceScore: 82,
-        symbol: "XAGUSD",
-      },
-    ];
-
-    const visibleMetals = filterMarketScanCandidates(candidates, "Metals", 0);
-
-    assert.deepEqual(
-      visibleMetals.map((candidate) => candidate.symbol),
-      ["XAUUSD", "XAGUSD"],
+  it("marks the single-market review path as review origin", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
     );
-    assert.equal(visibleMetals[0]?.symbol, "XAUUSD");
-    assert.equal(countMarketScanCandidatesInCategory(candidates, "Metals"), 2);
-    assert.equal(countMarketScanCandidatesInCategory(candidates, "Forex"), 1);
-    assert.deepEqual(
-      filterMarketScanCandidates(candidates, "Metals", 90).map((candidate) =>
-        candidate.symbol
-      ),
-      ["XAUUSD"],
+    const serveStart = source.indexOf("Deno.serve(");
+    const serveEnd = source.indexOf("async function scanOpportunities");
+    const serveSource = source.slice(serveStart, serveEnd);
+
+    assert.match(serveSource, /upsertActiveSetup\([\s\S]*?"review",?\s*\);/);
+  });
+
+  it("persists every ranked scan opportunity as scan origin and reports the qualified count", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
     );
+    const scanStart = source.indexOf("async function scanOpportunities");
+    const scanEnd = source.indexOf("async function reviewCurrentMarket");
+    const scanSource = source.slice(scanStart, scanEnd);
+
+    // The response's qualified count and the persisted rows must come from
+    // the same post-ranking, post-collapse list the user is shown.
+    assert.equal(scanSource.includes("opportunities: rankedOpportunities"), true);
+    assert.equal(scanSource.includes("qualified: rankedOpportunities.length"), true);
+    assert.equal(scanSource.includes("persistScannedOpportunities("), true);
+    assert.match(scanSource, /upsertActiveSetup\([\s\S]*?"scan",?\s*\);/);
+  });
+
+  it("never lets a routine scan demote an existing review-origin setup", () => {
+    // No node-test harness reaches upsertActiveSetup's actual DB round
+    // trip (it's Deno-only code — see the other tests in this block); this
+    // reads the real source the same way, scoped to the function body.
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const upsertStart = source.indexOf("async function upsertActiveSetup");
+    const upsertEnd = source.indexOf(
+      "async function invalidateActiveSetupsForSymbol",
+    );
+    const upsertSource = source.slice(upsertStart, upsertEnd);
+
+    // The same-side dedupe UPDATE branch must not let a later scan flip an
+    // already-reviewed row's origin back to 'scan' and drop it out of
+    // global learning — origin only ever moves scan -> review. The insert
+    // branch (no existing row to dedupe against) still sets origin freely.
+    assert.equal(
+      upsertSource.includes('activeSetup.origin === "review"'),
+      true,
+    );
+    assert.equal(upsertSource.includes('? "review"'), true);
+    assert.equal(upsertSource.includes("origin: nextOrigin,"), true);
+  });
+
+  it("never lets a scan touch a live (placed) position — C2", () => {
+    // Same Deno-only reachability note as above: pin the guard in the real
+    // source rather than exercising the DB round trip.
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const upsertStart = source.indexOf("async function upsertActiveSetup");
+    const upsertEnd = source.indexOf(
+      "async function invalidateActiveSetupsForSymbol",
+    );
+    const upsertSource = source.slice(upsertStart, upsertEnd);
+
+    // A scan is advisory background research, never an authority over a
+    // position that's already filled and live — it must neither rewrite it
+    // (the same-side UPDATE branch) nor erase it (the opposite-side
+    // invalidateActiveSetupsForSymbol call), so the guard has to run before
+    // both, immediately after activeSetup is fetched.
+    const guardIndex = upsertSource.indexOf('origin === "scan"');
+    const sameSideIndex = upsertSource.indexOf(
+      "activeSetup.side === setup.side",
+    );
+    assert.notEqual(guardIndex, -1);
+    assert.notEqual(sameSideIndex, -1);
+    assert.equal(guardIndex < sameSideIndex, true);
+    assert.match(upsertSource, /activeSetup\.status === "placed"/);
+  });
+
+  it("scopes global learning weights to review-origin outcomes only", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const weightsStart = source.indexOf(
+      "async function refreshGlobalStrategyWeights(",
+    );
+    const weightsEnd = source.indexOf("function extractSetupKey");
+    const weightsSource = source.slice(weightsStart, weightsEnd);
+
+    // Scan-origin rows are record, not signal, until measured — global
+    // learning only trains on setups a human actually reviewed.
+    assert.equal(weightsSource.includes("trade_setups?select="), true);
+    assert.equal(weightsSource.includes("&origin=eq.review"), true);
   });
 
   it("loads Ultimate intraday data without replacing the signal timeframes", () => {
@@ -380,7 +427,50 @@ describe("trade analyzer category handling", () => {
     assert.equal(isHeadlineNewsRelevantForSymbol("EURUSD", "SPY"), false);
     assert.equal(isHeadlineNewsRelevantForSymbol("BTCUSD", "QQQ"), false);
   });
+
+  it("keeps the scan response's qualified count explicit rather than implicit", () => {
+    const opportunities: MarketScanCandidate[] = [
+      { assetType: "forex", confidenceScore: 91, symbol: "EURUSD" },
+      { assetType: "metals", confidenceScore: 82, symbol: "XAUUSD" },
+    ];
+    const response = buildMarketScanResponse({ opportunities, scanned: 24 });
+
+    assert.equal(response.qualified, opportunities.length);
+    assert.equal(response.scanned, 24);
+    assert.deepEqual(response.opportunities, opportunities);
+  });
+
+  it("declares the qualified count on the client-facing scan response type", () => {
+    // tests/**/*.ts is outside tsc -b's project include (tsconfig.app.json
+    // / tsconfig.node.json both scope to src/), and `tsx --test` transpiles
+    // without type-checking — so a typed fixture alone never fails here.
+    // This reads the real declaration, the same way the tests above read
+    // the real edge-function source.
+    const source = readFileSync("src/lib/tradeAnalyzer.ts", "utf8");
+    const responseStart = source.indexOf("export type MarketScanResponse");
+    const responseEnd = source.indexOf("export type TradeSetupRow");
+    const responseSource = source.slice(responseStart, responseEnd);
+
+    assert.equal(responseSource.includes("qualified: number;"), true);
+  });
 });
+
+function buildMarketScanResponse({
+  blocked = [],
+  opportunities = [],
+  scanned,
+}: {
+  blocked?: MarketScanCandidate[];
+  opportunities?: MarketScanCandidate[];
+  scanned: number;
+}): MarketScanResponse {
+  return {
+    blocked,
+    opportunities,
+    qualified: opportunities.length,
+    scanned,
+  };
+}
 
 describe("confidence tiers", () => {
   it("keeps setup confidence labels on one shared scale", () => {
@@ -414,6 +504,63 @@ describe("confidence tiers", () => {
     assert.equal(formatConfidenceWithTier(91), "Best 91%");
     assert.equal(formatConfidenceWithTier(null), "Pending");
   });
+
+  it("without a threshold, never labels a score the fixed 66-100 bands don't cover — exactly the old behavior", () => {
+    assert.equal(formatConfidenceWithTier(45), "45%");
+    assert.equal(formatConfidenceWithTier(65), "65%");
+  });
+
+  it("earns at least Qualified once a score clears its own class's threshold, even below the fixed 66 floor", () => {
+    const forexThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex;
+    assert.equal(
+      formatConfidenceWithTier(forexThreshold, forexThreshold),
+      "Qualified 40%",
+    );
+    assert.equal(formatConfidenceWithTier(55, forexThreshold), "Qualified 55%");
+    // A score that already lands in a real fixed band keeps that band's
+    // own label (Strong, not a downgraded "Qualified") — the threshold
+    // only ever fills the gap below 66, never overrides a real tier match.
+    assert.equal(formatConfidenceWithTier(76, forexThreshold), "Strong 76%");
+
+    const cryptoThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto;
+    assert.equal(
+      formatConfidenceWithTier(cryptoThreshold, cryptoThreshold),
+      "Strong 82%",
+    );
+
+    const metalsThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals;
+    assert.equal(
+      formatConfidenceWithTier(metalsThreshold, metalsThreshold),
+      "Best 90%",
+    );
+  });
+
+  it("treats the threshold boundary as inclusive and stays a bare, honest percentage below it", () => {
+    assert.equal(formatConfidenceWithTier(39, 40), "39%");
+    assert.equal(formatConfidenceWithTier(40, 40), "Qualified 40%");
+    assert.equal(formatConfidenceWithTier(41, 40), "Qualified 41%");
+  });
+
+  it("wires the class threshold into every formatConfidenceWithTier call site", () => {
+    for (
+      const file of [
+        // Insights recomposition (spec §10) folded the old HistorySetupCard
+        // into a day-grouped table; its confidence-formatting call site
+        // moved to historyUtils.ts's formatSetupConfidence. AdvisorStatusPanels.tsx
+        // (the old MarketResultsPanel) dropped out of this list when I7
+        // retired that panel — DeskStatusStrip and MarketClockPanel, all
+        // that remains there, never format a confidence score.
+        "src/components/workspace/historyUtils.ts",
+        "src/components/workspace/MarketScanPanel.tsx",
+      ]
+    ) {
+      assert.match(
+        readFileSync(file, "utf8"),
+        /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE/,
+        `${file} must resolve its class threshold from the calibration mirror`,
+      );
+    }
+  });
 });
 
 describe("profile preferences", () => {
@@ -446,40 +593,73 @@ describe("profile preferences", () => {
     assert.equal(reviewWindowLabel("Indices"), "Up to 5 hours");
   });
 
+  it("keeps the confidence-threshold mirror aligned with live calibration for every asset class", () => {
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto,
+      getCategoryCalibration("BTCUSD").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Energies,
+      getCategoryCalibration("WTI").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex,
+      getCategoryCalibration("EURUSD").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Futures,
+      getCategoryCalibration("ESUSD").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Indices,
+      getCategoryCalibration("SP").confidenceThreshold,
+    );
+    assert.equal(
+      CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
+      getCategoryCalibration("XAUUSD").confidenceThreshold,
+    );
+  });
+
   it("groups U.S. time zones by Daylight Saving Time observance", () => {
+    // Keyed on each option's IANA zone id, not a formatted label:
+    // formatUsTimeZoneOptionLabel was Profile's old timezone-picker
+    // formatter, removed as an orphan once Profile consolidated to spec
+    // §11's read-only column (no timezone editing UI left to feed).
+    // US_TIME_ZONE_GROUPS/US_TIME_ZONE_OPTIONS themselves stay — this pins
+    // their grouping, independent of any one consumer's formatting needs.
     assert.deepEqual(
       US_TIME_ZONE_GROUPS.map((group) => ({
         label: group.label,
-        options: group.options.map(formatUsTimeZoneOptionLabel),
+        options: group.options.map((option) => option.value),
       })),
       [
         {
           label: "Observes Daylight Saving Time",
           options: [
-            "Eastern Time - EDT/EST",
-            "Central Time - CDT/CST",
-            "Mountain Time - MDT/MST",
-            "Pacific Time - PDT/PST",
-            "Alaska Time - AKDT/AKST",
-            "Aleutian Time - HADT/HAST",
+            "America/New_York",
+            "America/Chicago",
+            "America/Denver",
+            "America/Los_Angeles",
+            "America/Anchorage",
+            "America/Adak",
           ],
         },
         {
           label: "Standard Time Year-Round",
           options: [
-            "Atlantic Time - AST",
-            "Arizona Time - MST",
-            "Hawaii Time - HST",
-            "Samoa Time - SST",
-            "Chamorro Time - ChST",
+            "America/Puerto_Rico",
+            "America/Phoenix",
+            "Pacific/Honolulu",
+            "Pacific/Pago_Pago",
+            "Pacific/Guam",
           ],
         },
       ],
     );
     assert.deepEqual(
-      US_TIME_ZONE_OPTIONS.map(formatUsTimeZoneOptionLabel),
+      US_TIME_ZONE_OPTIONS.map((option) => option.value),
       US_TIME_ZONE_GROUPS.flatMap((group) =>
-        group.options.map(formatUsTimeZoneOptionLabel)
+        group.options.map((option) => option.value)
       ),
     );
   });
@@ -793,62 +973,6 @@ function makeHistorySetup({
   };
 }
 
-describe("profile insights", () => {
-  it("summarizes the user's most reviewed markets without changing asset sort rules", () => {
-    const setups = [
-      buildTradeSetup({
-        created_at: "2026-06-20T12:00:00.000Z",
-        id: "1",
-        outcome: "take_profit",
-        symbol: "EURUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-21T12:00:00.000Z",
-        id: "2",
-        outcome: "stop_loss",
-        symbol: "EURUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-22T12:00:00.000Z",
-        id: "3",
-        outcome: "pending",
-        symbol: "BTCUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-23T12:00:00.000Z",
-        id: "4",
-        outcome: "take_profit",
-        symbol: "AUDUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-24T12:00:00.000Z",
-        id: "5",
-        outcome: "pending",
-        symbol: "AUDUSD",
-      }),
-      buildTradeSetup({
-        created_at: "2026-06-25T12:00:00.000Z",
-        id: "6",
-        outcome: "pending",
-        symbol: "XAUUSD",
-      }),
-    ];
-
-    assert.deepEqual(
-      buildProfileReviewPattern(setups).map((item) => ({
-        count: item.count,
-        symbol: item.symbol,
-        winRate: item.winRate,
-      })),
-      [
-        { count: 2, symbol: "AUDUSD", winRate: 100 },
-        { count: 2, symbol: "EURUSD", winRate: 50 },
-        { count: 1, symbol: "BTCUSD", winRate: null },
-      ],
-    );
-  });
-});
-
 describe("database schema", () => {
   it("uses provider-neutral market symbol naming in the current baseline schema", () => {
     const initSql = readFileSync("supabase/init.sql", "utf8");
@@ -876,36 +1000,6 @@ describe("database schema", () => {
     );
   });
 });
-
-function buildTradeSetup({
-  created_at,
-  id,
-  outcome,
-  symbol,
-}: {
-  created_at: string;
-  id: string;
-  outcome: string;
-  symbol: string;
-}): TradeSetupRow {
-  return {
-    analyzer_version: "test",
-    breakeven_trigger_price: 1.02,
-    confidence_score: 80,
-    confluence: {},
-    correlation_group: null,
-    created_at,
-    id,
-    limit_entry: 1,
-    risk_model: {},
-    side: "buy",
-    status: "generated",
-    stop_loss: 0.98,
-    symbol,
-    take_profit: 1.04,
-    trade_outcomes: [{ outcome, realized_pnl: null }],
-  };
-}
 
 function buildSetup({
   outcome,

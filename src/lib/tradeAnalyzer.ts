@@ -77,6 +77,7 @@ export type MarketScanResponse = {
   failed?: boolean;
   learningRefresh?: AnalyzerResponse["learningRefresh"];
   opportunities: MarketScanCandidate[];
+  qualified: number;
   scanned: number;
 };
 
@@ -89,6 +90,14 @@ export type TradeSetupRow = {
   created_at: string;
   id: string;
   limit_entry: number | string;
+  // Populated for every row going forward (migration
+  // 20260730080000_setup_origin.sql backfills existing rows to 'review');
+  // optional/nullable here purely defensively, since this client type
+  // predates that column and nothing guarantees every future select lists
+  // it. Insights (spec §10) reads this once, only to tell a scan-origin
+  // setup that was never placed ("Not taken") apart from a review-origin
+  // one ("Unfilled") — it is never rendered as its own column or filter.
+  origin?: "review" | "scan" | null;
   risk_model: Record<string, unknown> | null;
   side: "buy" | "sell";
   status: string;
@@ -194,7 +203,7 @@ export async function fetchTradeSetups() {
   const query = supabase
     .from("trade_setups")
     .select(
-      "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
+      "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, origin, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
     )
     .order("created_at", { ascending: false })
     .limit(80);

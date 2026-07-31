@@ -1,8 +1,11 @@
+import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
 import {
   CONFIDENCE_TIERS,
   formatConfidenceTierRange,
+  formatConfidenceWithTier,
 } from "../../lib/confidenceTiers";
 import {
+  classifyWinLoss,
   normalizeSetupOutcome,
   OUTCOME_COPY,
   type SetupOutcome,
@@ -14,11 +17,13 @@ import {
   getSecurityOption,
   type SecurityType,
 } from "../../lib/symbolMap";
+import { deriveTradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "./advisorFormat";
+import type { ScanScope } from "./ScopeMenu";
 
 export type HistoryGroupBy = "date" | "category" | "asset" | "status";
 export type HistorySort = "newest" | "oldest" | "confidence" | "asset";
-export type HistoryStatusFilter = "all" | SetupOutcome;
 
 export type HistorySetupGroup = {
   items: TradeSetupRow[];
@@ -26,8 +31,13 @@ export type HistorySetupGroup = {
   label: string;
 };
 
-export const ALL_HISTORY_FILTER = "all";
-export const HISTORY_STATUS_ORDER: SetupOutcome[] = [
+// Insights (spec §10) no longer exposes a "group by status" control or the
+// old 8-way status filter — its own Status filter is the coarser
+// pending/open/closed split (InsightsStatusFilter, below), driven by
+// deriveTradeState. groupHistorySetups's "status" mode still needs this
+// ordering internally, and stays covered by tests/core.test.ts, so it stays
+// — just no longer part of this module's public surface.
+const HISTORY_STATUS_ORDER: SetupOutcome[] = [
   "still_tracking",
   "target_reached",
   "partial_target",
@@ -126,13 +136,11 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
       continue;
     }
     const outcome = getSetupOutcome(setup);
+    const winLoss = classifyWinLoss(outcome);
     band.count += 1;
-    if (
-      outcome === "target_reached" || outcome === "partial_target" ||
-      outcome === "expired_in_profit"
-    ) {
+    if (winLoss === "win") {
       band.wins += 1;
-    } else if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+    } else if (winLoss === "loss") {
       band.losses += 1;
     } else if (outcome === "unclear_path") {
       band.ambiguous += 1;
@@ -161,13 +169,16 @@ export function getOutcomeLabel(outcome: SetupOutcome) {
 }
 
 export function getOutcomeClassName(outcome: SetupOutcome) {
-  if (
-    outcome === "target_reached" || outcome === "partial_target" ||
-    outcome === "expired_in_profit"
-  ) {
+  // classifyWinLoss (lib/outcomes.ts) is the single source of truth for the
+  // win/loss split (fix round 2 — this was a fourth independent copy of the
+  // same predicates). The caution/muted split below is genuinely this
+  // function's own concern, not part of classifyWinLoss's job, so it stays
+  // as its own outcome check.
+  const winLoss = classifyWinLoss(outcome);
+  if (winLoss === "win") {
     return "text-buy";
   }
-  if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+  if (winLoss === "loss") {
     return "text-sell";
   }
   if (outcome === "entry_not_filled") {
@@ -179,22 +190,27 @@ export function getOutcomeClassName(outcome: SetupOutcome) {
   return "text-ink";
 }
 
+// Insights' Target 1 column (spec §10) is the first real caller that can
+// pass `null` for a genuine, expected reason — a non-laddered instrument's
+// take_profit_1 — rather than only ever seeing a real number. That exposed
+// a latent gap here: `Number(null) === 0` in JavaScript (unlike
+// `Number(undefined)`, which is NaN), so the old isFinite-only check would
+// have rendered a bare "0" for "no second target" instead of a dash. Every
+// existing caller (Entry/Stop/Target/Break-even) only ever passed a real
+// number in practice, so this null/undefined/empty-string guard changes
+// nothing for them and only fixes the newly-reachable case. Fallback
+// changed from "Pending" to the em dash used everywhere else absent-value
+// prices render (tradeState.ts's formatEntry, CurrentTradesRail's
+// formatLevel) — "Pending" implied a value that would arrive later, which
+// is wrong for a target that will never exist on this instrument.
 export function formatPriceValue(
   value: number | string | null | undefined,
 ) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
   const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? formatNumber(numericValue) : "Pending";
-}
-
-export function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-export function formatPayoff(value: number | null) {
-  return value === null ? "Pending" : `${value.toFixed(2)}x payoff`;
+  return Number.isFinite(numericValue) ? formatNumber(numericValue) : "—";
 }
 
 export function formatHistoryDateGroup(date: Date) {
@@ -237,13 +253,6 @@ export function asNumber(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
-export function formatDisplayName(value: string) {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .trim();
-}
-
 function getHistoryGroup(
   setup: TradeSetupRow,
   groupBy: HistoryGroupBy,
@@ -267,8 +276,281 @@ function getHistoryGroup(
   return { key, label: formatHistoryDateGroup(date) };
 }
 
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 5,
-  });
+// ---------------------------------------------------------------------------
+// Insights ledger (spec §10) — record band, one filter row, day-grouped
+// table. Everything below this line is new for that recomposition; the
+// grouping/sorting/outcome utilities above are unchanged and reused as-is.
+// ---------------------------------------------------------------------------
+
+export function formatSetupConfidence(setup: TradeSetupRow): string {
+  const category = getSecurityOption(setup.symbol).assetType;
+  return formatConfidenceWithTier(
+    setup.confidence_score,
+    CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[category],
+  );
+}
+
+// Signed R for the Insights ledger specifically (spec §10's own examples:
+// "Open · +0.8R", "Stopped · −1.0R"). Deliberately a separate function from
+// CurrentTradesRail's formatProgressR, which renders a negative R with the
+// native ASCII hyphen ("-1.0R", pinned by its own test) — that rail predates
+// this spec section and isn't governed by it. Insights' governing spec text
+// uses the typographic minus sign (U+2212) throughout, matching the
+// existing "Expired −" outcome shortLabel in lib/outcomes.ts, so this
+// formatter matches its own spec exactly rather than reusing the rail's.
+export function formatSignedR(value: number): string {
+  const sign = value < 0 ? "−" : "+";
+  return `${sign}${Math.abs(value).toFixed(1)}R`;
+}
+
+// trade_outcomes.feedback is the only place realizedR lives (no column —
+// spec §10). Present for tp1_partial/expired_in_profit/expired_at_loss
+// today (supabase/functions/trade-analyzer/replay.ts's expiry branch);
+// absent everywhere else including every open/placed row and every
+// take_profit/stop_loss resolution — callers must treat null as "no
+// figure yet," never as zero.
+export function extractRealizedR(setup: TradeSetupRow): number | null {
+  const feedback = asRecord(setup.trade_outcomes?.[0]?.feedback);
+  return asNumber(feedback.realizedR);
+}
+
+// The Insights Status filter (spec §10: "All / Open / Pending / Closed") is
+// coarser than the 8-way SetupOutcome taxonomy the old filter used — it's
+// the same pending/open/closed split Current trades already lives by
+// (spec §8's "closed = null" contract), so this reuses deriveTradeState
+// directly rather than inventing a second classification of the same facts.
+export type InsightsStatus = "closed" | "open" | "pending";
+export type InsightsStatusFilter = "all" | InsightsStatus;
+
+export function computeInsightsStatus(
+  setup: TradeSetupRow,
+  now: Date,
+): InsightsStatus {
+  return deriveTradeState(setup, now)?.status ?? "closed";
+}
+
+export type InsightsPeriodDays = 7 | 30 | 90;
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Inclusive at the boundary: a setup created exactly `days` ago still
+// counts as within the period. Also backs the record band's "setups this
+// week" figure (days = 7), so both use one boundary rule.
+export function isWithinPeriod(
+  setup: TradeSetupRow,
+  days: number,
+  now: Date,
+): boolean {
+  const createdAt = new Date(setup.created_at).getTime();
+  if (Number.isNaN(createdAt)) {
+    return false;
+  }
+  return now.getTime() - createdAt <= days * MS_PER_DAY;
+}
+
+// The Market filter is structured after the scan scope menu's universal
+// contract (spec §4: all → groups alphabetical → symbols nested) and reuses
+// its ScanScope type and AVAILABLE_ASSET_GROUPS data for that ordering. It
+// is deliberately NOT the ScopeMenu component itself: that component grays
+// out and disables closed markets and labels them with scan affordances
+// ("SCAN {N}", "OPENS {time}") — correct for choosing what to scan right
+// now, wrong for filtering a historical ledger, where a market closed for
+// the weekend must still be selectable to see its past setups. A plain
+// <select> (HistoryPanel.tsx) carries the same three-tier data without
+// borrowing scan-only behavior that doesn't apply here.
+export const ALL_MARKETS_FILTER = "all";
+
+export function marketFilterValue(scope: ScanScope): string {
+  if (scope.kind === "all") {
+    return ALL_MARKETS_FILTER;
+  }
+  if (scope.kind === "group") {
+    return `group:${scope.assetType}`;
+  }
+  return `symbol:${scope.symbol}`;
+}
+
+export function parseMarketFilterValue(value: string): ScanScope {
+  if (value.startsWith("group:")) {
+    return { assetType: value.slice("group:".length) as SecurityType, kind: "group" };
+  }
+  if (value.startsWith("symbol:")) {
+    return { kind: "symbol", symbol: value.slice("symbol:".length) };
+  }
+  return { kind: "all" };
+}
+
+export function matchesMarketFilter(
+  setup: TradeSetupRow,
+  scope: ScanScope,
+): boolean {
+  if (scope.kind === "all") {
+    return true;
+  }
+  if (scope.kind === "group") {
+    return getSecurityOption(setup.symbol).assetType === scope.assetType;
+  }
+  return setup.symbol === scope.symbol;
+}
+
+export type InsightsFilters = {
+  market: ScanScope;
+  periodDays: InsightsPeriodDays;
+  status: InsightsStatusFilter;
+};
+
+export function filterInsightsSetups(
+  setups: TradeSetupRow[],
+  filters: InsightsFilters,
+  now: Date,
+): TradeSetupRow[] {
+  return setups.filter((setup) =>
+    matchesMarketFilter(setup, filters.market) &&
+    (filters.status === "all" ||
+      computeInsightsStatus(setup, now) === filters.status) &&
+    isWithinPeriod(setup, filters.periodDays, now)
+  );
+}
+
+// Insights' table is always day-grouped, newest day first, newest setup
+// first within a day (spec §10) — no user-facing group-by/sort controls
+// anymore, so this pins the one combination the ledger actually uses
+// rather than leaving two separate calls duplicated at the call site.
+export function buildInsightsGroups(
+  setups: TradeSetupRow[],
+): HistorySetupGroup[] {
+  return groupHistorySetups(sortHistorySetups(setups, "newest"), "date");
+}
+
+export type RecordBand = {
+  bestMarket: string | null;
+  moneyPositivePercent: number | null;
+  netR: number | null;
+  setupsThisWeek: number;
+};
+
+const RECORD_BAND_WEEK_DAYS = 7;
+
+// Always computed from every loaded row, independent of the panel's own
+// Market/Status/Period filters (spec §10: "computed from the loaded
+// rows") — a stable header even while the table below is filtered down.
+export function buildRecordBand(
+  setups: TradeSetupRow[],
+  now: Date,
+): RecordBand {
+  const setupsThisWeek = setups.filter((setup) =>
+    isWithinPeriod(setup, RECORD_BAND_WEEK_DAYS, now)
+  ).length;
+
+  let wins = 0;
+  let losses = 0;
+  let netRSum = 0;
+  let netRPresent = false;
+  const bySymbol = new Map<string, { losses: number; wins: number }>();
+
+  for (const setup of setups) {
+    // classifyWinLoss (lib/outcomes.ts) is the single source of truth for
+    // money-positive vs. money-negative, shared with useTradeSetups.ts's
+    // buildStats so the two can't drift apart on a future outcome-taxonomy
+    // change. Pending, unfilled, and ambiguous setups classify "neither"
+    // and affect neither side of the ratio.
+    const outcome = getSetupOutcome(setup);
+    const winLoss = classifyWinLoss(outcome);
+
+    if (winLoss !== "neither") {
+      const symbolStat = bySymbol.get(setup.symbol) ?? { losses: 0, wins: 0 };
+      if (winLoss === "win") {
+        wins += 1;
+        symbolStat.wins += 1;
+      } else {
+        losses += 1;
+        symbolStat.losses += 1;
+      }
+      bySymbol.set(setup.symbol, symbolStat);
+    }
+
+    const realizedR = extractRealizedR(setup);
+    if (realizedR !== null) {
+      netRSum += realizedR;
+      netRPresent = true;
+    }
+  }
+
+  const resolved = wins + losses;
+  const moneyPositivePercent = resolved > 0
+    ? Math.round((wins / resolved) * 100)
+    : null;
+
+  // Best market: highest money-positive rate among symbols with at least
+  // one resolved outcome, tie-broken by more resolved evidence, then
+  // alphabetically for a fully deterministic result.
+  const bestMarket = Array.from(bySymbol.entries())
+    .map(([symbol, stat]) => ({
+      resolved: stat.wins + stat.losses,
+      symbol,
+      winRate: stat.wins / (stat.wins + stat.losses),
+    }))
+    .filter((entry) => entry.resolved > 0)
+    .sort((first, second) =>
+      second.winRate - first.winRate ||
+      second.resolved - first.resolved ||
+      first.symbol.localeCompare(second.symbol)
+    )[0]?.symbol ?? null;
+
+  return {
+    bestMarket,
+    moneyPositivePercent,
+    netR: netRPresent ? netRSum : null,
+    setupsThisWeek,
+  };
+}
+
+// Result column (spec §10): "Open · +0.8R", "Target 2 · +2.1R",
+// "Stopped · −1.0R", "Banked half · +0.4R", "Pending", "Unfilled",
+// "Not taken" for a scan-origin setup never placed. Status comes from
+// deriveTradeState (pending/open first; everything else is closed), then
+// closed rows branch on the outcome bucket. `origin` is read here only —
+// never rendered as its own column or filter (owner ruling, spec §10).
+export function formatInsightsResult(
+  setup: TradeSetupRow,
+  now: Date,
+): string {
+  const tradeState = deriveTradeState(setup, now);
+  const realizedR = extractRealizedR(setup);
+
+  if (tradeState?.status === "pending") {
+    return "Pending";
+  }
+  if (tradeState?.status === "open") {
+    return withRealizedR("Open", realizedR);
+  }
+
+  const outcome = getSetupOutcome(setup);
+  if (outcome === "entry_not_filled") {
+    return setup.origin === "scan" ? "Not taken" : "Unfilled";
+  }
+  if (outcome === "target_reached") {
+    return withRealizedR("Target 2", realizedR);
+  }
+  if (outcome === "partial_target") {
+    return withRealizedR("Banked half", realizedR);
+  }
+  if (outcome === "stopped_out") {
+    return withRealizedR("Stopped", realizedR);
+  }
+  if (outcome === "expired_in_profit" || outcome === "expired_in_loss") {
+    return withRealizedR("Expired", realizedR);
+  }
+  if (outcome === "unclear_path") {
+    return withRealizedR("Needs review", realizedR);
+  }
+  // Defensive: a closed setup (deriveTradeState returned null) whose
+  // outcome row is missing or still literally "pending" — a data anomaly,
+  // since a closed status should always carry a resolved outcome — falls
+  // back to the plain outcome label instead of an impossible branch.
+  return withRealizedR(getOutcomeLabel(outcome), realizedR);
+}
+
+function withRealizedR(label: string, realizedR: number | null): string {
+  return realizedR === null ? label : `${label} · ${formatSignedR(realizedR)}`;
 }

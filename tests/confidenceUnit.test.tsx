@@ -1,0 +1,327 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+import {
+  buildConfidenceNote,
+  clampConfidencePercent,
+  formatConfidenceValue,
+} from "../src/components/workspace/ConfidenceUnit";
+import { formatScanRowMeta } from "../src/components/workspace/marketScanFilters";
+import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../src/lib/advisorReview";
+import type { SecurityType } from "../src/lib/symbolMap";
+
+// Same approach as tests/confidenceGauge.test.ts and tests/scopeMenu.test.tsx:
+// no jsdom in this repo's unit-test stack, so ConfidenceUnit is exercised
+// through its exported pure functions rather than rendered. ConfidenceUnit.tsx
+// never touches `document` at module scope, so importing it for those
+// functions loads cleanly under plain node:test. The handful of facts that
+// only exist in JSX — the literal "Confidence" label, the meter deriving its
+// fill/tick from computed percentages, and the threshold coming from the
+// live-calibration mirror rather than a hardcoded number — are pinned by
+// reading the real source text, the same technique tests/core.test.ts
+// already uses for source it can't import and execute directly.
+const CONFIDENCE_UNIT_SOURCE = readFileSync(
+  "src/components/workspace/ConfidenceUnit.tsx",
+  "utf8",
+);
+
+describe("formatConfidenceValue", () => {
+  it('renders the canonical "N of 100" scale, never a bare number', () => {
+    assert.equal(formatConfidenceValue(72), "72 of 100");
+    assert.equal(formatConfidenceValue(0), "0 of 100");
+    assert.equal(formatConfidenceValue(100), "100 of 100");
+  });
+
+  it("rounds to the nearest whole point", () => {
+    assert.equal(formatConfidenceValue(82.6), "83 of 100");
+    assert.equal(formatConfidenceValue(81.4), "81 of 100");
+  });
+});
+
+describe("clampConfidencePercent", () => {
+  it("keeps in-range values as-is", () => {
+    assert.equal(clampConfidencePercent(40), 40);
+    assert.equal(clampConfidencePercent(0), 0);
+    assert.equal(clampConfidencePercent(100), 100);
+  });
+
+  it("clamps out-of-range and non-finite values instead of producing an invalid style", () => {
+    assert.equal(clampConfidencePercent(-10), 0);
+    assert.equal(clampConfidencePercent(150), 100);
+    assert.equal(clampConfidencePercent(Number.NaN), 0);
+  });
+});
+
+describe("buildConfidenceNote", () => {
+  it("names the class and its live threshold, with room to spare when the margin is wide", () => {
+    const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex;
+    assert.equal(
+      buildConfidenceNote("Forex", threshold + 20, threshold),
+      `Forex setups must score ${threshold} to qualify — this one clears it with room to spare`,
+    );
+  });
+
+  it("softens to a plain clear when the margin is thin (within 5 points of the bar)", () => {
+    const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals;
+    assert.equal(
+      buildConfidenceNote("Metals", threshold + 2, threshold),
+      `Metals setups must score ${threshold} to qualify — this one clears it`,
+    );
+  });
+
+  it("treats a margin of exactly 5 as thin, and 6 as room to spare", () => {
+    const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto;
+    assert.equal(
+      buildConfidenceNote("Crypto", threshold + 5, threshold),
+      `Crypto setups must score ${threshold} to qualify — this one clears it`,
+    );
+    assert.equal(
+      buildConfidenceNote("Crypto", threshold + 6, threshold),
+      `Crypto setups must score ${threshold} to qualify — this one clears it with room to spare`,
+    );
+  });
+
+  it("clears exactly at the bar (zero margin) with the softened phrasing", () => {
+    const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Indices;
+    assert.equal(
+      buildConfidenceNote("Indices", threshold, threshold),
+      `Indices setups must score ${threshold} to qualify — this one clears it`,
+    );
+  });
+
+  it("covers every asset class's own qualifying language, threshold sourced from the mirror", () => {
+    for (
+      const assetType of Object.keys(
+        CONFIDENCE_THRESHOLD_BY_ASSET_TYPE,
+      ) as SecurityType[]
+    ) {
+      const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[assetType];
+      assert.equal(
+        buildConfidenceNote(assetType, threshold + 20, threshold),
+        `${assetType} setups must score ${threshold} to qualify — this one clears it with room to spare`,
+      );
+    }
+  });
+});
+
+describe("ConfidenceUnit component shape (source-pinned — see header comment)", () => {
+  it('labels the value "Confidence" and renders it through the value formatter, never a bare number', () => {
+    assert.match(CONFIDENCE_UNIT_SOURCE, />\s*Confidence\s*</);
+    assert.match(CONFIDENCE_UNIT_SOURCE, /\{formatConfidenceValue\(score\)\}/);
+  });
+
+  it("resolves its qualifying threshold from the live calibration mirror, not a literal", () => {
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /import\s*\{\s*CONFIDENCE_THRESHOLD_BY_ASSET_TYPE\s*\}\s*from\s*"\.\.\/\.\.\/lib\/advisorReview"/,
+    );
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE\[assetType\]/,
+    );
+  });
+
+  it("positions the meter's fill and tick from computed percentages, not literals", () => {
+    assert.match(CONFIDENCE_UNIT_SOURCE, /\$\{fillPercent\}%/);
+    assert.match(CONFIDENCE_UNIT_SOURCE, /\$\{tickPercent\}%/);
+  });
+
+  it("renders its note through buildConfidenceNote", () => {
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /\{buildConfidenceNote\(assetType, score, threshold\)\}/,
+    );
+  });
+});
+
+describe("formatScanRowMeta (scan rail row meta, spec §5)", () => {
+  it('formats a buy candidate as "Buy · confidence N"', () => {
+    assert.equal(formatScanRowMeta("buy", 82.4), "Buy · confidence 82");
+  });
+
+  it('formats a sell candidate as "Sell · confidence N", rounding the score', () => {
+    assert.equal(formatScanRowMeta("sell", 69.6), "Sell · confidence 70");
+  });
+
+  it("degrades gracefully when side or score is missing, without fabricating either", () => {
+    assert.equal(formatScanRowMeta(undefined, 82), "Review");
+    assert.equal(formatScanRowMeta("buy", undefined), "Buy");
+  });
+});
+
+describe("MarketScanPanel row wiring (source-pinned — see header comment)", () => {
+  it('builds the row meta from formatScanRowMeta, not the old "{side} limit" text', () => {
+    const source = readFileSync(
+      "src/components/workspace/MarketScanPanel.tsx",
+      "utf8",
+    );
+    assert.match(source, /formatScanRowMeta\(/);
+    assert.doesNotMatch(source, /\$\{candidate\.side\}\s*limit/);
+  });
+
+  // m2: spec §2's universal scrollbar treatment applies to every scrollable
+  // column, the scan rail's own results list included.
+  it("gives the results list the .scrolly thin-scrollbar treatment (m2)", () => {
+    const source = readFileSync(
+      "src/components/workspace/MarketScanPanel.tsx",
+      "utf8",
+    );
+    assert.match(
+      source,
+      /className="scrolly grid max-h-\[640px\] gap-3 overflow-y-auto pr-1"/,
+    );
+  });
+
+  // m3: spec §5's rail has no band filter, and letting one hide rows made
+  // the visible list disagree with the server-truth scanned/qualified count
+  // line — the legacy Quality filter (and its confidence-banding state) is
+  // fully retired, not just hidden.
+  it("no longer offers a Quality band filter (m3)", () => {
+    const source = readFileSync(
+      "src/components/workspace/MarketScanPanel.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(source, /\bQuality\b/);
+    assert.doesNotMatch(source, /CONFIDENCE_BANDS/);
+    assert.doesNotMatch(source, /confidenceBand/i);
+  });
+});
+
+describe("AdvisorRecommendationPanel wiring (source-pinned — see header comment)", () => {
+  it("wires ConfidenceUnit into the stage in place of the old bare-number cell and gauge", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.match(source, /<ConfidenceUnit\b/);
+    assert.doesNotMatch(source, /<ConfidenceGauge\b/);
+    assert.doesNotMatch(source, /\{Math\.round\(setup\.confidenceScore\)\}%/);
+  });
+
+  // Spec §7: the bundled "Copy levels" button and its levelSummary
+  // clipboard plumbing are gone — per-value copy replaces both.
+  it('removes the bundled "Copy levels" button and its levelSummary plumbing', () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(source, /Copy levels/);
+    assert.doesNotMatch(source, /levelSummary/);
+    // The lucide Clipboard icon powered only that button; navigator's own
+    // lowercase `clipboard` API is unrelated and stays.
+    assert.doesNotMatch(source, /\bClipboard\b/);
+  });
+
+  // m1: the ✓ must be success-conditional, not a synchronous UI flip
+  // independent of whether the clipboard write actually resolved.
+  it("only flips a field's copy state on a resolved navigator.clipboard.writeText, never unconditionally (m1)", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    const handleCopyBlock = source.match(
+      /async function handleCopy\([\s\S]*?\n  \}/,
+    )?.[0] ?? "";
+    assert.match(handleCopyBlock, /await navigator\.clipboard\.writeText\(value\);/);
+    assert.match(handleCopyBlock, /catch \{\s*return;\s*\}/);
+    assert.doesNotMatch(source, /void navigator\.clipboard\?\.writeText/);
+  });
+
+  it('labels the ladder rows exactly "Target 1 · bank half" and "Target 2 · take-profit" (spec §7)', () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.match(source, /label="Target 1 · bank half"/);
+    assert.match(
+      source,
+      /label=\{hasLadder \? "Target 2 · take-profit" : "Target"\}/,
+    );
+    // The retired labels don't linger anywhere in the file.
+    assert.doesNotMatch(source, /First target/);
+    assert.doesNotMatch(source, /Second target/);
+  });
+
+  // Spec §7: each ladder value copies on its own — but NOT the displayed
+  // string. formatNumber's `toLocaleString(undefined, ...)` defers to the
+  // runtime locale: any value >= 1000 gains a thousands separator
+  // ("117,240"), and under de-DE the decimal itself swaps to a comma —
+  // either way the payload corrupts on paste into a broker's price field,
+  // the entire point of this feature (fix round 1). Every row must route
+  // its clipboard payload through formatCopyValue instead — deterministic,
+  // en-US, ungrouped — while `value` (what's rendered) stays on
+  // formatNumber for a readable on-screen number. No jsdom in this repo's
+  // unit-test stack (see the file header comment above), so there's no
+  // live navigator.clipboard to mock and no click to dispatch; this pins
+  // the one writeText call site to a bare `value` argument, pins each
+  // row's onCopy to formatCopyValue specifically, and confirms
+  // formatNumber never leaks into a handleCopy(...) call. m1 dropped the
+  // optional-chained `navigator.clipboard?.writeText` for an explicit
+  // `if (!navigator.clipboard) return;` guard ahead of an awaited call, so
+  // the ✓ can be made conditional on the write's own resolution.
+  it("copies each value through formatCopyValue, never formatNumber, via a single writeText(value) call site", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    assert.match(
+      source,
+      /import \{ formatCopyValue, formatNumber, formatTimestamp \} from "\.\/advisorFormat";/,
+    );
+    const writeTextCalls =
+      source.match(/navigator\.clipboard\.writeText\([^)]*\)/g) ?? [];
+    assert.deepEqual(
+      writeTextCalls,
+      ["navigator.clipboard.writeText(value)"],
+      "expected exactly one clipboard write site, taking the bare handler parameter",
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("entry", formatCopyValue\(setup\.entryPrice\)\)\}/,
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("stop", formatCopyValue\(setup\.stopLoss\)\)\}/,
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("target1", formatCopyValue\(setup\.takeProfit1!\)\)\}/,
+    );
+    assert.match(
+      source,
+      /onCopy=\{\(\) => handleCopy\("target2", formatCopyValue\(setup\.takeProfit\)\)\}/,
+    );
+    // Belt and suspenders: no handleCopy(...) call anywhere reaches for
+    // formatNumber, the locale-dependent display formatter, by name.
+    assert.doesNotMatch(source, /handleCopy\([^)]*formatNumber/);
+    // formatNumber is still very much in the file — for `value=` display
+    // props — exactly four times, one per ladder row.
+    const displayFormatNumberCalls =
+      source.match(/value=\{formatNumber\(/g) ?? [];
+    assert.equal(displayFormatNumberCalls.length, 4);
+  });
+
+  it("flips each copy affordance to a checkmark for a bounded window, keyed per row", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorRecommendationPanel.tsx",
+      "utf8",
+    );
+    // Real button semantics (spec §7: keyboard accessible), not a div.
+    assert.match(source, /<button\b[^>]*\bclassName="cpv-copy"/);
+    // The ✓ state is transient (~2s) and keyed by field via copiedField,
+    // not a single flag — copying one row never shows a false ✓ on
+    // another, and the icon swap reads straight off that same state.
+    assert.match(
+      source,
+      /window\.setTimeout\(\(\) => setCopiedField\(null\), 2000\)/,
+    );
+    assert.match(
+      source,
+      /\? <Check aria-hidden="true" className="h-4 w-4 text-buy" \/>/,
+    );
+    assert.match(
+      source,
+      /: <Copy aria-hidden="true" className="h-4 w-4" \/>/,
+    );
+  });
+});

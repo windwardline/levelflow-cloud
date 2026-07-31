@@ -31,6 +31,22 @@ export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
   Metals: 8,
 };
 
+// Mirrors supabase/functions/trade-analyzer/calibration.ts's per-class
+// confidenceThreshold. Duplicated, not imported: that file is a Deno edge
+// function, and pulling it into the client bundle at runtime would be
+// architecturally wrong (same reasoning as REVIEW_WINDOW_HOURS_BY_ASSET_TYPE
+// above). tests/core.test.ts pins every class against the real
+// getCategoryCalibration(...).confidenceThreshold so this can never drift
+// silently from live calibration.
+export const CONFIDENCE_THRESHOLD_BY_ASSET_TYPE: Record<SecurityType, number> = {
+  Crypto: 82,
+  Energies: 69,
+  Forex: 40,
+  Futures: 68,
+  Indices: 68,
+  Metals: 90,
+};
+
 export function advisorChartViewLabel(timeframe: ChartTimeframe) {
   return chartTimeframeLabel(timeframe);
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Filter,
   Loader2,
@@ -8,86 +8,68 @@ import {
   Target,
 } from "lucide-react";
 import {
-  SCANNABLE_ASSET_GROUPS,
   formatSecurityLabel,
+  getSecurityOption,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
-import {
-  CONFIDENCE_TIERS,
-  type ConfidenceTierId,
-  formatConfidenceTierRange,
-  formatConfidenceWithTier,
-} from "../../lib/confidenceTiers";
+import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
+import { formatConfidenceWithTier } from "../../lib/confidenceTiers";
 import type {
   MarketScanCandidate,
   MarketScanResponse,
 } from "../../lib/tradeAnalyzer";
+import { formatNumber } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import {
-  countMarketScanCandidatesInCategory,
-  filterMarketScanCandidates,
-  getMarketScanSymbolsForCategory,
-  type MarketScanCategoryFilter,
+  filterMarketScanCandidatesByScope,
+  filterSymbolsByAvailability,
+  formatScanRowMeta,
+  getMarketScanSymbolsForScope,
 } from "./marketScanFilters";
 import { describeExecutionLabel } from "./reviewCopy";
-
-type ConfidenceBand = "all" | ConfidenceTierId;
+import { formatScopeCountLine, ScopeMenu, type ScanScope } from "./ScopeMenu";
 
 type MarketScanPanelProps = {
   onResetResult: () => void;
   onScan: (symbols: SupportedSymbol[]) => void;
   onSelectCandidate: (candidate: MarketScanCandidate) => void;
+  // Fires when the scope menu selects a single market - drives the stage
+  // selection the same way clicking a scan row does today (spec §4:
+  // "selecting a market scopes the scan to that one market and the stage
+  // follows").
+  onSelectSymbol: (symbol: SupportedSymbol) => void;
   result: MarketScanResponse | null;
+  // Snapshot of when `result` was produced, for the count line's "{time}"
+  // segment (spec §5). Frozen at completion by the caller rather than read
+  // live here, so it doesn't silently advance on unrelated re-renders (the
+  // workspace clock ticks every 60s).
+  scanCompletedAt: Date | null;
   status: "idle" | "scanning";
 };
-
-const CONFIDENCE_BANDS: Array<
-  { label: string; min: number; value: ConfidenceBand }
-> = [
-  { label: "All tiers", min: 0, value: "all" },
-  ...[...CONFIDENCE_TIERS].reverse().map((tier) => ({
-    label: `${tier.label} (${formatConfidenceTierRange(tier)}%)`,
-    min: tier.min,
-    value: tier.id,
-  })),
-];
 
 export function MarketScanPanel({
   onResetResult,
   onScan,
   onSelectCandidate,
+  onSelectSymbol,
   result,
+  scanCompletedAt,
   status,
 }: MarketScanPanelProps) {
-  const [categoryFilter, setCategoryFilter] = useState<MarketScanCategoryFilter>(
-    "all",
+  const [scope, setScope] = useState<ScanScope>({ kind: "all" });
+  const scanSymbols = getMarketScanSymbolsForScope(scope);
+  // I5: never sent straight to the server - a closed market has no chance
+  // of qualifying and would only inflate the server's `scanned` count with
+  // markets that were never really attempted. Computed fresh on every
+  // render rather than memoized (same reasoning as ScopeMenu.tsx's own
+  // clock: a `new Date()` dependency would defeat a memo anyway) so a scan
+  // fired right on a market's open/close boundary still sees the current
+  // answer.
+  const openScanSymbols = filterSymbolsByAvailability(scanSymbols, new Date());
+  const filteredOpportunities = filterMarketScanCandidatesByScope(
+    result?.opportunities ?? [],
+    scope,
   );
-  const [confidenceBand, setConfidenceBand] = useState<ConfidenceBand>("all");
-  const selectedBand =
-    CONFIDENCE_BANDS.find((band) => band.value === confidenceBand) ??
-      CONFIDENCE_BANDS[0];
-  const scanSymbols = useMemo(
-    () => getMarketScanSymbolsForCategory(categoryFilter),
-    [categoryFilter],
-  );
-  const filteredOpportunities = useMemo(
-    () =>
-      filterMarketScanCandidates(
-        result?.opportunities ?? [],
-        categoryFilter,
-        selectedBand.min,
-      ),
-    [categoryFilter, result?.opportunities, selectedBand.min],
-  );
-  const blockedCount = useMemo(
-    () =>
-      countMarketScanCandidatesInCategory(
-        result?.blocked ?? [],
-        categoryFilter,
-      ),
-    [categoryFilter, result?.blocked],
-  );
-  const topCandidate = filteredOpportunities[0] ?? null;
   const emptyMessage = result?.failed
     ? "Market scan could not complete. Try again shortly."
     : result
@@ -106,9 +88,8 @@ export function MarketScanPanel({
         <button
           className="secondary-button min-h-10 px-3 py-2"
           type="button"
-          onClick={() => onScan(categoryFilter === "all" ? [] : scanSymbols)}
-          disabled={status === "scanning" ||
-            (categoryFilter !== "all" && scanSymbols.length === 0)}
+          onClick={() => onScan(openScanSymbols)}
+          disabled={status === "scanning" || openScanSymbols.length === 0}
         >
           {status === "scanning"
             ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -118,46 +99,20 @@ export function MarketScanPanel({
       </div>
 
       <div className="mb-4 grid gap-2">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            Group
-            <select
-              className="field h-10 text-sm normal-case"
-              value={categoryFilter}
-              onChange={(event) => {
-                const nextCategory = event.target
-                  .value as MarketScanCategoryFilter;
-                setCategoryFilter(nextCategory);
-                // The engine never runs without an explicit Scan click.
-                // Changing the group clears the previous result so stale
-                // counts can never describe a different symbol set.
-                onResetResult();
-              }}
-            >
-              <option value="all">All markets</option>
-              {SCANNABLE_ASSET_GROUPS.map((group) => (
-                <option key={group.label} value={group.label}>
-                  {group.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            Quality
-            <select
-              className="field h-10 text-sm normal-case"
-              value={confidenceBand}
-              onChange={(event) =>
-                setConfidenceBand(event.target.value as ConfidenceBand)}
-            >
-              {CONFIDENCE_BANDS.map((band) => (
-                <option key={band.value} value={band.value}>
-                  {band.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <ScopeMenu
+          label="Scan scope"
+          value={scope}
+          onSelect={(nextScope) => {
+            setScope(nextScope);
+            // The engine never runs without an explicit Scan click.
+            // Changing scope clears the previous result so stale counts
+            // can never describe a different symbol set.
+            onResetResult();
+            if (nextScope.kind === "symbol") {
+              onSelectSymbol(nextScope.symbol);
+            }
+          }}
+        />
 
         <div className="rounded-lg border border-hairline bg-paper px-3 py-3">
           <p className="text-xs leading-5 text-ink-muted">
@@ -172,21 +127,22 @@ export function MarketScanPanel({
           </div>
         </div>
 
-        {result
+        {result && !result.failed
           ? (
-            <MarketScanSummary
-              blockedCount={blockedCount}
-              result={result}
-              topCandidate={topCandidate}
-              visibleCount={filteredOpportunities.length}
-            />
+            <p className="rounded-lg border border-hairline bg-paper px-3 py-3 text-xs font-semibold leading-5 text-ink-muted">
+              {formatScopeCountLine(
+                scope,
+                result,
+                scanCompletedAt ?? new Date(),
+              )}
+            </p>
           )
           : null}
       </div>
 
       {filteredOpportunities.length > 0
         ? (
-          <div className="grid max-h-[640px] gap-3 overflow-y-auto pr-1">
+          <div className="scrolly grid max-h-[640px] gap-3 overflow-y-auto pr-1">
             {filteredOpportunities.map((candidate, index) => (
               <MarketScanRow
                 key={candidate.symbol}
@@ -205,57 +161,7 @@ export function MarketScanPanel({
             {status === "scanning" ? "Checking active markets." : emptyMessage}
           </div>
         )}
-
-      {result && !result.failed
-        ? (
-          <p className="mt-3 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            {result.scanned}{" "}
-            reviewed{blockedCount > 0 ? ` / ${blockedCount} not shown` : ""}.
-            Select a row to load its chart.
-          </p>
-        )
-        : null}
     </section>
-  );
-}
-
-function MarketScanSummary({
-  blockedCount,
-  result,
-  topCandidate,
-  visibleCount,
-}: {
-  blockedCount: number;
-  result: MarketScanResponse;
-  topCandidate: MarketScanCandidate | null;
-  visibleCount: number;
-}) {
-  return (
-    <div className="grid gap-2 rounded-lg border border-hairline bg-paper p-3 text-xs font-semibold leading-5 text-ink-muted">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2">
-          <Filter className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate font-mono tabular-nums">
-            {visibleCount} shown from {result.scanned} reviewed
-          </span>
-        </span>
-        <span className="shrink-0 font-mono tabular-nums">
-          {blockedCount} not shown
-        </span>
-      </div>
-      {topCandidate
-        ? (
-          <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-sheet px-2 py-2">
-            <span className="min-w-0 truncate text-ink">
-              Top: {formatSecurityLabel(topCandidate.symbol)}
-            </span>
-            <span className="shrink-0 font-mono tabular-nums text-accent">
-              {formatConfidenceWithTier(topCandidate.confidenceScore)}
-            </span>
-          </div>
-        )
-        : null}
-    </div>
   );
 }
 
@@ -269,7 +175,10 @@ function MarketScanRow({
   rank: number;
 }) {
   const isBuy = candidate.side === "buy";
-  const sideLabel = candidate.side ? `${candidate.side} limit` : "Review";
+  const rowMeta = formatScanRowMeta(candidate.side, candidate.confidenceScore);
+  const confidenceThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[
+    getSecurityOption(candidate.symbol).assetType
+  ];
   const levelPreview = candidate.entryPrice && candidate.takeProfit
     ? candidate.takeProfit1
       ? `Entry ${formatNumber(candidate.entryPrice)} · First target ${
@@ -280,7 +189,9 @@ function MarketScanRow({
       }`
     : "Load chart for details";
   const rationale = candidate.rationale?.length ? candidate.rationale : [
-    `${formatConfidenceWithTier(candidate.confidenceScore)} confidence.`,
+    `${
+      formatConfidenceWithTier(candidate.confidenceScore, confidenceThreshold)
+    } confidence.`,
     `${formatPayoff(candidate.rewardRisk)} after review.`,
     candidate.executionLabel
       ? `${candidate.executionLabel} cost check.`
@@ -311,7 +222,7 @@ function MarketScanRow({
           </p>
         </div>
         <span className={`chip shrink-0 ${isBuy ? "text-buy" : "text-sell"}`}>
-          {sideLabel}
+          {rowMeta}
         </span>
       </div>
 
@@ -319,7 +230,10 @@ function MarketScanRow({
         <Metric
           label="Confidence"
           mono
-          value={formatConfidenceWithTier(candidate.confidenceScore)}
+          value={formatConfidenceWithTier(
+            candidate.confidenceScore,
+            confidenceThreshold,
+          )}
         />
         <Metric
           label="Payoff"
@@ -404,10 +318,4 @@ function formatAssetType(value: string) {
 
 function formatPayoff(value: number | null | undefined) {
   return value ? `${value.toFixed(2)}x` : "Pending";
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: 5,
-  });
 }

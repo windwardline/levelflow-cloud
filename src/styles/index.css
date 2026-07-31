@@ -272,6 +272,25 @@ html[data-theme="dark"] {
     text-decoration-color: var(--color-accent);
   }
 
+  /*
+    Per-value ladder copy control (spec §7): visually a small ⧉/✓ glyph
+    beside the value it copies, but a real 44px tap target underneath.
+    Same trick as .tertiary-link above, applied on every side instead of
+    just the block axis, so the icon still sits snug against its value.
+  */
+  .cpv-copy {
+    display: inline-flex;
+    min-height: 44px;
+    min-width: 44px;
+    align-items: center;
+    justify-content: center;
+    margin: -0.875rem;
+    border-radius: 8px;
+    color: var(--color-ink-muted);
+    transition: color 140ms ease-out;
+  }
+  .cpv-copy:hover { color: var(--color-accent); }
+
   .link-accent {
     color: var(--color-ink);
     text-decoration: none;
@@ -304,6 +323,30 @@ html[data-theme="dark"] {
 }
 
 @layer utilities {
+  /*
+    The Desk's three columns (spec §2) each scroll independently and share
+    one quiet overlay scrollbar instead of the browser's default chrome.
+    Firefox reads the two scrollbar-* properties; every other engine reads
+    the ::-webkit-scrollbar rules below. Both branches key off
+    --color-hairline so the thumb re-values with the theme like everything
+    else in the kit — this class only styles the scrollbar, the overflow
+    and height that make a column actually scroll are set where it's used.
+  */
+  .scrolly {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-hairline) transparent;
+  }
+  .scrolly::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrolly::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrolly::-webkit-scrollbar-thumb {
+    background: var(--color-hairline);
+    border-radius: 3px;
+  }
+
   /*
     This block does real dark-mode work the token cascade can't supply on
     its own: opacity-tuned decorative values, and colors (button text,

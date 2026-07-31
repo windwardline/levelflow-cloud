@@ -10,13 +10,10 @@ test("public login screen presents Levelflow without stale auth copy", async ({
   ).toBeVisible();
   await expect(page.getByText("Market review")).toBeVisible();
   await expect(page.getByText("A Windward Line production")).toBeVisible();
-  if ((await page.getByText("No password is required.").count()) > 0) {
-    await expect(page.getByText("No password is required.")).toBeVisible();
-  } else {
-    await expect(
-      page.getByRole("heading", { name: "Cloud connection pending" }),
-    ).toBeVisible();
-  }
+  // AuthScreen.tsx renders "No password is required." unconditionally —
+  // the "Cloud connection pending" branch this used to also check for is
+  // unreachable in practice, so the guard was dead weight.
+  await expect(page.getByText("No password is required.")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Send magic link" }),
   ).toBeVisible();

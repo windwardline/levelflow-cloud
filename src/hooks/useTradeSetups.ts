@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSecurityOption } from "../lib/symbolMap";
-import { normalizeSetupOutcome } from "../lib/outcomes";
+import { classifyWinLoss, normalizeSetupOutcome } from "../lib/outcomes";
 import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
 
@@ -219,17 +219,16 @@ function buildStats(setups: TradeSetupRow[]) {
     categoryStat.averageConfidence += Number(setup.confidence_score);
     summary.total += 1;
 
-    // Ladder accounting: a win is any money-positive resolution (full
-    // target, banked TP1, or profitable expiry); a loss is any
-    // money-negative one. Anything else would misreport the ladder model.
-    if (
-      outcome === "target_reached" || outcome === "partial_target" ||
-      outcome === "expired_in_profit"
-    ) {
+    // Ladder accounting: classifyWinLoss (lib/outcomes.ts) is the single
+    // source of truth for money-positive vs. money-negative, shared with
+    // historyUtils.ts's buildRecordBand so the two can't drift apart on a
+    // future outcome-taxonomy change.
+    const winLoss = classifyWinLoss(outcome);
+    if (winLoss === "win") {
       current.wins += 1;
       categoryStat.wins += 1;
       summary.wins += 1;
-    } else if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+    } else if (winLoss === "loss") {
       current.losses += 1;
       categoryStat.losses += 1;
       summary.losses += 1;

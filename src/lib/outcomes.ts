@@ -97,3 +97,24 @@ export function normalizeSetupOutcome(setup: Pick<TradeSetupRow, "status" | "tra
   return "still_tracking";
 }
 
+export type WinLossClass = "loss" | "neither" | "win";
+
+// Single source of truth for the ladder's money-positive/negative split —
+// previously duplicated between useTradeSetups.ts's buildStats and
+// historyUtils.ts's buildRecordBand, which could silently drift apart on a
+// future outcome-taxonomy change. A win is any money-positive resolution
+// (full target, banked TP1, or a profitable expiry); a loss is any
+// money-negative one. Every other outcome (still tracking, entry not
+// filled, needs review) affects neither side of a win/loss ratio.
+export function classifyWinLoss(outcome: SetupOutcome): WinLossClass {
+  if (
+    outcome === "target_reached" || outcome === "partial_target" ||
+    outcome === "expired_in_profit"
+  ) {
+    return "win";
+  }
+  if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+    return "loss";
+  }
+  return "neither";
+}

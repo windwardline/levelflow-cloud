@@ -243,7 +243,7 @@ export function getSetupExpiryTime(
   );
 }
 
-function getUpcomingWeeklyCloseTime(symbol: string, fromTimestamp: number) {
+export function getUpcomingWeeklyCloseTime(symbol: string, fromTimestamp: number) {
   if (getAssetType(symbol) === "crypto") {
     return null;
   }

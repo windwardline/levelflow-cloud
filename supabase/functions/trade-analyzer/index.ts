@@ -114,6 +114,7 @@ type ExistingSetupRow = {
   created_at: string;
   id: string;
   limit_entry: number | string;
+  origin: SetupOrigin;
   provider_symbol: string;
   side: Side;
   stop_loss: number | string;
@@ -169,7 +170,18 @@ type MarketScanCandidate = {
 };
 
 type ReviewActionName = "generate_setup" | "scan_opportunities";
+type SetupOrigin = "review" | "scan";
 type ReviewedSetup = NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>;
+
+// The extra context a scan candidate needs to be written to trade_setups
+// that isn't part of the client-facing MarketScanCandidate shape.
+type ScanPersistenceContext = {
+  correlationGroup: string;
+  fmpSymbol: string;
+  newsContext: NewsContext;
+  setup: ReviewedSetup;
+  symbol: SupportedSymbol;
+};
 type CurrentMarketReview =
   | {
     analysisDiagnostics?: string[];
@@ -324,6 +336,7 @@ Deno.serve(async (req) => {
       review.correlationGroup,
       review.setup,
       review.newsContext,
+      "review",
     );
 
     await recordAnalyzerEvent({
@@ -392,10 +405,14 @@ async function scanOpportunities(
   );
   const opportunities: MarketScanCandidate[] = [];
   const blocked: MarketScanCandidate[] = [];
+  const persistenceBySymbol = new Map<SupportedSymbol, ScanPersistenceContext>();
 
   for (const result of results) {
     if (result.opportunity) {
       opportunities.push(result.opportunity);
+    }
+    if (result.persistence) {
+      persistenceBySymbol.set(result.persistence.symbol, result.persistence);
     }
     if (result.blocked) {
       blocked.push(result.blocked);
@@ -404,11 +421,56 @@ async function scanOpportunities(
   const ranked = collapseRelatedMarketOpportunities(opportunities);
   blocked.push(...ranked.blocked);
 
+  const rankedOpportunities = rankOpportunities(ranked.opportunities);
+
+  // Persist exactly what the caller is about to see below — post ranking
+  // and correlation collapse — so the scan response and the historical
+  // record never disagree. scanOpportunities only runs for an
+  // authenticated caller (Deno.serve rejects unauthenticated requests
+  // before any action handler runs), so persistence is unconditional here.
+  await persistScannedOpportunities(
+    token,
+    userId,
+    rankedOpportunities,
+    persistenceBySymbol,
+  );
+
   return {
     blocked,
-    opportunities: rankOpportunities(ranked.opportunities),
+    opportunities: rankedOpportunities,
+    qualified: rankedOpportunities.length,
     scanned: normalizedSymbols.length,
   };
+}
+
+async function persistScannedOpportunities(
+  token: string,
+  userId: string,
+  opportunities: MarketScanCandidate[],
+  persistenceBySymbol: Map<SupportedSymbol, ScanPersistenceContext>,
+): Promise<void> {
+  await mapWithConcurrency(opportunities, 4, async (opportunity) => {
+    const context = persistenceBySymbol.get(opportunity.symbol);
+    if (!context) {
+      return;
+    }
+    try {
+      await upsertActiveSetup(
+        token,
+        userId,
+        context.symbol,
+        context.fmpSymbol,
+        context.correlationGroup,
+        context.setup,
+        context.newsContext,
+        "scan",
+      );
+    } catch (error) {
+      // A write failure here must not blank the scan the user is already
+      // looking at — this is a record of what was shown, not a gate on it.
+      console.error("scan setup persistence failed", context.symbol, error);
+    }
+  });
 }
 
 async function reviewCurrentMarket(
@@ -659,6 +721,7 @@ async function scanOpportunity(
 ): Promise<{
   blocked?: MarketScanCandidate;
   opportunity?: MarketScanCandidate;
+  persistence?: ScanPersistenceContext;
 }> {
   try {
     const review = await reviewCurrentMarket(
@@ -702,6 +765,13 @@ async function scanOpportunity(
         symbol,
         takeProfit: review.setup.takeProfit,
         takeProfit1: review.setup.takeProfit1,
+      },
+      persistence: {
+        correlationGroup: review.correlationGroup,
+        fmpSymbol: review.fmpSymbol,
+        newsContext: review.newsContext,
+        setup: review.setup,
+        symbol,
       },
     };
   } catch (error) {
@@ -1202,10 +1272,11 @@ async function upsertActiveSetup(
   group: string,
   setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>,
   newsContext: NewsContext,
+  origin: SetupOrigin,
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
+    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,origin,created_at&user_id=eq.${
       encodeURIComponent(userId)
     }&symbol=eq.${
       encodeURIComponent(
@@ -1215,7 +1286,34 @@ async function upsertActiveSetup(
   );
   const activeSetup = rows[0] ?? null;
 
+  // C2: a scan is advisory background research, never an authority over a
+  // position that's already live. If the existing active row is "placed"
+  // (filled and live — see tradeState.ts's status-naming note for why
+  // "placed" means that, not "order placed"), a SCAN-origin call must leave
+  // it completely untouched: the same-side branch below would otherwise
+  // overwrite its levels and force status back to "generated" (demoting a
+  // filled trade to pending), and the opposite-side branch would fall
+  // through to invalidateActiveSetupsForSymbol and erase it outright.
+  // Review-origin calls are unaffected — a human reviewing the market is
+  // allowed to supersede what's live. No duplicate insert either: the
+  // existing live row already represents this symbol.
+  if (origin === "scan" && activeSetup && activeSetup.status === "placed") {
+    return {
+      deduplicated: true,
+      setupId: activeSetup.id,
+      updated: false,
+    };
+  }
+
   if (activeSetup && activeSetup.side === setup.side) {
+    // Origin only ever moves scan -> review, never the reverse: a routine
+    // scan touching a symbol+side a human already reviewed must not
+    // silently drop that row out of global learning (origin = 'review'
+    // is the learning-eligible state).
+    const nextOrigin: SetupOrigin = activeSetup.origin === "review"
+      ? "review"
+      : origin;
+
     await updateRows(
       token,
       `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${
@@ -1235,6 +1333,7 @@ async function upsertActiveSetup(
           penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
           upcomingEvents: newsContext.upcoming,
         },
+        origin: nextOrigin,
         risk_model: setup.riskModel,
         side: setup.side,
         status: "generated",
@@ -1276,6 +1375,7 @@ async function upsertActiveSetup(
       upcomingEvents: newsContext.upcoming,
     },
     correlation_group: group,
+    origin,
     status: "generated",
   });
 
@@ -1574,9 +1674,11 @@ async function refreshGlobalStrategyWeights(): Promise<
     id: string;
     symbol: string;
   }>(
+    // Scan-origin setups are record, not signal, until measured — global
+    // learning only trains on setups a human actually reviewed.
     `trade_setups?select=id,symbol,correlation_group,confluence&id=in.(${
       setupIds.map((id) => encodeURIComponent(id)).join(",")
-    })`,
+    })&origin=eq.review`,
   );
   const setupsById = new Map(rows.map((row) => [row.id, row]));
   const grouped = new Map<

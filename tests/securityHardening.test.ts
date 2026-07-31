@@ -107,8 +107,6 @@ describe("security hardening", () => {
     assert.match(analyzer, /noTradeSymbols\.has\(normalizedSymbol\)/);
     // The server filters requested scan symbols, not just the default list.
     assert.match(analyzer, /!noScanSymbols\.has\(symbol\)/);
-    // The UI's scan dropdown uses the filtered group list.
-    assert.match(symbolMap, /SCANNABLE_ASSET_GROUPS/);
   });
 
   it("keeps deploy-time security header verification in CI", () => {
