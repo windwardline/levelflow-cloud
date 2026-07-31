@@ -505,12 +505,17 @@ export function buildRecordBand(
   };
 }
 
-// Result column (spec §10, vocabulary fixed by §17 and §17b): the lifecycle
-// runs "Pending" -> "Open · ±R" -> one of "Unfilled" / "Banked half" /
-// "Target 2" / "Stopped" / "Expired in profit" / "Expired at loss", and every
-// surface in the app uses exactly those words. Status comes from
-// deriveTradeState (pending/open first; everything else is closed), then
-// closed rows branch on the outcome bucket.
+// Result column (spec §10; the words themselves are §17d's canonical seven,
+// owner-approved verbatim, superseding §17b's table): "Pending" -> "Open · ±R"
+// -> one of "Unfilled" / "Banked half · +R" / "Banked full · +R" /
+// "Stopped · −R" / "Expired · ±R", and every surface in the app uses exactly
+// those words. Status comes from deriveTradeState (pending/open first;
+// everything else is closed), then closed rows branch on the outcome bucket.
+//
+// Both expiry buckets read the one word "Expired" — filled, window ended,
+// neither level hit — because the R value beside it is what says where price
+// stood when it ended, and a bare "Expired" is the honest reading when the
+// engine recorded no R at all.
 //
 // Two rulings shaped what this does NOT do:
 // - §17: `entry_not_filled` reads "Unfilled" for every row. It is a market
@@ -540,7 +545,7 @@ export function formatInsightsResult(
     return "Unfilled";
   }
   if (outcome === "target_reached") {
-    return withRealizedR("Target 2", realizedR);
+    return withRealizedR("Banked full", realizedR);
   }
   if (outcome === "partial_target") {
     return withRealizedR("Banked half", realizedR);
@@ -548,11 +553,8 @@ export function formatInsightsResult(
   if (outcome === "stopped_out") {
     return withRealizedR("Stopped", realizedR);
   }
-  if (outcome === "expired_in_profit") {
-    return withRealizedR("Expired in profit", realizedR);
-  }
-  if (outcome === "expired_in_loss") {
-    return withRealizedR("Expired at loss", realizedR);
+  if (outcome === "expired_in_profit" || outcome === "expired_in_loss") {
+    return withRealizedR("Expired", realizedR);
   }
   if (outcome === "unclear_path") {
     return withRealizedR("Needs review", realizedR);

@@ -200,6 +200,39 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
     }
   });
 
+  // Spec §17d, the one sanctioned addition to the deck's own copy: the owner
+  // approved these definition lines verbatim for §10's "What the words mean
+  // here", so the Guide teaches exactly the words the ledger renders. Pinned
+  // as term/body pairs rather than loose substrings — a definition attached to
+  // the wrong term would still pass a presence-only check. The deck's existing
+  // "Pending" entry is canonical and stays (asserted in the six-term test
+  // above), and "Bank half" stays the instruction it always was.
+  it("teaches §17d's result vocabulary with the owner-approved definition lines, verbatim", () => {
+    const taught: Array<[string, string]> = [
+      ["Unfilled", "Window closed, never triggered."],
+      [
+        "Banked half",
+        "First target hit, half banked, window ended before Target 2.",
+      ],
+      ["Banked full", "Target 2 reached."],
+      ["Expired", "Filled, window ended, neither level hit."],
+    ];
+    for (const [term, body] of taught) {
+      assert.ok(
+        collapsedIncludes(guideSource, `body: "${body}",\n    term: "${term}",`),
+        `§10 must teach "${term}" with §17d's own definition line`,
+      );
+    }
+    // The result words the deck now teaches must be the ones the ledger
+    // actually renders — no entry for a label that no longer exists.
+    for (const retired of ["Reached target", "Hit stop", "Entry not filled"]) {
+      assert.ok(
+        !guideSource.includes(`term: "${retired}"`),
+        `${retired} is not a result label any more`,
+      );
+    }
+  });
+
   it("renders the canonical two-target instruction as the §3 callout, verbatim", () => {
     const CANONICAL_LADDER_INSTRUCTION =
       "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";

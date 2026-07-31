@@ -10,6 +10,15 @@ export type SetupOutcome =
   | "target_reached"
   | "unclear_path";
 
+// §17d (owner-approved verbatim, 2026-07-31) fixes the seven words every
+// result renders, and supersedes §17b's table: Pending / Open · ±R /
+// Unfilled / Banked half · +R / Banked full · +R / Stopped · −R /
+// Expired · ±R. Every label below re-derives from that set, so this record and
+// the ledger's own formatter (historyUtils' formatInsightsResult) speak one
+// vocabulary instead of two phrasings of the same fact. The enum keys and
+// classifyWinLoss are untouched — this is label copy only. Both expiry buckets
+// carry the same one word: the R value beside it is what says where price
+// stood, which is also why one "Expired" filter option covers them both.
 export const OUTCOME_COPY: Record<
   SetupOutcome,
   {
@@ -19,13 +28,11 @@ export const OUTCOME_COPY: Record<
     shortLabel: string;
   }
 > = {
-  // §17b (owner ruling, 2026-07-31): one lifecycle vocabulary —
-  // Pending -> Open (· ±R) -> Unfilled / Banked half / Target 2 / Stopped /
-  // Expired in profit / Expired at loss. The tracking phrase this bucket used
-  // to carry was a seventh word for two states that already had names, and
-  // its short form was a label of the same shape; both are now banned
-  // outright (tests/languageGuard.test.ts — which scans quoted text wherever
-  // it appears, so neither may be quoted even here). This bucket is not one
+  // §17b (owner ruling, 2026-07-31): the tracking phrase this bucket used to
+  // carry was an extra word for two states that already had names, and its
+  // short form was a label of the same shape; both are now banned outright
+  // (tests/languageGuard.test.ts — which scans quoted text wherever it
+  // appears, so neither may be quoted even here). This bucket is not one
   // state — it spans both unresolved ones — so every one of its labels names
   // exactly those two, which is also what makes it correct as the filter
   // option that selects them together. No surface renders the label or
@@ -41,33 +48,33 @@ export const OUTCOME_COPY: Record<
   },
   target_reached: {
     description: "The limit entry filled and price later reached the target before the stop.",
-    filterLabel: "Reached target",
-    label: "Reached target",
-    shortLabel: "Target",
+    filterLabel: "Banked full",
+    label: "Banked full",
+    shortLabel: "Banked full",
   },
   partial_target: {
     description: "The first target was reached; the second target was not reached before breakeven or the review window.",
-    filterLabel: "First target reached",
-    label: "First target reached",
-    shortLabel: "Target 1",
+    filterLabel: "Banked half",
+    label: "Banked half",
+    shortLabel: "Banked half",
   },
   expired_in_profit: {
     description: "The entry filled and the review window ended with price in profit, without reaching target or stop.",
-    filterLabel: "Expired in profit",
-    label: "Expired in profit",
-    shortLabel: "Expired +",
+    filterLabel: "Expired",
+    label: "Expired",
+    shortLabel: "Expired",
   },
   expired_in_loss: {
     description: "The entry filled and the review window ended with price at a loss, without reaching target or stop.",
-    filterLabel: "Expired at loss",
-    label: "Expired at loss",
-    shortLabel: "Expired −",
+    filterLabel: "Expired",
+    label: "Expired",
+    shortLabel: "Expired",
   },
   stopped_out: {
     description: "The limit entry filled and price later reached the stop before the target.",
-    filterLabel: "Hit stop",
-    label: "Hit stop",
-    shortLabel: "Stop",
+    filterLabel: "Stopped",
+    label: "Stopped",
+    shortLabel: "Stopped",
   },
   unclear_path: {
     description: "The entry filled, but the available chart cannot confirm whether stop or target came first.",
@@ -77,9 +84,9 @@ export const OUTCOME_COPY: Record<
   },
   entry_not_filled: {
     description: "The limit entry did not fill before the review window ended or the setup was no longer valid.",
-    filterLabel: "Entry not filled",
-    label: "Entry not filled",
-    shortLabel: "No fill",
+    filterLabel: "Unfilled",
+    label: "Unfilled",
+    shortLabel: "Unfilled",
   },
 };
 

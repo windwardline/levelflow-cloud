@@ -8,10 +8,13 @@ import type { GuideAnchor } from "./WorkspaceNav";
 // taken are mechanical: markdown bullets become styled <li> cards, the
 // "N. Title" heading prefix becomes a separate numeral badge, and §10's
 // "Term — definition" bullets split into real <dt>/<dd> pairs (dropping the
-// now-redundant connecting dash; all six definitions get their leading word
-// capitalized, since the deck writes every one lowercase to continue the
+// now-redundant connecting dash; every definition gets its leading word
+// capitalized, since the deck writes them lowercase to continue the
 // "Term —" sentence, and each now opens a standalone <dd> instead). No word
-// is added, removed, or reworded. The deck's own front matter (title,
+// is added, removed, or reworded. Spec §17d adds four result words to §10 with
+// owner-approved verbatim definition lines — see the VOCABULARY list below;
+// that is the one sanctioned addition to the deck's own copy.
+// The deck's own front matter (title,
 // "authoritative copy" preamble, absorption map) is explicitly meta —
 // instructions to the builder, not reader-facing copy — and is not
 // rendered; only its numbered §1–§10 sections are.
@@ -56,6 +59,13 @@ const GUIDE_SECTIONS: GuideSectionMeta[] = [
   { id: "vocabulary", number: "10", title: "What the words mean here" },
 ];
 
+// The four result words §17d adds to this section, owner-approved verbatim:
+// the ruling's own definition lines, carried here under the same mechanical
+// liberties the rest of the deck already takes (leading word capitalized,
+// the connecting dash dropped, a terminal period so each reads as the standalone
+// sentence its siblings are). "Pending" was already the canonical teaching and
+// is untouched; "Bank half" stays as the instruction it is, with the result
+// word that reports it sitting directly beside it.
 const VOCABULARY: Array<{ body: string; term: string }> = [
   {
     body: "Close half your position and take that profit now.",
@@ -69,6 +79,22 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
   {
     body: "Your order is placed but has not filled. Nothing to do.",
     term: "Pending",
+  },
+  {
+    body: "Window closed, never triggered.",
+    term: "Unfilled",
+  },
+  {
+    body: "First target hit, half banked, window ended before Target 2.",
+    term: "Banked half",
+  },
+  {
+    body: "Target 2 reached.",
+    term: "Banked full",
+  },
+  {
+    body: "Filled, window ended, neither level hit.",
+    term: "Expired",
   },
   {
     body:

@@ -1,6 +1,6 @@
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
+import { formatCompactDateTime } from "../../lib/marketHours";
 import type { SecurityType } from "../../lib/symbolMap";
-import { formatTimestamp } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 
 // "Within 5 points of the bar" reads as inclusive: a margin of exactly 5
@@ -46,20 +46,37 @@ export function buildConfidenceNote(
 // print — so the line is assembled from whichever parts actually exist and
 // nothing is fabricated to fill a gap. Returns "" when neither exists, and
 // the component then renders no line at all.
+//
+// Spec §17 fixes the stamp's grammar: `{MMM} {D} {h}:{mm}{A|P}`, e.g.
+// "Reviewed JUL 31 2:05P · valid until JUL 31 10:05P". It comes from
+// marketHours' formatCompactDateTime — the same time-piece logic the scope
+// menu's OPENS lines are built from — rather than a second Intl call of its
+// own, so the two grammars can never drift apart. An unparseable timestamp
+// yields no stamp at all: the half is dropped exactly like an absent one,
+// rather than printing a placeholder where a real moment belongs.
+function stampMoment(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : formatCompactDateTime(date);
+}
+
 export function buildConfidenceMeta(
   reviewedAt: string | null,
   validUntil: string | null,
 ): string {
-  if (reviewedAt && validUntil) {
-    return `Reviewed ${formatTimestamp(reviewedAt)} · valid until ${
-      formatTimestamp(validUntil)
-    }`;
+  const reviewed = stampMoment(reviewedAt);
+  const expires = stampMoment(validUntil);
+
+  if (reviewed && expires) {
+    return `Reviewed ${reviewed} · valid until ${expires}`;
   }
-  if (reviewedAt) {
-    return `Reviewed ${formatTimestamp(reviewedAt)}`;
+  if (reviewed) {
+    return `Reviewed ${reviewed}`;
   }
-  if (validUntil) {
-    return `Valid until ${formatTimestamp(validUntil)}`;
+  if (expires) {
+    return `Valid until ${expires}`;
   }
   return "";
 }

@@ -10,13 +10,14 @@ import {
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer.ts";
 
 describe("outcome copy — plain target vocabulary", () => {
-  it("labels the partial-target outcome around the first target, not TP1", () => {
-    assert.equal(OUTCOME_COPY.partial_target.label, "First target reached");
-    assert.equal(
-      OUTCOME_COPY.partial_target.filterLabel,
-      "First target reached",
-    );
-    assert.equal(OUTCOME_COPY.partial_target.shortLabel, "Target 1");
+  // §17d re-derives every OUTCOME_COPY label from the canonical result words,
+  // so this bucket now reads the same "Banked half" the ledger renders rather
+  // than a second phrasing of it. The original point of this test stands: not
+  // TP1, and not a first/second-target restatement of the ladder.
+  it("labels the partial-target outcome as the banked half, not TP1 (§17d)", () => {
+    assert.equal(OUTCOME_COPY.partial_target.label, "Banked half");
+    assert.equal(OUTCOME_COPY.partial_target.filterLabel, "Banked half");
+    assert.equal(OUTCOME_COPY.partial_target.shortLabel, "Banked half");
   });
 
   it("describes the partial-target outcome in first/second-target language", () => {
@@ -186,22 +187,22 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Open · +0.8R");
   });
 
-  it("target_reached reads Target 2, bare when no realizedR is recorded", () => {
+  it("target_reached reads Banked full, bare when no realizedR is recorded (§17d)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Target 2");
+    assert.equal(formatInsightsResult(setup, NOW), "Banked full");
   });
 
-  it("target_reached carries its realizedR, exactly per spec's example", () => {
+  it("target_reached carries its realizedR (§17d: Banked full replaces the old result label)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
         buildOutcome({ feedback: { realizedR: 2.1 }, outcome: "take_profit" }),
       ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Target 2 · +2.1R");
+    assert.equal(formatInsightsResult(setup, NOW), "Banked full · +2.1R");
   });
 
   it("partial_target (tp1_partial) reads Banked half with its realizedR, exactly per spec's example", () => {
@@ -232,7 +233,7 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Stopped");
   });
 
-  it("expired_in_profit reads Expired in profit with its positive realizedR (§17b)", () => {
+  it("expired_in_profit reads one-word Expired, the R saying where it stood (§17d)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
@@ -242,10 +243,10 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
         }),
       ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Expired in profit · +0.3R");
+    assert.equal(formatInsightsResult(setup, NOW), "Expired · +0.3R");
   });
 
-  it("expired_in_loss reads Expired at loss with its negative realizedR (§17b)", () => {
+  it("expired_in_loss reads the same one-word Expired, the R saying where it stood (§17d)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
@@ -255,7 +256,7 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
         }),
       ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Expired at loss · −0.5R");
+    assert.equal(formatInsightsResult(setup, NOW), "Expired · −0.5R");
   });
 
   it("unclear_path (ambiguous) reads Needs review", () => {
@@ -341,25 +342,29 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
   });
 });
 
-// §17b (owner ruling, 2026-07-31): one lifecycle vocabulary on every surface —
-// Pending -> Open (· ±R) -> Unfilled / Banked half / Target 2 / Stopped /
-// Expired in profit / Expired at loss. "Still tracking" and "Tracking" are
-// banned. This is the both-directions guard for the Result column: every
-// reachable row produces a word from that set, and neither banned word can be
-// produced by any combination of status and outcome.
-describe("§17b — the Insights Result column speaks one lifecycle vocabulary", () => {
+// §17b (owner ruling, 2026-07-31) established one lifecycle vocabulary on
+// every surface; §17d fixed the words themselves, owner-approved verbatim, and
+// supersedes §17b's table: Pending / Open · ±R / Unfilled / Banked half · +R /
+// Banked full · +R / Stopped · −R / Expired · ±R. The tracking phrase and its
+// short form stay banned. This is the both-directions guard for the Result
+// column: every reachable row produces a word from that set, and no
+// combination of status and outcome can produce a banned one.
+describe("§17d — the Insights Result column speaks one canonical vocabulary", () => {
+  // §17d's canonical seven, owner-approved verbatim, in its own order.
   const LIFECYCLE_WORDS = [
     "Pending",
     "Open",
     "Unfilled",
     "Banked half",
-    "Target 2",
+    "Banked full",
     "Stopped",
-    "Expired in profit",
-    "Expired at loss",
-    // Not a lifecycle state: the engine's own "the chart cannot confirm which
-    // came first" bucket (unclear_path), which predates §17b and is the honest
-    // word for an unresolvable path rather than a claimed outcome.
+    "Expired",
+    // An eighth word §17d does not name, kept deliberately: unclear_path is
+    // the engine's own "the available chart cannot confirm whether stop or
+    // target came first" bucket. None of the seven is true of such a row, and
+    // the alternatives are to claim an outcome the data does not support or to
+    // render an empty cell — so it keeps the word it has had since spec §10
+    // and is flagged for a ruling rather than mapped onto a result.
     "Needs review",
   ];
   const STATUSES = [

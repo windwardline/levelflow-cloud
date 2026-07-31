@@ -748,13 +748,18 @@ describe("profile preferences", () => {
 
 describe("recommendation outcomes", () => {
   it("uses clear user-facing labels for each internal status", () => {
-    // §17b: the unresolved bucket spans two named states (Pending and Open),
-    // so its own label names both rather than inventing a seventh word.
+    // §17d, owner-approved verbatim: every label re-derives from the canonical
+    // seven result words, so this record and the ledger's own formatter speak
+    // one vocabulary. §17b's unresolved bucket spans two of those states
+    // (Pending and Open) and names both rather than inventing another word.
     assert.equal(OUTCOME_COPY.still_tracking.label, "Pending & open");
-    assert.equal(OUTCOME_COPY.target_reached.label, "Reached target");
-    assert.equal(OUTCOME_COPY.stopped_out.label, "Hit stop");
+    assert.equal(OUTCOME_COPY.target_reached.label, "Banked full");
+    assert.equal(OUTCOME_COPY.partial_target.label, "Banked half");
+    assert.equal(OUTCOME_COPY.stopped_out.label, "Stopped");
+    assert.equal(OUTCOME_COPY.expired_in_profit.label, "Expired");
+    assert.equal(OUTCOME_COPY.expired_in_loss.label, "Expired");
     assert.equal(OUTCOME_COPY.unclear_path.label, "Needs review");
-    assert.equal(OUTCOME_COPY.entry_not_filled.label, "Entry not filled");
+    assert.equal(OUTCOME_COPY.entry_not_filled.label, "Unfilled");
   });
 
   it("separates unresolved, unfilled, and unclear results", () => {
@@ -826,10 +831,10 @@ describe("history workspace logic", () => {
       groups.map((group) => group.label),
       [
         "Pending & open",
-        "Reached target",
-        "Hit stop",
+        "Banked full",
+        "Stopped",
         "Needs review",
-        "Entry not filled",
+        "Unfilled",
       ],
     );
   });
