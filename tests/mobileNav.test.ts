@@ -752,3 +752,121 @@ describe("mobile scan tab interiors (m-scan-v1.html, fix wave 2C)", () => {
     assert.doesNotMatch(SCAN_RAIL_SOURCE, /max-lg:\$\{/);
   });
 });
+
+const LADDER_SOURCE = readFileSync(
+  "src/components/workspace/AdvisorRecommendationPanel.tsx",
+  "utf8",
+);
+const RECEIPT_SOURCE = readFileSync(
+  "src/components/workspace/SetupQualityReceipt.tsx",
+  "utf8",
+);
+
+describe("mobile review tab interiors (m-mobile-v3.html, fix wave 2C)", () => {
+  it("renders each ladder value as the mock's .copy card below lg (m-mobile-v3.html:25,70-73)", () => {
+    const row = LADDER_SOURCE.match(
+      /className="flex min-h-11 min-w-0 items-baseline[^"]*"/,
+    )?.[0] ?? "";
+    assert.ok(row.length > 0, "expected to find the copy row's className");
+    // 8px radius, hairline border on sheet at 13/14 padding. The card's
+    // other three sides are added to the base `border-b`, and `last:border-b`
+    // is re-asserted below lg because the un-prefixed `last:border-b-0` that
+    // keeps >=lg's final row flush outranks a plain border utility on
+    // specificity.
+    assert.match(row, /max-lg:rounded-lg/);
+    assert.match(row, /max-lg:border\b/);
+    assert.match(row, /max-lg:bg-sheet/);
+    assert.match(row, /max-lg:px-3\.5/);
+    assert.match(row, /max-lg:py-3/);
+    assert.match(row, /max-lg:last:border-b\b/);
+    // The mock stacks the label over its value with the button opposite; at
+    // >=lg the label sits opposite value+button on one baseline. Same DOM,
+    // reached by letting the value/button wrapper dissolve below lg.
+    assert.match(row, /max-lg:flex-wrap/);
+    assert.match(
+      LADDER_SOURCE,
+      /className="flex min-w-0 items-baseline gap-1 max-lg:contents"/,
+    );
+    assert.match(
+      LADDER_SOURCE,
+      /uppercase tracking-normal text-ink-muted max-lg:w-full"/,
+    );
+    assert.match(LADDER_SOURCE, /className="grid max-lg:gap-2"/);
+  });
+
+  it("labels the copy button below lg and keeps the icon-only >=lg affordance (m-mobile-v3.html:28-29)", () => {
+    // `.cp`: a 1.5px accent-bordered button reading "⧉ Copy", flipping to the
+    // buy tone and "✓ Copied". Both branches keep .cpv-copy as their base, so
+    // the >=lg icon button — including its 44px target and negative margin —
+    // is the same control it always was.
+    const branches = LADDER_SOURCE.match(
+      /className=\{copied\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
+    );
+    assert.ok(branches, "expected the copy button's copied/idle classes");
+    const [, copiedClasses, idleClasses] = branches;
+    for (const classes of [copiedClasses, idleClasses]) {
+      assert.match(classes, /^cpv-copy\b/);
+      assert.match(classes, /max-lg:m-0/);
+      assert.match(classes, /max-lg:rounded-md/);
+      assert.match(classes, /max-lg:border-\[1\.5px\]/);
+      assert.match(classes, /max-lg:px-3/);
+    }
+    assert.match(copiedClasses, /max-lg:border-buy/);
+    assert.match(copiedClasses, /max-lg:text-buy/);
+    assert.match(idleClasses, /max-lg:border-accent/);
+    assert.match(idleClasses, /max-lg:text-accent/);
+    // The word is functional labeling, mobile-only, and never displaces the
+    // aria-label every copy test locates these buttons by.
+    assert.match(
+      LADDER_SOURCE,
+      /<span className="lg:hidden">\s*\{copied \? "Copied" : "Copy"\}\s*<\/span>/,
+    );
+    assert.match(
+      LADDER_SOURCE,
+      /aria-label=\{copied \? `\$\{label\} copied` : `Copy \$\{label\}`\}/,
+    );
+  });
+
+  it("condenses the why panel to one summary line plus a Why disclosure below lg (m-mobile-v3.html:75)", () => {
+    // The summary is the Market row's character and the Record row's
+    // numbers — the same two sentences the rows carry, in the mock's own
+    // order. No new copy is written for it, and a category with no honest
+    // datum contributes nothing rather than an em dash mid-sentence.
+    assert.match(RECEIPT_SOURCE, /const WHY_SUMMARY_LABELS = \["Market", "Record"\];/);
+    assert.match(
+      RECEIPT_SOURCE,
+      /\.filter\(\(sentence\) => sentence !== ABSENT\)\s*\.join\(" "\)/,
+    );
+    assert.match(RECEIPT_SOURCE, /<p className="text-\[13px\] leading-5 lg:hidden">/);
+    assert.match(RECEIPT_SOURCE, />\s*Why\s*<\/button>/);
+    assert.match(RECEIPT_SOURCE, /aria-expanded=\{rowsOpen\}/);
+    assert.match(RECEIPT_SOURCE, /aria-controls=\{rowsId\}/);
+  });
+
+  it("keeps the mock's five rows as the >=lg rendering, hidden below lg only while the disclosure is closed", () => {
+    // a-desk-v3.html:205-212 draws all five rows on the Desk, so the >=lg
+    // branch is `grid` either way — the disclosure state can only ever
+    // subtract below lg.
+    assert.match(
+      RECEIPT_SOURCE,
+      /className=\{rowsShown\n\s*\? "grid min-w-0 gap-0\.5"\n\s*: "grid min-w-0 gap-0\.5 max-lg:hidden"\}/,
+    );
+    // With nothing to condense there is nothing to disclose, so the rows
+    // carry themselves at every width rather than hiding behind a toggle
+    // whose summary would be blank.
+    assert.match(
+      RECEIPT_SOURCE,
+      /const rowsShown = rowsOpen \|\| summary\.length === 0;/,
+    );
+    // The section's only landmark and the accessible name two e2e specs
+    // locate the receipt by both survive at every width.
+    assert.match(RECEIPT_SOURCE, />\s*Why this setup\s*<\/h3>/);
+  });
+
+  it("keeps every mobile treatment inside a real max-lg: or lg: token on both review files", () => {
+    for (const source of [LADDER_SOURCE, RECEIPT_SOURCE]) {
+      assert.doesNotMatch(source, /max-lg:\$\{/);
+    }
+    assert.ok(mobileOnlyClasses(LADDER_SOURCE).length > 0);
+  });
+});

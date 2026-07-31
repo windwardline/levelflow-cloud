@@ -204,6 +204,30 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     }
   });
 
+  // Fix wave 2C: the mobile mock DOES draw a card inside the setup sheet — the
+  // ladder's copy rows (m-mobile-v3.html:25 `.copy`) — so this pins the other
+  // half of that exemption. Neither sheet-filler nor radius may apply
+  // un-prefixed in the two files that render INSIDE the sheet; both exist only
+  // as `max-lg:` tokens there. (AdvisorWorkspace is excluded on purpose: it
+  // draws the sheet itself, which is the one frame the ≥lg mock wants.)
+  it("keeps the mobile ladder card mobile-only — no fill or radius reaches ≥lg", () => {
+    for (const source of [panel, receipt]) {
+      for (const utility of ["bg-sheet", "bg-paper", "rounded-lg", "rounded-md"]) {
+        const unprefixed = source.match(
+          new RegExp(`(?:^|[\\s"'])${utility}(?=[\\s"'])`, "g"),
+        ) ?? [];
+        assert.deepEqual(
+          unprefixed,
+          [],
+          `${utility} must never apply un-prefixed inside the setup sheet — ` +
+            "the mock's only card here is the mobile copy row, which rides " +
+            "max-lg:",
+        );
+      }
+    }
+    assert.match(panel, /max-lg:rounded-lg max-lg:border max-lg:bg-sheet/);
+  });
+
   it("keeps the stage's own status tiles gone (DATA / SESSION / ADVISOR / MARKET HISTORY)", () => {
     for (const label of ["Market history", "Fresh review", "Local clock", "Awaiting price"]) {
       assert.ok(

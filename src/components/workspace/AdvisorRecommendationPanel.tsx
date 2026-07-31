@@ -92,7 +92,9 @@ export function RecommendationPanel({
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
             </span>
           </p>
-          <div className="grid">
+          {/* Flush hairline rows at ≥lg (a-desk-v3.html:199-202); below lg the
+              mock separates the cards by 8px (m-mobile-v3.html:25 `.copy`). */}
+          <div className="grid max-lg:gap-2">
             <CopyableMetricRow
               copied={copiedField === "entry"}
               label="Limit entry"
@@ -204,6 +206,17 @@ export function RecommendationPanel({
 // advisorFormat.ts — so no label, side, or symbol ever rides along, but
 // also so a grouped/locale-formatted display value never corrupts a
 // pasted price either.
+//
+// Below lg the same row is the mock's `.copy` card (m-mobile-v3.html:25-29,
+// 70-73): the label stacked over a 22px value, an 8px-radius hairline card on
+// sheet, and the affordance grown into a bordered button that says what it
+// does. Reached without touching the ≥lg DOM: the row wraps, the label takes
+// the first line, and the value/button wrapper dissolves to `display: contents`
+// so both become items of that wrapped row. At ≥lg the wrapper is a real box
+// again, holding value and ⧉ together at the row's right edge exactly as
+// before. `max-lg:last:border-b` is not redundant with `max-lg:border` — the
+// un-prefixed `last:border-b-0` that keeps ≥lg's final row flush carries a
+// pseudo-class and so outranks a plain border utility on specificity.
 function CopyableMetricRow({
   copied,
   label,
@@ -218,25 +231,30 @@ function CopyableMetricRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0">
-      <span className="min-w-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+    <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:flex-wrap max-lg:items-center max-lg:gap-y-0 max-lg:rounded-lg max-lg:border max-lg:bg-sheet max-lg:px-3.5 max-lg:py-3 max-lg:last:border-b">
+      <span className="min-w-0 text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:w-full">
         {label}
       </span>
-      <span className="flex min-w-0 items-baseline gap-1">
+      <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
         <span
-          className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums ${valueClassName}`}
+          className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums max-lg:text-left max-lg:text-[22px] ${valueClassName}`}
         >
           {value}
         </span>
         <button
           aria-label={copied ? `${label} copied` : `Copy ${label}`}
-          className="cpv-copy"
+          className={copied
+            ? "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border-[1.5px] max-lg:border-buy max-lg:px-3 max-lg:text-xs max-lg:font-bold max-lg:text-buy"
+            : "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border-[1.5px] max-lg:border-accent max-lg:px-3 max-lg:text-xs max-lg:font-bold max-lg:text-accent"}
           onClick={onCopy}
           type="button"
         >
           {copied
             ? <Check aria-hidden="true" className="h-4 w-4 text-buy" />
             : <Copy aria-hidden="true" className="h-4 w-4" />}
+          {/* The mock's own button text (:28-29). aria-label still supplies the
+              accessible name, so every copy contract keeps its exact wording. */}
+          <span className="lg:hidden">{copied ? "Copied" : "Copy"}</span>
         </button>
       </span>
     </div>

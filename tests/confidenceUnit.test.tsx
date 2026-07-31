@@ -387,8 +387,16 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
       "src/components/workspace/AdvisorRecommendationPanel.tsx",
       "utf8",
     );
-    // Real button semantics (spec §7: keyboard accessible), not a div.
-    assert.match(source, /<button\b[^>]*\bclassName="cpv-copy"/);
+    // Real button semantics (spec §7: keyboard accessible), not a div. Fix
+    // wave 2C grew the mobile mock's bordered "⧉ Copy" button
+    // (m-mobile-v3.html:28) out of this same control, so the className is now
+    // a copied/idle pair — both branches keep .cpv-copy as their base, which
+    // is what leaves the ≥lg icon affordance (44px target, negative margin,
+    // muted tone) exactly as it was.
+    const copyButtonTag = source.match(/<button\b[^>]*\bonClick=\{onCopy\}/)?.[0] ??
+      "";
+    assert.ok(copyButtonTag.length > 0, "expected the ladder's copy button");
+    assert.equal((copyButtonTag.match(/\bcpv-copy\b/g) ?? []).length, 2);
     // The ✓ state is transient (~2s) and keyed by field via copiedField,
     // not a single flag — copying one row never shows a false ✓ on
     // another, and the icon swap reads straight off that same state.

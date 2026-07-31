@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import { describeReplayRecord } from "../../lib/replayReliability";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
@@ -12,6 +13,13 @@ import type { GuideAnchor } from "./WorkspaceNav";
 // about the review having happened, which is the process narration spec §2
 // rules out and which these rows used to carry as their fallbacks.
 const ABSENT = "—";
+
+// The mock's one mobile line (m-mobile-v3.html:75) reads as the setup's
+// character followed by its record — which is exactly the Market row's
+// sentence followed by the Record row's. So the summary is assembled from
+// rows this panel already builds, in the mock's own order: no sentence is
+// written for mobile that the ≥lg panel doesn't already say.
+const WHY_SUMMARY_LABELS = ["Market", "Record"];
 
 type QualityReceiptRow = {
   anchor?: GuideAnchor;
@@ -41,10 +49,24 @@ type SetupQualityReceiptProps = {
 // dropping the h3 would strip the section's only landmark and the accessible
 // name two e2e specs locate the receipt by) — eyebrow styling, heading
 // semantics.
+//
+// Below lg the mobile mock draws this panel as one sentence and a "Why" link
+// (m-mobile-v3.html:75), not five labeled rows: the phone's stage is the chart
+// and the copy ladder, and the breakdown is a tap away. The rows themselves are
+// unchanged — the disclosure can only ever subtract them below lg, never at the
+// ≥lg width where a-desk-v3.html draws all five.
 export function SetupQualityReceipt(
   { result, setup }: SetupQualityReceiptProps,
 ) {
   const receipt = buildQualityReceipt(setup, result);
+  const summary = buildWhySummary(receipt.rows);
+  const [rowsOpen, setRowsOpen] = useState(false);
+  const rowsId = useId();
+  // With nothing to condense there is nothing to disclose, so the rows carry
+  // themselves at every width rather than hiding behind a toggle whose summary
+  // would be blank — the same "the element speaks only when there is something
+  // to say" discipline the stage applies to its own notices.
+  const rowsShown = rowsOpen || summary.length === 0;
 
   return (
     <div className="grid min-w-0 gap-0.5">
@@ -54,29 +76,52 @@ export function SetupQualityReceipt(
         </h3>
         <HowThisWorksLink anchor="how-review-works" />
       </div>
-      {receipt.rows.map((row) => (
-        <div
-          key={row.label}
-          className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1.5 text-[13px] leading-5"
-        >
-          <span className="min-w-[74px] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            {row.label}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className={sentenceToneClassName(row.tone)}>
-              {row.sentence}
+      {summary
+        ? (
+          <p className="text-[13px] leading-5 lg:hidden">
+            {summary}{" "}
+            <button
+              aria-controls={rowsId}
+              aria-expanded={rowsOpen}
+              className="tertiary-link"
+              type="button"
+              onClick={() => setRowsOpen((open) => !open)}
+            >
+              Why
+            </button>
+          </p>
+        )
+        : null}
+      <div
+        className={rowsShown
+          ? "grid min-w-0 gap-0.5"
+          : "grid min-w-0 gap-0.5 max-lg:hidden"}
+        id={rowsId}
+      >
+        {receipt.rows.map((row) => (
+          <div
+            key={row.label}
+            className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1.5 text-[13px] leading-5"
+          >
+            <span className="min-w-[74px] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+              {row.label}
             </span>
-            {row.anchor
-              ? (
-                <>
-                  {" "}
-                  <HowThisWorksLink anchor={row.anchor} />
-                </>
-              )
-              : null}
-          </span>
-        </div>
-      ))}
+            <span className="min-w-0 flex-1">
+              <span className={sentenceToneClassName(row.tone)}>
+                {row.sentence}
+              </span>
+              {row.anchor
+                ? (
+                  <>
+                    {" "}
+                    <HowThisWorksLink anchor={row.anchor} />
+                  </>
+                )
+                : null}
+            </span>
+          </div>
+        ))}
+      </div>
       {receipt.blockers.length > 0
         ? (
           <p className="mt-2 border-t border-hairline pt-2 text-xs font-semibold leading-5 text-caution">
@@ -86,6 +131,16 @@ export function SetupQualityReceipt(
         : null}
     </div>
   );
+}
+
+// A category with no honest datum renders as an em dash in its own row; it
+// contributes nothing to the summary rather than dropping a bare dash into the
+// middle of a sentence.
+function buildWhySummary(rows: QualityReceiptRow[]): string {
+  return WHY_SUMMARY_LABELS
+    .map((label) => rows.find((row) => row.label === label)?.sentence ?? ABSENT)
+    .filter((sentence) => sentence !== ABSENT)
+    .join(" ");
 }
 
 function sentenceToneClassName(
