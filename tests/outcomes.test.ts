@@ -86,32 +86,35 @@ describe("classifyWinLoss — single source of truth for the ladder's win/loss s
     );
   });
 
-  it("useTradeSetups.ts, historyUtils.ts's buildRecordBand, and buildConfidenceBands all classify through the shared helper, not a re-derived condition (drift guard)", () => {
-    const historyUtilsSource = readFileSync(
-      "src/components/workspace/historyUtils.ts",
-      "utf8",
-    );
-    const useTradeSetupsSource = readFileSync(
-      "src/hooks/useTradeSetups.ts",
-      "utf8",
-    );
-    const classifyWinLossCallSites =
-      (historyUtilsSource.match(/classifyWinLoss\(/g) ?? []).length;
+  it("every known win/loss call site classifies through the shared helper, not a re-derived condition (drift guard)", () => {
+    // Every file with a business reason to know "is this outcome a win or
+    // a loss," and exactly how many independent classifyWinLoss call sites
+    // each one currently has. A count per file, not a single assert.match,
+    // so a future re-introduction of an inline copy in any one function
+    // (without touching its sibling call sites in the same file) can't
+    // hide behind the others still calling through — and so a *fifth*
+    // stray copy anywhere, in a file not listed here at all, still fails
+    // this test the moment someone adds this file to the map (the whole
+    // point of the fix-round-1/2 history behind this test: three
+    // independent copies were found here across two rounds already).
+    const expectedCallSites: Record<string, number> = {
+      // buildRecordBand, buildConfidenceBands, getOutcomeClassName.
+      "src/components/workspace/historyUtils.ts": 3,
+      // buildStats.
+      "src/hooks/useTradeSetups.ts": 1,
+      // buildProfileReviewPattern.
+      "src/lib/profileInsights.ts": 1,
+    };
 
-    assert.match(
-      useTradeSetupsSource,
-      /classifyWinLoss\(/,
-      "useTradeSetups.ts's buildStats must classify win/loss through the shared lib/outcomes.ts helper",
-    );
-    // Two call sites: buildRecordBand and buildConfidenceBands. A count
-    // rather than a single assert.match so a future re-introduction of an
-    // inline copy in either function (without removing the other's call)
-    // can't hide behind the other one still calling through.
-    assert.equal(
-      classifyWinLossCallSites,
-      2,
-      "historyUtils.ts's buildRecordBand and buildConfidenceBands must both classify win/loss through the shared lib/outcomes.ts helper",
-    );
+    for (const [file, expectedCount] of Object.entries(expectedCallSites)) {
+      const source = readFileSync(file, "utf8");
+      const actualCount = (source.match(/classifyWinLoss\(/g) ?? []).length;
+      assert.equal(
+        actualCount,
+        expectedCount,
+        `${file} must classify win/loss through the shared lib/outcomes.ts helper exactly ${expectedCount} time(s) — found ${actualCount}`,
+      );
+    }
   });
 });
 

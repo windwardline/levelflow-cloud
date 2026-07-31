@@ -1049,6 +1049,35 @@ describe("profile insights", () => {
       ],
     );
   });
+
+  // Fix round 2: buildProfileReviewPattern used to check only
+  // "target_reached"/"stopped_out" directly, silently excluding a
+  // banked-half (tp1_partial) finish from both buckets. Now routed through
+  // classifyWinLoss (lib/outcomes.ts), the same helper the Insights
+  // ledger's record band uses, so Profile's win rate can't disagree with
+  // the ledger on the same trade.
+  it("counts a banked-half (tp1_partial) finish as a win, matching classifyWinLoss's app-wide semantics", () => {
+    const setups = [
+      buildTradeSetup({
+        created_at: "2026-06-20T12:00:00.000Z",
+        id: "1",
+        outcome: "tp1_partial",
+        symbol: "EURUSD",
+      }),
+      buildTradeSetup({
+        created_at: "2026-06-21T12:00:00.000Z",
+        id: "2",
+        outcome: "stop_loss",
+        symbol: "EURUSD",
+      }),
+    ];
+
+    const [item] = buildProfileReviewPattern(setups);
+    assert.equal(item?.symbol, "EURUSD");
+    assert.equal(item?.wins, 1);
+    assert.equal(item?.losses, 1);
+    assert.equal(item?.winRate, 50);
+  });
 });
 
 describe("database schema", () => {

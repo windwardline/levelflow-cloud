@@ -169,13 +169,16 @@ export function getOutcomeLabel(outcome: SetupOutcome) {
 }
 
 export function getOutcomeClassName(outcome: SetupOutcome) {
-  if (
-    outcome === "target_reached" || outcome === "partial_target" ||
-    outcome === "expired_in_profit"
-  ) {
+  // classifyWinLoss (lib/outcomes.ts) is the single source of truth for the
+  // win/loss split (fix round 2 — this was a fourth independent copy of the
+  // same predicates). The caution/muted split below is genuinely this
+  // function's own concern, not part of classifyWinLoss's job, so it stays
+  // as its own outcome check.
+  const winLoss = classifyWinLoss(outcome);
+  if (winLoss === "win") {
     return "text-buy";
   }
-  if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+  if (winLoss === "loss") {
     return "text-sell";
   }
   if (outcome === "entry_not_filled") {

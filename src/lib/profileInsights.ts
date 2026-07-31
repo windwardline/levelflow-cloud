@@ -1,4 +1,4 @@
-import { normalizeSetupOutcome } from "./outcomes";
+import { classifyWinLoss, normalizeSetupOutcome } from "./outcomes";
 import { compareAssetSymbols, getSecurityOption } from "./symbolMap";
 import type { TradeSetupRow } from "./tradeAnalyzer";
 
@@ -29,14 +29,25 @@ export function buildProfileReviewPattern(
       wins: 0,
     };
     const outcome = normalizeSetupOutcome(setup);
+    const winLoss = classifyWinLoss(outcome);
 
     current.count += 1;
     if (new Date(setup.created_at).getTime() > new Date(current.latestAt).getTime()) {
       current.latestAt = setup.created_at;
     }
-    if (outcome === "target_reached") {
+    // classifyWinLoss (lib/outcomes.ts) is the single source of truth for
+    // money-positive vs. money-negative, shared with useTradeSetups.ts's
+    // buildStats and historyUtils.ts's buildRecordBand/buildConfidenceBands/
+    // getOutcomeClassName. Fix round 2: this previously checked only
+    // "target_reached"/"stopped_out" directly, silently excluding
+    // partial_target (banked half), expired_in_profit, and expired_in_loss
+    // from both buckets — a real behavior change now folded in, not just a
+    // refactor: banked-half and profitable-expiry finishes now count as
+    // wins here too, aligning Profile's win rate with the Insights ledger's
+    // record band on the same trades instead of disagreeing with it.
+    if (winLoss === "win") {
       current.wins += 1;
-    } else if (outcome === "stopped_out") {
+    } else if (winLoss === "loss") {
       current.losses += 1;
     }
 
