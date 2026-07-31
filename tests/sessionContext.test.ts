@@ -123,4 +123,42 @@ describe("trade analyzer session context", () => {
     assert.equal(session.marketKind, "metals");
     assert.equal(session.label, "Spot metals maintenance window");
   });
+
+  it("marks measurement-only gates lowEdge; hard closures stay unmarked", () => {
+    const cryptoLowEdge = getSessionContext(
+      "BTCUSD",
+      new Date("2026-06-15T13:00:00.000Z"),
+    );
+    assert.equal(cryptoLowEdge.block, true);
+    assert.equal(cryptoLowEdge.lowEdge, true);
+
+    const futuresLowEdge = getSessionContext(
+      "ESUSD",
+      new Date("2026-06-15T13:00:00.000Z"),
+    );
+    assert.equal(futuresLowEdge.block, true);
+    assert.equal(futuresLowEdge.lowEdge, true);
+
+    const energiesLowEdge = getSessionContext(
+      "WTI",
+      new Date("2026-06-15T15:30:00.000Z"),
+    );
+    assert.equal(energiesLowEdge.block, true);
+    assert.equal(energiesLowEdge.lowEdge, true);
+
+    // A weekend closure is a hard closure — never bypassed by measurement.
+    const weekendClosure = getSessionContext(
+      "ESUSD",
+      new Date("2026-06-13T13:00:00.000Z"),
+    );
+    assert.equal(weekendClosure.block, true);
+    assert.equal(weekendClosure.lowEdge, undefined);
+
+    const metalsMaintenance = getSessionContext(
+      "XAUUSD",
+      new Date("2026-06-15T21:30:00.000Z"),
+    );
+    assert.equal(metalsMaintenance.block, true);
+    assert.equal(metalsMaintenance.lowEdge, undefined);
+  });
 });

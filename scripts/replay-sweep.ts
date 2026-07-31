@@ -40,6 +40,7 @@ const TRAIN_SHARE = 0.6;
 type SweepArgs = {
   cacheDir: string | undefined;
   captureAll: boolean;
+  ignoreLowEdge: boolean;
   warmOnly: boolean;
   days: number;
   discover: boolean;
@@ -159,6 +160,7 @@ async function main() {
         const result = simulateSymbol({
           calibrationOverride: override,
           captureAll: args.captureAll,
+          ignoreLowEdge: args.ignoreLowEdge,
           cotReports,
           dailyBars,
           newsEvents,
@@ -369,6 +371,7 @@ function parseArgs(argv: string[]): SweepArgs {
   return {
     cacheDir: get("cache-dir"),
     captureAll: argv.includes("--capture-all"),
+    ignoreLowEdge: argv.includes("--ignore-low-edge"),
     warmOnly: argv.includes("--warm-only"),
     days,
     discover: argv.includes("--discover"),
