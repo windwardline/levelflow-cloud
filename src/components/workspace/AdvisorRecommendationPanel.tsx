@@ -142,26 +142,36 @@ export function RecommendationPanel({
               </p>
             )
             : null}
-          <p
-            className={isBuy
-              ? "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-buy"
-              : "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-sell"}
-          >
-            {result?.deduplicated
-              ? (
-                <CheckCircle2
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                  aria-hidden="true"
-                />
-              )
-              : (
-                <ShieldCheck
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                  aria-hidden="true"
-                />
-              )}
-            {notice || "Current setup ready for review."}
-          </p>
+          {/* A5: this line used to fall back to "Current setup ready for
+              review." — a caption on a ladder the reader can already see is
+              ready. Same discipline the stage applies to its own marketNotice
+              (AdvisorWorkspace): render the element only when there is
+              something to say, so an empty notice leaves no margin behind
+              either. */}
+          {notice
+            ? (
+              <p
+                className={isBuy
+                  ? "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-buy"
+                  : "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-sell"}
+              >
+                {result?.deduplicated
+                  ? (
+                    <CheckCircle2
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  )
+                  : (
+                    <ShieldCheck
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  )}
+                {notice}
+              </p>
+            )
+            : null}
         </div>
         <div className="min-w-0 px-5 py-4">
           <SetupQualityReceipt result={result} setup={setup} />

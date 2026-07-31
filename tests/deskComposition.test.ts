@@ -115,6 +115,17 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.match(panel, /<SetupQualityReceipt\b/);
   });
 
+  // Completeness audit 2, A5: the ladder's caption fell back to "Current setup
+  // ready for review." whenever the notice was empty — a sentence telling the
+  // reader that the ladder they are looking at is ready. Same discipline as the
+  // stage's marketNotice below: the element exists only when there is
+  // something to say, so nothing is captioned and no empty paragraph leaves
+  // its margin behind.
+  it("captions the ladder only when there is a notice to carry (A5)", () => {
+    assert.doesNotMatch(panel, /Current setup ready for review/);
+    assert.match(panel, /\{notice\n\s*\? \(\n\s*<p\n/);
+  });
+
   it("keeps the closed-market reopen notice on the stage, unchanged (spec §10b)", () => {
     assert.match(stage, /\{marketNotice\}/);
     assert.match(stage, /Closed · opens \$\{/);
