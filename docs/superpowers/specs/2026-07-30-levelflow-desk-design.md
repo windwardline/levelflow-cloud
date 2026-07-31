@@ -429,3 +429,29 @@ Live product outranks mock where they conflict.
   fields, buttons) or the mock-drawn Insights table frame — never as
   passive grouping. languageGuard-style CI enforcement where a guard can
   pin it.
+
+### §17d. The result vocabulary — canonical (owner-approved verbatim, 2026-07-31)
+
+Supersedes §17b's label table (the mechanism stands; these are the words).
+Engine outcome ENUM values and classifyWinLoss are untouched — this is
+label copy only. The seven results, everywhere a result renders:
+
+- **Pending** — order placed, window open, not yet filled
+- **Open · ±R** — filled and live inside the window (R only when the
+  engine has one)
+- **Unfilled** — window closed, never triggered
+- **Banked half · +R** — first target hit, half banked, window ended
+  before Target 2
+- **Banked full · +R** — Target 2 reached (replaces "Target 2" as the
+  result label; pairs with the Guide's "bank half" instruction language)
+- **Stopped · −R** — stop hit
+- **Expired · +0.6R / Expired · −0.3R** — filled, window ended, neither
+  level hit; ONE word, the number says where it stood (replaces "Expired
+  in profit"/"Expired at loss" as labels; bare "Expired" if no R was
+  recorded)
+
+Status-filter options and OUTCOME_COPY filter/short labels re-derive from
+these words ("Pending & open" stays the unresolved bucket per §17b). The
+Guide's "What the words mean here" section teaches these exact
+definitions (the owner approved the definition lines verbatim — use them
+as the deck text, replacing/adding entries as needed).
