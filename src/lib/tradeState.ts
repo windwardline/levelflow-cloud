@@ -132,6 +132,23 @@ export function deriveTradeState(
   };
 }
 
+/**
+ * Whether this setup's limit entry has actually filled — the one piece of
+ * evidence that separates §17b's "Pending" from its "Open".
+ *
+ * Lives here, beside deriveTradeState, because the status semantics it reads
+ * are the surprising ones documented above: "placed" means filled and live,
+ * "filled" means filled and resolved, and "generated" means the order is
+ * still waiting. Insights' Result column (historyUtils' formatInsightsResult)
+ * reads this for the rows deriveTradeState hands back as closed-but-
+ * unresolved, so the two surfaces can never disagree about which of the two
+ * unresolved words a row deserves.
+ */
+export function entryHasFilled(setup: TradeSetupRow): boolean {
+  return setup.status === "placed" || setup.status === "filled" ||
+    Boolean(setup.trade_outcomes?.[0]?.filled_at);
+}
+
 function formatEntry(setup: TradeSetupRow): string {
   const entry = Number(setup.limit_entry);
   return Number.isFinite(entry) ? formatNumber(entry) : "—";

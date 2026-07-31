@@ -19,11 +19,25 @@ export const OUTCOME_COPY: Record<
     shortLabel: string;
   }
 > = {
+  // §17b (owner ruling, 2026-07-31): one lifecycle vocabulary —
+  // Pending -> Open (· ±R) -> Unfilled / Banked half / Target 2 / Stopped /
+  // Expired in profit / Expired at loss. The tracking phrase this bucket used
+  // to carry was a seventh word for two states that already had names, and
+  // its short form was a label of the same shape; both are now banned
+  // outright (tests/languageGuard.test.ts — which scans quoted text wherever
+  // it appears, so neither may be quoted even here). This bucket is not one
+  // state — it spans both unresolved ones — so every one of its labels names
+  // exactly those two, which is also what makes it correct as the filter
+  // option that selects them together. No surface renders the label or
+  // shortLabel today: historyUtils' formatInsightsResult routes an unresolved
+  // row through the state machine's own word (Pending / Open · ±R) instead,
+  // and the only remaining reader is the group-by-status heading, where a
+  // bucket spanning both states is exactly what the heading describes.
   still_tracking: {
-    description: "The setup is still inside its review window or does not have a final result yet.",
-    filterLabel: "Still tracking",
-    label: "Still tracking",
-    shortLabel: "Tracking",
+    description: "The setup is still pending or open — it does not have a final result yet.",
+    filterLabel: "Pending & open",
+    label: "Pending & open",
+    shortLabel: "Pending & open",
   },
   target_reached: {
     description: "The limit entry filled and price later reached the target before the stop.",
@@ -104,8 +118,8 @@ export type WinLossClass = "loss" | "neither" | "win";
 // historyUtils.ts's buildRecordBand, which could silently drift apart on a
 // future outcome-taxonomy change. A win is any money-positive resolution
 // (full target, banked TP1, or a profitable expiry); a loss is any
-// money-negative one. Every other outcome (still tracking, entry not
-// filled, needs review) affects neither side of a win/loss ratio.
+// money-negative one. Every other outcome (unresolved, entry not filled,
+// needs review) affects neither side of a win/loss ratio.
 export function classifyWinLoss(outcome: SetupOutcome): WinLossClass {
   if (
     outcome === "target_reached" || outcome === "partial_target" ||

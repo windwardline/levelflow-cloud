@@ -748,7 +748,9 @@ describe("profile preferences", () => {
 
 describe("recommendation outcomes", () => {
   it("uses clear user-facing labels for each internal status", () => {
-    assert.equal(OUTCOME_COPY.still_tracking.label, "Still tracking");
+    // §17b: the unresolved bucket spans two named states (Pending and Open),
+    // so its own label names both rather than inventing a seventh word.
+    assert.equal(OUTCOME_COPY.still_tracking.label, "Pending & open");
     assert.equal(OUTCOME_COPY.target_reached.label, "Reached target");
     assert.equal(OUTCOME_COPY.stopped_out.label, "Hit stop");
     assert.equal(OUTCOME_COPY.unclear_path.label, "Needs review");
@@ -823,7 +825,7 @@ describe("history workspace logic", () => {
     assert.deepEqual(
       groups.map((group) => group.label),
       [
-        "Still tracking",
+        "Pending & open",
         "Reached target",
         "Hit stop",
         "Needs review",

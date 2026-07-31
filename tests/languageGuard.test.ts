@@ -28,6 +28,16 @@ const BANNED = [
   // Spec §8: trade-state language is TradeLocker-aligned — "pending",
   // never "resting" — for every order that's placed but not yet filled.
   /\bresting\b/i,
+  // Spec §17b: one lifecycle vocabulary — Pending -> Open (· ±R) -> Unfilled /
+  // Banked half / Target 2 / Stopped / Expired in profit / Expired at loss.
+  // "Still tracking" was a seventh word for two states that already had names,
+  // and its short form was the label "Tracking".
+  /\bstill tracking\b/i,
+  // Anchored to a whole literal on purpose: this bans the standalone LABEL
+  // "Tracking", not the word inside prose, and above all not Tailwind's
+  // tracking-* utilities, which appear in className literals on nearly every
+  // surface in this app.
+  /^\s*Tracking\s*$/,
 ];
 
 // Files whose plain-language rewrite lands in a later task. Each stayed

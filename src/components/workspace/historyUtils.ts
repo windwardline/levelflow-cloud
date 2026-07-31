@@ -17,7 +17,7 @@ import {
   getSecurityOption,
   type SecurityType,
 } from "../../lib/symbolMap";
-import { deriveTradeState } from "../../lib/tradeState";
+import { deriveTradeState, entryHasFilled } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import type { ScanScope } from "./ScopeMenu";
@@ -505,12 +505,22 @@ export function buildRecordBand(
   };
 }
 
-// Result column (spec §10): "Open · +0.8R", "Target 2 · +2.1R",
-// "Stopped · −1.0R", "Banked half · +0.4R", "Pending", "Unfilled",
-// "Not taken" for a scan-origin setup never placed. Status comes from
+// Result column (spec §10, vocabulary fixed by §17 and §17b): the lifecycle
+// runs "Pending" -> "Open · ±R" -> one of "Unfilled" / "Banked half" /
+// "Target 2" / "Stopped" / "Expired in profit" / "Expired at loss", and every
+// surface in the app uses exactly those words. Status comes from
 // deriveTradeState (pending/open first; everything else is closed), then
-// closed rows branch on the outcome bucket. `origin` is read here only —
-// never rendered as its own column or filter (owner ruling, spec §10).
+// closed rows branch on the outcome bucket.
+//
+// Two rulings shaped what this does NOT do:
+// - §17: `entry_not_filled` reads "Unfilled" for every row. It is a market
+//   fact — price never reached the entry inside the window — never a claim
+//   about what the user did, so the label reads no origin at all. (The
+//   database column stays; tradeState.ts still reads it to keep an unfilled
+//   scan row off the trades rail.)
+// - §17b: an unresolved row never reads the banned tracking phrase. It reads
+//   whichever of the two unresolved words its own fill evidence supports,
+//   through the same predicate the trades rail state machine uses.
 export function formatInsightsResult(
   setup: TradeSetupRow,
   now: Date,
@@ -527,7 +537,7 @@ export function formatInsightsResult(
 
   const outcome = getSetupOutcome(setup);
   if (outcome === "entry_not_filled") {
-    return setup.origin === "scan" ? "Not taken" : "Unfilled";
+    return "Unfilled";
   }
   if (outcome === "target_reached") {
     return withRealizedR("Target 2", realizedR);
@@ -538,17 +548,24 @@ export function formatInsightsResult(
   if (outcome === "stopped_out") {
     return withRealizedR("Stopped", realizedR);
   }
-  if (outcome === "expired_in_profit" || outcome === "expired_in_loss") {
-    return withRealizedR("Expired", realizedR);
+  if (outcome === "expired_in_profit") {
+    return withRealizedR("Expired in profit", realizedR);
+  }
+  if (outcome === "expired_in_loss") {
+    return withRealizedR("Expired at loss", realizedR);
   }
   if (outcome === "unclear_path") {
     return withRealizedR("Needs review", realizedR);
   }
-  // Defensive: a closed setup (deriveTradeState returned null) whose
-  // outcome row is missing or still literally "pending" — a data anomaly,
-  // since a closed status should always carry a resolved outcome — falls
-  // back to the plain outcome label instead of an impossible branch.
-  return withRealizedR(getOutcomeLabel(outcome), realizedR);
+  // Everything left is the unresolved bucket on a row deriveTradeState
+  // reports as off-rail: a scan-surfaced setup whose order was never placed
+  // with a broker, or — a data anomaly, since a closed status should always
+  // carry a resolved outcome — a closed row whose outcome is missing or still
+  // literally pending. Either way §17b answers with the lifecycle word the
+  // fill evidence supports, never a seventh word for engine bookkeeping.
+  return entryHasFilled(setup)
+    ? withRealizedR("Open", realizedR)
+    : "Pending";
 }
 
 function withRealizedR(label: string, realizedR: number | null): string {

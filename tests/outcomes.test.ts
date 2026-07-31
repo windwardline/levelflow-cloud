@@ -232,7 +232,7 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Stopped");
   });
 
-  it("expired_in_profit reads Expired with its positive realizedR", () => {
+  it("expired_in_profit reads Expired in profit with its positive realizedR (§17b)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
@@ -242,10 +242,10 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
         }),
       ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Expired · +0.3R");
+    assert.equal(formatInsightsResult(setup, NOW), "Expired in profit · +0.3R");
   });
 
-  it("expired_in_loss reads Expired with its negative realizedR", () => {
+  it("expired_in_loss reads Expired at loss with its negative realizedR (§17b)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
@@ -255,7 +255,7 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
         }),
       ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Expired · −0.5R");
+    assert.equal(formatInsightsResult(setup, NOW), "Expired at loss · −0.5R");
   });
 
   it("unclear_path (ambiguous) reads Needs review", () => {
@@ -266,31 +266,42 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Needs review");
   });
 
-  it('entry_not_filled on a scan-origin setup reads "Not taken", never "Unfilled"', () => {
-    const setup = buildSetup({
-      origin: "scan",
-      status: "expired",
-      trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
-    });
-    assert.equal(formatInsightsResult(setup, NOW), "Not taken");
+  // Spec §17: "Insights result 'Not taken' is dead. entry_not_filled reads
+  // 'Unfilled' for every origin — a market fact (price never reached the
+  // entry inside the window), never a claim about what the user did. The
+  // label logic reads no origin." The three-way loop is the whole ruling: one
+  // word, whatever the row's provenance, including a row that carries none.
+  it('entry_not_filled reads "Unfilled" for every origin (spec §17)', () => {
+    for (const origin of ["scan", "review", undefined] as const) {
+      const setup = buildSetup({
+        origin,
+        status: "expired",
+        trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
+      });
+      assert.equal(
+        formatInsightsResult(setup, NOW),
+        "Unfilled",
+        `origin ${String(origin)} must not change the label`,
+      );
+    }
   });
 
-  it('entry_not_filled on a review-origin setup reads "Unfilled", never "Not taken"', () => {
-    const setup = buildSetup({
-      origin: "review",
-      status: "expired",
-      trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
-    });
-    assert.equal(formatInsightsResult(setup, NOW), "Unfilled");
-  });
-
-  it('treats a missing origin the same as review-origin ("Unfilled"), never crashing or reading "Not taken"', () => {
-    const setup = buildSetup({
-      origin: undefined,
-      status: "expired",
-      trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
-    });
-    assert.equal(formatInsightsResult(setup, NOW), "Unfilled");
+  it("reads no origin at all when labelling a result (spec §17)", () => {
+    // The absence direction, at the source: the ruling is not "both origins
+    // happen to produce the same string today" but "the label logic reads no
+    // origin". `origin` survives elsewhere in the app (tradeState.ts keeps an
+    // unfilled scan row off the trades rail) — this pins that Insights'
+    // labelling is no longer one of its readers.
+    const source = readFileSync(
+      "src/components/workspace/historyUtils.ts",
+      "utf8",
+    );
+    const formatter = source.match(
+      /export function formatInsightsResult[\s\S]*?\n}\n/,
+    )?.[0] ?? "";
+    assert.ok(formatter.length > 0, "expected to find formatInsightsResult");
+    assert.doesNotMatch(formatter, /\borigin\b/);
+    assert.doesNotMatch(source, /Not taken/);
   });
 
   it("never renders the raw origin value anywhere in the label (owner ruling: no origin in the UI)", () => {
@@ -306,8 +317,122 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     }
   });
 
-  it("falls back to the plain outcome label for a closed setup with no outcome row (data anomaly), instead of throwing", () => {
+  // §17b: an unresolved row reads the lifecycle word the state machine
+  // actually reports, never "Still tracking". A row with no outcome row at all
+  // has no fill evidence, so it reads Pending — the same word the trades rail
+  // gives an order that is placed and waiting.
+  it("labels an unresolved row with no outcome row Pending, not a tracking word (§17b)", () => {
     const setup = buildSetup({ status: "cancelled", trade_outcomes: undefined });
-    assert.equal(formatInsightsResult(setup, NOW), OUTCOME_COPY.still_tracking.label);
+    assert.equal(formatInsightsResult(setup, NOW), "Pending");
+  });
+
+  it("labels an unresolved row whose entry has filled Open, with its R when measured (§17b)", () => {
+    // status "filled" with an outcome the engine never resolves into one of
+    // the six terminal buckets is a data anomaly (see normalizeSetupOutcome) —
+    // the honest word for it is the state its fill evidence supports, not a
+    // tracking word.
+    const setup = buildSetup({
+      status: "filled",
+      trade_outcomes: [
+        buildOutcome({ feedback: { realizedR: 0.2 }, outcome: "breakeven" }),
+      ],
+    });
+    assert.equal(formatInsightsResult(setup, NOW), "Open · +0.2R");
+  });
+});
+
+// §17b (owner ruling, 2026-07-31): one lifecycle vocabulary on every surface —
+// Pending -> Open (· ±R) -> Unfilled / Banked half / Target 2 / Stopped /
+// Expired in profit / Expired at loss. "Still tracking" and "Tracking" are
+// banned. This is the both-directions guard for the Result column: every
+// reachable row produces a word from that set, and neither banned word can be
+// produced by any combination of status and outcome.
+describe("§17b — the Insights Result column speaks one lifecycle vocabulary", () => {
+  const LIFECYCLE_WORDS = [
+    "Pending",
+    "Open",
+    "Unfilled",
+    "Banked half",
+    "Target 2",
+    "Stopped",
+    "Expired in profit",
+    "Expired at loss",
+    // Not a lifecycle state: the engine's own "the chart cannot confirm which
+    // came first" bucket (unclear_path), which predates §17b and is the honest
+    // word for an unresolvable path rather than a claimed outcome.
+    "Needs review",
+  ];
+  const STATUSES = [
+    "generated",
+    "placed",
+    "filled",
+    "invalidated",
+    "cancelled",
+    "expired",
+  ];
+  const OUTCOMES = [
+    "pending",
+    "unfilled",
+    "take_profit",
+    "stop_loss",
+    "breakeven",
+    "manual_close",
+    "expired",
+    "ambiguous",
+    "tp1_partial",
+    "expired_in_profit",
+    "expired_at_loss",
+  ];
+
+  it("produces only lifecycle words across every status × outcome × origin combination", () => {
+    for (const status of STATUSES) {
+      for (const outcome of OUTCOMES) {
+        for (const origin of ["review", "scan", undefined] as const) {
+          for (const withRow of [true, false]) {
+            const setup = buildSetup({
+              origin,
+              status,
+              trade_outcomes: withRow
+                ? [buildOutcome({ feedback: { realizedR: 1.5 }, outcome })]
+                : undefined,
+            });
+            const label = formatInsightsResult(setup, NOW);
+            const word = label.split(" · ")[0];
+            assert.ok(
+              LIFECYCLE_WORDS.includes(word),
+              `${status}/${outcome}/${String(origin)} produced "${label}"`,
+            );
+            assert.doesNotMatch(label, /still tracking/i);
+            assert.doesNotMatch(label, /\btracking\b/i);
+            assert.doesNotMatch(label, /Not taken/);
+          }
+        }
+      }
+    }
+  });
+
+  it("keeps the banned words out of every OUTCOME_COPY field", () => {
+    for (const [outcome, copy] of Object.entries(OUTCOME_COPY)) {
+      for (const [field, value] of Object.entries(copy)) {
+        assert.doesNotMatch(
+          value,
+          /still tracking/i,
+          `${outcome}.${field}: "${value}"`,
+        );
+        assert.doesNotMatch(
+          value,
+          /^\s*Tracking\s*$/,
+          `${outcome}.${field}: "${value}"`,
+        );
+      }
+    }
+  });
+
+  it("reads the unresolved bucket's filter option as Pending & open — existing vocabulary only", () => {
+    assert.equal(OUTCOME_COPY.still_tracking.filterLabel, "Pending & open");
+    assert.equal(OUTCOME_COPY.still_tracking.label, "Pending & open");
+    assert.equal(OUTCOME_COPY.still_tracking.shortLabel, "Pending & open");
+    // The description prose may stay, aligned to the same two words.
+    assert.match(OUTCOME_COPY.still_tracking.description, /still pending or open/);
   });
 });
