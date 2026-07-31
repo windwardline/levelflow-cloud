@@ -547,11 +547,19 @@ export function ScopeMenu(
         // the trigger carries the name itself. aria-label and aria-labelledby
         // are mutually exclusive here on purpose: setting both would let the
         // labelledby chain win and silently re-introduce a reference to an
-        // element that is no longer rendered.
+        // element that is no longer rendered. The same pairing is applied to
+        // both listboxes below — the caption is either there for everything
+        // that names itself off it, or for nothing.
         aria-label={showLabel ? undefined : label}
         aria-labelledby={showLabel ? `${baseId}-label ${baseId}-value` : undefined}
+        // The heading variant carries no padding (the market name IS the
+        // stagehead heading), which on its own leaves the stage's primary
+        // control a ~32px target. min-h-11 restores the kit's 44px floor and
+        // the matching negative block margin pulls the extra height back out
+        // of the flow, so the heading's optics are untouched — the same trick
+        // .tertiary-link and .cpv-copy use in index.css.
         className={variant === "heading"
-          ? "flex min-w-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
+          ? "-my-1.5 flex min-h-11 min-w-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
           : "field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"}
         id={baseId}
         type="button"
@@ -601,7 +609,8 @@ export function ScopeMenu(
                 <ul
                   ref={listRef}
                   aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
-                  aria-labelledby={`${baseId}-label`}
+                  aria-label={showLabel ? undefined : label}
+                  aria-labelledby={showLabel ? `${baseId}-label` : undefined}
                   className="scrolly flex-1 overflow-y-auto py-1"
                   role="listbox"
                   tabIndex={-1}
@@ -615,7 +624,8 @@ export function ScopeMenu(
               <ul
                 ref={listRef}
                 aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
-                aria-labelledby={`${baseId}-label`}
+                aria-label={showLabel ? undefined : label}
+                aria-labelledby={showLabel ? `${baseId}-label` : undefined}
                 className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
                 role="listbox"
                 // The anchored popup normally matches its trigger's width. A

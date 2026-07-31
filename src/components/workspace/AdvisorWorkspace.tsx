@@ -93,7 +93,14 @@ type AdvisorWorkspaceProps = {
 };
 
 type AnalysisState = {
-  requestedAt: number;
+  // When a review actually ran against this symbol, epoch milliseconds — the
+  // provenance behind the stagehead's "Reviewed {time}" stamp (spec §16), so
+  // only analyze() may set it. A setup lifted straight out of a scan result
+  // carries null: that scan may have run an hour ago, and neither
+  // AnalyzerSetup nor MarketScanCandidate carries a creation timestamp, so
+  // there is no honest review time to print. The stamp is then simply absent
+  // rather than asserting a review that did not happen at the moment shown.
+  reviewedAt: number | null;
   response: AnalyzerResponse | null;
   symbol: SupportedSymbol;
 };
@@ -140,11 +147,14 @@ export function AdvisorWorkspace(
   const setup = activeResult?.setup ?? null;
   // The stagehead's confidence meta line says when this review ran, alongside
   // the setup's own expiry (spec §16 folds both into one quiet line in place of
-  // the deleted metric card). analysisState.requestedAt is an epoch
-  // milliseconds stamp; formatTimestamp works on the same ISO strings every
-  // other timestamp on this surface arrives from the server as.
-  const reviewedAt = analysisState && analysisState.symbol === symbol
-    ? new Date(analysisState.requestedAt).toISOString()
+  // the deleted metric card). Read straight off the analysis state so a
+  // scan-selected setup — which has no review of its own yet — prints no review
+  // stamp at all; ConfidenceUnit drops the missing half rather than filling it.
+  // The stored value is epoch milliseconds; formatTimestamp works on the same
+  // ISO strings every other timestamp on this surface arrives from the server
+  // as.
+  const reviewedAt = analysisState?.symbol === symbol && analysisState.reviewedAt
+    ? new Date(analysisState.reviewedAt).toISOString()
     : null;
 
   useEffect(() => {
@@ -270,8 +280,8 @@ export function AdvisorWorkspace(
     // step with the data the setup was built on.
     setRefreshNonce((value) => value + 1);
     setAnalysisState({
-      requestedAt: Date.now(),
       response: null,
+      reviewedAt: Date.now(),
       symbol: requestedSymbol,
     });
     if (requestedSymbol !== symbol) {
@@ -284,8 +294,8 @@ export function AdvisorWorkspace(
         return;
       }
       setAnalysisState({
-        requestedAt: Date.now(),
         response: nextResult,
+        reviewedAt: Date.now(),
         symbol: requestedSymbol,
       });
       if (nextResult.setup) {
@@ -305,8 +315,8 @@ export function AdvisorWorkspace(
     } catch {
       if (requestIdRef.current === requestId) {
         setAnalysisState({
-          requestedAt: Date.now(),
           response: null,
+          reviewedAt: Date.now(),
           symbol: requestedSymbol,
         });
         setAdvisorNotice(
@@ -377,12 +387,16 @@ export function AdvisorWorkspace(
             onMobileViewChange("review");
             if (candidate.setup) {
               setAnalysisState({
-                requestedAt: Date.now(),
                 response: {
                   advisoryOnly: true,
                   message: "Selected from Market Scan.",
                   setup: candidate.setup,
                 },
+                // No review ran here — this setup came out of a scan that may
+                // have completed long before the row was clicked, so there is
+                // no review time to claim. The stagehead's meta line shows the
+                // setup's expiry alone until Review market actually runs.
+                reviewedAt: null,
                 symbol: candidate.symbol,
               });
               setAdvisorNotice(

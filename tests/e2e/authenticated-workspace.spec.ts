@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { marketAvailability } from "../../src/lib/marketHours";
 import {
   AVAILABLE_ASSET_GROUPS,
-  formatSecurityLabel,
+  formatSecurityDisplaySymbol,
 } from "../../src/lib/symbolMap";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -187,7 +187,21 @@ test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no
       "Scan shows the strongest qualifying setup among closely linked markets.",
     ),
   ).toHaveCount(0);
-  await expect(page.getByText("Acceptable", { exact: true })).toHaveCount(0);
+
+  // The legend's other half was a standing key of all four cost ratings,
+  // belonging to no market. Asserted structurally rather than by rating text:
+  // "Clean", "Acceptable", "Thin" and "Poor" are live executionLabel values
+  // that the new row chip legitimately renders, so an absence assertion on any
+  // of those strings would fail on real scan data for a reason that has
+  // nothing to do with the kill list. What defines the legend is a rating chip
+  // that is not attached to a market — every chip the recomposed rail draws
+  // sits inside its own result row.
+  const chipsOutsideARow = await rail
+    .locator("span.chip")
+    .evaluateAll((chips) =>
+      chips.filter((chip) => chip.closest("button") === null).length
+    );
+  expect(chipsOutsideARow).toBe(0);
 });
 
 test("a How this works link opens the Guide at the section it names", async ({ page }) => {
@@ -713,13 +727,14 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
     page.getByRole("heading", { name: "Insights", exact: true }),
   ).toBeVisible();
 
-  // Insights' Market column renders the raw ticker (e.g. "EURUSD"), not the
-  // scan rail's long descriptive label (e.g. "EUR/USD - Euro / U.S.
-  // Dollar") — the "Open {symbol} in Advisor" row button's aria-label is
-  // the stable, parseable link between the two views. The ledger's own
-  // fetch is async and the heading becoming visible doesn't guarantee its
-  // rows have landed yet, so evaluateAll (which reads the DOM once, with no
-  // retry) waits behind a poll for at least one row first.
+  // Insights' Market column renders the raw ticker (e.g. "EURUSD"), while the
+  // scan rail's row shows the display form (e.g. "EUR/USD", spec §16's mock
+  // row) — the "Open {symbol} in Advisor" row button's aria-label is the
+  // stable, parseable link between the two views, mapped through the same
+  // formatter the rail row itself uses. The ledger's own fetch is async and
+  // the heading becoming visible doesn't guarantee its rows have landed yet,
+  // so evaluateAll (which reads the DOM once, with no retry) waits behind a
+  // poll for at least one row first.
   const openInAdvisorButtons = page.getByRole("button", {
     name: /^Open .+ in Advisor$/,
   });
@@ -738,7 +753,9 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
         label.replace(/^Open /, "").replace(/ in Advisor$/, "")
       )
     );
-  const insightsLabels = rawSymbols.map((symbol) => formatSecurityLabel(symbol));
+  const insightsLabels = rawSymbols.map((symbol) =>
+    formatSecurityDisplaySymbol(symbol)
+  );
   const persisted = scannedSymbolLabels.filter((label) =>
     insightsLabels.includes(label)
   );

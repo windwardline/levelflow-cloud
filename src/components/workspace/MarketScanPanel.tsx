@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
-  formatSecurityLabel,
+  formatSecurityDisplaySymbol,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import type {
@@ -177,8 +177,11 @@ function MarketScanRow({
       onClick={() => onSelectCandidate(candidate)}
     >
       <span className="min-w-0">
+        {/* The ticker form, per mock :152-156 ("XAU/USD"). The full descriptive
+            label truncates mid-description in a 264px rail; the scope menu's
+            own option rows still carry it in full. */}
         <span className="block truncate text-sm font-bold text-ink">
-          {formatSecurityLabel(candidate.symbol)}
+          {formatSecurityDisplaySymbol(candidate.symbol)}
         </span>
         <span className="block truncate text-xs text-ink-muted">
           {formatScanRowMeta(candidate.side, candidate.confidenceScore)}

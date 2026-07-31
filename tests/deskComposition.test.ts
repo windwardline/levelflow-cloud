@@ -54,6 +54,41 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.match(stage, /validUntil=\{setup\.expiresAt \?\? null\}/);
   });
 
+  // Fix round 1: the stamp is a provenance claim, so only a real review may set
+  // it. A setup lifted out of a scan result keeps null — that scan may have run
+  // an hour before the row was clicked, and neither AnalyzerSetup nor
+  // MarketScanCandidate carries a creation timestamp, so there is no honest
+  // review time to print. This also keeps ConfidenceUnit's documented and
+  // tested "drops the missing half" branch reachable in the app, which it was
+  // not while every analysis state stamped Date.now().
+  it("stamps the review time only where a review actually ran", () => {
+    // Every write of the field, in source order: three inside analyze(), then
+    // the scan-selection handler's synthetic state. The trailing comma is what
+    // keeps the type declaration (`reviewedAt: number | null;`) out of the set.
+    const writes = (stage.match(/reviewedAt: [^,;\n]+,/g) ?? [])
+      .map((write) => write.replace(/,$/, ""));
+    assert.deepEqual(writes, [
+      "reviewedAt: Date.now()",
+      "reviewedAt: Date.now()",
+      "reviewedAt: Date.now()",
+      "reviewedAt: null",
+    ]);
+    // The scan-selection state is the one that must not claim a review.
+    const scanSelected = stage.match(
+      /message: "Selected from Market Scan\.",[\s\S]{0,600}?reviewedAt: ([^,\n]+)/,
+    );
+    assert.ok(scanSelected, "expected the scan-selection analysis state");
+    assert.equal(scanSelected[1], "null");
+    // And the displayed value is gated on that field, not merely on a setup
+    // being present — otherwise the null branch is unreachable again.
+    assert.match(
+      stage,
+      /const reviewedAt = analysisState\?\.symbol === symbol && analysisState\.reviewedAt/,
+    );
+    // The old always-now field is gone entirely.
+    assert.doesNotMatch(stage, /requestedAt/);
+  });
+
   it("keeps Review market as the stage's one action, beside the chart-view control", () => {
     assert.match(stage, /className="primary-button"[\s\S]{0,600}Review market/);
     assert.match(stage, /aria-label="Chart view"/);
@@ -118,9 +153,16 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     assert.doesNotMatch(stage, /advisor checks/i);
     assert.doesNotMatch(stage, /advisorChartViewLabel/i);
     // "Valid until" survives only as the confidence meta line's own wording,
-    // built inside ConfidenceUnit — never as a labeled card on the stage.
-    assert.doesNotMatch(stage, /valid until/i);
-    assert.doesNotMatch(panel, /valid until/i);
+    // built inside ConfidenceUnit — never as a labeled card here. The stage
+    // does legitimately pass a `validUntil` prop down to ConfidenceUnit, so
+    // rather than forbidding the identifier (which the previous
+    // /valid until/i-only guard let through purely because camelCase has no
+    // space), forbid every label-shaped form in any casing or spacing.
+    for (const source of [stage, panel]) {
+      assert.doesNotMatch(source, /valid until/i);
+      assert.doesNotMatch(source, /label[=:]\s*[{"']*\s*valid\s*until/i);
+      assert.doesNotMatch(source, />\s*valid\s*until\s*</i);
+    }
   });
 
   it("carries no standalone stage Refresh button — Review market is the one action", () => {
@@ -173,7 +215,10 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
   });
 
   it("renders each row as market + one meta line + cost chip, nothing more", () => {
-    assert.match(rail, /\{formatSecurityLabel\(candidate\.symbol\)\}/);
+    // The ticker form, per mock :152 — the full descriptive label truncates
+    // mid-description in a 264px rail. The scope menu's rows keep the full one.
+    assert.match(rail, /\{formatSecurityDisplaySymbol\(candidate\.symbol\)\}/);
+    assert.doesNotMatch(rail, /formatSecurityLabel/);
     assert.match(
       rail,
       /\{formatScanRowMeta\(candidate\.side, candidate\.confidenceScore\)\}/,
@@ -183,8 +228,21 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
 
   it("marks the stage's market as the selected row: sheet fill plus a 3px inset accent edge", () => {
     assert.match(rail, /selected=\{candidate\.symbol === selectedSymbol\}/);
-    assert.match(rail, /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/);
-    assert.match(rail, /bg-sheet/);
+    // Scoped to the two branches of the row's own className, not the file at
+    // large: a bare /bg-sheet/ match anywhere would pass while the selected
+    // branch carried neither treatment.
+    const branches = rail.match(
+      /className=\{selected\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
+    );
+    assert.ok(branches, "expected to find the row's selected/unselected classes");
+    const [, selectedClasses, unselectedClasses] = branches;
+    assert.match(selectedClasses, /\bbg-sheet\b/);
+    assert.match(
+      selectedClasses,
+      /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/,
+    );
+    assert.doesNotMatch(unselectedClasses, /\bbg-sheet\b/);
+    assert.doesNotMatch(unselectedClasses, /shadow-\[inset/);
   });
 
   it("closes with the approved footnote, verbatim", () => {

@@ -497,10 +497,11 @@ describe("scopeTriggerLabel", () => {
 
 // Spec §16 draws neither picker with a visible field caption: the stage's
 // market name IS the heading, and the rail leads with its own "Scan" eyebrow.
-// The trigger must then name itself, or the control loses its accessible name
-// entirely — and aria-labelledby must not survive alongside aria-label, since
-// it would win and point at an element that is no longer rendered.
-describe("ScopeMenu trigger labelling (source-pinned — see header comment)", () => {
+// Every element that took its name from that caption must then name itself, or
+// it loses its accessible name entirely — and aria-labelledby must not survive
+// alongside aria-label, since it would win and point at an element that is no
+// longer rendered.
+describe("ScopeMenu labelling with the caption suppressed (source-pinned — see header comment)", () => {
   const SOURCE = readFileSync(
     "src/components/workspace/ScopeMenu.tsx",
     "utf8",
@@ -514,6 +515,57 @@ describe("ScopeMenu trigger labelling (source-pinned — see header comment)", (
     );
   });
 
+  // Fix round 1: the trigger got this right and both listboxes did not. With
+  // showLabel={false} at both call sites, an unconditional
+  // aria-labelledby={`${baseId}-label`} on a <ul role="listbox"> is a dangling
+  // IDREF — it resolves to nothing, so the opened menu announced as an unnamed
+  // listbox. The trigger-only assertion above is exactly why the gate stayed
+  // green with that regression in place, so the list is pinned too now.
+  it("names BOTH listboxes the same conditional way — no dangling IDREF when the caption is suppressed", () => {
+    const listboxes = SOURCE.match(/<ul\b[\s\S]*?role="listbox"/g) ?? [];
+    assert.equal(
+      listboxes.length,
+      2,
+      "expected exactly two listboxes: the anchored popup and the mobile sheet",
+    );
+    for (const listbox of listboxes) {
+      assert.match(listbox, /aria-label=\{showLabel \? undefined : label\}/);
+      assert.match(
+        listbox,
+        /aria-labelledby=\{showLabel \? `\$\{baseId\}-label` : undefined\}/,
+      );
+    }
+  });
+
+  it("leaves no unconditional reference to the caption id anywhere", () => {
+    // Catches the regression shape itself rather than listing the elements that
+    // must not have it: the caption renders only under showLabel, so every
+    // aria-labelledby naming it has to sit inside a showLabel ternary. The
+    // sheet dialog's own `-sheet-title` reference is unconditional and correct
+    // — that node always renders — so it is deliberately not matched here.
+    // One level of `${…}` nesting has to be allowed through: a naive [^}]*
+    // stops at the closing brace of `${baseId}` and truncates the attribute
+    // mid-template. Caption references are then identified by the template's
+    // literal suffix ("}-label"), not by a bare "-label" substring — which the
+    // attribute NAME "aria-labelledby" itself contains.
+    const references =
+      SOURCE.match(/aria-labelledby=\{(?:[^{}]|\$\{[^{}]*\})*\}/g) ?? [];
+    const captionReferences = references.filter((reference) =>
+      reference.includes("}-label")
+    );
+    assert.ok(
+      captionReferences.length > 0,
+      "expected to find the caption references this guards",
+    );
+    for (const reference of captionReferences) {
+      assert.match(
+        reference,
+        /showLabel \?/,
+        `unconditional caption reference: ${reference}`,
+      );
+    }
+  });
+
   it("renders the caption span only when showLabel is set", () => {
     assert.match(
       SOURCE,
@@ -523,6 +575,21 @@ describe("ScopeMenu trigger labelling (source-pinned — see header comment)", (
 
   it("renders the trigger's own text through scopeTriggerLabel, never describeScanScope directly", () => {
     assert.match(SOURCE, /\{scopeTriggerLabel\(value, variant\)\}/);
+  });
+
+  // Fix round 1: p-0 at text-2xl left the stage's primary control a ~32px
+  // target. The kit's floor is 44px everywhere else (.field 48px,
+  // .primary-button / .tertiary-link / .cpv-copy 44px, the rail rows' min-h-11),
+  // and the heading must reach it without growing visually — min-height plus a
+  // matching negative block margin, the same trick index.css already uses.
+  it("gives the heading trigger a 44px hit area without inflating the heading", () => {
+    const heading = SOURCE.match(
+      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
+    )?.[1] ?? "";
+    assert.ok(heading.length > 0, "expected to find the heading trigger classes");
+    assert.match(heading, /\bmin-h-11\b/);
+    assert.match(heading, /-my-1\.5/);
+    assert.match(heading, /\bp-0\b/);
   });
 });
 
