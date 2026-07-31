@@ -339,3 +339,39 @@ flat page (record band, inline filter row, one table; i-insights-v1.html).
 must verify BOTH directions against the mock — required elements present
 AND kill-list elements absent — and name each direction explicitly in its
 report.
+
+## 17. Post-ship owner rulings (2026-07-31 evening, binding)
+
+- **Timeframes are two characters universally** — 1H, 4H, 1D (every
+  surface that names a timeframe: stage chart-view select, Profile's
+  default-timeframe select, any option labels). The stage's action button
+  is **"Review"** (not "Review market"). The stagehead must never truncate
+  the market name.
+- **Insights result "Not taken" is dead.** `entry_not_filled` reads
+  **"Unfilled"** for every origin — a market fact (price never reached the
+  entry inside the window), never a claim about what the user did. The
+  label logic reads no origin.
+- **Confidence meta stamp format** matches the scope menu's availability
+  grammar, extended with the date: `{MMM} {D} {h}:{mm}{A|P}` — three-char
+  month ALL CAPS, 1-2 digit day, minutes always two digits, single capital
+  A/P with **no space** before it (e.g. `Reviewed JUL 31 2:05P · valid
+  until JUL 31 10:05P`). Quiet, not intrusive; shares its time formatting
+  with the menu's OPENS lines so the two can never drift.
+- **Help and Donate are first-class**: never hidden or buried, placed
+  thoughtfully, same furniture and testing standards as everything else.
+  Placement set: (a) the page footer's link row carries Help and Donate
+  beside the legal trio on every scrolling surface; (b) the Guide article
+  ends with a short Support section (email + donate, tertiary links, no
+  card chrome beyond the article's own rhythm); (c) Profile keeps its
+  Support card; (d) the mobile avatar menu keeps both. The Desk's fixed
+  desktop shell stays footer-less — Help remains one tap away everywhere.
+- **Expand chart ships on mobile** (owner: "I do not want to skip
+  features just because we can"): an "Expand chart" affordance opens the
+  same MarketChart full-viewport (100dvw/100dvh overlay) with its level
+  lines and theme reactivity; 44px close target, Escape and focus trap,
+  aria-modal, functional labels only. With it, the inline mobile chart may
+  take the mock's compact height.
+- **Inline Guide links on the why panel stay** (owner-confirmed; E4
+  cross-links standard).
+- Still awaiting owner ruling (do NOT build until given): the merged
+  mobile Scan surface (m-scan-v2 mock) and the 3-vs-4 bottom-tab count.
