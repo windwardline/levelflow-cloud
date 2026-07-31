@@ -295,9 +295,11 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     timeout: 30_000,
   });
 
-  // Renamed from "Advisor chart view": the visible wrapping <label> already
-  // reads "Chart view", and the stale "Advisor" prefix predates the Desk
-  // rename (that word is retired from every other user-facing label).
+  // Renamed from "Advisor chart view" when the stale "Advisor" prefix was
+  // retired from every user-facing label. Spec §16 then dropped the visible
+  // wrapping <label> with the rest of the stage's form chrome — the control is
+  // a ghost select in the stagehead now — so the name comes from its
+  // aria-label, deliberately kept byte-identical so this contract holds.
   const timeframeSelect = page.getByLabel("Chart view", { exact: true });
   if ((await timeframeSelect.inputValue()) !== "1min") {
     await timeframeSelect.selectOption("1min");

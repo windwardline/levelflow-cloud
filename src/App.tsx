@@ -351,7 +351,6 @@ export default function App() {
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}
               profile={profile}
-              setupStats={setupState.stats}
               setups={setupState.setups}
             />
           ) : null}

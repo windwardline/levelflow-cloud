@@ -1,27 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Brain,
-  Clock3,
-  Layers3,
-  LineChart,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
-import { DeskStatusStrip, MarketClockPanel } from "./AdvisorStatusPanels";
-import {
-  formatPrice,
-  formatTimeframe,
-  formatTimestamp,
-  TIMEFRAMES,
-} from "./advisorFormat";
+import { formatTimeframe, TIMEFRAMES } from "./advisorFormat";
+import { ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
 import { MarketScanPanel } from "./MarketScanPanel";
 import { ScopeMenu } from "./ScopeMenu";
-import type { SecurityStat } from "../../hooks/useTradeSetups";
 import { formatReopen, marketAvailability } from "../../lib/marketHours";
-import { getGlobalSessions, getMarketClock } from "../../lib/marketSessions";
 import {
   type ChartTimeframe,
   fetchMarketData,
@@ -29,11 +15,9 @@ import {
 } from "../../lib/marketData";
 import type { UserProfile } from "../../lib/profile";
 import {
-  AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_OPTIONS,
   formatSecurityLabel,
   getSecurityOption,
-  type SecurityType,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
@@ -43,12 +27,6 @@ import {
   scanMarketOpportunities,
   type TradeSetupRow,
 } from "../../lib/tradeAnalyzer";
-import {
-  advisorChartViewLabel,
-  advisorExecutionIntervalLabel,
-  advisorSignalIntervalLabel,
-  reviewWindowLabel,
-} from "../../lib/advisorReview";
 
 // Spec §3: mobile's bottom tab bar swaps between the same three columns the
 // ≥lg Desk always shows at once. "review" is the stage (chart, ladder, why
@@ -111,7 +89,6 @@ type AdvisorWorkspaceProps = {
   // twice in a row still re-selects it.
   openRequest?: { symbol: string; token: number } | null;
   profile: UserProfile;
-  setupStats: SecurityStat[];
   setups: TradeSetupRow[];
 };
 
@@ -130,7 +107,6 @@ export function AdvisorWorkspace(
     onSetupsChanged,
     openRequest,
     profile,
-    setupStats,
     setups,
   }: AdvisorWorkspaceProps,
 ) {
@@ -162,24 +138,13 @@ export function AdvisorWorkspace(
     ? analysisState.response
     : null;
   const setup = activeResult?.setup ?? null;
-  const symbolStat = setupStats.find((stat) => stat.symbol === symbol);
-  const activeMarketCount = AVAILABLE_ASSET_GROUPS.reduce(
-    (sum, group) => sum + group.options.length,
-    0,
-  );
-  const marketClock = useMemo(
-    () => getMarketClock(symbol, profile.defaultTimezone, clockNow),
-    [clockNow, profile.defaultTimezone, symbol],
-  );
-  const globalSessions = useMemo(
-    () =>
-      getGlobalSessions(
-        profile.defaultTimezone,
-        profile.preferredSession,
-        clockNow,
-      ),
-    [clockNow, profile.defaultTimezone, profile.preferredSession],
-  );
+  // The stagehead's confidence meta line says when this review ran (spec §16,
+  // replacing the deleted VALID UNTIL card). analysisState.requestedAt is an
+  // epoch milliseconds stamp; formatTimestamp works on the same ISO strings
+  // every other timestamp on this surface comes from the server as.
+  const reviewedAt = analysisState && analysisState.symbol === symbol
+    ? new Date(analysisState.requestedAt).toISOString()
+    : null;
 
   useEffect(() => {
     if (!timeframeTouched) {
@@ -431,9 +396,14 @@ export function AdvisorWorkspace(
         />
       </div>
 
-      {/* Center stage: the market picker is the header — no surface title
-          or eyebrow above it (spec §2 copy discipline) — then the chart,
-          then the recommendation panel that used to sit in the sidebar.
+      {/* Center stage (spec §16, a-desk-v3.html:161-213): stagehead — the
+          market picker rendered as the display heading, its side tag, and the
+          confidence unit under it, with the chart-view control and the one
+          primary action (Review market) opposite — then the chart sheet, then
+          the setup sheet attached hairline-flush beneath it. No surface title,
+          no status tiles, no metric cards: the killed DeskStatusStrip /
+          MarketClockPanel / CHART VIEW·ADVISOR CHECKS·VALID UNTIL furniture is
+          what the owner rejected as box-on-box.
           flex-col rather than grid: an unconstrained grid's implicit auto
           rows shrink to fit the scroll container's height instead of
           overflowing it, which silently defeats the scrolling this column
@@ -447,14 +417,16 @@ export function AdvisorWorkspace(
           "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
         )}
       >
-        <section className="terminal-panel shrink-0 overflow-hidden">
-          <div className="border-b border-hairline px-4 py-4 sm:px-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div className="min-w-0 flex-1 sm:max-w-sm">
+        <section className="min-w-0 shrink-0">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3.5 gap-y-1">
                 <ScopeMenu
                   label="Market"
+                  showLabel={false}
                   symbolOnly
                   value={{ kind: "symbol", symbol }}
+                  variant="heading"
                   onSelect={(nextScope) => {
                     // symbolOnly guarantees every selectable row (and thus
                     // every scope this can fire with) is symbol-kind - see
@@ -464,127 +436,92 @@ export function AdvisorWorkspace(
                     }
                   }}
                 />
+                {setup
+                  ? (
+                    <span
+                      className={setup.side === "buy"
+                        ? "shrink-0 text-[15px] font-bold uppercase text-buy"
+                        : "shrink-0 text-[15px] font-bold uppercase text-sell"}
+                    >
+                      {setup.side === "buy" ? "Buy" : "Sell"} limit
+                    </span>
+                  )
+                  : null}
               </div>
-              <button
-                className="secondary-button min-h-10 px-3 py-2"
-                type="button"
-                onClick={() => setRefreshNonce((value) => value + 1)}
-                disabled={marketLoading}
+              {setup
+                ? (
+                  <ConfidenceUnit
+                    assetType={selectedAsset.assetType}
+                    reviewedAt={reviewedAt}
+                    score={setup.confidenceScore}
+                    validUntil={setup.expiresAt ?? null}
+                  />
+                )
+                : null}
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+              {/* The visible "Chart view" caption is gone with the rest of the
+                  stage's form chrome; the aria-label carries the same name
+                  (and is the e2e contract for this control). */}
+              <select
+                aria-label="Chart view"
+                className="min-h-11 rounded-lg border border-ink bg-transparent px-3 text-sm font-semibold text-ink"
+                value={timeframe}
+                onChange={(event) => {
+                  setTimeframeTouched(true);
+                  setTimeframe(event.target.value as ChartTimeframe);
+                }}
               >
-                <RefreshCw
-                  className={`h-4 w-4 ${marketLoading ? "animate-spin" : ""}`}
-                  aria-hidden="true"
-                />
-                Refresh
+                {TIMEFRAMES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={analyzerStatus === "analyzing" || marketLoading}
+                onClick={analyze}
+              >
+                {analyzerStatus === "analyzing"
+                  ? (
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  )
+                  : null}
+                Review market
               </button>
             </div>
+          </div>
 
-            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(200px,1fr)_auto]">
-              <label className="grid gap-2 text-sm font-semibold text-ink">
-                Chart view
-                <select
-                  aria-label="Chart view"
-                  className="field"
-                  value={timeframe}
-                  onChange={(event) => {
-                    setTimeframeTouched(true);
-                    setTimeframe(event.target.value as ChartTimeframe);
-                  }}
-                >
-                  {TIMEFRAMES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          {/* MarketChart draws the chart sheet itself — square-cornered
+              hairline border on sheet — so the setup sheet below can attach to
+              it border-t-0 with no second frame in between. */}
+          <MarketChart
+            data={marketData?.points ?? []}
+            loading={marketLoading}
+            setup={setup}
+            viewKey={`${symbol}:${timeframe}`}
+          />
 
-              <div className="flex items-end">
-                <button
-                  className="primary-button w-full lg:min-w-48"
-                  type="button"
-                  disabled={analyzerStatus === "analyzing" || marketLoading}
-                  onClick={analyze}
-                >
-                  {analyzerStatus === "analyzing"
-                    ? (
-                      <Loader2
-                        className="h-4 w-4 animate-spin"
-                        aria-hidden="true"
-                      />
-                    )
-                    : <Brain className="h-4 w-4" aria-hidden="true" />}
-                  Review market
-                </button>
-              </div>
-            </div>
-
-            <AdvisorReviewScope
-              assetType={selectedAsset.assetType}
-              timeframe={timeframe}
-              validUntil={setup?.expiresAt ?? null}
-            />
-
-            <DeskStatusStrip
-              analysisStatus={analyzerStatus}
-              clockStatus={marketClock.statusLabel}
-              latestClose={marketData?.latestClose ?? null}
-              loading={marketLoading}
+          <div className="min-w-0 border border-hairline border-t-0 bg-sheet">
+            <RecommendationPanel
+              notice={advisorNotice}
               result={activeResult}
-              stat={symbolStat}
+              setup={setup}
+              status={analyzerStatus}
               symbol={symbol}
             />
           </div>
 
-          <div className="p-4 sm:p-6">
-            <MarketClockPanel clock={marketClock} sessions={globalSessions} />
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-ink-muted">
-                  {selectedAsset.assetType}
-                </p>
-                <h3 className="text-xl font-semibold tracking-normal text-ink">
-                  {formatSecurityLabel(symbol)}
-                </h3>
-              </div>
-              <div className="text-left sm:text-right">
-                <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                  Latest close
-                </p>
-                <p className="font-mono text-lg font-semibold tabular-nums tracking-normal text-ink">
-                  {typeof marketData?.latestClose === "number"
-                    ? formatPrice(symbol, marketData.latestClose)
-                    : "Pending"}
-                </p>
-              </div>
-            </div>
-            <MarketChart
-              data={marketData?.points ?? []}
-              loading={marketLoading}
-              setup={setup}
-              viewKey={`${symbol}:${timeframe}`}
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <p className="font-medium text-ink-muted">{marketNotice}</p>
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                <span className="font-mono tabular-nums">
-                  {activeMarketCount} active markets
-                </span>
-                <span className="hidden sm:inline">/</span>
-                <span>Verified chart feed</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="terminal-panel shrink-0 p-5">
-          <RecommendationPanel
-            notice={advisorNotice}
-            result={activeResult}
-            setup={setup}
-            status={analyzerStatus}
-            symbol={symbol}
-          />
+          {/* I4/spec §10b: the closed-market reopen notice, unchanged — the
+              approved treatment for a market that simply isn't trading. */}
+          <p className="mt-3 text-sm font-medium text-ink-muted">
+            {marketNotice}
+          </p>
         </section>
       </div>
 
@@ -610,59 +547,6 @@ export function AdvisorWorkspace(
           />
         </div>
       </aside>
-    </div>
-  );
-}
-
-function AdvisorReviewScope({
-  assetType,
-  timeframe,
-  validUntil,
-}: {
-  assetType: SecurityType;
-  timeframe: ChartTimeframe;
-  validUntil: string | null;
-}) {
-  const items = [
-    {
-      detail: "Changes the visible chart only.",
-      icon: <LineChart className="h-4 w-4" aria-hidden="true" />,
-      label: "Chart view",
-      value: advisorChartViewLabel(timeframe),
-    },
-    {
-      detail: `${advisorExecutionIntervalLabel()} help validate the latest price.`,
-      icon: <Layers3 className="h-4 w-4" aria-hidden="true" />,
-      label: "Advisor checks",
-      value: advisorSignalIntervalLabel(),
-    },
-    {
-      detail: validUntil
-        ? "Refresh after this time before using the levels."
-        : "Any setup shown will use this window.",
-      icon: <Clock3 className="h-4 w-4" aria-hidden="true" />,
-      label: "Valid until",
-      value: validUntil ? formatTimestamp(validUntil) : reviewWindowLabel(assetType),
-    },
-  ];
-
-  return (
-    <div className="mt-4 grid gap-2 md:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="grid min-w-0 gap-1 rounded-lg border border-hairline bg-paper px-3 py-3"
-        >
-          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            <span className="shrink-0 text-accent">{item.icon}</span>
-            <span className="truncate">{item.label}</span>
-          </div>
-          <p className="truncate font-mono text-sm font-semibold tabular-nums text-ink">
-            {item.value}
-          </p>
-          <p className="text-xs leading-5 text-ink-muted">{item.detail}</p>
-        </div>
-      ))}
     </div>
   );
 }

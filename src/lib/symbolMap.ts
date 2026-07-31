@@ -431,6 +431,27 @@ export function formatSecurityLabel(symbol: string) {
   return getSecurityOption(symbol).label;
 }
 
+// The ticker half of a market's label, without its description — "EUR/USD"
+// out of "EUR/USD - Euro / U.S. Dollar". Spec §16's stagehead renders the
+// selected market as the Desk's display heading (a-desk-v3.html:165), which
+// only reads as a heading at that size in the short form; every list, menu
+// and scan row keeps the full descriptive label.
+//
+// Not a heuristic split on " - ": every option's label is built as
+// `${display} - ${description}` from that same option's own `description`
+// field, so stripping that exact suffix recovers the display symbol
+// precisely. Falls back to the whole label if an option is ever constructed
+// outside that pattern — getSecurityOption's own unknown-symbol fallback
+// already is (label === description === the raw symbol), and there the whole
+// label is the right answer anyway.
+export function formatSecurityDisplaySymbol(symbol: string) {
+  const option = getSecurityOption(symbol);
+  const suffix = ` - ${option.description}`;
+  return option.label.endsWith(suffix)
+    ? option.label.slice(0, -suffix.length)
+    : option.label;
+}
+
 export function getCorrelationGroup(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   return (

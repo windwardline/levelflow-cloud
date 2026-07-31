@@ -548,8 +548,8 @@ describe("confidence tiers", () => {
         // into a day-grouped table; its confidence-formatting call site
         // moved to historyUtils.ts's formatSetupConfidence. AdvisorStatusPanels.tsx
         // (the old MarketResultsPanel) dropped out of this list when I7
-        // retired that panel — DeskStatusStrip and MarketClockPanel, all
-        // that remains there, never format a confidence score.
+        // retired that panel, and spec §16 deleted the file outright along
+        // with the rest of the Desk's status furniture.
         "src/components/workspace/historyUtils.ts",
         "src/components/workspace/MarketScanPanel.tsx",
       ]

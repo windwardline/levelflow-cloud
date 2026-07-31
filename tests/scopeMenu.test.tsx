@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import { formatReopen } from "../src/lib/marketHours";
 import {
   AVAILABLE_ASSET_GROUPS,
+  AVAILABLE_ASSET_OPTIONS,
+  formatSecurityDisplaySymbol,
   formatSecurityLabel,
+  getSecurityOption,
   type SupportedSymbol,
 } from "../src/lib/symbolMap";
 import {
@@ -16,6 +19,7 @@ import {
   MOBILE_SHEET_BREAKPOINT_PX,
   moveScopeMenuHighlight,
   resolveRowActivation,
+  scopeTriggerLabel,
   shouldUseSheetLayout,
   showsAffordance,
   type ScanScope,
@@ -434,6 +438,91 @@ describe("formatScopeCountLine renders server counts verbatim", () => {
         localClockTime(now)
       }`,
     );
+  });
+});
+
+// Spec §16: the recomposed stagehead renders the market picker as the Desk's
+// display heading (a-desk-v3.html:165), where the full descriptive label runs
+// far past the stage at that size. Only that variant shortens; every list,
+// menu and scan row keeps the full label, which is what the e2e row-order
+// specs and formatScopeCountLine above are pinned to.
+describe("formatSecurityDisplaySymbol (stagehead heading form)", () => {
+  it("keeps only the ticker half of the label, dropping the description", () => {
+    assert.equal(formatSecurityDisplaySymbol("EURUSD"), "EUR/USD");
+    assert.equal(formatSecurityDisplaySymbol("XAUUSD"), "XAU/USD");
+    assert.equal(formatSecurityDisplaySymbol("ESUSD"), "ES");
+  });
+
+  it("recovers the display symbol exactly for every listed market, never an empty string", () => {
+    for (const option of AVAILABLE_ASSET_OPTIONS) {
+      const display = formatSecurityDisplaySymbol(option.symbol);
+      assert.ok(display.length > 0, `${option.symbol} produced no display form`);
+      assert.equal(option.label.startsWith(display), true);
+      assert.doesNotMatch(display, / - /);
+    }
+  });
+
+  it("falls back to the whole label when an option is not built from a description suffix", () => {
+    // getSecurityOption's unknown-symbol fallback sets label === description
+    // === the raw symbol, so there is no suffix to strip and the raw symbol is
+    // the right answer.
+    const unknown = "NOT_A_MARKET";
+    assert.equal(getSecurityOption(unknown).label, unknown);
+    assert.equal(formatSecurityDisplaySymbol(unknown), unknown);
+  });
+});
+
+describe("scopeTriggerLabel", () => {
+  it("shortens a symbol scope only for the heading variant", () => {
+    const scope: ScanScope = { kind: "symbol", symbol: "EURUSD" };
+    assert.equal(scopeTriggerLabel(scope, "heading"), "EUR/USD");
+    assert.equal(scopeTriggerLabel(scope, "field"), formatSecurityLabel("EURUSD"));
+  });
+
+  it("leaves the non-symbol scopes identical in both variants", () => {
+    for (
+      const scope of [
+        { kind: "all" },
+        { assetType: "Forex", kind: "group" },
+      ] as ScanScope[]
+    ) {
+      assert.equal(
+        scopeTriggerLabel(scope, "heading"),
+        describeScanScope(scope),
+      );
+      assert.equal(scopeTriggerLabel(scope, "field"), describeScanScope(scope));
+    }
+  });
+});
+
+// Spec §16 draws neither picker with a visible field caption: the stage's
+// market name IS the heading, and the rail leads with its own "Scan" eyebrow.
+// The trigger must then name itself, or the control loses its accessible name
+// entirely — and aria-labelledby must not survive alongside aria-label, since
+// it would win and point at an element that is no longer rendered.
+describe("ScopeMenu trigger labelling (source-pinned — see header comment)", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/ScopeMenu.tsx",
+    "utf8",
+  );
+
+  it("names the trigger with aria-label exactly when the visible caption is suppressed", () => {
+    assert.match(SOURCE, /aria-label=\{showLabel \? undefined : label\}/);
+    assert.match(
+      SOURCE,
+      /aria-labelledby=\{showLabel \? `\$\{baseId\}-label \$\{baseId\}-value` : undefined\}/,
+    );
+  });
+
+  it("renders the caption span only when showLabel is set", () => {
+    assert.match(
+      SOURCE,
+      /\{showLabel\s*\n?\s*\?[\s\S]{0,300}id=\{`\$\{baseId\}-label`\}/,
+    );
+  });
+
+  it("renders the trigger's own text through scopeTriggerLabel, never describeScanScope directly", () => {
+    assert.match(SOURCE, /\{scopeTriggerLabel\(value, variant\)\}/);
   });
 });
 

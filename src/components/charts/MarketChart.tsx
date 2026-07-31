@@ -244,7 +244,12 @@ export function MarketChart({ data, loading = false, setup = null, viewKey = "de
   }, [setup, themeVersion]);
 
   return (
-    <div className="relative min-w-0 overflow-hidden rounded-lg border border-hairline bg-sheet">
+    // Spec §16 / a-desk-v3.html:177: this IS the stage's chart sheet — a
+    // square-cornered hairline border on sheet, so the setup sheet below it can
+    // attach border-t-0 with no rounded corner or second frame in between. Kept
+    // as this component's own root (rather than an outer wrapper in
+    // AdvisorWorkspace) so there is exactly one frame around the chart.
+    <div className="relative min-w-0 overflow-hidden border border-hairline bg-sheet">
       <div
         className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-hairline bg-sheet px-3 py-2 text-xs font-semibold text-ink-muted shadow-xs ${
           hoverBar ? "block" : "hidden sm:block"

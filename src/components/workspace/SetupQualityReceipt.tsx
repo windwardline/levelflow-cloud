@@ -1,4 +1,3 @@
-import { FileSearch } from "lucide-react";
 import { describeReplayRecord } from "../../lib/replayReliability";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
@@ -26,94 +25,98 @@ type SetupQualityReceiptProps = {
   setup: AnalyzerSetup;
 };
 
+// Spec §16 / a-desk-v3.html:205-212: the right half of the stage's setup
+// sheet. Flat label/value rows on the sheet's own paper — the per-item cards
+// this used to draw were exactly the box-on-box the owner rejected. The sheet
+// (AdvisorWorkspace) is the only frame; nothing here has a border or a fill.
+// "Why this setup" stays a real heading (the mock draws it as an eyebrow, but
+// dropping the h3 would strip the section's only landmark and the accessible
+// name two e2e specs locate the receipt by) — eyebrow styling, heading
+// semantics.
 export function SetupQualityReceipt(
   { result, setup }: SetupQualityReceiptProps,
 ) {
   const receipt = buildQualityReceipt(setup, result);
 
   return (
-    <div className="grid gap-3 rounded-lg border border-hairline bg-paper p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <FileSearch className="h-4 w-4 text-accent" aria-hidden="true" />
-          <h3 className="font-semibold text-ink">Why this setup</h3>
-        </div>
+    <div className="grid min-w-0 gap-0.5">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+          Why this setup
+        </h3>
         <HowThisWorksLink anchor="how-review-works" />
       </div>
-      <div className="grid gap-2">
-        {receipt.items.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-lg border border-hairline bg-sheet px-3 py-2"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                {item.label}
-              </p>
-              <p
-                className={`text-right text-sm font-semibold ${
-                  item.tone === "bullish"
-                    ? "text-accent"
-                    : item.tone === "danger"
-                    ? "text-sell"
-                    : "text-ink"
-                }`}
-              >
-                {item.value}
-              </p>
-            </div>
-            <p className="mt-1 text-xs leading-5 text-ink-muted">
-              {item.detail}
-            </p>
+      {receipt.items.map((item) => (
+        <div
+          key={item.label}
+          className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1 text-sm leading-5"
+        >
+          <span className="min-w-[74px] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+            {item.label}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className={valueToneClassName(item.tone)}>{item.value}</span>
+            {item.detail
+              ? <span className="text-ink-muted">{` — ${item.detail}`}</span>
+              : null}
             {item.anchor
               ? (
-                <p className="mt-1">
+                <>
+                  {" "}
                   <HowThisWorksLink anchor={item.anchor} />
-                </p>
+                </>
               )
               : null}
-          </div>
-        ))}
-      </div>
+          </span>
+        </div>
+      ))}
       {receipt.strategyVotes.length > 0
         ? (
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+          <div className="mt-2 border-t border-hairline pt-2">
+            <p className="mb-0.5 text-xs font-semibold uppercase tracking-normal text-ink-muted">
               Strongest checks
             </p>
-            <div className="grid gap-2">
-              {receipt.strategyVotes.slice(0, 3).map((vote) => (
-                <div
-                  key={`${vote.name}:${vote.direction}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-sheet px-3 py-2 text-sm"
+            {receipt.strategyVotes.slice(0, 3).map((vote) => (
+              <p
+                key={`${vote.name}:${vote.direction}`}
+                className="flex min-w-0 items-baseline justify-between gap-3 py-0.5 text-sm"
+              >
+                <span className="min-w-0 truncate font-semibold text-ink">
+                  {formatStrategyName(vote.name)}
+                </span>
+                <span
+                  className={vote.direction === "buy"
+                    ? "shrink-0 text-buy"
+                    : vote.direction === "sell"
+                    ? "shrink-0 text-sell"
+                    : "shrink-0 text-ink-muted"}
                 >
-                  <span className="min-w-0 truncate font-semibold text-ink">
-                    {formatStrategyName(vote.name)}
-                  </span>
-                  <span
-                    className={vote.direction === "buy"
-                      ? "text-buy"
-                      : vote.direction === "sell"
-                      ? "text-sell"
-                      : "text-ink-muted"}
-                  >
-                    {formatVoteSupport(vote.direction)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                  {formatVoteSupport(vote.direction)}
+                </span>
+              </p>
+            ))}
           </div>
         )
         : null}
       {receipt.blockers.length > 0
         ? (
-          <div className="rounded-lg border border-caution/25 bg-caution/10 px-3 py-2 text-xs font-semibold leading-5 text-caution">
+          <p className="mt-2 border-t border-hairline pt-2 text-xs font-semibold leading-5 text-caution">
             Note: {receipt.blockers.map(cleanReviewMessage).join(" ")}
-          </div>
+          </p>
         )
         : null}
     </div>
   );
+}
+
+function valueToneClassName(tone: QualityReceiptItem["tone"]): string {
+  if (tone === "bullish") {
+    return "font-semibold text-accent";
+  }
+  if (tone === "danger") {
+    return "font-semibold text-sell";
+  }
+  return "font-semibold text-ink";
 }
 
 function buildQualityReceipt(
@@ -193,6 +196,11 @@ function buildQualityReceipt(
       value: formatPayoff(rewardRisk),
     },
     {
+      // Spec §16 deletes the scan rail's legend box, which carried the only
+      // "cost-ratings" disclosure link in the app. The Costs row is where a
+      // cost rating is actually explained, so the link lands here instead —
+      // same treatment the Replay record row already uses.
+      anchor: "cost-ratings",
       detail: buildExecutionDetail(
         executionQuality,
         grossRewardRisk,
