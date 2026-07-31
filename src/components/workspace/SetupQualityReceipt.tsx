@@ -3,21 +3,28 @@ import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
-import { cleanReviewMessage, formatStrategyName } from "./reviewCopy";
+import { cleanReviewMessage, describeExecutionLabel } from "./reviewCopy";
 import type { GuideAnchor } from "./WorkspaceNav";
 
-type QualityReceiptItem = {
+// The mock writes one sentence per row. Where a category has no honest datum
+// for this setup, the row says so with the same em dash the rest of the app
+// uses for a missing value (historyUtils.formatPriceValue) — never a sentence
+// about the review having happened, which is the process narration spec §2
+// rules out and which these rows used to carry as their fallbacks.
+const ABSENT = "—";
+
+type QualityReceiptRow = {
   anchor?: GuideAnchor;
-  detail: string;
   label: string;
-  tone?: "bullish" | "danger" | "neutral";
-  value: string;
+  sentence: string;
+  // Costs is the one colored row in the mock (a-desk-v3.html:210) — everything
+  // else is plain ink.
+  tone?: "positive" | "negative";
 };
 
 type QualityReceiptData = {
   blockers: string[];
-  items: QualityReceiptItem[];
-  strategyVotes: Array<{ direction: string; name: string; score: number }>;
+  rows: QualityReceiptRow[];
 };
 
 type SetupQualityReceiptProps = {
@@ -26,9 +33,10 @@ type SetupQualityReceiptProps = {
 };
 
 // Spec §16 / a-desk-v3.html:205-212: the right half of the stage's setup
-// sheet. Flat label/value rows on the sheet's own paper — the per-item cards
-// this used to draw were exactly the box-on-box the owner rejected. The sheet
-// (AdvisorWorkspace) is the only frame; nothing here has a border or a fill.
+// sheet. Five quiet label/sentence rows on the sheet's own paper — the
+// per-item cards this used to draw were exactly the box-on-box the owner
+// rejected. The sheet (AdvisorWorkspace) is the only frame; nothing here has a
+// border or a fill.
 // "Why this setup" stays a real heading (the mock draws it as an eyebrow, but
 // dropping the h3 would strip the section's only landmark and the accessible
 // name two e2e specs locate the receipt by) — eyebrow styling, heading
@@ -46,58 +54,29 @@ export function SetupQualityReceipt(
         </h3>
         <HowThisWorksLink anchor="how-review-works" />
       </div>
-      {receipt.items.map((item) => (
+      {receipt.rows.map((row) => (
         <div
-          key={item.label}
-          className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1 text-sm leading-5"
+          key={row.label}
+          className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1.5 text-[13px] leading-5"
         >
           <span className="min-w-[74px] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-            {item.label}
+            {row.label}
           </span>
           <span className="min-w-0 flex-1">
-            <span className={valueToneClassName(item.tone)}>{item.value}</span>
-            {item.detail
-              ? <span className="text-ink-muted">{` — ${item.detail}`}</span>
-              : null}
-            {item.anchor
+            <span className={sentenceToneClassName(row.tone)}>
+              {row.sentence}
+            </span>
+            {row.anchor
               ? (
                 <>
                   {" "}
-                  <HowThisWorksLink anchor={item.anchor} />
+                  <HowThisWorksLink anchor={row.anchor} />
                 </>
               )
               : null}
           </span>
         </div>
       ))}
-      {receipt.strategyVotes.length > 0
-        ? (
-          <div className="mt-2 border-t border-hairline pt-2">
-            <p className="mb-0.5 text-xs font-semibold uppercase tracking-normal text-ink-muted">
-              Strongest checks
-            </p>
-            {receipt.strategyVotes.slice(0, 3).map((vote) => (
-              <p
-                key={`${vote.name}:${vote.direction}`}
-                className="flex min-w-0 items-baseline justify-between gap-3 py-0.5 text-sm"
-              >
-                <span className="min-w-0 truncate font-semibold text-ink">
-                  {formatStrategyName(vote.name)}
-                </span>
-                <span
-                  className={vote.direction === "buy"
-                    ? "shrink-0 text-buy"
-                    : vote.direction === "sell"
-                    ? "shrink-0 text-sell"
-                    : "shrink-0 text-ink-muted"}
-                >
-                  {formatVoteSupport(vote.direction)}
-                </span>
-              </p>
-            ))}
-          </div>
-        )
-        : null}
       {receipt.blockers.length > 0
         ? (
           <p className="mt-2 border-t border-hairline pt-2 text-xs font-semibold leading-5 text-caution">
@@ -109,14 +88,16 @@ export function SetupQualityReceipt(
   );
 }
 
-function valueToneClassName(tone: QualityReceiptItem["tone"]): string {
-  if (tone === "bullish") {
-    return "font-semibold text-accent";
+function sentenceToneClassName(
+  tone: QualityReceiptRow["tone"],
+): string | undefined {
+  if (tone === "positive") {
+    return "font-semibold text-buy";
   }
-  if (tone === "danger") {
+  if (tone === "negative") {
     return "font-semibold text-sell";
   }
-  return "font-semibold text-ink";
+  return undefined;
 }
 
 function buildQualityReceipt(
@@ -125,17 +106,11 @@ function buildQualityReceipt(
 ): QualityReceiptData {
   const confluence = setup.confluence ?? {};
   const riskModel = setup.riskModel ?? {};
-  const consensus = asRecord(confluence.consensus);
   const marketRegime = asRecord(confluence.marketRegime);
   const orderConstruction = asRecord(confluence.orderConstruction);
   const sessionContext = asRecord(confluence.sessionContext);
   const newsContext = asRecord(confluence.newsContext);
-  const macroRateContext = asRecord(confluence.macroRateContext);
   const executionQuality = asRecord(riskModel.executionQuality);
-  const rewardRisk = asNumber(confluence.rewardRisk);
-  const grossRewardRisk = asNumber(confluence.grossRewardRisk);
-  const weightAdjustment = asNumber(confluence.strategyWeightAdjustment);
-  const sampleSize = asNumber(confluence.strategyWeightSampleSize);
   const providerWarnings = asStringArray(confluence.providerWarnings).concat(
     result?.providerWarnings ?? [],
   );
@@ -143,182 +118,91 @@ function buildQualityReceipt(
     ? confluence.upcomingNewsEvents.length
     : asNumber(newsContext.upcomingEvents) ?? 0;
   const headlineNewsEvents = asNumber(newsContext.headlineEvents) ?? 0;
-  const timingRiskCount = upcomingNewsEvents + headlineNewsEvents;
-  const strategyVotes = normalizeStrategyVotes(confluence.strategyVotes);
-  const tickValidation = typeof orderConstruction.tickValidation === "string"
-    ? orderConstruction.tickValidation
-    : "";
+  const costRating = asText(executionQuality.label);
+  const costPenalty = asNumber(executionQuality.confidencePenalty) ?? 0;
+  const record = describeReplayRecord(
+    getSecurityOption(setup.symbol).assetType,
+  );
 
-  const items: QualityReceiptItem[] = [
+  const rows: QualityReceiptRow[] = [
     {
-      detail: String(
-        marketRegime.rationale ??
-          "Market condition was included in the review.",
+      // The regime check's own one-line reason — "Moving average separation
+      // and price location support a trend regime."
+      label: "Market",
+      sentence: asText(marketRegime.rationale) || ABSENT,
+    },
+    {
+      label: "Location",
+      sentence: buildLocationSentence(orderConstruction),
+    },
+    {
+      label: "Timing",
+      sentence: buildTimingSentence(
+        sessionContext,
+        upcomingNewsEvents + headlineNewsEvents,
       ),
-      label: "Market condition",
-      value: formatStrategyName(String(marketRegime.name ?? "current")),
-    },
-    {
-      detail: `Buy case ${
-        formatMaybeNumber(consensus.buyScore)
-      }/100, sell case ${formatMaybeNumber(consensus.sellScore)}/100, caution ${
-        formatMaybeNumber(consensus.blockScore)
-      }/100.`,
-      label: "Direction",
-      tone: setup.side === "buy" ? "bullish" : "danger",
-      value: setup.side === "buy" ? "Buy view" : "Sell view",
-    },
-    {
-      detail: [
-        String(
-          orderConstruction.validation ??
-            "Entry is built as a limit order away from the latest close.",
-        ),
-        tickValidation,
-      ].filter(Boolean).join(" "),
-      label: "Order type",
-      value: "Limit only",
-    },
-    {
-      detail: String(
-        riskModel.stopLogic ??
-          "Stop uses price structure and a volatility buffer.",
-      ),
-      label: "Risk",
-      value: "Stop checked",
-    },
-    {
-      detail: String(
-        riskModel.targetLogic ??
-          "Target uses price structure, volatility, and payoff checks.",
-      ),
-      label: "Target",
-      value: formatPayoff(rewardRisk),
     },
     {
       // Spec §16 deletes the scan rail's legend box, which carried the only
       // "cost-ratings" disclosure link in the app. The Costs row is where a
       // cost rating is actually explained, so the link lands here instead —
-      // same treatment the Replay record row already uses.
+      // same treatment the Record row already used.
       anchor: "cost-ratings",
-      detail: buildExecutionDetail(
-        executionQuality,
-        grossRewardRisk,
-        rewardRisk,
-      ),
-      label: "Trading costs",
-      tone: asNumber(executionQuality.confidencePenalty) ? "danger" : "neutral",
-      value: String(executionQuality.label ?? "Checked"),
+      label: "Costs",
+      sentence: costRating
+        ? `${costRating} — ${describeExecutionLabel(costRating)}`
+        : ABSENT,
+      tone: costRating
+        ? costPenalty > 0 ? "negative" : "positive"
+        : undefined,
     },
     {
-      detail: `${String(sessionContext.label ?? "Session context")} ${
-        timingRiskCount > 0
-          ? `with ${timingRiskCount} event or headline ${
-            timingRiskCount === 1 ? "factor" : "factors"
-          } affecting timing.`
-          : "with no event or headline penalty."
-      }`,
-      label: "Timing",
-      tone: asNumber(sessionContext.penalty) ? "danger" : "neutral",
-      value: asNumber(sessionContext.penalty) ? "Event risk" : "Clean",
-    },
-    ...buildReplayRecordItems(setup),
-    {
-      detail: sampleSize && sampleSize > 0
-        ? `${sampleSize} finished setups included.`
-        : "More finished setups are needed.",
-      label: "Past results",
-      tone: weightAdjustment && weightAdjustment > 0
-        ? "bullish"
-        : weightAdjustment && weightAdjustment < 0
-        ? "danger"
-        : "neutral",
-      value: formatScoreAdjustment(weightAdjustment),
+      anchor: "replay-record",
+      label: "Record",
+      // Already one sentence with its real numbers in it.
+      sentence: record?.detail ?? ABSENT,
     },
   ];
 
-  if (typeof macroRateContext.source === "string") {
-    const rateAdjustment = asNumber(macroRateContext.adjustment);
-    items.splice(7, 0, {
-      detail: String(
-        macroRateContext.detail ?? "Treasury-rate context was checked.",
-      ),
-      label: "Rates",
-      tone: rateAdjustment && rateAdjustment < 0
-        ? "danger"
-        : rateAdjustment && rateAdjustment > 0
-        ? "bullish"
-        : "neutral",
-      value: formatRateAdjustment(rateAdjustment),
-    });
-  }
-
   return {
     blockers: Array.from(new Set(providerWarnings)).slice(0, 3),
-    items,
-    strategyVotes,
+    rows,
   };
 }
 
-function buildReplayRecordItems(setup: AnalyzerSetup): QualityReceiptItem[] {
-  const record = describeReplayRecord(
-    getSecurityOption(setup.symbol).assetType,
-  );
-  if (!record) {
-    return [];
+// Where price sits relative to the level is the entry-zone check the analyzer
+// already runs: which side of the latest close a limit entry has to sit on,
+// and the close it is measured against. Both fields arrive with the setup —
+// nothing here is inferred.
+function buildLocationSentence(orderConstruction: Record<string, unknown>) {
+  const validation = asText(orderConstruction.validation);
+  if (!validation) {
+    return ABSENT;
   }
-  return [{
-    anchor: "replay-record",
-    detail: record.detail,
-    label: "Replay record",
-    value: record.value,
-  }];
+  const base = capitalizeFirst(validation.replace(/\.\s*$/, ""));
+  const latestClose = asNumber(orderConstruction.latestClose);
+  return latestClose === null
+    ? `${base}.`
+    : `${base} of ${formatNumber(latestClose)}.`;
 }
 
-function buildExecutionDetail(
-  executionQuality: Record<string, unknown>,
-  grossRewardRisk: number | null,
-  rewardRisk: number | null,
+function buildTimingSentence(
+  sessionContext: Record<string, unknown>,
+  timingRiskCount: number,
 ) {
-  const penalty = asNumber(executionQuality.confidencePenalty) ?? 0;
-  const roundTripCost = asNumber(executionQuality.estimatedRoundTripCost);
-  const spreadSource = String(executionQuality.spreadSource ?? "modeled");
-  const gross = grossRewardRisk
-    ? `${grossRewardRisk.toFixed(2)}x`
-    : "gross payoff";
-  const effective = rewardRisk
-    ? `${rewardRisk.toFixed(2)}x`
-    : "effective payoff";
-  const costBasis = spreadSource === "quoted"
-    ? "Current spread and estimated order cost"
-    : "Estimated spread and order cost";
-  const cost = roundTripCost
-    ? `${costBasis} ${formatNumber(roundTripCost)}.`
-    : `${costBasis} checked.`;
-
-  return `${cost} Payoff after costs is ${effective}${
-    grossRewardRisk && rewardRisk && gross !== effective
-      ? ` instead of ${gross}`
-      : ""
-  }${penalty > 0 ? `, reducing confidence by ${penalty}.` : "."}`;
+  const label = asText(sessionContext.label);
+  if (!label) {
+    return ABSENT;
+  }
+  return timingRiskCount > 0
+    ? `${label} with ${timingRiskCount} event or headline ${
+      timingRiskCount === 1 ? "factor" : "factors"
+    } affecting timing.`
+    : `${label} with no event or headline penalty.`;
 }
 
-function normalizeStrategyVotes(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => {
-      const vote = asRecord(item);
-      return {
-        direction: String(vote.direction ?? "neutral"),
-        name: String(vote.name ?? "strategy"),
-        score: asNumber(vote.score) ?? 0,
-      };
-    })
-    .filter((vote) => vote.score > 0)
-    .sort((first, second) => second.score - first.score);
+function capitalizeFirst(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -332,56 +216,14 @@ function asNumber(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
+function asText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function asStringArray(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string =>
       typeof item === "string" && item.trim().length > 0
     )
     : [];
-}
-
-function formatMaybeNumber(value: unknown) {
-  const number = asNumber(value);
-  return number === null
-    ? "Pending"
-    : Number.isInteger(number)
-    ? String(number)
-    : number.toFixed(2);
-}
-
-function formatPayoff(value: number | null | undefined) {
-  return value ? `${value.toFixed(2)}x payoff` : "Target pending";
-}
-
-function formatScoreAdjustment(value: number | null) {
-  if (value === null) {
-    return "Building";
-  }
-  if (value > 0) {
-    return "Improving";
-  }
-  if (value < 0) {
-    return "Cooling";
-  }
-  return "Neutral";
-}
-
-function formatRateAdjustment(value: number | null) {
-  if (value === null || value === 0) {
-    return "Checked";
-  }
-  return value > 0 ? "Supports" : "Caution";
-}
-
-function formatVoteSupport(direction: string) {
-  if (direction === "buy") {
-    return "Buy support";
-  }
-  if (direction === "sell") {
-    return "Sell support";
-  }
-  if (direction === "block") {
-    return "Caution";
-  }
-  return "Neutral";
 }

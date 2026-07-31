@@ -206,6 +206,98 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
   });
 });
 
+// Completeness audit 2, Finding 2b (D2): the why panel rendered nine to ten
+// rows plus a "Strongest checks" sub-block where the mock draws five quiet
+// ones, and had no Location row at all — roughly twice the mock's height. The
+// five categories are a recomposition of content the receipt already receives,
+// not new copy: depth beyond them lives behind "How this works".
+describe("Why this setup — the mock's five rows (a-desk-v3.html:205-212)", () => {
+  it("renders exactly the mock's five labels, in the mock's order", () => {
+    const labels = Array.from(
+      receipt.matchAll(/label: "([^"]+)"/g),
+      (match) => match[1],
+    );
+    assert.deepEqual(labels, [
+      "Market",
+      "Location",
+      "Timing",
+      "Costs",
+      "Record",
+    ]);
+  });
+
+  it("keeps the eyebrow heading and the one How this works link the mock draws beside it", () => {
+    assert.match(receipt, /Why this setup/);
+    assert.match(receipt, /<HowThisWorksLink anchor="how-review-works" \/>/);
+  });
+
+  it("says one sentence per row — no value/detail split to stack a second line", () => {
+    assert.match(receipt, /sentence: string;/);
+    assert.doesNotMatch(receipt, /\bdetail:/);
+  });
+
+  it("renders an em dash where a category has no honest datum, never filler prose", () => {
+    assert.match(receipt, /const ABSENT = "—";/);
+    // The fallbacks the rows used to carry were process narration, which spec
+    // §2 rules out: an absent datum now shows as absent.
+    assert.doesNotMatch(receipt, /was included in the review/);
+    assert.doesNotMatch(receipt, /Entry is built as a limit order/);
+  });
+
+  it("drops the rows and the sub-block the mock does not draw", () => {
+    for (
+      const retired of [
+        "Strongest checks",
+        "Market condition",
+        "Direction",
+        "Order type",
+        "Past results",
+        "Trading costs",
+        "Replay record",
+        "strategyVotes",
+        "formatPayoff",
+        "buildExecutionDetail",
+        "macroRateContext",
+      ]
+    ) {
+      assert.ok(
+        !receipt.includes(retired),
+        `the mock's why panel has no ${retired} — it must not survive here`,
+      );
+    }
+  });
+
+  it("colors only the Costs row, in the mock's own buy/sell tokens", () => {
+    // a-desk-v3.html:210 is the one colored row: buy when costs leave the
+    // payoff intact, sell when they eat into it. Every other row is plain.
+    assert.match(receipt, /return "font-semibold text-buy";/);
+    assert.match(receipt, /return "font-semibold text-sell";/);
+    assert.doesNotMatch(receipt, /text-accent/);
+    assert.equal((receipt.match(/tone:/g) ?? []).length, 2);
+  });
+
+  it("keeps both Guide links this surface owns — Costs and Record", () => {
+    assert.match(receipt, /anchor: "cost-ratings"/);
+    assert.match(receipt, /anchor: "replay-record"/);
+  });
+
+  it("renders the rows at the mock's .wrow treatment — 74px label column, 10px gap, 13px text", () => {
+    assert.match(
+      receipt,
+      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1\.5 text-\[13px\] leading-5"/,
+    );
+    assert.match(
+      receipt,
+      /className="min-w-\[74px\] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted"/,
+    );
+  });
+
+  it("still surfaces chart-feed warnings — the five-row shape must not swallow them", () => {
+    assert.match(receipt, /receipt\.blockers\.length > 0/);
+    assert.match(receipt, /text-caution/);
+  });
+});
+
 // Completeness audit 2, Findings 1-2 (D2a): the chart was the least-attested
 // piece of the stage — unchanged from origin/main except its root className,
 // pinned by no test, named by no prior review. It drew three level lines where

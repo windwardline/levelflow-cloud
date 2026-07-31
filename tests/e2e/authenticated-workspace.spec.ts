@@ -225,11 +225,13 @@ test("a How this works link opens the Guide at the section it names", async ({ p
     "No qualifying setup right now, so there is no Costs row on screen to click.",
   );
 
-  // Innermost element holding both the row label and a link: the Trading
-  // costs row itself, whose link is the only one scoped to it.
+  // Innermost element holding both the row label and a link: the Costs row
+  // itself, whose link is the only one scoped to it. The label is "Costs"
+  // since the panel was recomposed to the mock's five rows
+  // (a-desk-v3.html:210) — "Trading costs" was the pre-recomposition wording.
   const costsRow = page
     .locator("div")
-    .filter({ has: page.getByText("Trading costs", { exact: true }) })
+    .filter({ has: page.getByText("Costs", { exact: true }) })
     .filter({ has: page.getByRole("button", { name: "How this works" }) })
     .last();
   await costsRow.getByRole("button", { name: "How this works" }).click();
@@ -268,11 +270,13 @@ test("a receipt How this works link lands on the Guide's record section", async 
     "No qualifying setup right now, so there is no receipt on screen to click.",
   );
 
-  // Innermost element holding both the row label and a link: the Replay
-  // record row itself, whose link is the only one scoped to it.
+  // Innermost element holding both the row label and a link: the Record row
+  // itself, whose link is the only one scoped to it. The label is "Record"
+  // since the panel was recomposed to the mock's five rows
+  // (a-desk-v3.html:211) — "Replay record" was the pre-recomposition wording.
   const replayRow = page
     .locator("div")
-    .filter({ has: page.getByText("Replay record", { exact: true }) })
+    .filter({ has: page.getByText("Record", { exact: true }) })
     .filter({ has: page.getByRole("button", { name: "How this works" }) })
     .last();
   await replayRow.getByRole("button", { name: "How this works" }).click();
@@ -280,10 +284,10 @@ test("a receipt How this works link lands on the Guide's record section", async 
   const replayRecord = page.locator("#replay-record");
   await expect(replayRecord).toBeVisible();
   await expect(replayRecord).toBeInViewport();
-  // Renamed from "Replay record" to "The record" in the Guide's ten-section
-  // deck (spec §11); the receipt's own row label (matched above) and the
-  // #replay-record anchor id are both unchanged — only this section
-  // heading's wording moved.
+  // The Guide's own section is titled "The record" (spec §11's ten-section
+  // deck); the receipt's row label is "Record" (a-desk-v3.html:211). Different
+  // wording on purpose — the #replay-record anchor id is what ties them, and
+  // it has never changed.
   await expect(
     replayRecord.getByRole("heading", { name: "The record", exact: true }),
   ).toBeVisible();
