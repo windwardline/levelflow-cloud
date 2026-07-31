@@ -477,3 +477,12 @@ Owner approved, mocks committed as composition authority:
   note."), content right, no cards; the standardized §17c footer pinned
   at page bottom. Description rule, standing: a row description says only
   what the row cannot show.
+
+### §17f. The copy law (owner-crowned, 2026-07-31)
+
+**Text says only what the surface cannot show.** This is the general form
+of every copy ruling in this spec — the killed captions, the deleted
+narration, the terse Profile descriptions — and it governs all future
+copy on every surface, both platforms. Before any sentence ships, the
+test is: does it state something the user cannot already see? If the
+control, the layout, or the data shows it, the sentence does not exist.
