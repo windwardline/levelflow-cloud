@@ -286,7 +286,7 @@ export default function App() {
                 Levelflow
               </p>
               <div className="flex shrink-0 items-center gap-2">
-                <BrokerChip />
+                <BrokerChip compact />
                 <MobileAccountMenu
                   initial={accountInitial}
                   onOpenDonate={() => setActiveTab("donate")}

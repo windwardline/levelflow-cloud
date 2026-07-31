@@ -414,7 +414,12 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   // both the wordmark and the E8 Markets chip (BrokerChip renders in both).
   const header = page.getByTestId("mobile-header");
   await expect(header.getByText("Levelflow", { exact: true })).toBeVisible();
-  await expect(header.getByText("E8 Markets")).toBeVisible();
+  // The mobile masthead compacts the broker pill to "E8" (m-mobile-v3.html:43);
+  // the accessible name stays "E8 Markets" via aria-label. exact:true keeps
+  // this from also matching the full desktop label, which is mounted (hidden)
+  // in the sibling header at this width.
+  await expect(header.getByText("E8", { exact: true })).toBeVisible();
+  await expect(header.getByLabel("E8 Markets")).toBeVisible();
 
   for (const tab of ["Review", "Scan", "Trades", "Insights"]) {
     // The Trades button's aria-label grows to "Trades, N current" once a

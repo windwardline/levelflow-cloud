@@ -279,7 +279,9 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     const mobileHeaderBlock = APP_SOURCE.match(
       /<div\s+className="flex min-w-0 items-center justify-between gap-3 lg:hidden"\s+data-testid="mobile-header"\s*>[\s\S]*?<\/div>\s*<\/div>/,
     )?.[0] ?? "";
-    assert.match(mobileHeaderBlock, /<BrokerChip \/>/);
+    // The mobile masthead takes the compact variant (m-mobile-v3.html:43:
+    // the pill reads "E8" at 12px there; content surfaces keep the full name).
+    assert.match(mobileHeaderBlock, /<BrokerChip compact \/>/);
     assert.match(mobileHeaderBlock, /<MobileAccountMenu/);
   });
 
@@ -635,6 +637,18 @@ describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", (
 
   it("still names the broker in text — the dot is decoration, not the label", () => {
     assert.match(BROKER_CHIP_SOURCE, />\s*E8 Markets\s*</);
+  });
+
+  // m-mobile-v3.html:43 compacts the same pill for the mobile masthead: "E8"
+  // at 12px with 5px/9px padding. The accessible name stays "E8 Markets" in
+  // both variants — the compaction is a space ruling, not a rename.
+  it("offers the mobile masthead's compact variant at the mock's geometry", () => {
+    assert.match(
+      BROKER_CHIP_SOURCE,
+      /className="inline-flex items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-\[9px\] py-\[5px\] text-xs font-bold text-ink"/,
+    );
+    assert.match(BROKER_CHIP_SOURCE, /aria-label="E8 Markets"/);
+    assert.match(BROKER_CHIP_SOURCE, />\s*E8\s*</);
   });
 });
 
