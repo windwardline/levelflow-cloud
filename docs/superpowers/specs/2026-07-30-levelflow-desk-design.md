@@ -181,15 +181,16 @@ scoring and penalties, per-class low-edge UTC hour gates, high-impact
 news blocking, Friday-close cutoffs on expiry); this section is purely
 about showing availability.
 
-- **Scope menu**: a closed group or market renders muted with
-  "closed · opens {when}" in place of its "scan N" affordance. `{when}`
-  is the **exact reopen moment in the user's local machine timezone**
-  (`Intl.DateTimeFormat`) and **always carries its day** — "opens today
-  6:00 pm", "opens Sun 5:00 pm" — never a bare time the reader must
-  interpret. The weekend is the case that matters most: crypto trades
-  while every other class waits for its Sunday open. Date included when
-  the reopen is beyond the coming week (holidays). Identical treatment on
-  desktop and in the mobile sheet.
+- **Scope menu**: a closed group or market renders muted, its right-hand
+  affordance replaced by a **stacked, right-aligned two-line label** —
+  line one "closed", line two "opens {time} {day}" — so long labels never
+  drift leftward into the row. The reopen moment is exact, in the
+  **user's local machine timezone** (`Intl.DateTimeFormat`), and the day
+  is **always present** — "opens 6:00 pm today", "opens 5:00 pm Sun" —
+  never a bare time the reader must interpret. The weekend is the case
+  that matters most: crypto trades while every other class waits for its
+  Sunday open. Date included when the reopen is beyond the coming week
+  (holidays). Identical treatment on desktop and in the mobile sheet.
 - **Scan**: closed markets are skipped and the scanned count reflects only
   markets actually attempted — the count line stays honest without extra
   copy; the menu carries the why.
