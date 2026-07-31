@@ -297,6 +297,7 @@ export function AdvisorWorkspace(
           },
         ],
         opportunities: [],
+        qualified: 0,
         scanned: scanSymbols?.length ?? 0,
       });
     } finally {

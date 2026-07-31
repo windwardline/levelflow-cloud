@@ -74,6 +74,7 @@ export type MarketScanResponse = {
   blocked: MarketScanCandidate[];
   learningRefresh?: AnalyzerResponse["learningRefresh"];
   opportunities: MarketScanCandidate[];
+  qualified: number;
   scanned: number;
 };
 

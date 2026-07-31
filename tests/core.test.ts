@@ -65,7 +65,11 @@ import {
   filterMarketScanCandidates,
   getMarketScanSymbolsForCategory,
 } from "../src/components/workspace/marketScanFilters";
-import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
+import type {
+  MarketScanCandidate,
+  MarketScanResponse,
+  TradeSetupRow,
+} from "../src/lib/tradeAnalyzer";
 
 describe("asset catalog", () => {
   it("keeps the public asset list focused and sorted by category, base, then quote", () => {
@@ -227,6 +231,52 @@ describe("trade analyzer category handling", () => {
     );
   });
 
+  it("marks the single-market review path as review origin", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const serveStart = source.indexOf("Deno.serve(");
+    const serveEnd = source.indexOf("async function scanOpportunities");
+    const serveSource = source.slice(serveStart, serveEnd);
+
+    assert.match(serveSource, /upsertActiveSetup\([\s\S]*?"review",?\s*\);/);
+  });
+
+  it("persists every ranked scan opportunity as scan origin and reports the qualified count", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const scanStart = source.indexOf("async function scanOpportunities");
+    const scanEnd = source.indexOf("async function reviewCurrentMarket");
+    const scanSource = source.slice(scanStart, scanEnd);
+
+    // The response's qualified count and the persisted rows must come from
+    // the same post-ranking, post-collapse list the user is shown.
+    assert.equal(scanSource.includes("opportunities: rankedOpportunities"), true);
+    assert.equal(scanSource.includes("qualified: rankedOpportunities.length"), true);
+    assert.equal(scanSource.includes("persistScannedOpportunities("), true);
+    assert.match(scanSource, /upsertActiveSetup\([\s\S]*?"scan",?\s*\);/);
+  });
+
+  it("scopes global learning weights to review-origin outcomes only", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const weightsStart = source.indexOf(
+      "async function refreshGlobalStrategyWeights(",
+    );
+    const weightsEnd = source.indexOf("function extractSetupKey");
+    const weightsSource = source.slice(weightsStart, weightsEnd);
+
+    // Scan-origin rows are record, not signal, until measured — global
+    // learning only trains on setups a human actually reviewed.
+    assert.equal(weightsSource.includes("trade_setups?select="), true);
+    assert.equal(weightsSource.includes("&origin=eq.review"), true);
+  });
+
   it("keeps market scan summaries scoped to the selected category", () => {
     const candidates = [
       {
@@ -380,7 +430,50 @@ describe("trade analyzer category handling", () => {
     assert.equal(isHeadlineNewsRelevantForSymbol("EURUSD", "SPY"), false);
     assert.equal(isHeadlineNewsRelevantForSymbol("BTCUSD", "QQQ"), false);
   });
+
+  it("keeps the scan response's qualified count explicit rather than implicit", () => {
+    const opportunities: MarketScanCandidate[] = [
+      { assetType: "forex", confidenceScore: 91, symbol: "EURUSD" },
+      { assetType: "metals", confidenceScore: 82, symbol: "XAUUSD" },
+    ];
+    const response = buildMarketScanResponse({ opportunities, scanned: 24 });
+
+    assert.equal(response.qualified, opportunities.length);
+    assert.equal(response.scanned, 24);
+    assert.deepEqual(response.opportunities, opportunities);
+  });
+
+  it("declares the qualified count on the client-facing scan response type", () => {
+    // tests/**/*.ts is outside tsc -b's project include (tsconfig.app.json
+    // / tsconfig.node.json both scope to src/), and `tsx --test` transpiles
+    // without type-checking — so a typed fixture alone never fails here.
+    // This reads the real declaration, the same way the tests above read
+    // the real edge-function source.
+    const source = readFileSync("src/lib/tradeAnalyzer.ts", "utf8");
+    const responseStart = source.indexOf("export type MarketScanResponse");
+    const responseEnd = source.indexOf("export type TradeSetupRow");
+    const responseSource = source.slice(responseStart, responseEnd);
+
+    assert.equal(responseSource.includes("qualified: number;"), true);
+  });
 });
+
+function buildMarketScanResponse({
+  blocked = [],
+  opportunities = [],
+  scanned,
+}: {
+  blocked?: MarketScanCandidate[];
+  opportunities?: MarketScanCandidate[];
+  scanned: number;
+}): MarketScanResponse {
+  return {
+    blocked,
+    opportunities,
+    qualified: opportunities.length,
+    scanned,
+  };
+}
 
 describe("confidence tiers", () => {
   it("keeps setup confidence labels on one shared scale", () => {

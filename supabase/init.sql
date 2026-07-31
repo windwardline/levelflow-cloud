@@ -73,6 +73,7 @@ create table if not exists public.trade_setups (
   news_context jsonb not null default '{}'::jsonb,
   correlation_group text,
   status public.setup_status not null default 'generated',
+  origin text not null default 'review' check (origin in ('review', 'scan')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
