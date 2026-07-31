@@ -5,6 +5,16 @@ import { describe, it } from "node:test";
 const css = () => readFileSync("src/styles/index.css", "utf8");
 
 describe("design tokens", () => {
+  it("pins every breakpoint in px — rem breakpoints scale with the browser font setting and served Chrome-desktop users the mobile layout (PR #92)", () => {
+    const s = css();
+    assert.match(s, /--breakpoint-sm:\s*640px;/);
+    assert.match(s, /--breakpoint-md:\s*768px;/);
+    assert.match(s, /--breakpoint-lg:\s*1024px;/);
+    assert.match(s, /--breakpoint-xl:\s*1280px;/);
+    assert.match(s, /--breakpoint-2xl:\s*1536px;/);
+    assert.doesNotMatch(s, /--breakpoint-[a-z0-9]+:\s*[\d.]+rem/);
+  });
+
   it("self-hosts the three font roles (CSP forbids font CDNs)", () => {
     const s = css();
     assert.match(s, /@import "@fontsource-variable\/inter";/);
