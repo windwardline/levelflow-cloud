@@ -389,3 +389,43 @@ machine actually reports. The Status filter option spanning both
 unresolved states reads "Pending & open" — existing vocabulary only. The
 Guide's §10 definition ("Pending — your order is placed but has not
 filled") is already the canonical teaching and stays.
+
+### §17c. Owner live-QA rulings (2026-07-31, Safari desktop, binding)
+
+Live product outranks mock where they conflict.
+
+- **Desk rail empty state**: the two narration lines ("Scan every active
+  market…", "Every setup Levelflow generates is saved to Insights
+  automatically.") are DELETED — the approved mock's footnote is
+  superseded. The empty rail is the controls, quietly stark. If anything
+  ever fills that space it must be useful and succinct, not narration.
+  (The same footnote leaves the pending m-scan mock at build time.)
+- **Current trades top rhythm**: the rail's first line must share the
+  same top offset/baseline rhythm as the SCAN eyebrow and the stagehead —
+  no thin unfinished margin, and no added busy-ness: alignment, not
+  decoration.
+- **Insights below-table blurb** ("Every setup … taken or not. Your
+  record is tracked per broker…") is DELETED — the Guide teaches it and
+  the page shows it. ("taken or not" dies app-wide with it.)
+- **Footer, one standard everywhere**: a single footer component,
+  identical composition, dimensions, and spacing on every scrolling
+  page and view, always at the true bottom of the viewport when content
+  is short (flex column, footer pinned via mt-auto) and after content
+  when long. Carries the §17 link row (legal trio + Help + Donate) and
+  the colophon. The Desk's fixed desktop shell stays footer-less.
+- **Guide TOC**: entries carry the same two-digit numbers as their
+  sections (01-10); and the TOC must not jump when scrolling begins —
+  its sticky offset equals its natural resting offset so engagement is
+  seamless.
+- **Profile revamped, desktop-first**: the card stack (p-profile-v1) is
+  REJECTED on desktop ("stacked like a mobile view"). Profile becomes a
+  flat editorial settings sheet: hairline-separated sections (Account,
+  Broker, Appearance, Support), each a label column beside its
+  content/controls, no card chrome, comfortable desktop width; mobile
+  stacks the same rows naturally. Mock approval required before build.
+- **Box-on-box, global and standing**: sweep every remaining gratuitous
+  box on every tab, view, and platform. A bordered sheet survives only
+  where it is a true interactive affordance (result/position rows, form
+  fields, buttons) or the mock-drawn Insights table frame — never as
+  passive grouping. languageGuard-style CI enforcement where a guard can
+  pin it.
