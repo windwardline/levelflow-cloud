@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { formatInsightsResult } from "../src/components/workspace/historyUtils.ts";
-import { OUTCOME_COPY } from "../src/lib/outcomes.ts";
+import {
+  classifyWinLoss,
+  OUTCOME_COPY,
+  type SetupOutcome,
+} from "../src/lib/outcomes.ts";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer.ts";
 
 describe("outcome copy — plain target vocabulary", () => {
@@ -30,6 +35,83 @@ describe("outcome copy — plain target vocabulary", () => {
         );
       }
     }
+  });
+});
+
+// classifyWinLoss (fix round 1): single source of truth for the ladder's
+// money-positive/negative split, previously duplicated independently in
+// useTradeSetups.ts's buildStats and historyUtils.ts's buildRecordBand (and
+// a third copy in historyUtils.ts's buildConfidenceBands) — a future
+// outcome-taxonomy change could otherwise update one copy and silently
+// leave the others behind.
+describe("classifyWinLoss — single source of truth for the ladder's win/loss split", () => {
+  const wins: SetupOutcome[] = [
+    "target_reached",
+    "partial_target",
+    "expired_in_profit",
+  ];
+  const losses: SetupOutcome[] = ["stopped_out", "expired_in_loss"];
+  const neither: SetupOutcome[] = [
+    "still_tracking",
+    "unclear_path",
+    "entry_not_filled",
+  ];
+
+  for (const outcome of wins) {
+    it(`classifies "${outcome}" as a win`, () => {
+      assert.equal(classifyWinLoss(outcome), "win");
+    });
+  }
+  for (const outcome of losses) {
+    it(`classifies "${outcome}" as a loss`, () => {
+      assert.equal(classifyWinLoss(outcome), "loss");
+    });
+  }
+  for (const outcome of neither) {
+    it(`classifies "${outcome}" as neither win nor loss`, () => {
+      assert.equal(classifyWinLoss(outcome), "neither");
+    });
+  }
+
+  it("covers every SetupOutcome value with no gaps, cross-checked against OUTCOME_COPY's own key set", () => {
+    // OUTCOME_COPY is keyed by the full SetupOutcome union (TypeScript
+    // enforces this via Record<SetupOutcome, ...>), so its key set is the
+    // canonical list of every value classifyWinLoss must handle. A future
+    // new outcome added to the union without a matching entry here would
+    // fail this assertion instead of silently falling through to
+    // "neither".
+    assert.deepEqual(
+      [...wins, ...losses, ...neither].sort(),
+      Object.keys(OUTCOME_COPY).sort(),
+    );
+  });
+
+  it("useTradeSetups.ts, historyUtils.ts's buildRecordBand, and buildConfidenceBands all classify through the shared helper, not a re-derived condition (drift guard)", () => {
+    const historyUtilsSource = readFileSync(
+      "src/components/workspace/historyUtils.ts",
+      "utf8",
+    );
+    const useTradeSetupsSource = readFileSync(
+      "src/hooks/useTradeSetups.ts",
+      "utf8",
+    );
+    const classifyWinLossCallSites =
+      (historyUtilsSource.match(/classifyWinLoss\(/g) ?? []).length;
+
+    assert.match(
+      useTradeSetupsSource,
+      /classifyWinLoss\(/,
+      "useTradeSetups.ts's buildStats must classify win/loss through the shared lib/outcomes.ts helper",
+    );
+    // Two call sites: buildRecordBand and buildConfidenceBands. A count
+    // rather than a single assert.match so a future re-introduction of an
+    // inline copy in either function (without removing the other's call)
+    // can't hide behind the other one still calling through.
+    assert.equal(
+      classifyWinLossCallSites,
+      2,
+      "historyUtils.ts's buildRecordBand and buildConfidenceBands must both classify win/loss through the shared lib/outcomes.ts helper",
+    );
   });
 });
 

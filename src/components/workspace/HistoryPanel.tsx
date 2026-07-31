@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AVAILABLE_ASSET_GROUPS } from "../../lib/symbolMap";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import type { ScanScope } from "./ScopeMenu";
+import { useWorkspaceNav } from "./WorkspaceNav";
 import {
   ALL_MARKETS_FILTER,
   buildInsightsGroups,
@@ -239,12 +240,40 @@ export function HistoryPanel({
 }
 
 function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
+  const nav = useWorkspaceNav();
   const isBuy = setup.side === "buy";
   const outcome = getSetupOutcome(setup);
 
   return (
     <tr className="border-b border-hairline last:border-b-0">
-      <td className="py-2 pr-3 font-semibold text-ink">{setup.symbol}</td>
+      <td className="pr-3">
+        {/*
+          The symbol itself is the affordance — no separate "Open in
+          Advisor" caption/column, same consume-once nav.openAdvisor flow
+          ProfilePanel.tsx's per-market button already uses. Keeps the
+          Market column's existing bold/ink look (font-semibold text-ink,
+          unchanged from before this button existed) rather than switching
+          to .tertiary-link's muted/small treatment, which would visually
+          demote the ledger's primary identifying column; link-accent
+          supplies the hover affordance without touching color/weight.
+          min-h-11 alone (not .tertiary-link's negative-margin trick, which
+          relies on generous surrounding whitespace to hide the overflow —
+          fine in a standalone paragraph like ProfilePanel's or Current
+          trades' refresh link, but here it would visually spill into the
+          table rows above and below) grows this cell to a real 44px; the
+          cell's own py-2 is dropped so the button supplies all the height
+          itself rather than stacking on top of it. Table rows size to
+          their tallest cell, so every cell in the row grows with it.
+        */}
+        <button
+          aria-label={`Open ${setup.symbol} in Advisor`}
+          className="link-accent inline-flex min-h-11 items-center font-semibold text-ink"
+          type="button"
+          onClick={() => nav.openAdvisor(setup.symbol)}
+        >
+          {setup.symbol}
+        </button>
+      </td>
       <td className="py-2 pr-3">
         <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>
           {isBuy ? "Buy" : "Sell"}

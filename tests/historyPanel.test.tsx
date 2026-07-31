@@ -126,4 +126,54 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
   it("never mentions resting or other banned quant jargon in a string literal (languageGuard already scans this file too)", () => {
     assert.doesNotMatch(PANEL_SOURCE, /\bresting\b/i);
   });
+
+  // Fix round 1 (Important): Insights→Desk navigation restored. The Market
+  // cell's symbol text is itself the affordance (no new column, no
+  // separate "Open in Advisor" caption) — same useWorkspaceNav /
+  // nav.openAdvisor consume-once flow ProfilePanel.tsx's per-market button
+  // already uses. Render-testing a click can't reach this component (no
+  // jsdom in this harness — see header comment), so wiring is pinned
+  // against the source text instead, the same technique the rest of this
+  // file already uses.
+  it("imports and calls useWorkspaceNav inside the row component", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /import \{ useWorkspaceNav \} from "\.\/WorkspaceNav";/,
+    );
+    assert.match(PANEL_SOURCE, /const nav = useWorkspaceNav\(\);/);
+  });
+
+  it("wires the Market cell's button to nav.openAdvisor(setup.symbol), exactly one call site", () => {
+    const calls = PANEL_SOURCE.match(/nav\.openAdvisor\([^)]*\)/g) ?? [];
+    assert.deepEqual(calls, ["nav.openAdvisor(setup.symbol)"]);
+  });
+
+  it("the Market cell is a real, keyboard-focusable <button> (not a div/span with onClick), 44px touch target", () => {
+    // Lazily spans from the opening "<button" through the onClick attribute
+    // to the tag's own closing ">" — safe here since none of this button's
+    // attribute values contain a literal ">".
+    const openingTag = PANEL_SOURCE.match(
+      /<button[\s\S]*?onClick=\{\(\) => nav\.openAdvisor\(setup\.symbol\)\}[\s\S]*?>/,
+    )?.[0];
+    assert.ok(
+      openingTag,
+      "expected to locate the Market cell's <button> opening tag",
+    );
+    assert.match(openingTag ?? "", /type="button"/);
+    assert.match(openingTag ?? "", /\bmin-h-11\b/);
+  });
+
+  it("gives the Market button an accessible name that states what it does, not just the bare symbol", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /aria-label=\{`Open \$\{setup\.symbol\} in Advisor`\}/,
+    );
+  });
+
+  it("renders the symbol itself as the button's visible label — no separate caption, no new column", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /onClick=\{\(\) => nav\.openAdvisor\(setup\.symbol\)\}\s*>\s*\{setup\.symbol\}\s*<\/button>/,
+    );
+  });
 });

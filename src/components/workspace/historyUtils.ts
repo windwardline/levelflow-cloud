@@ -5,6 +5,7 @@ import {
   formatConfidenceWithTier,
 } from "../../lib/confidenceTiers";
 import {
+  classifyWinLoss,
   normalizeSetupOutcome,
   OUTCOME_COPY,
   type SetupOutcome,
@@ -135,13 +136,11 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
       continue;
     }
     const outcome = getSetupOutcome(setup);
+    const winLoss = classifyWinLoss(outcome);
     band.count += 1;
-    if (
-      outcome === "target_reached" || outcome === "partial_target" ||
-      outcome === "expired_in_profit"
-    ) {
+    if (winLoss === "win") {
       band.wins += 1;
-    } else if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+    } else if (winLoss === "loss") {
       band.losses += 1;
     } else if (outcome === "unclear_path") {
       band.ambiguous += 1;
@@ -447,18 +446,17 @@ export function buildRecordBand(
   const bySymbol = new Map<string, { losses: number; wins: number }>();
 
   for (const setup of setups) {
-    // Same money-positive definition as useTradeSetups.ts's buildStats: a
-    // win is any money-positive resolution (full target, banked TP1, or a
-    // profitable expiry); a loss is any money-negative one. Pending,
-    // unfilled, and ambiguous setups affect neither side of the ratio.
+    // classifyWinLoss (lib/outcomes.ts) is the single source of truth for
+    // money-positive vs. money-negative, shared with useTradeSetups.ts's
+    // buildStats so the two can't drift apart on a future outcome-taxonomy
+    // change. Pending, unfilled, and ambiguous setups classify "neither"
+    // and affect neither side of the ratio.
     const outcome = getSetupOutcome(setup);
-    const isWin = outcome === "target_reached" ||
-      outcome === "partial_target" || outcome === "expired_in_profit";
-    const isLoss = outcome === "stopped_out" || outcome === "expired_in_loss";
+    const winLoss = classifyWinLoss(outcome);
 
-    if (isWin || isLoss) {
+    if (winLoss !== "neither") {
       const symbolStat = bySymbol.get(setup.symbol) ?? { losses: 0, wins: 0 };
-      if (isWin) {
+      if (winLoss === "win") {
         wins += 1;
         symbolStat.wins += 1;
       } else {
