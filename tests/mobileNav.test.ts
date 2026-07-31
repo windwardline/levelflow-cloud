@@ -474,6 +474,41 @@ describe("MobileAccountMenu focus management (source-pinned — see header comme
   });
 });
 
+// Fix wave 2B, FIX 6 (completeness-audit-2 beyond-checklist #8). No mock
+// covers this state (it's a pre-auth data-loading gate, not a Desk/Insights/
+// Guide/Profile surface), but the final review's own terminal-panel
+// inventory named it a survivor with no justification beyond "no mock
+// covers this" — the same reasoning already used to flatten every other
+// unjustified box in this branch. Flattened to a minimal centered wordmark
+// plus the system's own spinner idiom (Loader2 + animate-spin, the same
+// pairing AuthScreen/AdvisorWorkspace/MarketScanPanel/
+// AdvisorRecommendationPanel all already use) instead of a bespoke
+// animate-pulse placeholder square inside a card.
+describe("App.tsx pre-auth loading splash (fix wave 2B, beyond-checklist #8)", () => {
+  const splashBlock = APP_SOURCE.match(/if \(loading\) \{[\s\S]*?\n {2}\}\n/)?.[0] ?? "";
+
+  it("extracted a non-empty block — a future refactor that breaks this regex must fail loudly here, not silently pass every check below against an empty string", () => {
+    assert.ok(splashBlock.length > 0, "expected to find the loading-splash if-block");
+  });
+
+  it("carries no terminal-panel — no boxed card", () => {
+    assert.doesNotMatch(splashBlock, /terminal-panel/);
+  });
+
+  it("renders the wordmark and the system's own spinner idiom, not a bespoke animate-pulse placeholder", () => {
+    assert.match(splashBlock, /className="wordmark/);
+    assert.match(
+      splashBlock,
+      /<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" \/>/,
+    );
+    assert.doesNotMatch(splashBlock, /animate-pulse/);
+  });
+
+  it("keeps the exact copy — no copy changes", () => {
+    assert.match(splashBlock, />\s*Opening Levelflow\s*</);
+  });
+});
+
 // I2: the mobile Trades sub-tab is a CSS-only toggle within the "advisor"
 // AppTab (deskColumnClassName above), never an AdvisorWorkspace remount, so
 // the pre-existing activeTab-only force-refresh effect never re-fires for

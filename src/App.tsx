@@ -14,6 +14,7 @@ import {
   History,
   LineChart,
   ListChecks,
+  Loader2,
   LogOut,
   Mail,
   Radar,
@@ -202,12 +203,18 @@ export default function App() {
   }, [activeTab]);
 
   if (loading) {
+    // Fix wave 2B: no mock covers this pre-auth data-loading gate, but it
+    // was the branch's one unjustified boxed-card survivor (final review's
+    // own inventory) — flattened to a minimal centered wordmark and the
+    // system's own spinner idiom (Loader2 + animate-spin), the same
+    // pairing every other loading state in the app already uses.
     return (
-      <main className="flex min-h-screen items-center justify-center bg-paper px-6 text-ink">
-        <div className="terminal-panel w-full max-w-sm p-6 text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-ink/90" />
-          <p className="font-semibold">Opening Levelflow</p>
-        </div>
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center text-ink">
+        <p className="wordmark text-2xl">Levelflow</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-ink-muted">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Opening Levelflow
+        </p>
       </main>
     );
   }
