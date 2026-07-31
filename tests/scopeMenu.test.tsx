@@ -523,10 +523,14 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
       /aria-labelledby=\{`\$\{baseId\}-label \$\{baseId\}-value`\}/,
     );
     assert.doesNotMatch(trigger, /aria-label=/);
-    // And the value element the second half of that chain resolves to.
+    // And the value element the second half of that chain resolves to. The
+    // whitespace between the tag and the id is `\s+` rather than one literal
+    // space because spec §17's no-truncate rule gave this span a per-variant
+    // className (see tests/deskComposition.test.ts), which wrapped it across
+    // lines — the fact asserted here is unchanged.
     assert.match(
       SOURCE,
-      /<span id=\{`\$\{baseId\}-value`\}[\s\S]{0,120}\{scopeTriggerLabel\(value, variant\)\}/,
+      /<span\s+id=\{`\$\{baseId\}-value`\}[\s\S]{0,200}\{scopeTriggerLabel\(value, variant\)\}/,
     );
   });
 

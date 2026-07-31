@@ -213,7 +213,7 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   // file's other review-driven specs.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
 
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
   const hasReceipt = await receiptHeading
@@ -258,7 +258,7 @@ test("a receipt How this works link lands on the Guide's record section", async 
   // test skips itself rather than pinning behavior on market conditions.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
 
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
   const hasReceipt = await receiptHeading
@@ -379,12 +379,15 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.goto("/");
 
-  // The stage carries no heading (spec §2), so "Review market" — the one
-  // stable, always-present control inside its topmost section — stands in
-  // for the whole stage column the way the old "Market review" heading
-  // used to.
+  // The stage carries no heading (spec §2), so "Review" (spec §17 shortened
+  // it from "Review market") — the one stable, always-present control inside
+  // its topmost section — stands in for the whole stage column the way the
+  // old "Market review" heading used to. exact:true because the mobile tab
+  // bar carries a "Review" tab of its own; it is display:none at this width
+  // (so out of the accessibility tree Playwright queries), and the exact
+  // match keeps that from being the only thing separating them.
   const advisorPanel = page.locator("section", {
-    has: page.getByRole("button", { name: "Review market" }),
+    has: page.getByRole("button", { name: "Review", exact: true }),
   }).first();
   const rail = page.getByTestId("current-trades-rail");
 
@@ -421,6 +424,13 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(header.getByText("E8", { exact: true })).toBeVisible();
   await expect(header.getByLabel("E8 Markets")).toBeVisible();
 
+  // Scoped to the tab bar's own nav, not the page: spec §17 shortened the
+  // stage's action to "Review", which is exactly the first tab's name, and at
+  // this width both are visible at once (the stage IS the Review tab). The
+  // bar's landmark is aria-label="Levelflow"; the desktop masthead's is
+  // "Levelflow sections", and a CSS attribute selector is an exact match, so
+  // this can never pick up the wrong nav.
+  const tabBar = page.locator('nav[aria-label="Levelflow"]');
   for (const tab of ["Review", "Scan", "Trades", "Insights"]) {
     // The Trades button's aria-label grows to "Trades, N current" once a
     // live setup exists (App.tsx's MobileTabBar badge) — this suite creates
@@ -428,8 +438,8 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
     // ran first. The other three tabs never carry a badge today, so they
     // stay exact.
     const locator = tab === "Trades"
-      ? page.getByRole("button", { name: /^Trades(,|$)/ })
-      : page.getByRole("button", { name: tab, exact: true });
+      ? tabBar.getByRole("button", { name: /^Trades(,|$)/ })
+      : tabBar.getByRole("button", { name: tab, exact: true });
     await expect(locator).toBeVisible();
   }
 
@@ -453,19 +463,20 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   // Review is the default tab; Scan and Trades are one tap away and carry
   // full functionality there, not a stripped-down subset. The tab bar's own
   // "Scan" button and the rail's "Scan now" no longer collide on one name
-  // (spec §16 renamed the rail's action to the mock's wording), so the exact
-  // tab match below stays unambiguous.
-  await page.getByRole("button", { name: "Scan", exact: true }).click();
+  // (spec §16 renamed the rail's action to the mock's wording), and the taps
+  // below stay scoped to the bar anyway — the stage's own "Review" action
+  // shares a name with the first tab now (spec §17).
+  await tabBar.getByRole("button", { name: "Scan", exact: true }).click();
   await expect(page.getByTestId("market-scan-rail")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Scan now" }),
   ).toBeVisible();
 
   // Same Trades badge caveat as above.
-  await page.getByRole("button", { name: /^Trades(,|$)/ }).click();
+  await tabBar.getByRole("button", { name: /^Trades(,|$)/ }).click();
   await expect(page.getByTestId("current-trades-rail")).toBeVisible();
 
-  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await tabBar.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Insights", exact: true }),
   ).toBeVisible();
@@ -622,10 +633,10 @@ test("the trades rail force-refreshes outcomes on every Desk/Insights re-navigat
 
 test("each ladder value copies independently, flipping its own button to a checked state", async ({ page }) => {
   // The receipt only exists once a review has run — same live-dependency
-  // and skip pattern as the other "Review market" tests in this file.
+  // and skip pattern as the other "Review" tests in this file.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
 
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
   const hasSetup = await receiptHeading

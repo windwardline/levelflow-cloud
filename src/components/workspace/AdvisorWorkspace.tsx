@@ -396,12 +396,12 @@ export function AdvisorWorkspace(
                 // No review ran here — this setup came out of a scan that may
                 // have completed long before the row was clicked, so there is
                 // no review time to claim. The stagehead's meta line shows the
-                // setup's expiry alone until Review market actually runs.
+                // setup's expiry alone until Review actually runs.
                 reviewedAt: null,
                 symbol: candidate.symbol,
               });
               setAdvisorNotice(
-                "Selected from Market Scan. Review market refreshes the same rules and saves the current setup.",
+                "Selected from Market Scan. Review refreshes the same rules and saves the current setup.",
               );
             }
           }}
@@ -416,7 +416,7 @@ export function AdvisorWorkspace(
       {/* Center stage (spec §16, a-desk-v3.html:161-213): stagehead — the
           market picker rendered as the display heading, its side tag, and the
           confidence unit under it, with the chart-view control and the one
-          primary action (Review market) opposite — then the chart sheet, then
+          primary action (Review; spec §17) opposite — then the chart sheet, then
           the setup sheet attached hairline-flush beneath it. No surface title,
           no status tiles, no session cards, no metric cards, no second action:
           that furniture is what the owner rejected as box-on-box, and
@@ -511,7 +511,7 @@ export function AdvisorWorkspace(
                     />
                   )
                   : null}
-                Review market
+                Review
               </button>
             </div>
           </div>

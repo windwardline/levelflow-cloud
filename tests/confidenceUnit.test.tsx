@@ -108,7 +108,7 @@ describe("buildConfidenceNote", () => {
 
 // Spec §16 folds the killed VALID UNTIL metric card's datum into the
 // confidence unit's own meta line. Both halves are optional: a scan-selected
-// candidate has no review stamp until Review market runs, and a setup without
+// candidate has no review stamp until Review runs, and a setup without
 // an expiry has no window to print.
 describe("buildConfidenceMeta", () => {
   const REVIEWED = "2026-07-31T14:05:00.000Z";

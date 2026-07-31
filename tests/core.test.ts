@@ -581,6 +581,34 @@ describe("profile preferences", () => {
     assert.equal(defaultMarketDataDays("1day"), 520);
   });
 
+  // Spec §17: "Timeframes are two characters universally — 1H, 4H, 1D (every
+  // surface that names a timeframe … any option labels)." This list is the
+  // single source every such surface reads (advisorFormat's TIMEFRAMES
+  // re-exports it, and the Desk's chart-view select renders option.label
+  // straight from it), so pinning it here pins every surface at once. The
+  // codes are the same compact grammar the engine already speaks internally
+  // (ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"], advisorReview.ts) —
+  // digits plus the unit's initial — so 15 minutes reads "15M": three
+  // characters, because fifteen has two digits, not because the grammar
+  // differs. Nothing here may go back to prose ("1 hour", "Daily").
+  it("labels every chart timeframe as a compact code, never prose (spec §17)", () => {
+    assert.deepEqual(
+      CHART_TIMEFRAME_OPTIONS.map((option) => option.label),
+      ["1M", "5M", "15M", "1H", "4H", "1D"],
+    );
+    for (const option of CHART_TIMEFRAME_OPTIONS) {
+      assert.match(
+        option.label,
+        /^\d{1,2}[MHD]$/,
+        `"${option.label}" is not a compact timeframe code`,
+      );
+      assert.ok(
+        option.label.length <= 3,
+        `"${option.label}" is longer than the compact grammar allows`,
+      );
+    }
+  });
+
   it("keeps advisor review intervals and valid windows aligned with backend rules", () => {
     assert.deepEqual(ADVISOR_SIGNAL_INTERVALS, ["4H", "1H", "15M"]);
     assert.deepEqual(ADVISOR_EXECUTION_INTERVALS, ["5M", "1M"]);

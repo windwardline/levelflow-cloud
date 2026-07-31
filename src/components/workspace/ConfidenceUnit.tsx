@@ -42,7 +42,7 @@ export function buildConfidenceNote(
 // instead, as one quiet line under the confidence note rather than a box of
 // its own ("Reviewed {time} · valid until {time}"). Either half can be
 // missing — a scan-selected candidate carries no review stamp of its own
-// until Review market runs, and a setup without an expiry has no window to
+// until Review runs, and a setup without an expiry has no window to
 // print — so the line is assembled from whichever parts actually exist and
 // nothing is fabricated to fill a gap. Returns "" when neither exists, and
 // the component then renders no line at all.

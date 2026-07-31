@@ -559,8 +559,16 @@ export function ScopeMenu(
         // the matching negative block margin pulls the extra height back out
         // of the flow, so the heading's optics are untouched — the same trick
         // .tertiary-link and .cpv-copy use in index.css.
+        //
+        // Spec §17: "the stagehead must never truncate the market name." The
+        // heading trigger is shrink-0 (was min-w-0) so it cannot be squeezed
+        // below the name it carries: both flex rows it sits inside wrap
+        // (AdvisorWorkspace's stagehead), so a wide name pushes the chart-view
+        // control and the action button onto a second row instead of clipping
+        // the name. min-w-0 stays on the field variant, where the 264px scan
+        // rail genuinely has to clip the full descriptive label.
         className={variant === "heading"
-          ? "-my-1.5 flex min-h-11 min-w-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
+          ? "-my-1.5 flex min-h-11 shrink-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
           : "field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"}
         id={baseId}
         type="button"
@@ -572,7 +580,12 @@ export function ScopeMenu(
           }
         }}
       >
-        <span id={`${baseId}-value`} className="truncate">
+        <span
+          id={`${baseId}-value`}
+          className={variant === "heading"
+            ? "whitespace-nowrap"
+            : "truncate"}
+        >
           {scopeTriggerLabel(value, variant)}
         </span>
         <ChevronDown

@@ -90,9 +90,67 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.doesNotMatch(stage, /requestedAt/);
   });
 
-  it("keeps Review market as the stage's one action, beside the chart-view control", () => {
-    assert.match(stage, /className="primary-button"[\s\S]{0,600}Review market/);
+  // Spec §17: the stage's action is "Review", not "Review market" — the
+  // stagehead already names the market immediately beside it, so the second
+  // word was restating the heading. The `>` before it is what makes this an
+  // element-text assertion rather than a substring a comment could satisfy.
+  it("keeps Review as the stage's one action, beside the chart-view control", () => {
+    assert.match(stage, /className="primary-button"[\s\S]{0,600}\n\s*Review\n/);
     assert.match(stage, /aria-label="Chart view"/);
+    // The old wording is gone everywhere in this file, comments included —
+    // e2e locators are pinned to the button's accessible name, and a stale
+    // one costs a live deploy run.
+    assert.doesNotMatch(stage, /Review market/);
+  });
+
+  // Spec §17: "The stagehead must never truncate the market name." The
+  // chart-view select and the action button both shrank in this same wave, so
+  // the head row has more room than it ever had — but room is not a
+  // guarantee. The guarantee is structural: the heading trigger does not
+  // shrink below its own content, and its value is nowrap rather than
+  // `truncate`, so the flex-wrap ancestors move the controls to a second row
+  // instead of clipping the name to an ellipsis.
+  it("gives the stagehead's market name room rather than an ellipsis (spec §17)", () => {
+    const scopeMenu = readFileSync(
+      "src/components/workspace/ScopeMenu.tsx",
+      "utf8",
+    );
+    const headingTrigger = scopeMenu.match(
+      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
+    )?.[1] ?? "";
+    assert.ok(headingTrigger.length > 0, "expected the heading trigger classes");
+    assert.match(headingTrigger, /\bshrink-0\b/);
+    assert.doesNotMatch(headingTrigger, /\bmin-w-0\b/);
+    // The value span: nowrap for the heading, still truncating in the 264px
+    // scan rail where the full descriptive label genuinely has to be clipped.
+    assert.match(
+      scopeMenu,
+      /id=\{`\$\{baseId\}-value`\}\n\s*className=\{variant === "heading"\n\s*\? "whitespace-nowrap"\n\s*: "truncate"\}/,
+    );
+    // And the row the trigger sits in still wraps, which is what absorbs the
+    // extra width when the name is long.
+    assert.match(stage, /className="flex min-w-0 flex-wrap items-center gap-x-3\.5 gap-y-1"/);
+    assert.match(
+      stage,
+      /className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3"/,
+    );
+  });
+
+  // Spec §17: every surface that names a timeframe uses the compact code, and
+  // the select gets its labels from the one shared list (pinned exactly in
+  // tests/core.test.ts) rather than a second hand-written set.
+  it("renders the chart-view options from the shared timeframe list (spec §17)", () => {
+    assert.match(stage, /import \{ TIMEFRAMES \} from "\.\/advisorFormat";/);
+    assert.match(
+      stage,
+      /\{TIMEFRAMES\.map\(\(option\) => \(\s*<option key=\{option\.value\} value=\{option\.value\}>\s*\{option\.label\}/,
+    );
+    for (const prose of ["1 hour", "4 hours", "15 minutes", "5 minutes", "Daily"]) {
+      assert.ok(
+        !stage.includes(prose),
+        `the stage must not name a timeframe in prose ("${prose}")`,
+      );
+    }
   });
 
   it("attaches the setup sheet hairline-flush under the chart sheet — one frame each, no gap", () => {
@@ -182,7 +240,7 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     }
   });
 
-  it("carries no standalone stage Refresh button — Review market is the one action", () => {
+  it("carries no standalone stage Refresh button — Review is the one action", () => {
     assert.doesNotMatch(stage, /RefreshCw/);
     assert.doesNotMatch(stage, />\s*Refresh\s*</);
     // Exactly one action lives in the stagehead.
