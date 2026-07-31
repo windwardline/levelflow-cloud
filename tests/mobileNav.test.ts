@@ -961,13 +961,19 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
     );
   });
 
-  it("leaves the freshness stamp and the row that carries both exactly as >=lg draws them", () => {
+  it("leaves the freshness stamp and the row that carries both exactly as the mobile mock draws them", () => {
     // `.phead` and `.rrhead` are the same shape in both mocks — heading
-    // opposite the stamp on one baseline row — so nothing about the container
-    // or the stamp is platform-specific.
-    assert.match(
-      TRADES_RAIL_SOURCE,
-      /className="flex flex-wrap items-baseline justify-between gap-2"/,
+    // opposite the stamp on one baseline row — so the container and the stamp
+    // are shared. Spec §17c's ≥lg alignment fix rides behind `lg:` prefixes
+    // for exactly that reason: below lg the row keeps baseline alignment and
+    // its natural height, where a 19px display head sits against a 12px stamp.
+    const head = TRADES_RAIL_SOURCE.match(
+      /<div className="(flex flex-wrap items-baseline[^"]*)">/,
+    )?.[1] ?? "";
+    assert.ok(head.length > 0, "expected to find the trades rail's head row");
+    assert.equal(
+      head.split(" ").filter((token) => !token.startsWith("lg:")).join(" "),
+      "flex flex-wrap items-baseline justify-between gap-2",
     );
     assert.match(TRADES_RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
   });

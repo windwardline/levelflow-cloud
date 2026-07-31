@@ -765,9 +765,45 @@ describe("Current trades rail composition — the mock's elements are present (a
     // heading text sits inside that row container) is unchanged.
     assert.match(
       tradesRail,
-      /className="flex flex-wrap items-baseline justify-between gap-2"[\s\S]{0,400}Current trades/,
+      /className="flex flex-wrap items-baseline justify-between gap-2 lg:min-h-11 lg:items-center"[\s\S]{0,400}Current trades/,
     );
     assert.match(tradesRail, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+  });
+
+  // Spec §17c (owner live-QA, binding): "the rail's first line must share the
+  // same top offset/baseline rhythm as the SCAN eyebrow and the stagehead — no
+  // thin unfinished margin, and no added busy-ness: alignment, not
+  // decoration."
+  //
+  // Measured on the built CSS at 1440x900 before the fix: the header is 69px
+  // tall, the page wrapper adds sm:py-5, so all three Desk columns begin at
+  // y=89. The scan rail's first line is 44px tall because .primary-button
+  // carries the kit's 44px floor, which put its SCAN eyebrow's 16px line at
+  // y=103; the trades rail's first line was 16px tall, putting CURRENT TRADES
+  // at y=89 — 14px above both neighbours, hard against the tinted column's top
+  // edge. Giving this row the same 44px and centring its content lands the
+  // eyebrow at y=103 exactly, and its cards then start within 2px of where the
+  // scan rail's scope select does.
+  //
+  // Both halves are pinned because either alone is inert: the min-height with
+  // baseline alignment leaves the eyebrow at the top of the taller row, and
+  // centring inside a 16px row centres nothing.
+  it("shares the scan rail's 44px first-line rhythm at ≥lg — the two eyebrows sit on one baseline (§17c)", () => {
+    const head = tradesRail.match(
+      /<div className="(flex flex-wrap items-baseline[^"]*)">/,
+    )?.[1] ?? "";
+    assert.ok(head.length > 0, "expected to find the trades rail's head row");
+    assert.match(head, /\blg:min-h-11\b/);
+    assert.match(head, /\blg:items-center\b/);
+    // The number is shared, not copied: the scan rail's own first line is 44px
+    // because .primary-button sits in it. If that button ever leaves that row,
+    // this pairing stops describing anything and the guard says so.
+    assert.match(
+      readFileSync(RAIL, "utf8"),
+      /className="flex flex-wrap items-baseline justify-between gap-2[^"]*"[\s\S]{0,1800}className="primary-button/,
+    );
+    // Alignment only: no fill, no border, no rule joins the row.
+    assert.doesNotMatch(head, /\bborder\b|\bbg-|\bshadow-|\brounded/);
   });
 
   it("keeps the position card as the one frame the mock draws: hairline border on sheet at .pos's 12/14 padding", () => {
