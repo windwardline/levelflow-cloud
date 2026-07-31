@@ -827,6 +827,59 @@ returns a null like this round did, the replay well is dry and the
 natural stopping point is reached — the engine then rests until
 genuinely new data exists (live cohort outcomes foremost).
 
+## Round-23 calibration (2026-07-30, news-conditioned acceptance — the closing null)
+
+The round-6 curiosity — news-penalized-but-accepted setups slightly
+outperforming clean ones — examined at full depth, in two phases.
+
+Phase 1 (conditioning, existing emits): forex null (+0.0008/+0.0003),
+metals and energies sign-flip between splits (null, thin samples), but
+crypto (+0.016/+0.014) and futures (+0.038/+0.012) show
+penalized-beats-clean on both splits with healthy samples.
+
+Phase 2 (the deciding A/B, per round 16's collider rule — conditioning
+suggests, only an experiment decides): `maxNewsPenalty` gridded to 0 and
+half-current for both classes. **Complete null.** Removing the penalty
+entirely admits only +1.1% volume (crypto) and +3.0% (futures) at
+flat-to-negative deltas; every variant fails the both-splits gate. The
+conditional spread was selection, not signal: setups that clear the same
+acceptance bar carrying a penalty are simply stronger underneath —
+the collider mechanism, now confirmed by experiment rather than
+inferred. The news penalties stay exactly as calibrated.
+
+## The stopping point (declared 2026-07-30)
+
+Round 23 closes the last substantive untested question in the replay
+data, and it is the third consecutive round without a both-splits
+improvement (r21 confirmed a ledgered volume lever; r22 validated
+existing gates; r23 is a null). Per the owner's standing rule — no
+change for its own sake; declare diminished returns when the well is
+dry — **the calibration arc stops here.**
+
+The engine rests at its measured best: test-split money-positive rates
+of forex .89/123,254, metals .90/453, futures .83/2,368, crypto
+.87/6,106, energies .60/474, with per-class geometry, thresholds, entry
+offsets, review windows, stop caps, session gates, news rules, and
+curation each derived at full depth under the walk-forward both-splits
+gate across 23 rounds.
+
+What reopens the work, in order of expected value:
+
+1. **Live cohort outcomes** under the current version — the learning
+   loop and Insights record accrue them continuously, and the Desk
+   build's scan-path persistence multiplies the accrual rate the day it
+   ships. A cohort large enough to condition on is the single dataset
+   this arc never had.
+2. **New provider history** — the daily cache top-up keeps the replay
+   basis rolling forward; a future season of data supports a
+   re-validation pass (the r22 method makes any gate re-derivable).
+3. **New markets or brokers** — per-broker calibration is a declared
+   product direction and would restart derivation on a new basis, not
+   re-tune this one.
+
+Until one of those exists, further grids would be curve-polishing, and
+the honest recommendation is none.
+
 ## Confirmed provider history depth (measured 2026-07-29)
 
 Replay depth is **discovered per symbol at run time**, not configured: the
