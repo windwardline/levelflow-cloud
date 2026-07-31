@@ -706,7 +706,11 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   test.setTimeout(120_000);
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Scan", exact: true }).click();
+  // "Scan now" is the rail's action (spec §16 mock wording); plain "Scan" is
+  // only the mobile tab bar's label, hidden at this desktop viewport — the
+  // pre-§16 locator here waited out the whole test timeout in the first live
+  // run after the rename shipped.
+  await page.getByRole("button", { name: "Scan now", exact: true }).click();
   const candidateRow = page.getByText(/^(Buy|Sell) · confidence \d+$/).first();
   const hasCandidate = await candidateRow
     .waitFor({ state: "visible", timeout: 90_000 })
