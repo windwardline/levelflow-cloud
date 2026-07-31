@@ -206,6 +206,94 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
   });
 });
 
+// Completeness audit 2, Findings 1-2 (D2a): the chart was the least-attested
+// piece of the stage — unchanged from origin/main except its root className,
+// pinned by no test, named by no prior review. It drew three level lines where
+// the mock draws four, titled the entry line "BUY LIMIT" where the mock writes
+// "ENTRY", mixed Solid/Dashed/Dotted where the mock dashes all four, and
+// carried a duplicate Entry/Stop/Target/Payoff strip inside its own frame that
+// the mock does not draw and the ladder already owns.
+describe("Desk chart level lines — the mock's four labeled lines (a-desk-v3.html:191-194)", () => {
+  it("includes Target 1 in the chart's own setup type, so the chart can draw every level the ladder lists", () => {
+    // The gap was at the type boundary: ChartSetup's Pick excluded
+    // takeProfit1, so the ladder listed four levels and the chart beside it
+    // drew three. `side` left with the metric strip below — the mock colors
+    // these lines by role (target/entry/stop), never by direction.
+    assert.match(
+      chart,
+      /type ChartSetup = Pick<\s*AnalyzerSetup,\s*"entryPrice" \| "stopLoss" \| "takeProfit" \| "takeProfit1",?\s*>;/,
+    );
+    assert.doesNotMatch(chart, /"side"/);
+  });
+
+  it("draws all four lines uniformly dashed at 2px, per the mock's border-top: 2px dashed", () => {
+    // One createPriceLine call mapped over the level list, so the style is
+    // uniform by construction rather than by four hand-copied literals
+    // agreeing — which is exactly how Solid/Dashed/Dotted drifted apart.
+    assert.equal((chart.match(/createPriceLine\(/g) ?? []).length, 1);
+    assert.match(chart, /lineStyle: LineStyle\.Dashed/);
+    assert.doesNotMatch(chart, /LineStyle\.(?:Solid|Dotted|SparseDotted|LargeDashed)/);
+    assert.match(chart, /lineWidth: 2/);
+  });
+
+  it("labels every line the way the mock writes it — LABEL · price, at the price's own precision", () => {
+    // formatNumber is the ladder's own formatter (advisorFormat.ts), so each
+    // line's price reads byte-identical to the ladder row beside it. The
+    // file's local formatChartPrice caps at 2 decimals over 100, which would
+    // print a futures level the ladder never showed.
+    assert.match(
+      chart,
+      /title: `\$\{level\.label\} · \$\{formatNumber\(level\.price\)\}`/,
+    );
+    assert.match(chart, /import \{ formatNumber \} from "\.\.\/workspace\/advisorFormat";/);
+    for (
+      const label of [
+        'label: hasLadder ? "TARGET 2" : "TARGET"',
+        'label: "TARGET 1"',
+        'label: "ENTRY"',
+        'label: "STOP"',
+      ]
+    ) {
+      assert.ok(chart.includes(label), `the mock's level lines need ${label}`);
+    }
+  });
+
+  it("titles the entry line ENTRY — the stagehead's own tag is what says Buy/Sell limit", () => {
+    assert.doesNotMatch(chart, /LIMIT/);
+    assert.doesNotMatch(chart, /side\.toUpperCase\(\)/);
+  });
+
+  it("colors the lines by role from the live tokens — two targets buy, entry accent, stop sell", () => {
+    const levelList = chart.match(/const levels[\s\S]*?\n {4}\];/)?.[0] ?? "";
+    assert.ok(levelList.length > 0, "expected to find the level list");
+    assert.equal((levelList.match(/theme\.buy/g) ?? []).length, 2);
+    assert.equal((levelList.match(/theme\.accent/g) ?? []).length, 1);
+    assert.equal((levelList.match(/theme\.sell/g) ?? []).length, 1);
+    // Token reactivity is the existing mechanism and must stay: the effect
+    // re-reads readChartTheme() whenever the MutationObserver bumps
+    // themeVersion, because a canvas cannot consume var(--color-*).
+    assert.match(chart, /const theme = readChartTheme\(\);/);
+    assert.match(chart, /\}, \[setup, themeVersion\]\);/);
+  });
+
+  it("gates Target 1 on the same condition the ladder gates its own row on", () => {
+    const gate = /typeof setup\.takeProfit1 === "number" &&\s*setup\.takeProfit1 > 0/;
+    assert.match(chart, gate);
+    assert.match(panel, gate);
+  });
+});
+
+describe("Desk chart composition — the kill list is absent (spec §16)", () => {
+  it("draws no metric strip inside the chart frame — Entry/Stop/Target/Payoff belong to the ladder", () => {
+    // a-desk-v3.html:195-197 draws nothing between the chart and the attached
+    // setup sheet. Every value the strip printed is printed again immediately
+    // below it: the levels by the ladder, the payoff by the ladder's eyebrow.
+    assert.doesNotMatch(chart, /SetupZoneSummary/);
+    assert.doesNotMatch(chart, /Payoff/);
+    assert.doesNotMatch(chart, /sm:grid-cols-4/);
+  });
+});
+
 describe("scan rail composition — the mock's elements are present (a-desk-v3.html:87-158)", () => {
   const rail = readFileSync(RAIL, "utf8");
 
