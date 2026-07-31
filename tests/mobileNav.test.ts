@@ -541,3 +541,36 @@ describe("AdvisorWorkspace stage notice for a closed market (source-pinned, I4/�
     );
   });
 });
+
+// Completeness audit 2, deviation note 8: BrokerChip rendered as the app's
+// .chip idiom (11px uppercase, 2px radius, a currentColor-derived border)
+// where the mock that governs both mastheads draws tokens.css:22-24's
+// .broker — a 13px bold pill on sheet with a 1.5px hairline border, a 6px
+// radius, and an 8px buy-colored dot. One component still feeds all three call
+// sites (both headers plus Profile's Broker card), so this is pinned once.
+// Literal utility strings against the real token names, per the C1 guard.
+describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", () => {
+  const BROKER_CHIP_SOURCE = readFileSync(
+    "src/components/workspace/BrokerChip.tsx",
+    "utf8",
+  );
+
+  it("is a hairline-bordered pill on sheet at the mock's geometry, not the .chip idiom", () => {
+    assert.match(
+      BROKER_CHIP_SOURCE,
+      /className="inline-flex items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-3 py-\[7px\] text-\[13px\] font-bold text-ink"/,
+    );
+    assert.doesNotMatch(BROKER_CHIP_SOURCE, /className="chip\b/);
+  });
+
+  it("carries the mock's 8px buy-colored dot", () => {
+    assert.match(
+      BROKER_CHIP_SOURCE,
+      /className="h-2 w-2 rounded-full bg-buy" aria-hidden="true"/,
+    );
+  });
+
+  it("still names the broker in text — the dot is decoration, not the label", () => {
+    assert.match(BROKER_CHIP_SOURCE, />\s*E8 Markets\s*</);
+  });
+});
