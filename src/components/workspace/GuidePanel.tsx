@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { BookOpen } from "lucide-react";
 import type { GuideAnchor } from "./WorkspaceNav";
 
 // The Guide renders docs/superpowers/specs/2026-07-30-levelflow-guide-content.md
@@ -125,29 +124,19 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
   }, [anchor, onAnchorHandled]);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[200px_minmax(0,1fr)] lg:items-start lg:gap-8">
+    <div className="mx-auto grid max-w-[1020px] gap-9 lg:grid-cols-[230px_1fr] lg:items-start">
       <GuideToc sections={GUIDE_SECTIONS} />
 
-      <div className="grid gap-5">
-        <section className="terminal-panel p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ink text-paper">
-              <BookOpen className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-normal text-accent">
-                Guide
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-normal text-ink">
-                How to use Levelflow
-              </h1>
-            </div>
-          </div>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
+      <article className="min-w-0">
+        <div>
+          <h1 className="border-b-2 border-ink pb-3.5 text-3xl font-semibold tracking-normal text-ink">
+            How to use Levelflow
+          </h1>
+          <p className="mt-4 max-w-[62ch] text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
             Ten short sections, in the same words your platform already
             uses.
           </p>
-        </section>
+        </div>
 
         <GuideSection
           id="how-review-works"
@@ -222,7 +211,7 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
           number="03"
           title="Taking and managing the trade"
         >
-          <blockquote className="rounded-lg border-2 border-accent bg-accent/10 px-4 py-4 text-base font-semibold leading-7 text-ink sm:text-lg">
+          <blockquote className="border-l-[3px] border-accent bg-accent/5 py-3 pl-4 pr-4 text-base font-semibold leading-7 text-ink sm:text-lg">
             {CANONICAL_LADDER_INSTRUCTION}
           </blockquote>
           <p>In platform terms, that is three moments:</p>
@@ -383,29 +372,36 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
             ))}
           </dl>
         </GuideSection>
-      </div>
+      </article>
     </div>
   );
 }
 
+// Spec §16: the TOC is composition chrome, not part of the deck's own copy —
+// it exists below lg not at all (mobile reads the article straight through)
+// and above lg as a sticky index down the left rail. "Contents" (not the
+// mock's literal "Guide" eyebrow text) avoids repeating the masthead's own
+// already-active "Guide" nav label immediately beside it.
 function GuideToc({ sections }: { sections: GuideSectionMeta[] }) {
   return (
     <nav
       aria-label="Guide sections"
-      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 lg:self-start"
+      className="hidden lg:block sticky top-20 self-start border-r border-hairline pr-5"
     >
-      {sections.map((section) => (
-        <a
-          key={section.id}
-          className="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-ink lg:whitespace-normal"
-          href={`#${section.id}`}
-        >
-          <span className="font-mono text-xs tabular-nums text-ink-muted">
-            {section.number}
-          </span>
-          {section.title}
-        </a>
-      ))}
+      <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        Contents
+      </p>
+      <div className="grid gap-1">
+        {sections.map((section) => (
+          <a
+            key={section.id}
+            className="flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-ink"
+            href={`#${section.id}`}
+          >
+            {section.title}
+          </a>
+        ))}
+      </div>
     </nav>
   );
 }
@@ -422,16 +418,14 @@ function GuideSection({
   title: string;
 }) {
   return (
-    <section className="terminal-panel scroll-mt-28 p-5 sm:p-6" id={id}>
-      <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink font-mono text-xs font-bold tabular-nums text-paper">
-          {number}
-        </span>
-        <h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">
-          {title}
-        </h2>
-      </div>
-      <div className="grid gap-3 text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
+    <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id={id}>
+      <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        {number}
+      </p>
+      <h2 className="mt-1 text-xl font-semibold tracking-normal text-ink sm:text-2xl">
+        {title}
+      </h2>
+      <div className="mt-3 grid max-w-[62ch] gap-3 text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
         {children}
       </div>
     </section>
