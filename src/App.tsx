@@ -47,7 +47,6 @@ import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
 import {
   buildDefaultProfile,
-  profileDisplayName,
   type ThemeMode,
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
@@ -274,10 +273,10 @@ export default function App() {
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
                 account avatar — Guide/Profile/Donate/Sign out all live
-                behind that one button instead of the nav pills and icon
-                row below, which stay exactly as they've always been, just
-                gated to ≥lg via lg:contents so hiding them at <lg can't
-                touch their own layout at ≥lg. */}
+                behind that one button instead of the single-row masthead
+                below (wordmark + text nav + broker chip + Sign out; spec
+                §16), gated to ≥lg via `hidden … lg:flex` so hiding it at
+                <lg can't touch its own layout at ≥lg. */}
             <div
               className="flex min-w-0 items-center justify-between gap-3 lg:hidden"
               data-testid="mobile-header"
@@ -297,62 +296,43 @@ export default function App() {
               </div>
             </div>
 
-            <div className="hidden lg:contents" data-testid="desktop-header">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="min-w-0">
-                  <p className="wordmark text-lg text-ink">Levelflow</p>
-                  <p className="truncate text-xs text-ink-muted">
-                    Welcome, {profileDisplayName(profile)}
-                  </p>
-                </div>
-                <div className="ml-auto">
-                  <ThemeToggle mode={theme.mode} onChange={theme.setMode} />
-                </div>
+            <div
+              className="hidden items-center justify-between lg:flex"
+              data-testid="desktop-header"
+            >
+              <div className="flex items-center gap-6">
+                <p className="wordmark text-xl text-ink">Levelflow</p>
+                <nav
+                  aria-label="Levelflow sections"
+                  className="flex items-center gap-6"
+                >
+                  {TABS.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      className={`text-xs font-semibold uppercase tracking-[0.12em] ${
+                        activeTab === tab.value
+                          ? "text-ink border-b-2 border-accent pb-1"
+                          : "text-ink-muted hover:text-ink"
+                      }`}
+                      onClick={() => setActiveTab(tab.value)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="flex items-center gap-3">
                 <BrokerChip />
-                <a
-                  aria-label="Help"
-                  className="secondary-button min-h-10 px-3 py-2"
-                  href={SUPPORT_MAILTO}
-                >
-                  <Mail className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Help</span>
-                </a>
                 <button
-                  aria-label="Donate"
-                  className="secondary-button min-h-10 px-3 py-2"
-                  type="button"
-                  onClick={() => setActiveTab("donate")}
-                >
-                  <Gift className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Donate</span>
-                </button>
-                <button
-                  aria-label="Sign out"
                   className="secondary-button min-h-10 px-3 py-2"
                   type="button"
                   onClick={() => supabase?.auth.signOut()}
                 >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  Sign out
                 </button>
               </div>
-
-              <nav
-                className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
-                aria-label="Levelflow sections"
-              >
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.value}
-                    className={`nav-button shrink-0 ${activeTab === tab.value ? "nav-button-active" : ""}`}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
             </div>
           </div>
         </header>

@@ -258,8 +258,11 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     assert.doesNotMatch(callSite, /\bsaveStatus=/);
   });
 
-  it("gates the pre-Task-9 header content behind lg:contents rather than deleting it", () => {
-    assert.match(APP_SOURCE, /className="hidden lg:contents"/);
+  it("gates the desktop masthead behind a literal hidden/lg:flex pair, not an interpolated variant (spec §16 single-row masthead)", () => {
+    assert.match(
+      APP_SOURCE,
+      /className="hidden items-center justify-between lg:flex"/,
+    );
   });
 
   it("mobile header carries the broker chip and an account menu, not the desktop icon row", () => {
@@ -286,19 +289,75 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     }
   });
 
-  // Fix round 1, item 1 (SPEC): spec §2/§12 put a broker chip on the ≥lg
-  // header too, not just Profile's Broker card and the mobile compact one —
-  // the desktop-freeze reading that originally omitted it didn't hold once
-  // weighed against the same spec text driving the mobile decision.
-  it("desktop header (the lg:contents block) also carries the broker chip, beside ThemeToggle", () => {
-    // Same data-testid anchor reasoning as the mobile header test above.
-    const desktopHeaderBlock = APP_SOURCE.match(
-      /<div className="hidden lg:contents" data-testid="desktop-header">[\s\S]*?<\/nav>\s*<\/div>/,
-    )?.[0] ?? "";
+});
+
+// Spec §16 (2026-07-31, binding): the first ship kept the old two-row
+// icon-chip header (a controls row + a separate nav row) inside the new
+// grid, and the owner rejected it against a-desk-v3.html:75-84's single-row
+// masthead — wordmark + inline text nav + broker chip + ghost Sign out, no
+// icons, no greeting, no header theme toggle, no Help/Donate. This describe
+// pins BOTH directions of that remediation against the live source (the
+// review discipline spec §16 itself demands): the mock's required elements
+// present, and every kill-list element named for this block absent. Same
+// no-jsdom, source-pinned technique as the rest of this file (see the
+// header comment at the top).
+describe("desktop masthead composition (spec §16, source-pinned — see header comment)", () => {
+  // Anchored on the exact hidden/lg:flex + data-testid opening tag (same
+  // reasoning as the mobile-header block above), extending through the
+  // Sign out button and its two closing wrapper divs — the last content
+  // this block renders.
+  const desktopHeaderBlock = APP_SOURCE.match(
+    /<div\s+className="hidden items-center justify-between lg:flex"\s+data-testid="desktop-header"\s*>[\s\S]*?Sign out[\s\S]*?<\/div>\s*<\/div>/,
+  )?.[0] ?? "";
+
+  it("extracted a non-empty block — a future refactor that breaks this regex must fail loudly here, not silently pass every doesNotMatch check below against an empty string", () => {
+    assert.ok(desktopHeaderBlock.length > 0, "expected to find the desktop masthead block");
+  });
+
+  it("carries the wordmark, the labelled text nav, the broker chip, and a text-only ghost Sign out button", () => {
     assert.match(
       desktopHeaderBlock,
-      /<ThemeToggle mode=\{theme\.mode\} onChange=\{theme\.setMode\} \/>[\s\S]{0,40}<BrokerChip \/>/,
+      /<p className="wordmark text-xl text-ink">Levelflow<\/p>/,
     );
+    assert.match(
+      desktopHeaderBlock,
+      /<nav\s+aria-label="Levelflow sections"\s+className="flex items-center gap-6"\s*>/,
+    );
+    assert.match(desktopHeaderBlock, /<BrokerChip \/>/);
+    assert.match(
+      desktopHeaderBlock,
+      /<button\s+className="secondary-button min-h-10 px-3 py-2"\s+type="button"\s+onClick=\{\(\) => supabase\?\.auth\.signOut\(\)\}\s*>\s*Sign out\s*<\/button>/,
+    );
+  });
+
+  it("renders TABS as plain text buttons — no tab.icon in the desktop nav (the mobile tab bar keeps its own separate icon set)", () => {
+    assert.match(desktopHeaderBlock, /\{TABS\.map\(\(tab\) => \(/);
+    assert.doesNotMatch(desktopHeaderBlock, /\{tab\.icon\}/);
+    assert.match(desktopHeaderBlock, /\{tab\.label\}/);
+  });
+
+  it("styles the nav text per the mock: uppercase/letterspaced always, active = ink + accent underline, inactive = muted with hover", () => {
+    assert.match(
+      desktopHeaderBlock,
+      /text-xs font-semibold uppercase tracking-\[0\.12em\]/,
+    );
+    assert.match(desktopHeaderBlock, /text-ink border-b-2 border-accent pb-1/);
+    assert.match(desktopHeaderBlock, /text-ink-muted hover:text-ink/);
+  });
+
+  it("kill-list: no greeting, no header ThemeToggle, no Help/Donate buttons, no icon-chip nav-button pills", () => {
+    assert.doesNotMatch(desktopHeaderBlock, /Welcome,/);
+    assert.doesNotMatch(desktopHeaderBlock, /<ThemeToggle/);
+    assert.doesNotMatch(desktopHeaderBlock, /<Mail /);
+    assert.doesNotMatch(desktopHeaderBlock, /<Gift /);
+    assert.doesNotMatch(desktopHeaderBlock, /aria-label="Help"/);
+    assert.doesNotMatch(desktopHeaderBlock, /aria-label="Donate"/);
+    assert.doesNotMatch(desktopHeaderBlock, /nav-button/);
+  });
+
+  it("kill-list, whole-file: the greeting helper is gone from App.tsx entirely, not merely unused in the header", () => {
+    assert.doesNotMatch(APP_SOURCE, /Welcome,/);
+    assert.doesNotMatch(APP_SOURCE, /profileDisplayName/);
   });
 });
 
