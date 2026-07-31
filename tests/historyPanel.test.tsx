@@ -14,30 +14,39 @@ const PANEL_SOURCE = readFileSync(
   "utf8",
 );
 
-const FOOTER_TEXT =
-  "Every setup Levelflow generates is saved here automatically, " +
-  "taken or not. Your record is tracked per broker: E8 Markets.";
+// Spec §17c (owner live-QA, binding): the below-table blurb is DELETED —
+// "the Guide teaches it and the page shows it", and "'taken or not' dies
+// app-wide with it". The verbatim-presence guard this replaces is inverted
+// rather than removed, so spec §10's sentence cannot return by anyone reading
+// that older section as still current. Every fragment is pinned separately:
+// the sentence must not come back whole, in halves, or reworded around the
+// same two claims.
+const DELETED_FOOTER_FRAGMENTS = [
+  "Every setup Levelflow generates is saved here automatically",
+  "taken or not",
+  "Your record is tracked per broker",
+  "E8 Markets",
+];
 
 describe("HistoryPanel markup (source-pinned — see header comment)", () => {
   it("titles the surface exactly Insights", () => {
     assert.match(PANEL_SOURCE, />\s*Insights\s*</);
   });
 
-  it("renders the footer copy exactly as spec §10 states it, verbatim", () => {
-    // The source may wrap the sentence across lines/template pieces; strip
-    // all whitespace runs to a single space on both sides before comparing
-    // so line-wrapping in the JSX can't silently drift the pinned copy.
+  it("renders no below-table blurb — §17c deleted it, fragment by fragment", () => {
+    // Whitespace-collapsed for the same reason the old presence check was:
+    // JSX line-wrapping must not be able to hide a fragment from the scan.
     const collapsedSource = PANEL_SOURCE.replace(/\s+/g, " ");
-    const collapsedFooter = FOOTER_TEXT.replace(/\s+/g, " ");
-    assert.ok(
-      collapsedSource.includes(collapsedFooter),
-      "HistoryPanel.tsx must render spec §10's footer sentence verbatim",
-    );
+    for (const fragment of DELETED_FOOTER_FRAGMENTS) {
+      assert.ok(
+        !collapsedSource.includes(fragment),
+        `HistoryPanel.tsx must not carry "${fragment}" (spec §17c)`,
+      );
+    }
   });
 
-  it("never names E8 Markets anywhere except that one footer sentence", () => {
-    const matches = PANEL_SOURCE.match(/E8 Markets/g) ?? [];
-    assert.equal(matches.length, 1);
+  it("names the broker nowhere — the chip in the masthead is where the broker lives", () => {
+    assert.equal((PANEL_SOURCE.match(/E8 Markets/g) ?? []).length, 0);
   });
 
   it("renders the eight result-column headers in spec §10's exact order, with no Origin column", () => {

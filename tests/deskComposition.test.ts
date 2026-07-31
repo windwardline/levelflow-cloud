@@ -664,12 +664,17 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
     assert.doesNotMatch(unselectedClasses, /shadow-\[inset/);
   });
 
-  it("closes with the approved footnote, verbatim", () => {
-    assert.ok(
-      rail.includes(
-        "Every setup Levelflow generates is saved to Insights automatically.",
-      ),
+  // Spec §17c (owner live-QA, binding): the mock's closing footnote is
+  // SUPERSEDED — "the two narration lines are DELETED. The empty rail is the
+  // controls, quietly stark." The presence guard this replaces is inverted
+  // rather than deleted, so the sentence cannot return by anyone re-reading
+  // a-desk-v3.html:158 as still authoritative.
+  it("closes with no footnote at all — §17c deleted the mock's closing line", () => {
+    assert.doesNotMatch(
+      rail,
+      /Every setup Levelflow generates is saved to Insights automatically\./,
     );
+    assert.doesNotMatch(rail, /RAIL_FOOTNOTE/);
   });
 });
 
@@ -694,12 +699,22 @@ describe("scan rail composition — the kill list is absent (spec §16)", () => 
     assert.doesNotMatch(rail, /rounded-lg border border-hairline bg-paper/);
   });
 
-  it("carries no empty-state illustration box — the empty state is one muted line", () => {
+  it("carries no empty-state illustration box, and no empty-state sentence either (§17c)", () => {
     assert.doesNotMatch(rail, /\bSearch\b/);
+    // §17c deletes the narration line the un-scanned rail used to carry, so
+    // the muted paragraph now renders only when there is something real to
+    // report — a failed scan, a filtered-out result set, or a scan in flight.
+    // `emptyMessage` is null before the first scan, and the render is gated on
+    // it, so nothing at all is drawn there.
+    assert.doesNotMatch(
+      rail,
+      /Scan every active market to find the strongest current limit setups\./,
+    );
     assert.match(
       rail,
-      /<p className="mt-2 text-sm leading-6 text-ink-muted">\s*\{status === "scanning" \? "Checking active markets\." : emptyMessage\}/,
+      /<p className="mt-2 text-sm leading-6 text-ink-muted">\s*\{emptyMessage\}/,
     );
+    assert.match(rail, /: emptyMessage\s*\?/);
   });
 
   it("drops the per-row rank badge, metric grid, level preview and rationale bullets", () => {

@@ -17,13 +17,6 @@ import {
 import { describeExecutionLabel } from "./reviewCopy";
 import { formatScopeCountLine, ScopeMenu, type ScanScope } from "./ScopeMenu";
 
-// Spec §10: the rail's one closing line, exactly as the mock words it
-// (a-desk-v3.html:158). Insights carries its own longer per-broker version of
-// the same promise; these two are deliberately different sentences on
-// different surfaces, so neither may be edited into the other.
-const RAIL_FOOTNOTE =
-  "Every setup Levelflow generates is saved to Insights automatically.";
-
 type MarketScanPanelProps = {
   onResetResult: () => void;
   onScan: (symbols: SupportedSymbol[]) => void;
@@ -48,12 +41,19 @@ type MarketScanPanelProps = {
 
 // The scan rail (spec §16, a-desk-v3.html:87-158): a quiet column, not a
 // panel. Eyebrow + Scan now on one row, the scope menu, the server-truth count
-// line, the result rows, one footnote. The two-line panel title block, the
-// legend box and the empty-state illustration are all deleted — the rail's own
-// copy carries what they used to explain, and the per-row cost chip keeps its
-// rating's plain-language gloss on hover. tests/deskComposition.test.ts pins
-// their absence, so the retired title strings deliberately appear nowhere in
-// this file, comments included.
+// line, the result rows. The two-line panel title block, the legend box and
+// the empty-state illustration are all deleted — the per-row cost chip keeps
+// its rating's plain-language gloss on hover. tests/deskComposition.test.ts
+// pins their absence, so the retired title strings deliberately appear nowhere
+// in this file, comments included.
+//
+// Spec §17c supersedes the mock's closing footnote and its empty-state
+// sentence, both by name: the rail narrates nothing. Before the first scan it
+// draws its controls and stops — "the empty rail is the controls, quietly
+// stark" — and anything that ever fills that space must be useful and
+// succinct. What is left speaks only to a state the reader cannot otherwise
+// see: a scan in flight, a scan that failed, or a result the current scope
+// filtered down to nothing.
 export function MarketScanPanel({
   onResetResult,
   onScan,
@@ -78,11 +78,16 @@ export function MarketScanPanel({
     result?.opportunities ?? [],
     scope,
   );
-  const emptyMessage = result?.failed
+  // null is the un-scanned rail: no result, no failure, nothing in flight, and
+  // so nothing to say (spec §17c). The render below is gated on it, so the
+  // paragraph itself does not exist rather than existing empty.
+  const emptyMessage = status === "scanning"
+    ? "Checking active markets."
+    : result?.failed
     ? "Market scan could not complete. Try again shortly."
     : result
     ? "No markets match the current scan filters."
-    : "Scan every active market to find the strongest current limit setups.";
+    : null;
 
   return (
     <section className="min-w-0" data-testid="market-scan-rail">
@@ -147,9 +152,8 @@ export function MarketScanPanel({
 
       {/* The 404px cap and the rail's own scroll area are ≥lg geometry
           (a-desk-v3.html:21). Below lg the mock stacks the cards down the page
-          with 8px between them and lets the page scroll, so the footnote
-          follows the last card instead of a nested scroller
-          (m-scan-v1.html:45-51). */}
+          with 8px between them and lets the page scroll, rather than nesting a
+          second scroller inside it (m-scan-v1.html:45-51). */}
       {filteredOpportunities.length > 0
         ? (
           <div className="scrolly mt-2 max-h-[404px] overflow-y-auto max-lg:grid max-lg:max-h-none max-lg:gap-2 max-lg:overflow-visible">
@@ -163,13 +167,13 @@ export function MarketScanPanel({
             ))}
           </div>
         )
-        : (
+        : emptyMessage
+        ? (
           <p className="mt-2 text-sm leading-6 text-ink-muted">
-            {status === "scanning" ? "Checking active markets." : emptyMessage}
+            {emptyMessage}
           </p>
-        )}
-
-      <p className="mt-3.5 text-xs leading-5 text-ink-muted">{RAIL_FOOTNOTE}</p>
+        )
+        : null}
     </section>
   );
 }

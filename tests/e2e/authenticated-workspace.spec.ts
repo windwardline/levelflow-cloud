@@ -201,11 +201,20 @@ test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no
   await expect(rail.getByRole("heading", { name: "Scan", exact: true }))
     .toBeVisible();
   await expect(rail.getByRole("button", { name: "Scan now" })).toBeVisible();
+  // Spec §17c: both narration lines are deleted — the mock's closing footnote
+  // and the un-scanned rail's empty-state sentence. The empty rail is the
+  // controls. Checked in the live DOM, not only at the source, because this is
+  // the surface the owner read them on.
   await expect(
     rail.getByText(
       "Every setup Levelflow generates is saved to Insights automatically.",
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(
+    rail.getByText(
+      "Scan every active market to find the strongest current limit setups.",
+    ),
+  ).toHaveCount(0);
 
   const scopeMenuButton = rail.getByRole("button", { name: "Scan scope" });
   await expect(scopeMenuButton).toBeVisible();
@@ -766,7 +775,7 @@ test("each ladder value copies independently, flipping its own button to a check
   }
 });
 
-test("Insights renders the setup ledger table and the persistence footer", async ({ page }) => {
+test("Insights renders the setup ledger table, and no below-table blurb", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Insights", exact: true }).click();
 
@@ -794,13 +803,14 @@ test("Insights renders the setup ledger table and the persistence footer", async
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   }
 
-  // Spec §10, verbatim: the exact wording the design authority signed off
-  // on, load-bearing the same way the ladder's canonical instruction is.
+  // Spec §17c deletes spec §10's below-table sentence outright — the Guide
+  // teaches it and the page shows it. Absence is checked here, on the surface
+  // the owner read it on, alongside the source-level fragment guards in
+  // tests/historyPanel.test.tsx.
   await expect(
-    page.getByText(
-      "Every setup Levelflow generates is saved here automatically, taken or not. Your record is tracked per broker: E8 Markets.",
-    ),
-  ).toBeVisible();
+    page.getByText("Every setup Levelflow generates is saved here"),
+  ).toHaveCount(0);
+  await expect(page.getByText("taken or not")).toHaveCount(0);
 });
 
 test("a qualifying market scan persists into Insights, not just onto the scan rail", async ({ page }) => {
