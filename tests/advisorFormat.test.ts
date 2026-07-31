@@ -2,8 +2,20 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   formatCopyValue,
+  formatNumber,
   formatRelativeTime,
+  MAX_PRICE_DECIMALS,
 } from "../src/components/workspace/advisorFormat.ts";
+
+// A real tick-aligned futures price that only round-trips correctly at
+// eight decimal places (fix round 2, both cases below): ZNUSD (10-year
+// Treasury note futures) ticks in 1/64 = 0.015625, six decimals
+// (supabase/functions/trade-analyzer/futures.ts, FUTURES_CONTRACT_SPECS /
+// alignFuturesLevel). 109.515625 is exactly 7009 ticks — a legal price on
+// that grid. The previous 5-decimal cap rounded it to 109.51563, which
+// isn't a multiple of 0.015625 at all — an illegal price off the
+// exchange's own grid.
+const ZN_TICK_ALIGNED_PRICE = 109.515625;
 
 // Clipboard payload for the per-value ladder copy (spec §7). formatNumber
 // (display) defers to the runtime's locale via `toLocaleString(undefined,
@@ -50,8 +62,44 @@ describe("formatCopyValue", () => {
     }
   });
 
-  it("caps at 5 fraction digits, matching the display formatter's own precision", () => {
-    assert.equal(formatCopyValue(1.234567), "1.23457");
+  it("caps at 8 fraction digits (MAX_PRICE_DECIMALS), matching the display formatter's own precision", () => {
+    assert.equal(MAX_PRICE_DECIMALS, 8);
+    assert.equal(formatCopyValue(1.2345678901), "1.23456789");
+  });
+
+  it("keeps all six decimals of a ZN futures 1/64-tick price — the old 5-decimal cap made this an illegal price", () => {
+    assert.equal(
+      formatCopyValue(ZN_TICK_ALIGNED_PRICE),
+      "109.515625",
+    );
+    assert.equal(
+      Number(formatCopyValue(ZN_TICK_ALIGNED_PRICE)),
+      ZN_TICK_ALIGNED_PRICE,
+    );
+    // Confirms 109.515625 really is on the 1/64 grid (7009 ticks exactly),
+    // so this test is pinned against a legal price, not an arbitrary one.
+    assert.equal(ZN_TICK_ALIGNED_PRICE / 0.015625, 7009);
+  });
+});
+
+// formatNumber is the on-screen display path — locale-formatted grouping
+// and decimal separator are expected to vary by machine locale, and that's
+// fine. What must never happen again is losing digits: the old 5-decimal
+// cap silently rounded a real tick-aligned futures price to one that was
+// no longer a legal multiple of its tick size.
+describe("formatNumber", () => {
+  it("keeps every decimal digit of a ZN futures 1/64-tick price, regardless of machine locale", () => {
+    // Mirrors formatNumber's own toLocaleString(undefined, ...) call, the
+    // same way tests/scopeMenu.test.tsx's localClockTime helper mirrors a
+    // locale-dependent Intl call rather than hardcoding one locale's
+    // separator — so this test passes under any machine locale.
+    const expected = ZN_TICK_ALIGNED_PRICE.toLocaleString(undefined, {
+      maximumFractionDigits: MAX_PRICE_DECIMALS,
+    });
+    assert.equal(formatNumber(ZN_TICK_ALIGNED_PRICE), expected);
+    // Locale-grouped is fine; a lost digit is not. "109", some single
+    // non-digit decimal separator, then all six digits "515625" intact.
+    assert.match(formatNumber(ZN_TICK_ALIGNED_PRICE), /^109\D515625$/);
   });
 });
 
