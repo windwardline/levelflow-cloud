@@ -582,3 +582,14 @@ no underline until hover/focus, `target="_blank"` +
 `rel="noopener noreferrer"` so it never navigates the workspace away,
 44px hit target per the kit floor. A guard pins the target URL, the
 new-tab behavior, and the at-rest quietness on every occurrence.
+
+### §17l. Launch (2026-08-01, owner: "go.")
+
+The overhaul is owner-confirmed complete. The launch runbook executed:
+all trade history cleared for every account (14 setups, 10 outcomes →
+0/0, verified), every session ended (427 → 0, verified; outstanding
+JWTs die within their ≤60-minute TTL), and PARKING_GATE opened — the
+§17j parking page preserved in the repo as the saved standard, the
+quiet-entry doormat now a documented no-op. Signed-out visitors land on
+sign-in. The e2e infrastructure account re-accumulates rows through the
+deploy pipeline's own live suite; real users' slates are clean.

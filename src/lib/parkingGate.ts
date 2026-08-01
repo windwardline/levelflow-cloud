@@ -1,10 +1,10 @@
-// The construction soft gate (owner directive, 2026-07-30). While the
-// engine-and-visual rebuild lands, signed-out visitors see the parking
-// view instead of sign-in. Un-parking is flipping this flag to false —
-// nothing else changes. The quiet entry path is a doormat, not a lock:
-// it only reveals the sign-in screen, where magic-link auth remains the
-// real gate.
-export const PARKING_GATE = true;
+// The construction soft gate (owner directive, 2026-07-30; opened at
+// launch, 2026-08-01 — "go."). While up, signed-out visitors see the
+// §17j parking view instead of sign-in; opening it is flipping this
+// flag — nothing else changes, and the page it hides stays in the repo
+// as the saved standard for the next pause. The quiet entry path below
+// is a doormat, not a lock: with the gate open it is simply a no-op.
+export const PARKING_GATE = false;
 
 const ENTER_KEY = "levelflow-enter";
 

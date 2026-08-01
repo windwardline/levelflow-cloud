@@ -216,14 +216,13 @@ test("the login screen's region is a named keyboard stop too", async ({ page }) 
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test("signed-out visitors see the parking page, not sign-in", async ({ page }) => {
+test("the gate is open — signed-out visitors land on sign-in, not parking", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.getByText("Under construction")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Levelflow" })).toBeVisible();
-  await expect(page.getByLabel("Email")).toHaveCount(0);
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByText("Under construction")).toHaveCount(0);
 });
 
-test("the quiet entry path reveals sign-in and persists for the session", async ({ page }) => {
+test("the old quiet-entry path is a harmless no-op with the gate open", async ({ page }) => {
   await page.goto("/?enter", { waitUntil: "networkidle" });
   await expect(page.getByLabel("Email")).toBeVisible();
   await page.goto("/", { waitUntil: "networkidle" });
