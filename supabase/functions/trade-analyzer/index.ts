@@ -1479,21 +1479,33 @@ async function refreshUserOutcomes(
   return summary;
 }
 
+// C1: the status this row carried when it was read is part of the filter, so a
+// verdict can only advance the row it was computed from. A scan that rewrote
+// this setup's levels between the read and here has already put its status back
+// to `generated`, and the write then matches nothing — thrown so the caller
+// counts the setup as failed instead of stamping a verdict onto geometry that no
+// longer exists.
 async function markSetupStatus(
   token: string,
   userId: string,
   setup: SetupForOutcome,
   status: "expired" | "filled" | "placed",
 ) {
-  await updateRows(
+  const updatedRows = await updateRows(
     token,
     `trade_setups?id=eq.${encodeURIComponent(setup.id)}&user_id=eq.${
       encodeURIComponent(userId)
-    }`,
+    }&status=eq.${encodeURIComponent(setup.status)}`,
     {
       status,
     },
   );
+
+  if (updatedRows.length === 0) {
+    throw new Error(
+      `status flip to ${status} matched no rows for setup ${setup.id} — it changed after it was read`,
+    );
+  }
 }
 
 async function upsertOutcome(
