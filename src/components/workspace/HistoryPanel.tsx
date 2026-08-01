@@ -271,41 +271,51 @@ export function HistoryPanel({
   // throughout — hairline rules between rows and nothing else, since the frame
   // it sits in is already the surface's one allowed perimeter.
   const attributionSection = (
-    <section className="mt-6 grid gap-5" data-testid="attribution">
+    <section className="mt-6 grid gap-4" data-testid="attribution">
       <h2 className="text-xl font-semibold tracking-normal text-ink">
         Attribution
       </h2>
-      {attributionGroups.map((group) => (
-        <div key={group.key}>
-          <p className="eyebrow border-b border-hairline pb-2">
-            {group.label}
-          </p>
-          {group.rows.map((row) => (
-            <div
-              className="flex items-baseline justify-between gap-4 border-b border-hairline py-1.5 last:border-b-0"
-              key={row.key}
-            >
-              <span className="text-sm font-semibold text-ink">
-                {row.label}
-              </span>
-              {/* The three figures sit in fixed-width right-aligned cells so
-                  they read as columns down the group without a table's own
-                  headers, which §17f would have to justify as copy. */}
-              <span className="flex shrink-0 items-baseline gap-4 font-mono text-sm tabular-nums text-ink">
-                <span className="w-8 text-right">{row.resolved}</span>
-                <span className="w-20 text-right">
-                  {row.moneyPositivePercent === null
-                    ? "Learning"
-                    : `${row.moneyPositivePercent}%`}
+      {/* Two columns at ≥lg, one below it, each group capped at the measure
+          where a label and its three figures still read as one row. Across the
+          ≥lg frame's full 1180px a single stretched row would strand the
+          numbers half a screen from the label they belong to, which is the one
+          thing a right-aligned figure column must not do. The switch is lg
+          rather than sm because lg is where the surface changes composition
+          (§17g): a second column inside the phone frame's own range would put
+          two 240px figure clusters in a 608px region and overlap them. */}
+      <div className="grid gap-x-10 gap-y-5 lg:grid-cols-2">
+        {attributionGroups.map((group) => (
+          <div className="max-w-[420px]" key={group.key}>
+            <p className="eyebrow border-b border-hairline pb-2">
+              {group.label}
+            </p>
+            {group.rows.map((row) => (
+              <div
+                className="flex items-baseline justify-between gap-4 border-b border-hairline py-1.5 last:border-b-0"
+                key={row.key}
+              >
+                <span className="text-sm font-semibold text-ink">
+                  {row.label}
                 </span>
-                <span className="w-16 text-right">
-                  {row.netR === null ? "—" : formatSignedR(row.netR)}
+                {/* The three figures sit in fixed-width right-aligned cells so
+                    they read as columns down the group without a table's own
+                    headers, which §17f would have to justify as copy. */}
+                <span className="flex shrink-0 items-baseline gap-4 font-mono text-sm tabular-nums text-ink">
+                  <span className="w-8 text-right">{row.resolved}</span>
+                  <span className="w-20 text-right">
+                    {row.moneyPositivePercent === null
+                      ? "Learning"
+                      : `${row.moneyPositivePercent}%`}
+                  </span>
+                  <span className="w-20 text-right">
+                    {row.netR === null ? "—" : formatSignedR(row.netR)}
+                  </span>
                 </span>
-              </span>
-            </div>
-          ))}
-        </div>
-      ))}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </section>
   );
 
