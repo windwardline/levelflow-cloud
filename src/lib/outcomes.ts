@@ -1,6 +1,7 @@
 import type { TradeSetupRow } from "./tradeAnalyzer";
 
 export type SetupOutcome =
+  | "closed_manually"
   | "entry_not_filled"
   | "expired_in_loss"
   | "expired_in_profit"
@@ -15,10 +16,21 @@ export type SetupOutcome =
 // Unfilled / Banked half · +R / Banked full · +R / Stopped · −R /
 // Expired · ±R. Every label below re-derives from that set, so this record and
 // the ledger's own formatter (historyUtils' formatInsightsResult) speak one
-// vocabulary instead of two phrasings of the same fact. The enum keys and
-// classifyWinLoss are untouched — this is label copy only. Both expiry buckets
+// vocabulary instead of two phrasings of the same fact. Both expiry buckets
 // carry the same one word: the R value beside it is what says where price
 // stood, which is also why one "Expired" filter option covers them both.
+//
+// Two words complete the table beyond §17d's seven (controller rulings, wave 4,
+// disclosed at re-present). §17d's own constraint holds for both: this is label
+// copy, and classifyWinLoss is untouched.
+//   Unclear — the ambiguous bucket. It read "Needs review" until wave 4, which
+//     was a result phrased as an instruction and collided with the stage's own
+//     Review action. One word for one fact: the chart cannot say which level
+//     came first.
+//   Closed — the manual_close enum value. Unreachable (the engine writes none)
+//     but a result column must have a word for every value the enum can hand
+//     it, and inventing a direction for a manual close is the one thing it must
+//     not do.
 export const OUTCOME_COPY: Record<
   SetupOutcome,
   {
@@ -52,8 +64,14 @@ export const OUTCOME_COPY: Record<
     label: "Banked full",
     shortLabel: "Banked full",
   },
+  // Also the bucket the engine's `breakeven` outcome normalizes into: a stop
+  // sitting at the entry price is only ever a stop that was MOVED there, which
+  // the ladder does at Target 1 and nowhere else — so a breakeven close is the
+  // banked-half case seen from its ending rather than a result of its own. The
+  // description says so plainly instead of leaving "breakeven" to be read as a
+  // flat trade.
   partial_target: {
-    description: "The first target was reached; the second target was not reached before breakeven or the review window.",
+    description: "The first target was reached and half was banked; the rest closed at the entry price, or when the review window ended, without reaching the second target.",
     filterLabel: "Banked half",
     label: "Banked half",
     shortLabel: "Banked half",
@@ -78,15 +96,21 @@ export const OUTCOME_COPY: Record<
   },
   unclear_path: {
     description: "The entry filled, but the available chart cannot confirm whether stop or target came first.",
-    filterLabel: "Needs review",
-    label: "Needs review",
-    shortLabel: "Review",
+    filterLabel: "Unclear",
+    label: "Unclear",
+    shortLabel: "Unclear",
   },
   entry_not_filled: {
     description: "The limit entry did not fill before the review window ended or the setup was no longer valid.",
     filterLabel: "Unfilled",
     label: "Unfilled",
     shortLabel: "Unfilled",
+  },
+  closed_manually: {
+    description: "The position was closed by hand, before the stop or either target was reached.",
+    filterLabel: "Closed",
+    label: "Closed",
+    shortLabel: "Closed",
   },
 };
 
@@ -108,6 +132,17 @@ export function normalizeSetupOutcome(setup: Pick<TradeSetupRow, "status" | "tra
   if (outcome === "stop_loss") {
     return "stopped_out";
   }
+  // Both of these are unreachable today — the engine writes neither, they exist
+  // only in supabase/init.sql's enum — and both used to fall through to the
+  // unresolved bucket, where a resolved row would have read as still open. They
+  // now land on the buckets whose words are actually true of them (see
+  // OUTCOME_COPY's header).
+  if (outcome === "breakeven") {
+    return "partial_target";
+  }
+  if (outcome === "manual_close") {
+    return "closed_manually";
+  }
   if (outcome === "ambiguous") {
     return "unclear_path";
   }
@@ -125,8 +160,9 @@ export type WinLossClass = "loss" | "neither" | "win";
 // historyUtils.ts's buildRecordBand, which could silently drift apart on a
 // future outcome-taxonomy change. A win is any money-positive resolution
 // (full target, banked TP1, or a profitable expiry); a loss is any
-// money-negative one. Every other outcome (unresolved, entry not filled,
-// needs review) affects neither side of a win/loss ratio.
+// money-negative one. Every other outcome affects neither side of a win/loss
+// ratio: unresolved, entry not filled, an unclear path, and a manual close —
+// which records where a position ended but not which level it was heading for.
 export function classifyWinLoss(outcome: SetupOutcome): WinLossClass {
   if (
     outcome === "target_reached" || outcome === "partial_target" ||

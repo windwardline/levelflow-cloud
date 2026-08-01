@@ -758,7 +758,12 @@ describe("recommendation outcomes", () => {
     assert.equal(OUTCOME_COPY.stopped_out.label, "Stopped");
     assert.equal(OUTCOME_COPY.expired_in_profit.label, "Expired");
     assert.equal(OUTCOME_COPY.expired_in_loss.label, "Expired");
-    assert.equal(OUTCOME_COPY.unclear_path.label, "Needs review");
+    // The two words the controller added in wave 4 to finish the table: an
+    // ambiguous path is "Unclear" (it read "Needs review", which phrased a
+    // result as an instruction and collided with the stage's Review action), and
+    // the unreachable manual_close enum value is "Closed".
+    assert.equal(OUTCOME_COPY.unclear_path.label, "Unclear");
+    assert.equal(OUTCOME_COPY.closed_manually.label, "Closed");
     assert.equal(OUTCOME_COPY.entry_not_filled.label, "Unfilled");
   });
 
@@ -833,7 +838,7 @@ describe("history workspace logic", () => {
         "Pending & open",
         "Banked full",
         "Stopped",
-        "Needs review",
+        "Unclear",
         "Unfilled",
       ],
     );

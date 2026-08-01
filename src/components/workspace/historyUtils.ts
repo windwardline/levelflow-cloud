@@ -44,6 +44,7 @@ const HISTORY_STATUS_ORDER: SetupOutcome[] = [
   "expired_in_profit",
   "expired_in_loss",
   "stopped_out",
+  "closed_manually",
   "unclear_path",
   "entry_not_filled",
 ];
@@ -509,8 +510,11 @@ export function buildRecordBand(
 // owner-approved verbatim, superseding §17b's table): "Pending" -> "Open · ±R"
 // -> one of "Unfilled" / "Banked half · +R" / "Banked full · +R" /
 // "Stopped · −R" / "Expired · ±R", and every surface in the app uses exactly
-// those words. Status comes from deriveTradeState (pending/open first;
-// everything else is closed), then closed rows branch on the outcome bucket.
+// those words. Two more finish the table (controller rulings, wave 4):
+// "Unclear" for a path the chart cannot resolve, and "Closed · ±R" for the
+// unreachable manual_close enum value. Status comes from deriveTradeState
+// (pending/open first; everything else is closed), then closed rows branch on
+// the outcome bucket.
 //
 // Both expiry buckets read the one word "Expired" — filled, window ended,
 // neither level hit — because the R value beside it is what says where price
@@ -556,8 +560,11 @@ export function formatInsightsResult(
   if (outcome === "expired_in_profit" || outcome === "expired_in_loss") {
     return withRealizedR("Expired", realizedR);
   }
+  if (outcome === "closed_manually") {
+    return withRealizedR("Closed", realizedR);
+  }
   if (outcome === "unclear_path") {
-    return withRealizedR("Needs review", realizedR);
+    return withRealizedR("Unclear", realizedR);
   }
   // Everything left is the unresolved bucket on a row deriveTradeState
   // reports as off-rail: a scan-surfaced setup whose order was never placed
