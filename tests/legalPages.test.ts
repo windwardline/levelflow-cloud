@@ -24,21 +24,39 @@ const STATIC_PAGES = [
 
 describe("every static page requests an icon that exists on disk (F1, Finding 4)", () => {
   for (const file of STATIC_PAGES) {
-    it(`${file} requests exactly one icon, and it resolves`, () => {
+    it(`${file} requests only icons that resolve`, () => {
       const source = readFileSync(file, "utf8");
       assert.doesNotMatch(source, /windward-capital-mark-tight/);
-      const links = source.match(/<link rel="icon"[^>]*>/g) ?? [];
-      assert.equal(links.length, 1, `${file} should link one icon`);
-      const href = links[0].match(/href="([^"]+)"/)?.[1] ?? "";
-      assert.ok(href.startsWith("/"), `${file}: ${href} must be root-absolute`);
-      // Root-absolute hrefs resolve against public/ in development and against
-      // the built dist root in production, which is the same file either way —
-      // and they resolve identically from /404.html and /legal/terms.html, which
-      // the old relative "../brand/…" did not.
-      assert.ok(
-        existsSync(`public${href}`),
-        `${file} requests ${href}, which is not in public/`,
-      );
+      // §17i replaced the single link with the full cross-browser set
+      // (tests/brandAssets.test.ts pins its order and its two decisive
+      // attributes). What this file has always owned is the regression it was
+      // written for, and it now owns it for every href in the set rather than one:
+      // a page must not request an icon that is not on disk, whoever's mark it is.
+      const links = source.match(/<link rel="(?:icon|apple-touch-icon)"[^>]*>/g) ?? [];
+      assert.equal(links.length, 6, `${file} should link the whole icon set`);
+      for (const link of links) {
+        const href = link.match(/href="([^"]+)"/)?.[1] ?? "";
+        assert.ok(href.startsWith("/"), `${file}: ${href} must be root-absolute`);
+        // Root-absolute hrefs resolve against public/ in development and against
+        // the built dist root in production, which is the same file either way —
+        // and they resolve identically from /404.html and /legal/terms.html, which
+        // the old relative "../brand/…" did not.
+        assert.ok(
+          existsSync(`public${href}`),
+          `${file} requests ${href}, which is not in public/`,
+        );
+      }
+      // The manifest is linked by the same set and names icons of its own, so it
+      // has to resolve too — and so does everything it points at.
+      const manifestHref = source.match(
+        /<link rel="manifest" href="([^"]+)"/,
+      )?.[1] ?? "";
+      assert.ok(manifestHref.startsWith("/"), `${file}: ${manifestHref}`);
+      assert.ok(existsSync(`public${manifestHref}`), `${file}: ${manifestHref}`);
+      const manifest = JSON.parse(readFileSync(`public${manifestHref}`, "utf8"));
+      for (const icon of manifest.icons as Array<{ src: string }>) {
+        assert.ok(existsSync(`public${icon.src}`), `manifest icon ${icon.src}`);
+      }
     });
   }
 

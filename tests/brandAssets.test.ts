@@ -333,21 +333,156 @@ describe("§17h — the raster set and the manifest", () => {
   });
 });
 
-describe("§17h — the head links and the card's copy", () => {
-  it("declares the icon set with the adaptive SVG last, so it wins by position", () => {
-    const order = Array.from(
-      INDEX.matchAll(/<link\s+rel="icon"[\s\S]*?\/>/g),
+// Spec §17i, the org standard: "the head carries the full cross-browser set in the
+// order Safari and Chrome each need (ICO + sized PNGs + SVG + apple-touch +
+// manifest), on the app AND the static pages, so the icon shows in Safari and
+// Chrome alike — the standard every repo follows."
+//
+// Two independently-verified facts sit behind this set, both of them about clients
+// this repo cannot test in CI:
+//
+//   Safari renders no SVG favicon in any shipping version and falls back to the
+//   ICO (or the apple-touch icon), so the ICO is not optional decoration — it is
+//   the file Safari actually resolves to.
+//
+//   Chrome would prefer that same ICO over the SVG unless the ICO declares a
+//   size, which is what `sizes="32x32"` is for; the SVG then wins on both signals
+//   available to it, scalable by declaration and last among equals by position.
+//
+// Which makes ORDER and ATTRIBUTES the whole content of the ruling, and a guard
+// that only counted links would pass a set that shows the wrong icon in Safari.
+// So the order is pinned as a sequence, the two decisive attributes are pinned
+// individually, and the same set is required on every static page — those pages
+// carried a single SVG link, which is precisely the shape Safari ignores.
+describe("§17i — the favicon head set, in the order each browser needs", () => {
+  const STATIC_PAGES = [
+    "public/404.html",
+    "public/construction.html",
+    "public/legal/privacy.html",
+    "public/legal/risk-disclaimer.html",
+    "public/legal/terms.html",
+  ];
+
+  // rel="icon" links only, in document order, whitespace collapsed.
+  function iconLinks(source: string): string[] {
+    return Array.from(
+      source.matchAll(/<link\s+rel="icon"[\s\S]*?\/>/g),
       (match) => match[0].replace(/\s+/g, " "),
     );
-    assert.equal(order.length, 4);
-    assert.match(order[0], /favicon-16\.png/);
-    assert.match(order[1], /favicon-32\.png/);
-    assert.match(order[2], /levelflow-mark-dark\.svg.*prefers-color-scheme: dark/);
-    assert.match(order[3], /favicon\.svg" type="image\/svg\+xml"/);
-    assert.doesNotMatch(order[3], /media=/);
-    assert.match(INDEX, /<link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon\.png" \/>/);
-    assert.match(INDEX, /<link rel="manifest" href="%BASE_URL%site\.webmanifest" \/>/);
+  }
+
+  // The one sequence, expressed as what each position is for. `base` is the href
+  // prefix the document uses: Vite rewrites %BASE_URL% in index.html, and the
+  // static pages are served as-is with root-absolute hrefs.
+  function expectTheSet(source: string, base: string, label: string) {
+    const order = iconLinks(source);
+    assert.equal(order.length, 5, `${label}: expected five rel=icon links`);
+    // 1. Safari's pick, sized so Chrome does not take it instead of the SVG.
+    assert.equal(
+      order[0],
+      `<link rel="icon" href="${base}favicon.ico" sizes="32x32" />`,
+      label,
+    );
+    // 2-3. The raster fallback, for clients that read neither container.
+    assert.equal(
+      order[1],
+      `<link rel="icon" href="${base}favicon-16.png" type="image/png" sizes="16x16" />`,
+      label,
+    );
+    assert.equal(
+      order[2],
+      `<link rel="icon" href="${base}favicon-32.png" type="image/png" sizes="32x32" />`,
+      label,
+    );
+    // 4. The dark rendition, for clients that honour `media` on an icon link.
+    assert.match(
+      order[3],
+      /brand\/levelflow-mark-dark\.svg" type="image\/svg\+xml" media="\(prefers-color-scheme: dark\)"/,
+      label,
+    );
+    // 5. The adaptive SVG, last and scalable — the modern pick on both signals.
+    assert.equal(
+      order[4],
+      `<link rel="icon" href="${base}favicon.svg" type="image/svg+xml" sizes="any" />`,
+      label,
+    );
+    assert.doesNotMatch(order[4], /media=/, label);
+    // And the two links outside the rel="icon" family, which no browser resolves
+    // against the set above: the iOS home screen and installed-app icons.
+    assert.ok(
+      source.includes(`<link rel="apple-touch-icon" href="${base}apple-touch-icon.png" />`),
+      `${label}: apple-touch-icon`,
+    );
+    assert.ok(
+      source.includes(`<link rel="manifest" href="${base}site.webmanifest" />`),
+      `${label}: manifest`,
+    );
+  }
+
+  it("declares the whole set, in order, on the app's own head", () => {
+    expectTheSet(INDEX, "%BASE_URL%", "index.html");
   });
+
+  it("mirrors it on the 404 and the legal trio, root-absolute", () => {
+    for (const page of STATIC_PAGES) {
+      const source = readFileSync(page, "utf8");
+      expectTheSet(source, "/", page);
+      // Root-absolute matters here specifically: these hrefs must resolve the same
+      // from /404.html and from /legal/terms.html, which a relative one would not.
+      for (const link of iconLinks(source)) {
+        assert.match(link, /href="\//, `${page}: ${link}`);
+      }
+    }
+  });
+
+  it("ships a well-formed .ico container — parsed, not assumed", () => {
+    // An ICO that no client can read is worse than no ICO at all, because the set
+    // above hands it to Safari first. So the container is walked: the header, then
+    // every directory entry, then each payload.
+    const ico = readFileSync("public/favicon.ico");
+    assert.equal(ico.readUInt16LE(0), 0, "reserved field must be zero");
+    assert.equal(ico.readUInt16LE(2), 1, "type must be 1 (icon)");
+    const count = ico.readUInt16LE(4);
+    assert.equal(count, 2, "16 and 32, the two sizes the script renders");
+
+    const declared: number[] = [];
+    for (let index = 0; index < count; index += 1) {
+      const entry = 6 + index * 16;
+      // 0 means 256 in this format; neither of ours is that big.
+      const width = ico.readUInt8(entry);
+      const height = ico.readUInt8(entry + 1);
+      assert.equal(width, height, `entry ${index} must be square`);
+      const length = ico.readUInt32LE(entry + 8);
+      const offset = ico.readUInt32LE(entry + 12);
+      assert.ok(length > 0, `entry ${index} declares an empty payload`);
+      assert.ok(
+        offset >= 6 + count * 16 && offset + length <= ico.length,
+        `entry ${index} points outside the file`,
+      );
+      // A PNG payload, which every browser since IE11 reads — and the payload's
+      // own IHDR has to agree with the size the directory advertises, or a client
+      // scales the wrong bitmap into a tab.
+      const payload = ico.subarray(offset, offset + length);
+      assert.equal(
+        payload.subarray(1, 4).toString("ascii"),
+        "PNG",
+        `entry ${index} is not a PNG payload`,
+      );
+      assert.equal(payload.readUInt32BE(16), width, `entry ${index} width`);
+      assert.equal(payload.readUInt32BE(20), height, `entry ${index} height`);
+      declared.push(width);
+    }
+    assert.deepEqual(declared.sort((a, b) => a - b), [16, 32]);
+    // The payloads are the very files the raster set links, so the ICO and the
+    // PNGs can never show different art.
+    for (const size of [16, 32]) {
+      const png = readFileSync(`public/favicon-${size}.png`);
+      assert.ok(ico.includes(png), `favicon-${size}.png must be the ICO's payload`);
+    }
+  });
+});
+
+describe("§17h — the head links and the card's copy", () => {
 
   it("says nothing new — the card's copy is the app's own two strings (§17f)", () => {
     const AUTH_LINE =
@@ -397,9 +532,11 @@ describe("§17h — the static pages stop borrowing another division's mark", ()
   for (const page of PAGES) {
     it(`${page} links Levelflow's own icon`, () => {
       const source = readFileSync(page, "utf8");
+      // The whole cross-browser set since §17i (pinned in order above); what this
+      // guard still owns is whose mark it is.
       assert.match(
         source,
-        /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/,
+        /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" sizes="any" \/>/,
       );
       // The house mark belongs beside the house's name, not in Levelflow's tab.
       assert.doesNotMatch(source, /windward-line-mark/);

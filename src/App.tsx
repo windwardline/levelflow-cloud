@@ -465,10 +465,12 @@ export default function App() {
 // The page shell, in its two shapes — one per platform, since §17i (desktop) and
 // §17g (mobile) now ask for the same thing: a fixed frame, chrome pinned, one
 // region scrolling between. Neither shape scrolls as a document, so neither is a
-// min-height flex column any more and nothing is left for AppFooter's own
-// mt-auto to push against — the footer is a row of the grid instead, which is
-// what makes "always visible" structural rather than a consequence of content
-// height.
+// min-height flex column any more, and the auto top margin AppFooter used to pin
+// itself with has nothing left to push against — the footer is a row of the grid
+// instead, which is what makes "always visible" structural rather than a
+// consequence of content height. (The retired utility is named by shape rather
+// than spelled out: Tailwind's scanner reads this file, and a dead class in a
+// comment is a dead rule in the bundle.)
 //
 // They differ by exactly one row. Below lg the footer is absent (§17g), so the
 // shell is masthead + content; at ≥lg it is masthead + content + footer.
