@@ -261,7 +261,7 @@ export function HistoryPanel({
     // rhythm between its two rules, and the filter row's hairline is the only
     // separation between the chrome and the ledger — no second frame.
     return (
-      <div className={MOBILE_FRAME} data-testid="insights-surface">
+      <div className={MOBILE_FRAME}>
         <div className={MOBILE_FRAME_PINNED}>
           <div className="grid gap-5">
             {recordBandHead}

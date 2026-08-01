@@ -1202,15 +1202,25 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
   it("gives each surface a pinned block and exactly one scroll region, from the shared strings", () => {
     for (const { file, mobileRoot } of MOBILE_SURFACES) {
       const source = readFileSync(file, "utf8");
-      assert.match(
-        source,
-        /import \{\s*MOBILE_FRAME[\s\S]{0,120}\} from "[./]*components\/mobileFrame"|from "\.\.\/mobileFrame"|from "\.\.\/\.\.\/components\/mobileFrame"/,
-        `${file} must take the shared frame strings, not its own copy`,
-      );
+      // The import itself, by name: the point of the shared module is that no
+      // surface writes these three strings out again, so a file that imports
+      // only some of them has half a frame of its own.
+      const importBlock =
+        source.match(/import \{[^}]*\} from "[^"]*\/mobileFrame";/)?.[0] ?? "";
       assert.ok(
-        source.includes("className={MOBILE_FRAME_PINNED}"),
-        `${file} must pin its chrome with the shared string`,
+        importBlock.length > 0,
+        `${file} must import the shared frame strings, not write its own`,
       );
+      for (const name of ["MOBILE_FRAME", "MOBILE_FRAME_PINNED", "MOBILE_FRAME_SCROLL"]) {
+        assert.ok(
+          importBlock.includes(name),
+          `${file} imports no ${name}`,
+        );
+        assert.ok(
+          source.includes(`className={${name}}`),
+          `${file} imports ${name} without using it as a className`,
+        );
+      }
       assert.ok(
         source.includes(mobileRoot),
         `${file} must name its scroll region ${mobileRoot} for the e2e suite`,
@@ -1220,15 +1230,13 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
         1,
         `${file} must scroll exactly one region`,
       );
-      // And nothing else in the file scrolls below lg: no second overflow
-      // container smuggled in beside the frame's own. (The one exception is
-      // Insights' horizontal table scroller, which is an axis, not a second
-      // region — asserted for that file alone below.)
-      const verticalScrollers =
-        (source.match(/\boverflow-y-auto\b/g) ?? []).length;
-      assert.ok(
-        verticalScrollers <= 1,
-        `${file} declares ${verticalScrollers} vertical scrollers`,
+      // And nothing else in the file scrolls: no second overflow container
+      // smuggled in beside the frame's own. (Insights' horizontal table scroller
+      // is an axis rather than a second region — asserted for that file below.)
+      assert.doesNotMatch(
+        source,
+        /\boverflow-y-auto\b|\boverflow-auto\b/,
+        `${file} declares a vertical scroller of its own`,
       );
     }
   });

@@ -172,9 +172,11 @@ export function ProfilePanel({
 
   if (isMobile) {
     // Spec §17g: "Profile: fits the frame; if content ever exceeds it, the rows
-    // region scrolls internally." Four rows plus the colophon measure close to a
-    // 375x812 frame and past a shorter one, so the rows region is the scroll
-    // region — it simply does not scroll on the taller phones.
+    // region scrolls internally." It does exceed it. Measured against the built
+    // CSS with the shipped fonts at 375x812: the four rows plus the colophon come
+    // to 722px against 683px of frame, before the tab bar overlays the last 57px
+    // of that. So the conditional is the operative clause and the rows region is
+    // the scroll region.
     //
     // And the footer, reduced to its colophon: "The footer exists on mobile ONLY
     // inside the Profile view." It ends the sheet rather than pinning to the
