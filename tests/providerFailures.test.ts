@@ -54,7 +54,7 @@ describe("a provider failure is recorded, never swallowed", () => {
     // And a run that failed outright says so in the same place.
     assert.match(
       NEWS_CALENDAR,
-      /message: `news calendar sync failed: \$\{detail\}`,\s*status: "error",/,
+      /message: `news-calendar sync failed: \$\{detail\}`,\s*status: "error",/,
     );
   });
 

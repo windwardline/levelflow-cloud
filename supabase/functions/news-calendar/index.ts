@@ -204,10 +204,10 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     const detail = describeError(error);
-    console.error("news calendar sync failed", detail);
+    console.error("news-calendar sync failed", detail);
     await recordAnalyzerEvent({
       action: "news_calendar_sync",
-      message: `news calendar sync failed: ${detail}`,
+      message: `news-calendar sync failed: ${detail}`,
       status: "error",
     });
     return jsonResponse({ detail, error: "News calendar sync failed." }, 500);
