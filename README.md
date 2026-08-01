@@ -61,5 +61,6 @@ migration should land one push after the migration.
 Market-data and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript. Levelflow does not place trades; trade execution is outside the active product scope.
 
 See [docs/trade-model.md](/docs/trade-model.md) for the current engine state of record — per-class calibration derived across a completed 23-round arc at full available history under a walk-forward both-splits gate, the measured per-class records the UI mirrors, and the resumption protocol for when live cohort data warrants reopening the work.
+See [docs/design/contrast.md](/docs/design/contrast.md) for every text pair's measured WCAG ratio in both themes, enforced by `tests/contrast.test.ts`.
 See [docs/security-hardening.md](/docs/security-hardening.md) for the Cloudflare response-header policy and authenticated E2E test-user setup.
 See [docs/gap-analysis.md](/docs/gap-analysis.md) for the current improvement backlog across trade logic, frontend, backend, security, and reliability.
