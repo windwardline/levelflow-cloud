@@ -531,12 +531,17 @@ windward-line-mark.svg on the 404 and legal pages.
 
 ### §17i. The desktop frame, single-home links, and the satellite brand (owner rulings, 2026-08-01)
 
-- **Desktop is an app-shell frame on every surface, Desk included**: the
-  masthead pinned top, THE footer pinned bottom and always visible, the
-  content region scrolling between them (100dvh grid, the §17g pattern
-  lifted to ≥lg with the footer in the frame). The Guide no longer hides
-  the footer below a full page-scroll; the Desk gains the footer it never
-  had; the Desk's three columns keep scrolling internally above it.
+- **Desktop is an app-shell frame on EVERY page — no exceptions**
+  (owner: "Every single page."): the authed tabs (Desk, Insights, Guide,
+  Profile, Donate) AND the seldom-used set (parking, login, the legal
+  trio, 404). Top chrome pinned (the masthead where one exists; the
+  page's own head region otherwise), THE footer pinned bottom and always
+  visible, the content region scrolling between them (100dvh frame, the
+  §17g pattern lifted to ≥lg with the footer inside). The Desk's three
+  columns keep scrolling internally above it. Satellite pages carry the
+  same footer composition with links that work in their context (static
+  pages link Donate to the app root; Help stays the mailto; legal links
+  absolute).
 - **Each link lives in exactly one home per platform.** Desktop: the
   footer (Help · Donate · Risk disclaimer · Privacy · Terms) — so the
   Guide's Support section and Profile's Support row are DELETED (both
