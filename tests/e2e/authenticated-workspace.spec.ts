@@ -935,7 +935,7 @@ test("the mobile account menu carries the footer's link set (spec §17g)", async
   await expect(footer.getByText("A Windward Line production")).toBeVisible();
 });
 
-test("Expand chart opens the same chart full-viewport on mobile, and only on mobile", async ({ page }) => {
+test("Expand chart opens the same chart full-viewport at both widths", async ({ page }) => {
   // Spec §17: the affordance, the overlay's dialog semantics, its 44px close
   // target, Escape, focus in and back out, and the body scroll lock — the
   // pieces only a real browser can confirm. The unit guards source-pin the
@@ -1056,13 +1056,22 @@ test("the Desk stage fits its region at 1280x800 and 1440x900 (§17m.3)", async 
       )!;
       const section = select.closest("section")!;
       const column = section.parentElement!;
-      const chart = section.querySelector<HTMLElement>(".basis-\\[32\\%\\]")!;
+      const chart = section.querySelector<HTMLElement>(".basis-\\[30\\%\\]")!;
       const sheet = section.querySelector<HTMLElement>(".border-t-0")!;
+      // The closed-market reopen notice (spec §10b) is a shrink-0 sibling
+      // that legitimately takes ~38px whenever the selected market is closed
+      // — a Saturday state, not a regression. Measured so the share
+      // assertion below judges the sheet against the space the notice
+      // leaves.
+      const notice = section.querySelector<HTMLElement>(
+        ".mt-3.text-sm.font-medium.text-ink-muted",
+      );
       return {
         chartHeight: chart.getBoundingClientRect().height,
         columnHeight: column.clientHeight,
         columnScrollHeight: column.scrollHeight,
         headHeight: section.firstElementChild!.getBoundingClientRect().height,
+        noticeHeight: notice ? notice.getBoundingClientRect().height : 0,
         sheetHeight: sheet.getBoundingClientRect().height,
         sheetScrollHeight: sheet.scrollHeight,
       };
@@ -1088,7 +1097,13 @@ test("the Desk stage fits its region at 1280x800 and 1440x900 (§17m.3)", async 
     // stagehead's confidence unit owns the remaining ~15%, measured 110px of a
     // 651px region at 1280x800 — hence 0.45 rather than a bare half).
     expect(stage.sheetHeight, where).toBeGreaterThan(stage.chartHeight);
-    expect(stage.sheetHeight / stage.columnHeight, where).toBeGreaterThan(0.45);
+    // Judged against the space the reopen notice leaves: with the notice
+    // present (closed market — a weekend truth) the raw-region share drops
+    // ~4 points for market conditions, not for any regression.
+    expect(
+      stage.sheetHeight / (stage.columnHeight - stage.noticeHeight),
+      where,
+    ).toBeGreaterThan(0.45);
   }
 });
 

@@ -1309,7 +1309,13 @@ async function upsertActiveSetup(
       ? "review"
       : origin;
 
-    await updateRows(
+    // The persistence contract (§17m.2) reaches into this branch too: a PATCH
+    // whose filter matches nothing returns 200 with an empty representation,
+    // and counting that as "updated" would be the exact silent divergence the
+    // contract exists to end. Zero rows here means the setup vanished between
+    // the read above and this write — thrown so the per-symbol accounting
+    // records it failed, with the reason in analyzer_events.
+    const updatedRows = await updateRows(
       token,
       `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${
         encodeURIComponent(userId)
@@ -1337,6 +1343,12 @@ async function upsertActiveSetup(
         take_profit_1: setup.takeProfit1,
       },
     );
+
+    if (updatedRows.length === 0) {
+      throw new Error(
+        `dedupe update matched no rows for setup ${activeSetup.id} — it was removed mid-scan`,
+      );
+    }
 
     return {
       deduplicated: true,

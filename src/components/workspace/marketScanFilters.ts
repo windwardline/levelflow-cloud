@@ -90,7 +90,9 @@ export function formatScanRowMeta(
   confidenceScore: MarketScanCandidate["confidenceScore"],
 ): string {
   if (!side) {
-    return "Review";
+    // Defensive: a candidate always carries a side in practice. The em dash
+    // is the app-wide absent-value mark - never a retired verb.
+    return "\u2014";
   }
   const sideLabel = side === "buy" ? "Buy" : "Sell";
   return typeof confidenceScore === "number" &&
