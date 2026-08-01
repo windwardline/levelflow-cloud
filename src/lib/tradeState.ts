@@ -71,10 +71,11 @@ const RESOLVED_OUTCOMES = new Set([
  *   outcomeRow.filled_at is the ENTRY fill, not Target 1's. The instruction
  *   below used to (wrongly) report an age computed from it, e.g. "Target 1
  *   hit 14 min ago" — removed (I6) rather than shown from the wrong clock.
- * - A scan surfaces candidates for review, not orders placed with a broker
- *   — an unfilled scan-origin row earns no rail entry at all (I1); a
- *   review-origin one is a real limit order the user asked for, so it still
- *   earns Pending.
+ * - Every generated setup earns Pending regardless of origin: since §17m
+ *   made Scan the only door, a scan's qualifying setups ARE the user's
+ *   orders-in-waiting. (The I1-era scan-origin exclusion predated that
+ *   ruling — with it in place the rail could never show a pending trade
+ *   at all, because every setup is scan-origin now.)
  *
  * Returns null for anything closed/resolved: Insights holds those.
  */
@@ -89,9 +90,6 @@ export function deriveTradeState(
   _now: Date,
 ): TradeState | null {
   if (setup.status === "generated") {
-    if (setup.origin === "scan") {
-      return null;
-    }
     return {
       instruction: `Order pending at ${formatEntry(setup)} — nothing to do yet`,
       progressR: null,

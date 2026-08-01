@@ -1560,4 +1560,23 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
       missing.join(", ")
     } (the scan reported ${persistence!.skipped} live-position skip(s))`,
   ).toBeLessThanOrEqual(persistence!.skipped);
+
+  // §17m supersedes I1: every generated setup is a pending order, so the
+  // scan's freshly persisted batch must also reach the Current trades rail
+  // (owner-observed miss, 2026-08-01: three trades in Insights, zero in the
+  // rail). Back on the Desk, the rail's auto-refresh-on-show plus the batch
+  // just written means at least one Pending chip — unless nothing was newly
+  // persisted this run (every qualifier a live-position skip).
+  if (persistence!.persisted > 0) {
+    await page.getByRole("button", { name: "Desk", exact: true }).click();
+    const rail = page.getByTestId("current-trades-rail");
+    await expect(rail).toBeVisible();
+    await expect
+      .poll(() => rail.getByText("Pending", { exact: true }).count(), {
+        message:
+          "expected the scan's persisted setups to reach the Current trades rail as Pending",
+        timeout: 15_000,
+      })
+      .toBeGreaterThan(0);
+  }
 });

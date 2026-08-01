@@ -53,26 +53,30 @@ export function sortHistorySetups(
   setups: TradeSetupRow[],
   sortBy: HistorySort,
 ) {
+  // Every mode ends in the same full tie-break chain so no ordering is ever
+  // left to database return order — a scan batch shares one created_at
+  // second, and before this chain existed those rows rendered in whatever
+  // order the fetch happened to deliver (owner-observed, 2026-08-01). The
+  // tiers after the mode's own key: confidence descending (the strongest
+  // first, echoing the scan results' one sanctioned ordering deviation),
+  // then the universal base/quote symbol comparator.
   return [...setups].sort((first, second) => {
     const firstDate = new Date(first.created_at).getTime();
     const secondDate = new Date(second.created_at).getTime();
+    const confidenceGap =
+      Number(second.confidence_score) - Number(first.confidence_score);
+    const symbolOrder = compareAssetSymbols(first.symbol, second.symbol);
 
     if (sortBy === "oldest") {
-      return firstDate - secondDate;
+      return firstDate - secondDate || confidenceGap || symbolOrder;
     }
     if (sortBy === "confidence") {
-      return (
-        Number(second.confidence_score) - Number(first.confidence_score) ||
-        secondDate - firstDate
-      );
+      return confidenceGap || secondDate - firstDate || symbolOrder;
     }
     if (sortBy === "asset") {
-      return (
-        compareAssetSymbols(first.symbol, second.symbol) ||
-        secondDate - firstDate
-      );
+      return symbolOrder || secondDate - firstDate || confidenceGap;
     }
-    return secondDate - firstDate;
+    return secondDate - firstDate || confidenceGap || symbolOrder;
   });
 }
 
