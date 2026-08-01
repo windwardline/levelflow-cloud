@@ -556,3 +556,18 @@ windward-line-mark.svg on the 404 and legal pages.
   in the order Safari and Chrome each need (ICO + sized PNGs + SVG +
   apple-touch + manifest), on the app AND the static pages, so the icon
   shows in Safari and Chrome alike — the standard every repo follows.
+
+### §17j. The durable parking page (owner ruling, 2026-08-01)
+
+The parking layout is a saved, reusable standard — mark, eyebrow,
+wordmark, accent rule, one body line, THE footer in the frame — and its
+copy must fit ANY future pause, not the occasion that built it. The
+canonical body line:
+
+> **The desk is closed while we work on it. Sign-in resumes the moment
+> it reopens.**
+
+Fifteen words, no duration promised, no work explained (§17f — the page
+cannot show why it is closed, only that the closure is deliberate and
+ends). "The desk" is the product's own vocabulary. The
+"UNDER CONSTRUCTION" eyebrow stays — already situation-agnostic.
