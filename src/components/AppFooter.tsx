@@ -1,17 +1,6 @@
 import { LegalLinks } from "./legal/LegalLinks";
 
 type AppFooterProps = {
-  // True on the Desk tab only. At ≥lg the Desk is a fixed, non-scrolling
-  // three-column shell whose columns own the viewport, so spec §17c keeps that
-  // one surface footer-less and this element steps out of the layout entirely
-  // rather than merely going invisible. Below lg the Desk scrolls like every
-  // other page and carries this footer unchanged.
-  //
-  // The flag gates presence, never composition: both branches below differ by
-  // exactly one utility, and everything inside the frame is a single shared
-  // string, so the footer that renders is identical on every surface that
-  // renders one.
-  hiddenOnDesktopDesk?: boolean;
   onOpenDonate: () => void;
   supportMailto: string;
 };
@@ -21,11 +10,13 @@ type AppFooterProps = {
 // drawn as p-profile-v2.html:96-99 draws it: a hairline rule across the top,
 // the colophon at the left, the link row at the right, both on one baseline.
 //
-// It pins itself. `mt-auto` inside App.tsx's min-h-screen flex column puts the
-// footer at the true bottom of the viewport when the page is short and directly
-// after the content when it is long — the pinning belongs to the footer rather
-// than to each caller, which is what makes "identical everywhere" structural
-// instead of a convention to remember.
+// It does not pin itself any more, and no longer needs to: spec §17i makes the
+// shell a fixed frame whose last row is this element (App.tsx's
+// mainShellClassName), so the footer is at the bottom of the viewport on every
+// surface by construction — including the Desk, whose §17c exception this ruling
+// retires. The composition is one literal string with no branches at all, which
+// is what makes "identical everywhere" structural instead of a convention to
+// remember.
 //
 // The link row is the §17 placement (a) set: Help and Donate beside the legal
 // trio, in the mock's own left-to-right order. They sit in their own Support
@@ -34,23 +25,16 @@ type AppFooterProps = {
 // for anyone navigating by landmark. Two navs, one flex row, so they read as
 // one quiet line. Donate fires the same tab switch every other Donate
 // affordance in the app already uses; no second mechanism for one action.
-export function AppFooter({
-  hiddenOnDesktopDesk = false,
-  onOpenDonate,
-  supportMailto,
-}: AppFooterProps) {
+export function AppFooter({ onOpenDonate, supportMailto }: AppFooterProps) {
   return (
-    <footer
-      className={hiddenOnDesktopDesk
-        ? "mt-auto w-full border-t border-hairline lg:hidden"
-        : "mt-auto w-full border-t border-hairline"}
-    >
-      {/* pb-24 below lg is clearance for the fixed MobileTabBar (≥56px with
-          its safe-area inset), the same reserve the scrolling content wrapper
-          above carries — without it the bar overlays this row at full scroll.
-          ≥lg has no fixed bar, so the padding closes back to the mock's own
-          18px and the footer is symmetrical there. */}
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 pt-[18px] pb-24 sm:px-8 lg:pb-[18px]">
+    <footer className="w-full border-t border-hairline">
+      {/* The mock's own symmetrical 18px, on one axis-wide utility. The bottom
+          reserve this row used to carry was clearance for the fixed MobileTabBar,
+          and §17g made that unreachable: the footer is a ≥lg element now (App.tsx's
+          presence gate), and no fixed bar exists at ≥lg for it to clear. (Named by
+          shape rather than spelled out: Tailwind's scanner reads this file too, and
+          a dead class in a comment is a dead rule in the bundle.) */}
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 py-[18px] sm:px-8">
         {/* .colophon carries its own 2rem top pad for the standalone use on
             the auth and parking screens; here the footer's own padding is the
             spacing, so that pad comes back off. */}

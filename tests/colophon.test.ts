@@ -120,7 +120,10 @@ describe("placement — §17c above lg, §17g below it", () => {
     // py-0 because .colophon's own 2rem top pad is for the standalone pre-auth
     // use; here the footer's padding is the spacing.
     assert.match(footer, /<p className="colophon py-0">A Windward Line production<\/p>/);
-    assert.match(footer, /className=\{hiddenOnDesktopDesk[\s\S]{0,120}lg:hidden/);
+    // §17i: on every ≥lg surface, with no Desk exception left to branch on — so
+    // the line rides one class string rather than one of two.
+    assert.match(footer, /<footer className="w-full border-t border-hairline">/);
+    assert.doesNotMatch(footer, /hiddenOnDesktopDesk/);
   });
 
   it("keeps it inside Profile's own <lg branch below lg, once, and never pins it to the frame", () => {

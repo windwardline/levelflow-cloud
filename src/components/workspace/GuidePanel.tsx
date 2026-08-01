@@ -502,7 +502,7 @@ function GuideSupport({
   // source order too, which is what the composition guard reads.
   return (
     <section
-      className="mt-6 scroll-mt-28 border-t border-hairline pt-6"
+      className="mt-6 scroll-mt-5 border-t border-hairline pt-6"
       data-testid="guide-support"
       id="support"
     >
@@ -539,21 +539,26 @@ function GuideSupport({
 //    id and reads its number and title back out of that same map, so there is
 //    one literal per fact and nothing left for the two to disagree about.
 //
-// 2. `top-[89px]` is the TOC's own natural resting offset, not a chosen value:
-//    the masthead is 69px tall (py-3 either side of a 44px control row, plus
-//    its bottom hairline) and the page wrapper adds sm:pt-5 above the grid.
-//    Measured in a browser against the built CSS, `top-20` pinned the rail at
-//    80px while it rested at 89 — so it hopped 9px upward the instant the page
-//    moved. At 89 it does not move at all, and the 20px of air under the
-//    sticky header is the page's own top padding rather than a second
-//    invention. tests/surfaceComposition.test.ts derives all three numbers from
-//    their own sources, so a masthead change fails there instead of quietly
-//    restoring the jump.
+// 2. `top-0` is the TOC's own natural resting offset, not a chosen value — and
+//    §17i re-measured it. While the document scrolled, the rail rested 89px down
+//    the viewport (a 69px masthead plus the page wrapper's sm:pt-5) and had to
+//    pin at 89 or it hopped. The frame moved the scroll out of the document and
+//    into App.tsx's content region, and a sticky offset is measured against that
+//    region rather than the viewport — against its CONTENT box, measured in
+//    Chromium against the built CSS at 1280 and 1440: the region's own 20px top
+//    padding is already outside the rect the offset is applied to. So the rail's
+//    resting offset inside that rect is zero, and any positive offset is a gap.
+//    At `top-5` the rail measured y=109 against an h1 at y=89 — no hop, but 20px
+//    of unfinished margin above it, which is the same misalignment §17c's own
+//    ruling is about; at `top-0` both sit at 89 and it neither moves nor
+//    misaligns. tests/surfaceComposition.test.ts pins the pairing (a zero offset
+//    beside a region that carries the padding), so restoring either half alone
+//    fails there.
 function GuideToc({ sections }: { sections: typeof GUIDE_SECTIONS }) {
   return (
     <nav
       aria-label="Guide sections"
-      className="hidden lg:block sticky top-[89px] self-start border-r border-hairline pr-5"
+      className="hidden lg:block sticky top-0 self-start border-r border-hairline pr-5"
     >
       <p className="eyebrow mb-2">
         Contents
@@ -587,7 +592,7 @@ function GuideSection({
 }) {
   const { number, title } = GUIDE_SECTIONS[id];
   return (
-    <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id={id}>
+    <section className="mt-6 scroll-mt-5 border-t border-hairline pt-6" id={id}>
       <p className="eyebrow">
         {number}
       </p>

@@ -100,7 +100,9 @@ describe("§8 — the 120ms fade, on the surfaces the spec names", () => {
     for (const shell of [
       /\? "motion-fade-in flex w-full min-h-0 flex-col overflow-hidden"/,
       /\? "motion-fade-in mx-auto w-full max-w-7xl px-4/,
-      /: "motion-fade-in mx-auto max-w-7xl space-y-5 px-4/,
+      // §17i made this branch the app's one ≥lg scroll region, so the kit's thin
+      // scrollbar class leads its list; the fade itself is unchanged.
+      /: "scrolly motion-fade-in mx-auto max-w-7xl space-y-5 px-4/,
     ]) {
       assert.match(APP, shell, "every tab-content shell branch fades");
     }

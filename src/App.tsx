@@ -256,32 +256,29 @@ export default function App() {
   const accountInitial = (session.user.email ?? "").trim().charAt(0)
     .toUpperCase();
 
-  // The Desk (≥lg) is a fixed-height, three-column shell that never scrolls
-  // as a page — each column scrolls itself (spec §2). main's
-  // grid-rows-[auto_1fr] hands the content row exactly "viewport minus header"
-  // without hardcoding the header's pixel height, and the footer steps out of
-  // the layout so it can't add height the fixed shell has no room for.
+  // Which of the Desk's two ≥lg neighbours the content region is: the Desk's own
+  // three-column shell scrolls each column internally and so hands the region
+  // nothing to scroll, while every other tab is a page that scrolls inside it.
   //
-  // Spec §17g gives every surface below lg the same discipline: the fixed shell
-  // is no longer the Desk's alone, so the condition is the viewport itself.
-  // isMobileViewport is a JS width check rather than a max-lg: variant because
-  // the sm: padding utilities this shell has to drop would outrank a max-width
-  // variant in Tailwind's own emission order — and because each surface swaps in
-  // a pinned/scroll composition CSS cannot express as a restyling of the
-  // scrolling one (src/components/mobileFrame.ts).
+  // Spec §17g gave every surface below lg the fixed-frame discipline; §17i lifts
+  // it to ≥lg with the footer inside the frame, so BOTH platforms are now a
+  // 100dvh shell and neither scrolls as a document. isMobileViewport is a JS
+  // width check rather than a max-lg: variant because the sm: padding utilities
+  // the mobile shell has to drop would outrank a max-width variant in Tailwind's
+  // own emission order — and because each surface swaps in a pinned/scroll
+  // composition CSS cannot express as a restyling of the other
+  // (src/components/mobileFrame.ts).
   const isDeskTab = activeTab === "advisor";
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
-      {/* Spec §17c: a min-height flex column is what lets AppFooter's own
-          mt-auto put it at the true bottom of the viewport on a short page —
-          Donate and an empty Insights are both short — and directly after the
-          content on a long one. Each branch is a complete literal class string
-          (C1) rather than a base list plus an override, because the fixed
-          shells and the scrolling page disagree about height, min-height and
-          overflow, and a stack of competing utilities on one element is how
-          that disagreement turns into a cascade puzzle. */}
-      <main className={mainShellClassName(isDeskTab, isMobileViewport)}>
+      {/* Spec §17i: the shell is the frame — masthead row, content row, footer
+          row — and the footer is inside it on every surface, the Desk included.
+          Each branch is a complete literal class string (C1) rather than a base
+          list plus an override, because the two shells disagree about how many
+          rows they have, and a stack of competing utilities on one element is
+          how that disagreement turns into a cascade puzzle. */}
+      <main className={mainShellClassName(isMobileViewport)}>
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
@@ -394,13 +391,21 @@ export default function App() {
             // intact (pb-24 below lg, lg:pb-5 above it) and changes nothing at
             // >=lg, where lg:pb-5 already computed the same 20px the block form
             // was handing it.
-            // Both scrolling branches are reached at ≥lg only since §17g, and
-            // both keep every utility they had: they are what the frozen desktop
-            // cascade is built from, and the tab-bar reserve below stays as the
-            // guard that pins the hazard the comment describes.
+            // Both ≥lg branches are reached at ≥lg only since §17g, and both keep
+            // every utility they had: they are what the frozen desktop cascade is
+            // built from, and the tab-bar reserve below stays as the guard that
+            // pins the hazard the comment describes.
+            //
+            // §17i makes the second of them the app's one ≥lg scroll region: the
+            // Desk still scrolls its three columns internally (lg:overflow-hidden,
+            // unchanged), and every other tab scrolls its page HERE rather than in
+            // the document, which is what leaves the footer row pinned below it.
+            // The thin scrollbar is the kit's own .scrolly, the same one the Desk's
+            // columns and every mobile scroll region already take.
             : isDeskTab
             ? "motion-fade-in mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
-            : "motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
+            : "scrolly motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:min-h-0 lg:overflow-y-auto lg:pb-5"}
+          data-testid="content-region"
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
@@ -446,22 +451,16 @@ export default function App() {
           ) : null}
         </div>
 
-        {/* Spec §17c: ONE footer, on every scrolling page and view. The
-            component owns its composition, its dimensions, its spacing and its
-            own bottom-pinning; the only thing decided here is the ruling's own
-            exception, which is the word "scrolling": a fixed viewport has no
-            bottom for a footer to follow.
-            Spec §17g settles which surfaces those are. Below lg there are none —
-            every surface is a fixed frame now, so the footer is a ≥lg component
-            and leaves the tree outright rather than lingering unseen inside a
-            frame that has no room for it. Its link set moves to the account menu
-            and its colophon to the Profile view (ProfilePanel's own <lg branch).
-            At ≥lg nothing changes: the same one footer on every scrolling view,
-            with the Desk's fixed shell still carrying the component's own
-            lg:hidden branch. */}
+        {/* Spec §17i: ONE footer, in the frame's own bottom row, always visible
+            on every ≥lg surface — the Guide no longer hides it below a full
+            page-scroll and the Desk gains the footer it never had, so the
+            component's Desk exception is gone with the ruling that carved it.
+            Below lg it is still absent outright (§17g): every surface there is a
+            fixed frame with no room for it, its link set lives in the account
+            menu and its colophon in the Profile view (ProfilePanel's own <lg
+            branch). */}
         {isMobileViewport ? null : (
           <AppFooter
-            hiddenOnDesktopDesk={isDeskTab}
             onOpenDonate={() => setActiveTab("donate")}
             supportMailto={SUPPORT_MAILTO}
           />
@@ -477,26 +476,29 @@ export default function App() {
   );
 }
 
-// The page shell, in its three shapes. Both fixed shells hand their content row
-// exactly "viewport minus header" via grid-rows-[auto_1fr]; the scrolling page
-// is the min-height flex column AppFooter's mt-auto pushes against (spec §17c).
-// 100dvh, not 100vh, on the mobile one: a phone's 100vh is the toolbar-less
-// height, which would put the bottom of a "fixed" surface below the visible
-// viewport and hand the page a scrollbar it must not have.
+// The page shell, in its two shapes — one per platform, since §17i (desktop) and
+// §17g (mobile) now ask for the same thing: a fixed frame, chrome pinned, one
+// region scrolling between. Neither shape scrolls as a document, so neither is a
+// min-height flex column any more and nothing is left for AppFooter's own
+// mt-auto to push against — the footer is a row of the grid instead, which is
+// what makes "always visible" structural rather than a consequence of content
+// height.
 //
-// The mobile branch is checked first and covers every surface (spec §17g): below
-// lg nothing scrolls as a page, so neither of the two scrolling shapes is
-// reachable there and both are the ≥lg shapes they always were.
-function mainShellClassName(
-  isDeskTab: boolean,
-  isMobileViewport: boolean,
-): string {
+// They differ by exactly one row. Below lg the footer is absent (§17g), so the
+// shell is masthead + content; at ≥lg it is masthead + content + footer.
+// minmax(0,1fr) rather than a bare 1fr on the content row: 1fr floors at the
+// row's min-content height, so a long Guide or a wide Insights ledger would push
+// the footer off the bottom of the frame the moment its content outgrew it.
+//
+// 100dvh, not 100vh: a phone's 100vh is the toolbar-less height, which would put
+// the bottom of a "fixed" surface below the visible viewport and hand the page a
+// scrollbar it must not have. The same unit at ≥lg, where the two are equal, so
+// the frame is one number rather than two.
+function mainShellClassName(isMobileViewport: boolean): string {
   if (isMobileViewport) {
     return "grid h-[100dvh] grid-rows-[auto_1fr] overflow-hidden bg-paper text-ink";
   }
-  return isDeskTab
-    ? "flex min-h-screen flex-col bg-paper text-ink lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
-    : "flex min-h-screen flex-col bg-paper text-ink";
+  return "grid h-[100dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-paper text-ink";
 }
 
 function useThemePreference() {

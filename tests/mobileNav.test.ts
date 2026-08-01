@@ -308,20 +308,22 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   });
 
   // Fix wave 2B, FIX 4 (completeness-audit-2 Finding 6). The scrolling
-  // content wrapper reserves pb-24 below lg specifically to clear the fixed
-  // MobileTabBar (>= 56px with its safe-area inset). The footer trails that
-  // wrapper, so at full scroll it is the last thing on the page and needs the
-  // identical reserve — with pb-8 alone the bar overlaid its link row.
+  // content wrapper reserves a bottom pad below lg specifically to clear the
+  // fixed MobileTabBar (>= 56px with its safe-area inset). The footer trailed that
+  // wrapper, so at full scroll it was the last thing on the page and needed the
+  // identical reserve — with a small pad alone the bar overlaid its link row.
   //
   // Spec §17c moved the footer itself into src/components/AppFooter.tsx (one
-  // footer for every surface; tests/appFooter.test.ts owns its composition).
-  // What stays here is the claim that belongs to the mobile tab bar: the two
-  // elements it can overlay reserve the same clearance, read from both sources
-  // rather than restated as a number.
-  it("gives the footer the same tab-bar clearance the content wrapper reserves (F4 fix wave 2B)", () => {
+  // footer for every surface; tests/appFooter.test.ts owns its composition), and
+  // §17g/§17i then took the footer out of the bar's reach entirely: the footer is a
+  // ≥lg element and the bar is lg:hidden, so the two can never share a viewport
+  // and the footer's own reserve was padding for nothing. What stays here is the
+  // claim that belongs to the bar — the ONE element it can still overlay is the
+  // content wrapper, read from that source rather than restated as a number.
+  it("keeps the tab-bar clearance on the one element the bar can overlay (F4 fix wave 2B)", () => {
     const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -330,7 +332,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     for (const branch of wrapperClassNames.match(/"[^"]*"/g) ?? []) {
       assert.match(branch, /\bpb-24\b/, `content wrapper branch ${branch}`);
     }
-    assert.match(footerSource, /\bpb-24\b/);
+    assert.doesNotMatch(footerSource, /\bpb-24\b/);
     // Real, statically-analyzable tokens for Tailwind's build-time scanner —
     // never a variant prefix reassembled at runtime (C1).
     assert.doesNotMatch(footerSource, /lg:\$\{/);
@@ -354,7 +356,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // width no unit test looks at.
   it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -1212,9 +1214,11 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // it to the viewport, so the retired condition must be gone in both
     // directions rather than merely widened.
     assert.doesNotMatch(APP_SOURCE, /isFixedMobileDesk/);
+    // §17i put the footer inside the frame on every ≥lg surface too, so the shell's
+    // shape no longer depends on which tab is showing — only on the viewport.
     assert.match(
       APP_SOURCE,
-      /className=\{mainShellClassName\(isDeskTab, isMobileViewport\)\}/,
+      /className=\{mainShellClassName\(isMobileViewport\)\}/,
     );
     const shell = APP_SOURCE.match(/function mainShellClassName\([\s\S]*?\n}\n/)
       ?.[0] ?? "";
@@ -1338,7 +1342,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // The two scrolling wrapper branches are reached at ≥lg only now, and both
     // keep every utility the frozen desktop cascade is built from.
     const wrapperBranches = APP_SOURCE.match(
-      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(wrapperBranches.length > 0, "expected the ≥lg wrapper branches");
     for (const branch of wrapperBranches.match(/"[^"]*"/g) ?? []) {

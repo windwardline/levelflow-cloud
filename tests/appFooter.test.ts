@@ -5,10 +5,15 @@ import { describe, it } from "node:test";
 
 // Spec §17c (owner live-QA, binding): "Footer, one standard everywhere — a
 // single footer component, identical composition, dimensions, and spacing on
-// every scrolling page and view, always at the true bottom of the viewport when
-// content is short (flex column, footer pinned via mt-auto) and after content
-// when long. Carries the §17 link row (legal trio + Help + Donate) and the
-// colophon. The Desk's fixed desktop shell stays footer-less."
+// every scrolling page and view … Carries the §17 link row (legal trio + Help +
+// Donate) and the colophon."
+//
+// Spec §17i settles the two clauses §17c left conditional. "Every scrolling page
+// and view" is now every view, full stop — the Desk's footer-less exception is
+// retired — and "at the true bottom of the viewport" is no longer something the
+// footer arranges with mt-auto inside a min-height column: it is the last row of
+// App.tsx's fixed frame, so it is at the bottom of the viewport by construction.
+// tests/appFrame.test.ts owns the frame; this file owns what the footer is.
 //
 // Source-pinned, no jsdom (see tests/currentTradesRail.test.tsx's header for
 // the established technique). These guards are deliberately structural rather
@@ -22,50 +27,40 @@ const app = readFileSync(APP, "utf8");
 
 describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)", () => {
   it("draws the mock's frame: hairline rule on top, colophon left, link row right, one baseline", () => {
-    assert.match(footer, /<footer\s*\n?\s*className=/);
-    // Both branches of the presence gate carry the identical frame; the only
-    // difference between them is the ≥lg Desk exception.
-    const branches = footer.match(
-      /className=\{hiddenOnDesktopDesk\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
-    );
-    assert.ok(branches, "expected the footer's two literal class branches");
-    const [, deskBranch, everywhereElse] = branches;
-    assert.equal(everywhereElse, "mt-auto w-full border-t border-hairline");
-    assert.equal(deskBranch, `${everywhereElse} lg:hidden`);
-    // One inner frame, shared by both branches, so dimensions and spacing
-    // cannot vary by surface.
+    // One literal class string, no branches at all: §17i retired the ≥lg Desk
+    // exception, which was the only thing the footer's composition ever varied by.
+    assert.match(footer, /<footer className="w-full border-t border-hairline">/);
+    assert.equal((footer.match(/<footer/g) ?? []).length, 1);
     assert.match(
       footer,
-      /<div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 pt-\[18px\] pb-24 sm:px-8 lg:pb-\[18px\]">/,
+      /<div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 py-\[18px\] sm:px-8">/,
     );
     assert.match(
       footer,
       /<p className="colophon py-0">A Windward Line production<\/p>/,
     );
+    // The retired prop is gone from both sides of the call, not merely unused.
+    assert.doesNotMatch(footer, /hiddenOnDesktopDesk/);
+    assert.doesNotMatch(app, /hiddenOnDesktopDesk/);
+    assert.doesNotMatch(footer, /lg:hidden/);
   });
 
-  it("pins itself to the true viewport bottom — mt-auto lives in the footer, not in each caller", () => {
-    assert.match(footer, /"mt-auto w-full border-t border-hairline/);
-    // App.tsx's own half of the contract: a min-height flex column is what
-    // gives mt-auto something to push against. Read from the shell helper that
-    // now owns the three page shapes — every branch that renders a footer is a
-    // min-height flex column, and the one branch that is a fixed viewport
-    // (spec §17e's merged mobile Scan surface) renders none, which is the next
-    // test's subject.
+  it("no longer pins itself — the frame's last row is what puts it at the viewport bottom (§17i)", () => {
+    // mt-auto needed a min-height flex column to push against. There is no such
+    // column left: both shell branches are fixed frames, and the footer is a grid
+    // row of the ≥lg one. A surviving mt-auto here would be a dead utility
+    // claiming to do the thing the frame actually does.
+    assert.doesNotMatch(footer, /mt-auto/);
     const shell = app.match(
       /function mainShellClassName\([\s\S]*?\n}\n/,
     )?.[0] ?? "";
     assert.ok(shell.length > 0, "expected to find mainShellClassName");
-    const branches = shell.match(/return[\s\S]*?"([^"]*bg-paper text-ink[^"]*)"/g) ??
-      [];
-    assert.ok(branches.length >= 2, "expected the shell's literal branches");
-    for (const branch of shell.match(/"[^"]*bg-paper text-ink[^"]*"/g) ?? []) {
-      const isFixedViewport = branch.includes("h-[100dvh]");
-      assert.equal(
-        /flex min-h-screen flex-col/.test(branch),
-        !isFixedViewport,
-        `shell branch ${branch}`,
-      );
+    const branches = shell.match(/"[^"]*bg-paper text-ink[^"]*"/g) ?? [];
+    assert.equal(branches.length, 2, "expected the shell's two literal branches");
+    for (const branch of branches) {
+      assert.doesNotMatch(branch, /min-h-screen/, `shell branch ${branch}`);
+      assert.match(branch, /h-\[100dvh\]/, `shell branch ${branch}`);
+      assert.match(branch, /overflow-hidden/, `shell branch ${branch}`);
     }
   });
 
@@ -80,13 +75,15 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
     assert.doesNotMatch(footer, /aria-label="Legal"/);
   });
 
-  it("keeps the fixed mobile tab bar's clearance, and closes it back at ≥lg", () => {
-    // F4 (fix wave 2B) in its new home: below lg the MobileTabBar is fixed to
-    // the viewport bottom, so the footer needs the same pb-24 reserve the
-    // scrolling content wrapper carries. Literal tokens, never a variant
-    // prefix assembled by interpolation (tests/tailwindVariantGuard.test.ts).
-    assert.match(footer, /\bpb-24\b/);
-    assert.match(footer, /\blg:pb-\[18px\]/);
+  it("drops the fixed tab bar's clearance — the footer never shares a viewport with the bar (§17g)", () => {
+    // F4 (fix wave 2B) reserved pb-24 here because the MobileTabBar was fixed to
+    // the viewport bottom underneath this row. §17g made the footer a ≥lg element
+    // (App.tsx's presence gate) and the bar is lg:hidden, so the two can no longer
+    // occupy one viewport and the reserve was padding for nothing. The row is the
+    // mock's symmetrical 18px again — one padding utility, no breakpoint chain.
+    assert.doesNotMatch(footer, /\bpb-24\b/);
+    assert.doesNotMatch(footer, /\blg:pb-/);
+    assert.match(footer, /\bpy-\[18px\]/);
     assert.doesNotMatch(footer, /lg:\$\{/);
   });
 });
@@ -128,7 +125,7 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.equal((app.match(/<AppFooter/g) ?? []).length, 1);
     assert.match(
       app,
-      /<AppFooter\s+hiddenOnDesktopDesk=\{isDeskTab\}\s+onOpenDonate=\{\(\) => setActiveTab\("donate"\)\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
+      /<AppFooter\s+onOpenDonate=\{\(\) => setActiveTab\("donate"\)\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
     );
     // Spec §17g narrows §17c's "every scrolling page and view" to ≥lg: below lg
     // no view scrolls as a page at all, so the footer is a ≥lg component and
@@ -139,6 +136,9 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.doesNotMatch(app, /activeTab !== "profile"/);
     // §17e's Desk-only gate is retired with it — one condition, not two.
     assert.doesNotMatch(app, /isFixedMobileDesk/);
+    // And §17i's own retirement: the ≥lg Desk no longer opts out either, so the
+    // mount is gated on the viewport and on nothing else.
+    assert.doesNotMatch(app, /isDeskTab\}\s*\n?\s*onOpenDonate/);
   });
 
   // The coordinator's hard constraint for wave 6: §17g moves the mobile footer
@@ -146,8 +146,8 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
   // one — the whole §17c composition still renders above lg, and nothing at all
   // renders below it.
   it("renders its full §17c composition at ≥lg and nothing below lg (§17g)", () => {
-    // Above lg: the colophon and all five links, in the one component, with the
-    // ≥lg Desk exception the ruling itself carved out.
+    // Above lg: the colophon and all five links, in the one component, on every
+    // surface — §17i took away the ≥lg Desk exception §17c had carved out.
     assert.match(footer, /A Windward Line production/);
     assert.match(footer, /href=\{supportMailto\}/);
     assert.match(footer, /onClick=\{onOpenDonate\}/);
