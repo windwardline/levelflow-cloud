@@ -58,6 +58,18 @@ html {
   box-sizing: border-box;
 }
 
+/*
+  Spec §17i, as amended: the frame is every page, "the seldom-used set (parking,
+  login, the legal trio, 404)" included. These pages have no masthead, so the
+  frame is two rows — the content region, then the footer — and the region is
+  what scrolls. 100dvh rather than 100vh for the same reason the app uses it: a
+  phone's 100vh is the toolbar-less height, which would put the footer below the
+  visible viewport on exactly the devices that most need it reachable.
+
+  At every width, not only >=lg: §17g's mobile footer rule is about the authed
+  app, where a bottom tab bar owns the bottom of the viewport and the account
+  menu carries the link set. These pages have neither.
+*/
 body {
   margin: 0;
   background: var(--color-base);
@@ -65,17 +77,44 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   font-size: 15px;
   line-height: 1.65;
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
+/*
+  The one scrolling region. min-height: 0 is what lets it be shorter than its
+  content instead of stretching the frame; the thin scrollbar matches the app's
+  own .scrolly. It runs full width so the scrollbar sits at the viewport edge —
+  the reading measure moved to .page-block inside it.
+*/
 main {
   flex: 1;
-  max-width: 44rem;
-  margin: 0 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) transparent;
   padding: 48px 20px;
   width: 100%;
+}
+
+main::-webkit-scrollbar {
+  width: 6px;
+}
+
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+main::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+  border-radius: 3px;
+}
+
+.page-block {
+  max-width: 44rem;
+  margin: 0 auto;
 }
 
 .page-eyebrow {
@@ -132,22 +171,65 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+/*
+  The footer, in the app's own composition (spec §17c/§17i, drawn as
+  src/components/AppFooter.tsx draws it): a hairline rule across the top, the
+  colophon at the left, the link row at the right, both on one baseline, the whole
+  row centred at the app's 1280px measure with 18px of symmetrical padding. It is
+  the frame's second row, so it needs no margin trick to reach the bottom.
+*/
 footer {
   background: var(--color-base);
   color: var(--color-ink-muted);
-  text-align: center;
-  padding: 32px 20px;
-  margin-top: auto;
+  flex: 0 0 auto;
   border-top: 1px solid var(--color-hairline);
   font-size: 13px;
 }
 
-footer p {
-  margin: 0 0 12px 0;
+.footer-row {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 80rem;
+  padding: 18px 20px;
+  width: 100%;
 }
 
-footer p:last-child {
-  margin-bottom: 0;
+footer p {
+  margin: 0;
+}
+
+/* Help and Donate, beside the legal trio — the app's .tertiary-link treatment. */
+.footer-links {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.support-links {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.support-links a {
+  color: var(--color-ink-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-hairline);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.support-links a:hover {
+  color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
 }
 
 /*
@@ -167,19 +249,19 @@ footer p:last-child {
   Quiet legal-links row (F1/Finding 5) — the static twin's equivalent of
   the app's <LegalLinks />: muted and small, not the accent, underlined
   body-link style the generic `a` rule above sets for prose and the
-  back-link.
+  back-link. Since §17i it lives inside the footer's link row on every static
+  page, at the same 12px the app's own component gives it.
 */
 .legal-links {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 16px;
-  margin: 0 0 12px 0;
+  gap: 8px 16px;
+  margin: 0;
 }
 
 .legal-links a {
   color: var(--color-ink-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   text-decoration: none;
 }
@@ -192,18 +274,24 @@ footer p:last-child {
   404 page only. Scoped under body.not-found (set on public/404.html)
   instead of shipping as an inline <style> block, which production CSP
   (style-src 'self', no unsafe-inline) blocks outright.
+
+  Centring moved off the body when §17i made the body the frame: the body's rows
+  are the region and the footer, and centring THEM would put the footer in the
+  middle of the page. The region centres its own block instead, on auto margins —
+  which, unlike justify-content, collapse to zero rather than clipping the top
+  when the content is taller than the region.
 */
 body.not-found {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   text-align: center;
 }
 
 body.not-found main {
+  display: flex;
+}
+
+body.not-found .page-block {
+  margin: auto;
   max-width: 32rem;
-  padding: 48px 20px;
 }
 
 body.not-found .page-eyebrow {
@@ -245,25 +333,18 @@ body.not-found .back-link:focus-visible {
   outline-offset: 2px;
 }
 
-body.not-found footer {
-  margin-top: 64px;
-}
-
-/* Parking page (construction gate) — same composition family as the 404. */
+/* Parking page (construction gate) — same composition family as the 404, and the
+   same reason its centring lives on the region rather than the body. */
 body.parking {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100dvh;
   text-align: center;
 }
-/* The base sheet stretches main to fill the page; the parking group must
-   stay a compact, truly centered block instead. */
 body.parking main {
-  flex: 0 0 auto;
+  display: flex;
+  padding: 2rem 1.5rem;
+}
+body.parking .page-block {
+  margin: auto;
   max-width: 36rem;
-  padding: 2rem 1.5rem 0;
 }
 body.parking .page-eyebrow {
   margin-bottom: 1.25rem;
@@ -286,8 +367,26 @@ body.parking .parking-body {
   line-height: 1.6;
   margin: 0 auto;
 }
-body.parking footer {
-  flex: 0 0 auto;
-  margin: 40px 0 0;
-  padding-bottom: 24px;
+
+/*
+  Spec §17i's satellite mark: mark A above the eyebrow, one treatment on every
+  page that carries it — 44px, 16px of air under it, on the same 32-grid geometry
+  §17h fixes. Inline in each document rather than an <img>, because §17h's own
+  clause is "the mark IS the palette, never approximated hexes": an <img> loads an
+  isolated document that cannot see these custom properties, so it could only carry
+  baked hexes and a per-theme file swap, while an inline svg re-values with the
+  theme legal-theme.js applies. The rendition is the sheet tile with a hairline
+  edge, which is §17h's own answer for a paper ground.
+*/
+.page-mark {
+  display: block;
+  height: 44px;
+  margin: 0 0 16px;
+  width: 44px;
+}
+
+/* Centred where the page is centred; the legal pages read left, and so does theirs. */
+body.not-found .page-mark,
+body.parking .page-mark {
+  margin-inline: auto;
 }

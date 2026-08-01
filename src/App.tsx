@@ -457,7 +457,7 @@ export default function App() {
             branch). */}
         {isMobileViewport ? null : (
           <AppFooter
-            onOpenDonate={() => setActiveTab("donate")}
+            donate={{ onSelect: () => setActiveTab("donate") }}
             supportMailto={SUPPORT_MAILTO}
           />
         )}

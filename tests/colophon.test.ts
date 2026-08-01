@@ -17,10 +17,12 @@ import { describe, it } from "node:test";
 // nothing renders two.
 const LINE = "A Windward Line production";
 
+// Two since §17i: the pre-auth screens carry the shared footer in their frame
+// now, so the line reaches them through AppFooter rather than through a bespoke
+// footer of their own. What is left is the one component and the one <lg surface
+// §17g keeps the line on.
 const APP_SURFACES = [
   "src/components/AppFooter.tsx",
-  "src/components/auth/AuthScreen.tsx",
-  "src/components/auth/ParkingScreen.tsx",
   "src/components/workspace/ProfilePanel.tsx",
 ];
 const STATIC_PAGES = [
@@ -71,25 +73,23 @@ describe("one wording, one treatment, everywhere", () => {
         page,
       );
     }
-    for (const file of [
-      "src/components/AppFooter.tsx",
-      "src/components/auth/ParkingScreen.tsx",
-      "src/components/workspace/ProfilePanel.tsx",
-    ]) {
+    for (const file of APP_SURFACES) {
       assert.match(
         readFileSync(file, "utf8"),
         /<p className="colophon[^"]*">A Windward Line production<\/p>/,
         file,
       );
     }
-    // The one that differs, and the only one permitted to: spec §2 allows the
-    // house mark small beside the line ("never above the wordmark"), and the
-    // pre-auth front page is where it sits. Still one .colophon element, still
-    // the same words.
-    assert.match(
-      readFileSync("src/components/auth/AuthScreen.tsx", "utf8"),
-      /<footer className="colophon">\s*<img src=\{brandAssets\.mark\}[^>]*\/>\s*<span>A Windward Line production<\/span>\s*<\/footer>/,
-    );
+    // One treatment, with no exception left. §2 allowed the house mark small
+    // beside the line on the pre-auth front page, and that was the one surface
+    // that differed; §17i gave that screen the shared footer instead, so the mark
+    // beside the line retires with the bespoke footer that held it. The house is
+    // still named — by the line itself, which is all §2 asks for — and §17i puts
+    // Levelflow's own mark at the top of that screen, above the eyebrow.
+    const auth = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
+    assert.doesNotMatch(auth, /brandAssets/);
+    assert.doesNotMatch(auth, /<footer/);
+    assert.match(auth, /<AppFooter\n/);
   });
 
   it("defines that class in both stylesheets, so neither surface family inherits its treatment by accident", () => {

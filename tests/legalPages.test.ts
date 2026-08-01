@@ -43,9 +43,13 @@ describe("every static page requests an icon that exists on disk (F1, Finding 4)
   }
 
   it("leaves no page standing in the borrowed house mark", () => {
-    // The Windward Line mark still ships — it belongs beside the house's own name
-    // in the auth screen's colophon (spec §2) — but it is nobody's favicon now.
+    // The Windward Line mark still ships as the house's own asset, but nothing in
+    // this product draws it any more: it was nobody's favicon after §17h, and §17i
+    // retired its last use — the small mark beside the auth screen's colophon —
+    // when that screen took the shared framed footer, which names the house in the
+    // line itself and puts Levelflow's own mark at the top of the page.
     assert.ok(existsSync("public/brand/windward-line-mark.svg"));
+    assert.equal(existsSync("src/lib/assets.ts"), false);
     for (const file of STATIC_PAGES) {
       assert.doesNotMatch(readFileSync(file, "utf8"), /windward-line-mark/, file);
     }

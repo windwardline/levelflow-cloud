@@ -131,9 +131,12 @@ describe("DonationOptions — two live callers, and no caller-specific chrome (w
   it("draws no wrapper of its own — the divider and the off-palette colour went to the caller that wanted them", () => {
     assert.doesNotMatch(donationOptions, /border-ink-muted\/15/);
     assert.doesNotMatch(donationOptions, /border-t/);
-    // The sign-in panel's disclosure now draws the rule itself, matching the two
-    // identical dividers already on that screen.
-    assert.equal((auth.match(/border-t border-ink-muted\/15 pt-4/g) ?? []).length, 3);
+    // The sign-in panel's disclosure draws the rule itself. It is the only one of
+    // these dividers left on that screen: §17i deleted the two blocks that carried
+    // the others (the card's Help/Donate row and its copy of the legal trio), since
+    // the framed footer is the one home either link has there now.
+    assert.equal((auth.match(/border-t border-ink-muted\/15 pt-4/g) ?? []).length, 1);
+    assert.match(auth, /className="mt-6 border-t border-ink-muted\/15 pt-4"/);
   });
 
   it("keeps exactly the two shapes its callers need, and the wiring behind them", () => {

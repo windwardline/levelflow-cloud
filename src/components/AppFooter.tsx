@@ -1,7 +1,19 @@
 import { LegalLinks } from "./legal/LegalLinks";
 
+// Where Donate goes, which is the one thing that cannot be the same on every
+// surface (spec §17i: satellite pages "carry the same footer composition with
+// links that work in their context"). Inside the app it is a tab switch; on the
+// login screen it is the disclosure over that screen's own donation options; on
+// the parking screen there is no in-page target at all, so it is a link to the
+// app root. A discriminated union rather than two optional props, so "exactly one
+// of these" is a type error rather than a convention — and it decides the ELEMENT
+// only. The word, its class and its place in the row are the same either way.
+export type FooterDonate =
+  | { href: string }
+  | { expanded?: boolean; onSelect: () => void };
+
 type AppFooterProps = {
-  onOpenDonate: () => void;
+  donate: FooterDonate;
   supportMailto: string;
 };
 
@@ -23,9 +35,10 @@ type AppFooterProps = {
 // group rather than inside LegalLinks, which is a nav landmark named for the
 // legal documents it lists — a support link filed under that name is misnamed
 // for anyone navigating by landmark. Two navs, one flex row, so they read as
-// one quiet line. Donate fires the same tab switch every other Donate
-// affordance in the app already uses; no second mechanism for one action.
-export function AppFooter({ onOpenDonate, supportMailto }: AppFooterProps) {
+// one quiet line. Since §17i this row is the ONLY home either link has on a
+// desktop surface, which is what retired the Guide's Support section and
+// Profile's Support row.
+export function AppFooter({ donate, supportMailto }: AppFooterProps) {
   return (
     <footer className="w-full border-t border-hairline">
       {/* The mock's own symmetrical 18px, on one axis-wide utility. The bottom
@@ -47,13 +60,26 @@ export function AppFooter({ onOpenDonate, supportMailto }: AppFooterProps) {
             <a className="tertiary-link" href={supportMailto}>
               Help
             </a>
-            <button
-              className="tertiary-link"
-              type="button"
-              onClick={onOpenDonate}
-            >
-              Donate
-            </button>
+            {"href" in donate
+              ? (
+                <a className="tertiary-link" href={donate.href}>
+                  Donate
+                </a>
+              )
+              : (
+                // aria-expanded only where the control really is a disclosure
+                // (the login screen's donation options). Left undefined — and so
+                // absent from the DOM — where the click switches surfaces, since
+                // a tab switch expands nothing.
+                <button
+                  aria-expanded={donate.expanded}
+                  className="tertiary-link"
+                  type="button"
+                  onClick={donate.onSelect}
+                >
+                  Donate
+                </button>
+              )}
           </nav>
           <LegalLinks align="left" />
         </div>

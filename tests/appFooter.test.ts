@@ -67,12 +67,48 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
   it("carries the §17 link row: Help and Donate before the legal trio, in the mock's order", () => {
     assert.match(
       footer,
-      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,300}onClick=\{onOpenDonate\}[\s\S]{0,80}Donate[\s\S]{0,200}<LegalLinks align="left" \/>/,
+      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,900}Donate[\s\S]{0,300}<LegalLinks align="left" \/>/,
     );
-    // Both quiet, both the same furniture as the legal links beside them.
-    assert.equal((footer.match(/className="tertiary-link"/g) ?? []).length, 2);
+    // Three tertiary links for two controls: Help, and Donate in each of its two
+    // element forms (§17i's satellite pages need a link where the app needs a
+    // button). Both forms carry the identical class, which is what keeps the row's
+    // look the same on every surface.
+    assert.equal((footer.match(/className="tertiary-link"/g) ?? []).length, 3);
+    const donateForms = footer.match(/className="tertiary-link"[\s\S]{0,200}?Donate/g) ??
+      [];
+    assert.equal(donateForms.length, 2);
     // Support is its own group, not filed inside <nav aria-label="Legal">.
     assert.doesNotMatch(footer, /aria-label="Legal"/);
+  });
+
+  // Spec §17i: "Satellite pages carry the same footer composition with links that
+  // work in their context (static pages link Donate to the app root; Help stays
+  // the mailto)." The target is the only thing that varies, and it varies by
+  // ELEMENT — a link where a link is right, a button where the click reveals or
+  // switches something — so the prop is a discriminated union rather than two
+  // optional callbacks that could both be set or neither.
+  it("takes Donate's target as a union, and lets it decide the element only", () => {
+    assert.match(
+      footer,
+      /export type FooterDonate =\s*\|\s*\{ href: string \}\s*\|\s*\{ expanded\?: boolean; onSelect: \(\) => void \};/,
+    );
+    assert.match(footer, /\{"href" in donate/);
+    assert.match(footer, /href=\{donate\.href\}/);
+    assert.match(footer, /onClick=\{donate\.onSelect\}/);
+    // aria-expanded rides the union member that can actually be a disclosure, and
+    // is undefined (so absent from the DOM) for the app's own tab switch.
+    assert.match(footer, /aria-expanded=\{donate\.expanded\}/);
+    // Every caller, and which target each one gives: the app switches tabs, the
+    // login screen reveals its own donation block, parking links to the app root.
+    assert.match(app, /donate=\{\{ onSelect: \(\) => setActiveTab\("donate"\) \}\}/);
+    assert.match(
+      readFileSync("src/components/auth/ParkingScreen.tsx", "utf8"),
+      /<AppFooter donate=\{\{ href: "\/\?donate" \}\} supportMailto=\{SUPPORT_MAILTO\} \/>/,
+    );
+    assert.match(
+      readFileSync("src/components/auth/AuthScreen.tsx", "utf8"),
+      /donate=\{\{\s*expanded: donationsOpen,\s*onSelect: \(\) => setDonationsOpen\(\(value\) => !value\),\s*\}\}/,
+    );
   });
 
   it("drops the fixed tab bar's clearance — the footer never shares a viewport with the bar (§17g)", () => {
@@ -100,15 +136,11 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
       });
     }
 
-    // AuthScreen and ParkingScreen are pre-auth surfaces with their own
-    // approved composition and no tab shell to hang this component off (spec
-    // §16 leaves them out of the mockups' scope); every authed surface goes
-    // through AppFooter.
-    const allowed = new Set([
-      FOOTER,
-      "src/components/auth/AuthScreen.tsx",
-      "src/components/auth/ParkingScreen.tsx",
-    ]);
+    // One file, with no exceptions left. AuthScreen and ParkingScreen used to draw
+    // footers of their own — pre-auth surfaces §16 puts outside the mockups' scope
+    // — and §17i's "every single page" retired that: both take this component in
+    // their frame's bottom row now, so there is exactly one <footer> in src/.
+    const allowed = new Set([FOOTER]);
     for (const file of sourceFilesUnder("src")) {
       if (allowed.has(file)) {
         continue;
@@ -125,7 +157,7 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.equal((app.match(/<AppFooter/g) ?? []).length, 1);
     assert.match(
       app,
-      /<AppFooter\s+onOpenDonate=\{\(\) => setActiveTab\("donate"\)\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
+      /<AppFooter\s+donate=\{\{ onSelect: \(\) => setActiveTab\("donate"\) \}\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
     );
     // Spec §17g narrows §17c's "every scrolling page and view" to ≥lg: below lg
     // no view scrolls as a page at all, so the footer is a ≥lg component and
@@ -150,7 +182,7 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     // surface — §17i took away the ≥lg Desk exception §17c had carved out.
     assert.match(footer, /A Windward Line production/);
     assert.match(footer, /href=\{supportMailto\}/);
-    assert.match(footer, /onClick=\{onOpenDonate\}/);
+    assert.match(footer, /onClick=\{donate\.onSelect\}/);
     assert.match(footer, /<LegalLinks align="left" \/>/);
     const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
     assert.deepEqual(

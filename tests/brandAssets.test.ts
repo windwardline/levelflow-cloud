@@ -111,6 +111,156 @@ describe("§17h — the mark's geometry", () => {
   });
 });
 
+// Spec §17i: "The mark reaches the satellite pages: mark A rendered small above
+// the eyebrow on the parking page, the login hero, the legal trio, and the 404 —
+// one consistent treatment."
+//
+// It reaches them inline rather than as an <img>, which is §17h's own clause doing
+// the deciding: "fills come from the app's real tokens — the mark IS the palette,
+// never approximated hexes." An <img> loads an isolated document that cannot see a
+// custom property, so it could only carry baked hexes and a per-theme file swap;
+// inline, every fill is the live token in both stylesheets. And the rendition is
+// the one §17h names for a paper ground — "sheet tile with a hairline edge, the
+// app's card idiom" — which is also the only rendition needing no swap, since
+// sheet, hairline, ink and accent each re-value.
+//
+// Six surfaces now draw this geometry from four sources (the script, its two SVG
+// files, the React component, the static snippet), so the risk is drift rather
+// than absence: every one is measured against §17h's own numbers below.
+describe("§17i — the mark on the satellite pages", () => {
+  const COMPONENT = readFileSync("src/components/LevelflowMark.tsx", "utf8");
+  const STATIC_PAGES = [
+    "public/404.html",
+    "public/construction.html",
+    "public/legal/privacy.html",
+    "public/legal/risk-disclaimer.html",
+    "public/legal/terms.html",
+  ];
+  // One line, so it can be pinned as a single literal across five documents that
+  // share no build step. The tile is inset by half a pixel with a matching radius
+  // so its 1px stroke lands inside the 32-grid rather than half outside it.
+  const SNIPPET =
+    '<svg class="page-mark" viewBox="0 0 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="var(--color-sheet)" stroke="var(--color-hairline)"/>' +
+    '<rect x="7" y="9" width="18" height="2.6" rx="1.3" fill="var(--color-ink)"/>' +
+    '<rect x="7" y="14.7" width="18" height="2.6" rx="1.3" fill="var(--color-accent)"/>' +
+    '<rect x="7" y="20.4" width="12" height="2.6" rx="1.3" fill="var(--color-ink)" opacity="0.45"/>' +
+    "</svg>";
+
+  it("draws §17h's three lines at §17h's geometry, in the React component", () => {
+    assert.match(COMPONENT, /viewBox="0 0 32 32"/);
+    for (const [x, y, width] of LINES) {
+      assert.match(
+        COMPONENT,
+        new RegExp(
+          `x="${x}"\\s*\\n?\\s*y="${y}"\\s*\\n?\\s*width="${width}"\\s*\\n?\\s*height="2\\.6"\\s*\\n?\\s*rx="1\\.3"`,
+        ),
+        `line at y=${y}, width ${width}`,
+      );
+    }
+    assert.equal((COMPONENT.match(/<rect/g) ?? []).length, 4);
+    assert.equal((COMPONENT.match(/opacity="0\.45"/g) ?? []).length, 1);
+  });
+
+  it("takes every fill from a live token, never a hex", () => {
+    assert.doesNotMatch(COMPONENT, /#[0-9A-Fa-f]{3,8}/);
+    for (
+      const property of [
+        "--color-sheet",
+        "--color-hairline",
+        "--color-ink",
+        "--color-accent",
+      ]
+    ) {
+      assert.ok(
+        COMPONENT.includes(`var(${property})`),
+        `the component must read ${property}`,
+      );
+    }
+    // The tokens exist in BOTH stylesheets, which is what makes one snippet
+    // correct in the app and on the static pages alike.
+    const legalCss = readFileSync("public/legal/legal.css", "utf8");
+    for (const property of ["--color-sheet", "--color-hairline", "--color-ink", "--color-accent"]) {
+      assert.match(legalCss, new RegExp(`${property}:`), property);
+      assert.match(CSS, new RegExp(`${property}:`), property);
+    }
+  });
+
+  it("is decorative — the wordmark directly beneath it is what carries the name", () => {
+    assert.match(COMPONENT, /aria-hidden="true"/);
+    assert.doesNotMatch(COMPONENT, /aria-label|role="img"|<title>/);
+    for (const page of STATIC_PAGES) {
+      assert.match(readFileSync(page, "utf8"), /class="page-mark"[^>]*aria-hidden="true"/, page);
+    }
+  });
+
+  it("renders it at one size and one spacing on every surface that carries it", () => {
+    // 44px with 16px of air under it, above the eyebrow. The React screens say so
+    // in utilities and the static pages in a class; both are pinned, so "one
+    // consistent treatment" is checkable rather than a promise.
+    for (
+      const file of [
+        "src/components/auth/AuthScreen.tsx",
+        "src/components/auth/ParkingScreen.tsx",
+      ]
+    ) {
+      const source = readFileSync(file, "utf8");
+      assert.match(source, /<LevelflowMark className="[^"]*\bmb-4\b[^"]*"/, file);
+      assert.match(source, /<LevelflowMark className="[^"]*\bh-11 w-11\b[^"]*"/, file);
+      // Above the eyebrow, which stays above the wordmark.
+      assert.ok(
+        source.indexOf("<LevelflowMark") <
+          source.indexOf("uppercase tracking-[0.18em]"),
+        `${file}: the mark must sit above the eyebrow`,
+      );
+    }
+    const legalCss = readFileSync("public/legal/legal.css", "utf8");
+    const pageMark = legalCss.match(/\n\.page-mark \{[^}]*\}/)?.[0] ?? "";
+    assert.ok(pageMark.length > 0, "expected .page-mark in legal.css");
+    assert.match(pageMark, /height: 44px;/);
+    assert.match(pageMark, /width: 44px;/);
+    assert.match(pageMark, /margin: 0 0 16px;/);
+  });
+
+  it("ships the identical snippet on all five static pages, above each eyebrow", () => {
+    for (const page of STATIC_PAGES) {
+      const source = readFileSync(page, "utf8");
+      assert.ok(source.includes(SNIPPET), `${page} must carry the mark snippet`);
+      assert.equal(
+        source.split(SNIPPET).length - 1,
+        1,
+        `${page} must carry it once`,
+      );
+      assert.ok(
+        source.indexOf(SNIPPET) < source.indexOf('class="page-eyebrow"'),
+        `${page}: the mark must sit above the eyebrow`,
+      );
+    }
+  });
+
+  it("keeps that snippet in step with the generated files and the component", () => {
+    // The four sources of one geometry, cross-checked on the numbers §17h fixes
+    // rather than against each other's text, so no single one of them can define
+    // "correct" by drifting first.
+    const script = readFileSync("scripts/render-brand-assets.mjs", "utf8");
+    for (const [x, y, width] of LINES) {
+      const line = `x="${x}" y="${y}" width="${width}" height="2.6" rx="1.3"`;
+      assert.ok(SNIPPET.includes(line), `snippet: ${line}`);
+      assert.ok(script.includes(line), `script: ${line}`);
+      assert.ok(
+        readFileSync("public/brand/levelflow-mark.svg", "utf8").includes(line),
+        `mark file: ${line}`,
+      );
+    }
+    // And the edge rendition's own inset tile, which the script draws for the og
+    // card and these surfaces reuse for the same reason (a paper ground).
+    const edgeTile = 'x="0.5" y="0.5" width="31" height="31"';
+    assert.ok(SNIPPET.includes(edgeTile));
+    assert.ok(script.includes(edgeTile));
+    assert.ok(COMPONENT.includes('x="0.5"') && COMPONENT.includes('rx="6.5"'));
+  });
+});
+
 describe("§17h — the raster set and the manifest", () => {
   const RASTERS: Array<[string, number]> = [
     ["public/favicon-16.png", 16],
