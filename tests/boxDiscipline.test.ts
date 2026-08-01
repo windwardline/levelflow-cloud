@@ -141,16 +141,16 @@ const SURVIVORS: Record<string, Survivor[]> = {
       why: "the mock's .chart sheet (a-desk-v3.html:43) — the chart's own frame",
     },
     {
-      match: "rounded-lg border border-hairline bg-sheet px-3 py-2",
+      match: "rounded-md border border-hairline bg-sheet px-2 py-1",
       why:
         "the OHLC readout floating over live canvas: without its own plane the numbers sit on candles and cannot be read",
     },
     {
-      match: "rounded-lg border border-hairline bg-sheet p-1 shadow-xs",
+      match: "rounded-md border border-hairline bg-sheet p-0.5 shadow-xs",
       why: "the chart tool cluster — six buttons, over that same canvas",
     },
     {
-      match: "lg:rounded-lg lg:border lg:border-hairline lg:bg-sheet",
+      match: "lg:rounded-md lg:border lg:border-hairline lg:bg-sheet",
       why:
         "Expand chart at ≥lg (§17m.3): an interactive control over live candles, taking the tool cluster's own plane so its label can be read — bare accent text below lg, where the mock draws it on a quiet corner",
     },

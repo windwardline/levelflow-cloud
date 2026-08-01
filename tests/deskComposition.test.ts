@@ -603,8 +603,11 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     )?.[1] ?? "";
     assert.ok(trigger.length > 0, "expected the expand trigger's classes");
     assert.doesNotMatch(trigger, /\blg:hidden\b/);
-    assert.match(trigger, /\blg:right-3\b/);
-    assert.match(trigger, /\blg:top-14\b/);
+    // §17m follow-up compacting (owner, 2026-08-01): the cluster row shrank
+    // to 24px buttons in 0.5 padding, so the trigger tucks in at right-2 and
+    // clears it at top-11 instead of the old 40px row's top-14.
+    assert.match(trigger, /\blg:right-2\b/);
+    assert.match(trigger, /\blg:top-11\b/);
     // The kit's 44px tap floor, at the mock's own corner placement — the
     // TOP-right corner since the wave-6 rider: live inspection found the
     // affordance crowding the date axis at the bottom, and m-scan-v3.html:32
@@ -633,7 +636,7 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     // the two instances cannot drift into two clusters.
     assert.match(
       chart,
-      /const CHART_TOOLS =\s*\n?\s*"absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1\.5 rounded-lg border border-hairline bg-sheet p-1 shadow-xs";/,
+      /const CHART_TOOLS =\s*\n?\s*"absolute right-2 top-2 z-10 flex flex-wrap justify-end gap-1 rounded-md border border-hairline bg-sheet p-0\.5 shadow-xs";/,
     );
     assert.match(
       chart,
