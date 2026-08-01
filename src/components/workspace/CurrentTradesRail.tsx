@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { deriveTradeState, type TradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import {
+  MOBILE_FRAME,
+  MOBILE_FRAME_PINNED,
+  MOBILE_FRAME_SCROLL,
+} from "../mobileFrame";
 import { formatNumber } from "./advisorFormat";
 import { useWorkspaceNav } from "./WorkspaceNav";
 
 export type CurrentTradesRailProps = {
+  // True when this rail is the mobile Trades surface rather than the ≥lg Desk's
+  // right column (spec §17g): the head pins, the cards list scrolls inside the
+  // fixed frame, and the surface owns its own gutters. Off at ≥lg, where the
+  // column itself scrolls and the rail is one flat run of content in it.
+  fixedFrame?: boolean;
   // True exactly when this rail is the active mobile sub-view (spec §3's
   // "Trades" tab, i.e. AdvisorWorkspace's mobileView === "trades").
   // Irrelevant at >=lg, where the rail is always visible regardless of
@@ -128,7 +138,8 @@ function formatLevel(value: number | string | null | undefined): string {
 }
 
 export function CurrentTradesRail(
-  { isActiveOnMobile, now, onRefresh, setups }: CurrentTradesRailProps,
+  { fixedFrame = false, isActiveOnMobile, now, onRefresh, setups }:
+    CurrentTradesRailProps,
 ) {
   // The mock's closing cross-link (a-desk-v3.html:231) rides the nav context
   // that already exists — openInsights was declared on WorkspaceNav and
@@ -164,15 +175,14 @@ export function CurrentTradesRail(
     onRefresh();
   }
 
-  return (
-    // Spec §16 / a-desk-v3.html:216-232: the column IS this surface's frame
-    // (AdvisorWorkspace's aside carries the mock's left hairline and railR
-    // tint), so the rail itself is plain paper — no panel of its own. Only
-    // the position cards below are framed, which is the one box both mocks
-    // draw here. The heading takes the same eyebrow treatment the scan rail
-    // uses (:218), with the freshness stamp opposite it on one baseline row
-    // (`.rrhead`, :217).
-    <section className="min-w-0" data-testid="current-trades-rail">
+  // The rail's two pieces, built once and placed by whichever composition is
+  // rendering: at ≥lg one after the other in a flat column, below lg the first
+  // pinned and the second scrolling (spec §17g). Held as values rather than
+  // duplicated per branch so the head's own class list — which carries §17c's
+  // ≥lg baseline rhythm and fix wave 2C's mobile page-head treatment — exists
+  // exactly once.
+  const head = (
+    <>
       {/* Below lg this rail is not a rail — it is the Trades tab's whole page,
           and m-trades-v1.html:11-12,40 heads it as one: 19px display type in
           ink, sentence case (`.phead .t`). At ≥lg the heading stays the 12px
@@ -203,7 +213,11 @@ export function CurrentTradesRail(
           </button>
         </p>
       </div>
+    </>
+  );
 
+  const body = (
+    <>
       {cards.length === 0
         ? <p className="mt-2 text-sm leading-6 text-ink-muted">No current trades.</p>
         : (
@@ -225,6 +239,36 @@ export function CurrentTradesRail(
           All results → Insights
         </button>
       </p>
+    </>
+  );
+
+  if (fixedFrame) {
+    // Spec §17g, the mobile Trades surface: the head pins, the cards list is the
+    // scroll region, and the closing link travels with the cards it closes —
+    // pinning it would put an exit above content the reader has not reached yet.
+    // The testid stays on the outer element, where every e2e locator and the
+    // visual-proof capture already look for it.
+    return (
+      <section className={MOBILE_FRAME} data-testid="current-trades-rail">
+        <div className={MOBILE_FRAME_PINNED}>{head}</div>
+        <div className={MOBILE_FRAME_SCROLL} data-testid="mobile-trades-scroll">
+          {body}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    // Spec §16 / a-desk-v3.html:216-232: the column IS this surface's frame
+    // (AdvisorWorkspace's aside carries the mock's left hairline and railR
+    // tint), so the rail itself is plain paper — no panel of its own. Only
+    // the position cards below are framed, which is the one box both mocks
+    // draw here. The heading takes the same eyebrow treatment the scan rail
+    // uses (:218), with the freshness stamp opposite it on one baseline row
+    // (`.rrhead`, :217).
+    <section className="min-w-0" data-testid="current-trades-rail">
+      {head}
+      {body}
     </section>
   );
 }

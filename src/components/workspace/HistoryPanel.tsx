@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import { AVAILABLE_ASSET_GROUPS } from "../../lib/symbolMap";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import {
+  MOBILE_FRAME,
+  MOBILE_FRAME_PINNED,
+  MOBILE_FRAME_SCROLL,
+} from "../mobileFrame";
 import type { ScanScope } from "./ScopeMenu";
 import { useWorkspaceNav } from "./WorkspaceNav";
 import {
@@ -87,150 +93,196 @@ export function HistoryPanel({
     now,
   );
   const groupedSetups = buildInsightsGroups(filteredSetups);
+  // Which composition this surface is (spec §17g): below lg a fixed-viewport
+  // frame with the record band and the filters pinned above one scrolling
+  // ledger, at ≥lg the flat scrolling page i-insights-v1.html draws. A JS check
+  // rather than CSS for the same reason the Desk uses one — the pinned/scroll
+  // split needs wrapper boxes no restyling of the ≥lg tree produces — and the
+  // three blocks below are built once and placed by whichever branch renders, so
+  // the ≥lg page is byte-for-byte the one it already was.
+  const isMobile = useIsMobileViewport();
+
+  const recordBandHead = (
+    <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3.5">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h1 className="text-2xl font-semibold tracking-normal text-ink">
+          Insights
+        </h1>
+        {loading
+          ? <p className="text-sm font-semibold text-ink-muted">Loading</p>
+          : null}
+      </div>
+      <div className="flex flex-wrap gap-8">
+        <StatBlock
+          label="Setups this week"
+          value={recordBand.setupsThisWeek.toString()}
+        />
+        <StatBlock
+          label="Money-positive"
+          value={recordBand.moneyPositivePercent === null
+            ? "Learning"
+            : `${recordBand.moneyPositivePercent}%`}
+        />
+        <StatBlock
+          label="Net R"
+          value={recordBand.netR === null
+            ? "—"
+            : formatSignedR(recordBand.netR)}
+        />
+        <StatBlock
+          label="Best market"
+          value={recordBand.bestMarket ?? "Learning"}
+        />
+      </div>
+    </div>
+  );
+
+  const filterRow = (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">
+      <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+        Market
+        <select
+          aria-label="Market"
+          className="field"
+          value={marketFilterValue(marketScope)}
+          onChange={(event) =>
+            setMarketScope(parseMarketFilterValue(event.target.value))}
+        >
+          <option value={ALL_MARKETS_FILTER}>All markets</option>
+          {AVAILABLE_ASSET_GROUPS.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              <option value={`group:${group.label}`}>
+                All {group.label}
+              </option>
+              {group.options.map((option) => (
+                <option key={option.symbol} value={`symbol:${option.symbol}`}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+        Status
+        <select
+          aria-label="Status"
+          className="field"
+          value={statusFilter}
+          onChange={(event) =>
+            setStatusFilter(event.target.value as InsightsStatusFilter)}
+        >
+          {STATUS_FILTER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+        Period
+        <select
+          aria-label="Period"
+          className="field"
+          value={periodDays}
+          onChange={(event) =>
+            setPeriodDays(Number(event.target.value) as InsightsPeriodDays)}
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+
+  // The ledger itself, frame-free: at ≥lg the mock's own table box wraps this
+  // (spec §17c names it as the one surviving frame), and below lg the scroll
+  // region carries it flat, since §17g extends the box-on-box rule to scroll
+  // regions. The horizontal scroller inside is shared by both — it is an axis the
+  // 720px table needs at any width, not a second region.
+  const ledger = (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-hairline text-left text-xs font-semibold uppercase tracking-normal text-ink-muted">
+              <th className="py-2 pr-3">Market</th>
+              <th className="py-2 pr-3">Side</th>
+              <th className="py-2 pr-3">Confidence</th>
+              <th className="py-2 pr-3">Entry</th>
+              <th className="py-2 pr-3">Stop</th>
+              <th className="py-2 pr-3">Target 1</th>
+              <th className="py-2 pr-3">Target 2</th>
+              <th className="py-2 pr-3">Result</th>
+            </tr>
+          </thead>
+          {groupedSetups.map((group) => (
+            <tbody key={group.key}>
+              <tr className="bg-sheet">
+                <th
+                  className="px-0 py-2 text-left text-xs font-semibold uppercase tracking-normal text-ink-muted"
+                  colSpan={8}
+                >
+                  {group.label} · {group.items.length}{" "}
+                  {group.items.length === 1 ? "setup" : "setups"}
+                </th>
+              </tr>
+              {group.items.map((setup) => (
+                <InsightsRow key={setup.id} now={now} setup={setup} />
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+
+      {!loading && setups.length === 0
+        ? (
+          <p className="mt-4 text-sm leading-6 text-ink-muted">
+            No setups have been logged yet.
+          </p>
+        )
+        : null}
+      {!loading && setups.length > 0 && filteredSetups.length === 0
+        ? (
+          <p className="mt-4 text-sm leading-6 text-ink-muted">
+            No setups match the current filters.
+          </p>
+        )
+        : null}
+    </>
+  );
+
+  if (isMobile) {
+    // Spec §17g: "Insights: record band + filters pinned; the ledger (day groups
+    // + rows) is the scroll region." The pinned block keeps the page's own 20px
+    // rhythm between its two rules, and the filter row's hairline is the only
+    // separation between the chrome and the ledger — no second frame.
+    return (
+      <div className={MOBILE_FRAME} data-testid="insights-surface">
+        <div className={MOBILE_FRAME_PINNED}>
+          <div className="grid gap-5">
+            {recordBandHead}
+            {filterRow}
+          </div>
+        </div>
+        <div
+          className={MOBILE_FRAME_SCROLL}
+          data-testid="mobile-insights-scroll"
+        >
+          {ledger}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto grid w-full max-w-[1180px] gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3.5">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-normal text-ink">
-            Insights
-          </h1>
-          {loading
-            ? <p className="text-sm font-semibold text-ink-muted">Loading</p>
-            : null}
-        </div>
-        <div className="flex flex-wrap gap-8">
-          <StatBlock
-            label="Setups this week"
-            value={recordBand.setupsThisWeek.toString()}
-          />
-          <StatBlock
-            label="Money-positive"
-            value={recordBand.moneyPositivePercent === null
-              ? "Learning"
-              : `${recordBand.moneyPositivePercent}%`}
-          />
-          <StatBlock
-            label="Net R"
-            value={recordBand.netR === null
-              ? "—"
-              : formatSignedR(recordBand.netR)}
-          />
-          <StatBlock
-            label="Best market"
-            value={recordBand.bestMarket ?? "Learning"}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
-          Market
-          <select
-            aria-label="Market"
-            className="field"
-            value={marketFilterValue(marketScope)}
-            onChange={(event) =>
-              setMarketScope(parseMarketFilterValue(event.target.value))}
-          >
-            <option value={ALL_MARKETS_FILTER}>All markets</option>
-            {AVAILABLE_ASSET_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                <option value={`group:${group.label}`}>
-                  All {group.label}
-                </option>
-                {group.options.map((option) => (
-                  <option key={option.symbol} value={`symbol:${option.symbol}`}>
-                    {option.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
-          Status
-          <select
-            aria-label="Status"
-            className="field"
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value as InsightsStatusFilter)}
-          >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
-          Period
-          <select
-            aria-label="Period"
-            className="field"
-            value={periodDays}
-            onChange={(event) =>
-              setPeriodDays(Number(event.target.value) as InsightsPeriodDays)}
-          >
-            {PERIOD_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="terminal-panel p-3 sm:p-4">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-hairline text-left text-xs font-semibold uppercase tracking-normal text-ink-muted">
-                <th className="py-2 pr-3">Market</th>
-                <th className="py-2 pr-3">Side</th>
-                <th className="py-2 pr-3">Confidence</th>
-                <th className="py-2 pr-3">Entry</th>
-                <th className="py-2 pr-3">Stop</th>
-                <th className="py-2 pr-3">Target 1</th>
-                <th className="py-2 pr-3">Target 2</th>
-                <th className="py-2 pr-3">Result</th>
-              </tr>
-            </thead>
-            {groupedSetups.map((group) => (
-              <tbody key={group.key}>
-                <tr className="bg-sheet">
-                  <th
-                    className="px-0 py-2 text-left text-xs font-semibold uppercase tracking-normal text-ink-muted"
-                    colSpan={8}
-                  >
-                    {group.label} · {group.items.length}{" "}
-                    {group.items.length === 1 ? "setup" : "setups"}
-                  </th>
-                </tr>
-                {group.items.map((setup) => (
-                  <InsightsRow key={setup.id} now={now} setup={setup} />
-                ))}
-              </tbody>
-            ))}
-          </table>
-        </div>
-
-        {!loading && setups.length === 0
-          ? (
-            <p className="mt-4 text-sm leading-6 text-ink-muted">
-              No setups have been logged yet.
-            </p>
-          )
-          : null}
-        {!loading && setups.length > 0 && filteredSetups.length === 0
-          ? (
-            <p className="mt-4 text-sm leading-6 text-ink-muted">
-              No setups match the current filters.
-            </p>
-          )
-          : null}
-      </div>
+      {recordBandHead}
+      {filterRow}
+      <div className="terminal-panel p-3 sm:p-4">{ledger}</div>
       {/* Spec §17c deletes the below-table blurb outright: the Guide teaches
           that every setup is kept and that the record follows the broker, the
           table itself shows the setups, and the masthead's chip shows the

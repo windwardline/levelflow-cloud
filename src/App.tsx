@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { AppFooter } from "./components/AppFooter";
+import { LEGAL_LINKS } from "./components/legal/LegalLinks";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
 import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
@@ -260,15 +261,15 @@ export default function App() {
   // grid-rows-[auto_1fr] hands the content row exactly "viewport minus header"
   // without hardcoding the header's pixel height, and the footer steps out of
   // the layout so it can't add height the fixed shell has no room for.
+  //
+  // Spec §17g gives every surface below lg the same discipline: the fixed shell
+  // is no longer the Desk's alone, so the condition is the viewport itself.
+  // isMobileViewport is a JS width check rather than a max-lg: variant because
+  // the sm: padding utilities this shell has to drop would outrank a max-width
+  // variant in Tailwind's own emission order — and because each surface swaps in
+  // a pinned/scroll composition CSS cannot express as a restyling of the
+  // scrolling one (src/components/mobileFrame.ts).
   const isDeskTab = activeTab === "advisor";
-  // Spec §17e gives the merged mobile Scan surface the same discipline at the
-  // same job: a fixed viewport, its own pinned region, one scrolling region
-  // inside it (m-scan-v3.html). A JS width check rather than a max-lg: variant
-  // because the sm: padding utilities this shell has to drop would outrank a
-  // max-width variant in Tailwind's own emission order — and because
-  // AdvisorWorkspace already decides which composition it is the same way.
-  const isFixedMobileDesk = isMobileViewport && isDeskTab &&
-    deskMobileView === "scan";
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
@@ -280,7 +281,7 @@ export default function App() {
           shells and the scrolling page disagree about height, min-height and
           overflow, and a stack of competing utilities on one element is how
           that disagreement turns into a cascade puzzle. */}
-      <main className={mainShellClassName(isDeskTab, isFixedMobileDesk)}>
+      <main className={mainShellClassName(isDeskTab, isMobileViewport)}>
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
@@ -351,10 +352,10 @@ export default function App() {
         </header>
 
         <div
-          className={isFixedMobileDesk
-            // The merged surface owns its own gutters and its own bottom
-            // clearance (m-scan-v3.html:29,32), so this wrapper contributes
-            // nothing but the fixed column it lives in.
+          className={isMobileViewport
+            // Every mobile surface owns its own gutters and its own bottom
+            // clearance (spec §17g, m-scan-v3.html:29,32), so this wrapper
+            // contributes nothing but the fixed column they live in.
             ? "flex w-full min-h-0 flex-col overflow-hidden"
             // The sm: pad is top-axis only, deliberately. Both scrolling
             // branches reserve pb-24 for the fixed MobileTabBar, which is
@@ -367,6 +368,10 @@ export default function App() {
             // intact (pb-24 below lg, lg:pb-5 above it) and changes nothing at
             // >=lg, where lg:pb-5 already computed the same 20px the block form
             // was handing it.
+            // Both scrolling branches are reached at ≥lg only since §17g, and
+            // both keep every utility they had: they are what the frozen desktop
+            // cascade is built from, and the tab-bar reserve below stays as the
+            // guard that pins the hazard the comment describes.
             : isDeskTab
             ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
             : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
@@ -415,16 +420,20 @@ export default function App() {
           ) : null}
         </div>
 
-        {/* Spec §17c: ONE footer, on every scrolling page and view — Profile
-            included, which used to render its own legal block and skip this
-            one. The component owns its composition, its dimensions, its spacing
-            and its own bottom-pinning; the only thing decided here is the
-            ruling's own exception, which is the word "scrolling": a fixed
-            viewport has no bottom for a footer to follow. That is the Desk at
-            ≥lg (the component's own lg:hidden branch) and, since §17e, the
-            merged mobile Scan surface — where m-scan-v3.html draws the tab bar
-            directly under the scrolling region and no footer at all. */}
-        {isFixedMobileDesk ? null : (
+        {/* Spec §17c: ONE footer, on every scrolling page and view. The
+            component owns its composition, its dimensions, its spacing and its
+            own bottom-pinning; the only thing decided here is the ruling's own
+            exception, which is the word "scrolling": a fixed viewport has no
+            bottom for a footer to follow.
+            Spec §17g settles which surfaces those are. Below lg there are none —
+            every surface is a fixed frame now, so the footer is a ≥lg component
+            and leaves the tree outright rather than going invisible inside a
+            frame that has no room for it. Its link set moves to the account menu
+            and its colophon to the Profile view (ProfilePanel's own <lg branch).
+            At ≥lg nothing changes: the same one footer on every scrolling view,
+            with the Desk's fixed shell still carrying the component's own
+            lg:hidden branch. */}
+        {isMobileViewport ? null : (
           <AppFooter
             hiddenOnDesktopDesk={isDeskTab}
             onOpenDonate={() => setActiveTab("donate")}
@@ -448,11 +457,15 @@ export default function App() {
 // 100dvh, not 100vh, on the mobile one: a phone's 100vh is the toolbar-less
 // height, which would put the bottom of a "fixed" surface below the visible
 // viewport and hand the page a scrollbar it must not have.
+//
+// The mobile branch is checked first and covers every surface (spec §17g): below
+// lg nothing scrolls as a page, so neither of the two scrolling shapes is
+// reachable there and both are the ≥lg shapes they always were.
 function mainShellClassName(
   isDeskTab: boolean,
-  isFixedMobileDesk: boolean,
+  isMobileViewport: boolean,
 ): string {
-  if (isFixedMobileDesk) {
+  if (isMobileViewport) {
     return "grid h-[100dvh] grid-rows-[auto_1fr] overflow-hidden bg-paper text-ink";
   }
   return isDeskTab
@@ -709,10 +722,14 @@ function MobileAccountMenu({
           : initial || <CircleUser className="h-5 w-5" aria-hidden="true" />}
       </button>
 
+      {/* w-56 rather than the w-48 this menu carried before §17g: the legal trio
+          at 12px measures ~186px with its gaps, so at 192px it wrapped to a
+          second line — and a wrapped line of 44px targets overlaps the line above
+          it. One step wider keeps the block one legible row. */}
       {open
         ? (
           <div
-            className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
+            className="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
             role="menu"
           >
             <MobileMenuItem
@@ -745,6 +762,43 @@ function MobileAccountMenu({
               label="Sign out"
               onSelect={() => select(onSignOut)}
             />
+            {/* Spec §17g: the footer's link set moves here below lg, and the
+                legal trio is the half of it this menu did not already carry —
+                Help and Donate are the two items above, so nothing is listed
+                twice. The block is deliberately the quietest thing in the menu:
+                the same 12px muted furniture LegalLinks gives them in the ≥lg
+                footer, at the same labels and the same hrefs, read from that
+                component's own array.
+
+                Semantics: a role="group" of real menuitems, not a nav landmark.
+                role="menu" admits only menuitem/menuitemcheckbox/
+                menuitemradio/group/separator children, so a <nav> here would be
+                an invalid child AND a second "Legal" landmark that only exists
+                while the menu is open; a labelled group names the set without
+                costing the menu its own contract. Each link keeps min-h-11 —
+                §17g's "as small as possible" is about type and spacing, and the
+                kit's tap floor is not negotiable — and no negative margin,
+                because a .tertiary-link's -14px block margins would overlap the
+                tap targets of the items either side of this row. */}
+            <div
+              aria-label="Legal"
+              className="flex flex-wrap items-center gap-x-3 px-3 text-xs font-semibold text-ink-muted"
+              role="group"
+            >
+              {LEGAL_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  className="inline-flex min-h-11 items-center transition hover:text-ink"
+                  href={link.href}
+                  rel="noopener noreferrer"
+                  role="menuitem"
+                  target="_blank"
+                  onClick={closeAndFocusTrigger}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
           </div>
         )
         : null}

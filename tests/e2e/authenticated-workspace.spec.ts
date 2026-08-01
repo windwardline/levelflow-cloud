@@ -609,30 +609,41 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(page.getByRole("button", { name: "Review", exact: true }))
     .toHaveCount(0);
 
-  // A fixed viewport, like the ≥lg Desk: the page itself does not scroll, one
-  // region inside it does, and §17c's footer — which belongs to scrolling
-  // surfaces — is absent.
-  expect(
-    await page.evaluate(() =>
+  // Spec §17g: a fixed viewport, like the ≥lg Desk — the page itself does not
+  // scroll, one region inside it does, and the footer is absent. This used to be
+  // the Scan surface's own property; it is now every mobile surface's, which the
+  // sweep below walks one tab at a time.
+  const documentScroll = () =>
+    page.evaluate(() =>
       document.documentElement.scrollHeight -
       document.documentElement.clientHeight
-    ),
-  ).toBeLessThanOrEqual(0);
-  await expect(page.locator("footer")).toHaveCount(0);
-  const scanScroll = page.getByTestId("mobile-scan-scroll");
-  await expect(scanScroll).toBeVisible();
-  expect(
-    await scanScroll.evaluate((element) =>
+    );
+  const scrollsInternally = (testId: string) =>
+    page.getByTestId(testId).evaluate((element) =>
       getComputedStyle(element).overflowY
-    ),
-  ).toBe("auto");
+    );
+
+  expect(await documentScroll()).toBeLessThanOrEqual(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+  await expect(page.getByTestId("mobile-scan-scroll")).toBeVisible();
+  expect(await scrollsInternally("mobile-scan-scroll")).toBe("auto");
 
   // Trades is one tap away and carries full functionality there, not a
   // stripped-down subset. Same badge caveat as above.
   await tabBar.getByRole("button", { name: /^Trades(,|$)/ }).click();
   await expect(page.getByTestId("current-trades-rail")).toBeVisible();
-  // It scrolls like every other surface, so the one footer comes back with it.
-  await expect(page.locator("footer")).toBeVisible();
+  // §17g: the rail's header pins and the cards list scrolls inside the frame, so
+  // this surface is fixed too — and carries no footer, which is what changed.
+  await expect(page.locator("footer")).toHaveCount(0);
+  expect(await documentScroll()).toBeLessThanOrEqual(0);
+  expect(await scrollsInternally("mobile-trades-scroll")).toBe("auto");
+  // The pinned header is still on screen with the list scrolled to its end.
+  await page.getByTestId("mobile-trades-scroll").evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(
+    page.getByRole("heading", { name: "Current trades", exact: true }),
+  ).toBeInViewport();
 
   // And back, without losing the surface.
   await tabBar.getByRole("button", { name: "Scan", exact: true }).click();
@@ -642,12 +653,113 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(
     page.getByRole("heading", { name: "Insights", exact: true }),
   ).toBeVisible();
+  // §17g: record band + filters pinned, the ledger scrolling. Every filter keeps
+  // its own accessible name — the row-nav contract and these three labels are
+  // what the ruling says to preserve through the reframing.
+  expect(await documentScroll()).toBeLessThanOrEqual(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+  expect(await scrollsInternally("mobile-insights-scroll")).toBe("auto");
+  for (const filter of ["Market", "Status", "Period"]) {
+    await expect(page.getByLabel(filter, { exact: true })).toBeVisible();
+  }
+
+  // The two avatar-menu surfaces, and Profile's colophon: §17g's footer, reduced
+  // to one line and living in exactly one place on mobile.
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Guide" }).click();
+  await expect(
+    page.getByRole("heading", { name: "How to use Levelflow" }),
+  ).toBeVisible();
+  expect(await documentScroll()).toBeLessThanOrEqual(0);
+  expect(await scrollsInternally("mobile-guide-scroll")).toBe("auto");
+  // Mobile has no TOC (spec §16) and the pinned title stays put while the article
+  // moves under it.
+  await expect(page.getByRole("navigation", { name: "Guide sections" }))
+    .toHaveCount(0);
+  await page.getByTestId("mobile-guide-scroll").evaluate((element) => {
+    element.scrollTop = 400;
+  });
+  await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+    .toBeInViewport();
+
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Donate" }).click();
+  await expect(page.getByRole("heading", { name: "Donate", exact: true }))
+    .toBeVisible();
+  expect(await documentScroll()).toBeLessThanOrEqual(0);
+  expect(await scrollsInternally("mobile-donate-scroll")).toBe("auto");
+
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Profile" }).click();
+  await expect(page.getByTestId("profile-panel")).toBeVisible();
+  expect(await documentScroll()).toBeLessThanOrEqual(0);
+  expect(await scrollsInternally("mobile-profile-scroll")).toBe("auto");
+  // Still no <footer> element anywhere below lg — what Profile carries is the
+  // colophon line alone, inside its own scroll region.
+  await expect(page.locator("footer")).toHaveCount(0);
+  await expect(
+    page.getByTestId("mobile-profile-scroll").getByText(
+      "A Windward Line production",
+      { exact: true },
+    ),
+  ).toBeAttached();
 
   const horizontalOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth -
     document.documentElement.clientWidth
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
+});
+
+test("the mobile account menu carries the footer's link set (spec §17g)", async ({ page }) => {
+  // §17g moves the footer's links into the avatar menu below lg: Help and Donate
+  // were already there, and the legal trio joins them at the bottom. Each action
+  // appears exactly once, every link clears the 44px tap floor, and the menu's
+  // own aria contract survives — the trio are menuitems inside a labelled group,
+  // not a nav landmark smuggled into a role="menu".
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  await expect(page.locator("footer")).toHaveCount(0);
+  const accountMenu = page.getByRole("button", { name: "Account menu" });
+  await accountMenu.click();
+
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("group", { name: "Legal" })).toBeVisible();
+
+  for (const label of ["Risk disclaimer", "Privacy", "Terms"]) {
+    const link = menu.getByRole("menuitem", { name: label, exact: true });
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    const box = await link.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+  // Help and Donate are not duplicated by the new block.
+  for (const label of ["Help", "Donate"]) {
+    await expect(menu.getByRole("menuitem", { name: label, exact: true }))
+      .toHaveCount(1);
+  }
+  // Every child of the menu is a menuitem or the group holding menuitems: the
+  // trio added no <nav> landmark inside it.
+  await expect(menu.getByRole("navigation")).toHaveCount(0);
+
+  // Escape still closes and returns focus, with the taller menu.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(accountMenu).toBeFocused();
+
+  // And at ≥lg the same five links are the footer's, unchanged (§17c).
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByRole("navigation", { name: "Levelflow sections" })
+    .getByRole("button", { exact: true, name: "Insights" })
+    .click();
+  const footer = page.locator("footer");
+  await expect(footer).toBeVisible();
+  await expect(footer.getByRole("navigation", { name: "Legal" })).toBeVisible();
+  await expect(footer.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(footer.getByText("A Windward Line production")).toBeVisible();
 });
 
 test("Expand chart opens the same chart full-viewport on mobile, and only on mobile", async ({ page }) => {

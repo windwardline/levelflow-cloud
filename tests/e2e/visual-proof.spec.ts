@@ -93,6 +93,14 @@ test("captures desktop composition proof", async ({ page }) => {
   }
 });
 
+// Spec §17g makes every mobile surface a fixed-viewport frame, so fullPage is
+// wrong here in both directions: it would capture exactly the viewport anyway
+// (the document cannot scroll), and if a regression ever DID give the page a
+// scrollbar, a full-page capture would quietly hide the very fault the ruling is
+// about by growing the image instead. Viewport captures show the frame as a
+// reader sees it — and a surface whose chrome has been pushed off-screen looks
+// wrong on sight. The desktop captures above keep fullPage: those pages scroll by
+// design, and cropping them would hide their own footers.
 test("captures mobile composition proof", async ({ page }) => {
   await page.setViewportSize({ height: 812, width: 375 });
   await page.goto("/");
@@ -105,7 +113,7 @@ test("captures mobile composition proof", async ({ page }) => {
   await page.getByTestId("mobile-scan-surface").waitFor({ state: "visible" });
   await page.waitForTimeout(1500);
   await page.screenshot({
-    fullPage: true,
+    fullPage: false,
     path: "test-results/visual-proof/mobile-desk-scan.png",
   });
 
@@ -119,7 +127,7 @@ test("captures mobile composition proof", async ({ page }) => {
   await page.getByTestId("current-trades-rail").waitFor({ state: "visible" });
   await page.waitForTimeout(700);
   await page.screenshot({
-    fullPage: true,
+    fullPage: false,
     path: "test-results/visual-proof/mobile-desk-trades.png",
   });
 
@@ -127,7 +135,38 @@ test("captures mobile composition proof", async ({ page }) => {
   await page.locator('h1:has-text("Insights")').waitFor({ state: "visible" });
   await page.waitForTimeout(700);
   await page.screenshot({
-    fullPage: true,
+    fullPage: false,
     path: "test-results/visual-proof/mobile-insights.png",
+  });
+
+  // The three §17g surfaces the tab bar cannot reach, plus the open account menu
+  // that now carries the footer's link set. The menu is captured open because it
+  // is where the legal trio lives below lg — a closed menu proves nothing about
+  // it, and Profile's colophon is the only footer line left on mobile.
+  const accountMenu = page.getByRole("button", { name: "Account menu" });
+  await accountMenu.click();
+  await page.getByRole("menu").waitFor({ state: "visible" });
+  await page.screenshot({
+    fullPage: false,
+    path: "test-results/visual-proof/mobile-account-menu.png",
+  });
+
+  await page.getByRole("menuitem", { name: "Profile" }).click();
+  await page.getByTestId("profile-panel").waitFor({ state: "visible" });
+  await page.waitForTimeout(700);
+  await page.screenshot({
+    fullPage: false,
+    path: "test-results/visual-proof/mobile-profile.png",
+  });
+
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Guide" }).click();
+  await page.locator('h1:has-text("How to use Levelflow")').waitFor({
+    state: "visible",
+  });
+  await page.waitForTimeout(700);
+  await page.screenshot({
+    fullPage: false,
+    path: "test-results/visual-proof/mobile-guide.png",
   });
 });
