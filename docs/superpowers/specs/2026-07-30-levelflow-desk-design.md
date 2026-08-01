@@ -593,3 +593,28 @@ JWTs die within their ≤60-minute TTL), and PARKING_GATE opened — the
 quiet-entry doormat now a documented no-op. Signed-out visitors land on
 sign-in. The e2e infrastructure account re-accumulates rows through the
 deploy pipeline's own live suite; real users' slates are clean.
+
+### §17m. Post-launch Desk rulings (owner live findings, 2026-08-01)
+
+1. **All trades originate from the Scan column — no other path, desktop
+   or mobile.** The stage's Review button and its market picker are
+   DELETED: the stage is a pure display of the Scan column's selection
+   (the chart already follows it). The rail's scope menu still contains
+   single markets, so reviewing one market remains possible — through
+   Scan, the only door. The stage's timeframe control stays
+   (display-only).
+2. **Every qualifying setup the Scan column generates persists** to
+   history/Insights/the cohort — the owner observed scan results NOT
+   landing while the stage's Review did: find the root cause, fix it,
+   and guard it end-to-end.
+3. **Stage vertical budget** (desktop): chart ≈1/3 of the region's
+   height, why ≤1/3 (legible, ideally less), the setup ladder gets the
+   majority; the whole stage should fit the region without scrolling
+   where viewport allows. **Expand chart works on desktop too** — the
+   small inline chart is the frame; the overlay is how you see a big
+   one.
+4. **Rail language**: the column eyebrow becomes **Markets**; the button
+   becomes **Scan** — one verb, smaller button, no redundancy.
+5. **Rail menu legibility**: smaller menu typography; closed-market
+   availability lines must not truncate — "OPENS 6:00P SUN" reads in
+   full even while the row is disabled.
