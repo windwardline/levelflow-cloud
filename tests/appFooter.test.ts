@@ -130,17 +130,36 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
       app,
       /<AppFooter\s+hiddenOnDesktopDesk=\{isDeskTab\}\s+onOpenDonate=\{\(\) => setActiveTab\("donate"\)\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
     );
-    // The ruling's own word is "scrolling", and the only conditions on this
-    // element are the two surfaces that are not: the ≥lg Desk (the component's
-    // own lg:hidden branch, via hiddenOnDesktopDesk) and §17e's fixed mobile
-    // Scan surface. Pinned as the exact gate rather than "some condition", and
-    // the old `activeTab !== "profile"` skip is still gone.
-    assert.match(app, /\{isFixedMobileDesk \? null : \(\s*<AppFooter/);
+    // Spec §17g narrows §17c's "every scrolling page and view" to ≥lg: below lg
+    // no view scrolls as a page at all, so the footer is a ≥lg component and
+    // leaves the tree outright rather than going invisible inside a fixed frame.
+    // Pinned as the exact gate rather than "some condition", and the old
+    // `activeTab !== "profile"` skip is still gone.
+    assert.match(app, /\{isMobileViewport \? null : \(\s*<AppFooter/);
     assert.doesNotMatch(app, /activeTab !== "profile"/);
-    assert.match(
-      app,
-      /const isFixedMobileDesk = isMobileViewport && isDeskTab &&\s*deskMobileView === "scan";/,
+    // §17e's Desk-only gate is retired with it — one condition, not two.
+    assert.doesNotMatch(app, /isFixedMobileDesk/);
+  });
+
+  // The coordinator's hard constraint for wave 6: §17g moves the mobile footer
+  // and changes NOTHING at ≥lg. Both halves are one claim, so they are pinned as
+  // one — the whole §17c composition still renders above lg, and nothing at all
+  // renders below it.
+  it("renders its full §17c composition at ≥lg and nothing below lg (§17g)", () => {
+    // Above lg: the colophon and all five links, in the one component, with the
+    // ≥lg Desk exception the ruling itself carved out.
+    assert.match(footer, /A Windward Line production/);
+    assert.match(footer, /href=\{supportMailto\}/);
+    assert.match(footer, /onClick=\{onOpenDonate\}/);
+    assert.match(footer, /<LegalLinks align="left" \/>/);
+    const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
+    assert.deepEqual(
+      Array.from(legal.matchAll(/label: "([^"]+)"/g), (match) => match[1]),
+      ["Risk disclaimer", "Privacy", "Terms"],
     );
+    // Below lg: not hidden — absent. The component itself carries no max-lg:
+    // treatment, because the decision is App.tsx's presence gate above.
+    assert.doesNotMatch(footer, /max-lg:/);
   });
 
   it("leaves no second colophon or legal row on any authed surface", () => {
@@ -148,9 +167,15 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
       "src/components/workspace/ProfilePanel.tsx",
       "utf8",
     );
-    assert.doesNotMatch(profile, /colophon/);
+    // §17g: "The footer exists on mobile ONLY inside the Profile view, reduced
+    // to the colophon." That is one colophon, in Profile's <lg branch only
+    // (tests/mobileNav.test.ts pins which branch and where in it), and still no
+    // legal row anywhere but the footer and the account menu. Counted by the
+    // rendered class rather than the word, since that file's comments name it.
+    assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
     assert.doesNotMatch(profile, /LegalLinks/);
-    // App.tsx no longer draws either itself.
+    // App.tsx draws neither itself: the account menu's trio reads LegalLinks'
+    // exported data, never renders the footer's own nav component.
     assert.doesNotMatch(app, /className="colophon/);
     assert.doesNotMatch(app, /<LegalLinks/);
   });

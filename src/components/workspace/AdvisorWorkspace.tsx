@@ -6,6 +6,11 @@ import { RecommendationPanel } from "./AdvisorRecommendationPanel";
 import { TIMEFRAMES } from "./advisorFormat";
 import { buildConfidenceMeta, ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
+import {
+  MOBILE_FRAME,
+  MOBILE_FRAME_PINNED,
+  MOBILE_FRAME_SCROLL,
+} from "../mobileFrame";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import { MarketScanPanel, MarketScanResults } from "./MarketScanPanel";
 import {
@@ -472,12 +477,10 @@ export function AdvisorWorkspace(
     return (
       <>
         <div
-          className={mobileView === "scan"
-            ? "flex min-h-0 flex-1 flex-col"
-            : "hidden"}
+          className={mobileView === "scan" ? MOBILE_FRAME : "hidden"}
           data-testid="mobile-scan-surface"
         >
-          <div className="shrink-0 px-4 pt-3">
+          <div className={MOBILE_FRAME_PINNED}>
             {/* m-scan-v3.html:76-80: scope · timeframe · Scan, one row. */}
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
@@ -568,11 +571,12 @@ export function AdvisorWorkspace(
 
           {/* The only scroll on this surface (m-scan-v3.html:32): the ladder's
               copy rows, the one-line why plus its Why disclosure, the count
-              line, and the qualifying markets. pb-24 is the fixed tab bar's own
-              clearance, the same reserve every other surface gives it. */}
+              line, and the qualifying markets. The class string is the one every
+              mobile surface shares since §17g (../mobileFrame), tab-bar
+              clearance included. */}
           <div
             ref={mobileScrollRef}
-            className="scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24"
+            className={MOBILE_FRAME_SCROLL}
             data-testid="mobile-scan-scroll"
           >
             <RecommendationPanel
@@ -601,10 +605,13 @@ export function AdvisorWorkspace(
         </div>
 
         {/* The Trades tab (spec §8 as a tab): the same rail component the ≥lg
-            Desk's right column carries, on the ordinary scrolling page App.tsx
-            gives every surface that is not this fixed one. */}
-        <aside className={mobileView === "trades" ? "min-w-0" : "hidden"}>
+            Desk's right column carries, inside the same fixed frame the Scan
+            surface uses — spec §17g pins the rail's header and scrolls the cards
+            list under it, so `fixedFrame` tells the rail which of its two shapes
+            to draw. */}
+        <aside className={mobileView === "trades" ? MOBILE_FRAME : "hidden"}>
           <CurrentTradesRail
+            fixedFrame
             isActiveOnMobile={mobileView === "trades"}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}

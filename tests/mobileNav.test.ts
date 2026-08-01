@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  MOBILE_FRAME,
+  MOBILE_FRAME_PINNED,
+  MOBILE_FRAME_SCROLL,
+} from "../src/components/mobileFrame";
+import {
   buildTradeCards,
   currentTradeBadgeCount,
 } from "../src/components/workspace/CurrentTradesRail";
@@ -183,14 +188,16 @@ describe("the Desk's two compositions (spec §17e — m-scan-v3 below lg, a-desk
   it("keeps both mobile surfaces mounted and toggles them by display, so flipping to Trades never tears the chart down", () => {
     // I2's premise, preserved through the merge: the state that matters
     // (symbol, scanResult, analysisState, the chart canvas) lives across a tab
-    // flip because neither surface unmounts.
+    // flip because neither surface unmounts. Spec §17g makes both of them the
+    // same fixed frame, so the shown branch is the shared MOBILE_FRAME string
+    // rather than each surface's own guess at it.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /className=\{mobileView === "scan"\n\s*\? "flex min-h-0 flex-1 flex-col"\n\s*: "hidden"\}/,
+      /className=\{mobileView === "scan" \? MOBILE_FRAME : "hidden"\}/,
     );
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /className=\{mobileView === "trades" \? "min-w-0" : "hidden"\}/,
+      /className=\{mobileView === "trades" \? MOBILE_FRAME : "hidden"\}/,
     );
   });
 
@@ -785,12 +792,10 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
   it("pins the controls, the head and the chart, and scrolls exactly one region under them", () => {
     // m-scan-v3.html:9,29,32: the surface is a fixed flex column; the pinned
     // block does not shrink, and the scroll region is the only thing in the app
-    // below lg that scrolls on this surface.
-    assert.match(surface, /className="shrink-0 px-4 pt-3"/);
-    assert.match(
-      surface,
-      /className="scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24"/,
-    );
+    // below lg that scrolls on this surface. Since §17g the two class strings
+    // are the shared ones every other mobile surface takes.
+    assert.match(surface, /className=\{MOBILE_FRAME_PINNED\}/);
+    assert.match(surface, /className=\{MOBILE_FRAME_SCROLL\}/);
     // The chart is pinned (inside the shrink-0 block), the ladder and the
     // results are not.
     const pinned = surface.slice(0, surface.indexOf("mobile-scan-scroll"));
@@ -798,17 +803,22 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
     assert.match(pinned, /<ScopeMenu/);
     assert.doesNotMatch(pinned, /<RecommendationPanel/);
     assert.doesNotMatch(pinned, /<MarketScanResults/);
-    // …and exactly one scroller: no nested overflow inside the region.
-    assert.equal((surface.match(/overflow-y-auto/g) ?? []).length, 1);
+    // …and exactly one scroller: one region, and no overflow utility of its own
+    // anywhere else on the surface.
+    assert.equal(
+      (surface.match(/className=\{MOBILE_FRAME_SCROLL\}/g) ?? []).length,
+      1,
+    );
+    assert.doesNotMatch(surface, /overflow-y-auto|overflow-auto/);
   });
 
   it("carries the fixed tab bar's own clearance on the scrolling region, since this surface has no footer to carry it", () => {
-    assert.match(surface, /overflow-y-auto px-4 pb-24/);
+    assert.match(MOBILE_FRAME_SCROLL, /overflow-y-auto px-4 pb-24/);
     // App.tsx's fixed branch contributes no padding of its own — the surface
     // owns its gutters (m-scan-v3.html:29,32).
     assert.match(
       APP_SOURCE,
-      /className=\{isFixedMobileDesk[\s\S]{0,400}\? "flex w-full min-h-0 flex-col overflow-hidden"/,
+      /className=\{isMobileViewport[\s\S]{0,400}\? "flex w-full min-h-0 flex-col overflow-hidden"/,
     );
     assert.match(
       APP_SOURCE,
@@ -1096,6 +1106,312 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
       "flex flex-wrap items-baseline justify-between gap-2",
     );
     assert.match(TRADES_RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec §17g (owner ruling, binding): "No mobile view scrolls as a whole screen.
+// Every <lg surface is a fixed-viewport frame (the merged Scan screen's
+// pattern): chrome pinned, and the necessary list/content region scrolls within
+// itself — flat, no box chrome … The footer exists on mobile ONLY inside the
+// Profile view, reduced to the colophon … Desktop's §17c footer standard is
+// unchanged at ≥lg."
+//
+// Both directions, per §16's standing review discipline: the frames present on
+// every surface, and the two things §17g kills — a footer below lg, and a
+// document that scrolls as a page — absent. Source-pinned for the same
+// no-jsdom reason as the rest of this file, except the three shared class
+// strings, which are imported so their VALUES are the subject rather than a
+// regex's idea of them.
+const MOBILE_SURFACES: Array<{ file: string; mobileRoot: string }> = [
+  // Insights, Guide, Donate and Profile each grew the same JS branch
+  // AdvisorWorkspace has had since §17e: one composition below lg, the frozen
+  // ≥lg one above it. A CSS toggle cannot express this — the pinned/scroll
+  // split needs wrapper boxes no restyling of the desktop tree produces.
+  {
+    file: "src/components/workspace/HistoryPanel.tsx",
+    mobileRoot: 'data-testid="mobile-insights-scroll"',
+  },
+  {
+    file: "src/components/workspace/ProfilePanel.tsx",
+    mobileRoot: 'data-testid="mobile-profile-scroll"',
+  },
+  {
+    file: "src/components/workspace/GuidePanel.tsx",
+    mobileRoot: 'data-testid="mobile-guide-scroll"',
+  },
+  {
+    file: "src/components/donations/DonatePanel.tsx",
+    mobileRoot: 'data-testid="mobile-donate-scroll"',
+  },
+  {
+    file: "src/components/workspace/CurrentTradesRail.tsx",
+    mobileRoot: 'data-testid="mobile-trades-scroll"',
+  },
+];
+
+describe("§17g — every <lg surface is a fixed-viewport frame", () => {
+  it("shares one frame idiom: a fixed flex column, a pinned block, one flat scroll region", () => {
+    // The merged Scan surface's own three strings (m-scan-v3.html:9,29,32),
+    // lifted into one module so five surfaces cannot drift into five frames.
+    assert.equal(MOBILE_FRAME, "flex min-h-0 min-w-0 flex-1 flex-col");
+    assert.equal(MOBILE_FRAME_PINNED, "shrink-0 px-4 pt-3");
+    assert.equal(
+      MOBILE_FRAME_SCROLL,
+      "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24",
+    );
+  });
+
+  it("keeps the scroll region flat — §17c's box-on-box rule governs scroll regions too", () => {
+    // The one string every mobile scroll region takes: no border, no ring, no
+    // fill, no radius, no shadow. tests/boxDiscipline.test.ts owns the same rule
+    // for every .tsx literal; this pins it for the shared string those literals
+    // now defer to (a .ts module that file's own walk does not read).
+    for (const idiom of [/\bborder/, /\bring/, /\boutline/, /\bbg-/, /rounded/, /shadow/]) {
+      assert.doesNotMatch(MOBILE_FRAME_SCROLL, idiom);
+      assert.doesNotMatch(MOBILE_FRAME_PINNED, idiom);
+      assert.doesNotMatch(MOBILE_FRAME, idiom);
+    }
+    // Thin scrollbars come from the kit's own .scrolly, not a per-surface
+    // invention (src/styles/index.css).
+    assert.match(MOBILE_FRAME_SCROLL, /\bscrolly\b/);
+    assert.match(
+      readFileSync("src/styles/index.css", "utf8"),
+      /\.scrolly \{\s*scrollbar-width: thin;/,
+    );
+  });
+
+  it("puts every surface below lg inside that frame — the fixed shell is no longer the Desk's alone", () => {
+    // §17e gated the fixed shell on the Desk's Scan sub-view; §17g generalizes
+    // it to the viewport, so the retired condition must be gone in both
+    // directions rather than merely widened.
+    assert.doesNotMatch(APP_SOURCE, /isFixedMobileDesk/);
+    assert.match(
+      APP_SOURCE,
+      /className=\{mainShellClassName\(isDeskTab, isMobileViewport\)\}/,
+    );
+    const shell = APP_SOURCE.match(/function mainShellClassName\([\s\S]*?\n}\n/)
+      ?.[0] ?? "";
+    assert.ok(shell.length > 0, "expected to find mainShellClassName");
+    assert.match(
+      shell,
+      /if \(isMobileViewport\) \{\s*return "grid h-\[100dvh\] grid-rows-\[auto_1fr\] overflow-hidden bg-paper text-ink";/,
+    );
+  });
+
+  it("gives each surface a pinned block and exactly one scroll region, from the shared strings", () => {
+    for (const { file, mobileRoot } of MOBILE_SURFACES) {
+      const source = readFileSync(file, "utf8");
+      // The import itself, by name: the point of the shared module is that no
+      // surface writes these three strings out again, so a file that imports
+      // only some of them has half a frame of its own.
+      const importBlock =
+        source.match(/import \{[^}]*\} from "[^"]*\/mobileFrame";/)?.[0] ?? "";
+      assert.ok(
+        importBlock.length > 0,
+        `${file} must import the shared frame strings, not write its own`,
+      );
+      for (const name of ["MOBILE_FRAME", "MOBILE_FRAME_PINNED", "MOBILE_FRAME_SCROLL"]) {
+        assert.ok(
+          importBlock.includes(name),
+          `${file} imports no ${name}`,
+        );
+        assert.ok(
+          source.includes(`className={${name}}`),
+          `${file} imports ${name} without using it as a className`,
+        );
+      }
+      assert.ok(
+        source.includes(mobileRoot),
+        `${file} must name its scroll region ${mobileRoot} for the e2e suite`,
+      );
+      assert.equal(
+        (source.match(/className=\{MOBILE_FRAME_SCROLL\}/g) ?? []).length,
+        1,
+        `${file} must scroll exactly one region`,
+      );
+      // And nothing else in the file scrolls: no second overflow container
+      // smuggled in beside the frame's own. (Insights' horizontal table scroller
+      // is an axis rather than a second region — asserted for that file below.)
+      assert.doesNotMatch(
+        source,
+        /\boverflow-y-auto\b|\boverflow-auto\b/,
+        `${file} declares a vertical scroller of its own`,
+      );
+    }
+  });
+
+  it("scrolls the Insights ledger both ways without a second region — the table is 720px wide", () => {
+    const history = readFileSync(
+      "src/components/workspace/HistoryPanel.tsx",
+      "utf8",
+    );
+    // The x-scroller is the same one the ≥lg table frame already carried, shared
+    // by both compositions rather than duplicated for mobile.
+    assert.equal((history.match(/overflow-x-auto/g) ?? []).length, 1);
+    assert.match(history, /min-w-\[720px\]/);
+  });
+
+  it("leaves the ≥lg composition of every reframed surface exactly as it renders today", () => {
+    // The coordinator's hard constraint for this wave: at ≥lg nothing moves.
+    // Each surface's desktop root is pinned here as a whole literal, so a mobile
+    // frame that reached the shared tree fails on the spot instead of in a
+    // built-CSS diff.
+    for (
+      const [file, desktopRoot] of [
+        [
+          "src/components/workspace/HistoryPanel.tsx",
+          'className="mx-auto grid w-full max-w-[1180px] gap-5"',
+        ],
+        [
+          "src/components/workspace/ProfilePanel.tsx",
+          'className="mx-auto w-full max-w-[880px]"',
+        ],
+        [
+          "src/components/workspace/GuidePanel.tsx",
+          'className="mx-auto grid max-w-[1020px] gap-9 lg:grid-cols-[230px_1fr] lg:items-start"',
+        ],
+        [
+          "src/components/donations/DonatePanel.tsx",
+          'className="mx-auto grid w-full max-w-[620px] gap-4"',
+        ],
+        [
+          "src/components/workspace/CurrentTradesRail.tsx",
+          'className="min-w-0" data-testid="current-trades-rail"',
+        ],
+      ] as const
+    ) {
+      assert.ok(
+        readFileSync(file, "utf8").includes(desktopRoot),
+        `${file} must keep its ≥lg root: ${desktopRoot}`,
+      );
+    }
+  });
+
+  it("kills the footer below lg — it is a ≥lg component now (§17g)", () => {
+    // Presence, not visibility: the element leaves the tree entirely below lg,
+    // so nothing has to reserve room for it inside a fixed frame.
+    assert.match(APP_SOURCE, /\{isMobileViewport \? null : \(\s*<AppFooter/);
+    // And the ≥lg half of the same ruling: the component itself is untouched,
+    // so every link and the colophon still render at ≥lg exactly as §17c set
+    // them (tests/appFooter.test.ts owns that composition).
+    const footer = readFileSync("src/components/AppFooter.tsx", "utf8");
+    assert.match(footer, /A Windward Line production/);
+    assert.match(footer, /<LegalLinks align="left" \/>/);
+    assert.match(footer, /aria-label="Support"/);
+  });
+
+  it("kills whole-page mobile scroll: no surface below lg is a min-height scrolling page", () => {
+    const shell = APP_SOURCE.match(/function mainShellClassName\([\s\S]*?\n}\n/)
+      ?.[0] ?? "";
+    const mobileBranch = shell.match(/if \(isMobileViewport\) \{[\s\S]*?\n  \}/)
+      ?.[0] ?? "";
+    assert.ok(mobileBranch.length > 0, "expected the mobile shell branch");
+    assert.doesNotMatch(mobileBranch, /min-h-screen/);
+    assert.match(mobileBranch, /overflow-hidden/);
+    // The two scrolling wrapper branches are reached at ≥lg only now, and both
+    // keep every utility the frozen desktop cascade is built from.
+    const wrapperBranches = APP_SOURCE.match(
+      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+    )?.[0] ?? "";
+    assert.ok(wrapperBranches.length > 0, "expected the ≥lg wrapper branches");
+    for (const branch of wrapperBranches.match(/"[^"]*"/g) ?? []) {
+      assert.match(branch, /\bsm:pt-5\b/, `wrapper branch ${branch}`);
+      assert.match(branch, /\blg:pb-5\b/, `wrapper branch ${branch}`);
+    }
+  });
+});
+
+describe("§17g — the account menu carries the legal trio", () => {
+  const menuBlock = APP_SOURCE.match(
+    /function MobileAccountMenu[\s\S]*?\n}\n/,
+  )?.[0] ?? "";
+
+  it("lists Risk disclaimer, Privacy and Terms from the one source the footer reads", () => {
+    // Not restated here: the labels and hrefs come out of LegalLinks.tsx's own
+    // array, so the menu block and the ≥lg footer can never list different
+    // documents.
+    assert.match(
+      APP_SOURCE,
+      /import \{ LEGAL_LINKS \} from "\.\/components\/legal\/LegalLinks";/,
+    );
+    assert.match(menuBlock, /\{LEGAL_LINKS\.map\(\(link\) => \(/);
+    const legal = readFileSync(
+      "src/components/legal/LegalLinks.tsx",
+      "utf8",
+    );
+    assert.match(legal, /export const LEGAL_LINKS = \[/);
+    const labels = Array.from(
+      legal.matchAll(/label: "([^"]+)"/g),
+      (match) => match[1],
+    );
+    assert.deepEqual(labels, ["Risk disclaimer", "Privacy", "Terms"]);
+  });
+
+  it("keeps the menu's aria contract: menuitem per link, inside a named group", () => {
+    // role="menu" only admits menuitem/group/separator children, so a <nav>
+    // landmark here would be an invalid child (and a second "Legal" landmark
+    // that exists only while the menu is open). A role="group" with its own
+    // label is the one shape that groups the trio without breaking either.
+    assert.match(
+      menuBlock,
+      /aria-label="Legal"[\s\S]{0,200}role="group"/,
+    );
+    assert.match(menuBlock, /role="menuitem"[\s\S]{0,200}\{link\.label\}/);
+    assert.match(menuBlock, /rel="noopener noreferrer"/);
+    assert.match(menuBlock, /target="_blank"/);
+    // Every dismissal path still returns focus to the trigger, links included.
+    assert.match(
+      menuBlock,
+      /\{LEGAL_LINKS\.map[\s\S]{0,600}onClick=\{closeAndFocusTrigger\}/,
+    );
+  });
+
+  it("holds a 44px target for each link while staying the compact block §17g asks for", () => {
+    const link = menuBlock.match(
+      /className="(inline-flex min-h-11[^"]*)"\n\s*href=\{link\.href\}/,
+    )?.[1] ?? "";
+    assert.ok(link.length > 0, "expected the legal links' own className");
+    assert.match(link, /\bmin-h-11\b/);
+    // The footer's own furniture for these three (LegalLinks.tsx): 12px
+    // semibold muted, hover to ink. Same treatment, no new look.
+    assert.match(
+      menuBlock,
+      /aria-label="Legal"[\s\S]{0,200}text-xs font-semibold text-ink-muted/,
+    );
+    assert.match(link, /hover:text-ink/);
+  });
+
+  it("lists each action exactly once — Help and Donate stay menu items, and are not repeated in the block", () => {
+    // §17g's link set is (Help · Donate · legal trio); the menu already carried
+    // the first two before this wave, so only the trio joins it.
+    assert.equal((menuBlock.match(/label="Donate"/g) ?? []).length, 1);
+    assert.equal((menuBlock.match(/>\s*Help\s*</g) ?? []).length, 1);
+    assert.doesNotMatch(menuBlock, /supportMailto[\s\S]{0,200}supportMailto/);
+  });
+});
+
+describe("§17g — Profile ends with the colophon below lg, and only there", () => {
+  const profile = readFileSync(
+    "src/components/workspace/ProfilePanel.tsx",
+    "utf8",
+  );
+
+  it("renders the colophon once, inside the <lg branch, in the footer's own treatment", () => {
+    // The class, not the word: this file's own comments name .colophon while
+    // explaining why the line is here, and prose is not a second colophon.
+    assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
+    assert.match(profile, /className="colophon">A Windward Line production</);
+    // Inside the mobile scroll region, after the rows: it ends the view.
+    assert.match(
+      profile,
+      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon"/,
+    );
+  });
+
+  it("adds no link row with it — the trio lives in the account menu now", () => {
+    assert.doesNotMatch(profile, /LegalLinks/);
+    assert.doesNotMatch(profile, /Risk disclaimer/);
   });
 });
 

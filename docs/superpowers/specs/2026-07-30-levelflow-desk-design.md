@@ -486,3 +486,27 @@ narration, the terse Profile descriptions — and it governs all future
 copy on every surface, both platforms. Before any sentence ships, the
 test is: does it state something the user cannot already see? If the
 control, the layout, or the data shows it, the sentence does not exist.
+
+### §17g. Mobile fixed-viewport discipline (owner ruling, 2026-08-01)
+
+- **No mobile view scrolls as a whole screen.** Every <lg surface is a
+  fixed-viewport frame (the merged Scan screen's pattern): chrome pinned,
+  and the necessary list/content region scrolls within itself — flat, no
+  box chrome (the box-on-box rule governs scroll regions too; hairline
+  separation at most, thin scrollbars).
+  - Scan: already compliant (pinned controls/head/chart; one scroll
+    region).
+  - Trades: the trade cards list is the scroll region; rail header
+    pinned.
+  - Insights: record band + filters pinned; the ledger (day groups +
+    rows) is the scroll region.
+  - Profile: fits the frame; if content ever exceeds it, the rows region
+    scrolls internally.
+  - Guide and Donate (avatar-menu surfaces): pinned title, body scrolls
+    internally.
+- **The footer exists on mobile ONLY inside the Profile view, reduced to
+  the colophon** ("A Windward Line production"). The link set (Help ·
+  Donate · Risk disclaimer · Privacy · Terms) moves to the bottom of the
+  avatar account menu — as small as possible while legible and usable
+  (44px targets still bind). Desktop's §17c footer standard is unchanged
+  at ≥lg.

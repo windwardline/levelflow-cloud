@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import type { ThemeMode, UserProfile } from "../../lib/profile";
+import {
+  MOBILE_FRAME,
+  MOBILE_FRAME_PINNED,
+  MOBILE_FRAME_SCROLL,
+} from "../mobileFrame";
 import { BrokerChip } from "./BrokerChip";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -80,23 +86,23 @@ export function ProfilePanel({
     });
   }
 
-  return (
-    // Spec §17c gave every scrolling surface the one shared page footer, this
-    // one included. That retired the legal/production block spec §11 put at
-    // the foot of this column — it would now be a second copy of what the
-    // footer itself carries — and it made this surface's own Donate ambiguous
-    // with the footer's. The testid is how e2e keeps the two apart.
-    <div
-      className="mx-auto w-full max-w-[880px]"
-      data-testid="profile-panel"
-    >
-      {/* `.page h1` (p-profile-v2.html:17): the 2px ink rule under the title,
-          the same one Insights, Guide and Donate carry, with no gap under it —
-          the first row's own 26px top padding is the spacing. */}
-      <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink">
-        Profile
-      </h1>
+  // Which composition this surface is (spec §17g): below lg a fixed-viewport
+  // frame with the title pinned and the rows scrolling inside it, at ≥lg the flat
+  // 880px editorial sheet p-profile-v2.html draws, unchanged. The title and the
+  // rows are built once and placed by whichever branch renders.
+  const isMobile = useIsMobileViewport();
 
+  // `.page h1` (p-profile-v2.html:17): the 2px ink rule under the title, the
+  // same one Insights, Guide and Donate carry, with no gap under it — the first
+  // row's own 26px top padding is the spacing.
+  const title = (
+    <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink">
+      Profile
+    </h1>
+  );
+
+  const rows = (
+    <>
       <ProfileRow
         description="Sign-in and membership."
         title="Account"
@@ -161,6 +167,45 @@ export function ProfilePanel({
           </button>
         </div>
       </ProfileRow>
+    </>
+  );
+
+  if (isMobile) {
+    // Spec §17g: "Profile: fits the frame; if content ever exceeds it, the rows
+    // region scrolls internally." It does exceed it. Measured against the built
+    // CSS with the shipped fonts at 375x812: the four rows plus the colophon come
+    // to 722px against 683px of frame, before the tab bar overlays the last 57px
+    // of that. So the conditional is the operative clause and the rows region is
+    // the scroll region.
+    //
+    // And the footer, reduced to its colophon: "The footer exists on mobile ONLY
+    // inside the Profile view." It ends the sheet rather than pinning to the
+    // frame, because what §17g kept is the line, not a footer — and .colophon's
+    // own 2rem top pad is the separation, the same treatment the ≥lg footer and
+    // the pre-auth screens give it.
+    return (
+      <div className={MOBILE_FRAME} data-testid="profile-panel">
+        <div className={MOBILE_FRAME_PINNED}>{title}</div>
+        <div className={MOBILE_FRAME_SCROLL} data-testid="mobile-profile-scroll">
+          {rows}
+          <p className="colophon">A Windward Line production</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    // Spec §17c gave every scrolling surface the one shared page footer, this
+    // one included. That retired the legal/production block spec §11 put at
+    // the foot of this column — it would now be a second copy of what the
+    // footer itself carries — and it made this surface's own Donate ambiguous
+    // with the footer's. The testid is how e2e keeps the two apart.
+    <div
+      className="mx-auto w-full max-w-[880px]"
+      data-testid="profile-panel"
+    >
+      {title}
+      {rows}
     </div>
   );
 }

@@ -350,8 +350,11 @@ describe("Insights composition — the mock's elements are present (i-insights-v
   });
 
   it("keeps the Market/Status/Period aria-labels on real selects inside the inline row (preserved contract)", () => {
+    // The row holds three <label>s and no nested <div>, so its own closing tag is
+    // the first one after it — matched by shape rather than by indentation, which
+    // §17g's two compositions moved (the row is a value both branches place).
     const filtersBlock = history.match(
-      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">[\s\S]*?\n {6}<\/div>/,
+      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">[\s\S]*?<\/div>/,
     )?.[0] ?? "";
     for (const label of ["Market", "Status", "Period"]) {
       assert.match(filtersBlock, new RegExp(`aria-label="${label}"`));
