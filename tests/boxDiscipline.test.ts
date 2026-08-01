@@ -75,31 +75,21 @@ const SURVIVORS: Record<string, Survivor[]> = {
       why: "the chart-view select — a form field",
     },
     {
+      match: "min-h-11 shrink-0 rounded-lg border border-hairline bg-sheet",
+      why:
+        "the same chart-view select on the merged mobile surface (m-scan-v3.html:15 `.tf`) — a form field, at that mock's compact geometry",
+    },
+    {
       match: "min-w-0 border border-hairline border-t-0 bg-sheet",
       why:
         "the mock's .setup sheet (a-desk-v3.html:53), attached hairline-flush under the chart sheet — the stage's own content plane, and the one frame between them",
     },
   ],
-  "src/components/workspace/MarketScanPanel.tsx": [
-    {
-      match: "max-lg:rounded-lg max-lg:border",
-      why:
-        "the scan result row as the mobile mock's inset card (m-scan-v1.html:17) — the row is a button",
-    },
-  ],
   "src/components/workspace/AdvisorRecommendationPanel.tsx": [
     {
-      match: "max-lg:border-[1.5px] max-lg:border-buy",
-      why: "the ladder's per-value copy control below lg — a button, in its copied state",
-    },
-    {
-      match: "max-lg:border-[1.5px] max-lg:border-accent",
-      why: "the same control in its idle state",
-    },
-    {
-      match: "max-lg:rounded-lg max-lg:border max-lg:bg-sheet",
+      match: "max-lg:rounded-md max-lg:border max-lg:border-hairline",
       why:
-        "the ladder row as the mobile mock's copy card (m-mobile-v3.html:25-29) — the row's whole content is a value and the button that copies it",
+        "the ladder's per-value copy control below lg (m-scan-v3.html:37 `.cbtn`) — a button, in both its idle and copied states",
     },
   ],
   "src/components/workspace/CurrentTradesRail.tsx": [

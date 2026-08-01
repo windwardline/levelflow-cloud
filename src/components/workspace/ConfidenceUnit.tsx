@@ -92,8 +92,17 @@ export function buildConfidenceMeta(
 // killed VALID UNTIL card's datum rides along on the meta line below the
 // note (buildConfidenceMeta above).
 export function ConfidenceUnit(
-  { assetType, reviewedAt = null, score, validUntil = null }: {
+  { assetType, compact = false, reviewedAt = null, score, validUntil = null }: {
     assetType: SecurityType;
+    // The merged mobile Scan surface's head cluster (spec §17e,
+    // m-scan-v3.html:22-27): the score and the same threshold-ticked meter,
+    // right-aligned beside the market name, with no note and no stamp of its
+    // own. The note is what §17f's copy law removes here — "{Class} setups must
+    // score {threshold} to qualify" is exactly what the tick and the fill draw,
+    // so the sentence says nothing the surface cannot show. The stamp is the
+    // opposite case and survives, rendered as its own quiet line by the surface
+    // (AdvisorWorkspace, via buildConfidenceMeta above).
+    compact?: boolean;
     reviewedAt?: string | null;
     score: number;
     validUntil?: string | null;
@@ -103,6 +112,35 @@ export function ConfidenceUnit(
   const fillPercent = clampConfidencePercent(score);
   const tickPercent = clampConfidencePercent(threshold);
   const meta = buildConfidenceMeta(reviewedAt, validUntil);
+
+  if (compact) {
+    return (
+      // Never a bare number (spec §6): the group carries the canonical unit as
+      // its accessible name, so a screen reader hears "Confidence 86 of 100"
+      // where the eye reads 86 against its bar.
+      <span
+        aria-label={`Confidence ${formatConfidenceValue(score)}`}
+        className="ml-auto flex shrink-0 items-center gap-1.5"
+        role="group"
+      >
+        <span className="font-mono text-[13px] font-bold tabular-nums text-ink">
+          {Math.round(score)}
+        </span>
+        <span className="relative h-1 w-16" aria-hidden="true">
+          <span className="absolute inset-0 overflow-hidden rounded-full bg-hairline">
+            <span
+              className="block h-full rounded-full bg-accent"
+              style={{ width: `${fillPercent}%` }}
+            />
+          </span>
+          <span
+            className="absolute -inset-y-0.5 w-px bg-ink"
+            style={{ left: `${tickPercent}%` }}
+          />
+        </span>
+      </span>
+    );
+  }
 
   return (
     <div className="mt-2 grid min-w-0 gap-1">

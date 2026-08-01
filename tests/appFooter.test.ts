@@ -47,11 +47,26 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
   it("pins itself to the true viewport bottom — mt-auto lives in the footer, not in each caller", () => {
     assert.match(footer, /"mt-auto w-full border-t border-hairline/);
     // App.tsx's own half of the contract: a min-height flex column is what
-    // gives mt-auto something to push against.
-    assert.match(
-      app,
-      /className=\{`flex min-h-screen flex-col bg-paper text-ink \$\{/,
-    );
+    // gives mt-auto something to push against. Read from the shell helper that
+    // now owns the three page shapes — every branch that renders a footer is a
+    // min-height flex column, and the one branch that is a fixed viewport
+    // (spec §17e's merged mobile Scan surface) renders none, which is the next
+    // test's subject.
+    const shell = app.match(
+      /function mainShellClassName\([\s\S]*?\n}\n/,
+    )?.[0] ?? "";
+    assert.ok(shell.length > 0, "expected to find mainShellClassName");
+    const branches = shell.match(/return[\s\S]*?"([^"]*bg-paper text-ink[^"]*)"/g) ??
+      [];
+    assert.ok(branches.length >= 2, "expected the shell's literal branches");
+    for (const branch of shell.match(/"[^"]*bg-paper text-ink[^"]*"/g) ?? []) {
+      const isFixedViewport = branch.includes("h-[100dvh]");
+      assert.equal(
+        /flex min-h-screen flex-col/.test(branch),
+        !isFixedViewport,
+        `shell branch ${branch}`,
+      );
+    }
   });
 
   it("carries the §17 link row: Help and Donate before the legal trio, in the mock's order", () => {
@@ -115,10 +130,17 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
       app,
       /<AppFooter\s+hiddenOnDesktopDesk=\{isDeskTab\}\s+onOpenDonate=\{\(\) => setActiveTab\("donate"\)\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
     );
-    // The one exception the ruling itself names is the only condition on it —
-    // the old `activeTab !== "profile"` skip is gone, and nothing else may
-    // gate it.
+    // The ruling's own word is "scrolling", and the only conditions on this
+    // element are the two surfaces that are not: the ≥lg Desk (the component's
+    // own lg:hidden branch, via hiddenOnDesktopDesk) and §17e's fixed mobile
+    // Scan surface. Pinned as the exact gate rather than "some condition", and
+    // the old `activeTab !== "profile"` skip is still gone.
+    assert.match(app, /\{isFixedMobileDesk \? null : \(\s*<AppFooter/);
     assert.doesNotMatch(app, /activeTab !== "profile"/);
+    assert.match(
+      app,
+      /const isFixedMobileDesk = isMobileViewport && isDeskTab &&\s*deskMobileView === "scan";/,
+    );
   });
 
   it("leaves no second colophon or legal row on any authed surface", () => {

@@ -70,25 +70,20 @@ export function MarketScanPanel({
 }: MarketScanPanelProps) {
   return (
     <section className="min-w-0" data-testid="market-scan-rail">
-      {/* One control row for both platforms. At ≥lg it is a-desk-v3.html:88's
-          geometry unchanged: the eyebrow opposite Scan now, the scope select
-          on its own line below — `order-last w-full` is what floats the scope
-          onto that second line, and the container's 8px row gap stands in for
-          the old header row's mb-2, so nothing shifts. Below lg the mock draws
-          no eyebrow at all (the tab bar already names the surface) and puts
-          the scope pill and Scan now side by side on one row
-          (m-scan-v1.html:39-42).
-          The eyebrow goes .sr-only there rather than display:none — same
-          reasoning ScopeMenu.tsx documents for its own suppressed caption:
-          clipped keeps the heading in the accessibility tree, so a screen
-          reader on mobile still has a landmark for this surface even though
-          nothing is drawn. It is absolutely positioned that way, so it leaves
-          the flex row entirely and the two controls fill it. */}
-      <div className="flex flex-wrap items-baseline justify-between gap-2 max-lg:flex-nowrap max-lg:items-center max-lg:gap-2.5">
-        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:sr-only">
+      {/* a-desk-v3.html:88's control row: the eyebrow opposite Scan now, the
+          scope select on its own line below — `order-last w-full` is what
+          floats the scope onto that second line, and the container's 8px row
+          gap stands in for the old header row's mb-2.
+          This row is the ≥lg rail's alone since spec §17e: the merged mobile
+          surface pins its own control row (scope · timeframe · one Scan
+          button), so the mobile treatments this row used to carry — the
+          clipped eyebrow, the side-by-side reflow — described a composition
+          that no longer renders and are gone rather than left as dead CSS. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
           Scan
         </h3>
-        <div className="order-last w-full min-w-0 max-lg:order-none max-lg:w-auto max-lg:flex-1">
+        <div className="order-last w-full min-w-0">
           <ScopeMenu
             label="Scan scope"
             showLabel={false}
@@ -100,7 +95,7 @@ export function MarketScanPanel({
             44px tap-target floor still applies from .primary-button — spec §16
             trims the padding and type size, never the hit area. */}
         <button
-          className="primary-button px-3 py-1.5 text-xs max-lg:shrink-0"
+          className="primary-button px-3 py-1.5 text-xs"
           type="button"
           onClick={() => onScan(openScanSymbols)}
           disabled={status === "scanning" || openScanSymbols.length === 0}
@@ -170,12 +165,13 @@ export function MarketScanResults({
         : null}
 
       {/* The 404px cap and the rail's own scroll area are ≥lg geometry
-          (a-desk-v3.html:21). Below lg the mock stacks the cards down the page
-          with 8px between them and lets the page scroll, rather than nesting a
-          second scroller inside it (m-scan-v1.html:45-51). */}
+          (a-desk-v3.html:21). Below lg they lift: the merged surface's own
+          scrolling region is the only scroller there (m-scan-v3.html:32), and a
+          second one nested inside it would trap the list in a ~400px window
+          halfway down a fixed viewport. */}
       {filteredOpportunities.length > 0
         ? (
-          <div className="scrolly mt-2 max-h-[404px] overflow-y-auto max-lg:grid max-lg:max-h-none max-lg:gap-2 max-lg:overflow-visible">
+          <div className="scrolly mt-2 max-h-[404px] overflow-y-auto max-lg:max-h-none max-lg:overflow-visible">
             {filteredOpportunities.map((candidate) => (
               <MarketScanRow
                 key={candidate.symbol}
@@ -202,11 +198,11 @@ export function MarketScanResults({
 // sheet fill plus a 3px inset accent edge — inset rather than a real border so
 // the row's text never shifts by 3px when selection moves.
 //
-// Below lg the same row is the mock's inset card (m-scan-v1.html:17-20): 8px
-// radius, a full hairline border on sheet at 13/14 padding, 15px symbol. The
-// card's sides are ADDED to the base `border-b` rather than swapped for it, so
-// the ≥lg rule set is untouched — and the sheet fill, which every card carries
-// below lg, stays the selected row's own signal at ≥lg.
+// m-scan-v3.html:40-45 draws the same flat row below lg, so both platforms now
+// share one treatment: the inset card m-scan-v1 drew here is superseded (a card
+// per market inside a fixed viewport spends the surface on borders). The only
+// mobile-only utilities left are the mock's own 2px inset and the 10px it gives
+// back to the selected row so its text clears the accent edge.
 function MarketScanRow({
   candidate,
   onSelectCandidate,
@@ -219,8 +215,8 @@ function MarketScanRow({
   return (
     <button
       className={selected
-        ? "flex min-h-11 w-full min-w-0 items-center justify-between gap-3 border-b border-hairline bg-sheet px-2.5 py-2 text-left shadow-[inset_3px_0_0_var(--color-accent)] transition max-lg:rounded-lg max-lg:border max-lg:px-3.5 max-lg:py-3"
-        : "flex min-h-11 w-full min-w-0 items-center justify-between gap-3 border-b border-hairline px-2.5 py-2 text-left transition hover:bg-accent/10 max-lg:rounded-lg max-lg:border max-lg:bg-sheet max-lg:px-3.5 max-lg:py-3"}
+        ? "flex min-h-11 w-full min-w-0 items-center justify-between gap-3 border-b border-hairline bg-sheet px-2.5 py-2 text-left shadow-[inset_3px_0_0_var(--color-accent)] transition max-lg:px-0.5 max-lg:pl-2.5"
+        : "flex min-h-11 w-full min-w-0 items-center justify-between gap-3 border-b border-hairline px-2.5 py-2 text-left transition hover:bg-accent/10 max-lg:px-0.5"}
       type="button"
       aria-current={selected}
       onClick={() => onSelectCandidate(candidate)}
@@ -229,7 +225,7 @@ function MarketScanRow({
         {/* The ticker form, per mock :152-156 ("XAU/USD"). The full descriptive
             label truncates mid-description in a 264px rail; the scope menu's
             own option rows still carry it in full. */}
-        <span className="block truncate text-sm font-bold text-ink max-lg:text-[15px]">
+        <span className="block truncate text-sm font-bold text-ink">
           {formatSecurityDisplaySymbol(candidate.symbol)}
         </span>
         <span className="block truncate text-xs text-ink-muted">

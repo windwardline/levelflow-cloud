@@ -4,9 +4,10 @@ import { ExpandedChartOverlay } from "../charts/ExpandedChartOverlay";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
 import { TIMEFRAMES } from "./advisorFormat";
-import { ConfidenceUnit } from "./ConfidenceUnit";
+import { buildConfidenceMeta, ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
-import { MarketScanPanel } from "./MarketScanPanel";
+import { useIsMobileViewport } from "../../hooks/useMobileViewport";
+import { MarketScanPanel, MarketScanResults } from "./MarketScanPanel";
 import {
   filterSymbolsByAvailability,
   getMarketScanSymbolsForScope,
@@ -28,60 +29,29 @@ import {
 import {
   type AnalyzerResponse,
   generateTradeSetup,
+  type MarketScanCandidate,
   type MarketScanResponse,
   scanMarketOpportunities,
   type TradeSetupRow,
 } from "../../lib/tradeAnalyzer";
 
-// Spec §3: mobile's bottom tab bar swaps between the same three columns the
-// ≥lg Desk always shows at once. "review" is the stage (chart, ladder, why
-// this setup), "scan" is the left rail (MarketScanPanel), "trades" is the
-// right rail (CurrentTradesRail). Owned here, not by App.tsx, because these
-// three names only ever mean something inside the Desk tab.
-export type DeskMobileView = "review" | "scan" | "trades";
-
-// Desktop (≥lg) is frozen: every column must go on rendering exactly as it
-// always has, so lg:block/lg:flex apply unconditionally here regardless of
-// which mobile tab is active — only the base (sub-lg) utility ever changes.
-// Literal per-branch strings below, never the variant prefix and the
-// utility split apart by a template-literal interpolation (C1): Tailwind
-// v4's build-time scanner greps source text for complete,
-// statically-analyzable class tokens, and a class name assembled that way
-// never appears as a real "lg:block" or "lg:flex" substring anywhere in the
-// source — so .lg\:block/.lg\:flex were never generated into the built CSS
-// at all (confirmed absent from dist), and every column this helper gates
-// was silently display:none at every width, rail included. Below lg,
-// exactly one column is ever visible at a time, matching the mobile tab
-// bar's own selection (spec §3); the CSS-only toggle (rather than
-// conditionally mounting/unmounting the three columns) is what lets
-// Review, Scan, and Trades share one AdvisorWorkspace instance and its
-// state (symbol, scanResult, clockNow…) instead of remounting and losing
-// it on every tab switch.
-export function deskColumnClassName(
-  isActiveOnMobile: boolean,
-  display: "block" | "flex",
-  className: string,
-): string {
-  const gating = display === "block"
-    ? (isActiveOnMobile ? "block lg:block" : "hidden lg:block")
-    : (isActiveOnMobile ? "flex lg:flex" : "hidden lg:flex");
-  return `${gating} ${className}`;
-}
+// Spec §17e: mobile's bottom tab bar is THREE tabs, and the Desk owns two of
+// them. "scan" is the merged surface (m-scan-v3.html) — one surface, one verb:
+// the controls, the market head, the chart, the ladder, the why line and the
+// qualifying markets, all of it; "trades" is CurrentTradesRail. The old
+// "review" sub-view is gone, merged into "scan", so a mobile reader never has
+// to hold two tabs in their head to read one setup. Owned here, not by App.tsx,
+// because these names only ever mean something inside the Desk tab.
+export type DeskMobileView = "scan" | "trades";
 
 type AdvisorWorkspaceProps = {
-  // Which of the three columns is the sole visible one below lg (spec §3).
-  // Ignored at ≥lg, where all three always render — see the className
-  // helper below for exactly how that freeze is enforced.
+  // Which of the Desk's two mobile surfaces is showing below lg (spec §17e).
+  // Ignored at ≥lg, where the three-column shell renders instead.
   mobileView: DeskMobileView;
   // Bound to useTradeSetups' forceOutcomeRefresh path (App.tsx). Wired to
   // Desk-tab activation there and to CurrentTradesRail's own manual refresh
   // here — the rail never grows fetch machinery of its own (spec §8).
   onForceOutcomeRefresh: () => void;
-  // App.tsx's setDeskMobileView, threaded down so an in-workspace action can
-  // switch which mobile sub-view is showing (I3) — today that's selecting a
-  // scan candidate, which should land the user on "review" to actually see
-  // it, the same way App.tsx's own openAdvisor nav action does.
-  onMobileViewChange: (view: DeskMobileView) => void;
   // Called once the effect below has applied openRequest, so the caller
   // (App) can clear it. AdvisorWorkspace unmounts whenever its tab isn't
   // active, so without this the same request would still be sitting there
@@ -114,7 +84,6 @@ export function AdvisorWorkspace(
   {
     mobileView,
     onForceOutcomeRefresh,
-    onMobileViewChange,
     onOpenRequestHandled,
     onSetupsChanged,
     openRequest,
@@ -154,6 +123,19 @@ export function AdvisorWorkspace(
   const [chartExpanded, setChartExpanded] = useState(false);
   const requestIdRef = useRef(0);
   const selectedSymbolRef = useRef<SupportedSymbol>("EURUSD");
+  // The merged mobile surface's single scrolling region (spec §17e). Held as a
+  // ref so selecting another market can return the reader to the top of it —
+  // null at ≥lg, where the region does not exist and nothing scrolls but the
+  // columns themselves.
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  // Which composition this Desk is: the merged mobile surface, or the ≥lg
+  // three-column shell. A JS check rather than CSS because the two are not
+  // restylings of each other — mobile pins a control row, a market head and the
+  // chart above ONE scrolling region, and no reordering of the desktop DOM
+  // produces those two boxes. Rendering one (not both, CSS-hidden) is what
+  // keeps a single "Scan scope" trigger, one chart canvas, and one accessible
+  // name per control at every width.
+  const isMobile = useIsMobileViewport();
 
   // I5: never sent straight to the server — a closed market has no chance of
   // qualifying and would only inflate the server's `scanned` count with markets
@@ -181,6 +163,12 @@ export function AdvisorWorkspace(
   const reviewedAt = analysisState?.symbol === symbol && analysisState.reviewedAt
     ? new Date(analysisState.reviewedAt).toISOString()
     : null;
+  // The merged mobile head renders the stamp itself (the compact confidence
+  // cluster is the score and its meter alone, per m-scan-v3.html:22-27), so it
+  // reads the same builder the full unit does rather than a second grammar.
+  const confidenceMeta = setup
+    ? buildConfidenceMeta(reviewedAt, setup.expiresAt ?? null)
+    : "";
 
   useEffect(() => {
     if (!timeframeTouched) {
@@ -392,54 +380,253 @@ export function AdvisorWorkspace(
     }
   }
 
+  // Spec §17e, "one surface, one verb": the merged mobile surface offers a
+  // single Scan button, and the scope decides what that click means — a review
+  // when the scope is one market, a scan when it is a group or All. Neither path
+  // is new or altered: both are the same two functions the ≥lg Desk's own
+  // "Review" and "Scan now" have always called, with every behavior contract
+  // (fresh data on every run, the server-side placed-guard, confidence-desc
+  // results, scan persistence) untouched.
+  const scopeActionIsReview = scope.kind === "symbol";
+  const scopeActionBusy = scopeActionIsReview
+    ? analyzerStatus === "analyzing"
+    : scanStatus === "scanning";
+  // Each path keeps its own disabled rule rather than inheriting a merged one:
+  // a review waits on the chart load it refreshes, and a scan cannot run with
+  // nothing open to scan.
+  const scopeActionDisabled = scopeActionIsReview
+    ? analyzerStatus === "analyzing" || marketLoading
+    : scanStatus === "scanning" || openScanSymbols.length === 0;
+
+  async function runScopeAction() {
+    if (scopeActionIsReview) {
+      await analyze();
+      return;
+    }
+    await scanMarkets(openScanSymbols);
+  }
+
+  function selectTimeframe(nextTimeframe: ChartTimeframe) {
+    setTimeframeTouched(true);
+    setTimeframe(nextTimeframe);
+  }
+
+  // Tapping a qualifying market. Shared by both platforms: the stage (or, on
+  // mobile, the head and chart above the list) follows the row, and the row's
+  // own setup rides along when it has one.
+  function selectCandidate(candidate: MarketScanCandidate) {
+    selectSymbolForReview(candidate.symbol);
+    if (candidate.setup) {
+      setAnalysisState({
+        response: {
+          advisoryOnly: true,
+          message: "Selected from Market Scan.",
+          setup: candidate.setup,
+        },
+        // No review ran here — this setup came out of a scan that may have
+        // completed long before the row was clicked, so there is no review time
+        // to claim. The head's meta line shows the setup's expiry alone until
+        // Review actually runs.
+        reviewedAt: null,
+        symbol: candidate.symbol,
+      });
+      setAdvisorNotice(
+        "Selected from Market Scan. Review refreshes the same rules and saves the current setup.",
+      );
+    }
+    // The chart, the head and the ladder all sit ABOVE the list on the merged
+    // mobile surface and have just swapped to this market, so the reader is
+    // returned to them. A no-op at ≥lg, where the ref holds nothing.
+    mobileScrollRef.current?.scrollTo({ top: 0 });
+  }
+
+  // Spec §17: the same MarketChart full-viewport, with its level lines and its
+  // own theme reactivity. Held in one place and rendered by both compositions:
+  // the trigger that sets this state is mobile-only (MarketChart gates it
+  // lg:hidden), so at ≥lg this is always null.
+  const chartOverlay = chartExpanded
+    ? (
+      <ExpandedChartOverlay
+        marketName={scopeTriggerLabel({ kind: "symbol", symbol }, "heading")}
+        onClose={() => setChartExpanded(false)}
+      >
+        <MarketChart
+          data={marketData?.points ?? []}
+          fill
+          loading={marketLoading}
+          setup={setup}
+          viewKey={`${symbol}:${timeframe}`}
+        />
+      </ExpandedChartOverlay>
+    )
+    : null;
+
+  if (isMobile) {
+    // The merged mobile Scan surface (spec §17e, m-scan-v3.html): a fixed
+    // viewport — App.tsx hands this a flex column exactly "viewport minus
+    // header" tall — with the controls, the market head and the compact chart
+    // PINNED, and one scrolling region under them carrying the ladder, the why
+    // line, the count line and the qualifying markets. Both mobile surfaces
+    // stay mounted and toggle by display, so flipping to Trades and back keeps
+    // this surface's chart canvas and every piece of its state alive.
+    return (
+      <>
+        <div
+          className={mobileView === "scan"
+            ? "flex min-h-0 flex-1 flex-col"
+            : "hidden"}
+          data-testid="mobile-scan-surface"
+        >
+          <div className="shrink-0 px-4 pt-3">
+            {/* m-scan-v3.html:76-80: scope · timeframe · Scan, one row. */}
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <ScopeMenu
+                  label="Scan scope"
+                  showLabel={false}
+                  value={scope}
+                  onSelect={selectScope}
+                />
+              </div>
+              <ChartViewSelect
+                className="min-h-11 shrink-0 rounded-lg border border-hairline bg-sheet px-2.5 text-[12.5px] font-bold text-ink"
+                value={timeframe}
+                onSelect={selectTimeframe}
+              />
+              <button
+                className="primary-button shrink-0 px-4 py-2 text-[13px]"
+                type="button"
+                disabled={scopeActionDisabled}
+                onClick={runScopeAction}
+              >
+                {scopeActionBusy
+                  ? (
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  )
+                  : null}
+                Scan
+              </button>
+            </div>
+
+            {/* The market head (m-scan-v3.html:81-85): the market, its side tag,
+                and the compact confidence cluster right-aligned. The name is a
+                heading-scale label rather than a second picker — the scope menu
+                above IS the picker on this surface. */}
+            <div className="mt-3 flex min-w-0 items-center gap-2">
+              <span className="min-w-0 truncate font-display text-[19px] font-bold tracking-[-0.02em] text-ink">
+                {scopeTriggerLabel({ kind: "symbol", symbol }, "heading")}
+              </span>
+              {setup
+                ? (
+                  <span
+                    className={setup.side === "buy"
+                      ? "shrink-0 text-xs font-bold uppercase text-buy"
+                      : "shrink-0 text-xs font-bold uppercase text-sell"}
+                  >
+                    {setup.side === "buy" ? "Buy" : "Sell"} limit
+                  </span>
+                )
+                : null}
+              {setup
+                ? (
+                  <ConfidenceUnit
+                    assetType={selectedAsset.assetType}
+                    compact
+                    score={setup.confidenceScore}
+                  />
+                )
+                : null}
+            </div>
+            {/* §17's stamp, the one thing in the head's cluster the surface
+                cannot show for itself. Same grammar as ≥lg — the same builder
+                the full ConfidenceUnit uses, so the two can never drift. */}
+            {confidenceMeta
+              ? (
+                <p className="mt-1 font-mono text-[11px] leading-4 text-ink-muted">
+                  {confidenceMeta}
+                </p>
+              )
+              : null}
+
+            <div className="mt-1.5">
+              <MarketChart
+                data={marketData?.points ?? []}
+                loading={marketLoading}
+                onExpand={() => setChartExpanded(true)}
+                setup={setup}
+                viewKey={`${symbol}:${timeframe}`}
+              />
+            </div>
+          </div>
+
+          {/* The only scroll on this surface (m-scan-v3.html:32): the ladder's
+              copy rows, the one-line why plus its Why disclosure, the count
+              line, and the qualifying markets. pb-24 is the fixed tab bar's own
+              clearance, the same reserve every other surface gives it. */}
+          <div
+            ref={mobileScrollRef}
+            className="scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24"
+            data-testid="mobile-scan-scroll"
+          >
+            <RecommendationPanel
+              notice={advisorNotice}
+              result={activeResult}
+              setup={setup}
+              status={analyzerStatus}
+              symbol={symbol}
+            />
+            <MarketScanResults
+              onSelectCandidate={selectCandidate}
+              result={scanResult}
+              scanCompletedAt={scanCompletedAt}
+              scope={scope}
+              selectedSymbol={symbol}
+              status={scanStatus}
+            />
+            {marketNotice
+              ? (
+                <p className="mt-3 text-sm font-medium text-ink-muted">
+                  {marketNotice}
+                </p>
+              )
+              : null}
+          </div>
+        </div>
+
+        {/* The Trades tab (spec §8 as a tab): the same rail component the ≥lg
+            Desk's right column carries, on the ordinary scrolling page App.tsx
+            gives every surface that is not this fixed one. */}
+        <aside className={mobileView === "trades" ? "min-w-0" : "hidden"}>
+          <CurrentTradesRail
+            isActiveOnMobile={mobileView === "trades"}
+            now={clockNow}
+            onRefresh={onForceOutcomeRefresh}
+            setups={setups}
+          />
+        </aside>
+
+        {chartOverlay}
+      </>
+    );
+  }
+
   return (
     // The Desk grid (spec §2): 264px scan rail / flexible stage / 300px
     // trades rail, all three the same height and each independently
-    // scrollable — only at lg, where AdvisorWorkspace fills the fixed
-    // "viewport minus header" shell App.tsx hands it (App.tsx's
-    // grid-rows-[auto_1fr] + this flex-1 min-h-0). Below lg there's no
-    // height constraint here at all, so the three wrapper elements just
-    // stack in normal document flow — the pre-existing mobile behavior,
-    // untouched until Task 9's mobile pass.
+    // scrollable, inside the fixed "viewport minus header" shell App.tsx hands
+    // it (App.tsx's grid-rows-[auto_1fr] + this flex-1 min-h-0). This whole
+    // composition is the ≥lg Desk and nothing else now: below lg the merged
+    // mobile surface above renders instead, so the columns no longer carry the
+    // base display utilities that used to gate them there.
     <div className="grid min-w-0 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[264px_minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
-      {/* Left rail: the scan. Task 4 replaces MarketScanPanel's internals;
-          here it only moves into its own column. Below lg it is the "Scan"
-          tab's entire content (spec §3); at ≥lg it always shows. */}
-      <div
-        className={deskColumnClassName(
-          mobileView === "scan",
-          "block",
-          "scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4",
-        )}
-      >
+      {/* Left rail: the scan (a-desk-v3.html:87-158). */}
+      <div className="scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4">
         <MarketScanPanel
           onScan={scanMarkets}
-          onSelectCandidate={(candidate) => {
-            selectSymbolForReview(candidate.symbol);
-            // I3: tapping a scan row is a decisive "go look at this" action
-            // (unlike scoping the scan itself), so on mobile it also jumps
-            // to the review column — otherwise the user stays parked on
-            // "Scan" and never sees what selecting the row actually did.
-            onMobileViewChange("review");
-            if (candidate.setup) {
-              setAnalysisState({
-                response: {
-                  advisoryOnly: true,
-                  message: "Selected from Market Scan.",
-                  setup: candidate.setup,
-                },
-                // No review ran here — this setup came out of a scan that may
-                // have completed long before the row was clicked, so there is
-                // no review time to claim. The stagehead's meta line shows the
-                // setup's expiry alone until Review actually runs.
-                reviewedAt: null,
-                symbol: candidate.symbol,
-              });
-              setAdvisorNotice(
-                "Selected from Market Scan. Review refreshes the same rules and saves the current setup.",
-              );
-            }
-          }}
+          onSelectCandidate={selectCandidate}
           onSelectScope={selectScope}
           openScanSymbols={openScanSymbols}
           result={scanResult}
@@ -464,15 +651,8 @@ export function AdvisorWorkspace(
           rows shrink to fit the scroll container's height instead of
           overflowing it, which silently defeats the scrolling this column
           exists for. Flex only avoids the same trap because every direct
-          child below is pinned shrink-0. Below lg this is the "Review" tab's
-          entire content (spec §3); at ≥lg it always shows. */}
-      <div
-        className={deskColumnClassName(
-          mobileView === "review",
-          "flex",
-          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
-        )}
-      >
+          child below is pinned shrink-0. */}
+      <div className="scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         <section className="min-w-0 shrink-0">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
             <div className="min-w-0 flex-1">
@@ -519,21 +699,11 @@ export function AdvisorWorkspace(
               {/* The visible "Chart view" caption is gone with the rest of the
                   stage's form chrome; the aria-label carries the same name
                   (and is the e2e contract for this control). */}
-              <select
-                aria-label="Chart view"
+              <ChartViewSelect
                 className="min-h-11 rounded-lg border border-ink bg-transparent px-3 text-sm font-semibold text-ink"
                 value={timeframe}
-                onChange={(event) => {
-                  setTimeframeTouched(true);
-                  setTimeframe(event.target.value as ChartTimeframe);
-                }}
-              >
-                {TIMEFRAMES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onSelect={selectTimeframe}
+              />
               <button
                 className="primary-button"
                 type="button"
@@ -564,33 +734,13 @@ export function AdvisorWorkspace(
             viewKey={`${symbol}:${timeframe}`}
           />
 
-          {/* Spec §17: the mobile chart is compact inline (the mock's 170px)
-              because Expand chart hands over the whole viewport on demand. The
-              overlay mounts a SECOND MarketChart with the identical four props
-              above — same data, same level lines, its own MutationObserver on
-              data-theme — rather than moving the mounted one, which would tear
-              down the canvas and leave the inline container empty behind the
-              dialog. The trigger only exists below lg (MarketChart gates it
-              lg:hidden), so this state can only ever be true there. */}
-          {chartExpanded
-            ? (
-              <ExpandedChartOverlay
-                marketName={scopeTriggerLabel(
-                  { kind: "symbol", symbol },
-                  "heading",
-                )}
-                onClose={() => setChartExpanded(false)}
-              >
-                <MarketChart
-                  data={marketData?.points ?? []}
-                  fill
-                  loading={marketLoading}
-                  setup={setup}
-                  viewKey={`${symbol}:${timeframe}`}
-                />
-              </ExpandedChartOverlay>
-            )
-            : null}
+          {/* Spec §17's Expand chart overlay, built once above and rendered by
+              both compositions. It mounts a SECOND MarketChart with the same
+              props rather than moving the mounted one, which would tear down the
+              canvas and leave the inline container empty behind the dialog. Its
+              trigger only exists below lg (MarketChart gates it lg:hidden), so
+              at this width this is always null. */}
+          {chartOverlay}
 
           <div className="min-w-0 border border-hairline border-t-0 bg-sheet">
             <RecommendationPanel
@@ -619,21 +769,14 @@ export function AdvisorWorkspace(
       {/* Right rail: Current trades (spec §8) — live pending/open state,
           computed from setups+outcomes already loaded above. Force-refreshed
           on every Desk surface show (App.tsx's tab-activation effect) and on
-          demand via the rail's own manual control; no fetch logic lives
-          here. Below lg this is the "Trades" tab's entire content (spec
-          §3); at ≥lg it always shows.
+          demand via the rail's own manual control; no fetch logic lives here.
           This column is the surface's frame (a-desk-v3.html:56 `.railR`):
           left hairline, the mock's sheet-over-paper tint, and its 16px
           inset — CurrentTradesRail itself draws no panel, so the tint has to
           live here or nowhere. lg:-gated with the rest of the column
-          geometry, since below lg the rail is a full-width tab, not a rail. */}
-      <aside
-        className={deskColumnClassName(
-          mobileView === "trades",
-          "flex",
-          "scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-[color-mix(in_srgb,var(--color-sheet)_55%,var(--color-paper))] lg:pl-4 lg:pr-4",
-        )}
-      >
+          geometry, since the mobile Trades tab is a full-width surface, not a
+          rail. */}
+      <aside className="scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-[color-mix(in_srgb,var(--color-sheet)_55%,var(--color-paper))] lg:pl-4 lg:pr-4">
         <div className="shrink-0">
           <CurrentTradesRail
             isActiveOnMobile={mobileView === "trades"}
@@ -644,5 +787,35 @@ export function AdvisorWorkspace(
         </div>
       </aside>
     </div>
+  );
+}
+
+// The chart-view control (spec §17: two-character timeframes), one component so
+// the ≥lg stagehead and the merged mobile control row cannot drift in what they
+// offer or in what they call it — the aria-label is the e2e contract for this
+// control on both platforms. Only the geometry differs, and it arrives as a
+// literal class string from each caller (C1: never an interpolated variant).
+function ChartViewSelect({
+  className,
+  onSelect,
+  value,
+}: {
+  className: string;
+  onSelect: (timeframe: ChartTimeframe) => void;
+  value: ChartTimeframe;
+}) {
+  return (
+    <select
+      aria-label="Chart view"
+      className={className}
+      value={value}
+      onChange={(event) => onSelect(event.target.value as ChartTimeframe)}
+    >
+      {TIMEFRAMES.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 }

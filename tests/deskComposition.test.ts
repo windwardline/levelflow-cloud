@@ -266,17 +266,32 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     for (const source of [stage, panel, receipt]) {
       assert.doesNotMatch(source, /terminal-panel/);
       assert.doesNotMatch(source, /rounded-lg border border-hairline bg-paper/);
+    }
+    // The hairline card on sheet: banned outright in the two files that render
+    // INSIDE the sheet, and in the stage allowed only where it is a form
+    // control — the merged mobile surface's chart-view field (m-scan-v3.html:15
+    // `.tf`), which tests/boxDiscipline.test.ts carries with its reason.
+    // Enumerated rather than merely permitted, so a second one cannot arrive
+    // under cover of the first.
+    for (const source of [panel, receipt]) {
       assert.doesNotMatch(source, /rounded-lg border border-hairline bg-sheet/);
     }
+    assert.deepEqual(
+      stage.match(/[^"]*rounded-lg border border-hairline bg-sheet[^"]*/g) ?? [],
+      [
+        "min-h-11 shrink-0 rounded-lg border border-hairline bg-sheet px-2.5 text-[12.5px] font-bold text-ink",
+      ],
+    );
   });
 
-  // Fix wave 2C: the mobile mock DOES draw a card inside the setup sheet — the
-  // ladder's copy rows (m-mobile-v3.html:25 `.copy`) — so this pins the other
-  // half of that exemption. Neither sheet-filler nor radius may apply
-  // un-prefixed in the two files that render INSIDE the sheet; both exist only
-  // as `max-lg:` tokens there. (AdvisorWorkspace is excluded on purpose: it
-  // draws the sheet itself, which is the one frame the ≥lg mock wants.)
-  it("keeps the mobile ladder card mobile-only — no fill or radius reaches ≥lg", () => {
+  // Fix wave 2C, re-aimed at m-scan-v3: the mobile mock DOES draw one bordered
+  // affordance inside the setup sheet's content — the ladder's per-value Copy
+  // button (m-scan-v3.html:37 `.cbtn`) — so this pins the other half of that
+  // exemption. Neither sheet-filler nor radius may apply un-prefixed in the two
+  // files that render INSIDE the sheet; both exist only as `max-lg:` tokens
+  // there. (AdvisorWorkspace is excluded on purpose: it draws the sheet itself,
+  // which is the one frame the ≥lg mock wants.)
+  it("keeps the mobile copy control's border mobile-only — no fill or radius reaches ≥lg", () => {
     for (const source of [panel, receipt]) {
       for (const utility of ["bg-sheet", "bg-paper", "rounded-lg", "rounded-md"]) {
         const unprefixed = source.match(
@@ -286,12 +301,15 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
           unprefixed,
           [],
           `${utility} must never apply un-prefixed inside the setup sheet — ` +
-            "the mock's only card here is the mobile copy row, which rides " +
-            "max-lg:",
+            "the mock's only bordered affordance here is the mobile copy " +
+            "control, which rides max-lg:",
         );
       }
     }
-    assert.match(panel, /max-lg:rounded-lg max-lg:border max-lg:bg-sheet/);
+    assert.match(
+      panel,
+      /max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet/,
+    );
   });
 
   it("keeps the stage's own status tiles gone (DATA / SESSION / ADVISOR / MARKET HISTORY)", () => {
@@ -582,11 +600,14 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
   });
 
   it("takes the mock's compact inline height below lg and leaves ≥lg exactly as it rendered", () => {
-    // m-mobile-v3.html:13 — 170px. The ≥lg values are the same two the sm:/xl:
-    // pair produced before (500px at lg, 560px at xl), now expressed as lg:/xl:
-    // so the max-lg rule owns everything below the breakpoint outright rather
-    // than depending on which of two equal-specificity media queries wins.
-    assert.match(chart, /max-lg:h-\[170px\]/);
+    // m-scan-v3.html:28 — 168px, the height the merged mobile surface pins this
+    // chart at inside its fixed viewport (m-mobile-v3's 170px is superseded).
+    // The ≥lg values are the same two the sm:/xl: pair produced before (500px at
+    // lg, 560px at xl), now expressed as lg:/xl: so the max-lg rule owns
+    // everything below the breakpoint outright rather than depending on which of
+    // two equal-specificity media queries wins.
+    assert.match(chart, /max-lg:h-\[168px\]/);
+    assert.doesNotMatch(chart, /h-\[170px\]/);
     assert.match(chart, /lg:h-\[500px\]/);
     assert.match(chart, /xl:h-\[560px\]/);
     assert.doesNotMatch(chart, /sm:h-\[500px\]/);
@@ -611,15 +632,17 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
   const rail = readFileSync(RAIL, "utf8");
 
   it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
-    // The eyebrow's own ≥lg treatment is unchanged; fix wave 2C appended
-    // `max-lg:sr-only` because m-scan-v1.html draws no eyebrow on the mobile
-    // tab (the bottom tab bar already names that surface) — clipped, not
-    // removed, so the heading survives in the accessibility tree there.
+    // The eyebrow is unchanged and un-prefixed again: spec §17e made this rail
+    // the ≥lg composition alone, so the `max-lg:sr-only` that hid it on the old
+    // mobile Scan tab described a rendering that no longer happens. Its absence
+    // is asserted alongside, so a mobile treatment cannot drift back into a
+    // desktop-only component.
     assert.match(
       rail,
-      /uppercase tracking-normal text-ink-muted max-lg:sr-only">\s*Scan\s*</,
+      /uppercase tracking-normal text-ink-muted">\s*Scan\s*</,
     );
     assert.match(rail, /Scan now/);
+    assert.doesNotMatch(rail, /max-lg:sr-only/);
   });
 
   it("keeps the scope menu and the server-truth count line, mono and unboxed", () => {

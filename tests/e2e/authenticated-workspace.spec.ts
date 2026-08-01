@@ -475,13 +475,12 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.goto("/");
 
-  // The stage carries no heading (spec §2), so "Review" (spec §17 shortened
-  // it from "Review market") — the one stable, always-present control inside
-  // its topmost section — stands in for the whole stage column the way the
-  // old "Market review" heading used to. exact:true because the mobile tab
-  // bar carries a "Review" tab of its own; it is display:none at this width
-  // (so out of the accessibility tree Playwright queries), and the exact
-  // match keeps that from being the only thing separating them.
+  // The stage carries no heading (spec §2), so "Review" (spec §17 shortened it
+  // from "Review market") — the one stable, always-present control inside its
+  // topmost section — stands in for the whole stage column the way the old
+  // "Market review" heading used to. It is unambiguous at this width in two
+  // ways now: the merged mobile surface (whose action is "Scan") does not
+  // render at ≥lg at all, and no tab is named Review any more.
   const advisorPanel = page.locator("section", {
     has: page.getByRole("button", { name: "Review", exact: true }),
   }).first();
@@ -499,11 +498,12 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
 });
 
 test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
-  // Mobile is its own composition (spec §3), not a narrowed desktop: the
-  // top nav pills are gone entirely (display:none via the header's
-  // `hidden lg:flex` gate); primary navigation is a bottom tab bar (Review /
-  // Scan / Trades / Insights), and Guide / Profile / Donate / Help / Sign
-  // out all move behind one account-avatar menu in the header.
+  // Mobile is its own composition (spec §17e), not a narrowed desktop: the top
+  // nav pills are gone entirely (display:none via the header's `hidden lg:flex`
+  // gate); primary navigation is a THREE-tab bottom bar (Scan / Trades /
+  // Insights) whose Scan tab is the merged surface the old Review tab folded
+  // into, and Guide / Profile / Donate / Help / Sign out all move behind one
+  // account-avatar menu in the header.
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
 
@@ -520,24 +520,27 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(header.getByText("E8", { exact: true })).toBeVisible();
   await expect(header.getByLabel("E8 Markets")).toBeVisible();
 
-  // Scoped to the tab bar's own nav, not the page: spec §17 shortened the
-  // stage's action to "Review", which is exactly the first tab's name, and at
-  // this width both are visible at once (the stage IS the Review tab). The
-  // bar's landmark is aria-label="Levelflow"; the desktop masthead's is
-  // "Levelflow sections", and a CSS attribute selector is an exact match, so
-  // this can never pick up the wrong nav.
+  // Scoped to the tab bar's own nav, not the page: the merged surface's action
+  // button is "Scan", which is exactly the first tab's name, and at this width
+  // both are visible at once (spec §17e's one surface, one verb). The bar's
+  // landmark is aria-label="Levelflow"; the desktop masthead's is "Levelflow
+  // sections", and a CSS attribute selector is an exact match, so this can never
+  // pick up the wrong nav.
   const tabBar = page.locator('nav[aria-label="Levelflow"]');
-  for (const tab of ["Review", "Scan", "Trades", "Insights"]) {
+  for (const tab of ["Scan", "Trades", "Insights"]) {
     // The Trades button's aria-label grows to "Trades, N current" once a
     // live setup exists (App.tsx's MobileTabBar badge) — this suite creates
     // one earlier in the file, so exact:true would fail here whenever that
-    // ran first. The other three tabs never carry a badge today, so they
+    // ran first. The other two tabs never carry a badge today, so they
     // stay exact.
     const locator = tab === "Trades"
       ? tabBar.getByRole("button", { name: /^Trades(,|$)/ })
       : tabBar.getByRole("button", { name: tab, exact: true });
     await expect(locator).toBeVisible();
   }
+  // Three, not four: the Review tab is gone, and counting is what proves it —
+  // a fourth button would satisfy every assertion above.
+  await expect(tabBar.getByRole("button")).toHaveCount(3);
 
   // Guide/Profile/Donate/Help/Sign out are real controls, just not directly
   // visible until the account menu opens (App.tsx's MobileAccountMenu is
@@ -556,21 +559,56 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(page.getByRole("menuitem", { name: "Help" })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  // Review is the default tab; Scan and Trades are one tap away and carry
-  // full functionality there, not a stripped-down subset. The tab bar's own
-  // "Scan" button and the rail's "Scan now" no longer collide on one name
-  // (spec §16 renamed the rail's action to the mock's wording), and the taps
-  // below stay scoped to the bar anyway — the stage's own "Review" action
-  // shares a name with the first tab now (spec §17).
-  await tabBar.getByRole("button", { name: "Scan", exact: true }).click();
-  await expect(page.getByTestId("market-scan-rail")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Scan now" }),
-  ).toBeVisible();
+  // The merged Scan surface is the Desk's default and carries all of it
+  // (m-scan-v3.html): the scope menu, the two-character timeframe, the one Scan
+  // button, the market head, the chart with its Expand affordance, and — in the
+  // one scrolling region below them — the ladder, the why line and the
+  // qualifying markets. Every locator is scoped to the surface or to the bar,
+  // since "Scan" is now both a tab and an action.
+  const scanSurface = page.getByTestId("mobile-scan-surface");
+  await expect(scanSurface).toBeVisible();
+  await expect(scanSurface.getByRole("button", { name: "Scan scope" }))
+    .toBeVisible();
+  await expect(scanSurface.getByRole("button", { name: "Scan", exact: true }))
+    .toBeVisible();
+  await expect(scanSurface.getByLabel("Chart view")).toBeVisible();
+  await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
+    .toBeVisible();
+  // And the composition it replaced does not render here at all: no separate
+  // scan rail, no "Scan now", no "Review" action.
+  await expect(page.getByTestId("market-scan-rail")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Scan now" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Review", exact: true }))
+    .toHaveCount(0);
 
-  // Same Trades badge caveat as above.
+  // A fixed viewport, like the ≥lg Desk: the page itself does not scroll, one
+  // region inside it does, and §17c's footer — which belongs to scrolling
+  // surfaces — is absent.
+  expect(
+    await page.evaluate(() =>
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight
+    ),
+  ).toBeLessThanOrEqual(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+  const scanScroll = page.getByTestId("mobile-scan-scroll");
+  await expect(scanScroll).toBeVisible();
+  expect(
+    await scanScroll.evaluate((element) =>
+      getComputedStyle(element).overflowY
+    ),
+  ).toBe("auto");
+
+  // Trades is one tap away and carries full functionality there, not a
+  // stripped-down subset. Same badge caveat as above.
   await tabBar.getByRole("button", { name: /^Trades(,|$)/ }).click();
   await expect(page.getByTestId("current-trades-rail")).toBeVisible();
+  // It scrolls like every other surface, so the one footer comes back with it.
+  await expect(page.locator("footer")).toBeVisible();
+
+  // And back, without losing the surface.
+  await tabBar.getByRole("button", { name: "Scan", exact: true }).click();
+  await expect(scanSurface).toBeVisible();
 
   await tabBar.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
@@ -637,9 +675,13 @@ test("Expand chart opens the same chart full-viewport on mobile, and only on mob
   await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // max-lg only: the ≥lg Desk is frozen and its chart is already full-height.
+  // Below lg only: the ≥lg Desk is frozen and its chart is already full-height.
+  // Crossing the breakpoint swaps the whole composition (spec §17e), so the
+  // trigger leaves the DOM rather than merely going display:none — toBeHidden
+  // covers both, and this asserts the stronger of the two.
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.getByRole("button", { name: "Expand chart" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Expand chart" }))
+    .toHaveCount(0);
 });
 
 test("scope menu lists All markets, then groups alphabetically, then base/quote-sorted markets — 1280px popup", async ({ page }) => {
@@ -659,10 +701,9 @@ test("scope menu lists All markets, then groups alphabetically, then base/quote-
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
 
-  // The scan rail is the "Scan" mobile tab's content; the sheet-vs-popup
-  // choice is purely a viewport check inside ScopeMenu itself, but the
-  // trigger still has to be visible (and thus tapped-into) first.
-  await page.getByRole("button", { name: "Scan", exact: true }).click();
+  // The scope menu is pinned to the top of the merged Scan surface, which is the
+  // Desk's default tab (spec §17e) — no navigation needed to reach it. The
+  // sheet-vs-popup choice is a viewport check inside ScopeMenu itself.
   await page.getByRole("button", { name: "Scan scope" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("listbox")).toBeVisible();

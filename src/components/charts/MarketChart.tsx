@@ -352,9 +352,10 @@ export function MarketChart(
           </button>
         )
         : null}
-      {/* 170px below lg, the mock's own compact inline height
-          (m-mobile-v3.html:13), now that Expand chart gives a reader the whole
-          viewport when they want it. The ≥lg values are unchanged in what they
+      {/* 168px below lg, the mock's own compact inline height
+          (m-scan-v3.html:28) — the merged Scan surface pins this chart inside a
+          fixed viewport, and Expand chart gives a reader the whole one when they
+          want it. The ≥lg values are unchanged in what they
           render (500px from lg, 560px from xl — exactly what the old
           sm:/xl: pair produced there); expressing the lower bound as `lg:`
           rather than `sm:` leaves max-lg: owning everything below the
@@ -364,7 +365,7 @@ export function MarketChart(
         ref={containerRef}
         className={fill
           ? "h-full w-full"
-          : "w-full max-lg:h-[170px] lg:h-[500px] xl:h-[560px]"}
+          : "w-full max-lg:h-[168px] lg:h-[500px] xl:h-[560px]"}
       />
       {loading && <div className="absolute inset-0 grid place-items-center bg-sheet text-sm font-semibold text-ink">Loading market data</div>}
       {!loading && data.length === 0 && (

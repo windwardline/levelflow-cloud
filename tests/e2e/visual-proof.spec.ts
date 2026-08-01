@@ -93,36 +93,33 @@ test("captures mobile composition proof", async ({ page }) => {
   await page.setViewportSize({ height: 812, width: 375 });
   await page.goto("/");
 
-  // Mobile Desk splits into the tab bar's three views; capture the review
-  // stage first, then the scan and trades tabs, then the other surfaces
-  // through the account menu's own targets where they exist in the bar.
-  await page
-    .locator('div[data-testid="mobile-header"]')
-    .waitFor({ state: "visible" });
+  // The mobile Desk is two surfaces now (spec §17e): the merged Scan surface,
+  // which is the default and carries what the old Review and Scan tabs both
+  // held, and Trades. Landmarks are resolved by testid, so a tag or wrapper
+  // change cannot silently make a capture pass against nothing.
+  await page.getByTestId("mobile-header").waitFor({ state: "visible" });
+  await page.getByTestId("mobile-scan-surface").waitFor({ state: "visible" });
   await page.waitForTimeout(1500);
   await page.screenshot({
     fullPage: true,
-    path: "test-results/visual-proof/mobile-desk-review.png",
+    path: "test-results/visual-proof/mobile-desk-scan.png",
   });
 
-  for (const view of ["Scan", "Trades"] as const) {
-    // The Trades tab's accessible name grows to "Trades, N current" the moment
-    // the account holds a pending or open setup (App.tsx's MobileTabBar
-    // badge), so exact:true stops matching on exactly the accounts this
-    // capture is most worth having. Same locator and same reason as
-    // authenticated-workspace.spec.ts:416-423.
-    const tab = view === "Trades"
-      ? page.getByRole("button", { name: /^Trades(,|$)/ })
-      : page.getByRole("button", { exact: true, name: view });
-    await tab.click();
-    await page.waitForTimeout(700);
-    await page.screenshot({
-      fullPage: true,
-      path: `test-results/visual-proof/mobile-desk-${view.toLowerCase()}.png`,
-    });
-  }
+  // Every tap is scoped to the tab bar: "Scan" and "Insights" are also the
+  // names of controls on the surfaces themselves. The Trades tab's accessible
+  // name grows to "Trades, N current" the moment the account holds a pending or
+  // open setup (App.tsx's MobileTabBar badge), so exact:true stops matching on
+  // exactly the accounts this capture is most worth having.
+  const tabBar = page.locator('nav[aria-label="Levelflow"]');
+  await tabBar.getByRole("button", { name: /^Trades(,|$)/ }).click();
+  await page.getByTestId("current-trades-rail").waitFor({ state: "visible" });
+  await page.waitForTimeout(700);
+  await page.screenshot({
+    fullPage: true,
+    path: "test-results/visual-proof/mobile-desk-trades.png",
+  });
 
-  await page.getByRole("button", { exact: true, name: "Insights" }).click();
+  await tabBar.getByRole("button", { exact: true, name: "Insights" }).click();
   await page.locator('h1:has-text("Insights")').waitFor({ state: "visible" });
   await page.waitForTimeout(700);
   await page.screenshot({
