@@ -46,7 +46,7 @@ type MarketScanPanelProps = {
 // panel. Eyebrow + button on one row, the scope menu, the server-truth count
 // line, the result rows. Spec §17m.4 renames both halves of that first row:
 // the eyebrow is "Markets" (what the column lists) and the button is "Scan"
-// (the verb alone) — the mock's own "Scan"/"Scan now" pairing said the verb
+// (the verb alone) — the mock's own eyebrow-and-button pairing said the verb
 // twice and is superseded by name. The two-line panel title block, the legend box and
 // the empty-state illustration are all deleted — the per-row cost chip keeps
 // its rating's plain-language gloss on hover. tests/deskComposition.test.ts

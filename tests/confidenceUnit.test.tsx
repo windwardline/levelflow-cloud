@@ -248,7 +248,9 @@ describe("formatScanRowMeta (scan rail row meta, spec §5)", () => {
   });
 
   it("degrades gracefully when side or score is missing, without fabricating either", () => {
-    assert.equal(formatScanRowMeta(undefined, 82), "Review");
+    // The defensive sideless fallback is the app-wide absent-value dash —
+    // never a retired verb (§17m.4 review fix).
+    assert.equal(formatScanRowMeta(undefined, 82), "\u2014");
     assert.equal(formatScanRowMeta("buy", undefined), "Buy");
   });
 });
