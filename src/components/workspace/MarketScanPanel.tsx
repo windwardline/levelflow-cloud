@@ -80,7 +80,7 @@ export function MarketScanPanel({
           clipped eyebrow, the side-by-side reflow — described a composition
           that no longer renders and are gone rather than left as dead CSS. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <h3 className="eyebrow">
           Scan
         </h3>
         <div className="order-last w-full min-w-0">

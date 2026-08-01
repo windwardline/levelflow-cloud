@@ -145,7 +145,7 @@ export function ConfidenceUnit(
   return (
     <div className="mt-2 grid min-w-0 gap-1">
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <span className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <span className="eyebrow">
           Confidence
         </span>
         <span className="font-mono text-[15px] font-bold tabular-nums text-ink">

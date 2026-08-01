@@ -212,7 +212,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             <>
               <div className="my-6 flex items-center gap-3">
                 <span className="h-px flex-1 bg-ink-muted/20" />
-                <span className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+                <span className="eyebrow">
                   Other sign-in options
                 </span>
                 <span className="h-px flex-1 bg-ink-muted/20" />

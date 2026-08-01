@@ -199,7 +199,7 @@ export function CurrentTradesRail(
           type against a 12px stamp, which is exactly what baseline alignment is
           for. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 lg:min-h-11 lg:items-center">
-        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:font-display max-lg:text-[19px] max-lg:font-bold max-lg:normal-case max-lg:tracking-[-0.02em] max-lg:text-ink">
+        <h3 className="eyebrow max-lg:font-display max-lg:text-[19px] max-lg:font-bold max-lg:normal-case max-lg:tracking-[-0.02em] max-lg:text-ink">
           Current trades
         </h3>
         <p className="text-xs text-ink-muted">

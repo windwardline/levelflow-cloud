@@ -1087,7 +1087,7 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
     // eyebrow the scan rail beside it uses (a-desk-v3.html:218).
     assert.match(
       TRADES_RAIL_SOURCE,
-      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:font-display max-lg:text-\[19px\] max-lg:font-bold max-lg:normal-case max-lg:tracking-\[-0\.02em\] max-lg:text-ink">\s*Current trades\s*<\/h3>/,
+      /<h3 className="eyebrow max-lg:font-display max-lg:text-\[19px\] max-lg:font-bold max-lg:normal-case max-lg:tracking-\[-0\.02em\] max-lg:text-ink">\s*Current trades\s*<\/h3>/,
     );
   });
 

@@ -447,7 +447,7 @@ export function ScopeMenu(
           </span>
           {showsAffordance(row, symbolOnly)
             ? (
-              <span className="shrink-0 font-mono text-xs font-semibold uppercase tracking-normal text-ink-muted">
+              <span className="eyebrow shrink-0 font-mono">
                 {formatScopeMenuAffordance(
                   row.availability,
                   row.count ?? 0,
@@ -520,7 +520,7 @@ export function ScopeMenu(
       <span
         id={`${baseId}-label`}
         className={showLabel
-          ? "text-xs font-semibold uppercase tracking-normal text-ink-muted"
+          ? "eyebrow"
           : "sr-only"}
       >
         {label}

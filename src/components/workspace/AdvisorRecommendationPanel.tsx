@@ -86,7 +86,7 @@ export function RecommendationPanel({
           {/* Payoff was its own metric box before spec §16; the mock folds it
               into the ladder's eyebrow (a-desk-v3.html:198). Costs kept their
               own row inside "Why this setup" all along. */}
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+          <p className="eyebrow mb-1.5">
             The setup · payoff{" "}
             <span className="font-mono tabular-nums">
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
@@ -235,7 +235,7 @@ function CopyableMetricRow({
 }) {
   return (
     <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:grid max-lg:grid-cols-[1fr_auto_auto] max-lg:items-center max-lg:gap-x-2.5 max-lg:px-0.5 max-lg:last:border-b">
-      <span className="min-w-0 text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:text-[10px] max-lg:tracking-[0.07em]">
+      <span className="eyebrow min-w-0 max-lg:text-[10px] max-lg:tracking-[0.07em]">
         {label}
       </span>
       <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
@@ -274,7 +274,7 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
 
   return (
     <div className="grid min-w-0 gap-2 px-5 py-4 max-lg:px-0">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-accent">
+      <p className="eyebrow flex items-center gap-2 text-accent">
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
         Analyzing {symbol}
       </p>
@@ -319,7 +319,7 @@ function NoSetupPanel({
 
   return (
     <div className="grid min-w-0 gap-2 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-caution">
+      <p className="eyebrow flex items-center gap-2 text-caution">
         <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         No trade setup
       </p>
@@ -338,7 +338,7 @@ function NoSetupPanel({
           )}
       </p>
       <div className="mt-1 border-t border-hairline pt-2">
-        <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <p className="eyebrow">
           Primary reason
         </p>
         <p className="mt-0.5 font-medium text-ink">{primaryReason}</p>
