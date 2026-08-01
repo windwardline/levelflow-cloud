@@ -148,7 +148,14 @@ jobs:
           # library's attribution stylesheet (docs/security-hardening.md). Never
           # 'unsafe-inline': the hash is what made needing it unnecessary.
           grep -iq "^content-security-policy: .*style-src 'self' 'sha256-" "$headers"
-          ! grep -iq "^content-security-policy: .*unsafe-inline" "$headers"
+          # A bare `! grep` is inert under this shell's `set -e` (bash -e {0}):
+          # the negated pipeline's failure never trips errexit, so the step
+          # passed even against a header carrying unsafe-inline. The if-form
+          # exits explicitly and was verified to fail on exactly that header.
+          if grep -iq "^content-security-policy: .*unsafe-inline" "$headers"; then
+            echo "production CSP carries unsafe-inline" >&2
+            exit 1
+          fi
           grep -iq "^x-frame-options: DENY" "$headers"
           grep -iq "^x-content-type-options: nosniff" "$headers"
           grep -iq "^referrer-policy: strict-origin-when-cross-origin" "$headers"

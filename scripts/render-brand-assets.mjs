@@ -52,6 +52,8 @@ function tokens() {
       accent: read(theme, "--color-accent"),
       muted: read(theme, "--color-ink-muted"),
       paper: read(theme, "--color-paper"),
+      sheet: read(theme, "--color-sheet"),
+      hairline: read(theme, "--color-hairline"),
     },
     dark: {
       // The dark tile is --color-sheet, not --color-paper. A tile equal to the
@@ -75,10 +77,16 @@ function tokens() {
 // §17h's canonical geometry, in one place. `rounded` false drops the tile's
 // corner radius, which is what the apple-touch icon needs: iOS applies its own
 // mask, so the source has to be a full-bleed square with no transparent corners.
-function markSvg({ tile, ink, accent }, { rounded = true, size = 32 } = {}) {
+// `edge` draws a hairline ring on the tile — the app's own card idiom for an
+// elevated plane sitting on a same-family surface (border-hairline + bg-sheet).
+// The og card is the one place that needs it: a paper tile on the paper card
+// reads as three floating lines, which is the dark rendition's lesson repeated.
+function markSvg({ tile, ink, accent }, { rounded = true, size = 32, edge } = {}) {
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${size}" height="${size}" role="img" aria-label="Levelflow">`,
-    `  <rect width="32" height="32"${rounded ? ' rx="7"' : ""} fill="${tile}"/>`,
+    edge
+      ? `  <rect x="0.5" y="0.5" width="31" height="31"${rounded ? ' rx="6.5"' : ""} fill="${tile}" stroke="${edge}" stroke-width="1"/>`
+      : `  <rect width="32" height="32"${rounded ? ' rx="7"' : ""} fill="${tile}"/>`,
     `  <rect x="7" y="9" width="18" height="2.6" rx="1.3" fill="${ink}"/>`,
     `  <rect x="7" y="14.7" width="18" height="2.6" rx="1.3" fill="${accent}"/>`,
     `  <rect x="7" y="20.4" width="12" height="2.6" rx="1.3" fill="${ink}" opacity="0.45"/>`,
@@ -188,7 +196,12 @@ function ogHtml({ light }, spaceGroteskDataUri) {
   <p class="eyebrow">Market review — <em>daily edition</em></p>
   <p class="wordmark">Levelflow</p>
   <div class="rule"></div>
-  <div class="mark">${markSvg(light, { size: 104 })}</div>
+  <div class="mark">${
+    markSvg(
+      { tile: light.sheet, ink: light.ink, accent: light.accent },
+      { size: 104, edge: light.hairline },
+    )
+  }</div>
 </body></html>`;
 }
 
