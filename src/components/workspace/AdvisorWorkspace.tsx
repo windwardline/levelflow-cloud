@@ -7,7 +7,11 @@ import { TIMEFRAMES } from "./advisorFormat";
 import { ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
 import { MarketScanPanel } from "./MarketScanPanel";
-import { ScopeMenu, scopeTriggerLabel } from "./ScopeMenu";
+import {
+  filterSymbolsByAvailability,
+  getMarketScanSymbolsForScope,
+} from "./marketScanFilters";
+import { type ScanScope, ScopeMenu, scopeTriggerLabel } from "./ScopeMenu";
 import { formatReopen, marketAvailability } from "../../lib/marketHours";
 import {
   type ChartTimeframe,
@@ -134,6 +138,11 @@ export function AdvisorWorkspace(
     "idle",
   );
   const [advisorNotice, setAdvisorNotice] = useState("");
+  // The scan scope lives here rather than inside the rail: spec §17e's merged
+  // mobile surface fires the same scan from its own control row, and the one
+  // verb it offers ("Scan") reads the scope to decide whether this run is a
+  // review of one market or a scan of many.
+  const [scope, setScope] = useState<ScanScope>({ kind: "all" });
   const [scanResult, setScanResult] = useState<MarketScanResponse | null>(null);
   const [scanCompletedAt, setScanCompletedAt] = useState<Date | null>(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
@@ -146,6 +155,16 @@ export function AdvisorWorkspace(
   const requestIdRef = useRef(0);
   const selectedSymbolRef = useRef<SupportedSymbol>("EURUSD");
 
+  // I5: never sent straight to the server — a closed market has no chance of
+  // qualifying and would only inflate the server's `scanned` count with markets
+  // that were never really attempted. Computed fresh on every render rather
+  // than memoized (same reasoning as ScopeMenu.tsx's own clock: a `new Date()`
+  // dependency would defeat a memo anyway) so a scan fired right on a market's
+  // open/close boundary still sees the current answer.
+  const openScanSymbols = filterSymbolsByAvailability(
+    getMarketScanSymbolsForScope(scope),
+    new Date(),
+  );
   const selectedAsset = getSecurityOption(symbol);
   const activeResult = analysisState?.symbol === symbol
     ? analysisState.response
@@ -274,6 +293,20 @@ export function AdvisorWorkspace(
     setAdvisorNotice("");
   }
 
+  // Every scope change, from either platform's control row. The engine never
+  // runs without an explicit click, so changing scope clears the previous
+  // result rather than re-running: stale counts can never describe a different
+  // symbol set. A single market additionally drives the stage selection
+  // (spec §4).
+  function selectScope(nextScope: ScanScope) {
+    setScope(nextScope);
+    setScanResult(null);
+    setScanCompletedAt(null);
+    if (nextScope.kind === "symbol") {
+      selectSymbolForReview(nextScope.symbol);
+    }
+  }
+
   async function analyze() {
     const requestedSymbol = selectedSymbolRef.current;
     const requestedLabel = formatSecurityLabel(requestedSymbol);
@@ -380,10 +413,6 @@ export function AdvisorWorkspace(
         )}
       >
         <MarketScanPanel
-          onResetResult={() => {
-            setScanResult(null);
-            setScanCompletedAt(null);
-          }}
           onScan={scanMarkets}
           onSelectCandidate={(candidate) => {
             selectSymbolForReview(candidate.symbol);
@@ -411,9 +440,11 @@ export function AdvisorWorkspace(
               );
             }
           }}
-          onSelectSymbol={selectSymbolForReview}
+          onSelectScope={selectScope}
+          openScanSymbols={openScanSymbols}
           result={scanResult}
           scanCompletedAt={scanCompletedAt}
+          scope={scope}
           selectedSymbol={symbol}
           status={scanStatus}
         />

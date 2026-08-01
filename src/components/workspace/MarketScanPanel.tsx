@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   formatSecurityDisplaySymbol,
@@ -10,28 +9,32 @@ import type {
 } from "../../lib/tradeAnalyzer";
 import {
   filterMarketScanCandidatesByScope,
-  filterSymbolsByAvailability,
   formatScanRowMeta,
-  getMarketScanSymbolsForScope,
 } from "./marketScanFilters";
 import { describeExecutionLabel } from "./reviewCopy";
 import { formatScopeCountLine, ScopeMenu, type ScanScope } from "./ScopeMenu";
 
 type MarketScanPanelProps = {
-  onResetResult: () => void;
+  // The availability-filtered symbol list this scope would actually scan, and
+  // the scope itself. Both are derived once in AdvisorWorkspace (spec §17e: the
+  // merged mobile surface fires the same scan from its own control row, and two
+  // derivations of "what would this scope scan" is exactly how the two buttons
+  // would drift apart).
+  openScanSymbols: SupportedSymbol[];
   onScan: (symbols: SupportedSymbol[]) => void;
   onSelectCandidate: (candidate: MarketScanCandidate) => void;
-  // Fires when the scope menu selects a single market - drives the stage
-  // selection the same way clicking a scan row does today (spec §4:
-  // "selecting a market scopes the scan to that one market and the stage
-  // follows").
-  onSelectSymbol: (symbol: SupportedSymbol) => void;
+  // Fires with every scope change. The caller resets the previous result and,
+  // for a single market, drives the stage selection the same way clicking a
+  // scan row does (spec §4: "selecting a market scopes the scan to that one
+  // market and the stage follows").
+  onSelectScope: (scope: ScanScope) => void;
   result: MarketScanResponse | null;
   // Snapshot of when `result` was produced, for the count line's "{time}"
   // segment (spec §5). Frozen at completion by the caller rather than read
   // live here, so it doesn't silently advance on unrelated re-renders (the
   // workspace clock ticks every 60s).
   scanCompletedAt: Date | null;
+  scope: ScanScope;
   // The market the stage is showing, so the matching row reads as selected
   // (a-desk-v3.html:153's `.mkt.sel`). Presentation only — the rail never
   // drives selection from this, it only reflects it.
@@ -55,40 +58,16 @@ type MarketScanPanelProps = {
 // see: a scan in flight, a scan that failed, or a result the current scope
 // filtered down to nothing.
 export function MarketScanPanel({
-  onResetResult,
   onScan,
   onSelectCandidate,
-  onSelectSymbol,
+  onSelectScope,
+  openScanSymbols,
   result,
   scanCompletedAt,
+  scope,
   selectedSymbol,
   status,
 }: MarketScanPanelProps) {
-  const [scope, setScope] = useState<ScanScope>({ kind: "all" });
-  const scanSymbols = getMarketScanSymbolsForScope(scope);
-  // I5: never sent straight to the server - a closed market has no chance
-  // of qualifying and would only inflate the server's `scanned` count with
-  // markets that were never really attempted. Computed fresh on every
-  // render rather than memoized (same reasoning as ScopeMenu.tsx's own
-  // clock: a `new Date()` dependency would defeat a memo anyway) so a scan
-  // fired right on a market's open/close boundary still sees the current
-  // answer.
-  const openScanSymbols = filterSymbolsByAvailability(scanSymbols, new Date());
-  const filteredOpportunities = filterMarketScanCandidatesByScope(
-    result?.opportunities ?? [],
-    scope,
-  );
-  // null is the un-scanned rail: no result, no failure, nothing in flight, and
-  // so nothing to say (spec §17c). The render below is gated on it, so the
-  // paragraph itself does not exist rather than existing empty.
-  const emptyMessage = status === "scanning"
-    ? "Checking active markets."
-    : result?.failed
-    ? "Market scan could not complete. Try again shortly."
-    : result
-    ? "No markets match the current scan filters."
-    : null;
-
   return (
     <section className="min-w-0" data-testid="market-scan-rail">
       {/* One control row for both platforms. At ≥lg it is a-desk-v3.html:88's
@@ -114,16 +93,7 @@ export function MarketScanPanel({
             label="Scan scope"
             showLabel={false}
             value={scope}
-            onSelect={(nextScope) => {
-              setScope(nextScope);
-              // The engine never runs without an explicit Scan click.
-              // Changing scope clears the previous result so stale counts
-              // can never describe a different symbol set.
-              onResetResult();
-              if (nextScope.kind === "symbol") {
-                onSelectSymbol(nextScope.symbol);
-              }
-            }}
+            onSelect={onSelectScope}
           />
         </div>
         {/* The mock's compact accent button (a-desk-v3.html:88). The kit's own
@@ -142,6 +112,55 @@ export function MarketScanPanel({
         </button>
       </div>
 
+      <MarketScanResults
+        onSelectCandidate={onSelectCandidate}
+        result={result}
+        scanCompletedAt={scanCompletedAt}
+        scope={scope}
+        selectedSymbol={selectedSymbol}
+        status={status}
+      />
+    </section>
+  );
+}
+
+// The count line, the qualifying rows, and whatever the rail has to say when
+// there are none. Its own component because it is the half of this surface the
+// merged mobile Scan surface also carries (spec §17e, m-scan-v3.html:39-45),
+// where it sits inside that surface's single scrolling region instead of under
+// the rail's own control row — one implementation, two compositions.
+export function MarketScanResults({
+  onSelectCandidate,
+  result,
+  scanCompletedAt,
+  scope,
+  selectedSymbol,
+  status,
+}: {
+  onSelectCandidate: (candidate: MarketScanCandidate) => void;
+  result: MarketScanResponse | null;
+  scanCompletedAt: Date | null;
+  scope: ScanScope;
+  selectedSymbol: SupportedSymbol;
+  status: "idle" | "scanning";
+}) {
+  const filteredOpportunities = filterMarketScanCandidatesByScope(
+    result?.opportunities ?? [],
+    scope,
+  );
+  // null is the un-scanned rail: no result, no failure, nothing in flight, and
+  // so nothing to say (spec §17c). The render below is gated on it, so the
+  // paragraph itself does not exist rather than existing empty.
+  const emptyMessage = status === "scanning"
+    ? "Checking active markets."
+    : result?.failed
+    ? "Market scan could not complete. Try again shortly."
+    : result
+    ? "No markets match the current scan filters."
+    : null;
+
+  return (
+    <>
       {result && !result.failed
         ? (
           <p className="mt-2 font-mono text-xs leading-5 text-ink-muted">
@@ -174,7 +193,7 @@ export function MarketScanPanel({
           </p>
         )
         : null}
-    </section>
+    </>
   );
 }
 

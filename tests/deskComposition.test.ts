@@ -678,6 +678,53 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
   });
 });
 
+// Spec §17e's merged mobile Scan surface fires the same scan from its own
+// control row and reads the same scope to decide what that click means, so the
+// scope, its symbol list, and the result rows all have to be one thing shared
+// by two compositions rather than two of each. These guards pin the ownership,
+// not the markup: a second copy of any of them is how the desktop rail and the
+// mobile surface would start disagreeing about what "Crypto" currently scans.
+describe("scan scope ownership — one state, one derivation, two surfaces (§17e)", () => {
+  const rail = readFileSync(RAIL, "utf8");
+
+  it("keeps the scope in AdvisorWorkspace, and leaves the rail with no state of its own", () => {
+    assert.match(
+      stage,
+      /const \[scope, setScope\] = useState<ScanScope>\(\{ kind: "all" \}\);/,
+    );
+    assert.doesNotMatch(rail, /useState/);
+  });
+
+  it("derives the availability-filtered scan list exactly once in src/, in the stage that owns the scope", () => {
+    // Call sites, not the declaration — marketScanFilters.ts is where the
+    // helper lives, and the claim here is about who invokes it.
+    const derivations = allSourceFiles("src").filter((file) =>
+      /(?<!function )filterSymbolsByAvailability\(/.test(
+        readFileSync(file, "utf8"),
+      )
+    );
+    assert.deepEqual(derivations, [STAGE]);
+    // …and the rail scans whatever that one derivation produced.
+    assert.match(rail, /openScanSymbols: SupportedSymbol\[\];/);
+    assert.match(rail, /onClick=\{\(\) => onScan\(openScanSymbols\)\}/);
+    assert.match(stage, /openScanSymbols=\{openScanSymbols\}/);
+  });
+
+  it("routes every scope change through the stage's one handler, which resets the stale result and follows a single market", () => {
+    assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}onSelect=\{onSelectScope\}/);
+    assert.match(stage, /onSelectScope=\{selectScope\}/);
+    assert.match(
+      stage,
+      /function selectScope\(nextScope: ScanScope\) \{\s*setScope\(nextScope\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*if \(nextScope\.kind === "symbol"\) \{\s*selectSymbolForReview\(nextScope\.symbol\);/,
+    );
+  });
+
+  it("exports the count line + result rows as one component both surfaces render", () => {
+    assert.match(rail, /export function MarketScanResults\(\{/);
+    assert.match(rail, /<MarketScanResults\n/);
+  });
+});
+
 describe("scan rail composition — the kill list is absent (spec §16)", () => {
   const rail = readFileSync(RAIL, "utf8");
 

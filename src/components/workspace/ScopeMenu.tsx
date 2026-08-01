@@ -20,6 +20,11 @@ import {
   marketAvailability,
   type MarketAvailability,
 } from "../../lib/marketHours";
+import {
+  isMobileViewportWidth,
+  MOBILE_BREAKPOINT_PX,
+  useIsMobileViewport,
+} from "../../hooks/useMobileViewport";
 
 export type ScanScope =
   | { kind: "all" }
@@ -247,44 +252,19 @@ export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean
 // component itself rather than as a prop each of today's two call sites
 // would otherwise need to compute and thread through identically.
 //
-// 1024 mirrors --breakpoint-lg (src/styles/index.css) exactly rather than
-// introducing a second number that could drift from it. This is a plain
-// pixel comparison, not a rem media query, so it can't fall prey to the bug
-// that made index.css's breakpoints pixel-pinned in the first place (rem
-// breakpoints resolve against the browser's font-size setting); a
-// `min-width: 1024px` match here always agrees with Tailwind's own
-// `lg:`-generated media query.
-export const MOBILE_SHEET_BREAKPOINT_PX = 1024;
+// The sheet breakpoint is the app's one mobile breakpoint, not a second
+// number of this component's own: both live in src/hooks/useMobileViewport.ts
+// now that the Desk's merged mobile surface needs the same answer (spec §17e).
+// Re-exported under this name because it is what the menu's own contract has
+// always been called — one value, two names, and no way for them to drift.
+export const MOBILE_SHEET_BREAKPOINT_PX = MOBILE_BREAKPOINT_PX;
 
 // Floor for the anchored popup under a "heading" trigger — see the style
 // prop on the popup below for why only that variant needs one.
 const HEADING_MENU_MIN_WIDTH_PX = 288;
 
 export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
-  return viewportWidthPx < MOBILE_SHEET_BREAKPOINT_PX;
-}
-
-function useScopeMenuSheetMode(): boolean {
-  const [sheet, setSheet] = useState(() =>
-    typeof window === "undefined"
-      ? false
-      : shouldUseSheetLayout(window.innerWidth)
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const query = window.matchMedia(
-      `(min-width: ${MOBILE_SHEET_BREAKPOINT_PX}px)`,
-    );
-    const onChange = () => setSheet(!query.matches);
-    onChange();
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-  }, []);
-
-  return sheet;
+  return isMobileViewportWidth(viewportWidthPx);
 }
 
 export type ScopeMenuProps = {
@@ -342,7 +322,7 @@ export function ScopeMenu(
   }: ScopeMenuProps,
 ) {
   const baseId = useId();
-  const sheet = useScopeMenuSheetMode();
+  const sheet = useIsMobileViewport();
   const [open, setOpen] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [position, setPosition] = useState<
