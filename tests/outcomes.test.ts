@@ -104,6 +104,16 @@ describe("classifyWinLoss — single source of truth for the ladder's win/loss s
     const expectedCallSites: Record<string, number> = {
       // buildRecordBand, buildConfidenceBands, getOutcomeClassName.
       "src/components/workspace/historyUtils.ts": 3,
+      // buildAttribution (spec §18). Added consciously, which is what this
+      // map is for: Attribution needs the money-positive split for its
+      // class/side/session slices, and one call is all it may have. That
+      // single call is also its resolved gate — §18 counts resolved rows
+      // only, and "neither" is exactly the unresolved set — so a second call
+      // here would mean the resolved test and the win test had drifted
+      // apart into two independent readings of the same taxonomy. Its
+      // confidence slice adds no call of its own: it reuses
+      // buildConfidenceBands, which is already counted above.
+      "src/components/workspace/attribution.ts": 1,
       // profileInsights.ts (buildProfileReviewPattern) was the fourth call
       // site until it was deleted as a UI-unused orphan — ConfidenceGauge's
       // sibling orphan, both swept in the same final fix wave.
