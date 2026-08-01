@@ -25,7 +25,7 @@ export const MOBILE_FRAME = "flex min-h-0 min-w-0 flex-1 flex-col";
 export const MOBILE_FRAME_PINNED = "shrink-0 px-4 pt-3";
 
 // The one scrolling region (m-scan-v3.html:32). Flat by construction — no
-// border, no fill, no radius, no shadow — because §17g extends the box-on-box
+// border, no fill, no radius, no cast edge — because §17g extends the box-on-box
 // rule to scroll regions. The thin scrollbar is the kit's own .scrolly, shared
 // with the ≥lg Desk's three columns. pb-24 is the fixed MobileTabBar's
 // clearance: below lg the bar is mounted on every surface, and the region runs

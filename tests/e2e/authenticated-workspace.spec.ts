@@ -662,6 +662,15 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   for (const filter of ["Market", "Status", "Period"]) {
     await expect(page.getByLabel(filter, { exact: true })).toBeVisible();
   }
+  // Insights is where a document-level horizontal overflow would actually
+  // start: its ledger is the app's one wide (min-w) table, now flat inside a
+  // px-4 scroll region. The REGION x-scrolling is by design on a phone; the
+  // DOCUMENT doing so is the §17g defect this pins.
+  const insightsHorizontalOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth -
+    document.documentElement.clientWidth
+  );
+  expect(insightsHorizontalOverflow).toBeLessThanOrEqual(0);
 
   // The two avatar-menu surfaces, and Profile's colophon: §17g's footer, reduced
   // to one line and living in exactly one place on mobile.

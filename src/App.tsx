@@ -427,7 +427,7 @@ export default function App() {
             bottom for a footer to follow.
             Spec §17g settles which surfaces those are. Below lg there are none —
             every surface is a fixed frame now, so the footer is a ≥lg component
-            and leaves the tree outright rather than going invisible inside a
+            and leaves the tree outright rather than lingering unseen inside a
             frame that has no room for it. Its link set moves to the account menu
             and its colophon to the Profile view (ProfilePanel's own <lg branch).
             At ≥lg nothing changes: the same one footer on every scrolling view,
