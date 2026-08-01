@@ -43,8 +43,11 @@ type MarketScanPanelProps = {
 };
 
 // The scan rail (spec §16, a-desk-v3.html:87-158): a quiet column, not a
-// panel. Eyebrow + Scan now on one row, the scope menu, the server-truth count
-// line, the result rows. The two-line panel title block, the legend box and
+// panel. Eyebrow + button on one row, the scope menu, the server-truth count
+// line, the result rows. Spec §17m.4 renames both halves of that first row:
+// the eyebrow is "Markets" (what the column lists) and the button is "Scan"
+// (the verb alone) — the mock's own eyebrow-and-button pairing said the verb
+// twice and is superseded by name. The two-line panel title block, the legend box and
 // the empty-state illustration are all deleted — the per-row cost chip keeps
 // its rating's plain-language gloss on hover. tests/deskComposition.test.ts
 // pins their absence, so the retired title strings deliberately appear nowhere
@@ -70,7 +73,7 @@ export function MarketScanPanel({
 }: MarketScanPanelProps) {
   return (
     <section className="min-w-0" data-testid="market-scan-rail">
-      {/* a-desk-v3.html:88's control row: the eyebrow opposite Scan now, the
+      {/* a-desk-v3.html:88's control row: the eyebrow opposite the button, the
           scope select on its own line below — `order-last w-full` is what
           floats the scope onto that second line, and the container's 8px row
           gap stands in for the old header row's mb-2.
@@ -81,7 +84,7 @@ export function MarketScanPanel({
           that no longer renders and are gone rather than left as dead CSS. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="eyebrow">
-          Scan
+          Markets
         </h3>
         <div className="order-last w-full min-w-0">
           <ScopeMenu
@@ -91,11 +94,15 @@ export function MarketScanPanel({
             onSelect={onSelectScope}
           />
         </div>
-        {/* The mock's compact accent button (a-desk-v3.html:88). The kit's own
-            44px tap-target floor still applies from .primary-button — spec §16
-            trims the padding and type size, never the hit area. */}
+        {/* One verb, at the same compact scale the merged mobile control row
+            uses for its own Scan button (spec §17m.4) — one door, one button,
+            reading the same on both platforms. Smaller in the only dimension
+            that was ever the complaint: the retired two-word label at 12px
+            measured ~82px wide, this one at 13px measures ~64px. The kit's 44px tap-target floor still
+            comes from .primary-button — §16 trims padding and type, never the
+            hit area. */}
         <button
-          className="primary-button px-3 py-1.5 text-xs"
+          className="primary-button shrink-0 px-4 py-2 text-[13px]"
           type="button"
           onClick={() => onScan(openScanSymbols)}
           disabled={status === "scanning" || openScanSymbols.length === 0}
@@ -103,7 +110,7 @@ export function MarketScanPanel({
           {status === "scanning"
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
             : null}
-          Scan now
+          Scan
         </button>
       </div>
 

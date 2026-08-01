@@ -82,11 +82,16 @@ export function RecommendationPanel({
 
     return (
       <div className="grid min-w-0 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="min-w-0 border-b border-hairline px-5 py-4 max-lg:px-0 lg:border-b-0 lg:border-r">
+        {/* §17m.3's budget: the ladder owns the majority of the sheet, and the
+            sheet is a share of the region rather than whatever its content
+            wants — so the ≥lg insets tighten (the mock's 20px inset stays
+            horizontally; the vertical rhythm gives back 8px per column) while
+            every row keeps its own 44px copy target and its type. */}
+        <div className="min-w-0 border-b border-hairline px-5 py-4 max-lg:px-0 lg:border-b-0 lg:border-r lg:py-3">
           {/* Payoff was its own metric box before spec §16; the mock folds it
               into the ladder's eyebrow (a-desk-v3.html:198). Costs kept their
               own row inside "Why this setup" all along. */}
-          <p className="eyebrow mb-1.5">
+          <p className="eyebrow mb-1.5 lg:mb-1">
             The setup · payoff{" "}
             <span className="font-mono tabular-nums">
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
@@ -131,7 +136,7 @@ export function RecommendationPanel({
           </div>
           {hasLadder
             ? (
-              <p className="mt-3 border-t border-hairline pt-2.5 text-xs leading-5 text-ink-muted">
+              <p className="mt-3 border-t border-hairline pt-2.5 text-xs leading-5 text-ink-muted lg:mt-2 lg:pt-2">
                 {LADDER_TARGET_INSTRUCTION}{" "}
                 <HowThisWorksLink anchor="targets-and-stops" />
               </p>
@@ -139,7 +144,7 @@ export function RecommendationPanel({
             : null}
           {setup.correlationGroup
             ? (
-              <p className="mt-2 text-xs font-medium leading-5 text-ink-muted">
+              <p className="mt-2 text-xs font-medium leading-5 text-ink-muted lg:mt-1.5">
                 Closely linked market group: {formatStrategyName(setup.correlationGroup)}. Only the
                 strongest setup in a linked group is shown at a time.
               </p>
@@ -176,7 +181,7 @@ export function RecommendationPanel({
             )
             : null}
         </div>
-        <div className="min-w-0 px-5 py-4 max-lg:px-0">
+        <div className="min-w-0 px-5 py-4 max-lg:px-0 lg:py-3">
           <SetupQualityReceipt result={result} setup={setup} />
         </div>
       </div>
@@ -189,11 +194,13 @@ export function RecommendationPanel({
 
   return (
     <div className="grid min-w-0 gap-1 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
-      <h3 className="text-base font-semibold text-ink">Ready for review</h3>
-      <p>
-        {notice ||
-          "Select a market, review the chart, then ask Levelflow for the current limit setup."}
-      </p>
+      <h3 className="text-base font-semibold text-ink">No setup yet</h3>
+      {/* Spec §17m.1: the Scan column is the only door, so this line names the
+          one verb. The old wording ("Select a market, review the chart, then ask
+          Levelflow…") narrated a stage picker and a Review button that no longer
+          exist. §17f keeps what is left to the one thing the surface cannot show
+          for itself: that scanning is how a setup arrives. */}
+      <p>{notice || "Scan to see the current limit setup."}</p>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import {
   filterSymbolsByAvailability,
   getMarketScanSymbolsForScope,
 } from "./marketScanFilters";
-import { type ScanScope, ScopeMenu, scopeTriggerLabel } from "./ScopeMenu";
+import { type ScanScope, ScopeMenu } from "./ScopeMenu";
 import { formatReopen, marketAvailability } from "../../lib/marketHours";
 import {
   type ChartTimeframe,
@@ -27,6 +27,7 @@ import {
 import type { UserProfile } from "../../lib/profile";
 import {
   AVAILABLE_ASSET_OPTIONS,
+  formatSecurityDisplaySymbol,
   formatSecurityLabel,
   getSecurityOption,
   type SupportedSymbol,
@@ -271,10 +272,10 @@ export function AdvisorWorkspace(
     };
   }, [refreshNonce, symbol, timeframe]);
 
-  // Direct-review shortcut shared by the stage's own market picker and the
-  // scan scope menu's symbol selection (spec §4: selecting a symbol "drives
-  // the advisor selection like clicking a scan row does today"). Below,
-  // onSelectCandidate calls this too, then layers the candidate's own setup
+  // What "the stage follows the Scan column" is made of: the scope menu's own
+  // symbol selection and a scan-row click both land here (spec §4: selecting a
+  // symbol "drives the advisor selection like clicking a scan row does today").
+  // Below, selectCandidate calls this too, then layers the candidate's own setup
   // on top when it has one — clicking a scan row without an attached setup
   // reduces to exactly this.
   function selectSymbolForReview(nextSymbol: SupportedSymbol) {
@@ -363,13 +364,63 @@ export function AdvisorWorkspace(
     }
   }
 
+  // Spec §17m.1: the stage generates nothing, so a finished scan is what puts
+  // a setup on it. The market on screen adopts THIS scan's verdict about
+  // itself — and only about itself:
+  //   qualified        → its setup, stamped with the scan that just produced it
+  //   attempted, no setup → no setup, and the engine's own reason
+  //   not in this scan → left exactly as it was
+  // The stamp is honest in the first case for the same reason it is null when
+  // an old scan row is clicked (selectCandidate): this scan ran against live
+  // data moments ago, that one may have run an hour before the click.
+  function adoptScanVerdict(result: MarketScanResponse) {
+    const shownSymbol = selectedSymbolRef.current;
+    const qualified = result.opportunities.find(
+      (candidate) => candidate.symbol === shownSymbol,
+    );
+    if (qualified?.setup) {
+      setAnalysisState({
+        response: { advisoryOnly: true, setup: qualified.setup },
+        reviewedAt: Date.now(),
+        symbol: shownSymbol,
+      });
+      setAdvisorNotice("");
+      return;
+    }
+    const blocked = result.blocked.find(
+      (candidate) => candidate.symbol === shownSymbol,
+    );
+    if (!blocked) {
+      return;
+    }
+    setAnalysisState({
+      response: { advisoryOnly: true, blocked: true, reason: blocked.reason },
+      reviewedAt: Date.now(),
+      symbol: shownSymbol,
+    });
+    setAdvisorNotice("");
+  }
+
   async function scanMarkets(symbols: SupportedSymbol[] = []) {
     // An empty list means "all markets": the server applies its curated
     // default universe (markets with measured model edge).
     const scanSymbols = symbols.length > 0 ? symbols : undefined;
+    // Not a bump — a reading. Any selection change while this scan is in
+    // flight (a scan row click, a scope change, an Insights cross-link) moves
+    // requestIdRef, and adopting a verdict about the market the reader has
+    // since left is exactly the staleness analyze() guards the same way.
+    const requestId = requestIdRef.current;
     setScanStatus("scanning");
     try {
-      setScanResult(await scanMarketOpportunities(scanSymbols));
+      const nextResult = await scanMarketOpportunities(scanSymbols);
+      setScanResult(nextResult);
+      if (requestIdRef.current === requestId) {
+        adoptScanVerdict(nextResult);
+      }
+      // Every qualifying setup is written server-side (spec §17m.2), so the
+      // history the rest of the app reads has just changed — the same
+      // notification the review path has always fired.
+      onSetupsChanged();
     } catch {
       setScanResult({
         advisoryOnly: true,
@@ -387,11 +438,12 @@ export function AdvisorWorkspace(
 
   // Spec §17e, "one surface, one verb": the merged mobile surface offers a
   // single Scan button, and the scope decides what that click means — a review
-  // when the scope is one market, a scan when it is a group or All. Neither path
-  // is new or altered: both are the same two functions the ≥lg Desk's own
-  // "Review" and "Scan now" have always called, with every behavior contract
-  // (fresh data on every run, the server-side placed-guard, confidence-desc
-  // results, scan persistence) untouched.
+  // when the scope is one market, a scan when it is a group or All. §17m.1
+  // deleted the STAGE's Review button, not this: the mobile Scan control is
+  // itself the Scan column's door, and reviewing one market through it is the
+  // sanctioned single-market path. Every behavior contract (fresh data on every
+  // run, the server-side placed-guard, confidence-desc results, scan
+  // persistence) is untouched.
   const scopeActionIsReview = scope.kind === "symbol";
   const scopeActionBusy = scopeActionIsReview
     ? analyzerStatus === "analyzing"
@@ -428,16 +480,18 @@ export function AdvisorWorkspace(
           message: "Selected from Market Scan.",
           setup: candidate.setup,
         },
-        // No review ran here — this setup came out of a scan that may have
-        // completed long before the row was clicked, so there is no review time
-        // to claim. The head's meta line shows the setup's expiry alone until
-        // Review actually runs.
+        // No review ran at this moment — this setup came out of a scan that may
+        // have completed long before the row was clicked, so there is no review
+        // time to claim. The head's meta line shows the setup's expiry alone
+        // until a scan runs against this market again (adoptScanVerdict).
         reviewedAt: null,
         symbol: candidate.symbol,
       });
-      setAdvisorNotice(
-        "Selected from Market Scan. Review refreshes the same rules and saves the current setup.",
-      );
+      // No notice: the ladder, the confidence unit and the side tag all just
+      // swapped to this market, so a sentence announcing that they did states
+      // what the surface already shows (§17f). The line that used to sit here
+      // also told the reader to press Review, which §17m.1 deleted.
+      setAdvisorNotice("");
     }
     // The chart, the head and the ladder all sit ABOVE the list on the merged
     // mobile surface and have just swapped to this market, so the reader is
@@ -452,7 +506,7 @@ export function AdvisorWorkspace(
   const chartOverlay = chartExpanded
     ? (
       <ExpandedChartOverlay
-        marketName={scopeTriggerLabel({ kind: "symbol", symbol }, "heading")}
+        marketName={formatSecurityDisplaySymbol(symbol)}
         onClose={() => setChartExpanded(false)}
       >
         <MarketChart
@@ -524,7 +578,7 @@ export function AdvisorWorkspace(
                   be this surface's only landmark, clipped for exactly that
                   reason — is ≥lg-only now. Heading semantics, the mock's type. */}
               <h2 className="min-w-0 truncate font-display text-[19px] font-bold tracking-[-0.02em] text-ink">
-                {scopeTriggerLabel({ kind: "symbol", symbol }, "heading")}
+                {formatSecurityDisplaySymbol(symbol)}
               </h2>
               {setup
                 ? (
@@ -649,40 +703,43 @@ export function AdvisorWorkspace(
       </div>
 
       {/* Center stage (spec §16, a-desk-v3.html:161-213): stagehead — the
-          market picker rendered as the display heading, its side tag, and the
-          confidence unit under it, with the chart-view control and the one
-          primary action (Review; spec §17) opposite — then the chart sheet, then
-          the setup sheet attached hairline-flush beneath it. No surface title,
-          no status tiles, no session cards, no metric cards, no second action:
-          that furniture is what the owner rejected as box-on-box, and
+          market name as the display heading, its side tag, and the confidence
+          unit under it, with the chart-view control opposite — then the chart
+          sheet, then the setup sheet attached hairline-flush beneath it. No
+          surface title, no status tiles, no session cards, no metric cards, no
+          action: that furniture is what the owner rejected as box-on-box, and
           tests/deskComposition.test.ts pins its absence — so the retired
           component and card names appear nowhere in this file, comments
           included.
-          flex-col rather than grid: an unconstrained grid's implicit auto
-          rows shrink to fit the scroll container's height instead of
-          overflowing it, which silently defeats the scrolling this column
-          exists for. Flex only avoids the same trap because every direct
-          child below is pinned shrink-0. */}
+
+          Spec §17m.3, the vertical budget: the stage is a flex column exactly
+          the region's height, and the three parts divide it rather than stacking
+          past it — stagehead at its natural height, chart at ~1/3 (basis-[30%],
+          grow-0/shrink-0, so it is a share of the region and not a fixed pixel
+          height that fits one viewport), and the setup sheet taking the whole
+          remainder, which is the majority and belongs to the ladder. The sheet
+          is what scrolls when its own content is taller than that remainder, so
+          the stage itself never has to — and the column keeps its own
+          overflow-y-auto as the last resort at an edge viewport, exactly as the
+          ruling allows. */}
       <div className="scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-        <section className="min-w-0 shrink-0">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <section className="min-w-0 shrink-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+          <div className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-x-4 gap-y-3">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-3.5 gap-y-1">
-                <ScopeMenu
-                  label="Market"
-                  showLabel={false}
-                  symbolOnly
-                  value={{ kind: "symbol", symbol }}
-                  variant="heading"
-                  onSelect={(nextScope) => {
-                    // symbolOnly guarantees every selectable row (and thus
-                    // every scope this can fire with) is symbol-kind - see
-                    // ScopeMenu.tsx's effectiveRows.
-                    if (nextScope.kind === "symbol") {
-                      selectSymbolForReview(nextScope.symbol);
-                    }
-                  }}
-                />
+                {/* Spec §17m.1: the stage is a pure display of the Scan
+                    column's selection, so this is a heading and nothing else —
+                    the picker that used to live here is deleted with the Review
+                    button beside it, and the rail's scope menu (which carries
+                    single markets) is the one place a market is chosen. Same
+                    element the merged mobile head draws, at the stage's scale.
+                    `shrink-0 whitespace-nowrap` is §17's "the stagehead must
+                    never truncate the market name": the row it sits in wraps,
+                    so a long name pushes the chart-view control to a second
+                    line instead of clipping. */}
+                <h2 className="shrink-0 whitespace-nowrap font-display text-2xl font-bold text-ink">
+                  {formatSecurityDisplaySymbol(symbol)}
+                </h2>
                 {setup
                   ? (
                     <span
@@ -707,53 +764,50 @@ export function AdvisorWorkspace(
                 : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-              {/* The visible "Chart view" caption is gone with the rest of the
-                  stage's form chrome; the aria-label carries the same name
-                  (and is the e2e contract for this control). */}
+              {/* The stage's one remaining control (spec §17m.1: the timeframe
+                  select stays, display-only). The visible "Chart view" caption
+                  is gone with the rest of the stage's form chrome; the
+                  aria-label carries the same name (and is the e2e contract for
+                  this control). */}
               <ChartViewSelect
                 className="min-h-11 rounded-lg border border-ink bg-transparent px-3 text-sm font-semibold text-ink"
                 value={timeframe}
                 onSelect={selectTimeframe}
               />
-              <button
-                className="primary-button"
-                type="button"
-                disabled={analyzerStatus === "analyzing" || marketLoading}
-                onClick={analyze}
-              >
-                {analyzerStatus === "analyzing"
-                  ? (
-                    <Loader2
-                      className="h-4 w-4 animate-spin"
-                      aria-hidden="true"
-                    />
-                  )
-                  : null}
-                Review
-              </button>
             </div>
           </div>
 
           {/* MarketChart draws the chart sheet itself — square-cornered
               hairline border on sheet — so the setup sheet below can attach to
-              it border-t-0 with no second frame in between. */}
-          <MarketChart
-            data={marketData?.points ?? []}
-            loading={marketLoading}
-            onExpand={() => setChartExpanded(true)}
-            setup={setup}
-            viewKey={`${symbol}:${timeframe}`}
-          />
+              it border-t-0 with no second frame in between. `fill` hands the
+              height to this wrapper (spec §17m.3's ~1/3 share) instead of the
+              chart's own fixed 500/560px, which was most of the region on a
+              laptop and pushed the ladder off the bottom. */}
+          <div className="min-h-0 shrink-0 grow-0 basis-[30%]">
+            <MarketChart
+              data={marketData?.points ?? []}
+              fill
+              loading={marketLoading}
+              onExpand={() => setChartExpanded(true)}
+              setup={setup}
+              viewKey={`${symbol}:${timeframe}`}
+            />
+          </div>
 
           {/* Spec §17's Expand chart overlay, built once above and rendered by
               both compositions. It mounts a SECOND MarketChart with the same
               props rather than moving the mounted one, which would tear down the
-              canvas and leave the inline container empty behind the dialog. Its
-              trigger only exists below lg (MarketChart gates it lg:hidden), so
-              at this width this is always null. */}
+              canvas and leave the inline container empty behind the dialog.
+              Since §17m.3 its trigger renders at every width: "the small inline
+              chart is the frame; the overlay is how you see a big one." */}
           {chartOverlay}
 
-          <div className="min-w-0 border border-hairline border-t-0 bg-sheet">
+          {/* The remainder of the budget, and the ladder's majority share: the
+              sheet takes everything the stagehead and the chart did not, and
+              scrolls inside itself if the ladder plus the why panel are taller
+              than that. Thin scrollbars via .scrolly, the same treatment every
+              other scroll region in the app uses. */}
+          <div className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <RecommendationPanel
               notice={advisorNotice}
               result={activeResult}
@@ -766,10 +820,11 @@ export function AdvisorWorkspace(
           {/* I4/spec §10b: the closed-market reopen notice, in its standing
               position as the stage's last element. Rendered only when there is
               a notice — an empty paragraph would leave its own margin behind
-              on every successful load. */}
+              on every successful load. shrink-0 so the budget above never
+              squeezes it out of the column it belongs to. */}
           {marketNotice
             ? (
-              <p className="mt-3 text-sm font-medium text-ink-muted">
+              <p className="mt-3 shrink-0 text-sm font-medium text-ink-muted">
                 {marketNotice}
               </p>
             )

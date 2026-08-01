@@ -37,12 +37,16 @@ describe("every static page requests an icon that exists on disk (F1, Finding 4)
       for (const link of links) {
         const href = link.match(/href="([^"]+)"/)?.[1] ?? "";
         assert.ok(href.startsWith("/"), `${file}: ${href} must be root-absolute`);
+        // Wave 9 item 7 versions the reference, not the file: the path still has
+        // to resolve on disk, so the query is stripped before it is looked up
+        // (tests/brandAssets.test.ts pins the version itself, on every head).
+        const path = href.split("?")[0];
         // Root-absolute hrefs resolve against public/ in development and against
         // the built dist root in production, which is the same file either way —
         // and they resolve identically from /404.html and /legal/terms.html, which
         // the old relative "../brand/…" did not.
         assert.ok(
-          existsSync(`public${href}`),
+          existsSync(`public${path}`),
           `${file} requests ${href}, which is not in public/`,
         );
       }
@@ -52,10 +56,14 @@ describe("every static page requests an icon that exists on disk (F1, Finding 4)
         /<link rel="manifest" href="([^"]+)"/,
       )?.[1] ?? "";
       assert.ok(manifestHref.startsWith("/"), `${file}: ${manifestHref}`);
-      assert.ok(existsSync(`public${manifestHref}`), `${file}: ${manifestHref}`);
-      const manifest = JSON.parse(readFileSync(`public${manifestHref}`, "utf8"));
+      const manifestPath = manifestHref.split("?")[0];
+      assert.ok(existsSync(`public${manifestPath}`), `${file}: ${manifestHref}`);
+      const manifest = JSON.parse(readFileSync(`public${manifestPath}`, "utf8"));
       for (const icon of manifest.icons as Array<{ src: string }>) {
-        assert.ok(existsSync(`public${icon.src}`), `manifest icon ${icon.src}`);
+        assert.ok(
+          existsSync(`public${icon.src.split("?")[0]}`),
+          `manifest icon ${icon.src}`,
+        );
       }
     });
   }

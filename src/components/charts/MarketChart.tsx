@@ -32,10 +32,10 @@ type MarketChartProps = {
   fill?: boolean;
   loading?: boolean;
   /**
-   * Supplied by the Desk stage only: renders the mobile-only "Expand chart"
-   * control in the chart's bottom-right corner (spec §17). The overlay's own
-   * instance passes nothing, so an expanded chart never offers to expand
-   * itself again.
+   * Supplied by the Desk stage only: renders the "Expand chart" control in the
+   * chart's top-right corner (spec §17, §17m.3 — every width, not just mobile).
+   * The overlay's own instance passes nothing, so an expanded chart never
+   * offers to expand itself again.
    */
   onExpand?: () => void;
   setup?: ChartSetup | null;
@@ -380,19 +380,21 @@ export function MarketChart(
           m-scan-v3.html:32's own right:6px/top:6px. It used to ride the
           bottom-right (m-mobile-v3.html:16,:56); live inspection found it
           crowding the date axis there, and the wave-6 rider moved it. Held at
-          the kit's 44px tap floor, which now grows DOWNWARD from the top edge
+          the kit's 44px tap floor, which grows DOWNWARD from the top edge
           (items-start plus the mock's 6px top pad) so the label itself sits on
-          the mock's inset rather than 44px below it — the mirror of the
-          bottom-anchored version, same trick. Quiet accent text at 11px, as
-          before: the rider moved the placement, not the treatment.
-          lg:hidden as a literal class — this exists below lg only, where the
-          inline chart is compact and the overlay is what a reader reaches for;
-          the ≥lg chart is already 500-560px tall and its composition is
-          frozen. */}
+          the mock's inset rather than 44px below it.
+
+          §17m.3 removed its lg:hidden gate: the inline chart is ~1/3 of the
+          stage at every width now, so the overlay is how a reader sees a big one
+          on the desktop too. At ≥lg it steps clear of the tool cluster above it
+          (right-3/top-3, one 40px row) and takes the cluster's own sheet-chip
+          treatment, because at that size it sits over live candles rather than
+          the mock's quiet mobile corner. Literal variants throughout (C1), and
+          the ≥lg additions cannot reach below lg. */}
       {onExpand
         ? (
           <button
-            className="absolute right-0 top-0 z-10 inline-flex min-h-11 items-start px-2 pt-1.5 text-[11px] font-semibold text-accent lg:hidden"
+            className="absolute right-0 top-0 z-10 inline-flex min-h-11 items-start px-2 pt-1.5 text-[11px] font-semibold text-accent lg:right-3 lg:top-14 lg:items-center lg:rounded-lg lg:border lg:border-hairline lg:bg-sheet lg:px-2.5 lg:py-1 lg:text-xs lg:shadow-xs"
             type="button"
             onClick={onExpand}
           >
@@ -403,12 +405,12 @@ export function MarketChart(
       {/* 168px below lg, the mock's own compact inline height
           (m-scan-v3.html:28) — the merged Scan surface pins this chart inside a
           fixed viewport, and Expand chart gives a reader the whole one when they
-          want it. The ≥lg values are unchanged in what they
-          render (500px from lg, 560px from xl — exactly what the old
-          sm:/xl: pair produced there); expressing the lower bound as `lg:`
-          rather than `sm:` leaves max-lg: owning everything below the
-          breakpoint outright, instead of resting on which of two
-          equal-specificity media queries happens to be emitted last. */}
+          want it. `fill` is the container-owns-the-height mode, used by the
+          overlay (which is the viewport) and, since §17m.3, by the ≥lg stage,
+          whose wrapper hands the chart its ~1/3 share of the region instead of
+          the fixed 500/560px this used to draw there — that height was most of a
+          1280x800 region on its own. The ≥lg fallbacks below stay for any
+          caller that does not own a height. */}
       <div
         ref={containerRef}
         className={fill

@@ -38,10 +38,23 @@ function allSourceFiles(root: string): string[] {
 }
 
 describe("Desk stage composition — the mock's elements are present (a-desk-v3.html:161-213)", () => {
-  it("leads with the market picker as the stagehead's display heading, no visible field caption", () => {
-    assert.match(stage, /<ScopeMenu\b[\s\S]{0,400}variant="heading"/);
-    assert.match(stage, /<ScopeMenu\b[\s\S]{0,400}showLabel=\{false\}/);
-    assert.match(stage, /<ScopeMenu\b[\s\S]{0,400}symbolOnly/);
+  // Spec §17m.1: "the stage is a pure display of the Scan column's selection."
+  // Both directions in one test — the market name renders as a heading, and the
+  // picker that used to be that heading is gone from the file entirely (with
+  // the props it needed: tests/scopeMenu.test.tsx pins their absence too).
+  it("leads with the market name as a text display heading, not a picker", () => {
+    assert.match(
+      stage,
+      /<h2 className="shrink-0 whitespace-nowrap font-display text-2xl font-bold text-ink">\s*\{formatSecurityDisplaySymbol\(symbol\)\}\s*<\/h2>/,
+    );
+    // Exactly one ScopeMenu in this file, and it is the merged mobile surface's
+    // scan scope — the stage has none.
+    const scopeMenus = stage.match(/<ScopeMenu\b/g) ?? [];
+    assert.equal(scopeMenus.length, 1);
+    assert.match(stage, /<ScopeMenu\b[\s\S]{0,200}label="Scan scope"/);
+    assert.doesNotMatch(stage, /variant="heading"/);
+    assert.doesNotMatch(stage, /symbolOnly/);
+    assert.doesNotMatch(stage, /label="Market"/);
   });
 
   it("tags the side beside the heading, only while a setup is showing", () => {
@@ -64,12 +77,18 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // tested "drops the missing half" branch reachable in the app, which it was
   // not while every analysis state stamped Date.now().
   it("stamps the review time only where a review actually ran", () => {
-    // Every write of the field, in source order: three inside analyze(), then
-    // the scan-selection handler's synthetic state. The trailing comma is what
-    // keeps the type declaration (`reviewedAt: number | null;`) out of the set.
+    // Every write of the field, in source order: the scan verdict the stage
+    // adopts the moment a scan finishes (§17m.1 — the scan IS the review of the
+    // market on screen, and it just ran against live data), twice; then three
+    // inside analyze() (the mobile single-market path); then the scan-ROW
+    // handler's synthetic state, which claims nothing. The trailing comma is
+    // what keeps the type declaration (`reviewedAt: number | null;`) out of the
+    // set.
     const writes = (stage.match(/reviewedAt: [^,;\n]+,/g) ?? [])
       .map((write) => write.replace(/,$/, ""));
     assert.deepEqual(writes, [
+      "reviewedAt: Date.now()",
+      "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
@@ -91,17 +110,26 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.doesNotMatch(stage, /requestedAt/);
   });
 
-  // Spec §17: the stage's action is "Review", not "Review market" — the
-  // stagehead already names the market immediately beside it, so the second
-  // word was restating the heading. The `>` before it is what makes this an
-  // element-text assertion rather than a substring a comment could satisfy.
-  it("keeps Review as the stage's one action, beside the chart-view control", () => {
-    assert.match(stage, /className="primary-button"[\s\S]{0,600}\n\s*Review\n/);
+  // Spec §17m.1: "All trades originate from the Scan column — no other path."
+  // The stage's Review button and its generation path are DELETED, so the only
+  // control left in the stagehead is the display-only timeframe select, whose
+  // aria-label is the e2e contract for it.
+  it("carries no action at all — the chart-view select is the stagehead's one control", () => {
     assert.match(stage, /aria-label="Chart view"/);
-    // The old wording is gone everywhere in this file, comments included —
-    // e2e locators are pinned to the button's accessible name, and a stale
+    // No Review button, in any wording, anywhere in the file — comments
+    // included, since e2e locators are pinned to accessible names and a stale
     // one costs a live deploy run.
+    assert.doesNotMatch(stage, />\s*Review\s*</);
+    assert.doesNotMatch(stage, /\n\s*Review\n/);
     assert.doesNotMatch(stage, /Review market/);
+    // The stage cannot generate: the desktop composition holds no primary
+    // button at all, and the one that remains in this file is the merged mobile
+    // surface's single Scan control (§17e's own door).
+    const primaryButtons = stage.match(/className="primary-button[^"]*"/g) ?? [];
+    assert.deepEqual(primaryButtons, [
+      'className="primary-button shrink-0 px-4 py-2 text-[13px]"',
+    ]);
+    assert.doesNotMatch(stage, /secondary-button/);
   });
 
   // Spec §17: "The stagehead must never truncate the market name." The
@@ -112,28 +140,32 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // `truncate`, so the flex-wrap ancestors move the controls to a second row
   // instead of clipping the name to an ellipsis.
   it("gives the stagehead's market name room rather than an ellipsis (spec §17)", () => {
+    const heading = stage.match(/<h2 className="([^"]*font-display text-2xl[^"]*)"/)
+      ?.[1] ?? "";
+    assert.ok(heading.length > 0, "expected the stagehead heading classes");
+    // Structural, not a hope about available room: the heading does not shrink
+    // below its own content and does not wrap it either, so a long name pushes
+    // the chart-view control to a second row instead of clipping.
+    assert.match(heading, /\bshrink-0\b/);
+    assert.match(heading, /\bwhitespace-nowrap\b/);
+    assert.doesNotMatch(heading, /\bmin-w-0\b/);
+    assert.doesNotMatch(heading, /\btruncate\b/);
+    // The rail's own scope field still truncates — the 264px column genuinely
+    // has to clip the full descriptive label.
     const scopeMenu = readFileSync(
       "src/components/workspace/ScopeMenu.tsx",
       "utf8",
     );
-    const headingTrigger = scopeMenu.match(
-      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
-    )?.[1] ?? "";
-    assert.ok(headingTrigger.length > 0, "expected the heading trigger classes");
-    assert.match(headingTrigger, /\bshrink-0\b/);
-    assert.doesNotMatch(headingTrigger, /\bmin-w-0\b/);
-    // The value span: nowrap for the heading, still truncating in the 264px
-    // scan rail where the full descriptive label genuinely has to be clipped.
     assert.match(
       scopeMenu,
-      /id=\{`\$\{baseId\}-value`\}\n\s*className=\{variant === "heading"\n\s*\? "whitespace-nowrap"\n\s*: "truncate"\}/,
+      /id=\{`\$\{baseId\}-value`\} className="truncate"/,
     );
-    // And the row the trigger sits in still wraps, which is what absorbs the
+    // And the row the heading sits in still wraps, which is what absorbs the
     // extra width when the name is long.
     assert.match(stage, /className="flex min-w-0 flex-wrap items-center gap-x-3\.5 gap-y-1"/);
     assert.match(
       stage,
-      /className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3"/,
+      /className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-x-4 gap-y-3"/,
     );
   });
 
@@ -170,10 +202,45 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       chart,
       /className=\{fill \? `\$\{CHART_SHEET\} h-full` : CHART_SHEET\}/,
     );
+    // §17m.3 made this sheet the budget's remainder and its own scroll region;
+    // the frame itself — one hairline border, border-t-0 onto the chart sheet,
+    // on sheet — is unchanged.
     assert.match(
       stage,
-      /className="min-w-0 border border-hairline border-t-0 bg-sheet"[\s\S]{0,200}<RecommendationPanel/,
+      /className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto"[\s\S]{0,200}<RecommendationPanel/,
     );
+  });
+
+  // Spec §17m.3: "chart ≈1/3 of the region's height, why ≤1/3, the setup ladder
+  // gets the majority; the whole stage should fit the region without scrolling
+  // where viewport allows." Pinned as the structure that makes it true at any
+  // height rather than a pixel height that happens to fit one: the stage is a
+  // flex column exactly the region tall, the chart takes a SHARE of it, and the
+  // sheet takes the remainder. tests/e2e measures the result in a real browser.
+  it("divides the region: stagehead, chart at ~1/3, the sheet taking the rest (§17m.3)", () => {
+    assert.match(
+      stage,
+      /<section className="min-w-0 shrink-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col">/,
+    );
+    // The chart's share: grow-0/shrink-0 on an explicit basis, so it is exactly
+    // its third and neither steals the ladder's space nor gives up its own.
+    assert.match(
+      stage,
+      /<div className="min-h-0 shrink-0 grow-0 basis-\[30%\]">\s*<MarketChart/,
+    );
+    // …which only works because the chart takes its height from that wrapper.
+    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n\s*loading=\{marketLoading\}\n\s*onExpand=/);
+    // The fixed ≥lg chart height that used to be most of a 1280x800 region is
+    // gone from the stage: MarketChart keeps it only for a caller that owns no
+    // height, and the stage is no longer one.
+    assert.doesNotMatch(stage, /h-\[500px\]|h-\[560px\]/);
+    // Every other direct child of the section is pinned, so the two sized
+    // children are the only ones that divide the space.
+    assert.match(
+      stage,
+      /className="mb-4 flex shrink-0 flex-wrap items-end/,
+    );
+    assert.match(stage, /className="mt-3 shrink-0 text-sm font-medium text-ink-muted"/);
   });
 
   it("splits the setup sheet into the ladder and Why this setup, hairline-divided", () => {
@@ -249,12 +316,13 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     }
   });
 
-  it("carries no standalone stage Refresh button — Review is the one action", () => {
+  it("carries no standalone stage Refresh button — the stage acts at all", () => {
     assert.doesNotMatch(stage, /RefreshCw/);
     assert.doesNotMatch(stage, />\s*Refresh\s*</);
-    // Exactly one action lives in the stagehead.
-    assert.equal(stage.match(/className="primary-button"/g)?.length, 1);
-    assert.doesNotMatch(stage, /secondary-button/);
+    // Nothing in the ≥lg stage generates or re-fetches on demand: the scan
+    // refreshes the chart for the market it lands on, and the trades rail keeps
+    // its own refresh link (spec §16, §17m.1).
+    assert.doesNotMatch(stage, /className="primary-button"/);
   });
 
   it("carries no Latest close metric box and no duplicated market heading", () => {
@@ -401,10 +469,15 @@ describe("Why this setup — the mock's five rows (a-desk-v3.html:205-212)", () 
     assert.match(receipt, /anchor: "replay-record"/);
   });
 
-  it("renders the rows at the mock's .wrow treatment — 74px label column, 10px gap, 13px text", () => {
+  it("renders the rows at the mock's .wrow treatment, compressed to §17m.3's third", () => {
+    // The label column and the gap are the mock's (74px / 10px); the type and
+    // the padding are §17m.3's compression — the five rows stay, they take ~30%
+    // less height, and 12.5px/17px is still above the kit's own metadata floor.
+    // ≥lg only: the mobile treatment is exactly what it was, since the budget
+    // being served is the Desk stage's.
     assert.match(
       receipt,
-      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1\.5 text-\[13px\] leading-5"/,
+      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1\.5 text-\[13px\] leading-5 lg:py-0\.5 lg:text-\[12\.5px\] lg:leading-\[17px\]"/,
     );
     assert.match(
       receipt,
@@ -511,7 +584,7 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     "utf8",
   );
 
-  it("draws the trigger inside the chart, mobile-only, functionally labelled", () => {
+  it("draws the trigger inside the chart at every width, functionally labelled", () => {
     // Rendered only when a caller supplies onExpand, so the overlay's own
     // second instance of the chart cannot offer to expand itself again.
     assert.match(chart, /onExpand\?: \(\) => void;/);
@@ -521,13 +594,17 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     // decoration, m-mobile-v3.html:56).
     assert.match(chart, />\s*Expand chart\s*</);
     assert.doesNotMatch(chart, /↗/);
-    // Mobile-only, as a literal class Tailwind's build-time scanner can see,
-    // on the button itself rather than a wrapper.
+    // §17m.3: "Expand chart works on desktop too — the small inline chart is
+    // the frame; the overlay is how you see a big one." The lg:hidden gate is
+    // gone, and at ≥lg the chip steps below the tool cluster (one 40px row from
+    // top-3) instead of fighting it for the same corner.
     const trigger = chart.match(
       /<button\n\s*className="([^"]*)"\n\s*type="button"\n\s*onClick=\{onExpand\}/,
     )?.[1] ?? "";
     assert.ok(trigger.length > 0, "expected the expand trigger's classes");
-    assert.match(trigger, /\blg:hidden\b/);
+    assert.doesNotMatch(trigger, /\blg:hidden\b/);
+    assert.match(trigger, /\blg:right-3\b/);
+    assert.match(trigger, /\blg:top-14\b/);
     // The kit's 44px tap floor, at the mock's own corner placement — the
     // TOP-right corner since the wave-6 rider: live inspection found the
     // affordance crowding the date axis at the bottom, and m-scan-v3.html:32
@@ -565,11 +642,14 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     // A real max-lg: token, so the ≥lg cascade is untouched by construction (the
     // same discipline every other mobile treatment in this branch rides).
     assert.doesNotMatch(chart, /max-lg:\$\{/);
-    // The overlay is the one caller that passes `fill`, and the one that passes
-    // no onExpand — so the instance that keeps the tools is exactly the instance
-    // that cannot offer to expand itself again.
+    // `fill` means "the container owns the height": the overlay (which is the
+    // viewport) and, since §17m.3, the ≥lg stage (whose wrapper hands the chart
+    // its third of the region). The instance that DROPS the cluster is the
+    // mobile one — no fill, 168px of mock height, and the Expand chip alone in
+    // that corner.
     assert.match(overlay, /children/);
-    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n/);
+    const fillInstances = stage.match(/<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n/g) ?? [];
+    assert.equal(fillInstances.length, 2);
   });
 
   it("mounts a second MarketChart with the same data, setup and view key", () => {
@@ -608,7 +688,7 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     assert.match(overlay, /\bbg-paper\b/);
     // The market name is the visible title the label resolves to.
     assert.match(overlay, /id=\{titleId\}[\s\S]{0,160}\{marketName\}/);
-    assert.match(stage, /marketName=\{scopeTriggerLabel\(/);
+    assert.match(stage, /marketName=\{formatSecurityDisplaySymbol\(symbol\)\}/);
   });
 
   it("closes on Escape and on a close control at the kit's 44px floor", () => {
@@ -767,18 +847,28 @@ describe("Desk chart composition — the kill list is absent (spec §16)", () =>
 describe("scan rail composition — the mock's elements are present (a-desk-v3.html:87-158)", () => {
   const rail = readFileSync(RAIL, "utf8");
 
-  it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
-    // The eyebrow is unchanged and un-prefixed again: spec §17e made this rail
-    // the ≥lg composition alone, so the `max-lg:sr-only` that hid it on the old
-    // mobile Scan tab described a rendering that no longer happens. Its absence
-    // is asserted alongside, so a mobile treatment cannot drift back into a
-    // desktop-only component.
+  it('leads with the "Markets" eyebrow and a compact "Scan" button on one row (§17m.4)', () => {
+    // §17m.4: "the column eyebrow becomes Markets; the button becomes Scan —
+    // one verb, smaller button, no redundancy." The mock's own "Scan / Scan now"
+    // pairing (a-desk-v3.html:88) is superseded by name; its composition — the
+    // eyebrow opposite the button, the scope select below — is not.
+    const rail = readFileSync(RAIL, "utf8");
     assert.match(
       rail,
-      /className="eyebrow">\s*Scan\s*</,
+      /className="eyebrow">\s*Markets\s*</,
     );
-    assert.match(rail, /Scan now/);
-    assert.doesNotMatch(rail, /max-lg:sr-only/);
+    // The button, at the merged mobile control row's own compact scale so the
+    // one door reads the same on both platforms.
+    assert.match(
+      rail,
+      /className="primary-button shrink-0 px-4 py-2 text-\[13px\]"[\s\S]{0,400}\n\s*Scan\n\s*<\/button>/,
+    );
+    // Both retired strings are gone from the file, comments included: e2e
+    // locators are pinned to accessible names, and a stale one costs a live
+    // deploy run.
+    assert.doesNotMatch(rail, /Scan now/);
+    assert.doesNotMatch(rail, /className="eyebrow">\s*Scan\s*</);
+    assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}label="Scan scope"/);
   });
 
   it("keeps the scope menu and the server-truth count line, mono and unboxed", () => {

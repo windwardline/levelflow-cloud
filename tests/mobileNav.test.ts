@@ -891,9 +891,9 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
       surface,
       /<h2 className="min-w-0 truncate font-display text-\[19px\] font-bold tracking-\[-0\.02em\] text-ink">/,
     );
-    // A heading element, because the scan rail's "Scan" eyebrow — this surface's
-    // only landmark before the merge, and clipped rather than removed for that
-    // reason — is ≥lg-only now.
+    // A heading element, because the scan rail's own eyebrow ("Markets" since
+    // §17m.4) — this surface's only landmark before the merge, and clipped
+    // rather than removed for that reason — is ≥lg-only now.
     assert.match(surface, /<\/h2>/);
     assert.match(surface, /\{setup\.side === "buy" \? "Buy" : "Sell"\} limit/);
     assert.match(surface, /<ConfidenceUnit\s+assetType=\{selectedAsset\.assetType\}\s+compact/);

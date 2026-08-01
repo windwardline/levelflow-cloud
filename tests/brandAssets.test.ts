@@ -17,6 +17,17 @@ import { describe, it } from "node:test";
 const CSS = readFileSync("src/styles/index.css", "utf8");
 const INDEX = readFileSync("index.html", "utf8");
 
+// Wave 9, item 7: every icon URL in every head carries this version, and so does
+// every icon the manifest names. The files themselves stay at their canonical
+// paths — legacy agents fetch /favicon.ico unprompted and must keep getting the
+// current bytes — so the version lives in the REFERENCE, which is what a client
+// with the old product's icon cached at the same URL will refetch on.
+//
+// One value, asserted everywhere: bumping it is a single conscious edit here plus
+// the six heads and the manifest, and a set that disagrees with itself (three
+// links bumped, two not) fails rather than half-refreshing.
+const ICON_VERSION = "?v=2";
+
 function token(block: string, name: string): string {
   const scope = CSS.match(
     block === "light"
@@ -304,7 +315,11 @@ describe("§17h — the raster set and the manifest", () => {
     assert.equal(manifest.background_color, token("light", "--color-paper"));
     assert.deepEqual(
       manifest.icons.map((icon: { src: string }) => icon.src),
-      ["/icon-192.png", "/icon-512.png", "/brand/levelflow-mark.svg"],
+      [
+        `/icon-192.png${ICON_VERSION}`,
+        `/icon-512.png${ICON_VERSION}`,
+        `/brand/levelflow-mark.svg${ICON_VERSION}`,
+      ],
     );
   });
 
@@ -373,54 +388,102 @@ describe("§17i — the favicon head set, in the order each browser needs", () =
 
   // The one sequence, expressed as what each position is for. `base` is the href
   // prefix the document uses: Vite rewrites %BASE_URL% in index.html, and the
-  // static pages are served as-is with root-absolute hrefs.
+  // static pages are served as-is with root-absolute hrefs. Every href carries
+  // ICON_VERSION — see the version describe below for why.
   function expectTheSet(source: string, base: string, label: string) {
     const order = iconLinks(source);
     assert.equal(order.length, 5, `${label}: expected five rel=icon links`);
     // 1. Safari's pick, sized so Chrome does not take it instead of the SVG.
     assert.equal(
       order[0],
-      `<link rel="icon" href="${base}favicon.ico" sizes="32x32" />`,
+      `<link rel="icon" href="${base}favicon.ico${ICON_VERSION}" sizes="32x32" />`,
       label,
     );
     // 2-3. The raster fallback, for clients that read neither container.
     assert.equal(
       order[1],
-      `<link rel="icon" href="${base}favicon-16.png" type="image/png" sizes="16x16" />`,
+      `<link rel="icon" href="${base}favicon-16.png${ICON_VERSION}" type="image/png" sizes="16x16" />`,
       label,
     );
     assert.equal(
       order[2],
-      `<link rel="icon" href="${base}favicon-32.png" type="image/png" sizes="32x32" />`,
+      `<link rel="icon" href="${base}favicon-32.png${ICON_VERSION}" type="image/png" sizes="32x32" />`,
       label,
     );
     // 4. The dark rendition, for clients that honour `media` on an icon link.
     assert.match(
       order[3],
-      /brand\/levelflow-mark-dark\.svg" type="image\/svg\+xml" media="\(prefers-color-scheme: dark\)"/,
+      new RegExp(
+        `brand/levelflow-mark-dark\\.svg\\${ICON_VERSION}" type="image/svg\\+xml" media="\\(prefers-color-scheme: dark\\)"`,
+      ),
       label,
     );
     // 5. The adaptive SVG, last and scalable — the modern pick on both signals.
     assert.equal(
       order[4],
-      `<link rel="icon" href="${base}favicon.svg" type="image/svg+xml" sizes="any" />`,
+      `<link rel="icon" href="${base}favicon.svg${ICON_VERSION}" type="image/svg+xml" sizes="any" />`,
       label,
     );
     assert.doesNotMatch(order[4], /media=/, label);
     // And the two links outside the rel="icon" family, which no browser resolves
     // against the set above: the iOS home screen and installed-app icons.
     assert.ok(
-      source.includes(`<link rel="apple-touch-icon" href="${base}apple-touch-icon.png" />`),
+      source.includes(
+        `<link rel="apple-touch-icon" href="${base}apple-touch-icon.png${ICON_VERSION}" />`,
+      ),
       `${label}: apple-touch-icon`,
     );
     assert.ok(
-      source.includes(`<link rel="manifest" href="${base}site.webmanifest" />`),
+      source.includes(
+        `<link rel="manifest" href="${base}site.webmanifest${ICON_VERSION}" />`,
+      ),
       `${label}: manifest`,
     );
   }
 
   it("declares the whole set, in order, on the app's own head", () => {
     expectTheSet(INDEX, "%BASE_URL%", "index.html");
+  });
+
+  // Item 7's own assertion, independent of the sequence above: EVERY icon
+  // reference in EVERY head carries the same version, and so does every icon the
+  // manifest names. The live files are byte-correct and served
+  // no-cache-revalidate, but a client that cached the previous product's icons at
+  // these exact URLs — Safari's favicon database in particular — never asks
+  // again. A changed URL is the only thing that makes it ask.
+  it("versions every icon reference, identically, on every head and in the manifest", () => {
+    const heads: Array<[string, string]> = [
+      ["index.html", INDEX],
+      ...STATIC_PAGES.map((page) =>
+        [page, readFileSync(page, "utf8")] as [string, string]
+      ),
+    ];
+    for (const [label, source] of heads) {
+      const hrefs = Array.from(
+        source.matchAll(
+          /<link\s+rel="(?:icon|apple-touch-icon|manifest)"[\s\S]*?href="([^"]+)"/g,
+        ),
+        (match) => match[1],
+      );
+      assert.equal(hrefs.length, 7, `${label}: expected seven icon references`);
+      for (const href of hrefs) {
+        assert.ok(
+          href.endsWith(ICON_VERSION),
+          `${label}: ${href} carries no ${ICON_VERSION}`,
+        );
+        // The version is a query on the canonical path, never a renamed file:
+        // the bytes must stay reachable at /favicon.ico for clients that ask for
+        // it without being told to.
+        assert.doesNotMatch(href, /-v2|_v2/, `${label}: ${href}`);
+      }
+    }
+    const manifest = JSON.parse(readFileSync("public/site.webmanifest", "utf8"));
+    for (const icon of manifest.icons as Array<{ src: string }>) {
+      assert.ok(
+        icon.src.endsWith(ICON_VERSION),
+        `manifest icon ${icon.src} carries no ${ICON_VERSION}`,
+      );
+    }
   });
 
   it("mirrors it on the 404 and the legal trio, root-absolute", () => {
@@ -536,7 +599,9 @@ describe("§17h — the static pages stop borrowing another division's mark", ()
       // guard still owns is whose mark it is.
       assert.match(
         source,
-        /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" sizes="any" \/>/,
+        new RegExp(
+          `<link rel="icon" href="/favicon\\.svg\\${ICON_VERSION}" type="image/svg\\+xml" sizes="any" />`,
+        ),
       );
       // The house mark belongs beside the house's name, not in Levelflow's tab.
       assert.doesNotMatch(source, /windward-line-mark/);

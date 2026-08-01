@@ -149,6 +149,11 @@ const SURVIVORS: Record<string, Survivor[]> = {
       match: "rounded-lg border border-hairline bg-sheet p-1 shadow-xs",
       why: "the chart tool cluster — six buttons, over that same canvas",
     },
+    {
+      match: "lg:rounded-lg lg:border lg:border-hairline lg:bg-sheet",
+      why:
+        "Expand chart at ≥lg (§17m.3): an interactive control over live candles, taking the tool cluster's own plane so its label can be read — bare accent text below lg, where the mock draws it on a quiet corner",
+    },
   ],
   // ---- pre-auth surfaces, outside the mockups' scope ---------------------
   // §16 puts the Auth and Parking screens out of the mockups' scope by name, so

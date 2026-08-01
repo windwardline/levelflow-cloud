@@ -77,7 +77,12 @@ describe("no eyebrow is written out at a call site any more", () => {
       "src/components/workspace/GuidePanel.tsx": 2,
       "src/components/workspace/HistoryPanel.tsx": 3,
       "src/components/workspace/MarketScanPanel.tsx": 1,
-      "src/components/workspace/ScopeMenu.tsx": 2,
+      // One, not two, since §17m.5: the availability line stopped being an
+      // eyebrow. At the kit's 12px/0.14em it spent a third of a 248px popup on
+      // one line, so it carries its own smaller mono type now
+      // (tests/scopeMenu.test.tsx pins the sizes and the width budget). The
+      // trigger's caption is the eyebrow that remains.
+      "src/components/workspace/ScopeMenu.tsx": 1,
       "src/components/workspace/SetupQualityReceipt.tsx": 2,
     };
     for (const [file, count] of Object.entries(migrated)) {

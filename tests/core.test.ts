@@ -234,8 +234,14 @@ describe("trade analyzer category handling", () => {
     // the same post-ranking, post-collapse list the user is shown.
     assert.equal(scanSource.includes("opportunities: rankedOpportunities"), true);
     assert.equal(scanSource.includes("qualified: rankedOpportunities.length"), true);
-    assert.equal(scanSource.includes("persistScannedOpportunities("), true);
-    assert.match(scanSource, /upsertActiveSetup\([\s\S]*?"scan",?\s*\);/);
+    assert.equal(scanSource.includes("persistScannedOpportunities({"), true);
+    // The write goes through the persistence pass's injected writer now (spec
+    // §17m.2, tests/scanPersistence.test.ts pins the contract itself), so the
+    // origin argument closes the arrow rather than a bare call.
+    assert.match(scanSource, /write: \(context\) =>\s*upsertActiveSetup\([\s\S]*?"scan",?\s*\),/);
+    // And the report the response carries is what makes "showed setups, wrote
+    // none" a state anything can see.
+    assert.equal(scanSource.includes("persistence,"), true);
   });
 
   it("never lets a routine scan demote an existing review-origin setup", () => {
@@ -292,7 +298,7 @@ describe("trade analyzer category handling", () => {
     assert.match(upsertSource, /activeSetup\.status === "placed"/);
   });
 
-  it("scopes global learning weights to review-origin outcomes only", () => {
+  it("trains global learning on every origin, since Scan is the only door (§17m)", () => {
     const source = readFileSync(
       "supabase/functions/trade-analyzer/index.ts",
       "utf8",
@@ -303,10 +309,23 @@ describe("trade analyzer category handling", () => {
     const weightsEnd = source.indexOf("function extractSetupKey");
     const weightsSource = source.slice(weightsStart, weightsEnd);
 
-    // Scan-origin rows are record, not signal, until measured — global
-    // learning only trains on setups a human actually reviewed.
+    // Inverted deliberately: this used to require `&origin=eq.review`, from a
+    // build where a scan ran alongside deliberate single-market reviews. §17m.1
+    // deleted the stage's Review button and made the Scan column the only door,
+    // so that filter would leave the cohort with nothing to train on —
+    // permanently frozen weights that still look like a learning model. The
+    // signal is unchanged either way: these are measured outcomes resolved by
+    // the same replay engine from the same live bars.
     assert.equal(weightsSource.includes("trade_setups?select="), true);
-    assert.equal(weightsSource.includes("&origin=eq.review"), true);
+    assert.equal(weightsSource.includes("origin=eq.review"), false);
+    // The outcome filter is what scopes the cohort, and it stays exactly as it
+    // was — only resolved, measured outcomes train the weights.
+    assert.equal(
+      weightsSource.includes(
+        "outcome=in.(take_profit,tp1_partial,stop_loss,ambiguous)",
+      ),
+      true,
+    );
   });
 
   it("loads Ultimate intraday data without replacing the signal timeframes", () => {
