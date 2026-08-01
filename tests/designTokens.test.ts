@@ -84,11 +84,24 @@ describe("design tokens", () => {
     const s = css();
     assert.match(s, /@import "@fontsource-variable\/inter";/);
     assert.match(s, /@import "@fontsource-variable\/space-grotesk";/);
-    assert.match(s, /@import "@fontsource\/ibm-plex-mono\/400.css";/);
-    assert.match(s, /@import "@fontsource\/ibm-plex-mono\/600.css";/);
     assert.match(s, /--font-sans:\s*"Inter Variable"/);
     assert.match(s, /--font-display:\s*"Space Grotesk Variable"/);
     assert.match(s, /--font-mono:\s*"IBM Plex Mono"/);
+  });
+
+  it("imports the mono role's latin subset only — @fontsource offers the entry point, and nothing renders past it", () => {
+    // The mono role reads columns of money: tickers, prices, times, R multiples.
+    // Its whole glyph set is ASCII plus · ± − (all inside the latin subset's
+    // unicode-range), so the cyrillic/cyrillic-ext/latin-ext/vietnamese faces
+    // the family entry point pulls in were eight @font-face rules and sixteen
+    // files no reader could ever fetch. The two variable families have no
+    // per-subset entry point in their packages, so they stay on the family
+    // import — their extra subsets cost render-blocking CSS but never a
+    // download, since unicode-range keeps them unfetched.
+    const s = css();
+    assert.match(s, /@import "@fontsource\/ibm-plex-mono\/latin-400.css";/);
+    assert.match(s, /@import "@fontsource\/ibm-plex-mono\/latin-600.css";/);
+    assert.doesNotMatch(s, /@import "@fontsource\/ibm-plex-mono\/[46]00.css";/);
   });
 
   it("defines the editorial palette with dark-theme overrides", () => {
