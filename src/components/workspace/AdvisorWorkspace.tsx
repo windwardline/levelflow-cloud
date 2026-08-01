@@ -516,9 +516,13 @@ export function AdvisorWorkspace(
                 heading-scale label rather than a second picker — the scope menu
                 above IS the picker on this surface. */}
             <div className="mt-3 flex min-w-0 items-center gap-2">
-              <span className="min-w-0 truncate font-display text-[19px] font-bold tracking-[-0.02em] text-ink">
+              {/* A real heading, not a styled span: below lg this market IS the
+                  surface, and the scan rail's own "Scan" eyebrow — which used to
+                  be this surface's only landmark, clipped for exactly that
+                  reason — is ≥lg-only now. Heading semantics, the mock's type. */}
+              <h2 className="min-w-0 truncate font-display text-[19px] font-bold tracking-[-0.02em] text-ink">
                 {scopeTriggerLabel({ kind: "symbol", symbol }, "heading")}
-              </span>
+              </h2>
               {setup
                 ? (
                   <span

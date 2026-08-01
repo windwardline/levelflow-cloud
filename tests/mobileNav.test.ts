@@ -810,8 +810,12 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
     // display scale, not a second picker — the scope menu above is the picker.
     assert.match(
       surface,
-      /className="min-w-0 truncate font-display text-\[19px\] font-bold tracking-\[-0\.02em\] text-ink"/,
+      /<h2 className="min-w-0 truncate font-display text-\[19px\] font-bold tracking-\[-0\.02em\] text-ink">/,
     );
+    // A heading element, because the scan rail's "Scan" eyebrow — this surface's
+    // only landmark before the merge, and clipped rather than removed for that
+    // reason — is ≥lg-only now.
+    assert.match(surface, /<\/h2>/);
     assert.match(surface, /\{setup\.side === "buy" \? "Buy" : "Sell"\} limit/);
     assert.match(surface, /<ConfidenceUnit\s+assetType=\{selectedAsset\.assetType\}\s+compact/);
     // The stamp comes from the same builder the ≥lg unit uses, so the two
