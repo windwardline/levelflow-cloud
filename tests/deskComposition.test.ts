@@ -38,10 +38,23 @@ function allSourceFiles(root: string): string[] {
 }
 
 describe("Desk stage composition — the mock's elements are present (a-desk-v3.html:161-213)", () => {
-  it("leads with the market picker as the stagehead's display heading, no visible field caption", () => {
-    assert.match(stage, /<ScopeMenu\b[\s\S]{0,400}variant="heading"/);
-    assert.match(stage, /<ScopeMenu\b[\s\S]{0,400}showLabel=\{false\}/);
-    assert.match(stage, /<ScopeMenu\b[\s\S]{0,400}symbolOnly/);
+  // Spec §17m.1: "the stage is a pure display of the Scan column's selection."
+  // Both directions in one test — the market name renders as a heading, and the
+  // picker that used to be that heading is gone from the file entirely (with
+  // the props it needed: tests/scopeMenu.test.tsx pins their absence too).
+  it("leads with the market name as a text display heading, not a picker", () => {
+    assert.match(
+      stage,
+      /<h2 className="shrink-0 whitespace-nowrap font-display text-2xl font-bold text-ink">\s*\{formatSecurityDisplaySymbol\(symbol\)\}\s*<\/h2>/,
+    );
+    // Exactly one ScopeMenu in this file, and it is the merged mobile surface's
+    // scan scope — the stage has none.
+    const scopeMenus = stage.match(/<ScopeMenu\b/g) ?? [];
+    assert.equal(scopeMenus.length, 1);
+    assert.match(stage, /<ScopeMenu\b[\s\S]{0,200}label="Scan scope"/);
+    assert.doesNotMatch(stage, /variant="heading"/);
+    assert.doesNotMatch(stage, /symbolOnly/);
+    assert.doesNotMatch(stage, /label="Market"/);
   });
 
   it("tags the side beside the heading, only while a setup is showing", () => {
@@ -64,12 +77,18 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // tested "drops the missing half" branch reachable in the app, which it was
   // not while every analysis state stamped Date.now().
   it("stamps the review time only where a review actually ran", () => {
-    // Every write of the field, in source order: three inside analyze(), then
-    // the scan-selection handler's synthetic state. The trailing comma is what
-    // keeps the type declaration (`reviewedAt: number | null;`) out of the set.
+    // Every write of the field, in source order: the scan verdict the stage
+    // adopts the moment a scan finishes (§17m.1 — the scan IS the review of the
+    // market on screen, and it just ran against live data), twice; then three
+    // inside analyze() (the mobile single-market path); then the scan-ROW
+    // handler's synthetic state, which claims nothing. The trailing comma is
+    // what keeps the type declaration (`reviewedAt: number | null;`) out of the
+    // set.
     const writes = (stage.match(/reviewedAt: [^,;\n]+,/g) ?? [])
       .map((write) => write.replace(/,$/, ""));
     assert.deepEqual(writes, [
+      "reviewedAt: Date.now()",
+      "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
@@ -91,17 +110,26 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.doesNotMatch(stage, /requestedAt/);
   });
 
-  // Spec §17: the stage's action is "Review", not "Review market" — the
-  // stagehead already names the market immediately beside it, so the second
-  // word was restating the heading. The `>` before it is what makes this an
-  // element-text assertion rather than a substring a comment could satisfy.
-  it("keeps Review as the stage's one action, beside the chart-view control", () => {
-    assert.match(stage, /className="primary-button"[\s\S]{0,600}\n\s*Review\n/);
+  // Spec §17m.1: "All trades originate from the Scan column — no other path."
+  // The stage's Review button and its generation path are DELETED, so the only
+  // control left in the stagehead is the display-only timeframe select, whose
+  // aria-label is the e2e contract for it.
+  it("carries no action at all — the chart-view select is the stagehead's one control", () => {
     assert.match(stage, /aria-label="Chart view"/);
-    // The old wording is gone everywhere in this file, comments included —
-    // e2e locators are pinned to the button's accessible name, and a stale
+    // No Review button, in any wording, anywhere in the file — comments
+    // included, since e2e locators are pinned to accessible names and a stale
     // one costs a live deploy run.
+    assert.doesNotMatch(stage, />\s*Review\s*</);
+    assert.doesNotMatch(stage, /\n\s*Review\n/);
     assert.doesNotMatch(stage, /Review market/);
+    // The stage cannot generate: the desktop composition holds no primary
+    // button at all, and the one that remains in this file is the merged mobile
+    // surface's single Scan control (§17e's own door).
+    const primaryButtons = stage.match(/className="primary-button[^"]*"/g) ?? [];
+    assert.deepEqual(primaryButtons, [
+      'className="primary-button shrink-0 px-4 py-2 text-[13px]"',
+    ]);
+    assert.doesNotMatch(stage, /secondary-button/);
   });
 
   // Spec §17: "The stagehead must never truncate the market name." The
@@ -112,23 +140,27 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // `truncate`, so the flex-wrap ancestors move the controls to a second row
   // instead of clipping the name to an ellipsis.
   it("gives the stagehead's market name room rather than an ellipsis (spec §17)", () => {
+    const heading = stage.match(/<h2 className="([^"]*font-display text-2xl[^"]*)"/)
+      ?.[1] ?? "";
+    assert.ok(heading.length > 0, "expected the stagehead heading classes");
+    // Structural, not a hope about available room: the heading does not shrink
+    // below its own content and does not wrap it either, so a long name pushes
+    // the chart-view control to a second row instead of clipping.
+    assert.match(heading, /\bshrink-0\b/);
+    assert.match(heading, /\bwhitespace-nowrap\b/);
+    assert.doesNotMatch(heading, /\bmin-w-0\b/);
+    assert.doesNotMatch(heading, /\btruncate\b/);
+    // The rail's own scope field still truncates — the 264px column genuinely
+    // has to clip the full descriptive label.
     const scopeMenu = readFileSync(
       "src/components/workspace/ScopeMenu.tsx",
       "utf8",
     );
-    const headingTrigger = scopeMenu.match(
-      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
-    )?.[1] ?? "";
-    assert.ok(headingTrigger.length > 0, "expected the heading trigger classes");
-    assert.match(headingTrigger, /\bshrink-0\b/);
-    assert.doesNotMatch(headingTrigger, /\bmin-w-0\b/);
-    // The value span: nowrap for the heading, still truncating in the 264px
-    // scan rail where the full descriptive label genuinely has to be clipped.
     assert.match(
       scopeMenu,
-      /id=\{`\$\{baseId\}-value`\}\n\s*className=\{variant === "heading"\n\s*\? "whitespace-nowrap"\n\s*: "truncate"\}/,
+      /id=\{`\$\{baseId\}-value`\} className="truncate"/,
     );
-    // And the row the trigger sits in still wraps, which is what absorbs the
+    // And the row the heading sits in still wraps, which is what absorbs the
     // extra width when the name is long.
     assert.match(stage, /className="flex min-w-0 flex-wrap items-center gap-x-3\.5 gap-y-1"/);
     assert.match(
@@ -249,12 +281,13 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     }
   });
 
-  it("carries no standalone stage Refresh button — Review is the one action", () => {
+  it("carries no standalone stage Refresh button — the stage acts at all", () => {
     assert.doesNotMatch(stage, /RefreshCw/);
     assert.doesNotMatch(stage, />\s*Refresh\s*</);
-    // Exactly one action lives in the stagehead.
-    assert.equal(stage.match(/className="primary-button"/g)?.length, 1);
-    assert.doesNotMatch(stage, /secondary-button/);
+    // Nothing in the ≥lg stage generates or re-fetches on demand: the scan
+    // refreshes the chart for the market it lands on, and the trades rail keeps
+    // its own refresh link (spec §16, §17m.1).
+    assert.doesNotMatch(stage, /className="primary-button"/);
   });
 
   it("carries no Latest close metric box and no duplicated market heading", () => {
@@ -608,7 +641,7 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     assert.match(overlay, /\bbg-paper\b/);
     // The market name is the visible title the label resolves to.
     assert.match(overlay, /id=\{titleId\}[\s\S]{0,160}\{marketName\}/);
-    assert.match(stage, /marketName=\{scopeTriggerLabel\(/);
+    assert.match(stage, /marketName=\{formatSecurityDisplaySymbol\(symbol\)\}/);
   });
 
   it("closes on Escape and on a close control at the kit's 44px floor", () => {

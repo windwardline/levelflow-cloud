@@ -189,11 +189,13 @@ export function RecommendationPanel({
 
   return (
     <div className="grid min-w-0 gap-1 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
-      <h3 className="text-base font-semibold text-ink">Ready for review</h3>
-      <p>
-        {notice ||
-          "Select a market, review the chart, then ask Levelflow for the current limit setup."}
-      </p>
+      <h3 className="text-base font-semibold text-ink">No setup yet</h3>
+      {/* Spec §17m.1: the Scan column is the only door, so this line names the
+          one verb. The old wording ("Select a market, review the chart, then ask
+          Levelflow…") narrated a stage picker and a Review button that no longer
+          exist. §17f keeps what is left to the one thing the surface cannot show
+          for itself: that scanning is how a setup arrives. */}
+      <p>{notice || "Scan to see the current limit setup."}</p>
     </div>
   );
 }

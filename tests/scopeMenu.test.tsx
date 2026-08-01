@@ -13,13 +13,11 @@ import {
 import {
   buildScopeMenuRows,
   describeScanScope,
-  effectiveRows,
   formatScopeCountLine,
   formatScopeMenuAffordance,
   MOBILE_SHEET_BREAKPOINT_PX,
   moveScopeMenuHighlight,
   resolveRowActivation,
-  scopeTriggerLabel,
   shouldUseSheetLayout,
   showsAffordance,
   type ScanScope,
@@ -127,8 +125,7 @@ describe("showsAffordance", () => {
     const [allRow] = buildScopeMenuRows(WEDNESDAY_2PM_ET);
     assert.ok(allRow);
     assert.equal(allRow.scope.kind, "all");
-    assert.equal(showsAffordance(allRow, false), false);
-    assert.equal(showsAffordance(allRow, true), false);
+    assert.equal(showsAffordance(allRow), false);
   });
 
   it("shows 'Scan N' on an open group, nothing on an open market, in the full menu", () => {
@@ -137,110 +134,49 @@ describe("showsAffordance", () => {
     const marketRow = rows.find((row) => row.key === "symbol:EURUSD");
     assert.ok(groupRow);
     assert.ok(marketRow);
-    assert.equal(showsAffordance(groupRow, false), true);
-    assert.equal(showsAffordance(marketRow, false), false);
+    assert.equal(showsAffordance(groupRow), true);
+    assert.equal(showsAffordance(marketRow), false);
   });
 
-  it("shows nothing on an open group in symbolOnly mode (no scan action from the stage picker), but still shows a closed group's reopen label", () => {
+  it("shows a closed group's reopen label, whatever the rest of the menu is doing", () => {
     const rows = buildScopeMenuRows(SATURDAY_NOON_ET);
     const openGroup = rows.find((row) => row.key === "group:Crypto");
     const closedGroup = rows.find((row) => row.key === "group:Forex");
     assert.ok(openGroup);
     assert.ok(closedGroup);
-    assert.equal(showsAffordance(openGroup, true), false);
-    assert.equal(showsAffordance(closedGroup, true), true);
+    assert.equal(showsAffordance(openGroup), true);
+    assert.equal(showsAffordance(closedGroup), true);
   });
 });
 
-describe("effectiveRows (symbolOnly mode: the stage's direct-review picker)", () => {
-  it("is an identity pass-through when symbolOnly is false", () => {
+// Spec §17m.1 deleted the stage's direct-review picker, and with it the whole
+// symbolOnly mode this suite used to cover (effectiveRows, the neutered group
+// rows, the closed-market-still-selectable rule). Inverted to absence, per the
+// §16 both-directions discipline: the menu has ONE shape now — the scan scope —
+// and the mode's machinery may not come back as dead code.
+describe("the stage picker's symbolOnly mode is gone (§17m.1)", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/ScopeMenu.tsx",
+    "utf8",
+  );
+
+  it("exports no symbolOnly transform and takes no symbolOnly prop", () => {
+    assert.doesNotMatch(SOURCE, /effectiveRows/);
+    assert.doesNotMatch(SOURCE, /symbolOnly/);
+  });
+
+  it("keeps no heading variant of the trigger — the stage's heading is plain text now", () => {
+    assert.doesNotMatch(SOURCE, /variant/);
+    assert.doesNotMatch(SOURCE, /scopeTriggerLabel/);
+    assert.doesNotMatch(SOURCE, /HEADING_MENU_MIN_WIDTH_PX/);
+  });
+
+  it("renders the menu straight off the row model, with every row as built", () => {
+    assert.match(SOURCE, /const rows = buildScopeMenuRows\(clock\);/);
+    // "All markets" is a real row again for both hosts — no call site drops it.
     const rows = buildScopeMenuRows(WEDNESDAY_2PM_ET);
-    assert.deepEqual(effectiveRows(rows, false), rows);
-  });
-
-  it("drops 'All markets' entirely", () => {
-    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
-    assert.equal(rows.some((row) => row.scope.kind === "all"), false);
-    assert.equal(rows.some((row) => row.key === "all"), false);
-  });
-
-  it("keeps every group row present but neuters it - non-interactive even when its group is open, so keyboard Enter on a group fires nothing", () => {
-    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
-    const groupRows = rows.filter((row) => row.scope.kind === "group");
-
-    assert.equal(groupRows.length, AVAILABLE_ASSET_GROUPS.length);
-    for (const row of groupRows) {
-      assert.equal(row.interactive, false, row.key);
-      assert.equal(resolveRowActivation(row), null, row.key);
-    }
-  });
-
-  it("leaves every open market row activating with kind \"symbol\", unaffected by symbolOnly", () => {
-    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
-    const cryptoOptions = AVAILABLE_ASSET_GROUPS.find((group) =>
-      group.label === "Crypto"
-    )?.options ?? [];
-    assert.ok(cryptoOptions.length > 0);
-
-    for (const option of cryptoOptions) {
-      const row = rows.find((candidate) => candidate.key === `symbol:${option.symbol}`);
-      assert.ok(row, option.symbol);
-      assert.equal(row.interactive, true, option.symbol);
-      assert.deepEqual(resolveRowActivation(row), {
-        kind: "symbol",
-        symbol: option.symbol,
-      });
-    }
-  });
-
-  it("keeps a closed group's market rows selectable - reviewing a market never requires it to be open (I4)", () => {
-    // Scanning a closed market makes no sense (I5), but reviewing one does:
-    // the stage's picker is symbolOnly, and without this a weekend would
-    // leave every non-crypto market permanently unreachable from it.
-    const rows = effectiveRows(buildScopeMenuRows(SATURDAY_NOON_ET), true);
-    const forexMarket = rows.find((row) => row.key === "symbol:EURUSD");
-    assert.ok(forexMarket);
-    assert.equal(forexMarket.interactive, true);
-    assert.deepEqual(resolveRowActivation(forexMarket), {
-      kind: "symbol",
-      symbol: "EURUSD",
-    });
-  });
-
-  it("keyboard traversal on a fully-open menu skips 'All markets' and every group row, landing directly on the first market", () => {
-    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
-    const firstGroup = AVAILABLE_ASSET_GROUPS[0];
-    assert.ok(firstGroup);
-    const firstMarket = firstGroup.options[0];
-    assert.ok(firstMarket);
-
-    assert.equal(
-      moveScopeMenuHighlight(rows, null, 1),
-      `symbol:${firstMarket.symbol}`,
-    );
-  });
-
-  it("keyboard traversal only ever lands on market rows, and wraps between the first and last of them", () => {
-    const rows = effectiveRows(buildScopeMenuRows(WEDNESDAY_2PM_ET), true);
-    const interactiveKeys = rows.filter((row) => row.interactive).map((row) => row.key);
-
-    assert.ok(interactiveKeys.length > 0);
-    assert.ok(interactiveKeys.every((key) => key.startsWith("symbol:")));
-
-    const firstKey = interactiveKeys[0] ?? null;
-    const lastKey = interactiveKeys[interactiveKeys.length - 1] ?? null;
-    assert.equal(moveScopeMenuHighlight(rows, lastKey, 1), firstKey);
-    assert.equal(moveScopeMenuHighlight(rows, firstKey, -1), lastKey);
-  });
-
-  it("on a mostly-closed menu, traversal still reaches every market - closed markets stay selectable for review (I4), only group rows stay neutered", () => {
-    const rows = effectiveRows(buildScopeMenuRows(SATURDAY_NOON_ET), true);
-    const allMarketKeys = AVAILABLE_ASSET_GROUPS.flatMap((group) =>
-      group.options.map((option) => `symbol:${option.symbol}`)
-    );
-
-    const interactiveKeys = rows.filter((row) => row.interactive).map((row) => row.key);
-    assert.deepEqual(interactiveKeys, allMarketKeys);
+    assert.equal(rows[0]?.key, "all");
+    assert.equal(resolveRowActivation(rows[0]!)?.kind, "all");
   });
 });
 
@@ -441,12 +377,11 @@ describe("formatScopeCountLine renders server counts verbatim", () => {
   });
 });
 
-// Spec §16: the recomposed stagehead renders the market picker as the Desk's
-// display heading (a-desk-v3.html:165), where the full descriptive label runs
-// far past the stage at that size. Only that variant shortens; every list,
-// menu and scan row keeps the full label, which is what the e2e row-order
-// specs and formatScopeCountLine above are pinned to.
-describe("formatSecurityDisplaySymbol (stagehead heading form)", () => {
+// The stagehead, the merged mobile head and the expanded-chart title all name
+// the market in ticker form: the full descriptive label runs far past the stage
+// at heading size. Every list, menu and scan row keeps the full label, which is
+// what the e2e row-order specs and formatScopeCountLine above are pinned to.
+describe("formatSecurityDisplaySymbol (the heading form of a market name)", () => {
   it("keeps only the ticker half of the label, dropping the description", () => {
     assert.equal(formatSecurityDisplaySymbol("EURUSD"), "EUR/USD");
     assert.equal(formatSecurityDisplaySymbol("XAUUSD"), "XAU/USD");
@@ -472,31 +407,9 @@ describe("formatSecurityDisplaySymbol (stagehead heading form)", () => {
   });
 });
 
-describe("scopeTriggerLabel", () => {
-  it("shortens a symbol scope only for the heading variant", () => {
-    const scope: ScanScope = { kind: "symbol", symbol: "EURUSD" };
-    assert.equal(scopeTriggerLabel(scope, "heading"), "EUR/USD");
-    assert.equal(scopeTriggerLabel(scope, "field"), formatSecurityLabel("EURUSD"));
-  });
-
-  it("leaves the non-symbol scopes identical in both variants", () => {
-    for (
-      const scope of [
-        { kind: "all" },
-        { assetType: "Forex", kind: "group" },
-      ] as ScanScope[]
-    ) {
-      assert.equal(
-        scopeTriggerLabel(scope, "heading"),
-        describeScanScope(scope),
-      );
-      assert.equal(scopeTriggerLabel(scope, "field"), describeScanScope(scope));
-    }
-  });
-});
-
-// Spec §16 draws neither picker with a visible field caption: the stage's
-// market name IS the heading, and the rail leads with its own "Scan" eyebrow.
+// Spec §16 draws the scope picker with no visible field caption: the rail leads
+// with its own eyebrow, and the merged mobile surface pins the trigger in its
+// control row.
 // Suppressing the caption must not cost any element its accessible name, and
 // no aria-labelledby may point at an element that is not rendered.
 describe("ScopeMenu labelling with the caption suppressed (source-pinned — see header comment)", () => {
@@ -523,14 +436,13 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
       /aria-labelledby=\{`\$\{baseId\}-label \$\{baseId\}-value`\}/,
     );
     assert.doesNotMatch(trigger, /aria-label=/);
-    // And the value element the second half of that chain resolves to. The
-    // whitespace between the tag and the id is `\s+` rather than one literal
-    // space because spec §17's no-truncate rule gave this span a per-variant
-    // className (see tests/deskComposition.test.ts), which wrapped it across
-    // lines — the fact asserted here is unchanged.
+    // And the value element the second half of that chain resolves to. It reads
+    // the scope's own description directly now (§17m.1 retired the per-variant
+    // trigger label with the stage picker) — the fact asserted here, that the
+    // named value element carries the current scope, is unchanged.
     assert.match(
       SOURCE,
-      /<span\s+id=\{`\$\{baseId\}-value`\}[\s\S]{0,200}\{scopeTriggerLabel\(value, variant\)\}/,
+      /<span\s+id=\{`\$\{baseId\}-value`\}[\s\S]{0,200}\{describeScanScope\(value\)\}/,
     );
   });
 
@@ -573,23 +485,22 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
     assert.match(SOURCE, /aria-labelledby=\{`\$\{baseId\}-sheet-title`\}/);
   });
 
-  it("renders the trigger's own text through scopeTriggerLabel, never describeScanScope directly", () => {
-    assert.match(SOURCE, /\{scopeTriggerLabel\(value, variant\)\}/);
+  it("renders the trigger's own text as the scope's description", () => {
+    assert.match(SOURCE, /\{describeScanScope\(value\)\}/);
   });
 
-  // Fix round 1: p-0 at text-2xl left the stage's primary control a ~32px
-  // target. The kit's floor is 44px everywhere else (.field 48px,
-  // .primary-button / .tertiary-link / .cpv-copy 44px, the rail rows' min-h-11),
-  // and the heading must reach it without growing visually — min-height plus a
-  // matching negative block margin, the same trick index.css already uses.
-  it("gives the heading trigger a 44px hit area without inflating the heading", () => {
-    const heading = SOURCE.match(
-      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
-    )?.[1] ?? "";
-    assert.ok(heading.length > 0, "expected to find the heading trigger classes");
-    assert.match(heading, /\bmin-h-11\b/);
-    assert.match(heading, /-my-1\.5/);
-    assert.match(heading, /\bp-0\b/);
+  // The trigger is the kit's `.field` — one shape, one 48px control — now that
+  // the heading trigger is gone (§17m.1). The 44px-floor trick it needed
+  // (min-height plus a matching negative block margin at text-2xl) went with
+  // it, and may not return: a bare-paper heading-sized control is exactly what
+  // the stage no longer has.
+  it("draws the trigger as the kit field, with no bare-paper heading control", () => {
+    assert.match(
+      SOURCE,
+      /className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"/,
+    );
+    assert.doesNotMatch(SOURCE, /font-display text-2xl/);
+    assert.doesNotMatch(SOURCE, /-my-1\.5/);
   });
 });
 
@@ -597,12 +508,12 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
 // "One dropdown, three scope kinds, identical on desktop and mobile (mobile
 // renders it as a full-screen sheet)" — applies to every ScopeMenu instance,
 // so the sheet/anchored-popup choice lives inside the component (a viewport
-// check) rather than a prop each of today's two call sites (MarketScanPanel,
-// AdvisorWorkspace's stage picker) would otherwise have to compute and pass
-// in identically. shouldUseSheetLayout is the pure decision function behind
-// that internal choice — exercised directly here the same way
-// effectiveRows/symbolOnly is above, since actually rendering <ScopeMenu>
-// hits the same esbuild/JSX limitation documented at the top of this file.
+// check) rather than a prop each of today's two call sites (MarketScanPanel and
+// the merged mobile control row) would otherwise have to compute and pass in
+// identically. shouldUseSheetLayout is the pure decision function behind that
+// internal choice — exercised directly here, since actually rendering
+// <ScopeMenu> hits the esbuild/JSX limitation documented at the top of this
+// file.
 describe("shouldUseSheetLayout (Task 9 mobile sheet)", () => {
   it("mirrors --breakpoint-lg (src/styles/index.css) exactly, not a second hardcoded number", () => {
     assert.equal(MOBILE_SHEET_BREAKPOINT_PX, 1024);

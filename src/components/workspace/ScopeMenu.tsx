@@ -9,7 +9,6 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, X } from "lucide-react";
 import {
   AVAILABLE_ASSET_GROUPS,
-  formatSecurityDisplaySymbol,
   formatSecurityLabel,
   type SecurityGroup,
   type SecurityType,
@@ -108,23 +107,8 @@ export function describeScanScope(scope: ScanScope): string {
   return formatSecurityLabel(scope.symbol);
 }
 
-// What the trigger button itself shows. The "heading" variant is the Desk
-// stagehead's display heading (spec §16, a-desk-v3.html:165), where the full
-// descriptive label ("EUR/USD - Euro / U.S. Dollar") would run past the whole
-// stage at heading size — it shows the ticker alone. Every other presentation,
-// the option rows included, stays on the full label.
-export function scopeTriggerLabel(
-  scope: ScanScope,
-  variant: "field" | "heading",
-): string {
-  return variant === "heading" && scope.kind === "symbol"
-    ? formatSecurityDisplaySymbol(scope.symbol)
-    : describeScanScope(scope);
-}
-
 // The open-state affordance ("Scan N") only ever applies to "all"/"group"
-// rows outside symbol-only mode - spec §4 gives individual market rows no
-// affordance when open. The closed-state reopen label applies uniformly
+// rows - spec §4 gives individual market rows no affordance when open. The closed-state reopen label applies uniformly
 // (markets, groups, and in principle "all" alike); the caller uppercases it
 // via CSS and the word "closed" itself never renders (spec §10b) - the
 // muted, non-interactive row IS the signal.
@@ -195,62 +179,26 @@ function isSameScope(a: ScanScope, b: ScanScope): boolean {
   return true;
 }
 
-// In `symbolOnly` mode (the stage's direct-review picker) "All markets" is
-// dropped and every group row becomes a plain, non-interactive section
-// header - reviewing is always exactly one market (spec §4: "the stage
-// picker stays as the direct review shortcut"), so only symbol rows stay
-// selectable. Closed groups keep their reopen affordance in this mode too
-// (it still explains why the symbols under it are muted); open ones show
-// nothing, since there is no scan action to take from here.
-//
-// I4: unlike the scan scope menu (where a closed market genuinely can't be
-// scanned - I5), the stage picker's whole job is direct review, and
-// reviewing a market has never required it to be open. Before this fix,
-// symbol rows inherited their group's `interactive: availability.open`
-// unconditionally, so on a weekend the stage could not select any
-// non-crypto market at all. Symbol rows are forced interactive here
-// regardless of availability; rowClassName still mutes a closed one's text
-// as the visual "closed" cue (spec #10b), it just no longer also disables
-// the click.
-export function effectiveRows(
-  rows: ScopeMenuRow[],
-  symbolOnly: boolean,
-): ScopeMenuRow[] {
-  if (!symbolOnly) {
-    return rows;
-  }
-  return rows
-    .filter((row) => row.scope.kind !== "all")
-    .map((row) => {
-      if (row.scope.kind === "group") {
-        return { ...row, interactive: false };
-      }
-      return row.interactive ? row : { ...row, interactive: true };
-    });
-}
-
-export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean {
-  // "All markets" never shows a count (see buildScopeMenuRows) and is
-  // never closed, so it never has anything to show here.
+// Spec §4: a group row carries its scan count, a closed row carries its reopen
+// line, an open market row carries nothing (the row itself is the affordance),
+// and "All markets" carries nothing at all — it never shows a count (see
+// buildScopeMenuRows) and its calendar never closes.
+export function showsAffordance(row: ScopeMenuRow): boolean {
   if (row.scope.kind === "all") {
     return false;
   }
   if (!row.availability.open) {
     return true;
   }
-  if (row.scope.kind === "symbol") {
-    return false;
-  }
-  return !symbolOnly;
+  return row.scope.kind !== "symbol";
 }
 
 // Mobile renders the menu as a full-screen sheet instead of an anchored
 // popup — spec §4's universal contract: "One dropdown, three scope kinds,
 // identical on desktop and mobile (mobile renders it as a full-screen
-// sheet)." That applies to every ScopeMenu instance (the stage's symbolOnly
-// picker and the scan scope selector alike), so the choice lives inside the
-// component itself rather than as a prop each of today's two call sites
-// would otherwise need to compute and thread through identically.
+// sheet)." It applies to every ScopeMenu instance, so the choice lives inside
+// the component itself rather than as a prop each call site would otherwise
+// need to compute and thread through identically.
 //
 // The sheet breakpoint is the app's one mobile breakpoint, not a second
 // number of this component's own: both live in src/hooks/useMobileViewport.ts
@@ -258,10 +206,6 @@ export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean
 // Re-exported under this name because it is what the menu's own contract has
 // always been called — one value, two names, and no way for them to drift.
 export const MOBILE_SHEET_BREAKPOINT_PX = MOBILE_BREAKPOINT_PX;
-
-// Floor for the anchored popup under a "heading" trigger — see the style
-// prop on the popup below for why only that variant needs one.
-const HEADING_MENU_MIN_WIDTH_PX = 288;
 
 export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
   return isMobileViewportWidth(viewportWidthPx);
@@ -275,40 +219,24 @@ export type ScopeMenuProps = {
   onSelect: (scope: ScanScope) => void;
   /**
    * Whether `label` also renders as a visible caption above the trigger.
-   * Spec §16's recomposed Desk draws neither picker with one (the stage's
-   * market name IS the stagehead heading, and the rail leads with its own
-   * "Scan" eyebrow), so both call sites pass false and the trigger carries
-   * `label` as its aria-label instead — same accessible name, no caption.
+   * Neither call site draws one (the rail leads with its own eyebrow, and the
+   * merged mobile surface pins the trigger in its control row), so both pass
+   * false and the trigger carries `label` as its aria-label instead — same
+   * accessible name, no caption.
    */
   showLabel?: boolean;
-  /**
-   * Restricts the menu to symbol selection: no "All markets" row, and group
-   * rows become inert section headers. Used for the stage's direct-review
-   * picker, which always needs exactly one market.
-   */
-  symbolOnly?: boolean;
   value: ScanScope;
-  /**
-   * "field" is the kit's bordered form control (the scan rail's scope
-   * picker). "heading" renders the trigger as the stagehead's display
-   * heading — the market name at heading size on bare paper
-   * (a-desk-v3.html:165) — while keeping the identical listbox behavior,
-   * closed-market muting and reopen affordances included.
-   */
-  variant?: "field" | "heading";
 };
 
 // Accessible "collapsible dropdown listbox" (button + popup, WAI-ARIA APG),
 // not a native <select> - closed markets need to render muted and
 // unselectable with their own reopen affordance, which a native <option>
-// cannot do. That is why spec §16's stagehead heading (a-desk-v3.html:165
-// draws it as a <select>) is this component in its "heading" variant rather
-// than a real select: the mock's own open menu below it (:92-149) is the muted
-// rows and reopen labels a native option list has no way to render.
+// cannot do (the mock's own open menu, a-desk-v3.html:92-149, is those muted
+// rows and reopen labels).
 //
-// The popup renders through a portal because both hosts sit inside a clipping
+// The popup renders through a portal because the host sits inside a clipping
 // ancestor - each Desk column is its own `overflow-y-auto` scroll container
-// (AdvisorWorkspace's deskColumnClassName) - so an absolutely-positioned popup
+// (AdvisorWorkspace's column classes) - so an absolutely-positioned popup
 // would be cut off at the column edge.
 export function ScopeMenu(
   {
@@ -316,9 +244,7 @@ export function ScopeMenu(
     now,
     onSelect,
     showLabel = true,
-    symbolOnly = false,
     value,
-    variant = "field",
   }: ScopeMenuProps,
 ) {
   const baseId = useId();
@@ -340,7 +266,7 @@ export function ScopeMenu(
   // whatever it was when the component last happened to re-render for some
   // other reason.
   const clock = now ?? new Date();
-  const rows = effectiveRows(buildScopeMenuRows(clock), symbolOnly);
+  const rows = buildScopeMenuRows(clock);
 
   function place() {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -445,7 +371,7 @@ export function ScopeMenu(
               : <span className="w-3.5 shrink-0" aria-hidden="true" />}
             <span className="truncate">{row.label}</span>
           </span>
-          {showsAffordance(row, symbolOnly)
+          {showsAffordance(row)
             ? (
               <span className="eyebrow shrink-0 font-mono">
                 {formatScopeMenuAffordance(
@@ -508,7 +434,7 @@ export function ScopeMenu(
   }
 
   return (
-    <div ref={rootRef} className={variant === "heading" ? "grid min-w-0" : "grid min-w-0 gap-1"}>
+    <div ref={rootRef} className="grid min-w-0 gap-1">
       {/* Spec §16 suppresses the visible caption on both pickers, but the
           caption is what every element here takes its name from — so the node
           always renders and only its styling changes. Hiding it with .sr-only
@@ -529,27 +455,11 @@ export function ScopeMenu(
         ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="listbox"
-        // Caption + current value, always: a screen-reader user on the stage
-        // has to hear which market is loaded, and the heading trigger is the
-        // only place the selected market appears.
+        // Caption + current value, always: the value lives in this button's
+        // content, and a bare aria-label would replace it in the name
+        // computation rather than joining it.
         aria-labelledby={`${baseId}-label ${baseId}-value`}
-        // The heading variant carries no padding (the market name IS the
-        // stagehead heading), which on its own leaves the stage's primary
-        // control a ~32px target. min-h-11 restores the kit's 44px floor and
-        // the matching negative block margin pulls the extra height back out
-        // of the flow, so the heading's optics are untouched — the same trick
-        // .tertiary-link and .cpv-copy use in index.css.
-        //
-        // Spec §17: "the stagehead must never truncate the market name." The
-        // heading trigger is shrink-0 (was min-w-0) so it cannot be squeezed
-        // below the name it carries: both flex rows it sits inside wrap
-        // (AdvisorWorkspace's stagehead), so a wide name pushes the chart-view
-        // control and the action button onto a second row instead of clipping
-        // the name. min-w-0 stays on the field variant, where the 264px scan
-        // rail genuinely has to clip the full descriptive label.
-        className={variant === "heading"
-          ? "-my-1.5 flex min-h-11 shrink-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
-          : "field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"}
+        className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"
         id={baseId}
         type="button"
         onClick={() => (open ? close() : openMenu())}
@@ -560,13 +470,8 @@ export function ScopeMenu(
           }
         }}
       >
-        <span
-          id={`${baseId}-value`}
-          className={variant === "heading"
-            ? "whitespace-nowrap"
-            : "truncate"}
-        >
-          {scopeTriggerLabel(value, variant)}
+        <span id={`${baseId}-value`} className="truncate">
+          {describeScanScope(value)}
         </span>
         <ChevronDown
           className="h-4 w-4 shrink-0 text-ink-muted"
@@ -620,16 +525,11 @@ export function ScopeMenu(
                 aria-labelledby={`${baseId}-label`}
                 className="motion-fade-in scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
                 role="listbox"
-                // The anchored popup normally matches its trigger's width. A
-                // "heading" trigger is only as wide as the ticker it shows
-                // ("ES"), which would squeeze every descriptive option label
-                // to nothing — the floor applies to that variant alone so the
-                // ≥lg scan-rail popup keeps its exact previous geometry.
+                // The anchored popup matches its trigger's width: the rail's
+                // scope field is the only ≥lg host, and the rows are built to
+                // read inside it (see rowClassName).
                 style={{
                   left: position.left,
-                  minWidth: variant === "heading"
-                    ? HEADING_MENU_MIN_WIDTH_PX
-                    : undefined,
                   top: position.top,
                   width: position.width,
                 }}
@@ -654,9 +554,9 @@ function rowClassName(row: ScopeMenuRow, isActive: boolean): string {
     return `${base} ${indent} cursor-not-allowed text-ink-muted`;
   }
   const weight = row.nested ? "font-medium" : "font-semibold";
-  // I4: a symbolOnly market row stays clickable even when its group is
-  // closed (effectiveRows), but still reads as closed - muted text, same
-  // tone as the disabled case above, just without cursor-not-allowed.
+  // A closed row is already non-interactive above; this keeps the muted tone
+  // as the only "closed" cue an interactive row would ever need (spec §10b:
+  // the word "closed" never renders).
   const tone = row.availability.open ? "text-ink" : "text-ink-muted";
   const highlight = isActive ? "bg-accent/10" : "";
   return `${base} ${indent} ${weight} ${tone} ${highlight}`;

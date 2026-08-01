@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { marketAvailability } from "../../src/lib/marketHours";
 import {
@@ -48,6 +48,34 @@ test.beforeEach(async ({ page }) => {
     },
   );
 });
+
+// Spec §17m.1: "All trades originate from the Scan column — no other path."
+// The stage's Review button is deleted, so every spec that needs a setup on the
+// stage now gets one the way a reader does: scan, then take the strongest
+// qualifying market. Returns false when the scan could not complete or nothing
+// qualified — both legitimate live-market states, so callers skip honestly,
+// exactly as they did when a Review of one market could come back empty.
+async function scanForSetupOnStage(page: Page): Promise<boolean> {
+  const rail = page.getByTestId("market-scan-rail");
+  await rail.getByRole("button", { name: "Scan now", exact: true }).click();
+  // Every finished scan says what it checked or says it could not complete.
+  // That pair is unconditional and waited for hard: neither arriving is rot.
+  const countLine = rail.getByText(/\d+ scanned/);
+  const scanFailed = rail.getByText(
+    "Market scan could not complete. Try again shortly.",
+  );
+  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
+  if (await scanFailed.isVisible()) {
+    return false;
+  }
+  const strongest = rail.getByText(/^(Buy|Sell) · confidence \d+$/).first();
+  if (!(await strongest.isVisible())) {
+    return false;
+  }
+  // The row is a button; its meta line is what identifies it.
+  await strongest.click();
+  return true;
+}
 
 // The expected scope-menu row order, computed the same way
 // tests/scopeMenu.test.tsx pins it at the unit level: All markets, then
@@ -457,21 +485,16 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   // file's other review-driven specs.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review", exact: true }).click();
-
-  // A finished review lands on exactly one of two panels: the receipt, or the
-  // "No trade setup" panel saying why there isn't one. That PAIR is
-  // unconditional, so it is waited for hard — if neither appears, the locator
-  // has rotted or the review never finished, and either is a defect this spec
-  // must go red for rather than skip past. Which of the two arrived is the
-  // market's business, and that is what the skip is for.
-  const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const noSetup = page.getByText("No trade setup", { exact: true });
-  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    await noSetup.isVisible(),
+    !(await scanForSetupOnStage(page)),
     "No qualifying setup right now, so there is no Costs row on screen to click.",
   );
+
+  // The receipt is unconditional once a qualifying market is selected — the
+  // stage renders the ladder and "Why this setup" from the row's own setup — so
+  // this is waited for hard: its absence is rot, not a quiet market.
+  await expect(page.getByRole("heading", { name: "Why this setup" }))
+    .toBeVisible();
 
   // Innermost element holding both the row label and a link: the Costs row
   // itself, whose link is the only one scoped to it. The label is "Costs"
@@ -506,17 +529,12 @@ test("a receipt How this works link lands on the Guide's record section", async 
   // test skips itself rather than pinning behavior on market conditions.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review", exact: true }).click();
-
-  // Same unconditional pair as the Costs spec above: receipt or "No trade
-  // setup". Neither arriving is rot, not a quiet market.
-  const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const noSetup = page.getByText("No trade setup", { exact: true });
-  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    await noSetup.isVisible(),
+    !(await scanForSetupOnStage(page)),
     "No qualifying setup right now, so there is no receipt on screen to click.",
   );
+  await expect(page.getByRole("heading", { name: "Why this setup" }))
+    .toBeVisible();
 
   // Innermost element holding both the row label and a link: the Record row
   // itself, whose link is the only one scoped to it. The label is "Record"
@@ -627,12 +645,12 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.goto("/");
 
-  // The stage carries no heading (spec §2), so "Review" (spec §17 shortened it
-  // from "Review market") — the one stable, always-present control inside its
-  // topmost section — stands in for the whole stage column the way the old
-  // "Market review" heading used to. It is unambiguous at this width in two
-  // ways now: the merged mobile surface (whose action is "Scan") does not
-  // render at ≥lg at all, and no tab is named Review any more.
+  // The stage carries no heading (spec §2) and, since §17m.1, no action either
+  // — the chart-view select is its one stable, always-present control, and its
+  // aria-label is the same contract every other spec in this file locates it
+  // by. It stands in for the whole stage column the way the old "Market review"
+  // heading used to, and is unambiguous at this width: the merged mobile
+  // surface (which draws the only other "Chart view") does not render at ≥lg.
   //
   // Unique, not merely first: at this width AdvisorWorkspace renders the ≥lg
   // composition alone, whose stage is one <section> with no <section> ancestor,
@@ -640,7 +658,7 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   // change this geometry check exists to catch, and exactly what .first() used
   // to hide.
   const advisorPanel = page.locator("section", {
-    has: page.getByRole("button", { name: "Review", exact: true }),
+    has: page.getByLabel("Chart view"),
   });
   const rail = page.getByTestId("current-trades-rail");
 
@@ -741,7 +759,9 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
     .toBeVisible();
   // And the composition it replaced does not render here at all: no separate
-  // scan rail, no "Scan now", no "Review" action.
+  // scan rail and no "Scan now". "Review" is absent at every width since
+  // §17m.1 — the stage generates nothing on either platform — and this keeps
+  // asserting it from the mobile side.
   await expect(page.getByTestId("market-scan-rail")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Scan now" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Review", exact: true }))
@@ -1012,6 +1032,66 @@ test("scope menu lists All markets, then groups alphabetically, then base/quote-
   expect(optionLabels).toEqual(expectedScopeMenuLabels());
 });
 
+test("reviewing one market goes through the rail — the Scan column is the only door (§17m.1)", async ({ page }) => {
+  // The ruling's own words: "The rail's scope menu still contains single
+  // markets, so reviewing one market remains possible — through Scan, the only
+  // door." This walks exactly that, at desktop width, and asserts the stage is
+  // a pure display while doing it.
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  // Crypto's calendar never closes (src/lib/marketHours.ts), so its first
+  // market is scannable whenever this suite happens to run — no skip needed to
+  // reach a selectable single market.
+  const crypto = AVAILABLE_ASSET_GROUPS.find((group) => group.label === "Crypto");
+  expect(crypto, "expected a Crypto group in the menu").toBeTruthy();
+  const market = crypto!.options[0];
+  expect(market, "expected at least one Crypto market").toBeTruthy();
+
+  const rail = page.getByTestId("market-scan-rail");
+  await rail.getByRole("button", { name: "Scan scope" }).click();
+  await page
+    .locator('[role="option"]')
+    .filter({ has: page.getByText(market.label, { exact: true }) })
+    .first()
+    .click();
+
+  // The stage follows the rail's selection as a heading — and offers nothing to
+  // press: no market picker, no Review.
+  await expect(
+    page.getByRole("heading", {
+      exact: true,
+      name: formatSecurityDisplaySymbol(market.symbol),
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Review", exact: true }))
+    .toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Market", exact: true }))
+    .toHaveCount(0);
+  await expect(rail.getByRole("button", { name: "Scan scope" }))
+    .toContainText(market.label);
+
+  // Scanning that one-market scope IS the review of it: one market attempted,
+  // and the stage adopts the verdict with no second click. Which verdict —
+  // a ladder or the engine's own reason — is the market's business; both are
+  // the review, so the pair is what gets waited for.
+  await rail.getByRole("button", { name: "Scan now", exact: true }).click();
+  const countLine = rail.getByText(/1 scanned/);
+  const scanFailed = rail.getByText(
+    "Market scan could not complete. Try again shortly.",
+  );
+  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
+  test.skip(
+    await scanFailed.isVisible(),
+    "The market scan could not complete, so there is no verdict to read.",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Why this setup" })
+      .or(page.getByText("No trade setup", { exact: true })),
+  ).toBeVisible({ timeout: 30_000 });
+});
+
 test("scope menu lists All markets, then groups alphabetically, then base/quote-sorted markets — 375px sheet", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
@@ -1142,20 +1222,16 @@ test("the trades rail force-refreshes outcomes on every Desk/Insights re-navigat
 });
 
 test("each ladder value copies independently, flipping its own button to a checked state", async ({ page }) => {
-  // The receipt only exists once a review has run — same live-dependency
-  // and skip pattern as the other "Review" tests in this file.
+  // The ladder only exists once a scan has produced a setup — same
+  // live-dependency and skip pattern as the receipt specs above.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review", exact: true }).click();
-
-  // Same unconditional pair as the receipt specs above.
-  const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const noSetup = page.getByText("No trade setup", { exact: true });
-  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    await noSetup.isVisible(),
+    !(await scanForSetupOnStage(page)),
     "No qualifying setup right now, so there are no ladder values to copy.",
   );
+  await expect(page.getByRole("heading", { name: "Why this setup" }))
+    .toBeVisible();
 
   // m1: handleCopy now awaits navigator.clipboard.writeText and only flips
   // to the ✓ state on resolve, so this genuinely exercises the clipboard
