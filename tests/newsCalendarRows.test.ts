@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  toEventRow,
   type EconomicEvent,
+  parseEarningsEventTime,
+  parseEventTime,
+  toEventRow,
 } from "../supabase/functions/news-calendar/eventRows";
 
 const scheduledEvent: EconomicEvent = {
@@ -75,5 +77,56 @@ describe("news-calendar event rows", () => {
       "symbol",
       "url",
     ]);
+  });
+});
+
+// I2: parseDate used to return `new Date().toISOString()` for anything it could
+// not read. A malformed high-impact scheduled event therefore landed with
+// scheduled_at = now — and because external_id is derived from the RAW date,
+// every hourly run re-upserted the same row forward to the new "now", so
+// isBlockingNewsEvent (newsRules.ts) blocked every review for that currency
+// permanently, with no diagnostic anywhere. A fallback masking a real problem.
+// Null means "this row has no usable time"; the caller drops it and counts it.
+describe("news-calendar event times", () => {
+  it("reads the provider's own formats", () => {
+    assert.equal(
+      parseEventTime("2026-07-29 12:30:00"),
+      new Date("2026-07-29 12:30:00").toISOString(),
+    );
+    assert.equal(
+      parseEventTime("2026-07-29T12:30:00.000Z"),
+      "2026-07-29T12:30:00.000Z",
+    );
+    // Both providers send strings. A bare number is not silently reinterpreted
+    // as epoch seconds or milliseconds — it is dropped and counted.
+    assert.equal(parseEventTime(1_784_000_000), null);
+  });
+
+  it("returns null rather than now for anything it cannot read", () => {
+    for (const value of [undefined, null, "", "   ", "not a date", {}, NaN, 0]) {
+      assert.equal(parseEventTime(value), null, `expected null for ${String(value)}`);
+    }
+  });
+
+  it("places an earnings release by its session hint, and drops an unreadable date", () => {
+    assert.equal(
+      parseEarningsEventTime("2026-07-29", "bmo"),
+      "2026-07-29T12:00:00.000Z",
+    );
+    assert.equal(
+      parseEarningsEventTime("2026-07-29", "amc"),
+      "2026-07-29T21:00:00.000Z",
+    );
+    assert.equal(
+      parseEarningsEventTime("2026-07-29", ""),
+      "2026-07-29T16:00:00.000Z",
+    );
+    // A full timestamp is taken as given, session hint ignored.
+    assert.equal(
+      parseEarningsEventTime("2026-07-29T18:45:00.000Z", "bmo"),
+      "2026-07-29T18:45:00.000Z",
+    );
+    assert.equal(parseEarningsEventTime("sometime", "bmo"), null);
+    assert.equal(parseEarningsEventTime(undefined, undefined), null);
   });
 });

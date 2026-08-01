@@ -583,7 +583,10 @@ async function reviewCurrentMarket(
     };
   }
 
-  const macroRateContext = await fetchMacroRateContext(fetchWithTimeout);
+  const macroRateContext = await fetchMacroRateContext(
+    fetchWithTimeout,
+    recordAnalyzerEvent,
+  );
   const correlationGroup = getCorrelationGroup(normalizedSymbol);
   const setup = await analyzeSetup(
     token,

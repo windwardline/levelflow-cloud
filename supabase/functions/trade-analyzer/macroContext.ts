@@ -13,6 +13,18 @@ type Fetcher = (
   timeoutMs?: number,
 ) => Promise<Response>;
 
+// I11: the same shape marketLoader.ts already takes, for the same reason. A
+// persistent Treasury outage zeroes macroAdjustment for every setup in the
+// system, and before this the only trace was a string buried in
+// confluence.macroRateContext.unavailableReason — no log, no telemetry, nothing
+// a watchdog or an operator could query. Optional so the offline replay sweep
+// can call this without a telemetry dependency.
+type MacroEventRecorder = (event: {
+  action: string;
+  message: string;
+  status: "error";
+}) => Promise<void>;
+
 export type MacroRateContext = {
   curveSpreadBps: number | null;
   latestDate: string | null;
@@ -64,6 +76,7 @@ let cachedTreasuryContext:
 
 export async function fetchMacroRateContext(
   fetcher: Fetcher,
+  recordEvent?: MacroEventRecorder,
 ): Promise<MacroRateContext> {
   const now = Date.now();
   if (
@@ -75,6 +88,19 @@ export async function fetchMacroRateContext(
 
   const context = await requestMacroRateContext(fetcher);
   cachedTreasuryContext = { context, fetchedAt: now };
+  // Recorded once per fetch rather than once per request: the context is cached
+  // for fifteen minutes, and a repeat caller reading that cache has not
+  // suffered a new outage. Every unavailable reason lands here — a missing key,
+  // a non-200, a malformed body, an incomplete history, or a thrown request —
+  // so one branch covers what five bare returns used to hide.
+  if (context.source === "unavailable" && recordEvent) {
+    await recordEvent({
+      action: "macro_rate_context",
+      message: context.unavailableReason ??
+        "Treasury-rate context was unavailable.",
+      status: "error",
+    });
+  }
   return context;
 }
 
@@ -171,7 +197,8 @@ async function requestMacroRateContext(
       tenYearYield: latest.tenYear,
       twoYearYield: latest.twoYear,
     };
-  } catch {
+  } catch (error) {
+    console.error("FMP Treasury-rate request failed", error);
     return unavailableContext("FMP Treasury-rate context could not be loaded.");
   }
 }
