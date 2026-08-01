@@ -54,8 +54,12 @@ const CHART_SHEET =
 // corner. One string because the inline chart and the overlay's own instance draw
 // the same cluster and must not drift — the only difference is that the inline one
 // gives the corner up below lg (see its own comment at the call site).
+// §17m follow-up (owner, 2026-08-01): the inline tools shrank with the chart
+// and read obtrusive at full size. The cluster is as small as stays legible —
+// compact chrome, tucked to the corner. The overlay instance (fill) keeps
+// touch-sized buttons: it is the one place fingers land on these.
 const CHART_TOOLS =
-  "absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-hairline bg-sheet p-1 shadow-xs";
+  "absolute right-2 top-2 z-10 flex flex-wrap justify-end gap-1 rounded-md border border-hairline bg-sheet p-0.5 shadow-xs";
 
 export type ChartTheme = {
   sheet: string;
@@ -334,7 +338,7 @@ export function MarketChart(
     // there the dialog owns the height and the sheet stretches to it.
     <div className={fill ? `${CHART_SHEET} h-full` : CHART_SHEET}>
       <div
-        className={`absolute left-3 top-3 z-10 max-w-[calc(100%-8.5rem)] rounded-lg border border-hairline bg-sheet px-3 py-2 text-xs font-semibold text-ink-muted shadow-xs ${
+        className={`absolute left-2 top-2 z-10 max-w-[calc(100%-8.5rem)] rounded-md border border-hairline bg-sheet px-2 py-1 text-[11px] font-semibold text-ink-muted shadow-xs ${
           hoverBar ? "block" : "hidden sm:block"
         }`}
       >
@@ -343,8 +347,8 @@ export function MarketChart(
             O {formatChartPrice(hoverBar.open)} H {formatChartPrice(hoverBar.high)} L {formatChartPrice(hoverBar.low)} C {formatChartPrice(hoverBar.close)}
           </span>
         ) : (
-          <span className="flex items-center gap-2">
-            <Crosshair className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="flex items-center gap-1.5">
+            <Crosshair className="h-3 w-3" aria-hidden="true" />
             Hover for OHLC
           </span>
         )}
@@ -357,23 +361,23 @@ export function MarketChart(
           overlay Expand opens — the one instance that passes `fill` — keeps the
           full cluster at a size it can be used at. */}
       <div className={fill ? CHART_TOOLS : `${CHART_TOOLS} max-lg:hidden`}>
-        <ChartToolButton label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
-          <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
+        <ChartToolButton touch={fill} label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
+          <ChevronsLeft className={fill ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
         </ChartToolButton>
-        <ChartToolButton label="Zoom in" onClick={() => zoomChart(chartRef.current, 0.72)}>
-          <ZoomIn className="h-4 w-4" aria-hidden="true" />
+        <ChartToolButton touch={fill} label="Zoom in" onClick={() => zoomChart(chartRef.current, 0.72)}>
+          <ZoomIn className={fill ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
         </ChartToolButton>
-        <ChartToolButton label="Zoom out" onClick={() => zoomChart(chartRef.current, 1.35)}>
-          <ZoomOut className="h-4 w-4" aria-hidden="true" />
+        <ChartToolButton touch={fill} label="Zoom out" onClick={() => zoomChart(chartRef.current, 1.35)}>
+          <ZoomOut className={fill ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
         </ChartToolButton>
-        <ChartToolButton label="Scroll right" onClick={() => scrollChart(chartRef.current, 1)}>
-          <ChevronsRight className="h-4 w-4" aria-hidden="true" />
+        <ChartToolButton touch={fill} label="Scroll right" onClick={() => scrollChart(chartRef.current, 1)}>
+          <ChevronsRight className={fill ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
         </ChartToolButton>
-        <ChartToolButton label="Autoscale price" onClick={() => chartRef.current?.priceScale("right").applyOptions({ autoScale: true })}>
-          <MoveHorizontal className="h-4 w-4" aria-hidden="true" />
+        <ChartToolButton touch={fill} label="Autoscale price" onClick={() => chartRef.current?.priceScale("right").applyOptions({ autoScale: true })}>
+          <MoveHorizontal className={fill ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
         </ChartToolButton>
-        <ChartToolButton label="Default chart view" onClick={() => resetChart(chartRef.current)}>
-          <Maximize2 className="h-4 w-4" aria-hidden="true" />
+        <ChartToolButton touch={fill} label="Default chart view" onClick={() => resetChart(chartRef.current)}>
+          <Maximize2 className={fill ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
         </ChartToolButton>
       </div>
       {/* Spec §17's Expand chart affordance, in the chart's TOP-right corner —
@@ -394,7 +398,7 @@ export function MarketChart(
       {onExpand
         ? (
           <button
-            className="absolute right-0 top-0 z-10 inline-flex min-h-11 items-start px-2 pt-1.5 text-[11px] font-semibold text-accent lg:right-3 lg:top-14 lg:items-center lg:rounded-lg lg:border lg:border-hairline lg:bg-sheet lg:px-2.5 lg:py-1 lg:text-xs lg:shadow-xs"
+            className="absolute right-0 top-0 z-10 inline-flex min-h-11 items-start px-2 pt-1.5 text-[11px] font-semibold text-accent lg:right-2 lg:top-11 lg:items-center lg:rounded-md lg:border lg:border-hairline lg:bg-sheet lg:px-2 lg:py-0.5 lg:text-[11px] lg:shadow-xs"
             type="button"
             onClick={onExpand}
           >
@@ -425,11 +429,13 @@ export function MarketChart(
   );
 }
 
-function ChartToolButton({ children, label, onClick }: { children: ReactNode; label: string; onClick: () => void }) {
+function ChartToolButton({ children, label, touch = false, onClick }: { children: ReactNode; label: string; touch?: boolean; onClick: () => void }) {
   return (
     <button
       aria-label={label}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition hover:bg-accent/10 hover:text-accent"
+      className={touch
+        ? "inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition hover:bg-accent/10 hover:text-accent"
+        : "inline-flex h-6 w-6 items-center justify-center rounded text-ink-muted transition hover:bg-accent/10 hover:text-accent"}
       title={label}
       type="button"
       onClick={onClick}
