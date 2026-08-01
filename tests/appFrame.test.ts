@@ -414,13 +414,51 @@ describe("§17i — the frame reaches the static pages", () => {
     const row = rule(".footer-row");
     assert.match(row, /align-items: baseline;/);
     assert.match(row, /justify-content: space-between;/);
-    assert.match(row, /padding: 18px 20px;/);
     // The app footer's own measure and symmetrical padding, read from the
     // component rather than restated: max-w-7xl is 80rem, py-[18px] is the 18px.
     const appFooter = readFileSync("src/components/AppFooter.tsx", "utf8");
     assert.match(appFooter, /\bmax-w-7xl\b/);
     assert.match(appFooter, /\bpy-\[18px\]/);
     assert.match(row, /max-width: 80rem;/);
+  });
+
+  // I2 (wave-8 review): the horizontal half of "the same footer composition" was
+  // never read from anywhere. AppFooter insets its row 16/32px and .footer-row
+  // insets 20px, so the colophon and the link row shifted 12px the moment a
+  // reader crossed from the app to /legal/terms.html — measured at 1280 and 1440.
+  // The comment above claimed the padding was "read from the component rather
+  // than restated" while the number sat hardcoded beside it, which is why nothing
+  // failed. Now both halves are read, and one custom property is what the static
+  // pages inset every row from.
+  it("insets that row from one padding source, and it is the app's own (I2)", () => {
+    const appFooter = readFileSync("src/components/AppFooter.tsx", "utf8");
+    const appRow = appFooter.match(/<div className="([^"]*py-\[18px\][^"]*)">/)?.[1] ?? "";
+    assert.ok(appRow.length > 0, "expected AppFooter's own row class list");
+    // Tailwind's spacing step is 0.25rem, so px-4 is 16px and sm:px-8 is 32px.
+    const narrow = Number(appRow.match(/(?:^|\s)px-(\d+)(?:\s|$)/)?.[1]) * 4;
+    const wide = Number(appRow.match(/\bsm:px-(\d+)\b/)?.[1]) * 4;
+    assert.equal(narrow, 16);
+    assert.equal(wide, 32);
+    // And sm: is the kit's own breakpoint token, not a number guessed here.
+    const sm = Number(
+      readFileSync("src/styles/index.css", "utf8").match(/--breakpoint-sm: (\d+)px;/)?.[1],
+    );
+    assert.equal(sm, 640);
+
+    assert.match(CSS, new RegExp(`:root \\{\\n  --page-inset: ${narrow}px;\\n\\}`));
+    assert.match(
+      CSS,
+      new RegExp(
+        `@media \\(min-width: ${sm / 16}rem\\) \\{\\n  :root \\{\\n    --page-inset: ${wide}px;\\n  \\}\\n\\}`,
+      ),
+    );
+    // Every row of the static frame reads it — the footer row and the region
+    // above it. A footer inset 32px above a reading column inset 20px would be
+    // two systems on one page.
+    assert.match(rule(".footer-row"), /padding: 18px var\(--page-inset\);/);
+    assert.match(rule("main"), /padding: 48px var\(--page-inset\);/);
+    // Nothing insets itself with the old number any more.
+    assert.doesNotMatch(CSS, /padding: (?:18|48)px 20px;/);
   });
 
   it("gives every page that footer, with the links that work in its context", () => {
