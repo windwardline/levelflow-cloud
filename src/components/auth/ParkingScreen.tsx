@@ -5,13 +5,7 @@ import {
   SATELLITE_FRAME,
   SATELLITE_FRAME_SCROLL,
 } from "../satelliteFrame";
-
-// Shared inbox across apps — name the app so inbound mail can be routed. The
-// same address and subject AuthScreen and App.tsx build; three copies of one
-// literal rather than a fourth module, which is how those two already stand.
-const SUPPORT_MAILTO = `mailto:help@windwardline.com?subject=${
-  encodeURIComponent("[Levelflow] Help")
-}`;
+import { SUPPORT_MAILTO } from "../../lib/support";
 
 // The construction soft gate's face: the parking composition from the static twin
 // (public/construction.html), rendered by the app so the theme toggle and tokens

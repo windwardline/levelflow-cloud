@@ -12,12 +12,9 @@ import { DonationOptions } from "../donations/DonationOptions";
 import { describeAuthEmailError } from "../../lib/authErrors";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../../lib/support";
 
 type AuthStatus = "idle" | "sending" | "sent" | "oauth";
-
-const SUPPORT_EMAIL = "help@windwardline.com";
-// Shared inbox across apps — name the app so inbound mail can be routed.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
 
 type AuthScreenProps = {
   themeControl?: ReactNode;

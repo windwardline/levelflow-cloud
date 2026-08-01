@@ -126,6 +126,79 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
   });
 });
 
+// M7 (wave-8 review): the mailto the footer takes was the same literal in three
+// files, and the third had drifted into a different shape — inlining the address
+// instead of building it from the const the other two used. The subject line is a
+// mail rule on the other end of a shared inbox, so a change to it that reached two
+// surfaces out of three would be a rule that silently stops working.
+describe("the support inbox is one export (M7)", () => {
+  function sourceFilesUnder(root: string): string[] {
+    return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(root, entry.name);
+      if (entry.isDirectory()) {
+        return sourceFilesUnder(path);
+      }
+      return /\.tsx?$/.test(entry.name) ? [path] : [];
+    });
+  }
+
+  const MODULE = "src/lib/support.ts";
+
+  it("names the address and builds the mailto in exactly one place", () => {
+    const module = readFileSync(MODULE, "utf8");
+    assert.match(module, /export const SUPPORT_EMAIL = "help@windwardline\.com";/);
+    assert.match(module, /export const SUPPORT_MAILTO = `mailto:\$\{SUPPORT_EMAIL\}\?subject=/);
+    assert.match(module, /encodeURIComponent\("\[Levelflow\] Help"\)/);
+    for (const file of sourceFilesUnder("src")) {
+      if (file === MODULE) {
+        continue;
+      }
+      const source = readFileSync(file, "utf8");
+      assert.doesNotMatch(
+        source,
+        /help@windwardline\.com/,
+        `${file} spells the support address out instead of importing it`,
+      );
+      // And any surface that uses either name imports it rather than declaring
+      // its own — a local const of the same name would read as the shared one.
+      for (const name of ["SUPPORT_EMAIL", "SUPPORT_MAILTO"]) {
+        if (!source.includes(name)) {
+          continue;
+        }
+        assert.doesNotMatch(
+          source,
+          new RegExp(`const ${name} =`),
+          `${file} declares its own ${name}`,
+        );
+        assert.match(
+          source,
+          new RegExp(`import \\{[^}]*${name}[^}]*\\} from "[^"]*lib/support";`),
+          `${file} uses ${name} without importing it`,
+        );
+      }
+    }
+  });
+
+  it("hands that one value to all three footers", () => {
+    // The two React satellites and the app itself — the whole set of surfaces that
+    // mount AppFooter (tests/appFrame.test.ts reads the static pages' own Help href
+    // against the same export, since no build step reaches those).
+    for (
+      const file of [
+        APP,
+        "src/components/auth/AuthScreen.tsx",
+        "src/components/auth/ParkingScreen.tsx",
+      ]
+    ) {
+      assert.match(
+        readFileSync(file, "utf8"),
+        /supportMailto=\{SUPPORT_MAILTO\}/,
+        file,
+      );
+    }
+  });
+});
+
 describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)", () => {
   it("is the app's only <footer>, the pre-auth screens included since §17i", () => {
     function sourceFilesUnder(root: string): string[] {

@@ -6,6 +6,7 @@ import {
   SATELLITE_FRAME,
   SATELLITE_FRAME_SCROLL,
 } from "../src/components/satelliteFrame";
+import { SUPPORT_MAILTO } from "../src/lib/support";
 
 // Spec §17i (owner ruling, binding, as amended 2026-08-01): "Desktop is an
 // app-shell frame on EVERY page — no exceptions ('Every single page.'): the
@@ -616,11 +617,12 @@ describe("§17i — the frame reaches the static pages", () => {
         page,
       );
       // Help stays the mailto, and names the app so the shared inbox can route it
-      // — the same subject App.tsx and the two React screens build.
-      assert.match(
-        footer,
-        /href="mailto:help@windwardline\.com\?subject=%5BLevelflow%5D%20Help">Help<\/a>/,
-        page,
+      // — read from the app's own export rather than restated, since these pages
+      // cannot import it and a subject line that agrees on four surfaces out of
+      // five is a mail rule that silently stops working (M7).
+      assert.ok(
+        footer.includes(`href="${SUPPORT_MAILTO}">Help</a>`),
+        `${page}: Help must link ${SUPPORT_MAILTO}`,
       );
       // Donate links to the app root, per the ruling, with the app's own donate
       // entry point on it (AuthScreen reads ?donate on load).

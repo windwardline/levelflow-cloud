@@ -50,6 +50,7 @@ import {
   type ThemeMode,
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./lib/support";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
 // The three bottom-tab-bar destinations (spec §17e). Two of them ("scan" |
@@ -59,11 +60,6 @@ type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
 // stay in the avatar menu, and the old "Review" tab is gone: its surface merged
 // into "scan" (m-scan-v3.html).
 type MobileTab = "scan" | "trades" | "insights";
-
-const SUPPORT_EMAIL = "help@windwardline.com";
-// Support is a shared inbox across apps, so every mailto names the app it
-// came from — otherwise an inbound message arrives with no way to route it.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
 
 // Text only: spec §16 killed icon-chip nav on desktop, and the masthead
 // renders {tab.label} alone. The mobile tab bar keeps its own separate icon
