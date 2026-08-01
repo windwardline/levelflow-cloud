@@ -572,6 +572,11 @@ function rowClassName(row: ScopeMenuRow, isActive: boolean): string {
   // horizontal padding and gap given back. The 44px row height is untouched
   // (min-h-11, the kit's floor for a pointer target), so nothing here trades
   // reach for legibility.
+  //
+  // At every width, deliberately: spec §4's universal contract is "one dropdown,
+  // three scope kinds, identical on desktop and mobile (mobile renders it as a
+  // full-screen sheet)", and a per-breakpoint row type would make the sheet a
+  // different menu rather than the same one in another frame.
   const base =
     "flex min-h-11 cursor-pointer items-center justify-between gap-2.5 pr-2.5 text-[13px]";
   const indent = row.nested ? "pl-6" : "pl-2.5";

@@ -473,9 +473,11 @@ describe("Why this setup — the mock's five rows (a-desk-v3.html:205-212)", () 
     // The label column and the gap are the mock's (74px / 10px); the type and
     // the padding are §17m.3's compression — the five rows stay, they take ~30%
     // less height, and 12.5px/17px is still above the kit's own metadata floor.
+    // ≥lg only: the mobile treatment is exactly what it was, since the budget
+    // being served is the Desk stage's.
     assert.match(
       receipt,
-      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1 text-\[12\.5px\] leading-\[17px\] lg:py-0\.5"/,
+      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1\.5 text-\[13px\] leading-5 lg:py-0\.5 lg:text-\[12\.5px\] lg:leading-\[17px\]"/,
     );
     assert.match(
       receipt,

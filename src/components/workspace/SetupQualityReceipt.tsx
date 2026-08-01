@@ -52,9 +52,12 @@ type SetupQualityReceiptProps = {
 //
 // Spec §17m.3 caps this panel at a third of the stage's vertical budget, and
 // the five rows stay: the compression is line-height and padding only
-// (py-1.5/13px/20px -> py-0.5 at ≥lg with 12.5px/17px), which is ~30% of the
-// panel's height back without dropping a row or shortening a sentence. Every
-// row still clears the 12px legibility floor the kit uses for its own metadata.
+// (py-1.5/13px/20px -> py-0.5/12.5px/17px), which is ~30% of the panel's height
+// back without dropping a row or shortening a sentence, and still above the 12px
+// floor the kit uses for its own metadata. ≥lg ONLY: the budget it serves is the
+// Desk stage's, and below lg these rows sit behind the "Why" disclosure inside a
+// frame §17e already tuned — so the mobile treatment is byte-identical to what
+// it was.
 //
 // Below lg the mobile mock draws this panel as one sentence and a "Why" link
 // (m-mobile-v3.html:75), not five labeled rows: the phone's stage is the chart
@@ -107,7 +110,7 @@ export function SetupQualityReceipt(
         {receipt.rows.map((row) => (
           <div
             key={row.label}
-            className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1 text-[12.5px] leading-[17px] lg:py-0.5"
+            className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1.5 text-[13px] leading-5 lg:py-0.5 lg:text-[12.5px] lg:leading-[17px]"
           >
             <span className="eyebrow min-w-[74px] shrink-0">
               {row.label}
