@@ -223,7 +223,7 @@ describe("the chart library's one inline stylesheet is allowed by content hash, 
   it("leaves the rest of the policy exactly as hardened", () => {
     for (const directive of [
       "default-src 'self'",
-      "script-src 'self' https://static.cloudflareinsights.com",
+      "script-src 'self'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "frame-ancestors 'none'",
