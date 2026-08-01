@@ -50,6 +50,13 @@ type MarketChartProps = {
 const CHART_SHEET =
   "relative min-w-0 overflow-hidden border border-hairline bg-sheet";
 
+// The six-button tool cluster, floating over live canvas at the sheet's top-right
+// corner. One string because the inline chart and the overlay's own instance draw
+// the same cluster and must not drift — the only difference is that the inline one
+// gives the corner up below lg (see its own comment at the call site).
+const CHART_TOOLS =
+  "absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-hairline bg-sheet p-1 shadow-xs";
+
 export type ChartTheme = {
   sheet: string;
   ink: string;
@@ -313,7 +320,14 @@ export function MarketChart(
           </span>
         )}
       </div>
-      <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-hairline bg-sheet p-1 shadow-xs">
+      {/* Wave 6 rider: below lg the INLINE chart gives this corner to Expand
+          chart. The cluster is ~232px wide against a 343px mobile chart, so the
+          two cannot share the top-right, and m-scan-v3.html draws exactly one
+          control on that chart — the Expand chip. Nothing is lost: pinch and pan
+          still work on the inline canvas (handleScale/handleScroll), and the
+          overlay Expand opens — the one instance that passes `fill` — keeps the
+          full cluster at a size it can be used at. */}
+      <div className={fill ? CHART_TOOLS : `${CHART_TOOLS} max-lg:hidden`}>
         <ChartToolButton label="Scroll left" onClick={() => scrollChart(chartRef.current, -1)}>
           <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
         </ChartToolButton>
@@ -333,18 +347,23 @@ export function MarketChart(
           <Maximize2 className="h-4 w-4" aria-hidden="true" />
         </ChartToolButton>
       </div>
-      {/* Spec §17's Expand chart affordance, where the mobile mock draws it:
-          inside the chart's own bottom-right corner (m-mobile-v3.html:16,:56),
-          quiet accent text at 11px. Held at the kit's 44px tap floor, which
-          grows upward from the bottom edge so the label itself stays on the
-          mock's baseline. lg:hidden as a literal class — this exists below lg
-          only, where the inline chart is compact and the overlay is what a
-          reader reaches for; the ≥lg chart is already 500-560px tall and its
-          composition is frozen. */}
+      {/* Spec §17's Expand chart affordance, in the chart's TOP-right corner —
+          m-scan-v3.html:32's own right:6px/top:6px. It used to ride the
+          bottom-right (m-mobile-v3.html:16,:56); live inspection found it
+          crowding the date axis there, and the wave-6 rider moved it. Held at
+          the kit's 44px tap floor, which now grows DOWNWARD from the top edge
+          (items-start plus the mock's 6px top pad) so the label itself sits on
+          the mock's inset rather than 44px below it — the mirror of the
+          bottom-anchored version, same trick. Quiet accent text at 11px, as
+          before: the rider moved the placement, not the treatment.
+          lg:hidden as a literal class — this exists below lg only, where the
+          inline chart is compact and the overlay is what a reader reaches for;
+          the ≥lg chart is already 500-560px tall and its composition is
+          frozen. */}
       {onExpand
         ? (
           <button
-            className="absolute bottom-0 right-0 z-10 inline-flex min-h-11 items-end px-2 pb-1.5 text-[11px] font-semibold text-accent lg:hidden"
+            className="absolute right-0 top-0 z-10 inline-flex min-h-11 items-start px-2 pt-1.5 text-[11px] font-semibold text-accent lg:hidden"
             type="button"
             onClick={onExpand}
           >

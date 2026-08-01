@@ -528,9 +528,48 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     )?.[1] ?? "";
     assert.ok(trigger.length > 0, "expected the expand trigger's classes");
     assert.match(trigger, /\blg:hidden\b/);
-    // The kit's 44px tap floor, at the mock's own corner placement.
+    // The kit's 44px tap floor, at the mock's own corner placement — the
+    // TOP-right corner since the wave-6 rider: live inspection found the
+    // affordance crowding the date axis at the bottom, and m-scan-v3.html:32
+    // draws it at right:6px/top:6px. The 44px target grows downward from the
+    // top edge (items-start + the mock's 6px top pad), the mirror of the
+    // bottom-anchored version it replaces, so the label itself sits on the
+    // mock's own inset rather than 44px below it.
     assert.match(trigger, /\bmin-h-11\b/);
-    assert.match(trigger, /absolute bottom-0 right-0/);
+    assert.match(trigger, /absolute right-0 top-0/);
+    assert.match(trigger, /\bitems-start\b/);
+    assert.match(trigger, /\bpt-1\.5\b/);
+    assert.doesNotMatch(trigger, /bottom-0/);
+    assert.doesNotMatch(trigger, /items-end/);
+  });
+
+  // The rider's own consequence, which is the half worth pinning: the top-right
+  // corner was already occupied. MarketChart's six-button tool cluster sits at
+  // right-3/top-3 and is ~232px wide, so on a 343px-wide mobile chart it and the
+  // Expand chip cannot both be there. m-scan-v3.html draws exactly one control on
+  // that chart — the Expand chip — so below lg the INLINE chart drops the
+  // cluster, and the overlay the chip opens keeps it: the tools are one tap away
+  // at a size they can actually be used at, and pinch/pan on the inline chart is
+  // untouched (handleScale/handleScroll).
+  it("clears the corner below lg by hiding the inline chart's tool cluster, never the overlay's", () => {
+    // One class string for the cluster, with the mobile branch a suffix on it, so
+    // the two instances cannot drift into two clusters.
+    assert.match(
+      chart,
+      /const CHART_TOOLS =\s*\n?\s*"absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1\.5 rounded-lg border border-hairline bg-sheet p-1 shadow-xs";/,
+    );
+    assert.match(
+      chart,
+      /className=\{fill \? CHART_TOOLS : `\$\{CHART_TOOLS\} max-lg:hidden`\}/,
+    );
+    // A real max-lg: token, so the ≥lg cascade is untouched by construction (the
+    // same discipline every other mobile treatment in this branch rides).
+    assert.doesNotMatch(chart, /max-lg:\$\{/);
+    // The overlay is the one caller that passes `fill`, and the one that passes
+    // no onExpand — so the instance that keeps the tools is exactly the instance
+    // that cannot offer to expand itself again.
+    assert.match(overlay, /children/);
+    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n/);
   });
 
   it("mounts a second MarketChart with the same data, setup and view key", () => {

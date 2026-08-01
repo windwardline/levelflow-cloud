@@ -593,11 +593,11 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(scanSurface.getByRole("button", { name: "Scan", exact: true }))
     .toBeVisible();
   // exact:true, like the desktop sibling above: getByLabel is a
-  // case-insensitive SUBSTRING match, and MarketChart's own tool cluster is not
-  // lg:-gated, so its "Default chart view" reset button mounts inside this same
-  // surface and also contains "chart view". Without the flag this resolves to
-  // two elements and throws a strict-mode violation — unseen by every local gate,
-  // since npm test runs no browser and --list only collects.
+  // case-insensitive SUBSTRING match, and MarketChart's tool cluster carries a
+  // "Default chart view" reset button that also contains "chart view". The
+  // wave-6 rider hides that cluster on the inline mobile chart, so only the
+  // select is in the accessibility tree here — the flag stays as the assertion's
+  // own guarantee rather than something a layout change can quietly remove.
   await expect(scanSurface.getByLabel("Chart view", { exact: true }))
     .toBeVisible();
   await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
@@ -776,6 +776,26 @@ test("Expand chart opens the same chart full-viewport on mobile, and only on mob
   const triggerBox = await trigger.boundingBox();
   expect(triggerBox!.height).toBeGreaterThanOrEqual(44);
 
+  // Wave-6 rider: the affordance rides the chart sheet's TOP-right corner now
+  // (m-scan-v3.html:32), not the bottom-right where it crowded the date axis.
+  // Measured against its own containing sheet, so this is the real placement
+  // rather than a class list read back.
+  const corner = await trigger.evaluate((element) => {
+    const sheet = element.parentElement!.getBoundingClientRect();
+    const box = element.getBoundingClientRect();
+    return {
+      fromRight: sheet.right - box.right,
+      fromTop: box.top - sheet.top,
+      sheetHeight: sheet.height,
+    };
+  });
+  expect(corner.fromTop).toBeLessThanOrEqual(2);
+  expect(corner.fromRight).toBeLessThanOrEqual(2);
+  expect(corner.fromTop).toBeLessThan(corner.sheetHeight / 2);
+  // And the corner is free because the inline chart's six-button tool cluster
+  // gives it up below lg — the overlay below keeps the same tools.
+  await expect(page.getByRole("button", { name: "Zoom in" })).toHaveCount(0);
+
   await trigger.click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
@@ -783,6 +803,8 @@ test("Expand chart opens the same chart full-viewport on mobile, and only on mob
 
   // Named by the market — the same display symbol the stagehead heading shows.
   await expect(dialog).toContainText("EUR/USD");
+  // The tools the inline chart gave up are here, one tap away, at a usable size.
+  await expect(dialog.getByRole("button", { name: "Zoom in" })).toHaveCount(1);
   // Full viewport, within a rounding pixel of it.
   const dialogBox = await dialog.boundingBox();
   expect(dialogBox!.width).toBeGreaterThanOrEqual(374);
