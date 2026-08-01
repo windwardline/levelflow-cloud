@@ -1418,10 +1418,14 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // The scan's own response, read as it lands: the server's persistence
   // report is the only place "qualified 6, wrote 0" is visible, and reading it
   // here is what makes this spec able to fail for the owner's reason.
+  // Matched on the ACTION, not just the URL: the Desk's own mount fires a
+  // refresh_outcomes call at the same endpoint, and waiting on "a POST to
+  // trade-analyzer" would read that one's body instead of the scan's.
   const scanResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/functions/v1/trade-analyzer") &&
-      response.request().method() === "POST",
+      response.request().method() === "POST" &&
+      (response.request().postData() ?? "").includes("scan_opportunities"),
     { timeout: 90_000 },
   );
   // Scoped to the rail rather than the page: the mobile tab bar carries a

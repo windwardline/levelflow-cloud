@@ -370,15 +370,14 @@ export function ScopeMenu(
                 />
               )
               : <span className="w-3.5 shrink-0" aria-hidden="true" />}
-            {/* min-w-0 is the structural half of §17m.5, and the actual defect:
-                a flex item's automatic minimum size is its min-content width, so
-                this span could not shrink below its longest word — "…U.S.
-                Dollar", "…Gold Futures" — and the row's total then exceeded the
-                248px popup. The popup scrolls in one axis, so the overflow was
-                clipped, and what got clipped was the right-aligned availability
-                line. With min-w-0 the label yields first, always, whatever the
-                label or the locale; the smaller type above is what keeps the
-                line legible once it always fits. */}
+            {/* min-w-0 is the structural half of §17m.5: the label is the part
+                that yields, explicitly, so no label, locale weekday or future
+                holiday-calendar date can push the availability line out of a row
+                the popup clips in one axis. `truncate` already zeroes this
+                item's automatic minimum (overflow:hidden does that on its own),
+                so this is the guarantee stated rather than discovered — the
+                measured defect was the line's SIZE, which the type below
+                addresses. */}
             <span className="min-w-0 truncate">{row.label}</span>
           </span>
           {showsAffordance(row)
@@ -386,11 +385,13 @@ export function ScopeMenu(
               // Spec §17m.5: "closed-market availability lines must not
               // truncate — OPENS 6:00P SUN reads in full even while the row is
               // disabled." shrink-0 + whitespace-nowrap is the structural half;
-              // the type is the half that makes it fit — 10.5px mono at 0.06em
-              // rather than the .eyebrow kit class's 12px at 0.14em, which spent
-              // ~40px of a 248px row on letterspacing alone. Its own literal
-              // classes rather than .eyebrow for exactly that reason: this line
-              // is not the same size as a section eyebrow any more.
+              // the type is what makes it fit. Measured in Chromium against the
+              // built CSS, "OPENS 12:00P WED" in the retired treatment
+              // (.eyebrow + font-mono: 12px at 0.14em) took 142.1px of a 248px
+              // popup and left the market name a 40px stub; at 10.5px / 0.06em
+              // it takes 110.9px and leaves 71px. Its own literal classes rather
+              // than .eyebrow for exactly that reason — this line is not the
+              // same size as a section eyebrow any more.
               // tests/scopeMenu.test.tsx pins the sizes and the width budget
               // against the longest string the real formatters can produce.
               <span className="shrink-0 whitespace-nowrap font-mono text-[10.5px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-muted">
