@@ -144,6 +144,11 @@ jobs:
           done
           grep -iq "^content-security-policy: .*frame-ancestors 'none'" "$headers"
           grep -iq "^content-security-policy: .*object-src 'none'" "$headers"
+          # style-src is 'self' plus exactly one content hash — the chart
+          # library's attribution stylesheet (docs/security-hardening.md). Never
+          # 'unsafe-inline': the hash is what made needing it unnecessary.
+          grep -iq "^content-security-policy: .*style-src 'self' 'sha256-" "$headers"
+          ! grep -iq "^content-security-policy: .*unsafe-inline" "$headers"
           grep -iq "^x-frame-options: DENY" "$headers"
           grep -iq "^x-content-type-options: nosniff" "$headers"
           grep -iq "^referrer-policy: strict-origin-when-cross-origin" "$headers"

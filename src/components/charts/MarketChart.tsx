@@ -89,6 +89,35 @@ export function readChartTheme(
   };
 }
 
+// The one thing this library does that production CSP sees.
+//
+// lightweight-charts draws everything on canvas and sets every other style
+// through CSSOM (`element.style.x = …`), which CSP does not police — but its
+// attribution widget builds a real `<style>` element and assigns its text
+// (AttributionLogoWidget, one `document.createElement("style")` in the whole
+// bundle), and `style-src 'self'` blocks exactly that. Reproduced under the
+// production header rather than assumed: the element lands in the DOM with
+// `sheet === null`, so the rule it carries never applies, and the consequences
+// are worse than the console line. The `<a id="tv-attr-logo">` it styles loses
+// `position: absolute` and falls into the pane cell's normal flow, and — because
+// the same blocked rule is where the SVG's `--fill`/`--stroke` come from — every
+// path resolves to `fill: none`. The attribution link renders as an invisible
+// 35x16 box in the middle of the chart's layout.
+//
+// That link is not decoration: the library's licence asks for the attribution
+// notice and a link to tradingview.com on a page available to users, and this
+// widget is what satisfies it (LayoutOptions.attributionLogo's own docs). So the
+// fix is to let that one stylesheet through by content hash —
+// vercel.json's style-src carries `'sha256-3pRED1tOXas1FXFoPb9TGCjmYe9XQsmO9OV23khV2nY='`
+// — rather than to disable the widget, which would move a licence obligation
+// onto app copy no ruling covers. A hash is not a loosening: it admits one
+// byte-identical stylesheet and nothing else. Inline style ATTRIBUTES stay
+// blocked (those need 'unsafe-hashes'), and 'unsafe-inline' is still absent.
+//
+// tests/securityHardening.test.ts recomputes that hash from the installed
+// lightweight-charts and fails if vercel.json disagrees, so a version bump that
+// re-values the stylesheet is a red build rather than the same silent violation
+// coming back.
 export function MarketChart(
   {
     data,

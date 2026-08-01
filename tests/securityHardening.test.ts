@@ -160,3 +160,78 @@ describe("security hardening", () => {
     assert.match(script, /PATCH failed/);
   });
 });
+
+// The production style-src carries exactly one hash, for exactly one stylesheet:
+// lightweight-charts' attribution widget builds a `<style>` element and assigns
+// its text, and `style-src 'self'` blocked it — the element landed with no sheet,
+// so the attribution link lost its positioning AND its fill (its --fill/--stroke
+// live in that rule) and rendered as an invisible box inside the chart's layout.
+// The comment above MarketChart carries the reproduction.
+//
+// The hash is derived here from the library actually installed rather than
+// restated, because that is the only thing that makes it maintainable: a version
+// bump that re-values the stylesheet becomes a failing build instead of the same
+// silent violation quietly returning.
+describe("the chart library's one inline stylesheet is allowed by content hash, and nothing else is", () => {
+  const CSP = (() => {
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: Array<{ headers: Array<{ key: string; value: string }> }>;
+    };
+    const header = vercel.headers
+      .flatMap((entry) => entry.headers)
+      .find((entry) => entry.key === "Content-Security-Policy");
+    assert.ok(header, "expected a Content-Security-Policy header");
+    return header.value;
+  })();
+  const styleSrc = CSP.split(";")
+    .map((directive) => directive.trim())
+    .find((directive) => directive.startsWith("style-src")) ?? "";
+
+  it("hashes the stylesheet the installed lightweight-charts actually injects", async () => {
+    const { createHash } = await import("node:crypto");
+    const bundle = readFileSync(
+      "node_modules/lightweight-charts/dist/lightweight-charts.production.mjs",
+      "utf8",
+    );
+    // The widget's own literal, read out of the bundle: the a#tv-attr-logo rules
+    // as assigned to the style element's text.
+    const injected = bundle.match(
+      /innerText\s*=\s*"(a#tv-attr-logo\{[^"]*\})"/,
+    )?.[1];
+    assert.ok(
+      injected,
+      "lightweight-charts no longer injects a stylesheet by this shape — " +
+        "re-derive the hash, or drop it if the injection is gone",
+    );
+    const hash = createHash("sha256").update(injected, "utf8").digest("base64");
+    assert.ok(
+      styleSrc.includes(`'sha256-${hash}'`),
+      `style-src must carry 'sha256-${hash}' for the chart library's ` +
+        `attribution stylesheet; it reads: ${styleSrc}`,
+    );
+  });
+
+  it("keeps style-src otherwise strict — a hash is an allowlist of one, not a loosening", () => {
+    assert.match(styleSrc, /^style-src 'self' 'sha256-[A-Za-z0-9+/=]+'$/);
+    assert.doesNotMatch(CSP, /unsafe-inline/);
+    assert.doesNotMatch(CSP, /unsafe-eval/);
+    // 'unsafe-hashes' is what would extend hashing to inline style ATTRIBUTES.
+    // It stays out: those are still refused, exactly as before this hash.
+    assert.doesNotMatch(CSP, /unsafe-hashes/);
+  });
+
+  it("leaves the rest of the policy exactly as hardened", () => {
+    for (const directive of [
+      "default-src 'self'",
+      "script-src 'self' https://static.cloudflareinsights.com",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ]) {
+      assert.ok(CSP.includes(directive), directive);
+    }
+  });
+});
