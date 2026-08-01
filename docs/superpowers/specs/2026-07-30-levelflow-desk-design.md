@@ -571,3 +571,14 @@ Fifteen words, no duration promised, no work explained (§17f — the page
 cannot show why it is closed, only that the closure is deliberate and
 ends). "The desk" is the product's own vocabulary. The
 "UNDER CONSTRUCTION" eyebrow stays — already situation-agnostic.
+
+### §17k. The colophon links home (owner-approved, 2026-08-01)
+
+"A Windward Line production" is a link to https://windwardline.com —
+provenance you can follow, everywhere the colophon appears (the desktop
+footer on every framed page, the mobile Profile colophon, the four
+static pages), with ONE treatment: muted text exactly as at rest today,
+no underline until hover/focus, `target="_blank"` +
+`rel="noopener noreferrer"` so it never navigates the workspace away,
+44px hit target per the kit floor. A guard pins the target URL, the
+new-tab behavior, and the at-rest quietness on every occurrence.
