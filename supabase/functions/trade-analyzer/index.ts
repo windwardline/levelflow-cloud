@@ -76,7 +76,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.07.30.forex-gate-forty";
+const ANALYZER_VERSION = "2026.08.01.scan-only-door";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -1685,9 +1685,11 @@ async function refreshGlobalStrategyWeights(): Promise<
     // ambiguous) resolved by the same replay engine from the same live bars,
     // whichever door asked for the setup.
     //
-    // ANALYZER_VERSION deliberately does NOT move for this: setup generation
-    // is byte-identical, and bumping it would orphan the very post-launch
-    // outcomes this widening exists to count.
+    // ANALYZER_VERSION moves with this change (2026.08.01.scan-only-door):
+    // widening the training population is a change in how the analyzer learns,
+    // and the version is what scopes global learning — so the boundary between
+    // the review-origin-only cohort and this one is explicit in the data rather
+    // than implied by a deploy date. Setup construction itself is untouched.
     `trade_setups?select=id,symbol,correlation_group,confluence&id=in.(${
       setupIds.map((id) => encodeURIComponent(id)).join(",")
     })`,

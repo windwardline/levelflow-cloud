@@ -1,8 +1,18 @@
 # Levelflow Trade Model
 
-Model version: `2026.07.30.forex-gate-forty`
+Model version: `2026.08.01.scan-only-door`
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
+
+The version moved on 2026-08-01 without a calibration round: spec §17m
+made the Scan column the only door a setup comes through, so global
+learning stopped filtering its cohort to review-origin setups and now
+trains on every measured outcome. Setup construction, scoring, windows and
+outcome evaluation are byte-identical to
+`2026.07.30.forex-gate-forty` — what changed is which population the
+weights learn from, and the version is what makes that boundary explicit
+in the data. Round 23's measurements below stand unchanged; they were made
+on the geometry, not on the cohort filter.
 
 ## Current engine state (2026-07-30)
 
@@ -48,8 +58,8 @@ outcome-sync (cron :23) resolves pending setups; hourly news-calendar
 ingestion (cron :07) with a watchdog (cron :41); a launchd agent tops up
 the local replay cache daily at 07:00 so the replay basis stays current
 for the day the work resumes. Global learning accrues inside the
-`2026.07.30.forex-gate-forty` cohort. Production sits behind the parking
-soft gate (`/?enter`).
+`2026.08.01.scan-only-door` cohort — every origin, since Scan is the only
+door (§17m). Production is open (the parking gate is off, §17l).
 
 ## Resumption protocol (for the operator)
 
@@ -68,7 +78,7 @@ whim. Two triggers, whichever comes first:
    select ts.asset_type, count(*) as resolved_filled
    from trade_outcomes o
    join trade_setups ts on ts.id = o.setup_id
-   where o.analyzer_version = '2026.07.30.forex-gate-forty'
+   where o.analyzer_version = '2026.08.01.scan-only-door'
      and o.outcome not in ('pending', 'unfilled')
    group by ts.asset_type
    order by resolved_filled desc;
@@ -872,7 +882,9 @@ shipped 55: train −0.0004, test +0.0001, money-positive 78.6 → 78.7%,
 accepted volume **+35.5%** — roughly 49,000 more accepted test setups at
 statistically identical per-setup quality. The reliability row re-based:
 forex **.89 across 123,254** filled test setups (the rate held while the
-sample grew 36%). Version `2026.07.30.forex-gate-forty`.
+sample grew 36%). Version `2026.07.30.forex-gate-forty` (superseded by
+`2026.08.01.scan-only-door`, which changed the learning cohort and no
+measurement above).
 
 Two process notes, recorded in the open:
 
@@ -1026,7 +1038,11 @@ Scan column the only door, and a review-origin-only cohort would have
 frozen the weights permanently. `origin` stays bookkeeping about
 placement, never eligibility — an unfilled scan-origin setup still earns
 no Current-trades entry. Any change to setup construction, scoring,
-calibration, or outcome evaluation must bump it. History was reset at this version's
-deploy (migration
+calibration, or outcome evaluation must bump the version — and so must a
+change to the learning population itself, which is why widening the cohort
+moved it to `2026.08.01.scan-only-door` even though no geometry changed.
+History was reset at the window-feasible model's deploy (migration
 `20260728220000_reset_history_for_window_feasible_model.sql`) because
-pre-fix outcomes measured an unreachable geometry, not market skill.
+pre-fix outcomes measured an unreachable geometry, not market skill; the
+launch runbook cleared it again on 2026-08-01 (§17l), so the cohort this
+version scopes starts empty by design.

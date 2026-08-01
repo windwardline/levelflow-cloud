@@ -150,6 +150,6 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
       new URL("../supabase/functions/trade-analyzer/index.ts", import.meta.url),
       "utf8",
     );
-    assert.match(src, /ANALYZER_VERSION = "2026\.07\.30\.forex-gate-forty"/);
+    assert.match(src, /ANALYZER_VERSION = "2026\.08\.01\.scan-only-door"/);
   });
 });
