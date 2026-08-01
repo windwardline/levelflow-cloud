@@ -321,7 +321,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   it("gives the footer the same tab-bar clearance the content wrapper reserves (F4 fix wave 2B)", () => {
     const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -354,7 +354,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // width no unit test looks at.
   it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -818,7 +818,7 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
     // owns its gutters (m-scan-v3.html:29,32).
     assert.match(
       APP_SOURCE,
-      /className=\{isMobileViewport[\s\S]{0,400}\? "flex w-full min-h-0 flex-col overflow-hidden"/,
+      /className=\{isMobileViewport[\s\S]{0,400}\? "motion-fade-in flex w-full min-h-0 flex-col overflow-hidden"/,
     );
     assert.match(
       APP_SOURCE,
@@ -1312,7 +1312,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // The two scrolling wrapper branches are reached at ≥lg only now, and both
     // keep every utility the frozen desktop cascade is built from.
     const wrapperBranches = APP_SOURCE.match(
-      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(wrapperBranches.length > 0, "expected the ≥lg wrapper branches");
     for (const branch of wrapperBranches.match(/"[^"]*"/g) ?? []) {

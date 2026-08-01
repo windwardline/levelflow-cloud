@@ -351,12 +351,20 @@ export default function App() {
           </div>
         </header>
 
+        {/* Spec §8: "tab content changes fade 120ms". The key is what makes the
+            animation re-run — React reuses this element across tab changes
+            otherwise, and a CSS animation only plays on mount — and it costs
+            nothing extra, since every child here already mounts fresh when
+            activeTab changes. Keyed on activeTab alone, never on
+            deskMobileView: flipping the mobile Desk between Scan and Trades must
+            leave AdvisorWorkspace mounted (see the two refresh effects above). */}
         <div
+          key={activeTab}
           className={isMobileViewport
             // Every mobile surface owns its own gutters and its own bottom
             // clearance (spec §17g, m-scan-v3.html:29,32), so this wrapper
             // contributes nothing but the fixed column they live in.
-            ? "flex w-full min-h-0 flex-col overflow-hidden"
+            ? "motion-fade-in flex w-full min-h-0 flex-col overflow-hidden"
             // The sm: pad is top-axis only, deliberately. Both scrolling
             // branches reserve pb-24 for the fixed MobileTabBar, which is
             // mounted at every width below lg — and a padding-block utility
@@ -373,8 +381,8 @@ export default function App() {
             // cascade is built from, and the tab-bar reserve below stays as the
             // guard that pins the hazard the comment describes.
             : isDeskTab
-            ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
-            : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
+            ? "motion-fade-in mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
+            : "motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
@@ -506,9 +514,29 @@ function useThemePreference() {
   );
 
   useEffect(() => {
-    document.documentElement.dataset.theme = resolvedMode;
-    document.documentElement.dataset.themeMode = mode;
+    const root = document.documentElement;
+    // Spec §8, "nothing moves untouched": the swap re-values every token at
+    // once, and the kit's 140ms color transitions would otherwise trail it —
+    // the tearing the data-theme-swapping rule in index.css describes. Set
+    // before the attribute that causes the repaint, cleared once the new
+    // palette has actually been painted, which is why it takes two frames:
+    // the first is the paint of the new values, the second is the earliest
+    // moment nothing is left to interpolate.
+    root.dataset.themeSwapping = "";
+    root.dataset.theme = resolvedMode;
+    root.dataset.themeMode = mode;
     window.localStorage.setItem("levelflow-theme", mode);
+
+    let painted = 0;
+    const pending = window.requestAnimationFrame(() => {
+      painted = window.requestAnimationFrame(() => {
+        delete root.dataset.themeSwapping;
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(pending);
+      window.cancelAnimationFrame(painted);
+    };
   }, [mode, resolvedMode]);
 
   return { mode, resolvedMode, setMode };
@@ -729,7 +757,7 @@ function MobileAccountMenu({
       {open
         ? (
           <div
-            className="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
+            className="motion-fade-in absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
             role="menu"
           >
             <MobileMenuItem

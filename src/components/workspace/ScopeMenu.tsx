@@ -581,7 +581,7 @@ export function ScopeMenu(
               <div
                 aria-labelledby={`${baseId}-sheet-title`}
                 aria-modal="true"
-                className="fixed inset-0 z-30 flex flex-col bg-sheet"
+                className="motion-fade-in fixed inset-0 z-30 flex flex-col bg-sheet"
                 role="dialog"
               >
                 <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
@@ -618,7 +618,7 @@ export function ScopeMenu(
                 ref={listRef}
                 aria-activedescendant={activeKey ? `${baseId}-${activeKey}` : undefined}
                 aria-labelledby={`${baseId}-label`}
-                className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
+                className="motion-fade-in scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"
                 role="listbox"
                 // The anchored popup normally matches its trigger's width. A
                 // "heading" trigger is only as wide as the ticker it shows
