@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { MOBILE_FRAME_SCROLL } from "../src/components/mobileFrame";
 import {
   SATELLITE_FRAME,
   SATELLITE_FRAME_SCROLL,
@@ -150,7 +151,23 @@ describe("§17i — exactly one thing scrolls between the pinned rows", () => {
     assert.equal(pageTopPadStep * 4, 20);
     assert.match(guide, /sticky top-0\b/);
     assert.doesNotMatch(guide, /sticky top-\[89px\]/);
-    assert.match(guide, new RegExp(`scroll-mt-${pageTopPadStep}\\b`));
+    // M2 (wave-8 review): that scroll margin is a ≥lg number and now says so. It
+    // shipped un-prefixed, so deriving it from the ≥lg region's top padding moved
+    // the MOBILE Guide's anchor landing by 92px as a side effect of a desktop
+    // ruling. Below lg the scrollport is the surface's own region (§17g), and that
+    // region carries no top padding at all — read from the frame string rather
+    // than restated — so the mobile landing rests at zero.
+    assert.equal(
+      MOBILE_FRAME_SCROLL.match(/\bpt-\d+\b/),
+      null,
+      "the mobile scroll region has no top padding to reserve",
+    );
+    assert.match(guide, new RegExp(`\\blg:scroll-mt-${pageTopPadStep}\\b`));
+    assert.doesNotMatch(
+      guide,
+      /(?<![-:\w])scroll-mt-/,
+      "an un-prefixed scroll margin ships at both widths",
+    );
     assert.doesNotMatch(guide, /scroll-mt-28/);
   });
 });

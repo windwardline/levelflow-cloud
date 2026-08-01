@@ -132,7 +132,10 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
   it("flows each section with a numbered eyebrow and a hairline rule, not a card", () => {
     assert.match(
       guide,
-      /<section className="mt-6 scroll-mt-5 border-t border-hairline pt-6" id=\{id\}>/,
+      // The scroll margin sits behind lg: since M2 — it reserves the ≥lg region's
+      // own top padding, and the mobile region has none (tests/appFrame.test.ts
+      // derives both halves).
+      /<section className="mt-6 border-t border-hairline pt-6 lg:scroll-mt-5" id=\{id\}>/,
     );
     // The eyebrow is the bare number ("01") sitting directly above the <h2>
     // title, mirroring the eyebrow idiom the rest of the app already uses

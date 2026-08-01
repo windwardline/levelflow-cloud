@@ -536,7 +536,13 @@ function GuideSection({
 }) {
   const { number, title } = GUIDE_SECTIONS[id];
   return (
-    <section className="mt-6 scroll-mt-5 border-t border-hairline pt-6" id={id}>
+    // The scroll margin is behind lg: because it is a ≥lg number. It reserves the
+    // ≥lg region's own top padding (App.tsx's sm:pt-5) so an anchor lands where the
+    // article rests there. Below lg the scrollport is this surface's own region
+    // (§17g, mobileFrame.ts), which carries no top padding at all — a margin there
+    // would land every anchor that far below the region's top edge for no reason,
+    // which is what the un-prefixed class did at both widths.
+    <section className="mt-6 border-t border-hairline pt-6 lg:scroll-mt-5" id={id}>
       <p className="eyebrow">
         {number}
       </p>
