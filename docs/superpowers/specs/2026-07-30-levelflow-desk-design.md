@@ -528,3 +528,26 @@ Lines are ink, entry is accent, in every rendition. It becomes the favicon set
 corner mark (the card itself stays editorial: wordmark, accent rule,
 "Market review — daily edition"), and replaces the borrowed
 windward-line-mark.svg on the 404 and legal pages.
+
+### §17i. The desktop frame, single-home links, and the satellite brand (owner rulings, 2026-08-01)
+
+- **Desktop is an app-shell frame on every surface, Desk included**: the
+  masthead pinned top, THE footer pinned bottom and always visible, the
+  content region scrolling between them (100dvh grid, the §17g pattern
+  lifted to ≥lg with the footer in the frame). The Guide no longer hides
+  the footer below a full page-scroll; the Desk gains the footer it never
+  had; the Desk's three columns keep scrolling internally above it.
+- **Each link lives in exactly one home per platform.** Desktop: the
+  footer (Help · Donate · Risk disclaimer · Privacy · Terms) — so the
+  Guide's Support section and Profile's Support row are DELETED (both
+  platforms; on mobile the avatar menu is the one home, as previously
+  ruled, and the mobile Profile view keeps only its colophon).
+- **The mark reaches the satellite pages**: mark A rendered small above
+  the eyebrow on the parking page, the login hero, the legal trio, and
+  the 404 — one consistent treatment. Donate and Help verified in-idiom.
+- **The mobile avatar trigger renders mark A** (not the account initial);
+  44px target and accessible name unchanged.
+- **Favicon, org standard**: the head carries the full cross-browser set
+  in the order Safari and Chrome each need (ICO + sized PNGs + SVG +
+  apple-touch + manifest), on the app AND the static pages, so the icon
+  shows in Safari and Chrome alike — the standard every repo follows.
