@@ -1059,7 +1059,16 @@ Scan column the only door, and a review-origin-only cohort would have
 frozen the weights permanently. `origin` is historical bookkeeping and
 nothing more: every row written since §17m.1 says `scan`, no code reads the
 column, and the Current-trades rail derives Pending from status and outcome
-alone (`src/lib/tradeState.ts`). Any change to setup construction, scoring,
+alone (`src/lib/tradeState.ts`).
+
+The cohort is production traffic only. The e2e suite scans the live project
+on every push to main, and global learning reads outcomes with no user
+filter, so those rows would otherwise train the weights and count toward the
+trigger below — from a run schedule clustered in the owner's working hours,
+inside a model whose per-hour gates were the arc's most contested finding.
+`tests/e2e/authenticated-workspace.spec.ts` deletes the setups each run
+created, through the test user's own JWT, and logs the count; outcomes
+cascade with them. Any change to setup construction, scoring,
 calibration, or outcome evaluation must bump the version — and so must a
 change to the learning population itself, which is why widening the cohort
 moved it to `2026.08.01.scan-only-door` even though no geometry changed.

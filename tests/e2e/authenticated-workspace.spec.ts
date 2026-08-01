@@ -16,13 +16,70 @@ test.skip(
   "Set Levelflow E2E Supabase and dedicated test-user credentials to run authenticated browser tests.",
 );
 
-test.beforeEach(async ({ page }) => {
-  const client = createClient(supabaseUrl!, supabaseKey!, {
+// I9: every setup this suite's scans create belongs to the E2E user in the LIVE
+// project, and global learning reads trade_outcomes with the service role and no
+// user filter — so before this teardown, every push to main enrolled CI traffic
+// in the production learning cohort and counted toward the Resumption Protocol's
+// ~500-per-class trigger. Deploys cluster in the owner's working hours, which
+// made it a time-of-day-biased subpopulation inside a model whose per-hour gates
+// were the calibration arc's most contested finding. Before §17m the
+// `origin=eq.review` filter excluded these rows by construction; removing that
+// filter enrolled them, undocumented.
+//
+// The run's own rows are deleted afterwards through the E2E user's own JWT (the
+// "delete own" RLS policy, supabase/init.sql), and trade_outcomes cascades on
+// setup delete — so this reaches the cohort with no service-role key in CI and
+// cannot touch another account's history. The cutoff is stamped at import so a
+// parallel worker's teardown can never delete rows a sibling worker is still
+// asserting against.
+const runStartedAt = new Date().toISOString();
+
+function e2eClient() {
+  return createClient(supabaseUrl!, supabaseKey!, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
   });
+}
+
+test.afterAll(async () => {
+  if (!supabaseUrl || !supabaseKey || !testEmail || !testPassword) {
+    return;
+  }
+  const client = e2eClient();
+  const { data, error } = await client.auth.signInWithPassword({
+    email: testEmail,
+    password: testPassword,
+  });
+  if (error || !data.user) {
+    // Loud, not swallowed: a teardown that quietly failed would leave CI rows
+    // training the model, which is the whole defect it exists to close.
+    throw new Error(
+      `E2E teardown could not authenticate to clean up its setups: ${
+        error?.message ?? "no user returned"
+      }`,
+    );
+  }
+  const { count, error: deleteError } = await client
+    .from("trade_setups")
+    .delete({ count: "exact" })
+    .eq("user_id", data.user.id)
+    .gte("created_at", runStartedAt);
+  if (deleteError) {
+    throw new Error(
+      `E2E teardown could not delete its setups: ${deleteError.message}`,
+    );
+  }
+  console.log(
+    `[e2e teardown] deleted ${
+      count ?? 0
+    } trade_setups created since ${runStartedAt}`,
+  );
+});
+
+test.beforeEach(async ({ page }) => {
+  const client = e2eClient();
   const { data, error } = await client.auth.signInWithPassword({
     email: testEmail!,
     password: testPassword!,
