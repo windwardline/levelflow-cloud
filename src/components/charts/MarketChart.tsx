@@ -434,7 +434,7 @@ function ChartToolButton({ children, label, touch = false, onClick }: { children
     <button
       aria-label={label}
       className={touch
-        ? "inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-muted transition hover:bg-accent/10 hover:text-accent"
+        ? "inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-muted transition hover:bg-accent/10 hover:text-accent"
         : "inline-flex h-6 w-6 items-center justify-center rounded text-ink-muted transition hover:bg-accent/10 hover:text-accent"}
       title={label}
       type="button"
