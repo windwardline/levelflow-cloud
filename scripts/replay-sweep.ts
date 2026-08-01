@@ -243,8 +243,19 @@ async function fetchCalendarEvents(
     endpoint.searchParams.set("apikey", API_KEY!);
     const response = await fetch(endpoint);
     if (!response.ok) {
-      console.warn(`Calendar fetch failed (${response.status}); continuing.`);
-      continue;
+      // I3: this used to warn and `continue`. loadRollingSeries then merged the
+      // holed result and pinned it as the anchor day's truth, and because later
+      // runs only top up from the last stored time, the dropped 90-day window
+      // was never refetched — one transient provider failure permanently holed
+      // the news join under every future walk-forward measurement, with no
+      // coverage signal anywhere in the output. fetchBars has always thrown for
+      // exactly this reason: a run that cannot see the whole calendar has to
+      // stop rather than quietly measure against part of it.
+      throw new Error(
+        `Calendar fetch failed (${response.status}) for ${
+          endpoint.searchParams.get("from")
+        }..${endpoint.searchParams.get("to")}`,
+      );
     }
     const payload = await response.json();
     if (Array.isArray(payload)) {

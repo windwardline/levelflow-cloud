@@ -86,6 +86,59 @@ describe("trade analyzer session context", () => {
     assert.equal(session.label, "FX rollover pause");
   });
 
+  // I7: spot FX settles for the week at 17:00 ET Friday, and the client's own
+  // calendar has always said so (src/lib/marketHours.ts, closeMinuteOfDay
+  // 17 * 60). The server's `weekend` term did not start until Saturday, so
+  // Friday 17:00-24:00 ET generated forex setups on a closed market — seven
+  // hours in which every other class hard-blocks from 16:30 ET. Those setups
+  // could only ever expire unfilled (getSetupExpiryTime lands their window
+  // inside the weekend), so users got untradeable levels and the replay harness
+  // folded a guaranteed-unfilled bucket into every measured fill rate.
+  it("closes forex for the week at the Friday New York close, not at Saturday", () => {
+    // Friday 2026-06-19. 16:45 ET (20:45 UTC) is still open, at the late-Friday
+    // penalty the measured record earned it.
+    const lateFriday = getSessionContext(
+      "EURUSD",
+      new Date("2026-06-19T20:45:00.000Z"),
+    );
+    assert.equal(lateFriday.block, false);
+    assert.equal(lateFriday.label, "Late Friday FX session");
+    assert.equal(lateFriday.penalty, 10);
+
+    // 17:00 ET (21:00 UTC) is the close itself.
+    const atTheClose = getSessionContext(
+      "EURUSD",
+      new Date("2026-06-19T21:00:00.000Z"),
+    );
+    assert.equal(atTheClose.block, true);
+    assert.equal(atTheClose.label, "FX weekend closure");
+    assert.equal(atTheClose.penalty, 100);
+    assert.equal(atTheClose.lowEdge, undefined);
+
+    // And every hour after it, through the old blind spot.
+    for (const hour of ["22:00", "23:00", "03:00"]) {
+      const day = hour === "03:00" ? "20" : "19";
+      const closed = getSessionContext(
+        "EURUSD",
+        new Date(`2026-06-${day}T${hour}:00.000Z`),
+      );
+      assert.equal(closed.block, true, `expected forex closed at ${day} ${hour}Z`);
+      assert.equal(closed.label, "FX weekend closure");
+    }
+
+    // Sunday's reopen is untouched: 17:05 ET Sunday (21:05 UTC).
+    const sundayClosed = getSessionContext(
+      "EURUSD",
+      new Date("2026-06-21T20:00:00.000Z"),
+    );
+    assert.equal(sundayClosed.block, true);
+    const sundayOpen = getSessionContext(
+      "EURUSD",
+      new Date("2026-06-21T21:10:00.000Z"),
+    );
+    assert.equal(sundayOpen.block, false);
+  });
+
   it("uses futures maintenance rules for futures-style markets", () => {
     const session = getSessionContext(
       "ESUSD",

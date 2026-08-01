@@ -534,3 +534,28 @@ describe("§17d — the Insights Result column speaks one canonical vocabulary",
     }
   });
 });
+
+// M6: the 60-second outcome-refresh throttle is module scope, and it was
+// stamped in a `finally` — so a refresh that THREW bought itself a full
+// blackout, and the stamp survived sign-out to gate the next account's first
+// load. Both are one-line repairs and neither was documented either way. Read
+// as source: this hook needs a React renderer, and this repo's unit stack has
+// no jsdom (see tests/confidenceUnit.test.tsx's header for the technique).
+describe("the outcome-refresh throttle earns its blackout", () => {
+  const hook = readFileSync("src/hooks/useTradeSetups.ts", "utf8");
+
+  it("stamps the throttle only after a refresh that actually succeeded", () => {
+    assert.doesNotMatch(hook, /finally \{\s*lastOutcomeRefreshAt = Date\.now\(\);/);
+    assert.match(
+      hook,
+      /await refreshTradeOutcomes\(\);[\s\S]{0,400}lastOutcomeRefreshAt = Date\.now\(\);\s*\} catch/,
+    );
+  });
+
+  it("clears the throttle on sign-out, since it outlives the session", () => {
+    assert.match(
+      hook,
+      /\} else \{\s*setSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+    );
+  });
+});
