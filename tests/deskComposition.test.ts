@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { focusTrapTarget } from "../src/components/charts/ExpandedChartOverlay";
 
 // Spec §16, "Review discipline (new, standing)": every review of composition
 // work must verify BOTH directions against the mock — required elements
@@ -90,18 +91,84 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.doesNotMatch(stage, /requestedAt/);
   });
 
-  it("keeps Review market as the stage's one action, beside the chart-view control", () => {
-    assert.match(stage, /className="primary-button"[\s\S]{0,600}Review market/);
+  // Spec §17: the stage's action is "Review", not "Review market" — the
+  // stagehead already names the market immediately beside it, so the second
+  // word was restating the heading. The `>` before it is what makes this an
+  // element-text assertion rather than a substring a comment could satisfy.
+  it("keeps Review as the stage's one action, beside the chart-view control", () => {
+    assert.match(stage, /className="primary-button"[\s\S]{0,600}\n\s*Review\n/);
     assert.match(stage, /aria-label="Chart view"/);
+    // The old wording is gone everywhere in this file, comments included —
+    // e2e locators are pinned to the button's accessible name, and a stale
+    // one costs a live deploy run.
+    assert.doesNotMatch(stage, /Review market/);
+  });
+
+  // Spec §17: "The stagehead must never truncate the market name." The
+  // chart-view select and the action button both shrank in this same wave, so
+  // the head row has more room than it ever had — but room is not a
+  // guarantee. The guarantee is structural: the heading trigger does not
+  // shrink below its own content, and its value is nowrap rather than
+  // `truncate`, so the flex-wrap ancestors move the controls to a second row
+  // instead of clipping the name to an ellipsis.
+  it("gives the stagehead's market name room rather than an ellipsis (spec §17)", () => {
+    const scopeMenu = readFileSync(
+      "src/components/workspace/ScopeMenu.tsx",
+      "utf8",
+    );
+    const headingTrigger = scopeMenu.match(
+      /variant === "heading"\n\s*\? "(-?[^"]*font-display[^"]*)"/,
+    )?.[1] ?? "";
+    assert.ok(headingTrigger.length > 0, "expected the heading trigger classes");
+    assert.match(headingTrigger, /\bshrink-0\b/);
+    assert.doesNotMatch(headingTrigger, /\bmin-w-0\b/);
+    // The value span: nowrap for the heading, still truncating in the 264px
+    // scan rail where the full descriptive label genuinely has to be clipped.
+    assert.match(
+      scopeMenu,
+      /id=\{`\$\{baseId\}-value`\}\n\s*className=\{variant === "heading"\n\s*\? "whitespace-nowrap"\n\s*: "truncate"\}/,
+    );
+    // And the row the trigger sits in still wraps, which is what absorbs the
+    // extra width when the name is long.
+    assert.match(stage, /className="flex min-w-0 flex-wrap items-center gap-x-3\.5 gap-y-1"/);
+    assert.match(
+      stage,
+      /className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3"/,
+    );
+  });
+
+  // Spec §17: every surface that names a timeframe uses the compact code, and
+  // the select gets its labels from the one shared list (pinned exactly in
+  // tests/core.test.ts) rather than a second hand-written set.
+  it("renders the chart-view options from the shared timeframe list (spec §17)", () => {
+    assert.match(stage, /import \{ TIMEFRAMES \} from "\.\/advisorFormat";/);
+    assert.match(
+      stage,
+      /\{TIMEFRAMES\.map\(\(option\) => \(\s*<option key=\{option\.value\} value=\{option\.value\}>\s*\{option\.label\}/,
+    );
+    for (const prose of ["1 hour", "4 hours", "15 minutes", "5 minutes", "Daily"]) {
+      assert.ok(
+        !stage.includes(prose),
+        `the stage must not name a timeframe in prose ("${prose}")`,
+      );
+    }
   });
 
   it("attaches the setup sheet hairline-flush under the chart sheet — one frame each, no gap", () => {
     // The chart draws its own square-cornered sheet so the setup sheet's
     // border-t-0 lands on it; a rounded chart frame would leave a visible
-    // corner gap and read as two stacked cards again.
+    // corner gap and read as two stacked cards again. Spec §17's overlay
+    // variant appends its own height to that same string, so the sheet is now a
+    // named constant rather than an inline attribute — pinned here in the form
+    // it actually takes, and with both branches of its one use proved so the
+    // overlay cannot quietly acquire a second frame.
     assert.match(
       chart,
-      /className="relative min-w-0 overflow-hidden border border-hairline bg-sheet"/,
+      /const CHART_SHEET =\s*"relative min-w-0 overflow-hidden border border-hairline bg-sheet";/,
+    );
+    assert.match(
+      chart,
+      /className=\{fill \? `\$\{CHART_SHEET\} h-full` : CHART_SHEET\}/,
     );
     assert.match(
       stage,
@@ -182,7 +249,7 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     }
   });
 
-  it("carries no standalone stage Refresh button — Review market is the one action", () => {
+  it("carries no standalone stage Refresh button — Review is the one action", () => {
     assert.doesNotMatch(stage, /RefreshCw/);
     assert.doesNotMatch(stage, />\s*Refresh\s*</);
     // Exactly one action lives in the stagehead.
@@ -200,17 +267,32 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
     for (const source of [stage, panel, receipt]) {
       assert.doesNotMatch(source, /terminal-panel/);
       assert.doesNotMatch(source, /rounded-lg border border-hairline bg-paper/);
+    }
+    // The hairline card on sheet: banned outright in the two files that render
+    // INSIDE the sheet, and in the stage allowed only where it is a form
+    // control — the merged mobile surface's chart-view field (m-scan-v3.html:15
+    // `.tf`), which tests/boxDiscipline.test.ts carries with its reason.
+    // Enumerated rather than merely permitted, so a second one cannot arrive
+    // under cover of the first.
+    for (const source of [panel, receipt]) {
       assert.doesNotMatch(source, /rounded-lg border border-hairline bg-sheet/);
     }
+    assert.deepEqual(
+      stage.match(/[^"]*rounded-lg border border-hairline bg-sheet[^"]*/g) ?? [],
+      [
+        "min-h-11 shrink-0 rounded-lg border border-hairline bg-sheet px-2.5 text-[12.5px] font-bold text-ink",
+      ],
+    );
   });
 
-  // Fix wave 2C: the mobile mock DOES draw a card inside the setup sheet — the
-  // ladder's copy rows (m-mobile-v3.html:25 `.copy`) — so this pins the other
-  // half of that exemption. Neither sheet-filler nor radius may apply
-  // un-prefixed in the two files that render INSIDE the sheet; both exist only
-  // as `max-lg:` tokens there. (AdvisorWorkspace is excluded on purpose: it
-  // draws the sheet itself, which is the one frame the ≥lg mock wants.)
-  it("keeps the mobile ladder card mobile-only — no fill or radius reaches ≥lg", () => {
+  // Fix wave 2C, re-aimed at m-scan-v3: the mobile mock DOES draw one bordered
+  // affordance inside the setup sheet's content — the ladder's per-value Copy
+  // button (m-scan-v3.html:37 `.cbtn`) — so this pins the other half of that
+  // exemption. Neither sheet-filler nor radius may apply un-prefixed in the two
+  // files that render INSIDE the sheet; both exist only as `max-lg:` tokens
+  // there. (AdvisorWorkspace is excluded on purpose: it draws the sheet itself,
+  // which is the one frame the ≥lg mock wants.)
+  it("keeps the mobile copy control's border mobile-only — no fill or radius reaches ≥lg", () => {
     for (const source of [panel, receipt]) {
       for (const utility of ["bg-sheet", "bg-paper", "rounded-lg", "rounded-md"]) {
         const unprefixed = source.match(
@@ -220,12 +302,15 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
           unprefixed,
           [],
           `${utility} must never apply un-prefixed inside the setup sheet — ` +
-            "the mock's only card here is the mobile copy row, which rides " +
-            "max-lg:",
+            "the mock's only bordered affordance here is the mobile copy " +
+            "control, which rides max-lg:",
         );
       }
     }
-    assert.match(panel, /max-lg:rounded-lg max-lg:border max-lg:bg-sheet/);
+    assert.match(
+      panel,
+      /max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet/,
+    );
   });
 
   it("keeps the stage's own status tiles gone (DATA / SESSION / ADVISOR / MARKET HISTORY)", () => {
@@ -410,6 +495,225 @@ describe("Desk chart level lines — the mock's four labeled lines (a-desk-v3.ht
   });
 });
 
+// Spec §17: "Expand chart ships on mobile (owner: 'I do not want to skip
+// features just because we can'): an 'Expand chart' affordance opens the same
+// MarketChart full-viewport (100dvw/100dvh overlay) with its level lines and
+// theme reactivity; 44px close target, Escape and focus trap, aria-modal,
+// functional labels only. With it, the inline mobile chart may take the mock's
+// compact height." The mock draws the affordance inside the chart's own
+// bottom-right corner (m-mobile-v3.html:16,:56) at the compact 170px height
+// (:13). Source-pinned like the rest of this file — the accessibility contract
+// is exactly the kind of thing that regresses silently, so every attribute the
+// ruling names is pinned individually.
+describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
+  const overlay = readFileSync(
+    "src/components/charts/ExpandedChartOverlay.tsx",
+    "utf8",
+  );
+
+  it("draws the trigger inside the chart, mobile-only, functionally labelled", () => {
+    // Rendered only when a caller supplies onExpand, so the overlay's own
+    // second instance of the chart cannot offer to expand itself again.
+    assert.match(chart, /onExpand\?: \(\) => void;/);
+    assert.match(chart, /\{onExpand\s*\n?\s*\?/);
+    // The visible text IS the accessible name — functional, no aria-label
+    // paraphrasing it, and no decorative glyph riding along (the mock's ↗ is
+    // decoration, m-mobile-v3.html:56).
+    assert.match(chart, />\s*Expand chart\s*</);
+    assert.doesNotMatch(chart, /↗/);
+    // Mobile-only, as a literal class Tailwind's build-time scanner can see,
+    // on the button itself rather than a wrapper.
+    const trigger = chart.match(
+      /<button\n\s*className="([^"]*)"\n\s*type="button"\n\s*onClick=\{onExpand\}/,
+    )?.[1] ?? "";
+    assert.ok(trigger.length > 0, "expected the expand trigger's classes");
+    assert.match(trigger, /\blg:hidden\b/);
+    // The kit's 44px tap floor, at the mock's own corner placement.
+    assert.match(trigger, /\bmin-h-11\b/);
+    assert.match(trigger, /absolute bottom-0 right-0/);
+  });
+
+  it("mounts a second MarketChart with the same data, setup and view key", () => {
+    // "the same MarketChart … with its level lines and theme reactivity": a
+    // second instance of the same component with the same props, never an
+    // attempt to move the mounted one into the overlay.
+    const expanded = stage.match(
+      /<ExpandedChartOverlay[\s\S]*?<\/ExpandedChartOverlay>/,
+    )?.[0] ?? "";
+    assert.ok(expanded.length > 0, "expected the overlay call site");
+    assert.match(expanded, /data=\{marketData\?\.points \?\? \[\]\}/);
+    assert.match(expanded, /loading=\{marketLoading\}/);
+    assert.match(expanded, /setup=\{setup\}/);
+    assert.match(expanded, /viewKey=\{`\$\{symbol\}:\$\{timeframe\}`\}/);
+    assert.match(expanded, /\bfill\b/);
+    // Both instances read one prop set: the inline chart's own props are the
+    // same four expressions, so the two can never show different data.
+    const inline = stage.match(/<MarketChart\n[\s\S]*?\/>/)?.[0] ?? "";
+    for (
+      const prop of [
+        "data={marketData?.points ?? []}",
+        "loading={marketLoading}",
+        "setup={setup}",
+        "viewKey={`${symbol}:${timeframe}`}",
+      ]
+    ) {
+      assert.ok(inline.includes(prop), `inline chart is missing ${prop}`);
+    }
+  });
+
+  it("is a real modal dialog: full-viewport on paper, aria-modal, named by the market", () => {
+    assert.match(overlay, /role="dialog"/);
+    assert.match(overlay, /aria-modal="true"/);
+    assert.match(overlay, /aria-labelledby=\{titleId\}/);
+    assert.match(overlay, /h-\[100dvh\] w-\[100dvw\]/);
+    assert.match(overlay, /\bbg-paper\b/);
+    // The market name is the visible title the label resolves to.
+    assert.match(overlay, /id=\{titleId\}[\s\S]{0,160}\{marketName\}/);
+    assert.match(stage, /marketName=\{scopeTriggerLabel\(/);
+  });
+
+  it("closes on Escape and on a close control at the kit's 44px floor", () => {
+    assert.match(overlay, /aria-label="Close"/);
+    assert.match(overlay, /min-h-11 min-w-11/);
+    assert.match(overlay, /event\.key === "Escape"/);
+    assert.match(overlay, /onClose\(\)/);
+  });
+
+  it("moves focus in on open, traps Tab inside, and restores it on close", () => {
+    // Focus goes to the close control on open (not merely to the container),
+    // Tab and Shift+Tab cycle within the dialog rather than escaping to the
+    // page behind it, and whatever had focus before gets it back on close.
+    assert.match(overlay, /closeRef\.current\?\.focus\(\)/);
+    assert.match(overlay, /"Tab"/);
+    assert.match(overlay, /shiftKey/);
+    // Both wrap directions exist, which is what makes it a cycle rather than a
+    // one-way stop. WHICH direction goes where is the next test's subject —
+    // these two substrings are equally happy when the pair is swapped, which is
+    // exactly the gap M2 recorded.
+    assert.match(overlay, /last\.focus\(\)/);
+    assert.match(overlay, /first\.focus\(\)/);
+    assert.match(overlay, /previouslyFocusedRef/);
+    assert.match(overlay, /restore[\s\S]{0,200}\.focus\(\)/);
+    // The direction lives in one exported decision, and the handler does what it
+    // says — so the test below is testing the real thing, not a parallel copy.
+    assert.match(overlay, /const target = focusTrapTarget\(\{/);
+    assert.match(overlay, /if \(target === "first"\) \{\s*first\.focus\(\);/);
+  });
+
+  // M2: the trap's direction, tested rather than source-matched. The handler
+  // reads the DOM (document.activeElement, the live focusable list), which this
+  // repo's jsdom-less unit stack cannot build — so the decision is an exported
+  // pure function and the DOM facts are its arguments, the same split
+  // ScopeMenu's keyboard reducer already uses. Inverting the two focus calls in
+  // the component now fails here instead of leaving the file green at 70/70.
+  it("wraps Tab off the last control to the first, and Shift+Tab off the first to the last", () => {
+    // Tab, forwards: only the last control wraps; every other position is the
+    // browser's own business.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: false,
+      }),
+      "first",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: false,
+        shiftKey: false,
+      }),
+      null,
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: true,
+        activeIsLast: false,
+        shiftKey: false,
+      }),
+      null,
+    );
+
+    // Shift+Tab, backwards: the first control wraps to the last.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: false,
+        shiftKey: true,
+      }),
+      "last",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: true,
+      }),
+      null,
+    );
+
+    // Focus that is no longer in the dialog at all — a click on the page behind
+    // it, or a control the chart's own overlays just unmounted — is pulled back
+    // in on the next Shift+Tab rather than continuing out into the page.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: false,
+        activeIsLast: false,
+        shiftKey: true,
+      }),
+      "last",
+    );
+
+    // A single-control dialog is both ends at once, and still cycles both ways.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: false,
+      }),
+      "first",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: true,
+      }),
+      "last",
+    );
+  });
+
+  it("locks body scroll while open and restores the prior value, not a hardcoded one", () => {
+    assert.match(overlay, /document\.body\.style\.overflow = "hidden"/);
+    assert.match(overlay, /previousOverflow/);
+  });
+
+  it("takes the mock's compact inline height below lg and leaves ≥lg exactly as it rendered", () => {
+    // m-scan-v3.html:28 — 168px, the height the merged mobile surface pins this
+    // chart at inside its fixed viewport (m-mobile-v3's 170px is superseded).
+    // The ≥lg values are the same two the sm:/xl: pair produced before (500px at
+    // lg, 560px at xl), now expressed as lg:/xl: so the max-lg rule owns
+    // everything below the breakpoint outright rather than depending on which of
+    // two equal-specificity media queries wins.
+    assert.match(chart, /max-lg:h-\[168px\]/);
+    assert.doesNotMatch(chart, /h-\[170px\]/);
+    assert.match(chart, /lg:h-\[500px\]/);
+    assert.match(chart, /xl:h-\[560px\]/);
+    assert.doesNotMatch(chart, /sm:h-\[500px\]/);
+    assert.doesNotMatch(chart, /h-\[390px\]/);
+    // The overlay's instance fills its own container instead.
+    assert.match(chart, /fill\s*\n?\s*\? "h-full w-full"/);
+  });
+});
+
 describe("Desk chart composition — the kill list is absent (spec §16)", () => {
   it("draws no metric strip inside the chart frame — Entry/Stop/Target/Payoff belong to the ladder", () => {
     // a-desk-v3.html:195-197 draws nothing between the chart and the attached
@@ -425,15 +729,17 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
   const rail = readFileSync(RAIL, "utf8");
 
   it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
-    // The eyebrow's own ≥lg treatment is unchanged; fix wave 2C appended
-    // `max-lg:sr-only` because m-scan-v1.html draws no eyebrow on the mobile
-    // tab (the bottom tab bar already names that surface) — clipped, not
-    // removed, so the heading survives in the accessibility tree there.
+    // The eyebrow is unchanged and un-prefixed again: spec §17e made this rail
+    // the ≥lg composition alone, so the `max-lg:sr-only` that hid it on the old
+    // mobile Scan tab described a rendering that no longer happens. Its absence
+    // is asserted alongside, so a mobile treatment cannot drift back into a
+    // desktop-only component.
     assert.match(
       rail,
-      /uppercase tracking-normal text-ink-muted max-lg:sr-only">\s*Scan\s*</,
+      /uppercase tracking-normal text-ink-muted">\s*Scan\s*</,
     );
     assert.match(rail, /Scan now/);
+    assert.doesNotMatch(rail, /max-lg:sr-only/);
   });
 
   it("keeps the scope menu and the server-truth count line, mono and unboxed", () => {
@@ -478,12 +784,64 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
     assert.doesNotMatch(unselectedClasses, /shadow-\[inset/);
   });
 
-  it("closes with the approved footnote, verbatim", () => {
-    assert.ok(
-      rail.includes(
-        "Every setup Levelflow generates is saved to Insights automatically.",
-      ),
+  // Spec §17c (owner live-QA, binding): the mock's closing footnote is
+  // SUPERSEDED — "the two narration lines are DELETED. The empty rail is the
+  // controls, quietly stark." The presence guard this replaces is inverted
+  // rather than deleted, so the sentence cannot return by anyone re-reading
+  // a-desk-v3.html:158 as still authoritative.
+  it("closes with no footnote at all — §17c deleted the mock's closing line", () => {
+    assert.doesNotMatch(
+      rail,
+      /Every setup Levelflow generates is saved to Insights automatically\./,
     );
+    assert.doesNotMatch(rail, /RAIL_FOOTNOTE/);
+  });
+});
+
+// Spec §17e's merged mobile Scan surface fires the same scan from its own
+// control row and reads the same scope to decide what that click means, so the
+// scope, its symbol list, and the result rows all have to be one thing shared
+// by two compositions rather than two of each. These guards pin the ownership,
+// not the markup: a second copy of any of them is how the desktop rail and the
+// mobile surface would start disagreeing about what "Crypto" currently scans.
+describe("scan scope ownership — one state, one derivation, two surfaces (§17e)", () => {
+  const rail = readFileSync(RAIL, "utf8");
+
+  it("keeps the scope in AdvisorWorkspace, and leaves the rail with no state of its own", () => {
+    assert.match(
+      stage,
+      /const \[scope, setScope\] = useState<ScanScope>\(\{ kind: "all" \}\);/,
+    );
+    assert.doesNotMatch(rail, /useState/);
+  });
+
+  it("derives the availability-filtered scan list exactly once in src/, in the stage that owns the scope", () => {
+    // Call sites, not the declaration — marketScanFilters.ts is where the
+    // helper lives, and the claim here is about who invokes it.
+    const derivations = allSourceFiles("src").filter((file) =>
+      /(?<!function )filterSymbolsByAvailability\(/.test(
+        readFileSync(file, "utf8"),
+      )
+    );
+    assert.deepEqual(derivations, [STAGE]);
+    // …and the rail scans whatever that one derivation produced.
+    assert.match(rail, /openScanSymbols: SupportedSymbol\[\];/);
+    assert.match(rail, /onClick=\{\(\) => onScan\(openScanSymbols\)\}/);
+    assert.match(stage, /openScanSymbols=\{openScanSymbols\}/);
+  });
+
+  it("routes every scope change through the stage's one handler, which resets the stale result and follows a single market", () => {
+    assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}onSelect=\{onSelectScope\}/);
+    assert.match(stage, /onSelectScope=\{selectScope\}/);
+    assert.match(
+      stage,
+      /function selectScope\(nextScope: ScanScope\) \{\s*setScope\(nextScope\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*if \(nextScope\.kind === "symbol"\) \{\s*selectSymbolForReview\(nextScope\.symbol\);/,
+    );
+  });
+
+  it("exports the count line + result rows as one component both surfaces render", () => {
+    assert.match(rail, /export function MarketScanResults\(\{/);
+    assert.match(rail, /<MarketScanResults\n/);
   });
 });
 
@@ -508,12 +866,22 @@ describe("scan rail composition — the kill list is absent (spec §16)", () => 
     assert.doesNotMatch(rail, /rounded-lg border border-hairline bg-paper/);
   });
 
-  it("carries no empty-state illustration box — the empty state is one muted line", () => {
+  it("carries no empty-state illustration box, and no empty-state sentence either (§17c)", () => {
     assert.doesNotMatch(rail, /\bSearch\b/);
+    // §17c deletes the narration line the un-scanned rail used to carry, so
+    // the muted paragraph now renders only when there is something real to
+    // report — a failed scan, a filtered-out result set, or a scan in flight.
+    // `emptyMessage` is null before the first scan, and the render is gated on
+    // it, so nothing at all is drawn there.
+    assert.doesNotMatch(
+      rail,
+      /Scan every active market to find the strongest current limit setups\./,
+    );
     assert.match(
       rail,
-      /<p className="mt-2 text-sm leading-6 text-ink-muted">\s*\{status === "scanning" \? "Checking active markets\." : emptyMessage\}/,
+      /<p className="mt-2 text-sm leading-6 text-ink-muted">\s*\{emptyMessage\}/,
     );
+    assert.match(rail, /: emptyMessage\s*\?/);
   });
 
   it("drops the per-row rank badge, metric grid, level preview and rationale bullets", () => {
@@ -564,9 +932,45 @@ describe("Current trades rail composition — the mock's elements are present (a
     // heading text sits inside that row container) is unchanged.
     assert.match(
       tradesRail,
-      /className="flex flex-wrap items-baseline justify-between gap-2"[\s\S]{0,400}Current trades/,
+      /className="flex flex-wrap items-baseline justify-between gap-2 lg:min-h-11 lg:items-center"[\s\S]{0,400}Current trades/,
     );
     assert.match(tradesRail, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+  });
+
+  // Spec §17c (owner live-QA, binding): "the rail's first line must share the
+  // same top offset/baseline rhythm as the SCAN eyebrow and the stagehead — no
+  // thin unfinished margin, and no added busy-ness: alignment, not
+  // decoration."
+  //
+  // Measured on the built CSS at 1440x900 before the fix: the header is 69px
+  // tall, the page wrapper adds sm:pt-5, so all three Desk columns begin at
+  // y=89. The scan rail's first line is 44px tall because .primary-button
+  // carries the kit's 44px floor, which put its SCAN eyebrow's 16px line at
+  // y=103; the trades rail's first line was 16px tall, putting CURRENT TRADES
+  // at y=89 — 14px above both neighbours, hard against the tinted column's top
+  // edge. Giving this row the same 44px and centring its content lands the
+  // eyebrow at y=103 exactly, and its cards then start within 2px of where the
+  // scan rail's scope select does.
+  //
+  // Both halves are pinned because either alone is inert: the min-height with
+  // baseline alignment leaves the eyebrow at the top of the taller row, and
+  // centring inside a 16px row centres nothing.
+  it("shares the scan rail's 44px first-line rhythm at ≥lg — the two eyebrows sit on one baseline (§17c)", () => {
+    const head = tradesRail.match(
+      /<div className="(flex flex-wrap items-baseline[^"]*)">/,
+    )?.[1] ?? "";
+    assert.ok(head.length > 0, "expected to find the trades rail's head row");
+    assert.match(head, /\blg:min-h-11\b/);
+    assert.match(head, /\blg:items-center\b/);
+    // The number is shared, not copied: the scan rail's own first line is 44px
+    // because .primary-button sits in it. If that button ever leaves that row,
+    // this pairing stops describing anything and the guard says so.
+    assert.match(
+      readFileSync(RAIL, "utf8"),
+      /className="flex flex-wrap items-baseline justify-between gap-2[^"]*"[\s\S]{0,1800}className="primary-button/,
+    );
+    // Alignment only: no fill, no border, no rule joins the row.
+    assert.doesNotMatch(head, /\bborder\b|\bbg-|\bshadow-|\brounded/);
   });
 
   it("keeps the position card as the one frame the mock draws: hairline border on sheet at .pos's 12/14 padding", () => {

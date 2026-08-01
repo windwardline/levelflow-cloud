@@ -3,18 +3,33 @@ import { appConfig } from "../../lib/env";
 
 type DonationOptionsProps = {
   fallbackHref: string;
+  // Two live call sites, two shapes: the Donate page gives the options a
+  // two-column grid and lists what each platform is for; the sign-in screen's
+  // disclosure has one narrow column and no room for the descriptions
+  // (AuthScreen.tsx). Nothing else varies between them any more.
   mode?: "compact" | "panel";
 };
 
+// The donation options and nothing else. Two things left this component in
+// wave 5, both of them chrome it had no business owning:
+//
+// - the sentence it used to open with, which said what the Donate page's own
+//   "What donations support · App costs" section says a few lines later, so the
+//   page said it twice (spec §17f). It still renders on the sign-in screen,
+//   where there is no such section and it is the only thing that says what a
+//   donation pays for — at that call site now, verbatim.
+// - the compact wrapper's divider rule, which was the sign-in panel's own idiom
+//   (and its own off-palette border colour) drawn from inside a shared
+//   component. It moved to that call site too, where it sits beside the two
+//   identical dividers it was always trying to match.
 export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOptionsProps) {
   const links = appConfig.donationLinks;
   const compact = mode === "compact";
 
   return (
-    <div className={compact ? "border-t border-ink-muted/15 pt-4" : ""}>
-      <p className="text-sm leading-6 text-ink-muted">Donations support market data, email, hosting, and development.</p>
+    <>
       {links.length > 0 ? (
-        <div className={`mt-4 grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
+        <div className={`grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
           {links.map((link) => (
             <a key={link.label} className="secondary-button justify-between" href={link.url} target="_blank" rel="noopener noreferrer">
               <span className="flex min-w-0 items-center gap-2">
@@ -26,7 +41,7 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
           ))}
         </div>
       ) : (
-        <a className="primary-button mt-4" href={fallbackHref}>
+        <a className="primary-button" href={fallbackHref}>
           <Gift className="h-4 w-4" aria-hidden="true" />
           Request donation link
         </a>
@@ -40,6 +55,6 @@ export function DonationOptions({ fallbackHref, mode = "panel" }: DonationOption
           ))}
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

@@ -10,13 +10,14 @@ import {
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer.ts";
 
 describe("outcome copy — plain target vocabulary", () => {
-  it("labels the partial-target outcome around the first target, not TP1", () => {
-    assert.equal(OUTCOME_COPY.partial_target.label, "First target reached");
-    assert.equal(
-      OUTCOME_COPY.partial_target.filterLabel,
-      "First target reached",
-    );
-    assert.equal(OUTCOME_COPY.partial_target.shortLabel, "Target 1");
+  // §17d re-derives every OUTCOME_COPY label from the canonical result words,
+  // so this bucket now reads the same "Banked half" the ledger renders rather
+  // than a second phrasing of it. The original point of this test stands: not
+  // TP1, and not a first/second-target restatement of the ladder.
+  it("labels the partial-target outcome as the banked half, not TP1 (§17d)", () => {
+    assert.equal(OUTCOME_COPY.partial_target.label, "Banked half");
+    assert.equal(OUTCOME_COPY.partial_target.filterLabel, "Banked half");
+    assert.equal(OUTCOME_COPY.partial_target.shortLabel, "Banked half");
   });
 
   it("describes the partial-target outcome in first/second-target language", () => {
@@ -55,6 +56,9 @@ describe("classifyWinLoss — single source of truth for the ladder's win/loss s
     "still_tracking",
     "unclear_path",
     "entry_not_filled",
+    // A manual close records where the position ended but not which level it
+    // was heading for, so it belongs on neither side of a win/loss ratio.
+    "closed_manually",
   ];
 
   for (const outcome of wins) {
@@ -186,22 +190,22 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Open · +0.8R");
   });
 
-  it("target_reached reads Target 2, bare when no realizedR is recorded", () => {
+  it("target_reached reads Banked full, bare when no realizedR is recorded (§17d)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Target 2");
+    assert.equal(formatInsightsResult(setup, NOW), "Banked full");
   });
 
-  it("target_reached carries its realizedR, exactly per spec's example", () => {
+  it("target_reached carries its realizedR (§17d: Banked full replaces the old result label)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
         buildOutcome({ feedback: { realizedR: 2.1 }, outcome: "take_profit" }),
       ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Target 2 · +2.1R");
+    assert.equal(formatInsightsResult(setup, NOW), "Banked full · +2.1R");
   });
 
   it("partial_target (tp1_partial) reads Banked half with its realizedR, exactly per spec's example", () => {
@@ -232,7 +236,7 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Stopped");
   });
 
-  it("expired_in_profit reads Expired with its positive realizedR", () => {
+  it("expired_in_profit reads one-word Expired, the R saying where it stood (§17d)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
@@ -245,7 +249,7 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Expired · +0.3R");
   });
 
-  it("expired_in_loss reads Expired with its negative realizedR", () => {
+  it("expired_in_loss reads the same one-word Expired, the R saying where it stood (§17d)", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [
@@ -258,39 +262,83 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     assert.equal(formatInsightsResult(setup, NOW), "Expired · −0.5R");
   });
 
-  it("unclear_path (ambiguous) reads Needs review", () => {
+  // Controller ruling (wave-4 dispatch, disclose-at-re-present): "Needs review"
+  // collided with the Review verb the stage's one action carries — a result that
+  // reads like an instruction. One word, and it says exactly what the bucket
+  // means: the chart cannot tell which level came first.
+  it("unclear_path (ambiguous) reads Unclear — one word, no collision with the Review action", () => {
     const setup = buildSetup({
       status: "filled",
       trade_outcomes: [buildOutcome({ outcome: "ambiguous" })],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Needs review");
+    assert.equal(formatInsightsResult(setup, NOW), "Unclear");
   });
 
-  it('entry_not_filled on a scan-origin setup reads "Not taken", never "Unfilled"', () => {
+  // Controller ruling, the two enum values §17d had no word for. Both are
+  // unreachable today — the engine writes neither; they exist in
+  // supabase/init.sql's enum — so this completes the table rather than changing
+  // any rendered row.
+  it("breakeven reads Banked half — a stop moved to entry is only ever post-TP1", () => {
     const setup = buildSetup({
-      origin: "scan",
-      status: "expired",
-      trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
+      status: "filled",
+      trade_outcomes: [
+        buildOutcome({ feedback: { realizedR: 0.5 }, outcome: "breakeven" }),
+      ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Not taken");
+    assert.equal(formatInsightsResult(setup, NOW), "Banked half · +0.5R");
   });
 
-  it('entry_not_filled on a review-origin setup reads "Unfilled", never "Not taken"', () => {
-    const setup = buildSetup({
-      origin: "review",
-      status: "expired",
-      trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
+  it("manual_close reads Closed, with its R when one was recorded", () => {
+    const closedWithR = buildSetup({
+      status: "filled",
+      trade_outcomes: [
+        buildOutcome({ feedback: { realizedR: -0.2 }, outcome: "manual_close" }),
+      ],
     });
-    assert.equal(formatInsightsResult(setup, NOW), "Unfilled");
+    assert.equal(formatInsightsResult(closedWithR, NOW), "Closed · −0.2R");
+    const closedWithoutR = buildSetup({
+      status: "filled",
+      trade_outcomes: [buildOutcome({ outcome: "manual_close" })],
+    });
+    assert.equal(formatInsightsResult(closedWithoutR, NOW), "Closed");
   });
 
-  it('treats a missing origin the same as review-origin ("Unfilled"), never crashing or reading "Not taken"', () => {
-    const setup = buildSetup({
-      origin: undefined,
-      status: "expired",
-      trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
-    });
-    assert.equal(formatInsightsResult(setup, NOW), "Unfilled");
+  // Spec §17: "Insights result 'Not taken' is dead. entry_not_filled reads
+  // 'Unfilled' for every origin — a market fact (price never reached the
+  // entry inside the window), never a claim about what the user did. The
+  // label logic reads no origin." The three-way loop is the whole ruling: one
+  // word, whatever the row's provenance, including a row that carries none.
+  it('entry_not_filled reads "Unfilled" for every origin (spec §17)', () => {
+    for (const origin of ["scan", "review", undefined] as const) {
+      const setup = buildSetup({
+        origin,
+        status: "expired",
+        trade_outcomes: [buildOutcome({ outcome: "unfilled" })],
+      });
+      assert.equal(
+        formatInsightsResult(setup, NOW),
+        "Unfilled",
+        `origin ${String(origin)} must not change the label`,
+      );
+    }
+  });
+
+  it("reads no origin at all when labelling a result (spec §17)", () => {
+    // The absence direction, at the source: the ruling is not "both origins
+    // happen to produce the same string today" but "the label logic reads no
+    // origin". `origin` survives elsewhere in the app (tradeState.ts keeps an
+    // unfilled scan row off the trades rail) — this pins that Insights'
+    // labelling is no longer one of its readers.
+    const source = readFileSync(
+      "src/components/workspace/historyUtils.ts",
+      "utf8",
+    );
+    const formatter = source.match(
+      /export function formatInsightsResult[\s\S]*?\n}\n/,
+    )?.[0] ?? "";
+    assert.ok(formatter.length > 0, "expected to find formatInsightsResult");
+    assert.doesNotMatch(formatter, /\borigin\b/);
+    assert.doesNotMatch(source, /Not taken/);
   });
 
   it("never renders the raw origin value anywhere in the label (owner ruling: no origin in the UI)", () => {
@@ -306,8 +354,183 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
     }
   });
 
-  it("falls back to the plain outcome label for a closed setup with no outcome row (data anomaly), instead of throwing", () => {
+  // §17b: an unresolved row reads the lifecycle word the state machine
+  // actually reports, never "Still tracking". A row with no outcome row at all
+  // has no fill evidence, so it reads Pending — the same word the trades rail
+  // gives an order that is placed and waiting.
+  it("labels an unresolved row with no outcome row Pending, not a tracking word (§17b)", () => {
     const setup = buildSetup({ status: "cancelled", trade_outcomes: undefined });
-    assert.equal(formatInsightsResult(setup, NOW), OUTCOME_COPY.still_tracking.label);
+    assert.equal(formatInsightsResult(setup, NOW), "Pending");
+  });
+
+  it("labels an unresolved row whose entry has filled Open, with its R when measured (§17b)", () => {
+    // status "filled" carrying the literal outcome "pending" is a data anomaly
+    // (a resolved status with an unresolved outcome) — the honest word for it is
+    // the state its fill evidence supports, not a tracking word. This case used
+    // outcome "breakeven" until the controller gave that enum its own word;
+    // "pending" is now the only outcome still reaching this branch.
+    const setup = buildSetup({
+      status: "filled",
+      trade_outcomes: [
+        buildOutcome({ feedback: { realizedR: 0.2 }, outcome: "pending" }),
+      ],
+    });
+    assert.equal(formatInsightsResult(setup, NOW), "Open · +0.2R");
+  });
+});
+
+// §17b (owner ruling, 2026-07-31) established one lifecycle vocabulary on
+// every surface; §17d fixed the words themselves, owner-approved verbatim, and
+// supersedes §17b's table: Pending / Open · ±R / Unfilled / Banked half · +R /
+// Banked full · +R / Stopped · −R / Expired · ±R. The tracking phrase and its
+// short form stay banned. This is the both-directions guard for the Result
+// column: every reachable row produces a word from that set, and no
+// combination of status and outcome can produce a banned one.
+describe("§17d — the Insights Result column speaks one canonical vocabulary", () => {
+  // The completed table: §17d's owner-approved seven, plus the two words the
+  // controller ruled on in wave 4 to finish it (disclose-at-re-present).
+  const LIFECYCLE_WORDS = [
+    // §17d's canonical seven, owner-approved verbatim, in its own order.
+    "Pending",
+    "Open",
+    "Unfilled",
+    "Banked half",
+    "Banked full",
+    "Stopped",
+    "Expired",
+    // Eighth: unclear_path is the engine's own "the available chart cannot
+    // confirm whether stop or target came first" bucket. None of the seven is
+    // true of such a row, and the alternatives are to claim an outcome the data
+    // does not support or to render an empty cell. It read "Needs review" until
+    // wave 4 — a result phrased as an instruction, colliding with the stage's
+    // own Review action — and is now one word for one fact.
+    "Unclear",
+    // Ninth, and unreachable: the engine writes no manual_close today, but the
+    // enum has the value and a result column must have a word for every value
+    // it can be handed. "Closed" claims nothing about direction; the R beside
+    // it, when one was recorded, says where the position ended.
+    "Closed",
+  ];
+  const STATUSES = [
+    "generated",
+    "placed",
+    "filled",
+    "invalidated",
+    "cancelled",
+    "expired",
+  ];
+  const OUTCOMES = [
+    "pending",
+    "unfilled",
+    "take_profit",
+    "stop_loss",
+    "breakeven",
+    "manual_close",
+    "expired",
+    "ambiguous",
+    "tp1_partial",
+    "expired_in_profit",
+    "expired_at_loss",
+  ];
+
+  it("produces only lifecycle words across every status × outcome × origin combination", () => {
+    for (const status of STATUSES) {
+      for (const outcome of OUTCOMES) {
+        for (const origin of ["review", "scan", undefined] as const) {
+          for (const withRow of [true, false]) {
+            const setup = buildSetup({
+              origin,
+              status,
+              trade_outcomes: withRow
+                ? [buildOutcome({ feedback: { realizedR: 1.5 }, outcome })]
+                : undefined,
+            });
+            const label = formatInsightsResult(setup, NOW);
+            const word = label.split(" · ")[0];
+            assert.ok(
+              LIFECYCLE_WORDS.includes(word),
+              `${status}/${outcome}/${String(origin)} produced "${label}"`,
+            );
+            assert.doesNotMatch(label, /still tracking/i);
+            assert.doesNotMatch(label, /\btracking\b/i);
+            assert.doesNotMatch(label, /Not taken/);
+          }
+        }
+      }
+    }
+  });
+
+  it("keeps the banned words out of every OUTCOME_COPY field", () => {
+    for (const [outcome, copy] of Object.entries(OUTCOME_COPY)) {
+      for (const [field, value] of Object.entries(copy)) {
+        assert.doesNotMatch(
+          value,
+          /still tracking/i,
+          `${outcome}.${field}: "${value}"`,
+        );
+        assert.doesNotMatch(
+          value,
+          /^\s*Tracking\s*$/,
+          `${outcome}.${field}: "${value}"`,
+        );
+      }
+    }
+  });
+
+  it("reads the unresolved bucket's filter option as Pending & open — existing vocabulary only", () => {
+    assert.equal(OUTCOME_COPY.still_tracking.filterLabel, "Pending & open");
+    assert.equal(OUTCOME_COPY.still_tracking.label, "Pending & open");
+    assert.equal(OUTCOME_COPY.still_tracking.shortLabel, "Pending & open");
+    // The description prose may stay, aligned to the same two words.
+    assert.match(OUTCOME_COPY.still_tracking.description, /still pending or open/);
+  });
+
+  // The completed table, in one place: every label, filter option and short form
+  // is one of the nine words, and each bucket's three agree. This is what makes
+  // the vocabulary a table rather than nine independent strings — and it is the
+  // guard that catches a tenth word before anyone reads it in production.
+  it("renders one of the nine words in every label field, and never the retired wording", () => {
+    const allowed = new Set([...LIFECYCLE_WORDS, "Pending & open"]);
+    for (const [outcome, copy] of Object.entries(OUTCOME_COPY)) {
+      for (const field of ["filterLabel", "label", "shortLabel"] as const) {
+        assert.ok(
+          allowed.has(copy[field]),
+          `${outcome}.${field} is "${copy[field]}", which is not in the table`,
+        );
+      }
+      // A bucket's three label forms are one word wearing three hats; a short
+      // form that abbreviates differently is how "Review" came to sit under
+      // "Needs review" in the first place.
+      assert.equal(copy.label, copy.filterLabel, outcome);
+      assert.equal(copy.label, copy.shortLabel, outcome);
+      for (const [field, value] of Object.entries(copy)) {
+        assert.doesNotMatch(
+          value,
+          /needs review/i,
+          `${outcome}.${field}: "${value}"`,
+        );
+      }
+    }
+  });
+
+  it("gives every engine outcome enum value a word — none falls through to the unresolved bucket", () => {
+    // The enum lives in supabase/init.sql and is mirrored in tradeState.ts's
+    // RESOLVED_OUTCOMES. Every resolved value must normalize onto a resolved
+    // bucket: before wave 4, `breakeven` and `manual_close` fell through to the
+    // unresolved one, so a closed row would have read as still open.
+    const resolved = OUTCOMES.filter((outcome) => outcome !== "pending");
+    for (const outcome of resolved) {
+      const setup = buildSetup({
+        status: "filled",
+        trade_outcomes: [buildOutcome({ outcome })],
+      });
+      const label = formatInsightsResult(setup, NOW);
+      assert.notEqual(
+        label,
+        "Open",
+        `${outcome} must not read as an open position`,
+      );
+      assert.notEqual(label, "Pending", `${outcome} must not read as pending`);
+    }
   });
 });

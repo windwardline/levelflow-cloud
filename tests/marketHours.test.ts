@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatReopen, marketAvailability } from "../src/lib/marketHours";
+import {
+  formatCompactDateTime,
+  formatReopen,
+  marketAvailability,
+} from "../src/lib/marketHours";
 import { getUpcomingWeeklyCloseTime } from "../supabase/functions/trade-analyzer/replay.ts";
 
 // A known week in America/New_York, comfortably inside EDT (UTC-4) so every
@@ -192,6 +196,43 @@ describe("reopen time formatting", () => {
   it("renders a compact, lowercase-meridiem, day-qualified shape", () => {
     const shape = formatReopen(FRIDAY_AT_CLOSE_ET, FRIDAY_BEFORE_CLOSE_ET);
     assert.match(shape, /^\d{1,2}:\d{2}[ap] [A-Za-z]{3}$/);
+  });
+});
+
+// Spec §17: the Desk's confidence meta stamp ("Reviewed JUL 31 2:05P · valid
+// until JUL 31 10:05P") matches the scope menu's availability grammar,
+// extended with the date — and shares its time formatting with the menu's
+// OPENS lines "so the two can never drift". That sharing is the reason this
+// formatter lives in marketHours beside formatReopen rather than beside its
+// caller, so the tests for both sit together too.
+describe("compact date-time stamp (spec §17)", () => {
+  const MOMENT = new Date("2026-07-31T18:05:00.000Z");
+
+  it("assembles the month-day and the menu's own time piece, in caps", () => {
+    assert.equal(
+      formatCompactDateTime(MOMENT),
+      `${localMonthDay(MOMENT)} ${localCompactTime(MOMENT)}`.toUpperCase(),
+    );
+  });
+
+  it("renders the exact §17 grammar: {MMM} {D} {h}:{mm}{A|P}", () => {
+    assert.match(formatCompactDateTime(MOMENT), /^[A-Z]{3} \d{1,2} \d{1,2}:\d{2}[AP]$/);
+  });
+
+  it("keeps the time piece byte-identical to the one formatReopen prints", () => {
+    // The anti-drift assertion, made against the real output of both: whatever
+    // formatReopen puts before its day label is exactly what this stamp puts
+    // after its date, casing aside.
+    const reopenTime = formatReopen(MOMENT, MOMENT).split(" ")[0];
+    const stampTime = formatCompactDateTime(MOMENT).split(" ")[2];
+    assert.equal(stampTime, reopenTime.toUpperCase());
+  });
+
+  it("pads minutes but never the day or the hour", () => {
+    // 9:05am local on the 3rd of a month, built from local parts so the
+    // assertion holds in any machine timezone.
+    const early = new Date(2026, 7, 3, 9, 5);
+    assert.match(formatCompactDateTime(early), /^[A-Z]{3} 3 9:05A$/);
   });
 });
 

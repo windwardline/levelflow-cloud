@@ -7,7 +7,7 @@ import {
   clampConfidencePercent,
   formatConfidenceValue,
 } from "../src/components/workspace/ConfidenceUnit";
-import { formatTimestamp } from "../src/components/workspace/advisorFormat";
+import { formatCompactDateTime } from "../src/lib/marketHours";
 import { formatScanRowMeta } from "../src/components/workspace/marketScanFilters";
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../src/lib/advisorReview";
 import type { SecurityType } from "../src/lib/symbolMap";
@@ -108,17 +108,43 @@ describe("buildConfidenceNote", () => {
 
 // Spec §16 folds the killed VALID UNTIL metric card's datum into the
 // confidence unit's own meta line. Both halves are optional: a scan-selected
-// candidate has no review stamp until Review market runs, and a setup without
+// candidate has no review stamp until Review runs, and a setup without
 // an expiry has no window to print.
 describe("buildConfidenceMeta", () => {
   const REVIEWED = "2026-07-31T14:05:00.000Z";
   const EXPIRES = "2026-07-31T18:05:00.000Z";
-  const shown = (value: string) => formatTimestamp(value);
+  // The stamp's own formatter, imported rather than reconstructed: spec §17
+  // requires this line to share its time grammar with the scope menu's OPENS
+  // lines, and reading it from marketHours is what proves the two are one
+  // implementation instead of two that happen to agree today.
+  const shown = (value: string) => formatCompactDateTime(new Date(value));
 
   it("renders both stamps as one line, review first", () => {
     assert.equal(
       buildConfidenceMeta(REVIEWED, EXPIRES),
       `Reviewed ${shown(REVIEWED)} · valid until ${shown(EXPIRES)}`,
+    );
+  });
+
+  // Spec §17, the grammar itself: `{MMM} {D} {h}:{mm}{A|P}` — three-letter
+  // month in caps, 1-2 digit day, minutes always two digits, a single capital
+  // meridiem letter with NO space before it ("Reviewed JUL 31 2:05P · valid
+  // until JUL 31 10:05P"). Pinned as a regex over the whole assembled line so
+  // a drift in any single piece — a padded day, a lowercase meridiem, a space
+  // before it, a four-digit year creeping in — fails here.
+  it("matches spec §17's stamp grammar exactly, both halves", () => {
+    const STAMP = String.raw`[A-Z]{3} \d{1,2} \d{1,2}:\d{2}[AP]`;
+    assert.match(
+      buildConfidenceMeta(REVIEWED, EXPIRES),
+      new RegExp(`^Reviewed ${STAMP} · valid until ${STAMP}$`),
+    );
+    assert.match(
+      buildConfidenceMeta(REVIEWED, null),
+      new RegExp(`^Reviewed ${STAMP}$`),
+    );
+    assert.match(
+      buildConfidenceMeta(null, EXPIRES),
+      new RegExp(`^Valid until ${STAMP}$`),
     );
   });
 
@@ -135,6 +161,25 @@ describe("buildConfidenceMeta", () => {
 
   it("returns an empty string when there is nothing to stamp, so no line renders at all", () => {
     assert.equal(buildConfidenceMeta(null, null), "");
+  });
+
+  // A stamp is a claim about a moment. An unparseable timestamp has no moment
+  // to name, so the half drops out exactly like an absent one rather than
+  // printing a placeholder ("Reviewed Awaiting refresh") where a real date
+  // belongs — which is what the old formatTimestamp path did here.
+  it("drops an unparseable timestamp instead of stamping a placeholder", () => {
+    assert.equal(buildConfidenceMeta("not-a-date", EXPIRES), `Valid until ${shown(EXPIRES)}`);
+    assert.equal(buildConfidenceMeta(REVIEWED, "not-a-date"), `Reviewed ${shown(REVIEWED)}`);
+    assert.equal(buildConfidenceMeta("not-a-date", "not-a-date"), "");
+  });
+
+  it("shares one formatter with the scope menu's OPENS lines, never its own Intl call", () => {
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /import \{ formatCompactDateTime \} from "\.\.\/\.\.\/lib\/marketHours";/,
+    );
+    assert.doesNotMatch(CONFIDENCE_UNIT_SOURCE, /Intl\.DateTimeFormat/);
+    assert.doesNotMatch(CONFIDENCE_UNIT_SOURCE, /formatTimestamp/);
   });
 });
 

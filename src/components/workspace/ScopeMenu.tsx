@@ -20,6 +20,11 @@ import {
   marketAvailability,
   type MarketAvailability,
 } from "../../lib/marketHours";
+import {
+  isMobileViewportWidth,
+  MOBILE_BREAKPOINT_PX,
+  useIsMobileViewport,
+} from "../../hooks/useMobileViewport";
 
 export type ScanScope =
   | { kind: "all" }
@@ -247,44 +252,19 @@ export function showsAffordance(row: ScopeMenuRow, symbolOnly: boolean): boolean
 // component itself rather than as a prop each of today's two call sites
 // would otherwise need to compute and thread through identically.
 //
-// 1024 mirrors --breakpoint-lg (src/styles/index.css) exactly rather than
-// introducing a second number that could drift from it. This is a plain
-// pixel comparison, not a rem media query, so it can't fall prey to the bug
-// that made index.css's breakpoints pixel-pinned in the first place (rem
-// breakpoints resolve against the browser's font-size setting); a
-// `min-width: 1024px` match here always agrees with Tailwind's own
-// `lg:`-generated media query.
-export const MOBILE_SHEET_BREAKPOINT_PX = 1024;
+// The sheet breakpoint is the app's one mobile breakpoint, not a second
+// number of this component's own: both live in src/hooks/useMobileViewport.ts
+// now that the Desk's merged mobile surface needs the same answer (spec §17e).
+// Re-exported under this name because it is what the menu's own contract has
+// always been called — one value, two names, and no way for them to drift.
+export const MOBILE_SHEET_BREAKPOINT_PX = MOBILE_BREAKPOINT_PX;
 
 // Floor for the anchored popup under a "heading" trigger — see the style
 // prop on the popup below for why only that variant needs one.
 const HEADING_MENU_MIN_WIDTH_PX = 288;
 
 export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
-  return viewportWidthPx < MOBILE_SHEET_BREAKPOINT_PX;
-}
-
-function useScopeMenuSheetMode(): boolean {
-  const [sheet, setSheet] = useState(() =>
-    typeof window === "undefined"
-      ? false
-      : shouldUseSheetLayout(window.innerWidth)
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const query = window.matchMedia(
-      `(min-width: ${MOBILE_SHEET_BREAKPOINT_PX}px)`,
-    );
-    const onChange = () => setSheet(!query.matches);
-    onChange();
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-  }, []);
-
-  return sheet;
+  return isMobileViewportWidth(viewportWidthPx);
 }
 
 export type ScopeMenuProps = {
@@ -342,7 +322,7 @@ export function ScopeMenu(
   }: ScopeMenuProps,
 ) {
   const baseId = useId();
-  const sheet = useScopeMenuSheetMode();
+  const sheet = useIsMobileViewport();
   const [open, setOpen] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [position, setPosition] = useState<
@@ -559,8 +539,16 @@ export function ScopeMenu(
         // the matching negative block margin pulls the extra height back out
         // of the flow, so the heading's optics are untouched — the same trick
         // .tertiary-link and .cpv-copy use in index.css.
+        //
+        // Spec §17: "the stagehead must never truncate the market name." The
+        // heading trigger is shrink-0 (was min-w-0) so it cannot be squeezed
+        // below the name it carries: both flex rows it sits inside wrap
+        // (AdvisorWorkspace's stagehead), so a wide name pushes the chart-view
+        // control and the action button onto a second row instead of clipping
+        // the name. min-w-0 stays on the field variant, where the 264px scan
+        // rail genuinely has to clip the full descriptive label.
         className={variant === "heading"
-          ? "-my-1.5 flex min-h-11 min-w-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
+          ? "-my-1.5 flex min-h-11 shrink-0 items-center gap-2 border-none bg-transparent p-0 text-left font-display text-2xl font-bold text-ink"
           : "field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"}
         id={baseId}
         type="button"
@@ -572,7 +560,12 @@ export function ScopeMenu(
           }
         }}
       >
-        <span id={`${baseId}-value`} className="truncate">
+        <span
+          id={`${baseId}-value`}
+          className={variant === "heading"
+            ? "whitespace-nowrap"
+            : "truncate"}
+        >
           {scopeTriggerLabel(value, variant)}
         </span>
         <ChevronDown

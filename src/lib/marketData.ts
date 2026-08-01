@@ -1,13 +1,22 @@
 import type { SupportedSymbol } from "./symbolMap";
 import { supabase } from "./supabase";
 
+// Labels are the compact timeframe codes, universally (spec §17: "Timeframes
+// are two characters — 1H, 4H, 1D … every surface that names a timeframe").
+// This is the one list every such surface reads — advisorFormat's TIMEFRAMES
+// re-exports it and the Desk's chart-view select renders these labels
+// directly — so the codes cannot differ from one control to the next. Same
+// grammar the engine already speaks internally (advisorReview.ts's
+// ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"]): the interval's digits plus
+// its unit's initial, which makes fifteen minutes "15M" — three characters
+// because the number has two digits, not because the grammar changes.
 export const CHART_TIMEFRAME_OPTIONS = [
-  { label: "1 minute", value: "1min" },
-  { label: "5 minutes", value: "5min" },
-  { label: "15 minutes", value: "15min" },
-  { label: "1 hour", value: "1hour" },
-  { label: "4 hours", value: "4hour" },
-  { label: "Daily", value: "1day" },
+  { label: "1M", value: "1min" },
+  { label: "5M", value: "5min" },
+  { label: "15M", value: "15min" },
+  { label: "1H", value: "1hour" },
+  { label: "4H", value: "4hour" },
+  { label: "1D", value: "1day" },
 ] as const;
 
 export type ChartTimeframe = typeof CHART_TIMEFRAME_OPTIONS[number]["value"];

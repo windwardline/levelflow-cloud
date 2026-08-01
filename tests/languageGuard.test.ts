@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 const ROOTS = [
+  // Non-recursive per root, so the app-chrome files that sit directly in
+  // src/components (AppFooter.tsx, spec §17c) need this entry of their own —
+  // without it a new surface could land there unscanned.
+  "src/components",
   "src/components/workspace",
   "src/components/charts",
   "src/components/donations",
@@ -28,6 +32,20 @@ const BANNED = [
   // Spec §8: trade-state language is TradeLocker-aligned — "pending",
   // never "resting" — for every order that's placed but not yet filled.
   /\bresting\b/i,
+  // Spec §17b: one lifecycle vocabulary — Pending -> Open (· ±R) -> Unfilled /
+  // Banked half / Target 2 / Stopped / Expired in profit / Expired at loss.
+  // "Still tracking" was a seventh word for two states that already had names,
+  // and its short form was the label "Tracking".
+  /\bstill tracking\b/i,
+  // Anchored to a whole literal on purpose: this bans the standalone LABEL
+  // "Tracking", not the word inside prose, and above all not Tailwind's
+  // tracking-* utilities, which appear in className literals on nearly every
+  // surface in this app.
+  /^\s*Tracking\s*$/,
+  // Spec §17c: the Insights below-table blurb is deleted, and this phrase from
+  // it "dies app-wide with it". A result is a market fact; no copy anywhere
+  // frames the record as a claim about what the user did or did not take.
+  /\btaken or not\b/i,
 ];
 
 // Files whose plain-language rewrite lands in a later task. Each stayed
@@ -111,6 +129,40 @@ describe("plain language on working surfaces", () => {
       }
     });
   }
+});
+
+// Spec §17c kills one phrase app-wide rather than on one surface, and the
+// scan above cannot enforce that on its own: it reads string literals only,
+// while the sentence that carried this phrase was JSX text. So this scans the
+// raw source of every file under src/ — literals, JSX text, and comments
+// alike — which is exactly the reach "dies app-wide" asks for. The phrase is
+// also in BANNED above, so a future *literal* fails on both guards.
+describe("§17c — the record never frames a result as a claim about the user", () => {
+  function sourceFilesUnder(root: string): string[] {
+    return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(root, entry.name);
+      if (entry.isDirectory()) {
+        return sourceFilesUnder(path);
+      }
+      return entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")
+        ? [path]
+        : [];
+    });
+  }
+
+  it('never says "taken or not" anywhere in src/, in any form', () => {
+    for (const file of sourceFilesUnder("src")) {
+      // Whitespace-collapsed: JSX wraps prose across lines freely, and the
+      // sentence this kills was itself broken mid-phrase ("taken or\n not."),
+      // which a raw scan would sail straight past.
+      const collapsed = readFileSync(file, "utf8").replace(/\s+/g, " ");
+      assert.doesNotMatch(
+        collapsed,
+        /\btaken or not\b/i,
+        `${file} carries the phrase spec §17c deleted app-wide`,
+      );
+    }
+  });
 });
 
 // Spec §7's two-target instruction is verbatim and load-bearing: the exact

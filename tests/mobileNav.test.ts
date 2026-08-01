@@ -2,10 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
-  deskColumnClassName,
-  type DeskMobileView,
-} from "../src/components/workspace/AdvisorWorkspace";
-import {
   buildTradeCards,
   currentTradeBadgeCount,
 } from "../src/components/workspace/CurrentTradesRail";
@@ -144,86 +140,93 @@ describe("currentTradeBadgeCount (App.tsx, spec §3: Trades tab badge)", () => {
   });
 });
 
-describe("deskColumnClassName (AdvisorWorkspace.tsx mobile gating)", () => {
-  const VIEWS: DeskMobileView[] = ["review", "scan", "trades"];
+describe("the Desk's two compositions (spec §17e — m-scan-v3 below lg, a-desk-v3 at ≥lg)", () => {
+  it("chooses one of them in JavaScript, so only one is ever in the DOM", () => {
+    // Not a CSS toggle: the merged surface pins a control row, a market head
+    // and the chart above ONE scrolling region, which is a pair of wrapper
+    // boxes no reordering of the desktop DOM produces. Rendering one keeps a
+    // single "Scan scope" trigger, one chart canvas, and one accessible name
+    // per control at every width.
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /const isMobile = useIsMobileViewport\(\);/,
+    );
+    assert.match(ADVISOR_WORKSPACE_SOURCE, /\n  if \(isMobile\) \{/);
+    // The retired CSS gate is gone in both directions: no helper, and no
+    // hidden/lg:<display> pair standing in for one.
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /deskColumnClassName/);
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /"hidden lg:/);
+  });
 
-  it("shows the base display utility, unhidden, when its own view is active on mobile", () => {
-    for (const view of VIEWS) {
-      const className = deskColumnClassName(true, "flex", "extra-classes");
-      assert.match(className, /(?:^|\s)flex(?:\s|$)/);
-      assert.doesNotMatch(className, /(?:^|\s)hidden(?:\s|$)/);
-      void view; // display/base behavior doesn't vary by which view this is
+  it("leaves the ≥lg three columns exactly as they render — the mobile gating removed and nothing else", () => {
+    // Each column's class list is today's, minus the base display utility that
+    // used to hide it below lg. Every lg: token is untouched, which is what
+    // makes the built CSS's ≥lg media block identical.
+    for (
+      const columnClasses of [
+        "scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4",
+        "scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
+        "scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-[color-mix(in_srgb,var(--color-sheet)_55%,var(--color-paper))] lg:pl-4 lg:pr-4",
+      ]
+    ) {
+      assert.ok(
+        ADVISOR_WORKSPACE_SOURCE.includes(`className="${columnClasses}"`),
+        `expected the Desk column: ${columnClasses}`,
+      );
     }
-  });
-
-  it("hides the column (base 'hidden') when a different view is active on mobile", () => {
-    const className = deskColumnClassName(false, "flex", "extra-classes");
-    assert.match(className, /(?:^|\s)hidden(?:\s|$)/);
-  });
-
-  it("always carries lg:<display>, regardless of the mobile active state — desktop is frozen", () => {
-    assert.match(
-      deskColumnClassName(true, "block", "x"),
-      /(?:^|\s)lg:block(?:\s|$)/,
-    );
-    assert.match(
-      deskColumnClassName(false, "block", "x"),
-      /(?:^|\s)lg:block(?:\s|$)/,
-    );
-    assert.match(
-      deskColumnClassName(true, "flex", "x"),
-      /(?:^|\s)lg:flex(?:\s|$)/,
-    );
-    assert.match(
-      deskColumnClassName(false, "flex", "x"),
-      /(?:^|\s)lg:flex(?:\s|$)/,
-    );
-  });
-
-  it("keeps the caller's own className intact verbatim, appended after the gating classes", () => {
-    const className = deskColumnClassName(
-      true,
-      "block",
-      "scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
-    );
-    assert.ok(
-      className.endsWith(
-        "scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",
-      ),
-    );
-  });
-
-  it("the three real Desk columns each call it with their own view and base classes intact", () => {
-    // The rails carry the mock's column hairlines (a-desk-v3.html:18,:56 —
-    // railL border-right, railR border-left) at >=lg only; the borders and
-    // their breathing padding are lg:-prefixed so the mobile single-column
-    // views stay edge-to-edge. railR also carries the mock's tint and its
-    // 16px inset (:56) — the column is the Current trades frame now, so the
-    // tint has to live here rather than on a panel inside it.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /deskColumnClassName\(\s*mobileView === "scan",\s*"block",\s*"scrolly min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4",\s*\)/,
+      /className="grid min-w-0 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-\[264px_minmax\(0,1fr\)_300px\] lg:grid-rows-\[minmax\(0,1fr\)\] lg:overflow-hidden"/,
+    );
+  });
+
+  it("keeps both mobile surfaces mounted and toggles them by display, so flipping to Trades never tears the chart down", () => {
+    // I2's premise, preserved through the merge: the state that matters
+    // (symbol, scanResult, analysisState, the chart canvas) lives across a tab
+    // flip because neither surface unmounts.
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /className=\{mobileView === "scan"\n\s*\? "flex min-h-0 flex-1 flex-col"\n\s*: "hidden"\}/,
     );
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /deskColumnClassName\(\s*mobileView === "review",\s*"flex",\s*"scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1",\s*\)/,
+      /className=\{mobileView === "trades" \? "min-w-0" : "hidden"\}/,
     );
+  });
+
+  it("has exactly two mobile views, and no trace of the retired third", () => {
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /deskColumnClassName\(\s*mobileView === "trades",\s*"flex",\s*"scrolly min-w-0 flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-\[color-mix\(in_srgb,var\(--color-sheet\)_55%,var\(--color-paper\)\)\] lg:pl-4 lg:pr-4",\s*\)/,
+      /export type DeskMobileView = "scan" \| "trades";/,
     );
+    // Code, not prose: the comment that explains what "review" used to be is
+    // documentation of a removal, which is exactly what a reader of this file
+    // needs. What must not survive is a live reference, so the scan is of the
+    // source with its comments stripped.
+    for (const source of [ADVISOR_WORKSPACE_SOURCE, APP_SOURCE]) {
+      assert.doesNotMatch(withoutComments(source), /"review"/);
+    }
   });
 });
 
 describe("App.tsx mobile tab bar + header (source-pinned — see header comment)", () => {
-  it("lists exactly Review, Scan, Trades, Insights, in that order", () => {
+  it("lists exactly Scan, Trades, Insights, in that order — three tabs (spec §17e)", () => {
     const block = APP_SOURCE.match(/const MOBILE_TAB_ITEMS:[\s\S]*?\n\];/)?.[0];
     assert.ok(block, "expected to find MOBILE_TAB_ITEMS");
     const labels = Array.from(
       block.matchAll(/label:\s*"([^"]+)"/g),
       (match) => match[1],
     );
-    assert.deepEqual(labels, ["Review", "Scan", "Trades", "Insights"]);
+    assert.deepEqual(labels, ["Scan", "Trades", "Insights"]);
+    // The bar's own grid has to agree, or the fourth column stays as dead space
+    // where the Review tab used to be.
+    assert.match(APP_SOURCE, /className="mx-auto grid max-w-7xl grid-cols-3"/);
+    assert.match(
+      APP_SOURCE,
+      /type MobileTab = "scan" \| "trades" \| "insights";/,
+    );
+    // Its icon left with it.
+    assert.doesNotMatch(APP_SOURCE, /LineChart/);
   });
 
   it("renders the tab bar only below lg and pins it to the viewport bottom", () => {
@@ -299,32 +302,90 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
 
   // Fix wave 2B, FIX 4 (completeness-audit-2 Finding 6). The scrolling
   // content wrapper reserves pb-24 below lg specifically to clear the fixed
-  // MobileTabBar (>= 56px with its safe-area inset). The page-wide footer
-  // is a sibling that renders *after* that wrapper, so it needs the same
-  // clearance on its own — before this fix it carried only pb-8, and at
-  // full scroll on Insights/Guide/Donate the tab bar overlaid the trailing
-  // padding and the LegalLinks row immediately above it. lg:pb-8 keeps the
-  // >=lg value exactly what pb-8 rendered before (no fixed tab bar exists
-  // there to clear), so this is mobile-only clearance, not a desktop
-  // visual change.
-  it("gives the page footer pb-24 clearance below lg to escape the fixed tab bar, collapsing back to pb-8 at lg (F4 fix wave 2B)", () => {
-    const footerClassName = APP_SOURCE.match(
-      /<footer\s+className=\{`([^`]*)`\}/,
-    )?.[1] ?? "";
+  // MobileTabBar (>= 56px with its safe-area inset). The footer trails that
+  // wrapper, so at full scroll it is the last thing on the page and needs the
+  // identical reserve — with pb-8 alone the bar overlaid its link row.
+  //
+  // Spec §17c moved the footer itself into src/components/AppFooter.tsx (one
+  // footer for every surface; tests/appFooter.test.ts owns its composition).
+  // What stays here is the claim that belongs to the mobile tab bar: the two
+  // elements it can overlay reserve the same clearance, read from both sources
+  // rather than restated as a number.
+  it("gives the footer the same tab-bar clearance the content wrapper reserves (F4 fix wave 2B)", () => {
+    const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
+    const wrapperClassNames = APP_SOURCE.match(
+      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+    )?.[0] ?? "";
     assert.ok(
-      footerClassName.length > 0,
-      "expected to find the page footer's template-literal className",
+      wrapperClassNames.length > 0,
+      "expected to find the scrolling content wrapper's class branches",
     );
-    assert.match(footerClassName, /\bpb-24\b/);
-    assert.match(footerClassName, /\blg:pb-8\b/);
-    // The literal string carries both; the ${isDeskTab ? "lg:hidden" : ""}
-    // interpolation must still be the only dynamic piece — this must stay
-    // a real, statically-analyzable "lg:pb-8" token for Tailwind's
-    // build-time scanner (tailwindVariantGuard.test.ts's C1 concern), not
-    // reassembled at runtime.
-    assert.doesNotMatch(footerClassName, /lg:\$\{/);
+    for (const branch of wrapperClassNames.match(/"[^"]*"/g) ?? []) {
+      assert.match(branch, /\bpb-24\b/, `content wrapper branch ${branch}`);
+    }
+    assert.match(footerSource, /\bpb-24\b/);
+    // Real, statically-analyzable tokens for Tailwind's build-time scanner —
+    // never a variant prefix reassembled at runtime (C1).
+    assert.doesNotMatch(footerSource, /lg:\$\{/);
   });
 
+  // Reserving the clearance is not the same as keeping it. Both wrapper branches
+  // used to carry the sm: BLOCK-axis pad beside their `pb-24`, and a
+  // padding-block utility beats a padding-bottom one whenever Tailwind emits it
+  // later — which it does for a variant (measured in the built CSS: .pb-24 at
+  // ~30kB, the sm: block form at ~39kB). So from 640px to 1023px the reserve was
+  // 20px, not 96px, while the fixed bar was still mounted; only at lg — where the
+  // bar is gone and lg:pb-5 lands last — did the numbers agree again.
+  //
+  // (The utility is named by shape rather than spelled out here on purpose:
+  // Tailwind's scanner reads this file too, and a dead class in a comment is a
+  // dead rule in the bundle.)
+  //
+  // The rule this pins: below lg, nothing on these branches may touch the bottom
+  // axis except pb-24 itself. An sm: pad may exist (it does, on the top axis),
+  // but a block-axis one silently undoes the reserve, and the whole band is a
+  // width no unit test looks at.
+  it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
+    const wrapperClassNames = APP_SOURCE.match(
+      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+    )?.[0] ?? "";
+    assert.ok(
+      wrapperClassNames.length > 0,
+      "expected to find the scrolling content wrapper's class branches",
+    );
+    for (const branch of wrapperClassNames.match(/"[^"]*"/g) ?? []) {
+      // No sm:-scoped utility on the bottom axis, in either form.
+      assert.doesNotMatch(branch, /\bsm:py-/, `content wrapper branch ${branch}`);
+      assert.doesNotMatch(branch, /\bsm:pb-/, `content wrapper branch ${branch}`);
+      // The top pad the mock's rhythm needs is still there, on its own axis,
+      // and the bottom chain still reopens at lg where the bar is gone.
+      assert.match(branch, /\bsm:pt-5\b/, `content wrapper branch ${branch}`);
+      assert.match(branch, /\blg:pb-5\b/, `content wrapper branch ${branch}`);
+    }
+  });
+
+  it("wires every Donate affordance through the one existing tab switch (spec §17)", () => {
+    // No new nav system (spec §17): setActiveTab("donate") is exactly what the
+    // mobile account menu and Profile's Support card already fired. Counted,
+    // not merely matched, so a future copy of the action cannot quietly grow
+    // its own mechanism — the four call sites are §17's whole placement set
+    // minus the one that needs no callback: the mobile account menu,
+    // ProfilePanel, AppFooter's link row, and the Guide's Support section.
+    // The arrow form specifically, so a sentence naming this mechanism in a
+    // comment does not count itself into the total.
+    assert.equal(
+      (APP_SOURCE.match(/\(\) => setActiveTab\("donate"\)/g) ?? []).length,
+      4,
+    );
+    // Every surface that shows a support address takes the one shared mailto
+    // rather than rebuilding it: the account menu, Profile, the Guide, and the
+    // shared footer.
+    assert.equal(
+      (APP_SOURCE.match(/supportMailto=\{SUPPORT_MAILTO\}/g) ?? []).length,
+      4,
+    );
+    assert.match(APP_SOURCE, /<GuidePanel[\s\S]{0,300}onOpenDonate=/);
+  });
 });
 
 // Spec §16 (2026-07-31, binding): the first ship kept the old two-row
@@ -511,8 +572,9 @@ describe("App.tsx pre-auth loading splash (fix wave 2B, beyond-checklist #8)", (
   });
 });
 
-// I2: the mobile Trades sub-tab is a CSS-only toggle within the "advisor"
-// AppTab (deskColumnClassName above), never an AdvisorWorkspace remount, so
+// I2: the mobile Trades sub-tab is a display-only toggle within the "advisor"
+// AppTab (both mobile surfaces stay mounted), never an AdvisorWorkspace
+// remount, so
 // the pre-existing activeTab-only force-refresh effect never re-fires for
 // it on its own. Source-pinned for the same no-jsdom reason as the rest of
 // this file: no harness here fires the tab-bar clicks that would otherwise
@@ -533,39 +595,52 @@ describe("App.tsx mobile Trades force-refresh (source-pinned, I2)", () => {
   });
 });
 
-// I3: a jump to the Desk from elsewhere in the app (Insights' "Open X in
-// Advisor" row button, today's only nav.openAdvisor call site — see
-// tests/historyPanel.test.tsx) has to land mobile on "review", the sub-view
-// that actually shows the market it asked for — not whichever of Scan/
-// Trades happened to be selected before.
-describe("nav.openAdvisor also resets the mobile sub-view (source-pinned, I3)", () => {
-  it('sets deskMobileView("review") alongside the existing advisorRequest/activeTab side effects', () => {
+// I3, re-aimed by spec §17e: a jump to the Desk from elsewhere in the app
+// (Insights' "Open X in Advisor" row button, today's only nav.openAdvisor call
+// site — see tests/historyPanel.test.tsx) has to land mobile on the surface
+// that actually shows the market it asked for. That surface is "scan" now: the
+// merged surface's head, chart and ladder all follow the requested symbol.
+describe("nav.openAdvisor lands mobile on the merged Scan surface (source-pinned, I3)", () => {
+  it('sets deskMobileView("scan") alongside the existing advisorRequest/activeTab side effects', () => {
     assert.match(
       APP_SOURCE,
-      /openAdvisor: \(symbol\) => \{\s*setAdvisorRequest\(\{ symbol, token: Date\.now\(\) \}\);\s*setActiveTab\("advisor"\);\s*setDeskMobileView\("review"\);\s*\},/,
+      /openAdvisor: \(symbol\) => \{\s*setAdvisorRequest\(\{ symbol, token: Date\.now\(\) \}\);\s*setActiveTab\("advisor"\);\s*setDeskMobileView\("scan"\);\s*\},/,
+    );
+    // And the Desk opens there by default, rather than on a tab that no longer
+    // exists.
+    assert.match(
+      APP_SOURCE,
+      /useState<DeskMobileView>\("scan"\)/,
     );
   });
 });
 
-// I3's second half: selecting a scan candidate is a decisive "go look at
-// this" action, so it should carry the same mobile-view reset — threaded
-// down as a callback prop rather than lifted into WorkspaceNav, since it's
-// entirely internal to one AdvisorWorkspace instance's own columns.
-describe("AdvisorWorkspace threads onMobileViewChange to the scan-row selection (source-pinned, I3)", () => {
-  it("declares onMobileViewChange in its props and App.tsx wires it straight to setDeskMobileView", () => {
-    assert.match(
-      ADVISOR_WORKSPACE_SOURCE,
-      /onMobileViewChange: \(view: DeskMobileView\) => void;/,
-    );
-    assert.match(APP_SOURCE, /onMobileViewChange=\{setDeskMobileView\}/);
+// I3's second half is retired by the merge: tapping a scan row used to have to
+// switch tabs, because the chart it selected lived on a different one. On the
+// merged surface the chart is directly above the list, so the row selection
+// stays put and instead returns the reader to the top of the one scrolling
+// region. The prop that carried the old jump is gone from both files.
+describe("selecting a scan row no longer switches surfaces (source-pinned, §17e)", () => {
+  it("carries no onMobileViewChange prop in either file", () => {
+    for (const source of [ADVISOR_WORKSPACE_SOURCE, APP_SOURCE]) {
+      assert.doesNotMatch(source, /onMobileViewChange/);
+    }
   });
 
-  it('onSelectCandidate calls onMobileViewChange("review") alongside selectSymbolForReview, so tapping a scan row on mobile switches to the review column', () => {
-    const onSelectCandidateBlock = ADVISOR_WORKSPACE_SOURCE.match(
-      /onSelectCandidate=\{\(candidate\) => \{[\s\S]*?\n {10}\}\}/,
+  it("shares one candidate handler across both platforms, which scrolls the merged region home", () => {
+    const handler = ADVISOR_WORKSPACE_SOURCE.match(
+      /function selectCandidate\(candidate: MarketScanCandidate\) \{[\s\S]*?\n  \}/,
     )?.[0] ?? "";
-    assert.match(onSelectCandidateBlock, /selectSymbolForReview\(candidate\.symbol\);/);
-    assert.match(onSelectCandidateBlock, /onMobileViewChange\("review"\);/);
+    assert.ok(handler.length > 0, "expected to find selectCandidate");
+    assert.match(handler, /selectSymbolForReview\(candidate\.symbol\);/);
+    assert.match(handler, /mobileScrollRef\.current\?\.scrollTo\(\{ top: 0 \}\);/);
+    // Both surfaces hand the same function to the same prop — the rail at ≥lg
+    // and the merged results list below it.
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/onSelectCandidate=\{selectCandidate\}/g) ?? [])
+        .length,
+      2,
+    );
   });
 
   it("CurrentTradesRail receives isActiveOnMobile so it can re-stamp its own freshness on the same transition (I2)", () => {
@@ -679,94 +754,138 @@ const SCAN_RAIL_SOURCE = readFileSync(
 // Every mobile-only utility in these files must be a real `max-lg:` token
 // (or sit on an element the mocks introduce for mobile alone), so the
 // desktop rules Tailwind generates are byte-identical to before this wave.
+// Comments are prose about the code, and several of these files deliberately
+// name what they no longer render. Where a guard's subject is a live reference,
+// it reads the source without them.
+function withoutComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
 function mobileOnlyClasses(source: string): string[] {
   return Array.from(source.matchAll(/\bmax-lg:[^\s"'`{}]+/g), (m) => m[0]);
 }
 
-describe("mobile scan tab interiors (m-scan-v1.html, fix wave 2C)", () => {
-  it("puts the scope pill and Scan now side by side on one row below lg, with the eyebrow undrawn there (m-scan-v1.html:39-42)", () => {
-    // One container holds all three now. At >=lg it reproduces the old
-    // header row exactly — flex-wrap + the scope wrapper taking the second
-    // line, its 8px row gap standing in for the header row's old mb-2 — so
-    // a-desk-v3.html:88's eyebrow-opposite-Scan-now geometry is unchanged.
-    assert.match(
-      SCAN_RAIL_SOURCE,
-      /className="flex flex-wrap items-baseline justify-between gap-2 max-lg:flex-nowrap max-lg:items-center max-lg:gap-2\.5"/,
-    );
-    // The mock draws no "Scan" eyebrow on the mobile tab — the bottom tab bar
-    // already names the surface. Clipped rather than display:none, the same
-    // reasoning ScopeMenu.tsx documents for its own suppressed caption: the
-    // heading stays in the accessibility tree, so mobile keeps a landmark for
-    // a surface that draws none.
-    assert.match(
-      SCAN_RAIL_SOURCE,
-      /className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:sr-only"/,
-    );
-    // Scope first, Scan now second — the mock's own reading order below lg,
-    // and `order-last` is what floats the wrapper onto row two at >=lg.
-    assert.match(
-      SCAN_RAIL_SOURCE,
-      /className="order-last w-full min-w-0 max-lg:order-none max-lg:w-auto max-lg:flex-1"[\s\S]{0,200}<ScopeMenu/,
-    );
-    // Nowrap below lg means the button has to hold its width against the
-    // flex-1 scope pill; at >=lg the row has slack and never shrank it, so
-    // the floor is mobile-only rather than a new unconditional utility.
-    assert.match(SCAN_RAIL_SOURCE, /max-lg:shrink-0[\s\S]{0,400}Scan now/);
+// Wave 5 (spec §17e): the merged mobile Scan surface, m-scan-v3.html, is the
+// mobile Desk. It supersedes both m-scan-v1's separate Scan tab and
+// m-mobile-v3's separate Review tab, so this block pins its interior in both
+// directions the way §16's review discipline demands: the mock's pinned/scroll
+// split, its one verb, its head cluster — and the absence of the two-tab
+// structure it replaced.
+describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", () => {
+  const surface = ADVISOR_WORKSPACE_SOURCE.match(
+    /data-testid="mobile-scan-surface"[\s\S]*?data-testid="mobile-scan-scroll"[\s\S]*?\n {8}<\/div>/,
+  )?.[0] ?? "";
+
+  it("extracted a non-empty block — a refactor that breaks this regex must fail loudly here, not silently pass every check below against an empty string", () => {
+    assert.ok(surface.length > 0, "expected to find the merged Scan surface");
   });
 
-  it("renders each result as the mock's inset card below lg, flat hairline rows at >=lg (m-scan-v1.html:17-20)", () => {
-    const branches = SCAN_RAIL_SOURCE.match(
-      /className=\{selected\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
-    );
-    assert.ok(branches, "expected to find the row's selected/unselected classes");
-    const [, selectedClasses, unselectedClasses] = branches;
-    for (const classes of [selectedClasses, unselectedClasses]) {
-      // `.mkt`: 8px radius, a full hairline border and the sheet fill, at
-      // the mock's 13/14 padding. The base `border-b` is what keeps >=lg's
-      // flush rows, so the card's other three sides are added, never
-      // swapped.
-      assert.match(classes, /max-lg:rounded-lg/);
-      assert.match(classes, /max-lg:border\b/);
-      assert.match(classes, /max-lg:px-3\.5/);
-      assert.match(classes, /max-lg:py-3/);
-    }
-    // `.mkt.sel` adds only the accent edge — the sheet fill is on every
-    // card below lg, but at >=lg it stays the selected row's own signal.
-    assert.match(selectedClasses, /(?:^|\s)bg-sheet(?:\s|$)/);
-    assert.match(unselectedClasses, /max-lg:bg-sheet/);
-    assert.doesNotMatch(unselectedClasses, /(?:^|\s)bg-sheet(?:\s|$)/);
+  it("pins the controls, the head and the chart, and scrolls exactly one region under them", () => {
+    // m-scan-v3.html:9,29,32: the surface is a fixed flex column; the pinned
+    // block does not shrink, and the scroll region is the only thing in the app
+    // below lg that scrolls on this surface.
+    assert.match(surface, /className="shrink-0 px-4 pt-3"/);
     assert.match(
-      selectedClasses,
-      /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/,
+      surface,
+      /className="scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24"/,
     );
-    assert.doesNotMatch(unselectedClasses, /shadow-\[inset/);
+    // The chart is pinned (inside the shrink-0 block), the ladder and the
+    // results are not.
+    const pinned = surface.slice(0, surface.indexOf("mobile-scan-scroll"));
+    assert.match(pinned, /<MarketChart/);
+    assert.match(pinned, /<ScopeMenu/);
+    assert.doesNotMatch(pinned, /<RecommendationPanel/);
+    assert.doesNotMatch(pinned, /<MarketScanResults/);
+    // …and exactly one scroller: no nested overflow inside the region.
+    assert.equal((surface.match(/overflow-y-auto/g) ?? []).length, 1);
   });
 
-  it("stacks the cards down the page below lg instead of inside the rail's 404px scroller (m-scan-v1.html:45-49)", () => {
-    // The 404px cap and its own scroll area are the >=lg rail's geometry
-    // (a-desk-v3.html:21) — kept exactly, and lifted below lg where the
-    // page itself scrolls and the footnote follows the last card.
+  it("carries the fixed tab bar's own clearance on the scrolling region, since this surface has no footer to carry it", () => {
+    assert.match(surface, /overflow-y-auto px-4 pb-24/);
+    // App.tsx's fixed branch contributes no padding of its own — the surface
+    // owns its gutters (m-scan-v3.html:29,32).
     assert.match(
-      SCAN_RAIL_SOURCE,
-      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto max-lg:grid max-lg:max-h-none max-lg:gap-2 max-lg:overflow-visible"/,
+      APP_SOURCE,
+      /className=\{isFixedMobileDesk[\s\S]{0,400}\? "flex w-full min-h-0 flex-col overflow-hidden"/,
+    );
+    assert.match(
+      APP_SOURCE,
+      /return "grid h-\[100dvh\] grid-rows-\[auto_1fr\] overflow-hidden bg-paper text-ink";/,
     );
   });
 
-  it("takes the mock's 15px symbol below lg without disturbing the e2e row selector", () => {
-    // tests/e2e/authenticated-workspace.spec.ts locates scanned symbols by
-    // `span.truncate.font-bold.text-ink` — those three survive verbatim.
+  it("offers one verb: the scope decides whether Scan reviews one market or scans many", () => {
+    // Both paths are the functions the ≥lg Desk's own two actions call —
+    // generateTradeSetup via analyze(), scanMarketOpportunities via
+    // scanMarkets() — so no behavior contract is re-implemented for mobile.
     assert.match(
-      SCAN_RAIL_SOURCE,
-      /className="block truncate text-sm font-bold text-ink max-lg:text-\[15px\]"/,
+      ADVISOR_WORKSPACE_SOURCE,
+      /const scopeActionIsReview = scope\.kind === "symbol";/,
+    );
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /async function runScopeAction\(\) \{\s*if \(scopeActionIsReview\) \{\s*await analyze\(\);\s*return;\s*\}\s*await scanMarkets\(openScanSymbols\);/,
+    );
+    // One button, the mock's own label, wired to that one handler.
+    assert.match(surface, /onClick=\{runScopeAction\}[\s\S]{0,400}\n\s*Scan\n/);
+    assert.equal((surface.match(/className="primary-button/g) ?? []).length, 1);
+    // Each path keeps its own disabled rule rather than a merged one: a review
+    // waits on the chart load it refreshes, a scan cannot run with nothing open.
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /const scopeActionDisabled = scopeActionIsReview\s*\? analyzerStatus === "analyzing" \|\| marketLoading\s*: scanStatus === "scanning" \|\| openScanSymbols\.length === 0;/,
+    );
+    assert.match(surface, /disabled=\{scopeActionDisabled\}/);
+  });
+
+  it("draws the head as market · side tag · compact confidence, with §17's stamp on its own line", () => {
+    // m-scan-v3.html:81-85. The market name is a label at the mock's 19px
+    // display scale, not a second picker — the scope menu above is the picker.
+    assert.match(
+      surface,
+      /<h2 className="min-w-0 truncate font-display text-\[19px\] font-bold tracking-\[-0\.02em\] text-ink">/,
+    );
+    // A heading element, because the scan rail's "Scan" eyebrow — this surface's
+    // only landmark before the merge, and clipped rather than removed for that
+    // reason — is ≥lg-only now.
+    assert.match(surface, /<\/h2>/);
+    assert.match(surface, /\{setup\.side === "buy" \? "Buy" : "Sell"\} limit/);
+    assert.match(surface, /<ConfidenceUnit\s+assetType=\{selectedAsset\.assetType\}\s+compact/);
+    // The stamp comes from the same builder the ≥lg unit uses, so the two
+    // grammars cannot drift (spec §17).
+    assert.match(
+      ADVISOR_WORKSPACE_SOURCE,
+      /const confidenceMeta = setup\s*\? buildConfidenceMeta\(reviewedAt, setup\.expiresAt \?\? null\)/,
+    );
+    assert.match(surface, /\{confidenceMeta\}/);
+  });
+
+  it("keeps the Expand chart affordance on this surface, one overlay shared by both compositions", () => {
+    assert.match(surface, /onExpand=\{\(\) => setChartExpanded\(true\)\}/);
+    // Built once, rendered by both branches — never a second copy of the
+    // overlay's JSX.
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/<ExpandedChartOverlay/g) ?? []).length,
+      1,
+    );
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/\{chartOverlay\}/g) ?? []).length,
+      2,
     );
   });
 
-  it("keeps every mobile treatment inside a real max-lg: token, so the >=lg cascade is untouched by construction", () => {
-    assert.ok(
-      mobileOnlyClasses(SCAN_RAIL_SOURCE).length > 0,
-      "expected the scan rail to carry mobile-only utilities",
+  it("shares the chart-view control with the ≥lg stagehead rather than declaring a second select", () => {
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/aria-label="Chart view"/g) ?? []).length,
+      1,
     );
-    assert.doesNotMatch(SCAN_RAIL_SOURCE, /max-lg:\$\{/);
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/<ChartViewSelect/g) ?? []).length,
+      2,
+    );
+    assert.match(surface, /<ChartViewSelect/);
   });
 });
 
@@ -779,43 +898,37 @@ const RECEIPT_SOURCE = readFileSync(
   "utf8",
 );
 
-describe("mobile review tab interiors (m-mobile-v3.html, fix wave 2C)", () => {
-  it("renders each ladder value as the mock's .copy card below lg (m-mobile-v3.html:25,70-73)", () => {
+describe("the merged mobile Scan surface's ladder rows (m-scan-v3.html:34-37)", () => {
+  it("renders each ladder value as one line — label, mono value, Copy — not the card m-mobile-v3 drew", () => {
     const row = LADDER_SOURCE.match(
       /className="flex min-h-11 min-w-0 items-baseline[^"]*"/,
     )?.[0] ?? "";
     assert.ok(row.length > 0, "expected to find the copy row's className");
-    // 8px radius, hairline border on sheet at 13/14 padding. The card's
-    // other three sides are added to the base `border-b`, and `last:border-b`
-    // is re-asserted below lg because the un-prefixed `last:border-b-0` that
-    // keeps >=lg's final row flush outranks a plain border utility on
-    // specificity.
-    assert.match(row, /max-lg:rounded-lg/);
-    assert.match(row, /max-lg:border\b/);
-    assert.match(row, /max-lg:bg-sheet/);
-    assert.match(row, /max-lg:px-3\.5/);
-    assert.match(row, /max-lg:py-3/);
+    // The mock's `.copy`: a three-column grid at a 10px gap, hairline-separated,
+    // at its own 2px inset inside the region's 16px gutter.
+    assert.match(row, /max-lg:grid\b/);
+    assert.match(row, /max-lg:grid-cols-\[1fr_auto_auto\]/);
+    assert.match(row, /max-lg:gap-x-2\.5/);
+    assert.match(row, /max-lg:px-0\.5/);
     assert.match(row, /max-lg:last:border-b\b/);
-    // The mock stacks the label over its value with the button opposite; at
-    // >=lg the label sits opposite value+button on one baseline. Same DOM,
-    // reached by letting the value/button wrapper dissolve below lg.
-    assert.match(row, /max-lg:flex-wrap/);
+    // The card treatment is gone in both directions.
+    assert.doesNotMatch(row, /max-lg:rounded-lg/);
+    assert.doesNotMatch(row, /max-lg:bg-sheet/);
+    assert.doesNotMatch(row, /max-lg:flex-wrap/);
+    // The value/button wrapper still dissolves so both become cells of that
+    // grid, which is how one DOM serves both platforms.
     assert.match(
       LADDER_SOURCE,
       /className="flex min-w-0 items-baseline gap-1 max-lg:contents"/,
     );
-    assert.match(
-      LADDER_SOURCE,
-      /uppercase tracking-normal text-ink-muted max-lg:w-full"/,
-    );
-    assert.match(LADDER_SOURCE, /className="grid max-lg:gap-2"/);
+    // The mock's type: a 10px letterspaced label and a 15.5px mono value.
+    assert.match(LADDER_SOURCE, /max-lg:text-\[10px\] max-lg:tracking-\[0\.07em\]/);
+    assert.match(LADDER_SOURCE, /max-lg:text-\[15\.5px\]/);
+    // Hairline-separated rows, so no gap between them below lg either.
+    assert.match(LADDER_SOURCE, /className="grid">/);
   });
 
-  it("labels the copy button below lg and keeps the icon-only >=lg affordance (m-mobile-v3.html:28-29)", () => {
-    // `.cp`: a 1.5px accent-bordered button reading "⧉ Copy", flipping to the
-    // buy tone and "✓ Copied". Both branches keep .cpv-copy as their base, so
-    // the >=lg icon button — including its 44px target and negative margin —
-    // is the same control it always was.
+  it("labels the copy button below lg at the mock's quiet .cbtn treatment, keeping the icon-only ≥lg affordance", () => {
     const branches = LADDER_SOURCE.match(
       /className=\{copied\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
     );
@@ -825,15 +938,20 @@ describe("mobile review tab interiors (m-mobile-v3.html, fix wave 2C)", () => {
       assert.match(classes, /^cpv-copy\b/);
       assert.match(classes, /max-lg:m-0/);
       assert.match(classes, /max-lg:rounded-md/);
-      assert.match(classes, /max-lg:border-\[1\.5px\]/);
-      assert.match(classes, /max-lg:px-3/);
+      assert.match(classes, /max-lg:border max-lg:border-hairline/);
+      assert.match(classes, /max-lg:bg-sheet/);
+      assert.match(classes, /max-lg:text-\[11\.5px\]/);
+      // m-scan-v3.html:37 draws a hairline button, not the accent-bordered one
+      // m-mobile-v3 drew.
+      assert.doesNotMatch(classes, /max-lg:border-\[1\.5px\]/);
+      assert.doesNotMatch(classes, /max-lg:border-accent/);
     }
-    assert.match(copiedClasses, /max-lg:border-buy/);
+    // Only the copied state takes the buy tone; idle inherits .cpv-copy's muted.
     assert.match(copiedClasses, /max-lg:text-buy/);
-    assert.match(idleClasses, /max-lg:border-accent/);
-    assert.match(idleClasses, /max-lg:text-accent/);
-    // The word is functional labeling, mobile-only, and never displaces the
-    // aria-label every copy test locates these buttons by.
+    assert.doesNotMatch(idleClasses, /max-lg:text-buy/);
+    // Wave-2C's clipboard behavior is untouched: the word is functional
+    // labeling, mobile-only, and never displaces the aria-label every copy test
+    // locates these buttons by.
     assert.match(
       LADDER_SOURCE,
       /<span className="lg:hidden">\s*\{copied \? "Copied" : "Copy"\}\s*<\/span>/,
@@ -844,11 +962,22 @@ describe("mobile review tab interiors (m-mobile-v3.html, fix wave 2C)", () => {
     );
   });
 
-  it("condenses the why panel to one summary line plus a Why disclosure below lg (m-mobile-v3.html:75)", () => {
-    // The summary is the Market row's character and the Record row's
-    // numbers — the same two sentences the rows carry, in the mock's own
-    // order. No new copy is written for it, and a category with no honest
-    // datum contributes nothing rather than an em dash mid-sentence.
+  it("flattens the sheet's own padding below lg — on the merged surface there is no sheet to pad inside of", () => {
+    // Every state of the panel: the ladder column, the why column, and the
+    // three single-column states. At ≥lg they keep the mock's 20px inset.
+    assert.equal((LADDER_SOURCE.match(/px-5 py-4/g) ?? []).length, 5);
+    // The lookahead matters: the copy row's own 2px inset is `max-lg:px-0.5`,
+    // which a \b-terminated pattern would count as a sixth flattened container.
+    assert.equal(
+      (LADDER_SOURCE.match(/max-lg:px-0(?![.\d])/g) ?? []).length,
+      5,
+    );
+  });
+
+  it("condenses the why panel to one summary line plus a Why disclosure below lg (m-scan-v3.html:38)", () => {
+    // Unchanged from wave 2C: the summary is the Market row's character and the
+    // Record row's numbers — the same two sentences the rows carry, in the
+    // mock's own order. No new copy is written for it.
     assert.match(RECEIPT_SOURCE, /const WHY_SUMMARY_LABELS = \["Market", "Record"\];/);
     assert.match(
       RECEIPT_SOURCE,
@@ -860,31 +989,79 @@ describe("mobile review tab interiors (m-mobile-v3.html, fix wave 2C)", () => {
     assert.match(RECEIPT_SOURCE, /aria-controls=\{rowsId\}/);
   });
 
-  it("keeps the mock's five rows as the >=lg rendering, hidden below lg only while the disclosure is closed", () => {
-    // a-desk-v3.html:205-212 draws all five rows on the Desk, so the >=lg
-    // branch is `grid` either way — the disclosure state can only ever
-    // subtract below lg.
+  it("keeps the mock's five rows as the ≥lg rendering, hidden below lg only while the disclosure is closed", () => {
     assert.match(
       RECEIPT_SOURCE,
       /className=\{rowsShown\n\s*\? "grid min-w-0 gap-0\.5"\n\s*: "grid min-w-0 gap-0\.5 max-lg:hidden"\}/,
     );
-    // With nothing to condense there is nothing to disclose, so the rows
-    // carry themselves at every width rather than hiding behind a toggle
-    // whose summary would be blank.
     assert.match(
       RECEIPT_SOURCE,
       /const rowsShown = rowsOpen \|\| summary\.length === 0;/,
     );
-    // The section's only landmark and the accessible name two e2e specs
-    // locate the receipt by both survive at every width.
     assert.match(RECEIPT_SOURCE, />\s*Why this setup\s*<\/h3>/);
   });
 
-  it("keeps every mobile treatment inside a real max-lg: or lg: token on both review files", () => {
+  it("keeps every mobile treatment inside a real max-lg: or lg: token on both files", () => {
     for (const source of [LADDER_SOURCE, RECEIPT_SOURCE]) {
       assert.doesNotMatch(source, /max-lg:\$\{/);
     }
     assert.ok(mobileOnlyClasses(LADDER_SOURCE).length > 0);
+  });
+});
+
+describe("the merged surface's results list (m-scan-v3.html:40-45)", () => {
+  it("shares one flat row treatment with the ≥lg rail — the mobile card is gone", () => {
+    const branches = SCAN_RAIL_SOURCE.match(
+      /className=\{selected\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
+    );
+    assert.ok(branches, "expected to find the row's selected/unselected classes");
+    const [, selectedClasses, unselectedClasses] = branches;
+    for (const classes of [selectedClasses, unselectedClasses]) {
+      assert.doesNotMatch(classes, /max-lg:rounded-lg/);
+      assert.doesNotMatch(classes, /max-lg:border\b/);
+      assert.doesNotMatch(classes, /max-lg:py-3/);
+      // The mock's 2px inset inside the scroll region's own gutter.
+      assert.match(classes, /max-lg:px-0\.5/);
+    }
+    // Selection is the accent inset edge, and below lg the mock gives its text
+    // 10px back so it clears that edge (m-scan-v3.html:44).
+    assert.match(
+      selectedClasses,
+      /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/,
+    );
+    assert.match(selectedClasses, /max-lg:pl-2\.5/);
+    assert.doesNotMatch(unselectedClasses, /max-lg:bg-sheet/);
+    // The ticker keeps the desktop row's own size — the 15px override belonged
+    // to the retired card.
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="block truncate text-sm font-bold text-ink"/,
+    );
+  });
+
+  it("lifts the rail's 404px scroller below lg, where the surface's own region is the only scroll", () => {
+    assert.match(
+      SCAN_RAIL_SOURCE,
+      /className="scrolly mt-2 max-h-\[404px\] overflow-y-auto max-lg:max-h-none max-lg:overflow-visible"/,
+    );
+    // The card-stacking grid went with the cards.
+    assert.doesNotMatch(SCAN_RAIL_SOURCE, /max-lg:gap-2\b/);
+  });
+
+  it("leaves the ≥lg rail's own control row free of mobile treatments — it renders at one width now", () => {
+    const controlRow = SCAN_RAIL_SOURCE.match(
+      /<div className="flex flex-wrap items-baseline justify-between gap-2">[\s\S]*?<\/div>\n\n/,
+    )?.[0] ?? "";
+    assert.ok(controlRow.length > 0, "expected to find the rail's control row");
+    assert.doesNotMatch(controlRow, /max-lg:/);
+  });
+
+  it("keeps every mobile treatment inside a real max-lg: token, so the ≥lg cascade is untouched by construction", () => {
+    assert.ok(
+      mobileOnlyClasses(SCAN_RAIL_SOURCE).length > 0,
+      "expected the shared result rows to carry mobile-only utilities",
+    );
+    assert.doesNotMatch(SCAN_RAIL_SOURCE, /max-lg:\$\{/);
   });
 });
 
@@ -904,13 +1081,19 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
     );
   });
 
-  it("leaves the freshness stamp and the row that carries both exactly as >=lg draws them", () => {
+  it("leaves the freshness stamp and the row that carries both exactly as the mobile mock draws them", () => {
     // `.phead` and `.rrhead` are the same shape in both mocks — heading
-    // opposite the stamp on one baseline row — so nothing about the container
-    // or the stamp is platform-specific.
-    assert.match(
-      TRADES_RAIL_SOURCE,
-      /className="flex flex-wrap items-baseline justify-between gap-2"/,
+    // opposite the stamp on one baseline row — so the container and the stamp
+    // are shared. Spec §17c's ≥lg alignment fix rides behind `lg:` prefixes
+    // for exactly that reason: below lg the row keeps baseline alignment and
+    // its natural height, where a 19px display head sits against a 12px stamp.
+    const head = TRADES_RAIL_SOURCE.match(
+      /<div className="(flex flex-wrap items-baseline[^"]*)">/,
+    )?.[1] ?? "";
+    assert.ok(head.length > 0, "expected to find the trades rail's head row");
+    assert.equal(
+      head.split(" ").filter((token) => !token.startsWith("lg:")).join(" "),
+      "flex flex-wrap items-baseline justify-between gap-2",
     );
     assert.match(TRADES_RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
   });
@@ -958,7 +1141,7 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     // wanted: the whole nav is `lg:hidden`, so these are mobile rules already.
     assert.match(
       APP_SOURCE,
-      /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.06em\] \$\{/,
+      /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
     );
     // The accessible name comes from the explicit aria-label, so CSS casing
     // never reaches the e2e nav-name contracts (/^Trades(,|$)/ and friends).

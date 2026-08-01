@@ -5,7 +5,7 @@
 // apart later.
 //
 // The treatment is the mock's own .broker (docs/design/mockups/tokens.css:22-24,
-// drawn on the masthead at a-desk-v3.html:82): a 13px bold pill on sheet with a
+// drawn on the masthead at a-desk-v3.html:81): a 13px bold pill on sheet with a
 // 1.5px hairline border, a 6px radius, 7px/12px padding and an 8px buy dot —
 // not the app's .chip idiom, which is an 11px uppercase micro-label for the
 // scan and trade rows. The mock's ▾ caret is omitted: spec §12 has no toggle

@@ -16,6 +16,16 @@ const HISTORY = "src/components/workspace/HistoryPanel.tsx";
 const guide = readFileSync(GUIDE, "utf8");
 const history = readFileSync(HISTORY, "utf8");
 
+// The one map both the index and the article read their numbers and titles from
+// (M1). Extracted rather than matched file-wide so a count of ids or numbers
+// means the deck's own ten and nothing else.
+function guideSectionsBlock(): string {
+  const block = guide.match(/const GUIDE_SECTIONS = \{[\s\S]*?\n\} satisfies /)
+    ?.[0] ?? "";
+  assert.ok(block.length > 0, "expected to find GUIDE_SECTIONS");
+  return block;
+}
+
 describe("Guide composition — the mock's elements are present (g-guide-v1.html:12-21, :39-48)", () => {
   it("lays out the two-column article grid at the mock's exact measurements", () => {
     assert.match(
@@ -27,15 +37,92 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
   it("hides the TOC below lg and gives it the mock's sticky rail treatment", () => {
     assert.match(
       guide,
-      /className="hidden lg:block sticky top-20 self-start border-r border-hairline pr-5"/,
+      /className="hidden lg:block sticky top-\[89px\] self-start border-r border-hairline pr-5"/,
     );
     assert.match(guide, />\s*Contents\s*</);
   });
 
-  it("TOC links carry only the section title — the numbered eyebrow lives in the article, not the index", () => {
+  // Spec §17c: "the TOC must not jump when scrolling begins — its sticky offset
+  // equals its natural resting offset so engagement is seamless." Measured in a
+  // browser against the built CSS before the fix: the TOC rested at y=89 and
+  // pinned at y=80, so it hopped 9px upward the instant the page moved.
+  //
+  // Every number below is DERIVED from the source that produces it rather than
+  // restated, so a change to the masthead's padding, to the height of its
+  // tallest control, or to the page's own top padding fails here instead of
+  // quietly restoring the jump.
+  it("pins the TOC exactly where it already rests — no jump when scrolling begins (§17c)", () => {
+    const app = readFileSync("src/App.tsx", "utf8");
+    const css = readFileSync("src/styles/index.css", "utf8");
+
+    const headerPadStep = Number(
+      app.match(/<div className="mx-auto max-w-7xl px-4 py-(\d+) sm:px-8">/)?.[1],
+    );
+    // The masthead's tallest element is its ghost Sign out, held at the kit's
+    // 44px floor by index.css's own .secondary-button.min-h-10 override.
+    const tallestControl = Number(
+      css.match(/\.secondary-button\.min-h-10 \{\s*min-height: (\d+)px;/)?.[1],
+    );
+    const pageTopPadStep = Number(
+      app.match(/space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-(\d+)/)?.[1],
+    );
+    for (const value of [headerPadStep, tallestControl, pageTopPadStep]) {
+      assert.ok(
+        Number.isFinite(value),
+        "expected every offset input to be readable from its own source",
+      );
+    }
+    assert.match(
+      app,
+      /<header className="sticky top-0 z-20 border-b border-hairline/,
+    );
+    // Tailwind's spacing step is 0.25rem; the header's own bottom hairline is
+    // the +1.
+    const naturalOffset = headerPadStep * 4 * 2 + tallestControl + 1 +
+      pageTopPadStep * 4;
+    assert.equal(naturalOffset, 89, "the measured resting offset");
+    assert.match(guide, new RegExp(`sticky top-\\[${naturalOffset}px\\]`));
+  });
+
+  // Spec §17c: "Guide TOC: entries carry the same two-digit numbers as their
+  // sections (01-10)." The index and the article now read as one numbered
+  // document — this inverts the earlier guard, which pinned the numbers OUT of
+  // the index against g-guide-v1.html's unnumbered mock TOC.
+  //
+  // M1: the number and the title used to be declared twice — once in
+  // GUIDE_SECTIONS for the index, once at each <GuideSection> call site for the
+  // article — and nothing cross-checked the pairs. They agreed, but a probe
+  // showed a drifted call-site number rendering "06 Costs" in the index over a
+  // "09" heading with the suite green, because this test's own regex required
+  // `number: ".."` and never saw JSX `number=".."`. Both literals now come from
+  // the one map, which this pins in the only way that cannot rot: the numbers
+  // are read from GUIDE_SECTIONS, and the article is required to carry no
+  // number or title prop at all.
+  it("numbers every TOC entry with its section's own number (§17c)", () => {
     const tocFunction = guide.match(/function GuideToc[\s\S]*?\n}\n/)?.[0] ?? "";
+    assert.match(tocFunction, /\{section\.number\}/);
     assert.match(tocFunction, /\{section\.title\}/);
-    assert.doesNotMatch(tocFunction, /\{section\.number\}/);
+    const numbers = Array.from(
+      guideSectionsBlock().matchAll(/number: "(\d\d)"/g),
+      (match) => match[1],
+    );
+    assert.deepEqual(
+      numbers,
+      ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
+      "GUIDE_SECTIONS must carry 01-10 in order",
+    );
+    assert.match(guide, /<GuideToc sections=\{GUIDE_SECTIONS\} \/>/);
+    // ONE source, structurally: every section call site names its id and
+    // nothing else, and GuideSection reads the rest out of the map. A restored
+    // literal on either prop fails here.
+    assert.doesNotMatch(guide, /<GuideSection[^>]*\bnumber=/);
+    assert.doesNotMatch(guide, /<GuideSection[^>]*\btitle=/);
+    assert.match(guide, /const \{ number, title \} = GUIDE_SECTIONS\[id\];/);
+    assert.equal(
+      (guide.match(/<GuideSection id="[a-z-]+">/g) ?? []).length,
+      10,
+      "every deck section renders from the map with no restated meta",
+    );
   });
 
   it("opens the article with the mock's ruled h1 — no icon, no eyebrow above it", () => {
@@ -109,6 +196,62 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     assert.match(
       guide,
       /<dl className="grid gap-3">\s*\{VOCABULARY\.map\(\(item\) => \(\s*<div key=\{item\.term\}>/,
+    );
+  });
+
+  // Spec §17, placement (b): "the Guide article ends with a short Support
+  // section (email + donate, tertiary links, no card chrome beyond the
+  // article's own rhythm)." This is the one part of the Guide that is NOT deck
+  // copy — §17 sanctions it by name, which is the citation this guard carries
+  // for these exact strings. The guards above pin the deck's verbatim
+  // rendering; this pins the sanctioned addition, so neither can be widened by
+  // accident into a licence for un-approved Guide copy.
+  //
+  // §17c numbers the TOC 01-10, which forced a choice §17c/§17e do not rule on
+  // (see the wave-4 report): a Support entry listed without a number would be
+  // the one inconsistent line in a numbered index, and numbering it 11 would
+  // put un-approved copy inside the deck's own numbering and index a service
+  // block as a lesson. So it stays unnumbered and unindexed, and that is now
+  // STRUCTURAL rather than a comment's promise: it renders after </article>, in
+  // the same content column, as the page's closing block.
+  it("closes the page with §17's Support block — after the article, two tertiary links, no card", () => {
+    const support =
+      guide.match(/<section[^>]*id="support"[^>]*>[\s\S]*?<\/section>/)?.[0] ?? "";
+    assert.ok(support.length > 0, "expected the Support block");
+    // The article's own rhythm — the same hairline rule, top spacing and h2
+    // treatment every deck section carries — which is all §17 allows it.
+    assert.match(
+      support,
+      /<section\n?\s*className="mt-6 scroll-mt-28 border-t border-hairline pt-6"\n?\s*data-testid="guide-support"\n?\s*id="support"\n?\s*>/,
+    );
+    assert.match(
+      support,
+      /<h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">\s*Support\s*</,
+    );
+    // Exactly two links, both tertiary, both wired to what already exists.
+    assert.equal((support.match(/className="tertiary-link"/g) ?? []).length, 2);
+    assert.match(support, /href=\{supportMailto\}[\s\S]{0,80}Email support/);
+    assert.match(support, /onClick=\{onOpenDonate\}/);
+    // No card chrome, and no numbered eyebrow.
+    assert.doesNotMatch(support, /terminal-panel|rounded|bg-sheet|bg-paper/);
+    assert.doesNotMatch(support, /uppercase/);
+    // Outside the numbered document: after the closing </article>, and after
+    // the deck's last section.
+    assert.ok(
+      guide.indexOf("</article>") < guide.lastIndexOf('id="support"'),
+      "the Support block must render after the article, not inside it",
+    );
+    assert.ok(
+      guide.lastIndexOf('id="support"') > guide.lastIndexOf('id="vocabulary"'),
+      "the Support block must come after the deck's last section",
+    );
+    // And it is not in the index: the TOC renders GUIDE_SECTIONS, which is the
+    // deck's ten numbered sections and nothing else.
+    assert.doesNotMatch(guideSectionsBlock(), /"support"/);
+    assert.equal(
+      (guideSectionsBlock().match(/^\s*"[a-z-]+": \{/gm) ?? []).length,
+      10,
+      "GUIDE_SECTIONS must hold exactly the deck's ten sections",
     );
   });
 });

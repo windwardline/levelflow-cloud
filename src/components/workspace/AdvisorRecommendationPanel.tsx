@@ -82,7 +82,7 @@ export function RecommendationPanel({
 
     return (
       <div className="grid min-w-0 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="min-w-0 border-b border-hairline px-5 py-4 lg:border-b-0 lg:border-r">
+        <div className="min-w-0 border-b border-hairline px-5 py-4 max-lg:px-0 lg:border-b-0 lg:border-r">
           {/* Payoff was its own metric box before spec §16; the mock folds it
               into the ladder's eyebrow (a-desk-v3.html:198). Costs kept their
               own row inside "Why this setup" all along. */}
@@ -92,9 +92,10 @@ export function RecommendationPanel({
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
             </span>
           </p>
-          {/* Flush hairline rows at ≥lg (a-desk-v3.html:199-202); below lg the
-              mock separates the cards by 8px (m-mobile-v3.html:25 `.copy`). */}
-          <div className="grid max-lg:gap-2">
+          {/* Flush hairline rows on both platforms now (a-desk-v3.html:199-202,
+              m-scan-v3.html:34-37): the hairline between two rows is the
+              separation, so there is no gap to add below lg either. */}
+          <div className="grid">
             <CopyableMetricRow
               copied={copiedField === "entry"}
               label="Limit entry"
@@ -175,7 +176,7 @@ export function RecommendationPanel({
             )
             : null}
         </div>
-        <div className="min-w-0 px-5 py-4">
+        <div className="min-w-0 px-5 py-4 max-lg:px-0">
           <SetupQualityReceipt result={result} setup={setup} />
         </div>
       </div>
@@ -187,7 +188,7 @@ export function RecommendationPanel({
   }
 
   return (
-    <div className="grid min-w-0 gap-1 px-5 py-4 text-sm leading-6 text-ink-muted">
+    <div className="grid min-w-0 gap-1 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
       <h3 className="text-base font-semibold text-ink">Ready for review</h3>
       <p>
         {notice ||
@@ -207,16 +208,18 @@ export function RecommendationPanel({
 // also so a grouped/locale-formatted display value never corrupts a
 // pasted price either.
 //
-// Below lg the same row is the mock's `.copy` card (m-mobile-v3.html:25-29,
-// 70-73): the label stacked over a 22px value, an 8px-radius hairline card on
-// sheet, and the affordance grown into a bordered button that says what it
-// does. Reached without touching the ≥lg DOM: the row wraps, the label takes
-// the first line, and the value/button wrapper dissolves to `display: contents`
-// so both become items of that wrapped row. At ≥lg the wrapper is a real box
-// again, holding value and ⧉ together at the row's right edge exactly as
-// before. `max-lg:last:border-b` is not redundant with `max-lg:border` — the
-// un-prefixed `last:border-b-0` that keeps ≥lg's final row flush carries a
-// pseudo-class and so outranks a plain border utility on specificity.
+// Below lg the same row is m-scan-v3.html:34-37's `.copy`: ONE line — the
+// label, the value in mono, and a bordered Copy button that says what it does —
+// separated from its neighbours by a hairline and nothing else. (The card
+// treatment m-mobile-v3 drew here is superseded: §17e's merged surface has a
+// fixed viewport to spend, and four cards spend it on their own borders.)
+// Reached without touching the ≥lg DOM: the row becomes a three-column grid and
+// the value/button wrapper dissolves to `display: contents`, so label, value and
+// button become its cells. At ≥lg the wrapper is a real box again, holding value
+// and ⧉ together at the row's right edge exactly as before.
+// `max-lg:last:border-b` is not redundant — the un-prefixed `last:border-b-0`
+// that keeps ≥lg's final row flush carries a pseudo-class and so outranks a
+// plain border utility on specificity.
 function CopyableMetricRow({
   copied,
   label,
@@ -231,21 +234,21 @@ function CopyableMetricRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:flex-wrap max-lg:items-center max-lg:gap-y-0 max-lg:rounded-lg max-lg:border max-lg:bg-sheet max-lg:px-3.5 max-lg:py-3 max-lg:last:border-b">
-      <span className="min-w-0 text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:w-full">
+    <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:grid max-lg:grid-cols-[1fr_auto_auto] max-lg:items-center max-lg:gap-x-2.5 max-lg:px-0.5 max-lg:last:border-b">
+      <span className="min-w-0 text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:text-[10px] max-lg:tracking-[0.07em]">
         {label}
       </span>
       <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
         <span
-          className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums max-lg:text-left max-lg:text-[22px] ${valueClassName}`}
+          className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums max-lg:text-[15.5px] ${valueClassName}`}
         >
           {value}
         </span>
         <button
           aria-label={copied ? `${label} copied` : `Copy ${label}`}
           className={copied
-            ? "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border-[1.5px] max-lg:border-buy max-lg:px-3 max-lg:text-xs max-lg:font-bold max-lg:text-buy"
-            : "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border-[1.5px] max-lg:border-accent max-lg:px-3 max-lg:text-xs max-lg:font-bold max-lg:text-accent"}
+            ? "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet max-lg:px-2.5 max-lg:text-[11.5px] max-lg:font-semibold max-lg:text-buy"
+            : "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet max-lg:px-2.5 max-lg:text-[11.5px] max-lg:font-semibold"}
           onClick={onCopy}
           type="button"
         >
@@ -270,7 +273,7 @@ function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
   ];
 
   return (
-    <div className="grid min-w-0 gap-2 px-5 py-4">
+    <div className="grid min-w-0 gap-2 px-5 py-4 max-lg:px-0">
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-accent">
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
         Analyzing {symbol}
@@ -315,7 +318,7 @@ function NoSetupPanel({
     .test(primaryReason);
 
   return (
-    <div className="grid min-w-0 gap-2 px-5 py-4 text-sm leading-6 text-ink-muted">
+    <div className="grid min-w-0 gap-2 px-5 py-4 text-sm leading-6 text-ink-muted max-lg:px-0">
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-caution">
         <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         No trade setup

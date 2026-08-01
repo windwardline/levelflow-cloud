@@ -178,8 +178,17 @@ export function CurrentTradesRail(
           ink, sentence case (`.phead .t`). At ≥lg the heading stays the 12px
           muted eyebrow the scan rail beside it uses (a-desk-v3.html:218). The
           row itself and the stamp opposite it are the same shape in both
-          mocks, so neither is platform-specific. */}
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+          mocks, so neither is platform-specific.
+
+          Spec §17c: at ≥lg this row also takes the scan rail's own first-line
+          height and centres in it, so the two eyebrows sit on one baseline and
+          the column no longer opens hard against its top edge. The 44px is not
+          a new measurement — it is what .primary-button already makes the scan
+          rail's first line, and every Desk column starts at the same y. Below
+          lg the row keeps baseline alignment: there the heading is 19px display
+          type against a 12px stamp, which is exactly what baseline alignment is
+          for. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2 lg:min-h-11 lg:items-center">
         <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:font-display max-lg:text-[19px] max-lg:font-bold max-lg:normal-case max-lg:tracking-[-0.02em] max-lg:text-ink">
           Current trades
         </h3>

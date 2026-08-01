@@ -1,6 +1,6 @@
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
+import { formatCompactDateTime } from "../../lib/marketHours";
 import type { SecurityType } from "../../lib/symbolMap";
-import { formatTimestamp } from "./advisorFormat";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 
 // "Within 5 points of the bar" reads as inclusive: a margin of exactly 5
@@ -42,24 +42,41 @@ export function buildConfidenceNote(
 // instead, as one quiet line under the confidence note rather than a box of
 // its own ("Reviewed {time} · valid until {time}"). Either half can be
 // missing — a scan-selected candidate carries no review stamp of its own
-// until Review market runs, and a setup without an expiry has no window to
+// until Review runs, and a setup without an expiry has no window to
 // print — so the line is assembled from whichever parts actually exist and
 // nothing is fabricated to fill a gap. Returns "" when neither exists, and
 // the component then renders no line at all.
+//
+// Spec §17 fixes the stamp's grammar: `{MMM} {D} {h}:{mm}{A|P}`, e.g.
+// "Reviewed JUL 31 2:05P · valid until JUL 31 10:05P". It comes from
+// marketHours' formatCompactDateTime — the same time-piece logic the scope
+// menu's OPENS lines are built from — rather than a second Intl call of its
+// own, so the two grammars can never drift apart. An unparseable timestamp
+// yields no stamp at all: the half is dropped exactly like an absent one,
+// rather than printing a placeholder where a real moment belongs.
+function stampMoment(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : formatCompactDateTime(date);
+}
+
 export function buildConfidenceMeta(
   reviewedAt: string | null,
   validUntil: string | null,
 ): string {
-  if (reviewedAt && validUntil) {
-    return `Reviewed ${formatTimestamp(reviewedAt)} · valid until ${
-      formatTimestamp(validUntil)
-    }`;
+  const reviewed = stampMoment(reviewedAt);
+  const expires = stampMoment(validUntil);
+
+  if (reviewed && expires) {
+    return `Reviewed ${reviewed} · valid until ${expires}`;
   }
-  if (reviewedAt) {
-    return `Reviewed ${formatTimestamp(reviewedAt)}`;
+  if (reviewed) {
+    return `Reviewed ${reviewed}`;
   }
-  if (validUntil) {
-    return `Valid until ${formatTimestamp(validUntil)}`;
+  if (expires) {
+    return `Valid until ${expires}`;
   }
   return "";
 }
@@ -75,8 +92,17 @@ export function buildConfidenceMeta(
 // killed VALID UNTIL card's datum rides along on the meta line below the
 // note (buildConfidenceMeta above).
 export function ConfidenceUnit(
-  { assetType, reviewedAt = null, score, validUntil = null }: {
+  { assetType, compact = false, reviewedAt = null, score, validUntil = null }: {
     assetType: SecurityType;
+    // The merged mobile Scan surface's head cluster (spec §17e,
+    // m-scan-v3.html:22-27): the score and the same threshold-ticked meter,
+    // right-aligned beside the market name, with no note and no stamp of its
+    // own. The note is what §17f's copy law removes here — "{Class} setups must
+    // score {threshold} to qualify" is exactly what the tick and the fill draw,
+    // so the sentence says nothing the surface cannot show. The stamp is the
+    // opposite case and survives, rendered as its own quiet line by the surface
+    // (AdvisorWorkspace, via buildConfidenceMeta above).
+    compact?: boolean;
     reviewedAt?: string | null;
     score: number;
     validUntil?: string | null;
@@ -86,6 +112,35 @@ export function ConfidenceUnit(
   const fillPercent = clampConfidencePercent(score);
   const tickPercent = clampConfidencePercent(threshold);
   const meta = buildConfidenceMeta(reviewedAt, validUntil);
+
+  if (compact) {
+    return (
+      // Never a bare number (spec §6): the group carries the canonical unit as
+      // its accessible name, so a screen reader hears "Confidence 86 of 100"
+      // where the eye reads 86 against its bar.
+      <span
+        aria-label={`Confidence ${formatConfidenceValue(score)}`}
+        className="ml-auto flex shrink-0 items-center gap-1.5"
+        role="group"
+      >
+        <span className="font-mono text-[13px] font-bold tabular-nums text-ink">
+          {Math.round(score)}
+        </span>
+        <span className="relative h-1 w-16" aria-hidden="true">
+          <span className="absolute inset-0 overflow-hidden rounded-full bg-hairline">
+            <span
+              className="block h-full rounded-full bg-accent"
+              style={{ width: `${fillPercent}%` }}
+            />
+          </span>
+          <span
+            className="absolute -inset-y-0.5 w-px bg-ink"
+            style={{ left: `${tickPercent}%` }}
+          />
+        </span>
+      </span>
+    );
+  }
 
   return (
     <div className="mt-2 grid min-w-0 gap-1">

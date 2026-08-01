@@ -99,6 +99,27 @@ export function formatReopen(opensAt: Date, now: Date): string {
   return `${time} ${dayLabel}`;
 }
 
+/**
+ * The scope menu's availability grammar extended with the date, for a stamp
+ * that names an absolute moment rather than the next reopen (spec §17):
+ * `{MMM} {D} {h}:{mm}{A|P}` — three-letter month in caps, 1-2 digit day,
+ * two-digit minutes, a single capital meridiem letter with no space before it.
+ * "JUL 31 2:05P".
+ *
+ * Assembled from the same two private formatters formatReopen reads above —
+ * that is the whole point of it living here rather than beside its one caller
+ * (ConfidenceUnit's meta line). The menu's OPENS lines and the Desk's Reviewed
+ * / valid until stamp are one grammar by construction, so they cannot drift:
+ * change the time piece and both move together. The caller does not uppercase
+ * this itself, and neither does either piece — the menu rows apply their caps
+ * in CSS (they are also uppercasing the word OPENS), while a stamp sitting in
+ * running text has no such wrapper, so the caps belong to the assembled string
+ * here.
+ */
+export function formatCompactDateTime(date: Date): string {
+  return `${formatMonthDay(date)} ${formatCompactTime(date)}`.toUpperCase();
+}
+
 function isOpenUnderCalendar(calendar: ClassCalendar, parts: ZonedParts): boolean {
   const minuteOfWeek = parts.weekday * MINUTES_PER_DAY + parts.hour * 60 +
     parts.minute;

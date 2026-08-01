@@ -581,6 +581,34 @@ describe("profile preferences", () => {
     assert.equal(defaultMarketDataDays("1day"), 520);
   });
 
+  // Spec §17: "Timeframes are two characters universally — 1H, 4H, 1D (every
+  // surface that names a timeframe … any option labels)." This list is the
+  // single source every such surface reads (advisorFormat's TIMEFRAMES
+  // re-exports it, and the Desk's chart-view select renders option.label
+  // straight from it), so pinning it here pins every surface at once. The
+  // codes are the same compact grammar the engine already speaks internally
+  // (ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"], advisorReview.ts) —
+  // digits plus the unit's initial — so 15 minutes reads "15M": three
+  // characters, because fifteen has two digits, not because the grammar
+  // differs. Nothing here may go back to prose ("1 hour", "Daily").
+  it("labels every chart timeframe as a compact code, never prose (spec §17)", () => {
+    assert.deepEqual(
+      CHART_TIMEFRAME_OPTIONS.map((option) => option.label),
+      ["1M", "5M", "15M", "1H", "4H", "1D"],
+    );
+    for (const option of CHART_TIMEFRAME_OPTIONS) {
+      assert.match(
+        option.label,
+        /^\d{1,2}[MHD]$/,
+        `"${option.label}" is not a compact timeframe code`,
+      );
+      assert.ok(
+        option.label.length <= 3,
+        `"${option.label}" is longer than the compact grammar allows`,
+      );
+    }
+  });
+
   it("keeps advisor review intervals and valid windows aligned with backend rules", () => {
     assert.deepEqual(ADVISOR_SIGNAL_INTERVALS, ["4H", "1H", "15M"]);
     assert.deepEqual(ADVISOR_EXECUTION_INTERVALS, ["5M", "1M"]);
@@ -720,11 +748,23 @@ describe("profile preferences", () => {
 
 describe("recommendation outcomes", () => {
   it("uses clear user-facing labels for each internal status", () => {
-    assert.equal(OUTCOME_COPY.still_tracking.label, "Still tracking");
-    assert.equal(OUTCOME_COPY.target_reached.label, "Reached target");
-    assert.equal(OUTCOME_COPY.stopped_out.label, "Hit stop");
-    assert.equal(OUTCOME_COPY.unclear_path.label, "Needs review");
-    assert.equal(OUTCOME_COPY.entry_not_filled.label, "Entry not filled");
+    // §17d, owner-approved verbatim: every label re-derives from the canonical
+    // seven result words, so this record and the ledger's own formatter speak
+    // one vocabulary. §17b's unresolved bucket spans two of those states
+    // (Pending and Open) and names both rather than inventing another word.
+    assert.equal(OUTCOME_COPY.still_tracking.label, "Pending & open");
+    assert.equal(OUTCOME_COPY.target_reached.label, "Banked full");
+    assert.equal(OUTCOME_COPY.partial_target.label, "Banked half");
+    assert.equal(OUTCOME_COPY.stopped_out.label, "Stopped");
+    assert.equal(OUTCOME_COPY.expired_in_profit.label, "Expired");
+    assert.equal(OUTCOME_COPY.expired_in_loss.label, "Expired");
+    // The two words the controller added in wave 4 to finish the table: an
+    // ambiguous path is "Unclear" (it read "Needs review", which phrased a
+    // result as an instruction and collided with the stage's Review action), and
+    // the unreachable manual_close enum value is "Closed".
+    assert.equal(OUTCOME_COPY.unclear_path.label, "Unclear");
+    assert.equal(OUTCOME_COPY.closed_manually.label, "Closed");
+    assert.equal(OUTCOME_COPY.entry_not_filled.label, "Unfilled");
   });
 
   it("separates unresolved, unfilled, and unclear results", () => {
@@ -795,11 +835,11 @@ describe("history workspace logic", () => {
     assert.deepEqual(
       groups.map((group) => group.label),
       [
-        "Still tracking",
-        "Reached target",
-        "Hit stop",
-        "Needs review",
-        "Entry not filled",
+        "Pending & open",
+        "Banked full",
+        "Stopped",
+        "Unclear",
+        "Unfilled",
       ],
     );
   });

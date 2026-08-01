@@ -339,3 +339,150 @@ flat page (record band, inline filter row, one table; i-insights-v1.html).
 must verify BOTH directions against the mock — required elements present
 AND kill-list elements absent — and name each direction explicitly in its
 report.
+
+## 17. Post-ship owner rulings (2026-07-31 evening, binding)
+
+- **Timeframes are two characters universally** — 1H, 4H, 1D (every
+  surface that names a timeframe: stage chart-view select, Profile's
+  default-timeframe select, any option labels). The stage's action button
+  is **"Review"** (not "Review market"). The stagehead must never truncate
+  the market name.
+- **Insights result "Not taken" is dead.** `entry_not_filled` reads
+  **"Unfilled"** for every origin — a market fact (price never reached the
+  entry inside the window), never a claim about what the user did. The
+  label logic reads no origin.
+- **Confidence meta stamp format** matches the scope menu's availability
+  grammar, extended with the date: `{MMM} {D} {h}:{mm}{A|P}` — three-char
+  month ALL CAPS, 1-2 digit day, minutes always two digits, single capital
+  A/P with **no space** before it (e.g. `Reviewed JUL 31 2:05P · valid
+  until JUL 31 10:05P`). Quiet, not intrusive; shares its time formatting
+  with the menu's OPENS lines so the two can never drift.
+- **Help and Donate are first-class**: never hidden or buried, placed
+  thoughtfully, same furniture and testing standards as everything else.
+  Placement set: (a) the page footer's link row carries Help and Donate
+  beside the legal trio on every scrolling surface; (b) the Guide article
+  ends with a short Support section (email + donate, tertiary links, no
+  card chrome beyond the article's own rhythm); (c) Profile keeps its
+  Support card; (d) the mobile avatar menu keeps both. The Desk's fixed
+  desktop shell stays footer-less — Help remains one tap away everywhere.
+- **Expand chart ships on mobile** (owner: "I do not want to skip
+  features just because we can"): an "Expand chart" affordance opens the
+  same MarketChart full-viewport (100dvw/100dvh overlay) with its level
+  lines and theme reactivity; 44px close target, Escape and focus trap,
+  aria-modal, functional labels only. With it, the inline mobile chart may
+  take the mock's compact height.
+- **Inline Guide links on the why panel stay** (owner-confirmed; E4
+  cross-links standard).
+- Still awaiting owner ruling (do NOT build until given): the merged
+  mobile Scan surface (m-scan-v2 mock) and the 3-vs-4 bottom-tab count.
+
+### §17b. One lifecycle vocabulary (owner ruling, 2026-07-31)
+
+Pending and Unfilled are the same limit-order mechanism at two moments —
+Pending while the order waits inside its window, Unfilled once the window
+closed without a fill — and every surface uses exactly these words, at
+every opportunity: **Pending → Open (· ±R) → Unfilled / Banked half /
+Target 2 / Stopped / Expired in profit / Expired at loss.** "Still
+tracking" and "Tracking" are banned (languageGuard): any cell, chip,
+filter, or copy that named them renders the lifecycle word the state
+machine actually reports. The Status filter option spanning both
+unresolved states reads "Pending & open" — existing vocabulary only. The
+Guide's §10 definition ("Pending — your order is placed but has not
+filled") is already the canonical teaching and stays.
+
+### §17c. Owner live-QA rulings (2026-07-31, Safari desktop, binding)
+
+Live product outranks mock where they conflict.
+
+- **Desk rail empty state**: the two narration lines ("Scan every active
+  market…", "Every setup Levelflow generates is saved to Insights
+  automatically.") are DELETED — the approved mock's footnote is
+  superseded. The empty rail is the controls, quietly stark. If anything
+  ever fills that space it must be useful and succinct, not narration.
+  (The same footnote leaves the pending m-scan mock at build time.)
+- **Current trades top rhythm**: the rail's first line must share the
+  same top offset/baseline rhythm as the SCAN eyebrow and the stagehead —
+  no thin unfinished margin, and no added busy-ness: alignment, not
+  decoration.
+- **Insights below-table blurb** ("Every setup … taken or not. Your
+  record is tracked per broker…") is DELETED — the Guide teaches it and
+  the page shows it. ("taken or not" dies app-wide with it.)
+- **Footer, one standard everywhere**: a single footer component,
+  identical composition, dimensions, and spacing on every scrolling
+  page and view, always at the true bottom of the viewport when content
+  is short (flex column, footer pinned via mt-auto) and after content
+  when long. Carries the §17 link row (legal trio + Help + Donate) and
+  the colophon. The Desk's fixed desktop shell stays footer-less.
+- **Guide TOC**: entries carry the same two-digit numbers as their
+  sections (01-10); and the TOC must not jump when scrolling begins —
+  its sticky offset equals its natural resting offset so engagement is
+  seamless.
+- **Profile revamped, desktop-first**: the card stack (p-profile-v1) is
+  REJECTED on desktop ("stacked like a mobile view"). Profile becomes a
+  flat editorial settings sheet: hairline-separated sections (Account,
+  Broker, Appearance, Support), each a label column beside its
+  content/controls, no card chrome, comfortable desktop width; mobile
+  stacks the same rows naturally. Mock approval required before build.
+- **Box-on-box, global and standing**: sweep every remaining gratuitous
+  box on every tab, view, and platform. A bordered sheet survives only
+  where it is a true interactive affordance (result/position rows, form
+  fields, buttons) or the mock-drawn Insights table frame — never as
+  passive grouping. languageGuard-style CI enforcement where a guard can
+  pin it.
+
+### §17d. The result vocabulary — canonical (owner-approved verbatim, 2026-07-31)
+
+Supersedes §17b's label table (the mechanism stands; these are the words).
+Engine outcome ENUM values and classifyWinLoss are untouched — this is
+label copy only. The seven results, everywhere a result renders:
+
+- **Pending** — order placed, window open, not yet filled
+- **Open · ±R** — filled and live inside the window (R only when the
+  engine has one)
+- **Unfilled** — window closed, never triggered
+- **Banked half · +R** — first target hit, half banked, window ended
+  before Target 2
+- **Banked full · +R** — Target 2 reached (replaces "Target 2" as the
+  result label; pairs with the Guide's "bank half" instruction language)
+- **Stopped · −R** — stop hit
+- **Expired · +0.6R / Expired · −0.3R** — filled, window ended, neither
+  level hit; ONE word, the number says where it stood (replaces "Expired
+  in profit"/"Expired at loss" as labels; bare "Expired" if no R was
+  recorded)
+
+Status-filter options and OUTCOME_COPY filter/short labels re-derive from
+these words ("Pending & open" stays the unresolved bucket per §17b). The
+Guide's "What the words mean here" section teaches these exact
+definitions (the owner approved the definition lines verbatim — use them
+as the deck text, replacing/adding entries as needed).
+
+### §17e. Approved: the mobile merge and the Profile revamp (2026-07-31)
+
+Owner approved, mocks committed as composition authority:
+
+- **docs/design/mockups/m-scan-v3.html** — the merged mobile Scan surface
+  (supersedes m-scan-v1/m-mobile-v3's separate Review+Scan tabs): fixed
+  viewport; pinned control row (scope menu · 2-char timeframe · Scan) +
+  market head + compact chart w/ Expand chart; one scrolling region below
+  (single-line ladder copy rows, one-line why + Why, count line,
+  qualified list; selection swaps the chart). Scanning a single-market
+  scope IS the review — one surface, one verb. Bottom bar is THREE tabs:
+  Scan · Trades (count badge) · Insights; Profile and Guide live in the
+  avatar menu.
+- **docs/design/mockups/p-profile-v2.html** — Profile as the flat
+  editorial settings sheet (supersedes p-profile-v1): hairline rows
+  (Account / Broker / Appearance / Support), label + approved terse
+  descriptions left ("Sign-in and membership." / "Markets, costs, and
+  record follow the broker." / "Saved to your account." / "We read every
+  note."), content right, no cards; the standardized §17c footer pinned
+  at page bottom. Description rule, standing: a row description says only
+  what the row cannot show.
+
+### §17f. The copy law (owner-crowned, 2026-07-31)
+
+**Text says only what the surface cannot show.** This is the general form
+of every copy ruling in this spec — the killed captions, the deleted
+narration, the terse Profile descriptions — and it governs all future
+copy on every surface, both platforms. Before any sentence ships, the
+test is: does it state something the user cannot already see? If the
+control, the layout, or the data shows it, the sentence does not exist.

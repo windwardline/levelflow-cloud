@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P — Profile v2 (editorial settings sheet)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { min-height:100vh; display:flex; flex-direction:column; }
+.top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--hairline); }
+.top .wm { font-size:20px; font-weight:700; }
+.top nav { display:flex; gap:22px; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; color:var(--muted); }
+.top nav .on { color:var(--ink); border-bottom:2px solid var(--accent); padding-bottom:3px; }
+.top .r { display:flex; gap:12px; align-items:center; }
+.broker { font-size:13px; }
+.ghost.sm { padding:7px 12px; font-size:12.5px; }
+.page { width:100%; max-width:880px; margin:0 auto; padding:28px 24px 48px; flex:1; }
+h1 { font-size:26px; font-weight:700; border-bottom:2px solid var(--ink); padding-bottom:10px; margin-bottom:0; }
+.row { display:grid; grid-template-columns: 220px 1fr; gap:24px; padding:26px 0; border-bottom:1px solid var(--hairline); }
+.row:last-of-type { border-bottom:none; }
+.row .lab h2 { font-size:15px; font-weight:700; margin:0 0 4px; }
+.row .lab p { font-size:12.5px; color:var(--muted); margin:0; line-height:1.5; }
+.kv { display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; font-size:14px; max-width:520px; }
+.kv .k { color:var(--muted); font-size:12.5px; }
+.kv .v { font-weight:600; }
+.ghost { border:1px solid var(--hairline); background:transparent; border-radius:6px; font-weight:600; color:var(--ink); }
+.signout { margin-top:10px; padding:8px 14px; font-size:13px; }
+.seg { display:inline-flex; border:1px solid var(--hairline); border-radius:8px; padding:3px; gap:2px; }
+.seg .o { padding:7px 14px; font-size:13px; font-weight:600; border-radius:6px; color:var(--muted); }
+.seg .o.on { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); }
+.tlink { display:inline-block; font-size:13.5px; font-weight:600; text-decoration:underline; text-underline-offset:3px; margin-right:22px; }
+.brokerline { display:flex; align-items:center; gap:12px; }
+footer { border-top:1px solid var(--hairline); padding:18px 24px; display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--muted); }
+footer .links { display:flex; gap:18px; }
+footer .links a { color:var(--ink); text-decoration:none; font-weight:500; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div style="display:flex; align-items:center; gap:26px;">
+    <span class="wm display">Levelflow</span>
+    <nav><span>Desk</span><span>Insights</span><span>Guide</span><span class="on">Profile</span></nav>
+  </div>
+  <div class="r">
+    <span class="broker"><span class="dot"></span> E8 Markets</span>
+    <button class="ghost sm">Sign out</button>
+  </div>
+</header>
+
+<main class="page">
+  <h1>Profile</h1>
+
+  <div class="row">
+    <div class="lab">
+      <h2>Account</h2>
+      <p>Sign-in and membership.</p>
+    </div>
+    <div>
+      <div class="kv"><span class="k">Email</span><span class="v">michaellynnpeacock@gmail.com</span></div>
+      <div class="kv"><span class="k">Member since</span><span class="v">June 2026</span></div>
+      <button class="ghost signout">Sign out</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab">
+      <h2>Broker</h2>
+      <p>Markets, costs, and record follow the broker.</p>
+    </div>
+    <div class="brokerline">
+      <span class="broker"><span class="dot"></span> E8 Markets</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab">
+      <h2>Appearance</h2>
+      <p>Saved to your account.</p>
+    </div>
+    <div>
+      <span class="seg"><span class="o">Light</span><span class="o">Dark</span><span class="o on">System</span></span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lab">
+      <h2>Support</h2>
+      <p>We read every note.</p>
+    </div>
+    <div>
+      <a class="tlink" href="#">Email support</a>
+      <a class="tlink" href="#">Donate</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>A Windward Line production</span>
+  <span class="links"><a href="#">Help</a><a href="#">Donate</a><a href="#">Risk disclaimer</a><a href="#">Privacy</a><a href="#">Terms</a></span>
+</footer>
+</body>
+</html>

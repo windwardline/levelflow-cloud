@@ -94,9 +94,11 @@ export type TradeSetupRow = {
   // 20260730080000_setup_origin.sql backfills existing rows to 'review');
   // optional/nullable here purely defensively, since this client type
   // predates that column and nothing guarantees every future select lists
-  // it. Insights (spec §10) reads this once, only to tell a scan-origin
-  // setup that was never placed ("Not taken") apart from a review-origin
-  // one ("Unfilled") — it is never rendered as its own column or filter.
+  // it. Never rendered — not as a column, not as a filter, and since spec
+  // §17 not as a label either: the Insights result for an entry that never
+  // filled reads "Unfilled" whatever the row's provenance. The one reader
+  // left is tradeState.ts, which keeps an unfilled scan row off the Current
+  // trades rail because no order was ever placed with a broker for it.
   origin?: "review" | "scan" | null;
   risk_model: Record<string, unknown> | null;
   side: "buy" | "sell";

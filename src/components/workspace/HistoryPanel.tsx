@@ -231,11 +231,11 @@ export function HistoryPanel({
           )
           : null}
       </div>
-
-      <p className="text-sm leading-6 text-ink-muted">
-        Every setup Levelflow generates is saved here automatically, taken or
-        not. Your record is tracked per broker: E8 Markets.
-      </p>
+      {/* Spec §17c deletes the below-table blurb outright: the Guide teaches
+          that every setup is kept and that the record follows the broker, the
+          table itself shows the setups, and the masthead's chip shows the
+          broker. tests/historyPanel.test.tsx pins every fragment's absence, so
+          none of that sentence appears in this file, comments included. */}
     </div>
   );
 }

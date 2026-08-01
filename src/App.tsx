@@ -12,7 +12,6 @@ import {
   CircleUser,
   Gift,
   History,
-  LineChart,
   ListChecks,
   Loader2,
   LogOut,
@@ -21,6 +20,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { AppFooter } from "./components/AppFooter";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
 import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
@@ -40,8 +40,8 @@ import {
   type WorkspaceNav,
 } from "./components/workspace/WorkspaceNav";
 import { DonatePanel } from "./components/donations/DonatePanel";
-import { LegalLinks } from "./components/legal/LegalLinks";
 import { useAuthSession } from "./hooks/useAuthSession";
+import { useIsMobileViewport } from "./hooks/useMobileViewport";
 import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
 import {
@@ -51,11 +51,13 @@ import {
 import { supabase } from "./lib/supabase";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
-// The four bottom-tab-bar destinations (spec §3). Three of them ("review" |
-// "scan" | "trades") are sub-views of the single "advisor" AppTab — see
-// deskMobileView below — so the tab bar's own selection model is a distinct,
-// slightly wider union from AppTab rather than a one-to-one mirror of it.
-type MobileTab = "review" | "scan" | "trades" | "insights";
+// The three bottom-tab-bar destinations (spec §17e). Two of them ("scan" |
+// "trades") are sub-views of the single "advisor" AppTab — see deskMobileView
+// below — so the tab bar's own selection model is a distinct, slightly wider
+// union from AppTab rather than a one-to-one mirror of it. Profile and Guide
+// stay in the avatar menu, and the old "Review" tab is gone: its surface merged
+// into "scan" (m-scan-v3.html).
+type MobileTab = "scan" | "trades" | "insights";
 
 const SUPPORT_EMAIL = "help@windwardline.com";
 // Support is a shared inbox across apps, so every mailto names the app it
@@ -93,19 +95,21 @@ function getInitialAppTab(): AppTab {
 export default function App() {
   const theme = useThemePreference();
   const { session, loading } = useAuthSession();
+  // Read here with the rest of the hooks, used far below: the pre-auth returns
+  // sit between the two, and a hook after an early return is a hook that runs
+  // in a different order on different renders.
+  const isMobileViewport = useIsMobileViewport();
   const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
   const [advisorRequest, setAdvisorRequest] = useState<{ symbol: string; token: number } | null>(null);
   const [insightsSymbol, setInsightsSymbol] = useState<string | null>(null);
-  // The mobile tab bar's own sub-selection within the Desk (spec §3: Review
-  // / Scan / Trades). Kept separate from activeTab rather than folded into
-  // it: all three map to the same "advisor" AppTab, so AdvisorWorkspace
-  // stays mounted (and its symbol/scanResult/clockNow state intact) while
-  // the bar flips between them — remounting on every tap would be a much
-  // worse mobile experience than desktop's "just look at another column".
-  const [deskMobileView, setDeskMobileView] = useState<DeskMobileView>(
-    "review",
-  );
+  // The mobile tab bar's own sub-selection within the Desk (spec §17e: Scan /
+  // Trades). Kept separate from activeTab rather than folded into it: both map
+  // to the same "advisor" AppTab, so AdvisorWorkspace stays mounted (and its
+  // symbol/scanResult/analysisState/clockNow state intact) while the bar flips
+  // between them — remounting on every tap would be a much worse mobile
+  // experience than desktop's "just look at another column".
+  const [deskMobileView, setDeskMobileView] = useState<DeskMobileView>("scan");
 
   // AdvisorWorkspace only exists in the tree while its tab is active, so
   // switching tabs away and back remounts it fresh. Without clearing the
@@ -123,10 +127,10 @@ export default function App() {
   const clearGuideAnchor = useCallback(() => setGuideAnchor(null), []);
 
   // The tab bar's single selection model spans two pieces of state:
-  // Insights is a whole AppTab, Review/Scan/Trades are sub-views of the
-  // "advisor" one. selectMobileTab is the one place that maps a tap onto
-  // both; activeMobileTab is its read-side mirror, used only to decide
-  // which of the four buttons (if any) renders as current.
+  // Insights is a whole AppTab, Scan/Trades are sub-views of the "advisor"
+  // one. selectMobileTab is the one place that maps a tap onto both;
+  // activeMobileTab is its read-side mirror, used only to decide which of the
+  // three buttons (if any) renders as current.
   function selectMobileTab(tab: MobileTab) {
     if (tab === "insights") {
       setActiveTab("history");
@@ -143,14 +147,15 @@ export default function App() {
 
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
-    // I3: also lands mobile on the "review" sub-view — without this, a jump
-    // here (e.g. Insights' "Open X in Advisor" row button) could leave a
-    // mobile user staring at whichever Desk sub-tab (Scan/Trades) happened
-    // to be selected before, instead of the market they just asked to see.
+    // I3: also lands mobile on the merged Scan surface — without this, a jump
+    // here (e.g. Insights' "Open X in Advisor" row button) could leave a mobile
+    // user staring at the Trades tab instead of the market they just asked to
+    // see. "scan" IS that market's surface now (spec §17e): its head, chart and
+    // ladder all follow the requested symbol.
     openAdvisor: (symbol) => {
       setAdvisorRequest({ symbol, token: Date.now() });
       setActiveTab("advisor");
-      setDeskMobileView("review");
+      setDeskMobileView("scan");
     },
     openInsights: (symbol) => { setInsightsSymbol(symbol ?? null); setActiveTab("history"); },
   }), []);
@@ -176,18 +181,17 @@ export default function App() {
     }
   }, [activeTab, session, refreshSetups]);
 
-  // I2: the mobile Trades sub-tab is a CSS-only toggle within the same
-  // "advisor" AppTab (AdvisorWorkspace's deskColumnClassName), never an
-  // AdvisorWorkspace remount, so the effect above — keyed only on
-  // activeTab — never re-fires when a mobile user simply switches which
-  // Desk column is showing. Without this, tapping into Trades on mobile
-  // could show outcome state up to 60s stale despite spec §8's "every time
-  // the surface is shown". Scoped to the "trades" transition specifically,
-  // not every Review<->Scan swap (neither has outcome state to go stale) —
-  // a separate effect rather than folding deskMobileView into the one
-  // above, so this doesn't also start re-firing on every sub-tab switch.
-  // No loop risk: this only re-runs when deskMobileView's own value
-  // actually changes, and calling refreshSetups never itself touches it.
+  // I2: the mobile Trades sub-tab is a display-only toggle within the same
+  // "advisor" AppTab (AdvisorWorkspace keeps both mobile surfaces mounted),
+  // never an AdvisorWorkspace remount, so the effect above — keyed only on
+  // activeTab — never re-fires when a mobile user simply switches which Desk
+  // surface is showing. Without this, tapping into Trades on mobile could show
+  // outcome state up to 60s stale despite spec §8's "every time the surface is
+  // shown". Scoped to the "trades" transition specifically — a separate effect
+  // rather than folding deskMobileView into the one above, so this doesn't also
+  // re-fire on every flip back to Scan, which has no outcome state to go stale.
+  // No loop risk: this only re-runs when deskMobileView's own value actually
+  // changes, and calling refreshSetups never itself touches it.
   useEffect(() => {
     if (session && activeTab === "advisor" && deskMobileView === "trades") {
       refreshSetups({ forceOutcomeRefresh: true });
@@ -252,24 +256,31 @@ export default function App() {
     .toUpperCase();
 
   // The Desk (≥lg) is a fixed-height, three-column shell that never scrolls
-  // as a page — each column scrolls itself (spec §2). Every other tab keeps
-  // the ordinary scrolling page. main's grid-rows-[auto_1fr] hands the
-  // content row exactly "viewport minus header" without hardcoding the
-  // header's pixel height, and the footer steps out of the layout via
-  // lg:hidden so it can't add height the fixed shell has no room for; <lg
-  // never applies any of this, so the stacked flow (footer included) is
-  // untouched there.
+  // as a page — each column scrolls itself (spec §2). main's
+  // grid-rows-[auto_1fr] hands the content row exactly "viewport minus header"
+  // without hardcoding the header's pixel height, and the footer steps out of
+  // the layout so it can't add height the fixed shell has no room for.
   const isDeskTab = activeTab === "advisor";
+  // Spec §17e gives the merged mobile Scan surface the same discipline at the
+  // same job: a fixed viewport, its own pinned region, one scrolling region
+  // inside it (m-scan-v3.html). A JS width check rather than a max-lg: variant
+  // because the sm: padding utilities this shell has to drop would outrank a
+  // max-width variant in Tailwind's own emission order — and because
+  // AdvisorWorkspace already decides which composition it is the same way.
+  const isFixedMobileDesk = isMobileViewport && isDeskTab &&
+    deskMobileView === "scan";
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
-      <main
-        className={`bg-paper text-ink ${
-          isDeskTab
-            ? "min-h-screen lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
-            : "min-h-screen"
-        }`}
-      >
+      {/* Spec §17c: a min-height flex column is what lets AppFooter's own
+          mt-auto put it at the true bottom of the viewport on a short page —
+          Donate and an empty Insights are both short — and directly after the
+          content on a long one. Each branch is a complete literal class string
+          (C1) rather than a base list plus an override, because the fixed
+          shells and the scrolling page disagree about height, min-height and
+          overflow, and a stack of competing utilities on one element is how
+          that disagreement turns into a cascade puzzle. */}
+      <main className={mainShellClassName(isDeskTab, isFixedMobileDesk)}>
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
@@ -340,15 +351,30 @@ export default function App() {
         </header>
 
         <div
-          className={isDeskTab
-            ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:py-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
-            : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:py-5 lg:pb-5"}
+          className={isFixedMobileDesk
+            // The merged surface owns its own gutters and its own bottom
+            // clearance (m-scan-v3.html:29,32), so this wrapper contributes
+            // nothing but the fixed column it lives in.
+            ? "flex w-full min-h-0 flex-col overflow-hidden"
+            // The sm: pad is top-axis only, deliberately. Both scrolling
+            // branches reserve pb-24 for the fixed MobileTabBar, which is
+            // mounted at every width below lg — and a padding-block utility
+            // beats a padding-bottom one whenever Tailwind emits it later, which
+            // it does for a variant. Measured in the built CSS, the block form
+            // of this utility landed ~9kB after .pb-24, so the reserve silently
+            // collapsed from 96px to 20px across the whole 640-1023px band while
+            // the bar was still there. Padding only the top leaves the pb chain
+            // intact (pb-24 below lg, lg:pb-5 above it) and changes nothing at
+            // >=lg, where lg:pb-5 already computed the same 20px the block form
+            // was handing it.
+            : isDeskTab
+            ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
+            : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
               mobileView={deskMobileView}
               onForceOutcomeRefresh={() => refreshSetups({ forceOutcomeRefresh: true })}
-              onMobileViewChange={setDeskMobileView}
               onOpenRequestHandled={clearAdvisorRequest}
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}
@@ -377,38 +403,34 @@ export default function App() {
             />
           ) : null}
           {activeTab === "guide" ? (
-            <GuidePanel anchor={guideAnchor} onAnchorHandled={clearGuideAnchor} />
+            <GuidePanel
+              anchor={guideAnchor}
+              onAnchorHandled={clearGuideAnchor}
+              onOpenDonate={() => setActiveTab("donate")}
+              supportMailto={SUPPORT_MAILTO}
+            />
           ) : null}
           {activeTab === "donate" ? (
             <DonatePanel supportEmail={SUPPORT_EMAIL} />
           ) : null}
         </div>
 
-        {/* Profile now carries its own legal links + colophon (spec §11),
-            so the page-wide footer would just duplicate them there — the
-            one tab where it's skipped outright rather than merely lg:hidden
-            like the Desk tab above it. */}
-        {/* F4 fix wave 2B: below lg, MobileTabBar is fixed to the viewport
-            bottom (>=56px with its safe-area inset) — the same reason the
-            scrolling content wrapper above carries pb-24. This footer is a
-            sibling that renders after that wrapper, so at full scroll it's
-            the trailing thing on the page and needs the identical
-            clearance itself; pb-8 alone let the bar overlay the colophon's
-            padding and the LegalLinks row right above it. lg:pb-8 keeps
-            >=lg exactly as it rendered before — there's no fixed bar to
-            clear there. */}
-        {activeTab !== "profile"
-          ? (
-            <footer
-              className={`mx-auto w-full max-w-7xl px-4 pb-24 pt-12 lg:pb-8 ${
-                isDeskTab ? "lg:hidden" : ""
-              }`}
-            >
-              <p className="colophon">A Windward Line production</p>
-              <LegalLinks />
-            </footer>
-          )
-          : null}
+        {/* Spec §17c: ONE footer, on every scrolling page and view — Profile
+            included, which used to render its own legal block and skip this
+            one. The component owns its composition, its dimensions, its spacing
+            and its own bottom-pinning; the only thing decided here is the
+            ruling's own exception, which is the word "scrolling": a fixed
+            viewport has no bottom for a footer to follow. That is the Desk at
+            ≥lg (the component's own lg:hidden branch) and, since §17e, the
+            merged mobile Scan surface — where m-scan-v3.html draws the tab bar
+            directly under the scrolling region and no footer at all. */}
+        {isFixedMobileDesk ? null : (
+          <AppFooter
+            hiddenOnDesktopDesk={isDeskTab}
+            onOpenDonate={() => setActiveTab("donate")}
+            supportMailto={SUPPORT_MAILTO}
+          />
+        )}
 
         <MobileTabBar
           active={activeMobileTab}
@@ -418,6 +440,24 @@ export default function App() {
       </main>
     </WorkspaceNavContext.Provider>
   );
+}
+
+// The page shell, in its three shapes. Both fixed shells hand their content row
+// exactly "viewport minus header" via grid-rows-[auto_1fr]; the scrolling page
+// is the min-height flex column AppFooter's mt-auto pushes against (spec §17c).
+// 100dvh, not 100vh, on the mobile one: a phone's 100vh is the toolbar-less
+// height, which would put the bottom of a "fixed" surface below the visible
+// viewport and hand the page a scrollbar it must not have.
+function mainShellClassName(
+  isDeskTab: boolean,
+  isFixedMobileDesk: boolean,
+): string {
+  if (isFixedMobileDesk) {
+    return "grid h-[100dvh] grid-rows-[auto_1fr] overflow-hidden bg-paper text-ink";
+  }
+  return isDeskTab
+    ? "flex min-h-screen flex-col bg-paper text-ink lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
+    : "flex min-h-screen flex-col bg-paper text-ink";
 }
 
 function useThemePreference() {
@@ -465,11 +505,6 @@ const MOBILE_TAB_ITEMS: Array<
   { icon: ReactNode; label: string; value: MobileTab }
 > = [
   {
-    icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
-    label: "Review",
-    value: "review",
-  },
-  {
     icon: <Radar className="h-5 w-5" aria-hidden="true" />,
     label: "Scan",
     value: "scan",
@@ -486,13 +521,12 @@ const MOBILE_TAB_ITEMS: Array<
   },
 ];
 
-// Spec §3: the mobile-only primary navigation, replacing the top nav pills
-// below lg (the masthead's own text nav stays put at ≥lg — see the header's
-// `lg:hidden` / `hidden lg:flex` pair above). Persistent across every tab,
-// not just the Desk one, so Review is always one tap away even from Guide or
-// Profile — matching "Guide and Profile reachable via the avatar/menu, not
-// the tab bar" (they're deliberately absent from these four buttons, not from
-// the bar itself).
+// Spec §17e: the mobile-only primary navigation, three tabs, replacing the top
+// nav pills below lg (the masthead's own text nav stays put at ≥lg — see the
+// header's `lg:hidden` / `hidden lg:flex` pair above). Persistent across every
+// tab, not just the Desk one, so Scan is always one tap away even from Guide or
+// Profile — Guide and Profile themselves live in the avatar menu, deliberately
+// absent from these three buttons rather than from the bar itself.
 function MobileTabBar({
   active,
   onSelect,
@@ -507,7 +541,7 @@ function MobileTabBar({
       aria-label="Levelflow"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-hairline bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-4">
+      <div className="mx-auto grid max-w-7xl grid-cols-3">
         {MOBILE_TAB_ITEMS.map((item) => {
           const isActive = active === item.value;
           const badge = item.value === "trades" && tradeBadgeCount > 0
@@ -518,12 +552,12 @@ function MobileTabBar({
               key={item.value}
               aria-current={isActive ? "page" : undefined}
               aria-label={badge ? `${item.label}, ${badge} current` : item.label}
-              // The mock's tab type (m-mobile-v3.html:32): 10.5px bold
-              // uppercase at .06em tracking. Un-prefixed on purpose — the
-              // whole nav is lg:hidden, so these are mobile rules already.
+              // The mock's tab type (m-scan-v3.html:59): 10.5px bold uppercase
+              // at .1em tracking. Un-prefixed on purpose — the whole nav is
+              // lg:hidden, so these are mobile rules already.
               // Casing is CSS only; the accessible name comes from the
               // aria-label above, so the e2e nav-name contracts are untouched.
-              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] ${
+              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] ${
                 isActive ? "text-accent" : "text-ink-muted"
               }`}
               type="button"

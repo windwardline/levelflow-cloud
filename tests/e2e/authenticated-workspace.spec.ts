@@ -125,35 +125,132 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     page.getByRole("heading", { name: "What Levelflow does" }),
   ).toBeVisible();
 
+  // Spec §17, placement (b): the Guide closes with a short Support block, two
+  // tertiary links. Scoped to the block so the footer's own Help/Donate row
+  // further down the same page can't satisfy this by accident — the whole point
+  // of the ruling is that both placements exist. Scoped by testid rather than
+  // by "article" because §17c's TOC numbering moved this block outside the
+  // numbered article (see the wave-4 report).
+  const guideSupport = page.getByTestId("guide-support");
+  await expect(
+    guideSupport.getByRole("heading", { name: "Support", exact: true }),
+  ).toBeVisible();
+  await expect(
+    guideSupport.getByRole("link", { name: "Email support" }),
+  ).toBeVisible();
+  await expect(
+    guideSupport.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
+
+  // §17c: the TOC entries carry their sections' own numbers, and the index
+  // lists the deck's ten numbered sections — not this Support block.
+  const toc = page.locator('nav[aria-label="Guide sections"]');
+  const tocEntries = await toc.locator("a").allTextContents();
+  expect(tocEntries).toHaveLength(10);
+  expect(tocEntries[0]).toContain("01");
+  expect(tocEntries[9]).toContain("10");
+  await expect(toc.getByRole("link", { name: /Support/ })).toHaveCount(0);
+
+  // And it does not move when scrolling begins: its sticky offset is its own
+  // resting offset (measured 89px — masthead plus the page's top padding).
+  //
+  // The scroll itself is asserted, not assumed: a wheel event that scrolls
+  // nothing would leave the rail exactly where it was and satisfy the poll
+  // below vacuously. The cursor is moved into the article first for the same
+  // reason — a wheel at the default (0,0) position is not guaranteed to land on
+  // the scrolling document.
+  const restingTop = (await toc.boundingBox())?.y ?? -1;
+  expect(restingTop).toBeGreaterThan(0);
+  await page.mouse.move(640, 400);
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(0);
+  await expect
+    .poll(async () => (await toc.boundingBox())?.y ?? -1)
+    .toBe(restingTop);
+  await page.mouse.wheel(0, -400);
+
+  // Spec §17, placement (a): the footer's link row carries Help and Donate
+  // beside the legal trio, on every scrolling surface. Scoped to the footer
+  // for the same reason.
+  const footerSupport = page.locator("footer").getByRole("navigation", {
+    name: "Support",
+  });
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(
+    footerSupport.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("footer").getByRole("navigation", { name: "Legal" }),
+  ).toBeVisible();
+
+  // And the row survives the surface change — Insights scrolls too.
+  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(
+    footerSupport.getByRole("button", { name: "Donate", exact: true }),
+  ).toBeVisible();
+
   await page.getByRole("button", { name: "Profile", exact: true }).click();
+  // Scoped to the panel from here down: spec §17c gives Profile the shared
+  // footer too, so its Donate and the footer's are two buttons of the same
+  // accessible name on one page — unscoped, that is a strict-mode failure on
+  // the live run, and both are supposed to exist.
+  const profile = page.getByTestId("profile-panel");
   await expect(
-    page.getByRole("heading", { name: "Profile", exact: true }),
+    profile.getByRole("heading", { name: "Profile", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Account", exact: true }),
+    profile.getByRole("heading", { name: "Account", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Broker", exact: true }),
+    profile.getByRole("heading", { name: "Broker", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Appearance", exact: true }),
+    profile.getByRole("heading", { name: "Appearance", exact: true }),
   ).toBeVisible();
 
   // Spec §16 relocation: Help (mailto) and Donate moved off the killed
-  // desktop header buttons onto a Support card here, so they stay reachable
+  // desktop header buttons onto a Support row here, so they stay reachable
   // at desktop widths (the mobile account menu already carried both).
   await expect(
-    page.getByRole("heading", { name: "Support", exact: true }),
+    profile.getByRole("heading", { name: "Support", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Email support" }),
+    profile.getByRole("link", { name: "Email support" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Donate", exact: true }),
+    profile.getByRole("button", { name: "Donate", exact: true }),
   ).toBeVisible();
+
+  // Spec §17c: one footer on every scrolling view — Profile used to be the one
+  // surface that skipped it and drew its own legal block instead. Both the
+  // shared row and the absence of a second copy are checked.
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(page.getByText("A Windward Line production")).toHaveCount(1);
+  await expect(
+    page.getByRole("navigation", { name: "Legal" }),
+  ).toHaveCount(1);
+
+  // Donate is the last scrolling surface, and the shortest — the footer has to
+  // sit at the true bottom of the viewport there, not halfway up the page.
+  await footerSupport.getByRole("button", { name: "Donate", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Donate", exact: true }),
+  ).toBeVisible();
+  await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
+  await expect(
+    page.locator("footer").getByRole("navigation", { name: "Legal" }),
+  ).toBeVisible();
+  const bottomGap = await page.locator("footer").evaluate((element) =>
+    window.innerHeight - element.getBoundingClientRect().bottom
+  );
+  expect(bottomGap).toBeLessThanOrEqual(1);
 });
 
-test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no panel furniture", async ({ page }) => {
+test("market scan is the mock's quiet rail — eyebrow, scope menu, no footnote, no panel furniture", async ({ page }) => {
   await page.goto("/");
 
   // Spec §16 deleted the rail's panel title block and its legend box; the
@@ -165,11 +262,20 @@ test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no
   await expect(rail.getByRole("heading", { name: "Scan", exact: true }))
     .toBeVisible();
   await expect(rail.getByRole("button", { name: "Scan now" })).toBeVisible();
+  // Spec §17c: both narration lines are deleted — the mock's closing footnote
+  // and the un-scanned rail's empty-state sentence. The empty rail is the
+  // controls. Checked in the live DOM, not only at the source, because this is
+  // the surface the owner read them on.
   await expect(
     rail.getByText(
       "Every setup Levelflow generates is saved to Insights automatically.",
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(
+    rail.getByText(
+      "Scan every active market to find the strongest current limit setups.",
+    ),
+  ).toHaveCount(0);
 
   const scopeMenuButton = rail.getByRole("button", { name: "Scan scope" });
   await expect(scopeMenuButton).toBeVisible();
@@ -191,17 +297,17 @@ test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no
   // The legend's other half was a standing key of all four cost ratings,
   // belonging to no market. Asserted structurally rather than by rating text:
   // "Clean", "Acceptable", "Thin" and "Poor" are live executionLabel values
-  // that the new row chip legitimately renders, so an absence assertion on any
-  // of those strings would fail on real scan data for a reason that has
-  // nothing to do with the kill list. What defines the legend is a rating chip
-  // that is not attached to a market — every chip the recomposed rail draws
-  // sits inside its own result row.
-  const chipsOutsideARow = await rail
-    .locator("span.chip")
-    .evaluateAll((chips) =>
-      chips.filter((chip) => chip.closest("button") === null).length
-    );
-  expect(chipsOutsideARow).toBe(0);
+  // that the row chip legitimately renders, so an absence assertion on any of
+  // those strings would fail on real scan data for a reason that has nothing to
+  // do with the kill list.
+  //
+  // The claim is made against the un-scanned rail, which is the state this spec
+  // is in throughout: it never scans, so the rail holds no result rows and
+  // therefore no chips of its own. A standing legend belongs to no market and
+  // would be here anyway — so ANY chip in this state is the legend coming back.
+  // (The earlier form of this check filtered the chip list for chips outside a
+  // row, which in an empty rail filtered an empty list and could not fail.)
+  await expect(rail.locator("span.chip")).toHaveCount(0);
 });
 
 test("a How this works link opens the Guide at the section it names", async ({ page }) => {
@@ -213,15 +319,19 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   // file's other review-driven specs.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
 
+  // A finished review lands on exactly one of two panels: the receipt, or the
+  // "No trade setup" panel saying why there isn't one. That PAIR is
+  // unconditional, so it is waited for hard — if neither appears, the locator
+  // has rotted or the review never finished, and either is a defect this spec
+  // must go red for rather than skip past. Which of the two arrived is the
+  // market's business, and that is what the skip is for.
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const hasReceipt = await receiptHeading
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
+  const noSetup = page.getByText("No trade setup", { exact: true });
+  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    !hasReceipt,
+    await noSetup.isVisible(),
     "No qualifying setup right now, so there is no Costs row on screen to click.",
   );
 
@@ -258,15 +368,15 @@ test("a receipt How this works link lands on the Guide's record section", async 
   // test skips itself rather than pinning behavior on market conditions.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
 
+  // Same unconditional pair as the Costs spec above: receipt or "No trade
+  // setup". Neither arriving is rot, not a quiet market.
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const hasReceipt = await receiptHeading
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
+  const noSetup = page.getByText("No trade setup", { exact: true });
+  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    !hasReceipt,
+    await noSetup.isVisible(),
     "No qualifying setup right now, so there is no receipt on screen to click.",
   );
 
@@ -379,15 +489,24 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.goto("/");
 
-  // The stage carries no heading (spec §2), so "Review market" — the one
-  // stable, always-present control inside its topmost section — stands in
-  // for the whole stage column the way the old "Market review" heading
-  // used to.
+  // The stage carries no heading (spec §2), so "Review" (spec §17 shortened it
+  // from "Review market") — the one stable, always-present control inside its
+  // topmost section — stands in for the whole stage column the way the old
+  // "Market review" heading used to. It is unambiguous at this width in two
+  // ways now: the merged mobile surface (whose action is "Scan") does not
+  // render at ≥lg at all, and no tab is named Review any more.
+  //
+  // Unique, not merely first: at this width AdvisorWorkspace renders the ≥lg
+  // composition alone, whose stage is one <section> with no <section> ancestor,
+  // so a second match would mean the stage grew a wrapper — exactly the kind of
+  // change this geometry check exists to catch, and exactly what .first() used
+  // to hide.
   const advisorPanel = page.locator("section", {
-    has: page.getByRole("button", { name: "Review market" }),
-  }).first();
+    has: page.getByRole("button", { name: "Review", exact: true }),
+  });
   const rail = page.getByTestId("current-trades-rail");
 
+  await expect(advisorPanel).toHaveCount(1);
   await expect(advisorPanel).toBeVisible();
   await expect(rail).toBeVisible();
 
@@ -400,11 +519,12 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
 });
 
 test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
-  // Mobile is its own composition (spec §3), not a narrowed desktop: the
-  // top nav pills are gone entirely (display:none via the header's
-  // `hidden lg:flex` gate); primary navigation is a bottom tab bar (Review /
-  // Scan / Trades / Insights), and Guide / Profile / Donate / Help / Sign
-  // out all move behind one account-avatar menu in the header.
+  // Mobile is its own composition (spec §17e), not a narrowed desktop: the top
+  // nav pills are gone entirely (display:none via the header's `hidden lg:flex`
+  // gate); primary navigation is a THREE-tab bottom bar (Scan / Trades /
+  // Insights) whose Scan tab is the merged surface the old Review tab folded
+  // into, and Guide / Profile / Donate / Help / Sign out all move behind one
+  // account-avatar menu in the header.
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
 
@@ -421,17 +541,27 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(header.getByText("E8", { exact: true })).toBeVisible();
   await expect(header.getByLabel("E8 Markets")).toBeVisible();
 
-  for (const tab of ["Review", "Scan", "Trades", "Insights"]) {
+  // Scoped to the tab bar's own nav, not the page: the merged surface's action
+  // button is "Scan", which is exactly the first tab's name, and at this width
+  // both are visible at once (spec §17e's one surface, one verb). The bar's
+  // landmark is aria-label="Levelflow"; the desktop masthead's is "Levelflow
+  // sections", and a CSS attribute selector is an exact match, so this can never
+  // pick up the wrong nav.
+  const tabBar = page.locator('nav[aria-label="Levelflow"]');
+  for (const tab of ["Scan", "Trades", "Insights"]) {
     // The Trades button's aria-label grows to "Trades, N current" once a
     // live setup exists (App.tsx's MobileTabBar badge) — this suite creates
     // one earlier in the file, so exact:true would fail here whenever that
-    // ran first. The other three tabs never carry a badge today, so they
+    // ran first. The other two tabs never carry a badge today, so they
     // stay exact.
     const locator = tab === "Trades"
-      ? page.getByRole("button", { name: /^Trades(,|$)/ })
-      : page.getByRole("button", { name: tab, exact: true });
+      ? tabBar.getByRole("button", { name: /^Trades(,|$)/ })
+      : tabBar.getByRole("button", { name: tab, exact: true });
     await expect(locator).toBeVisible();
   }
+  // Three, not four: the Review tab is gone, and counting is what proves it —
+  // a fourth button would satisfy every assertion above.
+  await expect(tabBar.getByRole("button")).toHaveCount(3);
 
   // Guide/Profile/Donate/Help/Sign out are real controls, just not directly
   // visible until the account menu opens (App.tsx's MobileAccountMenu is
@@ -450,22 +580,65 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(page.getByRole("menuitem", { name: "Help" })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  // Review is the default tab; Scan and Trades are one tap away and carry
-  // full functionality there, not a stripped-down subset. The tab bar's own
-  // "Scan" button and the rail's "Scan now" no longer collide on one name
-  // (spec §16 renamed the rail's action to the mock's wording), so the exact
-  // tab match below stays unambiguous.
-  await page.getByRole("button", { name: "Scan", exact: true }).click();
-  await expect(page.getByTestId("market-scan-rail")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Scan now" }),
-  ).toBeVisible();
+  // The merged Scan surface is the Desk's default and carries all of it
+  // (m-scan-v3.html): the scope menu, the two-character timeframe, the one Scan
+  // button, the market head, the chart with its Expand affordance, and — in the
+  // one scrolling region below them — the ladder, the why line and the
+  // qualifying markets. Every locator is scoped to the surface or to the bar,
+  // since "Scan" is now both a tab and an action.
+  const scanSurface = page.getByTestId("mobile-scan-surface");
+  await expect(scanSurface).toBeVisible();
+  await expect(scanSurface.getByRole("button", { name: "Scan scope" }))
+    .toBeVisible();
+  await expect(scanSurface.getByRole("button", { name: "Scan", exact: true }))
+    .toBeVisible();
+  // exact:true, like the desktop sibling above: getByLabel is a
+  // case-insensitive SUBSTRING match, and MarketChart's own tool cluster is not
+  // lg:-gated, so its "Default chart view" reset button mounts inside this same
+  // surface and also contains "chart view". Without the flag this resolves to
+  // two elements and throws a strict-mode violation — unseen by every local gate,
+  // since npm test runs no browser and --list only collects.
+  await expect(scanSurface.getByLabel("Chart view", { exact: true }))
+    .toBeVisible();
+  await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
+    .toBeVisible();
+  // And the composition it replaced does not render here at all: no separate
+  // scan rail, no "Scan now", no "Review" action.
+  await expect(page.getByTestId("market-scan-rail")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Scan now" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Review", exact: true }))
+    .toHaveCount(0);
 
-  // Same Trades badge caveat as above.
-  await page.getByRole("button", { name: /^Trades(,|$)/ }).click();
+  // A fixed viewport, like the ≥lg Desk: the page itself does not scroll, one
+  // region inside it does, and §17c's footer — which belongs to scrolling
+  // surfaces — is absent.
+  expect(
+    await page.evaluate(() =>
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight
+    ),
+  ).toBeLessThanOrEqual(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+  const scanScroll = page.getByTestId("mobile-scan-scroll");
+  await expect(scanScroll).toBeVisible();
+  expect(
+    await scanScroll.evaluate((element) =>
+      getComputedStyle(element).overflowY
+    ),
+  ).toBe("auto");
+
+  // Trades is one tap away and carries full functionality there, not a
+  // stripped-down subset. Same badge caveat as above.
+  await tabBar.getByRole("button", { name: /^Trades(,|$)/ }).click();
   await expect(page.getByTestId("current-trades-rail")).toBeVisible();
+  // It scrolls like every other surface, so the one footer comes back with it.
+  await expect(page.locator("footer")).toBeVisible();
 
-  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  // And back, without losing the surface.
+  await tabBar.getByRole("button", { name: "Scan", exact: true }).click();
+  await expect(scanSurface).toBeVisible();
+
+  await tabBar.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Insights", exact: true }),
   ).toBeVisible();
@@ -475,6 +648,74 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
     document.documentElement.clientWidth
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
+});
+
+test("Expand chart opens the same chart full-viewport on mobile, and only on mobile", async ({ page }) => {
+  // Spec §17: the affordance, the overlay's dialog semantics, its 44px close
+  // target, Escape, focus in and back out, and the body scroll lock — the
+  // pieces only a real browser can confirm. The unit guards source-pin the
+  // attributes; this proves they actually behave.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  const trigger = page.getByRole("button", { name: "Expand chart" });
+  await expect(trigger).toBeVisible();
+  // The kit's tap floor, measured rather than asserted from the class list.
+  const triggerBox = await trigger.boundingBox();
+  expect(triggerBox!.height).toBeGreaterThanOrEqual(44);
+
+  await trigger.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("aria-modal", "true");
+
+  // Named by the market — the same display symbol the stagehead heading shows.
+  await expect(dialog).toContainText("EUR/USD");
+  // Full viewport, within a rounding pixel of it.
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox!.width).toBeGreaterThanOrEqual(374);
+  expect(dialogBox!.height).toBeGreaterThanOrEqual(811);
+
+  // Focus moved into the dialog, onto the close control.
+  const close = dialog.getByRole("button", { name: "Close" });
+  await expect(close).toBeFocused();
+  const closeBox = await close.boundingBox();
+  expect(closeBox!.height).toBeGreaterThanOrEqual(44);
+  expect(closeBox!.width).toBeGreaterThanOrEqual(44);
+
+  // The page behind it cannot scroll while it is open.
+  expect(
+    await page.evaluate(() => document.body.style.overflow),
+  ).toBe("hidden");
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  // Focus came back to the trigger, and the lock was released — restored to
+  // whatever it was before, not blanket-cleared.
+  await expect(trigger).toBeFocused();
+  expect(
+    await page.evaluate(() => document.body.style.overflow),
+  ).not.toBe("hidden");
+
+  // Reopen and close through the control itself, not the keyboard.
+  await trigger.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // Below lg only: the ≥lg Desk is frozen and its chart is already full-height.
+  // The node itself does NOT leave the DOM at this width — both compositions
+  // pass onExpand, so MarketChart renders its lg:hidden button at every width.
+  // toHaveCount(0) is still the right assertion, for the reason that makes it
+  // the stronger one here: a role locator resolves against the accessibility
+  // tree, which excludes a display:none element outright. So this asserts the
+  // thing that actually matters — no reader at ≥lg can reach the affordance —
+  // rather than the weaker "it is styled out of sight". (Measured on this repo's
+  // Playwright: role count 0 at 1280 and 1 at 375; a CSS locator returns 1 at
+  // both.)
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.getByRole("button", { name: "Expand chart" }))
+    .toHaveCount(0);
 });
 
 test("scope menu lists All markets, then groups alphabetically, then base/quote-sorted markets — 1280px popup", async ({ page }) => {
@@ -494,10 +735,9 @@ test("scope menu lists All markets, then groups alphabetically, then base/quote-
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
 
-  // The scan rail is the "Scan" mobile tab's content; the sheet-vs-popup
-  // choice is purely a viewport check inside ScopeMenu itself, but the
-  // trigger still has to be visible (and thus tapped-into) first.
-  await page.getByRole("button", { name: "Scan", exact: true }).click();
+  // The scope menu is pinned to the top of the merged Scan surface, which is the
+  // Desk's default tab (spec §17e) — no navigation needed to reach it. The
+  // sheet-vs-popup choice is a viewport check inside ScopeMenu itself.
   await page.getByRole("button", { name: "Scan scope" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("listbox")).toBeVisible();
@@ -622,18 +862,17 @@ test("the trades rail force-refreshes outcomes on every Desk/Insights re-navigat
 
 test("each ladder value copies independently, flipping its own button to a checked state", async ({ page }) => {
   // The receipt only exists once a review has run — same live-dependency
-  // and skip pattern as the other "Review market" tests in this file.
+  // and skip pattern as the other "Review" tests in this file.
   test.setTimeout(120_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
 
+  // Same unconditional pair as the receipt specs above.
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const hasSetup = await receiptHeading
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
+  const noSetup = page.getByText("No trade setup", { exact: true });
+  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    !hasSetup,
+    await noSetup.isVisible(),
     "No qualifying setup right now, so there are no ladder values to copy.",
   );
 
@@ -661,7 +900,7 @@ test("each ladder value copies independently, flipping its own button to a check
   }
 });
 
-test("Insights renders the setup ledger table and the persistence footer", async ({ page }) => {
+test("Insights renders the setup ledger table, and no below-table blurb", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Insights", exact: true }).click();
 
@@ -689,13 +928,14 @@ test("Insights renders the setup ledger table and the persistence footer", async
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   }
 
-  // Spec §10, verbatim: the exact wording the design authority signed off
-  // on, load-bearing the same way the ladder's canonical instruction is.
+  // Spec §17c deletes spec §10's below-table sentence outright — the Guide
+  // teaches it and the page shows it. Absence is checked here, on the surface
+  // the owner read it on, alongside the source-level fragment guards in
+  // tests/historyPanel.test.tsx.
   await expect(
-    page.getByText(
-      "Every setup Levelflow generates is saved here automatically, taken or not. Your record is tracked per broker: E8 Markets.",
-    ),
-  ).toBeVisible();
+    page.getByText("Every setup Levelflow generates is saved here"),
+  ).toHaveCount(0);
+  await expect(page.getByText("taken or not")).toHaveCount(0);
 });
 
 test("a qualifying market scan persists into Insights, not just onto the scan rail", async ({ page }) => {
@@ -711,18 +951,28 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // pre-§16 locator here waited out the whole test timeout in the first live
   // run after the rename shipped.
   await page.getByRole("button", { name: "Scan now", exact: true }).click();
-  const candidateRow = page.getByText(/^(Buy|Sell) · confidence \d+$/).first();
-  const hasCandidate = await candidateRow
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
-  test.skip(
-    !hasCandidate,
-    "No market qualified on this scan, so there is nothing new to check for in Insights.",
-  );
 
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");
+  // Every finished scan reports what it checked — the count line — or says it
+  // could not complete. That pair is unconditional, so it is waited for hard:
+  // neither arriving means the locator rotted or the scan never returned, which
+  // is a defect, not a quiet market. Whether anything qualified is the market's
+  // business, and that is the second skip.
+  const countLine = scanSection.getByText(/\d+ scanned/);
+  const scanFailed = scanSection.getByText(
+    "Market scan could not complete. Try again shortly.",
+  );
+  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
+  test.skip(
+    await scanFailed.isVisible(),
+    "The market scan could not complete, so there is nothing new to check for in Insights.",
+  );
+  const candidateRow = page.getByText(/^(Buy|Sell) · confidence \d+$/).first();
+  test.skip(
+    !(await candidateRow.isVisible()),
+    "No market qualified on this scan, so there is nothing new to check for in Insights.",
+  );
   // Collect EVERY symbol the scan surfaced, not just the top row: a symbol
   // with a live placed position is deliberately skipped by persistence (the
   // scan must never rewrite a live trade), so any single row — including

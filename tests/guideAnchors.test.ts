@@ -109,18 +109,22 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
   }
 
   it("remaps the six anchor ids onto their new deck sections, not the old teaching content", () => {
-    // Spot-checks that each anchor's *closest enclosing* GuideSection title
-    // is the new deck section, not a leftover from the pre-Task-9 copy
-    // (e.g. "targets-and-stops" used to open on "Targets and stops" —
-    // it now opens on deck §3, "Taking and managing the trade").
+    // Spot-checks that each anchor's section title is the new deck section, not
+    // a leftover from the pre-Task-9 copy (e.g. "targets-and-stops" used to
+    // open on "Targets and stops" — it now opens on deck §3, "Taking and
+    // managing the trade").
+    //
+    // Read from GUIDE_SECTIONS, which since the M1 fix is where the title lives
+    // for both the index and the article: <GuideSection> names only its id now,
+    // so the title no longer exists at the call site to read from there.
     const sectionTitleAfter = (anchorId: string) => {
-      const marker = `id="${anchorId}"`;
+      const marker = `"${anchorId}": {`;
       const from = guideSource.indexOf(marker);
-      assert.ok(from >= 0, `${anchorId} not found in source`);
-      const titleMatch = guideSource.slice(from, from + 400).match(
-        /title="([^"]+)"/,
+      assert.ok(from >= 0, `${anchorId} is not a key in GUIDE_SECTIONS`);
+      const titleMatch = guideSource.slice(from, from + 200).match(
+        /title: "([^"]+)"/,
       );
-      assert.ok(titleMatch, `no title= found after ${marker}`);
+      assert.ok(titleMatch, `no title found for ${marker}`);
       return titleMatch[1];
     };
 
@@ -196,6 +200,108 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
       assert.ok(
         guideSource.includes(`term: "${term}",`),
         `vocabulary is missing "${term}"`,
+      );
+    }
+  });
+
+  // Spec §17d, the one sanctioned addition to the deck's own copy: the owner
+  // approved these definition lines verbatim for §10's "What the words mean
+  // here" ("the Guide's 'What the words mean here' section teaches these exact
+  // definitions … replacing/adding entries as needed"), so the Guide teaches
+  // exactly the words the ledger renders. Pinned as term/body pairs rather than
+  // loose substrings — a definition attached to the wrong term would still pass
+  // a presence-only check. The deck's existing "Pending" entry is canonical and
+  // stays (asserted in the six-term test above), and "Bank half" stays the
+  // instruction it always was.
+  //
+  // "Open · ±R" and "Stopped · −R" carry §17d's own R suffix in the term, which
+  // is how §17d writes them and how the ledger prints them. Unclear and Closed
+  // have no §17d definition line — they are the two words the controller's
+  // wave-4 rulings added to complete the table — so theirs are the descriptions
+  // those rulings settled (lib/outcomes.ts), cut to this list's register.
+  it("teaches §17d's result vocabulary with the owner-approved definition lines, verbatim", () => {
+    const taught: Array<[string, string]> = [
+      [
+        "Open · ±R",
+        "Filled and live inside the window (R only when the engine has one).",
+      ],
+      ["Unfilled", "Window closed, never triggered."],
+      [
+        "Banked half",
+        "First target hit, half banked, window ended before Target 2.",
+      ],
+      ["Banked full", "Target 2 reached."],
+      ["Stopped · −R", "Stop hit."],
+      ["Expired", "Filled, window ended, neither level hit."],
+      [
+        "Unclear",
+        "Filled, but the price history cannot say whether stop or target came first.",
+      ],
+      ["Closed", "Closed by hand before the stop or either target was reached."],
+    ];
+    for (const [term, body] of taught) {
+      assert.ok(
+        collapsedIncludes(guideSource, `body: "${body}",\n    term: "${term}",`),
+        `§10 must teach "${term}" with its own approved definition line`,
+      );
+    }
+    // The result words the deck now teaches must be the ones the ledger
+    // actually renders — no entry for a label that no longer exists.
+    for (const retired of ["Reached target", "Hit stop", "Entry not filled"]) {
+      assert.ok(
+        !guideSource.includes(`term: "${retired}"`),
+        `${retired} is not a result label any more`,
+      );
+    }
+  });
+
+  // The completeness half of §17d, and the reason I1 was possible at all: the
+  // test above pins the words it lists, so a word nobody listed was taught by
+  // nobody and caught by nothing. This derives the set from the ledger's single
+  // render site instead of restating it — every display word
+  // formatInsightsResult can return has to appear as its own §10 term, with or
+  // without §17d's R suffix. A tenth result word fails here until the Guide
+  // teaches it.
+  it("teaches every word the ledger can render — read from the formatter, not restated", () => {
+    const formatter = readFileSync(
+      "src/components/workspace/historyUtils.ts",
+      "utf8",
+    ).match(/export function formatInsightsResult[\s\S]*?\n\}\n/)?.[0] ?? "";
+    assert.ok(formatter.length > 0, "expected to find formatInsightsResult");
+    // Display words are capitalized; the outcome enum values it compares
+    // against are snake_case, which is what separates the two.
+    const rendered = [
+      ...new Set(
+        Array.from(formatter.matchAll(/"([A-Z][^"]*)"/g), (match) => match[1]),
+      ),
+    ].sort();
+    assert.deepEqual(
+      rendered,
+      [
+        "Banked full",
+        "Banked half",
+        "Closed",
+        "Expired",
+        "Open",
+        "Pending",
+        "Stopped",
+        "Unclear",
+        "Unfilled",
+      ],
+      "the ledger's result vocabulary changed — teach the new word in §10",
+    );
+
+    const vocabulary = guideSource.match(/const VOCABULARY[\s\S]*?\n\];\n/)?.[0] ??
+      "";
+    assert.ok(vocabulary.length > 0, "expected to find VOCABULARY");
+    const terms = Array.from(
+      vocabulary.matchAll(/term: "([^"]+)",/g),
+      (match) => match[1],
+    );
+    for (const word of rendered) {
+      assert.ok(
+        terms.some((term) => term === word || term.startsWith(`${word} · `)),
+        `§10 teaches no entry for "${word}", which the ledger renders`,
       );
     }
   });

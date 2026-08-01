@@ -12,9 +12,14 @@
   documentation, and unfixable by editing the docs since accurate history has
   to keep naming what it replaced. The app's classes live in src/ and
   index.html; docs/ carries plans, specs, and self-contained mockups that
-  bring their own tokens.css and no Tailwind at all.
+  bring their own tokens.css and no Tailwind at all. tests/ is excluded for
+  the same reason from the other direction: guard files quote class names
+  in assertions and prose, and the scanner reads them as source — a test
+  comment must never ship production CSS (it did: ~2 kB of dead rules from
+  the box guard's first draft).
 */
 @source not "../../docs";
+@source not "../../tests";
 
 @theme {
   /*
