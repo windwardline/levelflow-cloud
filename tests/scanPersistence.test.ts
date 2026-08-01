@@ -139,7 +139,9 @@ describe("scan persistence — the contract the response carries", () => {
     const failures: string[] = [];
     const report = await persistScannedOpportunities<Context>({
       contexts: contextsFor(["EURUSD"]),
-      onFailure: (symbol) => failures.push(symbol),
+      onFailure: (symbol) => {
+        failures.push(symbol);
+      },
       opportunities: opportunitiesFor(["EURUSD", "GHOSTUSD"]),
       write: async () => ({ outcome: "inserted" }),
     });

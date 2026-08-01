@@ -27,16 +27,16 @@ import {
 // This suite tests ScopeMenu.tsx entirely through its exported pure
 // functions (row model, keyboard-highlight reducer, formatters), the same
 // approach tests/confidenceUnit.test.tsx uses for ConfidenceUnit.tsx.
-// Actually rendering <ScopeMenu> is deliberately not attempted here: the
-// component has real JSX in its own body, and this repo's node:test runner
-// has no tsconfig covering tests/ (see tests/workspaceNav.test.tsx), so it
-// falls back to esbuild's classic JSX transform for every file it
-// transitively compiles - including ScopeMenu.tsx itself - which would
-// require `import React` there purely to satisfy the test run. Under this
-// project's actual build (tsconfig.app.json's automatic JSX runtime),
-// that import is dead code and fails `tsc --noEmit` (noUnusedLocals). The
-// pure functions below are exactly what the real component's click/keydown
-// handlers call, so they pin the same behavior without that conflict.
+// Actually rendering <ScopeMenu> is deliberately not attempted here: it is
+// an interactive component driven by real click/keydown handlers, and this
+// suite has no jsdom to dispatch those events into (tests/workspaceNav.test.tsx's
+// renderToStaticMarkup only produces markup, it doesn't give you a live DOM
+// to interact with). The pure functions below are exactly what those
+// handlers call, so they pin the same behavior without needing one. (tsx
+// now resolves tsconfig.tests.json for tests/ — see
+// tests/workspaceNav.test.tsx — so the classic-JSX-transform/stray-React-import
+// conflict this comment used to describe no longer exists; it was never the
+// reason this file skips rendering, just a second one that used to apply too.)
 
 // Same known week used by tests/marketHours.test.ts (America/New_York,
 // comfortably inside EDT) so every scenario below can be reasoned about
