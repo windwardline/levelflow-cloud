@@ -4,11 +4,22 @@
 // where one exists; the page's own head region otherwise), THE footer pinned
 // bottom and always visible, the content region scrolling between them."
 //
-// The satellite pages have no masthead, so their frame is the other two rows:
+// These two screens have no masthead, so their frame is the other two rows:
 // content, then footer. That is the whole difference from App.tsx's
 // mainShellClassName — same unit, same overflow, same reason for minmax(0,1fr)
 // (a bare 1fr floors at its own min-content height, which is exactly how a long
 // privacy notice would push the footer off the bottom of the frame).
+//
+// "The page's own head region otherwise" is a real clause and it is met where
+// there is a head to pin: the legal trio pins mark + eyebrow + wordmark as the
+// frame's first row (public/legal/legal.css's `header`), because a reader who has
+// scrolled into the middle of a notice would otherwise have scrolled the page's
+// name off the top of it. These two screens are the case where the head IS the
+// content. The parking screen is one centred block of five elements (§17j fixes
+// its composition exactly), and the login screen's head is its hero — one of two
+// columns at ≥lg, where nothing scrolls, and below lg the hero and the sign-in
+// card are one reading order in a viewport the card needs all of. Pinning either
+// would put a wordmark in the corner of a page composed around its middle.
 //
 // At every width, not only ≥lg: §17g's mobile footer rule is about the authed
 // app, where a bottom tab bar already owns the bottom of the viewport and the

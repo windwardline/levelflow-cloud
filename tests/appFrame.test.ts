@@ -385,6 +385,84 @@ describe("§17i — the frame reaches the static pages", () => {
     }
   });
 
+  // I1 (wave-8 review): §17i's "the page's own head region otherwise" was
+  // unimplemented — the frame was two rows on every satellite, so on the legal
+  // trio the mark, the eyebrow and "Levelflow" scrolled out of view (413 / 363 /
+  // 462px of region scroll at 375). The trio pins its head now. The 404 and the
+  // parking page do not, and that is the deviation this pins in both directions
+  // rather than leaving it to a comment: both are one centred block, nothing on
+  // either scrolls, and a head split off it would sit in the corner of a page
+  // composed around its middle.
+  describe("the head region is the first row where there is a head to pin (I1)", () => {
+    const PINNED = [
+      "public/legal/privacy.html",
+      "public/legal/risk-disclaimer.html",
+      "public/legal/terms.html",
+    ];
+    const CENTRED = ["public/404.html", "public/construction.html"];
+
+    it("pins mark, eyebrow and wordmark above the region on the legal trio", () => {
+      for (const page of PINNED) {
+        const source = readFileSync(page, "utf8");
+        const head = source.match(/<header>[\s\S]*?<\/header>/)?.[0] ?? "";
+        assert.ok(head.length > 0, `${page} pins no head`);
+        // The whole head, in the order §17i fixes, on the reading column's own
+        // measure rather than a second one.
+        assert.match(head, /<div class="page-block">/, page);
+        assert.ok(
+          head.indexOf('class="page-mark"') < head.indexOf('class="page-eyebrow"'),
+          `${page}: the mark must stay above the eyebrow`,
+        );
+        assert.ok(
+          head.indexOf('class="page-eyebrow"') < head.indexOf("<h1>"),
+          `${page}: the eyebrow must stay above the wordmark`,
+        );
+        assert.match(head, /<h1>Levelflow<\/h1>/, page);
+        // …and out of the region below, so the scroll cannot take it away.
+        const region = source.match(/<main[\s\S]*?<\/main>/)?.[0] ?? "";
+        for (const inHead of ['class="page-mark"', 'class="page-eyebrow"', "<h1>"]) {
+          assert.ok(!region.includes(inHead), `${page}: ${inHead} is still inside <main>`);
+        }
+        assert.equal((source.match(/<header>/g) ?? []).length, 1, page);
+      }
+    });
+
+    it("makes that row chrome, not content — it does not scroll, and it rules off", () => {
+      const head = rule("header");
+      assert.match(head, /flex: 0 0 auto;/);
+      assert.match(head, /border-bottom: 1px solid var\(--color-hairline\);/);
+      // The app's masthead, in the same two facts (border-b + a row that is not
+      // the scroller), and the frame's one inset.
+      assert.match(
+        readFileSync("src/App.tsx", "utf8"),
+        /<header className="sticky top-0 z-20 border-b border-hairline/,
+      );
+      assert.match(head, /padding: 32px var\(--page-inset\) 24px;/);
+      assert.match(rule("header h1"), /margin-bottom: 0;/);
+      // The gap under the rule is the gap the h1's own margin used to be.
+      assert.match(rule("header + main"), /padding-top: 32px;/);
+    });
+
+    it("leaves the two centred pages a single block, and says so", () => {
+      for (const page of CENTRED) {
+        const source = readFileSync(page, "utf8");
+        assert.doesNotMatch(source, /<header/, `${page} must stay one centred block`);
+        // Which is only sound because their block still holds the whole head.
+        const region = source.match(/<main[\s\S]*?<\/main>/)?.[0] ?? "";
+        assert.match(region, /class="page-mark"/, page);
+        assert.match(region, /class="page-eyebrow"/, page);
+        assert.match(region, /<h1>Levelflow<\/h1>/, page);
+      }
+      // The deviation is disclosed where the frame is defined, rather than left to
+      // a reader to notice — the review's own complaint about the first attempt,
+      // which asserted "no masthead, so the frame is the other two rows" and left
+      // the clause unmentioned.
+      const frame = readFileSync("src/components/satelliteFrame.ts", "utf8");
+      assert.match(frame, /head region otherwise" is a real clause/);
+      assert.match(frame, /the legal trio pins mark \+ eyebrow \+ wordmark/);
+    });
+  });
+
   it("makes each page's own <main> a named tab stop, so the notice can be read by keyboard", () => {
     for (const page of PAGES) {
       const source = readFileSync(page, "utf8");
