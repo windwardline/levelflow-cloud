@@ -272,10 +272,10 @@ export function AdvisorWorkspace(
     };
   }, [refreshNonce, symbol, timeframe]);
 
-  // Direct-review shortcut shared by the stage's own market picker and the
-  // scan scope menu's symbol selection (spec §4: selecting a symbol "drives
-  // the advisor selection like clicking a scan row does today"). Below,
-  // onSelectCandidate calls this too, then layers the candidate's own setup
+  // What "the stage follows the Scan column" is made of: the scope menu's own
+  // symbol selection and a scan-row click both land here (spec §4: selecting a
+  // symbol "drives the advisor selection like clicking a scan row does today").
+  // Below, selectCandidate calls this too, then layers the candidate's own setup
   // on top when it has one — clicking a scan row without an attached setup
   // reduces to exactly this.
   function selectSymbolForReview(nextSymbol: SupportedSymbol) {
