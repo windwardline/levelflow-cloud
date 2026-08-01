@@ -120,25 +120,18 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     page.getByRole("heading", { name: "What Levelflow does" }),
   ).toBeVisible();
 
-  // Spec §17, placement (b): the Guide closes with a short Support block, two
-  // tertiary links. Scoped to the block so the footer's own Help/Donate row
-  // further down the same page can't satisfy this by accident — the whole point
-  // of the ruling is that both placements exist. Scoped by testid rather than
-  // by "article" because §17c's TOC numbering moved this block outside the
-  // numbered article (see the wave-4 report).
-  const guideSupport = page.getByTestId("guide-support");
-  await expect(
-    guideSupport.getByRole("heading", { name: "Support", exact: true }),
-  ).toBeVisible();
-  await expect(
-    guideSupport.getByRole("link", { name: "Email support" }),
-  ).toBeVisible();
-  await expect(
-    guideSupport.getByRole("button", { name: "Donate", exact: true }),
-  ).toBeVisible();
+  // Spec §17i: each link lives in exactly one home per platform, so the Guide's
+  // closing Support block (§17 placement (b)) is DELETED — the footer's link row
+  // sits in the frame twenty pixels below the article, permanently on screen. Both
+  // directions are checked: nothing named Support survives on this page, and the
+  // footer's own Help and Donate are asserted below.
+  await expect(page.getByTestId("guide-support")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Support", exact: true }))
+    .toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Email support" })).toHaveCount(0);
 
   // §17c: the TOC entries carry their sections' own numbers, and the index
-  // lists the deck's ten numbered sections — not this Support block.
+  // lists the deck's ten numbered sections.
   const toc = page.locator('nav[aria-label="Guide sections"]');
   const tocEntries = await toc.locator("a").allTextContents();
   expect(tocEntries).toHaveLength(10);
@@ -196,10 +189,8 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Profile", exact: true }).click();
-  // Scoped to the panel from here down: spec §17c gives Profile the shared
-  // footer too, so its Donate and the footer's are two buttons of the same
-  // accessible name on one page — unscoped, that is a strict-mode failure on
-  // the live run, and both are supposed to exist.
+  // Scoped to the panel from here down, so a heading the footer or the masthead
+  // happens to share cannot satisfy a claim about the sheet.
   const profile = page.getByTestId("profile-panel");
   await expect(
     profile.getByRole("heading", { name: "Profile", exact: true }),
@@ -214,22 +205,22 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     profile.getByRole("heading", { name: "Appearance", exact: true }),
   ).toBeVisible();
 
-  // Spec §16 relocation: Help (mailto) and Donate moved off the killed
-  // desktop header buttons onto a Support row here, so they stay reachable
-  // at desktop widths (the mobile account menu already carried both).
+  // Spec §17i: the sheet is three rows. §16 had relocated Help and Donate onto a
+  // fourth "Support" row when the desktop header buttons were killed; the footer
+  // in the frame is their one desktop home now, so the row is DELETED and its two
+  // links exist on this page exactly once — in the footer, asserted below.
   await expect(
     profile.getByRole("heading", { name: "Support", exact: true }),
-  ).toBeVisible();
-  await expect(
-    profile.getByRole("link", { name: "Email support" }),
-  ).toBeVisible();
-  await expect(
-    profile.getByRole("button", { name: "Donate", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Email support" }))
+    .toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Donate", exact: true }))
+    .toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Help" })).toHaveCount(1);
 
-  // Spec §17c: one footer on every scrolling view — Profile used to be the one
-  // surface that skipped it and drew its own legal block instead. Both the
-  // shared row and the absence of a second copy are checked.
+  // Spec §17c: one footer on every view — Profile used to be the one surface that
+  // skipped it and drew its own legal block instead. Both the shared row and the
+  // absence of a second copy are checked.
   await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
   await expect(page.getByText("A Windward Line production")).toHaveCount(1);
   await expect(

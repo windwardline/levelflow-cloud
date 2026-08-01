@@ -429,12 +429,10 @@ export default function App() {
           {activeTab === "profile" ? (
             <ProfilePanel
               memberSince={session.user.created_at}
-              onOpenDonate={() => setActiveTab("donate")}
               onSave={profileState.saveProfile}
               onSignOut={() => supabase?.auth.signOut()}
               onThemeChange={theme.setMode}
               profile={profile}
-              supportMailto={SUPPORT_MAILTO}
               themeMode={theme.mode}
             />
           ) : null}
@@ -442,8 +440,6 @@ export default function App() {
             <GuidePanel
               anchor={guideAnchor}
               onAnchorHandled={clearGuideAnchor}
-              onOpenDonate={() => setActiveTab("donate")}
-              supportMailto={SUPPORT_MAILTO}
             />
           ) : null}
           {activeTab === "donate" ? (

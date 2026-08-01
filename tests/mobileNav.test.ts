@@ -373,27 +373,33 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     }
   });
 
-  it("wires every Donate affordance through the one existing tab switch (spec §17)", () => {
+  it("wires every Donate affordance through the one existing tab switch (spec §17, §17i)", () => {
     // No new nav system (spec §17): setActiveTab("donate") is exactly what the
-    // mobile account menu and Profile's Support card already fired. Counted,
-    // not merely matched, so a future copy of the action cannot quietly grow
-    // its own mechanism — the four call sites are §17's whole placement set
-    // minus the one that needs no callback: the mobile account menu,
-    // ProfilePanel, AppFooter's link row, and the Guide's Support section.
+    // mobile account menu already fired. Counted, not merely matched, so a future
+    // copy of the action cannot quietly grow its own mechanism — and the count is
+    // TWO since §17i, not four: each link lives in exactly one home per platform,
+    // so the two call sites are the two homes (the account menu below lg,
+    // AppFooter's link row at ≥lg) and the Guide's and Profile's copies are gone.
     // The arrow form specifically, so a sentence naming this mechanism in a
     // comment does not count itself into the total.
     assert.equal(
       (APP_SOURCE.match(/\(\) => setActiveTab\("donate"\)/g) ?? []).length,
-      4,
+      2,
     );
-    // Every surface that shows a support address takes the one shared mailto
-    // rather than rebuilding it: the account menu, Profile, the Guide, and the
-    // shared footer.
+    // Same two homes for the support address, each taking the one shared mailto
+    // rather than rebuilding it.
     assert.equal(
       (APP_SOURCE.match(/supportMailto=\{SUPPORT_MAILTO\}/g) ?? []).length,
-      4,
+      2,
     );
-    assert.match(APP_SOURCE, /<GuidePanel[\s\S]{0,300}onOpenDonate=/);
+    // And the two surfaces that used to receive them no longer take either prop.
+    const guideCall = APP_SOURCE.match(/<GuidePanel[\s\S]*?\/>/)?.[0] ?? "";
+    const profileCall = APP_SOURCE.match(/<ProfilePanel[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(guideCall.length > 0 && profileCall.length > 0);
+    for (const call of [guideCall, profileCall]) {
+      assert.doesNotMatch(call, /onOpenDonate/);
+      assert.doesNotMatch(call, /supportMailto/);
+    }
   });
 });
 

@@ -196,60 +196,46 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     );
   });
 
-  // Spec §17, placement (b): "the Guide article ends with a short Support
-  // section (email + donate, tertiary links, no card chrome beyond the
-  // article's own rhythm)." This is the one part of the Guide that is NOT deck
-  // copy — §17 sanctions it by name, which is the citation this guard carries
-  // for these exact strings. The guards above pin the deck's verbatim
-  // rendering; this pins the sanctioned addition, so neither can be widened by
-  // accident into a licence for un-approved Guide copy.
+  // Spec §17i (owner ruling): "Each link lives in exactly one home per platform.
+  // Desktop: the footer (Help · Donate · Risk disclaimer · Privacy · Terms) — so
+  // the Guide's Support section and Profile's Support row are DELETED."
   //
-  // §17c numbers the TOC 01-10, which forced a choice §17c/§17e do not rule on
-  // (see the wave-4 report): a Support entry listed without a number would be
-  // the one inconsistent line in a numbered index, and numbering it 11 would
-  // put un-approved copy inside the deck's own numbering and index a service
-  // block as a lesson. So it stays unnumbered and unindexed, and that is now
-  // STRUCTURAL rather than a comment's promise: it renders after </article>, in
-  // the same content column, as the page's closing block.
-  it("closes the page with §17's Support block — after the article, two tertiary links, no card", () => {
-    const support =
-      guide.match(/<section[^>]*id="support"[^>]*>[\s\S]*?<\/section>/)?.[0] ?? "";
-    assert.ok(support.length > 0, "expected the Support block");
-    // The article's own rhythm — the same hairline rule, top spacing and h2
-    // treatment every deck section carries — which is all §17 allows it.
+  // This inverts §17 placement (b) rather than deleting its guard, so the block
+  // cannot return by anyone re-reading that placement as still authoritative — the
+  // same discipline §17c's own inversions used. The footer now sits in the frame
+  // twenty pixels below the article on every ≥lg surface, so a closing email-and-
+  // donate block was a second home for links already on screen; below lg the
+  // account menu is the one home, as §17g had already ruled.
+  it("closes the page with the article and nothing after it — §17i deleted the Support block", () => {
+    assert.doesNotMatch(guide, /id="support"/);
+    assert.doesNotMatch(guide, /guide-support/);
+    assert.doesNotMatch(guide, /GuideSupport/);
+    // The strings, not merely the component: "Support" as a rendered heading and
+    // "Email support" as a link label both leave the Guide entirely.
+    assert.doesNotMatch(guide, />\s*Support\s*<\/h2>/);
+    assert.doesNotMatch(guide, /Email support/);
+    // And the plumbing goes with it — a prop nothing renders is the shape this
+    // deletion is most likely to leave behind.
+    assert.doesNotMatch(guide, /supportMailto/);
+    assert.doesNotMatch(guide, /onOpenDonate/);
+    assert.doesNotMatch(guide, /tertiary-link/);
     assert.match(
-      support,
-      /<section\n?\s*className="mt-6 scroll-mt-5 border-t border-hairline pt-6"\n?\s*data-testid="guide-support"\n?\s*id="support"\n?\s*>/,
+      guide,
+      /export function GuidePanel\(\{ anchor, onAnchorHandled \}: GuidePanelProps\)/,
     );
-    assert.match(
-      support,
-      /<h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">\s*Support\s*</,
-    );
-    // Exactly two links, both tertiary, both wired to what already exists.
-    assert.equal((support.match(/className="tertiary-link"/g) ?? []).length, 2);
-    assert.match(support, /href=\{supportMailto\}[\s\S]{0,80}Email support/);
-    assert.match(support, /onClick=\{onOpenDonate\}/);
-    // No card chrome, and no numbered eyebrow.
-    assert.doesNotMatch(support, /terminal-panel|rounded|bg-sheet|bg-paper/);
-    assert.doesNotMatch(support, /uppercase/);
-    // Outside the numbered document: after the closing </article>, and after
-    // the deck's last section.
-    assert.ok(
-      guide.indexOf("</article>") < guide.lastIndexOf('id="support"'),
-      "the Support block must render after the article, not inside it",
-    );
-    assert.ok(
-      guide.lastIndexOf('id="support"') > guide.lastIndexOf('id="vocabulary"'),
-      "the Support block must come after the deck's last section",
-    );
-    // And it is not in the index: the TOC renders GUIDE_SECTIONS, which is the
-    // deck's ten numbered sections and nothing else.
+    // The index was always the deck's ten numbered sections and nothing else, and
+    // now the page is too: the article is the last thing in the content column.
     assert.doesNotMatch(guideSectionsBlock(), /"support"/);
     assert.equal(
       (guideSectionsBlock().match(/^\s*"[a-z-]+": \{/gm) ?? []).length,
       10,
       "GUIDE_SECTIONS must hold exactly the deck's ten sections",
     );
+    const desktopColumn = guide.match(
+      /<div className="min-w-0">\s*<article className="min-w-0">[\s\S]*?<\/div>/,
+    )?.[0] ?? "";
+    assert.ok(desktopColumn.length > 0, "expected the ≥lg content column");
+    assert.match(desktopColumn, /<\/article>\s*<\/div>/);
   });
 });
 
