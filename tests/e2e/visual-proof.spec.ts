@@ -63,7 +63,11 @@ test.beforeEach(async ({ page }) => {
 const SURFACES = [
   { landmark: (page: Page) => page.getByTestId("current-trades-rail"), name: "desk", nav: null },
   { landmark: (page: Page) => page.locator('h1:has-text("Insights")'), name: "insights", nav: "Insights" },
-  { landmark: (page: Page) => page.locator("h1"), name: "guide", nav: "Guide" },
+  // Named, like its siblings: a bare `h1` is satisfied by whichever h1 the
+  // previous surface left on screen, so the capture could screenshot Insights
+  // and still pass. This file carries no expect() by design, which makes an
+  // identifier that cannot fail the one failure mode worth closing here.
+  { landmark: (page: Page) => page.locator('h1:has-text("How to use Levelflow")'), name: "guide", nav: "Guide" },
   { landmark: (page: Page) => page.locator('h1:has-text("Profile")'), name: "profile", nav: "Profile" },
 ] as const;
 

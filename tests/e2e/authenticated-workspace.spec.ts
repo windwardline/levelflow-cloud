@@ -153,9 +153,19 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
 
   // And it does not move when scrolling begins: its sticky offset is its own
   // resting offset (measured 89px — masthead plus the page's top padding).
-  const tocBox = toc.boundingBox();
-  const restingTop = (await tocBox)?.y ?? -1;
+  //
+  // The scroll itself is asserted, not assumed: a wheel event that scrolls
+  // nothing would leave the rail exactly where it was and satisfy the poll
+  // below vacuously. The cursor is moved into the article first for the same
+  // reason — a wheel at the default (0,0) position is not guaranteed to land on
+  // the scrolling document.
+  const restingTop = (await toc.boundingBox())?.y ?? -1;
+  expect(restingTop).toBeGreaterThan(0);
+  await page.mouse.move(640, 400);
   await page.mouse.wheel(0, 400);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(0);
   await expect
     .poll(async () => (await toc.boundingBox())?.y ?? -1)
     .toBe(restingTop);
@@ -240,7 +250,7 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   expect(bottomGap).toBeLessThanOrEqual(1);
 });
 
-test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no panel furniture", async ({ page }) => {
+test("market scan is the mock's quiet rail — eyebrow, scope menu, no footnote, no panel furniture", async ({ page }) => {
   await page.goto("/");
 
   // Spec §16 deleted the rail's panel title block and its legend box; the
@@ -287,17 +297,17 @@ test("market scan is the mock's quiet rail — eyebrow, scope menu, footnote, no
   // The legend's other half was a standing key of all four cost ratings,
   // belonging to no market. Asserted structurally rather than by rating text:
   // "Clean", "Acceptable", "Thin" and "Poor" are live executionLabel values
-  // that the new row chip legitimately renders, so an absence assertion on any
-  // of those strings would fail on real scan data for a reason that has
-  // nothing to do with the kill list. What defines the legend is a rating chip
-  // that is not attached to a market — every chip the recomposed rail draws
-  // sits inside its own result row.
-  const chipsOutsideARow = await rail
-    .locator("span.chip")
-    .evaluateAll((chips) =>
-      chips.filter((chip) => chip.closest("button") === null).length
-    );
-  expect(chipsOutsideARow).toBe(0);
+  // that the row chip legitimately renders, so an absence assertion on any of
+  // those strings would fail on real scan data for a reason that has nothing to
+  // do with the kill list.
+  //
+  // The claim is made against the un-scanned rail, which is the state this spec
+  // is in throughout: it never scans, so the rail holds no result rows and
+  // therefore no chips of its own. A standing legend belongs to no market and
+  // would be here anyway — so ANY chip in this state is the legend coming back.
+  // (The earlier form of this check filtered the chip list for chips outside a
+  // row, which in an empty rail filtered an empty list and could not fail.)
+  await expect(rail.locator("span.chip")).toHaveCount(0);
 });
 
 test("a How this works link opens the Guide at the section it names", async ({ page }) => {
@@ -311,13 +321,17 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   await page.goto("/");
   await page.getByRole("button", { name: "Review", exact: true }).click();
 
+  // A finished review lands on exactly one of two panels: the receipt, or the
+  // "No trade setup" panel saying why there isn't one. That PAIR is
+  // unconditional, so it is waited for hard — if neither appears, the locator
+  // has rotted or the review never finished, and either is a defect this spec
+  // must go red for rather than skip past. Which of the two arrived is the
+  // market's business, and that is what the skip is for.
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const hasReceipt = await receiptHeading
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
+  const noSetup = page.getByText("No trade setup", { exact: true });
+  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    !hasReceipt,
+    await noSetup.isVisible(),
     "No qualifying setup right now, so there is no Costs row on screen to click.",
   );
 
@@ -356,13 +370,13 @@ test("a receipt How this works link lands on the Guide's record section", async 
   await page.goto("/");
   await page.getByRole("button", { name: "Review", exact: true }).click();
 
+  // Same unconditional pair as the Costs spec above: receipt or "No trade
+  // setup". Neither arriving is rot, not a quiet market.
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const hasReceipt = await receiptHeading
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
+  const noSetup = page.getByText("No trade setup", { exact: true });
+  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    !hasReceipt,
+    await noSetup.isVisible(),
     "No qualifying setup right now, so there is no receipt on screen to click.",
   );
 
@@ -481,11 +495,18 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   // "Market review" heading used to. It is unambiguous at this width in two
   // ways now: the merged mobile surface (whose action is "Scan") does not
   // render at ≥lg at all, and no tab is named Review any more.
+  //
+  // Unique, not merely first: at this width AdvisorWorkspace renders the ≥lg
+  // composition alone, whose stage is one <section> with no <section> ancestor,
+  // so a second match would mean the stage grew a wrapper — exactly the kind of
+  // change this geometry check exists to catch, and exactly what .first() used
+  // to hide.
   const advisorPanel = page.locator("section", {
     has: page.getByRole("button", { name: "Review", exact: true }),
-  }).first();
+  });
   const rail = page.getByTestId("current-trades-rail");
 
+  await expect(advisorPanel).toHaveCount(1);
   await expect(advisorPanel).toBeVisible();
   await expect(rail).toBeVisible();
 
@@ -571,7 +592,14 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
     .toBeVisible();
   await expect(scanSurface.getByRole("button", { name: "Scan", exact: true }))
     .toBeVisible();
-  await expect(scanSurface.getByLabel("Chart view")).toBeVisible();
+  // exact:true, like the desktop sibling above: getByLabel is a
+  // case-insensitive SUBSTRING match, and MarketChart's own tool cluster is not
+  // lg:-gated, so its "Default chart view" reset button mounts inside this same
+  // surface and also contains "chart view". Without the flag this resolves to
+  // two elements and throws a strict-mode violation — invisible to every local
+  // gate, since npm test runs no browser and --list only collects.
+  await expect(scanSurface.getByLabel("Chart view", { exact: true }))
+    .toBeVisible();
   await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
     .toBeVisible();
   // And the composition it replaced does not render here at all: no separate
@@ -676,9 +704,15 @@ test("Expand chart opens the same chart full-viewport on mobile, and only on mob
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   // Below lg only: the ≥lg Desk is frozen and its chart is already full-height.
-  // Crossing the breakpoint swaps the whole composition (spec §17e), so the
-  // trigger leaves the DOM rather than merely going display:none — toBeHidden
-  // covers both, and this asserts the stronger of the two.
+  // The node itself does NOT leave the DOM at this width — both compositions
+  // pass onExpand, so MarketChart renders its lg:hidden button at every width.
+  // toHaveCount(0) is still the right assertion, for the reason that makes it
+  // the stronger one here: a role locator resolves against the accessibility
+  // tree, which excludes a display:none element outright. So this asserts the
+  // thing that actually matters — no reader at ≥lg can reach the affordance —
+  // rather than the weaker "it is styled invisible". (Measured on this repo's
+  // Playwright: role count 0 at 1280 and 1 at 375; a CSS locator returns 1 at
+  // both.)
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.getByRole("button", { name: "Expand chart" }))
     .toHaveCount(0);
@@ -833,13 +867,12 @@ test("each ladder value copies independently, flipping its own button to a check
   await page.goto("/");
   await page.getByRole("button", { name: "Review", exact: true }).click();
 
+  // Same unconditional pair as the receipt specs above.
   const receiptHeading = page.getByRole("heading", { name: "Why this setup" });
-  const hasSetup = await receiptHeading
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
+  const noSetup = page.getByText("No trade setup", { exact: true });
+  await expect(receiptHeading.or(noSetup)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    !hasSetup,
+    await noSetup.isVisible(),
     "No qualifying setup right now, so there are no ladder values to copy.",
   );
 
@@ -918,18 +951,28 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // pre-§16 locator here waited out the whole test timeout in the first live
   // run after the rename shipped.
   await page.getByRole("button", { name: "Scan now", exact: true }).click();
-  const candidateRow = page.getByText(/^(Buy|Sell) · confidence \d+$/).first();
-  const hasCandidate = await candidateRow
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .then(() => true)
-    .catch(() => false);
-  test.skip(
-    !hasCandidate,
-    "No market qualified on this scan, so there is nothing new to check for in Insights.",
-  );
 
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");
+  // Every finished scan reports what it checked — the count line — or says it
+  // could not complete. That pair is unconditional, so it is waited for hard:
+  // neither arriving means the locator rotted or the scan never returned, which
+  // is a defect, not a quiet market. Whether anything qualified is the market's
+  // business, and that is the second skip.
+  const countLine = scanSection.getByText(/\d+ scanned/);
+  const scanFailed = scanSection.getByText(
+    "Market scan could not complete. Try again shortly.",
+  );
+  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
+  test.skip(
+    await scanFailed.isVisible(),
+    "The market scan could not complete, so there is nothing new to check for in Insights.",
+  );
+  const candidateRow = page.getByText(/^(Buy|Sell) · confidence \d+$/).first();
+  test.skip(
+    !(await candidateRow.isVisible()),
+    "No market qualified on this scan, so there is nothing new to check for in Insights.",
+  );
   // Collect EVERY symbol the scan surfaced, not just the top row: a symbol
   // with a live placed position is deliberately skipped by persistence (the
   // scan must never rewrite a live trade), so any single row — including
