@@ -34,7 +34,15 @@ export function ParkingScreen({ themeControl }: { themeControl?: ReactNode }) {
       {themeControl ? (
         <div className="fixed right-4 top-4 z-20">{themeControl}</div>
       ) : null}
-      <div className={SATELLITE_FRAME_SCROLL}>
+      {/* Named for the page, which is what the eyebrow below already calls it:
+          the region is a tab stop now (satelliteFrame.ts), and an unnamed stop
+          announces as nothing. */}
+      <div
+        aria-label="Under construction"
+        className={SATELLITE_FRAME_SCROLL}
+        role="region"
+        tabIndex={0}
+      >
         <div className="m-auto max-w-xl px-6 py-8 text-center">
           {/* §17i's satellite mark: mark A small above the eyebrow, one
               treatment on every page that carries it (44px, 16px of air under

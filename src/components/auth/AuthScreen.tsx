@@ -137,7 +137,15 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
       {themeControl ? (
         <div className="fixed right-4 top-4 z-20">{themeControl}</div>
       ) : null}
-      <div className={SATELLITE_FRAME_SCROLL}>
+      {/* Named for what the page is for — the card's own eyebrow word, not the
+          hero's product line: the region is a tab stop now
+          (satelliteFrame.ts), and an unnamed stop announces as nothing. */}
+      <div
+        aria-label="Sign in"
+        className={SATELLITE_FRAME_SCROLL}
+        role="region"
+        tabIndex={0}
+      >
         {/* The minimum height is the REGION's, not the viewport's: the two columns
             centre against the box that holds them, and a viewport-height minimum
             inside a shorter region is a scrollbar with nothing under it. (Named by

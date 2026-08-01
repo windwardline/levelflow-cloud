@@ -82,6 +82,109 @@ test("static pages keep to the viewport on phones", async ({ page }) => {
   }
 });
 
+// Spec §17i took the document's scroll away from every page and handed it to one
+// region in the middle of the frame. Before this guard existed, nothing checked
+// that a reader with no mouse could move it — the wave's own e2e only ever proved
+// the wheel — and nothing could: from the focus a page load starts with
+// (document.body), Space / ArrowDown / PageDown / End moved the legal trio 0px of
+// 462 at 375, and the one Tab available landed on "Back to Levelflow" at the very
+// end of the notice, slamming the region to its bottom in a single keystroke.
+// That is WCAG 2.1.1 on the three pages where readability is a compliance matter.
+//
+// So the journey is what is asserted, starting where every load starts: Tab once,
+// land on the region itself with nothing scrolled yet, then read it with the
+// keys. 375 because that is the width where these documents actually overflow
+// their frame (363–462px); at 1280 they barely do.
+test("the static pages read by keyboard, from the focus every load starts with (WCAG 2.1.1)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  for (
+    const path of [
+      "/legal/privacy.html",
+      "/legal/terms.html",
+      "/legal/risk-disclaimer.html",
+    ]
+  ) {
+    await page.goto(path, { waitUntil: "networkidle" });
+    expect(
+      await page.evaluate(() => document.activeElement === document.body),
+      `${path}: a fresh load should leave focus on the body`,
+    ).toBe(true);
+    const scrollable = await page.evaluate(() => {
+      const main = document.querySelector("main")!;
+      return main.scrollHeight - main.clientHeight;
+    });
+    expect(scrollable, `${path} has nothing to scroll at 375`).toBeGreaterThan(0);
+
+    // One Tab, and it lands on the region rather than on the link at the end of
+    // the document — with the notice still at its top, which is the half of this
+    // that the pre-fix page failed even though its scroll number moved.
+    await page.keyboard.press("Tab");
+    expect(
+      await page.evaluate(() => document.activeElement?.tagName),
+      `${path}: the first Tab should land on the scroll region`,
+    ).toBe("MAIN");
+    expect(
+      await page.evaluate(() => Math.round(document.querySelector("main")!.scrollTop)),
+      `${path}: reaching the region must not scroll it`,
+    ).toBe(0);
+
+    for (const key of ["Space", "PageDown", "End"]) {
+      await page.evaluate(() => {
+        document.querySelector("main")!.scrollTop = 0;
+      });
+      await page.keyboard.press(key);
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() =>
+              Math.round(document.querySelector("main")!.scrollTop)
+            ),
+          { message: `${path}: ${key} moved the region 0px` },
+        )
+        .toBeGreaterThan(0);
+    }
+    // And the document still does not scroll — the frame is intact.
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  }
+});
+
+test("the login screen's region is a named keyboard stop too", async ({ page }) => {
+  // The same fix on the React half of the satellite set, at the width where that
+  // screen overflows its frame. Reached by role and name, which is the other
+  // half of the claim: a tab stop nobody can name announces as "region".
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/?enter", { waitUntil: "networkidle" });
+  const region = page.getByRole("region", { name: "Sign in" });
+  await expect(region).toBeVisible();
+  expect(await region.evaluate((element) => element.scrollHeight - element.clientHeight))
+    .toBeGreaterThan(0);
+  // The theme toggle is fixed over this screen and sits before the region in the
+  // DOM, so the region is not the first stop — what has to hold is that it IS a
+  // stop, and that it comes before the controls inside it. (On the static pages
+  // above there is no such control, so the region is the very first stop.)
+  let reached = false;
+  let insideFirst = false;
+  for (let stop = 0; stop < 6 && !reached; stop += 1) {
+    await page.keyboard.press("Tab");
+    const where = await region.evaluate((element) => ({
+      inside: element !== document.activeElement &&
+        element.contains(document.activeElement),
+      isRegion: element === document.activeElement,
+    }));
+    reached = where.isRegion;
+    insideFirst = insideFirst || (!reached && where.inside);
+  }
+  expect(reached, "the login region is not a tab stop").toBe(true);
+  expect(insideFirst, "a control inside the region was reached first").toBe(false);
+  await page.keyboard.press("End");
+  await expect
+    .poll(() => region.evaluate((element) => Math.round(element.scrollTop)))
+    .toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test("signed-out visitors see the parking page, not sign-in", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.getByText("Under construction")).toBeVisible();

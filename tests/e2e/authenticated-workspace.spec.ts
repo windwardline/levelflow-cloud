@@ -321,6 +321,53 @@ test("the desktop frame pins the masthead and the footer at every width (§17i)"
     expect((await page.locator("footer").boundingBox())!.y).toBe(footerBefore);
     await expect(page.locator("footer").getByText("A Windward Line production"))
       .toBeVisible();
+
+    // And it moves for a keyboard too, which is what §17i's own scroll region
+    // silently cost until this assertion existed: the document cannot scroll any
+    // more, so from the focus a page load starts with, Space / PageDown / End
+    // moved this region 0px of 4147 (measured, Chromium, both widths). The stop
+    // on the region is what restores them — reached by role and name, since an
+    // unnamed stop announces as nothing.
+    await region.evaluate((element) => {
+      element.scrollTop = 0;
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    expect(await page.evaluate(() => document.activeElement === document.body))
+      .toBe(true);
+    const named = page.getByRole("region", { name: "Guide" });
+    await expect(named).toBeVisible();
+    // The masthead's own controls come first in the DOM, so the region is not the
+    // first stop — what has to hold is that it is a stop at all, and that it
+    // comes before the article's own links, which is the difference between
+    // reading a page and being thrown into the middle of it.
+    let reached = false;
+    let insideFirst = false;
+    for (let stop = 0; stop < 12 && !reached; stop += 1) {
+      await page.keyboard.press("Tab");
+      const where = await named.evaluate((element) => ({
+        inside: element !== document.activeElement &&
+          element.contains(document.activeElement),
+        isRegion: element === document.activeElement,
+      }));
+      reached = where.isRegion;
+      insideFirst = insideFirst || (!reached && where.inside);
+    }
+    expect(reached, `the content region is not a tab stop at ${width}`).toBe(true);
+    expect(insideFirst, "a control inside the region was reached first").toBe(false);
+    expect(await region.evaluate((element) => Math.round(element.scrollTop)))
+      .toBe(0);
+    for (const key of ["Space", "PageDown", "End"]) {
+      await region.evaluate((element) => {
+        element.scrollTop = 0;
+      });
+      await page.keyboard.press(key);
+      await expect
+        .poll(() => region.evaluate((element) => Math.round(element.scrollTop)), {
+          message: `${key} moved the region 0px at ${width}`,
+        })
+        .toBeGreaterThan(0);
+    }
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
   }
 });
 

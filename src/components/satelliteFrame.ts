@@ -26,6 +26,14 @@
 export const SATELLITE_FRAME =
   "grid h-[100dvh] grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-paper text-ink";
 
+// Every element that carries the string below is a tab stop with a name
+// (tabIndex={0} + role="region" + aria-label at the call site, guarded by
+// tests/appFrame.test.ts): the frame took the document's scroll away, so this box
+// is the only thing that can move, and a scroll box no element can focus is a
+// scroll box no keyboard can move (WCAG 2.1.1). The attributes stay at the call
+// site rather than riding this string — a class list cannot carry a name, and the
+// name is what makes the new stop announce as something instead of "region".
+//
 // The one scrolling region between them, flat by construction — §17c's
 // box-on-box rule governs scroll regions too (§17g). A flex column so a short
 // page's content can centre itself on auto margins, which, unlike

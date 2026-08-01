@@ -155,6 +155,100 @@ describe("§17i — exactly one thing scrolls between the pinned rows", () => {
   });
 });
 
+// The frame's fourth fact, and the one wave 8 lost: whatever scrolls has to be
+// reachable without a mouse. §17i took the document's scroll away on every page,
+// so the only thing that can move is a box in the middle of the frame — and a
+// scroll box no element can focus is a scroll box no keyboard can move. Measured
+// in Chromium against the built app before this fix: from the focus every page
+// load starts with, Space / ArrowDown / PageDown / End moved the Guide's region
+// 0px of 4147, and the legal trio's 0px of 462 at 375. That is WCAG 2.1.1 on the
+// three pages where readability is a compliance matter.
+//
+// What restores it is a tab stop on the scroller itself, with a name so the stop
+// announces as something. Pinned here for all three families at once — the app's
+// region, the React satellites' region, and the static pages' <main> — because
+// the failure was one ruling's side effect, not three unrelated omissions. The
+// live proof (one Tab lands on the region, and the keys move it from there) is
+// tests/e2e/public-auth.spec.ts's and the authed spec's.
+describe("§17i — every region the frame scrolls is keyboard-reachable (WCAG 2.1.1)", () => {
+  it("makes the app's content region a named tab stop wherever it is the scroller", () => {
+    // All three attributes ride one gate, and it is the gate that says whether
+    // this box can move at all: below lg each surface scrolls its own inner
+    // region (src/components/mobileFrame.ts), and on the Desk the three columns
+    // do. A stop on a box that cannot scroll is a stop that does nothing.
+    assert.match(
+      APP,
+      /const regionScrolls = !isMobileViewport && !isDeskTab;/,
+    );
+    assert.match(APP, /aria-label=\{regionScrolls \? REGION_LABELS\[activeTab\] : undefined\}/);
+    assert.match(APP, /role=\{regionScrolls \? "region" : undefined\}/);
+    assert.match(APP, /tabIndex=\{regionScrolls \? 0 : undefined\}/);
+    // On the element that carries the region's own class branches and testid,
+    // not on some wrapper near it.
+    const region = APP.match(
+      /<div\n\s*key=\{activeTab\}[\s\S]*?data-testid="content-region"[\s\S]*?>/,
+    )?.[0] ?? "";
+    assert.ok(region.length > 0, "expected the content region's opening tag");
+    for (const attribute of ["aria-label=", "role=", "tabIndex="]) {
+      assert.ok(region.includes(attribute), `the region carries no ${attribute}`);
+    }
+  });
+
+  it("names that stop after the surface inside it, for every tab the app has", () => {
+    const labels = APP.match(/const REGION_LABELS: Record<AppTab, string> = \{([\s\S]*?)\};/)
+      ?.[1] ?? "";
+    assert.ok(labels.length > 0, "expected REGION_LABELS");
+    const named = Object.fromEntries(
+      Array.from(labels.matchAll(/(\w+): "([^"]+)",/g), (match) => [match[1], match[2]]),
+    );
+    const tabs = Array.from(
+      APP.match(/const TABS: Array<\{ label: string; value: AppTab \}> = \[([\s\S]*?)\];/)?.[1]
+        ?.matchAll(/\{ label: "([^"]+)", value: "(\w+)" \}/g) ?? [],
+      (match) => ({ label: match[1], value: match[2] }),
+    );
+    assert.equal(tabs.length, 4, "expected the masthead's four tabs");
+    // Derived rather than restated: every tab the masthead lists is named here
+    // with the masthead's own word, and Donate — which has no tab, only the
+    // footer's control — is named too, so no surface can reach the region
+    // unnamed.
+    for (const tab of tabs) {
+      assert.equal(named[tab.value], tab.label, `${tab.value} is named twice over`);
+    }
+    const union = APP.match(/type AppTab =([^;]*);/)?.[1] ?? "";
+    const members = Array.from(union.matchAll(/"(\w+)"/g), (match) => match[1]);
+    assert.deepEqual(Object.keys(named).sort(), members.sort());
+  });
+
+  it("makes both React satellites' region a named tab stop", () => {
+    const NAMES: Record<string, string> = {
+      "src/components/auth/AuthScreen.tsx": "Sign in",
+      "src/components/auth/ParkingScreen.tsx": "Under construction",
+    };
+    for (const [file, name] of Object.entries(NAMES)) {
+      const source = readFileSync(file, "utf8");
+      const region = source.match(
+        /<div\n\s*aria-label="[^"]*"\n\s*className=\{SATELLITE_FRAME_SCROLL\}\n\s*role="region"\n\s*tabIndex=\{0\}\n\s*>/,
+      )?.[0] ?? "";
+      assert.ok(region.length > 0, `${file}'s scroll region is not a named tab stop`);
+      assert.ok(region.includes(`aria-label="${name}"`), `${file} names it something else`);
+    }
+  });
+
+  it("gives the region its focus ring inside its own edge, in both stylesheets", () => {
+    // The frame is overflow-hidden, so the kit's own +2px offset would draw the
+    // ring where nothing can see it. Same outline, other side of the border —
+    // and unlayered in the app's sheet, or the utilities layer's own
+    // :focus-visible would outrank it.
+    const kit = readFileSync("src/styles/index.css", "utf8");
+    assert.match(kit, /\n\.scrolly:focus-visible \{\n  outline-offset: -2px;\n\}/);
+    const legal = readFileSync("public/legal/legal.css", "utf8");
+    assert.match(
+      legal,
+      /\nmain:focus-visible \{\n  outline: 2px solid var\(--color-accent\);\n  outline-offset: -2px;\n\}/,
+    );
+  });
+});
+
 // Spec §17i as amended: the frame is "EVERY page — no exceptions ('Every single
 // page.')", the seldom-used set included. Those pages have no masthead, so their
 // frame is the other two rows — content, then footer — and everything else about
@@ -288,6 +382,26 @@ describe("§17i — the frame reaches the static pages", () => {
     }
     for (const selector of ["body.not-found", "body.parking"]) {
       assert.doesNotMatch(rule(selector), /justify-content: center;/);
+    }
+  });
+
+  it("makes each page's own <main> a named tab stop, so the notice can be read by keyboard", () => {
+    for (const page of PAGES) {
+      const source = readFileSync(page, "utf8");
+      const main = source.match(/<main[^>]*>/)?.[0] ?? "";
+      assert.ok(main.length > 0, `${page} has no <main>`);
+      assert.match(main, /\btabindex="0"/, page);
+      // Named after the page, read from the page: the eyebrow is what the
+      // document calls itself, and a landmark named something else is a landmark
+      // that disagrees with the words above it. The main role itself stays —
+      // role="region" here would trade a named main landmark for a generic one.
+      const eyebrow = source.match(/<p class="page-eyebrow">([^<]+)<\/p>/)?.[1] ?? "";
+      assert.ok(eyebrow.length > 0, `${page} has no eyebrow to name it after`);
+      assert.ok(
+        main.includes(`aria-label="${eyebrow}"`),
+        `${page}: <main> is named ${main} rather than its own "${eyebrow}"`,
+      );
+      assert.doesNotMatch(main, /role=/, page);
     }
   });
 

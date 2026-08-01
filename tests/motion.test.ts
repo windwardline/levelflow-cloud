@@ -95,7 +95,15 @@ describe("§8 — the 120ms fade, on the surfaces the spec names", () => {
     // the element across tab changes and the fade would happen exactly once per
     // page load. Keyed on activeTab and nothing else — deskMobileView must not
     // remount AdvisorWorkspace.
-    assert.match(APP, /<div\s+key=\{activeTab\}\s+className=\{isMobileViewport/);
+    // Read as "the keyed element IS the content region", rather than as the two
+    // attributes being adjacent: §17i's own scroll region carries a11y
+    // attributes between them now (the tab stop that made it keyboard-scrollable),
+    // and none of that is what this test is about.
+    const region = APP.match(
+      /<div\n\s*key=\{activeTab\}[\s\S]*?data-testid="content-region"/,
+    )?.[0] ?? "";
+    assert.ok(region.length > 0, "expected the keyed content region");
+    assert.match(region, /className=\{isMobileViewport/);
     assert.equal((APP.match(/motion-fade-in/g) ?? []).length, 4);
     for (const shell of [
       /\? "motion-fade-in flex w-full min-h-0 flex-col overflow-hidden"/,

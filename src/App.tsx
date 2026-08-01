@@ -74,6 +74,19 @@ const TABS: Array<{ label: string; value: AppTab }> = [
   { label: "Guide", value: "guide" },
   { label: "Profile", value: "profile" },
 ];
+// What the frame's scrolling region is called, per surface. §17i made that
+// region a tab stop (see regionScrolls below), and a tab stop with no
+// accessible name announces as an unnamed region — so each surface names it the
+// way the surface names itself. Written out rather than derived from TABS
+// because Donate has no masthead tab to derive from; tests/appFrame.test.ts
+// pins the two lists against each other so they cannot drift apart.
+const REGION_LABELS: Record<AppTab, string> = {
+  advisor: "Desk",
+  donate: "Donate",
+  guide: "Guide",
+  history: "Insights",
+  profile: "Profile",
+};
 const PERSISTED_TABS = new Set<AppTab>([
   "advisor",
   "history",
@@ -260,6 +273,20 @@ export default function App() {
   // composition CSS cannot express as a restyling of the other
   // (src/components/mobileFrame.ts).
   const isDeskTab = activeTab === "advisor";
+  // Whether the region below is itself the scroller — and so whether it needs a
+  // tab stop. §17i took the document's scroll away (h-[100dvh] +
+  // overflow-hidden) and handed it to this box, and a scroll box no element can
+  // focus is a scroll box no keyboard can move: from the focus every page load
+  // starts with, Space / PageDown / End moved nothing at all (WCAG 2.1.1). A
+  // tabIndex here restores them — one Tab lands on the region, and the keys work
+  // from there.
+  //
+  // Gated, not unconditional: below lg each surface scrolls its own inner region
+  // (src/components/mobileFrame.ts) and on the Desk the three columns do, so on
+  // those two this box cannot move and a tab stop on it would be a stop that
+  // does nothing. The name and the role ride the same gate for the same reason —
+  // they exist to announce the tab stop.
+  const regionScrolls = !isMobileViewport && !isDeskTab;
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
@@ -365,6 +392,7 @@ export default function App() {
             leave AdvisorWorkspace mounted (see the two refresh effects above). */}
         <div
           key={activeTab}
+          aria-label={regionScrolls ? REGION_LABELS[activeTab] : undefined}
           className={isMobileViewport
             // Every mobile surface owns its own gutters and its own bottom
             // clearance (spec §17g, m-scan-v3.html:29,32), so this wrapper
@@ -396,6 +424,8 @@ export default function App() {
             ? "motion-fade-in mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
             : "scrolly motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:min-h-0 lg:overflow-y-auto lg:pb-5"}
           data-testid="content-region"
+          role={regionScrolls ? "region" : undefined}
+          tabIndex={regionScrolls ? 0 : undefined}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace

@@ -357,6 +357,23 @@ html[data-theme="dark"] {
 }
 
 /*
+  Spec §17i's scroll regions are tab stops (App.tsx's content region and the
+  satellites' — a scroll box no element can focus is a scroll box no keyboard can
+  move), and a stop that size wants its ring inside its own edge: the frame is
+  overflow-hidden, so the 2px offset above would draw the ring where nothing can
+  see it. Same color, same weight, other side of the border — .scrolly is the
+  class every scroll region in this app already carries, so the treatment cannot
+  land on some of them and not others.
+
+  Outside every @layer, the same reason the rule above and the one below are: an
+  outline-offset utility lives in the utilities layer, which the unlayered rule
+  above outranks no matter how specific it is.
+*/
+.scrolly:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
   Tailwind's generated `min-h-10` utility lives in the utilities layer,
   which always outranks the components layer above regardless of
   specificity — so on any .secondary-button call site that also carries

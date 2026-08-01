@@ -88,6 +88,17 @@ body {
   content instead of stretching the frame; the thin scrollbar matches the app's
   own .scrolly. It runs full width so the scrollbar sits at the viewport edge —
   the reading measure moved to .page-block inside it.
+
+  tabindex="0" on the element itself (each document's own <main>) is what keeps
+  these pages readable without a mouse. The frame took the document's scroll
+  away, and a scroll box no element can focus is a scroll box no keyboard can
+  move: measured in Chromium, the first Tab used to land on "Back to Levelflow"
+  at the very end of the notice and slam the region to its bottom, which is the
+  whole document skipped in one keystroke (WCAG 2.1.1). With the stop on the
+  region, that first Tab lands on the region at rest and Space / PageDown / End
+  read the notice from the top. The landmark keeps its own role — a role="region"
+  here would trade a named main landmark for a generic one — and aria-label names
+  it, because the page's own h1 is the wordmark rather than the document's name.
 */
 main {
   flex: 1;
@@ -97,6 +108,17 @@ main {
   scrollbar-color: var(--color-hairline) transparent;
   padding: 48px 20px;
   width: 100%;
+}
+
+/*
+  The new stop's focus ring: the kit's own 2px accent, inside the box's edge
+  rather than 2px outside it (`a:focus-visible` above, and the app's own global
+  rule). A region is the size of the frame, and the frame is overflow: hidden —
+  an outline drawn outside that edge is an outline nobody sees.
+*/
+main:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 main::-webkit-scrollbar {
