@@ -1423,7 +1423,10 @@ describe("§17g — the account menu carries the legal trio", () => {
     // the first two before this wave, so only the trio joins it.
     assert.equal((menuBlock.match(/label="Donate"/g) ?? []).length, 1);
     assert.equal((menuBlock.match(/>\s*Help\s*</g) ?? []).length, 1);
-    assert.doesNotMatch(menuBlock, /supportMailto[\s\S]{0,200}supportMailto/);
+    // One rendered mailto, counted where it is rendered rather than by proximity:
+    // the prop is named three times legitimately (the parameter, its type, the
+    // href), and a window over the source counted those.
+    assert.equal((menuBlock.match(/href=\{supportMailto\}/g) ?? []).length, 1);
   });
 });
 
@@ -1456,28 +1459,38 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     /function MobileAccountMenu[\s\S]*?\n}\n/,
   )?.[0] ?? "";
 
-  it("draws the account trigger as the mock's initial-in-circle (m-mobile-v3.html:44, menu mock :33)", () => {
-    // A circle on sheet with a 1.5px hairline border carrying the signed-in
-    // email's first letter in 13px bold. The circle is the kit's 44px tap
-    // target rather than the mock's 34px — spec §16 trims padding and type,
-    // never the hit area — and every aria/focus contract is untouched.
+  // Spec §17i: "The mobile avatar trigger renders mark A (not the account
+  // initial); 44px target and accessible name unchanged." The mock's
+  // initial-in-circle (m-mobile-v3.html:44, menu mock :33) is superseded, and its
+  // circle goes with it: mark A arrives with a container of its own — a
+  // rounded-square tile on sheet with a hairline edge — so the circle would be a
+  // perimeter inside a perimeter, which is §17c's box-on-box. Both directions, per
+  // §16's review discipline.
+  it("draws the account trigger as mark A, and keeps the 44px target it had (§17i)", () => {
     assert.match(
       menuBlock,
-      /className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-\[1\.5px\] border-hairline bg-sheet text-\[13px\] font-bold text-ink transition hover:border-accent\/40"/,
+      /className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-accent\/10"/,
     );
-    assert.match(menuBlock, /initial: string;/);
-    // No email on the session is a real possibility the types allow, so the
-    // circle falls back to the icon rather than rendering blank.
+    // The mark is the face; the ✕ still says what tapping the open trigger does.
     assert.match(
       menuBlock,
-      /: initial \|\| <CircleUser className="h-5 w-5" aria-hidden="true" \/>/,
+      /\{open\s*\n?\s*\? <X className="h-5 w-5" aria-hidden="true" \/>\s*\n?\s*: <LevelflowMark className="h-8 w-8" \/>\}/,
     );
-    // Sourced from the session, uppercased, never from a profile display name.
     assert.match(
       APP_SOURCE,
-      /const accountInitial = \(session\.user\.email \?\? ""\)\.trim\(\)\.charAt\(0\)\s*\.toUpperCase\(\);/,
+      /import \{ LevelflowMark \} from "\.\/components\/LevelflowMark";/,
     );
-    assert.match(APP_SOURCE, /initial=\{accountInitial\}/);
+    // The initial's whole plumbing is gone, not merely unrendered: the prop, its
+    // type, the derivation off the session, and the icon that stood in when a
+    // session carried no email.
+    // Read without comments: this control's own comment quotes the ruling, which
+    // names the thing it replaced, and documentation of a removal is not the thing.
+    assert.doesNotMatch(withoutComments(menuBlock), /\binitial\b/);
+    assert.doesNotMatch(APP_SOURCE, /accountInitial/);
+    assert.doesNotMatch(APP_SOURCE, /CircleUser/);
+    // And the mock's circle chrome with it — one perimeter on this control, drawn
+    // by the mark (tests/boxDiscipline.test.ts owns the box inventory).
+    assert.doesNotMatch(menuBlock, /border-\[1\.5px\] border-hairline bg-sheet/);
   });
 
   it("keeps the account menu's aria, role and focus contracts byte-intact through the avatar change", () => {

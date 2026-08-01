@@ -62,10 +62,11 @@ type Survivor = {
 const SURVIVORS: Record<string, Survivor[]> = {
   // ---- interactive affordances -------------------------------------------
   "src/App.tsx": [
-    {
-      match: "rounded-full border-[1.5px] border-hairline bg-sheet",
-      why: "the mobile account menu's avatar trigger — a button",
-    },
+    // The avatar trigger's own circle left this table with §17i: the trigger
+    // renders mark A now, and the mark brings a rounded-square tile with a
+    // hairline edge of its own, so the circle would have been a perimeter inside a
+    // perimeter. One box fewer on the surface, which is the direction §17c's sweep
+    // runs — and the mark itself draws no literal class string, so it adds none.
     {
       match: "rounded-lg border border-hairline bg-sheet py-1 shadow-lg",
       why:

@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   BookOpen,
-  CircleUser,
   Gift,
   History,
   ListChecks,
@@ -21,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { AppFooter } from "./components/AppFooter";
+import { LevelflowMark } from "./components/LevelflowMark";
 import { LEGAL_LINKS } from "./components/legal/LegalLinks";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
@@ -247,15 +247,6 @@ export default function App() {
     profileState.profile ??
     buildDefaultProfile(session.user.id, session.user.email ?? "");
 
-  // The mobile account trigger is an initial-in-circle (m-mobile-v3.html:44).
-  // The letter comes from the signed-in email rather than a profile display
-  // name: the email is the identity every session has, it is what the avatar
-  // is standing in for, and it never changes shape while a profile save is in
-  // flight. Empty when a session somehow carries no email — the trigger falls
-  // back to its icon rather than rendering a blank circle.
-  const accountInitial = (session.user.email ?? "").trim().charAt(0)
-    .toUpperCase();
-
   // Which of the Desk's two ≥lg neighbours the content region is: the Desk's own
   // three-column shell scrolls each column internally and so hands the region
   // nothing to scroll, while every other tab is a page that scrolls inside it.
@@ -297,7 +288,6 @@ export default function App() {
               <div className="flex shrink-0 items-center gap-2">
                 <BrokerChip compact />
                 <MobileAccountMenu
-                  initial={accountInitial}
                   onOpenDonate={() => setActiveTab("donate")}
                   onOpenGuide={() => setActiveTab("guide")}
                   onOpenProfile={() => setActiveTab("profile")}
@@ -657,16 +647,12 @@ function MobileTabBar({
 // users could reach before becomes unreachable now that the header no
 // longer shows those buttons directly.
 function MobileAccountMenu({
-  initial,
   onOpenDonate,
   onOpenGuide,
   onOpenProfile,
   onSignOut,
   supportMailto,
 }: {
-  // The signed-in email's first letter, uppercased — see App's accountInitial.
-  // Empty when the session carries no email, which the trigger handles.
-  initial: string;
   onOpenDonate: () => void;
   onOpenGuide: () => void;
   onOpenProfile: () => void;
@@ -750,20 +736,25 @@ function MobileAccountMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
-        // The mock's avatar (m-mobile-v3.html:44, and unchanged behind the
-        // open sheet at m-mobile-v3-menu.html:33): a circle on sheet with a
-        // 1.5px hairline border carrying the account's initial in 13px bold.
-        // Held at the kit's 44px tap target rather than the mock's 34px —
-        // spec §16 trims padding and type size, never the hit area. The open
-        // state keeps its ✕ so the trigger still says what tapping it does;
-        // neither mock draws this menu open.
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-hairline bg-sheet text-[13px] font-bold text-ink transition hover:border-accent/40"
+        // Spec §17i: "The mobile avatar trigger renders mark A (not the account
+        // initial); 44px target and accessible name unchanged." The mock drew a
+        // circle on sheet with a 1.5px hairline border carrying the signed-in
+        // email's first letter (m-mobile-v3.html:44); mark A arrives with a
+        // container of its own — a rounded-square tile on sheet with a hairline
+        // edge — so keeping the circle too would be a perimeter inside a perimeter,
+        // which is the box-on-box §17c sweeps. The mark IS the trigger's face; the
+        // 44px tap target stays, and hover takes the accent tint every other
+        // pressable row in this menu already uses instead of a second edge.
+        //
+        // The open state keeps its ✕ so the trigger still says what tapping it
+        // does; neither mock draws this menu open.
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-accent/10"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
         {open
           ? <X className="h-5 w-5" aria-hidden="true" />
-          : initial || <CircleUser className="h-5 w-5" aria-hidden="true" />}
+          : <LevelflowMark className="h-8 w-8" />}
       </button>
 
       {/* w-56 rather than the w-48 this menu carried before §17g: the legal trio
