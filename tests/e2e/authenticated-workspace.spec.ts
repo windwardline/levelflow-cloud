@@ -662,7 +662,7 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
   // change this geometry check exists to catch, and exactly what .first() used
   // to hide.
   const advisorPanel = page.locator("section", {
-    has: page.getByLabel("Chart view"),
+    has: page.getByLabel("Chart view", { exact: true }),
   });
   const rail = page.getByTestId("current-trades-rail");
 
@@ -1048,7 +1048,7 @@ test("the Desk stage fits its region at 1280x800 and 1440x900 (§17m.3)", async 
     await page.setViewportSize({ height, width });
     await page.goto("/");
     await expect(page.getByTestId("current-trades-rail")).toBeVisible();
-    await expect(page.getByLabel("Chart view")).toBeVisible();
+    await expect(page.getByLabel("Chart view", { exact: true })).toBeVisible();
 
     const stage = await page.evaluate(() => {
       const select = document.querySelector<HTMLElement>(
