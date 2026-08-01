@@ -41,7 +41,12 @@ import {
   resolveProviderSymbols,
 } from "./symbols.ts";
 import { buildPricePlan } from "./pricePlan.ts";
+import { mapWithConcurrency } from "./concurrency.ts";
 import { rankOpportunities } from "./scanRanking.ts";
+import {
+  persistScannedOpportunities,
+  type ScanWriteOutcome,
+} from "./scanPersistence.ts";
 import {
   fetchFirstAvailableMarketContext,
   fetchFmpBars,
@@ -144,6 +149,11 @@ type OutcomeRefreshSummary = {
 
 type UpsertedSetupResult = {
   deduplicated: boolean;
+  // Which of the three things this call actually did (scanPersistence.ts):
+  // wrote a new row, updated the active one, or left a live position alone
+  // (C2). The scan's persistence report reads this — "did nothing, correctly"
+  // and "did nothing, because the write failed" have to be distinguishable.
+  outcome: ScanWriteOutcome;
   setupId: string;
   updated: boolean;
 };
@@ -280,9 +290,16 @@ Deno.serve(async (req) => {
         metadata: {
           blocked: scan.blocked.length,
           opportunities: scan.opportunities.length,
+          // The persistence contract, in the record of the request itself:
+          // a scan that showed setups and wrote none is now legible in
+          // analyzer_events rather than only in a console (spec §17m.2).
+          persistence: scan.persistence,
           scanned: scan.scanned,
         },
-        status: "success",
+        // A scan that could not write part of what it showed is not a
+        // success — "scan_failure" is the enum's own word for it
+        // (supabase/init.sql's analyzer_events status check).
+        status: scan.persistence.failed > 0 ? "scan_failure" : "success",
         userId: user.id,
       });
       return jsonResponse(req, {
@@ -428,34 +445,30 @@ async function scanOpportunities(
   // record never disagree. scanOpportunities only runs for an
   // authenticated caller (Deno.serve rejects unauthenticated requests
   // before any action handler runs), so persistence is unconditional here.
-  await persistScannedOpportunities(
-    token,
-    userId,
-    rankedOpportunities,
-    persistenceBySymbol,
-  );
-
-  return {
-    blocked,
+  //
+  // Spec §17m.2: the Scan column is the only door a setup comes through, so
+  // "every qualifying setup persists" is a contract, not an intention. The
+  // report below is that contract as numbers the response carries — see
+  // scanPersistence.ts — and every failure also lands in analyzer_events,
+  // because the previous shape of this pass logged write failures to a
+  // console nobody reads and reported success regardless.
+  const persistence = await persistScannedOpportunities({
+    contexts: persistenceBySymbol,
+    onFailure: async (symbol, error) => {
+      console.error("scan setup persistence failed", symbol, error);
+      await recordAnalyzerEvent({
+        action: "scan_opportunities",
+        message: `Scan setup persistence failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        status: "scan_failure",
+        symbol,
+        userId,
+      });
+    },
     opportunities: rankedOpportunities,
-    qualified: rankedOpportunities.length,
-    scanned: normalizedSymbols.length,
-  };
-}
-
-async function persistScannedOpportunities(
-  token: string,
-  userId: string,
-  opportunities: MarketScanCandidate[],
-  persistenceBySymbol: Map<SupportedSymbol, ScanPersistenceContext>,
-): Promise<void> {
-  await mapWithConcurrency(opportunities, 4, async (opportunity) => {
-    const context = persistenceBySymbol.get(opportunity.symbol);
-    if (!context) {
-      return;
-    }
-    try {
-      await upsertActiveSetup(
+    write: (context) =>
+      upsertActiveSetup(
         token,
         userId,
         context.symbol,
@@ -464,13 +477,16 @@ async function persistScannedOpportunities(
         context.setup,
         context.newsContext,
         "scan",
-      );
-    } catch (error) {
-      // A write failure here must not blank the scan the user is already
-      // looking at — this is a record of what was shown, not a gate on it.
-      console.error("scan setup persistence failed", context.symbol, error);
-    }
+      ),
   });
+
+  return {
+    blocked,
+    opportunities: rankedOpportunities,
+    persistence,
+    qualified: rankedOpportunities.length,
+    scanned: normalizedSymbols.length,
+  };
 }
 
 async function reviewCurrentMarket(
@@ -908,28 +924,6 @@ function buildScanRationale(
   return reasons.slice(0, 5);
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let nextIndex = 0;
-  const workerCount = Math.min(Math.max(1, limit), items.length);
-
-  await Promise.all(
-    Array.from({ length: workerCount }, async () => {
-      while (nextIndex < items.length) {
-        const currentIndex = nextIndex;
-        nextIndex += 1;
-        results[currentIndex] = await worker(items[currentIndex]);
-      }
-    }),
-  );
-
-  return results;
-}
-
 async function findStrongerActiveCorrelatedSetup(
   token: string,
   userId: string,
@@ -1300,6 +1294,7 @@ async function upsertActiveSetup(
   if (origin === "scan" && activeSetup && activeSetup.status === "placed") {
     return {
       deduplicated: true,
+      outcome: "skipped_live_position",
       setupId: activeSetup.id,
       updated: false,
     };
@@ -1345,6 +1340,7 @@ async function upsertActiveSetup(
 
     return {
       deduplicated: true,
+      outcome: "updated",
       setupId: activeSetup.id,
       updated: true,
     };
@@ -1381,6 +1377,7 @@ async function upsertActiveSetup(
 
   return {
     deduplicated: false,
+    outcome: "inserted",
     setupId: tradeSetup.id,
     updated: false,
   };
@@ -1674,11 +1671,26 @@ async function refreshGlobalStrategyWeights(): Promise<
     id: string;
     symbol: string;
   }>(
-    // Scan-origin setups are record, not signal, until measured — global
-    // learning only trains on setups a human actually reviewed.
+    // Every origin trains the cohort (spec §17m: "every qualifying setup the
+    // Scan column generates persists to history/Insights/the cohort").
+    //
+    // This query used to filter the setups down to review origin, from a
+    // build where a scan
+    // was background research running alongside deliberate single-market
+    // reviews. §17m.1 deleted the stage's Review button and made the Scan
+    // column the only door, so that filter would have left global learning
+    // with no eligible rows at all on desktop — permanently frozen weights
+    // dressed up as a working model. Nothing about the signal changed: these
+    // are measured outcomes (take_profit / tp1_partial / stop_loss /
+    // ambiguous) resolved by the same replay engine from the same live bars,
+    // whichever door asked for the setup.
+    //
+    // ANALYZER_VERSION deliberately does NOT move for this: setup generation
+    // is byte-identical, and bumping it would orphan the very post-launch
+    // outcomes this widening exists to count.
     `trade_setups?select=id,symbol,correlation_group,confluence&id=in.(${
       setupIds.map((id) => encodeURIComponent(id)).join(",")
-    })&origin=eq.review`,
+    })`,
   );
   const setupsById = new Map(rows.map((row) => [row.id, row]));
   const grouped = new Map<

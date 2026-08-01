@@ -77,6 +77,19 @@ export type MarketScanResponse = {
   failed?: boolean;
   learningRefresh?: AnalyzerResponse["learningRefresh"];
   opportunities: MarketScanCandidate[];
+  // The server's persistence contract for this scan (spec §17m.2,
+  // supabase/functions/trade-analyzer/scanPersistence.ts):
+  // persisted + skipped + failed === attempted === qualified. Nothing renders
+  // it — §17f, the surface already shows what qualified — and no client
+  // behavior reads it. It exists so "the scan showed setups and saved none"
+  // is a legible, assertable state instead of an invisible one: the e2e
+  // persistence spec reads these numbers straight off the response.
+  persistence?: {
+    attempted: number;
+    failed: number;
+    persisted: number;
+    skipped: number;
+  };
   qualified: number;
   scanned: number;
 };

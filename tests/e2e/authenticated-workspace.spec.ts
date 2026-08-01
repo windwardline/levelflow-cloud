@@ -1220,18 +1220,38 @@ test("Insights renders the setup ledger table, and no below-table blurb", async 
 });
 
 test("a qualifying market scan persists into Insights, not just onto the scan rail", async ({ page }) => {
-  // Spec §9: every generated setup is persisted, scan path included. This
-  // depends on the live scan actually qualifying at least one market right
-  // now, so — like the receipt tests above — it skips honestly rather than
-  // pin behavior on live market conditions.
+  // Spec §9 / §17m.2: every generated setup is persisted, scan path included —
+  // and since §17m the Scan column is the ONLY door, so this is the one spec
+  // standing between a working engine and a product that shows setups it never
+  // saved. It depends on the live scan qualifying at least one market right
+  // now, so — like the receipt tests above — it skips honestly rather than pin
+  // behavior on live market conditions.
+  //
+  // What it does NOT do any more is settle for an intersection. The previous
+  // form compared the scan's symbols against the whole 80-row ledger and
+  // passed if any one of them appeared — which rows left by earlier runs and by
+  // the review path satisfy on their own. It passed green through the live
+  // deploy run in which the owner's own scan saved nothing (2026-08-01). The
+  // contract below is the honest one: the server reports what it wrote, the
+  // numbers must balance, and every qualifying market must be in the ledger.
   test.setTimeout(120_000);
   await page.goto("/");
 
-  // "Scan now" is the rail's action (spec §16 mock wording); plain "Scan" is
-  // only the mobile tab bar's label, hidden at this desktop viewport — the
-  // pre-§16 locator here waited out the whole test timeout in the first live
-  // run after the rename shipped.
-  await page.getByRole("button", { name: "Scan now", exact: true }).click();
+  // The scan's own response, read as it lands: the server's persistence
+  // report is the only place "qualified 6, wrote 0" is visible, and reading it
+  // here is what makes this spec able to fail for the owner's reason.
+  const scanResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/functions/v1/trade-analyzer") &&
+      response.request().method() === "POST",
+    { timeout: 90_000 },
+  );
+  // Scoped to the rail rather than the page: the mobile tab bar carries a
+  // "Scan" tab of its own (hidden at this desktop viewport, still in the DOM),
+  // and scoping is what keeps the rail's action unambiguous whatever the button
+  // is called.
+  await page.getByTestId("market-scan-rail")
+    .getByRole("button", { name: "Scan now", exact: true }).click();
 
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");
@@ -1254,17 +1274,49 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
     !(await candidateRow.isVisible()),
     "No market qualified on this scan, so there is nothing new to check for in Insights.",
   );
-  // Collect EVERY symbol the scan surfaced, not just the top row: a symbol
-  // with a live placed position is deliberately skipped by persistence (the
-  // scan must never rewrite a live trade), so any single row — including
-  // the strongest — can be legitimately absent from Insights. The honest
-  // assertion is that the scan's qualifying set intersects the ledger.
+
+  // The server's own account of this scan (scanPersistence.ts): every
+  // qualifying setup is written, skipped for a live position (C2 — a scan must
+  // never rewrite a live trade), or FAILED. The three must add up to what
+  // qualified, nothing may fail, and a scan that qualified anything must have
+  // written at least the markets it did not skip.
+  const scanBody = await (await scanResponsePromise).json() as {
+    opportunities?: Array<{ symbol: string }>;
+    persistence?: {
+      attempted: number;
+      failed: number;
+      persisted: number;
+      skipped: number;
+    };
+    qualified?: number;
+  };
+  const persistence = scanBody.persistence;
+  expect(
+    persistence,
+    "the scan response carries no persistence report — spec §17m.2",
+  ).toBeTruthy();
+  expect(persistence!.attempted).toBe(scanBody.qualified);
+  expect(persistence!.persisted + persistence!.skipped + persistence!.failed)
+    .toBe(persistence!.attempted);
+  expect(
+    persistence!.failed,
+    "the scan failed to persist part of what it showed (see analyzer_events)",
+  ).toBe(0);
+  expect(
+    persistence!.persisted,
+    `the scan qualified ${scanBody.qualified} markets and wrote none`,
+  ).toBe(persistence!.attempted - persistence!.skipped);
+
+  // …and the same claim from the reader's seat. Every qualifying market must be
+  // in the ledger; the only exemption is the live-position skip the response
+  // itself declares, and it is quantified, never assumed.
   const scannedSymbolLabels = (
     await scanSection
       .locator("span.truncate.font-bold.text-ink")
       .allTextContents()
   ).map((label) => label.trim()).filter(Boolean);
   expect(scannedSymbolLabels.length).toBeGreaterThan(0);
+  expect(scannedSymbolLabels.length).toBe(scanBody.qualified);
 
   await page.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
@@ -1300,11 +1352,15 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   const insightsLabels = rawSymbols.map((symbol) =>
     formatSecurityDisplaySymbol(symbol)
   );
-  const persisted = scannedSymbolLabels.filter((label) =>
-    insightsLabels.includes(label)
+  const missing = scannedSymbolLabels.filter((label) =>
+    !insightsLabels.includes(label)
   );
+  // At most the markets the server said it skipped may be missing — and if the
+  // server skipped none, none may be missing at all.
   expect(
-    persisted.length,
-    `none of the scan's qualifying markets (${scannedSymbolLabels.join(", ")}) reached the Insights ledger`,
-  ).toBeGreaterThan(0);
+    missing.length,
+    `qualifying markets absent from the Insights ledger: ${
+      missing.join(", ")
+    } (the scan reported ${persistence!.skipped} live-position skip(s))`,
+  ).toBeLessThanOrEqual(persistence!.skipped);
 });
