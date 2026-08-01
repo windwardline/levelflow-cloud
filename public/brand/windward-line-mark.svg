@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- House swallowtail small cut on canvas — the attribution mark beside
-       "A Windward Line product". Constant light rendition. -->
-  <rect width="64" height="64" fill="#F7F8F4"/>
-  <g transform="translate(15 21.75)">
-    <path d="M0 0 H34 L21.5 10.5 L34 21 H0 Z" fill="#202e4d"/>
-    <circle cx="12" cy="10.5" r="4.6" fill="#c9a25e"/>
-  </g>
-</svg>

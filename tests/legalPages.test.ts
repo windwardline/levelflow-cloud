@@ -60,13 +60,19 @@ describe("every static page requests an icon that exists on disk (F1, Finding 4)
     });
   }
 
-  it("leaves no page standing in the borrowed house mark", () => {
-    // The Windward Line mark still ships as the house's own asset, but nothing in
-    // this product draws it any more: it was nobody's favicon after §17h, and §17i
-    // retired its last use — the small mark beside the auth screen's colophon —
-    // when that screen took the shared framed footer, which names the house in the
-    // line itself and puts Levelflow's own mark at the top of the page.
-    assert.ok(existsSync("public/brand/windward-line-mark.svg"));
+  it("leaves no page standing in the borrowed house mark, and does not ship it", () => {
+    // Nothing in this product draws the Windward Line mark any more: it was
+    // nobody's favicon after §17h, and §17i retired its last use — the small mark
+    // beside the auth screen's colophon — when that screen took the shared framed
+    // footer, which names the house in the line itself and puts Levelflow's own
+    // mark at the top of the page.
+    //
+    // So the file is gone, and this assertion is inverted rather than deleted: it
+    // shipped to dist/brand/ and was publicly fetchable with zero consumers, which
+    // is how a retired decision comes to read as the house mark's canonical home.
+    // The house's mark belongs in the apex and portfolio repos. §17h's own mention
+    // of the filename stays as history.
+    assert.equal(existsSync("public/brand/windward-line-mark.svg"), false);
     assert.equal(existsSync("src/lib/assets.ts"), false);
     for (const file of STATIC_PAGES) {
       assert.doesNotMatch(readFileSync(file, "utf8"), /windward-line-mark/, file);
