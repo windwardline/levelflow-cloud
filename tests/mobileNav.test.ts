@@ -1440,7 +1440,12 @@ describe("§17g — Profile ends with the colophon below lg, and only there", ()
     // The class, not the word: this file's own comments name .colophon while
     // explaining why the line is here, and prose is not a second colophon.
     assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
-    assert.match(profile, /className="colophon">A Windward Line production</);
+    // §17k made the line a link inside that <p> (tests/colophon.test.ts pins the
+    // link itself); what this file owns is that the treatment is the footer's.
+    assert.match(
+      profile,
+      /className="colophon">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
+    );
     // Inside the mobile scroll region, after the rows: it ends the view.
     assert.match(
       profile,

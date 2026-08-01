@@ -50,8 +50,24 @@ export function AppFooter({ donate, supportMailto }: AppFooterProps) {
       <div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 py-[18px] sm:px-8">
         {/* .colophon carries its own 2rem top pad for the standalone use on
             the auth and parking screens; here the footer's own padding is the
-            spacing, so that pad comes back off. */}
-        <p className="colophon py-0">A Windward Line production</p>
+            spacing, so that pad comes back off.
+
+            Spec §17k: the line is a link to the house — provenance you can
+            follow — in one treatment everywhere it appears. Muted exactly as it
+            reads at rest, no underline until hover or focus, a new tab so it
+            never navigates a workspace away, and the kit's 44px target reached
+            the way .tertiary-link reaches it, which is what leaves the row's own
+            geometry untouched. */}
+        <p className="colophon py-0">
+          <a
+            className="colophon-link"
+            href="https://windwardline.com"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            A Windward Line production
+          </a>
+        </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <nav
             aria-label="Support"

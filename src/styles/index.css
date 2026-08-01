@@ -167,6 +167,40 @@ html[data-theme="dark"] {
     font-size: 0.8125rem; color: var(--color-ink-muted);
   }
 
+  /*
+    Spec §17k: the colophon is a link to windwardline.com — "provenance you can
+    follow" — in ONE treatment everywhere it appears. Muted exactly as the line
+    reads at rest, nothing underlined until hover or focus, and the kit's 44px
+    target.
+
+    The target is an overlay rather than .tertiary-link's min-height plus a
+    negative block margin, and the reason is measured: .colophon is a FLEX row, so
+    a flex item's outer height IS that row's height there — a 44px box pulled back
+    by 28px shrank the footer from 56.5px to 53.3px. An absolutely positioned
+    ::after is outside layout entirely: 14px of reach above and below the 16px
+    inline box clears the 44px floor exactly on the static pages and 47.5px here,
+    and the row keeps the geometry §17i measured. The static twin carries the same
+    class and the same overlay, for the same reason .colophon itself is named in
+    both sheets.
+  */
+  .colophon-link {
+    position: relative;
+    color: inherit;
+    text-decoration-line: none;
+  }
+  .colophon-link::after {
+    content: "";
+    position: absolute;
+    inset-block: -14px;
+    inset-inline: 0;
+  }
+  .colophon-link:hover,
+  .colophon-link:focus-visible {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
   .wordmark {
     font-family: var(--font-display);
     font-weight: 700;

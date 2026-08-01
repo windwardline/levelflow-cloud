@@ -547,7 +547,7 @@ describe("§17i — the frame reaches the static pages", () => {
       assert.match(footer, /<div class="footer-row">/, page);
       assert.match(
         footer,
-        /<p class="colophon">A Windward Line production<\/p>/,
+        /<p class="colophon"><a [^>]*>A Windward Line production<\/a><\/p>/,
         page,
       );
       // Help stays the mailto, and names the app so the shared inbox can route it

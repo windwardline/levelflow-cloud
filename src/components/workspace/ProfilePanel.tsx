@@ -171,7 +171,18 @@ export function ProfilePanel({
         <div className={MOBILE_FRAME_PINNED}>{title}</div>
         <div className={MOBILE_FRAME_SCROLL} data-testid="mobile-profile-scroll">
           {rows}
-          <p className="colophon">A Windward Line production</p>
+          {/* Spec §17k: the same link, the same treatment as the ≥lg footer's —
+              muted at rest, underlined only on hover or focus, 44px, new tab. */}
+          <p className="colophon">
+            <a
+              className="colophon-link"
+              href="https://windwardline.com"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              A Windward Line production
+            </a>
+          </p>
         </div>
       </div>
     );

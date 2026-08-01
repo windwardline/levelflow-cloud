@@ -37,7 +37,9 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
     );
     assert.match(
       footer,
-      /<p className="colophon py-0">A Windward Line production<\/p>/,
+      // The line is a link since §17k (tests/colophon.test.ts owns its target and
+      // its treatment); the element that carries it is unchanged.
+      /<p className="colophon py-0">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
     );
     // The retired prop is gone from both sides of the call, not merely unused.
     assert.doesNotMatch(footer, /hiddenOnDesktopDesk/);

@@ -329,6 +329,40 @@ footer p {
 }
 
 /*
+  Spec §17k: the line is a link to windwardline.com, in the app's own treatment
+  (src/styles/index.css) — muted exactly as it reads at rest, no underline until
+  hover or focus, and the kit's 44px target as an overlay that costs the footer row
+  no height. The colors are stated because the generic `a` rules above are for
+  prose and the back link: without them this line would go accent and pick up a 2px
+  underline.
+*/
+.colophon-link,
+.colophon-link:visited,
+.colophon-link:hover {
+  color: inherit;
+}
+
+.colophon-link {
+  font-weight: inherit;
+  position: relative;
+  text-decoration-line: none;
+}
+
+.colophon-link::after {
+  content: "";
+  inset-block: -14px;
+  inset-inline: 0;
+  position: absolute;
+}
+
+.colophon-link:hover,
+.colophon-link:focus-visible {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+/*
   Quiet legal-links row (F1/Finding 5) — the static twin's equivalent of
   the app's <LegalLinks />: muted and small, not the accent, underlined
   body-link style the generic `a` rule above sets for prose and the

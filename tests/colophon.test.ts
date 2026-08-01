@@ -66,17 +66,19 @@ describe("one wording, one treatment, everywhere", () => {
     // relied on) restyles itself the day someone adds a second paragraph beside
     // it. Exact shapes rather than a window, so "near the line" cannot pass for
     // "on it".
+    // Since §17k the line is a link inside that element (pinned below); the
+    // element that carries it is still the classed <p>.
     for (const page of STATIC_PAGES) {
       assert.match(
         readFileSync(page, "utf8"),
-        /<p class="colophon">A Windward Line production<\/p>/,
+        /<p class="colophon"><a [^>]*>A Windward Line production<\/a><\/p>/,
         page,
       );
     }
     for (const file of APP_SURFACES) {
       assert.match(
         readFileSync(file, "utf8"),
-        /<p className="colophon[^"]*">A Windward Line production<\/p>/,
+        /<p className="colophon[^"]*">\s*<a\n[\s\S]*?>\s*A Windward Line production\s*<\/a>\s*<\/p>/,
         file,
       );
     }
@@ -119,7 +121,10 @@ describe("placement — §17c above lg, §17g below it", () => {
     const footer = readFileSync("src/components/AppFooter.tsx", "utf8");
     // py-0 because .colophon's own 2rem top pad is for the standalone pre-auth
     // use; here the footer's padding is the spacing.
-    assert.match(footer, /<p className="colophon py-0">A Windward Line production<\/p>/);
+    assert.match(
+      footer,
+      /<p className="colophon py-0">\s*<a\n[\s\S]*?>\s*A Windward Line production\s*<\/a>\s*<\/p>/,
+    );
     // §17i: on every ≥lg surface, with no Desk exception left to branch on — so
     // the line rides one class string rather than one of two.
     assert.match(footer, /<footer className="w-full border-t border-hairline">/);
@@ -145,5 +150,116 @@ describe("placement — §17c above lg, §17g below it", () => {
       const footer = source.match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? "";
       assert.ok(footer.includes(LINE), `${page}: the line is outside <footer>`);
     }
+  });
+});
+
+// Spec §17k (owner-approved, 2026-08-01): "'A Windward Line production' is a link
+// to https://windwardline.com — provenance you can follow, everywhere the
+// colophon appears (the desktop footer on every framed page, the mobile Profile
+// colophon, the four static pages), with ONE treatment: muted text exactly as at
+// rest today, no underline until hover/focus, target="_blank" +
+// rel="noopener noreferrer" so it never navigates the workspace away, 44px hit
+// target per the kit floor. A guard pins the target URL, the new-tab behavior, and
+// the at-rest quietness on every occurrence."
+//
+// Every occurrence: the two components above and all five colophon-bearing static
+// pages (the ruling's "four" predates construction.html carrying the line; the
+// clause that governs is "everywhere the colophon appears"). The set is derived
+// from the same two lists the rest of this file sweeps, so a sixth colophon cannot
+// arrive unlinked.
+describe("§17k — the line links home, and stays quiet doing it", () => {
+  const HOUSE = "https://windwardline.com";
+
+  it("wraps every occurrence in the same link, to the same URL, in a new tab", () => {
+    for (const page of STATIC_PAGES) {
+      const source = readFileSync(page, "utf8");
+      const link = source.match(
+        /<p class="colophon">(<a [^>]*>)A Windward Line production<\/a><\/p>/,
+      )?.[1] ?? "";
+      assert.ok(link.length > 0, `${page}: the line is not a link`);
+      assert.ok(link.includes(`href="${HOUSE}"`), `${page}: ${link}`);
+      assert.ok(link.includes('target="_blank"'), `${page}: ${link}`);
+      assert.ok(link.includes('rel="noopener noreferrer"'), `${page}: ${link}`);
+      assert.ok(link.includes('class="colophon-link"'), `${page}: ${link}`);
+    }
+    for (const file of APP_SURFACES) {
+      const source = readFileSync(file, "utf8");
+      const link = source.match(
+        /<a\n([\s\S]*?)>\s*A Windward Line production/,
+      )?.[1] ?? "";
+      assert.ok(link.length > 0, `${file}: the line is not a link`);
+      assert.match(link, /className="colophon-link"/, file);
+      assert.match(link, new RegExp(`href="${HOUSE}"`), file);
+      assert.match(link, /target="_blank"/, file);
+      assert.match(link, /rel="noopener noreferrer"/, file);
+    }
+    // One URL, and no second spelling of it anywhere the line renders.
+    for (const file of [...tsxFiles("src"), ...STATIC_PAGES]) {
+      const source = readFileSync(file, "utf8");
+      const houses = source.match(/https?:\/\/(?:www\.)?windwardline\.com[^"']*/g) ?? [];
+      for (const found of houses) {
+        assert.equal(found, HOUSE, `${file} links the house as ${found}`);
+      }
+    }
+  });
+
+  it("is muted and unadorned at rest in both stylesheets, and underlines only on hover or focus", () => {
+    for (
+      const path of ["src/styles/index.css", "public/legal/legal.css"]
+    ) {
+      const sheet = readFileSync(path, "utf8");
+      // Every rule this class appears in, split into the at-rest ones and the two
+      // states §17k allows an underline in — read that way rather than as one
+      // fixed block, because the static sheet has to state its colors against the
+      // generic `a` rules and the app's does not.
+      const rules = Array.from(
+        sheet.matchAll(/([^{}]*\.colophon-link[^{}]*)\{([^}]*)\}/g),
+        (match) => ({ body: match[2], selector: match[1] }),
+      );
+      assert.ok(rules.length > 0, `${path} styles no .colophon-link`);
+      // Split on :focus-visible rather than on :hover: the static sheet states its
+      // color for :visited and :hover in one grouped rule, and that rule is part of
+      // how the line stays muted, not part of what hover adds.
+      const atRest = rules.filter((rule) => !rule.selector.includes(":focus-visible"));
+      const onHover = rules.filter((rule) => rule.selector.includes(":focus-visible"));
+      const restText = atRest.map((rule) => rule.body).join("");
+      // Muted exactly as the line reads: it takes the colophon's own color rather
+      // than restating a token, and nothing is underlined yet.
+      assert.match(restText, /color: inherit;/, path);
+      assert.match(restText, /text-decoration-line: none;/, path);
+      assert.doesNotMatch(restText, /text-decoration-line: underline;/, path);
+      // The kit's 44px floor, reached by an overlay that costs the row no height:
+      // .colophon is a flex row, so a flex item's own outer height is that row's
+      // height — the min-height + negative-margin trick .tertiary-link uses
+      // measured 53.3px against the footer's own 56.5px. 14px of reach above and
+      // below the line's 16px inline box is 44px exactly on the static pages and
+      // 47.5px in the app — measured with elementFromPoint, not assumed.
+      assert.match(restText, /position: relative;/, path);
+      const overlay = sheet.match(/\.colophon-link::after \{([^}]*)\}/)?.[1] ?? "";
+      assert.ok(overlay.length > 0, `${path}: the 44px target has no overlay`);
+      assert.match(overlay, /content: "";/, path);
+      assert.match(overlay, /position: absolute;/, path);
+      assert.match(overlay, /inset-block: -14px;/, path);
+      assert.match(overlay, /inset-inline: 0;/, path);
+      assert.doesNotMatch(restText, /min-height:/, path);
+      // The underline exists, and only in those two states — both of them.
+      assert.equal(onHover.length, 1, `${path}: expected one hover/focus rule`);
+      assert.match(onHover[0].selector, /\.colophon-link:hover/, path);
+      assert.match(onHover[0].body, /text-decoration-line: underline;/, path);
+      assert.equal(
+        rules.filter((rule) => rule.body.includes("text-decoration-line: underline;"))
+          .length,
+        1,
+        `${path}: the underline may only come from the hover/focus rule`,
+      );
+    }
+    // The static sheet's generic `a` rules are for prose and the back link, so the
+    // colophon has to say it keeps its own color through :visited and :hover too —
+    // without that it would go accent the first time a reader followed it.
+    const legal = readFileSync("public/legal/legal.css", "utf8");
+    assert.match(
+      legal,
+      /\.colophon-link,\n\.colophon-link:visited,\n\.colophon-link:hover \{\n  color: inherit;\n\}/,
+    );
   });
 });
