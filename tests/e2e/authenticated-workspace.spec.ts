@@ -1004,19 +1004,86 @@ test("Expand chart opens the same chart full-viewport on mobile, and only on mob
   await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // Below lg only: the ≥lg Desk is frozen and its chart is already full-height.
-  // The node itself does NOT leave the DOM at this width — both compositions
-  // pass onExpand, so MarketChart renders its lg:hidden button at every width.
-  // toHaveCount(0) is still the right assertion, for the reason that makes it
-  // the stronger one here: a role locator resolves against the accessibility
-  // tree, which excludes a display:none element outright. So this asserts the
-  // thing that actually matters — no reader at ≥lg can reach the affordance —
-  // rather than the weaker "it is styled out of sight". (Measured on this repo's
-  // Playwright: role count 0 at 1280 and 1 at 375; a CSS locator returns 1 at
-  // both.)
+  // §17m.3: the affordance now exists at desktop width too — the inline chart
+  // is a third of the stage there, so the overlay is how a reader sees a big
+  // one. Inverted from the assertion that used to stand here (count 0 at 1280),
+  // and exercised rather than merely counted: same dialog contract, at 1280.
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.getByRole("button", { name: "Expand chart" }))
-    .toHaveCount(0);
+  const desktopTrigger = page.getByRole("button", { name: "Expand chart" });
+  await expect(desktopTrigger).toBeVisible();
+  await desktopTrigger.click();
+  const desktopDialog = page.getByRole("dialog");
+  await expect(desktopDialog).toBeVisible();
+  await expect(desktopDialog).toHaveAttribute("aria-modal", "true");
+  const desktopBox = await desktopDialog.boundingBox();
+  expect(desktopBox!.width).toBeGreaterThanOrEqual(1279);
+  expect(desktopBox!.height).toBeGreaterThanOrEqual(799);
+  await expect(desktopDialog.getByRole("button", { name: "Close" }))
+    .toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(desktopTrigger).toBeFocused();
+  // And it does not collide with the tool cluster it shares the corner with:
+  // the cluster keeps the top row, the chip sits below it.
+  const chipBox = (await desktopTrigger.boundingBox())!;
+  const clusterBox = (await page
+    .getByRole("button", { name: "Default chart view" })
+    .boundingBox())!;
+  expect(chipBox.y).toBeGreaterThanOrEqual(clusterBox.y + clusterBox.height);
+});
+
+// Spec §17m.3, the vertical budget: "chart ≈1/3 of the region's height, why
+// ≤1/3 …, the setup ladder gets the majority; the whole stage should fit the
+// region without scrolling where viewport allows." Only a browser can say, and
+// it has to hold at more than one height — so both of the ruling's own
+// viewports are walked, and every number is reported in the failure message.
+test("the Desk stage fits its region at 1280x800 and 1440x900 (§17m.3)", async ({ page }) => {
+  for (const [width, height] of [[1280, 800], [1440, 900]] as const) {
+    await page.setViewportSize({ height, width });
+    await page.goto("/");
+    await expect(page.getByTestId("current-trades-rail")).toBeVisible();
+    await expect(page.getByLabel("Chart view")).toBeVisible();
+
+    const stage = await page.evaluate(() => {
+      const select = document.querySelector<HTMLElement>(
+        '[aria-label="Chart view"]',
+      )!;
+      const section = select.closest("section")!;
+      const column = section.parentElement!;
+      const chart = section.querySelector<HTMLElement>(".basis-\\[32\\%\\]")!;
+      const sheet = section.querySelector<HTMLElement>(".border-t-0")!;
+      return {
+        chartHeight: chart.getBoundingClientRect().height,
+        columnHeight: column.clientHeight,
+        columnScrollHeight: column.scrollHeight,
+        headHeight: section.firstElementChild!.getBoundingClientRect().height,
+        sheetHeight: sheet.getBoundingClientRect().height,
+        sheetScrollHeight: sheet.scrollHeight,
+      };
+    });
+    const where = `${width}x${height}: head ${
+      Math.round(stage.headHeight)
+    }px, chart ${Math.round(stage.chartHeight)}px, sheet ${
+      Math.round(stage.sheetHeight)
+    }px (content ${Math.round(stage.sheetScrollHeight)}px) in a ${
+      Math.round(stage.columnHeight)
+    }px region`;
+
+    // The stage itself does not scroll: the column's content is exactly the
+    // region it sits in.
+    expect(stage.columnScrollHeight, where)
+      .toBeLessThanOrEqual(stage.columnHeight + 1);
+    // The chart is about a third — measured against the region, not hoped for.
+    const chartShare = stage.chartHeight / stage.columnHeight;
+    expect(chartShare, where).toBeGreaterThan(0.25);
+    expect(chartShare, where).toBeLessThan(0.4);
+    // …and the setup sheet, which the ladder leads, takes the majority of what
+    // is left: more than the chart, and the largest share of the region (the
+    // stagehead's confidence unit owns the remaining ~15%, measured 110px of a
+    // 651px region at 1280x800 — hence 0.45 rather than a bare half).
+    expect(stage.sheetHeight, where).toBeGreaterThan(stage.chartHeight);
+    expect(stage.sheetHeight / stage.columnHeight, where).toBeGreaterThan(0.45);
+  }
 });
 
 test("scope menu lists All markets, then groups alphabetically, then base/quote-sorted markets — 1280px popup", async ({ page }) => {

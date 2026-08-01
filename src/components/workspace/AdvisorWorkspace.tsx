@@ -703,23 +703,28 @@ export function AdvisorWorkspace(
       </div>
 
       {/* Center stage (spec §16, a-desk-v3.html:161-213): stagehead — the
-          market picker rendered as the display heading, its side tag, and the
-          confidence unit under it, with the chart-view control and the one
-          primary action (Review; spec §17) opposite — then the chart sheet, then
-          the setup sheet attached hairline-flush beneath it. No surface title,
-          no status tiles, no session cards, no metric cards, no second action:
-          that furniture is what the owner rejected as box-on-box, and
+          market name as the display heading, its side tag, and the confidence
+          unit under it, with the chart-view control opposite — then the chart
+          sheet, then the setup sheet attached hairline-flush beneath it. No
+          surface title, no status tiles, no session cards, no metric cards, no
+          action: that furniture is what the owner rejected as box-on-box, and
           tests/deskComposition.test.ts pins its absence — so the retired
           component and card names appear nowhere in this file, comments
           included.
-          flex-col rather than grid: an unconstrained grid's implicit auto
-          rows shrink to fit the scroll container's height instead of
-          overflowing it, which silently defeats the scrolling this column
-          exists for. Flex only avoids the same trap because every direct
-          child below is pinned shrink-0. */}
+
+          Spec §17m.3, the vertical budget: the stage is a flex column exactly
+          the region's height, and the three parts divide it rather than stacking
+          past it — stagehead at its natural height, chart at ~1/3 (basis-[30%],
+          grow-0/shrink-0, so it is a share of the region and not a fixed pixel
+          height that fits one viewport), and the setup sheet taking the whole
+          remainder, which is the majority and belongs to the ladder. The sheet
+          is what scrolls when its own content is taller than that remainder, so
+          the stage itself never has to — and the column keeps its own
+          overflow-y-auto as the last resort at an edge viewport, exactly as the
+          ruling allows. */}
       <div className="scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-        <section className="min-w-0 shrink-0">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <section className="min-w-0 shrink-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+          <div className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-x-4 gap-y-3">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-3.5 gap-y-1">
                 {/* Spec §17m.1: the stage is a pure display of the Scan
@@ -774,24 +779,35 @@ export function AdvisorWorkspace(
 
           {/* MarketChart draws the chart sheet itself — square-cornered
               hairline border on sheet — so the setup sheet below can attach to
-              it border-t-0 with no second frame in between. */}
-          <MarketChart
-            data={marketData?.points ?? []}
-            loading={marketLoading}
-            onExpand={() => setChartExpanded(true)}
-            setup={setup}
-            viewKey={`${symbol}:${timeframe}`}
-          />
+              it border-t-0 with no second frame in between. `fill` hands the
+              height to this wrapper (spec §17m.3's ~1/3 share) instead of the
+              chart's own fixed 500/560px, which was most of the region on a
+              laptop and pushed the ladder off the bottom. */}
+          <div className="min-h-0 shrink-0 grow-0 basis-[30%]">
+            <MarketChart
+              data={marketData?.points ?? []}
+              fill
+              loading={marketLoading}
+              onExpand={() => setChartExpanded(true)}
+              setup={setup}
+              viewKey={`${symbol}:${timeframe}`}
+            />
+          </div>
 
           {/* Spec §17's Expand chart overlay, built once above and rendered by
               both compositions. It mounts a SECOND MarketChart with the same
               props rather than moving the mounted one, which would tear down the
-              canvas and leave the inline container empty behind the dialog. Its
-              trigger only exists below lg (MarketChart gates it lg:hidden), so
-              at this width this is always null. */}
+              canvas and leave the inline container empty behind the dialog.
+              Since §17m.3 its trigger renders at every width: "the small inline
+              chart is the frame; the overlay is how you see a big one." */}
           {chartOverlay}
 
-          <div className="min-w-0 border border-hairline border-t-0 bg-sheet">
+          {/* The remainder of the budget, and the ladder's majority share: the
+              sheet takes everything the stagehead and the chart did not, and
+              scrolls inside itself if the ladder plus the why panel are taller
+              than that. Thin scrollbars via .scrolly, the same treatment every
+              other scroll region in the app uses. */}
+          <div className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <RecommendationPanel
               notice={advisorNotice}
               result={activeResult}
@@ -804,10 +820,11 @@ export function AdvisorWorkspace(
           {/* I4/spec §10b: the closed-market reopen notice, in its standing
               position as the stage's last element. Rendered only when there is
               a notice — an empty paragraph would leave its own margin behind
-              on every successful load. */}
+              on every successful load. shrink-0 so the budget above never
+              squeezes it out of the column it belongs to. */}
           {marketNotice
             ? (
-              <p className="mt-3 text-sm font-medium text-ink-muted">
+              <p className="mt-3 shrink-0 text-sm font-medium text-ink-muted">
                 {marketNotice}
               </p>
             )

@@ -165,7 +165,7 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.match(stage, /className="flex min-w-0 flex-wrap items-center gap-x-3\.5 gap-y-1"/);
     assert.match(
       stage,
-      /className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3"/,
+      /className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-x-4 gap-y-3"/,
     );
   });
 
@@ -202,10 +202,45 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       chart,
       /className=\{fill \? `\$\{CHART_SHEET\} h-full` : CHART_SHEET\}/,
     );
+    // §17m.3 made this sheet the budget's remainder and its own scroll region;
+    // the frame itself — one hairline border, border-t-0 onto the chart sheet,
+    // on sheet — is unchanged.
     assert.match(
       stage,
-      /className="min-w-0 border border-hairline border-t-0 bg-sheet"[\s\S]{0,200}<RecommendationPanel/,
+      /className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto"[\s\S]{0,200}<RecommendationPanel/,
     );
+  });
+
+  // Spec §17m.3: "chart ≈1/3 of the region's height, why ≤1/3, the setup ladder
+  // gets the majority; the whole stage should fit the region without scrolling
+  // where viewport allows." Pinned as the structure that makes it true at any
+  // height rather than a pixel height that happens to fit one: the stage is a
+  // flex column exactly the region tall, the chart takes a SHARE of it, and the
+  // sheet takes the remainder. tests/e2e measures the result in a real browser.
+  it("divides the region: stagehead, chart at ~1/3, the sheet taking the rest (§17m.3)", () => {
+    assert.match(
+      stage,
+      /<section className="min-w-0 shrink-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col">/,
+    );
+    // The chart's share: grow-0/shrink-0 on an explicit basis, so it is exactly
+    // its third and neither steals the ladder's space nor gives up its own.
+    assert.match(
+      stage,
+      /<div className="min-h-0 shrink-0 grow-0 basis-\[30%\]">\s*<MarketChart/,
+    );
+    // …which only works because the chart takes its height from that wrapper.
+    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n\s*loading=\{marketLoading\}\n\s*onExpand=/);
+    // The fixed ≥lg chart height that used to be most of a 1280x800 region is
+    // gone from the stage: MarketChart keeps it only for a caller that owns no
+    // height, and the stage is no longer one.
+    assert.doesNotMatch(stage, /h-\[500px\]|h-\[560px\]/);
+    // Every other direct child of the section is pinned, so the two sized
+    // children are the only ones that divide the space.
+    assert.match(
+      stage,
+      /className="mb-4 flex shrink-0 flex-wrap items-end/,
+    );
+    assert.match(stage, /className="mt-3 shrink-0 text-sm font-medium text-ink-muted"/);
   });
 
   it("splits the setup sheet into the ladder and Why this setup, hairline-divided", () => {
@@ -434,10 +469,13 @@ describe("Why this setup — the mock's five rows (a-desk-v3.html:205-212)", () 
     assert.match(receipt, /anchor: "replay-record"/);
   });
 
-  it("renders the rows at the mock's .wrow treatment — 74px label column, 10px gap, 13px text", () => {
+  it("renders the rows at the mock's .wrow treatment, compressed to §17m.3's third", () => {
+    // The label column and the gap are the mock's (74px / 10px); the type and
+    // the padding are §17m.3's compression — the five rows stay, they take ~30%
+    // less height, and 12.5px/17px is still above the kit's own metadata floor.
     assert.match(
       receipt,
-      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1\.5 text-\[13px\] leading-5"/,
+      /className="flex min-w-0 flex-wrap items-baseline gap-x-2\.5 py-1 text-\[12\.5px\] leading-\[17px\] lg:py-0\.5"/,
     );
     assert.match(
       receipt,
@@ -544,7 +582,7 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     "utf8",
   );
 
-  it("draws the trigger inside the chart, mobile-only, functionally labelled", () => {
+  it("draws the trigger inside the chart at every width, functionally labelled", () => {
     // Rendered only when a caller supplies onExpand, so the overlay's own
     // second instance of the chart cannot offer to expand itself again.
     assert.match(chart, /onExpand\?: \(\) => void;/);
@@ -554,13 +592,17 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     // decoration, m-mobile-v3.html:56).
     assert.match(chart, />\s*Expand chart\s*</);
     assert.doesNotMatch(chart, /↗/);
-    // Mobile-only, as a literal class Tailwind's build-time scanner can see,
-    // on the button itself rather than a wrapper.
+    // §17m.3: "Expand chart works on desktop too — the small inline chart is
+    // the frame; the overlay is how you see a big one." The lg:hidden gate is
+    // gone, and at ≥lg the chip steps below the tool cluster (one 40px row from
+    // top-3) instead of fighting it for the same corner.
     const trigger = chart.match(
       /<button\n\s*className="([^"]*)"\n\s*type="button"\n\s*onClick=\{onExpand\}/,
     )?.[1] ?? "";
     assert.ok(trigger.length > 0, "expected the expand trigger's classes");
-    assert.match(trigger, /\blg:hidden\b/);
+    assert.doesNotMatch(trigger, /\blg:hidden\b/);
+    assert.match(trigger, /\blg:right-3\b/);
+    assert.match(trigger, /\blg:top-14\b/);
     // The kit's 44px tap floor, at the mock's own corner placement — the
     // TOP-right corner since the wave-6 rider: live inspection found the
     // affordance crowding the date axis at the bottom, and m-scan-v3.html:32
@@ -598,11 +640,14 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     // A real max-lg: token, so the ≥lg cascade is untouched by construction (the
     // same discipline every other mobile treatment in this branch rides).
     assert.doesNotMatch(chart, /max-lg:\$\{/);
-    // The overlay is the one caller that passes `fill`, and the one that passes
-    // no onExpand — so the instance that keeps the tools is exactly the instance
-    // that cannot offer to expand itself again.
+    // `fill` means "the container owns the height": the overlay (which is the
+    // viewport) and, since §17m.3, the ≥lg stage (whose wrapper hands the chart
+    // its third of the region). The instance that DROPS the cluster is the
+    // mobile one — no fill, 168px of mock height, and the Expand chip alone in
+    // that corner.
     assert.match(overlay, /children/);
-    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n/);
+    const fillInstances = stage.match(/<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n/g) ?? [];
+    assert.equal(fillInstances.length, 2);
   });
 
   it("mounts a second MarketChart with the same data, setup and view key", () => {
