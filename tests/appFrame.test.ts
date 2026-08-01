@@ -72,6 +72,20 @@ describe("§17i — the shell is a frame on both platforms", () => {
     assert.match(APP, /className=\{mainShellClassName\(isMobileViewport\)\}/);
   });
 
+  it("frames the pre-auth loading gate too, so nothing in the app is a min-height column (M5)", () => {
+    // The one surface outside the frame, and the only reason a viewport-minimum
+    // utility still shipped in the built CSS. It is footer-less and transient, so
+    // nothing was ever unreachable — but a surface that opts out of the frame is
+    // the shape §17i retired, and this one had no reason left to keep it.
+    const gate = APP.match(
+      /<main className="([^"]*items-center justify-center[^"]*)">/,
+    )?.[1] ?? "";
+    assert.ok(gate.length > 0, "expected the loading gate's own shell");
+    assert.match(gate, /h-\[100dvh\]/);
+    assert.match(gate, /(?:^|\s)overflow-hidden(?:\s|$)/);
+    assert.doesNotMatch(APP, /min-h-screen|min-h-dvh/);
+  });
+
   it("pins the masthead as the frame's first row", () => {
     assert.match(
       APP,

@@ -226,8 +226,14 @@ export default function App() {
     // own inventory) — flattened to a minimal centered wordmark and the
     // system's own spinner idiom (Loader2 + animate-spin), the same
     // pairing every other loading state in the app already uses.
+    //
+    // §17i's frame, in its simplest shape: exactly the viewport tall, nothing
+    // scrolling. It was the last min-height column in the app — footer-less and
+    // transient, so nothing was ever unreachable, but it was also the only reason
+    // a viewport-minimum utility still existed in the built CSS while every real
+    // surface had stopped being one.
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center text-ink">
+      <main className="flex h-[100dvh] flex-col items-center justify-center gap-4 overflow-hidden bg-paper px-6 text-center text-ink">
         <p className="wordmark text-2xl">Levelflow</p>
         <p className="flex items-center gap-2 text-sm font-semibold text-ink-muted">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
