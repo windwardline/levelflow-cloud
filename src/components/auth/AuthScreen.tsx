@@ -151,8 +151,14 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             <p className="text-sm leading-6 text-ink-muted">{body}</p>
           </div>
 
+          {/* Spec §17c's box-on-box sweep, extended to the pre-auth screen by
+              owner ruling (wave 4 flagged both of these notices for one): a
+              passive notice is not an affordance, so it takes the Guide's
+              callout idiom instead of a card — a 3px accent-side rule and the
+              faintest tint (GuidePanel.tsx's blockquote), which is a separator,
+              not a box. The words, the tone and the states are unchanged. */}
           {!isSupabaseConfigured ? (
-            <div className="mb-5 rounded-lg border border-caution/25 bg-caution/10 px-4 py-3 text-sm font-semibold text-ink">
+            <div className="mb-5 border-l-[3px] border-caution bg-caution/5 py-3 pl-4 pr-4 text-sm font-semibold text-ink">
               Waiting for connection details.
               <span className="mt-2 block font-medium text-ink-muted">
                 App URL: {appConfig.appUrl}
@@ -197,7 +203,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
           </form>
 
           {status === "sent" ? (
-            <div className="mt-4 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-sm font-semibold text-accent">
+            <div className="mt-4 border-l-[3px] border-accent bg-accent/5 py-3 pl-4 pr-4 text-sm font-semibold text-accent">
               Check your inbox and open the magic link to continue.
             </div>
           ) : null}
@@ -261,7 +267,17 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             </button>
           </div>
           {donationsOpen ? (
-            <div className="mt-4">
+            // The divider and the sentence both used to come from inside
+            // DonationOptions: the rule was this panel's own idiom drawn by a
+            // shared component, and the sentence duplicated the Donate page's
+            // App-costs line (spec §17f). Here the sentence is the only thing
+            // that says what a donation pays for — this screen has no such
+            // section — so both live at the call site, verbatim, in the same
+            // place and with the same spacing they always had.
+            <div className="mt-4 border-t border-ink-muted/15 pt-4">
+              <p className="mb-4 text-sm leading-6 text-ink-muted">
+                Donations support market data, email, hosting, and development.
+              </p>
               <DonationOptions
                 fallbackHref={donationFallbackHref}
                 mode="compact"

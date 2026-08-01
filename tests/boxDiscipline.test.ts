@@ -122,23 +122,15 @@ const SURVIVORS: Record<string, Survivor[]> = {
     },
   ],
   // ---- pre-auth surfaces, outside the mockups' scope ---------------------
-  // §16 puts the Auth and Parking screens out of the mockups' scope by name,
-  // and the owner's §17c live-QA was conducted on the authed app. The login
-  // panel's card is that surface's own approved composition, and its two
-  // notices sit inside it. Flagged in the wave-4 report for a ruling rather
-  // than restyled here on inference: a sign-in screen is not a tab.
+  // §16 puts the Auth and Parking screens out of the mockups' scope by name, so
+  // the login panel's own card stands. Its two notices do not: wave 4 flagged
+  // both for a ruling and the owner gave one — they are passive, so they take
+  // the Guide's callout idiom and leave this table (see the callout describe
+  // below, which pins what they became).
   "src/components/auth/AuthScreen.tsx": [
     {
       match: "terminal-panel auth-login-panel",
       why: "the login panel — the pre-auth surface's own composition, no mock governs it",
-    },
-    {
-      match: "rounded-lg border border-caution/25 bg-caution/10",
-      why: "missing-configuration notice, inside that panel — FLAGGED for a ruling",
-    },
-    {
-      match: "rounded-lg border border-accent/25 bg-accent/10",
-      why: "magic-link-sent notice, inside that panel — FLAGGED for a ruling",
     },
   ],
 };
@@ -249,5 +241,43 @@ describe("§17c — a bordered sheet survives only as an affordance", () => {
         assert.ok(survivor.why.length > 20, survivor.match);
       }
     }
+  });
+});
+
+// Owner ruling (wave 5): the two AuthScreen notices wave 4 flagged are passive
+// grouping, and §17c's sweep reaches them. They flatten to the accent-left
+// callout the Guide already uses — a single-edge rule, which this file's own
+// detection correctly does not count as a box. Pinned in both directions: the
+// idiom present, the card gone, and the copy untouched.
+describe("§17c reaches the pre-auth notices — callouts, not cards (owner ruling)", () => {
+  const auth = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
+  const guide = readFileSync(
+    "src/components/workspace/GuidePanel.tsx",
+    "utf8",
+  );
+
+  it("takes the Guide's own callout treatment: a 3px side rule and the faintest tint", () => {
+    // Read from the Guide rather than restated, so the two cannot drift into
+    // two different callouts.
+    assert.match(guide, /border-l-\[3px\] border-accent bg-accent\/5/);
+    assert.match(auth, /border-l-\[3px\] border-caution bg-caution\/5 py-3 pl-4 pr-4/);
+    assert.match(auth, /border-l-\[3px\] border-accent bg-accent\/5 py-3 pl-4 pr-4/);
+  });
+
+  it("draws no card around either notice any more", () => {
+    assert.doesNotMatch(auth, /rounded-lg border border-caution/);
+    assert.doesNotMatch(auth, /rounded-lg border border-accent/);
+    assert.doesNotMatch(auth, /bg-caution\/10/);
+    assert.doesNotMatch(auth, /bg-accent\/10/);
+  });
+
+  it("keeps both notices' copy and their conditions exactly", () => {
+    assert.match(auth, /\{!isSupabaseConfigured \? \(/);
+    assert.match(auth, />\s*Waiting for connection details\./);
+    assert.match(auth, /\{status === "sent" \? \(/);
+    assert.match(
+      auth,
+      />\s*Check your inbox and open the magic link to continue\./,
+    );
   });
 });
