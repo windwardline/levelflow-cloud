@@ -845,18 +845,28 @@ describe("Desk chart composition — the kill list is absent (spec §16)", () =>
 describe("scan rail composition — the mock's elements are present (a-desk-v3.html:87-158)", () => {
   const rail = readFileSync(RAIL, "utf8");
 
-  it('leads with the "Scan" eyebrow and a compact Scan now button on one row', () => {
-    // The eyebrow is unchanged and un-prefixed again: spec §17e made this rail
-    // the ≥lg composition alone, so the `max-lg:sr-only` that hid it on the old
-    // mobile Scan tab described a rendering that no longer happens. Its absence
-    // is asserted alongside, so a mobile treatment cannot drift back into a
-    // desktop-only component.
+  it('leads with the "Markets" eyebrow and a compact "Scan" button on one row (§17m.4)', () => {
+    // §17m.4: "the column eyebrow becomes Markets; the button becomes Scan —
+    // one verb, smaller button, no redundancy." The mock's own "Scan / Scan now"
+    // pairing (a-desk-v3.html:88) is superseded by name; its composition — the
+    // eyebrow opposite the button, the scope select below — is not.
+    const rail = readFileSync(RAIL, "utf8");
     assert.match(
       rail,
-      /className="eyebrow">\s*Scan\s*</,
+      /className="eyebrow">\s*Markets\s*</,
     );
-    assert.match(rail, /Scan now/);
-    assert.doesNotMatch(rail, /max-lg:sr-only/);
+    // The button, at the merged mobile control row's own compact scale so the
+    // one door reads the same on both platforms.
+    assert.match(
+      rail,
+      /className="primary-button shrink-0 px-4 py-2 text-\[13px\]"[\s\S]{0,400}\n\s*Scan\n\s*<\/button>/,
+    );
+    // Both retired strings are gone from the file, comments included: e2e
+    // locators are pinned to accessible names, and a stale one costs a live
+    // deploy run.
+    assert.doesNotMatch(rail, /Scan now/);
+    assert.doesNotMatch(rail, /className="eyebrow">\s*Scan\s*</);
+    assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}label="Scan scope"/);
   });
 
   it("keeps the scope menu and the server-truth count line, mono and unboxed", () => {

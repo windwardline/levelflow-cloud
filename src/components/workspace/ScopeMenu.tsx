@@ -108,10 +108,11 @@ export function describeScanScope(scope: ScanScope): string {
 }
 
 // The open-state affordance ("Scan N") only ever applies to "all"/"group"
-// rows - spec §4 gives individual market rows no affordance when open. The closed-state reopen label applies uniformly
-// (markets, groups, and in principle "all" alike); the caller uppercases it
-// via CSS and the word "closed" itself never renders (spec §10b) - the
-// muted, non-interactive row IS the signal.
+// rows - spec §4 gives individual market rows no affordance when open. The
+// closed-state reopen label applies uniformly (markets, groups, and in
+// principle "all" alike); the caller uppercases it via CSS and the word
+// "closed" itself never renders (spec §10b) - the muted, non-interactive row
+// IS the signal.
 export function formatScopeMenuAffordance(
   availability: MarketAvailability,
   count: number,
@@ -212,7 +213,7 @@ export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
 }
 
 export type ScopeMenuProps = {
-  /** Accessible label for the trigger (e.g. "Scan scope", "Market"), and the sheet's title. */
+  /** Accessible label for the trigger ("Scan scope"), and the sheet's title. */
   label: string;
   /** Injectable clock for tests; defaults to `new Date()`. */
   now?: Date;
@@ -369,11 +370,30 @@ export function ScopeMenu(
                 />
               )
               : <span className="w-3.5 shrink-0" aria-hidden="true" />}
-            <span className="truncate">{row.label}</span>
+            {/* min-w-0 is the structural half of §17m.5, and the actual defect:
+                a flex item's automatic minimum size is its min-content width, so
+                this span could not shrink below its longest word — "…U.S.
+                Dollar", "…Gold Futures" — and the row's total then exceeded the
+                248px popup. The popup scrolls in one axis, so the overflow was
+                clipped, and what got clipped was the right-aligned availability
+                line. With min-w-0 the label yields first, always, whatever the
+                label or the locale; the smaller type above is what keeps the
+                line legible once it always fits. */}
+            <span className="min-w-0 truncate">{row.label}</span>
           </span>
           {showsAffordance(row)
             ? (
-              <span className="eyebrow shrink-0 font-mono">
+              // Spec §17m.5: "closed-market availability lines must not
+              // truncate — OPENS 6:00P SUN reads in full even while the row is
+              // disabled." shrink-0 + whitespace-nowrap is the structural half;
+              // the type is the half that makes it fit — 10.5px mono at 0.06em
+              // rather than the .eyebrow kit class's 12px at 0.14em, which spent
+              // ~40px of a 248px row on letterspacing alone. Its own literal
+              // classes rather than .eyebrow for exactly that reason: this line
+              // is not the same size as a section eyebrow any more.
+              // tests/scopeMenu.test.tsx pins the sizes and the width budget
+              // against the longest string the real formatters can produce.
+              <span className="shrink-0 whitespace-nowrap font-mono text-[10.5px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-muted">
                 {formatScopeMenuAffordance(
                   row.availability,
                   row.count ?? 0,
@@ -547,9 +567,14 @@ export function ScopeMenu(
 }
 
 function rowClassName(row: ScopeMenuRow, isActive: boolean): string {
+  // Spec §17m.5's other half: the row's own type and insets come down so the
+  // availability line above always has room — 13px instead of 14px, and ~7px of
+  // horizontal padding and gap given back. The 44px row height is untouched
+  // (min-h-11, the kit's floor for a pointer target), so nothing here trades
+  // reach for legibility.
   const base =
-    "flex min-h-11 cursor-pointer items-center justify-between gap-3 pr-3 text-sm";
-  const indent = row.nested ? "pl-7" : "pl-3";
+    "flex min-h-11 cursor-pointer items-center justify-between gap-2.5 pr-2.5 text-[13px]";
+  const indent = row.nested ? "pl-6" : "pl-2.5";
   if (!row.interactive) {
     return `${base} ${indent} cursor-not-allowed text-ink-muted`;
   }

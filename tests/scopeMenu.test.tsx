@@ -180,6 +180,106 @@ describe("the stage picker's symbolOnly mode is gone (§17m.1)", () => {
   });
 });
 
+// Spec §17m.5: "smaller menu typography; closed-market availability lines must
+// not truncate — OPENS 6:00P SUN reads in full even while the row is disabled."
+// Two halves, both pinned here: the row yields its LABEL first (structural, so
+// no string length can push the line out), and the line's own type is small
+// enough that the label still has room to read.
+//
+// The width arithmetic is not a guess. IBM Plex Mono's advance at these sizes
+// was measured in Chromium against the built CSS (docs: wave-9 report):
+//   retired  .eyebrow + font-mono, 12px / 0.14em  →  8.88px per character
+//   shipped  10.5px / 0.06em                      →  6.93px per character
+// A monospace face is the reason a number like that is a fact rather than an
+// estimate: every glyph advances identically, so the width of a string is its
+// length times that constant.
+describe("scope-menu row width — the availability line always fits (§17m.5)", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/ScopeMenu.tsx",
+    "utf8",
+  );
+  // The rail column is 264px wide with a 16px right inset (AdvisorWorkspace's
+  // lg:pr-4), and the anchored popup matches its trigger's width.
+  const POPUP_WIDTH_PX = 248;
+  const MONO_ADVANCE_PX = 6.93;
+  // A nested (market) row's fixed cost: pl-6 + pr-2.5 padding, the 14px
+  // check/spacer column plus its gap-2, and the gap-2.5 before the line.
+  const ROW_FIXED_PX = 24 + 10 + 14 + 8 + 10;
+  // Enough of the market name to be worth reading — the point of the ruling.
+  const LABEL_FLOOR_PX = 60;
+
+  // Every availability line the real formatters can produce, sampled hour by
+  // hour across a full week for every asset class the menu lists: closed-market
+  // reopen lines and open-group scan counts alike.
+  function everyAffordance(): string[] {
+    const seen = new Set<string>();
+    const start = Date.UTC(2026, 5, 7);
+    for (let hour = 0; hour < 24 * 7; hour += 1) {
+      const now = new Date(start + hour * 3_600_000);
+      for (const row of buildScopeMenuRows(now)) {
+        if (!showsAffordance(row)) {
+          continue;
+        }
+        seen.add(
+          formatScopeMenuAffordance(row.availability, row.count ?? 0, now),
+        );
+      }
+    }
+    return [...seen];
+  }
+
+  it("keeps the longest real availability line inside the popup, with the name still readable", () => {
+    const affordances = everyAffordance();
+    assert.ok(affordances.length > 0, "expected availability lines to sample");
+    const longest = affordances.reduce((worst, line) =>
+      line.length > worst.length ? line : worst
+    );
+    const lineWidth = longest.length * MONO_ADVANCE_PX;
+    const labelRoom = POPUP_WIDTH_PX - ROW_FIXED_PX - lineWidth;
+    assert.ok(
+      labelRoom >= LABEL_FLOOR_PX,
+      `"${longest}" (${longest.length} chars, ${
+        lineWidth.toFixed(1)
+      }px) leaves only ${labelRoom.toFixed(1)}px for the market name`,
+    );
+    // And the same line under the retired treatment, which is the measurement
+    // the ruling was written about: it spent 31px more on one row.
+    assert.ok(longest.length * 8.88 > lineWidth);
+  });
+
+  it("even the month-day fallback fits — the form no calendar produces yet", () => {
+    // formatReopen's beyond-the-week rendering ("Opens 12:00p Dec 25"): 19
+    // characters, unreachable until a holiday calendar exists, and the geometry
+    // must not be waiting for it to become a defect.
+    const longest = "Opens 12:00p Dec 25";
+    const labelRoom = POPUP_WIDTH_PX - ROW_FIXED_PX -
+      longest.length * MONO_ADVANCE_PX;
+    assert.ok(labelRoom > 0, `the fallback line overflows by ${-labelRoom}px`);
+  });
+
+  it("pins the line's own type, and the label as the part that yields", () => {
+    assert.match(
+      SOURCE,
+      /className="shrink-0 whitespace-nowrap font-mono text-\[10\.5px\] font-semibold uppercase leading-4 tracking-\[0\.06em\] text-ink-muted"/,
+    );
+    // Not the .eyebrow kit class any more: at 12px/0.14em this line was a third
+    // of the popup. Both directions, so it cannot drift back.
+    assert.doesNotMatch(SOURCE, /className="eyebrow shrink-0 font-mono"/);
+    assert.match(SOURCE, /<span className="min-w-0 truncate">\{row\.label\}<\/span>/);
+  });
+
+  it("pins the row's own smaller type and insets, and keeps the 44px row", () => {
+    assert.match(
+      SOURCE,
+      /"flex min-h-11 cursor-pointer items-center justify-between gap-2\.5 pr-2\.5 text-\[13px\]"/,
+    );
+    assert.match(SOURCE, /const indent = row\.nested \? "pl-6" : "pl-2\.5";/);
+    // The retired, roomier set is gone.
+    assert.doesNotMatch(SOURCE, /justify-between gap-3 pr-3 text-sm/);
+    assert.doesNotMatch(SOURCE, /"pl-7"/);
+  });
+});
+
 describe("closed rows: inert, muted, reopen affordance - never the word \"closed\"", () => {
   const rows = buildScopeMenuRows(SATURDAY_NOON_ET);
   const byKey = (key: string) => {

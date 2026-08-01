@@ -57,7 +57,7 @@ test.beforeEach(async ({ page }) => {
 // exactly as they did when a Review of one market could come back empty.
 async function scanForSetupOnStage(page: Page): Promise<boolean> {
   const rail = page.getByTestId("market-scan-rail");
-  await rail.getByRole("button", { name: "Scan now", exact: true }).click();
+  await rail.getByRole("button", { name: "Scan", exact: true }).click();
   // Every finished scan says what it checked or says it could not complete.
   // That pair is unconditional and waited for hard: neither arriving is rot.
   const countLine = rail.getByText(/\d+ scanned/);
@@ -420,14 +420,18 @@ test("market scan is the mock's quiet rail — eyebrow, scope menu, no footnote,
   await page.goto("/");
 
   // Spec §16 deleted the rail's panel title block and its legend box; the
-  // eyebrow + Scan now row and the closing footnote are what stand in their
-  // place (a-desk-v3.html:88, :158). Both directions are checked here, per
-  // that section's standing review discipline.
+  // eyebrow + button row and the closing footnote are what stand in their place
+  // (a-desk-v3.html:88, :158). Both directions are checked here, per that
+  // section's standing review discipline. §17m.4 renamed both halves of that
+  // row: the column is "Markets", the action is "Scan".
   const rail = page.getByTestId("market-scan-rail");
   await expect(rail).toBeVisible();
-  await expect(rail.getByRole("heading", { name: "Scan", exact: true }))
+  await expect(rail.getByRole("heading", { name: "Markets", exact: true }))
     .toBeVisible();
-  await expect(rail.getByRole("button", { name: "Scan now" })).toBeVisible();
+  await expect(rail.getByRole("button", { name: "Scan", exact: true }))
+    .toBeVisible();
+  await expect(rail.getByRole("heading", { name: "Scan", exact: true }))
+    .toHaveCount(0);
   // Spec §17c: both narration lines are deleted — the mock's closing footnote
   // and the un-scanned rail's empty-state sentence. The empty rail is the
   // controls. Checked in the live DOM, not only at the source, because this is
@@ -759,11 +763,13 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
     .toBeVisible();
   // And the composition it replaced does not render here at all: no separate
-  // scan rail and no "Scan now". "Review" is absent at every width since
-  // §17m.1 — the stage generates nothing on either platform — and this keeps
-  // asserting it from the mobile side.
+  // scan rail, and no "Markets" eyebrow of one (§17m.4's rename lives at ≥lg;
+  // this surface's own control row is its head). "Review" is absent at every
+  // width since §17m.1 — the stage generates nothing on either platform — and
+  // this keeps asserting it from the mobile side.
   await expect(page.getByTestId("market-scan-rail")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Scan now" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Markets", exact: true }))
+    .toHaveCount(0);
   await expect(page.getByRole("button", { name: "Review", exact: true }))
     .toHaveCount(0);
 
@@ -1143,7 +1149,7 @@ test("reviewing one market goes through the rail — the Scan column is the only
   // and the stage adopts the verdict with no second click. Which verdict —
   // a ladder or the engine's own reason — is the market's business; both are
   // the review, so the pair is what gets waited for.
-  await rail.getByRole("button", { name: "Scan now", exact: true }).click();
+  await rail.getByRole("button", { name: "Scan", exact: true }).click();
   const countLine = rail.getByText(/1 scanned/);
   const scanFailed = rail.getByText(
     "Market scan could not complete. Try again shortly.",
@@ -1218,6 +1224,35 @@ test('a closed market\'s scope-menu row shows its local reopen time, never the w
     /opens \d{1,2}:\d{2}[ap] ([a-z]{3}|[a-z]{3} \d{1,2}|\d{1,2} [a-z]{3})/i,
   );
   await expect(closedRow).not.toContainText(/closed/i);
+
+  // Spec §17m.5: the line must READ, not merely be present — "OPENS 6:00P SUN
+  // in full even while the row is disabled". Measured in the row it renders in,
+  // at the popup's own width: nothing of it is cut off horizontally, and the
+  // market name beside it still has room to be worth reading. (The row yields
+  // its label first by construction — ScopeMenu's min-w-0 truncate — so this is
+  // the assertion that would catch a type or inset change undoing it.)
+  const availability = closedRow.locator("span").last();
+  await expect(availability).toBeVisible();
+  const fit = await availability.evaluate((element) => {
+    const row = element.closest('[role="option"]')!;
+    const rowBox = row.getBoundingClientRect();
+    const lineBox = element.getBoundingClientRect();
+    const label = row.querySelector(".truncate")!;
+    return {
+      clippedByRow: lineBox.right > rowBox.right + 0.5 ||
+        lineBox.left < rowBox.left - 0.5,
+      labelWidth: label.getBoundingClientRect().width,
+      lineTextClipped: element.scrollWidth > element.clientWidth + 0.5,
+      lineWidth: lineBox.width,
+      rowWidth: rowBox.width,
+    };
+  });
+  expect(fit.lineTextClipped, `the availability line is cut off: ${JSON.stringify(fit)}`)
+    .toBe(false);
+  expect(fit.clippedByRow, `the availability line sits outside its row: ${JSON.stringify(fit)}`)
+    .toBe(false);
+  expect(fit.labelWidth, `no room left for the market name: ${JSON.stringify(fit)}`)
+    .toBeGreaterThan(40);
 });
 
 test("the current-trades rail is present with a working refresh control", async ({ page }) => {
@@ -1394,7 +1429,7 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // and scoping is what keeps the rail's action unambiguous whatever the button
   // is called.
   await page.getByTestId("market-scan-rail")
-    .getByRole("button", { name: "Scan now", exact: true }).click();
+    .getByRole("button", { name: "Scan", exact: true }).click();
 
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");
