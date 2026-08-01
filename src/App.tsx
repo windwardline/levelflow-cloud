@@ -356,9 +356,20 @@ export default function App() {
             // clearance (m-scan-v3.html:29,32), so this wrapper contributes
             // nothing but the fixed column it lives in.
             ? "flex w-full min-h-0 flex-col overflow-hidden"
+            // The sm: pad is top-axis only, deliberately. Both scrolling
+            // branches reserve pb-24 for the fixed MobileTabBar, which is
+            // mounted at every width below lg — and a padding-block utility
+            // beats a padding-bottom one whenever Tailwind emits it later, which
+            // it does for a variant. Measured in the built CSS, the block form
+            // of this utility landed ~9kB after .pb-24, so the reserve silently
+            // collapsed from 96px to 20px across the whole 640-1023px band while
+            // the bar was still there. Padding only the top leaves the pb chain
+            // intact (pb-24 below lg, lg:pb-5 above it) and changes nothing at
+            // >=lg, where lg:pb-5 already computed the same 20px the block form
+            // was handing it.
             : isDeskTab
-            ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:py-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
-            : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:py-5 lg:pb-5"}
+            ? "mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
+            : "mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace

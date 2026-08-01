@@ -329,6 +329,37 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     assert.doesNotMatch(footerSource, /lg:\$\{/);
   });
 
+  // Reserving the clearance is not the same as keeping it. Both wrapper branches
+  // carried `sm:py-5` beside their `pb-24`, and a padding-block utility beats a
+  // padding-bottom one whenever Tailwind emits it later — which it does for a
+  // variant (measured in the built CSS: .pb-24 at ~30kB, the sm: block form at
+  // ~39kB). So from 640px to 1023px the reserve was 20px, not 96px, while the
+  // fixed bar was still mounted; only at lg — where the bar is gone and
+  // lg:pb-5 lands last — did the numbers agree again.
+  //
+  // The rule this pins: below lg, nothing on these branches may touch the bottom
+  // axis except pb-24 itself. An sm: pad may exist (it does, on the top axis),
+  // but a block-axis one silently undoes the reserve, and the whole band is a
+  // width no unit test looks at.
+  it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
+    const wrapperClassNames = APP_SOURCE.match(
+      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+    )?.[0] ?? "";
+    assert.ok(
+      wrapperClassNames.length > 0,
+      "expected to find the scrolling content wrapper's class branches",
+    );
+    for (const branch of wrapperClassNames.match(/"[^"]*"/g) ?? []) {
+      // No sm:-scoped utility on the bottom axis, in either form.
+      assert.doesNotMatch(branch, /\bsm:py-/, `content wrapper branch ${branch}`);
+      assert.doesNotMatch(branch, /\bsm:pb-/, `content wrapper branch ${branch}`);
+      // The top pad the mock's rhythm needs is still there, on its own axis,
+      // and the bottom chain still reopens at lg where the bar is gone.
+      assert.match(branch, /\bsm:pt-5\b/, `content wrapper branch ${branch}`);
+      assert.match(branch, /\blg:pb-5\b/, `content wrapper branch ${branch}`);
+    }
+  });
+
   it("wires every Donate affordance through the one existing tab switch (spec §17)", () => {
     // No new nav system (spec §17): setActiveTab("donate") is exactly what the
     // mobile account menu and Profile's Support card already fired. Counted,

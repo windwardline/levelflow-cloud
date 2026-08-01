@@ -485,7 +485,7 @@ export function GuidePanel(
 //
 // 2. `top-[89px]` is the TOC's own natural resting offset, not a chosen value:
 //    the masthead is 69px tall (py-3 either side of a 44px control row, plus
-//    its bottom hairline) and the page wrapper adds sm:py-5 above the grid.
+//    its bottom hairline) and the page wrapper adds sm:pt-5 above the grid.
 //    Measured in a browser against the built CSS, `top-20` pinned the rail at
 //    80px while it rested at 89 — so it hopped 9px upward the instant the page
 //    moved. At 89 it does not move at all, and the 20px of air under the

@@ -64,7 +64,7 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
       css.match(/\.secondary-button\.min-h-10 \{\s*min-height: (\d+)px;/)?.[1],
     );
     const pageTopPadStep = Number(
-      app.match(/space-y-5 px-4 py-4 pb-24 sm:px-8 sm:py-(\d+)/)?.[1],
+      app.match(/space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-(\d+)/)?.[1],
     );
     for (const value of [headerPadStep, tallestControl, pageTopPadStep]) {
       assert.ok(

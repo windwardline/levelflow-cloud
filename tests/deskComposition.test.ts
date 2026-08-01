@@ -846,7 +846,7 @@ describe("Current trades rail composition — the mock's elements are present (a
   // decoration."
   //
   // Measured on the built CSS at 1440x900 before the fix: the header is 69px
-  // tall, the page wrapper adds sm:py-5, so all three Desk columns begin at
+  // tall, the page wrapper adds sm:pt-5, so all three Desk columns begin at
   // y=89. The scan rail's first line is 44px tall because .primary-button
   // carries the kit's 44px floor, which put its SCAN eyebrow's 16px line at
   // y=103; the trades rail's first line was 16px tall, putting CURRENT TRADES
