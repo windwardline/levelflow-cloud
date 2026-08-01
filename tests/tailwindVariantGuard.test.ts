@@ -91,7 +91,12 @@ describe("the interpolation pattern itself catches what it claims to", () => {
     "flex items-center max-lg:${display}",
   ];
   const allowed = [
-    // Not variants: the app writes both of these.
+    // Not variants, and that is the whole point: a mailto template (which the app
+    // does write) and an interpolated asset path (which it no longer does — the
+    // module that built one was deleted with §17i, and the mark it named has since
+    // left the repo). The shape is what is on trial here, not the URL: a scan
+    // tightened until `word:${x}` matched either of these would fail every
+    // interpolated string in the app.
     "mailto:${SUPPORT_EMAIL}?subject=${subject}",
     "${basePath}brand/windward-line-mark.svg",
     "translate:${value}",

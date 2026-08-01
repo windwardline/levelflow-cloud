@@ -127,7 +127,7 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
 });
 
 describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)", () => {
-  it("is the app's only <footer> outside the pre-auth screens", () => {
+  it("is the app's only <footer>, the pre-auth screens included since §17i", () => {
     function sourceFilesUnder(root: string): string[] {
       return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
         const path = join(root, entry.name);
