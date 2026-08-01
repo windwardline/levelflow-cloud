@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Levelflow">
+  <rect width="32" height="32" rx="7" fill="#1E1B16"/>
+  <rect x="7" y="9" width="18" height="2.6" rx="1.3" fill="#EDE7DA"/>
+  <rect x="7" y="14.7" width="18" height="2.6" rx="1.3" fill="#6B86FF"/>
+  <rect x="7" y="20.4" width="12" height="2.6" rx="1.3" fill="#EDE7DA" opacity="0.45"/>
+</svg>

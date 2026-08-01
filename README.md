@@ -4,7 +4,7 @@ Levelflow Cloud is a React/Vite and Supabase platform for disciplined market rev
 
 ## Architecture
 
-- `public/brand/` contains the Windward Line house mark; Levelflow's own favicon set lives at the `public/` root.
+- `public/brand/` contains the Levelflow mark in both themes plus the Windward Line house mark; the favicon set, manifest, and og-image live at the `public/` root. Run `node scripts/render-brand-assets.mjs` to regenerate all of them from the app's colour tokens.
 - `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, legal links, and charting components.
 - `supabase/functions/` contains the production backend: authenticated market data, trade analysis, calendar ingestion, and scheduled outcome-resolution Edge Functions.
 - `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
