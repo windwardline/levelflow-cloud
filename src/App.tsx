@@ -320,18 +320,36 @@ export default function App() {
                   aria-label="Levelflow sections"
                   className="flex items-center gap-6"
                 >
+                  {/* The kit's 44px floor (spec §9), reached the way
+                      .tertiary-link and .cpv-copy already reach it: the button
+                      grows to 44px and a matching negative block margin pulls
+                      that extra height back out of the flow, so the row's own
+                      geometry is untouched. The type moves to an inner span for
+                      one reason — the active underline is a border on the
+                      element that carries it, and on a 44px button that border
+                      would sit 12px below the word instead of under it. Both
+                      boxes centre on the same line, so every glyph and the
+                      underline land exactly where they did at 16px tall. */}
                   {TABS.map((tab) => (
                     <button
                       key={tab.value}
                       type="button"
-                      className={`text-xs font-semibold uppercase tracking-[0.12em] ${
-                        activeTab === tab.value
-                          ? "text-ink border-b-2 border-accent pb-1"
-                          : "text-ink-muted hover:text-ink"
-                      }`}
+                      className="group -my-3.5 inline-flex min-h-11 items-center"
                       onClick={() => setActiveTab(tab.value)}
                     >
-                      {tab.label}
+                      {/* group-hover, not hover: :hover matches the element the
+                          pointer is over and its ancestors, never its children,
+                          so a plain hover: here would only light the word — the
+                          rest of the 44px target would be dead to it. */}
+                      <span
+                        className={`text-xs font-semibold uppercase tracking-[0.12em] ${
+                          activeTab === tab.value
+                            ? "text-ink border-b-2 border-accent pb-1"
+                            : "text-ink-muted group-hover:text-ink"
+                        }`}
+                      >
+                        {tab.label}
+                      </span>
                     </button>
                   ))}
                 </nav>

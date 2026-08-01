@@ -456,7 +456,33 @@ describe("desktop masthead composition (spec §16, source-pinned — see header 
       /text-xs font-semibold uppercase tracking-\[0\.12em\]/,
     );
     assert.match(desktopHeaderBlock, /text-ink border-b-2 border-accent pb-1/);
-    assert.match(desktopHeaderBlock, /text-ink-muted hover:text-ink/);
+    // group-hover since the button became the kit's 44px target and the type
+    // moved to an inner span: :hover never reaches a child, so a plain hover:
+    // here would leave most of that target dead to it.
+    assert.match(desktopHeaderBlock, /text-ink-muted group-hover:text-ink/);
+  });
+
+  it("holds the nav at the kit's 44px hit floor without moving a glyph (spec §9)", () => {
+    // The idiom .tertiary-link and .cpv-copy already use: grow the box to 44px,
+    // pull the extra height back out of the flow with a matching negative block
+    // margin. Both boxes centre on the same line, so the row's geometry and the
+    // underline's position are unchanged — the target is what grew.
+    assert.match(
+      desktopHeaderBlock,
+      /className="group -my-3\.5 inline-flex min-h-11 items-center"/,
+    );
+    // The underline is a border on the element that carries the type. On a 44px
+    // button it would sit 12px below the word, which is why the type is in a
+    // span and the border is on the span.
+    assert.match(
+      desktopHeaderBlock,
+      /<span\s+className=\{`text-xs font-semibold uppercase tracking-\[0\.12em\][\s\S]*?\}`\}\s*>\s*\{tab\.label\}\s*<\/span>/,
+    );
+    assert.doesNotMatch(
+      desktopHeaderBlock,
+      /<button[^>]*\n\s*className=\{`text-xs/,
+      "the 44px box must not be the element the underline hangs on",
+    );
   });
 
   it("kill-list: no greeting, no header ThemeToggle, no Help/Donate buttons, no icon-chip nav-button pills", () => {
