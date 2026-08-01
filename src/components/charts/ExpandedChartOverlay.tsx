@@ -39,6 +39,34 @@ type ExpandedChartOverlayProps = {
 // chart's overlays (loading, empty) come and go while the dialog is open.
 const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
+/**
+ * Which end of the dialog's focus ring a Tab press has to land on, or null to
+ * leave the browser's own default alone. Exported as a pure function for the
+ * reason ScopeMenu's keyboard reducer is: the repo's unit stack has no jsdom, so
+ * the only way to test the trap's DIRECTION — rather than assert that the source
+ * contains both `first.focus()` and `last.focus()` somewhere, which passes just
+ * as happily when the two are swapped — is to hand the decision a state and read
+ * its answer.
+ *
+ * Shift+Tab off the first control wraps to the last, Tab off the last wraps to
+ * the first, and focus that has escaped the dialog entirely (a click on the page
+ * behind it, or a control the chart just unmounted) is pulled back on the next
+ * Shift+Tab. Everything else moves the way the DOM order already reads.
+ */
+export function focusTrapTarget(
+  { activeIsFirst, activeIsInside, activeIsLast, shiftKey }: {
+    activeIsFirst: boolean;
+    activeIsInside: boolean;
+    activeIsLast: boolean;
+    shiftKey: boolean;
+  },
+): "first" | "last" | null {
+  if (shiftKey) {
+    return activeIsFirst || !activeIsInside ? "last" : null;
+  }
+  return activeIsLast ? "first" : null;
+}
+
 export function ExpandedChartOverlay(
   { children, marketName, onClose }: ExpandedChartOverlayProps,
 ) {
@@ -92,15 +120,21 @@ export function ExpandedChartOverlay(
     const last = focusable[focusable.length - 1];
     const active = document.activeElement;
 
-    if (event.shiftKey && (active === first || !dialogRef.current?.contains(active))) {
-      event.preventDefault();
-      last.focus();
+    const target = focusTrapTarget({
+      activeIsFirst: active === first,
+      activeIsInside: dialogRef.current?.contains(active) ?? false,
+      activeIsLast: active === last,
+      shiftKey: event.shiftKey,
+    });
+    if (target === null) {
       return;
     }
-    if (!event.shiftKey && active === last) {
-      event.preventDefault();
+    event.preventDefault();
+    if (target === "first") {
       first.focus();
+      return;
     }
+    last.focus();
   }
 
   return createPortal(

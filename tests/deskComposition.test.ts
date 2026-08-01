@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { focusTrapTarget } from "../src/components/charts/ExpandedChartOverlay";
 
 // Spec §16, "Review discipline (new, standing)": every review of composition
 // work must verify BOTH directions against the mock — required elements
@@ -585,13 +586,109 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     assert.match(overlay, /closeRef\.current\?\.focus\(\)/);
     assert.match(overlay, /"Tab"/);
     assert.match(overlay, /shiftKey/);
-    // Both wrap directions, which is what makes it a cycle rather than a
-    // one-way stop: Shift+Tab off the first control lands on the last, and Tab
-    // off the last lands on the first.
+    // Both wrap directions exist, which is what makes it a cycle rather than a
+    // one-way stop. WHICH direction goes where is the next test's subject —
+    // these two substrings are equally happy when the pair is swapped, which is
+    // exactly the gap M2 recorded.
     assert.match(overlay, /last\.focus\(\)/);
     assert.match(overlay, /first\.focus\(\)/);
     assert.match(overlay, /previouslyFocusedRef/);
     assert.match(overlay, /restore[\s\S]{0,200}\.focus\(\)/);
+    // The direction lives in one exported decision, and the handler does what it
+    // says — so the test below is testing the real thing, not a parallel copy.
+    assert.match(overlay, /const target = focusTrapTarget\(\{/);
+    assert.match(overlay, /if \(target === "first"\) \{\s*first\.focus\(\);/);
+  });
+
+  // M2: the trap's direction, tested rather than source-matched. The handler
+  // reads the DOM (document.activeElement, the live focusable list), which this
+  // repo's jsdom-less unit stack cannot build — so the decision is an exported
+  // pure function and the DOM facts are its arguments, the same split
+  // ScopeMenu's keyboard reducer already uses. Inverting the two focus calls in
+  // the component now fails here instead of leaving the file green at 70/70.
+  it("wraps Tab off the last control to the first, and Shift+Tab off the first to the last", () => {
+    // Tab, forwards: only the last control wraps; every other position is the
+    // browser's own business.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: false,
+      }),
+      "first",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: false,
+        shiftKey: false,
+      }),
+      null,
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: true,
+        activeIsLast: false,
+        shiftKey: false,
+      }),
+      null,
+    );
+
+    // Shift+Tab, backwards: the first control wraps to the last.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: false,
+        shiftKey: true,
+      }),
+      "last",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: true,
+      }),
+      null,
+    );
+
+    // Focus that is no longer in the dialog at all — a click on the page behind
+    // it, or a control the chart's own overlays just unmounted — is pulled back
+    // in on the next Shift+Tab rather than continuing out into the page.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: false,
+        activeIsLast: false,
+        shiftKey: true,
+      }),
+      "last",
+    );
+
+    // A single-control dialog is both ends at once, and still cycles both ways.
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: false,
+      }),
+      "first",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: true,
+        activeIsInside: true,
+        activeIsLast: true,
+        shiftKey: true,
+      }),
+      "last",
+    );
   });
 
   it("locks body scroll while open and restores the prior value, not a hardcoded one", () => {

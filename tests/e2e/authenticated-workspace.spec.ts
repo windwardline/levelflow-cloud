@@ -596,8 +596,8 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   // case-insensitive SUBSTRING match, and MarketChart's own tool cluster is not
   // lg:-gated, so its "Default chart view" reset button mounts inside this same
   // surface and also contains "chart view". Without the flag this resolves to
-  // two elements and throws a strict-mode violation — invisible to every local
-  // gate, since npm test runs no browser and --list only collects.
+  // two elements and throws a strict-mode violation — unseen by every local gate,
+  // since npm test runs no browser and --list only collects.
   await expect(scanSurface.getByLabel("Chart view", { exact: true }))
     .toBeVisible();
   await expect(scanSurface.getByRole("button", { name: "Expand chart" }))
@@ -710,7 +710,7 @@ test("Expand chart opens the same chart full-viewport on mobile, and only on mob
   // the stronger one here: a role locator resolves against the accessibility
   // tree, which excludes a display:none element outright. So this asserts the
   // thing that actually matters — no reader at ≥lg can reach the affordance —
-  // rather than the weaker "it is styled invisible". (Measured on this repo's
+  // rather than the weaker "it is styled out of sight". (Measured on this repo's
   // Playwright: role count 0 at 1280 and 1 at 375; a CSS locator returns 1 at
   // both.)
   await page.setViewportSize({ width: 1280, height: 800 });

@@ -330,12 +330,16 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   });
 
   // Reserving the clearance is not the same as keeping it. Both wrapper branches
-  // carried `sm:py-5` beside their `pb-24`, and a padding-block utility beats a
-  // padding-bottom one whenever Tailwind emits it later — which it does for a
-  // variant (measured in the built CSS: .pb-24 at ~30kB, the sm: block form at
-  // ~39kB). So from 640px to 1023px the reserve was 20px, not 96px, while the
-  // fixed bar was still mounted; only at lg — where the bar is gone and
-  // lg:pb-5 lands last — did the numbers agree again.
+  // used to carry the sm: BLOCK-axis pad beside their `pb-24`, and a
+  // padding-block utility beats a padding-bottom one whenever Tailwind emits it
+  // later — which it does for a variant (measured in the built CSS: .pb-24 at
+  // ~30kB, the sm: block form at ~39kB). So from 640px to 1023px the reserve was
+  // 20px, not 96px, while the fixed bar was still mounted; only at lg — where the
+  // bar is gone and lg:pb-5 lands last — did the numbers agree again.
+  //
+  // (The utility is named by shape rather than spelled out here on purpose:
+  // Tailwind's scanner reads this file too, and a dead class in a comment is a
+  // dead rule in the bundle.)
   //
   // The rule this pins: below lg, nothing on these branches may touch the bottom
   // axis except pb-24 itself. An sm: pad may exist (it does, on the top axis),

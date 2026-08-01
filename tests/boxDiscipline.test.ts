@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
@@ -15,15 +15,42 @@ import { describe, it } from "node:test";
 // affordance — which is the §16 review discipline (both directions, always) in
 // the one form that cannot be forgotten.
 //
-// Detection is deliberately narrow: a *box* is a class list carrying a
-// border-WIDTH utility on all four sides (`border`, `border-2`,
-// `border-[1.5px]`, with or without a variant prefix) or the .terminal-panel
-// component class. Single-edge rules (`border-t`, `border-b`, `border-l-[3px]`)
-// are separators, which this system uses everywhere and which the ruling is not
-// about; colour-only utilities (`border-hairline`, `focus-within:border-accent`)
-// draw nothing on their own.
-const BOX_WIDTH = /(?:^|\s)(?:[a-z-]+:)*border(?:-\[[^\]]+\]|-\d+)?(?=\s|$)/;
+// Detection covers every idiom that draws a full perimeter, not just the one this
+// codebase happens to use today (M4 — the earlier version saw border widths and
+// the literal terminal-panel only, so a passive one-pixel Tailwind ring-style
+// box would have passed the whole suite). The families are named in prose
+// rather than as classes because Tailwind's own scanner reads this file, and a
+// class written in a comment is a dead rule in the shipped bundle:
+//
+//   border, bare or numbered or bracketed    the four-sided border-WIDTH family
+//   the same three shapes of rings            Tailwind's second perimeter
+//   the same three shapes of outline          and its third
+//   zero-offset zero-radius spread shadows    a hairline by another name
+//   an arbitrary border or box-shadow value   which bypasses every name above
+//   terminal-panel                            the kit's own bordered sheet
+//
+// All three width families share one shape, which is what keeps the colour-only
+// forms out: a colour on any of the three draws nothing on its own, and neither do
+// the outline keywords (hidden, none). Single-edge rules and inset markers are
+// separators, which this system uses everywhere and which the ruling is not about.
+// Ring offsets and the depth shadows draw no perimeter either.
+const WIDTH_UTILITY = (property: string) =>
+  new RegExp(`(?:^|\\s)(?:[a-z-]+:)*${property}(?:-\\[[^\\]]+\\]|-\\d+)?(?=\\s|$)`);
+const BOX_IDIOMS = [
+  WIDTH_UTILITY("border"),
+  WIDTH_UTILITY("ring"),
+  WIDTH_UTILITY("outline"),
+  // Spread shadows with zero offset and zero radius are borders by another name.
+  /(?:^|\s)(?:[a-z-]+:)*shadow-\[[^\]]*0_0_0_[^\]]*\](?=\s|$)/,
+  // Arbitrary properties, which bypass every utility name above.
+  /\[(?:border|outline|box-shadow)(?:-[a-z]+)?:[^\]]+\]/,
+];
 const PANEL_CLASS = /\bterminal-panel\b/;
+
+function drawsABox(literal: string): boolean {
+  return BOX_IDIOMS.some((idiom) => idiom.test(literal)) ||
+    PANEL_CLASS.test(literal);
+}
 
 type Survivor = {
   // A distinctive fragment of the surviving class list.
@@ -49,11 +76,12 @@ const SURVIVORS: Record<string, Survivor[]> = {
     {
       match: "rounded-md border-[1.5px] border-hairline bg-sheet px-[9px]",
       why:
-        "the mock's own .broker pill, compact variant (tokens.css:22) — a labelled identity token, not a container",
+        "the mock's own .broker pill at the mobile masthead's compact geometry (m-mobile-v3.html:43) — a labelled identity token, not a container",
     },
     {
       match: "rounded-md border-[1.5px] border-hairline bg-sheet px-3",
-      why: "the same pill at full size, drawn by every approved mock that shows the broker",
+      why:
+        "the same .broker pill at the full size the kit defines (tokens.css:22), drawn by every approved mock that shows the broker",
     },
   ],
   "src/components/workspace/ThemeToggle.tsx": [
@@ -77,12 +105,12 @@ const SURVIVORS: Record<string, Survivor[]> = {
     {
       match: "min-h-11 shrink-0 rounded-lg border border-hairline bg-sheet",
       why:
-        "the same chart-view select on the merged mobile surface (m-scan-v3.html:15 `.tf`) — a form field, at that mock's compact geometry",
+        "the same chart-view select on the merged mobile surface (m-scan-v3.html:18 `.tf`) — a form field, at that mock's compact geometry",
     },
     {
       match: "min-w-0 border border-hairline border-t-0 bg-sheet",
       why:
-        "the mock's .setup sheet (a-desk-v3.html:53), attached hairline-flush under the chart sheet — the stage's own content plane, and the one frame between them",
+        "the mock's .setup sheet (a-desk-v3.html:47), attached hairline-flush under the chart sheet — the stage's own content plane, and the one frame between them",
     },
   ],
   "src/components/workspace/AdvisorRecommendationPanel.tsx": [
@@ -118,7 +146,7 @@ const SURVIVORS: Record<string, Survivor[]> = {
     },
     {
       match: "rounded-lg border border-hairline bg-sheet p-1 shadow-xs",
-      why: "the chart tool cluster — five buttons, over that same canvas",
+      why: "the chart tool cluster — six buttons, over that same canvas",
     },
   ],
   // ---- pre-auth surfaces, outside the mockups' scope ---------------------
@@ -203,7 +231,7 @@ describe("§17c — a bordered sheet survives only as an affordance", () => {
     it(`${file} draws no unjustified box`, () => {
       const allowed = SURVIVORS[file] ?? [];
       for (const literal of literals(readFileSync(file, "utf8"))) {
-        if (!BOX_WIDTH.test(literal) && !PANEL_CLASS.test(literal)) {
+        if (!drawsABox(literal)) {
           continue;
         }
         const entry = allowed.find((survivor) =>
@@ -235,10 +263,71 @@ describe("§17c — a bordered sheet survives only as an affordance", () => {
     }
   });
 
-  it("names a reason for every survivor", () => {
-    for (const survivors of Object.values(SURVIVORS)) {
+  // M5: this used to read `why.length > 20`, which measured test-local prose and
+  // was the only thing standing between the survivor table and a rubber stamp —
+  // and M6 found four justifications already citing the wrong mock line while it
+  // passed. It now checks the three things a justification can actually be wrong
+  // about: that it exists, that it is a reason rather than the class list read
+  // back, and that any mock line it cites is the line that draws the thing.
+  it("names a reason for every survivor — not the class list, and not a citation that has drifted", () => {
+    for (const [file, survivors] of Object.entries(SURVIVORS)) {
       for (const survivor of survivors) {
-        assert.ok(survivor.why.length > 20, survivor.match);
+        const where = `${file} :: ${survivor.match}`;
+        assert.notEqual(survivor.why.trim(), "", `${where} has no reason`);
+        // A justification that repeats the class list says nothing: the guard
+        // already knows the class list — what it cannot know is why the box is
+        // an affordance.
+        assert.ok(
+          !survivor.why.includes(survivor.match) &&
+            survivor.why.trim() !== survivor.match,
+          `${where}: the reason is the class list, not a reason`,
+        );
+
+        // Any "mock.html:NN" (or ":NN-MM") the reason cites has to resolve, and
+        // if the reason also names a mock selector, the cited line has to be
+        // about that selector. Both of the citation drifts M6 found — .tf cited
+        // against `.pinned`, .setup cited against `.why` — fail here.
+        const citations = Array.from(
+          survivor.why.matchAll(
+            /\b([a-z0-9-]+\.(?:html|css)):(\d+)(?:-(\d+))?\b/g,
+          ),
+        );
+        const selectors = Array.from(
+          survivor.why.matchAll(/(?:^|[\s`(])\.([a-z][a-z0-9-]+)\b/g),
+          (match) => match[1],
+        );
+        if (selectors.length > 0) {
+          assert.ok(
+            citations.length > 0,
+            `${where}: names .${selectors[0]} but cites no mock line for it`,
+          );
+        }
+        const citedLines: string[] = [];
+        for (const [, mock, from, to] of citations) {
+          const path = join("docs/design/mockups", mock);
+          assert.ok(existsSync(path), `${where}: ${mock} does not exist`);
+          const lines = readFileSync(path, "utf8").split("\n");
+          const first = Number(from);
+          const last = Number(to ?? from);
+          assert.ok(
+            last >= first && last <= lines.length,
+            `${where}: ${mock}:${from}${to ? `-${to}` : ""} is out of range`,
+          );
+          const cited = lines.slice(first - 1, last).join("\n");
+          assert.notEqual(
+            cited.trim(),
+            "",
+            `${where}: ${mock}:${from} is a blank line`,
+          );
+          citedLines.push(cited);
+        }
+        for (const selector of selectors) {
+          assert.ok(
+            citedLines.some((cited) => cited.includes(selector)),
+            `${where}: cites no mock line that draws .${selector} — ` +
+              `the mock the reason names has moved, or the citation was never right`,
+          );
+        }
       }
     }
   });
