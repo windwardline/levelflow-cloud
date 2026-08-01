@@ -251,11 +251,17 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
 // authed surface is walked at both, including the Desk, which had no footer at all
 // before this ruling and the Guide, which used to hide it below a full page-scroll.
 test("the desktop frame pins the masthead and the footer at every width (§17i)", async ({ page }) => {
+  // All five surfaces, not four. Donate is the one the masthead does not list —
+  // since §17i the footer's own control is its single desktop home — so the sweep
+  // reaches it the way a reader does, and the walk stops skipping the shortest
+  // surface in the app, which is where "the footer sits at the true bottom" is
+  // least automatic.
   const SURFACES = [
-    { landmark: "current-trades-rail", nav: "Desk" },
-    { landmark: null, nav: "Insights" },
-    { landmark: null, nav: "Guide" },
-    { landmark: "profile-panel", nav: "Profile" },
+    { heading: null, landmark: "current-trades-rail", name: "Desk", via: "masthead" },
+    { heading: null, landmark: null, name: "Insights", via: "masthead" },
+    { heading: null, landmark: null, name: "Guide", via: "masthead" },
+    { heading: null, landmark: "profile-panel", name: "Profile", via: "masthead" },
+    { heading: "Donate", landmark: null, name: "Donate", via: "footer" },
   ] as const;
 
   for (const width of [1280, 1440]) {
@@ -263,11 +269,22 @@ test("the desktop frame pins the masthead and the footer at every width (§17i)"
     await page.goto("/");
 
     for (const surface of SURFACES) {
-      await page.getByRole("navigation", { name: "Levelflow sections" })
-        .getByRole("button", { exact: true, name: surface.nav })
-        .click();
+      if (surface.via === "masthead") {
+        await page.getByRole("navigation", { name: "Levelflow sections" })
+          .getByRole("button", { exact: true, name: surface.name })
+          .click();
+      } else {
+        await page.locator("footer")
+          .getByRole("button", { exact: true, name: surface.name })
+          .click();
+      }
       if (surface.landmark) {
         await expect(page.getByTestId(surface.landmark)).toBeVisible();
+      }
+      if (surface.heading) {
+        await expect(
+          page.getByRole("heading", { exact: true, name: surface.heading }),
+        ).toBeVisible();
       }
 
       // The frame: the document does not scroll at all, and both chrome rows are
@@ -289,20 +306,20 @@ test("the desktop frame pins the masthead and the footer at every width (§17i)"
           regionTop: region.getBoundingClientRect().top,
         };
       });
-      expect(frame.documentScroll, `${surface.nav} at ${width}`).toBeLessThanOrEqual(0);
-      expect(frame.headerTop, `${surface.nav} at ${width}`).toBe(0);
-      expect(frame.footerBottomGap, `${surface.nav} at ${width}`)
+      expect(frame.documentScroll, `${surface.name} at ${width}`).toBeLessThanOrEqual(0);
+      expect(frame.headerTop, `${surface.name} at ${width}`).toBe(0);
+      expect(frame.footerBottomGap, `${surface.name} at ${width}`)
         .toBeLessThanOrEqual(1);
       // …and the content region is exactly what sits between them, so nothing can
       // be scrolled out from under either row.
-      expect(frame.regionTop, `${surface.nav} at ${width}`).toBeGreaterThan(0);
-      expect(frame.regionBottom, `${surface.nav} at ${width}`)
+      expect(frame.regionTop, `${surface.name} at ${width}`).toBeGreaterThan(0);
+      expect(frame.regionBottom, `${surface.name} at ${width}`)
         .toBeLessThanOrEqual(frame.footerTop + 1);
       // The Desk hands its scroll to its three columns; every other surface
       // scrolls the region itself. Either way the DOCUMENT never scrolls, which is
       // the assertion above.
-      expect(frame.regionOverflowY, `${surface.nav} at ${width}`).toBe(
-        surface.nav === "Desk" ? "hidden" : "auto",
+      expect(frame.regionOverflowY, `${surface.name} at ${width}`).toBe(
+        surface.name === "Desk" ? "hidden" : "auto",
       );
     }
 

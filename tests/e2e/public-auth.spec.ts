@@ -150,6 +150,37 @@ test("the static pages read by keyboard, from the focus every load starts with (
   }
 });
 
+// The other end of the satellites' footer link (§17i: static pages link Donate to
+// the app root). /?donate has to arrive with the block open AND in view — the
+// control that opens it is the frame's bottom row, so a block that opened silently
+// off-screen would be a link with no visible result. M6: verified by hand in the
+// review, guarded by nothing.
+test("/?donate opens the login screen's donation block and brings it into view", async ({
+  page,
+}) => {
+  // 375, where the two columns stack and the block sits at the far end of a
+  // scrolling region — the width at which "opened" and "in view" are two different
+  // claims. At 1280 the card is short enough that the block lands on screen
+  // whether anything scrolls it or not, so a check there proves only the state.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/?enter&donate", { waitUntil: "networkidle" });
+
+  const donate = page.getByRole("button", { name: "Donate", exact: true });
+  await expect(donate).toHaveAttribute("aria-expanded", "true");
+  const options = page.getByText(
+    "Donations support market data, email, hosting, and development.",
+  );
+  await expect(options).toBeVisible();
+  // In the viewport, not merely rendered somewhere in the scroll region.
+  const inView = await options.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return box.top >= 0 && box.bottom <= window.innerHeight;
+  });
+  expect(inView, "the donation block opened out of view").toBe(true);
+  // And the frame is intact: the document still does not scroll.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test("the login screen's region is a named keyboard stop too", async ({ page }) => {
   // The same fix on the React half of the satellite set, at the width where that
   // screen overflows its frame. Reached by role and name, which is the other

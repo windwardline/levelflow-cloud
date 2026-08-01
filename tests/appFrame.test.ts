@@ -363,6 +363,40 @@ describe("§17i — the frame reaches the React satellites", () => {
   });
 });
 
+// M6 (wave-8 review): the footer's Donate is a link to /?donate on every satellite
+// (pinned below and in tests/appFooter.test.ts), and what makes that a route rather
+// than a page load with no visible result is the login screen reading it — and then
+// bringing the block it opens into view, because the control that opens it is the
+// frame's bottom row and the block can be most of a scroll region away. Nothing
+// guarded either half.
+describe("§17i — the satellites' Donate opens something, and it can be seen (M6)", () => {
+  const AUTH = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
+
+  it("opens the block from the query and from the hash, on load", () => {
+    const initial = AUTH.match(
+      /useState\(\(\) => \{\s*const params = new URLSearchParams\(window\.location\.search\);\s*return ([^;]*);/,
+    )?.[1] ?? "";
+    assert.ok(initial.length > 0, "expected donationsOpen's initial state");
+    assert.match(initial, /params\.has\("donate"\)/);
+    assert.match(initial, /window\.location\.hash === "#donate"/);
+  });
+
+  it("scrolls it into view when it opens, in an effect keyed on that state", () => {
+    // An effect, not a scroll inside the click handler: the block mounts on this
+    // state change, so there is nothing to scroll to until React has committed it.
+    // The same effect is what covers the ?donate / #donate entry above.
+    const effect = AUTH.match(/useEffect\(\(\) => \{\s*if \(donationsOpen\)[\s\S]*?\}, \[donationsOpen\]\);/)
+      ?.[0] ?? "";
+    assert.ok(effect.length > 0, "expected the scroll-into-view effect");
+    assert.match(effect, /donationsRef\.current\?\.scrollIntoView\(\{ block: "center" \}\)/);
+    // The ref is on the block itself, and the footer's control is what flips the
+    // state — the disclosure form of the union, so aria-expanded exists there and
+    // nowhere else (tests/appFooter.test.ts owns that half).
+    assert.match(AUTH, /<div\s*\n?\s*ref=\{donationsRef\}/);
+    assert.match(AUTH, /expanded: donationsOpen,/);
+  });
+});
+
 // The static half of the same ruling, in the only place it can live: these four
 // pages share one stylesheet and no build step, so the frame is CSS and the guard
 // reads CSS. Same three facts as the app's: exactly the viewport tall, chrome that
