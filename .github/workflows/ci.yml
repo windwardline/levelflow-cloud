@@ -39,13 +39,24 @@ jobs:
       - name: Run Lint
         run: npm run lint
 
+      - name: Check Migrations
+        run: npm run check:migrations
+
+      - name: Audit Dependencies
+        run: npm audit --audit-level=high
+
       # Deliberate coverage split: unit/integration tests gate PRs here;
-      # the Playwright e2e specs need production credentials and a live
-      # deployment, so they run in deploy.yml after functions deploy and
-      # BEFORE the frontend ships — a failing e2e halts the frontend
-      # rollout and fails the deploy run loudly.
+      # the Playwright e2e specs need production credentials and the live
+      # Supabase project, so they run in deploy.yml after Edge Functions
+      # deploy — against a local dev frontend build, not the shipped one.
+      # Vercel builds and deploys the frontend independently on the same
+      # push (README.md), so a failing e2e does not halt or gate it; it
+      # fails the deploy workflow run, which is the loud signal.
       - name: Run Tests
         run: npm run test
 
       - name: Build
         run: npm run build
+
+      - name: Check Bundle Budget
+        run: npm run check:bundle
