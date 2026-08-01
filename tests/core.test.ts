@@ -151,10 +151,36 @@ describe("asset catalog", () => {
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
+
+  it("offers no market the scan door would silently drop", () => {
+    // Since §17m.1 the Scan column is the only door, and the stage is a pure
+    // display of what that door returns: it adopts this scan's verdict about
+    // the market on screen, and leaves the market alone when the scan did not
+    // cover it. Those two rules are exhaustive only while every market the
+    // menu offers is one the server actually attempts — scanOpportunities
+    // drops unknown, temporarily-unavailable and no-scan symbols during
+    // normalization, and a dropped symbol appears in neither `opportunities`
+    // nor `blocked`. Drift here would leave the stage showing a stale ladder
+    // under a rail that found nothing, so it fails the build instead.
+    assert.deepEqual(
+      AVAILABLE_ASSET_SYMBOLS.filter(
+        (symbol) =>
+          !isKnownSymbol(symbol) || isTemporarilyUnavailableSymbol(symbol) ||
+          !defaultScanSymbols.includes(symbol),
+      ),
+      [],
+    );
+    // And the other direction: the default universe a scan of "All markets"
+    // walks is exactly the menu, so no scanned market is unreachable from it.
+    assert.deepEqual(
+      [...defaultScanSymbols].sort(),
+      [...AVAILABLE_ASSET_SYMBOLS].sort(),
+    );
+  });
 });
 
 describe("trade analyzer category handling", () => {
-  it("routes manual reviews and market scans through one market-review pipeline", () => {
+  it("routes every scanned market through one market-review pipeline", () => {
     const source = readFileSync(
       "supabase/functions/trade-analyzer/index.ts",
       "utf8",
@@ -166,9 +192,9 @@ describe("trade analyzer category handling", () => {
     const sharedReviewEnd = source.indexOf("async function scanOpportunity");
     const sharedReviewSource = source.slice(sharedReviewStart, sharedReviewEnd);
 
-    assert.equal(sharedReviewCalls.length >= 3, true);
-    assert.match(source, /reviewCurrentMarket\([\s\S]*"generate_setup"/);
-    assert.match(source, /reviewCurrentMarket\([\s\S]*"scan_opportunities"/);
+    // One door since §17m.1, so exactly one call site plus the declaration.
+    assert.equal(sharedReviewCalls.length, 2);
+    assert.match(source, /const review = await reviewCurrentMarket\(/);
     assert.equal(
       source.includes("async function reviewCurrentMarket"),
       true,
@@ -209,19 +235,7 @@ describe("trade analyzer category handling", () => {
     );
   });
 
-  it("marks the single-market review path as review origin", () => {
-    const source = readFileSync(
-      "supabase/functions/trade-analyzer/index.ts",
-      "utf8",
-    );
-    const serveStart = source.indexOf("Deno.serve(");
-    const serveEnd = source.indexOf("async function scanOpportunities");
-    const serveSource = source.slice(serveStart, serveEnd);
-
-    assert.match(serveSource, /upsertActiveSetup\([\s\S]*?"review",?\s*\);/);
-  });
-
-  it("persists every ranked scan opportunity as scan origin and reports the qualified count", () => {
+  it("persists every ranked scan opportunity and reports the qualified count", () => {
     const source = readFileSync(
       "supabase/functions/trade-analyzer/index.ts",
       "utf8",
@@ -235,44 +249,44 @@ describe("trade analyzer category handling", () => {
     assert.equal(scanSource.includes("opportunities: rankedOpportunities"), true);
     assert.equal(scanSource.includes("qualified: rankedOpportunities.length"), true);
     assert.equal(scanSource.includes("persistScannedOpportunities({"), true);
-    // The write goes through the persistence pass's injected writer now (spec
-    // §17m.2, tests/scanPersistence.test.ts pins the contract itself), so the
-    // origin argument closes the arrow rather than a bare call.
-    assert.match(scanSource, /write: \(context\) =>\s*upsertActiveSetup\([\s\S]*?"scan",?\s*\),/);
+    // The write goes through the persistence pass's injected writer (spec
+    // §17m.2, tests/scanPersistence.test.ts pins the contract itself).
+    assert.match(
+      scanSource,
+      /write: \(context\) =>\s*upsertActiveSetup\([\s\S]*?context\.newsContext,\s*\),/,
+    );
     // And the report the response carries is what makes "showed setups, wrote
     // none" a state anything can see.
     assert.equal(scanSource.includes("persistence,"), true);
   });
 
-  it("never lets a routine scan demote an existing review-origin setup", () => {
-    // No node-test harness reaches upsertActiveSetup's actual DB round
-    // trip (it's Deno-only code — see the other tests in this block); this
-    // reads the real source the same way, scoped to the function body.
+  it("has no second door: the analyzer answers only refresh_outcomes and scan_opportunities", () => {
     const source = readFileSync(
       "supabase/functions/trade-analyzer/index.ts",
       "utf8",
     );
-    const upsertStart = source.indexOf("async function upsertActiveSetup");
-    const upsertEnd = source.indexOf(
-      "async function invalidateActiveSetupsForSymbol",
-    );
-    const upsertSource = source.slice(upsertStart, upsertEnd);
+    const serveStart = source.indexOf("Deno.serve(");
+    const serveEnd = source.indexOf("async function scanOpportunities");
+    const serveSource = source.slice(serveStart, serveEnd);
 
-    // The same-side dedupe UPDATE branch must not let a later scan flip an
-    // already-reviewed row's origin back to 'scan' and drop it out of
-    // global learning — origin only ever moves scan -> review. The insert
-    // branch (no existing row to dedupe against) still sets origin freely.
-    assert.equal(
-      upsertSource.includes('activeSetup.origin === "review"'),
-      true,
-    );
-    assert.equal(upsertSource.includes('? "review"'), true);
-    assert.equal(upsertSource.includes("origin: nextOrigin,"), true);
+    // §17m.1: "All trades originate from the Scan column — no other path,
+    // desktop or mobile." The single-market generate_setup branch wrote
+    // origin 'review' and, through that origin, switched OFF the C2
+    // placed-guard — so deleting it is what makes the guard unconditional.
+    assert.equal(serveSource.includes("upsertActiveSetup("), false);
+    assert.equal(serveSource.includes("reviewCurrentMarket("), false);
+    assert.equal(source.includes("generate_setup"), false);
+    // An unrecognized action is refused outright rather than falling through
+    // to a default engine path: a silently-reinterpreted request is how the
+    // second door existed in the first place.
+    assert.match(serveSource, /Unsupported analyzer action/);
+    assert.equal(source.includes('"review"'), false);
   });
 
-  it("never lets a scan touch a live (placed) position — C2", () => {
-    // Same Deno-only reachability note as above: pin the guard in the real
-    // source rather than exercising the DB round trip.
+  it("never lets a scan touch a live (placed) position — C2, now unconditional", () => {
+    // No node-test harness reaches upsertActiveSetup's actual DB round trip
+    // (it's Deno-only code — see the other tests in this block); this reads
+    // the real source the same way, scoped to the function body.
     const source = readFileSync(
       "supabase/functions/trade-analyzer/index.ts",
       "utf8",
@@ -288,14 +302,20 @@ describe("trade analyzer category handling", () => {
     // (the same-side UPDATE branch) nor erase it (the opposite-side
     // invalidateActiveSetupsForSymbol call), so the guard has to run before
     // both, immediately after activeSetup is fetched.
-    const guardIndex = upsertSource.indexOf('origin === "scan"');
+    const guardIndex = upsertSource.indexOf('activeSetup.status === "placed"');
     const sameSideIndex = upsertSource.indexOf(
       "activeSetup.side === setup.side",
     );
     assert.notEqual(guardIndex, -1);
     assert.notEqual(sameSideIndex, -1);
     assert.equal(guardIndex < sameSideIndex, true);
-    assert.match(upsertSource, /activeSetup\.status === "placed"/);
+    // The origin exemption is gone with the door that needed it: no caller can
+    // opt out of the guard any more.
+    assert.equal(upsertSource.includes('origin === "scan"'), false);
+    assert.equal(upsertSource.includes("nextOrigin"), false);
+    // Every row this one door writes says how it arrived, and there is now
+    // only one honest answer.
+    assert.match(upsertSource, /origin: "scan",/);
   });
 
   it("trains global learning on every origin, since Scan is the only door (§17m)", () => {

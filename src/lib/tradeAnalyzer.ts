@@ -103,15 +103,15 @@ export type TradeSetupRow = {
   created_at: string;
   id: string;
   limit_entry: number | string;
-  // Populated for every row going forward (migration
-  // 20260730080000_setup_origin.sql backfills existing rows to 'review');
-  // optional/nullable here purely defensively, since this client type
-  // predates that column and nothing guarantees every future select lists
-  // it. Never rendered — not as a column, not as a filter, and since spec
-  // §17 not as a label either: the Insights result for an entry that never
-  // filled reads "Unfilled" whatever the row's provenance. The one reader
-  // left is tradeState.ts, which keeps an unfilled scan row off the Current
-  // trades rail because no order was ever placed with a broker for it.
+  // Historical provenance only. Rows written before §17m.1 carry 'review'
+  // (migration 20260730080000_setup_origin.sql backfilled them); every row
+  // since carries 'scan', because the Scan column is the only door. Optional
+  // and nullable purely defensively — this client type predates the column and
+  // nothing guarantees every future select lists it. Nothing reads it: not a
+  // rendered column, not a filter, not a label (spec §17 — an entry that never
+  // filled reads "Unfilled" whatever its provenance), and not the Current
+  // trades rail either (tradeState.ts derives that from status and outcome
+  // alone).
   origin?: "review" | "scan" | null;
   risk_model: Record<string, unknown> | null;
   side: "buy" | "sell";
@@ -130,36 +130,9 @@ export type TradeSetupRow = {
   }>;
 };
 
-const ANALYZER_TIMEOUT_MS = 18_000;
 const MARKET_SCAN_TIMEOUT_MS = 60_000;
 const OUTCOME_REFRESH_TIMEOUT_MS = 15_000;
 const HISTORY_TIMEOUT_MS = 12_000;
-
-export async function generateTradeSetup(symbol: SupportedSymbol) {
-  if (!supabase) {
-    throw new Error("Supabase is not configured.");
-  }
-
-  const { data, error } = await withTimeout(
-    supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
-      body: {
-        symbol,
-      },
-    }),
-    ANALYZER_TIMEOUT_MS,
-    "Market review timed out.",
-  );
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data) {
-    throw new Error("No analyzer response was returned.");
-  }
-
-  return data;
-}
 
 export async function scanMarketOpportunities(symbols?: SupportedSymbol[]) {
   if (!supabase) {

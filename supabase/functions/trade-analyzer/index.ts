@@ -76,20 +76,23 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.08.01.scan-only-door";
+const ANALYZER_VERSION = "2026.08.01.one-door-guarded";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
-const RATE_LIMITS: Record<string, number> = {
-  generate_setup: 24,
+// The analyzer's whole surface, and the rate-limit budget for each. §17m.1
+// retired the single-market review action; `analyzer_rate_limits` still
+// accepts its name (the check constraint is a superset, harmless) but nothing
+// sends it any more.
+const RATE_LIMITS = {
   refresh_outcomes: 12,
   scan_opportunities: 8,
-};
+} as const;
+type AnalyzerAction = keyof typeof RATE_LIMITS;
 type AnalyzeRequest = {
-  action?: "analyze" | "refresh_outcomes" | "scan_opportunities";
+  action?: AnalyzerAction;
   symbols?: string[];
-  symbol?: string;
 };
 
 type NewsEvent = {
@@ -119,7 +122,6 @@ type ExistingSetupRow = {
   created_at: string;
   id: string;
   limit_entry: number | string;
-  origin: SetupOrigin;
   provider_symbol: string;
   side: Side;
   stop_loss: number | string;
@@ -179,8 +181,6 @@ type MarketScanCandidate = {
   takeProfit1?: number;
 };
 
-type ReviewActionName = "generate_setup" | "scan_opportunities";
-type SetupOrigin = "review" | "scan";
 type ReviewedSetup = NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>;
 
 // The extra context a scan candidate needs to be written to trade_setups
@@ -245,7 +245,15 @@ Deno.serve(async (req) => {
       body = {};
     }
 
+    // §17m.1 left the analyzer two actions, and an unrecognized one is refused
+    // rather than reinterpreted. The old default — anything unknown means
+    // "review this symbol" — is exactly how a request with no action at all
+    // became a second door into the engine.
     const actionName = normalizeActionName(body.action);
+    if (!actionName) {
+      return jsonResponse(req, { error: "Unsupported analyzer action" }, 400);
+    }
+
     const rateLimit = await claimAnalyzerRequest(user.id, actionName);
     if (!rateLimit.allowed) {
       await recordAnalyzerEvent({
@@ -265,7 +273,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (body.action === "refresh_outcomes") {
+    if (actionName === "refresh_outcomes") {
       const outcomeRefresh = await refreshUserOutcomes(token, user.id);
       const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
       await recordAnalyzerEvent({
@@ -282,107 +290,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (body.action === "scan_opportunities") {
-      const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
-      const scan = await scanOpportunities(token, user.id, body.symbols);
-      await recordAnalyzerEvent({
-        action: "scan_opportunities",
-        metadata: {
-          blocked: scan.blocked.length,
-          opportunities: scan.opportunities.length,
-          // The persistence contract, in the record of the request itself:
-          // a scan that showed setups and wrote none is now legible in
-          // analyzer_events rather than only in a console (spec §17m.2).
-          persistence: scan.persistence,
-          scanned: scan.scanned,
-        },
-        // A scan that could not write part of what it showed is not a
-        // success — "scan_failure" is the enum's own word for it
-        // (supabase/init.sql's analyzer_events status check).
-        status: scan.persistence.failed > 0 ? "scan_failure" : "success",
-        userId: user.id,
-      });
-      return jsonResponse(req, {
-        advisoryOnly: true,
-        learningRefresh,
-        ...scan,
-      });
-    }
-
-    const requestedSymbol =
-      typeof body.symbol === "string" && body.symbol.trim()
-        ? body.symbol.trim()
-        : "EURUSD";
-    const uiSymbol = normalizeSymbol(requestedSymbol);
-    const symbol = uiSymbol as SupportedSymbol;
-    const outcomeRefresh = await refreshUserOutcomes(token, user.id, {
-      limit: 24,
-      symbols: [symbol],
-    });
+    // The one door (§17m.1). Reached by exhaustion, not by default: the only
+    // other action returned above, and anything else was refused before the
+    // rate limit was even claimed.
     const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
-
-    const review = await reviewCurrentMarket(
-      token,
-      user.id,
-      symbol,
-      "generate_setup",
-    );
-    if (review.blocked) {
-      await invalidateActiveSetupsForSymbol(token, user.id, symbol);
-      return jsonResponse(
-        req,
-        {
-          analysisDiagnostics: review.analysisDiagnostics,
-          blocked: true,
-          correlationGroup: review.correlationGroup,
-          learningRefresh,
-          newsEvents: review.newsEvents,
-          outcomeRefresh,
-          providerWarnings: review.providerWarnings,
-          reason: review.reason,
-        },
-        review.statusCode,
-      );
-    }
-
-    const savedSetup = await upsertActiveSetup(
-      token,
-      user.id,
-      symbol,
-      review.fmpSymbol,
-      review.correlationGroup,
-      review.setup,
-      review.newsContext,
-      "review",
-    );
-
+    const scan = await scanOpportunities(token, user.id, body.symbols);
     await recordAnalyzerEvent({
-      action: "generate_setup",
+      action: "scan_opportunities",
       metadata: {
-        confidenceScore: review.setup.confidenceScore,
-        deduplicated: savedSetup.deduplicated,
-        rewardRisk: review.setup.confluence.rewardRisk,
-        side: review.setup.side,
-        setupId: savedSetup.setupId,
-        updated: savedSetup.updated,
+        blocked: scan.blocked.length,
+        opportunities: scan.opportunities.length,
+        // The persistence contract, in the record of the request itself:
+        // a scan that showed setups and wrote none is now legible in
+        // analyzer_events rather than only in a console (spec §17m.2).
+        persistence: scan.persistence,
+        scanned: scan.scanned,
       },
-      providerSymbol: review.fmpSymbol,
-      status: "success",
-      symbol,
+      // A scan that could not write part of what it showed is not a
+      // success — "scan_failure" is the enum's own word for it
+      // (supabase/init.sql's analyzer_events status check).
+      status: scan.persistence.failed > 0 ? "scan_failure" : "success",
       userId: user.id,
     });
-
     return jsonResponse(req, {
       advisoryOnly: true,
-      deduplicated: savedSetup.deduplicated,
-      message: savedSetup.updated
-        ? "Updated the current setup without creating a duplicate entry."
-        : "Built a current limit setup. Levelflow does not place trades.",
       learningRefresh,
-      outcomeRefresh,
-      setupId: savedSetup.setupId,
-      setup: review.setup,
-      updated: savedSetup.updated,
+      ...scan,
     });
   } catch (error) {
     console.error("trade-analyzer request failed", error);
@@ -476,7 +409,6 @@ async function scanOpportunities(
         context.correlationGroup,
         context.setup,
         context.newsContext,
-        "scan",
       ),
   });
 
@@ -493,9 +425,12 @@ async function reviewCurrentMarket(
   token: string,
   userId: string,
   symbol: SupportedSymbol,
-  action: ReviewActionName,
 ): Promise<CurrentMarketReview> {
-  const eventStatus = action === "generate_setup" ? "blocked" : "scan_failure";
+  // §17m.1: every review that runs is part of a scan, so the telemetry action
+  // and the status a refusal records are fixed rather than chosen by a caller.
+  // The parameter that used to carry them existed only for the second door.
+  const action = "scan_opportunities";
+  const eventStatus = "scan_failure";
   const normalizedSymbol = normalizeSymbol(symbol) as SupportedSymbol;
 
   // The measured no-trade list is enforced here, not just in the UI: these
@@ -672,9 +607,7 @@ async function reviewCurrentMarket(
     );
     await recordAnalyzerEvent({
       action,
-      message: action === "generate_setup"
-        ? "No current limit setup met review threshold"
-        : "No current limit setup met scan threshold",
+      message: "No current limit setup met scan threshold",
       metadata: { analysisDiagnostics },
       providerSymbol: fmpSymbol,
       status: eventStatus,
@@ -700,9 +633,7 @@ async function reviewCurrentMarket(
   if (strongerExisting) {
     await recordAnalyzerEvent({
       action,
-      message: action === "generate_setup"
-        ? "Correlation filter kept stronger active setup"
-        : "Correlation filter skipped scan candidate",
+      message: "Correlation filter skipped scan candidate",
       metadata: { correlationGroup, strongerExisting },
       providerSymbol: fmpSymbol,
       status: eventStatus,
@@ -740,12 +671,7 @@ async function scanOpportunity(
   persistence?: ScanPersistenceContext;
 }> {
   try {
-    const review = await reviewCurrentMarket(
-      token,
-      userId,
-      symbol,
-      "scan_opportunities",
-    );
+    const review = await reviewCurrentMarket(token, userId, symbol);
     if (review.blocked) {
       return {
         blocked: {
@@ -1266,11 +1192,10 @@ async function upsertActiveSetup(
   group: string,
   setup: NonNullable<Awaited<ReturnType<typeof analyzeSetup>>>,
   newsContext: NewsContext,
-  origin: SetupOrigin,
 ): Promise<UpsertedSetupResult> {
   const rows = await fetchRows<ExistingSetupRow>(
     token,
-    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,origin,created_at&user_id=eq.${
+    `trade_setups?select=id,symbol,provider_symbol,side,limit_entry,stop_loss,take_profit,take_profit_1,breakeven_trigger_price,confidence_score,analyzer_version,confluence,correlation_group,status,created_at&user_id=eq.${
       encodeURIComponent(userId)
     }&symbol=eq.${
       encodeURIComponent(
@@ -1283,15 +1208,19 @@ async function upsertActiveSetup(
   // C2: a scan is advisory background research, never an authority over a
   // position that's already live. If the existing active row is "placed"
   // (filled and live — see tradeState.ts's status-naming note for why
-  // "placed" means that, not "order placed"), a SCAN-origin call must leave
-  // it completely untouched: the same-side branch below would otherwise
-  // overwrite its levels and force status back to "generated" (demoting a
-  // filled trade to pending), and the opposite-side branch would fall
-  // through to invalidateActiveSetupsForSymbol and erase it outright.
-  // Review-origin calls are unaffected — a human reviewing the market is
-  // allowed to supersede what's live. No duplicate insert either: the
-  // existing live row already represents this symbol.
-  if (origin === "scan" && activeSetup && activeSetup.status === "placed") {
+  // "placed" means that, not "order placed"), leave it completely untouched:
+  // the same-side branch below would otherwise overwrite its levels and force
+  // status back to "generated" (demoting a filled trade to pending), and the
+  // opposite-side branch would fall through to
+  // invalidateActiveSetupsForSymbol and erase it outright. No duplicate insert
+  // either: the existing live row already represents this symbol.
+  //
+  // The guard used to exempt review-origin calls, on the reasoning that a
+  // human reviewing a market may supersede what is live. §17m.1 deleted that
+  // door — the button a reader presses now says Scan, on both platforms — so
+  // the exemption had become a way for one platform's Scan to do what the
+  // other's could not. It is unconditional.
+  if (activeSetup && activeSetup.status === "placed") {
     return {
       deduplicated: true,
       outcome: "skipped_live_position",
@@ -1301,25 +1230,28 @@ async function upsertActiveSetup(
   }
 
   if (activeSetup && activeSetup.side === setup.side) {
-    // Origin only ever moves scan -> review, never the reverse: a routine
-    // scan touching a symbol+side a human already reviewed must not
-    // silently drop that row out of global learning (origin = 'review'
-    // is the learning-eligible state).
-    const nextOrigin: SetupOrigin = activeSetup.origin === "review"
-      ? "review"
-      : origin;
-
     // The persistence contract (§17m.2) reaches into this branch too: a PATCH
     // whose filter matches nothing returns 200 with an empty representation,
     // and counting that as "updated" would be the exact silent divergence the
-    // contract exists to end. Zero rows here means the setup vanished between
-    // the read above and this write — thrown so the per-symbol accounting
-    // records it failed, with the reason in analyzer_events.
+    // contract exists to end. Zero rows here means the row moved out from
+    // under the read above — deleted, or advanced to another status by
+    // outcome-sync — and it is thrown so the per-symbol accounting records it
+    // failed, with the reason in analyzer_events.
+    //
+    // C1: the status filter is what makes that check a real compare-and-set
+    // rather than a report on a race already lost. Between the read above and
+    // this write, the hourly outcome-sync (service role, all users) can resolve
+    // this very row: without the filter, the PATCH would rewrite the levels its
+    // verdict was computed from and reset status to "generated", so the next
+    // sync would re-resolve the NEW geometry and overwrite the first verdict —
+    // one setup, two verdicts, the second measured against prices that never
+    // existed at decision time. With it, the write simply matches nothing and
+    // this scan reports the symbol as failed.
     const updatedRows = await updateRows(
       token,
       `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${
         encodeURIComponent(userId)
-      }`,
+      }&status=eq.${encodeURIComponent(activeSetup.status)}`,
       {
         breakeven_trigger_price: setup.breakevenTriggerPrice,
         confidence_score: setup.confidenceScore,
@@ -1334,7 +1266,7 @@ async function upsertActiveSetup(
           penaltyUnits: Number(newsContext.penaltyUnits.toFixed(2)),
           upcomingEvents: newsContext.upcoming,
         },
-        origin: nextOrigin,
+        origin: "scan",
         risk_model: setup.riskModel,
         side: setup.side,
         status: "generated",
@@ -1346,7 +1278,7 @@ async function upsertActiveSetup(
 
     if (updatedRows.length === 0) {
       throw new Error(
-        `dedupe update matched no rows for setup ${activeSetup.id} — it was removed mid-scan`,
+        `dedupe update matched no rows for setup ${activeSetup.id} — it was removed or resolved mid-scan`,
       );
     }
 
@@ -1359,7 +1291,21 @@ async function upsertActiveSetup(
   }
 
   if (activeSetup) {
-    await invalidateActiveSetupsForSymbol(token, userId, symbol);
+    // An opposite-side signal supersedes the pending row rather than living
+    // beside it. C1: the read said there was one, so a write that matches
+    // nothing means the row moved out from under this scan — thrown so the
+    // per-symbol accounting records the symbol as failed instead of inserting
+    // a second active row beside whatever is actually there now.
+    const invalidated = await invalidateActiveSetupsForSymbol(
+      token,
+      userId,
+      symbol,
+    );
+    if (invalidated === 0) {
+      throw new Error(
+        `superseding ${symbol} matched no active rows — the setup was removed or resolved mid-scan`,
+      );
+    }
   }
 
   const tradeSetup = await insertSingle(token, "trade_setups", {
@@ -1383,7 +1329,9 @@ async function upsertActiveSetup(
       upcomingEvents: newsContext.upcoming,
     },
     correlation_group: group,
-    origin,
+    // One door, one honest answer (§17m.1). Rows written before that ruling
+    // carry 'review'; the column is kept for that history and read by nothing.
+    origin: "scan",
     status: "generated",
   });
 
@@ -1396,13 +1344,17 @@ async function upsertActiveSetup(
 }
 
 // The user-facing reason is already recorded via analyzer_events; the
-// setup row only tracks the status flip.
+// setup row only tracks the status flip. The status filter is the write's own
+// guard (C1) — a row that resolved since the caller read it is no longer
+// `generated`/`placed`, so this cannot un-resolve it. Returns how many rows it
+// actually moved, because "none" means something else got there first and the
+// caller has to say so rather than assume.
 async function invalidateActiveSetupsForSymbol(
   token: string,
   userId: string,
   symbol: SupportedSymbol,
-) {
-  await updateRows(
+): Promise<number> {
+  const invalidatedRows = await updateRows(
     token,
     `trade_setups?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${
       encodeURIComponent(symbol)
@@ -1411,6 +1363,7 @@ async function invalidateActiveSetupsForSymbol(
       status: "invalidated",
     },
   );
+  return invalidatedRows.length;
 }
 
 async function refreshUserOutcomes(
@@ -1578,13 +1531,17 @@ async function upsertOutcome(
   );
 }
 
-function normalizeActionName(action: unknown) {
+// Null for anything the analyzer does not answer — the caller turns that into
+// a 400. There is deliberately no default action: the previous fallback made
+// every malformed or stale request a single-market review, which is the second
+// door §17m.1 ruled out.
+function normalizeActionName(action: unknown): AnalyzerAction | null {
   return typeof action === "string" && action in RATE_LIMITS
-    ? action
-    : "generate_setup";
+    ? action as AnalyzerAction
+    : null;
 }
 
-async function claimAnalyzerRequest(userId: string, action: string) {
+async function claimAnalyzerRequest(userId: string, action: AnalyzerAction) {
   if (!hasSupabaseAdminConfig()) {
     throw new Error(
       "SUPABASE_SERVICE_ROLE_KEY is required for analyzer rate limiting.",
@@ -1598,7 +1555,7 @@ async function claimAnalyzerRequest(userId: string, action: string) {
     reset_at: string;
   }>("claim_analyzer_request", {
     p_action: action,
-    p_limit: RATE_LIMITS[action] ?? RATE_LIMITS.generate_setup,
+    p_limit: RATE_LIMITS[action],
     p_user_id: userId,
     p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
   });
@@ -1697,7 +1654,7 @@ async function refreshGlobalStrategyWeights(): Promise<
     // ambiguous) resolved by the same replay engine from the same live bars,
     // whichever door asked for the setup.
     //
-    // ANALYZER_VERSION moves with this change (2026.08.01.scan-only-door):
+    // ANALYZER_VERSION moved with this change (2026.08.01.scan-only-door,
     // widening the training population is a change in how the analyzer learns,
     // and the version is what scopes global learning — so the boundary between
     // the review-origin-only cohort and this one is explicit in the data rather

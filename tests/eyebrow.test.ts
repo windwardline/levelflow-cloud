@@ -65,13 +65,15 @@ describe("no eyebrow is written out at a call site any more", () => {
   });
 
   it("re-declares no part of the idiom inline on the surfaces that took the class", () => {
-    // The twenty sites, by file. Listed rather than discovered so that deleting
-    // an eyebrow is a visible edit here too, and so this can assert the class
+    // The sites, by file. Listed rather than discovered so that deleting an
+    // eyebrow is a visible edit here too, and so this can assert the class
     // arrived where the string left.
     const migrated: Record<string, number> = {
       "src/components/auth/AuthScreen.tsx": 1,
       "src/components/donations/DonatePanel.tsx": 2,
-      "src/components/workspace/AdvisorRecommendationPanel.tsx": 5,
+      // Four, not five, since §17m.1: the deleted AnalysisProgress carried an
+      // "Analyzing {symbol}" eyebrow over a step list that never advanced.
+      "src/components/workspace/AdvisorRecommendationPanel.tsx": 4,
       "src/components/workspace/ConfidenceUnit.tsx": 1,
       "src/components/workspace/CurrentTradesRail.tsx": 1,
       "src/components/workspace/GuidePanel.tsx": 2,
