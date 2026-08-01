@@ -8,15 +8,30 @@
       content="One page that reads the market for you: live charts, timing, and only the trade setups that survive review."
     />
     <!--
-      Icon order is load-bearing. Browsers that read `type` prefer the SVG and,
-      among equals, take the last one — which is favicon.svg, the single
-      theme-adaptive file (it carries its own prefers-color-scheme switch, so it
-      is correct in both themes on its own). The dark rendition above it is for
-      clients that honour `media` on an icon link; two files with complementary
-      media cannot be ordered safely for clients that ignore it, which is why the
-      adaptive file is the one that wins by position. The PNGs come first as the
-      fallback for anything that cannot rasterise SVG.
+      Spec §17i, the org standard: "the head carries the full cross-browser set in
+      the order Safari and Chrome each need (ICO + sized PNGs + SVG + apple-touch +
+      manifest), on the app AND the static pages, so the icon shows in Safari and
+      Chrome alike." Order and attributes are both load-bearing, and each line is
+      here for one client:
+
+      - favicon.ico FIRST, and with sizes="32x32". Safari does not render SVG
+        favicons in any shipping version, so the ICO is the file it resolves to;
+        the size attribute is what stops Chrome preferring that ICO over the SVG
+        below, which is the whole reason the declared-size trick exists.
+      - The sized PNGs are the fallback for anything that reads neither an ICO
+        container nor an SVG. They carry the same art, so a client that resolves
+        to one of them instead of the ICO looks identical.
+      - The dark rendition is for clients that honour `media` on an icon link.
+      - favicon.svg LAST, and sizes="any". It is the single theme-adaptive file
+        (it carries its own prefers-color-scheme switch, so it is correct in both
+        themes on its own), and it wins in Chrome/Firefox/Edge on both available
+        signals: scalable by declaration, and last among equals for clients that
+        resolve by position. Two SVGs with complementary `media` cannot be ordered
+        safely for a client that ignores `media`, which is why the adaptive one is
+        the one that ends the list.
+      - apple-touch-icon for the iOS home screen, manifest for installed icons.
     -->
+    <link rel="icon" href="%BASE_URL%favicon.ico" sizes="32x32" />
     <link rel="icon" href="%BASE_URL%favicon-16.png" type="image/png" sizes="16x16" />
     <link rel="icon" href="%BASE_URL%favicon-32.png" type="image/png" sizes="32x32" />
     <link
@@ -25,7 +40,7 @@
       type="image/svg+xml"
       media="(prefers-color-scheme: dark)"
     />
-    <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
     <link rel="manifest" href="%BASE_URL%site.webmanifest" />
     <title>Levelflow — Market review</title>

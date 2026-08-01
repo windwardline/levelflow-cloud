@@ -79,16 +79,11 @@ test("authenticated workspace leads with the Levelflow wordmark, not the Windwar
   await expect(header.getByText("Windward Line")).toHaveCount(0);
 
   // "Windward Line" surfaces exactly once on the authed page: the footer
-  // colophon. The Desk tab is the default landing surface and, at >=lg, is
-  // a fixed non-scrolling viewport that deliberately hides the page footer
-  // there (App.tsx: the footer picks up `lg:hidden` whenever the Desk tab
-  // is active) — checking visibility from the Desk tab at a desktop
-  // viewport would fail for a layout reason that has nothing to do with
-  // brand-copy duplication. Insights keeps the ordinary scrolling page
-  // chrome, footer included, at every width, so that is where the
-  // single-occurrence claim is actually checkable.
+  // colophon. Spec §17i put that footer inside the frame on every ≥lg surface,
+  // the Desk included, so the claim is now checkable from the default landing
+  // surface itself rather than only from a scrolling tab — visible, not merely
+  // present, because the frame's last row is always on screen.
   await expect(page.getByText("Windward Line")).toHaveCount(1);
-  await page.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(page.getByText("A Windward Line production")).toBeVisible();
 });
 
@@ -125,25 +120,18 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     page.getByRole("heading", { name: "What Levelflow does" }),
   ).toBeVisible();
 
-  // Spec §17, placement (b): the Guide closes with a short Support block, two
-  // tertiary links. Scoped to the block so the footer's own Help/Donate row
-  // further down the same page can't satisfy this by accident — the whole point
-  // of the ruling is that both placements exist. Scoped by testid rather than
-  // by "article" because §17c's TOC numbering moved this block outside the
-  // numbered article (see the wave-4 report).
-  const guideSupport = page.getByTestId("guide-support");
-  await expect(
-    guideSupport.getByRole("heading", { name: "Support", exact: true }),
-  ).toBeVisible();
-  await expect(
-    guideSupport.getByRole("link", { name: "Email support" }),
-  ).toBeVisible();
-  await expect(
-    guideSupport.getByRole("button", { name: "Donate", exact: true }),
-  ).toBeVisible();
+  // Spec §17i: each link lives in exactly one home per platform, so the Guide's
+  // closing Support block (§17 placement (b)) is DELETED — the footer's link row
+  // sits in the frame twenty pixels below the article, permanently on screen. Both
+  // directions are checked: nothing named Support survives on this page, and the
+  // footer's own Help and Donate are asserted below.
+  await expect(page.getByTestId("guide-support")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Support", exact: true }))
+    .toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Email support" })).toHaveCount(0);
 
   // §17c: the TOC entries carry their sections' own numbers, and the index
-  // lists the deck's ten numbered sections — not this Support block.
+  // lists the deck's ten numbered sections.
   const toc = page.locator('nav[aria-label="Guide sections"]');
   const tocEntries = await toc.locator("a").allTextContents();
   expect(tocEntries).toHaveLength(10);
@@ -152,27 +140,35 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   await expect(toc.getByRole("link", { name: /Support/ })).toHaveCount(0);
 
   // And it does not move when scrolling begins: its sticky offset is its own
-  // resting offset (measured 89px — masthead plus the page's top padding).
+  // resting offset. §17i re-based which offset that is — the document no longer
+  // scrolls, the content region does, so the rail rests at the region's own top
+  // padding rather than below a sticky masthead (20px, not 89).
   //
   // The scroll itself is asserted, not assumed: a wheel event that scrolls
   // nothing would leave the rail exactly where it was and satisfy the poll
   // below vacuously. The cursor is moved into the article first for the same
   // reason — a wheel at the default (0,0) position is not guaranteed to land on
-  // the scrolling document.
+  // the region that scrolls.
   const restingTop = (await toc.boundingBox())?.y ?? -1;
   expect(restingTop).toBeGreaterThan(0);
   await page.mouse.move(640, 400);
   await page.mouse.wheel(0, 400);
   await expect
-    .poll(() => page.evaluate(() => window.scrollY))
+    .poll(() =>
+      page.getByTestId("content-region").evaluate((element) =>
+        element.scrollTop
+      )
+    )
     .toBeGreaterThan(0);
+  // The document itself stays put: the frame is exactly the viewport tall.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await expect
     .poll(async () => (await toc.boundingBox())?.y ?? -1)
     .toBe(restingTop);
   await page.mouse.wheel(0, -400);
 
   // Spec §17, placement (a): the footer's link row carries Help and Donate
-  // beside the legal trio, on every scrolling surface. Scoped to the footer
+  // beside the legal trio — on every ≥lg surface since §17i. Scoped to the footer
   // for the same reason.
   const footerSupport = page.locator("footer").getByRole("navigation", {
     name: "Support",
@@ -193,10 +189,8 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Profile", exact: true }).click();
-  // Scoped to the panel from here down: spec §17c gives Profile the shared
-  // footer too, so its Donate and the footer's are two buttons of the same
-  // accessible name on one page — unscoped, that is a strict-mode failure on
-  // the live run, and both are supposed to exist.
+  // Scoped to the panel from here down, so a heading the footer or the masthead
+  // happens to share cannot satisfy a claim about the sheet.
   const profile = page.getByTestId("profile-panel");
   await expect(
     profile.getByRole("heading", { name: "Profile", exact: true }),
@@ -211,30 +205,30 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     profile.getByRole("heading", { name: "Appearance", exact: true }),
   ).toBeVisible();
 
-  // Spec §16 relocation: Help (mailto) and Donate moved off the killed
-  // desktop header buttons onto a Support row here, so they stay reachable
-  // at desktop widths (the mobile account menu already carried both).
+  // Spec §17i: the sheet is three rows. §16 had relocated Help and Donate onto a
+  // fourth "Support" row when the desktop header buttons were killed; the footer
+  // in the frame is their one desktop home now, so the row is DELETED and its two
+  // links exist on this page exactly once — in the footer, asserted below.
   await expect(
     profile.getByRole("heading", { name: "Support", exact: true }),
-  ).toBeVisible();
-  await expect(
-    profile.getByRole("link", { name: "Email support" }),
-  ).toBeVisible();
-  await expect(
-    profile.getByRole("button", { name: "Donate", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Email support" }))
+    .toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Donate", exact: true }))
+    .toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Help" })).toHaveCount(1);
 
-  // Spec §17c: one footer on every scrolling view — Profile used to be the one
-  // surface that skipped it and drew its own legal block instead. Both the
-  // shared row and the absence of a second copy are checked.
+  // Spec §17c: one footer on every view — Profile used to be the one surface that
+  // skipped it and drew its own legal block instead. Both the shared row and the
+  // absence of a second copy are checked.
   await expect(footerSupport.getByRole("link", { name: "Help" })).toBeVisible();
   await expect(page.getByText("A Windward Line production")).toHaveCount(1);
   await expect(
     page.getByRole("navigation", { name: "Legal" }),
   ).toHaveCount(1);
 
-  // Donate is the last scrolling surface, and the shortest — the footer has to
-  // sit at the true bottom of the viewport there, not halfway up the page.
+  // Donate is the last surface, and the shortest — the footer has to sit at the
+  // true bottom of the viewport there, which is now the frame's own doing.
   await footerSupport.getByRole("button", { name: "Donate", exact: true })
     .click();
   await expect(
@@ -248,6 +242,150 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
     window.innerHeight - element.getBoundingClientRect().bottom
   );
   expect(bottomGap).toBeLessThanOrEqual(1);
+});
+
+// Spec §17i, the ruling's own shape: "the masthead pinned top, THE footer pinned
+// bottom and always visible, the content region scrolling between them." Only a
+// real browser can say whether that is true, and it has to be true at more than
+// one width — a frame that holds at 1280 and spills at 1440 is not a frame. Every
+// authed surface is walked at both, including the Desk, which had no footer at all
+// before this ruling and the Guide, which used to hide it below a full page-scroll.
+test("the desktop frame pins the masthead and the footer at every width (§17i)", async ({ page }) => {
+  // All five surfaces, not four. Donate is the one the masthead does not list —
+  // since §17i the footer's own control is its single desktop home — so the sweep
+  // reaches it the way a reader does, and the walk stops skipping the shortest
+  // surface in the app, which is where "the footer sits at the true bottom" is
+  // least automatic.
+  const SURFACES = [
+    { heading: null, landmark: "current-trades-rail", name: "Desk", via: "masthead" },
+    { heading: null, landmark: null, name: "Insights", via: "masthead" },
+    { heading: null, landmark: null, name: "Guide", via: "masthead" },
+    { heading: null, landmark: "profile-panel", name: "Profile", via: "masthead" },
+    { heading: "Donate", landmark: null, name: "Donate", via: "footer" },
+  ] as const;
+
+  for (const width of [1280, 1440]) {
+    await page.setViewportSize({ height: 800, width });
+    await page.goto("/");
+
+    for (const surface of SURFACES) {
+      if (surface.via === "masthead") {
+        await page.getByRole("navigation", { name: "Levelflow sections" })
+          .getByRole("button", { exact: true, name: surface.name })
+          .click();
+      } else {
+        await page.locator("footer")
+          .getByRole("button", { exact: true, name: surface.name })
+          .click();
+      }
+      if (surface.landmark) {
+        await expect(page.getByTestId(surface.landmark)).toBeVisible();
+      }
+      if (surface.heading) {
+        await expect(
+          page.getByRole("heading", { exact: true, name: surface.heading }),
+        ).toBeVisible();
+      }
+
+      // The frame: the document does not scroll at all, and both chrome rows are
+      // on screen — the header at the very top, the footer flush to the bottom.
+      const frame = await page.evaluate(() => {
+        const header = document.querySelector("header")!.getBoundingClientRect();
+        const footer = document.querySelector("footer")!.getBoundingClientRect();
+        const region = document.querySelector<HTMLElement>(
+          '[data-testid="content-region"]',
+        )!;
+        return {
+          documentScroll: document.documentElement.scrollHeight -
+            document.documentElement.clientHeight,
+          footerBottomGap: window.innerHeight - footer.bottom,
+          footerTop: footer.top,
+          headerTop: header.top,
+          regionBottom: region.getBoundingClientRect().bottom,
+          regionOverflowY: getComputedStyle(region).overflowY,
+          regionTop: region.getBoundingClientRect().top,
+        };
+      });
+      expect(frame.documentScroll, `${surface.name} at ${width}`).toBeLessThanOrEqual(0);
+      expect(frame.headerTop, `${surface.name} at ${width}`).toBe(0);
+      expect(frame.footerBottomGap, `${surface.name} at ${width}`)
+        .toBeLessThanOrEqual(1);
+      // …and the content region is exactly what sits between them, so nothing can
+      // be scrolled out from under either row.
+      expect(frame.regionTop, `${surface.name} at ${width}`).toBeGreaterThan(0);
+      expect(frame.regionBottom, `${surface.name} at ${width}`)
+        .toBeLessThanOrEqual(frame.footerTop + 1);
+      // The Desk hands its scroll to its three columns; every other surface
+      // scrolls the region itself. Either way the DOCUMENT never scrolls, which is
+      // the assertion above.
+      expect(frame.regionOverflowY, `${surface.name} at ${width}`).toBe(
+        surface.name === "Desk" ? "hidden" : "auto",
+      );
+    }
+
+    // The one surface with more content than frame at this height: scrolling it
+    // moves the region and leaves both chrome rows exactly where they were.
+    await page.getByRole("navigation", { name: "Levelflow sections" })
+      .getByRole("button", { exact: true, name: "Guide" })
+      .click();
+    const region = page.getByTestId("content-region");
+    const footerBefore = (await page.locator("footer").boundingBox())!.y;
+    await region.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    expect(await region.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0);
+    expect((await page.locator("footer").boundingBox())!.y).toBe(footerBefore);
+    await expect(page.locator("footer").getByText("A Windward Line production"))
+      .toBeVisible();
+
+    // And it moves for a keyboard too, which is what §17i's own scroll region
+    // silently cost until this assertion existed: the document cannot scroll any
+    // more, so from the focus a page load starts with, Space / PageDown / End
+    // moved this region 0px of 4147 (measured, Chromium, both widths). The stop
+    // on the region is what restores them — reached by role and name, since an
+    // unnamed stop announces as nothing.
+    await region.evaluate((element) => {
+      element.scrollTop = 0;
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    expect(await page.evaluate(() => document.activeElement === document.body))
+      .toBe(true);
+    const named = page.getByRole("region", { name: "Guide" });
+    await expect(named).toBeVisible();
+    // The masthead's own controls come first in the DOM, so the region is not the
+    // first stop — what has to hold is that it is a stop at all, and that it
+    // comes before the article's own links, which is the difference between
+    // reading a page and being thrown into the middle of it.
+    let reached = false;
+    let insideFirst = false;
+    for (let stop = 0; stop < 12 && !reached; stop += 1) {
+      await page.keyboard.press("Tab");
+      const where = await named.evaluate((element) => ({
+        inside: element !== document.activeElement &&
+          element.contains(document.activeElement),
+        isRegion: element === document.activeElement,
+      }));
+      reached = where.isRegion;
+      insideFirst = insideFirst || (!reached && where.inside);
+    }
+    expect(reached, `the content region is not a tab stop at ${width}`).toBe(true);
+    expect(insideFirst, "a control inside the region was reached first").toBe(false);
+    expect(await region.evaluate((element) => Math.round(element.scrollTop)))
+      .toBe(0);
+    for (const key of ["Space", "PageDown", "End"]) {
+      await region.evaluate((element) => {
+        element.scrollTop = 0;
+      });
+      await page.keyboard.press(key);
+      await expect
+        .poll(() => region.evaluate((element) => Math.round(element.scrollTop)), {
+          message: `${key} moved the region 0px at ${width}`,
+        })
+        .toBeGreaterThan(0);
+    }
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  }
 });
 
 test("market scan is the mock's quiet rail — eyebrow, scope menu, no footnote, no panel furniture", async ({ page }) => {

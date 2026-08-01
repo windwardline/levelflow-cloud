@@ -177,17 +177,9 @@ type GuidePanelProps = {
   // stale-remount shape openRequest and initialSymbol both had.
   anchor?: GuideAnchor | null;
   onAnchorHandled?: () => void;
-  // Spec §17's Support block at the foot of the page. Threaded from App.tsx
-  // exactly as ProfilePanel's identical pair is — the Donate tab switch and the
-  // shared support mailto both already exist there, so this adds a second call
-  // site, not a second mechanism.
-  onOpenDonate: () => void;
-  supportMailto: string;
 };
 
-export function GuidePanel(
-  { anchor, onAnchorHandled, onOpenDonate, supportMailto }: GuidePanelProps,
-) {
+export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
   useEffect(() => {
     if (!anchor) {
       return;
@@ -205,9 +197,9 @@ export function GuidePanel(
 
   // Which composition this surface is (spec §17g): below lg a fixed-viewport
   // frame — the title pinned, the article scrolling inside it — and at ≥lg the
-  // two-column editorial page g-guide-v1.html draws, unchanged. The deck and the
-  // Support block are components rather than a second copy of themselves, so the
-  // words exist once no matter which branch renders them.
+  // two-column editorial page g-guide-v1.html draws, unchanged. The deck is a
+  // component rather than a second copy of itself, so the words exist once no
+  // matter which branch renders them.
   const isMobile = useIsMobileViewport();
 
   // Fix wave 2B, FIX 7 (A5-C1): the un-approved subtitle that used to sit under
@@ -232,7 +224,6 @@ export function GuidePanel(
           <article className="min-w-0">
             <GuideDeck />
           </article>
-          <GuideSupport onOpenDonate={onOpenDonate} supportMailto={supportMailto} />
         </div>
       </div>
     );
@@ -242,17 +233,18 @@ export function GuidePanel(
     <div className="mx-auto grid max-w-[1020px] gap-9 lg:grid-cols-[230px_1fr] lg:items-start">
       <GuideToc sections={GUIDE_SECTIONS} />
 
-      {/* One grid cell holding the numbered article and, after it, the page's
-          closing Support block — see that block's own comment for why it sits
-          outside the article rather than inside it. */}
+      {/* Spec §17i: the numbered article is the whole page now. The closing
+          Support block §17 placement (b) put here is DELETED — with the footer in
+          the frame on every surface, an email-and-donate block at the end of the
+          article was a second home for two links that already sit, always visible,
+          twenty pixels below it. The ten numbered sections are what the Guide is,
+          which is also what the TOC has always indexed. */}
       <div className="min-w-0">
         <article className="min-w-0">
           {title}
 
           <GuideDeck />
         </article>
-
-        <GuideSupport onOpenDonate={onOpenDonate} supportMailto={supportMailto} />
       </div>
     </div>
   );
@@ -476,54 +468,6 @@ function GuideDeck() {
   );
 }
 
-// The page's closing service block, one component for both compositions.
-function GuideSupport({
-  onOpenDonate,
-  supportMailto,
-}: {
-  onOpenDonate: () => void;
-  supportMailto: string;
-}) {
-  // Spec §17, placement (b): "the Guide article ends with a short Support
-  // section (email + donate, tertiary links, no card chrome beyond the article's
-  // own rhythm)." It takes the article's own rhythm exactly — the same hairline
-  // rule and heading treatment every deck section above it carries — minus the
-  // numbered eyebrow. Two links, nothing else: the reader who needs help at the
-  // bottom of the Guide is the reader the ruling is about. Donate fires the same
-  // tab switch the footer, Profile's Support row and the mobile account menu
-  // already use.
-  //
-  // It sits OUTSIDE the article, which is the answer to a question §17c opened
-  // and did not rule on. Numbering the TOC 01-10 left an unnumbered eleventh
-  // entry looking like an oversight and a numbered one claiming Support as the
-  // deck's eleventh lesson — it is neither. The ten numbered sections are the
-  // owner-approved deck; this is the page's closing service block, so it renders
-  // after the article ends and the index does not list it — in this file's own
-  // source order too, which is what the composition guard reads.
-  return (
-    <section
-      className="mt-6 scroll-mt-28 border-t border-hairline pt-6"
-      data-testid="guide-support"
-      id="support"
-    >
-      <h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">
-        Support
-      </h2>
-      <div className="mt-3 flex flex-col items-start gap-2">
-        <a className="tertiary-link" href={supportMailto}>
-          Email support
-        </a>
-        <button
-          className="tertiary-link"
-          type="button"
-          onClick={onOpenDonate}
-        >
-          Donate
-        </button>
-      </div>
-    </section>
-  );
-}
 
 // Spec §16: the TOC is composition chrome, not part of the deck's own copy —
 // it exists below lg not at all (mobile reads the article straight through)
@@ -539,21 +483,26 @@ function GuideSupport({
 //    id and reads its number and title back out of that same map, so there is
 //    one literal per fact and nothing left for the two to disagree about.
 //
-// 2. `top-[89px]` is the TOC's own natural resting offset, not a chosen value:
-//    the masthead is 69px tall (py-3 either side of a 44px control row, plus
-//    its bottom hairline) and the page wrapper adds sm:pt-5 above the grid.
-//    Measured in a browser against the built CSS, `top-20` pinned the rail at
-//    80px while it rested at 89 — so it hopped 9px upward the instant the page
-//    moved. At 89 it does not move at all, and the 20px of air under the
-//    sticky header is the page's own top padding rather than a second
-//    invention. tests/surfaceComposition.test.ts derives all three numbers from
-//    their own sources, so a masthead change fails there instead of quietly
-//    restoring the jump.
+// 2. `top-0` is the TOC's own natural resting offset, not a chosen value — and
+//    §17i re-measured it. While the document scrolled, the rail rested 89px down
+//    the viewport (a 69px masthead plus the page wrapper's sm:pt-5) and had to
+//    pin at 89 or it hopped. The frame moved the scroll out of the document and
+//    into App.tsx's content region, and a sticky offset is measured against that
+//    region rather than the viewport — against its CONTENT box, measured in
+//    Chromium against the built CSS at 1280 and 1440: the region's own 20px top
+//    padding is already outside the rect the offset is applied to. So the rail's
+//    resting offset inside that rect is zero, and any positive offset is a gap.
+//    At `top-5` the rail measured y=109 against an h1 at y=89 — no hop, but 20px
+//    of unfinished margin above it, which is the same misalignment §17c's own
+//    ruling is about; at `top-0` both sit at 89 and it neither moves nor
+//    misaligns. tests/surfaceComposition.test.ts pins the pairing (a zero offset
+//    beside a region that carries the padding), so restoring either half alone
+//    fails there.
 function GuideToc({ sections }: { sections: typeof GUIDE_SECTIONS }) {
   return (
     <nav
       aria-label="Guide sections"
-      className="hidden lg:block sticky top-[89px] self-start border-r border-hairline pr-5"
+      className="hidden lg:block sticky top-0 self-start border-r border-hairline pr-5"
     >
       <p className="eyebrow mb-2">
         Contents
@@ -587,7 +536,13 @@ function GuideSection({
 }) {
   const { number, title } = GUIDE_SECTIONS[id];
   return (
-    <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id={id}>
+    // The scroll margin is behind lg: because it is a ≥lg number. It reserves the
+    // ≥lg region's own top padding (App.tsx's sm:pt-5) so an anchor lands where the
+    // article rests there. Below lg the scrollport is this surface's own region
+    // (§17g, mobileFrame.ts), which carries no top padding at all — a margin there
+    // would land every anchor that far below the region's top edge for no reason,
+    // which is what the un-prefixed class did at both widths.
+    <section className="mt-6 border-t border-hairline pt-6 lg:scroll-mt-5" id={id}>
       <p className="eyebrow">
         {number}
       </p>

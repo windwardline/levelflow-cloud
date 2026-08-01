@@ -5,27 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>Levelflow — Under construction</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/brand/levelflow-mark-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <script src="/legal/legal-theme.js"></script>
     <link rel="stylesheet" href="/legal/legal.css" />
   </head>
   <body class="parking">
-    <main>
-      <p class="page-eyebrow">Under construction</p>
-      <h1>Levelflow</h1>
-      <div class="parking-rule"></div>
-      <p class="parking-body">
-        Levelflow is being rebuilt — a new engine and a new face, both
-        measured before they ship. Sign-in is paused while the work lands.
-      </p>
+    <main aria-label="Under construction" tabindex="0">
+      <div class="page-block">
+        <svg class="page-mark" viewBox="0 0 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="var(--color-sheet)" stroke="var(--color-hairline)"/><rect x="7" y="9" width="18" height="2.6" rx="1.3" fill="var(--color-ink)"/><rect x="7" y="14.7" width="18" height="2.6" rx="1.3" fill="var(--color-accent)"/><rect x="7" y="20.4" width="12" height="2.6" rx="1.3" fill="var(--color-ink)" opacity="0.45"/></svg>
+        <p class="page-eyebrow">Under construction</p>
+        <h1>Levelflow</h1>
+        <div class="parking-rule"></div>
+        <p class="parking-body">
+          The desk is closed while we work on it. Sign-in resumes the moment it
+          reopens.
+        </p>
+      </div>
     </main>
     <footer>
-      <nav class="legal-links" aria-label="Legal">
-        <a href="/legal/risk-disclaimer.html">Risk disclaimer</a>
-        <a href="/legal/privacy.html">Privacy</a>
-        <a href="/legal/terms.html">Terms</a>
-      </nav>
-      <p class="colophon">A Windward Line production</p>
+      <div class="footer-row">
+        <p class="colophon"><a class="colophon-link" href="https://windwardline.com" target="_blank" rel="noopener noreferrer">A Windward Line production</a></p>
+        <div class="footer-links">
+          <nav class="support-links" aria-label="Support">
+            <a href="mailto:help@windwardline.com?subject=%5BLevelflow%5D%20Help">Help</a>
+            <a href="/?donate">Donate</a>
+          </nav>
+          <nav class="legal-links" aria-label="Legal">
+            <a href="/legal/risk-disclaimer.html">Risk disclaimer</a>
+            <a href="/legal/privacy.html">Privacy</a>
+            <a href="/legal/terms.html">Terms</a>
+          </nav>
+        </div>
+      </div>
     </footer>
   </body>
 </html>

@@ -528,3 +528,57 @@ Lines are ink, entry is accent, in every rendition. It becomes the favicon set
 corner mark (the card itself stays editorial: wordmark, accent rule,
 "Market review — daily edition"), and replaces the borrowed
 windward-line-mark.svg on the 404 and legal pages.
+
+### §17i. The desktop frame, single-home links, and the satellite brand (owner rulings, 2026-08-01)
+
+- **Desktop is an app-shell frame on EVERY page — no exceptions**
+  (owner: "Every single page."): the authed tabs (Desk, Insights, Guide,
+  Profile, Donate) AND the seldom-used set (parking, login, the legal
+  trio, 404). Top chrome pinned (the masthead where one exists; the
+  page's own head region otherwise), THE footer pinned bottom and always
+  visible, the content region scrolling between them (100dvh frame, the
+  §17g pattern lifted to ≥lg with the footer inside). The Desk's three
+  columns keep scrolling internally above it. Satellite pages carry the
+  same footer composition with links that work in their context (static
+  pages link Donate to the app root; Help stays the mailto; legal links
+  absolute).
+- **Each link lives in exactly one home per platform.** Desktop: the
+  footer (Help · Donate · Risk disclaimer · Privacy · Terms) — so the
+  Guide's Support section and Profile's Support row are DELETED (both
+  platforms; on mobile the avatar menu is the one home, as previously
+  ruled, and the mobile Profile view keeps only its colophon).
+- **The mark reaches the satellite pages**: mark A rendered small above
+  the eyebrow on the parking page, the login hero, the legal trio, and
+  the 404 — one consistent treatment. Donate and Help verified in-idiom.
+- **The mobile avatar trigger renders mark A** (not the account initial);
+  44px target and accessible name unchanged.
+- **Favicon, org standard**: the head carries the full cross-browser set
+  in the order Safari and Chrome each need (ICO + sized PNGs + SVG +
+  apple-touch + manifest), on the app AND the static pages, so the icon
+  shows in Safari and Chrome alike — the standard every repo follows.
+
+### §17j. The durable parking page (owner ruling, 2026-08-01)
+
+The parking layout is a saved, reusable standard — mark, eyebrow,
+wordmark, accent rule, one body line, THE footer in the frame — and its
+copy must fit ANY future pause, not the occasion that built it. The
+canonical body line:
+
+> **The desk is closed while we work on it. Sign-in resumes the moment
+> it reopens.**
+
+Fifteen words, no duration promised, no work explained (§17f — the page
+cannot show why it is closed, only that the closure is deliberate and
+ends). "The desk" is the product's own vocabulary. The
+"UNDER CONSTRUCTION" eyebrow stays — already situation-agnostic.
+
+### §17k. The colophon links home (owner-approved, 2026-08-01)
+
+"A Windward Line production" is a link to https://windwardline.com —
+provenance you can follow, everywhere the colophon appears (the desktop
+footer on every framed page, the mobile Profile colophon, the four
+static pages), with ONE treatment: muted text exactly as at rest today,
+no underline until hover/focus, `target="_blank"` +
+`rel="noopener noreferrer"` so it never navigates the workspace away,
+44px hit target per the kit floor. A guard pins the target URL, the
+new-tab behavior, and the at-rest quietness on every occurrence.

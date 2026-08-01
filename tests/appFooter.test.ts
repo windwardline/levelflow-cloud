@@ -5,10 +5,15 @@ import { describe, it } from "node:test";
 
 // Spec §17c (owner live-QA, binding): "Footer, one standard everywhere — a
 // single footer component, identical composition, dimensions, and spacing on
-// every scrolling page and view, always at the true bottom of the viewport when
-// content is short (flex column, footer pinned via mt-auto) and after content
-// when long. Carries the §17 link row (legal trio + Help + Donate) and the
-// colophon. The Desk's fixed desktop shell stays footer-less."
+// every scrolling page and view … Carries the §17 link row (legal trio + Help +
+// Donate) and the colophon."
+//
+// Spec §17i settles the two clauses §17c left conditional. "Every scrolling page
+// and view" is now every view, full stop — the Desk's footer-less exception is
+// retired — and "at the true bottom of the viewport" is no longer something the
+// footer arranges with mt-auto inside a min-height column: it is the last row of
+// App.tsx's fixed frame, so it is at the bottom of the viewport by construction.
+// tests/appFrame.test.ts owns the frame; this file owns what the footer is.
 //
 // Source-pinned, no jsdom (see tests/currentTradesRail.test.tsx's header for
 // the established technique). These guards are deliberately structural rather
@@ -22,77 +27,180 @@ const app = readFileSync(APP, "utf8");
 
 describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)", () => {
   it("draws the mock's frame: hairline rule on top, colophon left, link row right, one baseline", () => {
-    assert.match(footer, /<footer\s*\n?\s*className=/);
-    // Both branches of the presence gate carry the identical frame; the only
-    // difference between them is the ≥lg Desk exception.
-    const branches = footer.match(
-      /className=\{hiddenOnDesktopDesk\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
-    );
-    assert.ok(branches, "expected the footer's two literal class branches");
-    const [, deskBranch, everywhereElse] = branches;
-    assert.equal(everywhereElse, "mt-auto w-full border-t border-hairline");
-    assert.equal(deskBranch, `${everywhereElse} lg:hidden`);
-    // One inner frame, shared by both branches, so dimensions and spacing
-    // cannot vary by surface.
+    // One literal class string, no branches at all: §17i retired the ≥lg Desk
+    // exception, which was the only thing the footer's composition ever varied by.
+    assert.match(footer, /<footer className="w-full border-t border-hairline">/);
+    assert.equal((footer.match(/<footer/g) ?? []).length, 1);
     assert.match(
       footer,
-      /<div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 pt-\[18px\] pb-24 sm:px-8 lg:pb-\[18px\]">/,
+      /<div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 py-\[18px\] sm:px-8">/,
     );
     assert.match(
       footer,
-      /<p className="colophon py-0">A Windward Line production<\/p>/,
+      // The line is a link since §17k (tests/colophon.test.ts owns its target and
+      // its treatment); the element that carries it is unchanged.
+      /<p className="colophon py-0">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
     );
+    // The retired prop is gone from both sides of the call, not merely unused.
+    assert.doesNotMatch(footer, /hiddenOnDesktopDesk/);
+    assert.doesNotMatch(app, /hiddenOnDesktopDesk/);
+    assert.doesNotMatch(footer, /lg:hidden/);
   });
 
-  it("pins itself to the true viewport bottom — mt-auto lives in the footer, not in each caller", () => {
-    assert.match(footer, /"mt-auto w-full border-t border-hairline/);
-    // App.tsx's own half of the contract: a min-height flex column is what
-    // gives mt-auto something to push against. Read from the shell helper that
-    // now owns the three page shapes — every branch that renders a footer is a
-    // min-height flex column, and the one branch that is a fixed viewport
-    // (spec §17e's merged mobile Scan surface) renders none, which is the next
-    // test's subject.
+  it("no longer pins itself — the frame's last row is what puts it at the viewport bottom (§17i)", () => {
+    // mt-auto needed a min-height flex column to push against. There is no such
+    // column left: both shell branches are fixed frames, and the footer is a grid
+    // row of the ≥lg one. A surviving mt-auto here would be a dead utility
+    // claiming to do the thing the frame actually does.
+    assert.doesNotMatch(footer, /mt-auto/);
     const shell = app.match(
       /function mainShellClassName\([\s\S]*?\n}\n/,
     )?.[0] ?? "";
     assert.ok(shell.length > 0, "expected to find mainShellClassName");
-    const branches = shell.match(/return[\s\S]*?"([^"]*bg-paper text-ink[^"]*)"/g) ??
-      [];
-    assert.ok(branches.length >= 2, "expected the shell's literal branches");
-    for (const branch of shell.match(/"[^"]*bg-paper text-ink[^"]*"/g) ?? []) {
-      const isFixedViewport = branch.includes("h-[100dvh]");
-      assert.equal(
-        /flex min-h-screen flex-col/.test(branch),
-        !isFixedViewport,
-        `shell branch ${branch}`,
-      );
+    const branches = shell.match(/"[^"]*bg-paper text-ink[^"]*"/g) ?? [];
+    assert.equal(branches.length, 2, "expected the shell's two literal branches");
+    for (const branch of branches) {
+      assert.doesNotMatch(branch, /min-h-screen/, `shell branch ${branch}`);
+      assert.match(branch, /h-\[100dvh\]/, `shell branch ${branch}`);
+      assert.match(branch, /overflow-hidden/, `shell branch ${branch}`);
     }
   });
 
   it("carries the §17 link row: Help and Donate before the legal trio, in the mock's order", () => {
     assert.match(
       footer,
-      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,300}onClick=\{onOpenDonate\}[\s\S]{0,80}Donate[\s\S]{0,200}<LegalLinks align="left" \/>/,
+      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,900}Donate[\s\S]{0,300}<LegalLinks align="left" \/>/,
     );
-    // Both quiet, both the same furniture as the legal links beside them.
-    assert.equal((footer.match(/className="tertiary-link"/g) ?? []).length, 2);
+    // Three tertiary links for two controls: Help, and Donate in each of its two
+    // element forms (§17i's satellite pages need a link where the app needs a
+    // button). Both forms carry the identical class, which is what keeps the row's
+    // look the same on every surface.
+    assert.equal((footer.match(/className="tertiary-link"/g) ?? []).length, 3);
+    const donateForms = footer.match(/className="tertiary-link"[\s\S]{0,200}?Donate/g) ??
+      [];
+    assert.equal(donateForms.length, 2);
     // Support is its own group, not filed inside <nav aria-label="Legal">.
     assert.doesNotMatch(footer, /aria-label="Legal"/);
   });
 
-  it("keeps the fixed mobile tab bar's clearance, and closes it back at ≥lg", () => {
-    // F4 (fix wave 2B) in its new home: below lg the MobileTabBar is fixed to
-    // the viewport bottom, so the footer needs the same pb-24 reserve the
-    // scrolling content wrapper carries. Literal tokens, never a variant
-    // prefix assembled by interpolation (tests/tailwindVariantGuard.test.ts).
-    assert.match(footer, /\bpb-24\b/);
-    assert.match(footer, /\blg:pb-\[18px\]/);
+  // Spec §17i: "Satellite pages carry the same footer composition with links that
+  // work in their context (static pages link Donate to the app root; Help stays
+  // the mailto)." The target is the only thing that varies, and it varies by
+  // ELEMENT — a link where a link is right, a button where the click reveals or
+  // switches something — so the prop is a discriminated union rather than two
+  // optional callbacks that could both be set or neither.
+  it("takes Donate's target as a union, and lets it decide the element only", () => {
+    assert.match(
+      footer,
+      /export type FooterDonate =\s*\|\s*\{ href: string \}\s*\|\s*\{ expanded\?: boolean; onSelect: \(\) => void \};/,
+    );
+    assert.match(footer, /\{"href" in donate/);
+    assert.match(footer, /href=\{donate\.href\}/);
+    assert.match(footer, /onClick=\{donate\.onSelect\}/);
+    // aria-expanded rides the union member that can actually be a disclosure, and
+    // is undefined (so absent from the DOM) for the app's own tab switch.
+    assert.match(footer, /aria-expanded=\{donate\.expanded\}/);
+    // Every caller, and which target each one gives: the app switches tabs, the
+    // login screen reveals its own donation block, parking links to the app root.
+    assert.match(app, /donate=\{\{ onSelect: \(\) => setActiveTab\("donate"\) \}\}/);
+    assert.match(
+      readFileSync("src/components/auth/ParkingScreen.tsx", "utf8"),
+      /<AppFooter donate=\{\{ href: "\/\?donate" \}\} supportMailto=\{SUPPORT_MAILTO\} \/>/,
+    );
+    assert.match(
+      readFileSync("src/components/auth/AuthScreen.tsx", "utf8"),
+      /donate=\{\{\s*expanded: donationsOpen,\s*onSelect: \(\) => setDonationsOpen\(\(value\) => !value\),\s*\}\}/,
+    );
+  });
+
+  it("drops the fixed tab bar's clearance — the footer never shares a viewport with the bar (§17g)", () => {
+    // F4 (fix wave 2B) reserved pb-24 here because the MobileTabBar was fixed to
+    // the viewport bottom underneath this row. §17g made the footer a ≥lg element
+    // (App.tsx's presence gate) and the bar is lg:hidden, so the two can no longer
+    // occupy one viewport and the reserve was padding for nothing. The row is the
+    // mock's symmetrical 18px again — one padding utility, no breakpoint chain.
+    assert.doesNotMatch(footer, /\bpb-24\b/);
+    assert.doesNotMatch(footer, /\blg:pb-/);
+    assert.match(footer, /\bpy-\[18px\]/);
     assert.doesNotMatch(footer, /lg:\$\{/);
   });
 });
 
+// M7 (wave-8 review): the mailto the footer takes was the same literal in three
+// files, and the third had drifted into a different shape — inlining the address
+// instead of building it from the const the other two used. The subject line is a
+// mail rule on the other end of a shared inbox, so a change to it that reached two
+// surfaces out of three would be a rule that silently stops working.
+describe("the support inbox is one export (M7)", () => {
+  function sourceFilesUnder(root: string): string[] {
+    return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(root, entry.name);
+      if (entry.isDirectory()) {
+        return sourceFilesUnder(path);
+      }
+      return /\.tsx?$/.test(entry.name) ? [path] : [];
+    });
+  }
+
+  const MODULE = "src/lib/support.ts";
+
+  it("names the address and builds the mailto in exactly one place", () => {
+    const module = readFileSync(MODULE, "utf8");
+    assert.match(module, /export const SUPPORT_EMAIL = "help@windwardline\.com";/);
+    assert.match(module, /export const SUPPORT_MAILTO = `mailto:\$\{SUPPORT_EMAIL\}\?subject=/);
+    assert.match(module, /encodeURIComponent\("\[Levelflow\] Help"\)/);
+    for (const file of sourceFilesUnder("src")) {
+      if (file === MODULE) {
+        continue;
+      }
+      const source = readFileSync(file, "utf8");
+      assert.doesNotMatch(
+        source,
+        /help@windwardline\.com/,
+        `${file} spells the support address out instead of importing it`,
+      );
+      // And any surface that uses either name imports it rather than declaring
+      // its own — a local const of the same name would read as the shared one.
+      for (const name of ["SUPPORT_EMAIL", "SUPPORT_MAILTO"]) {
+        if (!source.includes(name)) {
+          continue;
+        }
+        assert.doesNotMatch(
+          source,
+          new RegExp(`const ${name} =`),
+          `${file} declares its own ${name}`,
+        );
+        assert.match(
+          source,
+          new RegExp(`import \\{[^}]*${name}[^}]*\\} from "[^"]*lib/support";`),
+          `${file} uses ${name} without importing it`,
+        );
+      }
+    }
+  });
+
+  it("hands that one value to all three footers", () => {
+    // The two React satellites and the app itself — the whole set of surfaces that
+    // mount AppFooter (tests/appFrame.test.ts reads the static pages' own Help href
+    // against the same export, since no build step reaches those).
+    for (
+      const file of [
+        APP,
+        "src/components/auth/AuthScreen.tsx",
+        "src/components/auth/ParkingScreen.tsx",
+      ]
+    ) {
+      assert.match(
+        readFileSync(file, "utf8"),
+        /supportMailto=\{SUPPORT_MAILTO\}/,
+        file,
+      );
+    }
+  });
+});
+
 describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)", () => {
-  it("is the app's only <footer> outside the pre-auth screens", () => {
+  it("is the app's only <footer>, the pre-auth screens included since §17i", () => {
     function sourceFilesUnder(root: string): string[] {
       return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
         const path = join(root, entry.name);
@@ -103,15 +211,11 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
       });
     }
 
-    // AuthScreen and ParkingScreen are pre-auth surfaces with their own
-    // approved composition and no tab shell to hang this component off (spec
-    // §16 leaves them out of the mockups' scope); every authed surface goes
-    // through AppFooter.
-    const allowed = new Set([
-      FOOTER,
-      "src/components/auth/AuthScreen.tsx",
-      "src/components/auth/ParkingScreen.tsx",
-    ]);
+    // One file, with no exceptions left. AuthScreen and ParkingScreen used to draw
+    // footers of their own — pre-auth surfaces §16 puts outside the mockups' scope
+    // — and §17i's "every single page" retired that: both take this component in
+    // their frame's bottom row now, so there is exactly one <footer> in src/.
+    const allowed = new Set([FOOTER]);
     for (const file of sourceFilesUnder("src")) {
       if (allowed.has(file)) {
         continue;
@@ -128,7 +232,7 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.equal((app.match(/<AppFooter/g) ?? []).length, 1);
     assert.match(
       app,
-      /<AppFooter\s+hiddenOnDesktopDesk=\{isDeskTab\}\s+onOpenDonate=\{\(\) => setActiveTab\("donate"\)\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
+      /<AppFooter\s+donate=\{\{ onSelect: \(\) => setActiveTab\("donate"\) \}\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
     );
     // Spec §17g narrows §17c's "every scrolling page and view" to ≥lg: below lg
     // no view scrolls as a page at all, so the footer is a ≥lg component and
@@ -139,6 +243,9 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.doesNotMatch(app, /activeTab !== "profile"/);
     // §17e's Desk-only gate is retired with it — one condition, not two.
     assert.doesNotMatch(app, /isFixedMobileDesk/);
+    // And §17i's own retirement: the ≥lg Desk no longer opts out either, so the
+    // mount is gated on the viewport and on nothing else.
+    assert.doesNotMatch(app, /isDeskTab\}\s*\n?\s*onOpenDonate/);
   });
 
   // The coordinator's hard constraint for wave 6: §17g moves the mobile footer
@@ -146,11 +253,11 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
   // one — the whole §17c composition still renders above lg, and nothing at all
   // renders below it.
   it("renders its full §17c composition at ≥lg and nothing below lg (§17g)", () => {
-    // Above lg: the colophon and all five links, in the one component, with the
-    // ≥lg Desk exception the ruling itself carved out.
+    // Above lg: the colophon and all five links, in the one component, on every
+    // surface — §17i took away the ≥lg Desk exception §17c had carved out.
     assert.match(footer, /A Windward Line production/);
     assert.match(footer, /href=\{supportMailto\}/);
-    assert.match(footer, /onClick=\{onOpenDonate\}/);
+    assert.match(footer, /onClick=\{donate\.onSelect\}/);
     assert.match(footer, /<LegalLinks align="left" \/>/);
     const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
     assert.deepEqual(

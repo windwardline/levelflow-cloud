@@ -37,51 +37,48 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
   it("hides the TOC below lg and gives it the mock's sticky rail treatment", () => {
     assert.match(
       guide,
-      /className="hidden lg:block sticky top-\[89px\] self-start border-r border-hairline pr-5"/,
+      /className="hidden lg:block sticky top-0 self-start border-r border-hairline pr-5"/,
     );
     assert.match(guide, />\s*Contents\s*</);
   });
 
   // Spec §17c: "the TOC must not jump when scrolling begins — its sticky offset
   // equals its natural resting offset so engagement is seamless." Measured in a
-  // browser against the built CSS before the fix: the TOC rested at y=89 and
-  // pinned at y=80, so it hopped 9px upward the instant the page moved.
+  // browser against the built CSS when that ruling landed: the TOC rested at y=89
+  // and pinned at y=80, so it hopped 9px upward the instant the page moved.
   //
-  // Every number below is DERIVED from the source that produces it rather than
-  // restated, so a change to the masthead's padding, to the height of its
-  // tallest control, or to the page's own top padding fails here instead of
-  // quietly restoring the jump.
-  it("pins the TOC exactly where it already rests — no jump when scrolling begins (§17c)", () => {
+  // Spec §17i re-based the offset without touching the ruling. The document no
+  // longer scrolls — App.tsx's content region does — and a sticky offset applies
+  // inside that region's content box, which starts below the masthead row AND
+  // below the region's own top padding. So the masthead's height, its tallest
+  // control and the page's top pad all drop out of the arithmetic (which is why
+  // they are no longer read here) and the rail's resting offset inside that rect
+  // is zero. Measured in Chromium against the built CSS at 1280 and 1440: at
+  // top-0 the rail sits at y=89 both at rest and scrolled to the end, on the h1's
+  // own baseline; at top-5 it measured y=109, a 20px unfinished margin above it.
+  //
+  // The pairing is the guard, because either half alone is a defect: a zero offset
+  // only lands right while the REGION carries the air above the rail.
+  it("pins the TOC exactly where it already rests — no jump when scrolling begins (§17c, §17i)", () => {
     const app = readFileSync("src/App.tsx", "utf8");
-    const css = readFileSync("src/styles/index.css", "utf8");
 
-    const headerPadStep = Number(
-      app.match(/<div className="mx-auto max-w-7xl px-4 py-(\d+) sm:px-8">/)?.[1],
-    );
-    // The masthead's tallest element is its ghost Sign out, held at the kit's
-    // 44px floor by index.css's own .secondary-button.min-h-10 override.
-    const tallestControl = Number(
-      css.match(/\.secondary-button\.min-h-10 \{\s*min-height: (\d+)px;/)?.[1],
-    );
     const pageTopPadStep = Number(
       app.match(/space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-(\d+)/)?.[1],
     );
-    for (const value of [headerPadStep, tallestControl, pageTopPadStep]) {
-      assert.ok(
-        Number.isFinite(value),
-        "expected every offset input to be readable from its own source",
-      );
-    }
-    assert.match(
-      app,
-      /<header className="sticky top-0 z-20 border-b border-hairline/,
+    assert.ok(
+      Number.isFinite(pageTopPadStep),
+      "expected the content region's top padding to be readable from its source",
     );
-    // Tailwind's spacing step is 0.25rem; the header's own bottom hairline is
-    // the +1.
-    const naturalOffset = headerPadStep * 4 * 2 + tallestControl + 1 +
-      pageTopPadStep * 4;
-    assert.equal(naturalOffset, 89, "the measured resting offset");
-    assert.match(guide, new RegExp(`sticky top-\\[${naturalOffset}px\\]`));
+    // The region is the scrollport, and it is the only scroller between the
+    // frame's two pinned rows (tests/appFrame.test.ts owns that claim).
+    assert.match(app, /\blg:overflow-y-auto\b/);
+    // Tailwind's spacing step is 0.25rem: 20px of air, contributed by the region.
+    assert.equal(pageTopPadStep * 4, 20);
+    assert.match(guide, /sticky top-0\b/);
+    // The viewport-relative number the sticky masthead used to require, and the
+    // offset that would double the region's padding.
+    assert.doesNotMatch(guide, /sticky top-\[89px\]/);
+    assert.doesNotMatch(guide, new RegExp(`sticky top-${pageTopPadStep}\\b`));
   });
 
   // Spec §17c: "Guide TOC: entries carry the same two-digit numbers as their
@@ -135,7 +132,10 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
   it("flows each section with a numbered eyebrow and a hairline rule, not a card", () => {
     assert.match(
       guide,
-      /<section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id=\{id\}>/,
+      // The scroll margin sits behind lg: since M2 — it reserves the ≥lg region's
+      // own top padding, and the mobile region has none (tests/appFrame.test.ts
+      // derives both halves).
+      /<section className="mt-6 border-t border-hairline pt-6 lg:scroll-mt-5" id=\{id\}>/,
     );
     // The eyebrow is the bare number ("01") sitting directly above the <h2>
     // title, mirroring the eyebrow idiom the rest of the app already uses
@@ -199,60 +199,46 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     );
   });
 
-  // Spec §17, placement (b): "the Guide article ends with a short Support
-  // section (email + donate, tertiary links, no card chrome beyond the
-  // article's own rhythm)." This is the one part of the Guide that is NOT deck
-  // copy — §17 sanctions it by name, which is the citation this guard carries
-  // for these exact strings. The guards above pin the deck's verbatim
-  // rendering; this pins the sanctioned addition, so neither can be widened by
-  // accident into a licence for un-approved Guide copy.
+  // Spec §17i (owner ruling): "Each link lives in exactly one home per platform.
+  // Desktop: the footer (Help · Donate · Risk disclaimer · Privacy · Terms) — so
+  // the Guide's Support section and Profile's Support row are DELETED."
   //
-  // §17c numbers the TOC 01-10, which forced a choice §17c/§17e do not rule on
-  // (see the wave-4 report): a Support entry listed without a number would be
-  // the one inconsistent line in a numbered index, and numbering it 11 would
-  // put un-approved copy inside the deck's own numbering and index a service
-  // block as a lesson. So it stays unnumbered and unindexed, and that is now
-  // STRUCTURAL rather than a comment's promise: it renders after </article>, in
-  // the same content column, as the page's closing block.
-  it("closes the page with §17's Support block — after the article, two tertiary links, no card", () => {
-    const support =
-      guide.match(/<section[^>]*id="support"[^>]*>[\s\S]*?<\/section>/)?.[0] ?? "";
-    assert.ok(support.length > 0, "expected the Support block");
-    // The article's own rhythm — the same hairline rule, top spacing and h2
-    // treatment every deck section carries — which is all §17 allows it.
+  // This inverts §17 placement (b) rather than deleting its guard, so the block
+  // cannot return by anyone re-reading that placement as still authoritative — the
+  // same discipline §17c's own inversions used. The footer now sits in the frame
+  // twenty pixels below the article on every ≥lg surface, so a closing email-and-
+  // donate block was a second home for links already on screen; below lg the
+  // account menu is the one home, as §17g had already ruled.
+  it("closes the page with the article and nothing after it — §17i deleted the Support block", () => {
+    assert.doesNotMatch(guide, /id="support"/);
+    assert.doesNotMatch(guide, /guide-support/);
+    assert.doesNotMatch(guide, /GuideSupport/);
+    // The strings, not merely the component: "Support" as a rendered heading and
+    // "Email support" as a link label both leave the Guide entirely.
+    assert.doesNotMatch(guide, />\s*Support\s*<\/h2>/);
+    assert.doesNotMatch(guide, /Email support/);
+    // And the plumbing goes with it — a prop nothing renders is the shape this
+    // deletion is most likely to leave behind.
+    assert.doesNotMatch(guide, /supportMailto/);
+    assert.doesNotMatch(guide, /onOpenDonate/);
+    assert.doesNotMatch(guide, /tertiary-link/);
     assert.match(
-      support,
-      /<section\n?\s*className="mt-6 scroll-mt-28 border-t border-hairline pt-6"\n?\s*data-testid="guide-support"\n?\s*id="support"\n?\s*>/,
+      guide,
+      /export function GuidePanel\(\{ anchor, onAnchorHandled \}: GuidePanelProps\)/,
     );
-    assert.match(
-      support,
-      /<h2 className="text-xl font-semibold tracking-normal text-ink sm:text-2xl">\s*Support\s*</,
-    );
-    // Exactly two links, both tertiary, both wired to what already exists.
-    assert.equal((support.match(/className="tertiary-link"/g) ?? []).length, 2);
-    assert.match(support, /href=\{supportMailto\}[\s\S]{0,80}Email support/);
-    assert.match(support, /onClick=\{onOpenDonate\}/);
-    // No card chrome, and no numbered eyebrow.
-    assert.doesNotMatch(support, /terminal-panel|rounded|bg-sheet|bg-paper/);
-    assert.doesNotMatch(support, /uppercase/);
-    // Outside the numbered document: after the closing </article>, and after
-    // the deck's last section.
-    assert.ok(
-      guide.indexOf("</article>") < guide.lastIndexOf('id="support"'),
-      "the Support block must render after the article, not inside it",
-    );
-    assert.ok(
-      guide.lastIndexOf('id="support"') > guide.lastIndexOf('id="vocabulary"'),
-      "the Support block must come after the deck's last section",
-    );
-    // And it is not in the index: the TOC renders GUIDE_SECTIONS, which is the
-    // deck's ten numbered sections and nothing else.
+    // The index was always the deck's ten numbered sections and nothing else, and
+    // now the page is too: the article is the last thing in the content column.
     assert.doesNotMatch(guideSectionsBlock(), /"support"/);
     assert.equal(
       (guideSectionsBlock().match(/^\s*"[a-z-]+": \{/gm) ?? []).length,
       10,
       "GUIDE_SECTIONS must hold exactly the deck's ten sections",
     );
+    const desktopColumn = guide.match(
+      /<div className="min-w-0">\s*<article className="min-w-0">[\s\S]*?<\/div>/,
+    )?.[0] ?? "";
+    assert.ok(desktopColumn.length > 0, "expected the ≥lg content column");
+    assert.match(desktopColumn, /<\/article>\s*<\/div>/);
   });
 });
 

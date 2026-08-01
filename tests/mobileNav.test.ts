@@ -308,20 +308,22 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   });
 
   // Fix wave 2B, FIX 4 (completeness-audit-2 Finding 6). The scrolling
-  // content wrapper reserves pb-24 below lg specifically to clear the fixed
-  // MobileTabBar (>= 56px with its safe-area inset). The footer trails that
-  // wrapper, so at full scroll it is the last thing on the page and needs the
-  // identical reserve — with pb-8 alone the bar overlaid its link row.
+  // content wrapper reserves a bottom pad below lg specifically to clear the
+  // fixed MobileTabBar (>= 56px with its safe-area inset). The footer trailed that
+  // wrapper, so at full scroll it was the last thing on the page and needed the
+  // identical reserve — with a small pad alone the bar overlaid its link row.
   //
   // Spec §17c moved the footer itself into src/components/AppFooter.tsx (one
-  // footer for every surface; tests/appFooter.test.ts owns its composition).
-  // What stays here is the claim that belongs to the mobile tab bar: the two
-  // elements it can overlay reserve the same clearance, read from both sources
-  // rather than restated as a number.
-  it("gives the footer the same tab-bar clearance the content wrapper reserves (F4 fix wave 2B)", () => {
+  // footer for every surface; tests/appFooter.test.ts owns its composition), and
+  // §17g/§17i then took the footer out of the bar's reach entirely: the footer is a
+  // ≥lg element and the bar is lg:hidden, so the two can never share a viewport
+  // and the footer's own reserve was padding for nothing. What stays here is the
+  // claim that belongs to the bar — the ONE element it can still overlay is the
+  // content wrapper, read from that source rather than restated as a number.
+  it("keeps the tab-bar clearance on the one element the bar can overlay (F4 fix wave 2B)", () => {
     const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -330,7 +332,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     for (const branch of wrapperClassNames.match(/"[^"]*"/g) ?? []) {
       assert.match(branch, /\bpb-24\b/, `content wrapper branch ${branch}`);
     }
-    assert.match(footerSource, /\bpb-24\b/);
+    assert.doesNotMatch(footerSource, /\bpb-24\b/);
     // Real, statically-analyzable tokens for Tailwind's build-time scanner —
     // never a variant prefix reassembled at runtime (C1).
     assert.doesNotMatch(footerSource, /lg:\$\{/);
@@ -354,7 +356,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // width no unit test looks at.
   it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -371,27 +373,33 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     }
   });
 
-  it("wires every Donate affordance through the one existing tab switch (spec §17)", () => {
+  it("wires every Donate affordance through the one existing tab switch (spec §17, §17i)", () => {
     // No new nav system (spec §17): setActiveTab("donate") is exactly what the
-    // mobile account menu and Profile's Support card already fired. Counted,
-    // not merely matched, so a future copy of the action cannot quietly grow
-    // its own mechanism — the four call sites are §17's whole placement set
-    // minus the one that needs no callback: the mobile account menu,
-    // ProfilePanel, AppFooter's link row, and the Guide's Support section.
+    // mobile account menu already fired. Counted, not merely matched, so a future
+    // copy of the action cannot quietly grow its own mechanism — and the count is
+    // TWO since §17i, not four: each link lives in exactly one home per platform,
+    // so the two call sites are the two homes (the account menu below lg,
+    // AppFooter's link row at ≥lg) and the Guide's and Profile's copies are gone.
     // The arrow form specifically, so a sentence naming this mechanism in a
     // comment does not count itself into the total.
     assert.equal(
       (APP_SOURCE.match(/\(\) => setActiveTab\("donate"\)/g) ?? []).length,
-      4,
+      2,
     );
-    // Every surface that shows a support address takes the one shared mailto
-    // rather than rebuilding it: the account menu, Profile, the Guide, and the
-    // shared footer.
+    // Same two homes for the support address, each taking the one shared mailto
+    // rather than rebuilding it.
     assert.equal(
       (APP_SOURCE.match(/supportMailto=\{SUPPORT_MAILTO\}/g) ?? []).length,
-      4,
+      2,
     );
-    assert.match(APP_SOURCE, /<GuidePanel[\s\S]{0,300}onOpenDonate=/);
+    // And the two surfaces that used to receive them no longer take either prop.
+    const guideCall = APP_SOURCE.match(/<GuidePanel[\s\S]*?\/>/)?.[0] ?? "";
+    const profileCall = APP_SOURCE.match(/<ProfilePanel[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(guideCall.length > 0 && profileCall.length > 0);
+    for (const call of [guideCall, profileCall]) {
+      assert.doesNotMatch(call, /onOpenDonate/);
+      assert.doesNotMatch(call, /supportMailto/);
+    }
   });
 });
 
@@ -1212,9 +1220,11 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // it to the viewport, so the retired condition must be gone in both
     // directions rather than merely widened.
     assert.doesNotMatch(APP_SOURCE, /isFixedMobileDesk/);
+    // §17i put the footer inside the frame on every ≥lg surface too, so the shell's
+    // shape no longer depends on which tab is showing — only on the viewport.
     assert.match(
       APP_SOURCE,
-      /className=\{mainShellClassName\(isDeskTab, isMobileViewport\)\}/,
+      /className=\{mainShellClassName\(isMobileViewport\)\}/,
     );
     const shell = APP_SOURCE.match(/function mainShellClassName\([\s\S]*?\n}\n/)
       ?.[0] ?? "";
@@ -1338,7 +1348,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // The two scrolling wrapper branches are reached at ≥lg only now, and both
     // keep every utility the frozen desktop cascade is built from.
     const wrapperBranches = APP_SOURCE.match(
-      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(wrapperBranches.length > 0, "expected the ≥lg wrapper branches");
     for (const branch of wrapperBranches.match(/"[^"]*"/g) ?? []) {
@@ -1413,7 +1423,10 @@ describe("§17g — the account menu carries the legal trio", () => {
     // the first two before this wave, so only the trio joins it.
     assert.equal((menuBlock.match(/label="Donate"/g) ?? []).length, 1);
     assert.equal((menuBlock.match(/>\s*Help\s*</g) ?? []).length, 1);
-    assert.doesNotMatch(menuBlock, /supportMailto[\s\S]{0,200}supportMailto/);
+    // One rendered mailto, counted where it is rendered rather than by proximity:
+    // the prop is named three times legitimately (the parameter, its type, the
+    // href), and a window over the source counted those.
+    assert.equal((menuBlock.match(/href=\{supportMailto\}/g) ?? []).length, 1);
   });
 });
 
@@ -1427,7 +1440,12 @@ describe("§17g — Profile ends with the colophon below lg, and only there", ()
     // The class, not the word: this file's own comments name .colophon while
     // explaining why the line is here, and prose is not a second colophon.
     assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
-    assert.match(profile, /className="colophon">A Windward Line production</);
+    // §17k made the line a link inside that <p> (tests/colophon.test.ts pins the
+    // link itself); what this file owns is that the treatment is the footer's.
+    assert.match(
+      profile,
+      /className="colophon">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
+    );
     // Inside the mobile scroll region, after the rows: it ends the view.
     assert.match(
       profile,
@@ -1446,28 +1464,38 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     /function MobileAccountMenu[\s\S]*?\n}\n/,
   )?.[0] ?? "";
 
-  it("draws the account trigger as the mock's initial-in-circle (m-mobile-v3.html:44, menu mock :33)", () => {
-    // A circle on sheet with a 1.5px hairline border carrying the signed-in
-    // email's first letter in 13px bold. The circle is the kit's 44px tap
-    // target rather than the mock's 34px — spec §16 trims padding and type,
-    // never the hit area — and every aria/focus contract is untouched.
+  // Spec §17i: "The mobile avatar trigger renders mark A (not the account
+  // initial); 44px target and accessible name unchanged." The mock's
+  // initial-in-circle (m-mobile-v3.html:44, menu mock :33) is superseded, and its
+  // circle goes with it: mark A arrives with a container of its own — a
+  // rounded-square tile on sheet with a hairline edge — so the circle would be a
+  // perimeter inside a perimeter, which is §17c's box-on-box. Both directions, per
+  // §16's review discipline.
+  it("draws the account trigger as mark A, and keeps the 44px target it had (§17i)", () => {
     assert.match(
       menuBlock,
-      /className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-\[1\.5px\] border-hairline bg-sheet text-\[13px\] font-bold text-ink transition hover:border-accent\/40"/,
+      /className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-accent\/10"/,
     );
-    assert.match(menuBlock, /initial: string;/);
-    // No email on the session is a real possibility the types allow, so the
-    // circle falls back to the icon rather than rendering blank.
+    // The mark is the face; the ✕ still says what tapping the open trigger does.
     assert.match(
       menuBlock,
-      /: initial \|\| <CircleUser className="h-5 w-5" aria-hidden="true" \/>/,
+      /\{open\s*\n?\s*\? <X className="h-5 w-5" aria-hidden="true" \/>\s*\n?\s*: <LevelflowMark className="h-8 w-8" \/>\}/,
     );
-    // Sourced from the session, uppercased, never from a profile display name.
     assert.match(
       APP_SOURCE,
-      /const accountInitial = \(session\.user\.email \?\? ""\)\.trim\(\)\.charAt\(0\)\s*\.toUpperCase\(\);/,
+      /import \{ LevelflowMark \} from "\.\/components\/LevelflowMark";/,
     );
-    assert.match(APP_SOURCE, /initial=\{accountInitial\}/);
+    // The initial's whole plumbing is gone, not merely unrendered: the prop, its
+    // type, the derivation off the session, and the icon that stood in when a
+    // session carried no email.
+    // Read without comments: this control's own comment quotes the ruling, which
+    // names the thing it replaced, and documentation of a removal is not the thing.
+    assert.doesNotMatch(withoutComments(menuBlock), /\binitial\b/);
+    assert.doesNotMatch(APP_SOURCE, /accountInitial/);
+    assert.doesNotMatch(APP_SOURCE, /CircleUser/);
+    // And the mock's circle chrome with it — one perimeter on this control, drawn
+    // by the mark (tests/boxDiscipline.test.ts owns the box inventory).
+    assert.doesNotMatch(menuBlock, /border-\[1\.5px\] border-hairline bg-sheet/);
   });
 
   it("keeps the account menu's aria, role and focus contracts byte-intact through the avatar change", () => {

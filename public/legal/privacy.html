@@ -4,25 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Levelflow Privacy Notice</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/brand/levelflow-mark-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <script src="./legal-theme.js"></script>
     <link rel="stylesheet" href="./legal.css" />
   </head>
   <body>
-    <main>
-      <p class="page-eyebrow">Privacy</p>
-      <h1>Levelflow</h1>
-      <section>
-        <p>Levelflow collects the information needed to operate the app, including login email, sign-in identifiers, saved profile preferences, market-review records, saved setups, system notices, and error reports.</p>
-        <p>Sign-in, database, and market-data services are handled through trusted service providers. Levelflow keeps market-data keys on the server and does not intentionally expose them in browser JavaScript.</p>
-        <p>We use collected information to sign users in, keep each user's saved data separate, support market-review workflows, troubleshoot errors, track setup outcomes, and improve the product.</p>
-        <p>Do not enter brokerage passwords, banking credentials, tax identifiers, government identifiers, or other sensitive personal data into Levelflow unless a specific secured workflow is added for that purpose.</p>
-        <p>To request deletion or correction of stored app data, contact Windward Line through the channel used to invite you to Levelflow.</p>
-      </section>
+    <header>
+      <div class="page-block">
+        <svg class="page-mark" viewBox="0 0 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="var(--color-sheet)" stroke="var(--color-hairline)"/><rect x="7" y="9" width="18" height="2.6" rx="1.3" fill="var(--color-ink)"/><rect x="7" y="14.7" width="18" height="2.6" rx="1.3" fill="var(--color-accent)"/><rect x="7" y="20.4" width="12" height="2.6" rx="1.3" fill="var(--color-ink)" opacity="0.45"/></svg>
+        <p class="page-eyebrow">Privacy</p>
+        <h1>Levelflow</h1>
+      </div>
+    </header>
+    <main aria-label="Privacy" tabindex="0">
+      <div class="page-block">
+        <section>
+          <p>Levelflow collects the information needed to operate the app, including login email, sign-in identifiers, saved profile preferences, market-review records, saved setups, system notices, and error reports.</p>
+          <p>Sign-in, database, and market-data services are handled through trusted service providers. Levelflow keeps market-data keys on the server and does not intentionally expose them in browser JavaScript.</p>
+          <p>We use collected information to sign users in, keep each user's saved data separate, support market-review workflows, troubleshoot errors, track setup outcomes, and improve the product.</p>
+          <p>Do not enter brokerage passwords, banking credentials, tax identifiers, government identifiers, or other sensitive personal data into Levelflow unless a specific secured workflow is added for that purpose.</p>
+          <p>To request deletion or correction of stored app data, contact Windward Line through the channel used to invite you to Levelflow.</p>
+        </section>
+        <p><a href="/">Back to Levelflow</a></p>
+      </div>
     </main>
     <footer>
-      <p class="colophon">A Windward Line production</p>
-      <p><a href="/">Back to Levelflow</a></p>
+      <div class="footer-row">
+        <p class="colophon"><a class="colophon-link" href="https://windwardline.com" target="_blank" rel="noopener noreferrer">A Windward Line production</a></p>
+        <div class="footer-links">
+          <nav class="support-links" aria-label="Support">
+            <a href="mailto:help@windwardline.com?subject=%5BLevelflow%5D%20Help">Help</a>
+            <a href="/?donate">Donate</a>
+          </nav>
+          <nav class="legal-links" aria-label="Legal">
+            <a href="/legal/risk-disclaimer.html">Risk disclaimer</a>
+            <a href="/legal/privacy.html">Privacy</a>
+            <a href="/legal/terms.html">Terms</a>
+          </nav>
+        </div>
+      </div>
     </footer>
   </body>
 </html>

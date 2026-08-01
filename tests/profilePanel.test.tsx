@@ -90,19 +90,23 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
     );
   });
 
-  it("draws four hairline-separated rows: label column beside content at ≥lg, stacked below (.row, :18)", () => {
-    // One shared row component, so the four cannot drift apart in padding,
+  // Spec §17i deleted the mock's fourth row: "Each link lives in exactly one home
+  // per platform. Desktop: the footer … so the Guide's Support section and
+  // Profile's Support row are DELETED." The mock still draws four; the ruling
+  // supersedes it on that one row, and the three that remain are unchanged.
+  it("draws three hairline-separated rows: label column beside content at ≥lg, stacked below (.row, :18)", () => {
+    // One shared row component, so the three cannot drift apart in padding,
     // separation or column measure.
     assert.match(
       PANEL_SOURCE,
       /<div className="grid gap-x-6 gap-y-3 border-b border-hairline py-\[26px\] last:border-b-0 lg:grid-cols-\[220px_1fr\]">/,
     );
-    assert.equal((PANEL_SOURCE.match(/<ProfileRow\n/g) ?? []).length, 4);
+    assert.equal((PANEL_SOURCE.match(/<ProfileRow\n/g) ?? []).length, 3);
     const titles = Array.from(
       PANEL_SOURCE.matchAll(/^\s*title="([^"]+)"$/gm),
       (match) => match[1],
     );
-    assert.deepEqual(titles, ["Account", "Broker", "Appearance", "Support"]);
+    assert.deepEqual(titles, ["Account", "Broker", "Appearance"]);
   });
 
   it("carries the approved row descriptions verbatim, and nothing else (§17e, §17f)", () => {
@@ -116,8 +120,10 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
       "Sign-in and membership.",
       "Markets, costs, and record follow the broker.",
       "Saved to your account.",
-      "We read every note.",
     ]);
+    // The Support row's own approved line goes with the row (§17i) — a description
+    // for a row that no longer exists is copy waiting to be re-attached.
+    assert.doesNotMatch(PANEL_SOURCE, /We read every note\./);
     // The old Broker paragraph said what the row's own description now says in
     // nine words; it must not survive alongside it.
     assert.doesNotMatch(PANEL_SOURCE, /Setups are tuned to this broker/);
@@ -125,7 +131,7 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
 
   it("labels each row with an h2 over its description, at the mock's own sizes (.lab, :20-21)", () => {
     const headings = PANEL_SOURCE.match(/<h[23] className="[^"]*"/g) ?? [];
-    assert.equal(headings.length, 1, "one shared row heading, four call sites");
+    assert.equal(headings.length, 1, "one shared row heading, three call sites");
     assert.equal(
       headings[0],
       '<h2 className="text-[15px] font-bold tracking-normal text-ink"',
@@ -149,16 +155,26 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
     );
   });
 
-  it("gives Broker the shared chip and Support the mock's two inline tertiary links (.tlink, :90-91)", () => {
+  it("gives Broker the shared chip, and carries no link row of its own any more (§17i)", () => {
     assert.match(PANEL_SOURCE, /<BrokerChip \/>/);
-    assert.match(
-      PANEL_SOURCE,
-      /className="flex flex-wrap items-center gap-x-\[22px\] gap-y-2"[\s\S]{0,400}Email support[\s\S]{0,300}Donate/,
-    );
+    // The mock's `.tlink` pair (:90-91) went with the Support row it lived in: the
+    // footer is in the frame twenty pixels below this sheet on every ≥lg surface,
+    // and the account menu carries the same two below lg.
     assert.equal(
       (PANEL_SOURCE.match(/className="tertiary-link"/g) ?? []).length,
-      2,
+      0,
     );
+    assert.doesNotMatch(PANEL_SOURCE, /Email support/);
+    assert.doesNotMatch(PANEL_SOURCE, /gap-x-\[22px\]/);
+    // Plus the plumbing, which is what a deletion most easily leaves behind.
+    assert.doesNotMatch(PANEL_SOURCE, /supportMailto/);
+    assert.doesNotMatch(PANEL_SOURCE, /onOpenDonate/);
+    // Donate survives nowhere on this surface as a control. Matched as rendered
+    // element text rather than the bare word: this file's comments legitimately
+    // name the Donate tab while explaining the sheet's own rhythm, and prose is
+    // not an affordance.
+    assert.doesNotMatch(PANEL_SOURCE, />\s*Donate\s*</);
+    assert.doesNotMatch(PANEL_SOURCE, /onClick=\{onOpenDonate\}/);
   });
 });
 

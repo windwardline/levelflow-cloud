@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   BookOpen,
-  CircleUser,
   Gift,
   History,
   ListChecks,
@@ -21,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { AppFooter } from "./components/AppFooter";
+import { LevelflowMark } from "./components/LevelflowMark";
 import { LEGAL_LINKS } from "./components/legal/LegalLinks";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
@@ -50,6 +50,7 @@ import {
   type ThemeMode,
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./lib/support";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
 // The three bottom-tab-bar destinations (spec §17e). Two of them ("scan" |
@@ -60,11 +61,6 @@ type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
 // into "scan" (m-scan-v3.html).
 type MobileTab = "scan" | "trades" | "insights";
 
-const SUPPORT_EMAIL = "help@windwardline.com";
-// Support is a shared inbox across apps, so every mailto names the app it
-// came from — otherwise an inbound message arrives with no way to route it.
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Help")}`;
-
 // Text only: spec §16 killed icon-chip nav on desktop, and the masthead
 // renders {tab.label} alone. The mobile tab bar keeps its own separate icon
 // set (MOBILE_TAB_ITEMS) — these four were built on every load and discarded.
@@ -74,6 +70,19 @@ const TABS: Array<{ label: string; value: AppTab }> = [
   { label: "Guide", value: "guide" },
   { label: "Profile", value: "profile" },
 ];
+// What the frame's scrolling region is called, per surface. §17i made that
+// region a tab stop (see regionScrolls below), and a tab stop with no
+// accessible name announces as an unnamed region — so each surface names it the
+// way the surface names itself. Written out rather than derived from TABS
+// because Donate has no masthead tab to derive from; tests/appFrame.test.ts
+// pins the two lists against each other so they cannot drift apart.
+const REGION_LABELS: Record<AppTab, string> = {
+  advisor: "Desk",
+  donate: "Donate",
+  guide: "Guide",
+  history: "Insights",
+  profile: "Profile",
+};
 const PERSISTED_TABS = new Set<AppTab>([
   "advisor",
   "history",
@@ -213,8 +222,14 @@ export default function App() {
     // own inventory) — flattened to a minimal centered wordmark and the
     // system's own spinner idiom (Loader2 + animate-spin), the same
     // pairing every other loading state in the app already uses.
+    //
+    // §17i's frame, in its simplest shape: exactly the viewport tall, nothing
+    // scrolling. It was the last min-height column in the app — footer-less and
+    // transient, so nothing was ever unreachable, but it was also the only reason
+    // a viewport-minimum utility still existed in the built CSS while every real
+    // surface had stopped being one.
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center text-ink">
+      <main className="flex h-[100dvh] flex-col items-center justify-center gap-4 overflow-hidden bg-paper px-6 text-center text-ink">
         <p className="wordmark text-2xl">Levelflow</p>
         <p className="flex items-center gap-2 text-sm font-semibold text-ink-muted">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -247,41 +262,43 @@ export default function App() {
     profileState.profile ??
     buildDefaultProfile(session.user.id, session.user.email ?? "");
 
-  // The mobile account trigger is an initial-in-circle (m-mobile-v3.html:44).
-  // The letter comes from the signed-in email rather than a profile display
-  // name: the email is the identity every session has, it is what the avatar
-  // is standing in for, and it never changes shape while a profile save is in
-  // flight. Empty when a session somehow carries no email — the trigger falls
-  // back to its icon rather than rendering a blank circle.
-  const accountInitial = (session.user.email ?? "").trim().charAt(0)
-    .toUpperCase();
-
-  // The Desk (≥lg) is a fixed-height, three-column shell that never scrolls
-  // as a page — each column scrolls itself (spec §2). main's
-  // grid-rows-[auto_1fr] hands the content row exactly "viewport minus header"
-  // without hardcoding the header's pixel height, and the footer steps out of
-  // the layout so it can't add height the fixed shell has no room for.
+  // Which of the Desk's two ≥lg neighbours the content region is: the Desk's own
+  // three-column shell scrolls each column internally and so hands the region
+  // nothing to scroll, while every other tab is a page that scrolls inside it.
   //
-  // Spec §17g gives every surface below lg the same discipline: the fixed shell
-  // is no longer the Desk's alone, so the condition is the viewport itself.
-  // isMobileViewport is a JS width check rather than a max-lg: variant because
-  // the sm: padding utilities this shell has to drop would outrank a max-width
-  // variant in Tailwind's own emission order — and because each surface swaps in
-  // a pinned/scroll composition CSS cannot express as a restyling of the
-  // scrolling one (src/components/mobileFrame.ts).
+  // Spec §17g gave every surface below lg the fixed-frame discipline; §17i lifts
+  // it to ≥lg with the footer inside the frame, so BOTH platforms are now a
+  // 100dvh shell and neither scrolls as a document. isMobileViewport is a JS
+  // width check rather than a max-lg: variant because the sm: padding utilities
+  // the mobile shell has to drop would outrank a max-width variant in Tailwind's
+  // own emission order — and because each surface swaps in a pinned/scroll
+  // composition CSS cannot express as a restyling of the other
+  // (src/components/mobileFrame.ts).
   const isDeskTab = activeTab === "advisor";
+  // Whether the region below is itself the scroller — and so whether it needs a
+  // tab stop. §17i took the document's scroll away (h-[100dvh] +
+  // overflow-hidden) and handed it to this box, and a scroll box no element can
+  // focus is a scroll box no keyboard can move: from the focus every page load
+  // starts with, Space / PageDown / End moved nothing at all (WCAG 2.1.1). A
+  // tabIndex here restores them — one Tab lands on the region, and the keys work
+  // from there.
+  //
+  // Gated, not unconditional: below lg each surface scrolls its own inner region
+  // (src/components/mobileFrame.ts) and on the Desk the three columns do, so on
+  // those two this box cannot move and a tab stop on it would be a stop that
+  // does nothing. The name and the role ride the same gate for the same reason —
+  // they exist to announce the tab stop.
+  const regionScrolls = !isMobileViewport && !isDeskTab;
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
-      {/* Spec §17c: a min-height flex column is what lets AppFooter's own
-          mt-auto put it at the true bottom of the viewport on a short page —
-          Donate and an empty Insights are both short — and directly after the
-          content on a long one. Each branch is a complete literal class string
-          (C1) rather than a base list plus an override, because the fixed
-          shells and the scrolling page disagree about height, min-height and
-          overflow, and a stack of competing utilities on one element is how
-          that disagreement turns into a cascade puzzle. */}
-      <main className={mainShellClassName(isDeskTab, isMobileViewport)}>
+      {/* Spec §17i: the shell is the frame — masthead row, content row, footer
+          row — and the footer is inside it on every surface, the Desk included.
+          Each branch is a complete literal class string (C1) rather than a base
+          list plus an override, because the two shells disagree about how many
+          rows they have, and a stack of competing utilities on one element is
+          how that disagreement turns into a cascade puzzle. */}
+      <main className={mainShellClassName(isMobileViewport)}>
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
@@ -300,7 +317,6 @@ export default function App() {
               <div className="flex shrink-0 items-center gap-2">
                 <BrokerChip compact />
                 <MobileAccountMenu
-                  initial={accountInitial}
                   onOpenDonate={() => setActiveTab("donate")}
                   onOpenGuide={() => setActiveTab("guide")}
                   onOpenProfile={() => setActiveTab("profile")}
@@ -378,6 +394,7 @@ export default function App() {
             leave AdvisorWorkspace mounted (see the two refresh effects above). */}
         <div
           key={activeTab}
+          aria-label={regionScrolls ? REGION_LABELS[activeTab] : undefined}
           className={isMobileViewport
             // Every mobile surface owns its own gutters and its own bottom
             // clearance (spec §17g, m-scan-v3.html:29,32), so this wrapper
@@ -394,13 +411,23 @@ export default function App() {
             // intact (pb-24 below lg, lg:pb-5 above it) and changes nothing at
             // >=lg, where lg:pb-5 already computed the same 20px the block form
             // was handing it.
-            // Both scrolling branches are reached at ≥lg only since §17g, and
-            // both keep every utility they had: they are what the frozen desktop
-            // cascade is built from, and the tab-bar reserve below stays as the
-            // guard that pins the hazard the comment describes.
+            // Both ≥lg branches are reached at ≥lg only since §17g, and both keep
+            // every utility they had: they are what the frozen desktop cascade is
+            // built from, and the tab-bar reserve below stays as the guard that
+            // pins the hazard the comment describes.
+            //
+            // §17i makes the second of them the app's one ≥lg scroll region: the
+            // Desk still scrolls its three columns internally (lg:overflow-hidden,
+            // unchanged), and every other tab scrolls its page HERE rather than in
+            // the document, which is what leaves the footer row pinned below it.
+            // The thin scrollbar is the kit's own .scrolly, the same one the Desk's
+            // columns and every mobile scroll region already take.
             : isDeskTab
             ? "motion-fade-in mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
-            : "motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:pb-5"}
+            : "scrolly motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:min-h-0 lg:overflow-y-auto lg:pb-5"}
+          data-testid="content-region"
+          role={regionScrolls ? "region" : undefined}
+          tabIndex={regionScrolls ? 0 : undefined}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
@@ -424,12 +451,10 @@ export default function App() {
           {activeTab === "profile" ? (
             <ProfilePanel
               memberSince={session.user.created_at}
-              onOpenDonate={() => setActiveTab("donate")}
               onSave={profileState.saveProfile}
               onSignOut={() => supabase?.auth.signOut()}
               onThemeChange={theme.setMode}
               profile={profile}
-              supportMailto={SUPPORT_MAILTO}
               themeMode={theme.mode}
             />
           ) : null}
@@ -437,8 +462,6 @@ export default function App() {
             <GuidePanel
               anchor={guideAnchor}
               onAnchorHandled={clearGuideAnchor}
-              onOpenDonate={() => setActiveTab("donate")}
-              supportMailto={SUPPORT_MAILTO}
             />
           ) : null}
           {activeTab === "donate" ? (
@@ -446,23 +469,17 @@ export default function App() {
           ) : null}
         </div>
 
-        {/* Spec §17c: ONE footer, on every scrolling page and view. The
-            component owns its composition, its dimensions, its spacing and its
-            own bottom-pinning; the only thing decided here is the ruling's own
-            exception, which is the word "scrolling": a fixed viewport has no
-            bottom for a footer to follow.
-            Spec §17g settles which surfaces those are. Below lg there are none —
-            every surface is a fixed frame now, so the footer is a ≥lg component
-            and leaves the tree outright rather than lingering unseen inside a
-            frame that has no room for it. Its link set moves to the account menu
-            and its colophon to the Profile view (ProfilePanel's own <lg branch).
-            At ≥lg nothing changes: the same one footer on every scrolling view,
-            with the Desk's fixed shell still carrying the component's own
-            lg:hidden branch. */}
+        {/* Spec §17i: ONE footer, in the frame's own bottom row, always visible
+            on every ≥lg surface — the Guide no longer hides it below a full
+            page-scroll and the Desk gains the footer it never had, so the
+            component's Desk exception is gone with the ruling that carved it.
+            Below lg it is still absent outright (§17g): every surface there is a
+            fixed frame with no room for it, its link set lives in the account
+            menu and its colophon in the Profile view (ProfilePanel's own <lg
+            branch). */}
         {isMobileViewport ? null : (
           <AppFooter
-            hiddenOnDesktopDesk={isDeskTab}
-            onOpenDonate={() => setActiveTab("donate")}
+            donate={{ onSelect: () => setActiveTab("donate") }}
             supportMailto={SUPPORT_MAILTO}
           />
         )}
@@ -477,26 +494,31 @@ export default function App() {
   );
 }
 
-// The page shell, in its three shapes. Both fixed shells hand their content row
-// exactly "viewport minus header" via grid-rows-[auto_1fr]; the scrolling page
-// is the min-height flex column AppFooter's mt-auto pushes against (spec §17c).
-// 100dvh, not 100vh, on the mobile one: a phone's 100vh is the toolbar-less
-// height, which would put the bottom of a "fixed" surface below the visible
-// viewport and hand the page a scrollbar it must not have.
+// The page shell, in its two shapes — one per platform, since §17i (desktop) and
+// §17g (mobile) now ask for the same thing: a fixed frame, chrome pinned, one
+// region scrolling between. Neither shape scrolls as a document, so neither is a
+// min-height flex column any more, and the auto top margin AppFooter used to pin
+// itself with has nothing left to push against — the footer is a row of the grid
+// instead, which is what makes "always visible" structural rather than a
+// consequence of content height. (The retired utility is named by shape rather
+// than spelled out: Tailwind's scanner reads this file, and a dead class in a
+// comment is a dead rule in the bundle.)
 //
-// The mobile branch is checked first and covers every surface (spec §17g): below
-// lg nothing scrolls as a page, so neither of the two scrolling shapes is
-// reachable there and both are the ≥lg shapes they always were.
-function mainShellClassName(
-  isDeskTab: boolean,
-  isMobileViewport: boolean,
-): string {
+// They differ by exactly one row. Below lg the footer is absent (§17g), so the
+// shell is masthead + content; at ≥lg it is masthead + content + footer.
+// minmax(0,1fr) rather than a bare 1fr on the content row: 1fr floors at the
+// row's min-content height, so a long Guide or a wide Insights ledger would push
+// the footer off the bottom of the frame the moment its content outgrew it.
+//
+// 100dvh, not 100vh: a phone's 100vh is the toolbar-less height, which would put
+// the bottom of a "fixed" surface below the visible viewport and hand the page a
+// scrollbar it must not have. The same unit at ≥lg, where the two are equal, so
+// the frame is one number rather than two.
+function mainShellClassName(isMobileViewport: boolean): string {
   if (isMobileViewport) {
     return "grid h-[100dvh] grid-rows-[auto_1fr] overflow-hidden bg-paper text-ink";
   }
-  return isDeskTab
-    ? "flex min-h-screen flex-col bg-paper text-ink lg:grid lg:h-screen lg:grid-rows-[auto_1fr] lg:overflow-hidden"
-    : "flex min-h-screen flex-col bg-paper text-ink";
+  return "grid h-[100dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-paper text-ink";
 }
 
 function useThemePreference() {
@@ -659,16 +681,12 @@ function MobileTabBar({
 // users could reach before becomes unreachable now that the header no
 // longer shows those buttons directly.
 function MobileAccountMenu({
-  initial,
   onOpenDonate,
   onOpenGuide,
   onOpenProfile,
   onSignOut,
   supportMailto,
 }: {
-  // The signed-in email's first letter, uppercased — see App's accountInitial.
-  // Empty when the session carries no email, which the trigger handles.
-  initial: string;
   onOpenDonate: () => void;
   onOpenGuide: () => void;
   onOpenProfile: () => void;
@@ -752,20 +770,25 @@ function MobileAccountMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
-        // The mock's avatar (m-mobile-v3.html:44, and unchanged behind the
-        // open sheet at m-mobile-v3-menu.html:33): a circle on sheet with a
-        // 1.5px hairline border carrying the account's initial in 13px bold.
-        // Held at the kit's 44px tap target rather than the mock's 34px —
-        // spec §16 trims padding and type size, never the hit area. The open
-        // state keeps its ✕ so the trigger still says what tapping it does;
-        // neither mock draws this menu open.
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-hairline bg-sheet text-[13px] font-bold text-ink transition hover:border-accent/40"
+        // Spec §17i: "The mobile avatar trigger renders mark A (not the account
+        // initial); 44px target and accessible name unchanged." The mock drew a
+        // circle on sheet with a 1.5px hairline border carrying the signed-in
+        // email's first letter (m-mobile-v3.html:44); mark A arrives with a
+        // container of its own — a rounded-square tile on sheet with a hairline
+        // edge — so keeping the circle too would be a perimeter inside a perimeter,
+        // which is the box-on-box §17c sweeps. The mark IS the trigger's face; the
+        // 44px tap target stays, and hover takes the accent tint every other
+        // pressable row in this menu already uses instead of a second edge.
+        //
+        // The open state keeps its ✕ so the trigger still says what tapping it
+        // does; neither mock draws this menu open.
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-accent/10"
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
         {open
           ? <X className="h-5 w-5" aria-hidden="true" />
-          : initial || <CircleUser className="h-5 w-5" aria-hidden="true" />}
+          : <LevelflowMark className="h-8 w-8" />}
       </button>
 
       {/* w-56 rather than the w-48 this menu carried before §17g: the legal trio

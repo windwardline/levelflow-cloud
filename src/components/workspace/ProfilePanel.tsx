@@ -10,8 +10,8 @@ import {
 import { BrokerChip } from "./BrokerChip";
 import { ThemeToggle } from "./ThemeToggle";
 
-// Spec §11: Profile collapses to one settings surface — Account, Broker,
-// Appearance, Support — dropping the old Preferences form (display name /
+// Spec §11: Profile collapses to one settings surface — since §17i, Account,
+// Broker and Appearance — dropping the old Preferences form (display name /
 // timezone / preferred session / default chart view) and the read-only Market
 // clock / Activity / Review activity cards entirely. Spec §10b retires the
 // session-clock concept those fields fed, and Task 8 moved every analytics view
@@ -24,13 +24,15 @@ import { ThemeToggle } from "./ThemeToggle";
 //
 // Spec §17c rejected the card stack this used to be ("stacked like a mobile
 // view" at desktop widths) and §17e approved p-profile-v2.html as the
-// composition authority: a flat editorial settings sheet, 880px, four
+// composition authority: a flat editorial settings sheet, 880px,
 // hairline-separated rows, each a label column beside its own content, no card
 // chrome anywhere and no icons. The shared page footer (spec §17c) carries the
-// legal and production lines this column used to end with.
+// legal and production lines this column used to end with — and, since §17i, the
+// two links the mock's fourth row carried as well, which is why that row is gone
+// and the sheet is three: the footer is in the frame on every surface, so a
+// Support row here was a second home for links already on screen.
 type ProfilePanelProps = {
   memberSince: string;
-  onOpenDonate: () => void;
   onSave: (
     input: Pick<
       UserProfile,
@@ -44,18 +46,15 @@ type ProfilePanelProps = {
   onSignOut: () => void;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
-  supportMailto: string;
   themeMode: ThemeMode;
 };
 
 export function ProfilePanel({
   memberSince,
-  onOpenDonate,
   onSave,
   onSignOut,
   onThemeChange,
   profile,
-  supportMailto,
   themeMode,
 }: ProfilePanelProps) {
   // The retired Preferences form surfaced a save failure inline, not just to
@@ -145,38 +144,22 @@ export function ProfilePanel({
           )
           : null}
       </ProfileRow>
-
-      <ProfileRow
-        description="We read every note."
-        title="Support"
-      >
-        {/* `.tlink` (:90-91): side by side, not stacked. Spec §16 relocated
-            Help and Donate here when the desktop header buttons were killed;
-            the shared footer now carries them too, and both placements are
-            §17's own intent. */}
-        <div className="flex flex-wrap items-center gap-x-[22px] gap-y-2">
-          <a className="tertiary-link" href={supportMailto}>
-            Email support
-          </a>
-          <button
-            className="tertiary-link"
-            type="button"
-            onClick={onOpenDonate}
-          >
-            Donate
-          </button>
-        </div>
-      </ProfileRow>
     </>
   );
 
   if (isMobile) {
     // Spec §17g: "Profile: fits the frame; if content ever exceeds it, the rows
-    // region scrolls internally." It does exceed it. Measured against the built
-    // CSS with the shipped fonts at 375x812: the four rows plus the colophon come
-    // to 722px against 683px of frame, before the tab bar overlays the last 57px
-    // of that. So the conditional is the operative clause and the rows region is
-    // the scroll region.
+    // region scrolls internally." With four rows it exceeded it — 722px against
+    // 683px of frame. §17i deleted the Support row, and the measurement was
+    // re-taken against the built CSS with the shipped fonts at 375x812: three rows
+    // plus the colophon come to 596px, inside both the 683px frame and the 626px of
+    // it that clears the fixed tab bar. So the conditional clause simply stops
+    // engaging, which is the state §17g describes first.
+    //
+    // The region keeps its shared frame string regardless — it is the one every
+    // <lg surface takes, and what it now scrolls is 9px of the tab-bar reserve's
+    // own tail rather than any content. Nothing is hidden by it, and a row that
+    // grows later (the theme-save notice below) finds the clause already in place.
     //
     // And the footer, reduced to its colophon: "The footer exists on mobile ONLY
     // inside the Profile view." It ends the sheet rather than pinning to the
@@ -188,18 +171,30 @@ export function ProfilePanel({
         <div className={MOBILE_FRAME_PINNED}>{title}</div>
         <div className={MOBILE_FRAME_SCROLL} data-testid="mobile-profile-scroll">
           {rows}
-          <p className="colophon">A Windward Line production</p>
+          {/* Spec §17k: the same link, the same treatment as the ≥lg footer's —
+              muted at rest, underlined only on hover or focus, 44px, new tab. */}
+          <p className="colophon">
+            <a
+              className="colophon-link"
+              href="https://windwardline.com"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              A Windward Line production
+            </a>
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    // Spec §17c gave every scrolling surface the one shared page footer, this
-    // one included. That retired the legal/production block spec §11 put at
-    // the foot of this column — it would now be a second copy of what the
-    // footer itself carries — and it made this surface's own Donate ambiguous
-    // with the footer's. The testid is how e2e keeps the two apart.
+    // Spec §17c gave every scrolling surface the one shared page footer, this one
+    // included, which retired the legal/production block spec §11 put at the foot
+    // of this column: it would be a second copy of what the footer carries. §17i
+    // finished the thought — the sheet's own Help and Donate were a second copy
+    // too, of a link row now permanently on screen below it, so the row that held
+    // them is gone. The testid is what e2e locates this sheet by.
     <div
       className="mx-auto w-full max-w-[880px]"
       data-testid="profile-panel"
@@ -216,7 +211,7 @@ export function ProfilePanel({
 // drops its rule (`.row:last-of-type`) so the sheet ends on content, not on a
 // line.
 //
-// One component for all four rows: padding, separation and column measure are
+// One component for every row: padding, separation and column measure are
 // the composition, so they cannot be allowed to drift row by row. The stacked
 // row gap is 12px rather than the mock's 24px — with the label above its
 // content instead of beside it, the mock's horizontal measure would read as a
@@ -228,7 +223,7 @@ function ProfileRow({
 }: {
   children: ReactNode;
   // What the row cannot show (§17e's standing description rule). Owner-approved
-  // verbatim, per row; tests/profilePanel.test.tsx pins all four.
+  // verbatim, per row; tests/profilePanel.test.tsx pins them all.
   description: string;
   title: string;
 }) {
