@@ -839,6 +839,29 @@ describe("history workspace logic", () => {
     );
   });
 
+  it("orders a same-second scan batch by confidence, then base/quote symbol — never database return order (owner-observed, 2026-08-01)", () => {
+    // One scan writes its whole batch inside a second, so created_at cannot
+    // separate the rows. The tie-break chain must: confidence descending
+    // (echoing the scan results' own sanctioned ordering), then the
+    // universal symbol comparator for equal scores.
+    const batch = [
+      makeHistorySetup({ confidence: 62, createdAt: "2026-08-01T18:05:00.000Z", symbol: "EURUSD" }),
+      makeHistorySetup({ confidence: 88, createdAt: "2026-08-01T18:05:00.000Z", symbol: "XRPUSD" }),
+      makeHistorySetup({ confidence: 74, createdAt: "2026-08-01T18:05:00.000Z", symbol: "BTCUSD" }),
+      makeHistorySetup({ confidence: 74, createdAt: "2026-08-01T18:05:00.000Z", symbol: "ADAUSD" }),
+    ];
+
+    assert.deepEqual(
+      sortHistorySetups(batch, "newest").map((setup) => setup.symbol),
+      ["XRPUSD", "ADAUSD", "BTCUSD", "EURUSD"],
+    );
+    // The same chain holds under "oldest" — the mode key first, then the tiers.
+    assert.deepEqual(
+      sortHistorySetups(batch, "oldest").map((setup) => setup.symbol),
+      ["XRPUSD", "ADAUSD", "BTCUSD", "EURUSD"],
+    );
+  });
+
   it("groups history statuses in the same order as the filter", () => {
     const groups = groupHistorySetups(
       [

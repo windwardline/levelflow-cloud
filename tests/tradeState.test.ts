@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { MAX_PRICE_DECIMALS } from "../src/components/workspace/advisorFormat";
 import { deriveTradeState } from "../src/lib/tradeState";
@@ -95,10 +96,10 @@ describe("deriveTradeState — pending (spec §8)", () => {
   });
 });
 
-describe("deriveTradeState — scan-origin gating (spec I1)", () => {
-  it("a scan-origin, unfilled setup earns no rail row — a candidate isn't an order", () => {
+describe("deriveTradeState — every generated setup is Pending (§17m supersedes I1)", () => {
+  it("a scan-origin, unfilled setup earns Pending — since Scan is the only door, its setups ARE the orders-in-waiting (owner-observed miss, 2026-08-01)", () => {
     const setup = buildSetup({ origin: "scan", status: "generated" });
-    assert.equal(deriveTradeState(setup, NOW), null);
+    assert.equal(deriveTradeState(setup, NOW)?.status, "pending");
   });
 
   it("a review-origin, unfilled setup still keeps Pending", () => {
@@ -106,9 +107,14 @@ describe("deriveTradeState — scan-origin gating (spec I1)", () => {
     assert.equal(deriveTradeState(setup, NOW)?.status, "pending");
   });
 
-  it("an unfilled setup with no origin at all (pre-migration rows) still keeps Pending — only an explicit \"scan\" origin excludes it", () => {
+  it("an unfilled setup with no origin at all (pre-migration rows) still keeps Pending", () => {
     const setup = buildSetup({ origin: undefined, status: "generated" });
     assert.equal(deriveTradeState(setup, NOW)?.status, "pending");
+  });
+
+  it("the origin field is not read at all — the derivation is origin-blind by construction", () => {
+    const source = readFileSync("src/lib/tradeState.ts", "utf8");
+    assert.doesNotMatch(source, /\.origin\b/);
   });
 
   it("a scan-origin setup that has actually been placed and filled still earns Open — the gate is only on the unfilled/generated state", () => {
