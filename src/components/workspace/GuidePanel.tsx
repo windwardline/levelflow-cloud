@@ -11,8 +11,8 @@ import type { GuideAnchor } from "./WorkspaceNav";
 // now-redundant connecting dash; every definition gets its leading word
 // capitalized, since the deck writes them lowercase to continue the
 // "Term —" sentence, and each now opens a standalone <dd> instead). No word
-// is added, removed, or reworded. Spec §17d adds four result words to §10 with
-// owner-approved verbatim definition lines — see the VOCABULARY list below;
+// is added, removed, or reworded. Spec §17d adds its result vocabulary to §10
+// with owner-approved verbatim definition lines — see the VOCABULARY list below;
 // that is the one sanctioned addition to the deck's own copy.
 // The deck's own front matter (title,
 // "authoritative copy" preamble, absorption map) is explicitly meta —
@@ -36,36 +36,59 @@ import type { GuideAnchor } from "./WorkspaceNav";
 // market-hours, vocabulary) aren't linked from outside the Guide today, so
 // they carry their own descriptive ids for the in-page table of contents
 // only, without joining the GuideAnchor union.
-type GuideSectionMeta = { id: string; number: string; title: string };
+//
+// ONE source for all three facts about a section, keyed by the anchor id — the
+// only one of the three a call site still names. <GuideSection id="…"> reads its
+// own number and title back out of this map, and the index below maps the same
+// entries, so each fact exists in exactly one place and the two cannot disagree.
+// They used to be two independent literal lists that merely happened to agree: a
+// probe showed a drifted call-site number rendering "06 Costs" in the index over
+// a "09" heading with the whole suite green.
+type GuideSectionMeta = { number: string; title: string };
 
-const GUIDE_SECTIONS: GuideSectionMeta[] = [
-  { id: "how-review-works", number: "01", title: "What Levelflow does" },
-  { id: "the-setup", number: "02", title: "The setup, level by level" },
-  {
-    id: "targets-and-stops",
+const GUIDE_SECTIONS = {
+  "how-review-works": { number: "01", title: "What Levelflow does" },
+  "the-setup": { number: "02", title: "The setup, level by level" },
+  "targets-and-stops": {
     number: "03",
     title: "Taking and managing the trade",
   },
-  {
-    id: "following-your-trades",
-    number: "04",
-    title: "Following your trades",
-  },
-  { id: "confidence-tiers", number: "05", title: "Confidence" },
-  { id: "cost-ratings", number: "06", title: "Costs" },
-  { id: "replay-record", number: "07", title: "The record" },
-  { id: "timeframes", number: "08", title: "Timeframes" },
-  { id: "market-hours", number: "09", title: "When a market is closed" },
-  { id: "vocabulary", number: "10", title: "What the words mean here" },
-];
+  "following-your-trades": { number: "04", title: "Following your trades" },
+  "confidence-tiers": { number: "05", title: "Confidence" },
+  "cost-ratings": { number: "06", title: "Costs" },
+  "replay-record": { number: "07", title: "The record" },
+  "timeframes": { number: "08", title: "Timeframes" },
+  "market-hours": { number: "09", title: "When a market is closed" },
+  "vocabulary": { number: "10", title: "What the words mean here" },
+} satisfies Record<string, GuideSectionMeta>;
 
-// The four result words §17d adds to this section, owner-approved verbatim:
-// the ruling's own definition lines, carried here under the same mechanical
+// The id prop's own type, so a section id that is not in the map above is a
+// compile error rather than a lookup that has to answer for a miss at runtime.
+type GuideSectionId = keyof typeof GUIDE_SECTIONS;
+
+// The result words §17d adds to this section, owner-approved verbatim: the
+// ruling's own definition lines, carried here under the same mechanical
 // liberties the rest of the deck already takes (leading word capitalized,
 // the connecting dash dropped, a terminal period so each reads as the standalone
 // sentence its siblings are). "Pending" was already the canonical teaching and
 // is untouched; "Bank half" stays as the instruction it is, with the result
 // word that reports it sitting directly beside it.
+//
+// §17d instructs this section to teach "these exact definitions … replacing/
+// adding entries as needed", so the run below is §17d's own seven results in
+// §17d's own order, followed by the two words the controller's wave-4 rulings
+// added to complete the table (Unclear, Closed — the same two lib/outcomes.ts
+// documents beyond the seven). Every word the ledger can render is taught, and
+// the deck guard derives that list from the formatter itself, so a tenth word
+// cannot ship untaught.
+//
+// "Open · ±R" and "Stopped · −R" keep §17d's R suffix in the term because that
+// is how §17d writes them and how the ledger prints them; R itself is defined
+// further down this same list. Unclear and Closed have no §17d line, so their
+// definitions are the ones those rulings settled (lib/outcomes.ts), cut to this
+// list's register — and, per §17f, each says only what the surface cannot show:
+// the ledger prints one word and never why the chart was ambiguous or who closed
+// the position.
 const VOCABULARY: Array<{ body: string; term: string }> = [
   {
     body: "Close half your position and take that profit now.",
@@ -81,6 +104,10 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
     term: "Pending",
   },
   {
+    body: "Filled and live inside the window (R only when the engine has one).",
+    term: "Open · ±R",
+  },
+  {
     body: "Window closed, never triggered.",
     term: "Unfilled",
   },
@@ -93,8 +120,21 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
     term: "Banked full",
   },
   {
+    body: "Stop hit.",
+    term: "Stopped · −R",
+  },
+  {
     body: "Filled, window ended, neither level hit.",
     term: "Expired",
+  },
+  {
+    body:
+      "Filled, but the price history cannot say whether stop or target came first.",
+    term: "Unclear",
+  },
+  {
+    body: "Closed by hand before the stop or either target was reached.",
+    term: "Closed",
   },
   {
     body:
@@ -176,11 +216,7 @@ export function GuidePanel(
             How to use Levelflow
           </h1>
 
-          <GuideSection
-            id="how-review-works"
-            number="01"
-            title="What Levelflow does"
-          >
+          <GuideSection id="how-review-works">
             <p>
               Levelflow reviews a market and gives you one answer: the
               strongest current setup, or nothing. When the evidence is not
@@ -207,11 +243,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection
-            id="the-setup"
-            number="02"
-            title="The setup, level by level"
-          >
+          <GuideSection id="the-setup">
             <p>A setup is four prices, named the way your platform names them:</p>
             <ul className="grid list-disc gap-2 ps-5">
               <GuideBullet>
@@ -244,11 +276,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection
-            id="targets-and-stops"
-            number="03"
-            title="Taking and managing the trade"
-          >
+          <GuideSection id="targets-and-stops">
             <blockquote className="border-l-[3px] border-accent bg-accent/5 py-3 pl-4 pr-4 text-base font-semibold leading-7 text-ink sm:text-lg">
               {CANONICAL_LADDER_INSTRUCTION}
             </blockquote>
@@ -282,11 +310,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection
-            id="following-your-trades"
-            number="04"
-            title="Following your trades"
-          >
+          <GuideSection id="following-your-trades">
             <p>
               Current trades shows every trade that still needs you —{" "}
               <strong className="text-ink">pending</strong> (order placed,
@@ -300,7 +324,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection id="confidence-tiers" number="05" title="Confidence">
+          <GuideSection id="confidence-tiers">
             <p>
               Every setup carries a score out of 100. It is not a mood — it
               is the engine's estimate of setup strength, and each market
@@ -315,7 +339,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection id="cost-ratings" number="06" title="Costs">
+          <GuideSection id="cost-ratings">
             <p>
               Spread is the gap between buying and selling price on your
               platform, and it is paid out of your profit. Levelflow sizes
@@ -342,7 +366,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection id="replay-record" number="07" title="The record">
+          <GuideSection id="replay-record">
             <p>
               Levelflow's history claims are measured, not promised. Every
               market type's record comes from replaying its full available
@@ -366,7 +390,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection id="timeframes" number="08" title="Timeframes">
+          <GuideSection id="timeframes">
             <p>
               The chart view you pick — 15 minutes, 1 hour, 4 hours, 1 day,
               the same intervals you know from TradingView — controls what
@@ -378,11 +402,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection
-            id="market-hours"
-            number="09"
-            title="When a market is closed"
-          >
+          <GuideSection id="market-hours">
             <p>
               Grey in the scan menu means closed. The label on the row tells
               you exactly when it opens next — "OPENS 5:00P SUN" — in your
@@ -393,11 +413,7 @@ export function GuidePanel(
             </p>
           </GuideSection>
 
-          <GuideSection
-            id="vocabulary"
-            number="10"
-            title="What the words mean here"
-          >
+          <GuideSection id="vocabulary">
             <dl className="grid gap-3">
               {VOCABULARY.map((item) => (
                 <div key={item.term}>
@@ -463,8 +479,9 @@ export function GuidePanel(
 //
 // 1. Every entry carries its section's own two-digit number, so the index and
 //    the article read as one numbered document. The numbers come from
-//    GUIDE_SECTIONS, the same list the sections themselves number from, so the
-//    two can never disagree.
+//    GUIDE_SECTIONS, and so do the article's: each <GuideSection> names only its
+//    id and reads its number and title back out of that same map, so there is
+//    one literal per fact and nothing left for the two to disagree about.
 //
 // 2. `top-[89px]` is the TOC's own natural resting offset, not a chosen value:
 //    the masthead is 69px tall (py-3 either side of a 44px control row, plus
@@ -476,7 +493,7 @@ export function GuidePanel(
 //    invention. tests/surfaceComposition.test.ts derives all three numbers from
 //    their own sources, so a masthead change fails there instead of quietly
 //    restoring the jump.
-function GuideToc({ sections }: { sections: GuideSectionMeta[] }) {
+function GuideToc({ sections }: { sections: typeof GUIDE_SECTIONS }) {
   return (
     <nav
       aria-label="Guide sections"
@@ -486,11 +503,11 @@ function GuideToc({ sections }: { sections: GuideSectionMeta[] }) {
         Contents
       </p>
       <div className="grid gap-1">
-        {sections.map((section) => (
+        {Object.entries(sections).map(([id, section]) => (
           <a
-            key={section.id}
+            key={id}
             className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-ink"
-            href={`#${section.id}`}
+            href={`#${id}`}
           >
             {/* The number at the article's own eyebrow size, so the index reads
                 as an index rather than as two competing labels. */}
@@ -508,14 +525,11 @@ function GuideToc({ sections }: { sections: GuideSectionMeta[] }) {
 function GuideSection({
   children,
   id,
-  number,
-  title,
 }: {
   children: ReactNode;
-  id: string;
-  number: string;
-  title: string;
+  id: GuideSectionId;
 }) {
+  const { number, title } = GUIDE_SECTIONS[id];
   return (
     <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id={id}>
       <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">

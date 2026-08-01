@@ -16,6 +16,16 @@ const HISTORY = "src/components/workspace/HistoryPanel.tsx";
 const guide = readFileSync(GUIDE, "utf8");
 const history = readFileSync(HISTORY, "utf8");
 
+// The one map both the index and the article read their numbers and titles from
+// (M1). Extracted rather than matched file-wide so a count of ids or numbers
+// means the deck's own ten and nothing else.
+function guideSectionsBlock(): string {
+  const block = guide.match(/const GUIDE_SECTIONS = \{[\s\S]*?\n\} satisfies /)
+    ?.[0] ?? "";
+  assert.ok(block.length > 0, "expected to find GUIDE_SECTIONS");
+  return block;
+}
+
 describe("Guide composition — the mock's elements are present (g-guide-v1.html:12-21, :39-48)", () => {
   it("lays out the two-column article grid at the mock's exact measurements", () => {
     assert.match(
@@ -78,15 +88,23 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
   // sections (01-10)." The index and the article now read as one numbered
   // document — this inverts the earlier guard, which pinned the numbers OUT of
   // the index against g-guide-v1.html's unnumbered mock TOC.
+  //
+  // M1: the number and the title used to be declared twice — once in
+  // GUIDE_SECTIONS for the index, once at each <GuideSection> call site for the
+  // article — and nothing cross-checked the pairs. They agreed, but a probe
+  // showed a drifted call-site number rendering "06 Costs" in the index over a
+  // "09" heading with the suite green, because this test's own regex required
+  // `number: ".."` and never saw JSX `number=".."`. Both literals now come from
+  // the one map, which this pins in the only way that cannot rot: the numbers
+  // are read from GUIDE_SECTIONS, and the article is required to carry no
+  // number or title prop at all.
   it("numbers every TOC entry with its section's own number (§17c)", () => {
     const tocFunction = guide.match(/function GuideToc[\s\S]*?\n}\n/)?.[0] ?? "";
     assert.match(tocFunction, /\{section\.number\}/);
     assert.match(tocFunction, /\{section\.title\}/);
-    // One entry per numbered section, and the numbers are the article's own:
-    // GUIDE_SECTIONS is the single list both the index and the sections read.
     const numbers = Array.from(
-      guide.matchAll(/^\s*\{ id: "[^"]+", number: "(\d\d)"|number: "(\d\d)",$/gm),
-      (match) => match[1] ?? match[2],
+      guideSectionsBlock().matchAll(/number: "(\d\d)"/g),
+      (match) => match[1],
     );
     assert.deepEqual(
       numbers,
@@ -94,6 +112,17 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
       "GUIDE_SECTIONS must carry 01-10 in order",
     );
     assert.match(guide, /<GuideToc sections=\{GUIDE_SECTIONS\} \/>/);
+    // ONE source, structurally: every section call site names its id and
+    // nothing else, and GuideSection reads the rest out of the map. A restored
+    // literal on either prop fails here.
+    assert.doesNotMatch(guide, /<GuideSection[^>]*\bnumber=/);
+    assert.doesNotMatch(guide, /<GuideSection[^>]*\btitle=/);
+    assert.match(guide, /const \{ number, title \} = GUIDE_SECTIONS\[id\];/);
+    assert.equal(
+      (guide.match(/<GuideSection id="[a-z-]+">/g) ?? []).length,
+      10,
+      "every deck section renders from the map with no restated meta",
+    );
   });
 
   it("opens the article with the mock's ruled h1 — no icon, no eyebrow above it", () => {
@@ -218,9 +247,9 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     );
     // And it is not in the index: the TOC renders GUIDE_SECTIONS, which is the
     // deck's ten numbered sections and nothing else.
-    assert.doesNotMatch(guide, /id: "support"/);
+    assert.doesNotMatch(guideSectionsBlock(), /"support"/);
     assert.equal(
-      (guide.match(/^\s*\{ id: "|^\s*id: "/gm) ?? []).length,
+      (guideSectionsBlock().match(/^\s*"[a-z-]+": \{/gm) ?? []).length,
       10,
       "GUIDE_SECTIONS must hold exactly the deck's ten sections",
     );
