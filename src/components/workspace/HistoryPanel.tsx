@@ -208,7 +208,7 @@ export function HistoryPanel({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-hairline text-left text-xs font-semibold uppercase tracking-normal text-ink-muted">
+            <tr className="eyebrow border-b border-hairline text-left">
               <th className="py-2 pr-3">Market</th>
               <th className="py-2 pr-3">Side</th>
               <th className="py-2 pr-3">Confidence</th>
@@ -223,7 +223,7 @@ export function HistoryPanel({
             <tbody key={group.key}>
               <tr className="bg-sheet">
                 <th
-                  className="px-0 py-2 text-left text-xs font-semibold uppercase tracking-normal text-ink-muted"
+                  className="eyebrow px-0 py-2 text-left"
                   colSpan={8}
                 >
                   {group.label} · {group.items.length}{" "}
@@ -368,7 +368,7 @@ function StatBlock({ label, value }: { label: string; value: string }) {
       <p className="font-mono text-2xl font-semibold tabular-nums text-ink">
         {value}
       </p>
-      <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+      <p className="eyebrow">
         {label}
       </p>
     </div>

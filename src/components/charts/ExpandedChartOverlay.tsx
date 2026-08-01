@@ -142,7 +142,7 @@ export function ExpandedChartOverlay(
       ref={dialogRef}
       aria-labelledby={titleId}
       aria-modal="true"
-      className="fixed inset-0 z-40 flex h-[100dvh] w-[100dvw] flex-col bg-paper"
+      className="motion-fade-in fixed inset-0 z-40 flex h-[100dvh] w-[100dvw] flex-col bg-paper"
       role="dialog"
       onKeyDown={handleKeyDown}
     >

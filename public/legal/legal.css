@@ -151,6 +151,19 @@ footer p:last-child {
 }
 
 /*
+  The colophon line, named the same thing the app kit names it
+  (src/styles/index.css) so the static twin and the app cannot drift into two
+  treatments — and so the class the parking page already carried stops being a
+  class that styles nothing. The two values it already rendered at, inherited
+  from `footer` above; the margins stay `footer p`'s, because on the legal pages
+  this paragraph is followed by the Back link and needs the gap.
+*/
+.colophon {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+}
+
+/*
   Quiet legal-links row (F1/Finding 5) — the static twin's equivalent of
   the app's <LegalLinks />: muted and small, not the accent, underlined
   body-link style the generic `a` rule above sets for prose and the

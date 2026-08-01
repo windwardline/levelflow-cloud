@@ -71,7 +71,7 @@ export function SetupQualityReceipt(
   return (
     <div className="grid min-w-0 gap-0.5">
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <h3 className="eyebrow">
           Why this setup
         </h3>
         <HowThisWorksLink anchor="how-review-works" />
@@ -103,7 +103,7 @@ export function SetupQualityReceipt(
             key={row.label}
             className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 py-1.5 text-[13px] leading-5"
           >
-            <span className="min-w-[74px] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+            <span className="eyebrow min-w-[74px] shrink-0">
               {row.label}
             </span>
             <span className="min-w-0 flex-1">

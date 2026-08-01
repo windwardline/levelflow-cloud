@@ -34,7 +34,7 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
   const body = (
     <>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <p className="eyebrow">
           Development fund
         </p>
         {/* Spec §17c's box-on-box sweep: "a bordered sheet survives only where
@@ -49,7 +49,7 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+        <p className="eyebrow">
           What donations support
         </p>
         <h2 className="mt-1 text-lg font-semibold tracking-normal text-ink">

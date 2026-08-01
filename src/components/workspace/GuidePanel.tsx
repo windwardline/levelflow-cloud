@@ -555,7 +555,7 @@ function GuideToc({ sections }: { sections: typeof GUIDE_SECTIONS }) {
       aria-label="Guide sections"
       className="hidden lg:block sticky top-[89px] self-start border-r border-hairline pr-5"
     >
-      <p className="mb-2 text-xs font-semibold uppercase tracking-normal text-ink-muted">
+      <p className="eyebrow mb-2">
         Contents
       </p>
       <div className="grid gap-1">
@@ -588,7 +588,7 @@ function GuideSection({
   const { number, title } = GUIDE_SECTIONS[id];
   return (
     <section className="mt-6 scroll-mt-28 border-t border-hairline pt-6" id={id}>
-      <p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">
+      <p className="eyebrow">
         {number}
       </p>
       <h2 className="mt-1 text-xl font-semibold tracking-normal text-ink sm:text-2xl">

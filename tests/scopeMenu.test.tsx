@@ -638,7 +638,10 @@ describe("ScopeMenu sheet markup (source-pinned — see header comment)", () => 
   it("renders the sheet as an accessible modal dialog, full-screen", () => {
     assert.match(SOURCE, /role="dialog"/);
     assert.match(SOURCE, /aria-modal="true"/);
-    assert.match(SOURCE, /className="fixed inset-0 z-30 flex flex-col bg-sheet"/);
+    assert.match(
+      SOURCE,
+      /className="motion-fade-in fixed inset-0 z-30 flex flex-col bg-sheet"/,
+    );
   });
 
   it("titles the sheet with the same label prop the trigger button already uses", () => {
@@ -659,12 +662,15 @@ describe("ScopeMenu sheet markup (source-pinned — see header comment)", () => 
     assert.equal(calls.length, 2, "expected exactly one call per presentation");
   });
 
-  it("keeps the anchored popup's own container classes byte-identical to before Task 9", () => {
-    // Desktop (≥lg) is frozen — pin the exact pre-Task-9 string so any
-    // future edit to the sheet branch can never leak into the ≥lg one.
+  it("keeps the anchored popup's own container classes byte-identical to before Task 9, plus §8's fade", () => {
+    // Desktop (≥lg) is frozen — pin the exact string so any future edit to the
+    // sheet branch can never leak into the ≥lg one. Spec §8's "menu open/close"
+    // fade is the one addition since Task 9, and it is deliberately the same
+    // .motion-fade-in every other popup and the tab region take
+    // (tests/motion.test.ts), so a fade can never be introduced here alone.
     assert.match(
       SOURCE,
-      /className="scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"/,
+      /className="motion-fade-in scrolly fixed z-30 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-sheet py-1 shadow-lg"/,
     );
   });
 });

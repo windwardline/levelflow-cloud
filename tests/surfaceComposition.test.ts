@@ -143,7 +143,7 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     // retires elsewhere).
     assert.match(
       guide,
-      /<p className="text-xs font-semibold uppercase tracking-normal text-ink-muted">\s*\{number\}\s*<\/p>\s*<h2/,
+      /<p className="eyebrow">\s*\{number\}\s*<\/p>\s*<h2/,
     );
   });
 

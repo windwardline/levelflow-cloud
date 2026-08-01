@@ -321,7 +321,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   it("gives the footer the same tab-bar clearance the content wrapper reserves (F4 fix wave 2B)", () => {
     const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -354,7 +354,7 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // width no unit test looks at.
   it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
     const wrapperClassNames = APP_SOURCE.match(
-      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(
       wrapperClassNames.length > 0,
@@ -456,7 +456,33 @@ describe("desktop masthead composition (spec §16, source-pinned — see header 
       /text-xs font-semibold uppercase tracking-\[0\.12em\]/,
     );
     assert.match(desktopHeaderBlock, /text-ink border-b-2 border-accent pb-1/);
-    assert.match(desktopHeaderBlock, /text-ink-muted hover:text-ink/);
+    // group-hover since the button became the kit's 44px target and the type
+    // moved to an inner span: :hover never reaches a child, so a plain hover:
+    // here would leave most of that target dead to it.
+    assert.match(desktopHeaderBlock, /text-ink-muted group-hover:text-ink/);
+  });
+
+  it("holds the nav at the kit's 44px hit floor without moving a glyph (spec §9)", () => {
+    // The idiom .tertiary-link and .cpv-copy already use: grow the box to 44px,
+    // pull the extra height back out of the flow with a matching negative block
+    // margin. Both boxes centre on the same line, so the row's geometry and the
+    // underline's position are unchanged — the target is what grew.
+    assert.match(
+      desktopHeaderBlock,
+      /className="group -my-3\.5 inline-flex min-h-11 items-center"/,
+    );
+    // The underline is a border on the element that carries the type. On a 44px
+    // button it would sit 12px below the word, which is why the type is in a
+    // span and the border is on the span.
+    assert.match(
+      desktopHeaderBlock,
+      /<span\s+className=\{`text-xs font-semibold uppercase tracking-\[0\.12em\][\s\S]*?\}`\}\s*>\s*\{tab\.label\}\s*<\/span>/,
+    );
+    assert.doesNotMatch(
+      desktopHeaderBlock,
+      /<button[^>]*\n\s*className=\{`text-xs/,
+      "the 44px box must not be the element the underline hangs on",
+    );
   });
 
   it("kill-list: no greeting, no header ThemeToggle, no Help/Donate buttons, no icon-chip nav-button pills", () => {
@@ -818,7 +844,7 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
     // owns its gutters (m-scan-v3.html:29,32).
     assert.match(
       APP_SOURCE,
-      /className=\{isMobileViewport[\s\S]{0,400}\? "flex w-full min-h-0 flex-col overflow-hidden"/,
+      /className=\{isMobileViewport[\s\S]{0,400}\? "motion-fade-in flex w-full min-h-0 flex-col overflow-hidden"/,
     );
     assert.match(
       APP_SOURCE,
@@ -1087,7 +1113,7 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
     // eyebrow the scan rail beside it uses (a-desk-v3.html:218).
     assert.match(
       TRADES_RAIL_SOURCE,
-      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:font-display max-lg:text-\[19px\] max-lg:font-bold max-lg:normal-case max-lg:tracking-\[-0\.02em\] max-lg:text-ink">\s*Current trades\s*<\/h3>/,
+      /<h3 className="eyebrow max-lg:font-display max-lg:text-\[19px\] max-lg:font-bold max-lg:normal-case max-lg:tracking-\[-0\.02em\] max-lg:text-ink">\s*Current trades\s*<\/h3>/,
     );
   });
 
@@ -1312,7 +1338,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // The two scrolling wrapper branches are reached at ≥lg only now, and both
     // keep every utility the frozen desktop cascade is built from.
     const wrapperBranches = APP_SOURCE.match(
-      /\? "mx-auto w-full max-w-7xl [^"]*"\n\s*: "mx-auto max-w-7xl [^"]*"/,
+      /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
     assert.ok(wrapperBranches.length > 0, "expected the ≥lg wrapper branches");
     for (const branch of wrapperBranches.match(/"[^"]*"/g) ?? []) {

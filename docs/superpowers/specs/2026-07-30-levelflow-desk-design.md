@@ -510,3 +510,21 @@ control, the layout, or the data shows it, the sentence does not exist.
   avatar account menu — as small as possible while legible and usable
   (44px targets still bind). Desktop's §17c footer standard is unchanged
   at ≥lg.
+
+### §17h. The Levelflow mark (owner-chosen, 2026-08-01: "A")
+
+The level lines: a rounded-square tile carrying three horizontals from the
+app's own chart — target (ink, full width), entry (accent, full width),
+stop (ink at 45% opacity, shorter). Canonical geometry on a 32-grid:
+tile rx 7; lines x=7, heights 2.6, rx 1.3, at y 9 / 14.7 / 20.4; widths
+18 / 18 / 12. Fills come from the app's real tokens — the mark IS the
+palette, never approximated hexes. Tile per rendition: light = paper;
+dark = the dark --color-sheet (a tile equal to its surrounding paper is a
+tile with nothing under it — sheet is the app's own elevated-plane
+token); on the og card's paper ground the corner mark takes the same
+lesson lightward: sheet tile with a hairline edge, the app's card idiom.
+Lines are ink, entry is accent, in every rendition. It becomes the favicon set
+(SVG + PNG fallbacks + apple-touch), the manifest icons, the og-image's
+corner mark (the card itself stays editorial: wordmark, accent rule,
+"Market review — daily edition"), and replaces the borrowed
+windward-line-mark.svg on the 404 and legal pages.

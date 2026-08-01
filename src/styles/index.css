@@ -1,7 +1,7 @@
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/space-grotesk";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
 @import "tailwindcss";
 
 /*
@@ -50,6 +50,19 @@
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk Variable", "Space Grotesk", var(--font-sans);
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /*
+    Spec §8: "Interactive transitions 120-160ms ease-out." Tailwind's bare
+    `transition` utility — which is what every interactive element in this app
+    actually uses — resolves these two theme variables, and its own defaults are
+    150ms cubic-bezier(0.4, 0, 0.2, 1): inside the duration band but ease-IN-out,
+    so every hover and press eased in against the spec. Re-valued here rather
+    than paired with a duration/easing utility at each call site, so the kit has
+    one source for its motion and `transition` alone is already correct. 140ms is
+    the value the hand-written kit rules below already carry.
+  */
+  --default-transition-duration: 140ms;
+  --default-transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
 
 html[data-theme="dark"] {
@@ -159,6 +172,30 @@ html[data-theme="dark"] {
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--color-ink);
+  }
+
+  /*
+    The eyebrow — spec §4's "Eyebrow labels: small uppercase, letterspaced", and
+    the mock kit's own .eyebrow (docs/design/mockups/tokens.css:15). The app had
+    the casing, the weight and the muted colour, written out at nineteen call
+    sites as one identical string, and rode `tracking-normal` at every one of
+    them: letter-spacing 0, which is the one thing an uppercase eyebrow cannot
+    be. That is why this is a class and not a nineteenth copy of the string.
+
+    Size is 12px/16px rather than tokens.css's 11px on purpose: it is what every
+    eyebrow in the shipped app already measures, it is what the Desk mock draws
+    for its own labels (a-desk-v3.html:51), and the defect being fixed here is
+    the letterspacing, not the scale. Call sites keep overriding both with
+    utilities where a mock draws something else (the ladder's 10px below lg,
+    m-scan-v3.html:35) — utilities outrank this layer, which is the point.
+  */
+  .eyebrow {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
   }
 
   .terminal-panel {
@@ -296,6 +333,22 @@ html[data-theme="dark"] {
     transition: background-size 140ms ease-out;
   }
   .link-accent:hover, .link-accent[aria-current="true"] { background-size: 100% 2px; }
+
+  /*
+    Spec §8: "tab content changes fade 120ms". One shared class, not a fade per
+    surface: the tab content region (App.tsx, keyed on the active tab so the
+    animation re-runs on every change), the two popup menus and the expanded
+    chart dialog all take it, which is the set §8's "menu open/close, the expand
+    overlay" names. Opacity only — §8 grants a fade, and "nothing moves
+    untouched" rules out slides and choreography. Open only: these elements
+    unmount on close, so there is nothing left to animate out, and an exit
+    animation would be motion §8 does not ask for.
+  */
+  @keyframes lf-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .motion-fade-in { animation: lf-fade-in 120ms ease-out; }
 }
 
 :focus-visible {
@@ -317,6 +370,24 @@ html[data-theme="dark"] {
 */
 .secondary-button.min-h-10 {
   min-height: 44px;
+}
+
+/*
+  Spec §8's "nothing moves untouched": a theme swap is not an interaction with
+  any one element, so nothing should animate through it. Without this the kit's
+  own 140ms color transitions (both buttons, .tertiary-link, .cpv-copy, every
+  `transition` utility — including the theme control the reader just clicked)
+  trail the token re-valuation, and the page tears: the paper and the type snap
+  to the new palette while the interactive furniture crossfades behind them.
+  useThemePreference (src/App.tsx) sets this attribute on <html> for the two
+  frames a swap takes and removes it again. Outside every @layer for the same
+  reason the rule above is: `transition` is a utility, and utilities outrank the
+  components layer no matter how specific the selector there.
+*/
+html[data-theme-swapping] *,
+html[data-theme-swapping] ::before,
+html[data-theme-swapping] ::after {
+  transition: none !important;
 }
 
 @layer utilities {
@@ -363,7 +434,33 @@ html[data-theme="dark"] {
     color: #7d8a9b;
   }
 
+  /*
+    Spec §8: "prefers-reduced-motion collapses all motion to instant." Only the
+    transition half of that shipped with Stage 1 — every @keyframes in the bundle
+    (the tab/menu fade above, Tailwind's own spin) still ran at full length under
+    the setting, and a delay is motion the same way a duration is.
+  */
   @media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after { transition-duration: 0.01ms !important; }
+    *, ::before, ::after {
+      animation-delay: 0ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    /*
+      One exception, and it is not decoration. The spinner is the only thing that
+      says a Review / Scan / Send magic link request is still in flight: every
+      call site keeps its label text unchanged while it runs (AdvisorWorkspace,
+      MarketScanPanel, AuthScreen), so a frozen swirl would assert "idle" on a
+      button that is working. Restored at the utility's own 1s rather than
+      slowed, since changing the tempo would be a second, unasked-for motion
+      decision.
+    */
+    .animate-spin {
+      animation-duration: 1s !important;
+      animation-iteration-count: infinite !important;
+    }
   }
 }

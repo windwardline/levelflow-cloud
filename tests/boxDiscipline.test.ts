@@ -163,14 +163,43 @@ const SURVIVORS: Record<string, Survivor[]> = {
   ],
 };
 
+// .tsx AND the .ts files that hold class strings. src/components/mobileFrame.ts
+// is the pattern: §17g's six fixed-viewport surfaces share one frame, so its
+// three class strings live in a plain module rather than being repeated in six
+// components — and a box added there would have been a box on six surfaces that
+// this guard, walking .tsx only, could not see. Plain .ts modules that hold no
+// class strings (every lib/ file, the hooks) contribute nothing either way: they
+// have no literal a box idiom can match.
 function sourceFilesUnder(root: string): string[] {
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       return sourceFilesUnder(path);
     }
-    return entry.name.endsWith(".tsx") ? [path] : [];
+    if (entry.name.endsWith(".tsx")) {
+      return [path];
+    }
+    // A .ts file is in scope when it actually carries class strings, which is
+    // what makes it a styling module rather than logic. Read once here rather
+    // than filtered by name, so the next mobileFrame.ts is covered on the day it
+    // is written and nobody has to remember to add it.
+    return entry.name.endsWith(".ts") && carriesClassNames(path) ? [path] : [];
   });
+}
+
+// The two shapes a class string takes outside JSX: an exported constant a
+// component spreads into className, or a function returning one. Recognised by
+// the utilities themselves — a Tailwind layout/spacing/display utility in a
+// string literal — rather than by a `className` mention, since a shared frame
+// module never writes the attribute at all.
+const CLASS_STRING = /(?:^|\s)(?:flex|grid|block|hidden|absolute|fixed|relative|overflow-[a-z]|p[xytblr]?-|m[xytblr]?-|min-[hw]-|max-[hw]-|w-|h-|gap-|rounded|border|shadow|bg-|text-)[a-z0-9[\]./-]*(?=\s|$)/;
+
+function carriesClassNames(path: string): boolean {
+  return literals(readFileSync(path, "utf8")).some((literal) =>
+    // Two or more utilities: one word like "flex" can be prose or an enum value,
+    // a pair is a class list.
+    (literal.match(new RegExp(CLASS_STRING, "g")) ?? []).length >= 2
+  );
 }
 
 // A real scanner rather than tests/languageGuard.test.ts's regex, because this

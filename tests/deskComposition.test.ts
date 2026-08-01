@@ -408,7 +408,7 @@ describe("Why this setup — the mock's five rows (a-desk-v3.html:205-212)", () 
     );
     assert.match(
       receipt,
-      /className="min-w-\[74px\] shrink-0 text-xs font-semibold uppercase tracking-normal text-ink-muted"/,
+      /className="eyebrow min-w-\[74px\] shrink-0"/,
     );
   });
 
@@ -775,7 +775,7 @@ describe("scan rail composition — the mock's elements are present (a-desk-v3.h
     // desktop-only component.
     assert.match(
       rail,
-      /uppercase tracking-normal text-ink-muted">\s*Scan\s*</,
+      /className="eyebrow">\s*Scan\s*</,
     );
     assert.match(rail, /Scan now/);
     assert.doesNotMatch(rail, /max-lg:sr-only/);
@@ -963,7 +963,7 @@ describe("Current trades rail composition — the mock's elements are present (a
     // column beside two others.
     assert.match(
       tradesRail,
-      /<h3 className="text-xs font-semibold uppercase tracking-normal text-ink-muted max-lg:[^"]*">\s*Current trades\s*<\/h3>/,
+      /<h3 className="eyebrow max-lg:[^"]*">\s*Current trades\s*<\/h3>/,
     );
     // .rrhead (:217): one baseline-aligned row, heading opposite the stamp.
     // The window is 400 rather than 200 only because the heading's own class
