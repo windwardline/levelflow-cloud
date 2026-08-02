@@ -101,10 +101,16 @@ export function AdvisorWorkspace(
   }: AdvisorWorkspaceProps,
 ) {
   const [symbol, setSymbol] = useState<SupportedSymbol>("EURUSD");
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>(
-    profile.defaultTimeframe,
+  // Q1-#33: derived, not written by an effect. This used to be a chart-view state
+  // seeded from the profile, plus a has-the-reader-picked-one flag, plus an effect
+  // that re-wrote the state whenever the profile default changed and the flag was
+  // still false — three pieces and an extra render for one rule: the profile's
+  // default governs until the reader picks a view, and their pick stands after.
+  // null IS "not picked yet", so the rule is the expression below.
+  const [pickedTimeframe, setPickedTimeframe] = useState<ChartTimeframe | null>(
+    null,
   );
-  const [timeframeTouched, setTimeframeTouched] = useState(false);
+  const timeframe = pickedTimeframe ?? profile.defaultTimeframe;
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketNotice, setMarketNotice] = useState("Loading market context.");
@@ -173,12 +179,6 @@ export function AdvisorWorkspace(
   const confidenceMeta = setup
     ? buildConfidenceMeta(reviewedAt, setup.expiresAt ?? null)
     : "";
-
-  useEffect(() => {
-    if (!timeframeTouched) {
-      setTimeframe(profile.defaultTimeframe);
-    }
-  }, [profile.defaultTimeframe, timeframeTouched]);
 
   useEffect(() => {
     selectedSymbolRef.current = symbol;
@@ -389,8 +389,7 @@ export function AdvisorWorkspace(
   const scanDisabled = scanStatus === "scanning" || openScanSymbols.length === 0;
 
   function selectTimeframe(nextTimeframe: ChartTimeframe) {
-    setTimeframeTouched(true);
-    setTimeframe(nextTimeframe);
+    setPickedTimeframe(nextTimeframe);
   }
 
   // Tapping a qualifying market. Shared by both platforms: the stage (or, on
@@ -773,7 +772,12 @@ export function AdvisorWorkspace(
       <aside className="scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-[color-mix(in_srgb,var(--color-sheet)_55%,var(--color-paper))] lg:pl-4 lg:pr-4">
         <div className="shrink-0">
           <CurrentTradesRail
-            isActiveOnMobile={mobileView === "trades"}
+            // Q1-#31: false, not the live mobileView. This prop exists to
+            // re-stamp the rail's "as of" the moment the MOBILE Trades surface is
+            // shown, and its own docblock calls it irrelevant at ≥lg — but the
+            // ≥lg rail was reading it, so a mobile-only transition re-stamped the
+            // desktop rail's freshness line.
+            isActiveOnMobile={false}
             loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}

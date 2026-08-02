@@ -131,3 +131,84 @@ describe("useAuthSession browser-session marker (source-pinned — see header)",
     assert.match(source, /subscription\.unsubscribe\(\)/);
   });
 });
+
+// Q2-I9 and Q2-M5: the profile hook carried a state machine with no reader and
+// applied the theme on one of the three paths that set a profile.
+describe("useUserProfile state and theme paths (source-pinned — see header)", () => {
+  const source = readFileSync("src/hooks/useUserProfile.ts", "utf8");
+
+  it("keeps no state and returns no value that nothing reads", () => {
+    // Q2-I9: setStatus fired three times per save, re-rendering the whole App
+    // tree for a value App.tsx never destructured — and tests/mobileNav.test.ts
+    // already pins that ProfilePanel "no longer" takes a saveStatus prop. The
+    // same was true of `loading` and of the returned refreshProfile.
+    assert.doesNotMatch(source, /setStatus/);
+    assert.doesNotMatch(source, /\bstatus\b/);
+    assert.doesNotMatch(source, /setLoading/);
+    assert.match(source, /return \{\s*profile,\s*saveProfile,\s*\};/);
+  });
+
+  it("applies the loaded profile's theme on every path that sets a profile (Q2-M5)", () => {
+    // Three paths set a profile: the unconfigured-client early return, the
+    // success path, and the catch. Only the middle one called onThemeChange, so a
+    // reader whose profile load failed — or who ran without a configured client —
+    // kept whatever theme the previous render had, silently disagreeing with the
+    // profile the surface was showing.
+    const refresh = source.match(
+      /const refreshProfile = useCallback[\s\S]*?\n {2}\}, \[/,
+    )?.[0] ?? "";
+    assert.ok(refresh.length > 0, "expected refreshProfile");
+    // Three paths set a real profile, and all three go through applyProfile,
+    // which is the pair. The one bare setProfile left is setProfile(null) on the
+    // no-user path, which has no theme to apply.
+    assert.equal((refresh.match(/applyProfile\(/g) ?? []).length, 3, refresh);
+    assert.deepEqual(refresh.match(/setProfile\([^)]*\)/g), ["setProfile(null)"]);
+    assert.match(
+      source,
+      /const applyProfile = useCallback\(\s*\n\s*\(next: UserProfile\) => \{\s*\n\s*setProfile\(next\);\s*\n\s*onThemeChange\(next\.themePreference\);/,
+    );
+    assert.match(
+      refresh,
+      /if \(!supabase\) \{\s*applyProfile\(fallback\);\s*return;/,
+    );
+    assert.match(refresh, /\} catch \(error\) \{[\s\S]{0,200}applyProfile\(fallback\);/);
+  });
+});
+
+// Q2-M7 and Q1-#31: two props built from values that do not belong to the
+// surface reading them.
+describe("App and the trades rail pass only what the surface owns", () => {
+  const app = readFileSync("src/App.tsx", "utf8");
+  const stage = readFileSync(
+    "src/components/workspace/AdvisorWorkspace.tsx",
+    "utf8",
+  );
+
+  it("builds the Trades badge's clock once per setups change, not once per render (Q2-M7)", () => {
+    assert.match(
+      app,
+      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.setups, new Date\(\)\),\s*\n?\s*\[setupState\.setups\],\s*\n?\s*\);/,
+    );
+    assert.match(app, /tradeBadgeCount=\{tradeBadgeCount\}/);
+  });
+
+  it("never hands the ≥lg rail a mobile sub-view state (Q1-#31)", () => {
+    // isActiveOnMobile exists to re-stamp the rail's "as of" the moment the
+    // MOBILE Trades surface is shown; its own docblock calls it irrelevant at
+    // ≥lg. Passing the live mobileView there let a mobile-only transition
+    // re-stamp the desktop rail's freshness line.
+    const desktopCall = stage.match(
+      /<CurrentTradesRail\n(?![\s\S]{0,40}fixedFrame)[\s\S]*?\/>/,
+    )?.[0] ?? "";
+    assert.ok(desktopCall.length > 0, "expected the ≥lg rail call site");
+    assert.match(desktopCall, /isActiveOnMobile=\{false\}/);
+  });
+
+  it("derives the chart view from the profile default rather than writing it in an effect (Q1-#33)", () => {
+    assert.doesNotMatch(stage, /timeframeTouched/);
+    assert.match(
+      stage,
+      /const timeframe = pickedTimeframe \?\? profile\.defaultTimeframe;/,
+    );
+  });
+});

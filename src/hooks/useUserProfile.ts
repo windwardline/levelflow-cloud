@@ -36,22 +36,31 @@ export function useUserProfile(
   const [profile, setProfile] = useState<UserProfile | null>(
     () => (userId ? buildDefaultProfile(userId, email) : null),
   );
-  const [loading, setLoading] = useState(Boolean(userId));
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  // Q2-M5: a profile and its theme are one fact, so they are applied together.
+  // onThemeChange used to fire on the success path alone, while the two fallback
+  // paths below set a profile without it — so a reader whose load failed, or who
+  // ran without a configured client, kept whatever theme the previous render had
+  // while the surface showed a profile that said otherwise.
+  const applyProfile = useCallback(
+    (next: UserProfile) => {
+      setProfile(next);
+      onThemeChange(next.themePreference);
+    },
+    [onThemeChange],
+  );
 
   const refreshProfile = useCallback(async () => {
     if (!userId) {
       setProfile(null);
-      setLoading(false);
       return;
     }
 
     const fallback = buildDefaultProfile(userId, email);
-    setLoading(true);
 
     try {
       if (!supabase) {
-        setProfile(fallback);
+        applyProfile(fallback);
         return;
       }
 
@@ -67,18 +76,14 @@ export function useUserProfile(
         throw error;
       }
 
-      const nextProfile = data
-        ? rowToProfile(data as ProfileRow, fallback)
-        : fallback;
-      setProfile(nextProfile);
-      onThemeChange(nextProfile.themePreference);
+      applyProfile(
+        data ? rowToProfile(data as ProfileRow, fallback) : fallback,
+      );
     } catch (error) {
       console.error("[profile] load failed; showing defaults", error);
-      setProfile(fallback);
-    } finally {
-      setLoading(false);
+      applyProfile(fallback);
     }
-  }, [email, onThemeChange, userId]);
+  }, [applyProfile, email, userId]);
 
   useEffect(() => {
     refreshProfile();
@@ -97,7 +102,6 @@ export function useUserProfile(
         displayName: input.displayName.trim(),
       };
 
-      setStatus("saving");
       const { error } = await supabase.from("profiles").upsert({
         default_timeframe: nextProfile.defaultTimeframe,
         default_timezone: nextProfile.defaultTimezone,
@@ -109,23 +113,23 @@ export function useUserProfile(
       });
 
       if (error) {
-        setStatus("idle");
         throw error;
       }
 
-      setProfile(nextProfile);
-      onThemeChange(nextProfile.themePreference);
-      setStatus("saved");
+      applyProfile(nextProfile);
     },
-    [email, onThemeChange, userId],
+    [applyProfile, email, userId],
   );
 
+  // Q2-I9: two facts, both read. What used to ride along here was a
+  // "idle"|"saving"|"saved" machine that re-rendered the whole App tree three
+  // times per save for a value App.tsx never destructured — ProfilePanel's own
+  // saveStatus prop was deleted long before (tests/mobileNav.test.ts pins its
+  // absence) — plus a `loading` flag and a refreshProfile handle with no callers
+  // either.
   return {
-    loading,
     profile,
-    refreshProfile,
     saveProfile,
-    status,
   };
 }
 

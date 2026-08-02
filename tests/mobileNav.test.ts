@@ -689,9 +689,17 @@ describe("selecting a scan row no longer switches surfaces (source-pinned, §17e
   });
 
   it("CurrentTradesRail receives isActiveOnMobile so it can re-stamp its own freshness on the same transition (I2)", () => {
+    // The MOBILE rail only — Q1-#31: the ≥lg call site passes false, since the
+    // prop's whole job is the mobile Trades transition and a desktop rail has no
+    // business re-stamping its freshness line for one.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /<CurrentTradesRail\s+isActiveOnMobile=\{mobileView === "trades"\}/,
+      /<CurrentTradesRail\s+fixedFrame\s+isActiveOnMobile=\{mobileView === "trades"\}/,
+    );
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/isActiveOnMobile=\{mobileView === "trades"\}/g) ??
+        []).length,
+      1,
     );
   });
 });
@@ -1547,8 +1555,9 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     // invented — the mock's caution fill is a color, not a new claim.
     assert.match(
       APP_SOURCE,
-      /tradeBadgeCount=\{currentTradeBadgeCount\(setupState\.setups, new Date\(\)\)\}/,
+      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.setups, new Date\(\)\),/,
     );
+    assert.match(APP_SOURCE, /tradeBadgeCount=\{tradeBadgeCount\}/);
     assert.match(APP_SOURCE, /item\.value === "trades" && tradeBadgeCount > 0/);
     // The mock's own #fff would collapse on the dark theme's gold caution
     // (~1.9:1); text-paper re-values with the fill, per contrast.test.ts.

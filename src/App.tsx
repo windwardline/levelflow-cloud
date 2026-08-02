@@ -170,6 +170,15 @@ export default function App() {
     openInsights: (symbol) => { setInsightsSymbol(symbol ?? null); setActiveTab("history"); },
   }), []);
   const setupState = useTradeSetups();
+  // Q2-M7: one clock per setups change rather than a fresh Date on every render
+  // of the app shell. deriveTradeState ignores `now` today (see its `_now`), so
+  // the old per-render Date was only harmless by accident — the moment a real
+  // per-setup clock lands there, a value rebuilt on every render is a badge that
+  // can change for reasons unrelated to the trades it counts.
+  const tradeBadgeCount = useMemo(
+    () => currentTradeBadgeCount(setupState.setups, new Date()),
+    [setupState.setups],
+  );
   const profileState = useUserProfile(
     session?.user.id ?? null,
     session?.user.email ?? "",
@@ -489,7 +498,7 @@ export default function App() {
         <MobileTabBar
           active={activeMobileTab}
           onSelect={selectMobileTab}
-          tradeBadgeCount={currentTradeBadgeCount(setupState.setups, new Date())}
+          tradeBadgeCount={tradeBadgeCount}
         />
       </main>
     </WorkspaceNavContext.Provider>
@@ -581,7 +590,9 @@ function useThemePreference() {
     };
   }, [mode, resolvedMode]);
 
-  return { mode, resolvedMode, setMode };
+  // resolvedMode stays internal: it is what the effects above need, and nothing
+  // outside this hook reads it (Q2-I9's sibling).
+  return { mode, setMode };
 }
 
 const MOBILE_TAB_ITEMS: Array<
