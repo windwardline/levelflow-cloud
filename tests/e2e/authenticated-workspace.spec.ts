@@ -1135,7 +1135,18 @@ test("the expanded chart answers Escape and traps Tab after a click on the canva
   const close = dialog.getByRole("button", { name: "Close" });
   await expect(close).toBeFocused();
 
-  await dialog.locator("canvas").first().click({ position: { x: 40, y: 40 } });
+  // A raw pointer click at chart coordinates, not an element click:
+  // lightweight-charts stacks several canvases and Playwright's
+  // actionability check refuses to click one canvas through a sibling
+  // that intercepts the point (first live run, deploy 30768463655). The
+  // user's click has no such scruples — it lands on whatever is topmost,
+  // which is all this setup step needs: a real click inside the chart
+  // that steals focus out of the dialog's tab order.
+  const chartBox = await dialog.locator("canvas").first().boundingBox();
+  if (!chartBox) {
+    throw new Error("the expanded chart rendered no canvas to click");
+  }
+  await page.mouse.click(chartBox.x + 40, chartBox.y + 40);
   // The premise, asserted rather than assumed: if a future charting library
   // makes its canvas focusable, focus stays inside the dialog, the React
   // handler would have worked all along, and this guard has stopped guarding
