@@ -431,6 +431,7 @@ export default function App() {
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
+              loadFailed={setupState.loadFailed}
               mobileView={deskMobileView}
               onForceOutcomeRefresh={() => refreshSetups({ forceOutcomeRefresh: true })}
               onOpenRequestHandled={clearAdvisorRequest}
@@ -443,6 +444,7 @@ export default function App() {
           {activeTab === "history" ? (
             <HistoryPanel
               initialSymbol={insightsSymbol}
+              loadFailed={setupState.loadFailed}
               loading={setupState.loading}
               onInitialSymbolHandled={clearInsightsSymbol}
               setups={setupState.setups}

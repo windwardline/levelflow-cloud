@@ -21,6 +21,7 @@ import {
   formatSignedR,
   getOutcomeClassName,
   getSetupOutcome,
+  HISTORY_LOAD_FAILED_COPY,
   marketFilterValue,
   parseMarketFilterValue,
   type InsightsPeriodDays,
@@ -47,6 +48,7 @@ const DEFAULT_PERIOD_DAYS: InsightsPeriodDays = 30;
 
 export function HistoryPanel({
   initialSymbol,
+  loadFailed,
   loading,
   onInitialSymbolHandled,
   setups,
@@ -55,6 +57,9 @@ export function HistoryPanel({
   // Insights to one market. Adopted once per change so the user can still
   // clear the filter afterwards without it snapping back.
   initialSymbol?: string | null;
+  // Q2-C2: the history fetch failed, so an empty ledger is unknown rather than
+  // known-empty.
+  loadFailed: boolean;
   loading: boolean;
   // Called once the effect below has adopted initialSymbol, so the caller
   // (App) can clear it. HistoryPanel unmounts whenever its tab isn't
@@ -242,7 +247,7 @@ export function HistoryPanel({
       {!loading && setups.length === 0
         ? (
           <p className="mt-4 text-sm leading-6 text-ink-muted">
-            No setups have been logged yet.
+            {loadFailed ? HISTORY_LOAD_FAILED_COPY : "No setups have been logged yet."}
           </p>
         )
         : null}

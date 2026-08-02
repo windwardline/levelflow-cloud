@@ -51,6 +51,9 @@ export type DeskMobileView = "scan" | "trades";
 type AdvisorWorkspaceProps = {
   // Which of the Desk's two mobile surfaces is showing below lg (spec §17e).
   // Ignored at ≥lg, where the three-column shell renders instead.
+  // Q2-C2: threaded straight through to CurrentTradesRail, whose empty state is
+  // otherwise a factual claim about an account the fetch failed to read.
+  loadFailed: boolean;
   mobileView: DeskMobileView;
   // Bound to useTradeSetups' forceOutcomeRefresh path (App.tsx). Wired to
   // Desk-tab activation there and to CurrentTradesRail's own manual refresh
@@ -87,6 +90,7 @@ type AnalysisState = {
 
 export function AdvisorWorkspace(
   {
+    loadFailed,
     mobileView,
     onForceOutcomeRefresh,
     onOpenRequestHandled,
@@ -581,6 +585,7 @@ export function AdvisorWorkspace(
           <CurrentTradesRail
             fixedFrame
             isActiveOnMobile={mobileView === "trades"}
+            loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
             setups={setups}
@@ -758,6 +763,7 @@ export function AdvisorWorkspace(
         <div className="shrink-0">
           <CurrentTradesRail
             isActiveOnMobile={mobileView === "trades"}
+            loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
             setups={setups}

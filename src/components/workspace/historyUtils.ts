@@ -22,6 +22,20 @@ import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import type { ScanScope } from "./ScopeMenu";
 
+/**
+ * What the two history surfaces say when the fetch that feeds them failed
+ * (Q2-C2). One constant, because Insights and the Current trades rail read one
+ * request: a failure is one fact about one fetch, so it reads the same on both.
+ *
+ * The register is the scan rail's, already set by MarketScanPanel's "Market scan
+ * could not complete. Try again shortly." — name what did not happen, say what to
+ * do, stop. The reader never sees the provider's own words: a PostgREST timeout,
+ * an RLS denial and a dropped connection are one fact to someone looking at their
+ * trades, and the detail goes to the console for whoever is debugging it (§17f).
+ */
+export const HISTORY_LOAD_FAILED_COPY =
+  "Trade history could not load. Try again shortly.";
+
 export type HistoryGroupBy = "date" | "category" | "asset" | "status";
 export type HistorySort = "newest" | "oldest" | "confidence" | "asset";
 

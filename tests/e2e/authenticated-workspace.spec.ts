@@ -1432,6 +1432,31 @@ test("the current-trades rail is present with a working refresh control", async 
   await expect(emptyState.or(firstCard)).toBeVisible();
 });
 
+// Q2-C2: useTradeSetups computed an error string no consumer read, so a failed
+// history fetch arrived at both surfaces as `setups: []` — and each printed a
+// factual claim about an account it had just failed to read ("No current
+// trades.", "No setups have been logged yet."), with the Trades badge at zero.
+// The unit guards pin the wiring; this fails the real request and reads what the
+// two surfaces actually say, which is the only way to prove the claim is gone.
+test("a failed history fetch says so on both surfaces instead of claiming an empty account (Q2-C2)", async ({ page }) => {
+  await page.route("**/rest/v1/trade_setups*", (route) => route.abort());
+
+  await page.goto("/");
+
+  const rail = page.getByTestId("current-trades-rail");
+  await expect(rail).toBeVisible();
+  await expect(
+    rail.getByText("Trade history could not load. Try again shortly."),
+  ).toBeVisible();
+  await expect(rail.getByText("No current trades.")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await expect(
+    page.getByText("Trade history could not load. Try again shortly."),
+  ).toBeVisible();
+  await expect(page.getByText("No setups have been logged yet.")).toHaveCount(0);
+});
+
 test("the trades rail force-refreshes outcomes on every Desk/Insights re-navigation, not just on mount", async ({ page }) => {
   // useTradeSetups.refreshTradeOutcomes multiplexes through the same
   // trade-analyzer function every other analyzer action uses, distinguished

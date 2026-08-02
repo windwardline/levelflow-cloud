@@ -8,6 +8,7 @@ import {
   MOBILE_FRAME_SCROLL,
 } from "../mobileFrame";
 import { formatNumber } from "./advisorFormat";
+import { HISTORY_LOAD_FAILED_COPY } from "./historyUtils";
 import { useWorkspaceNav } from "./WorkspaceNav";
 
 export type CurrentTradesRailProps = {
@@ -24,6 +25,8 @@ export type CurrentTradesRailProps = {
   // effect is what actually re-fetches the data this rail renders; this
   // only keeps the "as of" display honest about when that last happened.
   isActiveOnMobile: boolean;
+  // Q2-C2: the history fetch failed, so no cards means unknown rather than none.
+  loadFailed: boolean;
   // The rail's own clock for computing state/age at render time — passed in
   // (AdvisorWorkspace's existing 60s clockNow tick) rather than started
   // here, so this component adds no timer of its own.
@@ -84,7 +87,6 @@ export function formatProgressR(value: number | null): string {
   return `${sign}${value.toFixed(1)}R`;
 }
 
-
 // The remaining ladder levels still relevant to watch, mono in the card
 // (spec §8). A level drops off once it's behind the trade: Entry once
 // filled, the bank-half target once its instruction has already fired
@@ -133,7 +135,7 @@ function formatLevel(value: number | string | null | undefined): string {
 }
 
 export function CurrentTradesRail(
-  { fixedFrame = false, isActiveOnMobile, now, onRefresh, setups }:
+  { fixedFrame = false, isActiveOnMobile, loadFailed, now, onRefresh, setups }:
     CurrentTradesRailProps,
 ) {
   // The mock's closing cross-link (a-desk-v3.html:231) rides the nav context
@@ -214,7 +216,11 @@ export function CurrentTradesRail(
   const body = (
     <>
       {cards.length === 0
-        ? <p className="mt-2 text-sm leading-6 text-ink-muted">No current trades.</p>
+        ? (
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            {loadFailed ? HISTORY_LOAD_FAILED_COPY : "No current trades."}
+          </p>
+        )
         : (
           <div className="mt-2.5 grid gap-2.5">
             {cards.map(({ setup, state }) => (
