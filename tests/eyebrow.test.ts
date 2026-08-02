@@ -77,7 +77,11 @@ describe("no eyebrow is written out at a call site any more", () => {
       "src/components/workspace/ConfidenceUnit.tsx": 1,
       "src/components/workspace/CurrentTradesRail.tsx": 1,
       "src/components/workspace/GuidePanel.tsx": 2,
-      "src/components/workspace/HistoryPanel.tsx": 3,
+      // Four since §18: the ledger's column head, its day-group head, the
+      // record band's stat label, and Attribution's slice-group label — which
+      // takes the kit class rather than inventing a fourth small-label
+      // treatment on the same surface.
+      "src/components/workspace/HistoryPanel.tsx": 4,
       "src/components/workspace/MarketScanPanel.tsx": 1,
       // One, not two, since §17m.5: the availability line stopped being an
       // eyebrow. At the kit's 12px/0.14em it spent a third of a 248px popup on

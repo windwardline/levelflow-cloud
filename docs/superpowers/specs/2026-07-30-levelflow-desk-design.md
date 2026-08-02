@@ -618,3 +618,33 @@ deploy pipeline's own live suite; real users' slates are clean.
 5. **Rail menu legibility**: smaller menu typography; closed-market
    availability lines must not truncate — "OPENS 6:00P SUN" reads in
    full even while the row is disabled.
+
+### §18. Attribution (hedge-mind pillar 1, owner-ordered 2026-08-01)
+
+Insights gains an **Attribution** section: the user's OWN resolved
+history sliced four ways, all computed from existing row data — no new
+columns, no engine involvement.
+
+- **Slices**: by asset class (the six); by side (Buy/Sell); by
+  confidence band (the existing CONFIDENCE_TIERS via the existing
+  buildConfidenceBands); by session block of the setup's creation hour
+  (UTC, named in the Guide's own session vocabulary: Asia 22:00-07:00,
+  Europe 07:00-13:00, US 13:00-22:00 — three blocks, hour boundaries
+  stated here as law).
+- **Per slice row**: label · resolved count · money-positive %
+  (classifyWinLoss through the one shared helper — the drift-guard map
+  gains the new call site consciously) · net R where every resolved row
+  in the slice recorded a realizedR, the em dash otherwise. "Learning"
+  replaces the percentage below 3 resolved — the record band's own
+  honesty pattern, threshold stated here as law.
+- **Composition**: flat rows under an "Attribution" h2 below the ledger
+  — hairlines only (box discipline), the ledger's mono numerals, no
+  narration (§17f: every string is a label). Desktop: after the table
+  inside the frame's scroll region. Mobile §17g: same content in the
+  Insights frame's scroll region below the table. Empty history renders
+  the section with its four slice groups all "Learning" — the section
+  never hides (its presence teaches what will accrue).
+- **Filters do not apply**: Attribution always reads the FULL resolved
+  history, not the filtered view — the section answers "what works",
+  not "what am I looking at" (stated so nobody wires the filters in
+  later and calls it a fix).

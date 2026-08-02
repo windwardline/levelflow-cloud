@@ -910,10 +910,22 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   for (const filter of ["Market", "Status", "Period"]) {
     await expect(page.getByLabel(filter, { exact: true })).toBeVisible();
   }
+  // Spec §18/§17g: Attribution is the same one section, riding the same one
+  // scroll region as the ledger — proved by locating it as a descendant of the
+  // region rather than merely somewhere on the page, which is what would still
+  // pass if a phone-only copy of it had been built outside the frame.
+  const mobileAttribution = page.getByTestId("mobile-insights-scroll")
+    .getByTestId("attribution");
+  await expect(mobileAttribution).toBeVisible();
+  for (const group of ["Asset class", "Side", "Confidence", "Session"]) {
+    await expect(mobileAttribution.getByText(group, { exact: true }))
+      .toBeVisible();
+  }
   // Insights is where a document-level horizontal overflow would actually
   // start: its ledger is the app's one wide (min-w) table, now flat inside a
-  // px-4 scroll region. The REGION x-scrolling is by design on a phone; the
-  // DOCUMENT doing so is the §17g defect this pins.
+  // px-4 scroll region, with Attribution's own label/figures row beneath it.
+  // The REGION x-scrolling is by design on a phone; the DOCUMENT doing so is
+  // the §17g defect this pins.
   const insightsHorizontalOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth -
     document.documentElement.clientWidth
@@ -1501,6 +1513,20 @@ test("Insights renders the setup ledger table, and no below-table blurb", async 
     page.getByText("Every setup Levelflow generates is saved here"),
   ).toHaveCount(0);
   await expect(page.getByText("taken or not")).toHaveCount(0);
+
+  // Spec §18: Attribution sits below the ledger with its four slice groups,
+  // and it renders whatever the history holds — including nothing, so this
+  // needs no setup of its own. Scoped to the section: two of its four group
+  // labels ("Side", "Confidence") have exact twins in the ledger's own column
+  // headers a few hundred pixels above, so a page-wide locator would be
+  // ambiguous rather than wrong — the §17m.3 lesson, applied before it bites.
+  const attribution = page.getByTestId("attribution");
+  await expect(
+    attribution.getByRole("heading", { name: "Attribution", exact: true }),
+  ).toBeVisible();
+  for (const group of ["Asset class", "Side", "Confidence", "Session"]) {
+    await expect(attribution.getByText(group, { exact: true })).toBeVisible();
+  }
 });
 
 test("a qualifying market scan persists into Insights, not just onto the scan rail", async ({ page }) => {

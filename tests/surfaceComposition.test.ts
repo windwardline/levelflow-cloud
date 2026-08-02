@@ -410,3 +410,132 @@ describe("Insights composition — the kill list is absent (spec §16)", () => {
     assert.equal(noticeBlock, "mt-4 text-sm leading-6 text-ink-muted");
   });
 });
+
+// Spec §18: "flat rows under an 'Attribution' h2 below the ledger — hairlines
+// only (box discipline), the ledger's mono numerals, no narration (§17f: every
+// string is a label)." Both directions, as every composition guard here does:
+// the section is present and placed in both compositions, and it draws none of
+// the shapes §16/§17c swept off this surface.
+function attributionBlock(): string {
+  const block = history.match(
+    /<section className="[^"]*" data-testid="attribution">[\s\S]*?<\/section>/,
+  )?.[0] ?? "";
+  assert.ok(block.length > 0, "expected to find the Attribution section");
+  return block;
+}
+
+describe("Attribution composition — the section is present (spec §18)", () => {
+  it("titles the section with an h2 in the surface's own heading treatment, one step under its h1", () => {
+    assert.match(
+      history,
+      /<h2 className="text-xl font-semibold tracking-normal text-ink">\s*Attribution\s*<\/h2>/,
+    );
+    // The h1 above it keeps the larger step, so the hierarchy is real rather
+    // than two headings at one size.
+    assert.match(
+      history,
+      /<h1 className="text-2xl font-semibold tracking-normal text-ink">/,
+    );
+  });
+
+  it("renders every slice group the aggregator returns, label and rows alike", () => {
+    const block = attributionBlock();
+    assert.match(block, /\{attributionGroups\.map\(\(group\) => \(/);
+    assert.match(block, /\{group\.label\}/);
+    assert.match(block, /\{group\.rows\.map\(\(row\) => \(/);
+    assert.match(block, /\{row\.label\}/);
+  });
+
+  it("renders each row's three figures in the ledger's mono numerals", () => {
+    const block = attributionBlock();
+    assert.match(block, /font-mono text-sm tabular-nums text-ink/);
+    assert.match(block, /\{row\.resolved\}/);
+    // The record band's own honesty pattern for too little evidence, and the
+    // em dash every absent figure on this surface already renders.
+    assert.match(
+      block,
+      /\{row\.moneyPositivePercent === null\s*\? "Learning"\s*: `\$\{row\.moneyPositivePercent\}%`\}/,
+    );
+    assert.match(
+      block,
+      /\{row\.netR === null \? "—" : formatSignedR\(row\.netR\)\}/,
+    );
+  });
+
+  it("reads the full row set, never the filtered view (spec §18, stated so nobody wires the filters in later)", () => {
+    assert.match(history, /const attributionGroups = buildAttribution\(setups\);/);
+    assert.doesNotMatch(history, /buildAttribution\(filteredSetups\)/);
+    assert.doesNotMatch(history, /buildAttribution\(groupedSetups\)/);
+  });
+
+  it("places the one section in both compositions — §17g parity, not a second copy", () => {
+    // Built once as a value, so the two branches place the same element.
+    assert.equal(
+      (history.match(/const attributionSection = \(/g) ?? []).length,
+      1,
+    );
+    assert.equal((history.match(/\{attributionSection\}/g) ?? []).length, 2);
+    // Below lg: inside the Insights frame's scroll region, after the ledger.
+    assert.match(
+      history,
+      /data-testid="mobile-insights-scroll"\s*>\s*\{ledger\}\s*\{attributionSection\}/,
+    );
+    // At ≥lg: inside the one surviving table frame, after the ledger.
+    assert.match(
+      history,
+      /<div className="terminal-panel p-3 sm:p-4">\s*\{ledger\}\s*\{attributionSection\}/,
+    );
+  });
+});
+
+describe("Attribution composition — the section draws no box and says nothing (spec §18, §17f)", () => {
+  it("adds no bordered sheet of its own — the frame it sits in is the only one on the surface", () => {
+    const block = attributionBlock();
+    // Hairlines only: single-edge rules separate, a perimeter groups, and §17c
+    // allows exactly one perimeter here (the table frame, which already
+    // exists). tests/boxDiscipline.test.ts enforces the same rule app-wide;
+    // this pins it on the block itself so a regression names this section.
+    assert.doesNotMatch(block, /terminal-panel/);
+    assert.doesNotMatch(block, /\brounded/);
+    assert.doesNotMatch(block, /(?:^|\s)(?:[a-z-]+:)*border(?:-\[[^\]]+\]|-\d+)?(?=\s|")/);
+    assert.doesNotMatch(block, /(?:^|\s)(?:[a-z-]+:)*(?:ring|outline)(?:-\d+)?(?=\s|")/);
+    assert.doesNotMatch(block, /\bshadow-/);
+    // No fill either — a tinted panel is the same passive grouping by another
+    // means, and the ledger's own day-group heading is the only bg- on this
+    // surface.
+    assert.doesNotMatch(block, /\bbg-/);
+    // And the file-wide count is unchanged by this section landing.
+    assert.equal((history.match(/terminal-panel/g) ?? []).length, 1);
+  });
+
+  it("carries no copy but its own title — no caption, no note, no column headers", () => {
+    const block = attributionBlock();
+    // Every string the section renders, with class lists, keys and the testid
+    // stripped first: the two value words the figures fall back to, and
+    // nothing else. A caption or a column header would land in this list.
+    const withoutAttributes = block.replace(
+      /\s(?:className|data-testid|key)=(?:"[^"]*"|\{[^{}]*\})/g,
+      "",
+    );
+    assert.deepEqual(
+      Array.from(withoutAttributes.matchAll(/"([^"]*)"/g), (match) => match[1]),
+      ["Learning", "—"],
+    );
+    // And the one piece of JSX text in the whole section is its own heading:
+    // every other word on screen is a label the aggregator supplies.
+    assert.deepEqual(
+      Array.from(
+        withoutAttributes.matchAll(/>\s*([A-Za-z][^<>{}]*?)\s*</g),
+        (match) => match[1],
+      ),
+      ["Attribution"],
+    );
+    // The muted prose treatment this surface uses for its two empty-state
+    // sentences appears nowhere in the section — there is no sentence in it.
+    assert.doesNotMatch(block, /text-ink-muted/);
+    // No table, so no column headers to caption in the first place: the
+    // ledger's own eight headers stay the only ones on the surface
+    // (tests/historyPanel.test.tsx pins that list).
+    assert.doesNotMatch(block, /<t[hdr]\b/);
+  });
+});
