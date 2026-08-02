@@ -1,0 +1,227 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+import {
+  NO_BROKER_SELECTION,
+  brokerSelectionProblem,
+  buildDefaultProfile,
+  coerceBrokerSelection,
+  type BrokerSelection,
+} from "../src/lib/profile.ts";
+import { PROGRAM_LINE_IDS } from "../src/lib/broker/programs.ts";
+
+// Spec §19g. The migration lands once, in wave 1, carrying every column both
+// sections need. What CI can check is that the file and the baseline schema agree
+// and that the write path refuses what the columns would refuse; the deployed
+// schema is verified live, against the real database, before ship.
+
+const MIGRATION = "supabase/migrations/20260803000000_broker_program_profile.sql";
+const migration = readFileSync(MIGRATION, "utf8");
+const initSql = readFileSync("supabase/init.sql", "utf8");
+
+const COLUMNS = [
+  "broker_id text",
+  "broker_program_line text",
+  "broker_account_size numeric(14,2)",
+  "broker_stage text",
+  "broker_risk_percent numeric(4,2)",
+  "broker_drawdown_tier text",
+];
+
+const CONSTRAINTS = [
+  "profiles_broker_id_valid",
+  "profiles_broker_program_line_valid",
+  "profiles_broker_stage_valid",
+  "profiles_broker_account_size_positive",
+  "profiles_broker_risk_percent_range",
+  "profiles_broker_selection_coherent",
+];
+
+describe("§19g — the migration and the baseline schema agree", () => {
+  it("adds all six columns, every one of them nullable with a null default", () => {
+    for (const column of COLUMNS) {
+      assert.ok(
+        migration.includes(`add column if not exists ${column}`),
+        `${column} missing from the migration`,
+      );
+      assert.ok(initSql.includes(column), `${column} missing from init.sql`);
+    }
+    // A no-op for every existing profile: no NOT NULL, no DEFAULT, no backfill.
+    const columnBlock = migration.match(/add column if not exists[\s\S]*?;/)![0];
+    assert.doesNotMatch(columnBlock, /\bnot null\b/i);
+    assert.doesNotMatch(columnBlock, /\bdefault\b/i);
+    assert.doesNotMatch(migration, /\bupdate\s+public\.profiles\b/i);
+  });
+
+  it("carries all six constraints in both places", () => {
+    for (const constraint of CONSTRAINTS) {
+      assert.ok(migration.includes(constraint), `${constraint} missing from migration`);
+      assert.ok(initSql.includes(constraint), `${constraint} missing from init.sql`);
+    }
+  });
+
+  it("names every shipped program line in the column domain, and nothing else", () => {
+    const domain = migration.match(
+      /add constraint profiles_broker_program_line_valid[\s\S]*?\)\)/,
+    )![0];
+    for (const line of PROGRAM_LINE_IDS) {
+      assert.ok(domain.includes(`'${line}'`), `${line} missing from the domain`);
+    }
+    assert.equal((domain.match(/'/g) ?? []).length / 2, PROGRAM_LINE_IDS.length);
+    for (const rejected of ["classic", "track"]) {
+      assert.ok(!domain.includes(`'${rejected}'`), `${rejected} must not be a domain value`);
+    }
+  });
+
+  it("exempts the drawdown tier from the coherence constraint's non-null half", () => {
+    const coherent = migration.match(
+      /add constraint profiles_broker_selection_coherent[\s\S]*?\n    \);/,
+    )![0];
+    // Both halves name the tier on the all-null side; only the all-null side does.
+    const halves = coherent.split("or (broker_id is not null");
+    assert.ok(halves[0].includes("broker_drawdown_tier is null"));
+    assert.ok(!halves[1].includes("broker_drawdown_tier"));
+  });
+
+  it("leaves the ladders and the tier lists to the data module, not to SQL", () => {
+    // Duplicating them in check constraints would let them drift from the module
+    // CI pins.
+    assert.doesNotMatch(migration, /5000|150000|500000/);
+    assert.doesNotMatch(migration, /'3-4'|'2\.5-8'/);
+  });
+});
+
+describe("§19g — the write path rejects what it cannot size", () => {
+  const valid: BrokerSelection = {
+    brokerAccountSize: 100_000,
+    brokerDrawdownTier: "4-6",
+    brokerId: "e8",
+    brokerProgramLine: "one",
+    brokerRiskPercent: 0.5,
+    brokerStage: "challenge",
+  };
+
+  it("defaults a fresh profile to None — six nulls, no stored selection", () => {
+    const profile = buildDefaultProfile("id", "reader@example.com");
+    assert.equal(profile.brokerId, null);
+    assert.equal(profile.brokerProgramLine, null);
+    assert.equal(profile.brokerAccountSize, null);
+    assert.equal(profile.brokerStage, null);
+    assert.equal(profile.brokerRiskPercent, null);
+    assert.equal(profile.brokerDrawdownTier, null);
+    assert.equal(brokerSelectionProblem(profile), null);
+  });
+
+  it("accepts a program the user could have bought", () => {
+    assert.equal(brokerSelectionProblem(valid), null);
+    assert.equal(
+      brokerSelectionProblem({
+        ...valid,
+        brokerProgramLine: "signature_futures",
+        brokerAccountSize: 150_000,
+        brokerDrawdownTier: null,
+      }),
+      null,
+    );
+  });
+
+  it("rejects an off-ladder account size rather than accepting and ignoring it", () => {
+    // $150,000 is Pro's tier and not E8 One's.
+    const problem = brokerSelectionProblem({ ...valid, brokerAccountSize: 150_000 });
+    assert.match(problem ?? "", /not on one's ladder/);
+    assert.equal(
+      brokerSelectionProblem({
+        ...valid,
+        brokerProgramLine: "pro_forex",
+        brokerAccountSize: 150_000,
+        brokerDrawdownTier: "2.5-8",
+      }),
+      null,
+    );
+  });
+
+  it("rejects an off-domain drawdown tier, and any tier at all on a preset line", () => {
+    assert.match(
+      brokerSelectionProblem({ ...valid, brokerDrawdownTier: "2.5-8" }) ?? "",
+      /not one of one's/,
+    );
+    assert.match(
+      brokerSelectionProblem({
+        ...valid,
+        brokerProgramLine: "zero",
+        brokerAccountSize: 50_000,
+        brokerDrawdownTier: "3-4",
+      }) ?? "",
+      /no drawdown tier to select/,
+    );
+    // And requires one on a customizable line.
+    assert.match(
+      brokerSelectionProblem({ ...valid, brokerDrawdownTier: null }) ?? "",
+      /not one of one's/,
+    );
+  });
+
+  it("rejects a partial write — the coherence constraint, in TypeScript", () => {
+    assert.match(
+      brokerSelectionProblem({ ...valid, brokerStage: null }) ?? "",
+      /unknown stage/,
+    );
+    assert.match(
+      brokerSelectionProblem({ ...NO_BROKER_SELECTION, brokerProgramLine: "one" }) ?? "",
+      /unknown broker/,
+    );
+  });
+
+  it("rejects a risk percent off the published band", () => {
+    for (const risk of [0, 0.05, 0.07, 1.55, 2]) {
+      assert.ok(
+        brokerSelectionProblem({ ...valid, brokerRiskPercent: risk }),
+        `${risk} must be refused`,
+      );
+    }
+    for (const risk of [0.1, 0.5, 1.5]) {
+      assert.equal(brokerSelectionProblem({ ...valid, brokerRiskPercent: risk }), null);
+    }
+  });
+
+  it("falls back to None on load rather than rendering a selection it cannot size", () => {
+    const coerced = coerceBrokerSelection({ ...valid, brokerAccountSize: 42 });
+    assert.ok(coerced.problem);
+    assert.deepEqual(coerced.selection, NO_BROKER_SELECTION);
+    assert.deepEqual(coerceBrokerSelection(valid).selection, valid);
+  });
+});
+
+describe("§19g — every save carries the selection", () => {
+  const hook = readFileSync("src/hooks/useUserProfile.ts", "utf8");
+  const panel = readFileSync("src/components/workspace/ProfilePanel.tsx", "utf8");
+
+  it("selects and upserts all six columns", () => {
+    for (const column of [
+      "broker_id",
+      "broker_program_line",
+      "broker_account_size",
+      "broker_stage",
+      "broker_risk_percent",
+      "broker_drawdown_tier",
+    ]) {
+      assert.ok(hook.includes(column), `${column} missing from the hook`);
+    }
+    assert.match(hook, /broker_account_size: nextProfile\.brokerAccountSize/);
+  });
+
+  it("throws on a rejected selection instead of writing part of it", () => {
+    assert.match(
+      hook,
+      /const problem = brokerSelectionProblem\(nextProfile\);\s*if \(problem\) \{\s*throw new Error\(/,
+    );
+  });
+
+  it("logs a coerced load rather than swallowing it", () => {
+    assert.match(hook, /console\.error\("\[profile\] broker selection ignored", problem\)/);
+  });
+
+  it("rides the selection along on a theme-only save", () => {
+    assert.match(panel, /\.\.\.brokerSelectionOf\(profile\),\s*defaultTimeframe:/);
+  });
+});

@@ -33,6 +33,15 @@ create table if not exists public.profiles (
   default_timeframe text not null default '1hour',
   theme_preference text not null default 'system',
   preferred_session text not null default 'any',
+  -- Spec §19g: the broker program selection, so a fresh provision matches a
+  -- migrated one. All six nullable with null defaults — None is the absence of a
+  -- selection, not a stored value.
+  broker_id text,
+  broker_program_line text,
+  broker_account_size numeric(14,2),
+  broker_stage text,
+  broker_risk_percent numeric(4,2),
+  broker_drawdown_tier text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint profiles_default_timezone_us_valid check (
@@ -52,7 +61,25 @@ create table if not exists public.profiles (
   ),
   constraint profiles_default_timeframe_valid check (default_timeframe in ('1min', '5min', '15min', '1hour', '4hour', '1day')),
   constraint profiles_theme_preference_valid check (theme_preference in ('light', 'dark', 'system')),
-  constraint profiles_preferred_session_valid check (preferred_session in ('any', 'asia', 'europe', 'north_america', 'australia'))
+  constraint profiles_preferred_session_valid check (preferred_session in ('any', 'asia', 'europe', 'north_america', 'australia')),
+  constraint profiles_broker_id_valid check (broker_id is null or broker_id in ('e8')),
+  constraint profiles_broker_program_line_valid check (broker_program_line is null or broker_program_line in (
+    'one', 'one_crypto', 'pro_forex', 'pro_crypto',
+    'signature_forex', 'signature_crypto', 'signature_futures',
+    'zero', 'zero_futures_starter', 'zero_futures_max')),
+  constraint profiles_broker_stage_valid check (broker_stage is null or broker_stage in ('challenge', 'performance')),
+  constraint profiles_broker_account_size_positive check (broker_account_size is null or broker_account_size > 0),
+  constraint profiles_broker_risk_percent_range check (broker_risk_percent is null or (broker_risk_percent >= 0.10 and broker_risk_percent <= 1.50)),
+  -- broker_drawdown_tier is exempt from the non-null half: it is meaningful only
+  -- on the four customizable program lines and must be null on the other six.
+  constraint profiles_broker_selection_coherent check (
+    (broker_id is null and broker_program_line is null
+      and broker_account_size is null and broker_stage is null
+      and broker_risk_percent is null and broker_drawdown_tier is null)
+    or (broker_id is not null and broker_program_line is not null
+      and broker_account_size is not null and broker_stage is not null
+      and broker_risk_percent is not null)
+  )
 );
 
 create table if not exists public.trade_setups (

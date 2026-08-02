@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
-import type { ThemeMode, UserProfile } from "../../lib/profile";
+import type { BrokerSelection, ThemeMode, UserProfile } from "../../lib/profile";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -41,7 +41,7 @@ type ProfilePanelProps = {
       | "displayName"
       | "preferredSession"
       | "themePreference"
-    >,
+    > & BrokerSelection,
   ) => Promise<void>;
   onSignOut: () => void;
   onThemeChange: (mode: ThemeMode) => void;
@@ -69,11 +69,12 @@ export function ProfilePanel({
   // persists it immediately, reusing useUserProfile.saveProfile exactly as the
   // old Preferences form did, just from a different trigger. The other four
   // saved fields ride along unchanged so a theme-only save can never reset
-  // them.
+  // them — the broker program selection (spec §19g) included.
   function handleThemeChange(mode: ThemeMode) {
     onThemeChange(mode);
     setThemeSaveFailed(false);
     onSave({
+      ...brokerSelectionOf(profile),
       defaultTimeframe: profile.defaultTimeframe,
       defaultTimezone: profile.defaultTimezone,
       displayName: profile.displayName,
@@ -261,6 +262,19 @@ function ProfileDetailRow({ label, value }: { label: string; value: string }) {
       </span>
     </div>
   );
+}
+
+// The six broker columns, read off the profile so every save carries them
+// whether or not it is the broker row doing the saving (§19g).
+function brokerSelectionOf(profile: UserProfile): BrokerSelection {
+  return {
+    brokerAccountSize: profile.brokerAccountSize,
+    brokerDrawdownTier: profile.brokerDrawdownTier,
+    brokerId: profile.brokerId,
+    brokerProgramLine: profile.brokerProgramLine,
+    brokerRiskPercent: profile.brokerRiskPercent,
+    brokerStage: profile.brokerStage,
+  };
 }
 
 function formatMemberSince(value: string) {

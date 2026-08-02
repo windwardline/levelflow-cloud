@@ -1,3 +1,10 @@
+import {
+  RISK_PERCENT_OPTIONS,
+  getProgramLine,
+  isProgramLine,
+  isStage,
+} from "./broker/programs";
+import type { ProgramLine, Stage } from "./broker/types";
 import type { ChartTimeframe } from "./marketData";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -16,7 +23,104 @@ export type UserProfile = {
   id: string;
   preferredSession: PreferredSession;
   themePreference: ThemeMode;
+  // Spec §19g: the broker program selection, six columns on profiles. Default is
+  // None — every field null — and the feature is fully dormant until a program is
+  // chosen.
+  brokerId: "e8" | null;
+  brokerProgramLine: ProgramLine | null;
+  brokerAccountSize: number | null;
+  brokerStage: Stage | null;
+  brokerRiskPercent: number | null;
+  brokerDrawdownTier: string | null;
 };
+
+export type BrokerSelection = Pick<
+  UserProfile,
+  | "brokerAccountSize"
+  | "brokerDrawdownTier"
+  | "brokerId"
+  | "brokerProgramLine"
+  | "brokerRiskPercent"
+  | "brokerStage"
+>;
+
+/** None is the absence of a selection, not a stored value (§19g). */
+export const NO_BROKER_SELECTION: BrokerSelection = {
+  brokerAccountSize: null,
+  brokerDrawdownTier: null,
+  brokerId: null,
+  brokerProgramLine: null,
+  brokerRiskPercent: null,
+  brokerStage: null,
+};
+
+/**
+ * Why this selection is not a program the user could have bought, or null when it
+ * is. The account size's membership in the selected program's ladder and the
+ * tier's membership in its domain are enforced here rather than in SQL —
+ * duplicating the ladders in check constraints would let them drift from the data
+ * module CI pins (§19g).
+ *
+ * The write path rejects on a non-null return; it never accepts and silently
+ * ignores an off-ladder size or an off-domain tier.
+ */
+export function brokerSelectionProblem(selection: BrokerSelection): string | null {
+  const nulls = Object.values(selection).filter((value) => value === null).length;
+  if (nulls === 6) {
+    return null;
+  }
+  if (selection.brokerId !== "e8") {
+    return `unknown broker ${String(selection.brokerId)}`;
+  }
+  if (!isProgramLine(selection.brokerProgramLine)) {
+    return `unknown program line ${String(selection.brokerProgramLine)}`;
+  }
+  const program = getProgramLine(selection.brokerProgramLine)!;
+  if (
+    typeof selection.brokerAccountSize !== "number" ||
+    !program.accountSizes.includes(selection.brokerAccountSize)
+  ) {
+    return `account size ${String(selection.brokerAccountSize)} is not on ${program.line}'s ladder`;
+  }
+  if (!isStage(selection.brokerStage)) {
+    return `unknown stage ${String(selection.brokerStage)}`;
+  }
+  if (
+    typeof selection.brokerRiskPercent !== "number" ||
+    !RISK_PERCENT_OPTIONS.includes(selection.brokerRiskPercent)
+  ) {
+    return `risk per trade ${String(selection.brokerRiskPercent)} is off the published band`;
+  }
+  const tiers = program.drawdownTiers;
+  if (tiers === null) {
+    return selection.brokerDrawdownTier === null
+      ? null
+      : `${program.line} has no drawdown tier to select`;
+  }
+  return selection.brokerDrawdownTier !== null &&
+      tiers.includes(selection.brokerDrawdownTier)
+    ? null
+    : `drawdown tier ${String(selection.brokerDrawdownTier)} is not one of ${program.line}'s`;
+}
+
+/**
+ * The load path's half: a stored row that does not validate falls back to None
+ * rather than rendering a selection the data modules cannot size. The caller logs
+ * the reason — the constraints and the write path both prevent this, so reaching
+ * it is an anomaly worth seeing in the console.
+ */
+export function coerceBrokerSelection(
+  selection: BrokerSelection,
+): { problem: string | null; selection: BrokerSelection } {
+  const problem = brokerSelectionProblem(selection);
+  return { problem, selection: problem ? NO_BROKER_SELECTION : selection };
+}
+
+export function selectedProgram(profile: BrokerSelection) {
+  return profile.brokerProgramLine === null
+    ? null
+    : getProgramLine(profile.brokerProgramLine);
+}
 
 /**
  * Every US time zone a profile may hold, in the order Profile's retired picker
@@ -79,6 +183,7 @@ export function buildDefaultProfile(id: string, email: string): UserProfile {
     id,
     preferredSession: "any",
     themePreference: "system",
+    ...NO_BROKER_SELECTION,
   };
 }
 
