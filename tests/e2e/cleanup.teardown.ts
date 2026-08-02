@@ -66,4 +66,28 @@ test("the run's setups leave the learning cohort", async () => {
     );
   }
   console.log(`[e2e cleanup] deleted ${count ?? 0} trade_setups for the E2E user`);
+
+  // §19's specs select a broker program on this shared profile and undo it as
+  // their own last step — but a mid-test failure would leave the selection
+  // behind for the next run's opening assertions (and for visual-proof's
+  // captures, which would gain a fifth ladder row). The run's state contract
+  // lives here, not in the specs' happy paths: the profile leaves as it
+  // arrived, program-less, every time.
+  const { error: profileError } = await client
+    .from("profiles")
+    .update({
+      broker_account_size: null,
+      broker_drawdown_tier: null,
+      broker_id: null,
+      broker_program_line: null,
+      broker_risk_percent: null,
+      broker_stage: null,
+    })
+    .eq("id", data.user.id);
+  if (profileError) {
+    throw new Error(
+      `E2E cleanup could not reset the broker selection: ${profileError.message}`,
+    );
+  }
+  console.log("[e2e cleanup] broker selection reset to none");
 });

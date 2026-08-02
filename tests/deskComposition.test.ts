@@ -1419,9 +1419,12 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
       assert.ok(!quotes.includes(fetcher), `${fetcher} must not appear in quotes.ts`);
       assert.ok(!sizing.includes(fetcher), `${fetcher} must not appear in sizing.ts`);
     }
+    // The call is gated on a selected program (review fold: exact dormancy —
+    // a user with no broker config pays nothing, not even the object build),
+    // and the gate's empty branch is a literal, not a fetch.
     assert.match(
       stage,
-      /const brokerQuotes = collectBrokerQuotes\(\{ scan: scanResult, setup \}\);/,
+      /const brokerQuotes =\s*\n\s*profile\.brokerProgramLine === null\s*\n\s*\? \{\}\s*\n\s*: collectBrokerQuotes\(\{ scan: scanResult, setup \}\);/,
     );
   });
 });

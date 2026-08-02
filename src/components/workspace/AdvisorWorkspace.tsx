@@ -167,7 +167,12 @@ export function AdvisorWorkspace(
   // already holds — the active setup's own latest close plus every scan
   // opportunity's. No fetch and no added scan; where a bridge leg is not among
   // them the Size row renders `Rate unavailable` rather than reaching elsewhere.
-  const brokerQuotes = collectBrokerQuotes({ scan: scanResult, setup });
+  // Dormant is exact: with no program selected nothing downstream reads these,
+  // so the collection itself doesn't run.
+  const brokerQuotes =
+    profile.brokerProgramLine === null
+      ? {}
+      : collectBrokerQuotes({ scan: scanResult, setup });
   // The stagehead's confidence meta line says when this review ran, alongside
   // the setup's own expiry (spec §16 folds both into one quiet line in place of
   // the deleted metric card). Read straight off the analysis state so a
