@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import {
   buildRemainingLevels,
   buildTradeCards,
-  formatAsOf,
   formatProgressR,
 } from "../src/components/workspace/CurrentTradesRail";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
@@ -65,17 +64,6 @@ describe("formatProgressR", () => {
 
   it("signs exactly zero as positive, matching >= 0", () => {
     assert.equal(formatProgressR(0), "+0.0R");
-  });
-});
-
-describe("formatAsOf", () => {
-  it("renders the same local hour:minute Intl.DateTimeFormat produces, regardless of machine locale", () => {
-    const date = new Date("2026-07-30T15:34:00.000Z");
-    const expected = new Intl.DateTimeFormat(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-    assert.equal(formatAsOf(date), expected);
   });
 });
 
@@ -229,7 +217,7 @@ describe("CurrentTradesRail markup (source-pinned — see header comment)", () =
   });
 
   it('stamps freshness as "as of {time} · refresh", not a raw timestamp', () => {
-    assert.match(RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+    assert.match(RAIL_SOURCE, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 
   it("never invents its own fetch machinery or nav — refresh defers to the onRefresh prop, the cross-link to WorkspaceNav", () => {

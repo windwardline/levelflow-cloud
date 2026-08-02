@@ -1150,7 +1150,7 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
       head.split(" ").filter((token) => !token.startsWith("lg:")).join(" "),
       "flex flex-wrap items-baseline justify-between gap-2",
     );
-    assert.match(TRADES_RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+    assert.match(TRADES_RAIL_SOURCE, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 });
 

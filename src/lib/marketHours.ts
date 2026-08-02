@@ -120,6 +120,40 @@ export function formatCompactDateTime(date: Date): string {
   return `${formatMonthDay(date)} ${formatCompactTime(date)}`.toUpperCase();
 }
 
+// One declaration of what a wall-clock time reads as, shared by the §17 stamp's
+// time piece and by the two lines that print a bare clock time — so the three
+// cannot drift into three grammars (Q1-I12).
+//
+// "en-US" is pinned for the reason advisorFormat.ts pins it on formatCopyValue:
+// §17 fixes these grammars, and the runtime's locale rewrote them. `undefined`
+// held only on an en-US browser — en-GB reverses the stamp's day and month,
+// fr-FR prints a four-letter month with a trailing period where §17 wants three
+// characters, and ja-JP's dayPeriod is 午後, whose first character is not a
+// meridiem letter at all (Q2-C1). The zone stays the reader's own (no timeZone
+// option): §10b's reopen line is deliberately local, and only the LANGUAGE is
+// what the spec fixes.
+const CLOCK_TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  hour12: true,
+  minute: "2-digit",
+});
+const WEEKDAY_FORMAT = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+const MONTH_DAY_FORMAT = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+});
+
+/**
+ * A bare local clock time, "5:12 PM" — the trades rail's "as of" stamp
+ * (a-desk-v3.html:219) and the scan rail's count line (:150), each of which used
+ * to build its own unpinned formatter for the same datum. Same reading as the
+ * §17 stamp's time piece above, printed in the long form those two lines have
+ * always shown rather than the stamp's compact one.
+ */
+export function formatClockTime(date: Date): string {
+  return CLOCK_TIME_FORMAT.format(date);
+}
+
 function isOpenUnderCalendar(calendar: ClassCalendar, parts: ZonedParts): boolean {
   const minuteOfWeek = parts.weekday * MINUTES_PER_DAY + parts.hour * 60 +
     parts.minute;
@@ -173,11 +207,7 @@ function activeDailyBreak(
 }
 
 function formatCompactTime(date: Date): string {
-  const parts = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    hour12: true,
-    minute: "2-digit",
-  }).formatToParts(date);
+  const parts = CLOCK_TIME_FORMAT.formatToParts(date);
   const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   const meridiem = (lookup.dayPeriod ?? "").charAt(0).toLowerCase();
 
@@ -185,12 +215,11 @@ function formatCompactTime(date: Date): string {
 }
 
 function formatWeekday(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date);
+  return WEEKDAY_FORMAT.format(date);
 }
 
 function formatMonthDay(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" })
-    .format(date);
+  return MONTH_DAY_FORMAT.format(date);
 }
 
 function getEasternParts(date: Date): ZonedParts {

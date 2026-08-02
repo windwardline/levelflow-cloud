@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatClockTime } from "../../lib/marketHours";
 import { deriveTradeState, type TradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import {
@@ -83,12 +84,6 @@ export function formatProgressR(value: number | null): string {
   return `${sign}${value.toFixed(1)}R`;
 }
 
-export function formatAsOf(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
 
 // The remaining ladder levels still relevant to watch, mono in the card
 // (spec §8). A level drops off once it's behind the trade: Entry once
@@ -203,7 +198,7 @@ export function CurrentTradesRail(
           Current trades
         </h3>
         <p className="text-xs text-ink-muted">
-          as of {formatAsOf(lastRefreshedAt)} ·{" "}
+          as of {formatClockTime(lastRefreshedAt)} ·{" "}
           <button
             className="tertiary-link"
             type="button"

@@ -261,7 +261,8 @@ function formatMemberSince(value: string) {
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
-  return new Intl.DateTimeFormat(undefined, {
+  // Q2-C1: pinned like every other date the app draws.
+  return new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
   }).format(date);

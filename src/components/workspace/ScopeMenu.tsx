@@ -16,6 +16,7 @@ import {
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
+  formatClockTime,
   formatReopen,
   marketAvailability,
   type MarketAvailability,
@@ -129,11 +130,9 @@ export function formatScopeCountLine(
   counts: { qualified: number; scanned: number },
   now: Date,
 ): string {
-  const time = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(now);
-  return `${describeScanScope(scope)} — ${counts.scanned} scanned · ${counts.qualified} qualify · ${time}`;
+  return `${describeScanScope(scope)} — ${counts.scanned} scanned · ${counts.qualified} qualify · ${
+    formatClockTime(now)
+  }`;
 }
 
 // A closed or otherwise non-interactive row never produces a scope - the

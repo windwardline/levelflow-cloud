@@ -1124,7 +1124,7 @@ describe("Current trades rail composition — the mock's elements are present (a
       tradesRail,
       /className="flex flex-wrap items-baseline justify-between gap-2 lg:min-h-11 lg:items-center"[\s\S]{0,400}Current trades/,
     );
-    assert.match(tradesRail, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+    assert.match(tradesRail, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 
   // Spec §17c (owner live-QA, binding): "the rail's first line must share the

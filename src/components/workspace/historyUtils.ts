@@ -242,7 +242,11 @@ export function formatHistoryDateGroup(date: Date) {
     return "Yesterday";
   }
 
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+  // Q2-C1: "en-US", like every other date the app draws. This label sits in the
+  // Insights ledger's own group headers beside Today and Yesterday, which are
+  // English by construction — a locale-formatted third form ("2. Aug. 2026")
+  // beside them was a grammar the mock never draws.
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
     date,
   );
 }

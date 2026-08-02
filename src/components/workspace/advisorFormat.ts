@@ -48,7 +48,7 @@ export function formatCopyValue(value: number) {
 }
 
 export function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -59,7 +59,7 @@ export function formatTimestamp(value: string) {
   if (Number.isNaN(date.getTime())) {
     return "Awaiting refresh";
   }
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",

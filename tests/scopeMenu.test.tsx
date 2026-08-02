@@ -55,9 +55,14 @@ function keyFromScope(scope: ScanScope): string {
   return `symbol:${scope.symbol}`;
 }
 
+// Mirrors marketHours' formatClockTime, which formatScopeCountLine now reads
+// (Q1-I12: one source for the h:mm datum, one pinned locale for it — Q2-C1).
+// Pinned on this side too, so the mirror states the grammar rather than
+// inheriting whatever the runtime would have produced.
 function localClockTime(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
+    hour12: true,
     minute: "2-digit",
   }).format(date);
 }
