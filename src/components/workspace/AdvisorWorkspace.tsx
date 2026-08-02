@@ -440,6 +440,14 @@ export function AdvisorWorkspace(
     )
     : null;
 
+  // The Desk's page heading, and the only surface heading in the app that is not
+  // drawn: the mock puts no title here (§16 deleted the one that used to exist),
+  // but every other authed surface carries an h1, so heading-level navigation —
+  // how many screen reader users move around a page — found nothing at all on the
+  // app's primary surface. One element, placed by whichever branch renders, so
+  // the Desk can never end up with two headings or with none.
+  const deskTitle = <h1 className="sr-only">Desk</h1>;
+
   if (isMobile) {
     // The merged mobile Scan surface (spec §17e, m-scan-v3.html): a fixed
     // viewport — App.tsx hands this a flex column exactly "viewport minus
@@ -450,6 +458,7 @@ export function AdvisorWorkspace(
     // this surface's chart canvas and every piece of its state alive.
     return (
       <>
+        {deskTitle}
         <div
           className={mobileView === "scan" ? MOBILE_FRAME : "hidden"}
           data-testid="mobile-scan-surface"
@@ -606,6 +615,8 @@ export function AdvisorWorkspace(
     // mobile surface above renders instead, so the columns no longer carry the
     // base display utilities that used to gate them there.
     <div className="grid min-w-0 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[264px_minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+      {/* .sr-only is position:absolute, so this consumes no grid cell. */}
+      {deskTitle}
       {/* Left rail: the scan (a-desk-v3.html:87-158). */}
       <div className="scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4">
         <MarketScanPanel

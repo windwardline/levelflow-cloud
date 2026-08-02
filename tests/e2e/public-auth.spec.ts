@@ -240,3 +240,61 @@ test("system theme mode produces data-theme from the OS preference", async ({
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
+
+// Q1-I6: the footer's link row honoured the kit's 44px floor three times (Help,
+// Donate and the colophon, all .tertiary-link or .colophon-link) and broke it
+// three times — the legal trio beside them was a bare 12px inline box about 16px
+// tall. The floor arrives as an absolutely positioned ::after so the row's
+// geometry cannot move, which is exactly the pair of facts only a browser can
+// confirm: the target is 44px, and the footer is the same height it was.
+test("every link in the footer's row clears the 44px tap floor, without moving the row", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const measured = await page.evaluate(() => {
+    const footer = document.querySelector("footer")!;
+    const legal = Array.from(
+      footer.querySelectorAll<HTMLElement>('nav[aria-label="Legal"] a'),
+    );
+    const others = Array.from(
+      footer.querySelectorAll<HTMLElement>(".tertiary-link, .colophon-link"),
+    );
+    const reach = (element: HTMLElement) => {
+      const own = element.getBoundingClientRect().height;
+      const after = getComputedStyle(element, "::after");
+      const overlay = after.position === "absolute"
+        ? Number.parseFloat(after.height)
+        : 0;
+      return Math.max(own, Number.isFinite(overlay) ? overlay : 0);
+    };
+    const withOverlay = footer.getBoundingClientRect().height;
+    legal.forEach((element) => element.classList.remove("legal-link"));
+    const withoutOverlay = footer.getBoundingClientRect().height;
+    legal.forEach((element) => element.classList.add("legal-link"));
+    return {
+      footerHeight: { withOverlay, withoutOverlay },
+      legal: legal.map((element) => ({
+        label: element.textContent?.trim() ?? "",
+        reach: reach(element),
+      })),
+      others: others.map((element) => ({
+        label: element.textContent?.trim() ?? "",
+        reach: reach(element),
+      })),
+    };
+  });
+
+  expect(measured.legal.map((link) => link.label)).toEqual([
+    "Risk disclaimer",
+    "Privacy",
+    "Terms",
+  ]);
+  for (const link of [...measured.legal, ...measured.others]) {
+    expect(link.reach, `${link.label} target: ${JSON.stringify(measured)}`)
+      .toBeGreaterThanOrEqual(44);
+  }
+  // The whole point of an overlay rather than a min-height: the row does not move.
+  expect(measured.footerHeight.withOverlay)
+    .toBeCloseTo(measured.footerHeight.withoutOverlay, 1);
+});

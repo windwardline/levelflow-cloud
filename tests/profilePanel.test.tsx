@@ -99,7 +99,7 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
     // separation or column measure.
     assert.match(
       PANEL_SOURCE,
-      /<div className="grid gap-x-6 gap-y-3 border-b border-hairline py-\[26px\] last:border-b-0 lg:grid-cols-\[220px_1fr\]">/,
+      /<div className="grid gap-x-6 gap-y-3 border-b border-hairline py-\[26px\] last-of-type:border-b-0 lg:grid-cols-\[220px_1fr\]">/,
     );
     assert.equal((PANEL_SOURCE.match(/<ProfileRow\n/g) ?? []).length, 3);
     const titles = Array.from(
@@ -219,5 +219,47 @@ describe("ThemeToggle — the mock's segmented pill (p-profile-v2.html:27-29)", 
       /flex min-h-11 items-center gap-1\.5 rounded-md px-3\.5 text-\[13px\] font-semibold transition/,
     );
     assert.match(THEME_TOGGLE_SOURCE, /bg-accent\/10 text-accent/);
+  });
+
+  // Q1-I5: the pill had no selected-state semantics and a name nothing could
+  // read. `aria-label` on a bare <div> with no role is dropped by most assistive
+  // technology, so the group was unnamed; and the active mode was carried only by
+  // `bg-accent/10 text-accent`, which is a colour, not a state. This is Profile's
+  // only interactive control and also the Auth and Parking screens' compact
+  // toggle, so a screen-reader user had no way to hear which theme was on.
+  it("is a named group of toggle buttons, each announcing whether it is the one that is on", () => {
+    assert.match(
+      THEME_TOGGLE_SOURCE,
+      /<div\s*\n\s*aria-label="Theme"\s*\n\s*className="inline-flex[^"]*"\s*\n\s*role="group"/,
+    );
+    assert.match(
+      THEME_TOGGLE_SOURCE,
+      /aria-pressed=\{mode === option\.value\}/,
+    );
+  });
+});
+
+// Q1-I7: `last:border-b-0` is Tailwind for `:last-child`, and in the mobile branch
+// the scroll region's last child is the colophon <p>, not the third row — so the
+// Appearance row kept a hairline above the colophon on mobile only, and the guard
+// above could not see it (it reads the class out of the source; the selector runs
+// in a browser). The mock's own rule is `.row:last-of-type`
+// (p-profile-v2.html:18), which is right in both branches: the rows are the only
+// <div>s among their siblings either way.
+describe("ProfileRow's last-row rule matches the row, not whatever ends the region (Q1-I7)", () => {
+  it("uses the mock's own last-of-type, never last-child", () => {
+    assert.match(PANEL_SOURCE, /\blast-of-type:border-b-0\b/);
+    assert.doesNotMatch(PANEL_SOURCE, /\blast:border-b-0\b/);
+  });
+
+  it("keeps the structural reason in view: the rows are a fragment, and the colophon ends the mobile region", () => {
+    // These two facts are why `:last-child` could never match. Pinned together
+    // with the variant above so a change to either trips a test rather than
+    // silently re-breaking the rule.
+    assert.match(PANEL_SOURCE, /const rows = \(\s*\n\s*<>/);
+    assert.match(
+      PANEL_SOURCE,
+      /data-testid="mobile-profile-scroll">\s*\n\s*\{rows\}[\s\S]{0,400}<p className="colophon">/,
+    );
   });
 });

@@ -57,6 +57,27 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.doesNotMatch(stage, /label="Market"/);
   });
 
+  // Q1 minor: the Desk was the only authed surface with no page heading at all —
+  // Insights, Guide, Profile and Donate each carry an h1, and this one's top
+  // heading is the market h2. Heading-level navigation, which is how many screen
+  // reader users move around a page, found nothing on the app's primary surface.
+  // The mock draws no title here and §16 deleted the one that used to exist, so
+  // the heading is visually hidden: structure that assistive technology cannot
+  // otherwise get, and not a pixel of the composition the owner approved.
+  it("names the surface for heading navigation without drawing a title", () => {
+    assert.match(stage, /const deskTitle = <h1 className="sr-only">Desk<\/h1>;/);
+    // One element, two placements — the two platform branches — so the surface
+    // can never end up with two headings or with none.
+    assert.equal((stage.match(/<h1/g) ?? []).length, 1);
+    assert.equal((stage.match(/\{deskTitle\}/g) ?? []).length, 2);
+    // First thing in each branch, so it precedes every heading it outranks.
+    assert.match(stage, /return \(\s*\n\s*<>\s*\n\s*\{deskTitle\}/);
+    assert.match(
+      stage,
+      /lg:overflow-hidden">[\s\S]{0,140}\{deskTitle\}[\s\S]{0,80}\{\/\* Left rail/,
+    );
+  });
+
   it("tags the side beside the heading, only while a setup is showing", () => {
     assert.match(
       stage,

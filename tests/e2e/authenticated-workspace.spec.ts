@@ -927,6 +927,28 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
     ),
   ).toBeAttached();
 
+  // Q1-I7: the sheet ends on content, not on a line — and this is the only place
+  // that can be proven, since the rule is a selector and the unit guards read the
+  // class out of the source. `last:border-b-0` (`:last-child`) matched the
+  // colophon paragraph here rather than the third row, so Appearance kept a
+  // hairline above the colophon on mobile only; the mock's own `:last-of-type`
+  // matches the row in both branches.
+  const rowBorders = await page.getByTestId("mobile-profile-scroll").evaluate(
+    (region) =>
+      Array.from(region.children).map((child) => ({
+        tag: child.tagName,
+        borderBottom: getComputedStyle(child).borderBottomWidth,
+      })),
+  );
+  expect(rowBorders.length).toBe(4);
+  expect(rowBorders.at(-1)!.tag).toBe("P");
+  const rows = rowBorders.filter((child) => child.tag === "DIV");
+  expect(rows.length).toBe(3);
+  expect(rows.at(-1)!.borderBottom, JSON.stringify(rowBorders)).toBe("0px");
+  for (const row of rows.slice(0, -1)) {
+    expect(row.borderBottom).not.toBe("0px");
+  }
+
   const horizontalOverflow = await page.evaluate(() =>
     document.documentElement.scrollWidth -
     document.documentElement.clientWidth

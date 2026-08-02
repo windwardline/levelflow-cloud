@@ -304,6 +304,7 @@ footer p {
   color: var(--color-ink-muted);
   font-size: 12px;
   font-weight: 500;
+  position: relative;
   text-decoration-line: underline;
   text-decoration-color: var(--color-hairline);
   text-decoration-thickness: 1px;
@@ -380,7 +381,23 @@ footer p {
   color: var(--color-ink-muted);
   font-size: 12px;
   font-weight: 600;
+  position: relative;
   text-decoration: none;
+}
+
+/*
+  Q1-I6, the static twin's half: both of this footer's link rows were 12px inline
+  boxes about 16px tall, while the app's own Help and Donate have been 44px since
+  the kit gained .tertiary-link. The overlay is .colophon-link's, for the reason
+  that class uses it here too — these rows are flex, so a min-height would change
+  the footer's height rather than only its reach.
+*/
+.legal-links a::after,
+.support-links a::after {
+  content: "";
+  inset-block: -14px;
+  inset-inline: 0;
+  position: absolute;
 }
 
 .legal-links a:hover {

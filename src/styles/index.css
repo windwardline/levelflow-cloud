@@ -339,6 +339,33 @@ html[data-theme="dark"] {
   }
 
   /*
+    Q1-I6: the footer's link row honoured the kit's 44px floor three times and
+    broke it three times. Help and Donate are .tertiary-link above, 44px by
+    construction; the legal trio beside them was a bare 12px inline box roughly
+    16px tall. §17g ("44px targets still bind") and §17k ("44px per the kit
+    floor") both apply to it, and it sits in the same row as the links that
+    already honour them.
+
+    The floor arrives as .colophon-link's does, for the same measured reason: this
+    trio is a flex row, where a flex item's outer height IS the row's height, so
+    .tertiary-link's min-height plus negative block margin would move the footer's
+    geometry (measured at 3.2px when that was tried on the colophon). An
+    absolutely positioned ::after is outside layout entirely — 14px of reach above
+    and below the 16px line box clears 44px exactly, and the row keeps the
+    geometry §17i measured. Rest styling stays the component's: this class adds
+    reach and nothing else.
+  */
+  .legal-link {
+    position: relative;
+  }
+  .legal-link::after {
+    content: "";
+    position: absolute;
+    inset-block: -14px;
+    inset-inline: 0;
+  }
+
+  /*
     Per-value ladder copy control (spec §7): visually a small ⧉/✓ glyph
     beside the value it copies, but a real 44px tap target underneath.
     Same trick as .tertiary-link above, applied on every side instead of

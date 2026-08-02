@@ -39,9 +39,19 @@ export function ThemeToggle({
     // the Auth and Parking screens' compact toggles take the same geometry:
     // it is the same control, and the mocks leave those screens' own
     // composition alone rather than prescribing a second pill for them.
+    // Q1-I5: role="group" is what makes the aria-label above readable at all —
+    // an aria-label on a bare <div> with no role is dropped by most assistive
+    // technology, so this control had no accessible name. The active mode is
+    // aria-pressed on each option rather than the `bg-accent/10 text-accent`
+    // fill alone: a colour is not a state, and this is Profile's only
+    // interactive control as well as the Auth and Parking screens' compact
+    // toggle. Toggle buttons rather than a radiogroup, deliberately — three
+    // independent presses, no arrow-key model to get half-right, and the
+    // geometry the mock draws is untouched either way.
     <div
-      className="inline-flex gap-0.5 rounded-lg border border-hairline p-[3px]"
       aria-label="Theme"
+      className="inline-flex gap-0.5 rounded-lg border border-hairline p-[3px]"
+      role="group"
     >
       {options.map((option) => (
         // `.o` (:28) at the mock's own type and padding. min-h-11 keeps every
@@ -50,6 +60,7 @@ export function ThemeToggle({
         // icons stay small inside it.
         <button
           key={option.value}
+          aria-pressed={mode === option.value}
           className={`flex min-h-11 items-center gap-1.5 rounded-md px-3.5 text-[13px] font-semibold transition ${mode === option.value ? "bg-accent/10 text-accent" : "text-ink-muted hover:text-ink"}`}
           type="button"
           onClick={() => onChange(option.value)}

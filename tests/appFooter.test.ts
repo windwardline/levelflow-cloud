@@ -269,6 +269,47 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.doesNotMatch(footer, /max-lg:/);
   });
 
+  // Q1-I6: the footer's own link row honoured the kit's 44px floor three times
+  // and broke it three times. Help and Donate are .tertiary-link, which is 44px
+  // by construction; the legal trio beside them was a bare `text-xs` inline box
+  // — a ~16px tall target, on the same row, in the same footer. §17g ("44px
+  // targets still bind") and §17k ("44px per the kit floor") both apply to it.
+  //
+  // The floor arrives the way .colophon-link's already does, and for the same
+  // measured reason: this trio sits in a flex row, where a flex item's outer
+  // height IS the row height, so .tertiary-link's min-height-plus-negative-margin
+  // would move the footer's geometry. An absolutely positioned ::after is outside
+  // layout entirely — reach without a pixel of drift.
+  it("gives the legal trio the same 44px floor its row-mates already have", () => {
+    const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
+    assert.match(legal, /className="legal-link transition hover:text-ink"/);
+    const css = readFileSync("src/styles/index.css", "utf8");
+    assert.match(
+      css,
+      /\.legal-link \{\s*position: relative;\s*\}/,
+    );
+    assert.match(
+      css,
+      /\.legal-link::after \{[\s\S]{0,200}inset-block: -14px;/,
+    );
+    // The static twin carries the same floor, for the reason .colophon itself is
+    // named in both sheets: one footer, two implementations, no drift. Its
+    // support row is the same 12px inline box, so it takes the overlay too —
+    // fixing one row of that footer and not the other would only move Q1-I6's
+    // half-honoured floor onto the legal pages.
+    const staticCss = readFileSync("public/legal/legal.css", "utf8");
+    assert.match(
+      staticCss,
+      /\.legal-links a::after,\s*\n\.support-links a::after \{[\s\S]{0,200}inset-block: -14px;/,
+    );
+    for (const selector of [".legal-links a", ".support-links a"]) {
+      const rule = staticCss.match(
+        new RegExp(`\\${selector.replace(" ", " ")} \\{[^}]*\\}`),
+      )?.[0] ?? "";
+      assert.match(rule, /position: relative;/, `${selector} needs a containing block`);
+    }
+  });
+
   it("leaves no second colophon or legal row on any authed surface", () => {
     const profile = readFileSync(
       "src/components/workspace/ProfilePanel.tsx",
