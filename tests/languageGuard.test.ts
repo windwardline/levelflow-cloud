@@ -13,15 +13,19 @@ const ROOTS = [
   "src/components/donations",
   "src/components/auth",
 ];
-const LIB_FILES = [
-  "src/lib/outcomes.ts",
-  "src/lib/replayReliability.ts",
-  "src/lib/advisorReview.ts",
-  // Task 7: generates the Current trades rail's instruction copy directly
-  // (spec §8), so it needs the same scan as the other copy-producing lib
-  // files above, not just the components that render its output.
-  "src/lib/tradeState.ts",
-];
+// Q2-I10: directory-derived, like ROOTS above. This was a hand-maintained list of
+// four, and it missed src/lib/authErrors.ts (three user-facing sentences) and
+// src/lib/confidenceTiers.ts (the label + body prose the Insights bands render) —
+// two copy-producing modules that were simply never added. Any new one would have
+// been missed the same way, which is the failure mode a list has and a glob does
+// not.
+//
+// The whole directory rather than a curated subset: a lib file with no user-facing
+// strings has nothing for this scan to find, so including it costs nothing and
+// forgetting one costs a guard.
+const LIB_FILES = readdirSync("src/lib")
+  .filter((file) => file.endsWith(".ts"))
+  .map((file) => join("src/lib", file));
 const TP1 = /\bTP1\b/;
 const RUNNER = /\brunner\b/i;
 const BANNED = [
@@ -99,6 +103,16 @@ function stringLiterals(source: string): string[] {
 }
 
 describe("plain language on working surfaces", () => {
+  it("scans every lib module, not a hand-kept subset (Q2-I10)", () => {
+    // The two the old list had missed, named explicitly: this is the finding's
+    // own evidence, and it fails if either module is renamed away without the
+    // glob being re-checked.
+    for (const file of ["src/lib/authErrors.ts", "src/lib/confidenceTiers.ts"]) {
+      assert.ok(LIB_FILES.includes(file), `${file} must be scanned`);
+    }
+    assert.ok(LIB_FILES.length >= 14, `only ${LIB_FILES.length} lib files found`);
+  });
+
   it("keeps the per-file skip list empty (Task 7 tightens the guard for good)", () => {
     assert.equal(
       SKIPPED_FILES.length,

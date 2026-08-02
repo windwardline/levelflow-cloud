@@ -433,9 +433,14 @@ function GuideDeck() {
 
       <GuideSection id="timeframes">
         <p>
-          The chart view you pick — 15 minutes, 1 hour, 4 hours, 1 day,
-          the same intervals you know from TradingView — controls what
-          you see, not what Levelflow checks. Every review reads the
+          {/* Q1-#27: all six, because the chart-view select offers all six
+              (marketData.ts's CHART_TIMEFRAME_OPTIONS). The deck named four and
+              described 1M/5M as engine-only validation intervals, which they are
+              — and they are also pickable views, so a reader who picked one found
+              the Guide describing a menu the app does not have. */}
+          The chart view you pick — 1 minute, 5 minutes, 15 minutes, 1
+          hour, 4 hours, 1 day, the same intervals you know from
+          TradingView — controls what you see, not what Levelflow checks. Every review reads the
           4-hour, 1-hour, and 15-minute charts together for direction,
           location, and quality, then validates the latest price on the
           5-minute and 1-minute charts when they are available. The
