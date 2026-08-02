@@ -7,14 +7,18 @@
 - Market data: Supabase Edge Function `market-data`, backed by the FMP key configured in GitHub/Supabase secrets.
 - Market analyzer: Supabase Edge Function `trade-analyzer`, using daily/intraday bars, scheduled-event records, session rules, correlation filtering, limit-only outputs, and RLS-owned inserts.
 - News ingestion: Supabase Edge Function `news-calendar`, scheduled hourly through `pg_cron` and `pg_net`, targeting FMP's current stable economic-calendar endpoint.
-- Outcome refresh: the analyzer refreshes pending setup outcomes when users load history or request a new setup.
+- Outcome refresh: the analyzer force-refreshes pending setup outcomes every time a user shows the Desk or Insights surface (mount and re-navigation alike), not only on history load or a new setup (spec §8).
 - Deployment workflow: `.github/workflows/deploy.yml`.
 
 ## Private Beta Gate
 
-- Parking soft gate: production serves `construction.html` to visitors;
-  the owner enters the app via `/?enter` (session-scoped bypass,
-  `src/lib/parkingGate.ts`). Undo by flipping `PARKING_GATE` to false.
+- Parking soft gate: `src/lib/parkingGate.ts`'s `PARKING_GATE` flag, opened
+  2026-08-01 (`PARKING_GATE = false`) — signed-out visitors land on sign-in,
+  and the `/?enter` session-scoped bypass is a no-op while it is open.
+  While closed, the gate renders the React `ParkingScreen` component, never
+  `public/construction.html`; that static twin is preserved as the reusable
+  layout for a future pause, but nothing in `vercel.json` ever serves it
+  directly. Re-close by flipping `PARKING_GATE` back to true.
 - Real user email login: needs a real magic-link confirmation from the account owner.
 - Profile persistence: real-user validation should confirm profile preference updates, theme selection, and history loading.
 - Legal pages: `risk-disclaimer.html`, `privacy.html`, and `terms.html` are published under `/legal/`.

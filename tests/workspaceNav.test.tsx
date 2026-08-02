@@ -1,9 +1,5 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-// tsx has no covering tsconfig for tests/, so it falls back to esbuild's
-// classic JSX transform here (unlike src/**/*.tsx, which uses the
-// automatic runtime via tsconfig.app.json). React must be in scope.
-import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   useWorkspaceNav,

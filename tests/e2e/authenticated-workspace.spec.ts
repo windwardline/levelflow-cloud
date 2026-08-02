@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { marketAvailability } from "../../src/lib/marketHours";
 import {
@@ -106,6 +106,26 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+// Q4-M9: isVisible() reads the DOM once and never retries, unlike every
+// other assertion in this file. The count line and the qualifying rows land
+// in the same React commit today, so reading isVisible() immediately after
+// the `.or()` wait above resolves is safe — but it is one render-timing
+// change away from a false negative reading as "nothing qualified" instead
+// of the render simply not having landed yet, which is exactly the kind of
+// silent skip this suite exists to stop producing. A short poll makes the
+// read robust to that without changing what a genuine non-match reports.
+async function isVisibleWithin(
+  locator: Locator,
+  timeoutMs: number,
+): Promise<boolean> {
+  try {
+    await locator.waitFor({ state: "visible", timeout: timeoutMs });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Spec §17m.1: "All trades originate from the Scan column — no other path."
 // The stage's Review button is deleted, so every spec that needs a setup on the
 // stage now gets one the way a reader does: scan, then take the strongest
@@ -122,11 +142,11 @@ async function scanForSetupOnStage(page: Page): Promise<boolean> {
     "Market scan could not complete. Try again shortly.",
   );
   await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
-  if (await scanFailed.isVisible()) {
+  if (await isVisibleWithin(scanFailed, 1_000)) {
     return false;
   }
   const strongest = rail.getByText(/^(Buy|Sell) · confidence \d+$/).first();
-  if (!(await strongest.isVisible())) {
+  if (!(await isVisibleWithin(strongest, 1_000))) {
     return false;
   }
   // The row is a button; its meta line is what identifies it.
@@ -336,6 +356,9 @@ test("authenticated workspace exposes Desk navigation, not the retired About tab
 // authed surface is walked at both, including the Desk, which had no footer at all
 // before this ruling and the Guide, which used to hide it below a full page-scroll.
 test("the desktop frame pins the masthead and the footer at every width (§17i)", async ({ page }) => {
+  // Q4-I3: two full page loads and ten surface visits with no live-analyzer
+  // wait in the mix — the file's 30s default has no margin on a loaded runner.
+  test.setTimeout(60_000);
   // All five surfaces, not four. Donate is the one the masthead does not list —
   // since §17i the footer's own control is its single desktop home — so the sweep
   // reaches it the way a reader does, and the walk stops skipping the shortest
@@ -736,6 +759,10 @@ test("laptop-width desktop shows the advisor rail beside the chart", async ({ pa
 });
 
 test("mobile viewport keeps the signed-in workspace at full functionality", async ({ page }) => {
+  // Q4-I3: this walk covers every mobile tab, the account menu, and every
+  // surface behind it with no live-analyzer wait in the mix — the file's 30s
+  // default has no margin on a loaded runner.
+  test.setTimeout(60_000);
   // Mobile is its own composition (spec §17e), not a narrowed desktop: the top
   // nav pills are gone entirely (display:none via the header's `hidden lg:flex`
   // gate); primary navigation is a THREE-tab bottom bar (Scan / Trades /
@@ -993,6 +1020,10 @@ test("the mobile account menu carries the footer's link set (spec §17g)", async
 });
 
 test("Expand chart opens the same chart full-viewport at both widths", async ({ page }) => {
+  // Q4-I3: two full dialog open/close cycles across two widths with no
+  // live-analyzer wait in the mix — the file's 30s default has no margin on
+  // a loaded runner.
+  test.setTimeout(60_000);
   // Spec §17: the affordance, the overlay's dialog semantics, its 44px close
   // target, Escape, focus in and back out, and the body scroll lock — the
   // pieces only a real browser can confirm. The unit guards source-pin the
@@ -1101,6 +1132,9 @@ test("Expand chart opens the same chart full-viewport at both widths", async ({ 
 // it has to hold at more than one height — so both of the ruling's own
 // viewports are walked, and every number is reported in the failure message.
 test("the Desk stage fits its region at 1280x800 and 1440x900 (§17m.3)", async ({ page }) => {
+  // Q4-I3: two full page loads at two viewports with no live-analyzer wait in
+  // the mix — the file's 30s default has no margin on a loaded runner.
+  test.setTimeout(60_000);
   for (const [width, height] of [[1280, 800], [1440, 900]] as const) {
     await page.setViewportSize({ height, width });
     await page.goto("/");
@@ -1228,7 +1262,7 @@ test("reviewing one market goes through the rail — the Scan column is the only
   );
   await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    await scanFailed.isVisible(),
+    await isVisibleWithin(scanFailed, 1_000),
     "The market scan could not complete, so there is no verdict to read.",
   );
   await expect(
@@ -1507,6 +1541,25 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   await page.getByTestId("market-scan-rail")
     .getByRole("button", { name: "Scan", exact: true }).click();
 
+  // Q4-C1: read the scan's own network status before trusting anything the
+  // UI renders about it. MarketScanPanel shows the same "could not complete"
+  // copy for a 429 as for any other provider failure — the app has no way to
+  // tell them apart, so a skip driven by that text can't either. This is
+  // exactly the loophole that let a rate-limit collision between spec files
+  // read as a quiet market and ship green (see this file's own history,
+  // documented below). playwright.config.ts now runs analyzer-abuse.spec.ts
+  // in its own project, strictly after this one, so this should never fire —
+  // if it does, that guarantee broke, and this must fail, not skip.
+  const scanResponse = await scanResponsePromise;
+  expect(
+    scanResponse.status(),
+    "the scan's HTTP status must be 200 — 429 means the suite's live-user " +
+      "requests collided despite playwright.config.ts's project chain; any " +
+      "other status is a real server failure. Neither may reach the skip " +
+      "path below, which is reserved for a scan that succeeded and found " +
+      "a quiet market",
+  ).toBe(200);
+
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");
   // Every finished scan reports what it checked — the count line — or says it
@@ -1520,12 +1573,12 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   );
   await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
   test.skip(
-    await scanFailed.isVisible(),
+    await isVisibleWithin(scanFailed, 1_000),
     "The market scan could not complete, so there is nothing new to check for in Insights.",
   );
   const candidateRow = page.getByText(/^(Buy|Sell) · confidence \d+$/).first();
   test.skip(
-    !(await candidateRow.isVisible()),
+    !(await isVisibleWithin(candidateRow, 1_000)),
     "No market qualified on this scan, so there is nothing new to check for in Insights.",
   );
 
@@ -1534,7 +1587,7 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // never rewrite a live trade), or FAILED. The three must add up to what
   // qualified, nothing may fail, and a scan that qualified anything must have
   // written at least the markets it did not skip.
-  const scanBody = await (await scanResponsePromise).json() as {
+  const scanBody = await scanResponse.json() as {
     opportunities?: Array<{ symbol: string }>;
     persistence?: {
       attempted: number;

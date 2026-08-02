@@ -75,6 +75,20 @@ jobs:
           npm audit --audit-level=high
           npm test
 
+      # Q3/Q4: this gate used to run after Supabase migrations and Edge
+      # Functions had already deployed, so a bundle-budget failure here left
+      # the backend shipped with nothing to show for it. It depends on
+      # nothing live (VITE_SUPABASE_* are only baked into the client bundle),
+      # so it now runs before anything below touches the live project —
+      # failing here leaves Supabase exactly as it was before this run.
+      - name: Build frontend
+        run: |
+          npm run build
+          npm run check:bundle
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+
       - name: Configure Supabase function secrets
         run: |
           cat > /tmp/levelflow-function-secrets.env <<'EOF'
@@ -116,25 +130,17 @@ jobs:
       # surface here, and failures keep their traces for diagnosis.
       - name: Upload visual proof
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: visual-proof
           path: test-results/
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Build frontend
-        run: |
-          npm run build
-          npm run check:bundle
-        env:
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-
       # Vercel builds and deploys the frontend from this repo on push to main
-      # (project levelflow-cloud-app). The build above is a gate only; the
-      # header check below polls prod, which Vercel updates independently of
-      # this workflow.
+      # (project levelflow-cloud-app). The build gate ran earlier, before any
+      # live deploy step; the header check below polls prod, which Vercel
+      # updates independently of this workflow.
       - name: Verify production security headers
         run: |
           headers="$(mktemp)"

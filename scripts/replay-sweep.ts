@@ -354,6 +354,40 @@ async function fetchCotContract(
 }
 
 
+// The keys a --grid override is allowed to touch: every numeric field of
+// CategoryCalibration. `satisfies` makes a renamed or removed field here a
+// compile error (this file is on the typecheck graph — tsconfig.tests.json),
+// so the list can't silently drift from the type it mirrors the way the
+// runtime check below used to drift from it silently at the value level.
+const GRID_OVERRIDE_KEYS = [
+  "confidenceThreshold",
+  "cotScoreAdjustment",
+  "dailyTargetAtrMultiplier",
+  "dailyStopAtrMultiplier",
+  "defaultReviewHours",
+  "entryOffsetDefault",
+  "entryOffsetTrend",
+  "maxNewsPenalty",
+  "maxProviderPenalty",
+  "maxStopAtrMultiplier",
+  "minimumTargetRewardRisk",
+  "minRewardRisk",
+  "newsPenaltyPerEvent",
+  "providerWarningPenalty",
+  "runnerWindowShare",
+  "stopAtrMultiplier",
+  "timeframePenalty",
+  "tp1AtrMultiplier",
+  "tp1RiskShare",
+  "volatilityTargetAtrMultiplier",
+] as const satisfies readonly (keyof CategoryCalibration)[];
+
+function isGridOverrideKey(
+  key: string,
+): key is (typeof GRID_OVERRIDE_KEYS)[number] {
+  return (GRID_OVERRIDE_KEYS as readonly string[]).includes(key);
+}
+
 function parseArgs(argv: string[]): SweepArgs {
   const get = (flag: string) => {
     const index = argv.indexOf(`--${flag}`);
@@ -369,13 +403,21 @@ function parseArgs(argv: string[]): SweepArgs {
   const gridSpec = get("grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
   if (gridSpec) {
-    const [key, values] = gridSpec.split("=");
+    const [rawKey, values] = gridSpec.split("=");
+    const key = rawKey.trim();
+    // A typo'd key used to pass silently — the untyped cast below accepted
+    // any string, so a misspelled field produced a "variant" that overrode
+    // nothing and reported the baseline's numbers back as if it had.
+    if (!isGridOverrideKey(key)) {
+      throw new Error(
+        `--grid key "${key}" is not a numeric CategoryCalibration field. ` +
+          `Valid keys: ${GRID_OVERRIDE_KEYS.join(", ")}`,
+      );
+    }
     for (const value of (values ?? "").split(",")) {
       const numeric = Number(value);
       if (Number.isFinite(numeric)) {
-        grid.push(
-          { [key.trim()]: numeric } as Partial<CategoryCalibration>,
-        );
+        grid.push({ [key]: numeric });
       }
     }
   }

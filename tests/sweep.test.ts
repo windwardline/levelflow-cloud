@@ -4,8 +4,36 @@ import {
   resampleBars,
   simulateSymbol,
   summarizeSweepOutcomes,
+  type SweepOutcomeRecord,
 } from "../supabase/functions/trade-analyzer/sweep.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
+
+// summarizeSweepOutcomes only reads .outcome and .realizedR (sweep.ts:373-395),
+// but SweepOutcomeRecord carries 13 other fields describing the decision that
+// produced it. This fills them with inert placeholders so fixtures below can
+// stay focused on the two fields the function under test actually consumes.
+function outcomeRecord(
+  outcome: SweepOutcomeRecord["outcome"],
+  realizedR: number,
+): SweepOutcomeRecord {
+  return {
+    accepted: true,
+    confidenceScore: 0,
+    cotPercentile: null,
+    cotStance: "neutral",
+    newsPenalty: 0,
+    outcome,
+    realizedR,
+    regime: "trend",
+    rewardRisk: 0,
+    sessionLabel: "",
+    sessionPenalty: 0,
+    side: "buy",
+    stopProvenance: "",
+    time: 0,
+    votes: [],
+  };
+}
 
 // Mid-week anchor so weekly-close expiry logic stays out of the way.
 const startTime = Date.parse("2026-06-15T00:00:00.000Z");
@@ -62,10 +90,13 @@ describe("replay sweep", () => {
       result.summary.total,
       result.outcomes.length,
     );
-    // Every generated setup must resolve deterministically on synthetic data.
-    for (const outcome of result.outcomes) {
-      assert.ok(outcome.outcome !== "pending");
-    }
+    // "Every generated setup must resolve deterministically on synthetic
+    // data" is no longer a runtime check here: SweepOutcomeRecord.outcome is
+    // typed Exclude<ResolvedOutcome, "pending"> (sweep.ts:49), so a record
+    // that reached this array already can't hold "pending" — the compiler
+    // proves it on every build, which is why `outcome.outcome !== "pending"`
+    // stopped type-checking (TS2367, no overlap) the moment tests/ joined
+    // the typecheck graph.
   });
 
   it("blocks decision points inside an active high-impact news window", () => {
@@ -239,11 +270,11 @@ describe("replay sweep", () => {
 
   it("summarizes expectancy in R across outcome types", () => {
     const summary = summarizeSweepOutcomes([
-      { outcome: "take_profit", realizedR: 2 },
-      { outcome: "tp1_partial", realizedR: 0.5 },
-      { outcome: "stop_loss", realizedR: -1 },
-      { outcome: "expired_in_profit", realizedR: 0.3 },
-      { outcome: "unfilled", realizedR: 0 },
+      outcomeRecord("take_profit", 2),
+      outcomeRecord("tp1_partial", 0.5),
+      outcomeRecord("stop_loss", -1),
+      outcomeRecord("expired_in_profit", 0.3),
+      outcomeRecord("unfilled", 0),
     ]);
 
     assert.equal(summary.total, 5);

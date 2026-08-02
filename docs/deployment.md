@@ -49,7 +49,7 @@ Database cron jobs:
 - `levelflow-sync-watchdog`: hourly health check (:41) — writes analyzer_events
   errors when either sync stops running or the future calendar goes empty.
 
-The production backend runs through Supabase Edge Functions. Local experiments should target those functions rather than a separate Express server path.
+The production backend runs through Supabase Edge Functions. Local experiments should target those functions directly.
 
 Required server-only env vars:
 

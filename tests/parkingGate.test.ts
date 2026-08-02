@@ -7,12 +7,19 @@ import { readFileSync } from "node:fs";
 describe("construction soft gate", () => {
   it("keeps the gate flag and bypass in one flippable module", () => {
     const gate = readFileSync("src/lib/parkingGate.ts", "utf8");
-    assert.match(gate, /export const PARKING_GATE = (true|false);/);
+    // Q2-M2: pinned to the operative value (false, since §17l's launch), not
+    // an (true|false) alternation — that regex would accept a re-park
+    // silently. A future deliberate re-park updates this guard alongside
+    // the flag, the same way any other source-pin does.
+    assert.match(gate, /export const PARKING_GATE = false;/);
     assert.match(gate, /sessionStorage/);
     assert.match(gate, /has\("enter"\)/);
   });
 
-  it("App shows the parking view to signed-out visitors unless bypassed", () => {
+  // Q2-M2: renamed from "App shows the parking view to signed-out visitors
+  // unless bypassed" — false since §17l opened the gate; this only proves
+  // the branch is still wired, not that it currently renders for anyone.
+  it("keeps App's parking-view branch wired for whenever the gate reopens", () => {
     const app = readFileSync("src/App.tsx", "utf8");
     assert.match(app, /PARKING_GATE && !parkingBypassActive\(\)/);
     assert.match(app, /<ParkingScreen/);
@@ -27,11 +34,11 @@ describe("construction soft gate", () => {
     assert.match(css, /body\.parking \{/);
   });
 
-  // Fix wave 2B, FIX 2 (completeness-audit-2 Finding 5). PARKING_GATE is
-  // true, so the parking view is every signed-out visitor's actual public
-  // face — before that fix it offered no path at all to Terms/Privacy/Risk
-  // disclaimer, and the fix was an in-body <LegalLinks /> row, since this page
-  // had no footer to put one in.
+  // Fix wave 2B, FIX 2 (completeness-audit-2 Finding 5), from when
+  // PARKING_GATE was true and the parking view was every signed-out
+  // visitor's actual public face — before that fix it offered no path at
+  // all to Terms/Privacy/Risk disclaimer, and the fix was an in-body
+  // <LegalLinks /> row, since this page had no footer to put one in.
   //
   // Spec §17i gave it a footer — the app's own, in the frame, always visible —
   // and with it the single-home rule: the trio lives in that footer's link row

@@ -1,0 +1,73 @@
+{
+  // Q4-C2: tests/ and scripts/ import live contracts from src/ and from the
+  // trade-analyzer/news-calendar Edge Functions, but neither was ever on the
+  // typecheck graph (tsconfig.app.json covers only "src"; tsconfig.node.json
+  // only vite.config.ts + symbolMap.ts) — so a renamed export or a changed
+  // signature broke nothing until the test actually ran. This project closes
+  // that gap for tsc the same way tests/*.test.ts already close it for
+  // node:test: by listing every file reachable from tests/ and scripts/.
+  //
+  // "composite" projects must declare a closed file set (TS6307), so src is
+  // included directly rather than referenced — tsconfig.app.json sets
+  // "noEmit", and a referenced project cannot disable emit (TS6310).
+  //
+  // The Edge Function side is an explicit file list, not a directory glob,
+  // and deliberately excludes trade-analyzer's index.ts, macroContext.ts,
+  // marketLoader.ts and supabaseRest.ts (Deno.* / Deno-only globals this
+  // Node-oriented project has no ambient types for) plus every other
+  // function's index.ts. Nothing under tests/ or scripts/ imports those
+  // files today — confirmed by walking the import graph from every test and
+  // script entry point. If a future test needs one of them, add it here
+  // deliberately rather than widen this to a directory glob.
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tests.tsbuildinfo",
+    "skipLibCheck": true,
+    // "node" for tests/scripts' process.env and node:* usage; "vite/client"
+    // for the src files pulled in above (import.meta.env, the *.css
+    // side-effect import in main.tsx) — the same augmentation
+    // tsconfig.app.json gets, which "types" otherwise replaces rather than
+    // extends.
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "tests",
+    "scripts/**/*.ts",
+    "playwright.config.ts",
+    "src",
+    "supabase/functions/trade-analyzer/calibration.ts",
+    "supabase/functions/trade-analyzer/concurrency.ts",
+    "supabase/functions/trade-analyzer/cotContext.ts",
+    "supabase/functions/trade-analyzer/executionQuality.ts",
+    "supabase/functions/trade-analyzer/futures.ts",
+    "supabase/functions/trade-analyzer/indicators.ts",
+    "supabase/functions/trade-analyzer/learning.ts",
+    "supabase/functions/trade-analyzer/newsRules.ts",
+    "supabase/functions/trade-analyzer/pricePlan.ts",
+    "supabase/functions/trade-analyzer/quotes.ts",
+    "supabase/functions/trade-analyzer/replay.ts",
+    "supabase/functions/trade-analyzer/scanPersistence.ts",
+    "supabase/functions/trade-analyzer/scanRanking.ts",
+    "supabase/functions/trade-analyzer/scoring.ts",
+    "supabase/functions/trade-analyzer/sessions.ts",
+    "supabase/functions/trade-analyzer/strategies.ts",
+    "supabase/functions/trade-analyzer/strategyProfiles.ts",
+    "supabase/functions/trade-analyzer/sweep.ts",
+    "supabase/functions/trade-analyzer/symbols.ts",
+    "supabase/functions/trade-analyzer/types.ts",
+    "supabase/functions/news-calendar/eventRows.ts"
+  ]
+}
