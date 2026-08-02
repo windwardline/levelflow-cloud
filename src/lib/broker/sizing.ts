@@ -39,6 +39,15 @@ export const CFD_STEP = 0.01;
 
 export type SizeUnit = "lots" | "contracts";
 
+/**
+ * The unit in the row's label, which a blocked row needs as much as a priced one:
+ * §20j allows `Size · lots` and `Size · contracts` and no bare `Size`, and the
+ * program family answers it whether or not a number resolves.
+ */
+export function sizeUnitFor(programLine: ProgramLine): SizeUnit {
+  return getProgramLine(programLine)?.family === "futures" ? "contracts" : "lots";
+}
+
 export type SizeResult =
   | { kind: "size"; units: number; step: number; unit: SizeUnit; caps: number[] }
   | { kind: "blocked"; word: SizeStateWord };
@@ -249,7 +258,7 @@ export function sizeInstrument(
   }
 
   const program = getProgramLine(row.programLine)!;
-  const unit: SizeUnit = program.family === "futures" ? "contracts" : "lots";
+  const unit = sizeUnitFor(row.programLine);
   const step = program.family === "futures" ? FUTURES_STEP : CFD_STEP;
 
   // Step 1 — the risk budget, on the profile's tier. Every drawdown basis E8

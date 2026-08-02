@@ -423,10 +423,12 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     // formatNumber, the locale-dependent display formatter, by name.
     assert.doesNotMatch(source, /handleCopy\([^)]*formatNumber/);
     // formatNumber is still very much in the file — for `value=` display
-    // props — exactly four times, one per ladder row.
+    // props — exactly five times since §19d: the four price rows and the Size
+    // row, which keeps the same display/payload split every other row has.
     const displayFormatNumberCalls =
       source.match(/value=\{formatNumber\(/g) ?? [];
-    assert.equal(displayFormatNumberCalls.length, 4);
+    assert.equal(displayFormatNumberCalls.length, 5);
+    assert.match(source, /onCopy=\{\(\) => onCopy\(formatCopyValue\(size\.units\)\)\}/);
   });
 
   it("flips each copy affordance to a checkmark for a bounded window, keyed per row", () => {

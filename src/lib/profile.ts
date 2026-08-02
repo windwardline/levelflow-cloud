@@ -70,10 +70,10 @@ export function brokerSelectionProblem(selection: BrokerSelection): string | nul
     return null;
   }
   if (selection.brokerId !== "e8") {
-    return `unknown broker ${String(selection.brokerId)}`;
+    return `broker ${String(selection.brokerId)} is not E8`;
   }
   if (!isProgramLine(selection.brokerProgramLine)) {
-    return `unknown program line ${String(selection.brokerProgramLine)}`;
+    return `program line ${String(selection.brokerProgramLine)} is not one E8 sells`;
   }
   const program = getProgramLine(selection.brokerProgramLine)!;
   if (
@@ -83,7 +83,7 @@ export function brokerSelectionProblem(selection: BrokerSelection): string | nul
     return `account size ${String(selection.brokerAccountSize)} is not on ${program.line}'s ladder`;
   }
   if (!isStage(selection.brokerStage)) {
-    return `unknown stage ${String(selection.brokerStage)}`;
+    return `stage ${String(selection.brokerStage)} is neither challenge nor performance`;
   }
   if (
     typeof selection.brokerRiskPercent !== "number" ||

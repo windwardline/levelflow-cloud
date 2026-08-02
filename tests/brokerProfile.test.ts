@@ -164,11 +164,11 @@ describe("§19g — the write path rejects what it cannot size", () => {
   it("rejects a partial write — the coherence constraint, in TypeScript", () => {
     assert.match(
       brokerSelectionProblem({ ...valid, brokerStage: null }) ?? "",
-      /unknown stage/,
+      /is neither challenge nor performance/,
     );
     assert.match(
       brokerSelectionProblem({ ...NO_BROKER_SELECTION, brokerProgramLine: "one" }) ?? "",
-      /unknown broker/,
+      /is not E8/,
     );
   });
 

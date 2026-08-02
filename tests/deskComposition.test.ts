@@ -1292,3 +1292,167 @@ describe("progressive disclosure survives the kill list", () => {
     assert.match(readFileSync(RAIL, "utf8"), /describeExecutionLabel\(/);
   });
 });
+
+// Spec §19d and §19e, both directions per §16. The Size row is the one new row
+// this feature draws, it is the ladder's last, and with no program selected it does
+// not exist at all — not a dash, not an empty value, not a prompt to go set one.
+// SizeRow's own body, bounded so a later component in the file cannot lend it a
+// class string it does not have.
+function sizeRowSource() {
+  const panelSource = readFileSync(PANEL, "utf8");
+  return panelSource.slice(
+    panelSource.indexOf("function SizeRow"),
+    panelSource.indexOf("function NoSetupPanel"),
+  );
+}
+
+describe("§19d — the Size row is present, and it is the ladder's last row", () => {
+  const SIZING = "src/lib/broker/sizing.ts";
+  const sizing = readFileSync(SIZING, "utf8");
+
+  it("sits inside the ladder grid, after Target 2 and after nothing else", () => {
+    const grid = panel.slice(
+      panel.indexOf('<div className="grid">'),
+      panel.indexOf("function CopyableMetricRow"),
+    );
+    const rows = Array.from(grid.matchAll(/<(CopyableMetricRow|SizeRow)\b/g), (m) =>
+      m[1]);
+    assert.deepEqual(rows, [
+      "CopyableMetricRow",
+      "CopyableMetricRow",
+      "CopyableMetricRow",
+      "CopyableMetricRow",
+      "SizeRow",
+    ]);
+  });
+
+  it("is a CopyableMetricRow, so the ladder's rhythm and 44px target are shared", () => {
+    // One row shell for the priced and the blocked state alike: the padding, the
+    // hairline and the hit target cannot drift between them.
+    assert.equal((panel.match(/function CopyableMetricRow/g) ?? []).length, 1);
+    assert.equal((panel.match(/min-h-11 min-w-0 items-baseline/g) ?? []).length, 1);
+    const sizeRow = sizeRowSource();
+    assert.match(sizeRow, /<CopyableMetricRow label=\{label\} value=\{size\.word\} \/>/);
+    assert.match(sizeRow, /onCopy=\{\(\) => onCopy\(formatCopyValue\(size\.units\)\)\}/);
+  });
+
+  it("puts the unit in the label and the bare number in the value", () => {
+    // The same idiom as `Target 1 · bank half`, so the numeral column stays clean.
+    assert.match(panel, /const label = `Size · \$\{sizeUnitFor\(profile\.brokerProgramLine\)\}`;/);
+    assert.match(sizing, /return getProgramLine\(programLine\)\?\.family === "futures"\s*\? "contracts"\s*: "lots";/);
+    assert.match(panel, /value=\{formatNumber\(size\.units\)\}/);
+  });
+
+  it("renders the value in mono tabular-nums when it is a number", () => {
+    assert.match(
+      panel,
+      /font-mono text-xl font-bold tabular-nums max-lg:text-\[15\.5px\]/,
+    );
+  });
+
+  it("drops the copy affordance entirely in a blocked state", () => {
+    // An affordance that copies a word is a lie, and the muted non-mono treatment
+    // is what says the slot holds a word rather than a price.
+    assert.match(panel, /\{onCopy === undefined\n\s*\? \(\n\s*<span className="min-w-0 text-right text-sm font-semibold text-ink-muted max-lg:text-\[13px\]">/);
+    const blockedSlot = panel.slice(
+      panel.indexOf("{onCopy === undefined"),
+      panel.indexOf('<span className="flex min-w-0 items-baseline gap-1'),
+    );
+    assert.ok(!blockedSlot.includes("cpv-copy"));
+    assert.ok(!blockedSlot.includes("font-mono"));
+    assert.ok(!blockedSlot.includes("tabular-nums"));
+  });
+
+  it("does not exist with no program selected", () => {
+    const sizeRow = sizeRowSource();
+    assert.match(
+      sizeRow,
+      /profile\.brokerProgramLine === null[\s\S]{0,200}\) \{\n\s*return null;/,
+    );
+    // Not a dash, not an empty value, not a prompt.
+    assert.doesNotMatch(sizeRow, /"—"|value=""|Select a program|Set a program/);
+  });
+
+  it("renders exactly the four state words §19e names, and no fifth voice", () => {
+    const words = readFileSync("src/lib/broker/types.ts", "utf8");
+    for (const word of [
+      "Not offered",
+      "Not confirmed",
+      "Not published",
+      "Rate unavailable",
+    ]) {
+      assert.ok(words.includes(`"${word}"`), `${word} must be the rendered string`);
+    }
+    for (const banned of ["N/A", "unknown", "approximately", "estimated", "TBD"]) {
+      assert.ok(!words.includes(banned), `${banned} must not be a state word`);
+    }
+  });
+
+  it("never renders an em dash in the Size row's value slot (§19e)", () => {
+    // The app draws em dashes legitimately elsewhere, so languageGuard cannot ban
+    // the character — the composition guard bans it here, where a dash would mean
+    // "there is nothing here" and there is always something: a number or a word.
+    const sizeRow = sizeRowSource();
+    const literals = (source: string) =>
+      Array.from(source.matchAll(/"([^"\n]*)"|`([^`]*)`/g), (m) => m[1] ?? m[2]);
+    for (const literal of literals(sizeRow)) {
+      assert.ok(!literal.includes("—"), `the Size row must not render "${literal}"`);
+    }
+    // And no state word is a dash either — the words are the only strings the
+    // blocked slot can hold.
+    for (const literal of literals(readFileSync("src/lib/broker/types.ts", "utf8"))) {
+      assert.ok(!literal.includes("—"), `a state word must not be "${literal}"`);
+    }
+  });
+
+  it("adds the row on both platforms from one render path", () => {
+    // The desk stage ladder and the mobile Scan ladder are the same component, so
+    // there is exactly one SizeRow call site and both surfaces get it.
+    assert.equal((panel.match(/<SizeRow\n/g) ?? []).length, 1);
+    assert.equal((stage.match(/<RecommendationPanel\n/g) ?? []).length, 2);
+    assert.equal((stage.match(/quotes=\{brokerQuotes\}/g) ?? []).length, 2);
+  });
+
+  it("adds no scan of its own — the row reads what is already loaded", () => {
+    const quotes = readFileSync("src/lib/broker/quotes.ts", "utf8");
+    for (const fetcher of ["fetch(", "supabase", "invoke(", "useEffect"]) {
+      assert.ok(!quotes.includes(fetcher), `${fetcher} must not appear in quotes.ts`);
+      assert.ok(!sizing.includes(fetcher), `${fetcher} must not appear in sizing.ts`);
+    }
+    assert.match(
+      stage,
+      /const brokerQuotes = collectBrokerQuotes\(\{ scan: scanResult, setup \}\);/,
+    );
+  });
+});
+
+describe("§19d — the kill list: nothing else grows a size", () => {
+  it("puts no size on the Current trades rail — a placed trade's size is the user's", () => {
+    const trades = readFileSync(TRADES_RAIL, "utf8");
+    assert.ok(!trades.includes("sizeSetup"));
+    assert.ok(!trades.includes("broker/sizing"));
+  });
+
+  it("puts no size in the Insights ledger — sizing a past setup today is fiction", () => {
+    for (const file of ["src/components/workspace/HistoryPanel.tsx", "src/components/workspace/attribution.ts"]) {
+      const source = readFileSync(file, "utf8");
+      assert.ok(!source.includes("sizeSetup"), `${file} must not size anything`);
+      assert.ok(!source.includes("broker/sizing"), file);
+    }
+  });
+
+  it("keeps sizing off the analyzer — it is a client computation", () => {
+    for (const file of allSourceFiles("supabase/functions/trade-analyzer")) {
+      const source = readFileSync(file, "utf8");
+      assert.ok(!source.includes("broker/sizing"), file);
+      assert.ok(!source.includes("brokerProgramLine"), file);
+    }
+  });
+
+  it("draws no box, radius or fill on the Size row", () => {
+    const sizeRow = sizeRowSource();
+    for (const box of ["rounded", "border-", "bg-", "shadow"]) {
+      assert.ok(!sizeRow.includes(box), `${box} must not reach the Size row`);
+    }
+  });
+});

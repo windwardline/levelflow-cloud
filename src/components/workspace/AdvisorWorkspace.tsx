@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { ExpandedChartOverlay } from "../charts/ExpandedChartOverlay";
 import { MarketChart } from "../charts/MarketChart";
 import { RecommendationPanel } from "./AdvisorRecommendationPanel";
+import { collectBrokerQuotes } from "../../lib/broker/quotes";
 import { TIMEFRAMES } from "./advisorFormat";
 import { buildConfidenceMeta, ConfidenceUnit } from "./ConfidenceUnit";
 import { CurrentTradesRail } from "./CurrentTradesRail";
@@ -162,6 +163,11 @@ export function AdvisorWorkspace(
     ? analysisState.response
     : null;
   const setup = activeResult?.setup ?? null;
+  // Spec §19c/§19d: the quotes the bridge may read, and only the ones the client
+  // already holds — the active setup's own latest close plus every scan
+  // opportunity's. No fetch and no added scan; where a bridge leg is not among
+  // them the Size row renders `Rate unavailable` rather than reaching elsewhere.
+  const brokerQuotes = collectBrokerQuotes({ scan: scanResult, setup });
   // The stagehead's confidence meta line says when this review ran, alongside
   // the setup's own expiry (spec §16 folds both into one quiet line in place of
   // the deleted metric card). Read straight off the analysis state so a
@@ -566,6 +572,8 @@ export function AdvisorWorkspace(
             data-testid="mobile-scan-scroll"
           >
             <RecommendationPanel
+              profile={profile}
+              quotes={brokerQuotes}
               result={activeResult}
               setup={setup}
               symbol={symbol}
@@ -742,6 +750,8 @@ export function AdvisorWorkspace(
               other scroll region in the app uses. */}
           <div className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <RecommendationPanel
+              profile={profile}
+              quotes={brokerQuotes}
               result={activeResult}
               setup={setup}
               symbol={symbol}
