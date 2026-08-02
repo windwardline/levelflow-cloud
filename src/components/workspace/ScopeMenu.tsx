@@ -21,11 +21,7 @@ import {
   marketAvailability,
   type MarketAvailability,
 } from "../../lib/marketHours";
-import {
-  isMobileViewportWidth,
-  MOBILE_BREAKPOINT_PX,
-  useIsMobileViewport,
-} from "../../hooks/useMobileViewport";
+import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 
 export type ScanScope =
   | { kind: "all" }
@@ -194,25 +190,19 @@ export function showsAffordance(row: ScopeMenuRow): boolean {
   return row.scope.kind !== "symbol";
 }
 
-// Mobile renders the menu as a full-screen sheet instead of an anchored
-// popup — spec §4's universal contract: "One dropdown, three scope kinds,
-// identical on desktop and mobile (mobile renders it as a full-screen
-// sheet)." It applies to every ScopeMenu instance, so the choice lives inside
-// the component itself rather than as a prop each call site would otherwise
-// need to compute and thread through identically.
+// Mobile renders the menu as a full-screen sheet instead of an anchored popup —
+// spec §4's universal contract: "One dropdown, three scope kinds, identical on
+// desktop and mobile (mobile renders it as a full-screen sheet)." It applies to
+// every ScopeMenu instance, so the choice lives inside the component itself
+// rather than as a prop each call site would otherwise compute and thread
+// through identically — see useIsMobileViewport() below.
 //
-// The sheet breakpoint is the app's one mobile breakpoint, not a second
-// number of this component's own: both live in src/hooks/useMobileViewport.ts
-// now that the Desk's merged mobile surface needs the same answer (spec §17e).
-// Re-exported under this name because it is what the menu's own contract has
-// always been called — one value, two names, and no way for them to drift.
-export const MOBILE_SHEET_BREAKPOINT_PX = MOBILE_BREAKPOINT_PX;
-
-export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
-  return isMobileViewportWidth(viewportWidthPx);
-}
-
-export type ScopeMenuProps = {
+// Q1-#21: this file used to re-export the breakpoint under a second name plus a
+// shouldUseSheetLayout predicate, both with no product caller — the component
+// reads the app's one viewport hook directly. src/hooks/useMobileViewport.ts is
+// the one home for both the number and the comparison, and tests/hooks.test.ts
+// covers them there.
+type ScopeMenuProps = {
   /** Accessible label for the trigger ("Scan scope"), and the sheet's title. */
   label: string;
   /** Injectable clock for tests; defaults to `new Date()`. */

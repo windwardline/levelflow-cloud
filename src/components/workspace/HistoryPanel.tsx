@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import { AVAILABLE_ASSET_GROUPS } from "../../lib/symbolMap";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
@@ -47,27 +47,14 @@ const PERIOD_OPTIONS: Array<{ label: string; value: InsightsPeriodDays }> = [
 const DEFAULT_PERIOD_DAYS: InsightsPeriodDays = 30;
 
 export function HistoryPanel({
-  initialSymbol,
   loadFailed,
   loading,
-  onInitialSymbolHandled,
   setups,
 }: {
-  // A cross-link elsewhere in the app (Advisor, Profile) asked to filter
-  // Insights to one market. Adopted once per change so the user can still
-  // clear the filter afterwards without it snapping back.
-  initialSymbol?: string | null;
   // Q2-C2: the history fetch failed, so an empty ledger is unknown rather than
   // known-empty.
   loadFailed: boolean;
   loading: boolean;
-  // Called once the effect below has adopted initialSymbol, so the caller
-  // (App) can clear it. HistoryPanel unmounts whenever its tab isn't
-  // active, so without this the same request would still be sitting there
-  // on the next mount and would re-apply itself over a market the user
-  // picked in the meantime — the same stale-remount shape openRequest had
-  // before AdvisorWorkspace grew onOpenRequestHandled.
-  onInitialSymbolHandled?: () => void;
   setups: TradeSetupRow[];
 }) {
   const [marketScope, setMarketScope] = useState<ScanScope>({ kind: "all" });
@@ -77,13 +64,6 @@ export function HistoryPanel({
   const [periodDays, setPeriodDays] = useState<InsightsPeriodDays>(
     DEFAULT_PERIOD_DAYS,
   );
-
-  useEffect(() => {
-    if (initialSymbol) {
-      setMarketScope({ kind: "symbol", symbol: initialSymbol });
-      onInitialSymbolHandled?.();
-    }
-  }, [initialSymbol, onInitialSymbolHandled]);
 
   // A plain per-render read, not a ticking clock: pending/open/closed
   // classification and period-boundary filtering only need "roughly now",

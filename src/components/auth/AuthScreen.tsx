@@ -214,7 +214,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               >
                 Email
               </label>
-              <div className="field auth-input-shell flex items-center focus-within:border-accent">
+              <div className="field flex items-center focus-within:border-accent">
                 <Mail className="h-4 w-4 text-ink-muted" aria-hidden="true" />
                 <input
                   id="email"

@@ -231,7 +231,7 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
 
   return (
     <div className="mx-auto grid max-w-[1020px] gap-9 lg:grid-cols-[230px_1fr] lg:items-start">
-      <GuideToc sections={GUIDE_SECTIONS} />
+      <GuideToc />
 
       {/* Spec §17i: the numbered article is the whole page now. The closing
           Support block §17 placement (b) put here is DELETED — with the footer in
@@ -287,29 +287,29 @@ function GuideDeck() {
       <GuideSection id="the-setup">
         <p>A setup is four prices, named the way your platform names them:</p>
         <ul className="grid list-disc gap-2 ps-5">
-          <GuideBullet>
+          <li>
             <strong className="text-ink">Entry</strong> — where your limit
             order waits. A buy limit waits below the current price; a
             sell limit waits above it. Levelflow only ever suggests limit
             orders — never market or stop entries.
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">Stop loss</strong> — the price
             that says the setup was wrong. Levelflow places it past the
             surrounding price structure with a volatility buffer, never
             at a round number.
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">Target 1 · bank half</strong> —
             the first profit level. When price reaches it, you act (see
             §3).
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">Target 2 · take-profit</strong>
             {" "}— the level your take-profit order sits at. It is chosen
             from price structure and what this market can actually reach
             in the setup's window.
-          </GuideBullet>
+          </li>
         </ul>
         <p>
           Each value on the Desk copies individually — tap it, paste it
@@ -323,26 +323,26 @@ function GuideDeck() {
         </blockquote>
         <p>In platform terms, that is three moments:</p>
         <ol className="grid list-decimal gap-2 ps-5">
-          <GuideBullet>
+          <li>
             <strong className="text-ink">Place the trade.</strong> Open a
             buy or sell limit at the Entry price. Set the stop loss and
             set the take-profit at Target 2. Until price reaches your
             entry, the order shows as{" "}
             <strong className="text-ink">pending</strong> — nothing to do.
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">Target 1 hits.</strong> Close
             half the position (a partial close), and modify the stop
             loss to your entry price. Half your profit is real money
             now, and the rest of the trade can no longer cost you
             anything.
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">The finish.</strong> The
             remaining half either reaches Target 2 — your take-profit
             closes it — or comes back to your entry and closes flat.
             Profit either way. That is the whole design.
-          </GuideBullet>
+          </li>
         </ol>
         <p>
           Your platform will not do step 2 for you. Levelflow keeps the
@@ -387,19 +387,19 @@ function GuideDeck() {
           it against the setup before showing anything:
         </p>
         <ul className="grid list-disc gap-2 ps-5">
-          <GuideBullet>
+          <li>
             <strong className="text-ink">Clean</strong> — costs are
             small next to the distance between entry and stop. The
             payoff survives intact.
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">Acceptable</strong> — costs
             take a visible bite. The payoff still holds up.
-          </GuideBullet>
-          <GuideBullet>
+          </li>
+          <li>
             <strong className="text-ink">Thin</strong> — costs take a
             meaningful share. Usually worth waiting for a better spread.
-          </GuideBullet>
+          </li>
         </ul>
         <p>
           When costs eat too much of the payoff, the setup is not shown
@@ -498,7 +498,10 @@ function GuideDeck() {
 //    misaligns. tests/surfaceComposition.test.ts pins the pairing (a zero offset
 //    beside a region that carries the padding), so restoring either half alone
 //    fails there.
-function GuideToc({ sections }: { sections: typeof GUIDE_SECTIONS }) {
+// Q1-#25: no props. `sections: typeof GUIDE_SECTIONS` admitted exactly one value,
+// and the module constant is in scope — a parameter that can only ever be handed
+// the thing it is already standing next to.
+function GuideToc() {
   return (
     <nav
       aria-label="Guide sections"
@@ -508,7 +511,7 @@ function GuideToc({ sections }: { sections: typeof GUIDE_SECTIONS }) {
         Contents
       </p>
       <div className="grid gap-1">
-        {Object.entries(sections).map(([id, section]) => (
+        {Object.entries(GUIDE_SECTIONS).map(([id, section]) => (
           <a
             key={id}
             className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-ink"
@@ -556,17 +559,3 @@ function GuideSection({
   );
 }
 
-// Shared wrapper for every "term — definition" bullet in §2/§3/§6 (§10 uses
-// a real <dl> instead — see the definition-list block above). Fix round 1:
-// the controller ruled that spec §16's authority clause ("where this
-// spec's prose and a mockup's composition disagree, the mockup governs
-// composition") overrides the kill-list's narrower "per-section" wording —
-// g-guide-v1.html draws no boxes at any level, so these list items lose
-// their card treatment too, flattening to plain flowing list content. §3's
-// three ordered moments now number the native way (list-decimal on the
-// parent <ol>, restoring exactly the marker Tailwind's preflight strips
-// app-wide) instead of a custom numeral badge, so this component no longer
-// needs a `marker` prop at all.
-function GuideBullet({ children }: { children: ReactNode }) {
-  return <li>{children}</li>;
-}

@@ -60,7 +60,7 @@ describe("construction soft gate", () => {
     assert.match(screen, /<AppFooter\s+donate=\{\{ href: "\/\?donate" \}\}/);
     assert.match(
       readFileSync("src/components/AppFooter.tsx", "utf8"),
-      /<LegalLinks align="left" \/>/,
+      /<LegalLinks \/>/,
     );
   });
 

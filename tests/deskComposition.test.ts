@@ -112,12 +112,17 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       "reviewedAt: Date.now()",
       "reviewedAt: null",
     ]);
-    // The scan-selection state is the one that must not claim a review.
+    // The scan-selection state is the one that must not claim a review. Anchored
+    // on the state it builds rather than on a notice string: Q1-I9 deleted the
+    // `message: "Selected from Market Scan."` write it used to carry, which was
+    // the last notice-shaped string left on this surface and rendered nowhere —
+    // §16 deleted every reader of AnalyzerResponse.message on the Desk.
     const scanSelected = stage.match(
-      /message: "Selected from Market Scan\.",[\s\S]{0,600}?reviewedAt: ([^,\n]+)/,
+      /if \(candidate\.setup\) \{[\s\S]{0,900}?reviewedAt: ([^,\n]+)/,
     );
     assert.ok(scanSelected, "expected the scan-selection analysis state");
     assert.equal(scanSelected[1], "null");
+    assert.doesNotMatch(stage, /Selected from Market Scan/);
     // And the displayed value is gated on that field, not merely on a setup
     // being present — otherwise the null branch is unreachable again.
     assert.match(

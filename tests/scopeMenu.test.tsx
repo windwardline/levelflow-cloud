@@ -15,10 +15,8 @@ import {
   describeScanScope,
   formatScopeCountLine,
   formatScopeMenuAffordance,
-  MOBILE_SHEET_BREAKPOINT_PX,
   moveScopeMenuHighlight,
   resolveRowActivation,
-  shouldUseSheetLayout,
   showsAffordance,
   type ScanScope,
   type ScopeMenuRow,
@@ -609,37 +607,6 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
   });
 });
 
-// Task 9 (Guide + Profile + mobile pass): spec §4's universal contract —
-// "One dropdown, three scope kinds, identical on desktop and mobile (mobile
-// renders it as a full-screen sheet)" — applies to every ScopeMenu instance,
-// so the sheet/anchored-popup choice lives inside the component (a viewport
-// check) rather than a prop each of today's two call sites (MarketScanPanel and
-// the merged mobile control row) would otherwise have to compute and pass in
-// identically. shouldUseSheetLayout is the pure decision function behind that
-// internal choice — exercised directly here, since actually rendering
-// <ScopeMenu> hits the esbuild/JSX limitation documented at the top of this
-// file.
-describe("shouldUseSheetLayout (Task 9 mobile sheet)", () => {
-  it("mirrors --breakpoint-lg (src/styles/index.css) exactly, not a second hardcoded number", () => {
-    assert.equal(MOBILE_SHEET_BREAKPOINT_PX, 1024);
-  });
-
-  it("is a sheet just below the breakpoint", () => {
-    assert.equal(shouldUseSheetLayout(MOBILE_SHEET_BREAKPOINT_PX - 1), true);
-  });
-
-  it("is the anchored popup exactly at the breakpoint (lg's own min-width boundary)", () => {
-    assert.equal(shouldUseSheetLayout(MOBILE_SHEET_BREAKPOINT_PX), false);
-  });
-
-  it("is the anchored popup comfortably above the breakpoint", () => {
-    assert.equal(shouldUseSheetLayout(1280), false);
-  });
-
-  it("is a sheet at common phone widths", () => {
-    assert.equal(shouldUseSheetLayout(375), true);
-  });
-});
 
 // The sheet variant's own JSX can't be rendered in this harness either, so
 // its structure is pinned against source text — the same technique

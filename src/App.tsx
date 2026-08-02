@@ -112,7 +112,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
   const [advisorRequest, setAdvisorRequest] = useState<{ symbol: string; token: number } | null>(null);
-  const [insightsSymbol, setInsightsSymbol] = useState<string | null>(null);
   // The mobile tab bar's own sub-selection within the Desk (spec §17e: Scan /
   // Trades). Kept separate from activeTab rather than folded into it: both map
   // to the same "advisor" AppTab, so AdvisorWorkspace stays mounted (and its
@@ -127,11 +126,7 @@ export default function App() {
   // (stale) openRequest again and re-select its symbol, silently
   // overriding whatever market the user had since chosen.
   const clearAdvisorRequest = useCallback(() => setAdvisorRequest(null), []);
-  // Same shape, same reason: HistoryPanel unmounts whenever the Insights
-  // tab isn't active, so insightsSymbol has to be cleared once adopted or
-  // a later plain tab revisit would silently reapply a stale market filter.
-  const clearInsightsSymbol = useCallback(() => setInsightsSymbol(null), []);
-  // Third of the same shape: an unconsumed guideAnchor would scroll the
+  // Same shape, same reason: an unconsumed guideAnchor would scroll the
   // Guide back down to the last-linked section every time the user opened
   // the tab from the tab bar, instead of starting at the top.
   const clearGuideAnchor = useCallback(() => setGuideAnchor(null), []);
@@ -167,7 +162,7 @@ export default function App() {
       setActiveTab("advisor");
       setDeskMobileView("scan");
     },
-    openInsights: (symbol) => { setInsightsSymbol(symbol ?? null); setActiveTab("history"); },
+    openInsights: () => setActiveTab("history"),
   }), []);
   const setupState = useTradeSetups();
   // Q2-M7: one clock per setups change rather than a fresh Date on every render
@@ -452,10 +447,8 @@ export default function App() {
           ) : null}
           {activeTab === "history" ? (
             <HistoryPanel
-              initialSymbol={insightsSymbol}
               loadFailed={setupState.loadFailed}
               loading={setupState.loading}
-              onInitialSymbolHandled={clearInsightsSymbol}
               setups={setupState.setups}
             />
           ) : null}

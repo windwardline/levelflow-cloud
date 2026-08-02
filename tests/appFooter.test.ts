@@ -69,7 +69,7 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
   it("carries the §17 link row: Help and Donate before the legal trio, in the mock's order", () => {
     assert.match(
       footer,
-      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,900}Donate[\s\S]{0,300}<LegalLinks align="left" \/>/,
+      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,900}Donate[\s\S]{0,300}<LegalLinks \/>/,
     );
     // Three tertiary links for two controls: Help, and Donate in each of its two
     // element forms (§17i's satellite pages need a link where the app needs a
@@ -258,7 +258,7 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.match(footer, /A Windward Line production/);
     assert.match(footer, /href=\{supportMailto\}/);
     assert.match(footer, /onClick=\{donate\.onSelect\}/);
-    assert.match(footer, /<LegalLinks align="left" \/>/);
+    assert.match(footer, /<LegalLinks \/>/);
     const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
     assert.deepEqual(
       Array.from(legal.matchAll(/label: "([^"]+)"/g), (match) => match[1]),

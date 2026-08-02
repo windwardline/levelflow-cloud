@@ -77,8 +77,8 @@ export function ExpandedChartOverlay(
   const closeRef = useRef<HTMLButtonElement>(null);
   // The element that had focus when the dialog opened — the trigger, in every
   // real path here. Captured rather than passed in as a ref so the trigger can
-  // stay where the mock puts it (inside the chart's own bottom-right corner)
-  // without threading a ref up through MarketChart's props.
+  // stay where the mock puts it (inside the chart's own top-right corner since
+  // the §17m.3 move) without threading a ref up through MarketChart's props.
   const previouslyFocusedRef = useRef<Element | null>(null);
 
   useEffect(() => {

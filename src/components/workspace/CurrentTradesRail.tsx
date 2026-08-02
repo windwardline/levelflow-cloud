@@ -11,7 +11,7 @@ import { formatNumber } from "./advisorFormat";
 import { HISTORY_LOAD_FAILED_COPY, formatSignedR } from "./historyUtils";
 import { useWorkspaceNav } from "./WorkspaceNav";
 
-export type CurrentTradesRailProps = {
+type CurrentTradesRailProps = {
   // True when this rail is the mobile Trades surface rather than the ≥lg Desk's
   // right column (spec §17g): the head pins, the cards list scrolls inside the
   // fixed frame, and the surface owns its own gutters. Off at ≥lg, where the
@@ -143,11 +143,12 @@ export function CurrentTradesRail(
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => now);
   const cards = buildTradeCards(setups, now);
 
-  // I2: on mobile, switching the bottom tab bar to Trades never remounts
-  // this component (deskColumnClassName's whole point is a CSS-only toggle
-  // that preserves AdvisorWorkspace's state across Review/Scan/Trades), so
-  // the mount-time baseline above never re-fires for that transition on its
-  // own. App.tsx pairs this with its own effect that actually re-fetches
+  // I2: on mobile, switching the bottom tab bar to Trades never remounts this
+  // component — AdvisorWorkspace keeps both of its <lg surfaces mounted and
+  // toggles them by display, deliberately, so the Scan surface's chart canvas and
+  // state survive the trip (DeskMobileView is "scan" | "trades"; the Review
+  // sub-view §17m.1 deleted is not a third). So the mount-time baseline above
+  // never re-fires for that transition on its own. App.tsx pairs this with its own effect that actually re-fetches
   // outcome data the moment mobileView becomes "trades" — this only keeps
   // the "as of" stamp from silently going stale relative to that real
   // refresh. Guarded to the true (became-visible) transition only: flipping

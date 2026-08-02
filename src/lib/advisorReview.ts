@@ -1,23 +1,15 @@
 import type { SecurityType } from "./symbolMap";
 
-export const ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"] as const;
-export const ADVISOR_EXECUTION_INTERVALS = ["5M", "1M"] as const;
-
-// Working surfaces never show a raw interval code (spec §7); every code is
-// translated to a plain word before it reaches a string the user can read.
-const INTERVAL_LABELS: Record<string, string> = {
-  "1D": "daily",
-  "1H": "1-hour",
-  "1M": "1-minute",
-  "4H": "4-hour",
-  "5M": "5-minute",
-  "15M": "15-minute",
-};
-
-function intervalLabel(code: string) {
-  return INTERVAL_LABELS[code] ?? code;
-}
-
+/**
+ * Mirrors supabase/functions/trade-analyzer/calibration.ts's per-class
+ * defaultReviewHours — the window a setup's limit order waits in before the
+ * engine calls it unfilled. Duplicated rather than imported: that file is a Deno
+ * edge function, and pulling it into the client bundle would be architecturally
+ * wrong. tests/calibrationState.test.ts pins every class against the frozen
+ * calibration state of record, so a change here without a calibration round
+ * fails CI — which is why this survived Q2-I4's orphan sweep while the interval
+ * labels beside it did not.
+ */
 export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
   Crypto: 12,
   Energies: 6,
@@ -42,16 +34,3 @@ export const CONFIDENCE_THRESHOLD_BY_ASSET_TYPE: Record<SecurityType, number> = 
   Indices: 68,
   Metals: 90,
 };
-
-export function advisorSignalIntervalLabel() {
-  return ADVISOR_SIGNAL_INTERVALS.map(intervalLabel).join(", ");
-}
-
-export function advisorExecutionIntervalLabel() {
-  return ADVISOR_EXECUTION_INTERVALS.map(intervalLabel).join(", ");
-}
-
-export function reviewWindowLabel(assetType: SecurityType) {
-  const hours = REVIEW_WINDOW_HOURS_BY_ASSET_TYPE[assetType];
-  return `Up to ${hours} ${hours === 1 ? "hour" : "hours"}`;
-}

@@ -18,124 +18,31 @@ export type UserProfile = {
   themePreference: ThemeMode;
 };
 
-export type UsTimeZoneOption = {
-  daylightLabel: string;
-  group: "adjusts" | "standard";
-  label: string;
-  regions: string;
-  standardLabel: string;
-  value: string;
-};
-
-export const US_TIME_ZONE_OPTIONS = [
-  {
-    daylightLabel: "EDT",
-    group: "adjusts",
-    label: "Eastern Time",
-    regions: "Eastern states and Washington, D.C.",
-    standardLabel: "EST",
-    value: "America/New_York",
-  },
-  {
-    daylightLabel: "CDT",
-    group: "adjusts",
-    label: "Central Time",
-    regions: "Central states",
-    standardLabel: "CST",
-    value: "America/Chicago",
-  },
-  {
-    daylightLabel: "MDT",
-    group: "adjusts",
-    label: "Mountain Time",
-    regions: "Mountain states and Navajo Nation",
-    standardLabel: "MST",
-    value: "America/Denver",
-  },
-  {
-    daylightLabel: "PDT",
-    group: "adjusts",
-    label: "Pacific Time",
-    regions: "Pacific states",
-    standardLabel: "PST",
-    value: "America/Los_Angeles",
-  },
-  {
-    daylightLabel: "AKDT",
-    group: "adjusts",
-    label: "Alaska Time",
-    regions: "Most of Alaska",
-    standardLabel: "AKST",
-    value: "America/Anchorage",
-  },
-  {
-    daylightLabel: "HADT",
-    group: "adjusts",
-    label: "Aleutian Time",
-    regions: "Western Aleutian Islands",
-    standardLabel: "HAST",
-    value: "America/Adak",
-  },
-  {
-    daylightLabel: "AST",
-    group: "standard",
-    label: "Atlantic Time",
-    regions: "Puerto Rico and U.S. Virgin Islands",
-    standardLabel: "AST",
-    value: "America/Puerto_Rico",
-  },
-  {
-    daylightLabel: "MST",
-    group: "standard",
-    label: "Arizona Time",
-    regions: "Most of Arizona",
-    standardLabel: "MST",
-    value: "America/Phoenix",
-  },
-  {
-    daylightLabel: "HST",
-    group: "standard",
-    label: "Hawaii Time",
-    regions: "Hawaii",
-    standardLabel: "HST",
-    value: "Pacific/Honolulu",
-  },
-  {
-    daylightLabel: "SST",
-    group: "standard",
-    label: "Samoa Time",
-    regions: "American Samoa",
-    standardLabel: "SST",
-    value: "Pacific/Pago_Pago",
-  },
-  {
-    daylightLabel: "ChST",
-    group: "standard",
-    label: "Chamorro Time",
-    regions: "Guam and Northern Mariana Islands",
-    standardLabel: "ChST",
-    value: "Pacific/Guam",
-  },
-] as const;
-
-export const US_TIME_ZONE_GROUPS = [
-  {
-    label: "Observes Daylight Saving Time",
-    options: US_TIME_ZONE_OPTIONS.filter((option) =>
-      option.group === "adjusts"
-    ),
-  },
-  {
-    label: "Standard Time Year-Round",
-    options: US_TIME_ZONE_OPTIONS.filter((option) =>
-      option.group === "standard"
-    ),
-  },
-] as const;
-
-export const US_TIME_ZONES: string[] = US_TIME_ZONE_OPTIONS.map((option) =>
-  option.value
-);
+/**
+ * Every US time zone a profile may hold, in the order Profile's retired picker
+ * listed them (Eastern first, then west, then the standard-time-only zones).
+ *
+ * Q2-I3: this was a table of option objects — label, regions, daylightLabel,
+ * standardLabel, group — plus US_TIME_ZONE_GROUPS, getUsTimeZoneOption and
+ * getTimeZoneAbbreviation to read them, about 130 of this module's 219 lines. §16
+ * deleted the timezone control, so nothing rendered any of it; only the VALUES
+ * were still live, through isUsTimezone below and the profile coercion it backs.
+ * The display half is gone rather than kept warm by its own tests, which is what
+ * kept it alive. Restoring a picker means restoring its labels with it.
+ */
+export const US_TIME_ZONES: string[] = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "America/Adak",
+  "America/Puerto_Rico",
+  "America/Phoenix",
+  "Pacific/Honolulu",
+  "Pacific/Pago_Pago",
+  "Pacific/Guam",
+];
 
 const US_TIME_ZONE_ALIASES: Record<string, string> = {
   "America/Detroit": "America/New_York",
@@ -194,26 +101,4 @@ export function coerceToSupportedUsTimeZone(value: string | null | undefined) {
     return value;
   }
   return US_TIME_ZONE_ALIASES[value] ?? "America/New_York";
-}
-
-export function getUsTimeZoneOption(value: string | null | undefined) {
-  const timezone = coerceToSupportedUsTimeZone(value);
-  return US_TIME_ZONE_OPTIONS.find((option) => option.value === timezone) ??
-    US_TIME_ZONE_OPTIONS[0];
-}
-
-export function getTimeZoneAbbreviation(timeZone: string, date = new Date()) {
-  const option = getUsTimeZoneOption(timeZone);
-  const abbreviation = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    timeZone: option.value,
-    timeZoneName: "short",
-  }).formatToParts(date).find((part) => part.type === "timeZoneName")?.value;
-
-  if (!abbreviation || /^GMT[+-]/.test(abbreviation)) {
-    return option.group === "standard"
-      ? option.standardLabel
-      : option.daylightLabel;
-  }
-  return abbreviation;
 }

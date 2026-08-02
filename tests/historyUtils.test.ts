@@ -339,6 +339,24 @@ describe("buildInsightsGroups", () => {
       [["c", "b"], ["a"]],
     );
   });
+
+  // Q1-#20 collapsed sortHistorySetups and groupHistorySetups to the one mode
+  // each that was ever reachable, so the day label and the group ORDER are now
+  // this function's whole contract — no re-sort of the groups, because rows
+  // arrive newest-first and first appearance is the order.
+  it("labels each group with its own day, and never merges two days into one", () => {
+    const groups = buildInsightsGroups([
+      buildSetup({ created_at: "2026-07-29T15:00:00.000Z", id: "c" }),
+      buildSetup({ created_at: "2026-07-28T09:00:00.000Z", id: "a" }),
+      buildSetup({ created_at: "2026-07-29T09:00:00.000Z", id: "b" }),
+    ]);
+    assert.equal(groups.length, 2);
+    assert.notEqual(groups[0].label, groups[1].label);
+    for (const group of groups) {
+      assert.equal(group.key, group.label);
+      assert.ok(group.label.length > 0);
+    }
+  });
 });
 
 describe("buildRecordBand", () => {

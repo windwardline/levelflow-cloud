@@ -29,9 +29,8 @@ import {
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   coerceToSupportedUsTimeZone,
-  getTimeZoneAbbreviation,
-  US_TIME_ZONE_GROUPS,
-  US_TIME_ZONE_OPTIONS,
+  isUsTimezone,
+  US_TIME_ZONES,
 } from "../src/lib/profile";
 import {
   CHART_TIMEFRAME_OPTIONS,
@@ -39,11 +38,8 @@ import {
   isChartTimeframe,
 } from "../src/lib/marketData";
 import {
-  ADVISOR_EXECUTION_INTERVALS,
-  ADVISOR_SIGNAL_INTERVALS,
   CONFIDENCE_THRESHOLD_BY_ASSET_TYPE,
   REVIEW_WINDOW_HOURS_BY_ASSET_TYPE,
-  reviewWindowLabel,
 } from "../src/lib/advisorReview";
 import {
   AVAILABLE_ASSET_GROUPS,
@@ -56,7 +52,6 @@ import {
 } from "../src/lib/symbolMap";
 import {
   buildConfidenceBands,
-  groupHistorySetups,
   sortHistorySetups,
 } from "../src/components/workspace/historyUtils";
 import type {
@@ -626,9 +621,9 @@ describe("profile preferences", () => {
   // single source every such surface reads (advisorFormat's TIMEFRAMES
   // re-exports it, and the Desk's chart-view select renders option.label
   // straight from it), so pinning it here pins every surface at once. The
-  // codes are the same compact grammar the engine already speaks internally
-  // (ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"], advisorReview.ts) —
-  // digits plus the unit's initial — so 15 minutes reads "15M": three
+  // codes are the same compact grammar the engine already speaks internally for
+  // its review timeframes ("4H", "1H", "15M") — digits plus the unit's initial —
+  // so 15 minutes reads "15M": three
   // characters, because fifteen has two digits, not because the grammar
   // differs. Nothing here may go back to prose ("1 hour", "Daily").
   it("labels every chart timeframe as a compact code, never prose (spec §17)", () => {
@@ -650,8 +645,6 @@ describe("profile preferences", () => {
   });
 
   it("keeps advisor review intervals and valid windows aligned with backend rules", () => {
-    assert.deepEqual(ADVISOR_SIGNAL_INTERVALS, ["4H", "1H", "15M"]);
-    assert.deepEqual(ADVISOR_EXECUTION_INTERVALS, ["5M", "1M"]);
     assert.equal(
       REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Crypto,
       getCategoryCalibration("BTCUSD").defaultReviewHours,
@@ -664,7 +657,44 @@ describe("profile preferences", () => {
       REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Futures,
       getCategoryCalibration("ESUSD").defaultReviewHours,
     );
-    assert.equal(reviewWindowLabel("Indices"), "Up to 5 hours");
+    assert.equal(
+      REVIEW_WINDOW_HOURS_BY_ASSET_TYPE.Indices,
+      getCategoryCalibration("SP").defaultReviewHours,
+    );
+  });
+
+  // Q2-I3 deleted profile.ts's display half — the option table's labels,
+  // US_TIME_ZONE_GROUPS, getUsTimeZoneOption and getTimeZoneAbbreviation, none of
+  // which had a reader since §16 removed the timezone control. What survives is
+  // the zone LIST and the coercion the profile hook actually calls, so that is
+  // what stays covered.
+  it("normalizes detailed browser zones to the supported profile choices", () => {
+    assert.equal(
+      coerceToSupportedUsTimeZone("America/Indiana/Indianapolis"),
+      "America/New_York",
+    );
+    assert.equal(
+      coerceToSupportedUsTimeZone("America/Phoenix"),
+      "America/Phoenix",
+    );
+    assert.equal(coerceToSupportedUsTimeZone("Pacific/Saipan"), "Pacific/Guam");
+    assert.equal(
+      coerceToSupportedUsTimeZone("America/St_Thomas"),
+      "America/Puerto_Rico",
+    );
+    // Anything unrecognised lands on the app's own default rather than throwing.
+    assert.equal(coerceToSupportedUsTimeZone("Europe/Berlin"), "America/New_York");
+    assert.equal(coerceToSupportedUsTimeZone(null), "America/New_York");
+  });
+
+  it("accepts every zone it lists, and only those", () => {
+    assert.equal(US_TIME_ZONES.length, 11);
+    for (const zone of US_TIME_ZONES) {
+      assert.equal(isUsTimezone(zone), true, zone);
+      assert.equal(coerceToSupportedUsTimeZone(zone), zone, zone);
+    }
+    assert.equal(isUsTimezone("Europe/Berlin"), false);
+    assert.equal(US_TIME_ZONES[0], "America/New_York");
   });
 
   it("keeps the confidence-threshold mirror aligned with live calibration for every asset class", () => {
@@ -694,96 +724,6 @@ describe("profile preferences", () => {
     );
   });
 
-  it("groups U.S. time zones by Daylight Saving Time observance", () => {
-    // Keyed on each option's IANA zone id, not a formatted label:
-    // formatUsTimeZoneOptionLabel was Profile's old timezone-picker
-    // formatter, removed as an orphan once Profile consolidated to spec
-    // §11's read-only column (no timezone editing UI left to feed).
-    // US_TIME_ZONE_GROUPS/US_TIME_ZONE_OPTIONS themselves stay — this pins
-    // their grouping, independent of any one consumer's formatting needs.
-    assert.deepEqual(
-      US_TIME_ZONE_GROUPS.map((group) => ({
-        label: group.label,
-        options: group.options.map((option) => option.value),
-      })),
-      [
-        {
-          label: "Observes Daylight Saving Time",
-          options: [
-            "America/New_York",
-            "America/Chicago",
-            "America/Denver",
-            "America/Los_Angeles",
-            "America/Anchorage",
-            "America/Adak",
-          ],
-        },
-        {
-          label: "Standard Time Year-Round",
-          options: [
-            "America/Puerto_Rico",
-            "America/Phoenix",
-            "Pacific/Honolulu",
-            "Pacific/Pago_Pago",
-            "Pacific/Guam",
-          ],
-        },
-      ],
-    );
-    assert.deepEqual(
-      US_TIME_ZONE_OPTIONS.map((option) => option.value),
-      US_TIME_ZONE_GROUPS.flatMap((group) =>
-        group.options.map((option) => option.value)
-      ),
-    );
-  });
-
-  it("normalizes detailed browser zones to the supported profile choices", () => {
-    assert.equal(
-      coerceToSupportedUsTimeZone("America/Indiana/Indianapolis"),
-      "America/New_York",
-    );
-    assert.equal(
-      coerceToSupportedUsTimeZone("America/Phoenix"),
-      "America/Phoenix",
-    );
-    assert.equal(coerceToSupportedUsTimeZone("Pacific/Saipan"), "Pacific/Guam");
-    assert.equal(
-      coerceToSupportedUsTimeZone("America/St_Thomas"),
-      "America/Puerto_Rico",
-    );
-  });
-
-  it("uses IANA rules to switch daylight and standard labels by date", () => {
-    assert.equal(
-      getTimeZoneAbbreviation(
-        "America/New_York",
-        new Date("2026-06-24T12:00:00Z"),
-      ),
-      "EDT",
-    );
-    assert.equal(
-      getTimeZoneAbbreviation(
-        "America/New_York",
-        new Date("2026-01-24T12:00:00Z"),
-      ),
-      "EST",
-    );
-    assert.equal(
-      getTimeZoneAbbreviation(
-        "America/Phoenix",
-        new Date("2026-06-24T12:00:00Z"),
-      ),
-      "MST",
-    );
-    assert.equal(
-      getTimeZoneAbbreviation(
-        "America/Phoenix",
-        new Date("2026-01-24T12:00:00Z"),
-      ),
-      "MST",
-    );
-  });
 });
 
 describe("recommendation outcomes", () => {
@@ -838,27 +778,6 @@ describe("recommendation outcomes", () => {
 });
 
 describe("history workspace logic", () => {
-  it("uses the shared asset ordering when history is sorted by market", () => {
-    const setups = [
-      makeHistorySetup({
-        createdAt: "2026-06-16T13:00:00.000Z",
-        symbol: "ESUSD",
-      }),
-      makeHistorySetup({
-        createdAt: "2026-06-16T14:00:00.000Z",
-        symbol: "EURUSD",
-      }),
-      makeHistorySetup({
-        createdAt: "2026-06-16T15:00:00.000Z",
-        symbol: "BTCUSD",
-      }),
-    ];
-
-    assert.deepEqual(
-      sortHistorySetups(setups, "asset").map((setup) => setup.symbol),
-      ["BTCUSD", "EURUSD", "ESUSD"],
-    );
-  });
 
   it("orders a same-second scan batch by confidence, then base/quote symbol — never database return order (owner-observed, 2026-08-01)", () => {
     // One scan writes its whole batch inside a second, so created_at cannot
@@ -873,12 +792,7 @@ describe("history workspace logic", () => {
     ];
 
     assert.deepEqual(
-      sortHistorySetups(batch, "newest").map((setup) => setup.symbol),
-      ["XRPUSD", "ADAUSD", "BTCUSD", "EURUSD"],
-    );
-    // The same chain holds under "oldest" — the mode key first, then the tiers.
-    assert.deepEqual(
-      sortHistorySetups(batch, "oldest").map((setup) => setup.symbol),
+      sortHistorySetups(batch).map((setup) => setup.symbol),
       ["XRPUSD", "ADAUSD", "BTCUSD", "EURUSD"],
     );
   });
@@ -913,29 +827,6 @@ describe("history workspace logic", () => {
     }
   });
 
-  it("groups history statuses in the same order as the filter", () => {
-    const groups = groupHistorySetups(
-      [
-        makeHistorySetup({ outcome: "unfilled", symbol: "EURUSD" }),
-        makeHistorySetup({ outcome: "stop_loss", symbol: "BTCUSD" }),
-        makeHistorySetup({ outcome: "take_profit", symbol: "XAUUSD" }),
-        makeHistorySetup({ outcome: "ambiguous", symbol: "ESUSD" }),
-        makeHistorySetup({ symbol: "ETHUSD" }),
-      ],
-      "status",
-    );
-
-    assert.deepEqual(
-      groups.map((group) => group.label),
-      [
-        "Pending & open",
-        "Banked full",
-        "Stopped",
-        "Unclear",
-        "Unfilled",
-      ],
-    );
-  });
 
   it("builds confidence bands without counting pending setups as resolved", () => {
     const bands = buildConfidenceBands([

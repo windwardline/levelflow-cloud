@@ -108,7 +108,12 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
       ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
       "GUIDE_SECTIONS must carry 01-10 in order",
     );
-    assert.match(guide, /<GuideToc sections=\{GUIDE_SECTIONS\} \/>/);
+    // Q1-#25: no prop. `sections: typeof GUIDE_SECTIONS` admitted exactly one
+    // value and the constant is in scope, so the TOC reads it directly — which is
+    // also what makes "one source" structural rather than conventional here.
+    assert.match(guide, /<GuideToc \/>/);
+    assert.match(tocFunction, /Object\.entries\(GUIDE_SECTIONS\)/);
+    assert.doesNotMatch(guide, /GuideToc sections=/);
     // ONE source, structurally: every section call site names its id and
     // nothing else, and GuideSection reads the rest out of the map. A restored
     // literal on either prop fails here.
@@ -184,12 +189,18 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
     assert.match(guide, /<ol className="grid list-decimal gap-2 ps-5">/);
   });
 
-  it("GuideBullet is a plain flowing list item now — no marker prop, no card", () => {
-    const guideBulletFunction =
-      guide.match(/function GuideBullet\([\s\S]*?\n}\n/)?.[0] ?? "";
-    assert.ok(guideBulletFunction.length > 0, "expected to find GuideBullet");
-    assert.match(guideBulletFunction, /return <li>\{children\}<\/li>;/);
-    assert.doesNotMatch(guideBulletFunction, /marker/i);
+  it("writes every term-definition bullet as a plain list item, with no wrapper left to abstract", () => {
+    // Q1-#24: GuideBullet had already shrunk to `<li>{children}</li>` — per its
+    // own comment it "no longer needs a marker prop at all", i.e. nothing was
+    // left to share. The call sites are plain list items now, and the component
+    // is pinned gone so it cannot come back as a rename of <li>.
+    assert.doesNotMatch(guide, /GuideBullet/);
+    assert.doesNotMatch(guide, /marker=/);
+    // The bullets themselves survive: the §2/§3/§6 lists still carry them.
+    assert.ok(
+      (guide.match(/<li>\s*\n\s*<strong className="text-ink">/g) ?? []).length >= 8,
+      "expected the term-definition bullets to still render as list items",
+    );
   });
 
   it("flattens §10's vocabulary pairs to a plain dl flow, no per-term cards", () => {

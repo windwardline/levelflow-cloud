@@ -28,9 +28,11 @@ export function getMarketScanSymbolsForScope(
     ?.options.map((option) => option.symbol) ?? [];
 }
 
-// Defensive, not strictly load-bearing today: MarketScanPanel already
-// resets its result whenever scope changes, so a completed scan's
-// candidates already match the current scope by construction. This still
+// Defensive, not strictly load-bearing today: AdvisorWorkspace's selectScope
+// clears the result whenever scope changes, so a completed scan's candidates
+// already match the current scope by construction. (The reset used to live in
+// MarketScanPanel, which this comment named until the scope moved up to the
+// workspace for §17e's merged mobile surface.) This still
 // guards the case where scope changes while a scan is in flight and an
 // earlier request's response lands after a narrower scope is selected.
 // m3: no longer also filters by a minimum-confidence band — the rail's

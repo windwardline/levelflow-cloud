@@ -1352,7 +1352,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // them (tests/appFooter.test.ts owns that composition).
     const footer = readFileSync("src/components/AppFooter.tsx", "utf8");
     assert.match(footer, /A Windward Line production/);
-    assert.match(footer, /<LegalLinks align="left" \/>/);
+    assert.match(footer, /<LegalLinks \/>/);
     assert.match(footer, /aria-label="Support"/);
   });
 

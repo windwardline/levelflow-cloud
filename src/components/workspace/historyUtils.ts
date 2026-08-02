@@ -7,13 +7,10 @@ import {
 import {
   classifyWinLoss,
   normalizeSetupOutcome,
-  OUTCOME_COPY,
   type SetupOutcome,
 } from "../../lib/outcomes";
 import {
-  compareAssetCategories,
   compareAssetSymbols,
-  formatSecurityLabel,
   getSecurityOption,
   type SecurityType,
 } from "../../lib/symbolMap";
@@ -36,37 +33,21 @@ import type { ScanScope } from "./ScopeMenu";
 export const HISTORY_LOAD_FAILED_COPY =
   "Trade history could not load. Try again shortly.";
 
-export type HistoryGroupBy = "date" | "category" | "asset" | "status";
-export type HistorySort = "newest" | "oldest" | "confidence" | "asset";
-
 export type HistorySetupGroup = {
   items: TradeSetupRow[];
   key: string;
   label: string;
 };
 
-// Insights (spec §10) no longer exposes a "group by status" control or the
-// old 8-way status filter — its own Status filter is the coarser
-// pending/open/closed split (InsightsStatusFilter, below), driven by
-// deriveTradeState. groupHistorySetups's "status" mode still needs this
-// ordering internally, and stays covered by tests/core.test.ts, so it stays
-// — just no longer part of this module's public surface.
-const HISTORY_STATUS_ORDER: SetupOutcome[] = [
-  "still_tracking",
-  "target_reached",
-  "partial_target",
-  "expired_in_profit",
-  "expired_in_loss",
-  "stopped_out",
-  "closed_manually",
-  "unclear_path",
-  "entry_not_filled",
-];
-
-export function sortHistorySetups(
-  setups: TradeSetupRow[],
-  sortBy: HistorySort,
-) {
+/**
+ * The ledger's one ordering: newest first, then the tie-break tiers.
+ *
+ * Q1-#20 removed the mode parameter. Only buildInsightsGroups calls this, always
+ * with "newest", so the oldest / confidence / asset branches were reachable from
+ * their own tests and nowhere else — the Insights sort control they were written
+ * for does not exist, and §10's ledger is chronological.
+ */
+export function sortHistorySetups(setups: TradeSetupRow[]) {
   // Every mode ends in the same full tie-break chain so no ordering is ever
   // left to database return order — a scan batch shares one created_at
   // second, and before this chain existed those rows rendered in whatever
@@ -81,57 +62,34 @@ export function sortHistorySetups(
       Number(second.confidence_score) - Number(first.confidence_score);
     const symbolOrder = compareAssetSymbols(first.symbol, second.symbol);
 
-    if (sortBy === "oldest") {
-      return firstDate - secondDate || confidenceGap || symbolOrder;
-    }
-    if (sortBy === "confidence") {
-      return confidenceGap || secondDate - firstDate || symbolOrder;
-    }
-    if (sortBy === "asset") {
-      return symbolOrder || secondDate - firstDate || confidenceGap;
-    }
     return secondDate - firstDate || confidenceGap || symbolOrder;
   });
 }
 
+/**
+ * Day groups, in the order the rows already arrive in (spec §10's ledger).
+ *
+ * Q1-#20 removed the mode parameter here too, and with it the asset / category /
+ * status groupings, HISTORY_STATUS_ORDER and getOutcomeLabel: the same one caller
+ * always asked for "date". No re-sort of the groups is needed — the rows come in
+ * newest-first from sortHistorySetups, so first appearance IS the group order.
+ */
 export function groupHistorySetups(
   setups: TradeSetupRow[],
-  groupBy: HistoryGroupBy,
 ): HistorySetupGroup[] {
   const groups = new Map<string, HistorySetupGroup>();
 
   setups.forEach((setup) => {
-    const group = getHistoryGroup(setup, groupBy);
-    const existingGroup = groups.get(group.key);
+    const key = formatHistoryDateGroup(new Date(setup.created_at));
+    const existingGroup = groups.get(key);
     if (existingGroup) {
       existingGroup.items.push(setup);
       return;
     }
-    groups.set(group.key, { ...group, items: [setup] });
+    groups.set(key, { items: [setup], key, label: key });
   });
 
-  const orderedGroups = Array.from(groups.values());
-  if (groupBy === "asset") {
-    return orderedGroups.sort((first, second) =>
-      compareAssetSymbols(first.key, second.key)
-    );
-  }
-  if (groupBy === "category") {
-    return orderedGroups.sort((first, second) =>
-      compareAssetCategories(
-        first.key as SecurityType,
-        second.key as SecurityType,
-      )
-    );
-  }
-  if (groupBy === "status") {
-    return orderedGroups.sort(
-      (first, second) =>
-        HISTORY_STATUS_ORDER.indexOf(first.key as SetupOutcome) -
-        HISTORY_STATUS_ORDER.indexOf(second.key as SetupOutcome),
-    );
-  }
-  return orderedGroups;
+  return Array.from(groups.values());
 }
 
 export function buildConfidenceBands(setups: TradeSetupRow[]) {
@@ -181,10 +139,6 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
 
 export function getSetupOutcome(setup: TradeSetupRow): SetupOutcome {
   return normalizeSetupOutcome(setup);
-}
-
-export function getOutcomeLabel(outcome: SetupOutcome) {
-  return OUTCOME_COPY[outcome].label;
 }
 
 export function getOutcomeClassName(outcome: SetupOutcome) {
@@ -276,28 +230,6 @@ export function asNumber(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
-function getHistoryGroup(
-  setup: TradeSetupRow,
-  groupBy: HistoryGroupBy,
-): Omit<HistorySetupGroup, "items"> {
-  if (groupBy === "asset") {
-    return { key: setup.symbol, label: formatSecurityLabel(setup.symbol) };
-  }
-  if (groupBy === "category") {
-    const category = getSecurityOption(setup.symbol).assetType;
-    return { key: category, label: category };
-  }
-  if (groupBy === "status") {
-    const outcome = getSetupOutcome(setup);
-    return { key: outcome, label: getOutcomeLabel(outcome) };
-  }
-
-  const date = new Date(setup.created_at);
-  const key = Number.isNaN(date.getTime())
-    ? "unknown-date"
-    : date.toISOString().slice(0, 10);
-  return { key, label: formatHistoryDateGroup(date) };
-}
 
 // ---------------------------------------------------------------------------
 // Insights ledger (spec §10) — record band, one filter row, day-grouped
@@ -451,7 +383,7 @@ export function filterInsightsSetups(
 export function buildInsightsGroups(
   setups: TradeSetupRow[],
 ): HistorySetupGroup[] {
-  return groupHistorySetups(sortHistorySetups(setups, "newest"), "date");
+  return groupHistorySetups(sortHistorySetups(setups));
 }
 
 export type RecordBand = {
