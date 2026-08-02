@@ -23,7 +23,14 @@ const ROOTS = [
 // The whole directory rather than a curated subset: a lib file with no user-facing
 // strings has nothing for this scan to find, so including it costs nothing and
 // forgetting one costs a guard.
-const LIB_FILES = readdirSync("src/lib")
+//
+// Recursive since §19: src/lib/broker/ is the first subdirectory under src/lib,
+// and types.ts there holds the four rendered state words. A non-recursive
+// readdirSync sees "broker" as a directory, drops it for not ending in .ts, and
+// leaves an entire copy-producing package unscanned — the same failure mode
+// Q2-I10 fixed one level up.
+const LIB_FILES = readdirSync("src/lib", { recursive: true })
+  .map(String)
   .filter((file) => file.endsWith(".ts"))
   .map((file) => join("src/lib", file));
 const TP1 = /\bTP1\b/;
