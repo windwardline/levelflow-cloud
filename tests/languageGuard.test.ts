@@ -23,7 +23,14 @@ const ROOTS = [
 // The whole directory rather than a curated subset: a lib file with no user-facing
 // strings has nothing for this scan to find, so including it costs nothing and
 // forgetting one costs a guard.
-const LIB_FILES = readdirSync("src/lib")
+//
+// Recursive since §19: src/lib/broker/ is the first subdirectory under src/lib,
+// and types.ts there holds the four rendered state words. A non-recursive
+// readdirSync sees "broker" as a directory, drops it for not ending in .ts, and
+// leaves an entire copy-producing package unscanned — the same failure mode
+// Q2-I10 fixed one level up.
+const LIB_FILES = readdirSync("src/lib", { recursive: true })
+  .map(String)
   .filter((file) => file.endsWith(".ts"))
   .map((file) => join("src/lib", file));
 const TP1 = /\bTP1\b/;
@@ -50,6 +57,23 @@ const BANNED = [
   // it "dies app-wide with it". A result is a market fact; no copy anywhere
   // frames the record as a claim about what the user did or did not take.
   /\btaken or not\b/i,
+  // Spec §19e: nothing is rendered in a fifth voice. Where E8's sources run out
+  // the surface renders one of four words, and none of these hedges is one of
+  // them — a governor that says "approximately" has taken a position it cannot
+  // defend.
+  //
+  // "TBD" and "unknown" are anchored to a whole literal, the same technique
+  // Tracking above uses and for the same reason: what §19e forbids is a hedge in a
+  // VALUE slot, and Insights' own "Unknown date" group heading is a label on a
+  // surface that already has its sentences (§20j) — banning the word inside prose
+  // would make this feature rewrite another surface's copy on its way past. The
+  // §19e describe below bans all five outright inside src/lib/broker, which is
+  // where a state word could actually be written.
+  /\bN\/A\b/,
+  /^\s*unknown\s*$/i,
+  /\bapproximately\b/i,
+  /\bestimated\b/i,
+  /^\s*TBD\s*$/,
 ];
 
 // Files whose plain-language rewrite lands in a later task. Each stayed
@@ -215,5 +239,143 @@ describe("canonical ladder instruction (spec §7)", () => {
       "GuidePanel.tsx must render spec §7/§3's canonical take-profit/" +
         "bank-half instruction verbatim",
     );
+  });
+});
+
+// Spec §19a's ruling as CI: nothing renders `brokerSymbol` in wave 1. The
+// in-platform order-entry ticker string is NOT PUBLISHED for every asset class —
+// the slash format is the E8X dashboard's display convention — and the futures
+// roots are [PRIMARY] but Levelflow carries no contract month, so a rendered root
+// would be an incomplete order-entry symbol. The field exists for provenance and
+// for the join.
+describe("§19a — no surface renders an E8 symbol", () => {
+  function componentFiles(): string[] {
+    return ROOTS.flatMap((root) =>
+      readdirSync(root)
+        .filter((file) => file.endsWith(".tsx") || file.endsWith(".ts"))
+        .map((file) => join(root, file))
+    );
+  }
+
+  for (const field of ["brokerSymbol", "brokerSymbolAlt"]) {
+    it(`never reads ${field} in a component`, () => {
+      for (const file of componentFiles()) {
+        assert.ok(
+          !readFileSync(file, "utf8").includes(field),
+          `${file} must not read ${field}`,
+        );
+      }
+    });
+  }
+
+  it("keeps the field on the row, so the join and the provenance survive", () => {
+    const types = readFileSync("src/lib/broker/types.ts", "utf8");
+    assert.match(types, /brokerSymbol: string \| null;/);
+    assert.match(types, /brokerSymbolAlt: string \| null;/);
+  });
+});
+
+// Spec §19e: the four state words, and only the four, are what this feature says
+// where E8's sources run out. §20j is the pinning surface, checked in both
+// directions — every string the feature renders appears there, and it names nothing
+// the feature does not render.
+describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
+  const SPEC = "docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md";
+  const spec = readFileSync(SPEC, "utf8");
+  const panel = readFileSync(
+    "src/components/workspace/AdvisorRecommendationPanel.tsx",
+    "utf8",
+  );
+  const profilePanel = readFileSync(
+    "src/components/workspace/ProfilePanel.tsx",
+    "utf8",
+  );
+  const types = readFileSync("src/lib/broker/types.ts", "utf8");
+  const programs = readFileSync("src/lib/broker/programs.ts", "utf8");
+
+  const RENDERED = [
+    // The ladder Size row.
+    "Size · lots",
+    "Size · contracts",
+    "Not offered",
+    "Not confirmed",
+    "Not published",
+    "Rate unavailable",
+    // The Profile Broker controls.
+    "Program",
+    "Account size",
+    "Stage",
+    "Risk per trade",
+    "Drawdown",
+    "None",
+    "E8 One",
+    "E8 One Crypto",
+    "E8 Pro Forex",
+    "E8 Pro Crypto",
+    "E8 Signature Forex",
+    "E8 Signature Crypto",
+    "E8 Signature Futures",
+    "E8 Zero",
+    "E8 Zero Futures Starter",
+    "E8 Zero Futures Max",
+    "Challenge",
+    "Performance",
+  ];
+
+  it("names every string this feature renders in §20j", () => {
+    for (const string of RENDERED) {
+      assert.ok(
+        spec.includes(`\`${string}\``),
+        `§20j must name ${string} as a rendered string`,
+      );
+    }
+  });
+
+  it("renders every §19 string §20j names, somewhere in the shipped source", () => {
+    const shipped = [types, programs, panel, profilePanel].join("\n");
+    for (const string of RENDERED) {
+      // `Size · lots` and `Size · contracts` are composed from the unit, so the
+      // unit is what the source carries.
+      const needle = string.startsWith("Size · ") ? string.slice(7) : string;
+      assert.ok(
+        shipped.includes(`"${needle}"`) || shipped.includes(`Size · $`),
+        `nothing renders ${string}`,
+      );
+    }
+  });
+
+  it("writes none of §19e's five hedges anywhere in the broker package", () => {
+    const brokerFiles = readdirSync("src/lib/broker")
+      .filter((file) => file.endsWith(".ts"))
+      .map((file) => join("src/lib/broker", file));
+    assert.ok(brokerFiles.length >= 5);
+    for (const file of brokerFiles) {
+      for (const literal of stringLiterals(readFileSync(file, "utf8"))) {
+        // Word-boundary, not substring: "en/articles" inside a source URL is not
+        // the hedge "N/A", and a guard that says it is trains a reader to ignore it.
+        for (
+          const hedge of [
+            /\bN\/A\b/,
+            /\bunknown\b/i,
+            /\bapproximately\b/i,
+            /\bestimated\b/i,
+            /\bTBD\b/i,
+          ]
+        ) {
+          assert.doesNotMatch(literal, hedge, `${file}: "${literal}"`);
+        }
+      }
+    }
+  });
+
+  it("renders no fifth state word — the four are a closed set", () => {
+    const words = types.match(/SIZE_STATE_WORDS = \{[\s\S]*?\} as const;/)![0];
+    const values = Array.from(words.matchAll(/: "([^"]+)"/g), (match) => match[1]);
+    assert.deepEqual(values, [
+      "Not offered",
+      "Not confirmed",
+      "Not published",
+      "Rate unavailable",
+    ]);
   });
 });

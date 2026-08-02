@@ -1,7 +1,18 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
-import type { ThemeMode, UserProfile } from "../../lib/profile";
+import {
+  PROGRAM_LINES,
+  RISK_PERCENT_DEFAULT,
+  RISK_PERCENT_OPTIONS,
+  STAGE_OPTIONS,
+  formatAccountSize,
+  formatDrawdownTier,
+  formatRiskPercent,
+  getProgramLine,
+  isProgramLine,
+} from "../../lib/broker/programs";
+import type { BrokerSelection, ThemeMode, UserProfile } from "../../lib/profile";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -41,7 +52,7 @@ type ProfilePanelProps = {
       | "displayName"
       | "preferredSession"
       | "themePreference"
-    >,
+    > & BrokerSelection,
   ) => Promise<void>;
   onSignOut: () => void;
   onThemeChange: (mode: ThemeMode) => void;
@@ -69,11 +80,12 @@ export function ProfilePanel({
   // persists it immediately, reusing useUserProfile.saveProfile exactly as the
   // old Preferences form did, just from a different trigger. The other four
   // saved fields ride along unchanged so a theme-only save can never reset
-  // them.
+  // them — the broker program selection (spec §19g) included.
   function handleThemeChange(mode: ThemeMode) {
     onThemeChange(mode);
     setThemeSaveFailed(false);
     onSave({
+      ...brokerSelectionOf(profile),
       defaultTimeframe: profile.defaultTimeframe,
       defaultTimezone: profile.defaultTimezone,
       displayName: profile.displayName,
@@ -82,6 +94,25 @@ export function ProfilePanel({
     }).catch((error) => {
       console.error("[profile] theme save failed", error);
       setThemeSaveFailed(true);
+    });
+  }
+
+  // Spec §19b: the program selection persists the moment it changes, the same
+  // no-Save-button discipline Appearance follows, and every other saved field
+  // rides along. The selects read their value straight off `profile`, so a
+  // rejected or failed write leaves the control showing what is actually stored
+  // rather than a selection that never landed — and §20j allows this feature no
+  // string of its own to say so with.
+  function saveSelection(selection: BrokerSelection) {
+    onSave({
+      ...selection,
+      defaultTimeframe: profile.defaultTimeframe,
+      defaultTimezone: profile.defaultTimezone,
+      displayName: profile.displayName,
+      preferredSession: profile.preferredSession,
+      themePreference: profile.themePreference,
+    }).catch((error) => {
+      console.error("[profile] broker program save failed", error);
     });
   }
 
@@ -123,11 +154,17 @@ export function ProfilePanel({
         </button>
       </ProfileRow>
 
+      {/* Spec §19b: the program controls live inside this existing row, beneath
+          the chip, as ProfileDetailRow-shaped label/control pairs. No card, no new
+          chrome, no second Broker section — and the row's approved description is
+          unchanged, because it already says what the row cannot show and the
+          selector below it is self-evident. */}
       <ProfileRow
         description="Markets, costs, and record follow the broker."
         title="Broker"
       >
         <BrokerChip />
+        <BrokerProgramControls onChange={saveSelection} profile={profile} />
       </ProfileRow>
 
       <ProfileRow
@@ -261,6 +298,189 @@ function ProfileDetailRow({ label, value }: { label: string; value: string }) {
       </span>
     </div>
   );
+}
+
+// Spec §19b: five controls, in this order, each a select. Program is the door and
+// draws always; the other four exist only once a program is selected, because with
+// None the feature is dormant and adds no surface anywhere.
+//
+// The pairs take ProfileDetailRow's own measure — label left, control right, the
+// mock's 520px cap — so the Broker row's rhythm is the sheet's rhythm and not a
+// second layout. `.field` is the app's established select treatment
+// (styles/index.css); a bordered control is an affordance, which is the one thing
+// §17c's box discipline keeps.
+function BrokerProgramControls({
+  onChange,
+  profile,
+}: {
+  onChange: (selection: BrokerSelection) => void;
+  profile: UserProfile;
+}) {
+  const program = profile.brokerProgramLine === null
+    ? null
+    : getProgramLine(profile.brokerProgramLine);
+
+  // Changing program resets the account size and the tier to the new program's own
+  // domain: the ladders are not shared (E8 Pro carries a $150,000 tier E8 One's
+  // eight do not) and six of the ten lines have no tier at all, so carrying either
+  // across would compose a configuration E8 does not sell. Risk per trade is not a
+  // program parameter, so it survives the change and only seeds on the first
+  // selection.
+  function selectProgram(value: string) {
+    if (!isProgramLine(value)) {
+      onChange({
+        brokerAccountSize: null,
+        brokerDrawdownTier: null,
+        brokerId: null,
+        brokerProgramLine: null,
+        brokerRiskPercent: null,
+        brokerStage: null,
+      });
+      return;
+    }
+    const next = getProgramLine(value)!;
+    onChange({
+      brokerAccountSize: next.accountSizes[0],
+      brokerDrawdownTier: next.drawdownTiers?.[0] ?? null,
+      brokerId: "e8",
+      brokerProgramLine: next.line,
+      brokerRiskPercent: profile.brokerRiskPercent ?? RISK_PERCENT_DEFAULT,
+      brokerStage: profile.brokerStage ?? "challenge",
+    });
+  }
+
+  function update(patch: Partial<BrokerSelection>) {
+    onChange({ ...brokerSelectionOf(profile), ...patch });
+  }
+
+  return (
+    <div className="mt-3 grid">
+      <BrokerControlRow label="Program">
+        <select
+          aria-label="Program"
+          className="field"
+          onChange={(event) => selectProgram(event.target.value)}
+          value={profile.brokerProgramLine ?? "none"}
+        >
+          <option value="none">None</option>
+          {PROGRAM_LINES.map((line) => (
+            <option key={line.line} value={line.line}>
+              {line.label}
+            </option>
+          ))}
+        </select>
+      </BrokerControlRow>
+      {program
+        ? (
+          <>
+            <BrokerControlRow label="Account size">
+              <select
+                aria-label="Account size"
+                className="field"
+                onChange={(event) =>
+                  update({ brokerAccountSize: Number(event.target.value) })}
+                value={String(profile.brokerAccountSize ?? "")}
+              >
+                {program.accountSizes.map((size) => (
+                  <option key={size} value={size}>
+                    {formatAccountSize(size)}
+                  </option>
+                ))}
+              </select>
+            </BrokerControlRow>
+            <BrokerControlRow label="Stage">
+              <select
+                aria-label="Stage"
+                className="field"
+                onChange={(event) =>
+                  update({
+                    brokerStage: event.target.value === "performance"
+                      ? "performance"
+                      : "challenge",
+                  })}
+                value={profile.brokerStage ?? "challenge"}
+              >
+                {STAGE_OPTIONS.map((stage) => (
+                  <option key={stage.value} value={stage.value}>
+                    {stage.label}
+                  </option>
+                ))}
+              </select>
+            </BrokerControlRow>
+            <BrokerControlRow label="Risk per trade">
+              <select
+                aria-label="Risk per trade"
+                className="field"
+                onChange={(event) =>
+                  update({ brokerRiskPercent: Number(event.target.value) })}
+                value={String(profile.brokerRiskPercent ?? RISK_PERCENT_DEFAULT)}
+              >
+                {RISK_PERCENT_OPTIONS.map((percent) => (
+                  <option key={percent} value={percent}>
+                    {formatRiskPercent(percent)}
+                  </option>
+                ))}
+              </select>
+            </BrokerControlRow>
+            {/* The purchased tier, on the four customizable lines only. The six
+                preset lines publish their parameters per size, so there is nothing
+                to ask and no control to draw. */}
+            {program.drawdownTiers
+              ? (
+                <BrokerControlRow label="Drawdown">
+                  <select
+                    aria-label="Drawdown"
+                    className="field"
+                    onChange={(event) =>
+                      update({ brokerDrawdownTier: event.target.value })}
+                    value={profile.brokerDrawdownTier ?? program.drawdownTiers[0]}
+                  >
+                    {program.drawdownTiers.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {formatDrawdownTier(tier)}
+                      </option>
+                    ))}
+                  </select>
+                </BrokerControlRow>
+              )
+              : null}
+          </>
+        )
+        : null}
+    </div>
+  );
+}
+
+// ProfileDetailRow's own shape with a control in place of the value: the same
+// 520px measure, the same block padding, the same muted label column. Centered
+// rather than baseline-aligned because a 48px `.field` has no text baseline to
+// share with the label.
+function BrokerControlRow({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <label className="flex min-w-0 max-w-[520px] items-center justify-between gap-3 py-1.5 text-sm">
+      <span className="min-w-0 text-[12.5px] text-ink-muted">{label}</span>
+      <span className="min-w-0 shrink-0 basis-[220px]">{children}</span>
+    </label>
+  );
+}
+
+// The six broker columns, read off the profile so every save carries them
+// whether or not it is the broker row doing the saving (§19g).
+function brokerSelectionOf(profile: UserProfile): BrokerSelection {
+  return {
+    brokerAccountSize: profile.brokerAccountSize,
+    brokerDrawdownTier: profile.brokerDrawdownTier,
+    brokerId: profile.brokerId,
+    brokerProgramLine: profile.brokerProgramLine,
+    brokerRiskPercent: profile.brokerRiskPercent,
+    brokerStage: profile.brokerStage,
+  };
 }
 
 function formatMemberSince(value: string) {

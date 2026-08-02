@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, XCircle } from "lucide-react";
+import { sizeSetup, sizeUnitFor } from "../../lib/broker/sizing";
+import type { UserProfile } from "../../lib/profile";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { HowThisWorksLink } from "./HowThisWorksLink";
@@ -23,10 +25,15 @@ const LADDER_TARGET_INSTRUCTION =
 // the stagehead (AdvisorWorkspace + ConfidenceUnit) — this panel starts at the
 // ladder.
 export function RecommendationPanel({
+  profile,
+  quotes,
   result,
   setup,
   symbol,
 }: {
+  profile: UserProfile;
+  /** Levelflow's own in-roster quotes the client already holds (§19c). */
+  quotes: Readonly<Record<string, number>>;
   result: AnalyzerResponse | null;
   setup: AnalyzerSetup | null;
   symbol: SupportedSymbol;
@@ -125,6 +132,20 @@ export function RecommendationPanel({
               value={formatNumber(setup.takeProfit)}
               valueClassName="text-buy"
             />
+            {/* Spec §19d: the Size row joins the ladder as its LAST row. Last for
+                three reasons — the four price rows are one ladder and the canonical
+                §7 instruction narrates them in order, so a non-price row inside them
+                breaks the taught sequence; a conditional row at the end never
+                reflows the rows above it when a program is set or cleared; and it
+                inherits the existing flush-hairline rhythm without touching a single
+                row above it. Both platforms get it from this one render path. */}
+            <SizeRow
+              copied={copiedField === "size"}
+              onCopy={(payload) => handleCopy("size", payload)}
+              profile={profile}
+              quotes={quotes}
+              setup={setup}
+            />
           </div>
           {hasLadder
             ? (
@@ -189,16 +210,21 @@ export function RecommendationPanel({
 // `max-lg:last:border-b` is not redundant — the un-prefixed `last:border-b-0`
 // that keeps ≥lg's final row flush carries a pseudo-class and so outranks a
 // plain border utility on specificity.
+// Spec §19d/§19e: with no `onCopy` the row renders a state word instead of a
+// number — muted, non-mono, and with the copy affordance ABSENT. There is nothing
+// to copy, and an affordance that copies a word is a lie. One row shell for both,
+// so the ladder's padding, hairline rhythm and hit target cannot drift between a
+// priced row and a blocked one.
 function CopyableMetricRow({
-  copied,
+  copied = false,
   label,
   onCopy,
   value,
   valueClassName = "text-ink",
 }: {
-  copied: boolean;
+  copied?: boolean;
   label: string;
-  onCopy: () => void;
+  onCopy?: () => void;
   value: string;
   valueClassName?: string;
 }) {
@@ -207,6 +233,13 @@ function CopyableMetricRow({
       <span className="eyebrow min-w-0 max-lg:text-[10px] max-lg:tracking-[0.07em]">
         {label}
       </span>
+      {onCopy === undefined
+        ? (
+          <span className="min-w-0 text-right text-sm font-semibold text-ink-muted max-lg:text-[13px]">
+            {value}
+          </span>
+        )
+        : (
       <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
         <span
           className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums max-lg:text-[15.5px] ${valueClassName}`}
@@ -229,7 +262,61 @@ function CopyableMetricRow({
           <span className="lg:hidden">{copied ? "Copied" : "Copy"}</span>
         </button>
       </span>
+        )}
     </div>
+  );
+}
+
+// Spec §19d + §19e. The unit lives in the label, not the value, so the numeral
+// column stays clean — the same idiom as `Target 1 · bank half`. The value is the
+// bare number, and the copy payload is the same bare number, so a paste into a
+// quantity field is clean.
+//
+// With no program selected the row DOES NOT EXIST: not a dash, not an empty value,
+// not a prompt to go set one. The ladder is exactly what it is today.
+function SizeRow({
+  copied,
+  onCopy,
+  profile,
+  quotes,
+  setup,
+}: {
+  copied: boolean;
+  onCopy: (payload: string) => void;
+  profile: UserProfile;
+  quotes: Readonly<Record<string, number>>;
+  setup: AnalyzerSetup;
+}) {
+  if (
+    profile.brokerProgramLine === null || profile.brokerAccountSize === null ||
+    profile.brokerStage === null || profile.brokerRiskPercent === null
+  ) {
+    return null;
+  }
+
+  const size = sizeSetup({
+    accountSize: profile.brokerAccountSize,
+    entryPrice: setup.entryPrice,
+    levelflowSymbol: setup.symbol,
+    programLine: profile.brokerProgramLine,
+    quotes,
+    riskPercent: profile.brokerRiskPercent,
+    stage: profile.brokerStage,
+    stopLoss: setup.stopLoss,
+  });
+
+  const label = `Size · ${sizeUnitFor(profile.brokerProgramLine)}`;
+  if (size.kind === "blocked") {
+    return <CopyableMetricRow label={label} value={size.word} />;
+  }
+
+  return (
+    <CopyableMetricRow
+      copied={copied}
+      label={label}
+      onCopy={() => onCopy(formatCopyValue(size.units))}
+      value={formatNumber(size.units)}
+    />
   );
 }
 

@@ -1809,3 +1809,117 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
       .toBeGreaterThan(0);
   }
 });
+
+// Spec §19d/§19f: one presence check per new surface, at 375px and 1280px. With
+// None the ladder has four rows and no Size row; with a program set, five rows and
+// either a number or one of §19e's four words. Exact locators — the substring twin
+// lives page-wide (PR #147).
+const SIZE_STATE_WORDS = [
+  "Not offered",
+  "Not confirmed",
+  "Not published",
+  "Rate unavailable",
+];
+
+async function openProfile(page: Page, width: number) {
+  if (width < 1024) {
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: "Profile" }).click();
+    return;
+  }
+  await page.getByRole("button", { name: "Profile", exact: true }).click();
+}
+
+async function selectProgram(page: Page, width: number, label: string) {
+  await openProfile(page, width);
+  const profile = page.getByTestId("profile-panel");
+  await expect(profile).toBeVisible();
+  await profile.getByLabel("Program", { exact: true }).selectOption({ label });
+  return profile;
+}
+
+for (const width of [375, 1280]) {
+  test(`the ladder grows one Size row only once a program is selected (§19d, ${width}px)`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ height: 812, width });
+    await page.goto("/");
+
+    // With None — the app's own default, and what a fresh reader sees — Profile's
+    // Broker row carries the chip and the one selector, and nothing else.
+    await openProfile(page, width);
+    const profile = page.getByTestId("profile-panel");
+    await expect(profile).toBeVisible();
+    await expect(profile.getByLabel("Program", { exact: true })).toHaveValue("none");
+    for (const absent of ["Account size", "Stage", "Risk per trade", "Drawdown"]) {
+      await expect(profile.getByLabel(absent, { exact: true })).toHaveCount(0);
+    }
+
+    // Back to the ladder. A scan is how a setup arrives (§17m.1); a live market
+    // that qualifies nothing is a legitimate state, so the walk skips honestly.
+    if (width < 1024) {
+      await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
+        exact: true,
+        name: "Scan",
+      }).click();
+    } else {
+      await page.getByRole("button", { exact: true, name: "Desk" }).click();
+    }
+    if (!(await scanForSetupOnStage(page))) {
+      test.skip(true, "No market qualified in this window.");
+      return;
+    }
+
+    await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
+    // No Size row at all: not a dash, not an empty value, not a prompt.
+    await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
+
+    // Now buy a program. E8 One is a CFD line, so its unit is lots.
+    await selectProgram(page, width, "E8 One");
+    await expect(
+      page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("profile-panel").getByLabel("Risk per trade", { exact: true }),
+    ).toHaveValue("0.5");
+
+    if (width < 1024) {
+      await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
+        exact: true,
+        name: "Scan",
+      }).click();
+    } else {
+      await page.getByRole("button", { exact: true, name: "Desk" }).click();
+    }
+
+    // Five rows now, and the fifth is the Size row with its unit in the label.
+    const sizeLabel = page.getByText("Size · lots", { exact: true });
+    await expect(sizeLabel).toBeVisible();
+    const sizeRow = sizeLabel.locator("..");
+    const rendered = (await sizeRow.innerText()).replace("Size · lots", "").trim();
+    // A number or one of the four words — never a fifth voice, never a dash.
+    const isNumber = /^[\d.,]+$/.test(rendered.split("\n")[0].trim());
+    expect(
+      isNumber || SIZE_STATE_WORDS.some((word) => rendered.includes(word)),
+      `the Size row rendered ${JSON.stringify(rendered)}`,
+    ).toBe(true);
+    expect(rendered).not.toContain("—");
+
+    // Clearing the program takes the row back out of existence.
+    await openProfile(page, width);
+    await page.getByTestId("profile-panel").getByLabel("Program", { exact: true })
+      .selectOption("none");
+    // The other four controls disappearing is the write having landed.
+    await expect(
+      page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
+    ).toHaveCount(0);
+    if (width < 1024) {
+      await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
+        exact: true,
+        name: "Scan",
+      }).click();
+    } else {
+      await page.getByRole("button", { exact: true, name: "Desk" }).click();
+    }
+    await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
+  });
+}
