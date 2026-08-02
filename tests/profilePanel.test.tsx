@@ -263,3 +263,99 @@ describe("ProfileRow's last-row rule matches the row, not whatever ends the regi
     );
   });
 });
+
+// Spec §19b, both directions per §16. The controls live inside the existing Broker
+// row, and with None the feature is dormant: no second Broker section, no card, no
+// facts block, and no control at all beyond the one that opens the door.
+describe("§19b — the broker program controls, inside the row that already exists", () => {
+  it("puts the controls in the Broker row beneath the chip, in one component", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /<BrokerChip \/>\s*\n\s*<BrokerProgramControls onChange=\{saveSelection\} profile=\{profile\} \/>/,
+    );
+    // One Broker row, not two: the row count and its titles are pinned above, and
+    // this is the second direction — no new ProfileRow was added for the program.
+    assert.equal((PANEL_SOURCE.match(/title="Broker"/g) ?? []).length, 1);
+  });
+
+  it("renders five controls, in the spec's order, each a select with its label", () => {
+    const labels = Array.from(
+      PANEL_SOURCE.matchAll(/<BrokerControlRow label="([^"]+)">/g),
+      (match) => match[1],
+    );
+    assert.deepEqual(labels, [
+      "Program",
+      "Account size",
+      "Stage",
+      "Risk per trade",
+      "Drawdown",
+    ]);
+    // Each one is a real <select> with an accessible name of its own.
+    for (const label of labels) {
+      assert.ok(
+        PANEL_SOURCE.includes(`aria-label="${label}"`),
+        `${label} needs an accessible name`,
+      );
+    }
+    assert.equal((PANEL_SOURCE.match(/<select\n/g) ?? []).length, 5);
+  });
+
+  it("defaults to None and renders only Program until a program is selected", () => {
+    assert.match(PANEL_SOURCE, /<option value="none">None<\/option>/);
+    assert.match(PANEL_SOURCE, /value=\{profile\.brokerProgramLine \?\? "none"\}/);
+    // The other four sit behind the program check, so with None they do not exist.
+    assert.match(
+      PANEL_SOURCE,
+      /<\/BrokerControlRow>\s*\{program\s*\n\s*\? \(\s*\n\s*<>/,
+    );
+  });
+
+  it("draws the Drawdown control only where a tier exists to purchase", () => {
+    assert.match(PANEL_SOURCE, /\{program\.drawdownTiers\s*\n\s*\? \(\s*\n\s*<BrokerControlRow label="Drawdown">/);
+  });
+
+  it("resets the size and the tier on a program change, and seeds risk once", () => {
+    assert.match(PANEL_SOURCE, /brokerAccountSize: next\.accountSizes\[0\]/);
+    assert.match(PANEL_SOURCE, /brokerDrawdownTier: next\.drawdownTiers\?\.\[0\] \?\? null/);
+    assert.match(
+      PANEL_SOURCE,
+      /brokerRiskPercent: profile\.brokerRiskPercent \?\? RISK_PERCENT_DEFAULT/,
+    );
+  });
+
+  it("renders the ladder and the tiers from the data module, never a local copy", () => {
+    assert.match(PANEL_SOURCE, /program\.accountSizes\.map/);
+    assert.match(PANEL_SOURCE, /program\.drawdownTiers\.map/);
+    assert.match(PANEL_SOURCE, /RISK_PERCENT_OPTIONS\.map/);
+    assert.match(PANEL_SOURCE, /PROGRAM_LINES\.map/);
+    assert.match(PANEL_SOURCE, /STAGE_OPTIONS\.map/);
+    // No literal ladder, tier or percentage anywhere in the component.
+    assert.doesNotMatch(PANEL_SOURCE, /\$100,000|\$5,000|0\.50%|3% daily/);
+  });
+
+  it("adds no card, no chrome and no copy of its own (§17c, §20j)", () => {
+    const controls = PANEL_SOURCE.slice(
+      PANEL_SOURCE.indexOf("function BrokerProgramControls"),
+    );
+    for (const box of ["terminal-panel", "rounded-lg", "shadow", "bg-accent"]) {
+      assert.ok(!controls.includes(box), `${box} must not reach the Broker row`);
+    }
+    // The only strings this block renders are the five labels, None, and the
+    // options the data module formats — §20j's list, with nothing added.
+    const jsxText = Array.from(controls.matchAll(/>([A-Za-z][^<>{}]*)</g), (m) =>
+      m[1].trim());
+    assert.deepEqual(jsxText.filter((text) => text.length > 0), ["None"]);
+  });
+
+  it("persists on change with every other saved field riding along", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /function saveSelection\(selection: BrokerSelection\) \{\s*onSave\(\{\s*\.\.\.selection,\s*defaultTimeframe:/,
+    );
+    assert.match(PANEL_SOURCE, /themePreference: profile\.themePreference,/);
+    assert.match(
+      PANEL_SOURCE,
+      /console\.error\("\[profile\] broker program save failed", error\)/,
+    );
+  });
+});
