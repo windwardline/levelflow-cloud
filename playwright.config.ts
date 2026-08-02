@@ -20,9 +20,11 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   // Q4-I1: the dev server is the only artifact any browser test ever loads —
-  // production CSS cascade, the real CSP, and the Tailwind purge are all
-  // unexercised (App.tsx:403-412 documents a Tailwind ordering bug that only
-  // showed up "measured in the built CSS"). public-auth.spec.ts needs no
+  // the production CSS cascade and the Tailwind purge are unexercised
+  // (App.tsx:403-412 documents a Tailwind ordering bug that only showed up
+  // "measured in the built CSS"). The CSP is NOT covered here either way: it
+  // is a vercel.json response header that `vite preview` does not send;
+  // deploy.yml's header poll owns that proof. public-auth.spec.ts needs no
   // live credentials and asserts computed styles directly
   // (theme colors, viewport overflow), so it also runs against a real
   // `vite build` served by `vite preview` — the "built" project below.
@@ -53,8 +55,11 @@ export default defineConfig({
   // not a failure, which is exactly the silent-green path C1 exists to close.
   //
   // Project dependencies force a strict run order instead — workspace, then
-  // visual-proof, then analyzer-abuse — so none of the three ever shares a
-  // rate-limit window with another. public-auth.spec.ts never signs in and
+  // visual-proof, then analyzer-abuse — so none of the three ever runs
+  // concurrently with another. (The limiter's tumbling wall-clock window can
+  // still span a project boundary; what makes that safe is the order, not
+  // isolation — the scan-heavy abuse storm runs last, after every scan
+  // assertion that matters.) public-auth.spec.ts never signs in and
   // touches none of this, so it keeps its own project with no dependency and
   // runs in parallel with whichever of the three is currently active,
   // keeping total wall-clock down.

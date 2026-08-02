@@ -48,7 +48,9 @@ jobs:
       # Deliberate coverage split: unit/integration tests gate PRs here;
       # the Playwright e2e specs need production credentials and the live
       # Supabase project, so they run in deploy.yml after Edge Functions
-      # deploy — against a local dev frontend build, not the shipped one.
+      # deploy — the public specs against both a dev server and a local
+      # `vite build` artifact, the authed specs against the dev server;
+      # never against the Vercel-shipped build itself.
       # Vercel builds and deploys the frontend independently on the same
       # push (README.md), so a failing e2e does not halt or gate it; it
       # fails the deploy workflow run, which is the loud signal.

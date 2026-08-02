@@ -1496,11 +1496,12 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   const scanResponse = await scanResponsePromise;
   expect(
     scanResponse.status(),
-    "the scan was rate-limited (429) — the suite's live-user requests " +
-      "collided; playwright.config.ts's project dependencies exist " +
-      "specifically to prevent this, so treat it as a real regression, not " +
+    "the scan's HTTP status must be 200 — 429 means the suite's live-user " +
+      "requests collided despite playwright.config.ts's project chain; any " +
+      "other status is a real server failure. Neither may reach the skip " +
+      "path below, which is reserved for a scan that succeeded and found " +
       "a quiet market",
-  ).not.toBe(429);
+  ).toBe(200);
 
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");

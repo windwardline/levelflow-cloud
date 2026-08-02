@@ -234,4 +234,21 @@ describe("the chart library's one inline stylesheet is allowed by content hash, 
       assert.ok(CSP.includes(directive), directive);
     }
   });
+
+  // The includes() checks above are one-directional: "script-src 'self'" is
+  // satisfied by "script-src 'self' https://analytics.example" too. These two
+  // directives are where a third-party origin would ride back in, so they are
+  // pinned to their exact full text — the style-src regex above already does
+  // this for the only directive that legitimately carries more than 'self'.
+  it("script-src and connect-src are exact, both directions", () => {
+    const directives = CSP.split(";").map((part) => part.trim());
+    assert.equal(
+      directives.find((part) => part.startsWith("script-src")),
+      "script-src 'self'",
+    );
+    assert.equal(
+      directives.find((part) => part.startsWith("connect-src")),
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    );
+  });
 });
