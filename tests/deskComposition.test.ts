@@ -77,19 +77,16 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // tested "drops the missing half" branch reachable in the app, which it was
   // not while every analysis state stamped Date.now().
   it("stamps the review time only where a review actually ran", () => {
-    // Every write of the field, in source order: the scan verdict the stage
-    // adopts the moment a scan finishes (§17m.1 — the scan IS the review of the
-    // market on screen, and it just ran against live data), twice; then three
-    // inside analyze() (the mobile single-market path); then the scan-ROW
-    // handler's synthetic state, which claims nothing. The trailing comma is
-    // what keeps the type declaration (`reviewedAt: number | null;`) out of the
-    // set.
+    // Every write of the field, in source order: the two branches of the scan
+    // verdict the stage adopts the moment a scan finishes (§17m.1 — the scan IS
+    // the review of the market on screen, and it just ran against live data),
+    // then the scan-ROW handler's synthetic state, which claims nothing. Since
+    // §17m.1's one door there is no other writer: the single-market review path
+    // that used to stamp three more is gone. The trailing comma is what keeps
+    // the type declaration (`reviewedAt: number | null;`) out of the set.
     const writes = (stage.match(/reviewedAt: [^,;\n]+,/g) ?? [])
       .map((write) => write.replace(/,$/, ""));
     assert.deepEqual(writes, [
-      "reviewedAt: Date.now()",
-      "reviewedAt: Date.now()",
-      "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
       "reviewedAt: null",
@@ -255,9 +252,15 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // stage's marketNotice below: the element exists only when there is
   // something to say, so nothing is captioned and no empty paragraph leaves
   // its margin behind.
-  it("captions the ladder only when there is a notice to carry (A5)", () => {
+  it("captions the ladder not at all — the ladder is its own evidence (A5, §17f)", () => {
+    // A5 made the caption conditional; §17m.1's one door retired the state
+    // that ever filled it, since the only writer was the single-market review
+    // path's running commentary ("Analyzing…", "limit setup saved."). A scan
+    // adopts a verdict silently: the ladder, the confidence unit and the side
+    // tag all just changed, and a sentence announcing that they did says what
+    // the surface already shows. The absence is pinned in the kill-list block.
     assert.doesNotMatch(panel, /Current setup ready for review/);
-    assert.match(panel, /\{notice\n\s*\? \(\n\s*<p\n/);
+    assert.doesNotMatch(panel, /limit setup saved/);
   });
 
   it("keeps the closed-market reopen notice on the stage, unchanged (spec §10b)", () => {
@@ -314,6 +317,22 @@ describe("Desk stage composition — the kill list is absent (spec §16)", () =>
       assert.doesNotMatch(source, /label[=:]\s*[{"']*\s*valid\s*until/i);
       assert.doesNotMatch(source, />\s*valid\s*until\s*</i);
     }
+  });
+
+  it("narrates no analysis stages — the setup sheet claims only what it can show", () => {
+    // §17f: four step lines that render at once and never advance assert
+    // progress the surface does not track. The component was also unreachable
+    // at ≥lg from the day the stage stopped generating, and §17m.1's one door
+    // retired the state that drove it on mobile too — so it, the status prop
+    // that selected it, and the notice prop beside it are gone rather than
+    // merely unused.
+    assert.doesNotMatch(panel, /AnalysisProgress/);
+    assert.doesNotMatch(panel, /Refreshing chart data/);
+    assert.doesNotMatch(panel, /Building the current setup/);
+    assert.doesNotMatch(panel, /\bnotice\b/);
+    assert.doesNotMatch(panel, /status[=:]/);
+    assert.doesNotMatch(stage, /<RecommendationPanel[\s\S]{0,240}status=/);
+    assert.doesNotMatch(stage, /<RecommendationPanel[\s\S]{0,240}notice=/);
   });
 
   it("carries no standalone stage Refresh button — the stage acts at all", () => {

@@ -28,13 +28,11 @@ import type { UserProfile } from "../../lib/profile";
 import {
   AVAILABLE_ASSET_OPTIONS,
   formatSecurityDisplaySymbol,
-  formatSecurityLabel,
   getSecurityOption,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
   type AnalyzerResponse,
-  generateTradeSetup,
   type MarketScanCandidate,
   type MarketScanResponse,
   scanMarketOpportunities,
@@ -76,11 +74,12 @@ type AdvisorWorkspaceProps = {
 type AnalysisState = {
   // When a review actually ran against this symbol, epoch milliseconds — the
   // provenance behind the stagehead's "Reviewed {time}" stamp (spec §16), so
-  // only analyze() may set it. A setup lifted straight out of a scan result
-  // carries null: that scan may have run an hour ago, and neither
-  // AnalyzerSetup nor MarketScanCandidate carries a creation timestamp, so
-  // there is no honest review time to print. The stamp is then simply absent
-  // rather than asserting a review that did not happen at the moment shown.
+  // only a scan that just returned its verdict about this market may set it
+  // (adoptScanVerdict). A setup lifted out of an older scan row carries null:
+  // that scan may have run an hour ago, and neither AnalyzerSetup nor
+  // MarketScanCandidate carries a creation timestamp, so there is no honest
+  // review time to print. The stamp is then simply absent rather than
+  // asserting a review that did not happen at the moment shown.
   reviewedAt: number | null;
   response: AnalyzerResponse | null;
   symbol: SupportedSymbol;
@@ -109,14 +108,9 @@ export function AdvisorWorkspace(
   const [analysisState, setAnalysisState] = useState<AnalysisState | null>(
     null,
   );
-  const [analyzerStatus, setAnalyzerStatus] = useState<"idle" | "analyzing">(
-    "idle",
-  );
-  const [advisorNotice, setAdvisorNotice] = useState("");
   // The scan scope lives here rather than inside the rail: spec §17e's merged
-  // mobile surface fires the same scan from its own control row, and the one
-  // verb it offers ("Scan") reads the scope to decide whether this run is a
-  // review of one market or a scan of many.
+  // mobile surface fires the same scan from its own control row, and the scope
+  // is what decides which markets that one Scan covers — one, a group, or all.
   const [scope, setScope] = useState<ScanScope>({ kind: "all" });
   const [scanResult, setScanResult] = useState<MarketScanResponse | null>(null);
   const [scanCompletedAt, setScanCompletedAt] = useState<Date | null>(null);
@@ -206,9 +200,7 @@ export function AdvisorWorkspace(
     requestIdRef.current += 1;
     selectedSymbolRef.current = requestedSymbol;
     setSymbol(requestedSymbol);
-    setAnalyzerStatus("idle");
     setAnalysisState(null);
-    setAdvisorNotice("");
     onOpenRequestHandled?.();
   }, [onOpenRequestHandled, openRequest?.symbol, openRequest?.token]);
 
@@ -282,9 +274,7 @@ export function AdvisorWorkspace(
     requestIdRef.current += 1;
     selectedSymbolRef.current = nextSymbol;
     setSymbol(nextSymbol);
-    setAnalyzerStatus("idle");
     setAnalysisState(null);
-    setAdvisorNotice("");
   }
 
   // Every scope change, from either platform's control row. The engine never
@@ -301,69 +291,6 @@ export function AdvisorWorkspace(
     }
   }
 
-  async function analyze() {
-    const requestedSymbol = selectedSymbolRef.current;
-    const requestedLabel = formatSecurityLabel(requestedSymbol);
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-
-    setAnalyzerStatus("analyzing");
-    setAdvisorNotice(`Analyzing ${requestedLabel}.`);
-    // The engine always analyzes live provider data server-side; refreshing
-    // the visible chart at the same moment keeps what the user sees in
-    // step with the data the setup was built on.
-    setRefreshNonce((value) => value + 1);
-    setAnalysisState({
-      response: null,
-      reviewedAt: Date.now(),
-      symbol: requestedSymbol,
-    });
-    if (requestedSymbol !== symbol) {
-      setSymbol(requestedSymbol);
-    }
-
-    try {
-      const nextResult = await generateTradeSetup(requestedSymbol);
-      if (requestIdRef.current !== requestId) {
-        return;
-      }
-      setAnalysisState({
-        response: nextResult,
-        reviewedAt: Date.now(),
-        symbol: requestedSymbol,
-      });
-      if (nextResult.setup) {
-        setAdvisorNotice(
-          nextResult.deduplicated
-            ? `${requestedLabel} current setup refreshed.`
-            : `${requestedLabel} limit setup saved.`,
-        );
-        onSetupsChanged();
-      } else {
-        setAdvisorNotice(
-          nextResult.reason ??
-            `No current ${requestedLabel} limit setup passed review.`,
-        );
-        onSetupsChanged();
-      }
-    } catch {
-      if (requestIdRef.current === requestId) {
-        setAnalysisState({
-          response: null,
-          reviewedAt: Date.now(),
-          symbol: requestedSymbol,
-        });
-        setAdvisorNotice(
-          `Market context is refreshing for ${requestedLabel}. Try again shortly.`,
-        );
-      }
-    } finally {
-      if (requestIdRef.current === requestId) {
-        setAnalyzerStatus("idle");
-      }
-    }
-  }
-
   // Spec §17m.1: the stage generates nothing, so a finished scan is what puts
   // a setup on it. The market on screen adopts THIS scan's verdict about
   // itself — and only about itself:
@@ -373,6 +300,9 @@ export function AdvisorWorkspace(
   // The stamp is honest in the first case for the same reason it is null when
   // an old scan row is clicked (selectCandidate): this scan ran against live
   // data moments ago, that one may have run an hour before the click.
+  // Returns whether this scan had a verdict about the market on screen, so the
+  // caller knows whether the visible chart is now behind the data the verdict
+  // was built on.
   function adoptScanVerdict(result: MarketScanResponse) {
     const shownSymbol = selectedSymbolRef.current;
     const qualified = result.opportunities.find(
@@ -384,21 +314,24 @@ export function AdvisorWorkspace(
         reviewedAt: Date.now(),
         symbol: shownSymbol,
       });
-      setAdvisorNotice("");
-      return;
+      return true;
     }
     const blocked = result.blocked.find(
       (candidate) => candidate.symbol === shownSymbol,
     );
     if (!blocked) {
-      return;
+      // The parity guard (core.test.ts) proves the menu and the scan universe
+      // are the same 50 symbols, so the only path here is availability
+      // filtering a closed market out of a group scan — and a market this
+      // scan never looked at keeps its stage exactly as it was.
+      return false;
     }
     setAnalysisState({
       response: { advisoryOnly: true, blocked: true, reason: blocked.reason },
       reviewedAt: Date.now(),
       symbol: shownSymbol,
     });
-    setAdvisorNotice("");
+    return true;
   }
 
   async function scanMarkets(symbols: SupportedSymbol[] = []) {
@@ -408,18 +341,22 @@ export function AdvisorWorkspace(
     // Not a bump — a reading. Any selection change while this scan is in
     // flight (a scan row click, a scope change, an Insights cross-link) moves
     // requestIdRef, and adopting a verdict about the market the reader has
-    // since left is exactly the staleness analyze() guards the same way.
+    // since left is the staleness this guards against.
     const requestId = requestIdRef.current;
     setScanStatus("scanning");
     try {
       const nextResult = await scanMarketOpportunities(scanSymbols);
       setScanResult(nextResult);
-      if (requestIdRef.current === requestId) {
-        adoptScanVerdict(nextResult);
+      if (requestIdRef.current === requestId && adoptScanVerdict(nextResult)) {
+        // The engine analyzed live provider data server-side moments ago;
+        // re-fetching the chart for the market that just took this scan's
+        // verdict keeps what the reader sees in step with the bars the levels
+        // were built on. Only when there WAS a verdict — a scan of another
+        // group leaves this market, and its chart, alone.
+        setRefreshNonce((value) => value + 1);
       }
       // Every qualifying setup is written server-side (spec §17m.2), so the
-      // history the rest of the app reads has just changed — the same
-      // notification the review path has always fired.
+      // history the rest of the app reads has just changed.
       onSetupsChanged();
     } catch {
       setScanResult({
@@ -436,32 +373,16 @@ export function AdvisorWorkspace(
     }
   }
 
-  // Spec §17e, "one surface, one verb": the merged mobile surface offers a
-  // single Scan button, and the scope decides what that click means — a review
-  // when the scope is one market, a scan when it is a group or All. §17m.1
-  // deleted the STAGE's Review button, not this: the mobile Scan control is
-  // itself the Scan column's door, and reviewing one market through it is the
-  // sanctioned single-market path. Every behavior contract (fresh data on every
-  // run, the server-side placed-guard, confidence-desc results, scan
-  // persistence) is untouched.
-  const scopeActionIsReview = scope.kind === "symbol";
-  const scopeActionBusy = scopeActionIsReview
-    ? analyzerStatus === "analyzing"
-    : scanStatus === "scanning";
-  // Each path keeps its own disabled rule rather than inheriting a merged one:
-  // a review waits on the chart load it refreshes, and a scan cannot run with
-  // nothing open to scan.
-  const scopeActionDisabled = scopeActionIsReview
-    ? analyzerStatus === "analyzing" || marketLoading
-    : scanStatus === "scanning" || openScanSymbols.length === 0;
-
-  async function runScopeAction() {
-    if (scopeActionIsReview) {
-      await analyze();
-      return;
-    }
-    await scanMarkets(openScanSymbols);
-  }
+  // Spec §17e, "one surface, one verb", now with §17m.1's single door behind
+  // it: the merged mobile surface offers one Scan button and it sends the same
+  // scan_opportunities request the ≥lg rail's button sends. The scope decides
+  // WHAT the scan covers — one market, a group, or all of them — never which
+  // engine path runs it. Reviewing one market is still possible, and this is
+  // still the way to do it; it just no longer reaches a second endpoint with
+  // its own origin value, its own dedupe rules and its own exemption from the
+  // placed-position guard. One rule for availability too, and it is the rail's
+  // own: nothing to scan, or a scan already running.
+  const scanDisabled = scanStatus === "scanning" || openScanSymbols.length === 0;
 
   function selectTimeframe(nextTimeframe: ChartTimeframe) {
     setTimeframeTouched(true);
@@ -487,11 +408,6 @@ export function AdvisorWorkspace(
         reviewedAt: null,
         symbol: candidate.symbol,
       });
-      // No notice: the ladder, the confidence unit and the side tag all just
-      // swapped to this market, so a sentence announcing that they did states
-      // what the surface already shows (§17f). The line that used to sit here
-      // also told the reader to press Review, which §17m.1 deleted.
-      setAdvisorNotice("");
     }
     // The chart, the head and the ladder all sit ABOVE the list on the merged
     // mobile surface and have just swapped to this market, so the reader is
@@ -553,10 +469,10 @@ export function AdvisorWorkspace(
               <button
                 className="primary-button shrink-0 px-4 py-2 text-[13px]"
                 type="button"
-                disabled={scopeActionDisabled}
-                onClick={runScopeAction}
+                disabled={scanDisabled}
+                onClick={() => scanMarkets(openScanSymbols)}
               >
-                {scopeActionBusy
+                {scanStatus === "scanning"
                   ? (
                     <Loader2
                       className="h-4 w-4 animate-spin"
@@ -634,10 +550,8 @@ export function AdvisorWorkspace(
             data-testid="mobile-scan-scroll"
           >
             <RecommendationPanel
-              notice={advisorNotice}
               result={activeResult}
               setup={setup}
-              status={analyzerStatus}
               symbol={symbol}
             />
             <MarketScanResults
@@ -809,10 +723,8 @@ export function AdvisorWorkspace(
               other scroll region in the app uses. */}
           <div className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <RecommendationPanel
-              notice={advisorNotice}
               result={activeResult}
               setup={setup}
-              status={analyzerStatus}
               symbol={symbol}
             />
           </div>

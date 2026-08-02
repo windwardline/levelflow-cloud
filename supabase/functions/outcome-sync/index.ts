@@ -129,15 +129,26 @@ Deno.serve(async (req) => {
       }
     }
 
+    // A run that could not resolve part of what it read is not a success, and
+    // the count of what it DID resolve does not buy it one: this job feeds the
+    // entire learning cohort, on a clock, with nobody watching. The scan path
+    // has treated `failed > 0` alone as a failure since spec §17m.2; the same
+    // sentence applies here for the same reason.
+    //
+    // Saturation is stated rather than left to be inferred from
+    // `reviewed === 300`: a run that hit its own ceiling has a backlog behind
+    // it, and the next hourly run may not clear it either.
+    const saturated = setups.length >= MAX_SETUPS_PER_RUN;
     await recordAnalyzerEvent({
       action: "outcome_sync",
-      metadata: summary,
-      status: summary.failed > 0 && summary.resolved === 0
-        ? "error"
-        : "success",
+      message: summary.failed > 0
+        ? `${summary.failed} of ${summary.reviewed} setups could not be resolved.`
+        : null,
+      metadata: { ...summary, saturated },
+      status: summary.failed > 0 ? "error" : "success",
     });
 
-    return jsonResponse({ ...summary, scheduled: true });
+    return jsonResponse({ ...summary, saturated, scheduled: true });
   } catch (error) {
     console.error("outcome sync failed", error);
     return jsonResponse({ error: "Outcome sync failed." }, 500);
@@ -149,14 +160,29 @@ function isAuthorized(req: Request) {
   return Boolean(NEWS_SYNC_TOKEN && token === NEWS_SYNC_TOKEN);
 }
 
+// C1: filtered on the status the row carried when this run read it, which makes
+// the write a compare-and-set. A user's scan can rewrite the same setup's levels
+// and reset its status to `generated` between the read and here; without the
+// filter this verdict would land on geometry it was never computed from, and the
+// row would then be re-resolved and the verdict overwritten. Zero rows means the
+// race was lost, and it is thrown so the run counts the setup as failed — a
+// silent partial resolution is exactly what the cohort cannot afford.
 async function markStatus(
   setup: PendingSetup,
   status: "expired" | "filled" | "placed",
 ) {
-  await adminUpdateRows(
-    `trade_setups?id=eq.${encodeURIComponent(setup.id)}`,
+  const updatedRows = await adminUpdateRows(
+    `trade_setups?id=eq.${
+      encodeURIComponent(setup.id)
+    }&status=eq.${encodeURIComponent(setup.status)}`,
     { status },
   );
+
+  if (updatedRows.length === 0) {
+    throw new Error(
+      `status flip to ${status} matched no rows for setup ${setup.id} — it changed after it was read`,
+    );
+  }
 }
 
 async function writeOutcome(

@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
 
+// Module scope on purpose: the Desk, Insights and the trades rail all mount and
+// unmount this hook, and the throttle exists so re-navigation does not re-run a
+// provider-heavy refresh. It therefore outlives any one session, which is why
+// the auth listener below clears it on sign-out.
 let lastOutcomeRefreshAt = 0;
 const OUTCOME_REFRESH_INTERVAL_MS = 60_000;
 type RefreshSetupsOptions = {
@@ -37,10 +41,12 @@ export function useTradeSetups() {
       if (shouldRefreshOutcomes) {
         try {
           await refreshTradeOutcomes();
+          // M6: stamped on success only. The stamp used to sit in a `finally`,
+          // so a refresh that threw bought itself a full 60-second blackout —
+          // the outcome that most needs a prompt retry got the longest wait.
+          lastOutcomeRefreshAt = Date.now();
         } catch (error) {
           console.warn("[history] outcome refresh failed; history may lag", error);
-        } finally {
-          lastOutcomeRefreshAt = Date.now();
         }
       }
       setSetups(await fetchTradeSetups());
@@ -69,6 +75,11 @@ export function useTradeSetups() {
         refreshSetups({ refreshOutcomes: true });
       } else {
         setSetups([]);
+        // M6: the throttle is module scope, so it outlives the session that set
+        // it. Without this, signing out and back in — as the same person or
+        // another — could leave the first load of the new session inside a
+        // blackout the old one opened.
+        lastOutcomeRefreshAt = 0;
       }
     });
 

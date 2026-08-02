@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, CheckCircle2, Copy, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import { Check, Copy, XCircle } from "lucide-react";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { HowThisWorksLink } from "./HowThisWorksLink";
@@ -23,16 +23,12 @@ const LADDER_TARGET_INSTRUCTION =
 // the stagehead (AdvisorWorkspace + ConfidenceUnit) — this panel starts at the
 // ladder.
 export function RecommendationPanel({
-  notice,
   result,
   setup,
-  status,
   symbol,
 }: {
-  notice: string;
   result: AnalyzerResponse | null;
   setup: AnalyzerSetup | null;
-  status: "idle" | "analyzing";
   symbol: SupportedSymbol;
 }) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -66,10 +62,6 @@ export function RecommendationPanel({
     }
     setCopiedField(field);
     copyResetRef.current = window.setTimeout(() => setCopiedField(null), 2000);
-  }
-
-  if (status === "analyzing") {
-    return <AnalysisProgress symbol={symbol} />;
   }
 
   if (setup) {
@@ -150,36 +142,6 @@ export function RecommendationPanel({
               </p>
             )
             : null}
-          {/* A5: this line used to fall back to "Current setup ready for
-              review." — a caption on a ladder the reader can already see is
-              ready. Same discipline the stage applies to its own marketNotice
-              (AdvisorWorkspace): render the element only when there is
-              something to say, so an empty notice leaves no margin behind
-              either. */}
-          {notice
-            ? (
-              <p
-                className={isBuy
-                  ? "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-buy"
-                  : "mt-2.5 flex items-start gap-2 text-xs font-semibold leading-5 text-sell"}
-              >
-                {result?.deduplicated
-                  ? (
-                    <CheckCircle2
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
-                  )
-                  : (
-                    <ShieldCheck
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
-                  )}
-                {notice}
-              </p>
-            )
-            : null}
         </div>
         <div className="min-w-0 px-5 py-4 max-lg:px-0 lg:py-3">
           <SetupQualityReceipt result={result} setup={setup} />
@@ -189,7 +151,7 @@ export function RecommendationPanel({
   }
 
   if (result?.blocked || result?.reason || result?.providerWarnings?.length) {
-    return <NoSetupPanel notice={notice} result={result} symbol={symbol} />;
+    return <NoSetupPanel result={result} symbol={symbol} />;
   }
 
   return (
@@ -200,7 +162,7 @@ export function RecommendationPanel({
           Levelflow…") narrated a stage picker and a Review button that no longer
           exist. §17f keeps what is left to the one thing the surface cannot show
           for itself: that scanning is how a setup arrives. */}
-      <p>{notice || "Scan to see the current limit setup."}</p>
+      <p>Scan to see the current limit setup.</p>
     </div>
   );
 }
@@ -271,49 +233,15 @@ function CopyableMetricRow({
   );
 }
 
-function AnalysisProgress({ symbol }: { symbol: SupportedSymbol }) {
-  const steps = [
-    "Refreshing chart data",
-    "Checking direction",
-    "Checking timing risk",
-    "Building limit levels",
-  ];
-
-  return (
-    <div className="grid min-w-0 gap-2 px-5 py-4 max-lg:px-0">
-      <p className="eyebrow flex items-center gap-2 text-accent">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-        Analyzing {symbol}
-      </p>
-      <h3 className="text-base font-semibold text-ink">
-        Building the current setup
-      </h3>
-      <div className="grid gap-1">
-        {steps.map((step) => (
-          <p
-            key={step}
-            className="flex items-center gap-2 text-sm font-medium text-ink-muted"
-          >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-            {step}
-          </p>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function NoSetupPanel({
-  notice,
   result,
   symbol,
 }: {
-  notice: string;
   result: AnalyzerResponse;
   symbol: SupportedSymbol;
 }) {
   const reasons = uniqueReviewMessages([
-    result.reason ?? notice,
+    result.reason ?? "",
     ...(result.analysisDiagnostics ?? []),
     ...(result.providerWarnings ?? []),
     result.learningRefresh?.reason ? result.learningRefresh.reason : "",

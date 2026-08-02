@@ -165,9 +165,20 @@ export function getSessionContext(
     londonMinutes < 10 * 60;
   const lateSession = easternWeekday && easternMinutes >= 16 * 60 &&
     easternMinutes < 17 * 60;
+  // The last half hour before the weekly close: thin, and measured as such, but
+  // still tradeable — it keeps the penalty it earned.
   const fridayClose = eastern.weekday === 5 &&
-    easternMinutes >= 16 * 60 + 30;
+    easternMinutes >= 16 * 60 + 30 && easternMinutes < 17 * 60;
+  // I7: spot FX settles for the week at 17:00 ET Friday and reopens Sunday at
+  // the same rollover minute the daily pause uses. Before this, `weekend` began
+  // on Saturday, so Friday 17:00-24:00 ET generated setups on a closed market —
+  // seven hours in which every other class hard-blocks from 16:30 ET, and in
+  // which getSetupExpiryTime lands the review window inside the weekend, so
+  // every one of those setups was deterministically unfilled. The client's
+  // calendar has always closed forex here (src/lib/marketHours.ts); this is the
+  // server agreeing with it.
   const weekend = eastern.weekday === 6 ||
+    (eastern.weekday === 5 && easternMinutes >= 17 * 60) ||
     (eastern.weekday === 7 && easternMinutes < 17 * 60 + 5);
 
   return {

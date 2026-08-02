@@ -219,9 +219,11 @@ describe("scan persistence — the call site honours the contract", () => {
   });
 
   it("keeps the C2 live-position guard, now reported as a skip", () => {
+    // No origin term left in it: §17m.1's one door removed the review-origin
+    // exemption that used to switch this guard off for a whole platform.
     assert.match(
       analyzer,
-      /if \(origin === "scan" && activeSetup && activeSetup\.status === "placed"\) \{\s*return \{\s*deduplicated: true,\s*outcome: "skipped_live_position",/,
+      /if \(activeSetup && activeSetup\.status === "placed"\) \{\s*return \{\s*deduplicated: true,\s*outcome: "skipped_live_position",/,
     );
   });
 

@@ -30,6 +30,10 @@ const ADVISOR_WORKSPACE_SOURCE = readFileSync(
   "src/components/workspace/AdvisorWorkspace.tsx",
   "utf8",
 );
+const MARKET_SCAN_PANEL_SOURCE = readFileSync(
+  "src/components/workspace/MarketScanPanel.tsx",
+  "utf8",
+);
 
 const NOW = new Date("2026-07-30T12:00:00.000Z");
 
@@ -860,28 +864,33 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
     );
   });
 
-  it("offers one verb: the scope decides whether Scan reviews one market or scans many", () => {
-    // Both paths are the functions the ≥lg Desk's own two actions call —
-    // generateTradeSetup via analyze(), scanMarketOpportunities via
-    // scanMarkets() — so no behavior contract is re-implemented for mobile.
-    assert.match(
-      ADVISOR_WORKSPACE_SOURCE,
-      /const scopeActionIsReview = scope\.kind === "symbol";/,
-    );
-    assert.match(
-      ADVISOR_WORKSPACE_SOURCE,
-      /async function runScopeAction\(\) \{\s*if \(scopeActionIsReview\) \{\s*await analyze\(\);\s*return;\s*\}\s*await scanMarkets\(openScanSymbols\);/,
-    );
-    // One button, the mock's own label, wired to that one handler.
-    assert.match(surface, /onClick=\{runScopeAction\}[\s\S]{0,400}\n\s*Scan\n/);
+  it("offers one verb and one door: mobile Scan is the same scanMarkets call the rail's button makes", () => {
+    // §17m.1, "no other path, desktop or mobile": the scope decides WHAT this
+    // Scan covers — one market or many — never which engine path runs it. The
+    // mobile button sends the same scan_opportunities request the ≥lg rail
+    // sends, so there is no second persistence path, no second origin value
+    // and no second failure vocabulary for one user action.
+    assert.match(surface, /onClick=\{\(\) => scanMarkets\(openScanSymbols\)\}/);
+    assert.match(surface, /\n\s*Scan\n/);
     assert.equal((surface.match(/className="primary-button/g) ?? []).length, 1);
-    // Each path keeps its own disabled rule rather than a merged one: a review
-    // waits on the chart load it refreshes, a scan cannot run with nothing open.
+    // The single-market review path and everything that existed only to
+    // service it are gone, not merely unused.
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /generateTradeSetup/);
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /scopeActionIsReview/);
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /runScopeAction/);
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /analyzerStatus/);
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /advisorNotice/);
+    assert.doesNotMatch(ADVISOR_WORKSPACE_SOURCE, /function analyze\(/);
+    // One rule for when Scan is available, and it is the rail's own rule.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /const scopeActionDisabled = scopeActionIsReview\s*\? analyzerStatus === "analyzing" \|\| marketLoading\s*: scanStatus === "scanning" \|\| openScanSymbols\.length === 0;/,
+      /const scanDisabled = scanStatus === "scanning" \|\| openScanSymbols\.length === 0;/,
     );
-    assert.match(surface, /disabled=\{scopeActionDisabled\}/);
+    assert.match(surface, /disabled=\{scanDisabled\}/);
+    assert.match(
+      MARKET_SCAN_PANEL_SOURCE,
+      /disabled=\{status === "scanning" \|\| openScanSymbols\.length === 0\}/,
+    );
   });
 
   it("draws the head as market · side tag · compact confidence, with §17's stamp on its own line", () => {
@@ -1007,14 +1016,16 @@ describe("the merged mobile Scan surface's ladder rows (m-scan-v3.html:34-37)", 
   });
 
   it("flattens the sheet's own padding below lg — on the merged surface there is no sheet to pad inside of", () => {
-    // Every state of the panel: the ladder column, the why column, and the
-    // three single-column states. At ≥lg they keep the mock's 20px inset.
-    assert.equal((LADDER_SOURCE.match(/px-5 py-4/g) ?? []).length, 5);
+    // Every state of the panel: the ladder column, the why column, and the two
+    // single-column states (no-setup and nothing-passed). At ≥lg they keep the
+    // mock's 20px inset. Four, not five, since §17m.1 deleted the fabricated
+    // analysis-progress state.
+    assert.equal((LADDER_SOURCE.match(/px-5 py-4/g) ?? []).length, 4);
     // The lookahead matters: the copy row's own 2px inset is `max-lg:px-0.5`,
-    // which a \b-terminated pattern would count as a sixth flattened container.
+    // which a \b-terminated pattern would count as another flattened container.
     assert.equal(
       (LADDER_SOURCE.match(/max-lg:px-0(?![.\d])/g) ?? []).length,
-      5,
+      4,
     );
   });
 

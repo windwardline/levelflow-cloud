@@ -1,4 +1,10 @@
-import { type EconomicEvent, toEventRow } from "./eventRows.ts";
+import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
+import {
+  type EconomicEvent,
+  parseEarningsEventTime,
+  parseEventTime,
+  toEventRow,
+} from "./eventRows.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -23,6 +29,26 @@ const MARKET_MOVING_EARNINGS_SYMBOLS = new Set([
 
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 const PROVIDER_FETCH_TIMEOUT_MS = 12_000;
+
+// What this run could not do, carried out of the fetchers so the response and
+// analyzer_events can both say it. Threaded rather than logged in place: a
+// console line inside an edge function is not a signal anything reads, which is
+// how the earnings and headline feeds could have been failing for weeks.
+type IngestDiagnostics = {
+  // Feeds whose fetch threw. The scheduled calendar is load-bearing and throws
+  // out of the whole run; earnings and headlines are additive, so one failing
+  // must not lose the other two — but it must not vanish either.
+  failedFeeds: string[];
+  // Rows the provider sent with a date this code could not read. Dropped, not
+  // stamped with "now" (see parseEventTime).
+  unparseableDates: number;
+};
+
+// A row whose time could not be read arrives here as null and is dropped by the
+// request handler, which is also where the drops are counted.
+type MaybeTimedEvent = Omit<EconomicEvent, "scheduled_at"> & {
+  scheduled_at: string | null;
+};
 
 const FOREX_NEWS_SYMBOLS = [
   "AUDCAD",
@@ -103,12 +129,40 @@ Deno.serve(async (req) => {
     const windowEnd = new Date();
     windowEnd.setUTCDate(windowEnd.getUTCDate() + 7);
 
-    const events = dedupeEvents(
-      await fetchProviderEvents(windowStart, windowEnd),
+    const diagnostics: IngestDiagnostics = {
+      failedFeeds: [],
+      unparseableDates: 0,
+    };
+    const fetched = await fetchProviderEvents(
+      windowStart,
+      windowEnd,
+      diagnostics,
     );
+    // One filter, one count. A row the provider dated in a shape this code
+    // cannot read is dropped here rather than carried in with scheduled_at set
+    // to the current moment (I2).
+    const timed = fetched.filter((event): event is EconomicEvent =>
+      event.scheduled_at !== null
+    );
+    diagnostics.unparseableDates = fetched.length - timed.length;
+    const events = dedupeEvents(timed);
+    // Cron firing is not the job succeeding: a run that lost a feed or dropped
+    // rows is an error even when it also inserted thousands of good ones, and
+    // it says so where every other scheduled job reports (analyzer_events).
+    const degraded = diagnostics.failedFeeds.length > 0 ||
+      diagnostics.unparseableDates > 0;
+
     if (events.length === 0) {
+      await recordAnalyzerEvent({
+        action: "news_calendar_sync",
+        message: describeIngest(diagnostics) ??
+          "No calendar events were returned.",
+        metadata: { ...diagnostics, inserted: 0 },
+        status: degraded ? "error" : "success",
+      });
       return jsonResponse({
         configured: Boolean(FMP_API_KEY || FINNHUB_API_KEY),
+        ...diagnostics,
         inserted: 0,
         provider: ECONOMIC_CALENDAR_PROVIDER,
       });
@@ -133,8 +187,16 @@ Deno.serve(async (req) => {
       throw new Error(await response.text());
     }
 
+    await recordAnalyzerEvent({
+      action: "news_calendar_sync",
+      message: describeIngest(diagnostics),
+      metadata: { ...diagnostics, inserted: events.length },
+      status: degraded ? "error" : "success",
+    });
+
     return jsonResponse({
       configured: true,
+      ...diagnostics,
       inserted: events.length,
       provider: ECONOMIC_CALENDAR_PROVIDER,
       windowEnd: windowEnd.toISOString(),
@@ -143,9 +205,27 @@ Deno.serve(async (req) => {
   } catch (error) {
     const detail = describeError(error);
     console.error("news-calendar sync failed", detail);
+    await recordAnalyzerEvent({
+      action: "news_calendar_sync",
+      message: `news-calendar sync failed: ${detail}`,
+      status: "error",
+    });
     return jsonResponse({ detail, error: "News calendar sync failed." }, 500);
   }
 });
+
+// Null when the run was clean — recordAnalyzerEvent stores a null message, and
+// a success row with nothing to say should say nothing.
+function describeIngest(diagnostics: IngestDiagnostics) {
+  const notes: string[] = [];
+  if (diagnostics.failedFeeds.length > 0) {
+    notes.push(`feeds unavailable: ${diagnostics.failedFeeds.join(", ")}`);
+  }
+  if (diagnostics.unparseableDates > 0) {
+    notes.push(`${diagnostics.unparseableDates} events had unreadable dates`);
+  }
+  return notes.length > 0 ? notes.join("; ") : null;
+}
 
 // Network-level fetch errors embed the full request URL — including the
 // provider apikey — so credentials must be stripped before the message is
@@ -163,32 +243,43 @@ function isAuthorized(req: Request) {
   return Boolean(NEWS_SYNC_TOKEN && token === NEWS_SYNC_TOKEN);
 }
 
-async function fetchProviderEvents(windowStart: Date, windowEnd: Date) {
+async function fetchProviderEvents(
+  windowStart: Date,
+  windowEnd: Date,
+  diagnostics: IngestDiagnostics,
+) {
   if (ECONOMIC_CALENDAR_PROVIDER === "finnhub") {
     return fetchFinnhubEvents(windowStart, windowEnd);
   }
 
-  return fetchFmpEvents(windowStart, windowEnd);
+  return fetchFmpEvents(windowStart, windowEnd, diagnostics);
 }
 
 async function fetchFmpEvents(
   windowStart: Date,
   windowEnd: Date,
-): Promise<EconomicEvent[]> {
+  diagnostics: IngestDiagnostics,
+): Promise<MaybeTimedEvent[]> {
+  // The scheduled calendar is load-bearing — it is what isBlockingNewsEvent
+  // reads — so its failure throws out of the whole run. Earnings and headlines
+  // are additive: losing one must not lose the other two, but it must not
+  // vanish either, so each records the feed it lost by name.
   const economicEvents = await fetchFmpEconomicEvents(windowStart, windowEnd);
-  let earningsEvents: EconomicEvent[] = [];
-  let headlineEvents: EconomicEvent[] = [];
+  let earningsEvents: MaybeTimedEvent[] = [];
+  let headlineEvents: MaybeTimedEvent[] = [];
 
   try {
     earningsEvents = await fetchFmpEarningsEvents(windowStart, windowEnd);
-  } catch {
-    earningsEvents = [];
+  } catch (error) {
+    diagnostics.failedFeeds.push("earnings");
+    console.error("news-calendar earnings feed failed", describeError(error));
   }
 
   try {
     headlineEvents = await fetchFmpHeadlineEvents(windowStart, windowEnd);
-  } catch {
-    headlineEvents = [];
+  } catch (error) {
+    diagnostics.failedFeeds.push("headlines");
+    console.error("news-calendar headline feed failed", describeError(error));
   }
 
   return [...economicEvents, ...earningsEvents, ...headlineEvents];
@@ -197,7 +288,7 @@ async function fetchFmpEvents(
 async function fetchFmpEconomicEvents(
   windowStart: Date,
   windowEnd: Date,
-): Promise<EconomicEvent[]> {
+): Promise<MaybeTimedEvent[]> {
   if (!FMP_API_KEY) {
     return [];
   }
@@ -226,7 +317,7 @@ async function fetchFmpEconomicEvents(
 
   return payload.map((rawEvent) => {
     const event = rawEvent as Record<string, unknown>;
-    const scheduledAt = parseDate(event.date);
+    const scheduledAt = parseEventTime(event.date);
     return {
       country: optionalString(event.country),
       currency: String(event.currency ?? "USD"),
@@ -249,7 +340,7 @@ async function fetchFmpEconomicEvents(
 async function fetchFmpEarningsEvents(
   windowStart: Date,
   windowEnd: Date,
-): Promise<EconomicEvent[]> {
+): Promise<MaybeTimedEvent[]> {
   if (!FMP_API_KEY) {
     return [];
   }
@@ -294,7 +385,7 @@ async function fetchFmpEarningsEvents(
         impact: "high" as const,
         provider: "fmp_earnings",
         raw_payload: event,
-        scheduled_at: parseEarningsDate(date, event.time),
+        scheduled_at: parseEarningsEventTime(date, event.time),
       },
     ];
   });
@@ -303,7 +394,7 @@ async function fetchFmpEarningsEvents(
 async function fetchFmpHeadlineEvents(
   windowStart: Date,
   windowEnd: Date,
-): Promise<EconomicEvent[]> {
+): Promise<MaybeTimedEvent[]> {
   if (!FMP_API_KEY) {
     return [];
   }
@@ -322,7 +413,7 @@ async function fetchFmpNewsEndpoint(
   symbols: string[],
   windowStart: Date,
   windowEnd: Date,
-): Promise<EconomicEvent[]> {
+): Promise<MaybeTimedEvent[]> {
   const url = new URL(
     `${FMP_API_BASE_URL.replace(/\/$/, "")}/news/${category}`,
   );
@@ -348,9 +439,15 @@ async function fetchFmpNewsEndpoint(
 
   return payload.flatMap((rawItem) => {
     const item = rawItem as Record<string, unknown>;
-    const publishedAt = parseDate(
+    const publishedAt = parseEventTime(
       item.publishedDate ?? item.date ?? item.created_at,
     );
+    // A headline with no readable publication time has no window to fall in and
+    // no stable external_id either, so it is dropped here rather than counted
+    // against the run: unlike a scheduled event, nothing is lost by it.
+    if (publishedAt === null) {
+      return [];
+    }
     const publishedTime = new Date(publishedAt).getTime();
     if (
       publishedTime < windowStart.getTime() ||
@@ -399,7 +496,7 @@ async function fetchFmpNewsEndpoint(
 async function fetchFinnhubEvents(
   windowStart: Date,
   windowEnd: Date,
-): Promise<EconomicEvent[]> {
+): Promise<MaybeTimedEvent[]> {
   if (!FINNHUB_API_KEY) {
     return [];
   }
@@ -440,7 +537,7 @@ async function fetchFinnhubEvents(
       impact: normalizeImpact(event.impact),
       provider: "finnhub",
       raw_payload: event,
-      scheduled_at: parseDate(event.time),
+      scheduled_at: parseEventTime(event.time),
     };
   });
 }
@@ -455,28 +552,6 @@ function dedupeEvents(events: EconomicEvent[]) {
       events.map((event) => [`${event.provider}:${event.external_id}`, event]),
     ).values(),
   );
-}
-
-function parseDate(value: unknown) {
-  const date = new Date(String(value ?? ""));
-  return Number.isNaN(date.valueOf())
-    ? new Date().toISOString()
-    : date.toISOString();
-}
-
-function parseEarningsDate(dateValue: unknown, timeValue: unknown) {
-  const rawDate = String(dateValue ?? "");
-  if (rawDate.includes("T")) {
-    return parseDate(rawDate);
-  }
-
-  const time = String(timeValue ?? "").toLowerCase();
-  const releaseTime = time.includes("bmo") || time.includes("before")
-    ? "12:00:00Z"
-    : time.includes("amc") || time.includes("after")
-    ? "21:00:00Z"
-    : "16:00:00Z";
-  return parseDate(`${rawDate}T${releaseTime}`);
 }
 
 function optionalString(value: unknown) {

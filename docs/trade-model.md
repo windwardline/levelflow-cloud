@@ -1,18 +1,22 @@
 # Levelflow Trade Model
 
-Model version: `2026.08.01.scan-only-door`
+Model version: `2026.08.01.one-door-guarded`
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
 
-The version moved on 2026-08-01 without a calibration round: spec §17m
-made the Scan column the only door a setup comes through, so global
-learning stopped filtering its cohort to review-origin setups and now
-trains on every measured outcome. Setup construction, scoring, windows and
-outcome evaluation are byte-identical to
-`2026.07.30.forex-gate-forty` — what changed is which population the
-weights learn from, and the version is what makes that boundary explicit
-in the data. Round 23's measurements below stand unchanged; they were made
-on the geometry, not on the cohort filter.
+The version moved twice on 2026-08-01, both times without a calibration
+round. `2026.08.01.scan-only-door`: spec §17m made the Scan column the only
+door a setup comes through, so global learning stopped filtering its cohort
+to review-origin setups and now trains on every measured outcome.
+`2026.08.01.one-door-guarded`: the second door — the single-market
+`generate_setup` action, still live on mobile — was deleted, so the cohort
+is prospectively scan-origin only and every write is guarded against the
+hourly outcome-sync that resolves the same rows. Setup construction,
+scoring, windows and outcome evaluation are byte-identical to
+`2026.07.30.forex-gate-forty` through all three: what changed is which
+population the weights learn from and which writes are allowed to land.
+Round 23's measurements below stand unchanged; they were made on the
+geometry, not on the cohort filter.
 
 ## Current engine state (2026-07-30)
 
@@ -42,14 +46,22 @@ Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
 blocks reviews; penalties per the caps above (r23 validated them as
 calibrated).
 
-Tradable menu: 51 markets — 28 forex pairs, 7 crypto, 11 futures,
-2 metals, 2 energies. No-trade (server-refused, absent from the UI):
-SP, NSDQ, DOW, NIKKEI, DAX, NGUSD, HGUSD, BNBUSD. Reintroduction
-requires a fresh full-depth derivation, not a toggle.
+Tradable menu: 50 markets — 28 forex pairs, 11 futures, 7 crypto,
+2 metals, 2 energies. **No indices.** No-trade (server-refused, absent
+from the UI): SP, NSDQ, DOW, NIKKEI, DAX, NGUSD, HGUSD, BNBUSD; ASX is
+separately held back while chart coverage is verified, which leaves the
+Indices class with no reachable symbol at all in production. Its
+calibration block, session gate and strategy profile are live only in the
+offline sweep. Reintroduction requires a fresh full-depth derivation, not
+a toggle. There is no second tier: `noScanSymbols` IS `noTradeSymbols`, so
+"the scan skips it" and "the server refuses it" are one condition, and the
+menu the UI offers is exactly the universe a scan of All markets walks
+(pinned by `tests/core.test.ts`).
 
 Measured record (test split, filled setups, money-positive): forex
 .89/123,254 · metals .90/453 · futures .83/2,368 · crypto .87/6,106 ·
-energies .60/474 · indices .51/952 (reviewable only, scans skip them).
+energies .60/474 · indices .51/952 (replay only — the class is
+production-unreachable, and the row exists so its record stays legible).
 The UI's replay-record rows mirror these exactly
 (`src/lib/replayReliability.ts`).
 
@@ -58,7 +70,7 @@ outcome-sync (cron :23) resolves pending setups; hourly news-calendar
 ingestion (cron :07) with a watchdog (cron :41); a launchd agent tops up
 the local replay cache daily at 07:00 so the replay basis stays current
 for the day the work resumes. Global learning accrues inside the
-`2026.08.01.scan-only-door` cohort — every origin, since Scan is the only
+`2026.08.01.one-door-guarded` cohort — every origin, since Scan is the only
 door (§17m). Production is open (the parking gate is off, §17l).
 
 ## Resumption protocol (for the operator)
@@ -74,13 +86,18 @@ whim. Two triggers, whichever comes first:
    scan persistence multiplies the accrual rate the day it ships. Check
    the count in the Supabase SQL editor:
 
+   `trade_setups` carries no `asset_type` column — the analyzer derives the
+   class from the symbol at request time and persists it inside the setup's
+   own confluence, so the count reads it from there:
+
    ```sql
-   select ts.asset_type, count(*) as resolved_filled
+   select ts.confluence -> 'categoryCalibration' ->> 'assetType' as asset_type,
+          count(*) as resolved_filled
    from trade_outcomes o
    join trade_setups ts on ts.id = o.setup_id
-   where o.analyzer_version = '2026.08.01.scan-only-door'
+   where o.analyzer_version = '2026.08.01.one-door-guarded'
      and o.outcome not in ('pending', 'unfilled')
-   group by ts.asset_type
+   group by 1
    order by resolved_filled desc;
    ```
 
@@ -202,6 +219,10 @@ walk-forward). Durable character groups emerged:
   alts, and cash indices are excluded). Every symbol remains reviewable
   directly, and explicit group scans cover the full group. Curation is
   data-driven and should be revisited as the live cohort accumulates.
+  **Superseded** — later rounds returned all 28 forex pairs and all seven
+  non-BNB cryptos to the default universe, and §17m.1 deleted the direct
+  review path, so nothing is "reviewable directly" any more. See the menu
+  under "Current engine state" for the state of record.
 
 ## Round-3b calibration (2026-07-28, 150-day instrumented replay)
 
@@ -1035,9 +1056,19 @@ positioning percentile.
 `ANALYZER_VERSION` scopes global learning. Global learning reads every
 measured outcome, whichever door generated the setup: spec §17m made the
 Scan column the only door, and a review-origin-only cohort would have
-frozen the weights permanently. `origin` stays bookkeeping about
-placement, never eligibility — an unfilled scan-origin setup still earns
-no Current-trades entry. Any change to setup construction, scoring,
+frozen the weights permanently. `origin` is historical bookkeeping and
+nothing more: every row written since §17m.1 says `scan`, no code reads the
+column, and the Current-trades rail derives Pending from status and outcome
+alone (`src/lib/tradeState.ts`).
+
+The cohort is production traffic only. The e2e suite scans the live project
+on every push to main, and global learning reads outcomes with no user
+filter, so those rows would otherwise train the weights and count toward the
+trigger below — from a run schedule clustered in the owner's working hours,
+inside a model whose per-hour gates were the arc's most contested finding.
+`tests/e2e/authenticated-workspace.spec.ts` deletes the setups each run
+created, through the test user's own JWT, and logs the count; outcomes
+cascade with them. Any change to setup construction, scoring,
 calibration, or outcome evaluation must bump the version — and so must a
 change to the learning population itself, which is why widening the cohort
 moved it to `2026.08.01.scan-only-door` even though no geometry changed.

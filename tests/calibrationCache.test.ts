@@ -118,6 +118,43 @@ describe("calibration rolling cache", () => {
     assert.deepEqual(dayOneAgain.map(timeOf), [1_000]);
   });
 
+  // I3: the anchor pin is durable truth for the day, and later runs only ever
+  // top up from the last stored time — so anything pinned short is never
+  // refetched. A fetch that could not complete must therefore reach this
+  // function as a throw, not as a partial array: `loadRollingSeries` cannot tell
+  // "the series ends here" from "the provider dropped a chunk", and pinning the
+  // second holes the news join under every future walk-forward measurement.
+  it("pins nothing and writes nothing when the fetch could not complete", async () => {
+    const dir = tempDir();
+    await assert.rejects(
+      loadRollingSeries<Tick>({
+        anchor: "2026-07-30",
+        cacheDir: dir,
+        fetchFull: async () => {
+          throw new Error("provider chunk failed");
+        },
+        fetchSince: async () => [],
+        key: "SYM-15min-max",
+        timeOf,
+      }),
+      /provider chunk failed/,
+    );
+    assert.throws(() => readFileSync(join(dir, "SYM-15min-max.rolling.json")));
+
+    // And the retry that follows sees a clean slate: full history, no pin.
+    const recovered = await loadRollingSeries<Tick>({
+      anchor: "2026-07-30",
+      cacheDir: dir,
+      fetchFull: async () => [tick(10), tick(20)],
+      fetchSince: async () => {
+        throw new Error("a store miss must fetch full history");
+      },
+      key: "SYM-15min-max",
+      timeOf,
+    });
+    assert.deepEqual(recovered.map(timeOf), [10, 20]);
+  });
+
   it("seeds from the newest legacy date-keyed file and pins same-day for free", async () => {
     const dir = tempDir();
     writeFileSync(
@@ -146,5 +183,25 @@ describe("calibration rolling cache", () => {
       readFileSync(join(dir, "SYM-15min-max.rolling.json"), "utf8"),
     );
     assert.equal(store.pinned["2026-07-30"], 20);
+  });
+});
+
+// The other half of I3, in the caller that feeds the cache. Read as text: the
+// sweep script runs `main()` on import, so no harness reaches these functions.
+describe("the sweep's fetchers report an incomplete series rather than pinning it", () => {
+  const sweep = readFileSync("scripts/replay-sweep.ts", "utf8");
+
+  it("throws on a failed economic-calendar chunk, as the bar fetcher already does", () => {
+    // It used to warn and `continue`, so one transient FMP failure during the
+    // 13-year backfill silently dropped a 90-day window — and because the merged
+    // result was then pinned as the anchor day's truth, the hole was permanent
+    // under every later run.
+    assert.doesNotMatch(sweep, /Calendar fetch failed \(\$\{response\.status\}\); continuing\./);
+    assert.match(
+      sweep,
+      /throw new Error\(\s*`Calendar fetch failed \(\$\{response\.status\}\)/,
+    );
+    // The precedent it now matches.
+    assert.match(sweep, /FMP request failed \(\$\{response\.status\}\)/);
   });
 });
