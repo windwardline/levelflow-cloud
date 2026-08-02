@@ -8,7 +8,7 @@ import {
   MOBILE_FRAME_SCROLL,
 } from "../mobileFrame";
 import { formatNumber } from "./advisorFormat";
-import { HISTORY_LOAD_FAILED_COPY } from "./historyUtils";
+import { HISTORY_LOAD_FAILED_COPY, formatSignedR } from "./historyUtils";
 import { useWorkspaceNav } from "./WorkspaceNav";
 
 export type CurrentTradesRailProps = {
@@ -77,14 +77,6 @@ export function currentTradeBadgeCount(
   now: Date,
 ): number {
   return buildTradeCards(setups, now).length;
-}
-
-export function formatProgressR(value: number | null): string {
-  if (value === null) {
-    return "—";
-  }
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}R`;
 }
 
 // The remaining ladder levels still relevant to watch, mono in the card
@@ -303,7 +295,7 @@ function TradeStateCard({
           </span>
         </div>
         <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
-          {formatProgressR(state.progressR)}
+          {formatSignedR(state.progressR)}
         </p>
       </div>
 

@@ -313,15 +313,24 @@ export function formatSetupConfidence(setup: TradeSetupRow): string {
   );
 }
 
-// Signed R for the Insights ledger specifically (spec §10's own examples:
-// "Open · +0.8R", "Stopped · −1.0R"). Deliberately a separate function from
-// CurrentTradesRail's formatProgressR, which renders a negative R with the
-// native ASCII hyphen ("-1.0R", pinned by its own test) — that rail predates
-// this spec section and isn't governed by it. Insights' governing spec text
-// uses the typographic minus sign (U+2212) throughout, matching the
-// existing "Expired −" outcome shortLabel in lib/outcomes.ts, so this
-// formatter matches its own spec exactly rather than reusing the rail's.
-export function formatSignedR(value: number): string {
+// Signed R, everywhere the app prints one: the Insights ledger (spec §10's own
+// examples, "Open · +0.8R", "Stopped · −1.0R") and the Current trades rail's
+// progress figure.
+//
+// One function and one minus sign (Q1-I12). The rail used to render its negative
+// R with an ASCII hyphen on the grounds that it predates §10 and is not governed
+// by it — but the two print the same quantity in the same lifecycle vocabulary,
+// side by side in one app, and the reader has no way to know which surface a spec
+// section reached first. The typographic minus (U+2212) stands because it is what
+// §10 states and what lib/outcomes.ts's "Expired −" labels already carry; with
+// the sign settled the two formatters were identical, so there is one.
+//
+// null is "no figure yet", which the rail needs (a pending trade has no progress)
+// and the ledger's own callers already guard against upstream.
+export function formatSignedR(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
   const sign = value < 0 ? "−" : "+";
   return `${sign}${Math.abs(value).toFixed(1)}R`;
 }

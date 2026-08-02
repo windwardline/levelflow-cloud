@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import {
   buildRemainingLevels,
   buildTradeCards,
-  formatProgressR,
 } from "../src/components/workspace/CurrentTradesRail";
 import { HISTORY_LOAD_FAILED_COPY } from "../src/components/workspace/historyUtils";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
@@ -49,24 +48,6 @@ function buildSetup(overrides: Partial<TradeSetupRow> = {}): TradeSetupRow {
     ...overrides,
   };
 }
-
-describe("formatProgressR", () => {
-  it('shows "—" for no progress, never 0 or blank', () => {
-    assert.equal(formatProgressR(null), "—");
-  });
-
-  it("signs a positive R explicitly and rounds to one decimal", () => {
-    assert.equal(formatProgressR(0.84), "+0.8R");
-  });
-
-  it("keeps the native minus sign for a negative R", () => {
-    assert.equal(formatProgressR(-1), "-1.0R");
-  });
-
-  it("signs exactly zero as positive, matching >= 0", () => {
-    assert.equal(formatProgressR(0), "+0.0R");
-  });
-});
 
 describe("buildTradeCards", () => {
   it("keeps pending and open setups, in their given order, paired with their derived state", () => {
