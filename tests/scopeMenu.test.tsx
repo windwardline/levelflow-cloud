@@ -668,6 +668,60 @@ describe("ScopeMenu sheet markup (source-pinned — see header comment)", () => 
     assert.match(SOURCE, /aria-label="Close"/);
   });
 
+  // Q1-C3: the Close button never ran. The document-level mousedown listener
+  // closed on any press outside rootRef (the trigger's wrapper, which lives in
+  // the main tree) or listRef (the <ul>) — and the sheet's header is inside
+  // neither, being a SIBLING of the <ul> inside the portal. So the press
+  // unmounted the portal before mouseup, no click ever completed on the button,
+  // onClick={closeAndFocusTrigger} never fired, and focus was left on <body>
+  // instead of returning to the trigger (WCAG 2.4.3) — on a role="dialog"
+  // aria-modal="true" surface. The same path made a tap on the sheet's own title
+  // bar silently dismiss it. The fix is one more ref: the sheet's root, so
+  // everything the portal draws counts as inside.
+  it("counts the whole sheet — header and close control included — as inside for the outside-press listener", () => {
+    // The ref is on the dialog root, above the header, not on the <ul>.
+    assert.match(
+      SOURCE,
+      /<div\s*\n\s*ref=\{sheetRef\}\s*\n\s*aria-labelledby=\{`\$\{baseId\}-sheet-title`\}/,
+    );
+    assert.match(
+      SOURCE,
+      /!sheetRef\.current\?\.contains\(target\)/,
+    );
+    // The close control still owns the focus return, and now actually reaches
+    // it: the press no longer unmounts the button out from under its own click.
+    assert.match(
+      SOURCE,
+      /aria-label="Close"[\s\S]{0,160}onClick=\{closeAndFocusTrigger\}/,
+    );
+  });
+
+  // The other half of Q1-C3: with the header no longer dismissing the sheet, a
+  // tap on the title bar leaves focus on <body> — and Escape was a React
+  // onKeyDown on the <ul>, so from <body> it reached nothing (the same defect
+  // shape as Q1-C2 on the chart overlay). One document-level listener owns
+  // Escape for both presentations, and the list's own switch no longer
+  // duplicates it, so there is exactly one path from a press to a dismissal.
+  it("hears Escape wherever focus has landed inside the portal, from one owner", () => {
+    assert.match(
+      SOURCE,
+      /document\.addEventListener\("keydown", handleEscape\)/,
+    );
+    assert.match(
+      SOURCE,
+      /document\.removeEventListener\("keydown", handleEscape\)/,
+    );
+    assert.match(
+      SOURCE,
+      /function handleEscape\(event: KeyboardEvent\) \{\s*\n\s*if \(event\.key !== "Escape"\) \{\s*\n\s*return;\s*\n\s*\}\s*\n\s*event\.preventDefault\(\);\s*\n\s*closeAndFocusTrigger\(\);/,
+    );
+    const listSwitch = SOURCE.match(
+      /function handleListKeyDown[\s\S]*?\n {2}\}/,
+    )?.[0] ?? "";
+    assert.ok(listSwitch.length > 0, "expected the list's keyboard switch");
+    assert.doesNotMatch(listSwitch, /case "Escape"/);
+  });
+
   it("shares row rendering between the sheet and the anchored popup via one function, never two copies", () => {
     const calls = SOURCE.match(/\{renderOptionRows\(\)\}/g) ?? [];
     assert.equal(calls.length, 2, "expected exactly one call per presentation");

@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -49,9 +43,14 @@ const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"
  * its answer.
  *
  * Shift+Tab off the first control wraps to the last, Tab off the last wraps to
- * the first, and focus that has escaped the dialog entirely (a click on the page
- * behind it, or a control the chart just unmounted) is pulled back on the next
- * Shift+Tab. Everything else moves the way the DOM order already reads.
+ * the first, and focus that has escaped the dialog entirely is pulled back in on
+ * the next press in EITHER direction. Escaped focus is the ordinary case, not an
+ * edge one: the chart container is a plain div with no tabindex, so the first
+ * click on the canvas lands document.activeElement on <body>. Forwards used to
+ * fall through to the browser's default there, and since this dialog is body's
+ * last child, that default walks straight into the page behind it — the exact
+ * exit an aria-modal surface is not allowed to have. Everything else moves the
+ * way the DOM order already reads.
  */
 export function focusTrapTarget(
   { activeIsFirst, activeIsInside, activeIsLast, shiftKey }: {
@@ -61,8 +60,11 @@ export function focusTrapTarget(
     shiftKey: boolean;
   },
 ): "first" | "last" | null {
+  if (!activeIsInside) {
+    return shiftKey ? "last" : "first";
+  }
   if (shiftKey) {
-    return activeIsFirst || !activeIsInside ? "last" : null;
+    return activeIsFirst ? "last" : null;
   }
   return activeIsLast ? "first" : null;
 }
@@ -97,45 +99,64 @@ export function ExpandedChartOverlay(
     };
   }, []);
 
-  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
+  // On the document, not as a React onKeyDown on the dialog below. A React
+  // handler only fires for events React can route to this dialog's own fiber,
+  // and the chart it wraps is a plain div with no tabindex — so the first click
+  // on the canvas moves document.activeElement to <body>, which is this
+  // portal's CONTAINER and has no fiber at all. Every keydown after that click
+  // was dispatched to nothing: Escape stopped closing an aria-modal surface and
+  // Tab walked out of it into the page behind. A document listener hears the
+  // press wherever focus has actually landed, and focusTrapTarget pulls
+  // escaped focus back in either direction.
+  //
+  // Resubscribed whenever onClose changes identity (the call site passes a
+  // fresh arrow each render) — two listener swaps are cheaper than the ref
+  // indirection that would avoid them, and this way the handler can never hold
+  // a stale close.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      // A real trap, not ScopeMenu's "Tab closes it": this dialog covers the
+      // whole viewport, so there is nowhere sensible for Tab to go except round
+      // its own controls. Both directions wrap.
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
+      );
+      if (focusable.length === 0) {
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      const target = focusTrapTarget({
+        activeIsFirst: active === first,
+        activeIsInside: dialogRef.current?.contains(active) ?? false,
+        activeIsLast: active === last,
+        shiftKey: event.shiftKey,
+      });
+      if (target === null) {
+        return;
+      }
       event.preventDefault();
-      onClose();
-      return;
-    }
-    if (event.key !== "Tab") {
-      return;
+      if (target === "first") {
+        first.focus();
+        return;
+      }
+      last.focus();
     }
 
-    // A real trap, not ScopeMenu's "Tab closes it": this dialog covers the
-    // whole viewport, so there is nowhere sensible for Tab to go except round
-    // its own controls. Both directions wrap.
-    const focusable = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
-    );
-    if (focusable.length === 0) {
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = document.activeElement;
-
-    const target = focusTrapTarget({
-      activeIsFirst: active === first,
-      activeIsInside: dialogRef.current?.contains(active) ?? false,
-      activeIsLast: active === last,
-      shiftKey: event.shiftKey,
-    });
-    if (target === null) {
-      return;
-    }
-    event.preventDefault();
-    if (target === "first") {
-      first.focus();
-      return;
-    }
-    last.focus();
-  }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return createPortal(
     <div
@@ -144,7 +165,6 @@ export function ExpandedChartOverlay(
       aria-modal="true"
       className="motion-fade-in fixed inset-0 z-40 flex h-[100dvh] w-[100dvw] flex-col bg-paper"
       role="dialog"
-      onKeyDown={handleKeyDown}
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-2">
         <span

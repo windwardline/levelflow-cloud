@@ -720,6 +720,32 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     assert.match(overlay, /onClose\(\)/);
   });
 
+  // Q1-C2: Escape and the trap both died after the first click on the chart.
+  // The handler was a React `onKeyDown` on the dialog element, so it only ever
+  // saw events React could route to the dialog's own fiber — and the chart
+  // container is a plain div with no tabindex, so clicking the canvas moves
+  // document.activeElement to <body>, which is this portal's CONTAINER and has
+  // no fiber at all. Every keydown after that click was dispatched to nothing:
+  // Escape stopped closing an aria-modal surface, and Tab walked out of it into
+  // the page behind. A document listener is the only wiring that hears the press
+  // wherever focus has actually landed, so the React handler is not merely
+  // supplemented here — it is gone, and pinned gone.
+  it("hears Escape and Tab wherever focus has landed — a document listener, not a React onKeyDown", () => {
+    assert.match(
+      overlay,
+      /document\.addEventListener\("keydown", handleKeyDown\)/,
+    );
+    assert.match(
+      overlay,
+      /document\.removeEventListener\("keydown", handleKeyDown\)/,
+    );
+    assert.doesNotMatch(overlay, /onKeyDown=/);
+    // A native KeyboardEvent now, not React's synthetic alias — the type is
+    // what makes the wiring above the only one that typechecks.
+    assert.doesNotMatch(overlay, /ReactKeyboardEvent/);
+    assert.match(overlay, /function handleKeyDown\(event: KeyboardEvent\)/);
+  });
+
   it("moves focus in on open, traps Tab inside, and restores it on close", () => {
     // Focus goes to the close control on open (not merely to the container),
     // Tab and Shift+Tab cycle within the dialog rather than escaping to the
@@ -798,9 +824,13 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
       null,
     );
 
-    // Focus that is no longer in the dialog at all — a click on the page behind
-    // it, or a control the chart's own overlays just unmounted — is pulled back
-    // in on the next Shift+Tab rather than continuing out into the page.
+    // Focus that is no longer in the dialog at all — a click on the chart
+    // canvas, which is a plain div with no tabindex, so the press lands on
+    // <body> — is pulled back in on the next Tab press in EITHER direction.
+    // Q1-C2: forwards used to return null here, which was harmless only while
+    // the listener could not hear the press anyway; with a document listener
+    // that null is the trap's exit door, since the dialog is body's last child
+    // and native forward Tab from body walks into the page behind it.
     assert.equal(
       focusTrapTarget({
         activeIsFirst: false,
@@ -809,6 +839,15 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
         shiftKey: true,
       }),
       "last",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: false,
+        activeIsLast: false,
+        shiftKey: false,
+      }),
+      "first",
     );
 
     // A single-control dialog is both ends at once, and still cycles both ways.

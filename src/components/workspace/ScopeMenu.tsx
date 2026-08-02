@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -258,6 +259,14 @@ export function ScopeMenu(
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  // The mobile sheet's own root. listRef covers only the option list, and the
+  // sheet's header — title bar and Close button — is a SIBLING of that list
+  // inside the portal, so without this ref the outside-press listener below
+  // treated a press on the Close button as a press outside the menu: it
+  // unmounted the portal before mouseup, the button's click never completed, and
+  // focus was left on the body instead of returning to the trigger. Null in the
+  // anchored-popup presentation, where the option list IS the portal's root.
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   // Recomputed on every render, not memoized: `now` defaulting to
   // `new Date()` would otherwise make `clock` a fresh value on every render
@@ -287,15 +296,19 @@ export function ScopeMenu(
     setOpen(true);
   }
 
-  function close() {
+  const close = useCallback(() => {
     setOpen(false);
     setPosition(null);
-  }
+  }, []);
 
-  function closeAndFocusTrigger() {
+  // Stable identity, the same bar App.tsx's MobileAccountMenu keeps: the open
+  // effect below now depends on this, and a fresh function each render would
+  // tear its four listeners down and rebuild them on every parent render
+  // instead of only on a real open/close transition.
+  const closeAndFocusTrigger = useCallback(() => {
     close();
     triggerRef.current?.focus();
-  }
+  }, [close]);
 
   function activate(row: ScopeMenuRow) {
     const scope = resolveRowActivation(row);
@@ -315,10 +328,24 @@ export function ScopeMenu(
     function handlePointerDown(event: MouseEvent) {
       const target = event.target as Node;
       if (
-        !rootRef.current?.contains(target) && !listRef.current?.contains(target)
+        !rootRef.current?.contains(target) &&
+        !sheetRef.current?.contains(target) &&
+        !listRef.current?.contains(target)
       ) {
         close();
       }
+    }
+    // Escape on the document rather than only in the list's own switch below:
+    // the sheet's header is not focusable, so a tap on the title bar leaves
+    // document.activeElement on the body, where a React handler bound to the
+    // option list hears nothing. One owner for the key, so a press can never
+    // take two paths to one dismissal.
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      event.preventDefault();
+      closeAndFocusTrigger();
     }
     function handleScroll(event: Event) {
       // Scrolling inside the popup's own option list is normal listbox use,
@@ -335,14 +362,18 @@ export function ScopeMenu(
     }
 
     document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
     window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("resize", handleResize);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
       window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("resize", handleResize);
     };
-  }, [open]);
+    // close and closeAndFocusTrigger are useCallback-stable, so `open` is the
+    // only value here that ever actually changes.
+  }, [close, closeAndFocusTrigger, open]);
 
   // Shared between the anchored popup and the full-screen sheet - the two
   // presentations differ only in their outer container, never in what a row
@@ -435,10 +466,9 @@ export function ScopeMenu(
         }
         return;
       }
-      case "Escape":
-        event.preventDefault();
-        closeAndFocusTrigger();
-        return;
+      // Escape is deliberately absent: the document-level listener in the open
+      // effect owns it, so it works from the sheet's header too — and one owner
+      // means the key cannot take two paths to one dismissal.
       case "Tab":
         // The popup is portaled to document.body, outside the trigger's
         // real position in the page's DOM order. Letting native Tab
@@ -505,6 +535,7 @@ export function ScopeMenu(
           sheet
             ? (
               <div
+                ref={sheetRef}
                 aria-labelledby={`${baseId}-sheet-title`}
                 aria-modal="true"
                 className="motion-fade-in fixed inset-0 z-30 flex flex-col bg-sheet"

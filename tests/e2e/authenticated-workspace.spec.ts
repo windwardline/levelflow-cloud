@@ -1092,6 +1092,87 @@ test("Expand chart opens the same chart full-viewport at both widths", async ({ 
   expect(chipBox.y).toBeGreaterThanOrEqual(clusterBox.y + clusterBox.height);
 });
 
+// Q1-C2: everything the test above proves happened with focus still sitting on
+// the Close control, where a React onKeyDown on the dialog could hear it. One
+// click on the chart ended that: the chart container carries no tabindex (and
+// lightweight-charts adds none), so the press lands document.activeElement on
+// the body — this portal's CONTAINER, which has no fiber for React to dispatch
+// to. Escape stopped closing an aria-modal surface, and Tab walked out of it
+// into the page behind. The unit guard pins the document listener; only a
+// browser can prove the key still lands after the click that used to break it.
+test("the expanded chart answers Escape and traps Tab after a click on the canvas (Q1-C2)", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  const trigger = page.getByRole("button", { name: "Expand chart" });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  const close = dialog.getByRole("button", { name: "Close" });
+  await expect(close).toBeFocused();
+
+  await dialog.locator("canvas").first().click({ position: { x: 40, y: 40 } });
+  // The premise, asserted rather than assumed: if a future charting library
+  // makes its canvas focusable, focus stays inside the dialog, the React
+  // handler would have worked all along, and this guard has stopped guarding
+  // anything — so it fails here and gets re-read, instead of going quietly
+  // vacuous.
+  expect(
+    await dialog.evaluate((node) => !node.contains(document.activeElement)),
+  ).toBe(true);
+
+  // Tab pulls focus back in rather than continuing into the page behind.
+  await page.keyboard.press("Tab");
+  expect(
+    await dialog.evaluate((node) => node.contains(document.activeElement)),
+  ).toBe(true);
+
+  // And Escape still closes, still returning focus to the trigger.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+// Q1-C3: the mobile scope sheet's Close button never ran. The outside-press
+// listener closed on any mousedown outside the trigger wrapper or the option
+// list, and the sheet's header is inside neither — so the press unmounted the
+// portal before mouseup, no click ever completed on the button, and focus was
+// left on the body instead of returning to the trigger (WCAG 2.4.3). The same
+// path made a tap on the sheet's own title bar silently dismiss it. Unit guards
+// pin the ref; the dismissal is a two-event sequence only a browser produces.
+test("the mobile scope sheet closes from its own Close button, and its title bar does not dismiss it (Q1-C3)", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  const trigger = page.getByRole("button", { name: "Scan scope" });
+  await trigger.click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toBeVisible();
+
+  // The title bar is not a dismissal. Pressed on the title text itself, which
+  // is the sibling of the option list that used to read as "outside".
+  const sheetTitle = sheet.getByText("Scan scope", { exact: true });
+  await sheetTitle.click();
+  await expect(sheet).toBeVisible();
+
+  // The Close button is, and it returns focus where it found it.
+  await sheet.getByRole("button", { name: "Close" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  // Escape works from the header too, where focus lands after that title-bar
+  // press — which is why the key is owned by a document listener.
+  await trigger.click();
+  const reopened = page.getByRole("dialog");
+  await expect(reopened).toBeVisible();
+  await reopened.getByText("Scan scope", { exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
 // Spec §17m.3, the vertical budget: "chart ≈1/3 of the region's height, why
 // ≤1/3 …, the setup ladder gets the majority; the whole stage should fit the
 // region without scrolling where viewport allows." Only a browser can say, and
