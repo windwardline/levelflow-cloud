@@ -78,9 +78,13 @@ describe("the chart prints prices through one formatter (Q1-I12)", () => {
   });
 
   it("renders the OHLC readout and the level lines through the ladder's formatter", () => {
+    // The readout passes ohlcDigits — the fixed-width form of the SAME
+    // formatter (review fold: a per-bar readout without a minimum width
+    // shivers). Still one formatter: the second argument is the width, not
+    // a second implementation.
     assert.match(
       CHART,
-      /O \{formatNumber\(hoverBar\.open\)\} H \{formatNumber\(hoverBar\.high\)\} L \{formatNumber\(hoverBar\.low\)\} C \{formatNumber\(hoverBar\.close\)\}/,
+      /O \{formatNumber\(hoverBar\.open, ohlcDigits\)\} H \{formatNumber\(hoverBar\.high, ohlcDigits\)\} L \{formatNumber\(hoverBar\.low, ohlcDigits\)\} C \{formatNumber\(hoverBar\.close, ohlcDigits\)\}/,
     );
     assert.match(CHART, /title: `\$\{level\.label\} · \$\{formatNumber\(level\.price\)\}`/);
   });

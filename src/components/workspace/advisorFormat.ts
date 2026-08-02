@@ -15,7 +15,17 @@ export const TIMEFRAMES = [...CHART_TIMEFRAME_OPTIONS];
 // `notation: "scientific"`, never implicitly).
 export const MAX_PRICE_DECIMALS = 8;
 
-export function formatNumber(value: number) {
+// The optional fixed form exists for readouts that re-render against
+// changing values (the chart's OHLC hover): without a minimum the cluster's
+// width changes bar to bar. Callers pass the width; this stays the one
+// price formatter either way.
+export function formatNumber(value: number, fixedDigits?: number) {
+  if (fixedDigits !== undefined) {
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: fixedDigits,
+      maximumFractionDigits: fixedDigits,
+    });
+  }
   return value.toLocaleString(undefined, {
     maximumFractionDigits: MAX_PRICE_DECIMALS,
   });

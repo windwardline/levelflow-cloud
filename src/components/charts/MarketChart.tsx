@@ -334,6 +334,13 @@ export function MarketChart(
     );
   }, [setup, themeVersion]);
 
+  // One width for all four values, decided by the bar's own magnitude: five
+  // decimals under 100 (forex, most crypto), two at or above (indices,
+  // metals, treasuries). Fixed digits because this row re-renders per bar —
+  // ragged widths make the whole cluster shiver under the crosshair.
+  const ohlcDigits =
+    hoverBar && Math.abs(hoverBar.close) < 100 ? 5 : 2;
+
   return (
     // CHART_SHEET (above) IS the stage's chart sheet, kept as this component's
     // own root — rather than an outer wrapper in AdvisorWorkspace — so there is
@@ -347,7 +354,7 @@ export function MarketChart(
       >
         {hoverBar ? (
           <span className="whitespace-nowrap">
-            O {formatNumber(hoverBar.open)} H {formatNumber(hoverBar.high)} L {formatNumber(hoverBar.low)} C {formatNumber(hoverBar.close)}
+            O {formatNumber(hoverBar.open, ohlcDigits)} H {formatNumber(hoverBar.high, ohlcDigits)} L {formatNumber(hoverBar.low, ohlcDigits)} C {formatNumber(hoverBar.close, ohlcDigits)}
           </span>
         ) : (
           <span className="flex items-center gap-1.5">

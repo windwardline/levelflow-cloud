@@ -159,3 +159,19 @@ describe("price precision cap stays centralized (fix round 3)", () => {
   });
 });
 
+
+// The chart's OHLC hover readout re-renders per bar: without a fixed
+// fraction width the cluster's width changes bar to bar and the row
+// shivers. The fixed-digit form keeps one formatter (Q1-I12's collapse)
+// while restoring the readout's stable width — five decimals under 100,
+// two at or above, decided at the call site.
+describe("formatNumber with fixed digits", () => {
+  it("pads and caps to exactly the requested digits", () => {
+    assert.equal(formatNumber(1.085, 5), "1.08500");
+    assert.equal(formatNumber(2412.5, 2), "2,412.50");
+    assert.equal(formatNumber(1.0862034, 5), "1.08620");
+  });
+  it("keeps the default shape unchanged when digits are omitted", () => {
+    assert.equal(formatNumber(1.085), "1.085");
+  });
+});

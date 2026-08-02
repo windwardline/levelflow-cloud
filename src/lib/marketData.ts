@@ -6,10 +6,10 @@ import { supabase } from "./supabase";
 // This is the one list every such surface reads — advisorFormat's TIMEFRAMES
 // re-exports it and the Desk's chart-view select renders these labels
 // directly — so the codes cannot differ from one control to the next. Same
-// grammar the engine already speaks internally (advisorReview.ts's
-// ADVISOR_SIGNAL_INTERVALS = ["4H", "1H", "15M"]): the interval's digits plus
-// its unit's initial, which makes fifteen minutes "15M" — three characters
-// because the number has two digits, not because the grammar changes.
+// grammar the engine already speaks internally (its signal intervals are
+// 4H, 1H, and 15M): the interval's digits plus its unit's initial, which
+// makes fifteen minutes "15M" — three characters because the number has two
+// digits, not because the grammar changes.
 export const CHART_TIMEFRAME_OPTIONS = [
   { label: "1M", value: "1min" },
   { label: "5M", value: "5min" },
