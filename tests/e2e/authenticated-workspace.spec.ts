@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { SIZE_STATE_WORDS } from "../../src/lib/broker/types";
 import { marketAvailability } from "../../src/lib/marketHours";
 import {
   AVAILABLE_ASSET_GROUPS,
@@ -86,8 +87,24 @@ async function isVisibleWithin(
 // qualifying market. Returns false when the scan could not complete or nothing
 // qualified — both legitimate live-market states, so callers skip honestly,
 // exactly as they did when a Review of one market could come back empty.
+//
+// The surface it scans on is width-dependent, and the helper reads the width
+// rather than assuming one. AdvisorWorkspace renders ONE of two compositions
+// (useMobileViewport's own comment: never both, CSS-hidden): at ≥lg the Desk's
+// left rail, `market-scan-rail`, carries the Scan button and the results; below
+// lg the merged mobile surface, `mobile-scan-surface`, pins its own scope ·
+// timeframe · Scan row and puts the same MarketScanResults in its scrolling
+// region. `market-scan-rail` does not exist at 375px at all — hardcoding it is
+// what left the §19d 375px spec clicking at a button that never renders until
+// the 120s test timeout fired.
+function scanSurface(page: Page): Locator {
+  return (page.viewportSize()?.width ?? 0) < 1024
+    ? page.getByTestId("mobile-scan-surface")
+    : page.getByTestId("market-scan-rail");
+}
+
 async function scanForSetupOnStage(page: Page): Promise<boolean> {
-  const rail = page.getByTestId("market-scan-rail");
+  const rail = scanSurface(page);
   await rail.getByRole("button", { name: "Scan", exact: true }).click();
   // Every finished scan says what it checked or says it could not complete.
   // That pair is unconditional and waited for hard: neither arriving is rot.
@@ -1813,13 +1830,11 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
 // Spec §19d/§19f: one presence check per new surface, at 375px and 1280px. With
 // None the ladder has four rows and no Size row; with a program set, five rows and
 // either a number or one of §19e's four words. Exact locators — the substring twin
-// lives page-wide (PR #147).
-const SIZE_STATE_WORDS = [
-  "Not offered",
-  "Not confirmed",
-  "Not published",
-  "Rate unavailable",
-];
+// lives page-wide (PR #147). §19e's vocabulary comes from the app's own constant
+// rather than a copy of it: a fifth word, or a reworded one, must fail this spec
+// by rendering something the list does not carry, not pass because the list was
+// edited to agree.
+const SIZE_STATE_WORD_LIST: string[] = Object.values(SIZE_STATE_WORDS);
 
 async function openProfile(page: Page, width: number) {
   if (width < 1024) {
@@ -1828,6 +1843,20 @@ async function openProfile(page: Page, width: number) {
     return;
   }
   await page.getByRole("button", { name: "Profile", exact: true }).click();
+}
+
+// The way back to the ladder, which is a different control per platform: below lg
+// the tab bar's Scan tab, at ≥lg the nav's Desk button. One helper because the
+// walk makes the trip twice and the branch is not the thing being proved.
+async function showDesk(page: Page, width: number) {
+  if (width < 1024) {
+    await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
+      exact: true,
+      name: "Scan",
+    }).click();
+    return;
+  }
+  await page.getByRole("button", { exact: true, name: "Desk" }).click();
 }
 
 async function selectProgram(page: Page, width: number, label: string) {
@@ -1840,7 +1869,11 @@ async function selectProgram(page: Page, width: number, label: string) {
 
 for (const width of [375, 1280]) {
   test(`the ladder grows one Size row only once a program is selected (§19d, ${width}px)`, async ({ page }) => {
-    test.setTimeout(120_000);
+    // Two scans, and the helper allows each 90s (a scan of every open market on
+    // a slow provider morning), so the budget is stated at what the walk can
+    // actually cost rather than at what a fast one does. Both scans in the live
+    // run this shape was written against finished in 7.5s.
+    test.setTimeout(240_000);
     await page.setViewportSize({ height: 812, width });
     await page.goto("/");
 
@@ -1854,26 +1887,20 @@ for (const width of [375, 1280]) {
       await expect(profile.getByLabel(absent, { exact: true })).toHaveCount(0);
     }
 
-    // Back to the ladder. A scan is how a setup arrives (§17m.1); a live market
-    // that qualifies nothing is a legitimate state, so the walk skips honestly.
-    if (width < 1024) {
-      await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
-        exact: true,
-        name: "Scan",
-      }).click();
-    } else {
-      await page.getByRole("button", { exact: true, name: "Desk" }).click();
-    }
-    if (!(await scanForSetupOnStage(page))) {
-      test.skip(true, "No market qualified in this window.");
-      return;
-    }
-
-    await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
-    // No Size row at all: not a dash, not an empty value, not a prompt.
-    await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
-
-    // Now buy a program. E8 One is a CFD line, so its unit is lots.
+    // Buy the program BEFORE staging a setup, and re-stage after clearing it.
+    // Both orderings prove the same conditional, but only this one survives the
+    // Desk's own lifecycle: AdvisorWorkspace "only exists in the tree while its
+    // tab is active, so switching tabs away and back remounts it fresh"
+    // (App.tsx). Profile is a tab, so every trip to it throws the staged setup
+    // and the scan result away — which is why the first live run found "No setup
+    // yet" where it expected the Size row, and why the closing absence check
+    // would have passed on an empty stage, proving nothing. Each leg below
+    // therefore scans for its own setup and asserts the ladder is actually on
+    // stage before reading anything off it.
+    //
+    // E8 One is a CFD line, so its unit is lots — the family answers the label,
+    // never the market that qualified, and a blocked row carries the same label
+    // as a priced one (broker/sizing.ts sizeUnitFor).
     await selectProgram(page, width, "E8 One");
     await expect(
       page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
@@ -1882,16 +1909,16 @@ for (const width of [375, 1280]) {
       page.getByTestId("profile-panel").getByLabel("Risk per trade", { exact: true }),
     ).toHaveValue("0.5");
 
-    if (width < 1024) {
-      await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
-        exact: true,
-        name: "Scan",
-      }).click();
-    } else {
-      await page.getByRole("button", { exact: true, name: "Desk" }).click();
+    // Back to the ladder. A scan is how a setup arrives (§17m.1); a live market
+    // that qualifies nothing is a legitimate state, so the walk skips honestly.
+    await showDesk(page, width);
+    if (!(await scanForSetupOnStage(page))) {
+      test.skip(true, "No market qualified in this window.");
+      return;
     }
 
     // Five rows now, and the fifth is the Size row with its unit in the label.
+    await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
     const sizeLabel = page.getByText("Size · lots", { exact: true });
     await expect(sizeLabel).toBeVisible();
     const sizeRow = sizeLabel.locator("..");
@@ -1899,7 +1926,7 @@ for (const width of [375, 1280]) {
     // A number or one of the four words — never a fifth voice, never a dash.
     const isNumber = /^[\d.,]+$/.test(rendered.split("\n")[0].trim());
     expect(
-      isNumber || SIZE_STATE_WORDS.some((word) => rendered.includes(word)),
+      isNumber || SIZE_STATE_WORD_LIST.some((word) => rendered.includes(word)),
       `the Size row rendered ${JSON.stringify(rendered)}`,
     ).toBe(true);
     expect(rendered).not.toContain("—");
@@ -1912,14 +1939,16 @@ for (const width of [375, 1280]) {
     await expect(
       page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
     ).toHaveCount(0);
-    if (width < 1024) {
-      await page.locator('nav[aria-label="Levelflow"]').getByRole("button", {
-        exact: true,
-        name: "Scan",
-      }).click();
-    } else {
-      await page.getByRole("button", { exact: true, name: "Desk" }).click();
+    await showDesk(page, width);
+    if (!(await scanForSetupOnStage(page))) {
+      test.skip(true, "No market qualified in this window.");
+      return;
     }
+    // The ladder is on stage first, and only then is the Size row absent from
+    // it. Without that order the absence is unfalsifiable — an empty stage has
+    // no Size row either, and says nothing about what a program controls.
+    await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
+    // No Size row at all: not a dash, not an empty value, not a prompt.
     await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
   });
 }
