@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { formatInsightsResult } from "../src/components/workspace/historyUtils.ts";
 import {
   classifyWinLoss,
+  normalizeSetupOutcome,
   OUTCOME_COPY,
   type SetupOutcome,
 } from "../src/lib/outcomes.ts";
@@ -336,9 +337,9 @@ describe("formatInsightsResult — one label per outcome class (spec §10)", () 
   it("reads no origin at all when labelling a result (spec §17)", () => {
     // The absence direction, at the source: the ruling is not "both origins
     // happen to produce the same string today" but "the label logic reads no
-    // origin". `origin` survives elsewhere in the app (tradeState.ts keeps an
-    // unfilled scan row off the trades rail) — this pins that Insights'
-    // labelling is no longer one of its readers.
+    // origin". Since §17m made tradeState.ts origin-blind too, the column now has
+    // no reader anywhere in src — it is selected and stored, and nothing branches
+    // on it. This pins Insights' half of that.
     const source = readFileSync(
       "src/components/workspace/historyUtils.ts",
       "utf8",
@@ -566,6 +567,68 @@ describe("the outcome-refresh throttle earns its blackout", () => {
     assert.match(
       hook,
       /\} else \{\s*setSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+    );
+  });
+});
+
+// Q2-M3: this module's header reasons carefully about the two unreachable enum
+// values it re-routes (manual_close, breakeven) and skipped the third. A bare
+// "expired" outcome fell into entry_not_filled → "Unfilled", which asserts a
+// market fact — price never reached the entry inside the window — that the enum
+// value does not support: a FILLED row carrying it would have read "Unfilled".
+// Legacy-only (the engine's ResolvedOutcome union omits it), which is why nothing
+// caught it. Routed by fill evidence now, and where the fill says the position
+// was live, "Unclear" is the honest word: the row ended, and nothing recorded
+// says where.
+describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)", () => {
+  const base = {
+    analyzer_version: "test",
+    confidence_score: 70,
+    confluence: null,
+    correlation_group: "EURUSD",
+    created_at: "2026-06-16T12:00:00.000Z",
+    id: "x",
+    limit_entry: 1.1,
+    risk_model: null,
+    side: "buy" as const,
+    stop_loss: 1,
+    symbol: "EURUSD",
+    take_profit: 1.3,
+  };
+
+  it("still reads Unfilled when the entry never filled", () => {
+    assert.equal(
+      normalizeSetupOutcome({
+        ...base,
+        status: "generated",
+        trade_outcomes: [{ outcome: "expired", realized_pnl: null }],
+      }),
+      "entry_not_filled",
+    );
+  });
+
+  it("never claims Unfilled for a row whose entry did fill", () => {
+    for (const filled of [
+      { status: "filled", trade_outcomes: [{ outcome: "expired", realized_pnl: null }] },
+      { status: "placed", trade_outcomes: [{ outcome: "expired", realized_pnl: null }] },
+      {
+        status: "generated",
+        trade_outcomes: [
+          { filled_at: "2026-06-16T13:00:00.000Z", outcome: "expired", realized_pnl: null },
+        ],
+      },
+    ]) {
+      const outcome = normalizeSetupOutcome({ ...base, ...filled });
+      assert.equal(outcome, "unclear_path", JSON.stringify(filled));
+      // And the record cannot score it as a win or a loss on no evidence.
+      assert.equal(classifyWinLoss(outcome), "neither");
+    }
+  });
+
+  it("leaves the expired STATUS alone — an expired order that never filled is Unfilled", () => {
+    assert.equal(
+      normalizeSetupOutcome({ ...base, status: "expired", trade_outcomes: [] }),
+      "entry_not_filled",
     );
   });
 });

@@ -8,6 +8,7 @@ import {
   getConfidenceTier,
 } from "../src/lib/confidenceTiers";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
+import { deriveTradeState } from "../src/lib/tradeState";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -882,6 +883,36 @@ describe("history workspace logic", () => {
     );
   });
 
+  // Q2-I7: the guard that would have caught the fixtures. Every status these
+  // fixtures produce has to be one the database can actually hold, and the
+  // unresolved ones have to reach the Pending branch — "Pending & open" below
+  // used to appear for the right reason only by accident, through the open
+  // branch, because "active" is not a setup_status value at all.
+  it("builds fixtures the database could hold, and unresolved ones read as Pending", () => {
+    const SETUP_STATUS = new Set(
+      Array.from(
+        readFileSync("supabase/init.sql", "utf8").match(
+          /create type public\.setup_status as enum \(([^)]*)\)/,
+        )?.[1].matchAll(/'([a-z_]+)'/g) ?? [],
+        (match) => match[1],
+      ),
+    );
+    assert.equal(SETUP_STATUS.size, 6, [...SETUP_STATUS].join(","));
+
+    const unresolved = makeHistorySetup({ symbol: "ETHUSD" });
+    assert.ok(SETUP_STATUS.has(unresolved.status), unresolved.status);
+    assert.equal(deriveTradeState(unresolved, new Date())?.status, "pending");
+
+    for (
+      const outcome of ["unfilled", "stop_loss", "take_profit", "ambiguous", "expired"] as const
+    ) {
+      const setup = makeHistorySetup({ outcome, symbol: "EURUSD" });
+      assert.ok(SETUP_STATUS.has(setup.status), `${outcome}: ${setup.status}`);
+      // Resolved either way — the rail holds none of them (spec §8).
+      assert.equal(deriveTradeState(setup, new Date()), null, outcome);
+    }
+  });
+
   it("groups history statuses in the same order as the filter", () => {
     const groups = groupHistorySetups(
       [
@@ -952,7 +983,19 @@ function makeHistorySetup({
     limit_entry: 1.1,
     risk_model: {},
     side: "buy",
-    status: outcome === "expired" ? "expired" : "active",
+    // Q2-I7: real setup_status values (supabase/init.sql's six-value enum).
+    // These fixtures used to say "active", which is not one of them — so
+    // deriveTradeState fell through to its open branch and every unresolved row
+    // below reached the "Pending & open" bucket and the confidence bands as an
+    // OPEN trade, never through the generated→Pending path those suites read as
+    // the thing they were testing. An unresolved row is a generated one; a
+    // resolved row is placed (i.e. filled and live) unless the outcome itself
+    // says the window closed.
+    status: outcome === "expired"
+      ? "expired"
+      : outcome
+      ? "placed"
+      : "generated",
     stop_loss: 1,
     symbol,
     take_profit: 1.3,

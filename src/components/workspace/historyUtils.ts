@@ -555,9 +555,10 @@ export function buildRecordBand(
 // Two rulings shaped what this does NOT do:
 // - §17: `entry_not_filled` reads "Unfilled" for every row. It is a market
 //   fact — price never reached the entry inside the window — never a claim
-//   about what the user did, so the label reads no origin at all. (The
-//   database column stays; tradeState.ts still reads it to keep an unfilled
-//   scan row off the trades rail.)
+//   about what the user did, so the label reads no origin at all. (The database
+//   column stays and is still selected, but §17m left it with no reader anywhere
+//   in src: tradeState.ts became origin-blind when Scan became the only door,
+//   and tests/tradeState.test.ts pins that.)
 // - §17b: an unresolved row never reads the banned tracking phrase. It reads
 //   whichever of the two unresolved words its own fill evidence supports,
 //   through the same predicate the trades rail state machine uses.
@@ -597,12 +598,15 @@ export function formatInsightsResult(
   if (outcome === "unclear_path") {
     return withRealizedR("Unclear", realizedR);
   }
-  // Everything left is the unresolved bucket on a row deriveTradeState
-  // reports as off-rail: a scan-surfaced setup whose order was never placed
-  // with a broker, or — a data anomaly, since a closed status should always
-  // carry a resolved outcome — a closed row whose outcome is missing or still
-  // literally pending. Either way §17b answers with the lifecycle word the
-  // fill evidence supports, never a seventh word for engine bookkeeping.
+  // Everything left is the unresolved bucket on a row deriveTradeState reports as
+  // off-rail, which since §17m means one thing: a data anomaly. A closed status
+  // should always carry a resolved outcome, so this is a closed row whose outcome
+  // is missing or still literally pending. (The second reading this comment used
+  // to give — a scan-surfaced setup whose order was never placed with a broker —
+  // went with the provenance exclusion §17m deleted: a generated row now returns
+  // "Pending" from the branch above and never reaches here.) §17b answers with
+  // the lifecycle word the fill evidence supports, never a seventh word for
+  // engine bookkeeping.
   return entryHasFilled(setup)
     ? withRealizedR("Open", realizedR)
     : "Pending";

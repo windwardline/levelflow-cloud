@@ -1518,8 +1518,13 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
   });
 
   it("sets the bottom-tab labels in the mock's uppercase letterspaced type (m-mobile-v3.html:32)", () => {
-    // 10.5px/700/uppercase at .06em tracking. No breakpoint guard needed or
-    // wanted: the whole nav is `lg:hidden`, so these are mobile rules already.
+    // 10.5px/700/uppercase at .1em tracking — what the assertion below actually
+    // pins (M8: this comment used to say .06em, which is the mock's own value at
+    // m-mobile-v3.html:32, not the app's). The shipped value has stood since §17
+    // merged the mobile Desk, with no recorded ruling either way; the comment
+    // states the pin rather than a number the pin contradicts, and the deviation
+    // is the owner's to settle. No breakpoint guard needed or wanted: the whole
+    // nav is `lg:hidden`, so these are mobile rules already.
     assert.match(
       APP_SOURCE,
       /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
