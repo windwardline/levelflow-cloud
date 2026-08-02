@@ -81,6 +81,11 @@ export default defineConfig({
     {
       name: "workspace",
       testMatch: /authenticated-workspace\.spec\.ts$/,
+      // Paired teardown, not an afterAll in the spec: it runs once every
+      // project depending on workspace (visual-proof, then analyzer-abuse)
+      // has finished — success or failure — so the cleanup can neither
+      // cancel those proofs nor empty the Desk before they capture it.
+      teardown: "cleanup",
       use: { ...devices["Desktop Chrome"] },
     },
     {
@@ -93,6 +98,11 @@ export default defineConfig({
       name: "analyzer-abuse",
       testMatch: /analyzer-abuse\.spec\.ts$/,
       dependencies: ["visual-proof"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "cleanup",
+      testMatch: /cleanup\.teardown\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
   ],
