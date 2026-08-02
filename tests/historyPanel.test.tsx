@@ -186,3 +186,26 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
     );
   });
 });
+
+// Q2-C2: with the hook's error string unread, a failed history fetch reached this
+// panel as `setups: []` and printed "No setups have been logged yet." — a claim
+// about the account made by a surface that had just failed to read it. Same
+// sentence as the trades rail, from the same constant: the two surfaces share one
+// fetch, so they say one thing about its failure.
+describe("Insights says the fetch failed rather than claiming an empty ledger (Q2-C2)", () => {
+  it("routes the no-setups state through the load-failure flag", () => {
+    assert.match(PANEL_SOURCE, /loadFailed: boolean;/);
+    assert.match(
+      PANEL_SOURCE,
+      /!loading && setups\.length === 0[\s\S]{0,240}\{loadFailed \? HISTORY_LOAD_FAILED_COPY : "No setups have been logged yet\."\}/,
+    );
+    assert.match(PANEL_SOURCE, /\bHISTORY_LOAD_FAILED_COPY,/);
+  });
+
+  it("leaves the filtered-empty notice alone — filters matching nothing is not a failure", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /setups\.length > 0 && filteredSetups\.length === 0[\s\S]{0,240}No setups match the current filters\./,
+    );
+  });
+});

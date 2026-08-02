@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { CHART_TIMEFRAME_OPTIONS } from "../src/lib/marketData";
 
 // The whole progressive-disclosure pattern rests on this contract: every
 // HowThisWorksLink in the app names a GuideAnchor, and the Guide has to carry
@@ -19,6 +20,8 @@ import { describe, it } from "node:test";
 // now decorates has moved. The second describe block below pins that
 // remapping plus the four deck sections with no external anchor.
 const GUIDE = "src/components/workspace/GuidePanel.tsx";
+const GUIDE_DECK =
+  "docs/superpowers/specs/2026-07-30-levelflow-guide-content.md";
 const NAV = "src/components/workspace/WorkspaceNav.tsx";
 const ROOTS = ["src/components/workspace", "src/components/donations"];
 
@@ -316,5 +319,41 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
       guideSource,
       /<blockquote[^>]*>\s*\{CANONICAL_LADDER_INSTRUCTION\}\s*<\/blockquote>/,
     );
+  });
+});
+
+// Q1-#27: §8's chart-view list is a claim about a control, so it has to match the
+// control. The deck named four of the six views the select offers and described
+// 1M/5M as engine-only validation intervals — which they are, and they are also
+// pickable views, so a reader who picked one found the Guide describing a menu the
+// app does not have. Pinned against CHART_TIMEFRAME_OPTIONS itself, in both the
+// deck and the rendered panel, so the three can only move together.
+describe("the Guide's chart-view list matches the chart-view control (§8)", () => {
+  const PROSE_BY_CODE: Record<string, string> = {
+    "1M": "1 minute",
+    "5M": "5 minutes",
+    "15M": "15 minutes",
+    "1H": "1 hour",
+    "4H": "4 hours",
+    "1D": "1 day",
+  };
+
+  it("names every option the select offers, in the select's own order", () => {
+    const expected = CHART_TIMEFRAME_OPTIONS.map((option) => {
+      const prose = PROSE_BY_CODE[option.label];
+      assert.ok(prose, `no prose form recorded for "${option.label}"`);
+      return prose;
+    });
+    for (const [name, text] of [
+      ["the deck", readFileSync(GUIDE_DECK, "utf8")],
+      ["the panel", guideSource],
+    ] as const) {
+      // Whitespace-collapsed: both wrap this sentence mid-list.
+      const collapsed = text.replace(/\s+/g, " ");
+      const listed = expected.filter((prose) =>
+        collapsed.includes(`${prose},`) || collapsed.includes(`${prose} —`)
+      );
+      assert.deepEqual(listed, expected, `${name} must name every chart view`);
+    }
   });
 });

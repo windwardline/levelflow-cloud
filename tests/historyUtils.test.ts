@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { MAX_PRICE_DECIMALS } from "../src/components/workspace/advisorFormat";
 import {
+  asNumber,
+  asRecord,
   buildInsightsGroups,
   buildRecordBand,
   computeInsightsStatus,
@@ -336,6 +339,24 @@ describe("buildInsightsGroups", () => {
       [["c", "b"], ["a"]],
     );
   });
+
+  // Q1-#20 collapsed sortHistorySetups and groupHistorySetups to the one mode
+  // each that was ever reachable, so the day label and the group ORDER are now
+  // this function's whole contract — no re-sort of the groups, because rows
+  // arrive newest-first and first appearance is the order.
+  it("labels each group with its own day, and never merges two days into one", () => {
+    const groups = buildInsightsGroups([
+      buildSetup({ created_at: "2026-07-29T15:00:00.000Z", id: "c" }),
+      buildSetup({ created_at: "2026-07-28T09:00:00.000Z", id: "a" }),
+      buildSetup({ created_at: "2026-07-29T09:00:00.000Z", id: "b" }),
+    ]);
+    assert.equal(groups.length, 2);
+    assert.notEqual(groups[0].label, groups[1].label);
+    for (const group of groups) {
+      assert.equal(group.key, group.label);
+      assert.ok(group.label.length > 0);
+    }
+  });
 });
 
 describe("buildRecordBand", () => {
@@ -472,5 +493,60 @@ describe("buildRecordBand", () => {
       NOW,
     );
     assert.equal(band.bestMarket, "BTCUSD");
+  });
+});
+
+// Q1-I8: asRecord and asNumber existed twice, byte-identical in behaviour — once
+// exported here and once private in SetupQualityReceipt.tsx — in a repo whose
+// drift-guard culture treats duplication as a defect in its own right.
+describe("the JSON coercion helpers have one home (Q1-I8)", () => {
+  it("is the only definition of either, and the receipt reads it", () => {
+    const receipt = readFileSync(
+      "src/components/workspace/SetupQualityReceipt.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(receipt, /function asRecord/);
+    assert.doesNotMatch(receipt, /function asNumber/);
+    assert.match(
+      receipt,
+      /import \{ asNumber, asRecord \} from "\.\/historyUtils";/,
+    );
+  });
+
+  it("coerces the way both call sites need", () => {
+    assert.deepEqual(asRecord({ a: 1 }), { a: 1 });
+    assert.deepEqual(asRecord([1, 2]), {});
+    assert.deepEqual(asRecord(null), {});
+    assert.deepEqual(asRecord("x"), {});
+    assert.equal(asNumber("2.5"), 2.5);
+    assert.equal(asNumber(""), 0);
+    assert.equal(asNumber("nope"), null);
+    assert.equal(asNumber(null), 0);
+    assert.equal(asNumber(undefined), null);
+  });
+});
+
+// Q1-I12: one R quantity, two minus signs — the ledger printed U+2212 and the
+// rail an ASCII hyphen, for the same figure in the same lifecycle vocabulary.
+// The typographic minus is what §10's own examples use and what
+// lib/outcomes.ts's "Expired −" labels already carry, so it is the one that
+// stands; with the sign settled the two functions were identical, so there is
+// one of them.
+describe("signed R has one formatter and one minus sign (Q1-I12)", () => {
+  it("renders the rail's own cases too, so the rail needs no second function", () => {
+    // Carried over from the retired formatProgressR suite, minus-sign apart.
+    assert.equal(formatSignedR(null), "—");
+    assert.equal(formatSignedR(0.84), "+0.8R");
+    assert.equal(formatSignedR(-1), "−1.0R");
+    assert.equal(formatSignedR(0), "+0.0R");
+  });
+
+  it("is the only signed-R formatter in src", () => {
+    const rail = readFileSync(
+      "src/components/workspace/CurrentTradesRail.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(rail, /function formatProgressR/);
+    assert.match(rail, /\{formatSignedR\(state\.progressR\)\}/);
   });
 });

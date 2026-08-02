@@ -4,9 +4,8 @@ import { describe, it } from "node:test";
 import {
   buildRemainingLevels,
   buildTradeCards,
-  formatAsOf,
-  formatProgressR,
 } from "../src/components/workspace/CurrentTradesRail";
+import { HISTORY_LOAD_FAILED_COPY } from "../src/components/workspace/historyUtils";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 import type { TradeState } from "../src/lib/tradeState";
 
@@ -49,35 +48,6 @@ function buildSetup(overrides: Partial<TradeSetupRow> = {}): TradeSetupRow {
     ...overrides,
   };
 }
-
-describe("formatProgressR", () => {
-  it('shows "—" for no progress, never 0 or blank', () => {
-    assert.equal(formatProgressR(null), "—");
-  });
-
-  it("signs a positive R explicitly and rounds to one decimal", () => {
-    assert.equal(formatProgressR(0.84), "+0.8R");
-  });
-
-  it("keeps the native minus sign for a negative R", () => {
-    assert.equal(formatProgressR(-1), "-1.0R");
-  });
-
-  it("signs exactly zero as positive, matching >= 0", () => {
-    assert.equal(formatProgressR(0), "+0.0R");
-  });
-});
-
-describe("formatAsOf", () => {
-  it("renders the same local hour:minute Intl.DateTimeFormat produces, regardless of machine locale", () => {
-    const date = new Date("2026-07-30T15:34:00.000Z");
-    const expected = new Intl.DateTimeFormat(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-    assert.equal(formatAsOf(date), expected);
-  });
-});
 
 describe("buildTradeCards", () => {
   it("keeps pending and open setups, in their given order, paired with their derived state", () => {
@@ -229,7 +199,7 @@ describe("CurrentTradesRail markup (source-pinned — see header comment)", () =
   });
 
   it('stamps freshness as "as of {time} · refresh", not a raw timestamp', () => {
-    assert.match(RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+    assert.match(RAIL_SOURCE, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 
   it("never invents its own fetch machinery or nav — refresh defers to the onRefresh prop, the cross-link to WorkspaceNav", () => {
@@ -255,5 +225,37 @@ describe("CurrentTradesRail mobile freshness re-stamp (source-pinned, I2)", () =
       RAIL_SOURCE,
       /useEffect\(\(\) => \{\s*if \(isActiveOnMobile\) \{\s*setLastRefreshedAt\(new Date\(\)\);\s*\}\s*\}, \[isActiveOnMobile\]\);/,
     );
+  });
+});
+
+// Q2-C2: useTradeSetups computed an error string no consumer read, so a failed
+// history fetch — a PostgREST timeout, an RLS error, a dropped connection —
+// arrived here as `setups: []` and printed "No current trades.": a factual claim
+// about the account, made by a surface that had just failed to learn anything
+// about it. The repo already codified the opposite rule for the scan path
+// (tradeAnalyzer.ts's MarketScanResponse.failed: "a failed scan must never
+// render like a scan that genuinely found nothing"); the history path, feeding
+// both this rail and Insights, was the exception.
+describe("CurrentTradesRail says the fetch failed rather than claiming no trades (Q2-C2)", () => {
+  it("routes the empty state through the load-failure flag, one shared sentence", () => {
+    assert.match(RAIL_SOURCE, /loadFailed: boolean;/);
+    assert.match(
+      RAIL_SOURCE,
+      /cards\.length === 0[\s\S]{0,200}\{loadFailed \? HISTORY_LOAD_FAILED_COPY : "No current trades\."\}/,
+    );
+    // One source for the sentence, shared with Insights — not a second copy
+    // that can drift from it.
+    assert.match(
+      RAIL_SOURCE,
+      /import \{[\s\S]{0,80}HISTORY_LOAD_FAILED_COPY[\s\S]{0,80}\} from "\.\/historyUtils"/,
+    );
+  });
+
+  it("keeps the failure sentence to the register the scan rail already set", () => {
+    assert.equal(
+      HISTORY_LOAD_FAILED_COPY,
+      "Trade history could not load. Try again shortly.",
+    );
+    assert.doesNotMatch(HISTORY_LOAD_FAILED_COPY, /!/);
   });
 });

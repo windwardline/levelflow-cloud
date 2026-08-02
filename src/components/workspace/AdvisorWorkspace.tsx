@@ -51,6 +51,9 @@ export type DeskMobileView = "scan" | "trades";
 type AdvisorWorkspaceProps = {
   // Which of the Desk's two mobile surfaces is showing below lg (spec §17e).
   // Ignored at ≥lg, where the three-column shell renders instead.
+  // Q2-C2: threaded straight through to CurrentTradesRail, whose empty state is
+  // otherwise a factual claim about an account the fetch failed to read.
+  loadFailed: boolean;
   mobileView: DeskMobileView;
   // Bound to useTradeSetups' forceOutcomeRefresh path (App.tsx). Wired to
   // Desk-tab activation there and to CurrentTradesRail's own manual refresh
@@ -87,6 +90,7 @@ type AnalysisState = {
 
 export function AdvisorWorkspace(
   {
+    loadFailed,
     mobileView,
     onForceOutcomeRefresh,
     onOpenRequestHandled,
@@ -97,10 +101,16 @@ export function AdvisorWorkspace(
   }: AdvisorWorkspaceProps,
 ) {
   const [symbol, setSymbol] = useState<SupportedSymbol>("EURUSD");
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>(
-    profile.defaultTimeframe,
+  // Q1-#33: derived, not written by an effect. This used to be a chart-view state
+  // seeded from the profile, plus a has-the-reader-picked-one flag, plus an effect
+  // that re-wrote the state whenever the profile default changed and the flag was
+  // still false — three pieces and an extra render for one rule: the profile's
+  // default governs until the reader picks a view, and their pick stands after.
+  // null IS "not picked yet", so the rule is the expression below.
+  const [pickedTimeframe, setPickedTimeframe] = useState<ChartTimeframe | null>(
+    null,
   );
-  const [timeframeTouched, setTimeframeTouched] = useState(false);
+  const timeframe = pickedTimeframe ?? profile.defaultTimeframe;
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketNotice, setMarketNotice] = useState("Loading market context.");
@@ -157,9 +167,9 @@ export function AdvisorWorkspace(
   // the deleted metric card). Read straight off the analysis state so a
   // scan-selected setup — which has no review of its own yet — prints no review
   // stamp at all; ConfidenceUnit drops the missing half rather than filling it.
-  // The stored value is epoch milliseconds; formatTimestamp works on the same
-  // ISO strings every other timestamp on this surface arrives from the server
-  // as.
+  // The stored value is epoch milliseconds; the ISO string below is what
+  // buildConfidenceMeta and formatCompactDateTime read, the same shape every
+  // other timestamp on this surface arrives from the server as.
   const reviewedAt = analysisState?.symbol === symbol && analysisState.reviewedAt
     ? new Date(analysisState.reviewedAt).toISOString()
     : null;
@@ -169,12 +179,6 @@ export function AdvisorWorkspace(
   const confidenceMeta = setup
     ? buildConfidenceMeta(reviewedAt, setup.expiresAt ?? null)
     : "";
-
-  useEffect(() => {
-    if (!timeframeTouched) {
-      setTimeframe(profile.defaultTimeframe);
-    }
-  }, [profile.defaultTimeframe, timeframeTouched]);
 
   useEffect(() => {
     selectedSymbolRef.current = symbol;
@@ -189,8 +193,9 @@ export function AdvisorWorkspace(
       (option) => option.symbol === requestedSymbol,
     );
     if (!isAvailable) {
-      // Consume the request even though it can't be applied — mirrors
-      // HistoryPanel's initialSymbol handling (HistoryPanel.tsx:87-92).
+      // Consume the request even though it can't be applied. (Insights had the
+      // same shape until Q1-I13 deleted its half: openInsights never passed a
+      // symbol, so nothing there ever fired.)
       // Without this, a symbol outside the menu leaves openRequest set
       // forever and re-fires this effect on every later Advisor mount.
       // Selection is left untouched.
@@ -334,10 +339,14 @@ export function AdvisorWorkspace(
     return true;
   }
 
-  async function scanMarkets(symbols: SupportedSymbol[] = []) {
-    // An empty list means "all markets": the server applies its curated
-    // default universe (markets with measured model edge).
-    const scanSymbols = symbols.length > 0 ? symbols : undefined;
+  // Q1-#16: always an explicit list. Both call sites pass openScanSymbols and
+  // both Scan controls disable at length 0, and crypto trades 24/7 so that
+  // length is never 0 anyway — so the old `= []` default and the `undefined`
+  // it turned into (which asked the server for its own curated universe) were
+  // unreachable. marketScanFilters' filterSymbolsByAvailability is what resolves
+  // "All markets" to an explicit list now, precisely so closed markets drop out
+  // of it and the server's `scanned` count matches what was really attempted.
+  async function scanMarkets(symbols: SupportedSymbol[]) {
     // Not a bump — a reading. Any selection change while this scan is in
     // flight (a scan row click, a scope change, an Insights cross-link) moves
     // requestIdRef, and adopting a verdict about the market the reader has
@@ -345,7 +354,7 @@ export function AdvisorWorkspace(
     const requestId = requestIdRef.current;
     setScanStatus("scanning");
     try {
-      const nextResult = await scanMarketOpportunities(scanSymbols);
+      const nextResult = await scanMarketOpportunities(symbols);
       setScanResult(nextResult);
       if (requestIdRef.current === requestId && adoptScanVerdict(nextResult)) {
         // The engine analyzed live provider data server-side moments ago;
@@ -385,8 +394,7 @@ export function AdvisorWorkspace(
   const scanDisabled = scanStatus === "scanning" || openScanSymbols.length === 0;
 
   function selectTimeframe(nextTimeframe: ChartTimeframe) {
-    setTimeframeTouched(true);
-    setTimeframe(nextTimeframe);
+    setPickedTimeframe(nextTimeframe);
   }
 
   // Tapping a qualifying market. Shared by both platforms: the stage (or, on
@@ -398,7 +406,6 @@ export function AdvisorWorkspace(
       setAnalysisState({
         response: {
           advisoryOnly: true,
-          message: "Selected from Market Scan.",
           setup: candidate.setup,
         },
         // No review ran at this moment — this setup came out of a scan that may
@@ -436,6 +443,14 @@ export function AdvisorWorkspace(
     )
     : null;
 
+  // The Desk's page heading, and the only surface heading in the app that is not
+  // drawn: the mock puts no title here (§16 deleted the one that used to exist),
+  // but every other authed surface carries an h1, so heading-level navigation —
+  // how many screen reader users move around a page — found nothing at all on the
+  // app's primary surface. One element, placed by whichever branch renders, so
+  // the Desk can never end up with two headings or with none.
+  const deskTitle = <h1 className="sr-only">Desk</h1>;
+
   if (isMobile) {
     // The merged mobile Scan surface (spec §17e, m-scan-v3.html): a fixed
     // viewport — App.tsx hands this a flex column exactly "viewport minus
@@ -446,6 +461,7 @@ export function AdvisorWorkspace(
     // this surface's chart canvas and every piece of its state alive.
     return (
       <>
+        {deskTitle}
         <div
           className={mobileView === "scan" ? MOBILE_FRAME : "hidden"}
           data-testid="mobile-scan-surface"
@@ -581,6 +597,7 @@ export function AdvisorWorkspace(
           <CurrentTradesRail
             fixedFrame
             isActiveOnMobile={mobileView === "trades"}
+            loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
             setups={setups}
@@ -601,6 +618,8 @@ export function AdvisorWorkspace(
     // mobile surface above renders instead, so the columns no longer carry the
     // base display utilities that used to gate them there.
     <div className="grid min-w-0 gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[264px_minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+      {/* .sr-only is position:absolute, so this consumes no grid cell. */}
+      {deskTitle}
       {/* Left rail: the scan (a-desk-v3.html:87-158). */}
       <div className="scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4">
         <MarketScanPanel
@@ -757,7 +776,13 @@ export function AdvisorWorkspace(
       <aside className="scrolly min-w-0 flex-col gap-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-hairline lg:bg-[color-mix(in_srgb,var(--color-sheet)_55%,var(--color-paper))] lg:pl-4 lg:pr-4">
         <div className="shrink-0">
           <CurrentTradesRail
-            isActiveOnMobile={mobileView === "trades"}
+            // Q1-#31: false, not the live mobileView. This prop exists to
+            // re-stamp the rail's "as of" the moment the MOBILE Trades surface is
+            // shown, and its own docblock calls it irrelevant at ≥lg — but the
+            // ≥lg rail was reading it, so a mobile-only transition re-stamped the
+            // desktop rail's freshness line.
+            isActiveOnMobile={false}
+            loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
             setups={setups}

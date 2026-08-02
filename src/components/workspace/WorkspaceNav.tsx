@@ -11,7 +11,7 @@ export type GuideAnchor =
 export interface WorkspaceNav {
   openGuide: (anchor: GuideAnchor) => void;
   openAdvisor: (symbol: string) => void;
-  openInsights: (symbol?: string) => void;
+  openInsights: () => void;
 }
 
 export const WorkspaceNavContext = createContext<WorkspaceNav | null>(null);

@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -15,15 +16,12 @@ import {
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
+  formatClockTime,
   formatReopen,
   marketAvailability,
   type MarketAvailability,
 } from "../../lib/marketHours";
-import {
-  isMobileViewportWidth,
-  MOBILE_BREAKPOINT_PX,
-  useIsMobileViewport,
-} from "../../hooks/useMobileViewport";
+import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 
 export type ScanScope =
   | { kind: "all" }
@@ -128,11 +126,9 @@ export function formatScopeCountLine(
   counts: { qualified: number; scanned: number },
   now: Date,
 ): string {
-  const time = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(now);
-  return `${describeScanScope(scope)} — ${counts.scanned} scanned · ${counts.qualified} qualify · ${time}`;
+  return `${describeScanScope(scope)} — ${counts.scanned} scanned · ${counts.qualified} qualify · ${
+    formatClockTime(now)
+  }`;
 }
 
 // A closed or otherwise non-interactive row never produces a scope - the
@@ -194,25 +190,19 @@ export function showsAffordance(row: ScopeMenuRow): boolean {
   return row.scope.kind !== "symbol";
 }
 
-// Mobile renders the menu as a full-screen sheet instead of an anchored
-// popup — spec §4's universal contract: "One dropdown, three scope kinds,
-// identical on desktop and mobile (mobile renders it as a full-screen
-// sheet)." It applies to every ScopeMenu instance, so the choice lives inside
-// the component itself rather than as a prop each call site would otherwise
-// need to compute and thread through identically.
+// Mobile renders the menu as a full-screen sheet instead of an anchored popup —
+// spec §4's universal contract: "One dropdown, three scope kinds, identical on
+// desktop and mobile (mobile renders it as a full-screen sheet)." It applies to
+// every ScopeMenu instance, so the choice lives inside the component itself
+// rather than as a prop each call site would otherwise compute and thread
+// through identically — see useIsMobileViewport() below.
 //
-// The sheet breakpoint is the app's one mobile breakpoint, not a second
-// number of this component's own: both live in src/hooks/useMobileViewport.ts
-// now that the Desk's merged mobile surface needs the same answer (spec §17e).
-// Re-exported under this name because it is what the menu's own contract has
-// always been called — one value, two names, and no way for them to drift.
-export const MOBILE_SHEET_BREAKPOINT_PX = MOBILE_BREAKPOINT_PX;
-
-export function shouldUseSheetLayout(viewportWidthPx: number): boolean {
-  return isMobileViewportWidth(viewportWidthPx);
-}
-
-export type ScopeMenuProps = {
+// Q1-#21: this file used to re-export the breakpoint under a second name plus a
+// shouldUseSheetLayout predicate, both with no product caller — the component
+// reads the app's one viewport hook directly. src/hooks/useMobileViewport.ts is
+// the one home for both the number and the comparison, and tests/hooks.test.ts
+// covers them there.
+type ScopeMenuProps = {
   /** Accessible label for the trigger ("Scan scope"), and the sheet's title. */
   label: string;
   /** Injectable clock for tests; defaults to `new Date()`. */
@@ -258,6 +248,14 @@ export function ScopeMenu(
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  // The mobile sheet's own root. listRef covers only the option list, and the
+  // sheet's header — title bar and Close button — is a SIBLING of that list
+  // inside the portal, so without this ref the outside-press listener below
+  // treated a press on the Close button as a press outside the menu: it
+  // unmounted the portal before mouseup, the button's click never completed, and
+  // focus was left on the body instead of returning to the trigger. Null in the
+  // anchored-popup presentation, where the option list IS the portal's root.
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   // Recomputed on every render, not memoized: `now` defaulting to
   // `new Date()` would otherwise make `clock` a fresh value on every render
@@ -287,15 +285,19 @@ export function ScopeMenu(
     setOpen(true);
   }
 
-  function close() {
+  const close = useCallback(() => {
     setOpen(false);
     setPosition(null);
-  }
+  }, []);
 
-  function closeAndFocusTrigger() {
+  // Stable identity, the same bar App.tsx's MobileAccountMenu keeps: the open
+  // effect below now depends on this, and a fresh function each render would
+  // tear its four listeners down and rebuild them on every parent render
+  // instead of only on a real open/close transition.
+  const closeAndFocusTrigger = useCallback(() => {
     close();
     triggerRef.current?.focus();
-  }
+  }, [close]);
 
   function activate(row: ScopeMenuRow) {
     const scope = resolveRowActivation(row);
@@ -315,10 +317,24 @@ export function ScopeMenu(
     function handlePointerDown(event: MouseEvent) {
       const target = event.target as Node;
       if (
-        !rootRef.current?.contains(target) && !listRef.current?.contains(target)
+        !rootRef.current?.contains(target) &&
+        !sheetRef.current?.contains(target) &&
+        !listRef.current?.contains(target)
       ) {
         close();
       }
+    }
+    // Escape on the document rather than only in the list's own switch below:
+    // the sheet's header is not focusable, so a tap on the title bar leaves
+    // document.activeElement on the body, where a React handler bound to the
+    // option list hears nothing. One owner for the key, so a press can never
+    // take two paths to one dismissal.
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      event.preventDefault();
+      closeAndFocusTrigger();
     }
     function handleScroll(event: Event) {
       // Scrolling inside the popup's own option list is normal listbox use,
@@ -335,14 +351,18 @@ export function ScopeMenu(
     }
 
     document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
     window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("resize", handleResize);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
       window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("resize", handleResize);
     };
-  }, [open]);
+    // close and closeAndFocusTrigger are useCallback-stable, so `open` is the
+    // only value here that ever actually changes.
+  }, [close, closeAndFocusTrigger, open]);
 
   // Shared between the anchored popup and the full-screen sheet - the two
   // presentations differ only in their outer container, never in what a row
@@ -435,10 +455,9 @@ export function ScopeMenu(
         }
         return;
       }
-      case "Escape":
-        event.preventDefault();
-        closeAndFocusTrigger();
-        return;
+      // Escape is deliberately absent: the document-level listener in the open
+      // effect owns it, so it works from the sheet's header too — and one owner
+      // means the key cannot take two paths to one dismissal.
       case "Tab":
         // The popup is portaled to document.body, outside the trigger's
         // real position in the page's DOM order. Letting native Tab
@@ -505,6 +524,7 @@ export function ScopeMenu(
           sheet
             ? (
               <div
+                ref={sheetRef}
                 aria-labelledby={`${baseId}-sheet-title`}
                 aria-modal="true"
                 className="motion-fade-in fixed inset-0 z-30 flex flex-col bg-sheet"

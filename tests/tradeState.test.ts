@@ -72,7 +72,7 @@ describe("deriveTradeState — pending (spec §8)", () => {
     });
   });
 
-  it("ignores any stray outcome row while status is still generated", () => {
+  it("ignores a still-pending outcome row while status is generated", () => {
     // The engine never writes trade_outcomes before a fill (outcome-sync
     // only calls writeOutcome once evaluation.state is "placed" or
     // "resolved"), but the rail must not misread one if it ever showed up.
@@ -81,6 +81,48 @@ describe("deriveTradeState — pending (spec §8)", () => {
       trade_outcomes: [buildOutcome({ outcome: "pending" })],
     });
     assert.equal(deriveTradeState(setup, NOW)?.status, "pending");
+  });
+
+  // Q2-I6: this file's header states that RESOLVED_OUTCOMES is checked "even
+  // when setup.status hasn't (or couldn't) catch up in lockstep, since the rail
+  // must never show a done trade as actionable" — and the generated early return
+  // used to sit AHEAD of that check, so a resolved outcome on a generated row
+  // came back Pending and the rail offered a finished trade as an order to
+  // place. The test that claimed to cover it stubbed outcome "pending", which is
+  // Pending either way. Not producible by today's engine, which writes status
+  // before outcome sequentially — but not relying on that is the whole point of
+  // the defensive check.
+  it("takes a generated row off the rail when its outcome is already resolved, whatever the status says", () => {
+    for (
+      const outcome of [
+        "stop_loss",
+        "take_profit",
+        "unfilled",
+        "tp1_partial",
+        "expired_at_loss",
+        "manual_close",
+        "ambiguous",
+      ]
+    ) {
+      const setup = buildSetup({
+        status: "generated",
+        trade_outcomes: [buildOutcome({ outcome })],
+      });
+      assert.equal(deriveTradeState(setup, NOW), null, outcome);
+    }
+  });
+
+  it("checks the resolved outcome before it decides a generated row is pending", () => {
+    // The ordering itself, so a future edit cannot restore the early return
+    // above the guard and leave the behaviour above passing by luck.
+    const source = readFileSync("src/lib/tradeState.ts", "utf8");
+    const resolvedGuard = source.indexOf("RESOLVED_OUTCOMES.has(outcomeRow.outcome)");
+    const generatedReturn = source.indexOf('if (setup.status === "generated")');
+    assert.ok(resolvedGuard > 0 && generatedReturn > 0);
+    assert.ok(
+      resolvedGuard < generatedReturn,
+      "the resolved-outcome guard must precede the generated early return",
+    );
   });
 
   it("formats the sell-side entry the same way", () => {

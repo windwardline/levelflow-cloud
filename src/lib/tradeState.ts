@@ -89,6 +89,22 @@ export function deriveTradeState(
   // `_symbol` parameter.
   _now: Date,
 ): TradeState | null {
+  if (CLOSED_SETUP_STATUSES.has(setup.status)) {
+    return null;
+  }
+
+  // Both "off the rail" checks run before any state is derived (Q2-I6). The
+  // generated early return below used to precede this one, which made the
+  // defensive contract stated at RESOLVED_OUTCOMES a dead letter: a resolved
+  // outcome on a still-generated row came back Pending, and the rail offered a
+  // finished trade as an order to place. Today's engine writes status before
+  // outcome sequentially, so it cannot produce that pair — and not relying on
+  // that is exactly why the check is here.
+  const outcomeRow = setup.trade_outcomes?.[0];
+  if (outcomeRow && RESOLVED_OUTCOMES.has(outcomeRow.outcome)) {
+    return null;
+  }
+
   if (setup.status === "generated") {
     return {
       instruction: `Order pending at ${formatEntry(setup)} — nothing to do yet`,
@@ -98,16 +114,8 @@ export function deriveTradeState(
     };
   }
 
-  if (CLOSED_SETUP_STATUSES.has(setup.status)) {
-    return null;
-  }
-
   // By elimination against the six-value setup_status enum, only "placed"
   // (i.e. filled and live) remains here.
-  const outcomeRow = setup.trade_outcomes?.[0];
-  if (outcomeRow && RESOLVED_OUTCOMES.has(outcomeRow.outcome)) {
-    return null;
-  }
 
   const feedback = asRecord(outcomeRow?.feedback);
   const progressR = asFiniteNumber(feedback.realizedR);
@@ -142,7 +150,12 @@ export function deriveTradeState(
  * unresolved, so the two surfaces can never disagree about which of the two
  * unresolved words a row deserves.
  */
-export function entryHasFilled(setup: TradeSetupRow): boolean {
+// Takes only the two fields it reads, so lib/outcomes.ts can share it from its
+// own narrower row shape rather than growing a second copy of the predicate
+// (Q2-M3).
+export function entryHasFilled(
+  setup: Pick<TradeSetupRow, "status" | "trade_outcomes">,
+): boolean {
   return setup.status === "placed" || setup.status === "filled" ||
     Boolean(setup.trade_outcomes?.[0]?.filled_at);
 }

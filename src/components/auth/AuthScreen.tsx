@@ -77,9 +77,12 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     }
 
     setStatus("sent");
-    setMessage(
-      `Magic link sent to ${normalizedEmail}. Open that email to continue.`,
-    );
+    // Q1-I11 (§17f): the fact only, no instruction. The accent notice below the
+    // form is what tells the reader to check their inbox, from this same "sent"
+    // state — and the two used to say it simultaneously, one twelve words after
+    // the other. What this line has that the notice cannot is the address the
+    // link went to.
+    setMessage(`Magic link sent to ${normalizedEmail}.`);
   }
 
   async function signInWithOAuth(
@@ -214,7 +217,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
               >
                 Email
               </label>
-              <div className="field auth-input-shell flex items-center focus-within:border-accent">
+              <div className="field flex items-center focus-within:border-accent">
                 <Mail className="h-4 w-4 text-ink-muted" aria-hidden="true" />
                 <input
                   id="email"

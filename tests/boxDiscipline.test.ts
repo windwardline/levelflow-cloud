@@ -404,4 +404,16 @@ describe("§17c reaches the pre-auth notices — callouts, not cards (owner ruli
       />\s*Check your inbox and open the magic link to continue\./,
     );
   });
+
+  // Q1-I11 (§17f): after sending, the card's own body paragraph and the accent
+  // notice under the form both told the reader to open the emailed link — the
+  // same instruction twice, twelve words apart, on screen simultaneously. The
+  // notice keeps it; the body keeps what the notice cannot say, which is the
+  // address the link went to.
+  it("says open-the-link once after sending, not in both the body and the notice", () => {
+    assert.match(auth, /setMessage\(`Magic link sent to \$\{normalizedEmail\}\.`\)/);
+    const instructions =
+      auth.match(/open (?:that email|the magic link) to continue/g) ?? [];
+    assert.deepEqual(instructions, ["open the magic link to continue"]);
+  });
 });

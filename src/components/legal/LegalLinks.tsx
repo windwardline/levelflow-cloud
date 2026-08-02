@@ -10,18 +10,17 @@ export const LEGAL_LINKS = [
   { href: `${import.meta.env.BASE_URL}legal/terms.html`, label: "Terms" },
 ];
 
-type LegalLinksProps = {
-  align?: "center" | "left";
-};
-
-export function LegalLinks({ align = "center" }: LegalLinksProps) {
+// Q1-#23: no align prop. There is one call site, it passed "left", and the
+// "center" default and its justify-center were unreachable — a second layout kept
+// alive by a default value nobody chose.
+export function LegalLinks() {
   return (
     <nav
       aria-label="Legal"
-      className={`flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-ink-muted ${align === "center" ? "justify-center" : "justify-start"}`}
+      className="flex flex-wrap justify-start gap-x-4 gap-y-2 text-xs font-semibold text-ink-muted"
     >
       {LEGAL_LINKS.map((link) => (
-        <a className="transition hover:text-ink" href={link.href} key={link.href} target="_blank" rel="noopener noreferrer">
+        <a className="legal-link transition hover:text-ink" href={link.href} key={link.href} target="_blank" rel="noopener noreferrer">
           {link.label}
         </a>
       ))}

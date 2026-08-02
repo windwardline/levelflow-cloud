@@ -24,6 +24,9 @@ export type AnalyzerResponse = {
   advisoryOnly?: boolean;
   blocked?: boolean;
   error?: string;
+  // Sent by the analyzer on its blocked/error paths; no client reader today.
+  // Kept because the wire actually carries it — a type that omits a field
+  // the server sends documents the protocol wrong.
   message?: string;
   outcomeRefresh?: {
     ambiguous: number;

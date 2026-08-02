@@ -57,6 +57,27 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     assert.doesNotMatch(stage, /label="Market"/);
   });
 
+  // Q1 minor: the Desk was the only authed surface with no page heading at all —
+  // Insights, Guide, Profile and Donate each carry an h1, and this one's top
+  // heading is the market h2. Heading-level navigation, which is how many screen
+  // reader users move around a page, found nothing on the app's primary surface.
+  // The mock draws no title here and §16 deleted the one that used to exist, so
+  // the heading is visually hidden: structure that assistive technology cannot
+  // otherwise get, and not a pixel of the composition the owner approved.
+  it("names the surface for heading navigation without drawing a title", () => {
+    assert.match(stage, /const deskTitle = <h1 className="sr-only">Desk<\/h1>;/);
+    // One element, two placements — the two platform branches — so the surface
+    // can never end up with two headings or with none.
+    assert.equal((stage.match(/<h1/g) ?? []).length, 1);
+    assert.equal((stage.match(/\{deskTitle\}/g) ?? []).length, 2);
+    // First thing in each branch, so it precedes every heading it outranks.
+    assert.match(stage, /return \(\s*\n\s*<>\s*\n\s*\{deskTitle\}/);
+    assert.match(
+      stage,
+      /lg:overflow-hidden">[\s\S]{0,140}\{deskTitle\}[\s\S]{0,80}\{\/\* Left rail/,
+    );
+  });
+
   it("tags the side beside the heading, only while a setup is showing", () => {
     assert.match(
       stage,
@@ -91,12 +112,17 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       "reviewedAt: Date.now()",
       "reviewedAt: null",
     ]);
-    // The scan-selection state is the one that must not claim a review.
+    // The scan-selection state is the one that must not claim a review. Anchored
+    // on the state it builds rather than on a notice string: Q1-I9 deleted the
+    // `message: "Selected from Market Scan."` write it used to carry, which was
+    // the last notice-shaped string left on this surface and rendered nowhere —
+    // §16 deleted every reader of AnalyzerResponse.message on the Desk.
     const scanSelected = stage.match(
-      /message: "Selected from Market Scan\.",[\s\S]{0,600}?reviewedAt: ([^,\n]+)/,
+      /if \(candidate\.setup\) \{[\s\S]{0,900}?reviewedAt: ([^,\n]+)/,
     );
     assert.ok(scanSelected, "expected the scan-selection analysis state");
     assert.equal(scanSelected[1], "null");
+    assert.doesNotMatch(stage, /Selected from Market Scan/);
     // And the displayed value is gated on that field, not merely on a setup
     // being present — otherwise the null branch is unreachable again.
     assert.match(
@@ -720,6 +746,32 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
     assert.match(overlay, /onClose\(\)/);
   });
 
+  // Q1-C2: Escape and the trap both died after the first click on the chart.
+  // The handler was a React `onKeyDown` on the dialog element, so it only ever
+  // saw events React could route to the dialog's own fiber — and the chart
+  // container is a plain div with no tabindex, so clicking the canvas moves
+  // document.activeElement to <body>, which is this portal's CONTAINER and has
+  // no fiber at all. Every keydown after that click was dispatched to nothing:
+  // Escape stopped closing an aria-modal surface, and Tab walked out of it into
+  // the page behind. A document listener is the only wiring that hears the press
+  // wherever focus has actually landed, so the React handler is not merely
+  // supplemented here — it is gone, and pinned gone.
+  it("hears Escape and Tab wherever focus has landed — a document listener, not a React onKeyDown", () => {
+    assert.match(
+      overlay,
+      /document\.addEventListener\("keydown", handleKeyDown\)/,
+    );
+    assert.match(
+      overlay,
+      /document\.removeEventListener\("keydown", handleKeyDown\)/,
+    );
+    assert.doesNotMatch(overlay, /onKeyDown=/);
+    // A native KeyboardEvent now, not React's synthetic alias — the type is
+    // what makes the wiring above the only one that typechecks.
+    assert.doesNotMatch(overlay, /ReactKeyboardEvent/);
+    assert.match(overlay, /function handleKeyDown\(event: KeyboardEvent\)/);
+  });
+
   it("moves focus in on open, traps Tab inside, and restores it on close", () => {
     // Focus goes to the close control on open (not merely to the container),
     // Tab and Shift+Tab cycle within the dialog rather than escaping to the
@@ -798,9 +850,13 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
       null,
     );
 
-    // Focus that is no longer in the dialog at all — a click on the page behind
-    // it, or a control the chart's own overlays just unmounted — is pulled back
-    // in on the next Shift+Tab rather than continuing out into the page.
+    // Focus that is no longer in the dialog at all — a click on the chart
+    // canvas, which is a plain div with no tabindex, so the press lands on
+    // <body> — is pulled back in on the next Tab press in EITHER direction.
+    // Q1-C2: forwards used to return null here, which was harmless only while
+    // the listener could not hear the press anyway; with a document listener
+    // that null is the trap's exit door, since the dialog is body's last child
+    // and native forward Tab from body walks into the page behind it.
     assert.equal(
       focusTrapTarget({
         activeIsFirst: false,
@@ -809,6 +865,15 @@ describe("Expand chart on mobile — the overlay contract (spec §17)", () => {
         shiftKey: true,
       }),
       "last",
+    );
+    assert.equal(
+      focusTrapTarget({
+        activeIsFirst: false,
+        activeIsInside: false,
+        activeIsLast: false,
+        shiftKey: false,
+      }),
+      "first",
     );
 
     // A single-control dialog is both ends at once, and still cycles both ways.
@@ -1085,7 +1150,7 @@ describe("Current trades rail composition — the mock's elements are present (a
       tradesRail,
       /className="flex flex-wrap items-baseline justify-between gap-2 lg:min-h-11 lg:items-center"[\s\S]{0,400}Current trades/,
     );
-    assert.match(tradesRail, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+    assert.match(tradesRail, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 
   // Spec §17c (owner live-QA, binding): "the rail's first line must share the

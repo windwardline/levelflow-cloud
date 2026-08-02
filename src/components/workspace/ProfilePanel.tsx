@@ -211,6 +211,13 @@ export function ProfilePanel({
 // drops its rule (`.row:last-of-type`) so the sheet ends on content, not on a
 // line.
 //
+// last-of-type, not Tailwind's `last:` (Q1-I7): the mobile branch's scroll region
+// ends on the colophon <p>, so `:last-child` matched that paragraph and left the
+// Appearance row wearing a hairline above it — on mobile only, and invisibly to a
+// guard that reads the class out of the source rather than running the selector.
+// The rows are the only <div>s among their siblings in either branch, so the
+// mock's own `:last-of-type` is right in both.
+//
 // One component for every row: padding, separation and column measure are
 // the composition, so they cannot be allowed to drift row by row. The stacked
 // row gap is 12px rather than the mock's 24px — with the label above its
@@ -228,7 +235,7 @@ function ProfileRow({
   title: string;
 }) {
   return (
-    <div className="grid gap-x-6 gap-y-3 border-b border-hairline py-[26px] last:border-b-0 lg:grid-cols-[220px_1fr]">
+    <div className="grid gap-x-6 gap-y-3 border-b border-hairline py-[26px] last-of-type:border-b-0 lg:grid-cols-[220px_1fr]">
       <div>
         <h2 className="text-[15px] font-bold tracking-normal text-ink">
           {title}
@@ -261,7 +268,8 @@ function formatMemberSince(value: string) {
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
-  return new Intl.DateTimeFormat(undefined, {
+  // Q2-C1: pinned like every other date the app draws.
+  return new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
   }).format(date);

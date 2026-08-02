@@ -322,14 +322,24 @@ export function MarketChart(
         lineStyle: LineStyle.Dashed,
         lineWidth: 2,
         price: level.price,
-        // formatNumber is the ladder's own display formatter, so a line's
-        // price reads byte-identical to the ladder row beside it — the local
-        // formatChartPrice below caps at two decimals over 100 and would
-        // print a futures level that never appears in the ladder.
+        // formatNumber is the ladder's own display formatter, so a line's price
+        // reads byte-identical to the ladder row beside it. It is now the only
+        // price formatter this file has (Q1-I12): the local one it replaced
+        // capped at two decimals over 100 and would print a futures level that
+        // never appears in the ladder — and the OHLC readout above the chart was
+        // still calling it, so the defect this line's move fixed went on living
+        // in the hover box.
         title: `${level.label} · ${formatNumber(level.price)}`,
       })
     );
   }, [setup, themeVersion]);
+
+  // One width for all four values, decided by the bar's own magnitude: five
+  // decimals under 100 (forex, most crypto), two at or above (indices,
+  // metals, treasuries). Fixed digits because this row re-renders per bar —
+  // ragged widths make the whole cluster shiver under the crosshair.
+  const ohlcDigits =
+    hoverBar && Math.abs(hoverBar.close) < 100 ? 5 : 2;
 
   return (
     // CHART_SHEET (above) IS the stage's chart sheet, kept as this component's
@@ -344,7 +354,7 @@ export function MarketChart(
       >
         {hoverBar ? (
           <span className="whitespace-nowrap">
-            O {formatChartPrice(hoverBar.open)} H {formatChartPrice(hoverBar.high)} L {formatChartPrice(hoverBar.low)} C {formatChartPrice(hoverBar.close)}
+            O {formatNumber(hoverBar.open, ohlcDigits)} H {formatNumber(hoverBar.high, ohlcDigits)} L {formatNumber(hoverBar.low, ohlcDigits)} C {formatNumber(hoverBar.close, ohlcDigits)}
           </span>
         ) : (
           <span className="flex items-center gap-1.5">
@@ -509,9 +519,3 @@ function scrollChart(chart: IChartApi | null, direction: -1 | 1) {
   chart.timeScale().setVisibleLogicalRange({ from: range.from + offset, to: range.to + offset });
 }
 
-function formatChartPrice(value: number) {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: Math.abs(value) >= 100 ? 2 : 5,
-    minimumFractionDigits: Math.abs(value) >= 100 ? 2 : 5,
-  });
-}

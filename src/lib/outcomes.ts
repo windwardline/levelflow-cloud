@@ -1,4 +1,5 @@
 import type { TradeSetupRow } from "./tradeAnalyzer";
+import { entryHasFilled } from "./tradeState";
 
 export type SetupOutcome =
   | "closed_manually"
@@ -144,6 +145,18 @@ export function normalizeSetupOutcome(setup: Pick<TradeSetupRow, "status" | "tra
     return "closed_manually";
   }
   if (outcome === "ambiguous") {
+    return "unclear_path";
+  }
+  // The bare "expired" outcome is the third unreachable enum value, and the one
+  // this header used to skip (Q2-M3). It is legacy-only — the engine's
+  // ResolvedOutcome union omits it — and it says the window closed without saying
+  // whether the entry ever filled. "Unfilled" asserts that it did not, so a
+  // filled row carrying it would have read a market fact that never happened.
+  // Routed by the same fill evidence the rail uses, and where the position was
+  // live, "Unclear" is the honest word: the row ended and nothing recorded says
+  // where price stood. classifyWinLoss scores it neither way, which is the only
+  // safe answer on no evidence.
+  if (outcome === "expired" && entryHasFilled(setup)) {
     return "unclear_path";
   }
   if (outcome === "unfilled" || outcome === "expired" || setup.status === "expired" || setup.status === "invalidated") {

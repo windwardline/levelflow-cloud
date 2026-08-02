@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { readChartTheme } from "../src/components/charts/MarketChart";
 
@@ -59,5 +60,32 @@ describe("readChartTheme", () => {
     assert.equal(dark.sheet, "#1E1B16");
     assert.equal(dark.buy, "#4CC38A");
     assert.equal(dark.sell, "#E5766E");
+  });
+});
+
+// Q1-I12: the chart had two price formatters. The level lines were deliberately
+// moved to formatNumber because formatChartPrice "caps at two decimals over 100
+// and would print a futures level that never appears in the ladder" — and the
+// OHLC hover readout above the chart kept calling formatChartPrice, so the named
+// defect simply carried on living in the hover box. One formatter now, the
+// ladder's, so every price this chart prints reads the same as the row it
+// belongs to.
+describe("the chart prints prices through one formatter (Q1-I12)", () => {
+  const CHART = readFileSync("src/components/charts/MarketChart.tsx", "utf8");
+
+  it("has no second price formatter of its own", () => {
+    assert.doesNotMatch(CHART, /formatChartPrice/);
+  });
+
+  it("renders the OHLC readout and the level lines through the ladder's formatter", () => {
+    // The readout passes ohlcDigits — the fixed-width form of the SAME
+    // formatter (review fold: a per-bar readout without a minimum width
+    // shivers). Still one formatter: the second argument is the width, not
+    // a second implementation.
+    assert.match(
+      CHART,
+      /O \{formatNumber\(hoverBar\.open, ohlcDigits\)\} H \{formatNumber\(hoverBar\.high, ohlcDigits\)\} L \{formatNumber\(hoverBar\.low, ohlcDigits\)\} C \{formatNumber\(hoverBar\.close, ohlcDigits\)\}/,
+    );
+    assert.match(CHART, /title: `\$\{level\.label\} · \$\{formatNumber\(level\.price\)\}`/);
   });
 });

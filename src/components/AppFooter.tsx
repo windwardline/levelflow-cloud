@@ -43,10 +43,13 @@ export function AppFooter({ donate, supportMailto }: AppFooterProps) {
     <footer className="w-full border-t border-hairline">
       {/* The mock's own symmetrical 18px, on one axis-wide utility. The bottom
           reserve this row used to carry was clearance for the fixed MobileTabBar,
-          and §17g made that unreachable: the footer is a ≥lg element now (App.tsx's
-          presence gate), and no fixed bar exists at ≥lg for it to clear. (Named by
-          shape rather than spelled out: Tailwind's scanner reads this file too, and
-          a dead class in a comment is a dead rule in the bundle.) */}
+          and §17g made that unreachable: inside the authed app this footer is a ≥lg
+          element (App.tsx's presence gate), and no fixed bar exists at ≥lg for it
+          to clear. The other two call sites — the sign-in and parking screens —
+          render it at every width, as satelliteFrame.ts says they must, and neither
+          has a tab bar either. (Named by shape rather than spelled out: Tailwind's
+          scanner reads this file too, and a dead class in a comment is a dead rule
+          in the bundle.) */}
       <div className="mx-auto flex w-full max-w-7xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-4 py-[18px] sm:px-8">
         {/* .colophon carries its own 2rem top pad for the standalone use on
             the auth and parking screens; here the footer's own padding is the
@@ -97,7 +100,7 @@ export function AppFooter({ donate, supportMailto }: AppFooterProps) {
                 </button>
               )}
           </nav>
-          <LegalLinks align="left" />
+          <LegalLinks />
         </div>
       </div>
     </footer>

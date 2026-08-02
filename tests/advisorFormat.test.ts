@@ -5,7 +5,6 @@ import { describe, it } from "node:test";
 import {
   formatCopyValue,
   formatNumber,
-  formatRelativeTime,
   MAX_PRICE_DECIMALS,
 } from "../src/components/workspace/advisorFormat.ts";
 import { formatPriceValue } from "../src/components/workspace/historyUtils.ts";
@@ -160,53 +159,19 @@ describe("price precision cap stays centralized (fix round 3)", () => {
   });
 });
 
-describe("formatRelativeTime", () => {
-  const now = new Date("2026-07-30T12:00:00.000Z");
 
-  it("reports very recent updates in plain language, not a raw duration", () => {
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-30T11:59:40.000Z").toISOString(), now),
-      "Just now",
-    );
+// The chart's OHLC hover readout re-renders per bar: without a fixed
+// fraction width the cluster's width changes bar to bar and the row
+// shivers. The fixed-digit form keeps one formatter (Q1-I12's collapse)
+// while restoring the readout's stable width — five decimals under 100,
+// two at or above, decided at the call site.
+describe("formatNumber with fixed digits", () => {
+  it("pads and caps to exactly the requested digits", () => {
+    assert.equal(formatNumber(1.085, 5), "1.08500");
+    assert.equal(formatNumber(2412.5, 2), "2,412.50");
+    assert.equal(formatNumber(1.0862034, 5), "1.08620");
   });
-
-  it("uses singular minute/hour/day near the boundary", () => {
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-30T11:59:00.000Z").toISOString(), now),
-      "1 minute ago",
-    );
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-30T11:00:00.000Z").toISOString(), now),
-      "1 hour ago",
-    );
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-29T12:00:00.000Z").toISOString(), now),
-      "1 day ago",
-    );
-  });
-
-  it("pluralizes minutes, hours, and days", () => {
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-30T11:55:00.000Z").toISOString(), now),
-      "5 minutes ago",
-    );
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-30T09:00:00.000Z").toISOString(), now),
-      "3 hours ago",
-    );
-    assert.equal(
-      formatRelativeTime(new Date("2026-07-27T12:00:00.000Z").toISOString(), now),
-      "3 days ago",
-    );
-  });
-
-  it("falls back to an absolute date once the gap stops being legible as a relative phrase", () => {
-    const value = new Date("2026-07-01T12:00:00.000Z").toISOString();
-    const result = formatRelativeTime(value, now);
-    assert.doesNotMatch(result, /ago$/);
-  });
-
-  it("treats an invalid or missing timestamp as awaiting refresh", () => {
-    assert.equal(formatRelativeTime("not-a-date", now), "Awaiting refresh");
+  it("keeps the default shape unchanged when digits are omitted", () => {
+    assert.equal(formatNumber(1.085), "1.085");
   });
 });

@@ -17,13 +17,20 @@ type RefreshSetupsOptions = {
 export function useTradeSetups() {
   const [setups, setSetups] = useState<TradeSetupRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // Q2-C2: one bit, not the provider's message. This used to be an `error` string
+  // no consumer read, so a failed fetch reached Insights and the trades rail as
+  // `setups: []` and printed "No setups have been logged yet." / "No current
+  // trades." — a claim about the account from surfaces that had just failed to
+  // read it. What they need is whether the read succeeded; the words are
+  // HISTORY_LOAD_FAILED_COPY's job, the same split MarketScanResponse.failed
+  // already makes for the scan path.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const refreshSetups = useCallback(async (options?: RefreshSetupsOptions) => {
     if (!options?.silent) {
       setLoading(true);
     }
-    setError("");
+    setLoadFailed(false);
 
     try {
       if (supabase) {
@@ -51,7 +58,12 @@ export function useTradeSetups() {
       }
       setSetups(await fetchTradeSetups());
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Trade setup history could not be loaded.");
+      // Loud where it is useful, quiet where it is not: the operator gets the
+      // real cause, the reader gets one sentence. The rows are deliberately left
+      // untouched here — a failed read keeps whatever was last read successfully
+      // rather than replacing it with an empty account.
+      console.warn("[history] trade setups could not be loaded", requestError);
+      setLoadFailed(true);
     } finally {
       if (!options?.silent) {
         setLoading(false);
@@ -134,7 +146,7 @@ export function useTradeSetups() {
   }, [refreshSetups]);
 
   return {
-    error,
+    loadFailed,
     loading,
     refreshSetups,
     setups,

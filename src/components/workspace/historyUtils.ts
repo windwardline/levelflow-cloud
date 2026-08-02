@@ -7,13 +7,10 @@ import {
 import {
   classifyWinLoss,
   normalizeSetupOutcome,
-  OUTCOME_COPY,
   type SetupOutcome,
 } from "../../lib/outcomes";
 import {
-  compareAssetCategories,
   compareAssetSymbols,
-  formatSecurityLabel,
   getSecurityOption,
   type SecurityType,
 } from "../../lib/symbolMap";
@@ -22,8 +19,19 @@ import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import type { ScanScope } from "./ScopeMenu";
 
-export type HistoryGroupBy = "date" | "category" | "asset" | "status";
-export type HistorySort = "newest" | "oldest" | "confidence" | "asset";
+/**
+ * What the two history surfaces say when the fetch that feeds them failed
+ * (Q2-C2). One constant, because Insights and the Current trades rail read one
+ * request: a failure is one fact about one fetch, so it reads the same on both.
+ *
+ * The register is the scan rail's, already set by MarketScanPanel's "Market scan
+ * could not complete. Try again shortly." — name what did not happen, say what to
+ * do, stop. The reader never sees the provider's own words: a PostgREST timeout,
+ * an RLS denial and a dropped connection are one fact to someone looking at their
+ * trades, and the detail goes to the console for whoever is debugging it (§17f).
+ */
+export const HISTORY_LOAD_FAILED_COPY =
+  "Trade history could not load. Try again shortly.";
 
 export type HistorySetupGroup = {
   items: TradeSetupRow[];
@@ -31,28 +39,15 @@ export type HistorySetupGroup = {
   label: string;
 };
 
-// Insights (spec §10) no longer exposes a "group by status" control or the
-// old 8-way status filter — its own Status filter is the coarser
-// pending/open/closed split (InsightsStatusFilter, below), driven by
-// deriveTradeState. groupHistorySetups's "status" mode still needs this
-// ordering internally, and stays covered by tests/core.test.ts, so it stays
-// — just no longer part of this module's public surface.
-const HISTORY_STATUS_ORDER: SetupOutcome[] = [
-  "still_tracking",
-  "target_reached",
-  "partial_target",
-  "expired_in_profit",
-  "expired_in_loss",
-  "stopped_out",
-  "closed_manually",
-  "unclear_path",
-  "entry_not_filled",
-];
-
-export function sortHistorySetups(
-  setups: TradeSetupRow[],
-  sortBy: HistorySort,
-) {
+/**
+ * The ledger's one ordering: newest first, then the tie-break tiers.
+ *
+ * Q1-#20 removed the mode parameter. Only buildInsightsGroups calls this, always
+ * with "newest", so the oldest / confidence / asset branches were reachable from
+ * their own tests and nowhere else — the Insights sort control they were written
+ * for does not exist, and §10's ledger is chronological.
+ */
+export function sortHistorySetups(setups: TradeSetupRow[]) {
   // Every mode ends in the same full tie-break chain so no ordering is ever
   // left to database return order — a scan batch shares one created_at
   // second, and before this chain existed those rows rendered in whatever
@@ -67,57 +62,34 @@ export function sortHistorySetups(
       Number(second.confidence_score) - Number(first.confidence_score);
     const symbolOrder = compareAssetSymbols(first.symbol, second.symbol);
 
-    if (sortBy === "oldest") {
-      return firstDate - secondDate || confidenceGap || symbolOrder;
-    }
-    if (sortBy === "confidence") {
-      return confidenceGap || secondDate - firstDate || symbolOrder;
-    }
-    if (sortBy === "asset") {
-      return symbolOrder || secondDate - firstDate || confidenceGap;
-    }
     return secondDate - firstDate || confidenceGap || symbolOrder;
   });
 }
 
+/**
+ * Day groups, in the order the rows already arrive in (spec §10's ledger).
+ *
+ * Q1-#20 removed the mode parameter here too, and with it the asset / category /
+ * status groupings, HISTORY_STATUS_ORDER and getOutcomeLabel: the same one caller
+ * always asked for "date". No re-sort of the groups is needed — the rows come in
+ * newest-first from sortHistorySetups, so first appearance IS the group order.
+ */
 export function groupHistorySetups(
   setups: TradeSetupRow[],
-  groupBy: HistoryGroupBy,
 ): HistorySetupGroup[] {
   const groups = new Map<string, HistorySetupGroup>();
 
   setups.forEach((setup) => {
-    const group = getHistoryGroup(setup, groupBy);
-    const existingGroup = groups.get(group.key);
+    const key = formatHistoryDateGroup(new Date(setup.created_at));
+    const existingGroup = groups.get(key);
     if (existingGroup) {
       existingGroup.items.push(setup);
       return;
     }
-    groups.set(group.key, { ...group, items: [setup] });
+    groups.set(key, { items: [setup], key, label: key });
   });
 
-  const orderedGroups = Array.from(groups.values());
-  if (groupBy === "asset") {
-    return orderedGroups.sort((first, second) =>
-      compareAssetSymbols(first.key, second.key)
-    );
-  }
-  if (groupBy === "category") {
-    return orderedGroups.sort((first, second) =>
-      compareAssetCategories(
-        first.key as SecurityType,
-        second.key as SecurityType,
-      )
-    );
-  }
-  if (groupBy === "status") {
-    return orderedGroups.sort(
-      (first, second) =>
-        HISTORY_STATUS_ORDER.indexOf(first.key as SetupOutcome) -
-        HISTORY_STATUS_ORDER.indexOf(second.key as SetupOutcome),
-    );
-  }
-  return orderedGroups;
+  return Array.from(groups.values());
 }
 
 export function buildConfidenceBands(setups: TradeSetupRow[]) {
@@ -167,10 +139,6 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
 
 export function getSetupOutcome(setup: TradeSetupRow): SetupOutcome {
   return normalizeSetupOutcome(setup);
-}
-
-export function getOutcomeLabel(outcome: SetupOutcome) {
-  return OUTCOME_COPY[outcome].label;
 }
 
 export function getOutcomeClassName(outcome: SetupOutcome) {
@@ -242,7 +210,11 @@ export function formatHistoryDateGroup(date: Date) {
     return "Yesterday";
   }
 
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+  // Q2-C1: "en-US", like every other date the app draws. This label sits in the
+  // Insights ledger's own group headers beside Today and Yesterday, which are
+  // English by construction — a locale-formatted third form ("2. Aug. 2026")
+  // beside them was a grammar the mock never draws.
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
     date,
   );
 }
@@ -258,28 +230,6 @@ export function asNumber(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
-function getHistoryGroup(
-  setup: TradeSetupRow,
-  groupBy: HistoryGroupBy,
-): Omit<HistorySetupGroup, "items"> {
-  if (groupBy === "asset") {
-    return { key: setup.symbol, label: formatSecurityLabel(setup.symbol) };
-  }
-  if (groupBy === "category") {
-    const category = getSecurityOption(setup.symbol).assetType;
-    return { key: category, label: category };
-  }
-  if (groupBy === "status") {
-    const outcome = getSetupOutcome(setup);
-    return { key: outcome, label: getOutcomeLabel(outcome) };
-  }
-
-  const date = new Date(setup.created_at);
-  const key = Number.isNaN(date.getTime())
-    ? "unknown-date"
-    : date.toISOString().slice(0, 10);
-  return { key, label: formatHistoryDateGroup(date) };
-}
 
 // ---------------------------------------------------------------------------
 // Insights ledger (spec §10) — record band, one filter row, day-grouped
@@ -295,15 +245,24 @@ export function formatSetupConfidence(setup: TradeSetupRow): string {
   );
 }
 
-// Signed R for the Insights ledger specifically (spec §10's own examples:
-// "Open · +0.8R", "Stopped · −1.0R"). Deliberately a separate function from
-// CurrentTradesRail's formatProgressR, which renders a negative R with the
-// native ASCII hyphen ("-1.0R", pinned by its own test) — that rail predates
-// this spec section and isn't governed by it. Insights' governing spec text
-// uses the typographic minus sign (U+2212) throughout, matching the
-// existing "Expired −" outcome shortLabel in lib/outcomes.ts, so this
-// formatter matches its own spec exactly rather than reusing the rail's.
-export function formatSignedR(value: number): string {
+// Signed R, everywhere the app prints one: the Insights ledger (spec §10's own
+// examples, "Open · +0.8R", "Stopped · −1.0R") and the Current trades rail's
+// progress figure.
+//
+// One function and one minus sign (Q1-I12). The rail used to render its negative
+// R with an ASCII hyphen on the grounds that it predates §10 and is not governed
+// by it — but the two print the same quantity in the same lifecycle vocabulary,
+// side by side in one app, and the reader has no way to know which surface a spec
+// section reached first. The typographic minus (U+2212) stands because it is what
+// §10 states and what lib/outcomes.ts's "Expired −" labels already carry; with
+// the sign settled the two formatters were identical, so there is one.
+//
+// null is "no figure yet", which the rail needs (a pending trade has no progress)
+// and the ledger's own callers already guard against upstream.
+export function formatSignedR(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
   const sign = value < 0 ? "−" : "+";
   return `${sign}${Math.abs(value).toFixed(1)}R`;
 }
@@ -424,7 +383,7 @@ export function filterInsightsSetups(
 export function buildInsightsGroups(
   setups: TradeSetupRow[],
 ): HistorySetupGroup[] {
-  return groupHistorySetups(sortHistorySetups(setups, "newest"), "date");
+  return groupHistorySetups(sortHistorySetups(setups));
 }
 
 export type RecordBand = {
@@ -528,9 +487,10 @@ export function buildRecordBand(
 // Two rulings shaped what this does NOT do:
 // - §17: `entry_not_filled` reads "Unfilled" for every row. It is a market
 //   fact — price never reached the entry inside the window — never a claim
-//   about what the user did, so the label reads no origin at all. (The
-//   database column stays; tradeState.ts still reads it to keep an unfilled
-//   scan row off the trades rail.)
+//   about what the user did, so the label reads no origin at all. (The database
+//   column stays and is still selected, but §17m left it with no reader anywhere
+//   in src: tradeState.ts became origin-blind when Scan became the only door,
+//   and tests/tradeState.test.ts pins that.)
 // - §17b: an unresolved row never reads the banned tracking phrase. It reads
 //   whichever of the two unresolved words its own fill evidence supports,
 //   through the same predicate the trades rail state machine uses.
@@ -570,12 +530,15 @@ export function formatInsightsResult(
   if (outcome === "unclear_path") {
     return withRealizedR("Unclear", realizedR);
   }
-  // Everything left is the unresolved bucket on a row deriveTradeState
-  // reports as off-rail: a scan-surfaced setup whose order was never placed
-  // with a broker, or — a data anomaly, since a closed status should always
-  // carry a resolved outcome — a closed row whose outcome is missing or still
-  // literally pending. Either way §17b answers with the lifecycle word the
-  // fill evidence supports, never a seventh word for engine bookkeeping.
+  // Everything left is the unresolved bucket on a row deriveTradeState reports as
+  // off-rail, which since §17m means one thing: a data anomaly. A closed status
+  // should always carry a resolved outcome, so this is a closed row whose outcome
+  // is missing or still literally pending. (The second reading this comment used
+  // to give — a scan-surfaced setup whose order was never placed with a broker —
+  // went with the provenance exclusion §17m deleted: a generated row now returns
+  // "Pending" from the branch above and never reaches here.) §17b answers with
+  // the lifecycle word the fill evidence supports, never a seventh word for
+  // engine bookkeeping.
   return entryHasFilled(setup)
     ? withRealizedR("Open", realizedR)
     : "Pending";

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatClockTime } from "../../lib/marketHours";
 import { deriveTradeState, type TradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 import {
@@ -7,9 +8,10 @@ import {
   MOBILE_FRAME_SCROLL,
 } from "../mobileFrame";
 import { formatNumber } from "./advisorFormat";
+import { HISTORY_LOAD_FAILED_COPY, formatSignedR } from "./historyUtils";
 import { useWorkspaceNav } from "./WorkspaceNav";
 
-export type CurrentTradesRailProps = {
+type CurrentTradesRailProps = {
   // True when this rail is the mobile Trades surface rather than the ≥lg Desk's
   // right column (spec §17g): the head pins, the cards list scrolls inside the
   // fixed frame, and the surface owns its own gutters. Off at ≥lg, where the
@@ -23,6 +25,8 @@ export type CurrentTradesRailProps = {
   // effect is what actually re-fetches the data this rail renders; this
   // only keeps the "as of" display honest about when that last happened.
   isActiveOnMobile: boolean;
+  // Q2-C2: the history fetch failed, so no cards means unknown rather than none.
+  loadFailed: boolean;
   // The rail's own clock for computing state/age at render time — passed in
   // (AdvisorWorkspace's existing 60s clockNow tick) rather than started
   // here, so this component adds no timer of its own.
@@ -75,21 +79,6 @@ export function currentTradeBadgeCount(
   return buildTradeCards(setups, now).length;
 }
 
-export function formatProgressR(value: number | null): string {
-  if (value === null) {
-    return "—";
-  }
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}R`;
-}
-
-export function formatAsOf(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
 // The remaining ladder levels still relevant to watch, mono in the card
 // (spec §8). A level drops off once it's behind the trade: Entry once
 // filled, the bank-half target once its instruction has already fired
@@ -138,7 +127,7 @@ function formatLevel(value: number | string | null | undefined): string {
 }
 
 export function CurrentTradesRail(
-  { fixedFrame = false, isActiveOnMobile, now, onRefresh, setups }:
+  { fixedFrame = false, isActiveOnMobile, loadFailed, now, onRefresh, setups }:
     CurrentTradesRailProps,
 ) {
   // The mock's closing cross-link (a-desk-v3.html:231) rides the nav context
@@ -154,11 +143,12 @@ export function CurrentTradesRail(
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => now);
   const cards = buildTradeCards(setups, now);
 
-  // I2: on mobile, switching the bottom tab bar to Trades never remounts
-  // this component (deskColumnClassName's whole point is a CSS-only toggle
-  // that preserves AdvisorWorkspace's state across Review/Scan/Trades), so
-  // the mount-time baseline above never re-fires for that transition on its
-  // own. App.tsx pairs this with its own effect that actually re-fetches
+  // I2: on mobile, switching the bottom tab bar to Trades never remounts this
+  // component — AdvisorWorkspace keeps both of its <lg surfaces mounted and
+  // toggles them by display, deliberately, so the Scan surface's chart canvas and
+  // state survive the trip (DeskMobileView is "scan" | "trades"; the Review
+  // sub-view §17m.1 deleted is not a third). So the mount-time baseline above
+  // never re-fires for that transition on its own. App.tsx pairs this with its own effect that actually re-fetches
   // outcome data the moment mobileView becomes "trades" — this only keeps
   // the "as of" stamp from silently going stale relative to that real
   // refresh. Guarded to the true (became-visible) transition only: flipping
@@ -203,7 +193,7 @@ export function CurrentTradesRail(
           Current trades
         </h3>
         <p className="text-xs text-ink-muted">
-          as of {formatAsOf(lastRefreshedAt)} ·{" "}
+          as of {formatClockTime(lastRefreshedAt)} ·{" "}
           <button
             className="tertiary-link"
             type="button"
@@ -219,7 +209,11 @@ export function CurrentTradesRail(
   const body = (
     <>
       {cards.length === 0
-        ? <p className="mt-2 text-sm leading-6 text-ink-muted">No current trades.</p>
+        ? (
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            {loadFailed ? HISTORY_LOAD_FAILED_COPY : "No current trades."}
+          </p>
+        )
         : (
           <div className="mt-2.5 grid gap-2.5">
             {cards.map(({ setup, state }) => (
@@ -302,7 +296,7 @@ function TradeStateCard({
           </span>
         </div>
         <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
-          {formatProgressR(state.progressR)}
+          {formatSignedR(state.progressR)}
         </p>
       </div>
 

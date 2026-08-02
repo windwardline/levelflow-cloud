@@ -689,9 +689,17 @@ describe("selecting a scan row no longer switches surfaces (source-pinned, §17e
   });
 
   it("CurrentTradesRail receives isActiveOnMobile so it can re-stamp its own freshness on the same transition (I2)", () => {
+    // The MOBILE rail only — Q1-#31: the ≥lg call site passes false, since the
+    // prop's whole job is the mobile Trades transition and a desktop rail has no
+    // business re-stamping its freshness line for one.
     assert.match(
       ADVISOR_WORKSPACE_SOURCE,
-      /<CurrentTradesRail\s+isActiveOnMobile=\{mobileView === "trades"\}/,
+      /<CurrentTradesRail\s+fixedFrame\s+isActiveOnMobile=\{mobileView === "trades"\}/,
+    );
+    assert.equal(
+      (ADVISOR_WORKSPACE_SOURCE.match(/isActiveOnMobile=\{mobileView === "trades"\}/g) ??
+        []).length,
+      1,
     );
   });
 });
@@ -1150,7 +1158,7 @@ describe("mobile trades tab interior (m-trades-v1.html, fix wave 2C)", () => {
       head.split(" ").filter((token) => !token.startsWith("lg:")).join(" "),
       "flex flex-wrap items-baseline justify-between gap-2",
     );
-    assert.match(TRADES_RAIL_SOURCE, /as of \{formatAsOf\(lastRefreshedAt\)\} ·/);
+    assert.match(TRADES_RAIL_SOURCE, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 });
 
@@ -1344,7 +1352,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // them (tests/appFooter.test.ts owns that composition).
     const footer = readFileSync("src/components/AppFooter.tsx", "utf8");
     assert.match(footer, /A Windward Line production/);
-    assert.match(footer, /<LegalLinks align="left" \/>/);
+    assert.match(footer, /<LegalLinks \/>/);
     assert.match(footer, /aria-label="Support"/);
   });
 
@@ -1518,8 +1526,13 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
   });
 
   it("sets the bottom-tab labels in the mock's uppercase letterspaced type (m-mobile-v3.html:32)", () => {
-    // 10.5px/700/uppercase at .06em tracking. No breakpoint guard needed or
-    // wanted: the whole nav is `lg:hidden`, so these are mobile rules already.
+    // 10.5px/700/uppercase at .1em tracking — what the assertion below actually
+    // pins (M8: this comment used to say .06em, which is the mock's own value at
+    // m-mobile-v3.html:32, not the app's). The shipped value has stood since §17
+    // merged the mobile Desk, with no recorded ruling either way; the comment
+    // states the pin rather than a number the pin contradicts, and the deviation
+    // is the owner's to settle. No breakpoint guard needed or wanted: the whole
+    // nav is `lg:hidden`, so these are mobile rules already.
     assert.match(
       APP_SOURCE,
       /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
@@ -1542,8 +1555,9 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     // invented — the mock's caution fill is a color, not a new claim.
     assert.match(
       APP_SOURCE,
-      /tradeBadgeCount=\{currentTradeBadgeCount\(setupState\.setups, new Date\(\)\)\}/,
+      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.setups, new Date\(\)\),/,
     );
+    assert.match(APP_SOURCE, /tradeBadgeCount=\{tradeBadgeCount\}/);
     assert.match(APP_SOURCE, /item\.value === "trades" && tradeBadgeCount > 0/);
     // The mock's own #fff would collapse on the dark theme's gold caution
     // (~1.9:1); text-paper re-values with the fill, per contrast.test.ts.

@@ -3,6 +3,8 @@ import { describeReplayRecord } from "../../lib/replayReliability";
 import { getSecurityOption } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
+// Q1-I8: one definition of each, not a private twin of the exported pair.
+import { asNumber, asRecord } from "./historyUtils";
 import { HowThisWorksLink } from "./HowThisWorksLink";
 import { cleanReviewMessage, describeExecutionLabel } from "./reviewCopy";
 import type { GuideAnchor } from "./WorkspaceNav";
@@ -267,17 +269,6 @@ function buildTimingSentence(
 
 function capitalizeFirst(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function asNumber(value: unknown) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
 }
 
 function asText(value: unknown) {

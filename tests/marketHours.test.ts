@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
+  formatClockTime,
   formatCompactDateTime,
   formatReopen,
   marketAvailability,
@@ -234,6 +237,60 @@ describe("compact date-time stamp (spec §17)", () => {
     const early = new Date(2026, 7, 3, 9, 5);
     assert.match(formatCompactDateTime(early), /^[A-Z]{3} 3 9:05A$/);
   });
+
+  it("prints the bare clock time the trades rail and the count line both show", () => {
+    // Q1-I12: one source for the h:mm datum. Three formatters read the same
+    // clock — the stamp's compact piece above, the rail's "as of" and the scan
+    // count line — and the latter two used to build their own.
+    const MORNING = new Date(2026, 7, 3, 9, 5);
+    assert.equal(formatClockTime(MORNING), "9:05 AM");
+    assert.equal(formatClockTime(new Date(2026, 7, 3, 17, 12)), "5:12 PM");
+    // Same reading as the stamp's time piece, differing only in shape.
+    assert.equal(
+      formatClockTime(MORNING).slice(0, 4).toUpperCase(),
+      formatCompactDateTime(MORNING).split(" ")[2].slice(0, 4),
+    );
+  });
+});
+
+// Q2-C1: the grammar §17 fixes is a LANGUAGE decision, and every date/time
+// formatter that renders it has to say so. Three in this module passed
+// `undefined` and inherited the runtime's locale, so "JUL 31 2:05P" was
+// "31 JUIL. 2:05P" on a French browser and "7月31日 2:05午" on a Japanese one —
+// and the CI that would have caught it runs under an English locale. This
+// scan is src-wide rather than module-local because the two other h:mm
+// formatters that had the same bug lived in components, not here.
+describe("every date/time formatter in src pins its locale (§17 grammar)", () => {
+  const sources = readdirSync("src", { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"))
+    .map((file) => ({ file, text: readFileSync(join("src", file), "utf8") }));
+
+  it("scans a non-trivial set of files, so a broken glob cannot pass this vacuously", () => {
+    assert.ok(sources.length >= 20, `only found ${sources.length} source files`);
+  });
+
+  it("never constructs an Intl.DateTimeFormat without an explicit locale", () => {
+    const offenders = sources
+      .filter(({ text }) => /Intl\.DateTimeFormat\(\s*undefined/.test(text))
+      .map(({ file }) => file);
+    assert.deepEqual(offenders, []);
+  });
+
+  it("never renders a date through toLocaleDateString / toLocaleTimeString / toLocaleString", () => {
+    // Numbers are a separate, deliberate case: formatNumber keeps rendering
+    // prices in the reader's own locale and says so at length, while
+    // formatCopyValue pins en-US for the clipboard. Dates have no such
+    // latitude — §17 fixes their grammar — so the Date-side helpers are barred
+    // outright rather than reviewed case by case.
+    const offenders = sources
+      .filter(({ text }) =>
+        /\.toLocale(Date|Time)String\(/.test(text) ||
+        /\bnew Date\([^)]*\)\.toLocaleString\(/.test(text)
+      )
+      .map(({ file }) => file);
+    assert.deepEqual(offenders, []);
+  });
 });
 
 describe("weekly-close parity with the replay engine", () => {
@@ -292,11 +349,18 @@ describe("weekly-close parity with the replay engine", () => {
 });
 
 // Test-side reconstruction of the display format, built from the same
-// `Intl.DateTimeFormat` primitives `formatReopen` uses internally (no
-// explicit timeZone option, so both sides read the machine's local zone) -
-// this pins the assembly logic without hardcoding one machine's offset.
+// `Intl.DateTimeFormat` primitives `formatReopen` uses internally (no explicit
+// timeZone option, so both sides read the machine's local zone) - this pins the
+// assembly logic without hardcoding one machine's offset.
+//
+// Q2-C1: these mirrors used to pass `undefined` as well, which is why the defect
+// stayed invisible — the reconstruction drifted in lockstep with the code, and
+// only the two regex assertions above ever noticed (they failed outright on a
+// fr-FR, de-DE or ja-JP machine). "en-US" is pinned on both sides now, so the
+// mirrors state what the grammar IS rather than whatever the runtime happened to
+// produce.
 function localCompactTime(date: Date): string {
-  const parts = new Intl.DateTimeFormat(undefined, {
+  const parts = new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     hour12: true,
     minute: "2-digit",
@@ -306,11 +370,11 @@ function localCompactTime(date: Date): string {
 }
 
 function localWeekday(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
 }
 
 function localMonthDay(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short" }).format(
     date,
   );
 }
