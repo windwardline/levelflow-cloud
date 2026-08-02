@@ -1,4 +1,3 @@
-import { AVAILABLE_ASSET_SYMBOLS } from "../symbolMap";
 import { CONTRACT_SIZES, LOT_RESTRICTIONS } from "./programs";
 import type { Provenance } from "./types";
 
@@ -83,12 +82,27 @@ const USD_LEG: Record<string, { leg: string; invert: boolean }> = {
   NZD: { leg: "NZDUSD", invert: false },
 };
 
+/** The eight currencies Levelflow's 28-pair roster is built from. */
+const CURRENCIES = new Set(["AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "NZD", "USD"]);
+
 function baseOf(pair: string) {
   return pair.slice(0, 3);
 }
 
 function quoteOf(pair: string) {
   return pair.slice(3, 6);
+}
+
+/**
+ * Whether this Levelflow symbol is a currency pair whose quote leg needs bridging
+ * at all. Everything else E8 lists on the CFD side — `XAUUSD`, `SP500`, `US30`,
+ * `NAS100` — is quoted in dollars, so its quote currency is worth 1 and E8's own
+ * rule for a USD-quoted instrument applies: use the quoted price directly, exactly
+ * as its Metals worked example does on gold.
+ */
+function isCurrencyPair(symbol: string) {
+  return symbol.length === 6 && CURRENCIES.has(baseOf(symbol)) &&
+    CURRENCIES.has(quoteOf(symbol));
 }
 
 /**
@@ -101,6 +115,9 @@ function quoteOf(pair: string) {
 const TABLED_CROSSES = ["GBPNZD", "GBPJPY", "GBPCHF", "NZDJPY", "NZDCAD", "NZDCHF"];
 
 function bridgeSource(instrument: string): Provenance {
+  if (!isCurrencyPair(instrument)) {
+    return LOT_RESTRICTIONS;
+  }
   if (quoteOf(instrument) === "USD" || baseOf(instrument) === "USD") {
     return LOT_RESTRICTIONS;
   }
@@ -114,7 +131,7 @@ function bridgeSource(instrument: string): Provenance {
  */
 export function usdPerQuoteBridge(levelflowSymbol: string): Bridge | null {
   const quote = quoteOf(levelflowSymbol);
-  if (quote === "USD") {
+  if (!isCurrencyPair(levelflowSymbol) || quote === "USD") {
     return { kind: "one", source: DERIVED_PIP_VALUE };
   }
   const leg = USD_LEG[quote];
@@ -133,7 +150,7 @@ export function instrumentPriceBridge(levelflowSymbol: string): Bridge | null {
   const base = baseOf(levelflowSymbol);
   const quote = quoteOf(levelflowSymbol);
   const source = bridgeSource(levelflowSymbol);
-  if (quote === "USD") {
+  if (!isCurrencyPair(levelflowSymbol) || quote === "USD") {
     return { kind: "leg", leg: levelflowSymbol, invert: false, source };
   }
   if (base === "USD") {
@@ -158,10 +175,6 @@ export function bridgeLegsFor(levelflowSymbol: string): string[] {
     }
   }
   return [...legs];
-}
-
-export function isInRosterLeg(leg: string) {
-  return AVAILABLE_ASSET_SYMBOLS.includes(leg);
 }
 
 /**

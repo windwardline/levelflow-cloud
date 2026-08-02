@@ -141,6 +141,22 @@ const MARGIN_ONLY_ROWS: SpecRow[] = [
   ["ZN", "10-Year Note", null, null, 10_000, null],
 ];
 
+/**
+ * On E8's canonical roster and still not confirmed, because E8's own tick table
+ * cannot be reconciled with itself on these two. 6E and 6S publish tick 0.0001 at
+ * $12.50, so their value per 1.0 price unit is $125,000; 6J publishes tick
+ * 0.0000001 at the same $12.50, which is $125,000,000 — one thousand times its
+ * siblings', on the reciprocal axis. 6M (0.00005/$5.00) carries the same defect at
+ * a smaller factor and has no Levelflow counterpart in any class.
+ *
+ * An exchange contract notional would resolve both arithmetically, and it is ruled
+ * out: neither E8-published nor derivable by an E8-published method, so it fails
+ * the boundary (§20i ruling 5). They stay unconfirmed until E8 publishes a
+ * reconcilable pair, and the inversion machinery waits for data rather than the
+ * data being manufactured to fit the machinery.
+ */
+const UNRECONCILED_TICK_AXIS = ["6J", "6M"];
+
 function toSpec(row: SpecRow, canonical: boolean): E8FuturesSpec {
   const [symbol, product, tickSize, valuePerTick, margin, altSymbol] = row;
   return {
@@ -151,7 +167,9 @@ function toSpec(row: SpecRow, canonical: boolean): E8FuturesSpec {
     valuePerTick: valued(valuePerTick, TICK_SIZES),
     marginPerContract: valued(margin, MAX_CONTRACTS),
     canonical,
-    tradability: canonical ? "confirmed" : "unconfirmed",
+    tradability: canonical && !UNRECONCILED_TICK_AXIS.includes(symbol)
+      ? "confirmed"
+      : "unconfirmed",
   };
 }
 

@@ -123,6 +123,19 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
     }
   });
 
+  it("marks 6J and 6M unconfirmed despite the canonical list carrying both", () => {
+    // Canonical-list membership is not enough when E8's own tick table cannot be
+    // reconciled with itself: an exchange notional would settle it and is ruled out
+    // by the boundary (§20i ruling 5).
+    for (const symbol of ["6J", "6M"]) {
+      assert.equal(E8_FUTURES_SPECS[symbol].canonical, true);
+      assert.equal(E8_FUTURES_SPECS[symbol].tradability, "unconfirmed");
+    }
+    for (const symbol of ["6E", "6S", "6A", "6N"]) {
+      assert.equal(E8_FUTURES_SPECS[symbol].tradability, "confirmed");
+    }
+  });
+
   it("marks ZB and ZN unconfirmed — margin only, absent from all three lists", () => {
     for (const symbol of ["ZB", "ZN"]) {
       const spec = E8_FUTURES_SPECS[symbol];
