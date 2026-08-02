@@ -320,6 +320,10 @@ export function AdvisorWorkspace(
       (candidate) => candidate.symbol === shownSymbol,
     );
     if (!blocked) {
+      // The parity guard (core.test.ts) proves the menu and the scan universe
+      // are the same 50 symbols, so the only path here is availability
+      // filtering a closed market out of a group scan — and a market this
+      // scan never looked at keeps its stage exactly as it was.
       return false;
     }
     setAnalysisState({

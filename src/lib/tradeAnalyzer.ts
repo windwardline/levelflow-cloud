@@ -23,7 +23,6 @@ export type AnalyzerResponse = {
   analysisDiagnostics?: string[];
   advisoryOnly?: boolean;
   blocked?: boolean;
-  deduplicated?: boolean;
   error?: string;
   message?: string;
   outcomeRefresh?: {
@@ -44,8 +43,6 @@ export type AnalyzerResponse = {
   providerWarnings?: string[];
   reason?: string;
   setup?: AnalyzerSetup;
-  setupId?: string;
-  updated?: boolean;
 };
 
 export type MarketScanCandidate = {

@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
       await recordAnalyzerEvent({
         action: "refresh_outcomes",
         metadata: { outcomeRefresh, learningRefresh },
-        status: "success",
+        status: outcomeRefresh.failed > 0 ? "error" : "success",
         userId: user.id,
       });
       return jsonResponse(req, {
@@ -1669,8 +1669,8 @@ async function refreshGlobalStrategyWeights(): Promise<
     // ambiguous) resolved by the same replay engine from the same live bars,
     // whichever door asked for the setup.
     //
-    // ANALYZER_VERSION moved with this change (2026.08.01.scan-only-door,
-    // widening the training population is a change in how the analyzer learns,
+    // ANALYZER_VERSION moved with this change: widening the training
+    // population is a change in how the analyzer learns,
     // and the version is what scopes global learning — so the boundary between
     // the review-origin-only cohort and this one is explicit in the data rather
     // than implied by a deploy date. Setup construction itself is untouched.

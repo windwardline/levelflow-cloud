@@ -130,3 +130,22 @@ describe("status writes are compare-and-sets, not last-writer-wins (C1)", () => 
     );
   });
 });
+
+describe("partial failure is failure in the event row too (review follow-up)", () => {
+  it("refresh_outcomes records an error when any status write failed", () => {
+    const refresh = body(
+      ANALYZER,
+      'if (actionName === "refresh_outcomes")',
+      "return jsonResponse",
+    );
+    // The same law outcome-sync's event already follows one file over:
+    // partial failure is failure. A compare-and-set losing its race adds to
+    // outcomeRefresh.failed, and a row filed under status='success' is
+    // invisible to every error-filtered query that would go looking for it.
+    assert.match(
+      refresh,
+      /status: outcomeRefresh\.failed > 0 \? "error" : "success",/,
+    );
+    assert.doesNotMatch(refresh, /status: "success",/);
+  });
+});
