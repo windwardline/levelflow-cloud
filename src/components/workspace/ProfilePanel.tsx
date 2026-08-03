@@ -39,7 +39,9 @@ import { ThemeToggle } from "./ThemeToggle";
 // hairline-separated rows, each a label column beside its own content, no card
 // chrome anywhere and no icons. The 880 is real as of 2026-08-03 — it had been
 // declared and not reached since the sheet was built, capped at a width the
-// content region never granted (see the column's own comment below). The shared page footer (spec §17c) carries the
+// content region never granted (see the column's own comment below).
+//
+// The shared page footer (spec §17c) carries the
 // legal and production lines this column used to end with — and, since §17i, the
 // two links the mock's fourth row carried as well, which is why that row is gone
 // and the sheet is three: the footer is in the frame on every surface, so a
