@@ -32,6 +32,18 @@ const MARKET_LOADER = readFileSync(
   "supabase/functions/trade-analyzer/marketLoader.ts",
   "utf8",
 );
+const REST = readFileSync(
+  "supabase/functions/trade-analyzer/supabaseRest.ts",
+  "utf8",
+);
+
+function body(source: string, start: string, end: string) {
+  const from = source.indexOf(start);
+  assert.notEqual(from, -1, `expected to find ${start}`);
+  const to = source.indexOf(end, from + start.length);
+  assert.notEqual(to, -1, `expected to find ${end}`);
+  return source.slice(from, to);
+}
 
 describe("a provider failure is recorded, never swallowed", () => {
   it("leaves no bare catch in the news-calendar ingest path", () => {
@@ -91,6 +103,31 @@ describe("a provider failure is recorded, never swallowed", () => {
     assert.match(
       analyzer,
       /fetchMacroRateContext\(\s*fetchWithTimeout,\s*recordAnalyzerEvent,\s*\)/,
+    );
+  });
+
+  // The mirror of the same law: a write that worked must not report failure.
+  // adminInsertRows asks for `return=minimal`, PostgREST answers 201 with an
+  // empty body, and parsing it threw on every committed row — so every
+  // analyzer_events insert logged "analyzer event recording failed" while the
+  // row sat in the table. On the night of the scan_opportunities CPU failures
+  // that warning filled the log window the two real runtime errors were in.
+  it("never parses a body it told PostgREST not to send", () => {
+    const insert = body(
+      REST,
+      "export async function adminInsertRows(",
+      "\nexport async function adminUpdateRows",
+    );
+    assert.match(insert, /Prefer: "return=minimal"/);
+    assert.doesNotMatch(insert, /response\.json\(\)/);
+    // A real insert failure still throws — the body is only skipped on success.
+    assert.match(insert, /if \(!response\.ok\) \{\s*throw new Error/);
+  });
+
+  it("promises no rows from the insert that returns none", () => {
+    assert.match(
+      REST,
+      /export async function adminInsertRows\([^)]*\): Promise<void>/s,
     );
   });
 });
