@@ -1020,6 +1020,41 @@ test("§17n: every mobile surface's chrome stays inside its measured budget at 3
     });
   };
 
+  // The floor the slimming may not cross, swept on EVERY surface rather than on
+  // one: the targets this wave actually compacted are Scan's scope trigger (48px →
+  // 44px) and Insights' three filters (48px → 44px), so a sweep that only ran
+  // where nothing was resized would have proved the least. Two exclusions, both
+  // principled rather than convenient, and each one belongs to a specific surface:
+  //   - .colophon-link (Profile): reaches 44px through the ::after overlay §17k
+  //     puts outside layout, so its own box is 19.5px by design.
+  //   - #tv-attr-logo (Scan, and any surface showing a chart): lightweight-charts'
+  //     attribution anchor, a third-party element the app neither styles nor sizes.
+  // The one owner-granted exception (§17n, PR #149 — the expanded overlay's 28px
+  // cluster) is on none of the six: the inline chart's cluster is max-lg:hidden,
+  // and the overlay is not a tab.
+  const sweepTargets = async (name: string) => {
+    const undersized = await page.evaluate(() => {
+      const targets = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'button, a[href], select, [role="menuitem"]',
+        ),
+      );
+      return targets
+        .filter((element) => {
+          if (element.id === "tv-attr-logo") return false;
+          if (element.classList.contains("colophon-link")) return false;
+          const box = element.getBoundingClientRect();
+          return box.height > 0 && box.height < 43.5;
+        })
+        .map((element) => ({
+          height: element.getBoundingClientRect().height,
+          label: element.getAttribute("aria-label") ??
+            (element.textContent ?? "").trim().slice(0, 30),
+        }));
+    });
+    expect(undersized, `${name}: ${JSON.stringify(undersized)}`).toHaveLength(0);
+  };
+
   const checkSurface = async (
     name: string,
     scrollTestId: string,
@@ -1030,6 +1065,7 @@ test("§17n: every mobile surface's chrome stays inside its measured budget at 3
     expect(pinned, `${name} pinned chrome`).toBeGreaterThan(0);
     expect(pinned, `${name} pinned chrome`).toBeLessThanOrEqual(chromeCeiling);
     expect(scroll, `${name} content region`).toBeGreaterThanOrEqual(contentFloor);
+    await sweepTargets(name);
   };
 
   // Scan: 292.5px of it is the control row, the market head, its stamp and the
@@ -1057,35 +1093,6 @@ test("§17n: every mobile surface's chrome stays inside its measured budget at 3
   await accountMenu.click();
   await page.getByRole("menuitem", { name: "Profile" }).click();
   await checkSurface("Profile", "mobile-profile-scroll", 56, 690);
-
-  // And the floor the slimming may not cross, swept across the surface that
-  // carries the most controls: every visible tap target is a real 44px one.
-  // Two exclusions, both principled rather than convenient — the colophon link
-  // reaches 44px through .colophon-link's ::after overlay, which is outside layout
-  // by §17k's own design, and lightweight-charts' attribution anchor is a
-  // third-party element the app does not size. The one owner-granted exception
-  // (§17n, PR #149 — the expanded overlay's 28px cluster) is not on this surface:
-  // the inline chart's cluster is max-lg:hidden.
-  const undersized = await page.evaluate(() => {
-    const targets = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        'button, a[href], select, [role="menuitem"]',
-      ),
-    );
-    return targets
-      .filter((element) => {
-        if (element.id === "tv-attr-logo") return false;
-        if (element.classList.contains("colophon-link")) return false;
-        const box = element.getBoundingClientRect();
-        return box.height > 0 && box.height < 43.5;
-      })
-      .map((element) => ({
-        height: element.getBoundingClientRect().height,
-        label: element.getAttribute("aria-label") ??
-          (element.textContent ?? "").trim().slice(0, 30),
-      }));
-  });
-  expect(undersized, JSON.stringify(undersized)).toHaveLength(0);
 });
 
 test("the mobile account menu carries the footer's link set (spec §17g)", async ({ page }) => {

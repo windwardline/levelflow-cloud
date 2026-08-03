@@ -146,7 +146,7 @@ describe("placement — §17c above lg, §17g below it", () => {
     // Inside the scroll region: §17g kept the line, not a footer.
     assert.match(
       profile,
-      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon/,
+      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon[^"]*"/,
     );
   });
 

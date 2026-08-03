@@ -146,6 +146,48 @@ describe("§17n shared mobile chrome — the tab bar and its clearance", () => {
     assert.doesNotMatch(MOBILE_FRAME_SCROLL, /\bpb-24\b/);
   });
 
+  // The two numbers live in two files — the bar's box in App.tsx, the reserve in
+  // mobileFrame.ts — so nothing but this test couples them. Both are parsed from
+  // source and compared, which is the difference between "the reserve happens to be
+  // 56px" and "the reserve clears the bar": grow the bar to min-h-14 again without
+  // touching the reserve and the 7px gap becomes -1px, silently, on all six
+  // surfaces. Tailwind's spacing scale is 0.25rem per step, so min-h-N is N*4px,
+  // and the bar adds its own 1px border-t.
+  it("keeps the reserve at or above the bar's real height — parsed from both sources", () => {
+    const barStep = Number(
+      APP_SOURCE.match(/flex min-h-(\d+) flex-col items-center justify-center/)
+        ?.[1],
+    );
+    assert.ok(
+      Number.isInteger(barStep),
+      "expected to read the tab bar's min-h step from App.tsx",
+    );
+    const barHeightPx = barStep * 4 + 1;
+    const reserveRem = Number(
+      MOBILE_FRAME_SCROLL.match(/pb-\[calc\(([\d.]+)rem_\+_env\(/)?.[1],
+    );
+    assert.ok(
+      Number.isFinite(reserveRem),
+      "expected to read the reserve's rem term from MOBILE_FRAME_SCROLL",
+    );
+    const reservePx = reserveRem * 16;
+    assert.ok(
+      reservePx >= barHeightPx,
+      `reserve ${reservePx}px must clear the bar's ${barHeightPx}px`,
+    );
+    // And the inset term itself: the bar pads by env(safe-area-inset-bottom), so a
+    // reserve without the same term clears the bar only on a device that reports 0.
+    assert.match(
+      MOBILE_FRAME_SCROLL,
+      /env\(safe-area-inset-bottom\)/,
+      "the reserve tracks the same inset the bar pads by",
+    );
+    assert.match(
+      APP_SOURCE,
+      /pb-\[env\(safe-area-inset-bottom\)\] backdrop-blur lg:hidden/,
+    );
+  });
+
   // §17g's own gutters, untouched by this wave: the pinned row's 16px sides and
   // 12px top are m-scan-v3.html:29's geometry, and USABLE holds them — the
   // surface's content would touch the bezel without them.
