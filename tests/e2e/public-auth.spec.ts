@@ -75,6 +75,27 @@ function tokenPresent(page: Page) {
   );
 }
 
+// Which surface the reader last left, in the app's own key (App.tsx's
+// LAST_TAB_STORAGE_KEY). Seeded once, for the same reason the session is: the app
+// rewrites it whenever a persisted tab is active, and a re-seed on every load
+// would hide an arrival that overwrote it.
+const REMEMBERED_TAB_KEY = "levelflow-last-tab";
+
+async function seedRememberedTab(page: Page, tab: string) {
+  await page.addInitScript(({ key, value }) => {
+    if (!window.localStorage.getItem(key)) {
+      window.localStorage.setItem(key, value);
+    }
+  }, { key: REMEMBERED_TAB_KEY, value: tab });
+}
+
+function rememberedTab(page: Page) {
+  return page.evaluate(
+    (key) => window.localStorage.getItem(key),
+    REMEMBERED_TAB_KEY,
+  );
+}
+
 // The app, not the sign-in screen. content-region is the authed shell's own
 // scrolling row (App.tsx renders it only past the session gate), and the magic
 // link button is the surface that must not be back.
@@ -575,3 +596,80 @@ test("a browser session that never signed in does not inherit a stored session",
     false,
   );
 });
+
+// The satellite pages' own Donate link, followed by a reader who is signed in.
+// Both widths because the surface it must land on is two compositions (spec
+// §17g: a pinned title over a scrolling body below lg, the flat 620px page at
+// ≥lg), while the ask itself is one parameter at every width.
+//
+// Guide is the remembered tab throughout, and it is chosen: it is a persisted tab
+// that asks the analyzer for nothing, so the whole walk can assert what it costs.
+for (const width of [375, 1280]) {
+  test(`the legal pages' Donate link opens Donate for a signed-in reader at ${width}px`, async ({
+    page,
+  }) => {
+    test.skip(
+      !sessionsConfigured,
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    );
+    const mobile = width < 1024;
+    await page.setViewportSize({ width, height: 812 });
+    await seedStoredSession(page);
+    await seedRememberedTab(page, "guide");
+    // A donate arrival must cost the analyzer nothing: it renders from constants
+    // and env, and App's outcome refresh is gated to the Desk and Insights.
+    const analyzerCalls: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/functions/v1/")) {
+        analyzerCalls.push(request.url());
+      }
+    });
+
+    await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+      .toBeVisible();
+
+    // Reached the way a reader reaches it: the document's own footer link.
+    await page.goto("/legal/privacy.html", { waitUntil: "domcontentloaded" });
+    await page.getByRole("link", { name: "Donate", exact: true }).click();
+
+    await expect(page.getByRole("heading", { name: "Donate", exact: true }))
+      .toBeVisible();
+    await expect(page.getByTestId("mobile-donate-scroll"))
+      .toHaveCount(mobile ? 1 : 0);
+    // Consumed: the ask is out of the URL, with no navigation and no new history
+    // entry. toHaveURL resolves against baseURL and retries, so it waits for the
+    // effect that clears it.
+    await expect(page).toHaveURL("/");
+    expect(
+      await rememberedTab(page),
+      "the donate arrival overwrote the remembered tab",
+    ).toBe("guide");
+
+    // No new entry: Back is the page the reader came from, not the URL they
+    // arrived on.
+    await page.goBack({ waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Levelflow" })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/legal/privacy.html");
+
+    // And forward again lands on the cleaned entry, so the reader is not
+    // re-trapped on Donate: the remembered tab is what opens.
+    await page.goForward({ waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+      .toBeVisible();
+
+    // The hash form is the same ask, read on the same terms: on load. (From the
+    // legal page, so this is a real document load — /#donate typed while the app
+    // is already open changes only the fragment, which navigates nothing and
+    // re-runs nothing, exactly as it does on the sign-in screen. Nothing in the
+    // product emits that form; it is an alternate URL a reader may hold.)
+    await page.goto("/legal/terms.html", { waitUntil: "domcontentloaded" });
+    await page.goto("/#donate", { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "Donate", exact: true }))
+      .toBeVisible();
+    await expect(page).toHaveURL("/");
+    expect(await rememberedTab(page)).toBe("guide");
+
+    expect(analyzerCalls, "a donate arrival spent analyzer budget").toEqual([]);
+  });
+}
