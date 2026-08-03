@@ -225,3 +225,94 @@ describe("§19g — every save carries the selection", () => {
     assert.match(panel, /\.\.\.brokerSelectionOf\(profile\),\s*defaultTimeframe:/);
   });
 });
+
+const ACCOUNTS_MIGRATION = readFileSync(
+  "supabase/migrations/20260803010000_broker_accounts.sql",
+  "utf8",
+);
+const INIT_SQL = readFileSync("supabase/init.sql", "utf8");
+
+describe("§19 retrofit — the multi-account schema (amendment 14)", () => {
+  const ACCOUNT_COLUMNS = [
+    "user_id",
+    "broker_id",
+    "classification",
+    "platform",
+    "program_line",
+    "account_size",
+    "stage",
+    "risk_percent",
+    "drawdown_tier",
+  ];
+
+  it("declares broker_accounts in the migration and in init.sql alike", () => {
+    for (const source of [ACCOUNTS_MIGRATION, INIT_SQL]) {
+      assert.match(source, /create table if not exists public\.broker_accounts/);
+      for (const column of ACCOUNT_COLUMNS) {
+        assert.match(source, new RegExp(`\\b${column}\\b`));
+      }
+    }
+  });
+
+  it("carries the active pointer on profiles in both files", () => {
+    assert.match(
+      ACCOUNTS_MIGRATION,
+      /add column if not exists active_broker_account_id uuid/,
+    );
+    assert.match(INIT_SQL, /active_broker_account_id uuid/);
+  });
+
+  // Amendment 14 + the plan's no-deletion rule: the retrofit replaces the shape
+  // above the schema, never the data underneath it. The six single-selection
+  // columns and their constraints stay exactly as PR #159 left them.
+  it("deletes no column and no constraint from profiles", () => {
+    assert.doesNotMatch(ACCOUNTS_MIGRATION, /drop column/i);
+    assert.doesNotMatch(ACCOUNTS_MIGRATION, /alter table public\.profiles[\s\S]*?drop constraint profiles_broker_/);
+    for (const column of [
+      "broker_id",
+      "broker_program_line",
+      "broker_account_size",
+      "broker_stage",
+      "broker_risk_percent",
+      "broker_drawdown_tier",
+    ]) {
+      assert.match(INIT_SQL, new RegExp(`\\b${column}\\b`));
+    }
+  });
+
+  it("seeds one account from every existing complete selection", () => {
+    assert.match(ACCOUNTS_MIGRATION, /insert into public\.broker_accounts/);
+    assert.match(ACCOUNTS_MIGRATION, /from public\.profiles p/);
+    assert.match(ACCOUNTS_MIGRATION, /where p\.broker_id is not null/);
+    assert.match(
+      ACCOUNTS_MIGRATION,
+      /update public\.profiles p[\s\S]*set active_broker_account_id = a\.id/,
+    );
+  });
+
+  it("constrains the three new domains", () => {
+    assert.match(
+      ACCOUNTS_MIGRATION,
+      /broker_accounts_classification_valid[\s\S]*?'forex', 'crypto', 'futures'/,
+    );
+    assert.match(
+      ACCOUNTS_MIGRATION,
+      /broker_accounts_platform_valid[\s\S]*?'tradelocker', 'matchtrader', 'tradovate'/,
+    );
+    assert.match(
+      ACCOUNTS_MIGRATION,
+      /broker_accounts_program_line_valid[\s\S]*?'zero_futures_max'/,
+    );
+  });
+
+  it("scopes broker_accounts to its owner under RLS, to authenticated only", () => {
+    assert.match(ACCOUNTS_MIGRATION, /alter table public\.broker_accounts enable row level security/);
+    for (const verb of ["select", "insert", "update", "delete"]) {
+      assert.match(
+        ACCOUNTS_MIGRATION,
+        new RegExp(`for ${verb}\\s+to authenticated`),
+      );
+    }
+    assert.match(ACCOUNTS_MIGRATION, /\(select auth\.uid\(\)\) = user_id/);
+  });
+});
