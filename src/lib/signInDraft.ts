@@ -58,6 +58,9 @@ export function decodeSignInDraft(raw: string | null): SignInDraft | null {
 }
 
 export function loadSignInDraft(): SignInDraft | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
   return decodeSignInDraft(window.sessionStorage.getItem(SIGN_IN_DRAFT_KEY));
 }
 
