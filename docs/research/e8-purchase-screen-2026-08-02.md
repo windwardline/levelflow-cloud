@@ -262,3 +262,23 @@ read "6% Max"; drawdown type **Dynamic** on every card, both stages.
   **$1,998** (`verified`) — the custom-account article's "$2,598" ceiling
   presumably prices a higher drawdown tier (which tier is unobserved), and the
   secondary's "$1,627" matches nothing observed on any surface.
+
+---
+
+## THE E8 ONE (CRYPTO) MARKETING-SITE WALK (four frames — e8markets.com Challenges page)
+
+Four frames mirroring the Forex One walk: MC1 Challenge (5K–100K) · MC2
+Performance (5K–100K) · MC3 Challenge (100K–500K) · MC4 Performance (100K–500K).
+
+**E8 One Crypto's per-size cards are numerically IDENTICAL to One Forex at every
+tier and both stages**: the same base-price ladder ($48 / $88 / $188 / $288 /
+$488 / $798 / $1,598 / $1,998), the same flat 6/4/9% scaling (max DD / daily DD /
+target at the 6% default), drawdown type Dynamic, the 40% consistency rule at
+Performance only, pass in as little as 1 day, first payout in as little as
+3 days, no activation fee. The crypto line's real deltas remain the checkout's:
+account-level leverage 1:5, TradeLocker only, no trading-conditions choice, no
+Trial program.
+
+One faithful marketing oddity: the crypto page scatters "Recommended" badges
+across several mid-ladder sizes (10K through 400K in these frames) where the
+forex page badges $100K alone. Cosmetic; recorded for exactness.
