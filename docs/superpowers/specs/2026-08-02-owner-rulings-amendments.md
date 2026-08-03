@@ -1168,3 +1168,78 @@ small change set: one `Observation`, one row promoted, one test line, one
 sentence in the queue struck. The queue is ordered so the first three
 observations validate the derivation behind all 29 sizeable CFD markets, and
 so `6J` — the row the boundary could not fix — has a route.
+
+---
+
+## Amendments 12–15 — the broker-architecture rulings (owner, 2026-08-03 ~01:37)
+
+The owner laid out the whole broker architecture in one message and asked for
+gap-fill, recommendation, and correction. Their words are operative law; the
+controller's notes follow each.
+
+**Amendment 12 — Forex-classification-wide applicability.** Verbatim:
+"treat the chart data and screenshots I provided today from my E8 Pro Forex
+account as applicable to all versions of the E8 Forex accounts, as E8 groups
+those things accordingly. The deviations on assets and data will come when we
+setup accounts as Forex, Crypto, or Futures--not the substructure of those
+accounts (like Pro, Signature, etc--the differences there are how the account
+rules are structured, which you already have a comprehensive report on)."
+Operative: the feed-verification record (F1–F7), the 46-instrument
+observation set, and the measured spreads/leverage/contract values bind at
+the ACCOUNT-CLASSIFICATION level (Forex · Crypto · Futures); program lines
+differ only in rules (§20's domain). Controller's one asterisk, recorded not
+blocking: E8 One Forex can run on MatchTrader as well as TradeLocker; the
+per-platform verification law stands, so a single MatchTrader spot-check
+remains an open feed-doc item — the ruling governs unless that check ever
+contradicts it.
+
+**Amendment 13 — market sets follow the account classification.** Verbatim:
+"none of the Forex accounts can trade Futures, so remove them from Levelflow
+for any E8 Forex account. We will do the same thing for Crypto and Futures,
+once we confirm the tradeable markets for each." Operative: when a broker
+profile names any E8 Forex program line, the Futures group's symbols leave
+the user's market surfaces entirely. WTI/BRENT stay — they are Energies
+CFDs on the Forex account (confirmed by ticket and frame). Futures SERIES
+may remain internal chart-derivation sources (e.g. any future index-CFD
+scan model); the removal governs what the user sees as markets. The
+tradeable set for E8 Forex accounts is the 46 observed instruments; scan
+eligibility remains the intersection with the edge-verified list (no-trade
+exclusions govern setups, the account governs the menu).
+
+**Amendment 14 — the account flow and saved account profiles.** Verbatim:
+"a user confirms which broker they are with from our (eventual) list of
+supported and modeled brokers, from there they indicate which type of
+account they have (for E8, that would be Forex, Futures, or Crypto, but for
+future brokers it will likely look different), and then they confirm the
+parameters of that account for the scaling functionality that you are
+building. Once that is locked in (maybe we have a way to save these settings
+so they can simply select the account setup from a list of confirmed
+accounts later? it would make it easier on them when they navigate between
+them to generate setups while having multiple E8 accounts), the engine only
+shows markets that are applicable to the account they just indicated they
+are actively trading, and only shows data that matches what the broker is
+using for those markets, and the setups are tailored to how those markets
+move and perform from the replay sweep on the actual, confirmed matching
+data source." Operative: the §19 retrofit gains the multi-account shape —
+saved account profiles (broker · account classification · program line ·
+size · stage · risk · drawdown tier) with one active account, selectable
+without re-entry. The selection flow is broker → classification → catalog
+parameters (ruling 7's static catalog per step). Markets, data, and setups
+all scope to the active account.
+
+**Amendment 15 — the Futures and Crypto build sequence.** Verbatim: "When we
+create the E8 Futures profiles, I will purchase a Futures challenge and
+provide the applicable screenshots of the tradeable assets like I did with
+my current Pro Forex account. Once we have them, we will identify the exact
+data source from FMP to use, run the replay sweep against those sources, and
+build out the rest of the E8 Futures profiles according to our existing
+standards." And: "I will do the same thing for E8 Crypto account later. It
+is not nearly as much of a priority for me, so it will come after have
+settled all Forex and Futures modeling with E8. It will be the last thing we
+do before creating an environment for a new broker altogether." Operative
+order: Forex modeling settles first (retrofit + basis handling + the
+BNB/indices reopener), Futures second (owner purchase → frames + tickets →
+per-instrument FMP source identification incl. contract-month/roll handling
+→ replay sweep on the confirmed sources → profiles), Crypto last before the
+first non-E8 broker. The feed-verification protocol is the standing method
+for each.
