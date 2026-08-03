@@ -371,7 +371,7 @@ describe("buildInsightsGroups", () => {
 });
 
 describe("buildRecordBand", () => {
-  it("counts setups created within the last 7 days as this week's, from the loaded rows regardless of the panel's own filters", () => {
+  it("counts setups created within the last 7 days as this week's, from the record it is given regardless of the panel's own filters", () => {
     const band = buildRecordBand(
       [
         buildSetup({ created_at: NOW.toISOString(), id: "a" }),
