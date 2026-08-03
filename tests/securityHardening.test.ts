@@ -243,17 +243,28 @@ describe("security hardening", () => {
       template,
       /Click the button below to sign in\. This link expires in 15 minutes\./,
     );
-    assert.match(template, /background:#2244FF;color:#fff/);
+    assert.match(template, /background-color:#2244FF;color:#ffffff/);
     assert.match(template, />Sign in<\/a>/);
     assert.match(template, /If you didn&#39;t request this, you can ignore it\./);
     // The retired pre-overhaul palette, navy included, must not come back —
     // tests/brandAssets.test.ts guards the icons against the same three.
     assert.doesNotMatch(template, /#111c38|#F7F8F4|#5B8266/i);
     assert.doesNotMatch(template, /LevelFlow/);
+    // Dark-mode hardening (standard, 2026-08-02): GoTrue owns the document, so
+    // the fragment itself declares its scheme, backs the wrapper and button
+    // with bgcolor attributes, and names every text color — dark-mode clients
+    // recolored the unhardened template, whose #667 footer fell to ~3.1:1.
+    assert.match(template, /color-scheme:light/);
+    assert.match(template, /bgcolor="#ffffff"/);
+    assert.match(template, /bgcolor="#2244FF"/);
+    assert.match(template, /color:#555555/);
+    assert.doesNotMatch(template, /#667[^0-9a-f]/i);
     // And the script's own verifier has to read the body, not just the two
     // header fields — that asymmetry is what let the body drift alone.
     assert.match(script, /'Sign in to Levelflow' in t/);
     assert.match(script, /'#2244FF' in t/);
+    assert.match(script, /'color-scheme:light' in t/);
+    assert.match(script, /'#667' not in t/);
   });
 });
 
