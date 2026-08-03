@@ -33,14 +33,22 @@ import json, sys
 
 # Standing Windward Line magic-link template; only the app name and the
 # brand-accent button color are Levelflow-specific (spec section 6).
+# Dark-mode hardened per the standard (2026-08-02): GoTrue owns the document,
+# so the fragment carries its own color-scheme declaration, bgcolor fallbacks
+# on the wrapper table and the button cell, and an explicit color on every
+# text element — the unhardened template let dark-mode clients recolor it,
+# and its #667 footer fell to ~3.1:1 under inversion.
 template = """
-      <div style="font-family:system-ui,sans-serif;line-height:1.5">
-        <h2 style="margin:0 0 12px">Sign in to Levelflow</h2>
-        <p>Click the button below to sign in. This link expires in 15 minutes.</p>
-        <p><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#2244FF;color:#fff;
-           text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Sign in</a></p>
-        <p style="color:#667;font-size:13px">If you didn&#39;t request this, you can ignore it.</p>
-      </div>"""
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="color-scheme:light;background-color:#ffffff">
+        <tr><td style="font-family:system-ui,sans-serif;line-height:1.5;color:#111111">
+          <h2 style="margin:0 0 12px;color:#111111">Sign in to Levelflow</h2>
+          <p style="color:#111111">Click the button below to sign in. This link expires in 15 minutes.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td bgcolor="#2244FF" style="border-radius:8px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#2244FF;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Sign in</a></td>
+          </tr></table>
+          <p style="color:#555555;font-size:13px">If you didn&#39;t request this, you can ignore it.</p>
+        </td></tr>
+      </table>"""
 
 print(json.dumps({
   "smtp_host": "smtp.resend.com",
@@ -83,6 +91,10 @@ ok = (
     and 'Sign in to Levelflow' in t
     and 'LevelFlow' not in t
     and '#2244FF' in t
+    and 'color-scheme:light' in t
+    and 'bgcolor="#2244FF"' in t
+    and '#555555' in t
+    and '#667' not in t
 )
 print('VERIFIED' if ok else 'MISMATCH — inspect config now')
 sys.exit(0 if ok else 1)"

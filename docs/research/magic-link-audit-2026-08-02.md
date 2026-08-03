@@ -154,7 +154,7 @@ the source.
 | Accent | `#2244FF` ✓ | `#7c5cff` ✓ | `#17594e` ✓ |
 | Transport | Supabase SMTP → Resend ✓ | Resend REST ✓ | Resend REST ✓ |
 | 15-minute expiry | `mailer_otp_exp` 900 ✓ | `15 * 60 * 1000` ✓ | `maxAge: 15 * 60` ✓ |
-| Single-use, atomic | GoTrue ✓ | **read-then-write race** | `DELETE … RETURNING` ✓ |
+| Single-use, atomic | GoTrue ✓ | race — **fixed**, timeshift#34 | `DELETE … RETURNING` ✓ |
 | Link host from server config | `site_url` ✓ | `APP_URL`, hard-fails if unset ✓ | **request headers** |
 | Scanner-safe link | n/a | n/a | **bypassed live** |
 
@@ -162,12 +162,17 @@ All three send the correct sender, subject, accent, and body copy. Every accent
 of record is intact. The drift is entirely in the auth layers.
 
 **TimeShift** — copy verbatim compliant on every row, and `#7c5cff` still equals
-the live `--violet` token. `lib/auth/magic.ts:19-26` checks `usedAt` and then
-writes it in a separate statement, so two concurrent verifies both mint a
-session; a scanner prefetch racing a click is enough. Also: no rate limiting, one
-error string for every send failure (`app/api/auth/request-link/route.ts:29-32`),
-a request-origin redirect fallback when `APP_URL` is unset
-(`app/api/auth/verify/route.ts:11`), and no test covering the token lifecycle.
+the live `--violet` token. `consumeLoginToken` checked `usedAt` and then wrote it
+in a separate statement, so two concurrent verifies both minted a session; a
+scanner prefetch racing a click was enough to reach it. Eight concurrent consumes
+of one token won eight times against that code. **Fixed in timeshift#34**: every
+validity condition moved into the WHERE of one conditional write, with `count`
+as the answer to whether this caller consumed the token — the scoped-write shape
+`lib/db/trips.ts` already uses for ownership. Branches back to 100% (204/204).
+
+Still open there: no rate limiting, one error string for every send failure
+(`app/api/auth/request-link/route.ts:29-32`), and a request-origin redirect
+fallback when `APP_URL` is unset (`app/api/auth/verify/route.ts:11`).
 
 **Pathfinder** — the `/verify` rewrite the standard requires is dead code in
 production. `apps/web/src/lib/magic-link.ts` implements
@@ -216,7 +221,8 @@ from the app directory, which has none — but if it ever reached the runtime,
 Pathfinder's plain-text part also drops "Click the button below to sign in." and
 merges the expiry into the footer line. Minor next to the above.
 
-Both filed for their own repos; neither touched here.
+TimeShift's atomicity fix landed in its own repo (timeshift#34); Pathfinder's two
+findings are filed there. Neither repo is touched from here.
 
 Resend's log also shows Pathfinder's own pre-standard era: subjects
 `Sign in to pathfinder.windwardline.com` through 2026-07-26 01:33, then
@@ -249,3 +255,16 @@ the report suggested: **a template change silently forks the inbox.** Every
 email already delivered keeps the branding it was sent with, so any accent or
 copy change guarantees a period where two versions coexist in front of the
 owner. Worth remembering the next time a palette moves.
+
+## Addendum — dark-mode hardening (owner-approved, 2026-08-02)
+
+The owner approved the coordinated hardening pass ("Okay, do it"), and the
+standard gained its dark-mode clause the same night (~/AGENTS.md, "Dark mode
+(hardened 2026-08-02)"). Levelflow's template now: declares
+`color-scheme:light` on the root wrapper (GoTrue owns the document, so the
+fragment carries its own declaration), backs the wrapper table and the button
+cell with `bgcolor` attributes, and names every text color explicitly — body
+`#111111`, footer `#555555` (7.5:1 on white; the old `#667` fell to ~3.1:1
+under client inversion). Copy, casing, accent and layout are unchanged.
+TimeShift and pathfinder receive the identical hardening in their own
+change sets, queued behind each repo's in-flight auth fixes.
