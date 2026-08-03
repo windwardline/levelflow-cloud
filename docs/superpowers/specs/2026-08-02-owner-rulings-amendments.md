@@ -1283,12 +1283,16 @@ retrofit plan's open questions:
    Crypto. The catalog adheres to them. Whenever an offering is uncertain
    or sources conflict, the owner's screenshots — the account checkout
    screens and the in-platform TradeLocker captures of 2026-08-02 —
-   overrule every other record, the dossiers included. Consequence the
-   controller derived and applies (flagged for the owner's plan review,
-   not itself owner text): `zero`, the forex-family line, appears on no
-   checkout walk, so it is not offered and never enters the rendered
-   catalog — not even greyed. Greying is for sold-but-unverified
-   (MatchTrader); unsold is absent. Its data record stays (amendment 13:
+   overrule every other record, the dossiers included. The `zero`
+   consequence is OWNER-CONFIRMED (2026-08-03, on plan review): "Zero is
+   offered on Futures, as two different account types … But if it is not
+   visible on checkout screens under Forex accounts, then it does not
+   belong there. **Do not include unavailable options, whether greyed or
+   not.**" So: Zero MAX and Zero Starter stay on the Futures walk where
+   the checkout sells them; the forex-family `zero` never enters the
+   rendered catalog in any form. Greying remains reserved for
+   sold-but-unverified (MatchTrader); unavailable is absent — a general
+   rule, not a Zero-specific one. The data record stays (amendment 13:
    nothing deleted).
 2. **E8 Trial is out of scope entirely.** Levelflow builds nothing for
    trial accounts. Their absence from the catalog is correct by ruling,
