@@ -72,6 +72,14 @@ export function useDeployedVersion(enabled: boolean): boolean {
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
+      // The in-flight flag is dropped with the effect that raised it, or the next
+      // run inherits a flag whose fetch can no longer set anything: React's dev
+      // StrictMode mounts, unmounts and remounts every effect, so the second run's
+      // mount check would see `checking` still true from the first and return
+      // early — no check at all until a wake. An `enabled` false→true flip while a
+      // read is in flight does the same. Both fetches can exist for a moment; only
+      // the uncancelled one can raise the notice.
+      checking.current = false;
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [enabled]);

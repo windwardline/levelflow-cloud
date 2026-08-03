@@ -18,7 +18,7 @@
  * - The RUNNING bundle is the entry module's own URL. `import.meta.url` in
  *   src/main.tsx resolves at runtime to the entry chunk the browser actually
  *   loaded (`/assets/index-<hash>.js` in a build), and main.tsx hands it to
- *   rememberRunningBundle below on its first line. Nothing here reads
+ *   rememberRunningBundle below before it renders anything. Nothing here reads
  *   import.meta.url itself: in any other module it names the chunk THAT module
  *   was bundled into, which is the entry chunk only for as long as code
  *   splitting leaves it there — true today, and silently untrue the day a lazy
@@ -29,19 +29,32 @@
  *   cache: "no-store", because a cached copy of the document answers the
  *   question nobody asked.
  *
- * A mismatch between the two is a deploy that landed under a live tab. An
- * unknown on either side is never a mismatch (bundleChanged): the dev server's
- * entry is `/src/main.tsx` on both sides, a failed read is not evidence of
- * anything, and a notice that guesses is a notice telling a reader to reload for
- * nothing.
+ * A mismatch between the two means the tab and the origin disagree about which
+ * bundle is current — almost always a deploy that landed under a live tab, and
+ * occasionally a read served by a stale edge. bundleChanged below records why the
+ * check does not try to tell those two apart. An unknown on either side is never a
+ * mismatch: the dev server's entry is `/src/main.tsx` on both sides, a failed read
+ * is not evidence of anything, and a notice that guesses is a notice telling a
+ * reader to reload for nothing.
  */
 
 // One built entry chunk's identity: the filename Vite emits for it, hash
 // included, which is the shortest string that changes on every deploy that
-// changes the app. Anchored to the end of the path and to the `assets/` segment
-// so `base` (VITE_BASE_PATH) may put anything in front of it, and so the
-// stylesheet that shares the entry's `index-` stem — `assets/index-<hash>.css`,
-// one letter of extension away — can never answer instead.
+// changes the app.
+//
+// "Changes the app" is broader than "changes the JavaScript", and measurably so:
+// the entry chunk's hash covers its CSS dependency, so a stylesheet-only deploy
+// renames it. Measured on this branch, 2026-08-03: adding one rule to
+// src/styles/index.css renamed index-BHYRebNL.js to index-CA_EGOiR.js while the
+// JavaScript stayed byte-identical (sha256 ccc1d5b0… both times). The notice
+// therefore fires on a CSS-only deploy too, which is correct for what it says —
+// "Levelflow has updated" is true of one, and the sentence makes no claim about
+// JavaScript.
+//
+// Anchored to the end of the path and to the `assets/` segment, so `base`
+// (VITE_BASE_PATH) may put anything in front of it, and so the `.css` twin beside
+// the entry — `assets/index-<hash>.css`, one letter of extension away — cannot
+// answer instead. That last part is load-bearing: see bundleIdFromHtml.
 const ENTRY_BUNDLE = /(?:^|\/)assets\/(index-[A-Za-z0-9_-]+\.js)$/;
 
 /** The entry chunk named by a URL or path, or null if it names no built one. */
@@ -55,11 +68,21 @@ export function bundleIdFromUrl(url: string): string | null {
 /**
  * The entry chunk a served document loads, or null if it loads no built one.
  *
- * The script tag is parsed rather than the document grepped for `index-`: the
- * head also carries a stylesheet with the same stem and five modulepreloads, and
- * a check driven by any of those would fire on deploys that changed no
- * JavaScript at all. Case and quoting are both loose because HTML permits both;
- * only the first module script with a built entry answers.
+ * The script tag is parsed rather than the document grepped for `index-`, and the
+ * reason is a failure mode rather than a false positive on CSS-only deploys (the
+ * shipped check fires on those either way — see ENTRY_BUNDLE above). The head
+ * carries `assets/index-<hash>.css` two lines from the entry script, same stem,
+ * one letter of extension apart, and the two hashes are unrelated. A scan loose
+ * enough to match the stylesheet would be comparing a stylesheet's name against
+ * the running JS chunk's name — never equal, on any deploy, so the notice would
+ * be permanent and no reload could clear it. Reading the tag the browser itself
+ * loads is what makes "current" mean the thing a reload would fetch.
+ *
+ * It fails closed. Case is ignored and either quote style is accepted, but the
+ * attribute has to be quoted and unpadded — `type=module` and `type=" module "`
+ * both answer null, as does any document this cannot parse, and null is no
+ * mismatch. A shape we do not recognise silences the notice rather than raising
+ * it. Only the first module script naming a built entry answers.
  */
 export function bundleIdFromHtml(html: string): string | null {
   for (const tag of html.match(/<script\b[^>]*>/gi) ?? []) {
@@ -103,6 +126,13 @@ export function runningBundleId(): string | null {
  *
  * Both sides must be known. An unknown is not a mismatch: in dev both are null,
  * and a read that failed says nothing about what is deployed.
+ *
+ * Direction-blind, deliberately. This asks whether the two differ, not which is
+ * newer — a filename hash carries no order, and nothing else in the document
+ * does either. So a read that lands on a stale CDN edge raises the notice as
+ * readily as a real deploy does. The cost of that is one reload the reader did
+ * not need; the cost of demanding proof of direction would be a notice that stays
+ * silent through the case this exists for.
  */
 export function bundleChanged(
   running: string | null,
@@ -111,18 +141,43 @@ export function bundleChanged(
   return running !== null && deployed !== null && running !== deployed;
 }
 
+// The version read's own budget. Shorter than the smallest request this app
+// otherwise makes — 12s for the history read (src/lib/tradeAnalyzer.ts) — because
+// this one is a single static document off the origin the app was served from, and
+// generous enough for a cold mobile radio.
+//
+// It exists because of what a read that never settles would cost: the hook holds a
+// "check in flight" flag to keep a wake from starting a second fetch, and a promise
+// that never resolves would leave that flag raised for the life of the tab. The
+// detector would retire itself in silence, on the one network bad enough to need
+// it. An abort settles it, and the next wake asks again.
+export const VERSION_CHECK_TIMEOUT_MS = 8_000;
+
 /**
  * The entry chunk the origin is serving right now, or null if it cannot be read.
  *
- * "/" rather than the tab's own route: every route rewrites to this document
- * (vercel.json), so it is the one path that answers the same way from anywhere in
- * the app. A failure is null and a warning for the operator — offline, a captive
- * portal, or a deploy mid-flight are none of them news a reader can act on, and
- * none of them is evidence that a deploy happened.
+ * "/" is the document this app is served from, and the only path that names its
+ * entry bundle. Not a rewrite of every route — this origin has none (vercel.json
+ * carries headers only), and the other paths it serves are their own documents
+ * (public/404.html, public/construction.html, public/legal/*.html), which name no
+ * bundle at all. Nor is it a substitute for "the tab's own route": §17o gave
+ * surfaces no addresses (src/lib/surfaceHistory.ts writes state and leaves the URL
+ * alone), so the tab's route IS "/" for the whole life of the session.
+ *
+ * A failure is null and a warning for the operator — offline, a captive portal, a
+ * deploy mid-flight, a read that outran its budget: none of them is news a reader
+ * can act on, and none is evidence that a deploy happened.
  */
 export async function readDeployedBundleId(): Promise<string | null> {
   try {
-    const response = await fetch("/", { cache: "no-store" });
+    const response = await fetch("/", {
+      cache: "no-store",
+      // AbortSignal.timeout rather than the Promise.race in
+      // src/lib/tradeAnalyzer.ts: that helper races a promise it cannot cancel,
+      // which is the right shape for a Supabase client call and the wrong one
+      // here, where the request itself can be dropped instead of left in flight.
+      signal: AbortSignal.timeout(VERSION_CHECK_TIMEOUT_MS),
+    });
     if (!response.ok) {
       console.warn("[deploy] version check refused", response.status);
       return null;

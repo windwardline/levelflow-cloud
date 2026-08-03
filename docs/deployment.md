@@ -25,6 +25,11 @@ the line is the reload control. Unknown on either side is never a mismatch, so t
 (whose entry is `/src/main.tsx`) and a failed read both show nothing;
 `src/lib/deployedVersion.ts` holds the mechanism and the incident that asked for it.
 
+The trigger is any deploy that renames the entry chunk, which includes a stylesheet-only one: the
+chunk's hash covers its CSS dependency (measured — one added rule renames it with byte-identical
+JavaScript). The notice claims the app has updated, not that its JavaScript changed, so that is
+the intended reach.
+
 Every analyzer request carries the running bundle's filename as `buildStamp`, and the server
 echoes it into `analyzer_events.metadata` beside the scan trace. That is the fleet view: which
 bundles are still asking, and how much of the fleet a breaking change has yet to reach. It is a

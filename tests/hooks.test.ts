@@ -260,7 +260,22 @@ describe("useDeployedVersion checks twice and never loops (source-pinned — see
     // tab coming back. Guarded to the transition IN, exactly as useTradeSetups'
     // listener is — 'hidden' fires the same event, and a tab on its way out has
     // nothing to be told.
-    assert.match(source, /void check\(\);/);
+    //
+    // Two calls, counted, and the first one placed ahead of the wake handler that
+    // holds the second. A bare match for `void check()` was satisfied by the wake
+    // path's own call, so deleting the mount check left this suite green — proved by
+    // mutation in the merge-gate review, which is why the count and the position are
+    // both pinned, and why the position is measured against `const onVisible`
+    // rather than against the listener line: the handler is declared first, so an
+    // indentation-based or listener-based check would have kept passing too.
+    assert.equal((source.match(/void check\(\);/g) ?? []).length, 2);
+    const firstCall = source.indexOf("void check();");
+    const wakeHandler = source.indexOf("const onVisible = ");
+    assert.ok(firstCall > -1, "expected the mount check");
+    assert.ok(
+      wakeHandler > firstCall,
+      "the mount check must come before the wake handler that holds the other call",
+    );
     assert.match(
       source,
       /document\.addEventListener\("visibilitychange", onVisible\)/,
@@ -285,6 +300,13 @@ describe("useDeployedVersion checks twice and never loops (source-pinned — see
       /if \(answered\.current \|\| checking\.current\) \{\s*return;\s*\}/,
     );
     assert.match(source, /answered\.current = true;\s*setDeployMoved\(true\);/);
+    // And the in-flight flag is dropped with the effect that raised it. Without
+    // this, React's dev StrictMode remount hands the second run a flag the first
+    // run set — whose fetch is already cancelled — so the mount check is swallowed
+    // and nothing is checked until a wake. `answered` deliberately does NOT reset:
+    // it is the sticky answer, and a remount must not re-open a settled question.
+    assert.match(source, /cancelled = true;[\s\S]{0,700}checking\.current = false;/);
+    assert.equal((source.match(/answered\.current = false/g) ?? []).length, 0);
   });
 
   it("says nothing when the read says nothing", () => {

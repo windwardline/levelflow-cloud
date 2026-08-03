@@ -12,7 +12,7 @@ const OUTCOME_REFRESH_INTERVAL_MS = 60_000;
 // How long a wake read waits before taking itself, and so the window in which
 // another read can stand it down.
 //
-// Chosen against the pair it closes, not for taste. Production telemetry for
+// Chosen against the pair it narrows, not for taste. Production telemetry for
 // 2026-08-03 shows the wake read and spec §8's surface-show force refresh landing
 // within the same second of each other, in pairs, on one wake — and the chain is
 // the returning tab's own: GoTrue refreshes the token when the tab comes back,
@@ -27,6 +27,21 @@ const OUTCOME_REFRESH_INTERVAL_MS = 60_000;
 // immaterial against what this read exists to beat: the socket needs 25s of
 // heartbeat plus a 1s–10s reconnect ladder to notice it died (#188), so a read
 // 300ms later is still some two orders of magnitude earlier than the rejoin.
+//
+// What the window does NOT promise, stated because a guard read as a guarantee is
+// worse than no guard. The stand-down is a 300ms window, not a handshake: when
+// GoTrue's refresh takes longer than that — it is a network round trip, so on a
+// slow radio it will — §8's force refresh lands after the wake read has already
+// gone, and the pair survives exactly as telemetry recorded it. What is closed
+// unconditionally is the wake path's own duplication (two triggers, one read); the
+// pair is narrowed to the cases where the token refresh returns inside the window.
+//
+// And the clock the stand-down consults is every read's, not §8's alone: the two
+// postgres_changes handlers below stamp it too, and theirs carry no outcome
+// refresh. A row change landing inside the window therefore costs this wake its
+// outcome refresh, not its table read — the table read is the part that closes the
+// gap, the handler took one, and OUTCOME_REFRESH_INTERVAL_MS was going to throttle
+// the rest anyway.
 const WAKE_READ_COALESCE_MS = 300;
 type RefreshSetupsOptions = {
   forceOutcomeRefresh?: boolean;
@@ -128,13 +143,14 @@ export function useTradeSetups() {
   // cannot drive it once per trip. The force path stays App.tsx's, where spec §8
   // spends it deliberately on a tab the reader just opened.
   //
-  // One wake, one read (the pair WAKE_READ_COALESCE_MS above documents). Two
-  // triggers arriving together are one wake arriving twice — a phone that fires
-  // visibilitychange for the app-switcher preview and again for the return, a
-  // rejoin landing on the heels of the visibility event — never two gaps, so the
-  // second is dropped rather than queued. And a read taken by anyone else in the
-  // meantime stands this one down: the gap it exists to close is already closed,
-  // and §8's force refresh closes more of it than this read can.
+  // One wake, one read from THIS path — and, inside the window above, one read
+  // altogether. Two triggers arriving together are one wake arriving twice — a
+  // phone that fires visibilitychange for the app-switcher preview and again for
+  // the return, a rejoin landing on the heels of the visibility event — never two
+  // gaps, so the second is dropped rather than queued. Any read taken by anyone
+  // else inside the window then stands this one down: the gap it exists to close is
+  // already closed by whoever read. WAKE_READ_COALESCE_MS states the limits of
+  // that, both of them.
   const readAfterGap = useCallback(() => {
     if (pendingWakeRead.current !== null) {
       return;

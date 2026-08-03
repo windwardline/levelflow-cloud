@@ -9,6 +9,7 @@ import {
   readDeployedBundleId,
   rememberRunningBundle,
   runningBundleId,
+  VERSION_CHECK_TIMEOUT_MS,
 } from "../src/lib/deployedVersion";
 
 // The incident this whole file exists for, 2026-08-03. A reader's tab, left open
@@ -58,12 +59,16 @@ describe("the deployed bundle, read from the origin's own document", () => {
   });
 
   it("reads the module script, not any file whose name happens to match", () => {
-    // The stylesheet in the fixture above is `index-CX9INZtP.css` — same stem,
-    // same directory, one letter of extension apart. A grep for `index-` in the
-    // document would have answered with it about half the time, and a notice
-    // driven by a stylesheet hash would fire on a CSS-only deploy of the same
-    // JavaScript. The parse reads the <script type="module"> tag the browser
-    // itself loads, so there is nothing else in the head it can pick up.
+    // The stylesheet in the fixture above is `index-CX9INZtP.css` — same stem, same
+    // directory, one letter of extension apart — and its hash has nothing to do with
+    // the entry chunk's. A scan loose enough to answer with it would be comparing a
+    // stylesheet's name against the running JS chunk's name, which are never equal
+    // on any deploy: a PERMANENT mismatch, a notice no reload could clear. That, not
+    // a CSS-only false positive, is the failure this parse avoids — the check fires
+    // on a CSS-only deploy either way, because the entry chunk's hash covers its CSS
+    // dependency (measured 2026-08-03: one added rule renamed index-BHYRebNL.js to
+    // index-CA_EGOiR.js with byte-identical JavaScript, sha256 ccc1d5b0… both
+    // times), and "Levelflow has updated" is true of that deploy.
     const styleOnly = BUILT_HTML.replace(
       /<script[^>]*><\/script>/,
       "",
@@ -75,6 +80,25 @@ describe("the deployed bundle, read from the origin's own document", () => {
       ),
       null,
     );
+    // The .css twin cannot answer even when it is handed over as a URL directly.
+    assert.equal(bundleIdFromUrl("/assets/index-CX9INZtP.css"), null);
+  });
+
+  it("fails closed on a tag shape it does not recognise", () => {
+    // Vite writes `type="module"`, so the tolerances are the ones HTML actually
+    // varies in (case, quote style — the test below) and nothing more. Everything
+    // else answers null, which is no mismatch: an unfamiliar document silences the
+    // notice instead of raising one nobody can clear.
+    for (
+      const tag of [
+        `<script type=module src="/assets/index-AAAA1111.js"></script>`,
+        `<script type=" module " src="/assets/index-AAAA1111.js"></script>`,
+        `<script type="text/javascript" src="/assets/index-AAAA1111.js"></script>`,
+        `<script type="module">import "/assets/index-AAAA1111.js";</script>`,
+      ]
+    ) {
+      assert.equal(bundleIdFromHtml(tag), null, tag);
+    }
   });
 
   it("survives the attribute order and the quoting the tag could arrive in", () => {
@@ -187,10 +211,10 @@ describe("the version read is quiet when it fails", () => {
     return warnings;
   }
 
-  it("asks the origin's own root, uncached", async () => {
-    const calls: Array<[unknown, unknown]> = [];
+  it("asks the origin's own root, uncached, and on a budget", async () => {
+    const calls: Array<[unknown, RequestInit]> = [];
     const warnings = await withStubs(
-      (async (input: unknown, init: unknown) => {
+      (async (input: unknown, init: RequestInit) => {
         calls.push([input, init]);
         return new Response(BUILT_HTML, { status: 200 });
       }) as unknown as typeof globalThis.fetch,
@@ -198,11 +222,42 @@ describe("the version read is quiet when it fails", () => {
         assert.equal(await readDeployedBundleId(), "index-D3V586Av.js");
       },
     );
+    assert.equal(calls.length, 1);
+    const [path, init] = calls[0];
+    // "/" is the document that loads this app, and the only path that names its
+    // entry bundle: the origin has no rewrites (vercel.json carries headers only)
+    // and its other paths are their own documents. It is not a stand-in for the
+    // tab's route either — §17o gave surfaces no addresses, so the route is "/".
+    assert.equal(path, "/");
     // no-store, not no-cache: a cached copy of the document answers the question
-    // nobody asked. The path is "/" because that is the document the origin
-    // rewrites every route to, and the tab's own route may be anything.
-    assert.deepEqual(calls, [["/", { cache: "no-store" }]]);
+    // nobody asked.
+    assert.equal(init.cache, "no-store");
+    // And it can be dropped. A read that never settles would leave the hook's
+    // in-flight flag raised for the life of the tab — the detector retiring itself
+    // in silence, on the one network bad enough to need it.
+    assert.ok(init.signal instanceof AbortSignal, "the read must carry an abort");
+    assert.ok(
+      VERSION_CHECK_TIMEOUT_MS > 0 && VERSION_CHECK_TIMEOUT_MS <= 12_000,
+      `the budget must be positive and no larger than the history read's 12s, got ${VERSION_CHECK_TIMEOUT_MS}`,
+    );
     assert.deepEqual(warnings, []);
+  });
+
+  it("answers null and warns when the read outruns its budget", async () => {
+    // The abort arrives as an AbortError from fetch, which is the same catch as any
+    // other failed read: null, one warning, nothing on the surface.
+    const warnings = await withStubs(
+      (async (_input: unknown, init: RequestInit) => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        init.signal?.throwIfAborted();
+        throw new DOMException("The operation was aborted.", "AbortError");
+      }) as unknown as typeof globalThis.fetch,
+      async () => {
+        assert.equal(await readDeployedBundleId(), null);
+      },
+    );
+    assert.equal(warnings.length, 1);
+    assert.match(String(warnings[0][0]), /^\[deploy\] /);
   });
 
   it("answers null and warns for the operator when the request throws", async () => {
