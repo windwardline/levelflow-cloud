@@ -189,15 +189,34 @@ describe("useTradeSetups re-reads on wake (source-pinned — see header)", () =>
 });
 
 // Security-adjacent: this is what makes a Levelflow session end with the browser
-// tab rather than persist in localStorage for the next person at the machine.
+// session rather than persist in localStorage for the next person at the
+// machine. WHERE the marker lives is the subject of tests/browserSession.test.ts
+// — it was a per-tab sessionStorage key until the owner's 2026-08-02 navigation
+// report, and per-tab is what made a second tab of the same browser look like a
+// different person. What is pinned here is the hook's side of it.
 describe("useAuthSession browser-session marker (source-pinned — see header)", () => {
   const source = readFileSync("src/hooks/useAuthSession.ts", "utf8");
 
   it("signs out a restored session that this browser session never marked", () => {
     assert.match(
       source,
-      /if \(data\.session && !shouldKeepSession\(authRedirectInProgress\)\) \{\s*window\.sessionStorage\.removeItem\(SESSION_MARKER_KEY\);\s*void client\.auth\.signOut\(\);\s*setSession\(null\);/,
+      /if \(data\.session && !shouldKeepSession\(authRedirectInProgress\)\) \{\s*forgetStoredSession\(client\);\s*setSession\(null\);/,
     );
+  });
+
+  it("keeps that sweep local, so it cannot reach the reader's other devices", () => {
+    // The report's "refreshing and going forward does not log you back in": the
+    // default scope is "global", which revokes the refresh token at GoTrue, so
+    // one unmarked tab signed the reader out everywhere and no reload could
+    // recover it. "local" removes this browser's stored copy, which is the whole
+    // of what the posture asks for. The app's own Sign out buttons are
+    // deliberately untouched — a deliberate sign-out still ends every session.
+    assert.match(
+      source,
+      /function forgetStoredSession\(client: AuthClient\) \{\s*clearBrowserSession\(\);\s*void client\.auth\.signOut\(\{ scope: "local" \}\);/,
+    );
+    const app = readFileSync("src/App.tsx", "utf8");
+    assert.equal((app.match(/auth\.signOut\(\)/g) ?? []).length, 3);
   });
 
   it("keeps a session that arrived through a magic-link redirect, before any marker exists", () => {
@@ -205,7 +224,7 @@ describe("useAuthSession browser-session marker (source-pinned — see header)",
     // the redirect's own parameters are what license keeping it.
     assert.match(
       source,
-      /function shouldKeepSession\(authRedirectInProgress: boolean\) \{\s*return authRedirectInProgress \|\| window\.sessionStorage\.getItem\(SESSION_MARKER_KEY\) === "true";/,
+      /function shouldKeepSession\(authRedirectInProgress: boolean\) \{\s*return authRedirectInProgress \|\| browserSessionActive\(\);/,
     );
     assert.match(source, /search\.includes\("code="\)/);
     assert.match(source, /search\.includes\("token_hash="\)/);
@@ -214,10 +233,11 @@ describe("useAuthSession browser-session marker (source-pinned — see header)",
   });
 
   it("clears the marker on every path that ends with no session", () => {
-    const clears = source.match(
-      /window\.sessionStorage\.removeItem\(SESSION_MARKER_KEY\)/g,
-    ) ?? [];
-    assert.equal(clears.length, 4);
+    // Three: the two unmarked-session paths, both through forgetStoredSession,
+    // and markSession's own null branch.
+    const clears = source.match(/clearBrowserSession\(\)/g) ?? [];
+    assert.equal(clears.length, 3);
+    assert.equal((source.match(/forgetStoredSession\(client\)/g) ?? []).length, 2);
     assert.match(source, /subscription\.unsubscribe\(\)/);
   });
 });

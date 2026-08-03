@@ -27,7 +27,9 @@ export default defineConfig({
   // deploy.yml's header poll owns that proof. public-auth.spec.ts needs no
   // live credentials and asserts computed styles directly
   // (theme colors, viewport overflow), so it also runs against a real
-  // `vite build` served by `vite preview` — the "built" project below.
+  // `vite build` served by `vite preview` — the "built" project below. Its
+  // session-navigation tests want that build most of all: the defect they cover
+  // shipped from it.
   webServer: [
     {
       command: "npm run dev -- --host 127.0.0.1 --port 5175",
@@ -76,10 +78,12 @@ export default defineConfig({
   // concurrently with another. (The limiter's tumbling wall-clock window can
   // still span a project boundary; what makes that safe is the order, not
   // isolation — the scan-heavy abuse storm runs last, after every scan
-  // assertion that matters.) public-auth.spec.ts never signs in and
+  // assertion that matters.) public-auth.spec.ts never signs in as this user and
   // touches none of this, so it keeps its own project with no dependency and
   // runs in parallel with whichever of the three is currently active,
-  // keeping total wall-clock down.
+  // keeping total wall-clock down. Its session-navigation tests hold a session
+  // without spending any of that budget either: the token they seed is invented,
+  // so no analyzer request carrying it is ever accepted.
   projects: [
     {
       name: "public-auth",
@@ -88,7 +92,7 @@ export default defineConfig({
     },
     // Q4-I1: same spec, same assertions, against the built artifact instead
     // of dev — see the webServer comment above. Independent of every other
-    // project (no sign-in, no shared rate limit), so it runs in parallel
+    // project (no shared account, no shared rate limit), so it runs in parallel
     // with all of them.
     {
       name: "public-auth-built",

@@ -1,5 +1,89 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { DONATION_SUPPORT_COPY } from "../../src/lib/donationCopy";
+
+// The owner's navigation report of 2026-08-02, as a browser test: signed in, open
+// a legal page from the app, come back with the page's own link — and the app was
+// the login screen again, in every tab, with a refresh and a Forward no help.
+//
+// It lives in this spec, beside the signed-out surface, for one reason: it needs
+// a session but no CREDENTIALS. @supabase/auth-js returns a stored session whose
+// expires_at is still in the future straight from storage
+// (GoTrueClient.__loadSession) without a network call, so a shaped session in
+// localStorage is a signed-in browser as far as the app is concerned. That keeps
+// it out of authenticated-workspace.spec.ts, whose project budget is counted in
+// analyzer requests per minute (playwright.config.ts), and it runs against the
+// built artifact too — where this bug shipped from.
+//
+// The one live request it can make is a rejected one: when the defect is present
+// the app calls signOut() with this invented token, GoTrue answers 401, and
+// auth-js drops the local copy. No real account is identified by it.
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const sessionsConfigured = Boolean(
+  supabaseUrl && process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+);
+const storageKey = supabaseUrl
+  ? `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`
+  : "";
+
+function storedSession() {
+  return JSON.stringify({
+    access_token: "levelflow.e2e.navigation.token",
+    token_type: "bearer",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    refresh_token: "levelflow-e2e-navigation-refresh",
+    user: {
+      id: "00000000-0000-4000-8000-000000000001",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "navigation@levelflow.test",
+      created_at: "2026-01-01T00:00:00.000Z",
+      app_metadata: {},
+      user_metadata: {},
+    },
+  });
+}
+
+// A stored session, for the whole browser, seeded once — a browser that has
+// signed in before. Never re-seeded on later loads: a re-seed would hide the one
+// consequence that matters, which is that a token this app decides to drop does
+// not come back.
+//
+// Nothing here marks the browser session as signed in. That is the app's own job
+// on the load that consumes a magic link, and the test reaches it the way a
+// reader does, by arriving with a redirect parameter (below) — so these tests
+// know nothing about WHERE the app keeps that mark, only whether a second tab of
+// the same browser can still see it.
+async function seedStoredSession(page: Page) {
+  await page.addInitScript(({ key, value }) => {
+    if (!window.localStorage.getItem(key)) {
+      window.localStorage.setItem(key, value);
+    }
+  }, { key: storageKey, value: storedSession() });
+}
+
+// auth-js only exchanges a `code` when it also holds the verifier that flow
+// stored (GoTrueClient._isPKCECallback), so this arrives as a redirect without
+// asking the network for anything: the app reads it as the sign-in load, and the
+// stored session above is what it keeps.
+const MAGIC_LINK_ARRIVAL = "/?code=levelflow-e2e-navigation";
+
+function tokenPresent(page: Page) {
+  return page.evaluate(
+    (key) => window.localStorage.getItem(key) !== null,
+    storageKey,
+  );
+}
+
+// The app, not the sign-in screen. content-region is the authed shell's own
+// scrolling row (App.tsx renders it only past the session gate), and the magic
+// link button is the surface that must not be back.
+async function expectSignedIn(target: Page) {
+  await expect(target.getByTestId("content-region")).toBeVisible();
+  await expect(target.getByRole("button", { name: "Send magic link" }))
+    .toHaveCount(0);
+  expect(await tokenPresent(target), "the stored session was dropped").toBe(true);
+}
 
 test("public login screen presents Levelflow without stale auth copy", async ({
   page,
@@ -412,4 +496,82 @@ test("every link in the footer's row clears the 44px tap floor, without moving t
   // The whole point of an overlay rather than a min-height: the row does not move.
   expect(measured.footerHeight.withOverlay)
     .toBeCloseTo(measured.footerHeight.withoutOverlay, 1);
+});
+
+// The owner's report, walked. 375 is where he found it — below lg the legal trio
+// lives in the account menu and that menu is the only way to those documents —
+// and 1280 is the confirmation he asked for: the footer's own copies of the same
+// links, whose new tab reaches the app root by the same door, so this was never
+// a mobile-only defect.
+for (const width of [375, 1280]) {
+  test(`a signed-in browser keeps its session through the legal pages at ${width}px`, async ({
+    context,
+    page,
+  }) => {
+    test.skip(
+      !sessionsConfigured,
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    );
+    const mobile = width < 1024;
+    await page.setViewportSize({ width, height: 812 });
+    await seedStoredSession(page);
+    await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+    await expectSignedIn(page);
+
+    // Tapped exactly where the app offers it, which is a different element per
+    // width: a menuitem inside the account menu below lg, a footer link at ≥lg.
+    if (mobile) {
+      await page.getByRole("button", { name: "Account menu" }).click();
+    }
+    const [legalTab] = await Promise.all([
+      context.waitForEvent("page"),
+      page
+        .getByRole(mobile ? "menuitem" : "link", { name: "Privacy", exact: true })
+        .click(),
+    ]);
+    await legalTab.waitForLoadState("domcontentloaded");
+    // A new tab is the same phone: the way back has to work at the width the
+    // reader is holding, not at whatever the harness opens a tab at.
+    await legalTab.setViewportSize({ width, height: 812 });
+    await expect(legalTab.getByRole("heading", { name: "Levelflow" }))
+      .toBeVisible();
+
+    // "the link on those pages that indicates it is meant for that purpose".
+    await legalTab.getByRole("link", { name: "Back to Levelflow" }).click();
+    await legalTab.waitForLoadState("networkidle");
+    await expectSignedIn(legalTab);
+    // And the tab he left behind, which the old global signOut() reached through
+    // GoTrue and flipped to the sign-in screen without a single interaction.
+    await expectSignedIn(page);
+
+    // "Refreshing and trying to go forward in your browser does not log you back
+    // in either" — the two recoveries he tried, in the tab he came back in.
+    await legalTab.reload({ waitUntil: "networkidle" });
+    await expectSignedIn(legalTab);
+    await legalTab.goBack({ waitUntil: "networkidle" });
+    await legalTab.goForward({ waitUntil: "networkidle" });
+    await expectSignedIn(legalTab);
+  });
+}
+
+test("a browser session that never signed in does not inherit a stored session", async ({
+  page,
+}) => {
+  test.skip(
+    !sessionsConfigured,
+    "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+  );
+  // The other half of the fix, and the reason it is not simply "keep the token":
+  // a stored session with no live browser session behind it is the next person at
+  // the machine, and it must not sign them in — nor still be there afterwards.
+  // Reached with no redirect parameter and a cookie jar this browser has never
+  // written, which is what a new browser session is.
+  await seedStoredSession(page);
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  await expect(page.getByRole("button", { name: "Send magic link" }))
+    .toBeVisible();
+  expect(await tokenPresent(page), "a stale token outlived its browser").toBe(
+    false,
+  );
 });
