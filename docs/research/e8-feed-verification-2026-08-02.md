@@ -18,17 +18,21 @@ tickers). Every FMP-derived level — entry, stop, targets, ATR — lands on the
 broker's feed, so the two must be the same price stream to within the quoted
 spread. This document is the running proof, one frame at a time.
 
-**Standing after F1–F5 (2026-08-02 evening, all E8 Pro Forex ·
+**Standing after F1–F7 (2026-08-02 evening, all E8 Pro Forex ·
 TradeLocker · demo).** Forex: confirmed exact-minute (EURNZD 0.035 pip off
-mid; GBPUSD equal to the point) and 28/28 pairs at quote level. Metals:
-XAUUSD confirmed; XAGUSD pending re-sample. Crypto: tracks within
-venue-composite dispersion (≤0.1%; six of eight inside the book). Indices:
-E8 quotes **synthetic cash** (futures minus fair-value basis) — the cash
-wiring tracks during each index's own cash session and is structurally stale
-on US weekends. Energies: **DIVERGENT at level** (WTI ~+0.2, BRENT ~+1.6
-above FMP's front-month) — the campaign's first measured divergence, open
-below. A FAIL row is a stop-the-line event for §19/§20 features on that
-instrument until explained.
+mid; GBPUSD equal to the point) and 28/28 pairs at quote level. Gold:
+confirmed three times over. Crypto: tracks within venue-composite
+dispersion (≤0.1%). Indices: E8 quotes **synthetic cash** (futures minus
+fair-value basis) — the cash wiring tracks during each index's own cash
+session and is structurally stale on US weekends. **Three instruments carry
+a real, stable level basis above FMP** — XAGUSD ~+0.17 (≈30 bp), WTI ~+0.24
+(≈30 bp), BRENT ~+1.67 (≈196 bp) — each measured twice, 14–75 minutes
+apart, with the offset holding while price moved; the handling decision
+(re-key the chart source or record per-instrument offsets) belongs to the
+§19 retrofit. The owner's Appendix-A order tickets (F6/F7) verified every
+per-lot value from the platform's own arithmetic. A FAIL row is a
+stop-the-line event for §19/§20 features on that instrument until
+explained.
 
 ## Account context law
 
@@ -197,6 +201,62 @@ spot-check is queued as a completeness item. Forex verdict: **CONFIRMED**
 — anchored exact-minute by F1's EURNZD (0.035 pip) and F5's GBPUSD
 (to the point), with the full book consistent at quote level.
 
+### F6 — 2026-08-02 22:54:20 / 22:54:37 EDT · The energies order tickets (Appendix A)
+
+The owner's standing offer, executed: draft BUY tickets on both energy
+CFDs, 1.00 lot, symmetric 200-tick SL/TP — the platform's own risk
+arithmetic on screen.
+
+| Ticket | E8 book | SL / TP (200 ticks) | Platform P&L | Per-lot value confirmed | Margin |
+| --- | --- | --- | --- | --- | --- |
+| WTI.C BUY 1.00 @ 80.223 | 80.093 / 80.223 | 80.023 / 80.423 | $200.00 = 0.83% | $1/tick (0.001) ⇒ **1,000 bbl** | $5,347.67 = 22.32% |
+| BRENT.C BUY 1.00 @ 85.345 | 85.224 / 85.345 | 85.145 / 85.545 | $200.00 = 0.83% | $1/tick (0.001) ⇒ **1,000 bbl** | $5,689.10 = 23.75% |
+
+Ticket facts, all platform-arithmetic-verified: contract sizes match the
+observations record to the cent; **P&L percentages and margin percentages
+key to account balance** ($200 / $23,958.70 = 0.83%; margin ≈ mark ×
+contract / 15, and its percent = margin / balance exactly). Spreads are
+dynamic (WTI 120 → 130 → 121 ticks across tonight's frames).
+
+**Second offset samples, same minutes:** WTI mid 80.158 vs CL 22:54 close
+79.92 → **+0.238** (F4: +0.234, fourteen minutes earlier). BRENT mid
+85.2845 vs BZ 22:54 close 83.61 → **+1.675** (F4: +1.61). The offsets held
+while price moved — a constant-basis signature, not noise. The handling
+decision (re-key the chart source or record per-instrument offsets) moves
+to the §19 retrofit; a post-roll mid-month frame remains queued for BRENT.
+
+### F7 — 2026-08-02 22:55:47 / 22:56:01 EDT · The metals order tickets — and the silver re-adjudication
+
+| Ticket | E8 book | SL / TP (200 ticks) | Platform P&L | Per-lot value confirmed | Margin |
+| --- | --- | --- | --- | --- | --- |
+| XAGUSD.C BUY 1.00 @ 58.126 | 58.070 / 58.126 | 57.926 / 58.326 | $1,000.00 = 4.17% | $5/tick (0.001) ⇒ **5,000 oz** | $19,373.40 = 80.86% |
+| XAUUSD.C BUY 1.00 @ 4,061.83 | 4,061.44 / 4,061.83 | 4,059.83 / 4,063.83 | $200.00 = 0.83% | $1/tick (0.01) ⇒ **100 oz** | **$27,076.16 = 113.01% — refused** |
+
+The gold ticket is a §20 observation in its own right: initial margin above
+the account's free margin renders red with the BUY button disabled — **the
+platform refuses the order outright**, so on this balance 1.00 lot of gold
+is unopenable (max ≈ 0.88 lots at 15:1). Both contract sizes confirm the
+observations record from the ticket's own arithmetic.
+
+**The silver re-adjudication.** This book was indisputably live — active
+chart, open order ticket — at 58.070 / 58.126 (mid 58.098), and FMP's
+22:55 bar ran 57.924–57.981: the book sits **+0.15 to +0.17 above** FMP.
+F1's book (58.174 / 58.245) sat the same ~+0.17 above FMP's contemporaneous
+prints at 21:40. Two samples, 75 minutes apart, offset unchanged while
+silver fell ~$0.11: **F1's PENDING RE-SAMPLE verdict is corrected — that
+row was not stale.** XAGUSD carries a real, stable ~+0.17 (≈30 bp) basis
+above FMP silver; the 19:00 tick-match that suggested staleness was
+coincidence. Gold, sampled the next minute, passes inside its path again
+(mid 4,061.635 vs 22:55 close 4,061.905, −0.27): the basis is silver's,
+not the metals feed's.
+
+**The divergence set after F6/F7** — each measured twice, offset stable:
+XAGUSD **+0.17 (≈30 bp)** · WTI **+0.24 (≈30 bp)** · BRENT **+1.67
+(≈196 bp)**. Silver and WTI sit at the same ~30 bp, consistent with a
+uniform reference markup; Brent's width is a contract-roll's, consistent
+with a different delivery month. Everything else on the account — 28 forex
+pairs, gold, crypto within composite dispersion — is one price stream.
+
 ## Wiring of record — what the guard pins
 
 - Both price paths — `supabase/functions/market-data/index.ts` (the chart the
@@ -234,14 +294,15 @@ spot-check is queued as a completeness item. Forex verdict: **CONFIRMED**
 
 ## Open items
 
-1. XAGUSD re-sample — active-chart frame, live silver hours.
-2. **Energies divergence resolution** (F4: WTI +0.23, BRENT +1.61, E8
-   above FMP front-month, sampled on the August Brent roll boundary during
-   a 7% gap): (a) a mid-month post-roll frame; (b) the owner's Appendix-A
-   manual WTI + BRENT tickets — a stated fill price pins E8's reference
-   contract; (c) re-key the chart source if the reference proves to be a
-   different delivery month. Energies excluded from the confirmed set
-   meanwhile.
+1. ~~XAGUSD re-sample~~ — **RESOLVED by F7**: not a stale row but a real,
+   stable ~+0.17 basis; silver joins the divergence set.
+2. **The basis-handling decision** (XAG +0.17 · WTI +0.24 · BRENT +1.67,
+   each stable across two samples): re-key the chart source or record
+   per-instrument offsets — a §19-retrofit decision, since relative
+   geometry is offset-invariant and only absolute level transfer is
+   affected. The Appendix-A tickets (F6/F7) are consumed; a post-roll
+   mid-month frame remains queued to test whether BRENT's width narrows to
+   the others' ~30 bp after the roll.
 3. Crypto-market account frame — tonight's F3 was the forex-market
    account's view (leverage 1); the crypto-account per-symbol leverage
    values remain unobserved. BNBUSD exact-minute pin also pending.
