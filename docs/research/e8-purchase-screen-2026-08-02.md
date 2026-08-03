@@ -169,3 +169,62 @@ crypto-market account; until then the rulebook records the checkout's account-le
    between 4 and 5 in the futures flow).
 4. Unobserved remainder: per-tier prices beyond $100K, the per-symbol leverage split
    inside a crypto-market account, and E8 Trial's shape.
+
+---
+
+## THE FUTURES MARKETING-SITE WALK (six frames — e8futures.com Challenges page)
+
+A different lens than the checkout: per-size rule cards with Challenge AND
+Performance tabs for every futures line, plus full per-size price ladders (base
+price struck through; "code E8" first-order discount shown). Six frames: FR1
+Signature/Challenge · FR2 Signature/Performance · FR3 Zero MAX/Challenge · FR4
+Zero MAX/Performance · FR5 Zero Starter/Challenge · FR6 Zero Starter/Performance.
+
+### E8 Signature Futures — per size, both stages
+
+| Size | Base price (code-E8 first order) | DD chip | Challenge: target / max DD (EOD) / contracts | Performance: max DD / daily DD / consistency |
+|---|---|---|---|---|
+| $25K | $110 ($83) | 4% Max | $1,500 / $1,000 / 2 | $1,000 / $500 / 35% |
+| $50K | $150 ($113) | 4% Max | $3,000 / $2,000 / 4 | $2,000 / $1,000 / 35% |
+| $100K | $260 ($195) — Recommended | 3% Max | $6,000 / $3,000 / 8 | $3,000 / $2,000 / 35% |
+| $150K | $390 ($293) | 3% Max | $9,000 / $4,500 / 12 | $4,500 / $3,000 / 35% |
+
+- **The canonical EOD table is corroborated per size** ($1,000/$2,000/$3,000/$4,500
+  — the 4/4/3/3 tiering shown in the cards' own drawdown chips), at both stages.
+- **The Performance daily-drawdown dollars are the 2% Daily Pause per size**
+  ($500/$1,000/$2,000/$3,000 — exactly 2% of each tier, matching 11864618).
+- **Max contracts 2/4/8/12 confirmed on E8's own site** — this RESOLVES the
+  cross-map's contradiction #7: the flat count table (previously secondary-only)
+  and §19's margin-allowance reading CONVERGE, since floor(allowedMargin /
+  $10,000 margin) = 2/4/8/12 at these tiers. Both readings were right.
+- Challenge passes "in as little as 1 Day"; Performance first payout "in as
+  little as 3 Days". Profit target 6% of tier at every size. No activation fee.
+
+### E8 Zero MAX and Zero Starter — per size, both stages
+
+| Size | MAX base (code E8) | Starter base (code E8) | Challenge: target / max DD (EOD) / consistency | Performance: max DD / daily / consistency |
+|---|---|---|---|---|
+| $50K | $328 ($197) | $178 ($107) | $3,000 (6%) / $1,500 / 40% | $1,500 / none / none |
+| $100K | $588 ($353) — Recommended | $278 ($167) | $6,500 (6.5%) / $3,000 / 40% | $3,000 / none / none |
+| $200K | $1,088 ($653) | $558 ($335) | $13,500 (6.75%) / $6,000 / 40% | $6,000 / none / none |
+
+- **Zero's profit target is size-dependent**: 6% / 6.5% / 6.75% at 50/100/200K —
+  the checkout's 6.5% was the $100K row, not a flat rate. Max DD is 3% of tier
+  flat, EOD type, both stages.
+- **Challenge consistency 40%** on both Zero lines (matching 15936479);
+  **Performance shows no consistency rule and no daily drawdown** — corroborating
+  "consistency only in the challenge stage" and "Zero has no daily loss rule."
+- Challenge passes "in as little as 3 Days" (vs Signature's 1); **Performance
+  first payout "in as little as 1 Day"** — the daily-payouts positioning ("E8
+  Zero — One Phase, Daily Payouts, 100% Payout" per the page's own tab title).
+  No activation fee anywhere. MAX and Starter share every rule; only prices
+  (and, per the dossier, payout caps) differ.
+
+### Consequences (additive to the checkout walk)
+1. Full per-size futures price ladders enter the rulebook (base + first-order
+   discount noted as promotional, not a rule).
+2. Cross-map contradiction #7 closes by convergence; the §19 margin-allowance
+   formula and the 2/4/8/12 table agree at the published tiers.
+3. Zero's per-size target curve (6/6.5/6.75%) supersedes any flat reading.
+4. Stage-scoped payout cadence recorded: Signature 3-day first payout;
+   Zero 1-day (daily) at Performance.
