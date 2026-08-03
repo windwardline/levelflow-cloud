@@ -281,6 +281,34 @@ on the Forex-carried side now holds on the actual Crypto classification,
 same platform, different account class — consistent with ruling 8's
 per-platform feed identity.
 
+### F9 — 2026-08-03 15:08:59–15:09:49 EDT · The Tradovate watchlists, eight tabs — the first Futures-classification samples
+
+**Program line: E8 Signature Futures, $25,000, Phase 1 (live account,
+purchased 2026-08-03; Tradovate).** Full account record:
+`docs/research/e8-futures-account-2026-08-03.md`.
+
+Sampled per class against FMP ~3–4 minutes after the frames:
+
+| Class | E8 (Tradovate LAST) | FMP | Verdict |
+| --- | --- | --- | --- |
+| Index | ESU6 7633.75 · NQU6 28915.25 · YMU6 53290 | ESUSD 7637 · NQUSD 28938 · YMUSD 53313 | PASS — the three deltas equal each other's 4-min lag exactly |
+| Energy | CLU6 80.46 · RBU6 2.9686 · HOU6 3.8846 · QGU6 2.775 | CLUSD 80.54 · RBUSD 2.9714 · HOUSD 3.889 · NGUSD 2.771 | PASS ≈10–15 bp |
+| Rates | ZFU6 106'070 · ZBU6 109'02 · ZNU6 108'125 | ZFUSD 106.21875 · ZBUSD 109.0625 · ZNUSD 108.40625 | **PASS — ZF and ZB EXACT to the 32nd; ZN within half a tick.** The strongest identity evidence in the program |
+| Metal | SICU6 (active month) 58.18 | SIUSD 58.195 | PASS 3 bp |
+| Grain | ZRU6 14.205 | ZRUSD 14.175 | PASS 21 bp |
+| Month-offset | GCQ6 4029.6 · ZCU6 449'6 · HEQ6 97.65 | GCUSD 4103.6 · ZCUSX 472.5 · HEUSX 83.675 | **Calendar spread, not feed** — FMP continuous tracks the ACTIVE month; expiring/nearby watchlist rows differ by the roll. The plan's BZUSD tradeMonth hypothesis, measured general |
+| FX futures | 6EU6 1.15330 | EURUSD spot 1.15135 | +17 pips carry — expected spot-vs-futures basis |
+| Crypto futures | BTCQ6 64,070 · ETHQ6 1873.00 | BTCUSD 63,864 · ETH ≈1868 | ≈ +0.3% contango over the same spot the Crypto account trades |
+
+**PASS where a same-month comparison exists; every large gap is a
+month artifact, a carry basis, or a missing FMP source — never a
+different market.** Resolutions found: grains/meats/softs live under
+FMP's USX-suffixed roots (LEUSX/HEUSX/GFUSX/ZCUSX/…); the -USD meat
+spellings collide with crypto tokens (HEUSD printed 0.00011) — a guard
+class for the futures onboarding. No FMP source found for the Eurex
+family, NKD, EMD, UB, TN, or ZW Chicago wheat. **Futures feed checks
+must be month-aware from here on.**
+
 ## Wiring of record — what the guard pins
 
 - Both price paths — `supabase/functions/market-data/index.ts` (the chart the

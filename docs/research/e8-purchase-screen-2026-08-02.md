@@ -135,6 +135,12 @@ Payout 80% · **Profit Target 6% ($6,000)** · **$260** — identical numbers to
 Signature on the other two markets. The futures 2%-of-tier Daily Pause (11969807,
 Performance stage) is not a checkout line; it remains rulebook data.
 
+> Clarified by the live $25K purchase (2026-08-03,
+> `e8-futures-account-2026-08-03.md`): the EOD figure the selector shows is
+> **size-relative** — the dossier's per-size dollars are the invariant
+> ($1,000/$25K = 4% · $3,000/$100K = 3%) and this section's "[3%]" is the
+> $100K frame's own rendering, not a constant.
+
 ### Futures frame inventory (five)
 FU1 Zero MAX, Set-account (header "Step 2 of 4"), $100K → $588 (EOD 3%, target
 6.5%). FU2 Zero MAX, modifiers (header "Step 3 of 5" — E8's own stepper is
