@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import {
   fetchLifetimeSetups,
+  fetchSetupsByIds,
   fetchTradeSetups,
   type LifetimeSetupRow,
   refreshTradeOutcomes,
   type TradeSetupRow,
 } from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
+import { isActiveSetup } from "../lib/tradeState";
 
 // Module scope on purpose: the Desk, Insights and the trades rail all mount and
 // unmount this hook, and the throttle exists so re-navigation does not re-run a
@@ -64,6 +66,15 @@ export function useTradeSetups() {
   // Both are set from one refresh, so the header can never describe a different
   // account than the table under it.
   const [lifetimeSetups, setLifetimeSetups] = useState<LifetimeSetupRow[]>([]);
+  // The trades rail's population (spec §8): the display window plus any
+  // ACTIVE rows the window missed. The window is 80 rows of full analysis,
+  // and newer resolved rows can push a still-live trade past it — the rail
+  // must never lose that trade, so the refresh below classifies the lifetime
+  // record with the rail's own predicate and hydrates the missing actives by
+  // id, at full width, so a reopened card still restores the stage from its
+  // stored analysis. Insights keeps reading `setups`: the ledger IS the
+  // display window (spec §18).
+  const [railSetups, setRailSetups] = useState<TradeSetupRow[]>([]);
   const [loading, setLoading] = useState(true);
   // Q2-C2: one bit, not the provider's message. This used to be an `error` string
   // no consumer read, so a failed fetch reached Insights and the trades rail as
@@ -100,6 +111,7 @@ export function useTradeSetups() {
         if (!user) {
           setSetups([]);
           setLifetimeSetups([]);
+          setRailSetups([]);
           return;
         }
       }
@@ -125,8 +137,24 @@ export function useTradeSetups() {
         fetchTradeSetups(),
         fetchLifetimeSetups(),
       ]);
+      // The actives the window missed, classified here — client-side, with
+      // the rail's own predicate — and fetched by id alone. The length guard
+      // is the steady state's whole cost: every active inside the window
+      // means no request at all. A hydration failure lands in the same catch
+      // as the reads above, because a rail silently missing its
+      // beyond-window actives is the exact lie this read exists to end.
+      const windowIds = new Set(windowRows.map((row) => row.id));
+      const missingActiveIds = lifetimeRows
+        .filter((row) => isActiveSetup(row) && !windowIds.has(row.id))
+        .map((row) => row.id);
+      const hydratedActives = missingActiveIds.length > 0
+        ? await fetchSetupsByIds(missingActiveIds)
+        : [];
       setSetups(windowRows);
       setLifetimeSetups(lifetimeRows);
+      setRailSetups(
+        hydratedActives.length > 0 ? windowRows.concat(hydratedActives) : windowRows,
+      );
     } catch (requestError) {
       // Loud where it is useful, quiet where it is not: the operator gets the
       // real cause, the reader gets one sentence. The rows are deliberately left
@@ -235,6 +263,7 @@ export function useTradeSetups() {
       } else {
         setSetups([]);
         setLifetimeSetups([]);
+        setRailSetups([]);
         // M6: the throttle is module scope, so it outlives the session that set
         // it. Without this, signing out and back in — as the same person or
         // another — could leave the first load of the new session inside a
@@ -346,6 +375,7 @@ export function useTradeSetups() {
     lifetimeSetups,
     loadFailed,
     loading,
+    railSetups,
     refreshSetups,
     setups,
   };

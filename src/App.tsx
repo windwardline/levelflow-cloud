@@ -360,9 +360,12 @@ export default function App() {
   // the old per-render Date was only harmless by accident — the moment a real
   // per-setup clock lands there, a value rebuilt on every render is a badge that
   // can change for reasons unrelated to the trades it counts.
+  // railSetups, not setups: the badge counts the rail's own population — the
+  // window plus any active rows hydrated from beyond it (spec §8) — so the
+  // badge and the Trades tab can never disagree about how many are live.
   const tradeBadgeCount = useMemo(
-    () => currentTradeBadgeCount(setupState.setups, new Date()),
-    [setupState.setups],
+    () => currentTradeBadgeCount(setupState.railSetups, new Date()),
+    [setupState.railSetups],
   );
   const profileState = useUserProfile(
     session?.user.id ?? null,
@@ -704,7 +707,7 @@ export default function App() {
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}
               profile={profile}
-              setups={setupState.setups}
+              setups={setupState.railSetups}
             />
           ) : null}
           {activeTab === "history" ? (

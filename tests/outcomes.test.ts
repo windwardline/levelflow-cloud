@@ -564,11 +564,12 @@ describe("the outcome-refresh throttle earns its blackout", () => {
   });
 
   it("clears the throttle on sign-out, since it outlives the session", () => {
-    // The span allows for the lifetime record being emptied on the same branch
-    // (spec §18): sign-out clears both row sets and then the throttle.
+    // The span allows for the lifetime record and the rail's population being
+    // emptied on the same branch (spec §18, §8): sign-out clears all three
+    // row sets and then the throttle.
     assert.match(
       hook,
-      /\} else \{\s*setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+      /\} else \{\s*setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);\s*setRailSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
     );
   });
 });

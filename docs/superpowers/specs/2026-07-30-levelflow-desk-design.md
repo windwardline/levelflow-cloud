@@ -140,6 +140,21 @@ hardcode.
   refresh button remains and stays.
 - Event ages shown ("hit 14 min ago") from outcome timestamps.
 
+> **As built (2026-08-03, the beyond-window actives fix).** The rail and the
+> Trades badge count the rail's own population, not the ledger's 80-row
+> display window: newer resolved rows can push a still-live trade past the
+> window (one active row per symbol, each bounded by its class's 5–12h
+> review horizon — but nothing bounds how many resolutions land above it),
+> and a rail that loses a live trade is the opposite of this surface's
+> purpose. `useTradeSetups` classifies the lifetime record's rows with the
+> rail's own predicate (`isActiveSetup`, the extracted gate
+> `deriveTradeState` itself runs) and hydrates the actives the window
+> missed by id, at the window's full width, so a reopened card still
+> restores the Advisor stage from its stored analysis. In the steady state
+> the hydration read never fires — every active is inside the window and
+> the id list is empty. Insights keeps reading the display window (§18:
+> the ledger IS that window).
+
 ## 9. Engine: every setup is history
 
 - **Persist every generated setup, scan path included.** Today only the
