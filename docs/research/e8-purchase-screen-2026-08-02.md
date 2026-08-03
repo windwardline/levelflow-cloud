@@ -301,3 +301,20 @@ crypto cards now both photographed and identical; the forex checkout's $260 /
 EOD 3% / target 6% at $100K sits on the same curve (the forex card set is the
 one Signature surface not separately photographed, with no observed reason to
 expect divergence).
+
+---
+
+## THE E8 SIGNATURE (FOREX) MARKETING-SITE WALK (two frames)
+
+SF1 Challenge · SF2 Performance, all four sizes. **Identical in every cell to
+Signature Futures and Signature Crypto**: base prices $110/$150/$260/$390
+(code-E8 $83/$113/$195/$293), 4/4/3/3 EOD amounts ($1,000/$2,000/$3,000/$4,500)
+at both stages, targets 6% of tier, Performance daily drawdown 2% of tier
+($500/$1,000/$2,000/$3,000), consistency 35% at Performance only, EOD type,
+pass 1 day, first payout 3 days, no activation fee. (Page positioning: "Signature
+Forex — 1-Step, Fast Payouts.")
+
+**The Signature triple is now fully photographed across all three markets and
+uniform in every cell** — the earlier "not separately photographed" caveat for
+the forex card set is superseded. The only card set not photographed anywhere
+remains E8 Pro's (its constants and $100K prices are checkout-verified).
