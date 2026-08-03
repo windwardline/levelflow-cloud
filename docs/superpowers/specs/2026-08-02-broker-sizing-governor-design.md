@@ -362,6 +362,16 @@ floor is 0.10% so the smallest ladder tier still produces a placeable size.
 Levelflow does not know how many trades the user has open, so this is a
 per-setup percentage and never a daily budget. That boundary is §20h.
 
+**The saved-account walk.** The §19 retrofit's multi-account model
+(`broker_accounts`) walks broker → market → program line → platform →
+balance tier → drawdown token, in that order, wherever E8 sells a choice at
+that step — the futures lines' single EOD option is auto-set, never asked
+(§20i ruling 7). `src/lib/broker/catalog.ts` owns the two layers the five
+controls above do not: `CLASSIFICATIONS` (`Forex` · `Crypto` · `Futures`)
+partitions the ten program lines by the market that sells each one, and
+`PLATFORM_LABELS` (`TradeLocker` · `MatchTrader` · `Tradovate`) names the
+platform each line offers — both in the checkout's own words.
+
 ### §19c. The sizing math
 
 One formula, four gates, one rounding rule. Every step either produces a
@@ -1491,7 +1501,9 @@ verbatim; nothing else this feature draws is text.
 `E8 Zero Futures Starter` · `E8 Zero Futures Max`. Stage options:
 `Challenge` · `Performance`. Account-size options: the selected program's
 ladder as `$5,000` … `$500,000`. Risk options: `0.10%` … `1.50%` in `0.05%`
-steps. Drawdown options: the eight paired tokens in §19b item 5.
+steps. Drawdown options: the eight paired tokens in §19b item 5. Market
+options: `Forex` · `Crypto` · `Futures`. Platform options: `TradeLocker` ·
+`MatchTrader` · `Tradovate`.
 
 **§20 — the compliance line.** `No E8 route on any program` ·
 `Front month only` · `Size capped at the program limit` · `Flatten 15:10 CT` ·

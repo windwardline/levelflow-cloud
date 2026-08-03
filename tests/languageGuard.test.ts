@@ -299,6 +299,7 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
   );
   const types = readFileSync("src/lib/broker/types.ts", "utf8");
   const programs = readFileSync("src/lib/broker/programs.ts", "utf8");
+  const catalog = readFileSync("src/lib/broker/catalog.ts", "utf8");
 
   const RENDERED = [
     // The ladder Size row.
@@ -327,6 +328,14 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "E8 Zero Futures Max",
     "Challenge",
     "Performance",
+    // Task 3's catalog walk: the market and platform vocabulary (§20i
+    // ruling 7).
+    "Forex",
+    "Crypto",
+    "Futures",
+    "TradeLocker",
+    "MatchTrader",
+    "Tradovate",
   ];
 
   it("names every string this feature renders in §20j", () => {
@@ -339,7 +348,7 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
   });
 
   it("renders every §19 string §20j names, somewhere in the shipped source", () => {
-    const shipped = [types, programs, panel, profilePanel].join("\n");
+    const shipped = [types, programs, catalog, panel, profilePanel].join("\n");
     for (const string of RENDERED) {
       // `Size · lots` and `Size · contracts` are composed from the unit, so the
       // unit is what the source carries.

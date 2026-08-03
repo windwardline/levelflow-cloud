@@ -1,3 +1,4 @@
+import { classificationOf, platformsFor } from "./broker/catalog";
 import {
   RISK_PERCENT_MAX,
   RISK_PERCENT_MIN,
@@ -161,50 +162,6 @@ export type BrokerAccountDraft = {
 
 /** A draft once it has a saved row. */
 export type BrokerAccount = BrokerAccountDraft & { id: string };
-
-// §20i ruling 7 / amendment 14's checkout walk (docs/research/
-// e8-purchase-screen-2026-08-02.md, three market walks). This pair belongs to
-// src/lib/broker/catalog.ts (task 3 of the §19 retrofit plan); inlined here
-// only because that module does not exist yet. Task 3 deletes
-// CLASSIFICATION_OF/PLATFORMS_OF/classificationOf/platformsFor from this file
-// and brokerAccountProblem below imports classificationOf and platformsFor
-// from ./broker/catalog instead — the values must not change when it does.
-const CLASSIFICATION_OF: Record<ProgramLine, BrokerClassification> = {
-  one: "forex",
-  one_crypto: "crypto",
-  pro_forex: "forex",
-  pro_crypto: "crypto",
-  signature_forex: "forex",
-  signature_crypto: "crypto",
-  signature_futures: "futures",
-  zero: "forex",
-  zero_futures_starter: "futures",
-  zero_futures_max: "futures",
-};
-
-// The Forex walk: E8 One offers MatchTrader AND TradeLocker; Pro and Signature
-// offer TradeLocker only. The Crypto walk: TradeLocker only on every line, One
-// included — MatchTrader is forex-One-only. The Futures walk: Tradovate only.
-const PLATFORMS_OF: Record<ProgramLine, BrokerPlatform[]> = {
-  one: ["tradelocker", "matchtrader"],
-  one_crypto: ["tradelocker"],
-  pro_forex: ["tradelocker"],
-  pro_crypto: ["tradelocker"],
-  signature_forex: ["tradelocker"],
-  signature_crypto: ["tradelocker"],
-  signature_futures: ["tradovate"],
-  zero: ["tradelocker"],
-  zero_futures_starter: ["tradovate"],
-  zero_futures_max: ["tradovate"],
-};
-
-function classificationOf(line: ProgramLine): BrokerClassification {
-  return CLASSIFICATION_OF[line];
-}
-
-function platformsFor(line: ProgramLine): BrokerPlatform[] {
-  return PLATFORMS_OF[line];
-}
 
 /**
  * Why this draft is not an account the checkout would sell, or null when it

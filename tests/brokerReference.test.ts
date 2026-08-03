@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { AVAILABLE_ASSET_SYMBOLS, SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
 import {
@@ -859,5 +860,91 @@ describe("§19c — E8's bridging method, and only Levelflow's own quotes feedin
       assert.equal(usdPerQuoteBridge(pair)!.source.method, "9453488");
       assert.equal(usdPerQuoteBridge(pair)!.source.tag, "derived");
     }
+  });
+});
+
+import {
+  CLASSIFICATIONS,
+  classificationOf,
+  isPlatformVerified,
+  isProgramLineVerified,
+  PLATFORM_LABELS,
+  platformsFor,
+  programLinesFor,
+} from "../src/lib/broker/catalog";
+
+describe("§20i ruling 7 — the catalog walk transcribes the purchase screen", () => {
+  // docs/research/e8-purchase-screen-2026-08-02.md, three market walks.
+  it("renders three markets, in E8's own words", () => {
+    assert.deepEqual(CLASSIFICATIONS.map((c) => c.label), ["Forex", "Crypto", "Futures"]);
+    assert.deepEqual(
+      CLASSIFICATIONS.map((c) => c.value),
+      ["forex", "crypto", "futures"],
+    );
+  });
+
+  it("places every sold line on the market that sells it — `zero` is unsold and absent", () => {
+    assert.deepEqual(
+      programLinesFor("forex").map((p) => p.line),
+      ["one", "pro_forex", "signature_forex"],
+    );
+    assert.deepEqual(
+      programLinesFor("crypto").map((p) => p.line),
+      ["one_crypto", "pro_crypto", "signature_crypto"],
+    );
+    assert.deepEqual(
+      programLinesFor("futures").map((p) => p.line),
+      ["signature_futures", "zero_futures_starter", "zero_futures_max"],
+    );
+    // Amendment 19: the checkout record rules, and `zero` is on no walk, so
+    // no walk places it. Every sold line appears exactly where sold.
+    for (const program of PROGRAM_LINES.filter((p) => p.line !== "zero")) {
+      assert.ok(
+        programLinesFor(classificationOf(program.line)).some(
+          (candidate) => candidate.line === program.line,
+        ),
+      );
+    }
+  });
+
+  // The Forex walk: "E8 One offers MatchTrader AND TradeLocker; E8 Pro and
+  // E8 Signature offer TradeLocker only." Crypto: "TradeLocker only on every
+  // line, E8 One included." Futures: "Tradovate only."
+  it("offers each line only the platforms the checkout offers it", () => {
+    assert.deepEqual(platformsFor("one"), ["tradelocker", "matchtrader"]);
+    assert.deepEqual(platformsFor("pro_forex"), ["tradelocker"]);
+    assert.deepEqual(platformsFor("signature_forex"), ["tradelocker"]);
+    assert.deepEqual(platformsFor("one_crypto"), ["tradelocker"]);
+    assert.deepEqual(platformsFor("pro_crypto"), ["tradelocker"]);
+    assert.deepEqual(platformsFor("signature_crypto"), ["tradelocker"]);
+    assert.deepEqual(platformsFor("signature_futures"), ["tradovate"]);
+    assert.deepEqual(platformsFor("zero_futures_starter"), ["tradovate"]);
+    assert.deepEqual(platformsFor("zero_futures_max"), ["tradovate"]);
+  });
+
+  it("names the platforms as the checkout names them", () => {
+    assert.deepEqual(PLATFORM_LABELS, {
+      matchtrader: "MatchTrader",
+      tradelocker: "TradeLocker",
+      tradovate: "Tradovate",
+    });
+  });
+
+  // Amendment 12: MatchTrader present but disabled until verified. Amendment
+  // 19: `zero` is unsold and never walked (pinned above); its verified flag
+  // stays false as defense in depth should an edit ever re-add it to a walk.
+  it("greys exactly MatchTrader; every walked line is verified", () => {
+    assert.equal(isPlatformVerified("tradelocker"), true);
+    assert.equal(isPlatformVerified("tradovate"), true);
+    assert.equal(isPlatformVerified("matchtrader"), false);
+    assert.equal(isProgramLineVerified("zero"), false);
+    for (const program of PROGRAM_LINES.filter((p) => p.line !== "zero")) {
+      assert.equal(isProgramLineVerified(program.line), true);
+    }
+  });
+
+  it("offers no free-form entry — every option set is a finite enumeration", () => {
+    const source = readFileSync("src/lib/broker/catalog.ts", "utf8");
+    assert.doesNotMatch(source, /type="number"|parseFloat|parseInt|Number\(/);
   });
 });
