@@ -588,6 +588,12 @@ async function reviewCurrentMarket(
     recordAnalyzerEvent,
   );
   const correlationGroup = getCorrelationGroup(normalizedSymbol);
+  // Computed once for both readers below. analyzeSetup ran the committee and
+  // explainNoSetup ran it again for every symbol that produced no setup — 45 of
+  // 50 on a live open-market scan — and all four functions are pure in their
+  // arguments, so one pass and two passes cannot disagree (tests/setupAnalysis
+  // .test.ts pins that).
+  const analysis = analyzeMarket(normalizedSymbol, marketContext);
   const setup = await analyzeSetup(
     token,
     userId,
@@ -598,6 +604,7 @@ async function reviewCurrentMarket(
     newsContext,
     macroRateContext,
     sessionContext,
+    analysis,
   );
   if (!setup) {
     const analysisDiagnostics = await explainNoSetup(
@@ -607,6 +614,7 @@ async function reviewCurrentMarket(
       newsContext,
       macroRateContext,
       sessionContext,
+      analysis,
     );
     await recordAnalyzerEvent({
       action,
@@ -880,6 +888,18 @@ async function findStrongerActiveCorrelatedSetup(
   ) ?? null;
 }
 
+// The analyzer's read of a market, before any threshold is applied to it.
+// Pure in (symbol, market): calibration.ts holds frozen tables, and
+// strategies.ts carries no module state, no clock and no randomness.
+function analyzeMarket(symbol: SupportedSymbol, market: MarketContext) {
+  const calibration = getCategoryCalibration(symbol);
+  const regime = classifyRegime(market);
+  const votes = runStrategyCommittee(symbol, market, regime);
+  return { calibration, consensus: scoreConsensus(votes, regime), regime, votes };
+}
+
+type MarketAnalysis = ReturnType<typeof analyzeMarket>;
+
 async function analyzeSetup(
   token: string,
   userId: string,
@@ -890,14 +910,12 @@ async function analyzeSetup(
   newsContext: NewsContext,
   macroRateContext: MacroRateContext,
   sessionContext: SessionContext,
+  analysis: MarketAnalysis,
 ) {
-  const calibration = getCategoryCalibration(symbol);
-  const regime = classifyRegime(market);
+  const { calibration, consensus, regime, votes } = analysis;
   if (calibration.blockedRegimes?.includes(regime.name)) {
     return null;
   }
-  const votes = runStrategyCommittee(symbol, market, regime);
-  const consensus = scoreConsensus(votes, regime);
   if (!consensus.side) {
     return null;
   }
@@ -1077,11 +1095,9 @@ async function explainNoSetup(
   newsContext: NewsContext,
   macroRateContext: MacroRateContext,
   sessionContext: SessionContext,
+  analysis: MarketAnalysis,
 ) {
-  const calibration = getCategoryCalibration(symbol);
-  const regime = classifyRegime(market);
-  const votes = runStrategyCommittee(symbol, market, regime);
-  const consensus = scoreConsensus(votes, regime);
+  const { calibration, consensus, regime, votes } = analysis;
   const diagnostics: string[] = [];
 
   if (calibration.blockedRegimes?.includes(regime.name)) {
