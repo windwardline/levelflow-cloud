@@ -126,14 +126,34 @@ export type TradeSetupRow = {
   symbol: string;
   take_profit: number | string;
   take_profit_1?: number | string | null;
-  trade_outcomes?: Array<{
-    exit_at?: string | null;
-    feedback?: Record<string, unknown> | null;
-    filled_at?: string | null;
-    outcome: string;
-    realized_pnl: number | string | null;
-    reviewed_at?: string | null;
-  }>;
+  // Always an array by the time any reader sees it, and at most one element
+  // long — normalizeEmbeddedOutcomes below is what makes that true of the wire
+  // shape PostgREST actually sends.
+  trade_outcomes?: TradeOutcomeRow[];
+};
+
+export type TradeOutcomeRow = {
+  exit_at?: string | null;
+  feedback?: Record<string, unknown> | null;
+  filled_at?: string | null;
+  outcome: string;
+  realized_pnl: number | string | null;
+  reviewed_at?: string | null;
+};
+
+/**
+ * One fetched row, before its embed is normalized.
+ *
+ * trade_outcomes.setup_id carries `unique (setup_id)` (supabase/init.sql) — the
+ * same constraint both outcome writers' `on_conflict=setup_id` upserts depend
+ * on — and that is precisely what PostgREST detects as the "to-one" end of a
+ * one-to-one relationship, so it returns the embed as a single OBJECT (or null),
+ * never the array a to-many embed produces. The array is what every reader in
+ * this app indexes into: tradeState.ts's deriveTradeState and entryHasFilled,
+ * lib/outcomes.ts's normalizeSetupOutcome, historyUtils.ts's extractRealizedR.
+ */
+export type FetchedTradeSetupRow = Omit<TradeSetupRow, "trade_outcomes"> & {
+  trade_outcomes?: TradeOutcomeRow | TradeOutcomeRow[] | null;
 };
 
 // One budget for the whole scan, not one per request. The fan-out below sends
@@ -236,6 +256,38 @@ export async function refreshTradeOutcomes() {
   return data;
 }
 
+/**
+ * The one seam where the wire's embed shape becomes the app's row type.
+ *
+ * Every fetched row passes through here, because a row that skips it is a
+ * resolved trade the whole app reads as one the engine never reviewed: with the
+ * embed arriving as an object (see FetchedTradeSetupRow), `trade_outcomes[0]` is
+ * undefined, so the outcome, its feedback and its fill timestamp all vanish
+ * together. That is what put three stopped-out trades and one banked half on the
+ * Insights ledger reading "Open" — the ledger's own honest word for a filled row
+ * with no outcome row (§17b) — on 2026-08-02.
+ *
+ * Both shapes are read rather than the object shape assumed: PostgREST's choice
+ * follows from the unique constraint, so the day that constraint changes the
+ * array arrives instead, and a normalizer that only understood objects would
+ * invert the same defect.
+ */
+export function normalizeEmbeddedOutcomes(
+  rows: FetchedTradeSetupRow[],
+): TradeSetupRow[] {
+  return rows.map((row) => {
+    const embedded = row.trade_outcomes;
+    return {
+      ...row,
+      trade_outcomes: embedded == null
+        ? undefined
+        : Array.isArray(embedded)
+        ? embedded
+        : [embedded],
+    };
+  });
+}
+
 export async function fetchTradeSetups() {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
@@ -255,7 +307,9 @@ export async function fetchTradeSetups() {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as unknown as TradeSetupRow[];
+  return normalizeEmbeddedOutcomes(
+    (data ?? []) as unknown as FetchedTradeSetupRow[],
+  );
 }
 
 function withTimeout<T>(request: PromiseLike<T>, timeoutMs: number, message: string) {
