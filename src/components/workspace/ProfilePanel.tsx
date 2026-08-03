@@ -125,8 +125,11 @@ export function ProfilePanel({
   // `.page h1` (p-profile-v2.html:17): the 2px ink rule under the title, the
   // same one Insights, Guide and Donate carry, with no gap under it — the first
   // row's own 26px top padding is the spacing.
+  // §17n: 19px on a 24px line with an 8px rule pad below lg — the mobile page head
+  // the four titled surfaces share — takes this pinned block from 60px to 46px
+  // (measured against the built CSS at 375x812).
   const title = (
-    <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink">
+    <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink max-lg:pb-2 max-lg:text-[19px] max-lg:leading-6">
       Profile
     </h1>
   );
@@ -187,16 +190,22 @@ export function ProfilePanel({
   if (isMobile) {
     // Spec §17g: "Profile: fits the frame; if content ever exceeds it, the rows
     // region scrolls internally." With four rows it exceeded it — 722px against
-    // 683px of frame. §17i deleted the Support row, and the measurement was
-    // re-taken against the built CSS with the shipped fonts at 375x812: three rows
-    // plus the colophon come to 596px, inside both the 683px frame and the 626px of
-    // it that clears the fixed tab bar. So the conditional clause simply stops
-    // engaging, which is the state §17g describes first.
+    // 683px of frame. §17i deleted the Support row and brought it back inside.
+    //
+    // Re-measured for §17n against the built CSS with the shipped fonts at
+    // 375x812, because two things had moved since: §19b added the Broker row's
+    // Program control, and the frame's own numbers changed. Before this wave the
+    // three rows and the colophon came to 667px inside a 683px region — the
+    // content fitted, but the 96px tab-bar reserve took the region's scrollHeight
+    // to 763px, so it scrolled 80px of its own padding. After it: 595px of content
+    // and a 56px reserve inside a 705px region, and the region does not scroll at
+    // all. That is the state §17g describes first, reached by measurement rather
+    // than by assertion.
     //
     // The region keeps its shared frame string regardless — it is the one every
-    // <lg surface takes, and what it now scrolls is 9px of the tab-bar reserve's
-    // own tail rather than any content. Nothing is hidden by it, and a row that
-    // grows later (the theme-save notice below) finds the clause already in place.
+    // <lg surface takes — so a row that grows later (the theme-save notice below,
+    // or a program selection's four extra controls) finds the clause already in
+    // place and scrolls instead of overflowing.
     //
     // And the footer, reduced to its colophon: "The footer exists on mobile ONLY
     // inside the Profile view." It ends the sheet rather than pinning to the
@@ -209,8 +218,15 @@ export function ProfilePanel({
         <div className={MOBILE_FRAME_SCROLL} data-testid="mobile-profile-scroll">
           {rows}
           {/* Spec §17k: the same link, the same treatment as the ≥lg footer's —
-              muted at rest, underlined only on hover or focus, 44px, new tab. */}
-          <p className="colophon">
+              muted at rest, underlined only on hover or focus, 44px, new tab.
+
+              §17n takes 12px of the line's own 32px top pad below lg: measured,
+              the paragraph is 59.5px of which 32px is air above a 19.5px line.
+              20px still separates the colophon from the last row, and the 44px
+              reach is untouched — it comes from .colophon-link's ::after overlay,
+              which sits outside layout entirely (§17k), so tightening the pad
+              cannot shrink the target. */}
+          <p className="colophon max-lg:pt-5">
             <a
               className="colophon-link"
               href="https://windwardline.com"
@@ -260,6 +276,14 @@ export function ProfilePanel({
 // row gap is 12px rather than the mock's 24px — with the label above its
 // content instead of beside it, the mock's horizontal measure would read as a
 // break in the row.
+//
+// §17n: below lg the block padding is 16px rather than the mock's 26px. Measured
+// against the built CSS at 375x812, the three rows spent 156px on padding alone
+// and the sheet came to 763px inside a 683px region — it overflowed its own frame
+// once the broker program controls render, which is the condition §17g calls the
+// exception rather than the rule. 16px takes 60px back, the surface fits again,
+// and the rows' own content — the settings this surface exists to deliver — is
+// untouched: it is the air around them that yielded.
 function ProfileRow({
   children,
   description,
@@ -272,7 +296,7 @@ function ProfileRow({
   title: string;
 }) {
   return (
-    <div className="grid gap-x-6 gap-y-3 border-b border-hairline py-[26px] last-of-type:border-b-0 lg:grid-cols-[220px_1fr]">
+    <div className="grid gap-x-6 gap-y-3 border-b border-hairline py-[26px] last-of-type:border-b-0 max-lg:py-4 lg:grid-cols-[220px_1fr]">
       <div>
         <h2 className="text-[15px] font-bold tracking-normal text-ink">
           {title}

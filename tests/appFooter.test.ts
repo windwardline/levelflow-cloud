@@ -319,8 +319,11 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     // to the colophon." That is one colophon, in Profile's <lg branch only
     // (tests/mobileNav.test.ts pins which branch and where in it), and still no
     // legal row anywhere but the footer and the account menu. Counted by the
-    // rendered class rather than the word, since that file's comments name it.
-    assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
+    // rendered class rather than the word, since that file's comments name it —
+    // and by the whole attribute, since §17n rides a top-pad utility on the same
+    // string ("colophon max-lg:pt-5"). What this counts is that there is exactly
+    // ONE colophon here, whatever utilities travel with it.
+    assert.equal((profile.match(/className="colophon(?: [^"]*)?"/g) ?? []).length, 1);
     assert.doesNotMatch(profile, /LegalLinks/);
     // App.tsx draws neither itself: the account menu's trio reads LegalLinks'
     // exported data, never renders the footer's own nav component.

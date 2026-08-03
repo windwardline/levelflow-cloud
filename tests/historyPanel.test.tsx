@@ -103,11 +103,18 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
     assert.deepEqual(labels, ["Last 7 days", "Last 30 days", "Last 90 days"]);
   });
 
-  it("every select-based filter control uses the kit's 44px field styling", () => {
+  // §17n compacted the three filters below lg — 13px type, 8px side padding, and
+  // `.field`'s 48px brought down TO the kit's 44px floor rather than through it, so
+  // every filter is still a real touch target. The kit class stays the base at both
+  // widths; the compaction is variants on top of it.
+  it("every select-based filter control uses the kit's field styling, at the 44px floor below lg", () => {
     const selectOpenTags = PANEL_SOURCE.match(/<select\b[^>]*>/g) ?? [];
     assert.ok(selectOpenTags.length >= 3);
     for (const tag of selectOpenTags) {
-      assert.match(tag, /className="field"/);
+      assert.match(
+        tag,
+        /className="field max-lg:min-h-11 max-lg:px-2 max-lg:text-\[13px\]"/,
+      );
     }
   });
 

@@ -83,10 +83,13 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
     assert.doesNotMatch(PANEL_SOURCE, /max-w-\[620px\]/);
   });
 
-  it("rules the h1 like Insights, Guide and Donate — the mock's 2px ink phead", () => {
+  // §17n added the shared mobile page head to the same string — 19px on a 24px
+  // line, 8px of rule pad below lg — so the four titled surfaces read as one
+  // treatment on a phone while the mock's own 24px still draws at ≥lg.
+  it("rules the h1 like Insights, Guide and Donate — the mock's 2px ink phead, 19px below lg", () => {
     assert.match(
       PANEL_SOURCE,
-      /<h1 className="border-b-2 border-ink pb-3\.5 text-2xl font-semibold tracking-normal text-ink">\s*Profile\s*<\/h1>/,
+      /<h1 className="border-b-2 border-ink pb-3\.5 text-2xl font-semibold tracking-normal text-ink max-lg:pb-2 max-lg:text-\[19px\] max-lg:leading-6">\s*Profile\s*<\/h1>/,
     );
   });
 
@@ -97,9 +100,12 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
   it("draws three hairline-separated rows: label column beside content at ≥lg, stacked below (.row, :18)", () => {
     // One shared row component, so the three cannot drift apart in padding,
     // separation or column measure.
+    // §17n: the mock's 26px block padding at ≥lg, 16px below it — 60px of the
+    // three rows' 156px of pad, which is what put the sheet back inside its own
+    // frame once the broker program controls render.
     assert.match(
       PANEL_SOURCE,
-      /<div className="grid gap-x-6 gap-y-3 border-b border-hairline py-\[26px\] last-of-type:border-b-0 lg:grid-cols-\[220px_1fr\]">/,
+      /<div className="grid gap-x-6 gap-y-3 border-b border-hairline py-\[26px\] last-of-type:border-b-0 max-lg:py-4 lg:grid-cols-\[220px_1fr\]">/,
     );
     assert.equal((PANEL_SOURCE.match(/<ProfileRow\n/g) ?? []).length, 3);
     const titles = Array.from(
@@ -293,7 +299,7 @@ describe("ProfileRow's last-row rule matches the row, not whatever ends the regi
     assert.match(PANEL_SOURCE, /const rows = \(\s*\n\s*<>/);
     assert.match(
       PANEL_SOURCE,
-      /data-testid="mobile-profile-scroll">\s*\n\s*\{rows\}[\s\S]{0,400}<p className="colophon">/,
+      /data-testid="mobile-profile-scroll">\s*\n\s*\{rows\}[\s\S]{0,1200}<p className="colophon max-lg:pt-5">/,
     );
   });
 });
