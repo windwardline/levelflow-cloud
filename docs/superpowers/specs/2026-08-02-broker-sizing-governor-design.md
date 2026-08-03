@@ -1402,8 +1402,9 @@ bankroll-continuity input.
 
 ## §20i. Rulings of record (controller, 2026-08-02)
 
-Six questions were raised at draft and answered before promotion. Recorded
-here so a later reader sees what was decided rather than re-deciding it.
+Six questions were raised at draft and answered before promotion; later
+rulings append as they land. Recorded here so a later reader sees what was
+decided rather than re-deciding it.
 
 1. **The bridging method generalizes.** Applying E8's published bridging
    method to the 15 crosses its table does not enumerate is derivation, not
@@ -1458,6 +1459,21 @@ here so a later reader sees what was decided rather than re-deciding it.
    the configuration, and no selectable combination may exist that the
    checkout does not sell. Binds the §19 retrofit and the §20 build. (§19b,
    §20b.)
+8. **The feed is verified and locked** (owner, 2026-08-02, verbatim): "Good!
+   Confirm we are using the right source, and lock it in for E8. Right
+   safeguards so we cannot possibly regress. Once we have the workflow down,
+   I will send other screenshots for the same treatment." And: "Remember,
+   this is E8 Pro Forex. That is important to keep track of." FMP is the
+   codebase's sole price provider, and its correspondence to E8's live feed
+   is established frame-by-frame against the platform's own book — same
+   second, inside the quoted spread — per the protocol and running sample
+   table in `docs/research/e8-feed-verification-2026-08-02.md` (F1:
+   EURNZD and XAUUSD confirmed sub-spread on E8 Pro Forex, TradeLocker).
+   Every sample carries its platform and program line; identity is never
+   assumed across platforms. The wiring — provider, base URL, endpoint
+   family, symbol map, and the calendar-only Finnhub allowance — is pinned
+   by `tests/feedSource.test.ts`, so no source change ships without a fresh
+   verified frame. (§19a's quote roster, §19c's price inputs.)
 
 ## §20j. Every rendered string
 
