@@ -598,9 +598,12 @@ describe("ScopeMenu labelling with the caption suppressed (source-pinned — see
   // it, and may not return: a bare-paper heading-sized control is exactly what
   // the stage no longer has.
   it("draws the trigger as the kit field, with no bare-paper heading control", () => {
+    // §17n: the kit field at ≥lg, the kit's 44px tap floor below it — the pinned
+    // Scan control row's other two controls are 44px, and `.field`'s 48px made the
+    // row taller than anything in it. Still `.field`, still a real touch target.
     assert.match(
       SOURCE,
-      /className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"/,
+      /className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink max-lg:min-h-11"/,
     );
     assert.doesNotMatch(SOURCE, /font-display text-2xl/);
     assert.doesNotMatch(SOURCE, /-my-1\.5/);

@@ -247,8 +247,17 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     );
   });
 
-  it("every tab bar button clears the 44px touch target (min-h-14 > 44px)", () => {
-    assert.match(APP_SOURCE, /min-h-14 flex-col items-center justify-center/);
+  // §17n resized the box from 56px to 48px: the bar is ancillary chrome, its own
+  // content measures 38px against the built CSS at 375x812, and 48px is the kit's
+  // 44px tap floor plus 4px. The floor itself is untouched — that is what this
+  // pins, and tests/mobileMinimalism.test.ts pins the number with its measurement.
+  it("every tab bar button clears the 44px touch target (min-h-12 = 48px)", () => {
+    assert.match(APP_SOURCE, /min-h-12 flex-col items-center justify-center/);
+    assert.doesNotMatch(
+      APP_SOURCE,
+      /min-h-(?:10|11) flex-col items-center justify-center/,
+      "the bar never drops to the 44px floor or below it",
+    );
   });
 
   it("only the Trades button ever renders a badge", () => {
@@ -321,10 +330,19 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // footer for every surface; tests/appFooter.test.ts owns its composition), and
   // §17g/§17i then took the footer out of the bar's reach entirely: the footer is a
   // ≥lg element and the bar is lg:hidden, so the two can never share a viewport
-  // and the footer's own reserve was padding for nothing. What stays here is the
-  // claim that belongs to the bar — the ONE element it can still overlay is the
-  // content wrapper, read from that source rather than restated as a number.
-  it("keeps the tab-bar clearance on the one element the bar can overlay (F4 fix wave 2B)", () => {
+  // and the footer's own reserve was padding for nothing.
+  //
+  // Where the LIVE clearance lives, stated plainly because this rationale had
+  // drifted: not on these two branches. §17g gave every width below lg its own
+  // frame, so both branches here render at ≥lg only, where lg:pb-5 lands last and
+  // computes the 20px they actually draw — the reserve that clears the bar is
+  // MOBILE_FRAME_SCROLL's, sized to the bar itself (see the §17n tests in this
+  // file and tests/mobileMinimalism.test.ts). What these two still carry is a belt
+  // for a mis-gated render — isMobileViewport reading stale would draw a desktop
+  // branch at a phone width, where the bar IS mounted — and the shape that keeps
+  // the ordering hazard below from returning. Both are worth pinning; neither is a
+  // live 96px reserve, and this test no longer claims one.
+  it("keeps the mis-gated-render belt on both desktop content branches (F4 fix wave 2B)", () => {
     const footerSource = readFileSync("src/components/AppFooter.tsx", "utf8");
     const wrapperClassNames = APP_SOURCE.match(
       /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
@@ -346,19 +364,22 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
   // used to carry the sm: BLOCK-axis pad beside their `pb-24`, and a
   // padding-block utility beats a padding-bottom one whenever Tailwind emits it
   // later — which it does for a variant (measured in the built CSS: .pb-24 at
-  // ~30kB, the sm: block form at ~39kB). So from 640px to 1023px the reserve was
-  // 20px, not 96px, while the fixed bar was still mounted; only at lg — where the
-  // bar is gone and lg:pb-5 lands last — did the numbers agree again.
+  // ~30kB, the sm: block form at ~39kB). Back when these branches still rendered
+  // below lg, that made the reserve 20px rather than 96px from 640px to 1023px
+  // while the fixed bar was mounted; only at lg — where the bar is gone and
+  // lg:pb-5 lands last — did the numbers agree again. Since §17g the branches are
+  // ≥lg-only, so the defect can no longer bite here; what this pins is the shape,
+  // for the same two reasons the test above gives.
   //
   // (The utility is named by shape rather than spelled out here on purpose:
   // Tailwind's scanner reads this file too, and a dead class in a comment is a
   // dead rule in the bundle.)
   //
-  // The rule this pins: below lg, nothing on these branches may touch the bottom
-  // axis except pb-24 itself. An sm: pad may exist (it does, on the top axis),
-  // but a block-axis one silently undoes the reserve, and the whole band is a
+  // The rule this pins: nothing on these branches may touch the bottom axis
+  // except the pb chain itself. An sm: pad may exist (it does, on the top axis),
+  // but a block-axis one silently undoes the reserve, and the 640-1023px band is a
   // width no unit test looks at.
-  it("keeps that clearance across the 640-1023px band — no sm: block pad undoes pb-24", () => {
+  it("keeps the pb chain intact on both branches — no sm: block pad undoes it", () => {
     const wrapperClassNames = APP_SOURCE.match(
       /\? "motion-fade-in mx-auto w-full max-w-7xl [^"]*"\n\s*: "scrolly motion-fade-in mx-auto max-w-7xl [^"]*"/,
     )?.[0] ?? "";
@@ -859,7 +880,14 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
   });
 
   it("carries the fixed tab bar's own clearance on the scrolling region, since this surface has no footer to carry it", () => {
-    assert.match(MOBILE_FRAME_SCROLL, /overflow-y-auto px-4 pb-24/);
+    // §17n sized the clearance to the bar: 49px of bar (48px box + 1px border)
+    // plus a 7px gap, plus the device's own safe-area inset, which the bar itself
+    // also pads by. It was a flat pb-24 (96px) — 39px of dead scroll where the
+    // inset is 0 and 5px of clearance where it is ~34px.
+    assert.match(
+      MOBILE_FRAME_SCROLL,
+      /overflow-y-auto px-4 pb-\[calc\(3\.5rem_\+_env\(safe-area-inset-bottom\)\)\]/,
+    );
     // App.tsx's fixed branch contributes no padding of its own — the surface
     // owns its gutters (m-scan-v3.html:29,32).
     assert.match(
@@ -1209,9 +1237,12 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // lifted into one module so five surfaces cannot drift into five frames.
     assert.equal(MOBILE_FRAME, "flex min-h-0 min-w-0 flex-1 flex-col");
     assert.equal(MOBILE_FRAME_PINNED, "shrink-0 px-4 pt-3");
+    // The tab-bar reserve is §17n's, sized to the bar's real composition rather
+    // than to a round number (tests/mobileMinimalism.test.ts carries the measured
+    // before/after); the rest of the string is m-scan-v3.html:32's, unchanged.
     assert.equal(
       MOBILE_FRAME_SCROLL,
-      "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24",
+      "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]",
     );
   });
 
@@ -1457,18 +1488,24 @@ describe("§17g — Profile ends with the colophon below lg, and only there", ()
 
   it("renders the colophon once, inside the <lg branch, in the footer's own treatment", () => {
     // The class, not the word: this file's own comments name .colophon while
-    // explaining why the line is here, and prose is not a second colophon.
-    assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
+    // explaining why the line is here, and prose is not a second colophon. The
+    // §17n top-pad utility rides on the same attribute, so the count matches the
+    // attribute rather than the bare class.
+    assert.equal(
+      (profile.match(/className="colophon(?: [^"]*)?"/g) ?? []).length,
+      1,
+    );
+    assert.match(profile, /className="colophon max-lg:pt-5"/);
     // §17k made the line a link inside that <p> (tests/colophon.test.ts pins the
     // link itself); what this file owns is that the treatment is the footer's.
     assert.match(
       profile,
-      /className="colophon">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
+      /className="colophon max-lg:pt-5">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
     );
     // Inside the mobile scroll region, after the rows: it ends the view.
     assert.match(
       profile,
-      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon"/,
+      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon[^"]*"/,
     );
   });
 
@@ -1535,7 +1572,7 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     // nav is `lg:hidden`, so these are mobile rules already.
     assert.match(
       APP_SOURCE,
-      /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
+      /className=\{`flex min-h-12 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
     );
     // The accessible name comes from the explicit aria-label, so CSS casing
     // never reaches the e2e nav-name contracts (/^Trades(,|$)/ and friends).

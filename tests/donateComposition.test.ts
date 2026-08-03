@@ -32,9 +32,11 @@ const donationOptions = readFileSync(DONATION_OPTIONS, "utf8");
 
 describe("DonatePanel composition — ruled page head, matching Insights/Guide/Profile", () => {
   it("opens with the mock's 2px ink rule, exactly like HistoryPanel/GuidePanel/ProfilePanel — no icon, no eyebrow flanking it", () => {
+    // §17n put the shared mobile page head on the same string — 19px on a 24px
+    // line with an 8px rule pad below lg; the mock's 24px is unchanged at ≥lg.
     assert.match(
       donatePanel,
-      /<h1 className="border-b-2 border-ink pb-3\.5 text-2xl font-semibold tracking-normal text-ink">\s*Donate\s*<\/h1>/,
+      /<h1 className="border-b-2 border-ink pb-3\.5 text-2xl font-semibold tracking-normal text-ink max-lg:pb-2 max-lg:text-\[19px\] max-lg:leading-6">\s*Donate\s*<\/h1>/,
     );
   });
 

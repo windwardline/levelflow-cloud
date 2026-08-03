@@ -304,7 +304,14 @@ export default function App() {
           how that disagreement turns into a cascade puzzle. */}
       <main className={mainShellClassName(isMobileViewport)}>
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
+          {/* §17n: 8px of block padding below lg, the mock's 12px at ≥lg. Measured
+              against the built CSS at 375x812, this row was 69px of which 44px is
+              the avatar trigger — the kit's tap floor, which sets the row's height
+              and cannot yield — so the padding around it was the only slack there
+              was, and 8px is still a real gutter above and below a 44px control.
+              Every mobile surface's content row gains the 8px, since this header
+              and the content row split one fixed viewport between them. */}
+          <div className="mx-auto max-w-7xl px-4 py-3 max-lg:py-2 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
                 account avatar — Guide/Profile/Donate/Sign out all live
                 behind that one button instead of the single-row masthead
@@ -404,21 +411,27 @@ export default function App() {
             // clearance (spec §17g, m-scan-v3.html:29,32), so this wrapper
             // contributes nothing but the fixed column they live in.
             ? "motion-fade-in flex w-full min-h-0 flex-col overflow-hidden"
-            // The sm: pad is top-axis only, deliberately. Both scrolling
-            // branches reserve pb-24 for the fixed MobileTabBar, which is
-            // mounted at every width below lg — and a padding-block utility
-            // beats a padding-bottom one whenever Tailwind emits it later, which
-            // it does for a variant. Measured in the built CSS, the block form
-            // of this utility landed ~9kB after .pb-24, so the reserve silently
-            // collapsed from 96px to 20px across the whole 640-1023px band while
-            // the bar was still there. Padding only the top leaves the pb chain
-            // intact (pb-24 below lg, lg:pb-5 above it) and changes nothing at
-            // >=lg, where lg:pb-5 already computed the same 20px the block form
-            // was handing it.
-            // Both ≥lg branches are reached at ≥lg only since §17g, and both keep
-            // every utility they had: they are what the frozen desktop cascade is
-            // built from, and the tab-bar reserve below stays as the guard that
-            // pins the hazard the comment describes.
+            // Both of these branches render at ≥lg ONLY, since §17g gave every
+            // width below lg its own frame above. So the live tab-bar clearance is
+            // not here — it is MOBILE_FRAME_SCROLL's, sized to the bar itself in
+            // src/components/mobileFrame.ts — and at ≥lg it is lg:pb-5 that
+            // computes the 20px these two actually draw. Each branch's pb-24 is
+            // inert in normal operation and kept for two reasons, neither of them
+            // decoration: it is the belt for a mis-gated render (isMobileViewport
+            // reading stale would draw a desktop branch at a phone width, where
+            // the bar IS still mounted), and it is the record of a real ordering
+            // hazard.
+            //
+            // That hazard, and why the sm: pad is top-axis only: a padding-block
+            // utility beats a padding-bottom one whenever Tailwind emits it later,
+            // which it does for a variant. Measured in the built CSS, the block
+            // form landed ~9kB after .pb-24 — so back when these branches still
+            // rendered below lg, the reserve silently collapsed from 96px to 20px
+            // across the whole 640-1023px band while the bar was there. Padding
+            // only the top leaves the pb chain intact and changes nothing at ≥lg,
+            // where lg:pb-5 already computed the same 20px the block form was
+            // handing it. tests/mobileNav.test.ts pins that shape — not a live
+            // reserve, which is what its own rationale now says.
             //
             // §17i makes the second of them the app's one ≥lg scroll region: the
             // Desk still scrolls its three columns internally (lg:overflow-hidden,
@@ -644,7 +657,22 @@ function MobileTabBar({
               // lg:hidden, so these are mobile rules already.
               // Casing is CSS only; the accessible name comes from the
               // aria-label above, so the e2e nav-name contracts are untouched.
-              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] ${
+              //
+              // §17n sized the box: measured against the built CSS at 375x812,
+              // a tab's own content is 38px — the 20px icon, the 2px gap, and
+              // the 10.5px label's 15.75px line box — so the 56px box this
+              // carried held 18px of nothing. (Its retired utility is named by
+              // shape rather than spelled out, the habit mainShellClassName
+              // documents: Tailwind's scanner reads this file, and a dead class
+              // in a comment is a dead rule in the bundle.)
+              // min-h-12 is 48px: the kit's 44px tap floor plus 4px, a
+              // step toward the mock's own tab (m-scan-v3.html:48 draws a
+              // text-only 39px one), and 8px of visible content handed back to
+              // every surface, since this bar overlays the bottom of each one's
+              // scroll region. The icons stay — they carry no text, so no
+              // legibility floor asks them to grow, and they are what makes the
+              // 10.5px label a label rather than the whole affordance.
+              className={`flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] ${
                 isActive ? "text-accent" : "text-ink-muted"
               }`}
               type="button"

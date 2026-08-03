@@ -88,17 +88,33 @@ export function HistoryPanel({
   // the ≥lg page is byte-for-byte the one it already was.
   const isMobile = useIsMobileViewport();
 
+  // §17n (mobile minimalism), the slimming the ruling pre-approved by name.
+  // Measured against the built CSS at 375x812: this band was 192px and the filter
+  // row below it 185px, so 409px of the 743px content row was pinned chrome and
+  // the ledger — the thing the surface exists to deliver — had 334px. The band's
+  // own numbers were a 32px h1 line, a 16px gap, four 48px stat blocks wrapping
+  // into two ragged rows at a 32px row gap, and 14px of pad under the 2px rule.
+  //
+  // Below lg it is now 138px: the 19px page head every mobile surface draws
+  // (m-trades-v1.html's own `.phead .t`, which CurrentTradesRail already ships),
+  // an 8px gap, the four stats as a deliberate 2x2 grid at 18px, and 8px of pad.
+  // Nothing above lg moves — every reduction is a max-lg: literal, and the ≥lg
+  // page is the mock's byte for byte.
   const recordBandHead = (
-    <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3.5">
+    <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3.5 max-lg:gap-x-3 max-lg:gap-y-2 max-lg:pb-2">
       <div className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-2xl font-semibold tracking-normal text-ink">
+        <h1 className="text-2xl font-semibold tracking-normal text-ink max-lg:text-[19px] max-lg:leading-6">
           Insights
         </h1>
         {loading
           ? <p className="text-sm font-semibold text-ink-muted">Loading</p>
           : null}
       </div>
-      <div className="flex flex-wrap gap-8">
+      {/* Four blocks in two flex rows became four in a 2x2 grid: the same two
+          rows, 32px of row gap less, and columns that line up instead of
+          wrapping wherever the labels happen to end. w-full is what gives the
+          grid its own two columns once it has dropped below the h1. */}
+      <div className="flex flex-wrap gap-8 max-lg:grid max-lg:w-full max-lg:grid-cols-2 max-lg:gap-x-4 max-lg:gap-y-2">
         <StatBlock
           label="Setups this week"
           value={recordBand.setupsThisWeek.toString()}
@@ -123,13 +139,25 @@ export function HistoryPanel({
     </div>
   );
 
+  // §17n, the other half of the pre-approved slimming. Measured at 375x812: three
+  // `.field` selects at 48px, each in a label pair too wide to share a line, stacked
+  // to three rows at a 12px gap with 16px of pad under them — 185px. Below lg the
+  // pairs now measure 137px (Status) and 170px (Period) of the 343px available, so
+  // they share the second row and the row is 105px: two 44px rows, an 8px gap, 8px
+  // of pad.
+  //
+  // The compaction is padding and type, never the tap target: `.field`'s 48px is
+  // above the kit's 44px floor, not at it, so max-lg:min-h-11 lands the selects ON
+  // the floor and every filter stays a real 44px touch target. The visible labels
+  // stay too — §17f runs first, and "All" beside a market filter reading "All
+  // markets" is not a string the surface already shows.
   const filterRow = (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">
-      <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4 max-lg:gap-x-3 max-lg:gap-y-2 max-lg:pb-2">
+      <label className="flex items-center gap-2 text-sm font-semibold text-ink max-lg:gap-1.5 max-lg:text-xs">
         Market
         <select
           aria-label="Market"
-          className="field"
+          className="field max-lg:min-h-11 max-lg:px-2 max-lg:text-[13px]"
           value={marketFilterValue(marketScope)}
           onChange={(event) =>
             setMarketScope(parseMarketFilterValue(event.target.value))}
@@ -149,11 +177,11 @@ export function HistoryPanel({
           ))}
         </select>
       </label>
-      <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+      <label className="flex items-center gap-2 text-sm font-semibold text-ink max-lg:gap-1.5 max-lg:text-xs">
         Status
         <select
           aria-label="Status"
-          className="field"
+          className="field max-lg:min-h-11 max-lg:px-2 max-lg:text-[13px]"
           value={statusFilter}
           onChange={(event) =>
             setStatusFilter(event.target.value as InsightsStatusFilter)}
@@ -165,11 +193,11 @@ export function HistoryPanel({
           ))}
         </select>
       </label>
-      <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+      <label className="flex items-center gap-2 text-sm font-semibold text-ink max-lg:gap-1.5 max-lg:text-xs">
         Period
         <select
           aria-label="Period"
-          className="field"
+          className="field max-lg:min-h-11 max-lg:px-2 max-lg:text-[13px]"
           value={periodDays}
           onChange={(event) =>
             setPeriodDays(Number(event.target.value) as InsightsPeriodDays)}
@@ -257,7 +285,11 @@ export function HistoryPanel({
   // it sits in is already the surface's one allowed perimeter.
   const attributionSection = (
     <section className="mt-6 grid gap-4" data-testid="attribution">
-      <h2 className="text-xl font-semibold tracking-normal text-ink">
+      {/* §17n: the section head follows the surface head down. The h1 above it
+          is 19px below lg now, and a 20px h2 under a 19px h1 is a heading scale
+          that reads backwards — so this drops to 16px and the hierarchy is real
+          at both widths (24 over 20 at ≥lg, 19 over 16 below it). */}
+      <h2 className="text-xl font-semibold tracking-normal text-ink max-lg:text-base">
         Attribution
       </h2>
       {/* Two columns at ≥lg, one below it, each group capped at the measure
@@ -306,13 +338,18 @@ export function HistoryPanel({
 
   if (isMobile) {
     // Spec §17g: "Insights: record band + filters pinned; the ledger (day groups
-    // + rows) is the scroll region." The pinned block keeps the page's own 20px
-    // rhythm between its two rules, and the filter row's hairline is the only
+    // + rows) is the scroll region." The filter row's hairline is the only
     // separation between the chrome and the ledger — no second frame.
+    //
+    // The gap between the two pinned blocks is chrome as well (§17n names "every
+    // label and gap between them"), so below lg it is 12px rather than the ≥lg
+    // page's 20px — this wrapper exists only in the mobile branch, so it needs no
+    // variant. Measured: 267px of pinned chrome now against 484px of ledger, from
+    // 409px against 334px before the wave.
     return (
       <div className={MOBILE_FRAME}>
         <div className={MOBILE_FRAME_PINNED}>
-          <div className="grid gap-5">
+          <div className="grid gap-3">
             {recordBandHead}
             {filterRow}
           </div>
@@ -415,10 +452,15 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
 // the mock draws these as bare text (i-insights-v1.html `.stat`), hairline-
 // separated from the filters below by the phead's own bottom rule rather
 // than by a border around each stat.
+//
+// §17n: the value steps to 18px below lg — 10px of the band's height across two
+// rows — and the label does not move. The 12px .eyebrow is the kit's smallest
+// label and legibility is what holds it there; the value is a figure with no
+// smaller legible size worth the hierarchy it would cost.
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="font-mono text-2xl font-semibold tabular-nums text-ink">
+      <p className="font-mono text-2xl font-semibold tabular-nums text-ink max-lg:text-lg">
         {value}
       </p>
       <p className="eyebrow">

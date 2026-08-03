@@ -136,11 +136,17 @@ describe("placement — §17c above lg, §17g below it", () => {
       "src/components/workspace/ProfilePanel.tsx",
       "utf8",
     );
-    assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
+    // The whole attribute, not the bare class: §17n tightened the line's own top
+    // pad below lg ("colophon max-lg:pt-5"), and the 44px reach it must keep comes
+    // from .colophon-link's ::after overlay, which no padding change can touch.
+    assert.equal(
+      (profile.match(/className="colophon(?: [^"]*)?"/g) ?? []).length,
+      1,
+    );
     // Inside the scroll region: §17g kept the line, not a footer.
     assert.match(
       profile,
-      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon"/,
+      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon[^"]*"/,
     );
   });
 
