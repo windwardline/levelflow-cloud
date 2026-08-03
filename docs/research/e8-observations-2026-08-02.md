@@ -100,3 +100,26 @@ sizing on a forex-line account uses the observed 1:1.
   energies (incl. the Brent discovery), 6 indices, 8 crypto, all observed.
 - Remaining unobserved: the futures line (owner's planned E8 futures account
   purchase covers it), and per-line leverage variance for crypto accounts.
+
+---
+
+# Observation batch 3 — 2026-08-02 (owner, TradeLocker, same account)
+
+Seventeen forex tickets. Combined with batches 1–2 this verifies the forex
+derivation for EVERY quote-currency class, each against the same session's own
+USD-leg tickets (internal consistency, no external rates needed):
+
+| Quote class | Tickets observed | 100-tick P&L @ 1 lot | Formula check |
+|---|---|---|---|
+| USD-quoted | GBPUSD, NZDUSD, AUDUSD (+EURUSD b1) | $100.00 | $1/tick flat ✓ |
+| CHF-quoted | EURCHF, GBPCHF, USDCHF, NZDCHF, CADCHF | $123.86–123.89 | 10 CHF ÷ USDCHF 0.80725 = $12.388/pip ✓ |
+| CAD-quoted | EURCAD, USDCAD, GBPCAD, NZDCAD | $71.35 | 10 CAD ÷ USDCAD 1.40152 = $7.135/pip ✓ |
+| JPY-quoted | USDJPY, EURJPY, AUDJPY, NZDJPY, CHFJPY | $63.36–63.38 | ¥1,000 ÷ USDJPY 157.822 = $6.336/pip ✓ |
+| GBP-quoted | EURGBP | $134.84 | £10 × GBPUSD 1.34844 ✓ |
+| AUD-quoted | GBPAUD | $70.42 | A$10 × AUDUSD 0.70412 ✓ |
+| NZD-quoted | AUDNZD (+GBPNZD b1) | $58.96 | NZ$10 × NZDUSD 0.58974 ✓ |
+
+21 of 28 pairs directly observed; the remaining 7 use the same per-quote-class
+formulas with every quote-currency leg now observed. The forex table graduates
+from derived-by-published-method to empirically verified per class. Margin
+lines all consistent with 30:1.
