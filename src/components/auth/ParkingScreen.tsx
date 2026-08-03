@@ -25,9 +25,6 @@ import { SUPPORT_MAILTO } from "../../lib/support";
 export function ParkingScreen({ themeControl }: { themeControl?: ReactNode }) {
   return (
     <main className={SATELLITE_FRAME}>
-      {themeControl ? (
-        <div className="fixed right-4 top-4 z-20">{themeControl}</div>
-      ) : null}
       {/* Named for the page, which is what the eyebrow below already calls it:
           the region is a tab stop now (satelliteFrame.ts), and an unnamed stop
           announces as nothing. */}
@@ -37,6 +34,16 @@ export function ParkingScreen({ themeControl }: { themeControl?: ReactNode }) {
         role="region"
         tabIndex={0}
       >
+        {/* Owner ruling (2026-08-02) is written for the login screen, and it is a
+            ruling about this control: it is "planted at the top" and scrolls with
+            the content rather than pinned over it. Both pre-auth screens carry the
+            same row, from the same string, because they carry the same control —
+            and the centred group below keeps §17j's five elements untouched. */}
+        {themeControl ? (
+          <div className="mx-auto flex w-full max-w-7xl justify-end px-5 pt-4 sm:px-8">
+            {themeControl}
+          </div>
+        ) : null}
         <div className="m-auto max-w-xl px-6 py-8 text-center">
           {/* §17i's satellite mark: mark A small above the eyebrow, one
               treatment on every page that carries it (44px, 16px of air under

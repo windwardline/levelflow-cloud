@@ -221,6 +221,40 @@ describe("ThemeToggle — the mock's segmented pill (p-profile-v2.html:27-29)", 
     assert.match(THEME_TOGGLE_SOURCE, /bg-accent\/10 text-accent/);
   });
 
+  // Owner ruling (2026-08-02), the pre-auth toggle: "like everything else on the
+  // mobile view, it should be smaller — as small as possible on the mobile view
+  // while still being usable and legible." Smaller is the VISIBLE box; the hit
+  // area is not negotiable (§16 trims padding and type, never the target), so this
+  // is .tertiary-link's own trick on both axes — a 44px box pulled back by
+  // negative margins, leaving 42x28 of visible control with a full,
+  // non-overlapping 44x44 target centred on it (the pill's own 2px gap absorbs the
+  // 1px of inline reach from each side, so no two options claim the same pixel).
+  //
+  // Compact is exactly the two pre-auth screens, and only below sm. Profile takes
+  // the branch above, unchanged, at every width — the mock still governs it.
+  it("shrinks only the compact pre-auth control, only below sm, and never the 44px target", () => {
+    assert.match(
+      THEME_TOGGLE_SOURCE,
+      /flex min-h-11 min-w-11 -mx-px -my-2 items-center justify-center gap-1\.5 rounded-md text-\[13px\] font-semibold transition sm:mx-0 sm:my-0 sm:min-w-0 sm:px-3\.5/,
+    );
+    // Two option literals, one per branch, and the hit floor survives in both.
+    const options = THEME_TOGGLE_SOURCE.match(/"flex min-h-11[^"]*"/g) ?? [];
+    assert.equal(options.length, 2);
+    for (const literal of options) {
+      assert.match(literal, /\bmin-h-11\b/);
+    }
+    // The pill's own chrome is the mock's at every width: what shrinks is the
+    // control, not the outline drawn around it.
+    assert.equal(
+      (THEME_TOGGLE_SOURCE.match(/border border-hairline p-\[3px\]/g) ?? []).length,
+      1,
+    );
+    // Whole literals per branch, never a base list with a conflicting override
+    // appended: two unprefixed utilities for one property resolve by stylesheet
+    // order, which is not something a call site can see.
+    assert.doesNotMatch(THEME_TOGGLE_SOURCE, /\$\{compact \?/);
+  });
+
   // Q1-I5: the pill had no selected-state semantics and a name nothing could
   // read. `aria-label` on a bare <div> with no role is dropped by most assistive
   // technology, so the group was unnamed; and the active mode was carried only by

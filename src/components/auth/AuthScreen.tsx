@@ -10,6 +10,7 @@ import {
 } from "../satelliteFrame";
 import { DonationOptions } from "../donations/DonationOptions";
 import { describeAuthEmailError } from "../../lib/authErrors";
+import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../../lib/support";
@@ -134,9 +135,6 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     // visible. `auth-shell` keeps its own positioned grid wash, which is why the
     // frame's classes ride beside it rather than replacing them.
     <main className={`auth-shell ${SATELLITE_FRAME}`}>
-      {themeControl ? (
-        <div className="fixed right-4 top-4 z-20">{themeControl}</div>
-      ) : null}
       {/* Named for what the page is for — the card's own eyebrow word, not the
           hero's product line: the region is a tab stop now
           (satelliteFrame.ts), and an unnamed stop announces as nothing. */}
@@ -146,12 +144,28 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
         role="region"
         tabIndex={0}
       >
-        {/* The minimum height is the REGION's, not the viewport's: the two columns
-            centre against the box that holds them, and a viewport-height minimum
-            inside a shorter region is a scrollbar with nothing under it. (Named by
-            shape rather than spelled out — Tailwind's scanner reads this file, and
-            a dead class in a comment is a dead rule in the bundle.) */}
-        <section className="mx-auto grid min-h-full w-full max-w-7xl items-center gap-10 px-5 pb-8 pt-24 sm:px-8 sm:py-8 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* Owner ruling (2026-08-02): the theme control "should be planted at the
+            top, and scroll with the rest of the content so it does not block
+            anything from view", on both platforms. So it is the region's first
+            child, in flow — not the viewport overlay it was, which sat over the
+            hero at every width and forced the 96px of top padding this section
+            used to carry below sm. Same row on the parking screen, same string. */}
+        {themeControl ? (
+          <div className="mx-auto flex w-full max-w-7xl justify-end px-5 pt-4 sm:px-8">
+            {themeControl}
+          </div>
+        ) : null}
+        {/* Auto margins, the parking screen's own idiom: they centre the block in a
+            taller region and collapse to zero in a shorter one. What they replace
+            was a percentage minimum height, which overrides a flex item's automatic
+            minimum size — so the region shrank this section to its own height, the
+            grid crushed the card's auto row to 50px, and centring then placed a
+            468px card inside that row with 209px of overhang, upward, across the
+            hero's feature list. Centring is ≥lg's alone now: that is where the two
+            columns share one row and have something to centre against. (Every class
+            here is named by shape rather than spelled out — Tailwind's scanner reads
+            this file, and a dead class in a comment is a dead rule in the bundle.) */}
+        <section className="m-auto grid w-full max-w-7xl gap-10 px-5 py-8 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="space-y-8">
             <div>
               {/* §17i's satellite mark, in the parking screen's treatment exactly
@@ -305,17 +319,18 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
             {donationsOpen ? (
               // The divider and the sentence both used to come from inside
               // DonationOptions: the rule was this panel's own idiom drawn by a
-              // shared component, and the sentence duplicated the Donate page's
-              // App-costs line (spec §17f). Here the sentence is the only thing
-              // that says what a donation pays for — this screen has no such
-              // section — so both live at the call site, verbatim, in the same
-              // place and with the same spacing they always had.
+              // shared component, and the sentence said what the Donate page's own
+              // section said in different words (spec §17f). Owner ruling
+              // (2026-08-02) merged the two into one constant, so this screen and
+              // that page now say the same thing — the sentence still renders here,
+              // in the same place and with the same spacing it always had, because
+              // this screen has no section of its own that says it.
               <div
                 ref={donationsRef}
                 className="mt-6 border-t border-ink-muted/15 pt-4"
               >
                 <p className="mb-4 text-sm leading-6 text-ink-muted">
-                  Donations support market data, email, hosting, and development.
+                  {DONATION_SUPPORT_COPY}
                 </p>
                 <DonationOptions
                   fallbackHref={donationFallbackHref}

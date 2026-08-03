@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DONATION_SUPPORT_COPY } from "../../src/lib/donationCopy";
 
 test("public login screen presents Levelflow without stale auth copy", async ({
   page,
@@ -167,9 +168,7 @@ test("/?donate opens the login screen's donation block and brings it into view",
 
   const donate = page.getByRole("button", { name: "Donate", exact: true });
   await expect(donate).toHaveAttribute("aria-expanded", "true");
-  const options = page.getByText(
-    "Donations support market data, email, hosting, and development.",
-  );
+  const options = page.getByText(DONATION_SUPPORT_COPY);
   await expect(options).toBeVisible();
   // In the viewport, not merely rendered somewhere in the scroll region.
   const inView = await options.evaluate((element) => {
@@ -191,13 +190,14 @@ test("the login screen's region is a named keyboard stop too", async ({ page }) 
   await expect(region).toBeVisible();
   expect(await region.evaluate((element) => element.scrollHeight - element.clientHeight))
     .toBeGreaterThan(0);
-  // The theme toggle is fixed over this screen and sits before the region in the
-  // DOM, so the region is not the first stop — what has to hold is that it IS a
-  // stop, and that it comes before the controls inside it. (On the static pages
-  // above there is no such control, so the region is the very first stop.)
+  // The region is the very first stop, as it is on the static pages above: the
+  // theme toggle used to be a fixed overlay ahead of it in the DOM, and the owner's
+  // 2026-08-02 ruling moved that control inside the region, where it follows the
+  // region's own stop instead of preceding it.
   let reached = false;
+  let reachedAt = 0;
   let insideFirst = false;
-  for (let stop = 0; stop < 6 && !reached; stop += 1) {
+  for (let stop = 1; stop <= 6 && !reached; stop += 1) {
     await page.keyboard.press("Tab");
     const where = await region.evaluate((element) => ({
       inside: element !== document.activeElement &&
@@ -205,16 +205,131 @@ test("the login screen's region is a named keyboard stop too", async ({ page }) 
       isRegion: element === document.activeElement,
     }));
     reached = where.isRegion;
+    reachedAt = reached ? stop : reachedAt;
     insideFirst = insideFirst || (!reached && where.inside);
   }
   expect(reached, "the login region is not a tab stop").toBe(true);
   expect(insideFirst, "a control inside the region was reached first").toBe(false);
+  expect(reachedAt, "the region is no longer the first stop").toBe(1);
   await page.keyboard.press("End");
   await expect
     .poll(() => region.evaluate((element) => Math.round(element.scrollTop)))
     .toBeGreaterThan(0);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
+
+// Owner ruling (2026-08-02): "the login card/box blocks some of the content on the
+// login screen itself." It did, and the mechanism was measurable: min-h-full made
+// the two-column section a flex item with an explicit percentage minimum, which
+// replaces a flex item's automatic minimum size — so the scroll region shrank the
+// section to its own height (727.5px at 375, against 1129px of content), the grid
+// crushed the card's auto row to 50px, and `items-center` centred a 468px card
+// inside that row: 209px of overhang, upward, straight across the hero's own
+// feature list. This is the claim in its general form — no element of the hero and
+// the card may share a pixel, at any width the screen is read at.
+for (const width of [320, 375, 768, 1280]) {
+  test(`nothing on the login screen is behind the sign-in card at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto("/?enter", { waitUntil: "networkidle" });
+    const overlaps = await page.evaluate(() => {
+      const section = document.querySelector("[role='region'] section");
+      const hero = section?.firstElementChild;
+      const card = document.querySelector(".auth-login-panel");
+      if (!hero || !card) {
+        throw new Error("expected the hero column and the sign-in card");
+      }
+      const cardBox = card.getBoundingClientRect();
+      const hit: string[] = [];
+      for (const element of hero.querySelectorAll("*")) {
+        const box = element.getBoundingClientRect();
+        if (box.width === 0 || box.height === 0) continue;
+        const y = Math.min(box.bottom, cardBox.bottom) -
+          Math.max(box.top, cardBox.top);
+        const x = Math.min(box.right, cardBox.right) -
+          Math.max(box.left, cardBox.left);
+        if (y > 0.5 && x > 0.5) {
+          hit.push(
+            `${element.tagName}: ${(element.textContent ?? "").trim().slice(0, 40)}`,
+          );
+        }
+      }
+      return hit;
+    });
+    expect(overlaps, "the card covers hero content").toEqual([]);
+    // Flow, not just clearance: the card begins below everything above it.
+    const ordered = await page.evaluate(() => {
+      const section = document.querySelector("[role='region'] section")!;
+      const hero = section.firstElementChild!.getBoundingClientRect();
+      const card = document.querySelector(".auth-login-panel")!
+        .getBoundingClientRect();
+      // At ≥lg they are two columns of one row, side by side; below lg, one after
+      // the other.
+      return card.left >= hero.right - 1 || card.top >= hero.bottom - 1;
+    });
+    expect(ordered, "the card is not in document order with the hero").toBe(true);
+  });
+}
+
+// The other half of the same ruling: "It should be planted at the top, and scroll
+// with the rest of the content so it does not block anything from view." A control
+// that scrolls away is a control that is IN the scrolling region — which is a
+// claim about layout, not about a class name, so it is measured here.
+for (const width of [375, 1280]) {
+  test(`the theme control scrolls with the login content at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 640 });
+    await page.goto("/?enter", { waitUntil: "networkidle" });
+    const region = page.getByRole("region", { name: "Sign in" });
+    const toggle = page.getByRole("group", { name: "Theme" });
+    await expect(toggle).toBeVisible();
+    // In flow: neither the control nor any ancestor up to the region takes itself
+    // out of the page's own layout.
+    const positions = await toggle.evaluate((element) => {
+      const chain: string[] = [];
+      let node: HTMLElement | null = element as HTMLElement;
+      while (node && !node.matches("[role='region']")) {
+        chain.push(getComputedStyle(node).position);
+        node = node.parentElement;
+      }
+      return chain;
+    });
+    expect(positions.every((position) => position === "static")).toBe(true);
+    // And it is inside the scroller, so the scroller moves it.
+    const scrollable = await region.evaluate((element) =>
+      element.scrollHeight - element.clientHeight
+    );
+    expect(scrollable, "the region has nothing to scroll").toBeGreaterThan(40);
+    const before = (await toggle.boundingBox())!.y;
+    await region.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    const after = (await toggle.boundingBox())!.y;
+    expect(before - after, "the control did not scroll with the content")
+      .toBeGreaterThanOrEqual(Math.min(scrollable, 40));
+    // The 44px target survives the shrink (the ruling's "usable"): three options,
+    // each a full 44px box, and no two of them claiming the same pixel.
+    const boxes = await toggle.evaluate((element) =>
+      [...element.querySelectorAll("button")].map((button) => {
+        const box = button.getBoundingClientRect();
+        return { left: box.left, right: box.right, w: box.width, h: box.height };
+      })
+    );
+    expect(boxes).toHaveLength(3);
+    for (const box of boxes) {
+      expect(box.h).toBeGreaterThanOrEqual(44);
+      expect(box.w).toBeGreaterThanOrEqual(44);
+    }
+    for (let index = 1; index < boxes.length; index += 1) {
+      expect(
+        boxes[index].left,
+        "two theme options share hit-area pixels",
+      ).toBeGreaterThanOrEqual(boxes[index - 1].right - 0.01);
+    }
+  });
+}
 
 test("the gate is open — signed-out visitors land on sign-in, not parking", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });

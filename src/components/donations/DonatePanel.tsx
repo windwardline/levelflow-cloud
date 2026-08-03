@@ -1,4 +1,5 @@
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
+import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -49,14 +50,18 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
       </div>
 
       <div>
+        {/* Owner ruling (2026-08-02): one sentence pair, on every screen that says
+            what a donation pays for, from one constant (src/lib/donationCopy.ts).
+            The two-word heading that used to sit between this eyebrow and that line
+            went with it — it only re-titled the line beneath it, and now that the
+            line names the costs AND the development, the heading said less than its
+            own body (§17f). The eyebrow introduces the block, which is how every
+            other block on this page is introduced. */}
         <p className="eyebrow">
           What donations support
         </p>
-        <h2 className="mt-1 text-lg font-semibold tracking-normal text-ink">
-          App costs
-        </h2>
         <p className="mt-3 max-w-[62ch] text-sm leading-6 text-ink-muted sm:text-base sm:leading-7">
-          Levelflow runs on paid market-data, email, and hosting plans.
+          {DONATION_SUPPORT_COPY}
         </p>
       </div>
     </>
@@ -65,12 +70,18 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
   if (isMobile) {
     // Spec §17g: "Guide and Donate (avatar-menu surfaces): pinned title, body
     // scrolls internally." The scroll region keeps the page's own 16px rhythm
-    // between its two blocks — the same gap the ≥lg grid gives them.
+    // between its two blocks — the same gap the ≥lg grid gives them — and, since
+    // the owner's ruling of 2026-08-02, above the first of them too: the shared
+    // pinned row ends at the h1's 2px rule and contributes no bottom padding
+    // (MOBILE_FRAME_PINNED is one string on six surfaces), so the eyebrow began
+    // 0px under that rule here while the ≥lg page gave the same pair 16px. The air
+    // goes on the scrolling content, which is where ProfilePanel's first row
+    // carries its own, and leaves the shared frame untouched for the other five.
     return (
       <div className={MOBILE_FRAME}>
         <div className={MOBILE_FRAME_PINNED}>{title}</div>
         <div className={MOBILE_FRAME_SCROLL} data-testid="mobile-donate-scroll">
-          <div className="grid gap-4">{body}</div>
+          <div className="grid gap-4 pt-4">{body}</div>
         </div>
       </div>
     );

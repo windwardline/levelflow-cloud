@@ -350,17 +350,96 @@ describe("§17i — the frame reaches the React satellites", () => {
       );
       assert.doesNotMatch(source, /\boverflow-y-auto\b/, file);
     }
-    // The login screen's two columns centre against the region that holds them.
-    assert.match(
-      readFileSync("src/components/auth/AuthScreen.tsx", "utf8"),
-      /grid min-h-full w-full max-w-7xl items-center/,
+    // Both screens centre on auto margins, which collapse rather than clip when
+    // the content is taller than the region. The login screen used to reach for
+    // min-h-full instead, and that is what put its card on top of its own hero:
+    // an explicit percentage min-height replaces a flex item's automatic minimum
+    // size, so the flex column shrank the section to the region's height (727.5px
+    // measured at 375, against 1129px of content), the grid's second auto row was
+    // crushed to 50px, and `items-center` then centred a 468px card inside it —
+    // 209px of overhang, upward, across the hero's own feature list.
+    for (
+      const [file, root] of [
+        [
+          "src/components/auth/AuthScreen.tsx",
+          'className="m-auto grid w-full max-w-7xl gap-10 px-5 py-8 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"',
+        ],
+        [
+          "src/components/auth/ParkingScreen.tsx",
+          'className="m-auto max-w-xl px-6 py-8 text-center"',
+        ],
+      ] as const
+    ) {
+      const source = readFileSync(file, "utf8");
+      assert.ok(source.includes(root), `${file} must keep its root: ${root}`);
+      // In both directions: no definite height on either screen's content block,
+      // at any width. A grid row shorter than its own item is how content ends up
+      // underneath other content.
+      assert.doesNotMatch(source, /\bmin-h-full\b/, file);
+      // And no centring below lg, where each row holds one item and centring can
+      // only ever move an overflowing item on top of its neighbour. (The root
+      // only — the sign-in card's own field and divider rows are flex rows that
+      // centre their contents, which is a different claim entirely.)
+      assert.doesNotMatch(root, /(?<!lg:)\bitems-center\b/, file);
+    }
+  });
+});
+
+// Owner ruling (2026-08-02): "the toggle for the light/dark/system is always
+// present at the top of the screen, like the footer. This is wrong. The toggle is
+// kept in the profile section everywhere except the login screen, which is
+// accurate — but even on the login screen, both mobile and desktop, it should not
+// be a static header like that. It should be planted at the top, and scroll with
+// the rest of the content so it does not block anything from view."
+//
+// Position, in source, on both pre-auth screens: the control is the first thing
+// inside the scrolling region, in normal flow, and nothing pins it anywhere.
+describe("§17i — the pre-auth theme control scrolls with the content (owner ruling 2026-08-02)", () => {
+  const SATELLITES = [
+    "src/components/auth/AuthScreen.tsx",
+    "src/components/auth/ParkingScreen.tsx",
+  ];
+
+  it("plants it in flow at the top of the scroll region, never fixed or sticky", () => {
+    for (const file of SATELLITES) {
+      const source = readFileSync(file, "utf8");
+      // What it was: a pinned overlay in the corner of the viewport, outside the
+      // scroll region entirely, permanently over whatever it landed on. Read out
+      // of the className literals rather than the whole file, so the prose that
+      // explains the fix cannot fail the guard that proves it.
+      for (const idiom of [/\bfixed\b/, /\bsticky\b/, /\bz-\d/, /\babsolute\b/]) {
+        for (const literal of source.match(/className="[^"]*"/g) ?? []) {
+          assert.doesNotMatch(
+            literal,
+            idiom,
+            `${file} still takes the control out of flow: ${literal}`,
+          );
+        }
+      }
+      // What it is: the region's own first child, in flow.
+      assert.match(
+        source,
+        /className=\{SATELLITE_FRAME_SCROLL\}[\s\S]{0,120}?>\s*(?:\{\/\*[\s\S]*?\*\/\}\s*)?\{themeControl \? \(/,
+        `${file} must render themeControl as the first child of its scroll region`,
+      );
+      assert.match(
+        source,
+        /className="mx-auto flex w-full max-w-7xl justify-end px-5 pt-4 sm:px-8"/,
+        file,
+      );
+    }
+  });
+
+  it("keeps the control's only other home in Profile — no third surface, no fourth", () => {
+    // App mounts it on exactly the two pre-auth screens, and nowhere else: the
+    // authed shell has no theme control of its own, because Profile's row is it.
+    assert.equal((APP.match(/<ThemeToggle\b/g) ?? []).length, 2);
+    assert.equal((APP.match(/themeControl=\{/g) ?? []).length, 2);
+    const profile = readFileSync(
+      "src/components/workspace/ProfilePanel.tsx",
+      "utf8",
     );
-    // The parking group centres on auto margins, which collapse rather than clip
-    // when the content is taller than the region.
-    assert.match(
-      readFileSync("src/components/auth/ParkingScreen.tsx", "utf8"),
-      /className="m-auto max-w-xl px-6 py-8 text-center"/,
-    );
+    assert.equal((profile.match(/<ThemeToggle\b/g) ?? []).length, 1);
   });
 });
 

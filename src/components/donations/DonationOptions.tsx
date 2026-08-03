@@ -14,10 +14,11 @@ type DonationOptionsProps = {
 // wave 5, both of them chrome it had no business owning:
 //
 // - the sentence it used to open with, which said what the Donate page's own
-//   "What donations support · App costs" section says a few lines later, so the
-//   page said it twice (spec §17f). It still renders on the sign-in screen,
-//   where there is no such section and it is the only thing that says what a
-//   donation pays for — at that call site now, verbatim.
+//   "What donations support" section says a few lines later, so the page said it
+//   twice (spec §17f). It still renders on the sign-in screen, where there is no
+//   such section and it is the only thing that says what a donation pays for — at
+//   that call site now, from the constant both surfaces share
+//   (src/lib/donationCopy.ts, owner ruling 2026-08-02).
 // - the compact wrapper's divider rule, which was the sign-in panel's own idiom
 //   (and its own off-palette border colour) drawn from inside a shared
 //   component. It moved to that call site too, where it sits beside the two
