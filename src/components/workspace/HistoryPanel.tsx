@@ -392,8 +392,8 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
       <td className="pr-3">
         {/*
           The symbol itself is the affordance — no separate "Open in
-          Advisor" caption/column, same consume-once nav.openAdvisor flow
-          ProfilePanel.tsx's per-market button already uses. Keeps the
+          Advisor" caption/column, the same consume-once nav.openAdvisor flow
+          the Current trades rail's own cards use. Keeps the
           Market column's existing bold/ink look (font-semibold text-ink,
           unchanged from before this button existed) rather than switching
           to .tertiary-link's muted/small treatment, which would visually
@@ -407,12 +407,18 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
           cell's own py-2 is dropped so the button supplies all the height
           itself rather than stacking on top of it. Table rows size to
           their tallest cell, so every cell in the row grows with it.
+
+          The whole stored row goes over, not its symbol (owner finding 3,
+          2026-08-02: "Clicking on the trade in the Insights tab loads the chart,
+          but not the details below it. It should."). A bare symbol reselected
+          the market and left the stage's analysis state null, so the chart
+          reloaded above an empty ladder; the row is what the stage restores from.
         */}
         <button
           aria-label={`Open ${setup.symbol} in Advisor`}
           className="link-accent inline-flex min-h-11 items-center font-semibold text-ink"
           type="button"
-          onClick={() => nav.openAdvisor(setup.symbol)}
+          onClick={() => nav.openAdvisor(setup)}
         >
           {setup.symbol}
         </button>

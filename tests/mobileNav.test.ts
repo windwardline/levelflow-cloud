@@ -670,7 +670,7 @@ describe("nav.openAdvisor lands mobile on the merged Scan surface (source-pinned
   it('sets deskMobileView("scan") alongside the existing advisorRequest/activeTab side effects', () => {
     assert.match(
       APP_SOURCE,
-      /openAdvisor: \(symbol\) => \{\s*setAdvisorRequest\(\{ symbol, token: Date\.now\(\) \}\);\s*setActiveTab\("advisor"\);\s*setDeskMobileView\("scan"\);\s*\},/,
+      /openAdvisor: \(setup\) => \{\s*setAdvisorRequest\(\{ setup, token: Date\.now\(\) \}\);\s*setActiveTab\("advisor"\);\s*setDeskMobileView\("scan"\);\s*\},/,
     );
     // And the Desk opens there by default, rather than on a tab that no longer
     // exists.
@@ -695,7 +695,7 @@ describe("selecting a scan row no longer switches surfaces (source-pinned, §17e
 
   it("shares one candidate handler across both platforms, which scrolls the merged region home", () => {
     const handler = ADVISOR_WORKSPACE_SOURCE.match(
-      /function selectCandidate\(candidate: MarketScanCandidate\) \{[\s\S]*?\n  \}/,
+      /const selectCandidate = useCallback\(\([\s\S]*?\n  \}, \[selectSymbolForReview\]\);/,
     )?.[0] ?? "";
     assert.ok(handler.length > 0, "expected to find selectCandidate");
     assert.match(handler, /selectSymbolForReview\(candidate\.symbol\);/);

@@ -8,7 +8,11 @@ import {
   MOBILE_FRAME_SCROLL,
 } from "../mobileFrame";
 import { formatNumber } from "./advisorFormat";
-import { HISTORY_LOAD_FAILED_COPY, formatSignedR } from "./historyUtils";
+import {
+  compareSetupsByConfidence,
+  HISTORY_LOAD_FAILED_COPY,
+  formatSignedR,
+} from "./historyUtils";
 import { useWorkspaceNav } from "./WorkspaceNav";
 
 type CurrentTradesRailProps = {
@@ -34,12 +38,30 @@ type CurrentTradesRailProps = {
   // Bound to the existing useTradeSetups forceOutcomeRefresh path
   // (App.tsx), never new fetch machinery of this component's own.
   onRefresh: () => void;
+  // The market the stage is showing, so the matching card reads as selected —
+  // the same presentation-only contract MarketScanPanel's own rows have. The
+  // rail never drives selection from this; it reflects it.
+  selectedSymbol: string;
   setups: TradeSetupRow[];
 };
 
 type TradeCard = {
   setup: TradeSetupRow;
   state: TradeState;
+};
+
+// Which state group a card belongs to, and the order the groups read in.
+//
+// Adjudication (owner finding 1, 2026-08-02): spec §8 names the two statuses
+// that live on this surface — Pending and Open — but rules nothing about their
+// order, and the durable sort law (spec §4) governs sorting, not grouping. So
+// this rail takes the same shape the Insights ledger has: groups, with the
+// durable sort inside each one. Open leads, because a filled position is the one
+// that can move against the reader while they read it; a pending order cannot.
+// A weak Open therefore still sits above a strong Pending.
+const STATE_GROUP_ORDER: Record<TradeState["status"], number> = {
+  open: 0,
+  pending: 1,
 };
 
 // Exported for direct unit testing (no jsdom in this repo's stack — see
@@ -56,7 +78,16 @@ export function buildTradeCards(
       cards.push({ setup, state });
     }
   }
-  return cards;
+  // The durable sort law (spec §4: "results are sorted by confidence for
+  // deciding"), applied to this surface for the first time — it rendered the
+  // fetch's own created_at-descending order until the owner's 2026-08-02
+  // finding. `cards` is this function's own array, so sorting it in place
+  // reorders nothing the caller handed over.
+  return cards.sort((first, second) =>
+    STATE_GROUP_ORDER[first.state.status] -
+      STATE_GROUP_ORDER[second.state.status] ||
+    compareSetupsByConfidence(first.setup, second.setup)
+  );
 }
 
 // The mobile tab bar's Trades badge (spec §3: "badge = current-trade
@@ -127,8 +158,15 @@ function formatLevel(value: number | string | null | undefined): string {
 }
 
 export function CurrentTradesRail(
-  { fixedFrame = false, isActiveOnMobile, loadFailed, now, onRefresh, setups }:
-    CurrentTradesRailProps,
+  {
+    fixedFrame = false,
+    isActiveOnMobile,
+    loadFailed,
+    now,
+    onRefresh,
+    selectedSymbol,
+    setups,
+  }: CurrentTradesRailProps,
 ) {
   // The mock's closing cross-link (a-desk-v3.html:231) rides the nav context
   // that already exists — openInsights was declared on WorkspaceNav and
@@ -217,7 +255,12 @@ export function CurrentTradesRail(
         : (
           <div className="mt-2.5 grid gap-2.5">
             {cards.map(({ setup, state }) => (
-              <TradeStateCard key={setup.id} setup={setup} state={state} />
+              <TradeStateCard
+                key={setup.id}
+                selected={setup.symbol === selectedSymbol}
+                setup={setup}
+                state={state}
+              />
             ))}
           </div>
         )}
@@ -267,13 +310,37 @@ export function CurrentTradesRail(
   );
 }
 
+// One card per current trade — and, since the owner's 2026-08-02 ruling, the
+// affordance that reopens it: "The whole point of the Current Trades section is
+// to serve as a reliable reference for the trades we generate, so we need to be
+// able to come back to the expanded detail view if we click on it — regardless
+// of if we click on it in the scan results or in the current trades."
+//
+// So the card IS the button, the same way MarketScanRow's whole row is: one
+// element, the reader's whole target, and the accessible name comes from what the
+// card shows (symbol, side, status, progress, instruction, levels). No aria-label
+// — one would REPLACE all of that with a single sentence, which is less reference
+// rather than more. Nothing textual is added at all (§17f): the reader already
+// knew this was their trade, and the affordance is the pointer and the focus ring.
+//
+// The children are spans, not the h4/p/div they were: a <button>'s content model
+// is phrasing content, so block elements inside one are invalid markup. The type
+// scale and rhythm are unchanged — every class the elements carried, they still
+// carry.
 function TradeStateCard({
+  selected,
   setup,
   state,
 }: {
+  selected: boolean;
   setup: TradeSetupRow;
   state: TradeState;
 }) {
+  // The same consume-once cross-link Insights' rows use, carrying the whole
+  // stored row: the stage restores it through the one adoption path a scan row
+  // goes through (§17m.1's single door), so the chart, the ladder, the why rows
+  // and the receipt all come back exactly as the scan drew them.
+  const nav = useWorkspaceNav();
   const isBuy = setup.side === "buy";
   const isPending = state.status === "pending";
   const levels = buildRemainingLevels(setup, state);
@@ -281,33 +348,46 @@ function TradeStateCard({
   return (
     // `.pos` (a-desk-v3.html:60, m-trades-v1.html:12): hairline border on
     // sheet at 12/14 padding — the one card treatment the mocks draw on this
-    // surface, kept now that the rail around it is flat.
-    <article className="min-w-0 rounded-lg border border-hairline bg-sheet px-3.5 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h4 className="truncate text-base font-semibold text-ink">
+    // surface, kept now that the rail around it is flat. The selected state is
+    // the scan rail's own (a-desk-v3.html:153 `.mkt.sel`): a 3px inset accent
+    // edge, inset rather than a real border so the card's text never shifts by
+    // 3px when selection moves — and so this surface still draws exactly one
+    // box. Hover takes that row's tint for the same reason.
+    <button
+      className={`w-full min-w-0 rounded-lg border border-hairline bg-sheet px-3.5 py-3 text-left transition ${
+        selected
+          ? "shadow-[inset_3px_0_0_var(--color-accent)]"
+          : "hover:bg-accent/10"
+      }`}
+      type="button"
+      aria-current={selected}
+      onClick={() => nav.openAdvisor(setup)}
+    >
+      <span className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="truncate text-base font-semibold text-ink">
             {setup.symbol}
-          </h4>
+          </span>
           <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>
             {isBuy ? "Buy" : "Sell"}
           </span>
           <span className={`chip ${isPending ? "text-caution" : "text-buy"}`}>
             {isPending ? "Pending" : "Open"}
           </span>
-        </div>
-        <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
+        </span>
+        <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
           {formatSignedR(state.progressR)}
-        </p>
-      </div>
+        </span>
+      </span>
 
-      <p className="mt-2 text-sm leading-5 text-ink-muted">
+      <span className="mt-2 block text-sm leading-5 text-ink-muted">
         {state.instruction}
-      </p>
+      </span>
 
       {/* `.lvls` (a-desk-v3.html:65): plain mono pairs, caption over value, no
           fill and no frame — the pills that used to sit here were a third box
           inside a card inside a panel. */}
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 font-mono text-xs">
+      <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 font-mono text-xs">
         {levels.map((level) => (
           <span key={level.label} className="text-ink-muted">
             {level.label}
@@ -316,7 +396,7 @@ function TradeStateCard({
             </b>
           </span>
         ))}
-      </div>
-    </article>
+      </span>
+    </button>
   );
 }

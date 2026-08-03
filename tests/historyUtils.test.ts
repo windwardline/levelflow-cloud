@@ -7,6 +7,7 @@ import {
   asRecord,
   buildInsightsGroups,
   buildRecordBand,
+  compareSetupsByConfidence,
   computeInsightsStatus,
   extractRealizedR,
   filterInsightsSetups,
@@ -548,5 +549,94 @@ describe("signed R has one formatter and one minus sign (Q1-I12)", () => {
     );
     assert.doesNotMatch(rail, /function formatProgressR/);
     assert.match(rail, /\{formatSignedR\(state\.progressR\)\}/);
+  });
+});
+
+// The durable sort law's one comparator (spec §4: "results are sorted by
+// confidence for deciding — that is the only sorting deviation"). It was born
+// inline in sortHistorySetups as the ledger's tie-break tiers (PR #150,
+// owner-observed 2026-08-01); the Current trades rail needs exactly the same
+// chain as its PRIMARY order, so the chain is extracted here and both surfaces
+// call it. One function, not a mirror — the rail already imports from this
+// module, so there is no layering reason for a second copy to exist.
+describe("compareSetupsByConfidence — one comparator, two surfaces", () => {
+  it("puts the stronger setup first", () => {
+    assert.ok(
+      compareSetupsByConfidence(
+        buildSetup({ confidence_score: 62 }),
+        buildSetup({ confidence_score: 88 }),
+      ) > 0,
+    );
+    assert.ok(
+      compareSetupsByConfidence(
+        buildSetup({ confidence_score: 88 }),
+        buildSetup({ confidence_score: 62 }),
+      ) < 0,
+    );
+  });
+
+  it("breaks a confidence tie with the universal symbol comparator, never input order", () => {
+    const tied = [
+      buildSetup({ confidence_score: 74, id: "e", symbol: "EURUSD" }),
+      buildSetup({ confidence_score: 74, id: "b", symbol: "BTCUSD" }),
+      buildSetup({ confidence_score: 74, id: "a", symbol: "ADAUSD" }),
+    ];
+    assert.deepEqual(
+      [...tied].sort(compareSetupsByConfidence).map((setup) => setup.symbol),
+      // compareAssetSymbols orders by category first (Crypto before Forex),
+      // then base/quote — the same chain the scope menu and Insights use.
+      ["ADAUSD", "BTCUSD", "EURUSD"],
+    );
+  });
+
+  it("reads a string confidence the way the database returns one", () => {
+    // numeric(…) arrives over PostgREST as a string; the ledger has always
+    // coerced, and the extracted comparator must not quietly stop.
+    assert.ok(
+      compareSetupsByConfidence(
+        buildSetup({ confidence_score: "62" }),
+        buildSetup({ confidence_score: "88" }),
+      ) > 0,
+    );
+  });
+
+  it("is the ledger's own tie-break tier rather than a second copy of it", () => {
+    const source = readFileSync(
+      "src/components/workspace/historyUtils.ts",
+      "utf8",
+    );
+    // Exactly one confidence subtraction in the file: sortHistorySetups
+    // delegates its tie-break tiers to the shared comparator instead of
+    // spelling them out a second time.
+    assert.equal(
+      (source.match(/confidence_score\)\s*-/g) ?? []).length,
+      1,
+      "expected exactly one confidence ordering, the shared comparator's",
+    );
+    assert.match(
+      source,
+      /return secondDate - firstDate \|\| compareSetupsByConfidence\(first, second\);/,
+    );
+  });
+
+  it("has no twin anywhere in src", () => {
+    // A second comparator would drift the moment either surface's tie-break
+    // moved. The precedent for a sanctioned mirror is
+    // tests/scanBatching.test.ts's — a client/Deno boundary that genuinely
+    // cannot import across itself. This one has no such boundary, so the guard
+    // is absence rather than byte-equality.
+    for (
+      const file of [
+        "src/components/workspace/CurrentTradesRail.tsx",
+        "src/components/workspace/HistoryPanel.tsx",
+      ]
+    ) {
+      const source = readFileSync(file, "utf8");
+      assert.doesNotMatch(
+        source,
+        /confidence_score\)\s*-/,
+        `${file} must not compute its own confidence ordering`,
+      );
+    }
   });
 });

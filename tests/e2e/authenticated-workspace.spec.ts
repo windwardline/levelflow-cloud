@@ -1631,9 +1631,211 @@ test("the current-trades rail is present with a working refresh control", async 
   // whichever real end state actually lands instead of reading the DOM
   // once, immediately.
   const emptyState = rail.getByText("No current trades.");
-  const firstCard = rail.locator("article").first();
+  // The card is a <button> since the 2026-08-02 wave made it the affordance
+  // that reopens its own setup — the rail's only other buttons are refresh and
+  // the closing Insights link, both of which are `.tertiary-link` text, so the
+  // card is the one with a border.
+  const firstCard = rail.locator("button.rounded-lg").first();
   await expect(emptyState.or(firstCard)).toBeVisible();
 });
+
+// The ladder's own values, keyed by the label each copy control names. The copy
+// button's immediate previous sibling IS the value span at both widths (below lg
+// the wrapper is `display: contents`, so the DOM shape does not change) — read
+// from the rendered stage rather than recomputed, so this compares what a reader
+// actually sees on one surface against what they see on another.
+async function stageLadderValues(page: Page): Promise<Record<string, string>> {
+  return page.getByRole("button", { name: /^Copy / }).evaluateAll((buttons) =>
+    Object.fromEntries(
+      buttons.map((button) => [
+        (button.getAttribute("aria-label") ?? "").replace(/^Copy /, ""),
+        button.previousElementSibling?.textContent?.trim() ?? "",
+      ]),
+    )
+  );
+}
+
+// The Desk's one market heading — AdvisorWorkspace renders exactly one <h2>, and
+// only one of its two compositions mounts at a time (its own isMobile branch).
+async function stageMarketSymbol(page: Page): Promise<string> {
+  const heading = ((await page.locator("h2").first().textContent()) ?? "").trim();
+  const symbol = AVAILABLE_ASSET_SYMBOLS.find(
+    (candidate) => formatSecurityDisplaySymbol(candidate) === heading,
+  );
+  expect(symbol, `the stage heading "${heading}" names no known market`)
+    .toBeTruthy();
+  return symbol!;
+}
+
+// Leaves the Desk and comes back, which remounts AdvisorWorkspace (App.tsx
+// renders it only while its tab is active) — so the stage is genuinely empty
+// again and whatever it shows next was put there by the click under test, not
+// left over from the scan.
+async function leaveAndReturnToDesk(page: Page, width: number) {
+  if (width < 1024) {
+    const tabBar = page.locator('nav[aria-label="Levelflow"]');
+    await tabBar.getByRole("button", { name: "Insights", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Insights", exact: true }))
+      .toBeVisible();
+    await tabBar.getByRole("button", { name: "Scan", exact: true }).click();
+    return;
+  }
+  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Insights", exact: true }))
+    .toBeVisible();
+  await page.getByRole("button", { name: "Desk", exact: true }).click();
+}
+
+for (const width of [1280, 375]) {
+  test(`a Current trades card reopens its own stored setup on the stage (${width}px)`, async ({ page }) => {
+    // Owner ruling, 2026-08-02: "Clicking on the trade in Current Trades should
+    // load the same chart, why, levels, etc. in the center section as the scan
+    // results section loads. The whole point of the Current Trades section is to
+    // serve as a reliable reference for the trades we generate."
+    //
+    // What makes this a reference rather than a link is WHICH levels come back:
+    // the stored ones. So the comparison is the card's own printed levels against
+    // the stage's, rather than the numbers the scan showed a minute earlier —
+    // those two can legitimately differ when a live position made the scan skip
+    // its write (scanPersistence's skipped_live_position, the C2 guard), and the
+    // card is the thing the owner is pointing at.
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width, height: width < 1024 ? 812 : 800 });
+    await page.goto("/");
+
+    // Crypto's calendar never closes, so this is scannable whenever the suite
+    // runs, and one group is one request against the analyzer's rate limit.
+    await scopeScanToGroup(page, "Crypto");
+    test.skip(
+      !(await scanForSetupOnStage(page)),
+      "No qualifying setup right now, so there is no trade to come back to.",
+    );
+    await expect(page.getByRole("heading", { name: "Why this setup" }))
+      .toBeVisible();
+    const symbol = await stageMarketSymbol(page);
+
+    await leaveAndReturnToDesk(page, width);
+    // The remount left the stage with no setup at all — spec §17m.1's own copy
+    // for that state. Asserted rather than assumed: without it, a stage that
+    // never cleared would satisfy every assertion below on leftovers.
+    await expect(page.getByText("Scan to see the current limit setup."))
+      .toBeVisible();
+
+    if (width < 1024) {
+      // Below lg the rail is the Trades tab, not a column (spec §17e/§17g).
+      await page.locator('nav[aria-label="Levelflow"]')
+        .getByRole("button", { name: /^Trades(,|$)/ }).click();
+    }
+    const rail = page.getByTestId("current-trades-rail");
+    const card = rail.locator("button.rounded-lg")
+      .filter({ hasText: symbol })
+      .first();
+    // Every qualifying setup persists (spec §17m.2) and a generated one is
+    // Pending, which is a state that lives on this rail (spec §8) — so the card
+    // must be here. A wait, not a skip: its absence is the §17m.2 divergence.
+    await expect(card).toBeVisible({ timeout: 20_000 });
+    const cardLevels = await card.locator("b").allTextContents();
+    expect(cardLevels.length).toBeGreaterThan(0);
+
+    await card.click();
+
+    // The same expanded detail view a scan row opens: the market, its chart, the
+    // ladder, and the why panel.
+    await expect(
+      page.getByRole("heading", {
+        exact: true,
+        name: formatSecurityDisplaySymbol(symbol),
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Why this setup" }))
+      .toBeVisible();
+    await expect(page.getByText("Scan to see the current limit setup."))
+      .toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Expand chart" }))
+      .toBeVisible();
+    await expect(page.getByText("No chart data available yet")).toHaveCount(0);
+
+    // The stored levels, both surfaces printing the same numbers through the
+    // same formatter: every level the card still lists (Entry drops off once
+    // filled, Target 1 once banked — buildRemainingLevels) appears in the
+    // ladder the stage just restored.
+    const ladder = Object.values(await stageLadderValues(page));
+    expect(ladder.length).toBeGreaterThan(0);
+    for (const level of cardLevels) {
+      expect(
+        ladder,
+        `the rail card printed ${level}, which the restored ladder does not`,
+      ).toContain(level);
+    }
+  });
+
+  test(`an Insights row reopens the whole setup, not just its chart (${width}px)`, async ({ page }) => {
+    // Owner ruling, 2026-08-02: "Clicking on the trade in the Insights tab loads
+    // the chart, but not the details below it. It should." The row used to hand
+    // over a bare symbol, which reselected the market and left the stage's
+    // analysis state null — chart above an empty ladder.
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width, height: width < 1024 ? 812 : 800 });
+    await page.goto("/");
+
+    // Seeded the way a reader seeds it, so the ledger has a row inside its
+    // default 30-day period whatever the account's history looks like.
+    await scopeScanToGroup(page, "Crypto");
+    test.skip(
+      !(await scanForSetupOnStage(page)),
+      "No qualifying setup right now, so there is no ledger row to reopen.",
+    );
+
+    if (width < 1024) {
+      await page.locator('nav[aria-label="Levelflow"]')
+        .getByRole("button", { name: "Insights", exact: true }).click();
+    } else {
+      await page.getByRole("button", { name: "Insights", exact: true }).click();
+    }
+    await expect(page.getByRole("heading", { name: "Insights", exact: true }))
+      .toBeVisible();
+
+    // The newest row: the ledger is day-grouped newest first, and sorted newest
+    // first within a day (buildInsightsGroups), so the scan above is at the top.
+    const row = page.locator("tbody tr")
+      .filter({ has: page.getByRole("button", { name: /^Open .+ in Advisor$/ }) })
+      .first();
+    await expect(row).toBeVisible();
+    const cells = (await row.locator("td").allTextContents())
+      .map((cell) => cell.trim());
+    // Market · Side · Confidence · Entry · Stop · Target 1 · Target 2 · Result.
+    expect(cells).toHaveLength(8);
+    const [, , , entry, stop, target1, target2] = cells;
+
+    await row.getByRole("button").click();
+
+    // The chart — the half that already worked.
+    await expect(page.getByRole("button", { name: "Expand chart" }))
+      .toBeVisible();
+    await expect(page.getByText("Loading market data")).toHaveCount(0, {
+      timeout: 30_000,
+    });
+    await expect(page.getByText("No chart data available yet")).toHaveCount(0);
+
+    // And the details below it — the half that did not. The ladder prints the
+    // ledger's own numbers through the same formatter, so these compare directly.
+    await expect(page.getByRole("heading", { name: "Why this setup" }))
+      .toBeVisible();
+    await expect(page.getByText("Scan to see the current limit setup."))
+      .toHaveCount(0);
+    const ladder = await stageLadderValues(page);
+    expect(ladder["Limit entry"]).toBe(entry);
+    expect(ladder["Stop loss"]).toBe(stop);
+    // A non-laddered instrument stores no first target, and the sheet then draws
+    // one plainly-labelled "Target" instead of the two-step pair (§7's ladder).
+    if (target1 === "—") {
+      expect(ladder["Target"]).toBe(target2);
+    } else {
+      expect(ladder["Target 1 · bank half"]).toBe(target1);
+      expect(ladder["Target 2 · take-profit"]).toBe(target2);
+    }
+  });
+}
 
 // Q2-C2: useTradeSetups computed an error string no consumer read, so a failed
 // history fetch arrived at both surfaces as `setups: []` — and each printed a

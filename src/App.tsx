@@ -51,6 +51,7 @@ import {
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./lib/support";
+import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
 type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
 // The three bottom-tab-bar destinations (spec §17e). Two of them ("scan" |
@@ -111,7 +112,12 @@ export default function App() {
   const isMobileViewport = useIsMobileViewport();
   const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
-  const [advisorRequest, setAdvisorRequest] = useState<{ symbol: string; token: number } | null>(null);
+  // A stored setup another surface asked the Desk to reopen (the Insights ledger's
+  // rows, the Current trades rail's cards), plus a nonce so asking twice in a row
+  // still re-applies. The whole row travels, not its symbol: the stage restores
+  // the stored levels from it rather than reselecting a market and showing an
+  // empty ladder (owner findings 2 and 3, 2026-08-02).
+  const [advisorRequest, setAdvisorRequest] = useState<{ setup: TradeSetupRow; token: number } | null>(null);
   // The mobile tab bar's own sub-selection within the Desk (spec §17e: Scan /
   // Trades). Kept separate from activeTab rather than folded into it: both map
   // to the same "advisor" AppTab, so AdvisorWorkspace stays mounted (and its
@@ -153,12 +159,14 @@ export default function App() {
   const workspaceNav = useMemo<WorkspaceNav>(() => ({
     openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
     // I3: also lands mobile on the merged Scan surface — without this, a jump
-    // here (e.g. Insights' "Open X in Advisor" row button) could leave a mobile
-    // user staring at the Trades tab instead of the market they just asked to
-    // see. "scan" IS that market's surface now (spec §17e): its head, chart and
-    // ladder all follow the requested symbol.
-    openAdvisor: (symbol) => {
-      setAdvisorRequest({ symbol, token: Date.now() });
+    // here (Insights' "Open X in Advisor" row button, or a Current trades card)
+    // could leave a mobile user staring at the Trades tab instead of the market
+    // they just asked to see. "scan" IS that market's surface now (spec §17e):
+    // its head, chart and ladder all follow the requested setup. That also makes
+    // one mechanism serve both of the owner's 2026-08-02 entry points — the rail
+    // lives inside the Desk, but only App owns which mobile surface is showing.
+    openAdvisor: (setup) => {
+      setAdvisorRequest({ setup, token: Date.now() });
       setActiveTab("advisor");
       setDeskMobileView("scan");
     },

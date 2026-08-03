@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { ExpandedChartOverlay } from "../charts/ExpandedChartOverlay";
 import { MarketChart } from "../charts/MarketChart";
@@ -26,6 +26,10 @@ import {
   type MarketDataResponse,
 } from "../../lib/marketData";
 import type { UserProfile } from "../../lib/profile";
+import {
+  storedSetupAsCandidate,
+  storedSetupReviewedAt,
+} from "../../lib/storedSetup";
 import {
   AVAILABLE_ASSET_OPTIONS,
   formatSecurityDisplaySymbol,
@@ -67,23 +71,31 @@ type AdvisorWorkspaceProps = {
   // picked in the meantime.
   onOpenRequestHandled?: () => void;
   onSetupsChanged: () => void;
-  // A cross-link elsewhere in the app (Insights, Profile) asked to open a
-  // specific market here. token is a nonce so requesting the same symbol
-  // twice in a row still re-selects it.
-  openRequest?: { symbol: string; token: number } | null;
+  // A cross-link elsewhere in the app asked to reopen a stored setup here — the
+  // Insights ledger's rows, and the Current trades rail's cards (which travel
+  // through App for the same request rather than a prop of their own, because
+  // only App owns which mobile surface is showing). token is a nonce so
+  // requesting the same setup twice in a row still re-applies it.
+  //
+  // The whole stored row, never a bare symbol: §17m.1 killed symbol-only stage
+  // entry, and the owner's 2026-08-02 findings are what a symbol alone produces —
+  // a chart that reloads above an empty ladder.
+  openRequest?: { setup: TradeSetupRow; token: number } | null;
   profile: UserProfile;
   setups: TradeSetupRow[];
 };
 
 type AnalysisState = {
   // When a review actually ran against this symbol, epoch milliseconds — the
-  // provenance behind the stagehead's "Reviewed {time}" stamp (spec §16), so
-  // only a scan that just returned its verdict about this market may set it
-  // (adoptScanVerdict). A setup lifted out of an older scan row carries null:
-  // that scan may have run an hour ago, and neither AnalyzerSetup nor
-  // MarketScanCandidate carries a creation timestamp, so there is no honest
-  // review time to print. The stamp is then simply absent rather than
-  // asserting a review that did not happen at the moment shown.
+  // provenance behind the stagehead's "Reviewed {time}" stamp (spec §16). A scan
+  // that just returned its verdict about this market stamps the moment it ran
+  // (adoptScanVerdict); a setup lifted out of an older scan ROW carries null,
+  // because that scan may have run an hour ago and neither AnalyzerSetup nor
+  // MarketScanCandidate carries a creation timestamp — the stamp is then simply
+  // absent rather than asserting a review that did not happen at the moment
+  // shown. A setup restored from a STORED row carries its own created_at
+  // (lib/storedSetup.ts): that row does record when the analyzer produced these
+  // levels, so the absence there would be a gap, not honesty.
   reviewedAt: number | null;
   response: AnalyzerResponse | null;
   symbol: SupportedSymbol;
@@ -195,13 +207,64 @@ export function AdvisorWorkspace(
     selectedSymbolRef.current = symbol;
   }, [symbol]);
 
+  // What "the stage follows the Scan column" is made of: the scope menu's own
+  // symbol selection and a scan-row click both land here (spec §4: selecting a
+  // symbol "drives the advisor selection like clicking a scan row does today").
+  // selectCandidate calls this too, then layers the candidate's own setup on top
+  // when it has one — clicking a scan row without an attached setup reduces to
+  // exactly this.
+  //
+  // A useCallback rather than a plain function because the cross-link effect
+  // below depends on the door built from it, and an identity that changed every
+  // render would re-fire that effect every render. Nothing but setState and refs
+  // is read, so the empty dependency list is the honest one.
+  const selectSymbolForReview = useCallback((nextSymbol: SupportedSymbol) => {
+    requestIdRef.current += 1;
+    selectedSymbolRef.current = nextSymbol;
+    setSymbol(nextSymbol);
+    setAnalysisState(null);
+  }, []);
+
+  // §17m.1's single door, and since the owner's 2026-08-02 wave the only way a
+  // setup reaches the stage from anywhere: a scan row on either platform, an
+  // Insights ledger row, or a Current trades card. The stage (or, on mobile, the
+  // head and chart above the list) follows the selection, and the selection's own
+  // setup rides along when it has one.
+  //
+  // `reviewedAt` is the moment those levels were computed, or null when there is
+  // no honest moment to claim. A scan ROW passes nothing: that scan may have
+  // completed long before the row was clicked, and neither AnalyzerSetup nor
+  // MarketScanCandidate carries a creation timestamp. A stored row passes its own
+  // created_at (lib/storedSetup.ts), which is exactly when the analyzer produced
+  // it — so reopening a three-day-old setup says so instead of saying nothing.
+  const selectCandidate = useCallback((
+    candidate: MarketScanCandidate,
+    reviewedAt: number | null = null,
+  ) => {
+    selectSymbolForReview(candidate.symbol);
+    if (candidate.setup) {
+      setAnalysisState({
+        response: {
+          advisoryOnly: true,
+          setup: candidate.setup,
+        },
+        reviewedAt,
+        symbol: candidate.symbol,
+      });
+    }
+    // The chart, the head and the ladder all sit ABOVE the list on the merged
+    // mobile surface and have just swapped to this market, so the reader is
+    // returned to them. A no-op at ≥lg, where the ref holds nothing.
+    mobileScrollRef.current?.scrollTo({ top: 0 });
+  }, [selectSymbolForReview]);
+
   useEffect(() => {
-    const requestedSymbol = openRequest?.symbol;
-    if (!requestedSymbol) {
+    const requestedSetup = openRequest?.setup;
+    if (!requestedSetup) {
       return;
     }
     const isAvailable = AVAILABLE_ASSET_OPTIONS.some(
-      (option) => option.symbol === requestedSymbol,
+      (option) => option.symbol === requestedSetup.symbol,
     );
     if (!isAvailable) {
       // Consume the request even though it can't be applied. (Insights had the
@@ -213,12 +276,23 @@ export function AdvisorWorkspace(
       onOpenRequestHandled?.();
       return;
     }
-    requestIdRef.current += 1;
-    selectedSymbolRef.current = requestedSymbol;
-    setSymbol(requestedSymbol);
-    setAnalysisState(null);
+    // Through the door, not around it. This effect writes no selection of its
+    // own — it used to set the symbol and clear the analysis state directly,
+    // which is precisely why an Insights row loaded the chart and left the
+    // ladder, the why rows and the receipt empty (owner finding 3, 2026-08-02).
+    // The stored row restores exactly what a scan row restores, because it is
+    // the same call.
+    selectCandidate(
+      storedSetupAsCandidate(requestedSetup),
+      storedSetupReviewedAt(requestedSetup),
+    );
     onOpenRequestHandled?.();
-  }, [onOpenRequestHandled, openRequest?.symbol, openRequest?.token]);
+  }, [
+    onOpenRequestHandled,
+    openRequest?.setup,
+    openRequest?.token,
+    selectCandidate,
+  ]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setClockNow(new Date()), 60_000);
@@ -279,19 +353,6 @@ export function AdvisorWorkspace(
       cancelled = true;
     };
   }, [refreshNonce, symbol, timeframe]);
-
-  // What "the stage follows the Scan column" is made of: the scope menu's own
-  // symbol selection and a scan-row click both land here (spec §4: selecting a
-  // symbol "drives the advisor selection like clicking a scan row does today").
-  // Below, selectCandidate calls this too, then layers the candidate's own setup
-  // on top when it has one — clicking a scan row without an attached setup
-  // reduces to exactly this.
-  function selectSymbolForReview(nextSymbol: SupportedSymbol) {
-    requestIdRef.current += 1;
-    selectedSymbolRef.current = nextSymbol;
-    setSymbol(nextSymbol);
-    setAnalysisState(null);
-  }
 
   // Every scope change, from either platform's control row. The engine never
   // runs without an explicit click, so changing scope clears the previous
@@ -423,31 +484,6 @@ export function AdvisorWorkspace(
 
   function selectTimeframe(nextTimeframe: ChartTimeframe) {
     setPickedTimeframe(nextTimeframe);
-  }
-
-  // Tapping a qualifying market. Shared by both platforms: the stage (or, on
-  // mobile, the head and chart above the list) follows the row, and the row's
-  // own setup rides along when it has one.
-  function selectCandidate(candidate: MarketScanCandidate) {
-    selectSymbolForReview(candidate.symbol);
-    if (candidate.setup) {
-      setAnalysisState({
-        response: {
-          advisoryOnly: true,
-          setup: candidate.setup,
-        },
-        // No review ran at this moment — this setup came out of a scan that may
-        // have completed long before the row was clicked, so there is no review
-        // time to claim. The head's meta line shows the setup's expiry alone
-        // until a scan runs against this market again (adoptScanVerdict).
-        reviewedAt: null,
-        symbol: candidate.symbol,
-      });
-    }
-    // The chart, the head and the ladder all sit ABOVE the list on the merged
-    // mobile surface and have just swapped to this market, so the reader is
-    // returned to them. A no-op at ≥lg, where the ref holds nothing.
-    mobileScrollRef.current?.scrollTo({ top: 0 });
   }
 
   // Spec §17: the same MarketChart full-viewport, with its level lines and its
@@ -630,6 +666,7 @@ export function AdvisorWorkspace(
             loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
+            selectedSymbol={symbol}
             setups={setups}
           />
         </aside>
@@ -817,6 +854,7 @@ export function AdvisorWorkspace(
             loadFailed={loadFailed}
             now={clockNow}
             onRefresh={onForceOutcomeRefresh}
+            selectedSymbol={symbol}
             setups={setups}
           />
         </div>
