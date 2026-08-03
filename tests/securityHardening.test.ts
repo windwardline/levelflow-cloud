@@ -25,8 +25,10 @@ describe("security hardening", () => {
     // 2026-08-02 CPU failures, so the old budget would have rate-limited a scan
     // against itself, and the e2e suite's peak window runs several back to back.
     // tests/scanBatching.test.ts holds the arithmetic (chunks × 5 ≤ limit); this
-    // holds the number. Not a wider provider door than the old ceiling either:
-    // 8 × ~350 FMP calls and 40 × ~70 are both 2,800 a minute.
+    // holds the number. Not a wider provider door for the app's own client
+    // either: 8 × ~350 FMP calls and 40 × ~70 are both 2,800 a minute; the
+    // hand-crafted 15-market worst case (~4,200) is accepted at the source
+    // comment beside the limit.
     assert.match(analyzerSource, /scan_opportunities: 40,/);
     assert.match(
       analyzerSource,

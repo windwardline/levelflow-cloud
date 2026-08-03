@@ -14,8 +14,11 @@ test.skip(
 // The scan budget is 40 requests per 60s (RATE_LIMITS in
 // supabase/functions/trade-analyzer/index.ts): one scan is a fan-out of chunked
 // requests now, and this suite's own peak window runs several of them back to
-// back. Forty-five is the smallest flood that must still trip it.
-const FLOOD_SIZE = 45;
+// back. The window is minute-aligned and tumbling (supabase/init.sql), so a
+// burst can straddle a boundary: fifty-five keeps the trip certain with the
+// same shaped margin the old 25-on-20 flood had, where forty-five would need
+// 41 of its requests to land inside one window.
+const FLOOD_SIZE = 55;
 const SCAN_RATE_LIMIT = 40;
 
 // Order is a contract here, not a convenience: the door test asserts real 400s,

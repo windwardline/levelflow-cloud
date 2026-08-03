@@ -72,6 +72,18 @@ describe("market scan batching", () => {
     assert.ok(SCAN_REQUEST_CONCURRENCY >= 2 && SCAN_REQUEST_CONCURRENCY <= 3);
   });
 
+  it("the e2e claim ledger's arithmetic rests on zero retries", () => {
+    // playwright.config.ts's ledger (29 claims ≤ 40/60s) counts each spec
+    // once. A retries setting would multiply a failing spec's claims — four
+    // retried All-markets specs put the worst case at 53 — so the ledger must
+    // be re-counted before retries are ever enabled.
+    const playwrightConfig = readFileSync("playwright.config.ts", "utf8");
+    assert.ok(
+      !/^\s*retries\s*:/m.test(playwrightConfig),
+      "playwright.config.ts sets retries — the claim ledger assumed 0",
+    );
+  });
+
   it("scans every named market exactly once", () => {
     const chunks = chunkScanSymbols(AVAILABLE_ASSET_SYMBOLS);
     const flattened = chunks.flat();

@@ -225,6 +225,10 @@ describe("scan persistence — the call site honours the contract", () => {
       /status: scan\.persistence\.failed > 0 \? "scan_failure" : "success",/,
     );
     assert.match(analyzer, /persistence: scan\.persistence,/);
+    // The request-level event carries the same trace (the ...scanTrace spread
+    // beside `scanned`) — dropping it would silently orphan every chunk's
+    // per-symbol rows from the click they belonged to.
+    assert.match(analyzer, /scanned: scan\.scanned,[\s\S]{0,200}\.\.\.scanTrace,/);
   });
 
   it("keeps the C2 live-position guard, now reported as a skip", () => {

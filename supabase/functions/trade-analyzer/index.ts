@@ -94,9 +94,13 @@ const RATE_LIMITS = {
   // suite's own peak window needs — tests/scanBatching.test.ts pins the relation
   // (chunks × 5 ≤ limit), so this can never fall back under the real spend.
   //
-  // It opens no wider a door onto the provider than the old ceiling did: 8 full
-  // scans of ~350 FMP calls was 2,800 calls a minute; 40 chunks of ~70 is 2,800.
-  // The same arithmetic, against FMP Ultimate's 3,000.
+  // For the app's own ≤10-market chunks this opens no wider a door onto the
+  // provider than the old ceiling did: 8 full scans of ~350 FMP calls was
+  // 2,800 calls a minute; 40 chunks of ~70 is 2,800, against FMP Ultimate's
+  // 3,000. The door the server itself holds is MAX_SCAN_SYMBOLS: a
+  // hand-crafted caller sending 15-market requests can reach 40 × 15 = 600
+  // reviews (~4,200 FMP calls) a minute — accepted, because the consequence
+  // is the provider refusing that caller's own requests, never data or auth.
   scan_opportunities: 40,
 } as const;
 // The hard ceiling on one request's work, and what makes a 546 impossible

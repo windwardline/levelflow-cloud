@@ -57,12 +57,12 @@ export default defineConfig({
   //   1 single-market scan (the one-door spec)                            1
   //                                                                   ── 29
   // spread across a project whose runtime is minutes, against 40 per rolling
-  // 60s. visual-proof scans nothing (it captures surfaces) and spends only the
-  // refresh budget; analyzer-abuse then spends 2 refusals + a 45-request flood,
-  // deliberately over the limit, which is the 429 it exists to prove.
-  // analyzer-abuse.spec.ts deliberately exhausts the scan budget to
-  // prove the 429 path, and visual-proof.spec.ts's ten Desk/Insights surface
-  // visits are a second heavy consumer of the refresh budget. Playwright's
+  // 60s — a ledger that assumes retries: 0 (unset here; pinned in
+  // tests/scanBatching.test.ts). visual-proof scans nothing (it captures
+  // surfaces) but its ten Desk/Insights surface visits are a heavy consumer of
+  // the refresh budget; analyzer-abuse then spends 2 refusals + a 55-request
+  // flood, deliberately over the limit, which is the 429 it exists to prove.
+  // Playwright's
   // default is to run spec files concurrently across workers, so either one
   // running alongside authenticated-workspace.spec.ts could 429 a scan or
   // refresh that spec depends on — and a rate-limited scan there reads as a
