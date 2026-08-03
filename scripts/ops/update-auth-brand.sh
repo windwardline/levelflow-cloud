@@ -79,6 +79,12 @@ except Exception:
 fi
 
 echo "== Verifying =="
+# The management API can serve a just-patched config stale for a few seconds
+# (same cache family as the mailer's own); one 10s retry separates that from
+# a real mismatch (first observed 2026-08-02: PATCH landed, instant re-read
+# said MISMATCH, the config was correct on the next read).
+sleep 2
+verify() {
 curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   | python3 -c "
 import sys, json
@@ -98,3 +104,5 @@ ok = (
 )
 print('VERIFIED' if ok else 'MISMATCH — inspect config now')
 sys.exit(0 if ok else 1)"
+}
+verify || { echo "retrying once in 10s (stale read?)"; sleep 10; verify; }
