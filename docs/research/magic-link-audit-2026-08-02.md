@@ -154,7 +154,8 @@ the source.
 | Accent | `#2244FF` ✓ | `#7c5cff` ✓ | `#17594e` ✓ |
 | Transport | Supabase SMTP → Resend ✓ | Resend REST ✓ | Resend REST ✓ |
 | 15-minute expiry | `mailer_otp_exp` 900 ✓ | `15 * 60 * 1000` ✓ | `maxAge: 15 * 60` ✓ |
-| Single-use, atomic | GoTrue ✓ | **read-then-write race** | adapter override ✓ |
+| Single-use, atomic | GoTrue ✓ | **read-then-write race** | `DELETE … RETURNING` ✓ |
+| Link host from server config | `site_url` ✓ | `APP_URL`, hard-fails if unset ✓ | **request headers** |
 | Scanner-safe link | n/a | n/a | **bypassed live** |
 
 All three send the correct sender, subject, accent, and body copy. Every accent
@@ -188,6 +189,29 @@ sends (2026-07-27 02:58:17Z, 2026-07-28 19:21:00Z) carry the raw
 `/api/auth/callback/resend?…&token=…&email=…` in the button href and the
 plain-text part. No `/verify` anywhere. The `magic_link_request` telemetry in that
 same wrapper never fires either — the second symptom of one cause.
+
+Two more Pathfinder rows fail. **The emailed link's host comes from the request.**
+Neither `AUTH_URL` nor `NEXTAUTH_URL` is set in Vercel production and neither name
+appears in the repo, so `@auth/core` falls back to `x-forwarded-host ?? host` and
+derives the emailed origin from it. Vercel overwrites client-supplied
+`x-forwarded-host`, which bounds the damage to the project's own hostnames — a
+link requested through the `*.vercel.app` deployment URL emails a `*.vercel.app`
+link — but the standard says server config, never the request. Setting
+`AUTH_URL=https://pathfinder.windwardline.com` is the fix, with the caveat that
+Auth.js derives `basePath` from that pathname.
+
+**A send failure never reaches its own copy.** The Resend error is thrown as a
+plain `Error`, so Auth.js classifies it `Configuration` and routes to the stock
+`/api/auth/error` page. `pages` in `auth.ts` declares only `signIn` and
+`verifyRequest`, so the app's own "Sign-in did not work" line is unreachable for
+provider failures. Expired and replayed links route there too.
+
+Also latent: an untracked `.env.production` in that repo (a `vercel env pull`
+artifact, gitignored) carries an `AUTH_URL` pointing at a Neon Auth endpoint
+rather than Pathfinder's origin. Nothing loads it today — Next.js reads env files
+from the app directory, which has none — but if it ever reached the runtime,
+`basePath` would move, every emailed link would point at the Neon host, and
+`validateVerificationCallback` would reject it. Sign-in would stop entirely.
 
 Pathfinder's plain-text part also drops "Click the button below to sign in." and
 merges the expiry into the footer line. Minor next to the above.
