@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
+
+// Directory-derived rather than a list of the two files that say it today: a copy
+// constant is only canonical if nothing else in the tree can quietly say the same
+// thing in its own words, and a hand-kept list cannot see the surface added next
+// week (the failure mode tests/languageGuard.test.ts's Q2-I10 fixed for src/lib).
+function allSourceFiles(root: string): string[] {
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"))
+    .map((file) => join(root, file));
+}
 
 // Fix wave 2B, FIX 3 (completeness-audit-2 Finding 8 / beyond-checklist #2,
 // #6). DonatePanel was the one authed surface still rendering the
@@ -12,6 +24,8 @@ import { describe, it } from "node:test";
 // surfaceComposition.test.ts and profilePanel.test.tsx.
 const DONATE_PANEL = "src/components/donations/DonatePanel.tsx";
 const DONATION_OPTIONS = "src/components/donations/DonationOptions.tsx";
+const AUTH_SCREEN = "src/components/auth/AuthScreen.tsx";
+const DONATION_COPY = "src/lib/donationCopy.ts";
 
 const donatePanel = readFileSync(DONATE_PANEL, "utf8");
 const donationOptions = readFileSync(DONATION_OPTIONS, "utf8");
@@ -42,12 +56,38 @@ describe("DonatePanel composition — ruled page head, matching Insights/Guide/P
     );
   });
 
-  it("the supporting 'App costs' section is flat editorial body, not a second boxed card", () => {
+  it("the supporting section is flat editorial body, not a second boxed card", () => {
     const secondSection = donatePanel.match(
-      /What donations support[\s\S]*?Levelflow runs on paid market-data, email, and hosting plans\./,
+      /What donations support[\s\S]*?\{DONATION_SUPPORT_COPY\}/,
     )?.[0] ?? "";
-    assert.ok(secondSection.length > 0, "expected to find the App costs section");
+    assert.ok(
+      secondSection.length > 0,
+      "expected the section that says what donations support",
+    );
     assert.doesNotMatch(secondSection, /terminal-panel/);
+  });
+
+  // Owner ruling (2026-08-02): "The donate page has too small a space between the
+  // 'development fund' text and the bar immediately above it… the spacing still
+  // needs to be right." The bar is the h1's own 2px rule, and below lg the h1 is
+  // the pinned row of the shared frame — which contributes no bottom padding
+  // (MOBILE_FRAME_PINNED is "shrink-0 px-4 pt-3", the same string on six
+  // surfaces), and the scroll region contributes no top padding either. The
+  // eyebrow therefore started 0px under a 2px rule on mobile, while the ≥lg page
+  // gave the same pair the 16px its grid gap gives every block.
+  //
+  // The air goes on the scrolling content, which is the app's own idiom for this
+  // exact gap (ProfilePanel's first row carries its py-[26px] the same way) and
+  // leaves the shared frame strings untouched at all six call sites.
+  it("puts the h1's rule and the first eyebrow on the page's 16px rhythm below lg too", () => {
+    assert.match(
+      donatePanel,
+      /<div className=\{MOBILE_FRAME_SCROLL\} data-testid="mobile-donate-scroll">\s*<div className="grid gap-4 pt-4">\{body\}<\/div>/,
+    );
+    // ≥lg is where the 16px comes from: one gap for the title-to-body pair and
+    // every pair after it. Unchanged, and pinned here so the two platforms are one
+    // rhythm rather than two numbers that happen to match today.
+    assert.match(donatePanel, /className="mx-auto grid w-full max-w-\[620px\] gap-4"/);
   });
 });
 
@@ -65,15 +105,13 @@ describe("DonatePanel composition — the kill list is absent (matches the rest 
   });
 });
 
-describe("Donate — the support sentence is said once (spec §17f)", () => {
-  it("keeps the page's own sentences verbatim", () => {
+describe("Donate — the page's own head words survive the copy merge", () => {
+  it("keeps them verbatim", () => {
     for (
       const phrase of [
         "Donate",
         "Development fund",
         "What donations support",
-        "App costs",
-        "Levelflow runs on paid market-data, email, and hosting plans.",
       ]
     ) {
       assert.ok(
@@ -83,27 +121,85 @@ describe("Donate — the support sentence is said once (spec §17f)", () => {
     }
   });
 
-  // §17f, the copy law: two sentences twelve words apart said the same thing —
-  // "Donations support market data, email, hosting, and development." above the
-  // options, and "Levelflow runs on paid market-data, email, and hosting plans."
-  // under the section headed "What donations support". The second stays: it is
-  // the body of a section that would otherwise be a heading with nothing under
-  // it, and it is the one the page's own structure introduces.
-  it("says it once on this page — the duplicate above the options is gone, and survives only where it earns its place", () => {
-    // The Donate page states it exactly once, and the shared options component
-    // states nothing at all.
+  // Owner ruling (2026-08-02): the sentence has to be "succinct,
+  // all-encompassing, and consistent across all screens where it appears", and
+  // "App costs" was a heading that only re-titled the sentence beneath it — with
+  // the costs AND the development now named in that sentence, the heading said
+  // less than its own body (§17f). The eyebrow is what introduces the block.
+  it("drops the 'App costs' heading the merged sentence made redundant", () => {
+    assert.doesNotMatch(donatePanel, /App costs/);
+    assert.ok(donatePanel.includes("What donations support"));
+  });
+});
+
+// Owner ruling (2026-08-02), the copy law's own case (§17f): "Donations go toward
+// all of those things, so find a way to make the message succinct,
+// all-encompassing, and consistent across all screens where it appears. Neither
+// one of the examples you gave were wrong, so maybe combine them?" One constant,
+// two surfaces, and neither of the two retired sentences left anywhere in src/.
+describe("§17f — one donation sentence, one constant, every screen (owner ruling 2026-08-02)", () => {
+  const CANONICAL =
+    "Levelflow runs on paid market-data, email, and hosting plans. Donations support those costs and continued development.";
+  const donationCopy = readFileSync(DONATION_COPY, "utf8");
+  const authScreen = readFileSync(AUTH_SCREEN, "utf8");
+  // The two surfaces that say what a donation pays for: the Donate page's own
+  // section, and the sign-in screen's disclosure, which has no such section.
+  const SURFACES: Array<[string, string]> = [
+    [DONATE_PANEL, donatePanel],
+    [AUTH_SCREEN, authScreen],
+  ];
+
+  it("exports the combined sentence pair verbatim, once", () => {
+    assert.match(
+      donationCopy,
+      /export const DONATION_SUPPORT_COPY =\s*\n\s*"Levelflow runs on paid market-data, email, and hosting plans\. Donations support those costs and continued development\.";/,
+    );
     assert.equal(
-      (donatePanel.match(/email, (?:and )?hosting/g) ?? []).length,
+      (donationCopy.match(/Donations support those costs/g) ?? []).length,
       1,
     );
-    assert.doesNotMatch(donationOptions, /Donations support market data/);
-    // It is not deleted from the app: the sign-in screen has no App-costs
-    // section, so there the sentence is the only thing that says what a donation
-    // pays for and it renders at that call site.
-    assert.match(
-      readFileSync("src/components/auth/AuthScreen.tsx", "utf8"),
-      /Donations support market data, email, hosting, and development\./,
-    );
+    // Two sentences, both short and declarative — §17f, and the shape the ruling
+    // asked for. Nothing hedged, nothing explained twice.
+    assert.equal(CANONICAL.split(". ").length, 2);
+  });
+
+  it("renders it from that constant on both surfaces, and types it out on neither", () => {
+    for (const [file, source] of SURFACES) {
+      assert.match(
+        source,
+        /import \{ DONATION_SUPPORT_COPY \} from "\.\.\/\.\.\/lib\/donationCopy";/,
+        `${file} must take the sentence from the one module`,
+      );
+      assert.match(source, /\{DONATION_SUPPORT_COPY\}/, file);
+      // The words themselves live in exactly one file. A call site that spelled
+      // them out again is the drift this constant exists to prevent.
+      assert.ok(
+        !source.includes("Donations support those costs"),
+        `${file} spells the sentence out instead of rendering the constant`,
+      );
+    }
+  });
+
+  it("retires both of the sentences it combines, everywhere in src/", () => {
+    const RETIRED = [
+      "Donations support market data, email, hosting, and development.",
+      // The Donate page's own half, which the constant now opens with — banned as
+      // a standalone sentence, which is the only shape it ever appeared in.
+      "Levelflow runs on paid market-data, email, and hosting plans.\n",
+    ];
+    for (const file of allSourceFiles("src")) {
+      const source = readFileSync(file, "utf8");
+      for (const retired of RETIRED) {
+        assert.ok(
+          !source.includes(retired),
+          `${file} still carries the retired sentence: ${retired.trim()}`,
+        );
+      }
+    }
+    // And the shared options component still says nothing about costs at all —
+    // it draws the affordances, and the sentence belongs to its two callers.
+    assert.doesNotMatch(donationOptions, /Donations support/);
+    assert.doesNotMatch(donationOptions, /email, (?:and )?hosting/);
   });
 });
 
