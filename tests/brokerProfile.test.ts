@@ -240,6 +240,36 @@ describe("§19g — every save carries the selection", () => {
   });
 });
 
+describe("§19 retrofit — activateBrokerAccount verifies ownership before writing (Task 2b)", () => {
+  // Task 2b (controller-authored insertion, adjudication 3): the FK on
+  // active_broker_account_id proves the target row EXISTS, not that it
+  // belongs to the caller — Postgres FK checks are not RLS-filtered. RLS
+  // already makes a foreign row unresolvable through every read path, so
+  // this pins the write-side close: the hook must consult its own
+  // RLS-scoped, already-validated profile.brokerAccounts before it ever
+  // writes the pointer, and refuse — loudly — an id that is not a member.
+  const hook = readFileSync("src/hooks/useUserProfile.ts", "utf8");
+  const activateFn = hook.slice(
+    hook.indexOf("const activateBrokerAccount = useCallback("),
+    hook.indexOf("const removeBrokerAccount = useCallback("),
+  );
+
+  it("consults the caller's own saved accounts before writing the pointer", () => {
+    assert.ok(activateFn.length > 0, "expected to find activateBrokerAccount");
+    assert.match(activateFn, /profile\?\.brokerAccounts\.some\(/);
+  });
+
+  it("throws on a foreign id, and the ownership check precedes the write", () => {
+    const throwIndex = activateFn.search(/throw new Error\(/);
+    const writeIndex = activateFn.indexOf(
+      ".update({ active_broker_account_id: id })",
+    );
+    assert.ok(throwIndex >= 0, "expected a thrown Error on the ownership-miss path");
+    assert.ok(writeIndex >= 0, "expected the pointer write");
+    assert.ok(throwIndex < writeIndex, "the ownership check must precede the write");
+  });
+});
+
 const ACCOUNTS_MIGRATION = readFileSync(
   "supabase/migrations/20260803010000_broker_accounts.sql",
   "utf8",

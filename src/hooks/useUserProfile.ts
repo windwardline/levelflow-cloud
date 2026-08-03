@@ -251,6 +251,21 @@ export function useUserProfile(
         return;
       }
 
+      // §19 retrofit (Task 2b, controller-authored insertion from Task 2's
+      // review): the FK on active_broker_account_id proves the target row
+      // EXISTS, not that it belongs to this caller — Postgres FK checks are
+      // not RLS-filtered. RLS already makes a foreign row unresolvable
+      // through every read path, so today's exposure was only a
+      // self-inflicted dangling pointer; this closes the write side too, by
+      // refusing an id this profile never saved rather than writing it and
+      // finding out later. The DB-trigger owner-match is deliberately
+      // deferred to the §20 governor build (schema guardrails belong there).
+      if (!profile?.brokerAccounts.some((account) => account.id === id)) {
+        throw new Error(
+          `activateBrokerAccount: ${id} is not one of the caller's saved accounts`,
+        );
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({ active_broker_account_id: id })
@@ -262,7 +277,7 @@ export function useUserProfile(
 
       await refreshProfile();
     },
-    [refreshProfile, userId],
+    [profile, refreshProfile, userId],
   );
 
   const removeBrokerAccount = useCallback(
