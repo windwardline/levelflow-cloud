@@ -21,11 +21,13 @@ describe("security hardening", () => {
       initSql,
       /grant execute on function public\.claim_analyzer_request\(uuid, text, integer, integer\) to service_role/,
     );
-    // 20, not 8: a scan is a fan-out of ≤10-market requests since the
-    // 2026-08-02 CPU failures, so the old budget would have rate-limited a
-    // scan against itself. tests/scanBatching.test.ts holds the arithmetic
-    // (a full fan-out fits, with room to repeat it); this holds the number.
-    assert.match(analyzerSource, /scan_opportunities: 20,/);
+    // 40, not 8: a scan is a fan-out of ≤10-market requests since the
+    // 2026-08-02 CPU failures, so the old budget would have rate-limited a scan
+    // against itself, and the e2e suite's peak window runs several back to back.
+    // tests/scanBatching.test.ts holds the arithmetic (chunks × 5 ≤ limit); this
+    // holds the number. Not a wider provider door than the old ceiling either:
+    // 8 × ~350 FMP calls and 40 × ~70 are both 2,800 a minute.
+    assert.match(analyzerSource, /scan_opportunities: 40,/);
     assert.match(
       analyzerSource,
       /const rateLimit = await claimAnalyzerRequest\(user\.id, actionName\);[\s\S]*if \(!rateLimit\.allowed\)/,
@@ -63,6 +65,29 @@ describe("security hardening", () => {
     // And the retired fallback is gone from the scan itself, not merely
     // unreachable from the door: normalization has no universe to fall back to.
     assert.equal(analyzerSource.includes(": defaultScanSymbols)"), false);
+  });
+
+  it("validates the scan trace instead of copying it into telemetry", () => {
+    const analyzerSource = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+
+    // The client names each scan so an operator can re-associate one click's
+    // chunk rows. `analyzer_events.metadata` is the one column that takes free
+    // JSON, and this is caller-supplied — so it is shape-checked, never spread
+    // raw: a UUID-shaped string and two small integers, or nothing.
+    const traceStart = analyzerSource.indexOf("function readScanTrace(");
+    const traceEnd = analyzerSource.indexOf("type ScanTrace =");
+    const traceSource = analyzerSource.slice(traceStart, traceEnd);
+    assert.ok(traceStart > -1 && traceEnd > traceStart);
+    assert.match(traceSource, /Number\.isInteger\(value\)/);
+    assert.match(traceSource, /value >= 0 &&\s*value <= 99/);
+    assert.match(traceSource, /\[0-9a-f\]\{8\}-/);
+    assert.match(traceSource, /typeof body\.scanId === "string"/);
+    // Nothing branches on it: a trace is a label on the record, never an input.
+    assert.equal(analyzerSource.includes("if (trace."), false);
+    assert.equal(analyzerSource.includes("scanTrace.scanId ?"), false);
   });
 
   it("keeps scheduled sync endpoints token-gated and deployed", () => {

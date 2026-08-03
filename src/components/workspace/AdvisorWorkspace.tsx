@@ -395,6 +395,15 @@ export function AdvisorWorkspace(
         qualified: 0,
         scanned: 0,
       });
+      // A failed scan is not a scan that wrote nothing. Whatever chunks
+      // completed before the failure have already persisted their setups
+      // server-side (spec §17m.2 — the write is part of the request, not of the
+      // render), so the rail and Insights are refreshed here for the same reason
+      // they are on success: the reader sees the failure line AND every setup
+      // that really was saved. Suppressing this would leave the honest failure
+      // copy sitting above a stale history that quietly disagrees with the
+      // database — the §17m.2 divergence, arriving through the error path.
+      onSetupsChanged();
     } finally {
       setScanCompletedAt(new Date());
       setScanStatus("idle");

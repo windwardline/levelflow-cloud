@@ -169,15 +169,29 @@ export async function scanMarketOpportunities(symbols: SupportedSymbol[]) {
     throw new Error("A market scan must name at least one market.");
   }
 
+  // The click's own name, carried by every one of its requests. Splitting the
+  // scan split its record in analyzer_events into six unrelated rows; this is
+  // what lets an operator put them back together. Passthrough only — the server
+  // echoes it into telemetry and nothing branches on it.
+  //
+  // Absent rather than faked where the platform has no randomUUID (a page served
+  // outside a secure context): a trace that fails a scan would be worse than no
+  // trace, and the server treats it as optional for exactly this reason.
+  const scanId = typeof crypto?.randomUUID === "function"
+    ? crypto.randomUUID()
+    : undefined;
   const deadline = Date.now() + MARKET_SCAN_TIMEOUT_MS;
   const responses = await mapWithConcurrency(
-    chunks,
+    chunks.map((chunk, chunkIndex) => ({ chunk, chunkIndex })),
     SCAN_REQUEST_CONCURRENCY,
-    async (chunk) => {
+    async ({ chunk, chunkIndex }) => {
       const { data, error } = await withTimeout(
         client.functions.invoke<MarketScanResponse>("trade-analyzer", {
           body: {
             action: "scan_opportunities",
+            chunkCount: chunks.length,
+            chunkIndex,
+            scanId,
             symbols: chunk,
           },
         }),

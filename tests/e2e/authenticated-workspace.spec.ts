@@ -112,6 +112,28 @@ function scanSurface(page: Page): Locator {
     : page.getByTestId("market-scan-rail");
 }
 
+// Narrows the scan to one asset group before scanning it. Both compositions
+// render the same ScopeMenu — an anchored listbox at ≥lg, a full-screen sheet
+// below — so one `[role="option"]` click serves both.
+//
+// Why a caller would: a scan is a fan-out of chunked requests now
+// (src/lib/scanBatching.ts), so an All-markets scan spends six of the 40/60s
+// rate-limit budget and a one-group scan spends one. Specs that need A setup on
+// the stage — not the whole universe's — say so, and the suite stops
+// rate-limiting itself. Crypto is the group to name: its calendar never closes
+// (src/lib/marketHours.ts), so it is scannable whenever this suite runs.
+async function scopeScanToGroup(page: Page, label: string) {
+  const surface = scanSurface(page);
+  await surface.getByRole("button", { name: "Scan scope" }).click();
+  await page
+    .locator('[role="option"]')
+    .filter({ has: page.getByText(label, { exact: true }) })
+    .first()
+    .click();
+  await expect(surface.getByRole("button", { name: "Scan scope" }))
+    .toContainText(label);
+}
+
 async function scanForSetupOnStage(page: Page): Promise<boolean> {
   const rail = scanSurface(page);
   await rail.getByRole("button", { name: "Scan", exact: true }).click();
@@ -2077,10 +2099,11 @@ async function resetProgramToNone(page: Page, width: number) {
 
 for (const width of [375, 1280]) {
   test(`the ladder grows one Size row only once a program is selected (§19d, ${width}px)`, async ({ page }) => {
-    // Two scans, and the helper allows each 90s (a scan of every open market on
-    // a slow provider morning), so the budget is stated at what the walk can
-    // actually cost rather than at what a fast one does. Both scans in the live
-    // run this shape was written against finished in 7.5s.
+    // Two scans, and the helper allows each 90s, so the budget is stated at what
+    // the walk can actually cost rather than at what a fast one does. Both scans
+    // in the live run this shape was written against finished in 7.5s — and both
+    // are Crypto-scoped now (one request of seven markets), so 90s is headroom
+    // rather than a real expectation.
     test.setTimeout(240_000);
     await page.setViewportSize({ height: 812, width });
     await page.goto("/");
@@ -2116,9 +2139,17 @@ for (const width of [375, 1280]) {
     //
     // A scan is how a setup arrives (§17m.1), so the walk skips honestly when
     // nothing qualifies.
+    //
+    // Scoped to Crypto rather than All markets, on both of this walk's scans.
+    // What these two legs need is A ladder on the stage — any market's — and
+    // since the scan became a fan-out of chunked requests, All markets costs six
+    // rate-limit claims where one group costs one. Four such scans across the two
+    // width legs was 24 of the 40/60s budget spent proving nothing about breadth.
+    // Crypto never closes, so the scope also removes a closed-market skip.
     await showDesk(page, width);
+    await scopeScanToGroup(page, "Crypto");
     if (!(await scanForSetupOnStage(page))) {
-      test.skip(true, "No market qualified in this window.");
+      test.skip(true, "No Crypto market qualified in this window.");
       return;
     }
 
@@ -2141,11 +2172,14 @@ for (const width of [375, 1280]) {
     ).toHaveValue("0.5");
 
     await showDesk(page, width);
+    // Same scope as the absence leg: the Desk remounted on the way back from
+    // Profile, so the scope reset to All markets with it.
+    await scopeScanToGroup(page, "Crypto");
     if (!(await scanForSetupOnStage(page))) {
       // Past this point the program is bought, so the skip path hands the row
       // back before it leaves.
       await resetProgramToNone(page, width);
-      test.skip(true, "No market qualified in this window.");
+      test.skip(true, "No Crypto market qualified in this window.");
       return;
     }
 

@@ -90,10 +90,14 @@ const RATE_LIMITS = {
   // A scan is a fan-out of chunked requests since the 2026-08-02 CPU failures
   // (src/lib/scanBatching.ts): today's 50-market universe arrives as 6, so the
   // old budget of 8 would have rate-limited the second scan of a minute against
-  // the first. Twenty passes a full scan three times over —
-  // tests/scanBatching.test.ts pins that a whole fan-out fits with room to
-  // repeat it, so this number can never fall back under one scan's width.
-  scan_opportunities: 20,
+  // the first. Forty passes a full scan six times over, which is what the e2e
+  // suite's own peak window needs — tests/scanBatching.test.ts pins the relation
+  // (chunks × 5 ≤ limit), so this can never fall back under the real spend.
+  //
+  // It opens no wider a door onto the provider than the old ceiling did: 8 full
+  // scans of ~350 FMP calls was 2,800 calls a minute; 40 chunks of ~70 is 2,800.
+  // The same arithmetic, against FMP Ultimate's 3,000.
+  scan_opportunities: 40,
 } as const;
 // The hard ceiling on one request's work, and what makes a 546 impossible
 // rather than unlikely: a 50-market scan measured ~1.84s of CPU against
@@ -107,8 +111,39 @@ const MAX_SCAN_SYMBOLS = 15;
 type AnalyzerAction = keyof typeof RATE_LIMITS;
 type AnalyzeRequest = {
   action?: AnalyzerAction;
+  // The caller's own name for one scan, and this request's place in it. A scan
+  // is several requests now, and without these its record in analyzer_events is
+  // several unrelated rows — this is what lets an operator put one click back
+  // together. Echoed into telemetry and nothing else: no code path reads them.
+  chunkCount?: number;
+  chunkIndex?: number;
+  scanId?: string;
   symbols?: string[];
 };
+
+/**
+ * The scan trace, read the way any caller-supplied value has to be read.
+ *
+ * These land in `analyzer_events.metadata`, so they are validated rather than
+ * copied: a UUID-shaped string and two small integers, or nothing. Unvalidated
+ * passthrough would let a caller write arbitrary payloads into the telemetry
+ * table through the one field that accepts free JSON.
+ */
+function readScanTrace(body: AnalyzeRequest) {
+  const isChunkNumber = (value: unknown) =>
+    typeof value === "number" && Number.isInteger(value) && value >= 0 &&
+    value <= 99;
+  return {
+    chunkCount: isChunkNumber(body.chunkCount) ? body.chunkCount : undefined,
+    chunkIndex: isChunkNumber(body.chunkIndex) ? body.chunkIndex : undefined,
+    scanId: typeof body.scanId === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          .test(body.scanId)
+      ? body.scanId
+      : undefined,
+  };
+}
+type ScanTrace = ReturnType<typeof readScanTrace>;
 
 type NewsEvent = {
   currency?: string;
@@ -323,8 +358,14 @@ Deno.serve(async (req) => {
     if (scanRequest.reason !== undefined) {
       return jsonResponse(req, { error: scanRequest.reason }, 400);
     }
+    const scanTrace = readScanTrace(body);
     const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
-    const scan = await scanOpportunities(token, user.id, scanRequest.symbols);
+    const scan = await scanOpportunities(
+      token,
+      user.id,
+      scanRequest.symbols,
+      scanTrace,
+    );
     await recordAnalyzerEvent({
       action: "scan_opportunities",
       metadata: {
@@ -335,6 +376,9 @@ Deno.serve(async (req) => {
         // analyzer_events rather than only in a console (spec §17m.2).
         persistence: scan.persistence,
         scanned: scan.scanned,
+        // Which click this request belonged to, and which of its chunks this
+        // was. Absent when the caller sent nothing usable.
+        ...scanTrace,
       },
       // A scan that could not write part of what it showed is not a
       // success — "scan_failure" is the enum's own word for it
@@ -393,6 +437,7 @@ async function scanOpportunities(
   token: string,
   userId: string,
   requestedSymbols: string[],
+  trace: ScanTrace,
 ) {
   const normalizedSymbols = Array.from(
     new Set(
@@ -451,6 +496,9 @@ async function scanOpportunities(
         message: `Scan setup persistence failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
+        // The click this write belonged to: a per-symbol failure is only
+        // legible next to the scan that produced it.
+        metadata: { ...trace },
         status: "scan_failure",
         symbol,
         userId,

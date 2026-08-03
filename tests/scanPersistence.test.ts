@@ -211,7 +211,14 @@ describe("scan persistence — the call site honours the contract", () => {
     assert.match(analyzer, /onFailure: async \(symbol, error\) => \{/);
     assert.match(
       analyzer,
-      /Scan setup persistence failed: \$\{[\s\S]{0,200}status: "scan_failure",/,
+      /Scan setup persistence failed: \$\{[\s\S]{0,400}status: "scan_failure",/,
+    );
+    // And it says which click's chunk failed. A scan is several requests now
+    // (src/lib/scanBatching.ts), so a per-symbol write failure is only legible
+    // beside the scan that produced it — hence the trace on this event too.
+    assert.match(
+      analyzer,
+      /Scan setup persistence failed: \$\{[\s\S]{0,400}metadata: \{ \.\.\.trace \},/,
     );
     assert.match(
       analyzer,

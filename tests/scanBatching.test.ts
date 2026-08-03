@@ -57,14 +57,17 @@ describe("market scan batching", () => {
     }
   });
 
-  it("keeps one full scan inside its own rate-limit window", () => {
-    // A scan that trips the limiter it shares with itself would fail half of
-    // its own chunks — and by rule 3 below, that is a failed scan. The budget
-    // has to cover a whole fan-out with room to repeat it.
+  it("keeps a window's worth of full scans inside the rate limit", () => {
+    // A scan that trips the limiter it shares with itself would fail half of its
+    // own chunks — and by rule 3 below, that is a failed scan. One fan-out
+    // fitting is not the bar: the e2e suite's own peak window runs several
+    // all-markets scans back to back (four in authenticated-workspace.spec.ts,
+    // plus the scoped ones), and a CI run that rate-limits itself reads as a
+    // quiet market. Five full scans per window is that peak with headroom.
     const chunks = chunkScanSymbols(AVAILABLE_ASSET_SYMBOLS).length;
     assert.ok(
-      chunks * 2 <= serverScanRateLimit,
-      `a ${chunks}-chunk scan against a limit of ${serverScanRateLimit} per minute leaves no room to rescan`,
+      chunks * 5 <= serverScanRateLimit,
+      `${chunks} chunks per scan against a limit of ${serverScanRateLimit} per minute cannot carry the suite's peak of five`,
     );
     assert.ok(SCAN_REQUEST_CONCURRENCY >= 2 && SCAN_REQUEST_CONCURRENCY <= 3);
   });
@@ -192,6 +195,36 @@ describe("market scan ranking mirror", () => {
     }
   });
 
+  it("orders a double tie the same way however the fan-out split it", () => {
+    // Confidence ties break on payoff, and payoff ties used to break on
+    // nothing — which inside one request meant input order, and across requests
+    // meant whichever chunk happened to hold a market first. The real chunker
+    // groups by cluster, so it genuinely reorders: ADAUSD leads the universe
+    // list and lands in the last request, BCHUSD follows it and lands in the
+    // first. Two markets tied on both keys would swap on how the scan was
+    // split. The symbol is the final tiebreak, in both comparators, so they
+    // cannot.
+    const tied = AVAILABLE_ASSET_SYMBOLS.map((symbol) => ({
+      confidenceScore: 71,
+      rewardRisk: 1.8,
+      symbol,
+    }));
+    const perChunk = chunkScanSymbols(AVAILABLE_ASSET_SYMBOLS).flatMap((chunk) =>
+      rankOpportunities(
+        tied.filter((candidate) => chunk.includes(candidate.symbol)),
+      )
+    );
+    assert.deepEqual(
+      rankScanCandidates(perChunk).map((candidate) => candidate.symbol),
+      rankOpportunities(tied).map((candidate) => candidate.symbol),
+    );
+    // And that shared order is the symbol's own, not an accident of either path.
+    assert.deepEqual(
+      rankScanCandidates(perChunk).map((candidate) => candidate.symbol),
+      [...AVAILABLE_ASSET_SYMBOLS].sort(),
+    );
+  });
+
   it("ranks a chunked scan the way one request would have ranked it", () => {
     // The property that matters: the server ranks WITHIN a chunk, so the
     // merged list is only as good as the client's re-rank. Chunk the
@@ -315,6 +348,47 @@ describe("market scan fan-out", () => {
     );
   });
 
+  it("sends no further chunk once one has failed", async () => {
+    // A failed scan must not go on spending rate-limit claims — and every chunk
+    // it sends after the failure is one more setup written for a scan the reader
+    // is about to be told did not complete. In flight is unavoidable; newly sent
+    // is not.
+    const started: number[] = [];
+    await assert.rejects(
+      mapWithConcurrency([0, 1, 2, 3, 4, 5], 2, async (item) => {
+        started.push(item);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        if (item === 2) {
+          throw new Error("chunk 2 failed");
+        }
+        return item;
+      }),
+      /chunk 2 failed/,
+    );
+    // Settle first: Promise.all rejects the moment one worker throws, while the
+    // other is still mid-item. Asserting immediately would pass against a
+    // fan-out that goes on sending — the straggler simply had not sent yet.
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    // Items 0-3 may all have been dispatched before the failure surfaced (two
+    // workers, one wave each); nothing beyond that may have been.
+    assert.deepEqual(
+      started.filter((item) => item > 3),
+      [],
+      `dispatched after the failure: ${started.join(",")}`,
+    );
+
+    // One worker makes it exact: the first item fails and nothing else is sent.
+    const solo: number[] = [];
+    await assert.rejects(
+      mapWithConcurrency([0, 1, 2], 1, async (item) => {
+        solo.push(item);
+        throw new Error("first chunk failed");
+      }),
+      /first chunk failed/,
+    );
+    assert.deepEqual(solo, [0]);
+  });
+
   it("returns results in request order, not completion order", async () => {
     const results = await mapWithConcurrency([30, 10, 20], 2, async (delay) => {
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -360,5 +434,49 @@ describe("the scan client sends chunks and merges only whole results", () => {
     assert.equal(scanSource.includes("allSettled"), false);
     assert.equal(scanSource.includes("catch"), false);
     assert.match(scanSource, /if \(error\) \{\s*throw new Error\(error\.message\);/);
+  });
+
+  it("gives one click's requests one name", () => {
+    const scanStart = clientSource.indexOf(
+      "export async function scanMarketOpportunities",
+    );
+    const scanEnd = clientSource.indexOf("export async function refreshTradeOutcomes");
+    const scanSource = clientSource.slice(scanStart, scanEnd);
+
+    // Splitting the scan split its record in analyzer_events into six unrelated
+    // rows. Every chunk carries the click's own id and its place in the fan-out,
+    // so an operator can put them back together (the server validates and echoes
+    // them — tests/securityHardening.test.ts).
+    assert.match(scanSource, /const scanId = typeof crypto\?\.randomUUID/);
+    assert.match(scanSource, /chunkCount: chunks\.length,/);
+    assert.match(scanSource, /chunkIndex,/);
+    assert.match(scanSource, /scanId,/);
+  });
+});
+
+describe("a failed scan still shows what it wrote", () => {
+  it("refreshes the history on the scan's failure path too", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorWorkspace.tsx",
+      "utf8",
+    );
+    const scanStart = source.indexOf("async function scanMarkets(");
+    const scanEnd = source.indexOf("const scanDisabled =");
+    const scanSource = source.slice(scanStart, scanEnd);
+    assert.ok(scanStart > -1 && scanEnd > scanStart);
+
+    // §17m.2, reached through the error path: chunks that completed before the
+    // failure have already persisted their setups, so the reader must see the
+    // failure line AND those setups — not the failure line above a history that
+    // silently disagrees with the database. Both paths refresh; the catch is the
+    // one that used to not.
+    const failurePath = scanSource.slice(scanSource.indexOf("} catch {"));
+    assert.match(failurePath, /failed: true,/);
+    assert.match(failurePath, /onSetupsChanged\(\);/);
+    assert.equal(
+      (scanSource.match(/onSetupsChanged\(\);/g) ?? []).length,
+      2,
+      "both the success and failure paths must refresh the history",
+    );
   });
 });

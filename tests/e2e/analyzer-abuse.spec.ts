@@ -11,11 +11,12 @@ test.skip(
   "Set Levelflow E2E Supabase and dedicated test-user credentials to run analyzer abuse tests.",
 );
 
-// The scan budget is 20 requests per 60s (RATE_LIMITS in
-// supabase/functions/trade-analyzer/index.ts) because one scan is now a fan-out
-// of chunked requests. Twenty-five is the smallest flood that must trip it.
-const FLOOD_SIZE = 25;
-const SCAN_RATE_LIMIT = 20;
+// The scan budget is 40 requests per 60s (RATE_LIMITS in
+// supabase/functions/trade-analyzer/index.ts): one scan is a fan-out of chunked
+// requests now, and this suite's own peak window runs several of them back to
+// back. Forty-five is the smallest flood that must still trip it.
+const FLOOD_SIZE = 45;
+const SCAN_RATE_LIMIT = 40;
 
 // Order is a contract here, not a convenience: the door test asserts real 400s,
 // so it has to run while the budget still has room — before the flood that

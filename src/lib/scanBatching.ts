@@ -71,29 +71,50 @@ export function chunkScanSymbols(
   return chunks;
 }
 
+type RankableCandidate = {
+  confidenceScore?: number;
+  rewardRisk?: number;
+  symbol?: string;
+};
+
+function scoreScanCandidate(candidate: RankableCandidate) {
+  const confidence = Number(candidate.confidenceScore);
+  return Number.isFinite(confidence) ? confidence : 0;
+}
+
+// The symbol is the final tiebreak in both comparators. Without it, "equal on
+// both keys" resolves to input order — and a merged list's input order is which
+// request happened to hold the market, so one click's list would depend on how
+// it was split. Compared by code unit, not localeCompare: this runs in a browser
+// and its mirror runs in Deno, and locale collation is not guaranteed identical
+// across the two.
+function compareSymbols(first: RankableCandidate, second: RankableCandidate) {
+  const firstSymbol = String(first.symbol ?? "");
+  const secondSymbol = String(second.symbol ?? "");
+  if (firstSymbol === secondSymbol) {
+    return 0;
+  }
+  return firstSymbol < secondSymbol ? -1 : 1;
+}
+
 /**
  * MIRROR of supabase/functions/trade-analyzer/scanRanking.ts. Confidence is the
- * probability proxy and the primary sort; payoff breaks ties only.
+ * probability proxy and the primary sort, payoff breaks those ties, and the
+ * symbol breaks what is left.
  *
  * It exists client-side because the server now ranks within a chunk, so the
  * merged list has to be re-ranked to read the way one request's list read.
  * tests/scanBatching.test.ts asserts the two comparators agree — including on
  * the property that matters: chunk-ranked-then-merged equals single-request
- * ranked.
+ * ranked, double ties included.
  */
-function scoreScanCandidate(candidate: {
-  confidenceScore?: number;
-}) {
-  const confidence = Number(candidate.confidenceScore);
-  return Number.isFinite(confidence) ? confidence : 0;
-}
-
-export function rankScanCandidates<
-  T extends { confidenceScore?: number; rewardRisk?: number },
->(candidates: T[]): T[] {
+export function rankScanCandidates<T extends RankableCandidate>(
+  candidates: T[],
+): T[] {
   return [...candidates].sort((first, second) =>
     scoreScanCandidate(second) - scoreScanCandidate(first) ||
-    (second.rewardRisk ?? 0) - (first.rewardRisk ?? 0)
+    (second.rewardRisk ?? 0) - (first.rewardRisk ?? 0) ||
+    compareSymbols(first, second)
   );
 }
 
@@ -160,10 +181,18 @@ function mergeScanPersistence(responses: MarketScanResponse[]) {
 }
 
 /**
- * Bounded-concurrency map, the shape
- * supabase/functions/trade-analyzer/concurrency.ts uses server-side: results in
- * request order, and a rejection the moment any worker throws — which is how
- * one failed chunk fails the whole scan instead of rendering as a smaller one.
+ * Bounded-concurrency map: the dispatch loop
+ * supabase/functions/trade-analyzer/concurrency.ts uses server-side, plus an
+ * abort. Results come back in request order, and any worker throwing rejects the
+ * whole map — which is how one failed chunk fails the whole scan instead of
+ * rendering as a smaller one.
+ *
+ * The abort is why this is not just the server's copy. There, one item is local
+ * work inside a request already paid for; here, one item IS a request — a
+ * rate-limit claim, a provider fetch, and setups written to the reader's own
+ * history. Once the scan is going to fail, sending more of those buys nothing
+ * and widens the gap between what was written and what the reader is about to be
+ * told. Items already in flight finish; none is newly sent.
  */
 export async function mapWithConcurrency<T, R>(
   items: T[],
@@ -172,14 +201,23 @@ export async function mapWithConcurrency<T, R>(
 ): Promise<R[]> {
   const results: R[] = new Array(items.length);
   let nextIndex = 0;
+  let aborted = false;
   const workerCount = Math.min(Math.max(1, limit), items.length);
 
   await Promise.all(
     Array.from({ length: workerCount }, async () => {
       while (nextIndex < items.length) {
+        if (aborted) {
+          return;
+        }
         const currentIndex = nextIndex;
         nextIndex += 1;
-        results[currentIndex] = await worker(items[currentIndex]);
+        try {
+          results[currentIndex] = await worker(items[currentIndex]);
+        } catch (error) {
+          aborted = true;
+          throw error;
+        }
       }
     }),
   );

@@ -451,6 +451,24 @@ describe("trade analyzer category handling", () => {
     assert.deepEqual(duplicates, []);
   });
 
+  it("lists each visible market exactly once", () => {
+    // The menu's own hygiene, and load-bearing twice over since the scan became
+    // a fan-out: src/lib/scanBatching.ts partitions THIS list into requests, so
+    // a duplicated entry would scan and persist one market twice, and
+    // tests/scanBatching.test.ts's "exactly once" guard compares against this
+    // list's length — a duplicate here would make that guard agree with itself.
+    assert.deepEqual(
+      AVAILABLE_ASSET_SYMBOLS.filter(
+        (symbol, index) => AVAILABLE_ASSET_SYMBOLS.indexOf(symbol) !== index,
+      ),
+      [],
+    );
+    assert.equal(
+      new Set(AVAILABLE_ASSET_SYMBOLS).size,
+      AVAILABLE_ASSET_SYMBOLS.length,
+    );
+  });
+
   it("maps targeted headline symbols to the matching market only", () => {
     assert.equal(isHeadlineNewsRelevantForSymbol("EURUSD", "EURUSD"), true);
     assert.equal(isHeadlineNewsRelevantForSymbol("BTCUSD", "BTC"), true);
