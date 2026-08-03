@@ -878,13 +878,19 @@ pages, ordered on `(created_at, id)` so an offset page continues where the
 last one stopped. It selects only what the two aggregates read, plus `id`
 for the walk's own dedupe and the outcome embed — measured 2026-08-03,
 `confluence` and `risk_model` are ~5.6KB of the ~5.9KB a full row weighs,
-and neither aggregate reads them. Both reads pass the one
-`normalizeEmbeddedOutcomes` seam, and both land in one refresh under one
-failure flag.
+and neither aggregate reads them. Each read carries the outcome shape its
+own select asks for, and both pass the one `normalizeEmbeddedOutcome` seam;
+both land in one refresh under one failure flag.
 
-Nothing about resolution is asked of the server: this is the first of the
-two routes above, and `normalizeSetupOutcome` with `classifyWinLoss` stay
-the only definitions of a resolved row and a money-positive one. A
+**The route taken is neither of the two above.** Those two are the branches
+of "if the aggregate runs in SQL" — the first still returns per-slice rows
+from a SQL aggregate. This one runs no aggregate on the server at all: it
+pages raw rows and computes every slice on the client, authorized by this
+section's own permission that the aggregate **may** be computed
+server-side, which leaves not doing so open. The forbidding clause is what
+governs either way, and it is satisfied at the root: `normalizeSetupOutcome`
+and `classifyWinLoss` stay the only definitions of a resolved row and a
+money-positive one, because the server is asked nothing about resolution. A
 `where outcome in (...)` would be the second product this section forbids,
 since resolution also reads `status` and whether the entry ever filled.
 

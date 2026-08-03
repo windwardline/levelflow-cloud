@@ -41,6 +41,39 @@ function fullPage(startIndex: number): FetchedLifetimeSetupRow[] {
   );
 }
 
+function lifetimeSelect(): string {
+  return ANALYZER_SOURCE.match(/const LIFETIME_SELECT =\s*\n?\s*"([^"]*)"/)?.[1] ??
+    "";
+}
+
+/** The setup columns the lifetime read asks for, in the order it asks for them. */
+function selectedColumns(): string[] {
+  return lifetimeSelect().split(", trade_outcomes")[0].split(", ").filter(Boolean);
+}
+
+/** The embed's own fields, same order. */
+function selectedOutcomeFields(): string[] {
+  return (lifetimeSelect().match(/trade_outcomes\(([^)]*)\)/)?.[1] ?? "")
+    .split(", ")
+    .filter(Boolean);
+}
+
+/**
+ * The field names a `Pick<>`-based row type names, in declaration order — read
+ * from source, because a type is not there to read at runtime. Sorted on both
+ * sides of the comparison, so this pins the SET of fields rather than an order
+ * neither the wire nor the type cares about.
+ */
+function pickedFields(typeName: string): string[] {
+  const declaration = ANALYZER_SOURCE.match(
+    new RegExp(`export type ${typeName} = Pick<[\\s\\S]*?>`),
+  )?.[0] ?? "";
+  return Array.from(
+    declaration.matchAll(/"([a-z_]+)"/g),
+    (match) => match[1],
+  ).sort();
+}
+
 function recordingReader(pages: FetchedLifetimeSetupRow[][]) {
   const ranges: Array<[number, number]> = [];
   const read = (from: number, to: number) => {
@@ -133,12 +166,9 @@ describe("paginateLifetimeSetups — the lifetime walk (spec §18)", () => {
     const reader = recordingReader([[
       lifetimeRow(0, {
         trade_outcomes: {
-          exit_at: null,
           feedback: { realizedR: 1.5 },
           filled_at: "2026-08-01T12:00:00.000Z",
           outcome: "take_profit",
-          realized_pnl: null,
-          reviewed_at: null,
         },
       }),
     ]]);
@@ -200,22 +230,41 @@ describe("fetchLifetimeSetups — the read itself (source-pinned)", () => {
     // carries for the Advisor handoff. The lifetime read carries none of it:
     // measured 2026-08-03, that is the difference between ~0.3KB and ~5.9KB a
     // row on a read whose row count only grows.
-    const select =
-      ANALYZER_SOURCE.match(/const LIFETIME_SELECT =\s*\n?\s*"([^"]*)"/)?.[1] ??
-        "";
-    assert.ok(select.length > 0, "expected the lifetime select list");
+    assert.ok(selectedColumns().length > 0, "expected the lifetime select list");
     assert.match(fetchSource, /\.select\(LIFETIME_SELECT\)/);
+    const select = lifetimeSelect();
     assert.doesNotMatch(select, /confluence/);
     assert.doesNotMatch(select, /risk_model/);
     assert.doesNotMatch(select, /limit_entry|stop_loss|take_profit/);
     assert.deepEqual(
-      select.split(", trade_outcomes")[0].split(", "),
+      selectedColumns(),
       ["id", "symbol", "side", "confidence_score", "status", "created_at"],
     );
-    // The outcome embed carries exactly what resolution and realizedR need.
-    assert.match(
-      select,
-      /trade_outcomes\(outcome, filled_at, reviewed_at, feedback\)/,
+    // The outcome embed carries exactly what resolution and realizedR need, and
+    // nothing more: reviewed_at has no reader anywhere in src, and a selected
+    // column with no reader is a payload with no purpose.
+    assert.deepEqual(selectedOutcomeFields(), [
+      "outcome",
+      "filled_at",
+      "feedback",
+    ]);
+    assert.doesNotMatch(select, /reviewed_at/);
+  });
+
+  it("promises in the row type exactly what the select fetches, both directions", () => {
+    // The shape-lie class one step removed from PR #186: a row type that carries
+    // the whole TradeOutcomeRow while the query fetches three of its fields hands
+    // the next reader `realized_pnl: number | string | null` where the runtime has
+    // undefined, with the compiler agreeing. The types are Pick-ed down to the
+    // select, and these two comparisons are what keep the pair honest — adding a
+    // field to either side alone fails here.
+    assert.deepEqual(
+      pickedFields("LifetimeOutcomeRow"),
+      [...selectedOutcomeFields()].sort(),
+    );
+    assert.deepEqual(
+      pickedFields("LifetimeSetupRow"),
+      [...selectedColumns()].sort(),
     );
   });
 
@@ -232,17 +281,19 @@ describe("fetchLifetimeSetups — the read itself (source-pinned)", () => {
     assert.doesNotMatch(ANALYZER_SOURCE, /\.limit\(80\)/);
   });
 
-  it("reads the table from exactly two places, both through the one normalizer", () => {
+  it("reads the table from exactly two places, both through the one embed reader", () => {
     assert.equal(
       (ANALYZER_SOURCE.match(/\.from\("trade_setups"\)/g) ?? []).length,
       2,
     );
     assert.match(
-      ANALYZER_SOURCE.match(/export function paginateLifetimeSetups[\s\S]*?\n}\n/)
-        ?.[0] ?? ANALYZER_SOURCE.match(
-          /export async function paginateLifetimeSetups[\s\S]*?\n}\n/,
-        )?.[0] ?? "",
-      /normalizeEmbeddedOutcomes\(/,
+      ANALYZER_SOURCE.match(
+        /export async function paginateLifetimeSetups[\s\S]*?\n}\n/,
+      )?.[0] ?? "",
+      /normalizeEmbeddedOutcome\(row\.trade_outcomes\)/,
     );
+    // One shape rule in the whole module, whichever read arrives at it: PR #186's
+    // fix is only a fix while object-versus-array is decided in one place.
+    assert.equal((ANALYZER_SOURCE.match(/Array\.isArray\(/g) ?? []).length, 1);
   });
 });

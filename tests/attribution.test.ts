@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   ATTRIBUTION_LEARNING_MIN_RESOLVED,
   buildAttribution,
+  netRForSlice,
+  type SliceTally,
 } from "../src/components/workspace/attribution";
 import {
   buildConfidenceBands,
@@ -397,6 +399,62 @@ describe("buildAttribution — net R is all-or-nothing (spec §18)", () => {
     const buy = row(setups, "side", "Buy");
     assert.equal(buy.resolved, 3);
     assert.equal(buy.netR, 0);
+  });
+});
+
+describe("netRForSlice — the sum answers for the count beside it (spec §18)", () => {
+  // The confidence slice publishes buildConfidenceBands' resolved count and sums
+  // net R from this module's own tally. They agree by construction today —
+  // identical tier bounds, identical resolved definition — so buildAttribution
+  // cannot reach a mismatch from any input, which is exactly why the guard is
+  // driven directly here rather than left as a comment nobody can exercise.
+  function tally(overrides: Partial<SliceTally> = {}): SliceTally {
+    return {
+      realizedRSum: 3,
+      resolved: 3,
+      resolvedWithRealizedR: 3,
+      wins: 2,
+      ...overrides,
+    };
+  }
+
+  it("sums when the tally accounts for exactly the rows the row publishes", () => {
+    assert.equal(netRForSlice(tally(), 3), 3);
+  });
+
+  it("withholds when the tally holds FEWER rows than the count published", () => {
+    // The real defect this stops: a total summed over 2 rows printed beside a
+    // resolved count of 3 reads as the settled result of all three.
+    assert.equal(
+      netRForSlice(
+        tally({ realizedRSum: 2, resolved: 2, resolvedWithRealizedR: 2 }),
+        3,
+      ),
+      null,
+    );
+  });
+
+  it("withholds when the tally holds MORE rows than the count published", () => {
+    assert.equal(
+      netRForSlice(
+        tally({ realizedRSum: 4, resolved: 4, resolvedWithRealizedR: 4 }),
+        3,
+      ),
+      null,
+    );
+  });
+
+  it("withholds when one accounted row carried no R", () => {
+    assert.equal(netRForSlice(tally({ resolvedWithRealizedR: 2 }), 3), null);
+  });
+
+  it("withholds when there is no tally at all", () => {
+    assert.equal(netRForSlice(undefined, 3), null);
+    assert.equal(netRForSlice(undefined, 0), null);
+  });
+
+  it("sums a zero total as zero, not as absent", () => {
+    assert.equal(netRForSlice(tally({ realizedRSum: 0 }), 3), 0);
   });
 });
 

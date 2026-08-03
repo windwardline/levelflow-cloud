@@ -1,5 +1,5 @@
 import { formatNumber } from "../components/workspace/advisorFormat";
-import type { TradeSetupRow } from "./tradeAnalyzer";
+import type { OutcomeEvidenceRow, TradeSetupRow } from "./tradeAnalyzer";
 
 export type TradeStatus = "pending" | "open";
 
@@ -150,12 +150,11 @@ export function deriveTradeState(
  * unresolved, so the two surfaces can never disagree about which of the two
  * unresolved words a row deserves.
  */
-// Takes only the two fields it reads, so lib/outcomes.ts can share it from its
-// own narrower row shape rather than growing a second copy of the predicate
-// (Q2-M3).
-export function entryHasFilled(
-  setup: Pick<TradeSetupRow, "status" | "trade_outcomes">,
-): boolean {
+// Takes only the two fields it reads (OutcomeEvidenceRow), so lib/outcomes.ts can
+// share it from its own narrower row shape rather than growing a second copy of
+// the predicate (Q2-M3) — and so the lifetime read's rows, whose embed carries
+// only what its select asked for, reach the same one predicate (spec §18).
+export function entryHasFilled(setup: OutcomeEvidenceRow): boolean {
   return setup.status === "placed" || setup.status === "filled" ||
     Boolean(setup.trade_outcomes?.[0]?.filled_at);
 }

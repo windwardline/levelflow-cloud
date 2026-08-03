@@ -157,6 +157,35 @@ export type FetchedTradeSetupRow = Omit<TradeSetupRow, "trade_outcomes"> & {
 };
 
 /**
+ * The outcome fields the lifetime read fetches — exactly LIFETIME_SELECT's embed,
+ * and exactly what the two aggregates read of it: `outcome` and `filled_at` for
+ * resolution (normalizeSetupOutcome, entryHasFilled), `feedback` for realizedR.
+ *
+ * Narrowed rather than borrowed whole, because a row type that promises fields
+ * the query never asks for is the PR #186 shape-lie one step removed: the cast at
+ * the fetch seam would assert `realized_pnl` onto a row that never carries it, and
+ * the next reader to reach for a P&L figure would get `Number(undefined)` with the
+ * compiler agreeing. The type says what the wire says.
+ */
+export type LifetimeOutcomeRow = Pick<
+  TradeOutcomeRow,
+  "feedback" | "filled_at" | "outcome"
+>;
+
+/**
+ * The minimum any reader needs to say whether a setup resolved, how, and at what
+ * R — `status` plus the three outcome fields above. Both row types satisfy it
+ * (TradeOutcomeRow carries strictly more than LifetimeOutcomeRow), which is what
+ * lets normalizeSetupOutcome, entryHasFilled, getSetupOutcome and extractRealizedR
+ * stay ONE implementation each across the ledger's read and the lifetime read
+ * instead of a second copy of the taxonomy per row shape.
+ */
+export type OutcomeEvidenceRow = {
+  status: string;
+  trade_outcomes?: LifetimeOutcomeRow[];
+};
+
+/**
  * One row of the LIFETIME record — every field the two lifetime aggregates read
  * (buildRecordBand and buildAttribution), plus `id`, which the walk below uses
  * as its own dedupe key. Nothing else.
@@ -173,18 +202,16 @@ export type FetchedTradeSetupRow = Omit<TradeSetupRow, "trade_outcomes"> & {
  */
 export type LifetimeSetupRow = Pick<
   TradeSetupRow,
-  | "confidence_score"
-  | "created_at"
-  | "id"
-  | "side"
-  | "status"
-  | "symbol"
-  | "trade_outcomes"
->;
+  "confidence_score" | "created_at" | "id" | "side" | "status" | "symbol"
+> & {
+  // Always an array by the time any reader sees it, and at most one element long
+  // — normalizeEmbeddedOutcome is what makes that true of the wire shape.
+  trade_outcomes?: LifetimeOutcomeRow[];
+};
 
 /** One lifetime row before its embed is normalized (see FetchedTradeSetupRow). */
 export type FetchedLifetimeSetupRow = Omit<LifetimeSetupRow, "trade_outcomes"> & {
-  trade_outcomes?: TradeOutcomeRow | TradeOutcomeRow[] | null;
+  trade_outcomes?: LifetimeOutcomeRow | LifetimeOutcomeRow[] | null;
 };
 
 // One budget for the whole scan, not one per request. The fan-out below sends
@@ -216,8 +243,12 @@ export const LEDGER_WINDOW_ROWS = 80;
 export const LIFETIME_PAGE_ROWS = 500;
 export const LIFETIME_MAX_PAGES = 40;
 
+// Every field here has a reader: the five setup columns the aggregates slice and
+// gate on, `id` for the walk's dedupe, and the three outcome fields resolution and
+// realizedR need. `reviewed_at` is deliberately absent — nothing in src reads it,
+// and a selected column with no reader is a payload with no purpose.
 const LIFETIME_SELECT =
-  "id, symbol, side, confidence_score, status, created_at, trade_outcomes(outcome, filled_at, reviewed_at, feedback)";
+  "id, symbol, side, confidence_score, status, created_at, trade_outcomes(outcome, filled_at, feedback)";
 
 /**
  * One scan, several requests. The analyzer refuses more than MAX_SCAN_SYMBOLS
@@ -327,25 +358,29 @@ export async function refreshTradeOutcomes() {
  * array arrives instead, and a normalizer that only understood objects would
  * invert the same defect.
  *
- * Generic over the row, so the lifetime read below shares this one normalizer
- * rather than growing a second reader of the same embed for its narrower shape.
+ * The shape rule lives in normalizeEmbeddedOutcome, generic over the outcome, so
+ * the lifetime read shares it instead of growing a second reader of the same
+ * embed. Each read keeps the outcome shape its own select asked for — a single
+ * concrete embed type here would hand the narrower read fields it never fetched,
+ * which is the same lie in a new place.
  */
-export function normalizeEmbeddedOutcomes<
-  Row extends { trade_outcomes?: TradeOutcomeRow | TradeOutcomeRow[] | null },
->(
-  rows: Row[],
-): Array<Omit<Row, "trade_outcomes"> & { trade_outcomes?: TradeOutcomeRow[] }> {
-  return rows.map((row) => {
-    const embedded = row.trade_outcomes;
-    return {
-      ...row,
-      trade_outcomes: embedded == null
-        ? undefined
-        : Array.isArray(embedded)
-        ? embedded
-        : [embedded],
-    };
-  });
+export function normalizeEmbeddedOutcomes(
+  rows: FetchedTradeSetupRow[],
+): TradeSetupRow[] {
+  return rows.map((row) => ({
+    ...row,
+    trade_outcomes: normalizeEmbeddedOutcome(row.trade_outcomes),
+  }));
+}
+
+/** The one embed reader: object → a one-element array, array → itself, absent → absent. */
+export function normalizeEmbeddedOutcome<Outcome>(
+  embedded: Outcome | Outcome[] | null | undefined,
+): Outcome[] | undefined {
+  if (embedded == null) {
+    return undefined;
+  }
+  return Array.isArray(embedded) ? embedded : [embedded];
 }
 
 export async function fetchTradeSetups(): Promise<TradeSetupRow[]> {
@@ -450,7 +485,10 @@ export async function paginateLifetimeSetups(
     }
 
     if (pageRows.length < LIFETIME_PAGE_ROWS) {
-      return normalizeEmbeddedOutcomes(Array.from(rowsById.values()));
+      return Array.from(rowsById.values()).map((row) => ({
+        ...row,
+        trade_outcomes: normalizeEmbeddedOutcome(row.trade_outcomes),
+      }));
     }
   }
 

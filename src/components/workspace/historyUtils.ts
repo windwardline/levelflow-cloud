@@ -15,7 +15,11 @@ import {
   type SecurityType,
 } from "../../lib/symbolMap";
 import { deriveTradeState, entryHasFilled } from "../../lib/tradeState";
-import type { LifetimeSetupRow, TradeSetupRow } from "../../lib/tradeAnalyzer";
+import type {
+  LifetimeSetupRow,
+  OutcomeEvidenceRow,
+  TradeSetupRow,
+} from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import type { ScanScope } from "./ScopeMenu";
 
@@ -162,13 +166,10 @@ export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
   });
 }
 
-// Takes only the two fields normalizeSetupOutcome reads, so the lifetime
-// record's narrower row (LifetimeSetupRow) reaches the one outcome taxonomy
-// without a second copy of the predicate — the convention entryHasFilled
-// already follows.
-export function getSetupOutcome(
-  setup: Pick<TradeSetupRow, "status" | "trade_outcomes">,
-): SetupOutcome {
+// Takes only the fields normalizeSetupOutcome reads (OutcomeEvidenceRow), so the
+// lifetime record's narrower row reaches the one outcome taxonomy without a second
+// copy of the predicate — the convention entryHasFilled already follows.
+export function getSetupOutcome(setup: OutcomeEvidenceRow): SetupOutcome {
   return normalizeSetupOutcome(setup);
 }
 
@@ -305,7 +306,7 @@ export function formatSignedR(value: number | null): string {
 // take_profit/stop_loss resolution — callers must treat null as "no
 // figure yet," never as zero.
 export function extractRealizedR(
-  setup: Pick<TradeSetupRow, "trade_outcomes">,
+  setup: Pick<OutcomeEvidenceRow, "trade_outcomes">,
 ): number | null {
   const feedback = asRecord(setup.trade_outcomes?.[0]?.feedback);
   return asNumber(feedback.realizedR);
@@ -438,6 +439,15 @@ const RECORD_BAND_WEEK_DAYS = 7;
 // defines it as a period stat, and reading it off the lifetime record is what
 // makes it exact — the display window could not count a week that ran past its
 // own ceiling.
+//
+// The band's net R below stays LOOSER than Attribution's, deliberately and by
+// owner ruling (2026-08-02, conflict 3a): it sums every figure present, an open
+// runner's banked partial included, because the band is the account's running
+// pulse. attribution.ts's netRForSlice answers a different question — the settled
+// result of a slice — so it withholds unless every resolved row carried an R. Two
+// figures, two questions, and neither claims to be the other; forcing the band
+// all-or-nothing would em-dash it for any account whose older rows predate
+// realizedR, which is less fidelity, not more.
 export function buildRecordBand(
   setups: LifetimeSetupRow[],
   now: Date,

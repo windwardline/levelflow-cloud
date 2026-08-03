@@ -2052,11 +2052,13 @@ test("the record band and Attribution publish figures the ledger's page could no
     side: "buy",
     status: "filled",
     symbol: "XAUUSD",
+    // Exactly the fields LIFETIME_SELECT asks for, in PostgREST's real
+    // one-to-one shape: a stub that carried more than the query selects would
+    // stop being the wire this read actually meets.
     trade_outcomes: {
       feedback: { realizedR: 1 },
       filled_at: ancient.toISOString(),
       outcome: "take_profit",
-      reviewed_at: ancient.toISOString(),
     },
   }));
 

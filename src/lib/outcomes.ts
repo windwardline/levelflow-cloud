@@ -1,4 +1,4 @@
-import type { TradeSetupRow } from "./tradeAnalyzer";
+import type { OutcomeEvidenceRow } from "./tradeAnalyzer";
 import { entryHasFilled } from "./tradeState";
 
 export type SetupOutcome =
@@ -115,7 +115,7 @@ export const OUTCOME_COPY: Record<
   },
 };
 
-export function normalizeSetupOutcome(setup: Pick<TradeSetupRow, "status" | "trade_outcomes">): SetupOutcome {
+export function normalizeSetupOutcome(setup: OutcomeEvidenceRow): SetupOutcome {
   const outcome = setup.trade_outcomes?.[0]?.outcome;
 
   if (outcome === "take_profit") {

@@ -603,7 +603,7 @@ describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)",
       normalizeSetupOutcome({
         ...base,
         status: "generated",
-        trade_outcomes: [{ outcome: "expired", realized_pnl: null }],
+        trade_outcomes: [{ outcome: "expired" }],
       }),
       "entry_not_filled",
     );
@@ -611,12 +611,12 @@ describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)",
 
   it("never claims Unfilled for a row whose entry did fill", () => {
     for (const filled of [
-      { status: "filled", trade_outcomes: [{ outcome: "expired", realized_pnl: null }] },
-      { status: "placed", trade_outcomes: [{ outcome: "expired", realized_pnl: null }] },
+      { status: "filled", trade_outcomes: [{ outcome: "expired" }] },
+      { status: "placed", trade_outcomes: [{ outcome: "expired" }] },
       {
         status: "generated",
         trade_outcomes: [
-          { filled_at: "2026-06-16T13:00:00.000Z", outcome: "expired", realized_pnl: null },
+          { filled_at: "2026-06-16T13:00:00.000Z", outcome: "expired" },
         ],
       },
     ]) {

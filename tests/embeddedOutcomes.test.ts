@@ -306,14 +306,16 @@ describe("both directions — the schema fact the normalizer follows from", () =
       source.match(
         /export async function paginateLifetimeSetups[\s\S]*?\n}\n/,
       )?.[0] ?? "",
-      /normalizeEmbeddedOutcomes\(/,
+      /normalizeEmbeddedOutcome\(row\.trade_outcomes\)/,
     );
-    // One normalizer, not two: the generic is what lets the narrower lifetime
-    // row share it instead of growing a second reader of the same embed.
+    // One shape rule, not two. The two reads select different outcome fields, so
+    // each keeps its own row type — but object-versus-array is decided once, in
+    // normalizeEmbeddedOutcome, and that is the whole of PR #186's fix.
     assert.equal(
-      (source.match(/export function normalizeEmbeddedOutcomes/g) ?? []).length,
+      (source.match(/export function normalizeEmbeddedOutcome\b/g) ?? []).length,
       1,
     );
+    assert.equal((source.match(/Array\.isArray\(/g) ?? []).length, 1);
   });
 });
 

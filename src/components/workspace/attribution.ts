@@ -72,7 +72,7 @@ const SIDE_SLICES: Array<{ key: LifetimeSetupRow["side"]; label: string }> = [
   { key: "sell", label: "Sell" },
 ];
 
-type SliceTally = {
+export type SliceTally = {
   realizedRSum: number;
   resolved: number;
   resolvedWithRealizedR: number;
@@ -242,24 +242,30 @@ function toRow(
     label,
     learning: false,
     moneyPositivePercent: winPercent,
-    netR: netRFor(tally, resolved),
+    netR: netRForSlice(tally, resolved),
     resolved,
   };
 }
 
-// Spec §18: net R "where every resolved row in the slice recorded a realizedR,
-// the em dash otherwise" — the all-or-nothing rule, which now sits behind the
-// gate rather than beside it. A partial sum would read as the slice's result
-// while silently omitting rows, so a single missing figure withholds the whole
-// total.
-//
-// `resolved` is the count the row publishes, and the sum is withheld unless the
-// tally accounts for exactly those rows: the confidence slice counts its rows
-// twice over (buildConfidenceBands for the count, the local pass for the sum),
-// and the day those two readings of one taxonomy diverge, this withholds a total
-// rather than publishing one computed over a different set of rows than the
-// count beside it.
-function netRFor(
+/**
+ * Spec §18: net R "where every resolved row in the slice recorded a realizedR,
+ * the em dash otherwise" — the all-or-nothing rule, which now sits behind the
+ * gate rather than beside it. A partial sum would read as the slice's result while
+ * silently omitting rows, so a single missing figure withholds the whole total.
+ *
+ * `resolved` is the count the row publishes, and the sum is withheld unless the
+ * tally accounts for exactly those rows: the confidence slice counts its rows twice
+ * over (buildConfidenceBands for the count, the local pass for the sum), and the
+ * day those two readings of one taxonomy diverge, this withholds a total rather
+ * than publishing one computed over a different set of rows than the count beside
+ * it.
+ *
+ * Exported for that last clause alone. Both readings agree today by construction —
+ * identical tier bounds, identical resolved definition — so buildAttribution cannot
+ * reach the mismatch from any input, and a guard no test can exercise is a guard
+ * nobody can trust. tests/attribution.test.ts drives it directly.
+ */
+export function netRForSlice(
   tally: SliceTally | undefined,
   resolved: number,
 ): number | null {
