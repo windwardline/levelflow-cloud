@@ -134,7 +134,13 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
   });
 
   it("computes the record band and the table's day groups through the shared historyUtils functions", () => {
-    assert.match(PANEL_SOURCE, /buildRecordBand\(setups, now\)/);
+    // The band reads the LIFETIME record, the table reads the filtered display
+    // window (spec §10 as amended by §18's extension — owner 2026-08-02: "Yes.
+    // I want fidelity across the board"). Both directions: a band fed the
+    // window is the truncation the ruling closed.
+    assert.match(PANEL_SOURCE, /buildRecordBand\(lifetimeSetups, now\)/);
+    assert.doesNotMatch(PANEL_SOURCE, /buildRecordBand\(setups, now\)/);
+    assert.doesNotMatch(PANEL_SOURCE, /buildRecordBand\(filteredSetups/);
     assert.match(PANEL_SOURCE, /buildInsightsGroups\(filteredSetups\)/);
     assert.match(PANEL_SOURCE, /filterInsightsSetups\(/);
   });

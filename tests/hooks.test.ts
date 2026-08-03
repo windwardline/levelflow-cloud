@@ -60,10 +60,64 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
 
   it("reports the failure as a flag the hook returns, never a message nobody reads", () => {
     assert.match(source, /const \[loadFailed, setLoadFailed\] = useState\(false\);/);
-    assert.match(source, /return \{\s*loadFailed,/);
+    assert.match(source, /return \{\s*lifetimeSetups,\s*loadFailed,/);
     // The discarded string is gone rather than left beside its replacement.
     assert.doesNotMatch(source, /setError/);
     assert.doesNotMatch(source, /\berror,\s*\n\s*loading,/);
+  });
+
+  it("reads the display window and the lifetime record together, under one failure (spec §18)", () => {
+    // Amendment 2's data path. Two reads — plus the rail's hydration read
+    // when the lifetime record holds an active row the window missed — one
+    // refresh, one catch: a lifetime aggregate computed while the window
+    // read failed, or a rail missing its beyond-window actives, would be two
+    // accounts on one surface, and the failure word the reader sees stays
+    // the one that already exists.
+    assert.match(
+      source,
+      /const \[windowRows, lifetimeRows\] = await Promise\.all\(\[\s*fetchTradeSetups\(\),\s*fetchLifetimeSetups\(\),\s*\]\);/,
+    );
+    // Exactly one catch, so no read has a failure story of its own.
+    assert.equal((source.match(/\} catch \(/g) ?? []).length, 2);
+    const catchBlock =
+      source.match(/\} catch \(requestError\) \{[\s\S]*?\n {4}\} finally \{/)?.[0] ??
+        "";
+    assert.doesNotMatch(catchBlock, /setLifetimeSetups/);
+  });
+
+  it("hydrates exactly the actives the window missed, and only when there are any (spec §8)", () => {
+    // Classification happens here, client-side, with the rail's own predicate
+    // — the id list is the only thing the server is asked for. The length
+    // guard is the steady state's whole cost: every active inside the window
+    // means no third request at all.
+    assert.match(
+      source,
+      /const missingActiveIds = lifetimeRows\s*\n\s*\.filter\(\(row\) => isActiveSetup\(row\) && !windowIds\.has\(row\.id\)\)\s*\n\s*\.map\(\(row\) => row\.id\);/,
+    );
+    assert.match(
+      source,
+      /const hydratedActives = missingActiveIds\.length > 0\s*\n\s*\? await fetchSetupsByIds\(missingActiveIds\)\s*\n\s*: \[\];/,
+    );
+    // The rail's population: the window plus the hydrated actives — and the
+    // window alone when nothing was missing, so the common path allocates no
+    // second array.
+    assert.match(
+      source,
+      /setRailSetups\(\s*hydratedActives\.length > 0\s*\? windowRows\.concat\(hydratedActives\)\s*: windowRows,\s*\);/,
+    );
+  });
+
+  it("clears the lifetime record and the rail wherever it clears the rows — never one without the others", () => {
+    // The header must never outlive the account it describes: signed out, and
+    // signed in as somebody with no session, both empty all three sets.
+    assert.equal((source.match(/setSetups\(\[\]\);/g) ?? []).length, 2);
+    assert.equal(
+      (source.match(
+        /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);\s*setRailSetups\(\[\]\);/g,
+      ) ?? [])
+        .length,
+      2,
+    );
   });
 
   it("clears the flag at the start of every attempt, so a recovery is visible", () => {
@@ -118,7 +172,7 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     );
     assert.match(
       source,
-      /setSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+      /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);\s*setRailSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
     );
   });
 });
@@ -174,17 +228,167 @@ describe("useTradeSetups re-reads on wake (source-pinned — see header)", () =>
     // gap, and it runs either way.
     assert.match(
       source,
-      /const readAfterGap = useCallback\(\(\) => \{\s*refreshSetups\(\{ refreshOutcomes: true, silent: true \}\);\s*\}, \[refreshSetups\]\);/,
+      /refreshSetups\(\{ refreshOutcomes: true, silent: true \}\);\s*\}, WAKE_READ_COALESCE_MS\);/,
     );
     // One reader, two callers — the force path stays App.tsx's, spec §8.
     assert.equal((source.match(/readAfterGap\(\)/g) ?? []).length, 2);
     assert.doesNotMatch(source, /forceOutcomeRefresh: true/);
   });
 
+  it("takes one read per wake, and stands down when another read already covered it", () => {
+    // The pair this closes, measured rather than supposed: production telemetry
+    // for 2026-08-03 shows the wake read and §8's surface-show force refresh
+    // landing within the same second of each other, in pairs, on one wake. The
+    // chain is the returning tab's own: GoTrue refreshes the token, useAuthSession
+    // hands App a new session object, App's tab-activation effect re-fires with
+    // forceOutcomeRefresh — a full second read of trade_setups plus an outcome
+    // refresh for a reader who changed nothing.
+    //
+    // The wake reader is the half that yields, because it is the lesser read: it
+    // takes the table only, while §8's takes the table and the outcomes. So the
+    // wake read waits a beat and then asks whether anything read in the meantime.
+    assert.match(source, /const WAKE_READ_COALESCE_MS = 300;/);
+    assert.match(
+      source,
+      /if \(pendingWakeRead\.current !== null\) \{\s*return;\s*\}/,
+    );
+    assert.match(
+      source,
+      /pendingWakeRead\.current = window\.setTimeout\(\(\) => \{\s*pendingWakeRead\.current = null;/,
+    );
+    assert.match(
+      source,
+      /if \(lastReadStartedAt\.current >= wokeAt\) \{\s*return;\s*\}/,
+    );
+    // Every read stamps the clock the wake reader consults, at the START of the
+    // read rather than its end: a read in flight already covers this instant.
+    const stamp = source.indexOf("lastReadStartedAt.current = Date.now();");
+    const silentGate = source.indexOf("if (!options?.silent) {");
+    assert.ok(stamp > -1, "expected the read clock");
+    assert.ok(
+      silentGate > stamp,
+      "the read must stamp the clock before it starts working",
+    );
+    assert.equal(
+      (source.match(/lastReadStartedAt\.current = Date\.now\(\);/g) ?? []).length,
+      1,
+      "one stamp, on the one path every read takes",
+    );
+    // A wake read still waiting when the hook goes away is a read for nobody.
+    assert.match(source, /window\.clearTimeout\(pendingWakeRead\.current\);/);
+  });
+
+  it("leaves §8's force refresh exactly where it was, on all three of its call sites", () => {
+    // The dedup is the wake reader's alone. §8 spends the provider-heavy refresh
+    // deliberately, on a surface the reader just opened (App.tsx's two activation
+    // effects) and on the rail's own manual control — none of which this wave may
+    // quietly throttle.
+    const app = readFileSync("src/App.tsx", "utf8");
+    assert.equal(
+      (app.match(/refreshSetups\(\{ forceOutcomeRefresh: true \}\)/g) ?? []).length,
+      3,
+    );
+  });
+
   it("leaves the two postgres_changes handlers exactly as they were", () => {
     const handlers = source.match(/refreshSetups\(\{ silent: true \}\);/g) ?? [];
     assert.equal(handlers.length, 2);
     assert.equal((source.match(/"postgres_changes"/g) ?? []).length, 2);
+  });
+});
+
+// The deploy gap, and the incident that named it (2026-08-03). A reader's
+// overnight tab was running the pre-#174 bundle and sent the retired all-markets
+// scan request all morning; the server refuses that request by design, and the
+// old client's catch turns the refusal into "Market scan could not complete. Try
+// again shortly." — a dead end no retry leaves. The tab had no way to learn that
+// a deploy had happened under it. This hook is that way: what it compares and why
+// is src/lib/deployedVersion.ts's docblock, and the parse of both sides is real
+// tested behavior in tests/deployedVersion.test.ts. What is pinned here is the
+// hook's own shape, which no harness in this repo can drive.
+describe("useDeployedVersion checks twice and never loops (source-pinned — see header)", () => {
+  const source = readFileSync("src/hooks/useDeployedVersion.ts", "utf8");
+
+  it("checks on mount and on the became-visible wake, and nowhere else", () => {
+    // The two moments a tab can have been left behind: the shell arriving, and a
+    // tab coming back. Guarded to the transition IN, exactly as useTradeSetups'
+    // listener is — 'hidden' fires the same event, and a tab on its way out has
+    // nothing to be told.
+    //
+    // Two calls, counted, and the first one placed ahead of the wake handler that
+    // holds the second. A bare match for `void check()` was satisfied by the wake
+    // path's own call, so deleting the mount check left this suite green — proved by
+    // mutation in the merge-gate review, which is why the count and the position are
+    // both pinned, and why the position is measured against `const onVisible`
+    // rather than against the listener line: the handler is declared first, so an
+    // indentation-based or listener-based check would have kept passing too.
+    assert.equal((source.match(/void check\(\);/g) ?? []).length, 2);
+    const firstCall = source.indexOf("void check();");
+    const wakeHandler = source.indexOf("const onVisible = ");
+    assert.ok(firstCall > -1, "expected the mount check");
+    assert.ok(
+      wakeHandler > firstCall,
+      "the mount check must come before the wake handler that holds the other call",
+    );
+    assert.match(
+      source,
+      /document\.addEventListener\("visibilitychange", onVisible\)/,
+    );
+    assert.match(
+      source,
+      /if \(document\.visibilityState === "visible"\) \{\s*void check\(\);/,
+    );
+    // No interval, no polling: the whole point is two fetches, not a heartbeat.
+    assert.doesNotMatch(source, /setInterval|setTimeout/);
+  });
+
+  it("never fetches twice over, and stops for good once a deploy is found", () => {
+    // Two refs, two failure modes. `checking` is the fetch in flight — a wake
+    // during a slow read must not start a second one. `answered` is the mismatch
+    // already found: the notice stands until the reader reloads, so every later
+    // check could only confirm what is already on screen.
+    assert.match(source, /const checking = useRef\(false\);/);
+    assert.match(source, /const answered = useRef\(false\);/);
+    assert.match(
+      source,
+      /if \(answered\.current \|\| checking\.current\) \{\s*return;\s*\}/,
+    );
+    assert.match(source, /answered\.current = true;\s*setDeployMoved\(true\);/);
+    // And the in-flight flag is dropped with the effect that raised it. Without
+    // this, React's dev StrictMode remount hands the second run a flag the first
+    // run set — whose fetch is already cancelled — so the mount check is swallowed
+    // and nothing is checked until a wake. `answered` deliberately does NOT reset:
+    // it is the sticky answer, and a remount must not re-open a settled question.
+    assert.match(source, /cancelled = true;[\s\S]{0,700}checking\.current = false;/);
+    assert.equal((source.match(/answered\.current = false/g) ?? []).length, 0);
+  });
+
+  it("says nothing when the read says nothing", () => {
+    // bundleChanged is the whole decision, and it answers false for an unknown on
+    // either side (dev, or a failed read). There is no other path to the notice —
+    // no truthy-response shortcut, no default-to-stale.
+    assert.match(
+      source,
+      /if \(cancelled \|\| !bundleChanged\(runningBundleId\(\), deployed\)\) \{\s*return;\s*\}/,
+    );
+    // One setter call, on the far side of that one gate: no truthy-response
+    // shortcut, no default-to-stale, no second path to the notice.
+    assert.equal((source.match(/setDeployMoved\(/g) ?? []).length, 1);
+  });
+
+  it("is gated on the shell it belongs to, and unsubscribes", () => {
+    // The adjudication: authed-shell only. A signed-out tab fetches nothing here,
+    // because the sign-in screen is short-lived and a stale one still signs in.
+    assert.match(
+      source,
+      /export function useDeployedVersion\(enabled: boolean\)/,
+    );
+    assert.match(source, /if \(!enabled \|\| typeof document === "undefined"\) \{\s*return;\s*\}/);
+    assert.match(source, /\}, \[enabled\]\);/);
+    assert.match(
+      source,
+      /document\.removeEventListener\("visibilitychange", onVisible\);/,
+    );
   });
 });
 
@@ -295,11 +499,27 @@ describe("App and the trades rail pass only what the surface owns", () => {
   );
 
   it("builds the Trades badge's clock once per setups change, not once per render (Q2-M7)", () => {
+    // railSetups, not setups: the badge counts the rail's own population —
+    // the window plus any active rows hydrated from beyond it — so the two
+    // can never disagree about how many trades are live (spec §3/§8).
     assert.match(
       app,
-      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.setups, new Date\(\)\),\s*\n?\s*\[setupState\.setups\],\s*\n?\s*\);/,
+      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.railSetups, new Date\(\)\),\s*\n?\s*\[setupState\.railSetups\],\s*\n?\s*\);/,
     );
     assert.match(app, /tradeBadgeCount=\{tradeBadgeCount\}/);
+  });
+
+  it("feeds the Desk's rails the rail population and Insights the ledger window", () => {
+    // Two consumers, two reads, deliberately (spec §8 vs §18): the rail must
+    // never lose an active trade to the 80-row display window, while the
+    // ledger IS that display window — reopening a row restores the stage from
+    // its stored analysis, which only full window rows carry.
+    const advisorCall = app.match(/<AdvisorWorkspace\n[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(advisorCall.length > 0, "expected the AdvisorWorkspace call site");
+    assert.match(advisorCall, /setups=\{setupState\.railSetups\}/);
+    const historyCall = app.match(/<HistoryPanel\n[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(historyCall.length > 0, "expected the HistoryPanel call site");
+    assert.match(historyCall, /setups=\{setupState\.setups\}/);
   });
 
   it("never hands the ≥lg rail a mobile sub-view state (Q1-#31)", () => {

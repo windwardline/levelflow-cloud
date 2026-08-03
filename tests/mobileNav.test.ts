@@ -1601,11 +1601,14 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
       /className="absolute -right-2 -top-1\.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-caution px-1 font-mono text-\[10px\] font-bold leading-none tracking-normal text-paper"/,
     );
     // The count is unchanged: currentTradeBadgeCount, the same pending/open
-    // filter the Trades tab itself renders. No "needs action" semantic is
-    // invented — the mock's caution fill is a color, not a new claim.
+    // filter the Trades tab itself renders — over railSetups, the rail's own
+    // population (the window plus hydrated beyond-window actives, spec §8),
+    // so the badge and the tab count the same trades. No "needs action"
+    // semantic is invented — the mock's caution fill is a color, not a new
+    // claim.
     assert.match(
       APP_SOURCE,
-      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.setups, new Date\(\)\),/,
+      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.railSetups, new Date\(\)\),/,
     );
     assert.match(APP_SOURCE, /tradeBadgeCount=\{tradeBadgeCount\}/);
     assert.match(APP_SOURCE, /item\.value === "trades" && tradeBadgeCount > 0/);

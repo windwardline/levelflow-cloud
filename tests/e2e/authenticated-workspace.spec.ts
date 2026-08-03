@@ -10,6 +10,7 @@ import { filterSymbolsByAvailability } from "../../src/components/workspace/mark
 import { SIZE_STATE_WORDS } from "../../src/lib/broker/types";
 import { marketAvailability } from "../../src/lib/marketHours";
 import { chunkScanSymbols } from "../../src/lib/scanBatching";
+import { LEDGER_WINDOW_ROWS } from "../../src/lib/tradeAnalyzer";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
@@ -605,6 +606,24 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   await expect(
     costRatings.getByRole("heading", { name: "Costs", exact: true }),
   ).toBeVisible();
+});
+
+test("a Contents click stays on the Guide, and Back stays there too (§17o fragment claiming)", async ({ page }) => {
+  // The §17o review's F1: a fragment navigation fires popstate with a null
+  // state, exactly like a traversal. Before the fold, clicking the Guide's own
+  // Contents rail ejected the reader to the Desk on the spot, and Back walked
+  // dead entries afterwards. Source pins hold the claiming semantics; this is
+  // the one guard that exercises the defect the way it was found — in a
+  // browser, on the rail the Guide itself renders at >=lg.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Guide", exact: true }).click();
+  const toc = page.getByRole("navigation", { name: "Guide sections" });
+  await expect(toc).toBeVisible();
+  await toc.getByRole("link").nth(2).click();
+  await expect(toc).toBeVisible(); // still the Guide, not the Desk
+  await page.goBack();
+  await expect(toc).toBeVisible(); // Back stays on the Guide (claimed entry)
 });
 
 test("a receipt How this works link lands on the Guide's record section", async ({ page }) => {
@@ -2010,6 +2029,89 @@ test("Insights renders the setup ledger table, and no below-table blurb", async 
   }
 });
 
+// Spec §18 (amendment 2, owner 2026-08-02: "Can we let it involve the engine? If
+// so, do it. I want accuracy."): the record band and Attribution read the
+// LIFETIME record, and the presence checks above cannot tell a lifetime aggregate
+// from one computed over the page — both render four groups. This one asserts
+// VALUES the loaded page could not have produced: a single slice holding more
+// resolved rows than the ledger's whole display window, every one of them older
+// than the widest Period filter.
+//
+// The lifetime read is stubbed and the ledger's own read is not, which is what
+// makes the two sources distinguishable on screen. The stub also arrives in
+// PostgREST's real one-to-one shape — trade_outcomes as an OBJECT — so a lifetime
+// read that skipped the shared normalizer (PR #186) would render these rows as
+// unresolved and fail here rather than in production.
+test("the record band and Attribution publish figures the ledger's page could not hold", async ({ page }) => {
+  const RESOLVED_ROWS = LEDGER_WINDOW_ROWS + 4;
+  const ancient = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000);
+  const lifetimeRows = Array.from({ length: RESOLVED_ROWS }, (_, index) => ({
+    confidence_score: 90,
+    created_at: new Date(ancient.getTime() + index * 1000).toISOString(),
+    id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    side: "buy",
+    status: "filled",
+    symbol: "XAUUSD",
+    // Exactly the fields LIFETIME_SELECT asks for, in PostgREST's real
+    // one-to-one shape: a stub that carried more than the query selects would
+    // stop being the wire this read actually meets.
+    trade_outcomes: {
+      feedback: { realizedR: 1 },
+      filled_at: ancient.toISOString(),
+      outcome: "take_profit",
+    },
+  }));
+
+  await page.route("**/rest/v1/trade_setups*", (route) => {
+    // The ledger's read is the one that carries the analysis payload for the
+    // Advisor handoff; the lifetime read selects none of it. That is the whole
+    // difference between the two requests, and it is the discriminator here.
+    if (route.request().url().includes("confluence")) {
+      return route.continue();
+    }
+    return route.fulfill({
+      body: JSON.stringify(lifetimeRows),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Insights", exact: true }),
+  ).toBeVisible();
+
+  // The record band's three lifetime figures (§10 as amended). "Setups this
+  // week" stays the period stat it says it is, and every stubbed row is 200 days
+  // old — so a band still reading the ledger's rows would print a nonzero count
+  // here beside a live account's own week.
+  const bandValue = (label: string) =>
+    page.getByText(label, { exact: true }).locator("..").locator("p").first();
+  await expect(bandValue("Money-positive")).toHaveText("100%");
+  await expect(bandValue("Net R")).toHaveText(`+${RESOLVED_ROWS}.0R`);
+  await expect(bandValue("Best market")).toHaveText("XAUUSD");
+  await expect(bandValue("Setups this week")).toHaveText("0");
+
+  // Attribution's own slices, read off the row's three figure cells: resolved
+  // count, money-positive rate, net R.
+  const attribution = page.getByTestId("attribution");
+  for (const label of ["Metals", "Best"]) {
+    const figures = attribution.getByText(label, { exact: true }).locator("..")
+      .locator("span > span");
+    await expect(figures.nth(0)).toHaveText(String(RESOLVED_ROWS));
+    await expect(figures.nth(1)).toHaveText("100%");
+    await expect(figures.nth(2)).toHaveText(`+${RESOLVED_ROWS}.0R`);
+  }
+
+  // One slice holding LEDGER_WINDOW_ROWS + 4 resolved rows is the assertion the
+  // page cannot satisfy: the ledger's own read stops at the window, and it is
+  // still reading it — the table below renders from its own unstubbed request.
+  await expect(
+    page.getByRole("columnheader", { name: "Result", exact: true }),
+  ).toBeVisible();
+});
+
 test("a qualifying market scan persists into Insights, not just onto the scan rail", async ({ page }) => {
   // Spec §9 / §17m.2: every generated setup is persisted, scan path included —
   // and since §17m the Scan column is the ONLY door, so this is the one spec
@@ -2420,5 +2522,81 @@ for (const width of [375, 1280]) {
     // leftover program out of visual-proof, which runs after this project and
     // before the cleanup teardown that resets the selection.
     await resetProgramToNone(page, width);
+  });
+}
+
+// The reload notice, from the only direction a browser test can honestly take it:
+// it must never appear when nothing has been deployed under the tab.
+//
+// The positive case is out of reach here, and deliberately so. The notice fires on
+// a mismatch between the bundle this tab is running (import.meta.url in the entry
+// module) and the bundle the origin's "/" now names — and this project runs against
+// the dev server, whose entry is `/src/main.tsx`, so neither side is a built bundle
+// and the comparison is unknown against unknown, which never fires (that rule is
+// real tested behaviour in tests/deployedVersion.test.ts). Fulfilling the
+// detector's own fetch with invented HTML would prove the mock, not the deploy. So
+// the parse and the compare are unit-tested, the hook's shape is source-pinned
+// (tests/hooks.test.ts), and what a browser proves is the half that protects the
+// reader: at both widths, in normal operation, the sentence is nowhere.
+for (const width of [375, 1280]) {
+  test(`the reload notice never fires when the tab is current (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ height: width < 1024 ? 812 : 800, width });
+
+    // Every version check, counted as its RESPONSE lands, so each assertion below
+    // sits behind a check that actually answered rather than in a race with one. A
+    // fetch of "/" is a check; the document navigation is not (resourceType
+    // "document"), which is what tells the two apart.
+    const checks: number[] = [];
+    page.on("response", (response) => {
+      if (
+        response.request().resourceType() === "fetch" &&
+        new URL(response.url()).pathname === "/"
+      ) {
+        checks.push(response.status());
+      }
+    });
+
+    await page.goto("/");
+
+    // The masthead is up, so the notice's own row would be up with it.
+    await expect(
+      page.getByTestId(width < 1024 ? "mobile-header" : "desktop-header"),
+    ).toBeVisible();
+
+    async function wake() {
+      await page.evaluate(() => {
+        const show = (state: string) => {
+          Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            get: () => state,
+          });
+          document.dispatchEvent(new Event("visibilitychange"));
+        };
+        show("hidden");
+        show("visible");
+      });
+    }
+
+    // One on mount, then one per wake — and the third is what makes the second
+    // provably finished rather than merely started. The hook holds an in-flight
+    // flag that only its own `finally` clears, and that `finally` runs after the
+    // comparison and any state it sets, so a third request cannot exist unless the
+    // second check had already compared and declined to raise anything. No
+    // arbitrary settle: the causality is the wait.
+    await expect.poll(() => checks.length).toBe(1);
+    await wake();
+    await expect.poll(() => checks.length).toBe(2);
+    await wake();
+    await expect.poll(() => checks.length).toBe(3);
+    expect(checks).toEqual([200, 200, 200]);
+
+    await expect(
+      page.getByText("Levelflow has updated. Reload to continue."),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", {
+        name: "Levelflow has updated. Reload to continue.",
+      }),
+    ).toHaveCount(0);
   });
 }

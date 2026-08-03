@@ -1,3 +1,4 @@
+import { runningBundleId } from "./deployedVersion";
 import {
   chunkScanSymbols,
   mapWithConcurrency,
@@ -156,6 +157,64 @@ export type FetchedTradeSetupRow = Omit<TradeSetupRow, "trade_outcomes"> & {
   trade_outcomes?: TradeOutcomeRow | TradeOutcomeRow[] | null;
 };
 
+/**
+ * The outcome fields the lifetime read fetches — exactly LIFETIME_SELECT's embed,
+ * and exactly what the two aggregates read of it: `outcome` and `filled_at` for
+ * resolution (normalizeSetupOutcome, entryHasFilled), `feedback` for realizedR.
+ *
+ * Narrowed rather than borrowed whole, because a row type that promises fields
+ * the query never asks for is the PR #186 shape-lie one step removed: the cast at
+ * the fetch seam would assert `realized_pnl` onto a row that never carries it, and
+ * the next reader to reach for a P&L figure would get `Number(undefined)` with the
+ * compiler agreeing. The type says what the wire says.
+ */
+export type LifetimeOutcomeRow = Pick<
+  TradeOutcomeRow,
+  "feedback" | "filled_at" | "outcome"
+>;
+
+/**
+ * The minimum any reader needs to say whether a setup resolved, how, and at what
+ * R — `status` plus the three outcome fields above. Both row types satisfy it
+ * (TradeOutcomeRow carries strictly more than LifetimeOutcomeRow), which is what
+ * lets normalizeSetupOutcome, entryHasFilled, getSetupOutcome and extractRealizedR
+ * stay ONE implementation each across the ledger's read and the lifetime read
+ * instead of a second copy of the taxonomy per row shape.
+ */
+export type OutcomeEvidenceRow = {
+  status: string;
+  trade_outcomes?: LifetimeOutcomeRow[];
+};
+
+/**
+ * One row of the LIFETIME record — every field the two lifetime aggregates read
+ * (buildRecordBand and buildAttribution), plus `id`, which the walk below uses
+ * as its own dedupe key. Nothing else.
+ *
+ * Spec §18 (amendment 2, owner 2026-08-02: "Can we let it involve the engine?
+ * If so, do it. I want accuracy."): the record band's three figures and every
+ * Attribution slice are computed over the complete history, not the page the
+ * ledger happens to have loaded. The ledger's own read stays what it always was
+ * — LEDGER_WINDOW_ROWS of full rows, because reopening one in the Advisor
+ * restores it from its stored analysis — and this narrower shape is what makes a
+ * lifetime read affordable beside it: measured 2026-08-03, `confluence` and
+ * `risk_model` are ~5.6KB of the ~5.9KB a full row weighs, and the aggregates
+ * read neither.
+ */
+export type LifetimeSetupRow = Pick<
+  TradeSetupRow,
+  "confidence_score" | "created_at" | "id" | "side" | "status" | "symbol"
+> & {
+  // Always an array by the time any reader sees it, and at most one element long
+  // — normalizeEmbeddedOutcome is what makes that true of the wire shape.
+  trade_outcomes?: LifetimeOutcomeRow[];
+};
+
+/** One lifetime row before its embed is normalized (see FetchedTradeSetupRow). */
+export type FetchedLifetimeSetupRow = Omit<LifetimeSetupRow, "trade_outcomes"> & {
+  trade_outcomes?: LifetimeOutcomeRow | LifetimeOutcomeRow[] | null;
+};
+
 // One budget for the whole scan, not one per request. The fan-out below sends
 // several requests where there used to be one, and the reader is still waiting
 // on a single scan — so the chunks share the 60s the single request had, and a
@@ -163,6 +222,41 @@ export type FetchedTradeSetupRow = Omit<TradeSetupRow, "trade_outcomes"> & {
 const MARKET_SCAN_TIMEOUT_MS = 60_000;
 const OUTCOME_REFRESH_TIMEOUT_MS = 15_000;
 const HISTORY_TIMEOUT_MS = 12_000;
+
+/**
+ * The ledger's display window (spec §18: "The ledger's 80-row read is a display
+ * window; Attribution is not inside it"). Unchanged in size and now named, so
+ * that nothing reads it as the account's record again.
+ */
+export const LEDGER_WINDOW_ROWS = 80;
+
+/**
+ * The lifetime walk's page size, and the number of pages past which it refuses
+ * to keep walking.
+ *
+ * 500 sits well inside PostgREST's own 1,000-row response ceiling, so a page is
+ * never silently clipped by the server. 40 pages is 20,000 rows: far past any
+ * real account today (measured 2026-08-03: 23 rows on the largest, one full page
+ * covers every account forty times over) and low enough that a runaway walk
+ * fails loudly instead of paging forever. Exported so the guard reads the same
+ * numbers the code does.
+ */
+export const LIFETIME_PAGE_ROWS = 500;
+export const LIFETIME_MAX_PAGES = 40;
+
+// Every field here has a reader: the five setup columns the aggregates slice and
+// gate on, `id` for the walk's dedupe, and the three outcome fields resolution and
+// realizedR need. `reviewed_at` is deliberately absent — nothing in src reads it,
+// and a selected column with no reader is a payload with no purpose.
+const LIFETIME_SELECT =
+  "id, symbol, side, confidence_score, status, created_at, trade_outcomes(outcome, filled_at, feedback)";
+
+// One literal, two readers: the ledger's window read and the rail's
+// by-id hydration read below must return identically-shaped rows — a
+// hydrated card restores the Advisor stage exactly as a window card does,
+// which is the point of hydrating at full width at all.
+const LEDGER_SELECT =
+  "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, origin, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)";
 
 /**
  * One scan, several requests. The analyzer refuses more than MAX_SCAN_SYMBOLS
@@ -209,6 +303,20 @@ export async function scanMarketOpportunities(symbols: SupportedSymbol[]) {
         client.functions.invoke<MarketScanResponse>("trade-analyzer", {
           body: {
             action: "scan_opportunities",
+            // Which bundle is asking. On 2026-08-03 a tab running the pre-#174
+            // bundle sent the retired all-markets form all morning: the server
+            // refused each attempt before writing any telemetry, so the fleet's
+            // own record showed nothing at all while the reader watched a scan
+            // fail. The stamp puts the sender's identity on the requests that DO
+            // write a record — and gives the next breaking change a way to see
+            // how much of the fleet is still behind. Passthrough exactly like
+            // scanId: the server validates the shape and echoes it, and nothing
+            // anywhere branches on it.
+            //
+            // Absent rather than faked where there is no built bundle to name
+            // (the dev server's entry is `/src/main.tsx`), the same choice scanId
+            // makes where crypto.randomUUID is missing.
+            buildStamp: runningBundleId() ?? undefined,
             chunkCount: chunks.length,
             chunkIndex,
             scanId,
@@ -243,6 +351,10 @@ export async function refreshTradeOutcomes() {
     supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
       body: {
         action: "refresh_outcomes",
+        // The scan path's stamp, on the app's other analyzer request: a reader who
+        // never scans is still a tab in the fleet, and this is the request every
+        // surface show sends (spec §8).
+        buildStamp: runningBundleId() ?? undefined,
       },
     }),
     OUTCOME_REFRESH_TIMEOUT_MS,
@@ -271,35 +383,42 @@ export async function refreshTradeOutcomes() {
  * follows from the unique constraint, so the day that constraint changes the
  * array arrives instead, and a normalizer that only understood objects would
  * invert the same defect.
+ *
+ * The shape rule lives in normalizeEmbeddedOutcome, generic over the outcome, so
+ * the lifetime read shares it instead of growing a second reader of the same
+ * embed. Each read keeps the outcome shape its own select asked for — a single
+ * concrete embed type here would hand the narrower read fields it never fetched,
+ * which is the same lie in a new place.
  */
 export function normalizeEmbeddedOutcomes(
   rows: FetchedTradeSetupRow[],
 ): TradeSetupRow[] {
-  return rows.map((row) => {
-    const embedded = row.trade_outcomes;
-    return {
-      ...row,
-      trade_outcomes: embedded == null
-        ? undefined
-        : Array.isArray(embedded)
-        ? embedded
-        : [embedded],
-    };
-  });
+  return rows.map((row) => ({
+    ...row,
+    trade_outcomes: normalizeEmbeddedOutcome(row.trade_outcomes),
+  }));
 }
 
-export async function fetchTradeSetups() {
+/** The one embed reader: object → a one-element array, array → itself, absent → absent. */
+export function normalizeEmbeddedOutcome<Outcome>(
+  embedded: Outcome | Outcome[] | null | undefined,
+): Outcome[] | undefined {
+  if (embedded == null) {
+    return undefined;
+  }
+  return Array.isArray(embedded) ? embedded : [embedded];
+}
+
+export async function fetchTradeSetups(): Promise<TradeSetupRow[]> {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
   const query = supabase
     .from("trade_setups")
-    .select(
-      "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, origin, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
-    )
+    .select(LEDGER_SELECT)
     .order("created_at", { ascending: false })
-    .limit(80);
+    .limit(LEDGER_WINDOW_ROWS);
 
   const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
 
@@ -310,6 +429,139 @@ export async function fetchTradeSetups() {
   return normalizeEmbeddedOutcomes(
     (data ?? []) as unknown as FetchedTradeSetupRow[],
   );
+}
+
+/**
+ * Full window-shaped rows for specific setups, by id — the hydration read
+ * behind the trades rail's population (spec §8). An account can push a
+ * still-live trade past the display window with newer resolved rows;
+ * useTradeSetups classifies the lifetime record's rows with the rail's own
+ * predicate (isActiveSetup) and hands the ids here, so the server is only
+ * ever ADDRESSED, never asked what "active" means — §18's one-classifier
+ * rule holds for this read exactly as it does for the lifetime walk.
+ *
+ * Empty in, empty out, without a request: in the steady state every active
+ * row is inside the window and this read costs nothing. The short-circuit
+ * sits ahead of the client check on purpose — an empty answer needs no
+ * client to be correct.
+ */
+export async function fetchSetupsByIds(
+  ids: readonly string[],
+): Promise<TradeSetupRow[]> {
+  if (ids.length === 0) {
+    return [];
+  }
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const query = supabase
+    .from("trade_setups")
+    .select(LEDGER_SELECT)
+    .in("id", [...ids]);
+
+  const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeEmbeddedOutcomes(
+    (data ?? []) as unknown as FetchedTradeSetupRow[],
+  );
+}
+
+/**
+ * The lifetime record: every one of the caller's resolved-and-unresolved rows,
+ * newest first, for the two aggregates that read the complete history (spec §18
+ * and §10's record band).
+ *
+ * Row scoping is RLS's, exactly as the ledger's read has always relied on it —
+ * `trade_setups select own` and `trade_outcomes select own` (supabase/init.sql)
+ * — so there is no user filter to get wrong here.
+ *
+ * Nothing about resolution is asked of the server. `normalizeSetupOutcome` and
+ * `classifyWinLoss` (lib/outcomes.ts) stay the only definitions of what a
+ * resolved row and a money-positive one are, and §18 states plainly why: "A
+ * second definition of a win is not an implementation detail — it is a second
+ * product." A `where outcome in (...)` here would be exactly that second
+ * definition, since resolution also depends on `status` and on whether the entry
+ * ever filled. The server pages rows; the client classifies them.
+ *
+ * One timeout budget for the whole walk rather than one per page, the same
+ * reasoning the market scan's shared deadline carries: the reader is waiting on
+ * one surface, so a walk that cannot finish inside the ledger's own budget fails
+ * inside it.
+ */
+export async function fetchLifetimeSetups(): Promise<LifetimeSetupRow[]> {
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+  const client = supabase;
+  const deadline = Date.now() + HISTORY_TIMEOUT_MS;
+
+  return paginateLifetimeSetups(async (from, to) => {
+    const { data, error } = await withTimeout(
+      client
+        .from("trade_setups")
+        .select(LIFETIME_SELECT)
+        // A total order, so an offset page continues where the previous one
+        // stopped: `created_at` alone is not unique (rows written inside one
+        // transaction share it to the microsecond), and equal sort keys leave
+        // the boundary between two pages up to the planner.
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+      deadline - Date.now(),
+      "History timed out.",
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as unknown as FetchedLifetimeSetupRow[];
+  });
+}
+
+/**
+ * The walk itself, over any page reader — which is what makes its two honest
+ * defences testable: a row that shifts across a page boundary is counted once,
+ * and a walk that never reaches a short page fails instead of returning a
+ * fraction of a lifetime.
+ *
+ * Keyed by id rather than concatenated: offset pages describe a moving table, so
+ * a setup inserted while the walk is in flight pushes every row down one place
+ * and the last row of page k arrives again as the first row of page k+1. Counted
+ * twice it would inflate every figure it touches.
+ */
+export async function paginateLifetimeSetups(
+  readPage: (from: number, to: number) => Promise<FetchedLifetimeSetupRow[]>,
+): Promise<LifetimeSetupRow[]> {
+  const rowsById = new Map<string, FetchedLifetimeSetupRow>();
+
+  for (let page = 0; page < LIFETIME_MAX_PAGES; page += 1) {
+    const from = page * LIFETIME_PAGE_ROWS;
+    const pageRows = await readPage(from, from + LIFETIME_PAGE_ROWS - 1);
+
+    for (const row of pageRows) {
+      rowsById.set(row.id, row);
+    }
+
+    if (pageRows.length < LIFETIME_PAGE_ROWS) {
+      return Array.from(rowsById.values()).map((row) => ({
+        ...row,
+        trade_outcomes: normalizeEmbeddedOutcome(row.trade_outcomes),
+      }));
+    }
+  }
+
+  // Never a truncated set presented as a lifetime: the aggregates above this
+  // read publish figures about the whole account, so a walk that cannot see the
+  // whole account has to fail the way any other failed read fails (the hook's
+  // loadFailed flag, the surface's existing line). The fix at that size is the
+  // server-side aggregate §18 authorizes, not a bigger ceiling here.
+  throw new Error("History is larger than this read can walk.");
 }
 
 function withTimeout<T>(request: PromiseLike<T>, timeoutMs: number, message: string) {

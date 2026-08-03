@@ -60,6 +60,7 @@ import {
 } from "./components/workspace/WorkspaceNav";
 import { DonatePanel } from "./components/donations/DonatePanel";
 import { useAuthSession } from "./hooks/useAuthSession";
+import { useDeployedVersion } from "./hooks/useDeployedVersion";
 import { useIsMobileViewport } from "./hooks/useMobileViewport";
 import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
@@ -162,6 +163,12 @@ export default function App() {
   // sit between the two, and a hook after an early return is a hook that runs
   // in a different order on different renders.
   const isMobileViewport = useIsMobileViewport();
+  // Whether a deploy has landed under this tab — the 2026-08-03 incident's fix,
+  // whose mechanism and evidence live in src/lib/deployedVersion.ts. Gated on the
+  // session because the notice is the authed shell's: the sign-in screen is
+  // short-lived and a stale one still signs in, so a signed-out tab checks
+  // nothing. Same reason as isMobileViewport for sitting up here.
+  const deployMoved = useDeployedVersion(Boolean(session));
   const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
   // A stored setup another surface asked the Desk to reopen (the Insights ledger's
@@ -353,9 +360,12 @@ export default function App() {
   // the old per-render Date was only harmless by accident — the moment a real
   // per-setup clock lands there, a value rebuilt on every render is a badge that
   // can change for reasons unrelated to the trades it counts.
+  // railSetups, not setups: the badge counts the rail's own population — the
+  // window plus any active rows hydrated from beyond it (spec §8) — so the
+  // badge and the Trades tab can never disagree about how many are live.
   const tradeBadgeCount = useMemo(
-    () => currentTradeBadgeCount(setupState.setups, new Date()),
-    [setupState.setups],
+    () => currentTradeBadgeCount(setupState.railSetups, new Date()),
+    [setupState.railSetups],
   );
   const profileState = useUserProfile(
     session?.user.id ?? null,
@@ -613,6 +623,16 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            {/* The reload notice, in the masthead rather than in the content
+                region: it belongs to the app rather than to whichever surface is
+                showing, and the masthead is the one row §17i and §17g both pin on
+                every surface — a notice in a scroll region can be scrolled away
+                from the reader who needs it. It costs the content row its own
+                height while it is up, which is the trade a tab in this state
+                should be making: the reader's next useful action is the reload.
+                Absent otherwise, so nothing in normal operation moves. */}
+            {deployMoved ? <ReloadNotice /> : null}
           </div>
         </header>
 
@@ -687,11 +707,12 @@ export default function App() {
               onSetupsChanged={() => setupState.refreshSetups({ silent: true })}
               openRequest={advisorRequest}
               profile={profile}
-              setups={setupState.setups}
+              setups={setupState.railSetups}
             />
           ) : null}
           {activeTab === "history" ? (
             <HistoryPanel
+              lifetimeSetups={setupState.lifetimeSetups}
               loadFailed={setupState.loadFailed}
               loading={setupState.loading}
               setups={setupState.setups}
@@ -778,6 +799,33 @@ function mainShellClassName(isMobileViewport: boolean): string {
     return "grid h-[100dvh] grid-rows-[auto_1fr] overflow-hidden bg-paper text-ink";
   }
   return "grid h-[100dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-paper text-ink";
+}
+
+// One sentence, and the sentence is the control (§17f, owner-approved
+// 2026-08-03). It says the two things the surface cannot show — that this tab is
+// running a bundle the origin has replaced, and what to do about it — and nothing
+// else: no duration, no explanation of what changed, no second line telling the
+// reader where to tap. The whole line is the button, because a notice the reader
+// must act on and the control they act with are one object here.
+//
+// The presentation is the Scan button's (the owner's pick, 2026-08-03 — mockup A
+// of docs/design/mockups/deploy-notice-v1.html, recorded as a §17c ruling): the
+// kit's .primary-button in the Scan control's own size, a solid fill and not a
+// bordered box, ALL CAPS by CSS transform — the §20j-pinned sentence is
+// untouched — radiating through .phosphor-pulse, the app's one sanctioned glow
+// (styles/index.css; held static under prefers-reduced-motion). Full measure
+// below lg, content-width beside the nav at ≥lg; §17n's 44px floor is the
+// kit's own.
+function ReloadNotice() {
+  return (
+    <button
+      className="primary-button phosphor-pulse mt-2 w-full px-4 py-2 text-[13px] uppercase tracking-[0.08em] lg:w-auto"
+      type="button"
+      onClick={() => window.location.reload()}
+    >
+      Levelflow has updated. Reload to continue.
+    </button>
+  );
 }
 
 function useThemePreference() {

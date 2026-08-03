@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy notice v1 — phosphor treatments of the reload control</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { padding: 28px 32px 64px; }
+h1 { font-size: 20px; margin-bottom: 4px; }
+.note { font-size: 12.5px; color: var(--muted); max-width: 780px; margin-bottom: 6px; }
+.law { font-size: 11.5px; color: var(--muted); max-width: 780px; margin-bottom: 22px; }
+.law b { color: var(--ink); }
+.sec { margin: 30px 0 10px; }
+.cap { font-size: 11px; color: var(--muted); margin: 6px 0 0; max-width: 980px; }
+.cap b { color: var(--ink); }
+.grid2 { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+
+/* ---- desktop masthead frame ---- */
+.frame { border: 1px solid var(--hairline); background: var(--paper); margin: 10px 0 4px; overflow: hidden; }
+.frame.w-lg { width: 640px; max-width: 100%; }
+.mast { background: color-mix(in srgb, var(--paper) 92%, transparent); border-bottom: 1px solid var(--hairline); padding: 12px 20px 14px; }
+.mrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.wm { font-size: 18px; font-weight: 700; }
+.mnav { display: flex; gap: 16px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+.mnav .on { color: var(--ink); border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+.stagebit { padding: 14px 20px 18px; font-size: 12px; color: var(--muted); }
+
+/* ---- phone frame: masthead + stage + bottom tab bar ---- */
+.phone { width: 300px; border: 1px solid var(--hairline); border-radius: 14px; background: var(--paper); overflow: hidden; }
+.phone .mast { padding: 10px 14px 12px; }
+.phone .stagebit { min-height: 120px; }
+.tabbar { display: flex; border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--paper) 92%, transparent); }
+.tabbar .t { flex: 1; text-align: center; padding: 9px 0 11px; font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--muted); position: relative; }
+.tabbar .t.on { color: var(--ink); }
+.tabbar .t .bdg { position: absolute; top: 4px; right: 18%; background: var(--caution); color: var(--paper); font-size: 8.5px; font-weight: 700; border-radius: 99px; min-width: 14px; height: 14px; line-height: 14px; padding: 0 3px; font-family: "SF Mono", ui-monospace, monospace; }
+
+/* ---- the notice, as shipped today (reference) ---- */
+.n-today { margin-top: 12px; font-size: 13.5px; font-weight: 500; color: var(--muted); min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+
+/* ---- A/B: the Scan button's own chrome (.primary-button: accent fill,
+        white, radius 8, 44px floor), uppercase, radiating ---- */
+.n-btn {
+  margin-top: 12px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer;
+  background: var(--accent); color: #fff;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+}
+.phone .n-btn, .phone .n-link { width: 100%; }
+
+.n-a { animation: phosphor 2.4s ease-in-out infinite alternate;
+  box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 75%, transparent),
+              0 0 20px color-mix(in srgb, var(--accent) 48%, transparent),
+              0 0 46px color-mix(in srgb, var(--accent) 26%, transparent); }
+@keyframes phosphor {
+  from { box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent),
+                     0 0 16px color-mix(in srgb, var(--accent) 32%, transparent),
+                     0 0 34px color-mix(in srgb, var(--accent) 16%, transparent); }
+  to   { box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 90%, transparent),
+                     0 0 28px color-mix(in srgb, var(--accent) 62%, transparent),
+                     0 0 58px color-mix(in srgb, var(--accent) 40%, transparent); }
+}
+.n-b { box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 75%, transparent),
+                   0 0 20px color-mix(in srgb, var(--accent) 48%, transparent),
+                   0 0 46px color-mix(in srgb, var(--accent) 26%, transparent); }
+
+/* ---- C: no box at all — the line itself is the control, letters radiate ---- */
+.n-link {
+  margin-top: 12px; min-height: 44px; display: inline-flex; align-items: center;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent); font-family: inherit; font-size: 13px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase;
+  text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px;
+  animation: phosphorText 2.4s ease-in-out infinite alternate;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 70%, transparent),
+               0 0 16px color-mix(in srgb, var(--accent) 45%, transparent),
+               0 0 34px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+@keyframes phosphorText {
+  from { text-shadow: 0 0 4px color-mix(in srgb, var(--accent) 50%, transparent),
+                      0 0 12px color-mix(in srgb, var(--accent) 30%, transparent),
+                      0 0 26px color-mix(in srgb, var(--accent) 16%, transparent); }
+  to   { text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 95%, transparent),
+                      0 0 22px color-mix(in srgb, var(--accent) 65%, transparent),
+                      0 0 46px color-mix(in srgb, var(--accent) 42%, transparent); }
+}
+
+/* dark theme, scoped statically */
+.theme-dark { --paper: #161411; --sheet: #1E1B16; --ink: #EDE7DA; --muted: #969082;
+  --hairline: #35322B; --accent: #6B86FF; --accent-press: #7D95FF;
+  --buy: #4CC38A; --sell: #E5766E; --caution: #D9A441;
+  background: var(--paper); color: var(--ink); padding: 18px 20px 22px; border: 1px solid #35322B; max-width: 1040px; }
+</style>
+</head>
+<body>
+<h1 class="display">The deploy notice as the reload control — phosphor treatments</h1>
+<p class="note">The words are unchanged and stay §20j-pinned — ALL CAPS is a CSS transform on the same string. Every option holds the 44px floor, sits in the pinned masthead, and the element remains the reload control it already is. A and B wear the Scan button's exact chrome (<b>.primary-button</b>: accent fill, white, radius 8) — a solid fill, not a bordered box. C is the no-box route: the line itself, radiating.</p>
+<p class="law"><b>Law the choice carries:</b> a glow is a shadow, so any of these needs one box-discipline inventory entry plus a spec §17c note recording the sanctioned exception — this element exists to interrupt, and nothing else inherits the treatment. The pulse (A, C) honors <b>prefers-reduced-motion</b> by holding B's static radiance.</p>
+
+<!-- ============================ A ============================ -->
+<div class="sec"><div class="eyebrow">A — The Scan button, phosphor pulse (breathes brighter, never off)</div></div>
+<div class="grid2">
+<div class="frame w-lg">
+  <div class="mast">
+    <div class="mrow">
+      <span class="wm display">Levelflow</span>
+      <nav class="mnav"><span class="on">Desk</span><span>Insights</span><span>Guide</span><span>Profile</span></nav>
+      <span class="broker"><span class="dot"></span>E8 · Pro Forex 100K <span class="cev">▾</span></span>
+    </div>
+    <button class="n-btn n-a" type="button">Levelflow has updated. Reload to continue.</button>
+  </div>
+  <div class="stagebit">Desk under it, unchanged…</div>
+</div>
+<div class="phone">
+  <div class="mast">
+    <div class="mrow"><span class="wm display">Levelflow</span><span class="broker"><span class="dot"></span>E8 <span class="cev">▾</span></span></div>
+    <button class="n-btn n-a" type="button">Levelflow has updated. Reload&nbsp;to&nbsp;continue.</button>
+  </div>
+  <div class="stagebit">Mobile surface under it…</div>
+  <div class="tabbar"><span class="t on">Scan</span><span class="t">Trades<span class="bdg">2</span></span><span class="t">Insights</span><span class="t">Guide</span><span class="t">Profile</span></div>
+</div>
+</div>
+<p class="cap"><b>Mobile spans the full measure</b> and sits above everything in the pinned masthead — thumb-reach, unmissable, and gone the moment it is obeyed.</p>
+
+<!-- ============================ B ============================ -->
+<div class="sec"><div class="eyebrow">B — The Scan button, static phosphor (the same radiance, held)</div></div>
+<div class="grid2">
+<div class="frame w-lg">
+  <div class="mast">
+    <div class="mrow">
+      <span class="wm display">Levelflow</span>
+      <nav class="mnav"><span class="on">Desk</span><span>Insights</span><span>Guide</span><span>Profile</span></nav>
+      <span class="broker"><span class="dot"></span>E8 · Pro Forex 100K <span class="cev">▾</span></span>
+    </div>
+    <button class="n-btn n-b" type="button">Levelflow has updated. Reload to continue.</button>
+  </div>
+  <div class="stagebit">Desk under it, unchanged…</div>
+</div>
+<div class="phone">
+  <div class="mast">
+    <div class="mrow"><span class="wm display">Levelflow</span><span class="broker"><span class="dot"></span>E8 <span class="cev">▾</span></span></div>
+    <button class="n-btn n-b" type="button">Levelflow has updated. Reload&nbsp;to&nbsp;continue.</button>
+  </div>
+  <div class="stagebit">Mobile surface under it…</div>
+  <div class="tabbar"><span class="t on">Scan</span><span class="t">Trades<span class="bdg">2</span></span><span class="t">Insights</span><span class="t">Guide</span><span class="t">Profile</span></div>
+</div>
+</div>
+<p class="cap">No motion beside live prices; still radiating. This is also what A's reduced-motion readers get.</p>
+
+<!-- ============================ C ============================ -->
+<div class="sec"><div class="eyebrow">C — No box at all: the linked line itself radiates</div></div>
+<div class="grid2">
+<div class="frame w-lg">
+  <div class="mast">
+    <div class="mrow">
+      <span class="wm display">Levelflow</span>
+      <nav class="mnav"><span class="on">Desk</span><span>Insights</span><span>Guide</span><span>Profile</span></nav>
+      <span class="broker"><span class="dot"></span>E8 · Pro Forex 100K <span class="cev">▾</span></span>
+    </div>
+    <button class="n-link" type="button">Levelflow has updated. Reload to continue.</button>
+  </div>
+  <div class="stagebit">Desk under it, unchanged…</div>
+</div>
+<div class="phone">
+  <div class="mast">
+    <div class="mrow"><span class="wm display">Levelflow</span><span class="broker"><span class="dot"></span>E8 <span class="cev">▾</span></span></div>
+    <button class="n-link" type="button">Levelflow has updated. Reload&nbsp;to&nbsp;continue.</button>
+  </div>
+  <div class="stagebit">Mobile surface under it…</div>
+  <div class="tabbar"><span class="t on">Scan</span><span class="t">Trades<span class="bdg">2</span></span><span class="t">Insights</span><span class="t">Guide</span><span class="t">Profile</span></div>
+</div>
+</div>
+<p class="cap">The house link idiom (2px underline, offset) in uppercase accent, the letters themselves glowing and breathing. Nothing box-like anywhere — the demand for attention is all light. On mobile the line wraps to two lines if it must; the 44px floor holds either way.</p>
+
+<!-- ============================ dark ============================ -->
+<div class="sec"><div class="eyebrow">Dark theme — where phosphor actually radiates</div></div>
+<div class="theme-dark">
+<div class="grid2">
+<div class="frame w-lg">
+  <div class="mast">
+    <div class="mrow">
+      <span class="wm display">Levelflow</span>
+      <nav class="mnav"><span class="on">Desk</span><span>Insights</span><span>Guide</span><span>Profile</span></nav>
+      <span class="broker"><span class="dot"></span>E8 · Pro Forex 100K <span class="cev">▾</span></span>
+    </div>
+    <button class="n-btn n-a" type="button">Levelflow has updated. Reload to continue.</button>
+  </div>
+  <div class="stagebit">A on dark — the glow carries.</div>
+</div>
+<div class="phone">
+  <div class="mast">
+    <div class="mrow"><span class="wm display">Levelflow</span><span class="broker"><span class="dot"></span>E8 <span class="cev">▾</span></span></div>
+    <button class="n-link" type="button">Levelflow has updated. Reload&nbsp;to&nbsp;continue.</button>
+  </div>
+  <div class="stagebit">C on dark, mobile.</div>
+  <div class="tabbar"><span class="t on">Scan</span><span class="t">Trades<span class="bdg">2</span></span><span class="t">Insights</span><span class="t">Guide</span><span class="t">Profile</span></div>
+</div>
+</div>
+</div>
+
+<p class="cap" style="margin-top:22px">Reference, as shipped today (for contrast): a flat muted line —</p>
+<div class="frame w-lg"><div class="mast">
+  <div class="mrow">
+    <span class="wm display">Levelflow</span>
+    <nav class="mnav"><span class="on">Desk</span><span>Insights</span><span>Guide</span><span>Profile</span></nav>
+    <span class="broker"><span class="dot"></span>E8 · Pro Forex 100K <span class="cev">▾</span></span>
+  </div>
+  <div class="n-today">Levelflow has updated. Reload to continue.</div>
+</div></div>
+</body>
+</html>

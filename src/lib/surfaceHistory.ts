@@ -82,8 +82,10 @@ export function pushSurface(surface: Surface): void {
 // The entry, stamped with the surface the reader arrived on. replaceState creates no
 // history entry, so §17o's "the entry load pushes nothing" holds exactly — what
 // changes is that the entry now SAYS which surface it is, which is the only way to
-// tell it apart from an entry this app never made (a fragment navigation). Called
-// once, at mount, and nowhere else.
+// tell it apart from an entry this app never made (a fragment navigation). Two
+// callers, both in App: the mount stamp, and the traversal handler claiming an
+// anonymous fragment entry for the surface that created it — the guard pins the
+// count at exactly those two.
 export function replaceSurface(surface: Surface): void {
   window.history.replaceState(
     encodeSurfaceState(surface),
