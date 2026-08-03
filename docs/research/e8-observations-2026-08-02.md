@@ -40,3 +40,63 @@ Order tickets name instruments `{E8 name}.C`: `EURUSD.C`, `GBPNZD.C`, `SP.C`, `W
 3. Alt spelling machinery gains the `.C` ticket suffix per instrument.
 4. Remaining unobserved: BZUSD/Brent (no E8 route per the cross-map), the other five crypto,
    silver, indices beyond SP — the Appendix A queue orders them by what each unblocks.
+
+---
+
+# Observation batch 2 — 2026-08-02 (owner, TradeLocker, same E8 Pro Forex account)
+
+Thirteen further tickets. With batch 1 this completes the CFD universe: every
+scannable CFD market and every non-scannable roster row now carries an observed
+per-lot value. Several tickets show closed-market validation flags on the SL
+fields (Sunday); the platform's P&L calculator still prices the tick math, which
+is what these observations read. Balance context this batch ≈ $23,960 unchanged.
+
+## Metals and energies
+
+| Instrument | Ticket | Derived | Verdict |
+|---|---|---|---|
+| **XAGUSD.C** | 100 ticks = $500/lot; tick 0.001 | $5/tick → **contract 5,000 oz** | **FILLS silver** (was not_published); margin $19,471 ≈ 58.419×5000/15 → metals 15:1 again |
+| **BRENT.C** | 100 ticks = $100/lot; tick 0.001 | $1/tick → contract 1,000 bbl (same as WTI) | **DISCOVERY: Brent EXISTS on E8** — the cross-map's "no E8 route on any program" verdict for BRENT/BZUSD is corrected by direct observation; margin $5,725 ≈ 85.885×1000/15 |
+
+## Indices — all six, and three are FX-denominated
+
+| Instrument | Ticket | Derived | Verdict |
+|---|---|---|---|
+| **NSDQ.C** | 100 ticks (1.00 pt) = $5 | **$5/point** | CONFIRMS published NAS100 = 5 |
+| **DOW.C** | 100 ticks (1.00 pt) = $5 | **$5/point** | CONFIRMS published US30 = 5 |
+| **NIKKEI.C** | 100 ticks (1.00 pt) = $3.17 | **¥500/point** (500 × USDJPY⁻¹ ≈ 500 × 0.00634 = $3.17) | **FILLS + reveals JPY denomination** — USD value floats with USDJPY |
+| **DAX.C** | 100 ticks (1.00 pt) = $5.77 | **€5/point** (5 × EURUSD 1.1544 = $5.77 — the same EURUSD their batch-1 ticket showed) | **FILLS + reveals EUR denomination** |
+| **ASX.C** | 100 ticks (1.00 pt) = $14.08 | **AUD 20/point** (20 × AUDUSD ≈ 0.704) | **FILLS + reveals AUD denomination** |
+| (SP.C batch 1) | — | $20/point | already confirmed |
+
+**Design consequence**: three index contracts are foreign-currency-denominated —
+their per-point USD value is `contract × {USDJPY⁻¹ | EURUSD | AUDUSD}`, i.e. the
+bridging machinery applies to indices exactly as it does to forex crosses. All
+margins corroborate indices 15:1.
+
+## Crypto — the whole set, contract sizes revealed
+
+| Instrument | 100-tick P&L | Tick | Contract | Margin = notional×? |
+|---|---|---|---|---|
+| BTCUSD.C | $2 | 0.01 | **2** | $126,866 = 63,433×2 → **1:1** |
+| ETHUSD.C | $20 | 0.01 | **20** | $37,538 = 1,876.89×20 → **1:1** |
+| BCHUSD.C | $200 | 0.01 | **200** | 1:1 |
+| BNBUSD.C | $200 | 0.01 | **200** (non-scannable roster row) | 1:1 |
+| SOLUSD.C (batch 1) | $500 | 0.01 | **500** | 1:1 |
+| LTCUSD.C | $500 | 0.01 | **500** | 1:1 |
+| XRPUSD.C | $100 | 0.00001 | **100,000** | 1:1 |
+| ADAUSD.C | $100 | 0.00001 | **100,000** | 1:1 |
+
+**Leverage contradiction widens**: observed margin is FULL NOTIONAL (1:1) on
+every crypto ticket including BTC and ETH, where E8 publishes 1:5 (5514982;
+others 1:2). Scoped: this is an **E8 Pro Forex** account — the crypto-line
+accounts (One Crypto, Pro Crypto, Signature Crypto) may carry the published
+leverage while a forex-line account gets none. Until a crypto-line account is
+observed or E8 confirms, the rulebook records both values with their scopes;
+sizing on a forex-line account uses the observed 1:1.
+
+## State of the empirical table after batch 2
+- CFD universe: **complete** — 28 forex (method + spot checks), 2 metals, 2
+  energies (incl. the Brent discovery), 6 indices, 8 crypto, all observed.
+- Remaining unobserved: the futures line (owner's planned E8 futures account
+  purchase covers it), and per-line leverage variance for crypto accounts.
