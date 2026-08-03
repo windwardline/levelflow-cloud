@@ -97,9 +97,10 @@ function getInitialAppTab(): AppTab {
     return "advisor";
   }
 
-  // The satellite pages ask for this surface by URL — public/legal/*.html and the
-  // parking page all carry `<a href="/?donate">Donate</a>` — and until now only
-  // the sign-in screen answered, so a signed-in reader who tapped it landed on
+  // The satellite pages ask for this surface by URL — `<a href="/?donate">Donate</a>`
+  // is in the footer of all five (the three legal documents, the parking page, and
+  // 404) and in the React parking screen's own footer — and until now only the
+  // sign-in screen answered, so a signed-in reader who tapped it landed on
   // whatever tab they had last used. It is read here, ahead of that memory,
   // because it is a request made now rather than a record of where they were; and
   // it never becomes the memory itself, since "donate" is absent from
