@@ -1247,3 +1247,22 @@ not after. A change set that touches none of them says so in its PR body
 with a sentence of reasoning, and the merge-gate review checks that claim
 in both directions. Also written into the global standard the same night
 ("Docs ride along", ~/AGENTS.md Code quality).
+
+**Amendment 18 — the account switcher's two homes (owner, 2026-08-03,
+restated per standing preference; design specifics adopted from the
+controller's recommendation with the owner's "open to suggestions").**
+Saved-account switching (amendment 14) must be incredibly easy on desktop
+and mobile, in the established aesthetic, and visible in two places: the
+Profile page (the broker section becomes the confirmed-accounts list with
+one active) and the main app interface. The main-interface home is the
+existing broker chip, evolved: it displays the ACTIVE account rather than
+the bare broker — catalog vocabulary only (the §20j program labels +
+formatAccountSize; no invented words), condensed on mobile — and activates
+the app's existing menu machinery: an anchored menu at ≥lg, the §17g sheet
+below, listing every saved account (tap to switch) plus a Manage-accounts
+route to the Profile section. With no saved account the chip keeps today's
+informational form and its tap routes to Profile's broker setup. A switch
+re-scopes the Desk live — markets, sizing, and record follow the newly
+active account through the same reactivity §19's dormancy already uses.
+Targets hold the §17n floors. Lands with the §19 retrofit's multi-account
+schema.
