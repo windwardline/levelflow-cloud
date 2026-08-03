@@ -277,7 +277,10 @@ html[data-theme="dark"] {
      brighter on alternate: never off, only dimmer. A radiance draws no
      perimeter, so the box-on-box sweep is untouched by it — and nothing else
      may take this class; the notice exists to interrupt, and the ruling that
-     created the exception scopes it to that one element. */
+     created the exception scopes it to that one element. Under the global
+     reduced-motion collapse below, the animation zeroes and this base
+     radiance holds — the stillness variant by architecture, not exception:
+     unlike the spinner, a static glow asserts nothing false. */
   .phosphor-pulse {
     box-shadow:
       0 0 7px color-mix(in srgb, var(--color-accent) 75%, transparent),
@@ -301,12 +304,6 @@ html[data-theme="dark"] {
     }
   }
 
-  /* Stillness for readers who asked for it: the same radiance, held. */
-  @media (prefers-reduced-motion: reduce) {
-    .phosphor-pulse {
-      animation: none;
-    }
-  }
 
   .secondary-button {
     border: 1px solid var(--color-ink);

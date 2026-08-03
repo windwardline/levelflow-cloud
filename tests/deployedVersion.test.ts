@@ -386,17 +386,21 @@ describe("the reload notice (§17f — one string, and it is the button)", () =>
       app,
       /className="primary-button phosphor-pulse mt-2 w-full px-4 py-2 text-\[13px\] uppercase tracking-\[0\.08em\] lg:w-auto"/,
     );
-    // The radiance is defined once, in the kit, and breathes — except for
-    // readers who asked for stillness, who hold the same glow unanimated. The
-    // class is the app's one sanctioned glow; §17c scopes it to this element.
+    // The radiance is defined once, in the kit, and breathes. Reduced motion
+    // needs no exception of its own: the kit's global collapse zeroes the
+    // animation and the class's base shadow holds — the static variant by
+    // architecture. Only the spinner is restored there, because a frozen
+    // spinner asserts idle; a frozen glow asserts nothing false. So the
+    // reduced-motion block must NOT mention phosphor at all.
     const styles = readFileSync("src/styles/index.css", "utf8");
-    assert.equal(styles.match(/\.phosphor-pulse \{/g)?.length, 2);
+    assert.equal(styles.match(/\.phosphor-pulse \{/g)?.length, 1);
     assert.match(styles, /@keyframes phosphor-pulse/);
-    assert.match(
-      styles,
-      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]{0,240}\.phosphor-pulse \{\s*animation: none;/,
-    );
-    assert.equal(app.match(/phosphor-pulse/g)?.length, 1);
+    const reducedMotion = styles.match(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\n  \}/,
+    )?.[0] ?? "";
+    assert.ok(reducedMotion.length > 0, "expected the reduced-motion collapse");
+    assert.doesNotMatch(reducedMotion, /phosphor/);
+    assert.equal(app.match(/className="[^"]*phosphor-pulse/g)?.length, 1);
     // Still no perimeter of its own: §17c's box law is about boxes, and a
     // radiance draws none — no border, no sheet plane beyond the kit fill.
     assert.doesNotMatch(
