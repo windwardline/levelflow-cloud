@@ -37,7 +37,9 @@ import { ThemeToggle } from "./ThemeToggle";
 // view" at desktop widths) and §17e approved p-profile-v2.html as the
 // composition authority: a flat editorial settings sheet, 880px,
 // hairline-separated rows, each a label column beside its own content, no card
-// chrome anywhere and no icons. The shared page footer (spec §17c) carries the
+// chrome anywhere and no icons. The 880 is real as of 2026-08-03 — it had been
+// declared and not reached since the sheet was built, capped at a width the
+// content region never granted (see the column's own comment below). The shared page footer (spec §17c) carries the
 // legal and production lines this column used to end with — and, since §17i, the
 // two links the mock's fourth row carried as well, which is why that row is gone
 // and the sheet is three: the footer is in the frame on every surface, so a
@@ -118,8 +120,10 @@ export function ProfilePanel({
 
   // Which composition this surface is (spec §17g): below lg a fixed-viewport
   // frame with the title pinned and the rows scrolling inside it, at ≥lg the flat
-  // 880px editorial sheet p-profile-v2.html draws, unchanged. The title and the
-  // rows are built once and placed by whichever branch renders.
+  // 880px editorial sheet p-profile-v2.html draws. The title and the rows are built
+  // once and placed by whichever branch renders. Below lg nothing about this
+  // changed when the ≥lg sheet finally reached its 880px (2026-08-03): the mobile
+  // branch is the shared §17g frame and owns no width of its own.
   const isMobile = useIsMobileViewport();
 
   // `.page h1` (p-profile-v2.html:17): the 2px ink rule under the title, the
@@ -249,7 +253,22 @@ export function ProfilePanel({
     // too, of a link row now permanently on screen below it, so the row that held
     // them is gone. The testid is what e2e locates this sheet by.
     <div
-      className="mx-auto w-full max-w-[880px]"
+      // p-profile-v2.html's 880px, claimed rather than capped. The ≥lg content
+      // region is mx-auto inside a grid row, so its used width is fit-content: it
+      // takes the width of what it holds. A percentage width under a max-width cap
+      // therefore asked the region how wide to be while the region asked back, and
+      // the pair settled on max-content — 514px measured at 1280 AND at 1440, while
+      // the cap computed to 880px the whole time. A definite width is what a
+      // fit-content parent can size to, and a max-width of 100% keeps it inside the
+      // region on a viewport narrower than 944px. The §17o wave met the same
+      // mechanism on the document surface (LegalDocumentPanel.tsx) and fixed it
+      // there first.
+      //
+      // The retired pair is named by shape rather than spelled out — the habit
+      // App.tsx's mainShellClassName documents, since Tailwind's scanner reads
+      // comments too and a dead class in one is a dead rule in the bundle. It is
+      // also what lets tests/profilePanel.test.tsx ban that pair by name.
+      className="mx-auto w-[880px] max-w-full"
       data-testid="profile-panel"
     >
       {title}

@@ -76,11 +76,28 @@ describe("ProfilePanel theme-save failure notice (fix round 1, item 4)", () => {
 // review discipline.
 describe("Profile composition — the mock's elements are present (p-profile-v2.html)", () => {
   it("is one 880px editorial column, not a stack of cards in a 620px rail", () => {
+    // The width is CLAIMED, not capped, and that is the whole difference between a
+    // number in the source and a number on screen. The ≥lg content region is
+    // mx-auto inside a grid row, so its used width is fit-content — it takes the
+    // width of what it holds. `w-full max-w-[880px]` therefore asked the region how
+    // wide to be while the region was asking back, and the pair settled on
+    // max-content: measured 514px at 1280 AND at 1440, with max-width computing to
+    // 880px the whole time. A definite width is what a fit-content parent can size
+    // to; max-w-full keeps it inside the region below 944px of viewport.
+    //
+    // Found by the §17o wave, which hit the same mechanism on the document surface
+    // (LegalDocumentPanel.tsx) and fixed it there first.
     assert.match(
       PANEL_SOURCE,
-      /className="mx-auto w-full max-w-\[880px\]"\n\s*data-testid="profile-panel"/,
+      /className="mx-auto w-\[880px\] max-w-full"\n\s*data-testid="profile-panel"/,
     );
     assert.doesNotMatch(PANEL_SOURCE, /max-w-\[620px\]/);
+    // The old pair is gone rather than left beside its replacement.
+    assert.doesNotMatch(PANEL_SOURCE, /w-full max-w-\[880px\]/);
+    // Exactly one Tailwind token carries the number, and it is the claiming form —
+    // so no capped twin can sit beside it. (Bracketed tokens only: the prose above
+    // and below names the number too, and a comment is not a width.)
+    assert.deepEqual(PANEL_SOURCE.match(/[\w-]*\[880px\]/g), ["w-[880px]"]);
   });
 
   // §17n added the shared mobile page head to the same string — 19px on a 24px
