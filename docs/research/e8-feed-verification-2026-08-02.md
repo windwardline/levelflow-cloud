@@ -18,9 +18,16 @@ tickers). Every FMP-derived level — entry, stop, targets, ATR — lands on the
 broker's feed, so the two must be the same price stream to within the quoted
 spread. This document is the running proof, one frame at a time.
 
-**Standing so far.** Confirmed on the sampled instruments (EURNZD, XAUUSD) at
-the same second; XAGUSD pending re-sample (stale-row signature, sample F1).
-A future FAIL row is a stop-the-line event for §19/§20 features on that
+**Standing after F1–F5 (2026-08-02 evening, all E8 Pro Forex ·
+TradeLocker · demo).** Forex: confirmed exact-minute (EURNZD 0.035 pip off
+mid; GBPUSD equal to the point) and 28/28 pairs at quote level. Metals:
+XAUUSD confirmed; XAGUSD pending re-sample. Crypto: tracks within
+venue-composite dispersion (≤0.1%; six of eight inside the book). Indices:
+E8 quotes **synthetic cash** (futures minus fair-value basis) — the cash
+wiring tracks during each index's own cash session and is structurally stale
+on US weekends. Energies: **DIVERGENT at level** (WTI ~+0.2, BRENT ~+1.6
+above FMP's front-month) — the campaign's first measured divergence, open
+below. A FAIL row is a stop-the-line event for §19/§20 features on that
 instrument until explained.
 
 ## Account context law
@@ -86,6 +93,110 @@ observed: XAG 71 ticks (12 bp) versus XAU 40 ticks (1 bp) — per-instrument
 spreads differ by an order of magnitude, as the observations record
 (`docs/research/e8-observations-2026-08-02.md`) already established.
 
+### F2 — 2026-08-02 22:39:09 EDT · Indices.c watchlist (NSDQ.C chart)
+
+Clock corroborated by the 1h countdown (20:50 to the 23:00 close). US cash
+markets closed (weekend); Tokyo and Sydney in Monday session. All leverage
+15 (catalog ✓); spreads in 0.01 ticks (NSDQ 40 = 0.40 … NIKKEI 645 = 6.45).
+
+**Against the current cash-index wiring:**
+
+| Instrument | E8 bid / ask | FMP cash source | Δ vs mid | Session state | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| NIKKEI | 63,329.77 / 63,336.22 | ^N225 63,307.58 @22:25:30 | +25.4 (0.04%) at 14-min skew | Tokyo OPEN | **TRACKS (cash hours)** |
+| ASX | 8,954.53 / 8,955.47 | ^AXJO 8,960.7 @22:20:15 | −5.7 (0.06%) at 19-min skew | Sydney OPEN | **TRACKS (cash hours)** — first live evidence on the hidden symbol |
+| DAX | 25,846.33 / 25,847.16 | ^GDAXI 25,844 @22:40:15 | +2.75 (0.011%) near-simultaneous | Frankfurt closed; FMP's DAX feed quoting anyway | **TRACKS (this sample)** |
+| SP | 7,531.35 / 7,531.95 | ^GSPC 7,489.72 (Friday close) | +41.9 (+0.56%) | US cash closed | **STALE-WEEKEND** (structural) |
+| NSDQ | 28,537.00 / 28,537.40 | ^NDX 28,274.20 (Friday close) | +263 (+0.93%) | US cash closed | **STALE-WEEKEND** (structural) |
+| DOW | 52,742.91 / 52,743.38 | ^DJI 52,485.03 (Friday close) | +258 (+0.49%) | US cash closed | **STALE-WEEKEND** (structural) |
+
+**Futures-twin reconciliation (live Sunday):** subtracting each future's
+Friday fair-value basis from its live Sunday quote reproduces E8's book —
+ES 7,557.25 − 29.5 = 7,527.7 vs SP.C mid 7,531.65 (0.05%); NQ 28,645 −
+130.1 = 28,514.9 vs NSDQ.C 28,537.2 (0.08%); YM 52,866 − 150 = 52,716 vs
+DOW.C 52,743.1 (0.05%). **E8 index CFDs quote synthetic cash: the live
+futures price minus the fair-value basis.** That is why the cash wiring
+tracks whenever the cash index actually prints (N225/AXJO live tonight,
+US three on weekdays) and goes stale when it does not. Indices remain
+non-scannable (round 12 no-edge); this finding binds any future index
+enablement: either session-gated display honesty or a futures-derived
+synthetic source.
+
+### F3 — 2026-08-02 22:39:51 EDT · Cryptos.c watchlist (BCHUSD.C chart)
+
+Countdown corroboration 20:08 ✓. Leverage 1 on every row — the
+forex-market account's crypto leverage, re-confirming the account-scope
+resolution in the observations record. FMP quotes pulled at ~90 s skew;
+BTC additionally checked at the exact minute.
+
+| Instrument | E8 bid / ask | FMP | Δ vs mid | Verdict |
+| --- | --- | --- | --- | --- |
+| BCHUSD | 211.18 / 212.54 | 211.89 | +0.03 (0.014%) | **PASS** (inside the book; streaming chart symbol) |
+| ETHUSD | 1,865.72 / 1,868.30 | 1,866.00 | −1.0 (0.05%) | **PASS** (inside) |
+| LTCUSD | 44.41 / 44.78 | 44.56 | −0.035 | **PASS** (inside) |
+| SOLUSD | 72.83 / 73.30 | 73.03 | −0.035 | **PASS** (inside) |
+| XRPUSD | 1.07484 / 1.07606 | 1.0749 | −0.0006 | **PASS** (inside) |
+| ADAUSD | 0.18554 / 0.18716 | 0.1859 | −0.0005 | **PASS** (inside) |
+| BNBUSD | 585.73 / 586.50 | 585.18 | −0.94 (0.16%) | TRACKS (skew-range; exact-minute pin pending) |
+| BTCUSD | 63,151.34 / 63,202.60 | 63,111.66 (exact 22:39 bar close; range 63,102.9–63,119.6) | +65 on mid; book ~+32 above the bar (0.05%) | **TRACKS (composite basis ≤0.1%)** |
+
+Crypto verdict: one price stream to within normal cross-venue composite
+dispersion. BTC is the one instrument where E8's LP composite sits
+measurably (≈0.05–0.1%) above FMP's — the same order as its own 51-point
+spread, and far inside any stop geometry — recorded as a standing basis,
+not a defect.
+
+### F4 — 2026-08-02 22:40:22 EDT · Energies.c watchlist (WTI.C chart)
+
+Countdown corroboration 19:37 ✓. Leverage 15 ✓. A ~7% weekend gap-down in
+crude made this a fast market; both books were streaming (the WTI chart was
+the active symbol).
+
+| Instrument | E8 bid / ask | FMP front-month | Result | Verdict |
+| --- | --- | --- | --- | --- |
+| WTI | 80.414 / 80.534 | CLUSD 22:40 bar 80.22–80.26 (exact minute) | book disjoint **above** the bar by 0.15–0.31; mid Δ ≈ +0.23 (0.29%) | **DIVERGENT (level)** |
+| BRENT | 85.499 / 85.620 | BZUSD 83.95 @22:41:47 (85 s skew) | mid Δ ≈ **+1.61 (1.9%)** | **DIVERGENT (level)** |
+
+Both offsets carry the same sign — E8's energy CFDs price **above** FMP's
+front-month futures symbols, WTI slightly, BRENT by a full contract-roll's
+width. The frames land on the August Brent roll boundary (September Brent
+expired ~Jul 31), so the leading hypothesis is a delivery-month offset:
+E8's CFD references a later month (or a spot assessment) than the contract
+FMP's continuous front symbol is currently keyed to, amplified by the 7%
+gap. What this means for Levelflow: relative geometry — ATR, structure,
+stops-as-distances, R multiples — is invariant to a constant level offset,
+so scans and records stay internally coherent; **absolute level transfer to
+the E8 book is off by the basis on energies** until resolved. Resolution
+path, in order: (1) a mid-month frame after the rolls settle, same
+protocol; (2) the owner's standing Appendix-A offer — one small manual
+WTI and BRENT ticket on the live platform, whose stated fill price pins
+E8's reference contract exactly; (3) re-key the chart source if E8's
+reference proves to be a different month than FMP's front. Until then,
+energies are excluded from the identity-confirmed set.
+
+### F5 — 2026-08-02 22:40:55 / 22:41:02 / 22:41:08 EDT · Forex.c complete (three scrolls, GBPUSD.C chart)
+
+All 28 pairs captured ("these 3 give you all of Forex" — owner). Countdown
+corroborations 19:04 / 18:57 / 18:51 ✓. Leverage 30 on every pair ✓
+(catalog). Spreads quoted in points (fifth decimal; third on JPY): 0–14
+observed, AUDCAD momentarily locked at 0 (bid = ask 0.98659).
+
+**Exact-minute anchor:** FMP's GBPUSD 22:40 bar closes **1.34745** — equal
+to the point with E8's bid at 22:40:55 (1.34745 / 1.34746), and the chart
+plots the bid, both again. **Day-high corroboration:** E8's GBPUSD day high
+1.35060 vs FMP's 1.35063 (0.3 pip) — the forex day boundary aligned
+tonight, though the Day High/Low exclusion stands as a rule.
+
+Quote-level sweep at ~2.5–3 min skew (FMP 22:43:2x–22:43:38): every
+non-JPY pair within ±2.6 pips of the frame mid, five essentially exact
+(EURCAD 0.15 · NZDCHF 0.2 · GBPCAD 0.25 · EURGBP 0.45 · AUDCAD 0.1). All
+seven JPY crosses read +3.9 to +12.6 pips in the same direction — one
+coherent yen-weakening move inside the skew window on a day the yen
+complex traveled ~200 pips, not a per-pair offset; an exact-minute JPY
+spot-check is queued as a completeness item. Forex verdict: **CONFIRMED**
+— anchored exact-minute by F1's EURNZD (0.035 pip) and F5's GBPUSD
+(to the point), with the full book consistent at quote level.
+
 ## Wiring of record — what the guard pins
 
 - Both price paths — `supabase/functions/market-data/index.ts` (the chart the
@@ -97,13 +208,17 @@ spreads differ by an order of magnitude, as the observations record
 - The symbol map (`src/lib/symbolMap.ts`): Forex, Metals, Crypto, and
   Futures groups pass `fmpSymbol === symbol` verbatim. The only scannable
   divergences are the energy CFDs — WTI → CLUSD (fallback USO) and
-  BRENT → BZUSD — which chart from front-month futures symbols and therefore
-  carry a **basis question** this protocol has not yet closed: an E8
-  WTI/BRENT frame is required before treating them as feed-identical.
-  Indices (all non-scannable today) source cash indices (`^GSPC` family);
-  ASX stays hidden pending exactly this verification
+  BRENT → BZUSD — whose basis F4 has now **measured** (WTI ~+0.23,
+  BRENT ~+1.61, E8 above FMP front-month): open item 2 carries the
+  resolution path, and energies sit outside the identity-confirmed set
+  until it closes. Indices (all non-scannable today) source cash indices
+  (`^GSPC` family); F2 established that E8 quotes synthetic cash (futures
+  minus fair-value basis), so the cash wiring tracks during each index's
+  own cash session and is stale outside it. ASX stays hidden
   (`symbolMap.ts` — "Hidden until the chart feed is verified against the
-  matching traded CFD"), and its unhide path is this protocol.
+  matching traded CFD"); F2 recorded its first live tracking evidence
+  (−5.7 pts at 19-min skew, Sydney session), and its unhide path remains
+  this protocol plus the session-honesty question above.
 - E8 tickers append `.C` to the same root (EURNZD.C ↔ EURNZD), per the
   catalog record (`docs/research/e8-purchase-screen-2026-08-02.md`).
 - One recorded non-price exception: Finnhub is the economic calendar's
@@ -120,10 +235,20 @@ spreads differ by an order of magnitude, as the observations record
 ## Open items
 
 1. XAGUSD re-sample — active-chart frame, live silver hours.
-2. WTI and BRENT basis check — one frame each with the instrument on the
-   chart (CFD quote vs front-month futures bar).
-3. Crypto instruments — a crypto-market account frame (also resolves the
-   account-level 1:5 leverage observation's per-symbol values).
+2. **Energies divergence resolution** (F4: WTI +0.23, BRENT +1.61, E8
+   above FMP front-month, sampled on the August Brent roll boundary during
+   a 7% gap): (a) a mid-month post-roll frame; (b) the owner's Appendix-A
+   manual WTI + BRENT tickets — a stated fill price pins E8's reference
+   contract; (c) re-key the chart source if the reference proves to be a
+   different delivery month. Energies excluded from the confirmed set
+   meanwhile.
+3. Crypto-market account frame — tonight's F3 was the forex-market
+   account's view (leverage 1); the crypto-account per-symbol leverage
+   values remain unobserved. BNBUSD exact-minute pin also pending.
 4. MatchTrader — any One Forex frame, since feed identity is per-platform.
-5. More forex pairs and sessions as frames arrive — each strengthens the
-   inside-spread bound the sizing math inherits.
+5. US cash indices during a weekday NY session — the same-second test F2
+   could not run with cash closed; one weekday frame completes the
+   synthetic-cash finding.
+6. JPY-cross exact-minute spot-check — F5's quote-level JPY deltas were one
+   coherent yen move inside the skew window; a single same-minute bar
+   comparison (USDJPY or GBPJPY on the chart) closes it.
