@@ -1867,6 +1867,30 @@ async function selectProgram(page: Page, width: number, label: string) {
   return profile;
 }
 
+// Puts the shared profile row back to None and waits for the write to LAND.
+//
+// The two viewport legs below are separate tests sharing one live profile, and
+// the broker selection is a server row rather than page state — so whatever one
+// leg leaves there is the next leg's opening state. Run 30773120782 is what that
+// costs: the 375px leg skipped on a quiet market with E8 One already bought, and
+// the 1280px leg opened onto `Received: "one"` 1.5 seconds in, having asserted
+// nothing of its own.
+//
+// The four dependent controls disappearing is the write having landed, not an
+// optimistic paint: useUserProfile.saveProfile awaits the upsert and only then
+// calls applyProfile, so the controlled select and its dependents re-render off
+// server-confirmed state. A native selectOption can leave the select itself
+// reading "none" for a beat that a failed write would revert, which is why the
+// dependents — not the select's own value — are what this waits on.
+async function resetProgramToNone(page: Page, width: number) {
+  await openProfile(page, width);
+  const profile = page.getByTestId("profile-panel");
+  await expect(profile).toBeVisible();
+  await profile.getByLabel("Program", { exact: true }).selectOption("none");
+  await expect(profile.getByLabel("Account size", { exact: true }))
+    .toHaveCount(0);
+}
+
 for (const width of [375, 1280]) {
   test(`the ladder grows one Size row only once a program is selected (§19d, ${width}px)`, async ({ page }) => {
     // Two scans, and the helper allows each 90s (a scan of every open market on
@@ -1876,6 +1900,14 @@ for (const width of [375, 1280]) {
     test.setTimeout(240_000);
     await page.setViewportSize({ height: 812, width });
     await page.goto("/");
+
+    // This leg sets its own opening state rather than inheriting the other's.
+    // The reload is the part a DOM assertion cannot stand in for: it drops every
+    // piece of client state and re-reads the row from the server, so "none" here
+    // is the persisted value and not a select this session happened to leave
+    // looking right.
+    await resetProgramToNone(page, width);
+    await page.reload();
 
     // With None — the app's own default, and what a fresh reader sees — Profile's
     // Broker row carries the chip and the one selector, and nothing else.
@@ -1887,20 +1919,35 @@ for (const width of [375, 1280]) {
       await expect(profile.getByLabel(absent, { exact: true })).toHaveCount(0);
     }
 
-    // Buy the program BEFORE staging a setup, and re-stage after clearing it.
-    // Both orderings prove the same conditional, but only this one survives the
-    // Desk's own lifecycle: AdvisorWorkspace "only exists in the tree while its
-    // tab is active, so switching tabs away and back remounts it fresh"
-    // (App.tsx). Profile is a tab, so every trip to it throws the staged setup
-    // and the scan result away — which is why the first live run found "No setup
-    // yet" where it expected the Size row, and why the closing absence check
-    // would have passed on an empty stage, proving nothing. Each leg below
-    // therefore scans for its own setup and asserts the ladder is actually on
-    // stage before reading anything off it.
+    // Each ladder claim scans for its own setup, and the program is bought
+    // between them rather than before both. Two reasons, one per live failure
+    // this shape answers. AdvisorWorkspace "only exists in the tree while its tab
+    // is active, so switching tabs away and back remounts it fresh" (App.tsx), so
+    // a setup staged before a Profile trip is gone when the walk returns — which
+    // is why the first live run read the Size row off a stage showing "No setup
+    // yet". And buying the program only after the absence leg has cleared means
+    // the earlier of the two skip gates cannot exit holding a program: a quiet
+    // market is a legitimate state, and it must not become the next leg's opening
+    // state, nor a fifth row in visual-proof's captures.
     //
-    // E8 One is a CFD line, so its unit is lots — the family answers the label,
-    // never the market that qualified, and a blocked row carries the same label
-    // as a priced one (broker/sizing.ts sizeUnitFor).
+    // A scan is how a setup arrives (§17m.1), so the walk skips honestly when
+    // nothing qualifies.
+    await showDesk(page, width);
+    if (!(await scanForSetupOnStage(page))) {
+      test.skip(true, "No market qualified in this window.");
+      return;
+    }
+
+    // No Size row at all: not a dash, not an empty value, not a prompt. The
+    // ladder is on stage first, and only then is the row absent from it — without
+    // that order the absence is unfalsifiable, since an empty stage has no Size
+    // row either and says nothing about what a program controls.
+    await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
+
+    // Now buy a program. E8 One is a CFD line, so its unit is lots — the family
+    // answers the label, never the market that qualified, and a blocked row
+    // carries the same label as a priced one (broker/sizing.ts sizeUnitFor).
     await selectProgram(page, width, "E8 One");
     await expect(
       page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
@@ -1909,10 +1956,11 @@ for (const width of [375, 1280]) {
       page.getByTestId("profile-panel").getByLabel("Risk per trade", { exact: true }),
     ).toHaveValue("0.5");
 
-    // Back to the ladder. A scan is how a setup arrives (§17m.1); a live market
-    // that qualifies nothing is a legitimate state, so the walk skips honestly.
     await showDesk(page, width);
     if (!(await scanForSetupOnStage(page))) {
+      // Past this point the program is bought, so the skip path hands the row
+      // back before it leaves.
+      await resetProgramToNone(page, width);
       test.skip(true, "No market qualified in this window.");
       return;
     }
@@ -1931,24 +1979,10 @@ for (const width of [375, 1280]) {
     ).toBe(true);
     expect(rendered).not.toContain("—");
 
-    // Clearing the program takes the row back out of existence.
-    await openProfile(page, width);
-    await page.getByTestId("profile-panel").getByLabel("Program", { exact: true })
-      .selectOption("none");
-    // The other four controls disappearing is the write having landed.
-    await expect(
-      page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
-    ).toHaveCount(0);
-    await showDesk(page, width);
-    if (!(await scanForSetupOnStage(page))) {
-      test.skip(true, "No market qualified in this window.");
-      return;
-    }
-    // The ladder is on stage first, and only then is the Size row absent from
-    // it. Without that order the absence is unfalsifiable — an empty stage has
-    // no Size row either, and says nothing about what a program controls.
-    await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
-    // No Size row at all: not a dash, not an empty value, not a prompt.
-    await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
+    // Hand the row back on the way out. The next leg normalizes anyway, so this
+    // is politeness rather than the guarantee — but it is also what keeps a
+    // leftover program out of visual-proof, which runs after this project and
+    // before the cleanup teardown that resets the selection.
+    await resetProgramToNone(page, width);
   });
 }
