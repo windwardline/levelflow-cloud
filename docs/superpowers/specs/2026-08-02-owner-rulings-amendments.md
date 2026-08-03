@@ -1171,75 +1171,70 @@ so `6J` — the row the boundary could not fix — has a route.
 
 ---
 
-## Amendments 12–15 — the broker-architecture rulings (owner, 2026-08-03 ~01:37)
+## Amendments 12–16 — the broker-architecture rulings (owner, 2026-08-03 ~01:37)
 
-The owner laid out the whole broker architecture in one message and asked for
-gap-fill, recommendation, and correction. Their words are operative law; the
-controller's notes follow each.
+The owner defined the broker architecture on 2026-08-03 and then directed
+that the off-the-cuff original not be preserved verbatim: "You can rewrite
+it to be optimal, but do not lose my intention or make any inferences
+without checking with me." These are the approved restatements — owner
+intent in canonical form, refinements from the follow-up message folded in,
+controller notes marked as such.
 
-**Amendment 12 — Forex-classification-wide applicability.** Verbatim:
-"treat the chart data and screenshots I provided today from my E8 Pro Forex
-account as applicable to all versions of the E8 Forex accounts, as E8 groups
-those things accordingly. The deviations on assets and data will come when we
-setup accounts as Forex, Crypto, or Futures--not the substructure of those
-accounts (like Pro, Signature, etc--the differences there are how the account
-rules are structured, which you already have a comprehensive report on)."
-Operative: the feed-verification record (F1–F7), the 46-instrument
-observation set, and the measured spreads/leverage/contract values bind at
-the ACCOUNT-CLASSIFICATION level (Forex · Crypto · Futures); program lines
-differ only in rules (§20's domain). Controller's one asterisk, recorded not
-blocking: E8 One Forex can run on MatchTrader as well as TradeLocker; the
-per-platform verification law stands, so a single MatchTrader spot-check
-remains an open feed-doc item — the ruling governs unless that check ever
-contradicts it.
+**Amendment 12 — classification-wide applicability.** Evidence gathered on
+the owner's E8 Pro Forex account — the feed verification (F1–F7), the 46
+instrument observations, and the measured spreads, leverage, and contract
+values — applies to every E8 account of the **Forex classification**.
+Account classifications (Forex · Crypto · Futures) are where assets and
+data differ; program lines within a classification (One, Pro, Signature,
+Zero) differ only in account rules, which the catalog record already
+covers. Platform refinement (owner, 2026-08-03 follow-up): the owner does
+not plan to use MatchTrader; account setup offers **Platform** as a field
+wherever a classification has more than one, with MatchTrader present but
+**disabled (greyed) until verified** — adopted from the owner's own
+proposal, verbatim in spirit: platform as an option, MatchTrader greyed
+out for now.
 
-**Amendment 13 — market sets follow the account classification.** Verbatim:
-"none of the Forex accounts can trade Futures, so remove them from Levelflow
-for any E8 Forex account. We will do the same thing for Crypto and Futures,
-once we confirm the tradeable markets for each." Operative: when a broker
-profile names any E8 Forex program line, the Futures group's symbols leave
-the user's market surfaces entirely. WTI/BRENT stay — they are Energies
-CFDs on the Forex account (confirmed by ticket and frame). Futures SERIES
-may remain internal chart-derivation sources (e.g. any future index-CFD
-scan model); the removal governs what the user sees as markets. The
-tradeable set for E8 Forex accounts is the 46 observed instruments; scan
-eligibility remains the intersection with the edge-verified list (no-trade
-exclusions govern setups, the account governs the menu).
+**Amendment 13 — market availability follows the account classification.**
+E8 Forex accounts cannot trade futures, so futures markets are removed
+from **user view and from scanner action and results** whenever an E8
+Forex account is active. Nothing is deleted behind that curtain (owner,
+follow-up, explicit): futures calibration, replay-sweep artifacts, and
+learned state are all retained, and futures series may continue to serve
+as internal derivation sources. Energies (WTI, BRENT) remain on Forex
+accounts. The same visibility treatment extends to Crypto and Futures
+accounts once each classification's tradeable markets are confirmed. The
+account governs the menu; the edge record governs setups.
 
-**Amendment 14 — the account flow and saved account profiles.** Verbatim:
-"a user confirms which broker they are with from our (eventual) list of
-supported and modeled brokers, from there they indicate which type of
-account they have (for E8, that would be Forex, Futures, or Crypto, but for
-future brokers it will likely look different), and then they confirm the
-parameters of that account for the scaling functionality that you are
-building. Once that is locked in (maybe we have a way to save these settings
-so they can simply select the account setup from a list of confirmed
-accounts later? it would make it easier on them when they navigate between
-them to generate setups while having multiple E8 accounts), the engine only
-shows markets that are applicable to the account they just indicated they
-are actively trading, and only shows data that matches what the broker is
-using for those markets, and the setups are tailored to how those markets
-move and perform from the replay sweep on the actual, confirmed matching
-data source." Operative: the §19 retrofit gains the multi-account shape —
-saved account profiles (broker · account classification · program line ·
-size · stage · risk · drawdown tier) with one active account, selectable
-without re-entry. The selection flow is broker → classification → catalog
-parameters (ruling 7's static catalog per step). Markets, data, and setups
-all scope to the active account.
+**Amendment 14 — the account flow and saved account profiles.** A user
+confirms their broker from the supported-and-modeled list, then the
+account type (for E8: Forex, Futures, or Crypto; other brokers will
+differ), then that account's parameters for the sizing functionality —
+every step through the static catalog (ruling 7). Confirmed accounts are
+**saved**, so a user holding several can select among them without
+re-entry; one account is active at a time. The engine then shows only the
+active account's applicable markets, only data matching what the broker
+uses for those markets, and setups tailored by the replay sweep on the
+actual, confirmed matching data source.
 
-**Amendment 15 — the Futures and Crypto build sequence.** Verbatim: "When we
-create the E8 Futures profiles, I will purchase a Futures challenge and
-provide the applicable screenshots of the tradeable assets like I did with
-my current Pro Forex account. Once we have them, we will identify the exact
-data source from FMP to use, run the replay sweep against those sources, and
-build out the rest of the E8 Futures profiles according to our existing
-standards." And: "I will do the same thing for E8 Crypto account later. It
-is not nearly as much of a priority for me, so it will come after have
-settled all Forex and Futures modeling with E8. It will be the last thing we
-do before creating an environment for a new broker altogether." Operative
-order: Forex modeling settles first (retrofit + basis handling + the
-BNB/indices reopener), Futures second (owner purchase → frames + tickets →
-per-instrument FMP source identification incl. contract-month/roll handling
-→ replay sweep on the confirmed sources → profiles), Crypto last before the
-first non-E8 broker. The feed-verification protocol is the standing method
-for each.
+**Amendment 15 — the Futures and Crypto sequence.** E8 Forex modeling
+settles first. Futures second: the owner will purchase a Futures challenge
+and provide tradeable-asset screenshots as with Pro Forex; the exact FMP
+data source per instrument is then identified, the replay sweep runs
+against those confirmed sources, and the E8 Futures profiles are built to
+existing standards. Crypto follows later at lower priority — the final E8
+work before creating the environment for a new broker altogether.
+
+**Amendment 16 — the E8-Forex-done gate (owner, 2026-08-03 follow-up).**
+Before E8 Forex accounts are marked done within Levelflow — the
+precondition for moving to Futures — **BNB and the indices must have clear
+include-or-exclude answers.** Those answers cannot come without direct
+matching, or the absolute closest achievable, between E8's data and what
+FMP offers for setups. The cross-reference is therefore revisited
+instrument by instrument, with the owner's screenshots as the reference;
+any newly identified FMP source that better matches what E8 actually
+shows replaces the current source, and any source change **necessitates a
+new replay sweep** on the confirmed sources — that sweep, together with
+tonight's insights, determines inclusion for BNB, the indices, and
+whatever else it reaches. Controller note, marked as such: the three
+stable-offset instruments (XAGUSD, WTI, BRENT) are the prime candidates
+for better-matching sources under this gate.
