@@ -282,3 +282,22 @@ Trial program.
 One faithful marketing oddity: the crypto page scatters "Recommended" badges
 across several mid-ladder sizes (10K through 400K in these frames) where the
 forex page badges $100K alone. Cosmetic; recorded for exactness.
+
+---
+
+## THE E8 SIGNATURE (CRYPTO) MARKETING-SITE WALK (two frames)
+
+SC1 Challenge · SC2 Performance, all four sizes. **Signature Crypto's card set is
+numerically IDENTICAL to Signature Futures'** (recorded above): base prices
+$110/$150/$260/$390 (code-E8 $83/$113/$195/$293), the 4/4/3/3 EOD drawdown
+amounts ($1,000/$2,000/$3,000/$4,500) at both stages with the 4%/4%/3%/3% chips,
+targets 6% of tier ($1,500/$3,000/$6,000/$9,000), Performance daily drawdown at
+2% of tier ($500/$1,000/$2,000/$3,000), consistency 35% at Performance only,
+EOD type throughout, pass in as little as 1 day, first payout in as little as
+3 days, no activation fee.
+
+**Signature is one uniform product across its three markets** — futures and
+crypto cards now both photographed and identical; the forex checkout's $260 /
+EOD 3% / target 6% at $100K sits on the same curve (the forex card set is the
+one Signature surface not separately photographed, with no observed reason to
+expect divergence).
