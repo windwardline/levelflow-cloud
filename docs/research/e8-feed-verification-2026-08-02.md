@@ -302,7 +302,11 @@ Sampled per class against FMP ~3–4 minutes after the frames:
 
 **PASS where a same-month comparison exists; every large gap is a
 month artifact, a carry basis, or a missing FMP source — never a
-different market.** Resolutions found: grains/meats/softs live under
+different market.** One quiet resolution inside the sweep: **BZV6 84.05
+vs BZUSD 84.11 — 7 bp.** The futures-side Brent matches FMP's active
+contract, which empirically settles the CFD side's +1.67 as the contract
+month, never the feed — the §19 plan's pre-registered hypothesis,
+confirmed from the other classification. Resolutions found: grains/meats/softs live under
 FMP's USX-suffixed roots (LEUSX/HEUSX/GFUSX/ZCUSX/…); the -USD meat
 spellings collide with crypto tokens (HEUSD printed 0.00011) — a guard
 class for the futures onboarding. No FMP source found for the Eurex

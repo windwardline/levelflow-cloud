@@ -1305,3 +1305,35 @@ retrofit plan's open questions:
    adjacency stands.
 4. **Where the documentation suffices, proceed on it** — always under
    clause 1's precedence when the two conflict.
+
+**Amendment 20 — one data foundation: FMP, maximized and aligned, or
+excluded (owner, 2026-08-03, restated per standing preference).**
+
+1. **FMP is Levelflow's single data foundation.** Maximize what it offers
+   and align to it precisely before any consideration of another source.
+2. **Supplemental providers are ruled out categorically.** The only path
+   to different data is a wholesale REPLACEMENT of FMP by a single,
+   stronger provider — on a concrete recommendation, decided by the
+   owner. (Standing invitation: the controller may recommend one when the
+   evidence argues for it. Recommendation of record, 2026-08-03: keep
+   FMP — no single provider dominates across Levelflow's five live
+   classes, and the F1–F9 identity evidence shows FMP is the same market
+   the broker trades wherever a match exists. Revisit trigger: a futures-
+   centered desk needing Eurex would evaluate Databento as a full
+   replacement.)
+3. **The exclusion rule.** An instrument observed on a broker offering
+   with no FMP match is EXCLUDED from Levelflow for that offering — not
+   rendered, not scanned, not analyzed there. The rule applies per
+   classification and account type: a symbol excluded on one offering may
+   exist on another where its match does.
+4. **Universal.** Every broker integration and every analysis, present
+   and future — E8 (Forex, Futures, Crypto) is the first subject, not the
+   scope.
+
+Consequences applied on arrival: F9's no-source rows (FDAX, FDXM, FESX,
+FGBL, FGBM, FGBS, FGBX, NKD, EMD, UB, TN, ZW) are excluded from the
+futures offering by rule. A stable basis against an existing FMP match
+(XAGUSD +0.17, WTI +0.24) is NOT a missing match — the basis-handling
+decision stands in the §19 retrofit. Month-offset rows are matches under
+F9's month-aware comparison, and the USX-suffix resolutions
+(grains/meats/softs) ARE matches.
