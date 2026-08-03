@@ -26,8 +26,12 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
   // beside a decorative icon under an accent-colored eyebrow — the exact icon +
   // accent-eyebrow + boxed-title cluster the branch's guards already forbid
   // elsewhere (surfaceComposition.test.ts's GuidePanel kill list).
+  //
+  // §17n: 19px on a 24px line with an 8px rule pad below lg — the mobile page head
+  // the four titled surfaces share — takes this pinned block from 60px to 46px
+  // (measured against the built CSS at 375x812).
   const title = (
-    <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink">
+    <h1 className="border-b-2 border-ink pb-3.5 text-2xl font-semibold tracking-normal text-ink max-lg:pb-2 max-lg:text-[19px] max-lg:leading-6">
       Donate
     </h1>
   );

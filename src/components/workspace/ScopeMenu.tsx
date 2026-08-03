@@ -499,7 +499,13 @@ export function ScopeMenu(
         // content, and a bare aria-label would replace it in the name
         // computation rather than joining it.
         aria-labelledby={`${baseId}-label ${baseId}-value`}
-        className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink"
+        // §17n: 44px below lg. On the merged Scan surface this trigger opens the
+        // pinned control row beside a 44px timeframe select and a 44px Scan
+        // button, and `.field`'s 48px made the row taller than anything in it.
+        // min-h-11 is the kit's tap floor exactly — the target is untouched, the
+        // three controls finally measure the same, and the pinned block drops 4px
+        // (measured, 375x812: 296.5px to 292.5px).
+        className="field flex w-full items-center justify-between gap-2 text-left text-sm font-semibold normal-case text-ink max-lg:min-h-11"
         id={baseId}
         type="button"
         onClick={() => (open ? close() : openMenu())}

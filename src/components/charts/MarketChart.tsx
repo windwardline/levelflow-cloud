@@ -439,6 +439,28 @@ export function MarketChart(
   );
 }
 
+/*
+  THE ONE RECORDED EXCEPTION TO THE 44px FLOOR (spec §17n).
+
+  The owner granted it by name in PR #149 — "the overlay's cluster follows — 28px
+  touch buttons, small as stays tappable" — for this element and no other: the
+  expanded chart overlay's six-button tool cluster, `touch` (the `fill` instance,
+  which is the overlay's), at 28px with its icons held at 16px so they stay
+  legible at that size. §17n records it as the single exception on the books and
+  requires it to be pinned WITH the grant named, "an unpinned exception is
+  indistinguishable from a regression six months later":
+  tests/mobileMinimalism.test.ts is that pin.
+
+  It is granted to this cluster, not to a size. Nothing else may reach for 28px by
+  citing it (§17n: "None is ever inferred from another element's exception, and
+  none is granted to a primary control"), and the guard asserts the literal is
+  unique to this file. The ≥lg branch below is the inline chart's 24px cluster,
+  which is a pointer target and never a touch one — the inline cluster is
+  max-lg:hidden, so below lg the only cluster on screen is the granted one.
+
+  Measured against the built CSS at 375x812: six 28px buttons, 194px of cluster
+  across the 375px overlay, 16px icons inside them.
+*/
 function ChartToolButton({ children, label, touch = false, onClick }: { children: ReactNode; label: string; touch?: boolean; onClick: () => void }) {
   return (
     <button

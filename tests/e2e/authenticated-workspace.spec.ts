@@ -973,6 +973,121 @@ test("mobile viewport keeps the signed-in workspace at full functionality", asyn
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
 });
 
+test("§17n: every mobile surface's chrome stays inside its measured budget at 375x812", async ({ page }) => {
+  // Spec §17n (owner ruling, durable): ancillary chrome is "sized to the smallest
+  // form that stays tappable, usable and legible — and no larger… The content
+  // region is the budget being protected, and chrome yields to it."
+  //
+  // The unit guard (tests/mobileMinimalism.test.ts) pins the class strings that
+  // produce the sizes and records the wave's own measurements. What can only be
+  // proved here is the BUDGET: the live split between pinned chrome and the
+  // scrolling content region, in the real app, in a real browser, at the width the
+  // ruling names. The numbers below are ceilings and floors with slack, not exact
+  // pins — a resize that respects the ruling moves them down, and a regression
+  // that re-inflates the chrome trips them.
+  //
+  // Measured in Chromium against the built CSS at 375x812 when this landed:
+  // header 61px, content row 751px, tab bar 49px; pinned/scroll by surface —
+  // Scan 292.5/458.5, Trades 30/721, Insights 267/484, Profile 46/705,
+  // Guide 46/705, Donate 46/705.
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  const tabBar = page.locator('nav[aria-label="Levelflow"]');
+  await expect(tabBar).toBeVisible();
+  // The bar is min-h-12 (48px) plus its 1px top border plus the device's own
+  // safe-area inset, which is 0 in a desktop Chromium. It may never drop below the
+  // kit's 44px tap floor and it may never climb back to the 56px box §17n retired.
+  const barHeight = await tabBar.evaluate((element) =>
+    element.getBoundingClientRect().height
+  );
+  expect(barHeight).toBeGreaterThanOrEqual(44);
+  expect(barHeight).toBeLessThanOrEqual(52);
+
+  // The pinned block is the scroll region's own previous sibling on every one of
+  // the six surfaces (the shared frame is [pinned, scroll] — src/components/
+  // mobileFrame.ts), so one helper measures all six without six locators.
+  const budget = async (scrollTestId: string) => {
+    const region = page.getByTestId(scrollTestId);
+    await expect(region).toBeVisible();
+    return region.evaluate((element) => {
+      const pinned = element.previousElementSibling;
+      return {
+        pinned: pinned ? pinned.getBoundingClientRect().height : -1,
+        scroll: element.getBoundingClientRect().height,
+      };
+    });
+  };
+
+  const checkSurface = async (
+    name: string,
+    scrollTestId: string,
+    chromeCeiling: number,
+    contentFloor: number,
+  ) => {
+    const { pinned, scroll } = await budget(scrollTestId);
+    expect(pinned, `${name} pinned chrome`).toBeGreaterThan(0);
+    expect(pinned, `${name} pinned chrome`).toBeLessThanOrEqual(chromeCeiling);
+    expect(scroll, `${name} content region`).toBeGreaterThanOrEqual(contentFloor);
+  };
+
+  // Scan: 292.5px of it is the control row, the market head, its stamp and the
+  // mock's 168px chart — the chart alone is 170px of that, and §17n holds it there
+  // (Expand chart is the release valve).
+  await checkSurface("Scan", "mobile-scan-scroll", 320, 430);
+
+  await tabBar.getByRole("button", { name: /^Trades(,|$)/ }).click();
+  await checkSurface("Trades", "mobile-trades-scroll", 44, 700);
+
+  await tabBar.getByRole("button", { name: "Insights", exact: true }).click();
+  // The surface the ruling was written about: 409px of chrome against 334px of
+  // ledger before the wave, 267px against 484px after it.
+  await checkSurface("Insights", "mobile-insights-scroll", 290, 460);
+
+  const accountMenu = page.getByRole("button", { name: "Account menu" });
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Guide" }).click();
+  await checkSurface("Guide", "mobile-guide-scroll", 56, 690);
+
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Donate" }).click();
+  await checkSurface("Donate", "mobile-donate-scroll", 56, 690);
+
+  await accountMenu.click();
+  await page.getByRole("menuitem", { name: "Profile" }).click();
+  await checkSurface("Profile", "mobile-profile-scroll", 56, 690);
+
+  // And the floor the slimming may not cross, swept across the surface that
+  // carries the most controls: every visible tap target is a real 44px one.
+  // Two exclusions, both principled rather than convenient — the colophon link
+  // reaches 44px through .colophon-link's ::after overlay, which is outside layout
+  // by §17k's own design, and lightweight-charts' attribution anchor is a
+  // third-party element the app does not size. The one owner-granted exception
+  // (§17n, PR #149 — the expanded overlay's 28px cluster) is not on this surface:
+  // the inline chart's cluster is max-lg:hidden.
+  const undersized = await page.evaluate(() => {
+    const targets = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'button, a[href], select, [role="menuitem"]',
+      ),
+    );
+    return targets
+      .filter((element) => {
+        if (element.id === "tv-attr-logo") return false;
+        if (element.classList.contains("colophon-link")) return false;
+        const box = element.getBoundingClientRect();
+        return box.height > 0 && box.height < 43.5;
+      })
+      .map((element) => ({
+        height: element.getBoundingClientRect().height,
+        label: element.getAttribute("aria-label") ??
+          (element.textContent ?? "").trim().slice(0, 30),
+      }));
+  });
+  expect(undersized, JSON.stringify(undersized)).toHaveLength(0);
+});
+
 test("the mobile account menu carries the footer's link set (spec §17g)", async ({ page }) => {
   // §17g moves the footer's links into the avatar menu below lg: Help and Donate
   // were already there, and the legal trio joins them at the bottom. Each action

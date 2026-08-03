@@ -247,8 +247,17 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     );
   });
 
-  it("every tab bar button clears the 44px touch target (min-h-14 > 44px)", () => {
-    assert.match(APP_SOURCE, /min-h-14 flex-col items-center justify-center/);
+  // §17n resized the box from 56px to 48px: the bar is ancillary chrome, its own
+  // content measures 38px against the built CSS at 375x812, and 48px is the kit's
+  // 44px tap floor plus 4px. The floor itself is untouched — that is what this
+  // pins, and tests/mobileMinimalism.test.ts pins the number with its measurement.
+  it("every tab bar button clears the 44px touch target (min-h-12 = 48px)", () => {
+    assert.match(APP_SOURCE, /min-h-12 flex-col items-center justify-center/);
+    assert.doesNotMatch(
+      APP_SOURCE,
+      /min-h-(?:10|11) flex-col items-center justify-center/,
+      "the bar never drops to the 44px floor or below it",
+    );
   });
 
   it("only the Trades button ever renders a badge", () => {
@@ -859,7 +868,14 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
   });
 
   it("carries the fixed tab bar's own clearance on the scrolling region, since this surface has no footer to carry it", () => {
-    assert.match(MOBILE_FRAME_SCROLL, /overflow-y-auto px-4 pb-24/);
+    // §17n sized the clearance to the bar: 49px of bar (48px box + 1px border)
+    // plus a 7px gap, plus the device's own safe-area inset, which the bar itself
+    // also pads by. It was a flat pb-24 (96px) — 39px of dead scroll where the
+    // inset is 0 and 5px of clearance where it is ~34px.
+    assert.match(
+      MOBILE_FRAME_SCROLL,
+      /overflow-y-auto px-4 pb-\[calc\(3\.5rem_\+_env\(safe-area-inset-bottom\)\)\]/,
+    );
     // App.tsx's fixed branch contributes no padding of its own — the surface
     // owns its gutters (m-scan-v3.html:29,32).
     assert.match(
@@ -1209,9 +1225,12 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // lifted into one module so five surfaces cannot drift into five frames.
     assert.equal(MOBILE_FRAME, "flex min-h-0 min-w-0 flex-1 flex-col");
     assert.equal(MOBILE_FRAME_PINNED, "shrink-0 px-4 pt-3");
+    // The tab-bar reserve is §17n's, sized to the bar's real composition rather
+    // than to a round number (tests/mobileMinimalism.test.ts carries the measured
+    // before/after); the rest of the string is m-scan-v3.html:32's, unchanged.
     assert.equal(
       MOBILE_FRAME_SCROLL,
-      "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24",
+      "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]",
     );
   });
 
@@ -1457,18 +1476,24 @@ describe("§17g — Profile ends with the colophon below lg, and only there", ()
 
   it("renders the colophon once, inside the <lg branch, in the footer's own treatment", () => {
     // The class, not the word: this file's own comments name .colophon while
-    // explaining why the line is here, and prose is not a second colophon.
-    assert.equal((profile.match(/className="colophon"/g) ?? []).length, 1);
+    // explaining why the line is here, and prose is not a second colophon. The
+    // §17n top-pad utility rides on the same attribute, so the count matches the
+    // attribute rather than the bare class.
+    assert.equal(
+      (profile.match(/className="colophon(?: [^"]*)?"/g) ?? []).length,
+      1,
+    );
+    assert.match(profile, /className="colophon max-lg:pt-5"/);
     // §17k made the line a link inside that <p> (tests/colophon.test.ts pins the
     // link itself); what this file owns is that the treatment is the footer's.
     assert.match(
       profile,
-      /className="colophon">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
+      /className="colophon max-lg:pt-5">\s*<a\n[\s\S]*?>\s*A Windward Line production/,
     );
     // Inside the mobile scroll region, after the rows: it ends the view.
     assert.match(
       profile,
-      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon"/,
+      /data-testid="mobile-profile-scroll"[\s\S]*?className="colophon/,
     );
   });
 
@@ -1535,7 +1560,7 @@ describe("mobile chrome interiors (m-mobile-v3.html + menu mock, fix wave 2C)", 
     // nav is `lg:hidden`, so these are mobile rules already.
     assert.match(
       APP_SOURCE,
-      /className=\{`flex min-h-14 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
+      /className=\{`flex min-h-12 flex-col items-center justify-center gap-0\.5 text-\[10\.5px\] font-bold uppercase tracking-\[0\.1em\] \$\{/,
     );
     // The accessible name comes from the explicit aria-label, so CSS casing
     // never reaches the e2e nav-name contracts (/^Trades(,|$)/ and friends).

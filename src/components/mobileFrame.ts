@@ -27,8 +27,18 @@ export const MOBILE_FRAME_PINNED = "shrink-0 px-4 pt-3";
 // The one scrolling region (m-scan-v3.html:32). Flat by construction — no
 // border, no fill, no radius, no cast edge — because §17g extends the box-on-box
 // rule to scroll regions. The thin scrollbar is the kit's own .scrolly, shared
-// with the ≥lg Desk's three columns. pb-24 is the fixed MobileTabBar's
-// clearance: below lg the bar is mounted on every surface, and the region runs
-// to the bottom of the viewport underneath it.
+// with the ≥lg Desk's three columns. The bottom pad is the fixed MobileTabBar's
+// clearance: below lg the bar is mounted on every surface, and the region runs to
+// the bottom of the viewport underneath it.
+//
+// §17n sizes that clearance to the bar it clears instead of to a round number.
+// The bar is min-h-12 (48px) plus its own 1px top border plus whatever
+// `env(safe-area-inset-bottom)` the device reports (App.tsx's MobileTabBar
+// carries that env pad itself), so the reserve is 49px of bar and a 7px gap,
+// plus the same inset. It used to be pb-24, a flat 96px: measured in Chromium at
+// 375x812, where the inset is 0, that left 39px of dead scroll under every
+// surface's last row, while on a phone reporting ~34px of inset it left 5px. No
+// single constant is right at both ends — this expression is the bar's real
+// composition, so it is right at both.
 export const MOBILE_FRAME_SCROLL =
-  "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-24";
+  "scrolly min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]";

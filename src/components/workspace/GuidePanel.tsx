@@ -207,8 +207,14 @@ export function GuidePanel({ anchor, onAnchorHandled }: GuidePanelProps) {
   // visible TOC already shows that, and the count was hardcoded against
   // GUIDE_SECTIONS.length with nothing to keep them in sync. Deleted outright,
   // no replacement copy.
+  //
+  // §17n: below lg the title takes the mobile page head every <lg surface draws —
+  // 19px on a 24px line, 8px of pad under the rule — which is m-trades-v1.html's
+  // own head, already shipping in CurrentTradesRail. Measured at 375x812: 64px of
+  // pinned chrome becomes 46px, and the article, this surface's whole reason,
+  // gains all 18px. The ≥lg page keeps the mock's 30px.
   const title = (
-    <h1 className="border-b-2 border-ink pb-3.5 text-3xl font-semibold tracking-normal text-ink">
+    <h1 className="border-b-2 border-ink pb-3.5 text-3xl font-semibold tracking-normal text-ink max-lg:pb-2 max-lg:text-[19px] max-lg:leading-6">
       How to use Levelflow
     </h1>
   );

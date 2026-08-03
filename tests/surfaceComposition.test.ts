@@ -128,9 +128,12 @@ describe("Guide composition — the mock's elements are present (g-guide-v1.html
   });
 
   it("opens the article with the mock's ruled h1 — no icon, no eyebrow above it", () => {
+    // §17n: the mock's 30px at ≥lg, the shared mobile page head below it — 19px on
+    // a 24px line with an 8px rule pad, which hands the article 18px of the pinned
+    // block it is the whole point of.
     assert.match(
       guide,
-      /<h1 className="border-b-2 border-ink pb-3\.5 text-3xl font-semibold tracking-normal text-ink">/,
+      /<h1 className="border-b-2 border-ink pb-3\.5 text-3xl font-semibold tracking-normal text-ink max-lg:pb-2 max-lg:text-\[19px\] max-lg:leading-6">/,
     );
   });
 
@@ -325,9 +328,12 @@ describe("Insights composition — the mock's elements are present (i-insights-v
   });
 
   it("gives the phead (h1 + record band) the mock's 2px ink rule, no card", () => {
+    // §17n compacted the band below lg — 12px column gap, 8px row gap, 8px of pad
+    // under the rule — and left the mock's own numbers at ≥lg. The rule itself,
+    // which is what this test is about, is unchanged.
     assert.match(
       history,
-      /className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3\.5"/,
+      /className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-3\.5 max-lg:gap-x-3 max-lg:gap-y-2 max-lg:pb-2"/,
     );
   });
 
@@ -340,9 +346,12 @@ describe("Insights composition — the mock's elements are present (i-insights-v
   });
 
   it("lays the filter row out inline with a hairline rule underneath, not a bordered card", () => {
+    // §17n compacted the row below lg (12px/8px gaps, 8px of pad) so the three
+    // filters take two 44px rows instead of three 48px ones. Still inline, still
+    // one hairline, still no card — which is what this test owns.
     assert.match(
       history,
-      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4"/,
+      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4 max-lg:gap-x-3 max-lg:gap-y-2 max-lg:pb-2"/,
     );
   });
 
@@ -351,7 +360,7 @@ describe("Insights composition — the mock's elements are present (i-insights-v
     // the first one after it — matched by shape rather than by indentation, which
     // §17g's two compositions moved (the row is a value both branches place).
     const filtersBlock = history.match(
-      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4">[\s\S]*?<\/div>/,
+      /className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4 max-lg:gap-x-3 max-lg:gap-y-2 max-lg:pb-2">[\s\S]*?<\/div>/,
     )?.[0] ?? "";
     for (const label of ["Market", "Status", "Period"]) {
       assert.match(filtersBlock, new RegExp(`aria-label="${label}"`));
@@ -439,13 +448,14 @@ describe("Attribution composition — the section is present (spec §18)", () =>
   it("titles the section with an h2 in the surface's own heading treatment, one step under its h1", () => {
     assert.match(
       history,
-      /<h2 className="text-xl font-semibold tracking-normal text-ink">\s*Attribution\s*<\/h2>/,
+      /<h2 className="text-xl font-semibold tracking-normal text-ink max-lg:text-base">\s*Attribution\s*<\/h2>/,
     );
     // The h1 above it keeps the larger step, so the hierarchy is real rather
-    // than two headings at one size.
+    // than two headings at one size — and §17n moved BOTH down below lg (19px over
+    // 16px) rather than only the h1, which would have inverted them on a phone.
     assert.match(
       history,
-      /<h1 className="text-2xl font-semibold tracking-normal text-ink">/,
+      /<h1 className="text-2xl font-semibold tracking-normal text-ink max-lg:text-\[19px\] max-lg:leading-6">/,
     );
   });
 

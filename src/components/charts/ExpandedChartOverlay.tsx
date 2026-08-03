@@ -166,7 +166,15 @@ export function ExpandedChartOverlay(
       className="motion-fade-in fixed inset-0 z-40 flex h-[100dvh] w-[100dvw] flex-col bg-paper"
       role="dialog"
     >
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-2">
+      {/* §17n: the dialog's own chrome yields to the chart it exists to show.
+          Measured against the built CSS at 375x812, this head was 61px — 8px of
+          pad either side of a 44px close target — and the chart body carried 12px
+          of pad all round. The close stays 44px (the kit floor binds, and §17n
+          grants no exception to a primary control), so the padding is what gives:
+          4px here and 8px below, which is 20px of chart height and 8px of width
+          back on a phone. Both are max-lg: variants — the ≥lg overlay §17m.3
+          opened keeps its own geometry. */}
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-2 max-lg:py-1">
         <span
           id={titleId}
           className="min-w-0 truncate font-display text-lg font-bold text-ink"
@@ -183,7 +191,7 @@ export function ExpandedChartOverlay(
           <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
-      <div className="min-h-0 flex-1 p-3">{children}</div>
+      <div className="min-h-0 flex-1 p-3 max-lg:p-2">{children}</div>
     </div>,
     document.body,
   );

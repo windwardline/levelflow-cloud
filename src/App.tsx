@@ -304,7 +304,14 @@ export default function App() {
           how that disagreement turns into a cascade puzzle. */}
       <main className={mainShellClassName(isMobileViewport)}>
         <header className="sticky top-0 z-20 border-b border-hairline bg-paper/90 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
+          {/* §17n: 8px of block padding below lg, the mock's 12px at ≥lg. Measured
+              against the built CSS at 375x812, this row was 69px of which 44px is
+              the avatar trigger — the kit's tap floor, which sets the row's height
+              and cannot yield — so the padding around it was the only slack there
+              was, and 8px is still a real gutter above and below a 44px control.
+              Every mobile surface's content row gains the 8px, since this header
+              and the content row split one fixed viewport between them. */}
+          <div className="mx-auto max-w-7xl px-4 py-3 max-lg:py-2 sm:px-8">
             {/* Mobile header (<lg, spec §3): wordmark, compact broker chip,
                 account avatar — Guide/Profile/Donate/Sign out all live
                 behind that one button instead of the single-row masthead
@@ -644,7 +651,22 @@ function MobileTabBar({
               // lg:hidden, so these are mobile rules already.
               // Casing is CSS only; the accessible name comes from the
               // aria-label above, so the e2e nav-name contracts are untouched.
-              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] ${
+              //
+              // §17n sized the box: measured against the built CSS at 375x812,
+              // a tab's own content is 38px — the 20px icon, the 2px gap, and
+              // the 10.5px label's 15.75px line box — so the 56px box this
+              // carried held 18px of nothing. (Its retired utility is named by
+              // shape rather than spelled out, the habit mainShellClassName
+              // documents: Tailwind's scanner reads this file, and a dead class
+              // in a comment is a dead rule in the bundle.)
+              // min-h-12 is 48px: the kit's 44px tap floor plus 4px, a
+              // step toward the mock's own tab (m-scan-v3.html:48 draws a
+              // text-only 39px one), and 8px of visible content handed back to
+              // every surface, since this bar overlays the bottom of each one's
+              // scroll region. The icons stay — they carry no text, so no
+              // legibility floor asks them to grow, and they are what makes the
+              // 10.5px label a label rather than the whole affordance.
+              className={`flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] ${
                 isActive ? "text-accent" : "text-ink-muted"
               }`}
               type="button"
