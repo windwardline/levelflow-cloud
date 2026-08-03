@@ -60,6 +60,7 @@ import {
 } from "./components/workspace/WorkspaceNav";
 import { DonatePanel } from "./components/donations/DonatePanel";
 import { useAuthSession } from "./hooks/useAuthSession";
+import { useDeployedVersion } from "./hooks/useDeployedVersion";
 import { useIsMobileViewport } from "./hooks/useMobileViewport";
 import { useTradeSetups } from "./hooks/useTradeSetups";
 import { useUserProfile } from "./hooks/useUserProfile";
@@ -162,6 +163,12 @@ export default function App() {
   // sit between the two, and a hook after an early return is a hook that runs
   // in a different order on different renders.
   const isMobileViewport = useIsMobileViewport();
+  // Whether a deploy has landed under this tab — the 2026-08-03 incident's fix,
+  // whose mechanism and evidence live in src/lib/deployedVersion.ts. Gated on the
+  // session because the notice is the authed shell's: the sign-in screen is
+  // short-lived and a stale one still signs in, so a signed-out tab checks
+  // nothing. Same reason as isMobileViewport for sitting up here.
+  const deployMoved = useDeployedVersion(Boolean(session));
   const [activeTab, setActiveTab] = useState<AppTab>(() => getInitialAppTab());
   const [guideAnchor, setGuideAnchor] = useState<GuideAnchor | null>(null);
   // A stored setup another surface asked the Desk to reopen (the Insights ledger's
@@ -613,6 +620,16 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            {/* The reload notice, in the masthead rather than in the content
+                region: it belongs to the app rather than to whichever surface is
+                showing, and the masthead is the one row §17i and §17g both pin on
+                every surface — a notice in a scroll region can be scrolled away
+                from the reader who needs it. It costs the content row its own
+                height while it is up, which is the trade a tab in this state
+                should be making: the reader's next useful action is the reload.
+                Absent otherwise, so nothing in normal operation moves. */}
+            {deployMoved ? <ReloadNotice /> : null}
           </div>
         </header>
 
@@ -778,6 +795,31 @@ function mainShellClassName(isMobileViewport: boolean): string {
     return "grid h-[100dvh] grid-rows-[auto_1fr] overflow-hidden bg-paper text-ink";
   }
   return "grid h-[100dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-paper text-ink";
+}
+
+// One sentence, and the sentence is the control (§17f, owner-approved
+// 2026-08-03). It says the two things the surface cannot show — that this tab is
+// running a bundle the origin has replaced, and what to do about it — and nothing
+// else: no duration, no explanation of what changed, no second line telling the
+// reader where to tap. The whole line is the button, because a notice the reader
+// must act on and the control they act with are one object here.
+//
+// The presentation is the market notice's, unchanged: the closed-market line's own
+// type (AdvisorWorkspace's marketNotice paragraph — text-sm font-medium
+// text-ink-muted), flat, with no plane and no icon, so this adds a sentence to the
+// app and not a surface to it. What it adds on top is what a control needs and a
+// paragraph does not: §17n's 44px floor at both widths, the left alignment a
+// button has to ask for, and the hover the app's other muted text controls take.
+function ReloadNotice() {
+  return (
+    <button
+      className="mt-2 flex min-h-11 w-full items-center text-left text-sm font-medium text-ink-muted transition hover:text-ink"
+      type="button"
+      onClick={() => window.location.reload()}
+    >
+      Levelflow has updated. Reload to continue.
+    </button>
+  );
 }
 
 function useThemePreference() {

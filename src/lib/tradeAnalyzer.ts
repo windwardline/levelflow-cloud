@@ -1,3 +1,4 @@
+import { runningBundleId } from "./deployedVersion";
 import {
   chunkScanSymbols,
   mapWithConcurrency,
@@ -209,6 +210,20 @@ export async function scanMarketOpportunities(symbols: SupportedSymbol[]) {
         client.functions.invoke<MarketScanResponse>("trade-analyzer", {
           body: {
             action: "scan_opportunities",
+            // Which bundle is asking. On 2026-08-03 a tab running the pre-#174
+            // bundle sent the retired all-markets form all morning: the server
+            // refused each attempt before writing any telemetry, so the fleet's
+            // own record showed nothing at all while the reader watched a scan
+            // fail. The stamp puts the sender's identity on the requests that DO
+            // write a record — and gives the next breaking change a way to see
+            // how much of the fleet is still behind. Passthrough exactly like
+            // scanId: the server validates the shape and echoes it, and nothing
+            // anywhere branches on it.
+            //
+            // Absent rather than faked where there is no built bundle to name
+            // (the dev server's entry is `/src/main.tsx`), the same choice scanId
+            // makes where crypto.randomUUID is missing.
+            buildStamp: runningBundleId() ?? undefined,
             chunkCount: chunks.length,
             chunkIndex,
             scanId,
@@ -243,6 +258,10 @@ export async function refreshTradeOutcomes() {
     supabase.functions.invoke<AnalyzerResponse>("trade-analyzer", {
       body: {
         action: "refresh_outcomes",
+        // The scan path's stamp, on the app's other analyzer request: a reader who
+        // never scans is still a tab in the fleet, and this is the request every
+        // surface show sends (spec §8).
+        buildStamp: runningBundleId() ?? undefined,
       },
     }),
     OUTCOME_REFRESH_TIMEOUT_MS,

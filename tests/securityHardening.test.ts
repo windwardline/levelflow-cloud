@@ -92,6 +92,35 @@ describe("security hardening", () => {
     assert.equal(analyzerSource.includes("scanTrace.scanId ?"), false);
   });
 
+  it("validates the caller's build stamp the same way, and refuses nothing over it", () => {
+    const analyzerSource = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+
+    // The stamp is the client's own bundle filename, and it lands in the same free
+    // JSON column the trace does — so it is read the same way: a bounded string
+    // over a closed character set, or nothing at all. Sixty-four characters is
+    // four times the length Vite's `index-<hash>.js` actually needs, and the set
+    // admits no path separator, no whitespace, and no quote.
+    const stampStart = analyzerSource.indexOf("function readBuildStamp(");
+    const stampEnd = analyzerSource.indexOf("type ScanTrace =");
+    const stampSource = analyzerSource.slice(stampStart, stampEnd);
+    assert.ok(stampStart > -1 && stampEnd > stampStart);
+    assert.match(stampSource, /typeof body\.buildStamp === "string"/);
+    assert.match(stampSource, /\^\[A-Za-z0-9\._-\]\{1,64\}\$/);
+    // Dropped silently, never refused: a malformed label on an otherwise valid
+    // request must not cost the reader their scan. The refusals this file's other
+    // tests pin are about the WORK a request asks for; this is about its name.
+    assert.match(stampSource, /: undefined;/);
+    assert.equal(
+      analyzerSource.includes('error: "Invalid build stamp"'),
+      false,
+    );
+    const stampReturns = stampSource.match(/return /g) ?? [];
+    assert.equal(stampReturns.length, 1, "one expression, two outcomes");
+  });
+
   it("keeps scheduled sync endpoints token-gated and deployed", () => {
     const outcomeSync = readFileSync(
       "supabase/functions/outcome-sync/index.ts",

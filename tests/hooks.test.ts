@@ -174,17 +174,145 @@ describe("useTradeSetups re-reads on wake (source-pinned — see header)", () =>
     // gap, and it runs either way.
     assert.match(
       source,
-      /const readAfterGap = useCallback\(\(\) => \{\s*refreshSetups\(\{ refreshOutcomes: true, silent: true \}\);\s*\}, \[refreshSetups\]\);/,
+      /refreshSetups\(\{ refreshOutcomes: true, silent: true \}\);\s*\}, WAKE_READ_COALESCE_MS\);/,
     );
     // One reader, two callers — the force path stays App.tsx's, spec §8.
     assert.equal((source.match(/readAfterGap\(\)/g) ?? []).length, 2);
     assert.doesNotMatch(source, /forceOutcomeRefresh: true/);
   });
 
+  it("takes one read per wake, and stands down when another read already covered it", () => {
+    // The pair this closes, measured rather than supposed: production telemetry
+    // for 2026-08-03 shows the wake read and §8's surface-show force refresh
+    // landing within the same second of each other, in pairs, on one wake. The
+    // chain is the returning tab's own: GoTrue refreshes the token, useAuthSession
+    // hands App a new session object, App's tab-activation effect re-fires with
+    // forceOutcomeRefresh — a full second read of trade_setups plus an outcome
+    // refresh for a reader who changed nothing.
+    //
+    // The wake reader is the half that yields, because it is the lesser read: it
+    // takes the table only, while §8's takes the table and the outcomes. So the
+    // wake read waits a beat and then asks whether anything read in the meantime.
+    assert.match(source, /const WAKE_READ_COALESCE_MS = 300;/);
+    assert.match(
+      source,
+      /if \(pendingWakeRead\.current !== null\) \{\s*return;\s*\}/,
+    );
+    assert.match(
+      source,
+      /pendingWakeRead\.current = window\.setTimeout\(\(\) => \{\s*pendingWakeRead\.current = null;/,
+    );
+    assert.match(
+      source,
+      /if \(lastReadStartedAt\.current >= wokeAt\) \{\s*return;\s*\}/,
+    );
+    // Every read stamps the clock the wake reader consults, at the START of the
+    // read rather than its end: a read in flight already covers this instant.
+    const stamp = source.indexOf("lastReadStartedAt.current = Date.now();");
+    const silentGate = source.indexOf("if (!options?.silent) {");
+    assert.ok(stamp > -1, "expected the read clock");
+    assert.ok(
+      silentGate > stamp,
+      "the read must stamp the clock before it starts working",
+    );
+    assert.equal(
+      (source.match(/lastReadStartedAt\.current = Date\.now\(\);/g) ?? []).length,
+      1,
+      "one stamp, on the one path every read takes",
+    );
+    // A wake read still waiting when the hook goes away is a read for nobody.
+    assert.match(source, /window\.clearTimeout\(pendingWakeRead\.current\);/);
+  });
+
+  it("leaves §8's force refresh exactly where it was, on all three of its call sites", () => {
+    // The dedup is the wake reader's alone. §8 spends the provider-heavy refresh
+    // deliberately, on a surface the reader just opened (App.tsx's two activation
+    // effects) and on the rail's own manual control — none of which this wave may
+    // quietly throttle.
+    const app = readFileSync("src/App.tsx", "utf8");
+    assert.equal(
+      (app.match(/refreshSetups\(\{ forceOutcomeRefresh: true \}\)/g) ?? []).length,
+      3,
+    );
+  });
+
   it("leaves the two postgres_changes handlers exactly as they were", () => {
     const handlers = source.match(/refreshSetups\(\{ silent: true \}\);/g) ?? [];
     assert.equal(handlers.length, 2);
     assert.equal((source.match(/"postgres_changes"/g) ?? []).length, 2);
+  });
+});
+
+// The deploy gap, and the incident that named it (2026-08-03). A reader's
+// overnight tab was running the pre-#174 bundle and sent the retired all-markets
+// scan request all morning; the server refuses that request by design, and the
+// old client's catch turns the refusal into "Market scan could not complete. Try
+// again shortly." — a dead end no retry leaves. The tab had no way to learn that
+// a deploy had happened under it. This hook is that way: what it compares and why
+// is src/lib/deployedVersion.ts's docblock, and the parse of both sides is real
+// tested behavior in tests/deployedVersion.test.ts. What is pinned here is the
+// hook's own shape, which no harness in this repo can drive.
+describe("useDeployedVersion checks twice and never loops (source-pinned — see header)", () => {
+  const source = readFileSync("src/hooks/useDeployedVersion.ts", "utf8");
+
+  it("checks on mount and on the became-visible wake, and nowhere else", () => {
+    // The two moments a tab can have been left behind: the shell arriving, and a
+    // tab coming back. Guarded to the transition IN, exactly as useTradeSetups'
+    // listener is — 'hidden' fires the same event, and a tab on its way out has
+    // nothing to be told.
+    assert.match(source, /void check\(\);/);
+    assert.match(
+      source,
+      /document\.addEventListener\("visibilitychange", onVisible\)/,
+    );
+    assert.match(
+      source,
+      /if \(document\.visibilityState === "visible"\) \{\s*void check\(\);/,
+    );
+    // No interval, no polling: the whole point is two fetches, not a heartbeat.
+    assert.doesNotMatch(source, /setInterval|setTimeout/);
+  });
+
+  it("never fetches twice over, and stops for good once a deploy is found", () => {
+    // Two refs, two failure modes. `checking` is the fetch in flight — a wake
+    // during a slow read must not start a second one. `answered` is the mismatch
+    // already found: the notice stands until the reader reloads, so every later
+    // check could only confirm what is already on screen.
+    assert.match(source, /const checking = useRef\(false\);/);
+    assert.match(source, /const answered = useRef\(false\);/);
+    assert.match(
+      source,
+      /if \(answered\.current \|\| checking\.current\) \{\s*return;\s*\}/,
+    );
+    assert.match(source, /answered\.current = true;\s*setDeployMoved\(true\);/);
+  });
+
+  it("says nothing when the read says nothing", () => {
+    // bundleChanged is the whole decision, and it answers false for an unknown on
+    // either side (dev, or a failed read). There is no other path to the notice —
+    // no truthy-response shortcut, no default-to-stale.
+    assert.match(
+      source,
+      /if \(cancelled \|\| !bundleChanged\(runningBundleId\(\), deployed\)\) \{\s*return;\s*\}/,
+    );
+    // One setter call, on the far side of that one gate: no truthy-response
+    // shortcut, no default-to-stale, no second path to the notice.
+    assert.equal((source.match(/setDeployMoved\(/g) ?? []).length, 1);
+  });
+
+  it("is gated on the shell it belongs to, and unsubscribes", () => {
+    // The adjudication: authed-shell only. A signed-out tab fetches nothing here,
+    // because the sign-in screen is short-lived and a stale one still signs in.
+    assert.match(
+      source,
+      /export function useDeployedVersion\(enabled: boolean\)/,
+    );
+    assert.match(source, /if \(!enabled \|\| typeof document === "undefined"\) \{\s*return;\s*\}/);
+    assert.match(source, /\}, \[enabled\]\);/);
+    assert.match(
+      source,
+      /document\.removeEventListener\("visibilitychange", onVisible\);/,
+    );
   });
 });
 

@@ -231,6 +231,33 @@ describe("scan persistence — the call site honours the contract", () => {
     assert.match(analyzer, /scanned: scan\.scanned,[\s\S]{0,200}\.\.\.scanTrace,/);
   });
 
+  it("records which bundle sent the request, on both events that write one", () => {
+    // The build stamp rides beside the trace, in both directions: the scan event
+    // and the outcome-refresh event each carry it, and both take it from the one
+    // validated read (readBuildStamp — tests/securityHardening.test.ts pins the
+    // validation). It exists because of 2026-08-03: a stale tab's requests were
+    // invisible in analyzer_events, so nothing said the fleet was running two
+    // bundles. Absent when the caller sent nothing usable, exactly as scanId is.
+    assert.match(analyzer, /const buildStamp = readBuildStamp\(body\);/);
+    assert.equal(
+      (analyzer.match(/const buildStamp = readBuildStamp\(body\);/g) ?? []).length,
+      1,
+      "one read, before either event that carries it",
+    );
+    assert.match(
+      analyzer,
+      /action: "refresh_outcomes",\s*metadata: \{ buildStamp, outcomeRefresh, learningRefresh \},/,
+    );
+    assert.match(
+      analyzer,
+      /action: "scan_opportunities",\s*metadata: \{[\s\S]{0,600}buildStamp,/,
+    );
+    // A label on the record, never an input to the work — the same rule the trace
+    // lives under.
+    assert.equal(analyzer.includes("if (buildStamp"), false);
+    assert.equal(analyzer.includes("buildStamp ?"), false);
+  });
+
   it("keeps the C2 live-position guard, now reported as a skip", () => {
     // No origin term left in it: §17m.1's one door removed the review-origin
     // exemption that used to switch this guard off for a whole platform.

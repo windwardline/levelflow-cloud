@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
@@ -9,6 +9,25 @@ import { supabase } from "../lib/supabase";
 // the auth listener below clears it on sign-out.
 let lastOutcomeRefreshAt = 0;
 const OUTCOME_REFRESH_INTERVAL_MS = 60_000;
+// How long a wake read waits before taking itself, and so the window in which
+// another read can stand it down.
+//
+// Chosen against the pair it closes, not for taste. Production telemetry for
+// 2026-08-03 shows the wake read and spec §8's surface-show force refresh landing
+// within the same second of each other, in pairs, on one wake — and the chain is
+// the returning tab's own: GoTrue refreshes the token when the tab comes back,
+// useAuthSession hands App a new session object, and App's tab-activation effect
+// re-fires with forceOutcomeRefresh for a reader who changed nothing. One wake,
+// two full reads of trade_setups plus a provider-heavy outcome refresh.
+//
+// The wake read is the half that yields, because it is the lesser of the two: it
+// reads the table, while §8's reads the table AND the outcomes. Waiting a beat is
+// what makes yielding possible at all, since the token refresh is a network round
+// trip and lands after the visibility event rather than before it. The cost is
+// immaterial against what this read exists to beat: the socket needs 25s of
+// heartbeat plus a 1s–10s reconnect ladder to notice it died (#188), so a read
+// 300ms later is still some two orders of magnitude earlier than the rejoin.
+const WAKE_READ_COALESCE_MS = 300;
 type RefreshSetupsOptions = {
   forceOutcomeRefresh?: boolean;
   refreshOutcomes?: boolean;
@@ -26,8 +45,20 @@ export function useTradeSetups() {
   // HISTORY_LOAD_FAILED_COPY's job, the same split MarketScanResponse.failed
   // already makes for the scan path.
   const [loadFailed, setLoadFailed] = useState(false);
+  // The wake reader's own two facts: when a read of any kind last started, and
+  // whether a wake read is already waiting to be taken. Refs rather than the
+  // module scope the outcome throttle above uses, because these describe one
+  // reader's own triggers rather than a provider budget that must outlive a
+  // remount — and because a timer id that outlived its component would be a read
+  // taken for a surface that is gone.
+  const lastReadStartedAt = useRef(0);
+  const pendingWakeRead = useRef<number | null>(null);
 
   const refreshSetups = useCallback(async (options?: RefreshSetupsOptions) => {
+    // Stamped at the start rather than the end, and by every caller — §8's force
+    // refresh included. What the wake reader needs to know is whether a read is
+    // already covering this instant, and a read in flight covers it.
+    lastReadStartedAt.current = Date.now();
     if (!options?.silent) {
       setLoading(true);
     }
@@ -96,15 +127,46 @@ export function useTradeSetups() {
   // refresh stays behind OUTCOME_REFRESH_INTERVAL_MS so returning to the tab
   // cannot drive it once per trip. The force path stays App.tsx's, where spec §8
   // spends it deliberately on a tab the reader just opened.
+  //
+  // One wake, one read (the pair WAKE_READ_COALESCE_MS above documents). Two
+  // triggers arriving together are one wake arriving twice — a phone that fires
+  // visibilitychange for the app-switcher preview and again for the return, a
+  // rejoin landing on the heels of the visibility event — never two gaps, so the
+  // second is dropped rather than queued. And a read taken by anyone else in the
+  // meantime stands this one down: the gap it exists to close is already closed,
+  // and §8's force refresh closes more of it than this read can.
   const readAfterGap = useCallback(() => {
-    refreshSetups({ refreshOutcomes: true, silent: true });
+    if (pendingWakeRead.current !== null) {
+      return;
+    }
+
+    const wokeAt = Date.now();
+    pendingWakeRead.current = window.setTimeout(() => {
+      pendingWakeRead.current = null;
+      if (lastReadStartedAt.current >= wokeAt) {
+        return;
+      }
+      refreshSetups({ refreshOutcomes: true, silent: true });
+    }, WAKE_READ_COALESCE_MS);
   }, [refreshSetups]);
+
+  // A wake read still waiting when the hook goes away is a read for nobody: a
+  // request, an outcome refresh and a setState against a surface that has already
+  // unmounted. Its own effect rather than the visibility effect's cleanup, because
+  // both wake paths schedule it and only one of them owns that listener.
+  useEffect(() => () => {
+    if (pendingWakeRead.current !== null) {
+      window.clearTimeout(pendingWakeRead.current);
+      pendingWakeRead.current = null;
+    }
+  }, []);
 
   // Wake path one, and the one that matters to the reader: the tab coming back
   // is both the moment a gap may have closed behind us and the moment stale rows
-  // become visible. It fires immediately, long before the socket itself notices
-  // it died — the heartbeat interval is 25s and the reconnect ladder adds
-  // 1s–10s on top — so leaving this to the rejoin would leave a resolved trade
+  // become visible. It fires within a breath of the tab returning — 300ms, the
+  // coalesce window above — and so still long before the socket itself notices it
+  // died, since the heartbeat interval is 25s and the reconnect ladder adds
+  // 1s–10s on top. Leaving this to the rejoin would leave a resolved trade
   // reading as live for the first half-minute the reader is looking at it.
   // Guarded to the became-visible transition: 'hidden' fires the same event, and
   // reading on the way out serves nobody.
