@@ -212,13 +212,18 @@ describe("§8 — prefers-reduced-motion collapses all motion to instant", () =>
 });
 
 describe("§8 — no decorative motion beyond it", () => {
-  it("ships exactly one keyframes animation in the kit", () => {
+  it("ships exactly two keyframes animations, each with its own law", () => {
+    // lf-fade-in is §8's own surface fade. phosphor-pulse is the deploy
+    // notice's breathing glow — not decoration but the owner's explicit
+    // attention demand (§17c ruling, mockup A, 2026-08-03), scoped by that
+    // ruling to the one element that exists to interrupt. A third name here
+    // needs a third ruling.
     assert.deepEqual(
       Array.from(
         CSS.matchAll(/@keyframes\s+([a-z0-9-]+)\s*\{/g),
         (match) => match[1],
       ),
-      ["lf-fade-in"],
+      ["phosphor-pulse", "lf-fade-in"],
     );
   });
 

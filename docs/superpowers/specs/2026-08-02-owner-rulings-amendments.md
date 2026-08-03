@@ -1273,3 +1273,35 @@ at both widths — rendered options to choose from, never prose descriptions —
 per the visual-overhaul precedent where mocks are the binding composition
 authority. The owner's standing preference governs the candidates: succinct
 language that does not crowd nearby elements.
+
+**Amendment 19 — the checkout record rules the catalog (owner, 2026-08-03,
+restated per standing preference).** Four rulings, answering the §19
+retrofit plan's open questions:
+
+1. **The purchase-checkout screenshots are the single source of truth for
+   what E8 offers**, for every E8 account class — Forex, Futures, and
+   Crypto. The catalog adheres to them. Whenever an offering is uncertain
+   or sources conflict, the owner's screenshots — the account checkout
+   screens and the in-platform TradeLocker captures of 2026-08-02 —
+   overrule every other record, the dossiers included. The `zero`
+   consequence is OWNER-CONFIRMED (2026-08-03, on plan review): "Zero is
+   offered on Futures, as two different account types … But if it is not
+   visible on checkout screens under Forex accounts, then it does not
+   belong there. **Do not include unavailable options, whether greyed or
+   not.**" So: Zero MAX and Zero Starter stay on the Futures walk where
+   the checkout sells them; the forex-family `zero` never enters the
+   rendered catalog in any form. Greying remains reserved for
+   sold-but-unverified (MatchTrader); unavailable is absent — a general
+   rule, not a Zero-specific one. The data record stays (amendment 13:
+   nothing deleted).
+2. **E8 Trial is out of scope entirely.** Levelflow builds nothing for
+   trial accounts. Their absence from the catalog is correct by ruling,
+   not a gap.
+3. **Forex-carried crypto stays forex-scoped.** The crypto markets a Forex
+   account carries are confirmed part of that account's offering, but they
+   are separate from what the actual E8 Crypto accounts will report and
+   make available. Evidence observed on them never crosses onto
+   Crypto-classification lines — the narrow reading of contract-size
+   adjacency stands.
+4. **Where the documentation suffices, proceed on it** — always under
+   clause 1's precedence when the two conflict.

@@ -257,6 +257,30 @@ uniform reference markup; Brent's width is a contract-roll's, consistent
 with a different delivery month. Everything else on the account — 28 forex
 pairs, gold, crypto within composite dispersion — is one price stream.
 
+### F8 — 2026-08-03 14:59:26–14:59:43 EDT · ADAUSD·1h, four frames — the first Crypto-classification sample
+
+**Program line: E8 One Crypto, $5,000, default "4-6" tier (live account,
+purchased 2026-08-03 — the first sample NOT on Pro Forex).** Full account
+record: `docs/research/e8-crypto-account-2026-08-03.md`.
+
+Clock corroboration: four frames at 2:59:26 / :32 / :38 / :43 PM UTC-4
+with 1h-candle countdowns 00:33 / 00:27 / 00:20 / 00:16 — every pair sums
+to 3:00:00, so the platform clock is internally exact.
+
+| Check | E8 (TradeLocker, bid-plotted) | FMP | Verdict |
+| --- | --- | --- | --- |
+| Path containment | bids 0.19399 → 0.19409 across the frames | 14:59 ET 1-min bar [0.1938, 0.1941] | inside the bar |
+| Spread proximity | ask 0.19421, spread 22 pts | 14:59 close 0.1941 | Δ 0.00011 ≈ half spread |
+| Live quote bracket | frames' bids, minutes earlier | 0.19400 @ 19:03:06 UTC | brackets |
+| Day high (corroboration only, never a criterion) | 0.19619 | 0.1961 (11:59 ET bar) | 0.005% — far inside crypto's ≤0.1% |
+
+**PASS — exact-class.** FMP's crypto path is the same market the Crypto
+account's TradeLocker plots (FMP prints 4dp against E8's 5dp; containment
+and half-spread proximity carry the verdict). The crypto verdict measured
+on the Forex-carried side now holds on the actual Crypto classification,
+same platform, different account class — consistent with ruling 8's
+per-platform feed identity.
+
 ### F9 — 2026-08-03 15:08:59–15:09:49 EDT · The Tradovate watchlists, eight tabs — the first Futures-classification samples
 
 **Program line: E8 Signature Futures, $25,000, Phase 1 (live account,
