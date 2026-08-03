@@ -453,12 +453,15 @@ describe("§17i — the satellites' Donate opens something, and it can be seen (
   const AUTH = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
 
   it("opens the block from the query and from the hash, on load", () => {
-    const initial = AUTH.match(
-      /useState\(\(\) => \{\s*const params = new URLSearchParams\(window\.location\.search\);\s*return ([^;]*);/,
-    )?.[1] ?? "";
-    assert.ok(initial.length > 0, "expected donationsOpen's initial state");
-    assert.match(initial, /params\.has\("donate"\)/);
-    assert.match(initial, /window\.location\.hash === "#donate"/);
+    // Both forms still, and still on load — but the reading itself moved to
+    // src/lib/donateEntry.ts, because the authed shell answers the same ask now
+    // (it opens its Donate tab) and two surfaces reading one URL contract from two
+    // places is how they drift. tests/donateEntry.test.ts owns what counts as the
+    // ask; what this pins is that this screen still asks on load, and asks that
+    // module rather than the URL.
+    assert.match(AUTH, /useState\(donateRequested\)/);
+    assert.match(AUTH, /import \{ donateRequested \} from "\.\.\/\.\.\/lib\/donateEntry";/);
+    assert.doesNotMatch(AUTH, /URLSearchParams/);
   });
 
   it("scrolls it into view when it opens, in an effect keyed on that state", () => {

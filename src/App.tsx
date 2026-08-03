@@ -24,6 +24,7 @@ import { LevelflowMark } from "./components/LevelflowMark";
 import { LEGAL_LINKS } from "./components/legal/LegalLinks";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
+import { clearDonateRequest, donateRequested } from "./lib/donateEntry";
 import { PARKING_GATE, parkingBypassActive } from "./lib/parkingGate";
 import { GuidePanel } from "./components/workspace/GuidePanel";
 import { HistoryPanel } from "./components/workspace/HistoryPanel";
@@ -95,6 +96,19 @@ const LAST_TAB_STORAGE_KEY = "levelflow-last-tab";
 function getInitialAppTab(): AppTab {
   if (typeof window === "undefined") {
     return "advisor";
+  }
+
+  // The satellite pages ask for this surface by URL — `<a href="/?donate">Donate</a>`
+  // is in the footer of all five (the three legal documents, the parking page, and
+  // 404) and in the React parking screen's own footer — and until now only the
+  // sign-in screen answered, so a signed-in reader who tapped it landed on
+  // whatever tab they had last used. It is read here, ahead of that memory,
+  // because it is a request made now rather than a record of where they were; and
+  // it never becomes the memory itself, since "donate" is absent from
+  // PERSISTED_TABS above. The predicate is shared with AuthScreen's own reading of
+  // the same ask (src/lib/donateEntry.ts), so the two surfaces cannot drift.
+  if (donateRequested()) {
+    return "donate";
   }
 
   const stored = window.localStorage.getItem(LAST_TAB_STORAGE_KEY);
@@ -227,6 +241,24 @@ export default function App() {
 
     window.localStorage.setItem(LAST_TAB_STORAGE_KEY, activeTab);
   }, [activeTab]);
+
+  // The ?donate arrival above is consumed once, and then taken back out of the
+  // URL. Left in, it would outlive the arrival and win every LATER load of that
+  // URL — including the reloads a phone performs on its own when it returns to a
+  // backgrounded tab — putting a reader who had since moved to Insights back on
+  // Donate having asked for nothing. That is the second form of the rule the
+  // PERSISTED_TABS effect above enforces: this arrival must not become the
+  // remembered tab, and it must not override it either.
+  //
+  // Signed in only. The sign-in screen reads the same ask for its own donation
+  // disclosure and keeps it, deliberately: that screen is one surface with no
+  // remembered position to displace, so a reload that reopens the block cannot
+  // take a reader anywhere they did not choose.
+  useEffect(() => {
+    if (session) {
+      clearDonateRequest();
+    }
+  }, [session]);
 
   if (loading) {
     // Fix wave 2B: no mock covers this pre-auth data-loading gate, but it

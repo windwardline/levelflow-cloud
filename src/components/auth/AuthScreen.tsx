@@ -10,6 +10,7 @@ import {
 } from "../satelliteFrame";
 import { DonationOptions } from "../donations/DonationOptions";
 import { describeAuthEmailError } from "../../lib/authErrors";
+import { donateRequested } from "../../lib/donateEntry";
 import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
@@ -28,10 +29,12 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     "Enter your email. We'll send one secure link to open your workspace.",
   );
   const [error, setError] = useState("");
-  const [donationsOpen, setDonationsOpen] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.has("donate") || window.location.hash === "#donate";
-  });
+  // The same ask the authed shell now opens its Donate tab on, read from the one
+  // predicate both surfaces share (src/lib/donateEntry.ts). What this screen does
+  // with it is unchanged, including leaving the parameter in the URL: there is one
+  // surface here and nothing a reload could displace, so consuming it — which the
+  // authed shell does — would buy nothing.
+  const [donationsOpen, setDonationsOpen] = useState(donateRequested);
   const donationsRef = useRef<HTMLDivElement>(null);
 
   // Spec §17i moved the control that reveals this block into the footer, which is
