@@ -18,13 +18,25 @@ All of §16 and §17 binds: flat rows, hairlines, mono numerals, the copy law
 (§17f — text says only what the surface cannot show), both platforms inside
 the existing frames, no new chrome, and the two-direction review discipline.
 
-**The boundary, and it governs every number in both sections.** No number
-enters this feature unless E8 publishes it, or Levelflow derives it by a
-method E8 publishes from data Levelflow already holds. There is no third
-source. Not an exchange specification, not an industry convention, not a
-figure from a third-party aggregator, not a plausible default. Where those
-two sources run out, the feature renders a word instead of a number (§19e,
-§20f) — and that refusal is the feature working, not the feature failing.
+**The boundary, and it governs every number in both sections.** A number
+enters this feature by exactly three routes: E8 publishes it; Levelflow
+derives it by a method E8 publishes from data Levelflow already holds; or
+**the owner observes it directly on the broker's live platform and it is
+recorded dated and attributed** (owner ruling, 2026-08-02). There is no
+fourth. Not an exchange specification, not an industry convention, not a
+figure from a third-party aggregator, not a plausible default. Where the
+three run out, the feature renders a word instead of a number (§19e, §20f)
+— and that refusal is the feature working, not the feature failing.
+
+**The third route is narrow by construction.** It admits what the broker's
+own platform shows the account holder — a minimum lot increment, an order
+ticket's computed risk, an instrument's presence in the tradable list, an
+account option on the purchase screen. It carries `tag: "verified"` with
+the observation's date, the platform it was made on, and the live program
+it was made under. It is not a channel for inference: an observation
+establishes the value observed, on the instrument and account it was
+observed on, and nothing adjacent to it. Appendix A is the standing
+program that produces these observations.
 
 **Waves.** §19 ships first and completely. §20 ships second. The migration
 in §19g lands once, in wave 1, carrying the columns §20 consumes so wave 2
@@ -47,10 +59,12 @@ change set that edits it — the properties `tests/calibrationState.test.ts`
 already buys for the calibration constants. A table would move the numbers
 out of code review and out of CI.
 
-Location: `src/lib/broker/` — `programs.ts` (program lines and ladders),
-`instruments.ts` (the instrument rows), `rulebook.ts` (§20), `types.ts`.
-The trade-analyzer edge function does not read them; sizing is a client
-computation over data the client already holds (§19c).
+Location: `src/lib/broker/` — as shipped in wave 1: `types.ts`,
+`programs.ts` (program lines and ladders), `instruments.ts` (the instrument
+rows), `bridging.ts` (§19c's bridge), `quotes.ts`, `sizing.ts` (the formula
+and its gates); `rulebook.ts` joins them with §20. The trade-analyzer edge
+function does not read them; sizing is a client computation over data the
+client already holds (§19c).
 
 **The row is keyed on `(broker, program_line, levelflow_symbol)`.** Never on
 the FMP symbol — `WTI`/`CLUSD` and `BRENT`/`BZUSD` share one FMP symbol
@@ -61,11 +75,19 @@ instruments at three contract sizes depending on the program bought
 (crossmap §5.1).
 
 ```ts
+type Observation = {
+  date: string;        // ISO date the owner made it
+  platform: string;    // "TradeLocker" | "E8X dashboard" | "E8 purchase screen"
+  program: string;     // the live account it was made on: "E8 Pro Forex"
+  note: string | null; // what was seen, in the owner's own terms
+};
+
 type Provenance = {
-  article: string | null;   // "9453488" | "13004287" | null for dossier-only
-  tag: "primary" | "derived" | "secondary" | "dossier";
+  article: string | null;   // "9453488" | "13004287" | null for dossier-only and verified
+  tag: "primary" | "derived" | "verified" | "secondary" | "dossier";
   method: string | null;    // required when tag is "derived": the article publishing the method
-  url: string;
+  url: string | null;       // null only when tag is "verified"
+  observation: Observation | null; // required when tag is "verified", null otherwise
 };
 
 type Valued<T> = { source: Provenance; value: T | null };
@@ -101,11 +123,12 @@ type BrokerInstrument = {
 
 **Four rules govern the fields.**
 
-1. **Only `[PRIMARY]`-tagged values may enter as `confirmed`.** A row whose
+1. **Only admissible-tagged values may enter as `confirmed`.** A row whose
    tradability rests on a `[SECONDARY]` or dossier-only tag is at best
    `unconfirmed`. CI asserts the implication in one direction: every
-   `confirmed` row carries `tag: "primary"` on its tradability and on every
-   non-null value its unit requires.
+   `confirmed` row carries `primary` or `verified` on its tradability, and
+   `primary`, `derived` or `verified` on every non-null value its unit
+   requires.
 
    `derived` is the fourth tag and the only one this feature adds to the
    dossiers' three. It marks a value E8 does not print but instructs the
@@ -116,6 +139,21 @@ type BrokerInstrument = {
    distinguishable so a later reviewer can see at a glance which numbers E8
    wrote down and which ones its arithmetic produced. A `derived` value may
    support a `confirmed` row; a `secondary` or `dossier` value may not.
+
+   `verified` is the fifth tag and the third admissible one (owner ruling,
+   2026-08-02). It marks a value the owner observed on the broker's live
+   platform: it carries no article and no url, it carries a non-null
+   `observation` with a date, a platform and the live program, and CI keeps
+   it distinguishable from `primary` so a later reviewer can see at a glance
+   which numbers E8 wrote down, which ones its arithmetic produced, and
+   which ones the owner watched the platform do. A `verified` value may
+   support a `confirmed` row, and a `verified` observation may establish
+   tradability itself — the owner seeing an instrument tradable on the live
+   account is the same class of fact as E8 publishing that it is.
+   `secondary` and `dossier` remain inadmissible for either. The CI
+   implication widens accordingly: every `confirmed` row's tradability
+   carries `primary` or `verified`, and every value its unit requires
+   carries `primary`, `derived` or `verified`.
 
 2. **Null blocks. Null never defaults.** Contract size is NOT PUBLISHED for
    every crypto symbol, for silver on the Markets side, for every index but
@@ -172,9 +210,12 @@ property-tested in wave 1 with **zero confirmed inverted rows** (§19f).
 
 An exchange contract notional would resolve `6J` arithmetically, and it is
 ruled out: it is neither E8-published nor derivable by an E8-published
-method, so it fails the boundary at the head of this document. The row stays
-`unconfirmed` until E8 publishes a reconcilable pair, and the machinery waits
-for data rather than the data being manufactured to fit the machinery.
+method, and the third route admits an observation of the broker's own
+platform, not a figure from the exchange — so it fails the boundary at the
+head of this document. The row stays `unconfirmed` until E8 publishes a
+reconcilable pair **or the owner observes the live ticket's own tick value**
+(Appendix A, item 6), and the machinery waits for data rather than the data
+being manufactured to fit the machinery.
 
 **Row population, wave 1.** Every one of the 50 scannable markets gets a row
 on every shipped program line (§19b) — 500 rows, generated from the
@@ -214,10 +255,16 @@ Consequential population facts, each pinned by test:
 it: its article 404'd on re-fetch and its drawdown is described two ways
 (fixed 4%/8% against a customizable 3–7%/6–14%). `E8 Track` and `E8 Track
 1:1` fail it: never found on either help subdomain, secondary-only, absent
-from every current collection listing, possibly legacy. Neither appears in
-the selector, and **neither re-enters on recollection or a checkout
-screenshot — only behind a fresh primary-research pass** that clears the same
-bar the ten cleared, dated and committed to `docs/research/` like the rest.
+from every current collection listing, possibly legacy. **Neither is offered
+by E8 any longer** (owner, 2026-08-02: "Classic and Track are no longer
+offered by E8."), which retires the evidence question rather than answering
+it: the 404'd Classic article and Track's secondary-only citations are what a
+withdrawn product's documentation looks like. Neither appears in the
+selector, and **neither has a re-entry path** — there is no research pass to
+run against a product that is not sold. The ten lines are E8's current
+catalogue. If E8 ever reintroduces either name, it enters as a new product on
+its own primary research, dated and committed to `docs/research/` like the
+rest — a restoration of a 2026 row is never the mechanism.
 
 | `program_line` | Selector label | Account sizes | Source |
 |---|---|---|---|
@@ -323,10 +370,14 @@ riskBudget = accountSize × (riskPercent / 100)
 ```
 
 `accountSize` is the profile's tier, not an equity Levelflow cannot see.
-Every drawdown basis E8 publishes is the **initial balance** — "its value is
-based on the initial balance" (11769446), "Initial Balance − % of Initial
-Balance = Loss Level" (13653031) — so the tier is the right denominator, not
-a stale guess at one.
+Every **breach** drawdown basis E8 publishes is the **initial balance** —
+"its value is based on the initial balance" (11769446), "Initial Balance − %
+of Initial Balance = Loss Level" (13653031) — so the tier is the right
+denominator for the budget, not a stale guess at one. The scope of that
+claim is exactly the account-ending limits: the Signature **Daily Pause** is
+not among them, its basis being the day's starting balance (§20b's owner
+canon), which is why §20d renders that rule as a percent and never as a
+tier-derived dollar.
 
 **Step 2 — the stop distance, on the Levelflow price axis.**
 
@@ -487,17 +538,30 @@ units = floorToStep(min(rawUnits, ...caps), step)
 ```
 
 Futures step is **1 contract**, exact and confirmed. CFD step is **0.01
-lots** and is marked UNCONFIRMED: E8 publishes no minimum lot increment
-anywhere. The smallest lot E8 names in print is 0.1 (9453425, "even a
-0.1-lot micro-trade counts") and its worked examples use 0.3 and 5 lots
-(14722843), which distinguishes nothing. 0.01 is taken over 0.1 because
-flooring to 0.1 produces **no size at all** on the small ladder tiers — a
-$5,000 account at 0.50% risk with a 30-pip EURUSD stop sizes to 0.083 lots,
-which floors to zero at a 0.1 step. The consequence of being wrong is
-stated, not hidden: a size below 0.1 lots may fall under the trading
-platform's own minimum and be refused at order entry, which is a rejected
-order (E8: "If a trade exceeds your available margin, the system will
-prevent the order") and never an account breach.
+lots**, and it is **verified, not assumed**: the owner confirmed it on their
+live E8 Pro Forex account in TradeLocker on 2026-08-02 — "On forex accounts,
+I can confirm the smallest is 0.01." The value carries `tag: "verified"` with
+that observation (§19a); E8 still publishes no minimum lot increment on any
+page, and it no longer needs to. The print record that forced the old
+assumption is kept for the reader: the smallest lot E8 names in print is 0.1
+(9453425, "even a 0.1-lot micro-trade counts") and its worked examples use
+0.3 and 5 lots (14722843), which distinguished nothing — which is why the
+value came in unconfirmed before the owner watched the platform. The reason
+0.1 would have been wrong stands as corroboration rather than as
+justification: a $5,000 account at 0.50% risk with a 30-pip EURUSD stop
+sizes to 0.083 lots, which a 0.1 step floors to zero, so the tightest ladder
+tier would have produced no size at all.
+
+**The observation's scope is the account, not the instrument list.** It was
+made on a forex-line account, which is where every CFD program line's forex
+pairs trade, so the 28 pairs carry the verified step. `XAUUSD` — the 29th
+sizeable CFD market — trades on that same account, and whether it carries an
+instrument-specific minimum is not something the observation says: it keeps
+0.01 as the working step and sits first in Appendix A's queue. The index CFDs
+raise the same question and it stays academic in wave 1, since Levelflow's
+index rows are the futures symbols and are `not_offered` on every CFD line.
+A sub-0.1-lot size no longer carries a "may be refused" hedge on the verified
+instruments — the step is the platform's own.
 
 **The invariants CI enforces** (§19f): the rounded size's worst-case loss
 never exceeds the risk budget; the size never exceeds any cap; the size is
@@ -511,7 +575,13 @@ an unpublished contract size, both energies rows on an unpublished energies
 symbol list, `XAGUSD` on an unpublished silver contract size, `ZBUSD` and
 `ZNUSD` on an unpublished tick, `BRENT` and `BZUSD` on a contract E8 does not
 carry. Not one of those is unblockable by derivation — E8 publishes no method
-that produces a contract size it never printed.
+that produces a contract size it never printed. Every one of them is
+unblockable by **observation**: a single manual trade on the live platform
+shows what a lot of that instrument is worth, and Appendix A is the standing
+program that collects exactly those. The sizeable counts in this section are
+therefore a floor dated 2026-08-02, not a ceiling — each verified observation
+moves a row from a word to a number, in a change set that names the
+observation.
 
 ### §19d. The surfaces
 
@@ -606,14 +676,20 @@ margin, leverage and ticket cap against the article that publishes it —
 contract sizes, 5514982 for leverage, 9453396 for ticket caps, 13001922 for
 the instrument roster. Structural assertions on top:
 
-- Every `confirmed` row's tradability carries `tag: "primary"`, and every
-  value its unit requires carries `primary` or `derived`. No `secondary` or
-  `dossier` tag reaches `confirmed`.
+- Every `confirmed` row's tradability carries `primary` or `verified`, and
+  every value its unit requires carries `primary`, `derived` or `verified`. No
+  `secondary` or `dossier` tag reaches `confirmed`.
 - Every `derived` value carries a non-null `method` naming a real article,
   and no `derived` value is also tagged `primary`. The 13 pairs E8's bridging
   table enumerates carry `primary` on their bridge; the 15 it does not carry
   `derived` with `method: "9453396"`. Pinning the 13/15 split by name is what
   stops a later edit from quietly promoting a derived bridge to published.
+- Every `verified` value carries a non-null `observation` with a date and a
+  platform, and no `verified` value is also tagged `primary` — the §19a
+  third-route discipline as CI, so an owner observation can never be
+  laundered into something E8 published. The 0.01 CFD lot step is asserted
+  `verified` **by name**, with its date and platform, the way E8 Zero's null
+  drawdown percentage is asserted null by name (§20g).
 - The bridge resolves for all 28 pairs, and every bridge leg it names is in
   `AVAILABLE_ASSET_SYMBOLS` — the boundary as CI, so no bridge can start
   reading a market Levelflow does not already scan.
@@ -844,12 +920,116 @@ Unresolved cells carry no value and render as §20f's word.
 | `one_crypto` | Daily Drawdown 3% [13429922] | Dynamic Drawdown 4% [13429922] | none / 40% [13429922] | same as `one` [9185497] | none [5514966] |
 | `pro_forex` | Daily Drawdown 2.5% [15274219] + Daily Profit Cap 2% clawed back 00:00–01:00 server [15319043] | Static Drawdown 8%, fixed until first payout then moves to initial forever, terminates [13653031] | none / none [9453418, 15274219] | unrestricted, both stages [9185497] | none [5514966] |
 | `pro_crypto` | identical, confirmed on its own page [15323777] | identical [15323777] | none / none [15323777] | unrestricted [9185497] | none [5514966] |
-| `signature_forex` | none in Challenge; Daily Pause 2%, pauses to 00:00 server, not a breach, Performance only [11969807] | EOD Dynamic Drawdown, $1,000/$2,000/$3,000/$4,500 by size, updates once at market close, locks at initial, terminates [11755943, 11864596] | none / 35% Best Day [11755943] | unrestricted [9185497] | nightly: all positions closed 23:00 server, reopen 00:15 [11755943] |
-| `signature_crypto` | identical [11864571, 11969807] | identical [11864571] | none / 35% [11864571] | unrestricted [9185497] | nightly 23:00 server [11864571] |
-| `signature_futures` | none in Challenge; Daily Pause 2%, $500/$1,000/$2,000/$3,000, Performance only [11864618, 11969807] | EOD Dynamic, $1,000/$2,000/$3,000/$4,500, both stages [11864618] | none / 35% Best Day [11865587] | unrestricted, both stages [10209321] | daily: all positions force-closed 15:10 CT [13001922, 10149596] |
+| `signature_forex` | none in Challenge; Daily Pause 2% of the day's starting balance, pauses to 00:00 server, not a breach, Performance only [11969807; owner canon 2026-08-02] | EOD Dynamic Drawdown, $1,000/$2,000/$3,000/$4,500 by size, updates once at market close, locks at initial, terminates [11755943, 11864596] | none / 35% Best Day [11755943] | unrestricted [9185497] | nightly: all positions closed 23:00 server, reopen 00:15 [11755943] |
+| `signature_crypto` | identical [11864571, 11969807; owner canon 2026-08-02] | identical [11864571] | none / 35% [11864571] | unrestricted [9185497] | nightly 23:00 server [11864571] |
+| `signature_futures` | none in Challenge; Daily Pause 2% of the day's starting balance, $500/$1,000/$2,000/$3,000, Performance only [11864618, 11969807; owner canon 2026-08-02] | EOD Dynamic, $1,000/$2,000/$3,000/$4,500, both stages [11864618] | none / 35% Best Day [11865587] | unrestricted, both stages [10209321] | daily: all positions force-closed 15:10 CT [13001922, 10149596] |
 | `zero` | **none** — the comparison table's Daily-limit cell reads "No" [13106558] | EOD Dynamic Drawdown, **% NOT PUBLISHED**, terminates [11864596, 8880316] | none / none [9453418] | unrestricted [9185497] | none; overnight and weekend allowed [5514966] |
 | `zero_futures_starter` | **none** [13106558] | EOD Dynamic 3%; Challenge does not lock at initial and keeps trailing [15935817, 11864596] | 40% of the profit target / none [15936479, 15935817] | unrestricted [10209321] | daily 15:10 CT [13001922, 10149596] |
 | `zero_futures_max` | identical to Starter — "Both versions have identical rules" [15935817] | identical [15935817] | identical [15936479] | unrestricted [10209321] | daily 15:10 CT [13001922] |
+
+**The two definitions, owner-canonical (2026-08-02).** The owner supplied
+these verbatim as the rulebook's definitional inputs. Where a later re-read
+of E8's pages phrases either mechanism differently, these govern the model's
+`basis`, `updateClock` and `severity`. The article citations stay where they
+are — the canon does not replace them, it states which reading of them is law.
+
+> 2% Daily pause - A soft daily loss limit based on your starting balance of
+> the day. If your floating or closed loss reaches 2%, trading stops until
+> the next day. Your account is not breached. It simply pauses and resets at
+> midnight
+
+> EOD Dynamic drawdown – A moving loss limit based on your highest
+> end-of-day balance. It only updates once per day at market close (intraday
+> equity swings do not move it). It locks permanently at the initial balance
+> level.
+
+Source of record for the EOD definition, owner-supplied:
+`https://intercom.help/e8/en/articles/11864596-eod-dynamic-drawdown` —
+article 11864596, already this spec's citation for the mechanism. The Daily
+Pause definition's article of record remains 11969807 unless the owner names
+another.
+
+**What each canon pins in the model.**
+
+- Daily Pause: `basis: "day_start_balance"` — *not* `initial_balance`.
+  `severity: "pauses"`, and the canon says why in words the app must never
+  soften: "Your account is not breached." `updateClock: "server_midnight"`
+  ("resets at midnight"). The trigger is **floating or closed** loss, so it
+  can fire on an open position — recorded here because V2's headroom math
+  turns on it and V1 must not imply a closed-only line.
+- EOD Dynamic: `basis: "highest_eod_balance"`,
+  `updateClock: "market_close"`, `severity: "terminates"`, and it locks
+  permanently at the initial balance level — the lock is a floor that stops
+  trailing, not a reset. "Intraday equity swings do not move it" is the
+  operative half for a governor with no telemetry: nothing a user does inside
+  a day changes this number, which is why the facts block can render it at
+  all.
+
+Both were already the model's shape. The canon's force is that they are now
+owner-stated law rather than a reading of two help pages, and §20i ruling 3
+is decided by the first of them.
+
+**The EOD Dynamic amounts, and why they are a table and not a percentage.**
+Owner-supplied with the definition, 2026-08-02:
+
+| Account size | EOD Dynamic drawdown | Implied % |
+|---|---|---|
+| $25,000 | $1,000 | 4% |
+| $50,000 | $2,000 | 4% |
+| $100,000 | $3,000 | 3% |
+| $150,000 | $4,500 | 3% |
+
+**The ratio is tiered — 4% / 4% / 3% / 3% — not flat**, and stating that is
+the point of the table. The four amounts confirm the figures already in the
+rulebook row for the Signature lines; what they add is the shape. Any single
+percentage fitted to them is wrong on two of the four tiers, so on the
+Signature lines the EOD Dynamic rule carries `percent: null` and
+`amountBySize` holds all four values. `zero_futures_starter` and
+`zero_futures_max` are unaffected: 3% is published flat on their own page
+(15935817). CI asserts the shape, not just the numbers: no flat `percent` on
+a Signature EOD rule, the amount table complete for all four tiers per
+§20g's no-partial-map rule, and the 4/4/3/3 ratio pinned so a later editor
+who "simplifies" the table to one percentage fails the suite.
+
+**The input contract — owner-supplied purchase-screen data.** The four
+customizable lines (`one`, `one_crypto`, `pro_forex`, `pro_crypto`) sell
+their loss limits as a purchase-time choice, and the definitive statement of
+what E8 offers is the purchase screen itself. The owner has offered to supply
+it (2026-08-02: "We should account for the customizable options and calculate
+things for the user based on the parameters E8 offers. I can provide them
+from the purchase screen, if necessary."). This block states what happens
+when they do, and what happens until then, so neither state is improvised.
+
+**When the tier matrix arrives**, it enters as `verified` provenance (§19a):
+one observation per program line, carrying the date, the platform ("E8
+purchase screen") and the tiers exactly as the screen lists them. The
+purchase screen is authoritative over a price-table reading where the two
+differ, because it is what the user actually buys from — which also settles
+§20f's open E8 One preset conflict (11775980's 3%/4% against 8880316's
+4%/6%). Landing it is one change set that touches four places together, or it
+is not landed: §19b item 5's selector option list, §19g's
+`broker_drawdown_tier` domain table, §20j's Drawdown option tokens, and the
+`programs.ts` module with its pinning test. Tier membership is enforced by
+the data module and the write path, not by SQL (§19g), so a tier that reaches
+the selector without reaching the domain table is a write the write path
+rejects — and a domain widened without the module is a tier CI does not know
+about.
+
+**Until it arrives**, the customizable lines compute from the tiers already
+primary-published — §19b item 5's five One/One Crypto pairs and three Pro
+pairs (8880316) — and nothing is invented to fill a suspected gap. Where a
+selected tier is unknown or a rulebook fact behind it is unpublished, the
+rows render §20f's word. The feature does not wait for the purchase screen to
+ship; it ships on published tiers and gets more accurate when the screen
+lands.
+
+**What this block does not authorize.** Neither Levelflow nor the owner
+composes a drawdown pair E8 does not sell. Daily and dynamic move together
+on One ("Profit Target adjusts automatically with drawdown changes"), Pro's
+daily leg is fixed at 2.5% and only its static leg moves, and the column
+holds one paired token for exactly that reason (§19g). A purchase screen
+showing a combination this spec does not list widens the domain; it never
+licenses interpolation between two listed tiers.
 
 **Two dossier-level disagreements, resolved here.**
 
@@ -948,7 +1128,7 @@ literal this block can render is here.
 
 | Label | Value domain | Source |
 |---|---|---|
-| `Daily loss` | `${amount} · Daily Drawdown` · `${amount} · Daily Pause` · `None` · `Not confirmed` | 11769446, 11969807, 13106558 |
+| `Daily loss` | `${amount} · Daily Drawdown` · `2% · Daily Pause` · `None` | 11769446, 11969807, 13106558 |
 | `Max drawdown` | `${amount} · Dynamic Drawdown` · `${amount} · EOD Dynamic Drawdown` · `${amount} · Static Drawdown` · `Not published` | 11782996, 11864596, 13653031 |
 | `Profit target` | `${amount}` | product page per line |
 | `Position cap` | `{n} contracts` · `{n} lots` | 10155917, 9453396 |
@@ -958,8 +1138,9 @@ literal this block can render is here.
 | `Flatten` | `None` · `15:10 CT daily` · `23:00 server nightly` | 13001922, 11755943, 5514966 |
 
 Value grammar, pinned: a dollar amount is comma-grouped without cents; a rule
-name follows the amount after ` · `; a percentage carries its `%`; a count
-carries its unit. **The rule names are E8's own product names, reproduced
+name follows the value after ` · ` (whether that value is an amount or a
+percent — `Daily loss` on the Signature lines is the percent case); a
+percentage carries its `%`; a count carries its unit. **The rule names are E8's own product names, reproduced
 exactly** — `Daily Drawdown`, `Daily Pause`, `Dynamic Drawdown`,
 `EOD Dynamic Drawdown`, `Static Drawdown` — even where the label already
 carries a word of them. Shortening `EOD Dynamic Drawdown` to `EOD Dynamic`
@@ -982,21 +1163,30 @@ E8's comparison table says "No", and that is a published fact, materially
 different from an unpublished one. Rows whose fact is unpublished render
 §20f's word.
 
-**One value is pinned to a conflict rather than to a number.** On
+**One value was pinned to a conflict; the owner's canon closed it.** On
 `signature_forex`, `signature_crypto` and `signature_futures`, **at
-Performance stage only**, `Daily loss` renders **`Not confirmed`** — not the
-2% figure, not a figure with a caveat. Two E8 pages disagree about whether the
-Daily Pause dollar amount survives a payout: 11969807 states the fixed dollar
-"never changes during the account's life", while the payout FAQ (15272556)
-states those limits are "calculated from your new balance" once a payout is
-requested, and the futures dossier's re-read confirms 11969807 is simply
-silent on the interaction rather than contradicting it. Levelflow additionally
-cannot know whether a payout has occurred, so it cannot pick the branch even
-if E8 resolved the wording. Rendering the initial-balance figure would be
-correct until the first payout and silently wrong after it — exactly the
-failure the unconfirmed discipline exists to prevent. At Challenge stage the
-row is absent, because Daily Pause does not apply there at all (11969807's own
-scope line).
+Performance stage only**, `Daily loss` renders **`2% · Daily Pause`** — the
+rule's own invariant, not a conditional dollar. The canon (§20b) states the
+basis: "A soft daily loss limit based on your starting balance of the day."
+The limit recalculates every day, so the two pages that appeared to disagree
+do not: 11969807's "never changes during the account's life" describes the 2%
+rule, not a frozen dollar figure, and the payout FAQ's "calculated from your
+new balance" (15272556) is that same daily recalculation observed after a
+payout. There is no branch left to pick.
+
+**The percent form, and why this row alone carries one.** The dollar amount
+depends on the day's starting balance, which Levelflow cannot see; a
+tier-derived dollar is exact only on a day the account starts at its tier and
+**overstates the real pause line on every day below it** — the direction §20a
+forbids, because a user reads a loss limit as headroom. The percent is exactly
+true on every day of the account's life. `signature_futures`' published
+amounts — $500 / $1,000 / $2,000 / $3,000 at the four tiers (11864618), which
+are 2% of 25K/50K/100K/150K exactly — stay in the rulebook data as the
+arithmetic corroborating itself, and CI pins that identity; they are not
+rendered.
+
+At Challenge stage the row is absent, because Daily Pause does not apply
+there at all (11969807's own scope line). That is unchanged.
 
 Provenance is carried in the data on every value and is not rendered.
 Article IDs on a settings sheet would be furniture; CI is where provenance
@@ -1062,7 +1252,11 @@ Same string as §19e's, same meaning — E8 does not publish it — and one word
 across both sections is one thing for a reader to learn. It never appears as
 a dash, never as an empty row, never as a plausible number with a footnote.
 
-**The genuinely open items, and what each one costs.**
+**The genuinely open items, and what each one costs.** Two entries below are
+marked CLOSED and kept rather than deleted — the post-payout Daily Pause
+question (owner canon, 2026-08-02) and the CFD lot step (verified on the live
+platform, 2026-08-02). A reader who arrives with either question should find
+the answer where the question used to live.
 
 - **E8 Zero's drawdown percentage.** The *type* is now corrected and
   confirmed — E8 Zero is named in the EOD Dynamic Drawdown article's own
@@ -1082,17 +1276,19 @@ a dash, never as an empty row, never as a plausible number with a footnote.
   those two lines would show are unavailable; V1 renders no payout rows at
   all (they need telemetry), so the cost is deferred to V2, where those two
   lines will show `Not published` where the other eight show a table.
-- **Post-payout Daily Pause behaviour.** 11969807 says the fixed dollar
-  amount "never changes during the account's life"; the payout FAQ (15272556)
-  says Daily Pause limits are "calculated from your new balance" once a
-  payout is requested. The futures dossier's re-read confirms 11969807 is
-  simply silent on payout interaction — the contradiction stands. Levelflow
-  also cannot know whether a payout has happened. *Consequence, ruled:* on the
-  three Signature lines at Performance stage, `Daily loss` renders
-  **`Not confirmed`** rather than the 2% figure (§20d). This is the one place
-  in either section where a fully published number is deliberately withheld,
-  and it is withheld because a second published page contradicts the
-  condition under which it holds.
+- **Post-payout Daily Pause behaviour — CLOSED, owner canon 2026-08-02.**
+  The apparent contradiction between 11969807 ("never changes during the
+  account's life") and the payout FAQ (15272556, "calculated from your new
+  balance") dissolves once the basis is stated: the limit is 2% of the day's
+  starting balance and recalculates daily, so both pages describe the same
+  mechanism. *Consequence:* on the three Signature lines at Performance
+  stage, `Daily loss` renders **`2% · Daily Pause`** (§20d) — the percent,
+  because the dollar depends on a balance Levelflow cannot see. This was the
+  one place where a fully published number was withheld because a second page
+  disputed the condition under which it holds, and that case is now closed.
+  `6J` stays withheld, but on arithmetic E8's own table cannot reconcile
+  rather than on a disputed condition (§19a) — a different kind of silence,
+  and Appendix A's queue is where it gets resolved.
 - **Which condition unlocks the higher payout split** — 100% on Zero and
   Pro, 90%/100% on One — is NOT PUBLISHED on any page, and the futures
   dossier confirms the gap is systemic across every multi-tier product
@@ -1107,8 +1303,11 @@ a dash, never as an empty row, never as a plausible number with a footnote.
   contradiction. *Consequence:* Levelflow assumes neither — this is what the
   §19b Drawdown selector is for, and with no tier selected the two drawdown
   rows render `Not published`.
-- **The CFD minimum lot step** is NOT PUBLISHED (§19c). *Consequence:* a
-  size below 0.1 lots may be refused at order entry.
+- **The CFD minimum lot step** is NOT PUBLISHED by E8 and is **no longer
+  open**: verified at 0.01 on the owner's live E8 Pro Forex TradeLocker
+  account, 2026-08-02 (§19c, Appendix A). *Consequence:* none on the 28 forex
+  pairs. `XAUUSD`'s per-instrument minimum is the residual, and it is queued,
+  not guessed.
 - **In-platform order-entry ticker strings** are NOT PUBLISHED for every
   asset class. *Consequence:* no surface renders an E8 symbol (§19a).
 
@@ -1135,9 +1334,14 @@ object, one `it` per program line. Structural assertions:
   drawdown percentage is asserted null **by name** — a future change that
   fills it in must be a deliberate one with a source.
 - `zero`'s daily loss is `None`, not null: a published absence is not a gap.
-- The three Signature lines resolve `Daily loss` to `Not confirmed` at
-  Performance and to absent at Challenge, asserted per line — the §20d
-  ruling as CI, so a later edit cannot quietly restore the 2% figure.
+- The three Signature lines resolve `Daily loss` to **`2% · Daily Pause`** at
+  Performance and to absent at Challenge, asserted per line. Two assertions
+  ride with it: no tier-derived dollar reaches that row on any line or size
+  (the §20d percent ruling as CI), and `signature_futures`' published
+  $500/$1,000/$2,000/$3,000 equals 2% of each of its four tiers — data, pinned
+  and unrendered — so no later edit can introduce an amount that is not 2% of
+  the tier, and none can restore `Not confirmed` without deleting an owner
+  canon.
 - Per-size amount tables are complete for every size in the program's
   ladder, or null for the whole table. No partial map.
 
@@ -1202,21 +1406,39 @@ here so a later reader sees what was decided rather than re-deciding it.
    derived. Method-derived values carry `derived (method: 9453396)`, distinct
    from `[PRIMARY]`; the method is E8's and only Levelflow's own in-roster
    quotes feed it. 29 sizeable CFD markets, not 14. (§19a rule 1, §19c.)
-2. **The CFD step is 0.01 lots**, UNCONFIRMED-marked, consequence stated: a
-   sub-0.1-lot size may fall under the platform's own minimum and be refused
-   at order entry — a rejected order, never an account breach. (§19c.)
-3. **Signature `Daily loss` renders `Not confirmed` at Performance stage.**
-   The 11969807-vs-15272556 conflict is what the unconfirmed discipline is
-   for, and Levelflow cannot know whether a payout occurred. (§20d, §20f.)
+2. **The CFD step is 0.01 lots — verified, superseding the UNCONFIRMED mark
+   this ruling originally carried.** The draft reasoned to 0.01 and marked it
+   unconfirmed, with the consequence stated: a sub-0.1-lot size may fall under
+   the platform's own minimum and be refused at order entry — a rejected
+   order, never an account breach. The owner then confirmed the step on the
+   live platform (E8 Pro Forex, TradeLocker, 2026-08-02): "On forex accounts,
+   I can confirm the smallest is 0.01." It carries `tag: "verified"`, and the
+   refused-at-order-entry hedge is retired on the forex pairs. (§19a, §19c,
+   Appendix A.)
+3. **SUPERSEDED by owner canon, 2026-08-02.** As drafted, this ruling
+   withheld Signature's `Daily loss` at Performance as `Not confirmed`, on the
+   reasoning that the 11969807-vs-15272556 conflict is what the unconfirmed
+   discipline is for and that Levelflow cannot know whether a payout occurred.
+   The owner's canonical definition names the basis — "based on your starting
+   balance of the day" — which recalculates daily and reconciles both pages.
+   The row renders **`2% · Daily Pause`**: the percent, since the dollar
+   depends on a balance Levelflow cannot see (controller, 2026-08-02).
+   (§20b, §20d, §20f.)
 4. **Both profile columns approved** — `broker_stage` and
    `broker_drawdown_tier`, domains per program line in §19g.
 5. **No external contract notional.** The boundary at the head of this
-   document is the ruling: no number that is not E8-published or derived by
-   E8's published method from Levelflow's own data. `6J` stays `unconfirmed`
-   on the $125,000-against-$125,000,000 arithmetic; the inversion machinery
-   ships property-tested awaiting confirmed data. (§19a.)
-6. **Ten program lines** — the researched set less E8 Classic and E8 Track,
-   which re-enter only behind fresh primary research. (§19b.)
+   document is the ruling: no number that is not E8-published, derived by
+   E8's published method from Levelflow's own data, or observed on E8's own
+   live platform (the third route, added 2026-08-02 — it admits the broker's
+   platform, never the exchange's spec sheet). `6J` stays `unconfirmed` on the
+   $125,000-against-$125,000,000 arithmetic; the inversion machinery ships
+   property-tested awaiting confirmed data, and Appendix A item 6 is its
+   route. (§19a.)
+6. **Ten program lines** — the researched set less E8 Classic and E8 Track.
+   Ground UPDATED by the owner, 2026-08-02: "Classic and Track are no longer
+   offered by E8." Discontinued, not under-evidenced — so the draft's
+   "re-enter only behind fresh primary research" path does not exist; a future
+   reappearance is a new product. (§19b.)
 
 ## §20j. Every rendered string
 
@@ -1243,16 +1465,92 @@ maximum.
 
 **§20 — the program-facts block.** Labels: `Daily loss` · `Max drawdown` ·
 `Profit target` · `Position cap` · `Scaling` · `Consistency` · `News` ·
-`Flatten`. Value literals, complete: `None` · `Not confirmed` ·
-`Not published` · `Unrestricted` · `±5 min blackout` · `35% best day` ·
-`40% best day` · `40% of profit target` · `15:10 CT daily` ·
-`23:00 server nightly` · the five E8 rule names (`Daily Drawdown` ·
-`Daily Pause` · `Dynamic Drawdown` · `EOD Dynamic Drawdown` ·
-`Static Drawdown`) · and the four numeric forms `${amount}` ·
-`{n} contracts` · `{n} lots` · `1.5% locked → {n} · 3% locked → {n}`.
+`Flatten`. Value literals, complete: `None` · `Not published` ·
+`Unrestricted` · `±5 min blackout` · `35% best day` · `40% best day` ·
+`40% of profit target` · `15:10 CT daily` · `23:00 server nightly` · the five
+E8 rule names (`Daily Drawdown` · `Daily Pause` · `Dynamic Drawdown` ·
+`EOD Dynamic Drawdown` · `Static Drawdown`) · and the five numeric forms
+`${amount}` · `2% · Daily Pause` · `{n} contracts` · `{n} lots` ·
+`1.5% locked → {n} · 3% locked → {n}`.
+
+**`Not confirmed` is a §19 string only.** It renders in the Size row, where
+tradability still produces it, and it is **not** in the facts block's domain:
+the one row that reached it — Signature `Daily loss` at Performance — renders
+`2% · Daily Pause` since the owner canon closed that conflict (§20d, §20i
+ruling 3). §20j is checked in both directions, so the string's absence here is
+as load-bearing as its presence there; restoring it to the facts block
+requires a named, reachable trigger.
 
 **Nothing else.** No heading, no eyebrow, no description, no caption, no
 tooltip, no empty state, no error string. The Broker row's existing approved
 description ("Markets, costs, and record follow the broker.") is unchanged and
 the ladder's existing copy is untouched — this feature adds rows and words to
 surfaces that already have their sentences.
+
+---
+
+## Appendix A. The standing empirical program (owner offer of record, 2026-08-02)
+
+Wave 1 refuses to answer wherever E8's pages stop. This appendix is how that
+silence gets resolved without loosening the boundary: the owner holds live E8
+accounts, and what the platform shows the account holder is admissible as
+`verified` provenance (§19a, and the preamble's third route).
+
+**What the owner offers.**
+
+- **Per-asset manual trades on TradeLocker, live E8 Pro Forex** — a small
+  trade on a named instrument, reporting the platform's own risk and reward
+  per lot. That single figure is the thing §19c Step 3 derives, so an
+  observation either confirms the derivation or falsifies it.
+- **An E8 futures account, to be purchased** — verifying account options (the
+  ladder and the drawdown tiers as sold), tradable assets (the instrument list
+  as the platform lists it), and trade calculations (tick value per contract as
+  the ticket computes it).
+
+**How an observation becomes data.** It is recorded as an `Observation` (§19a)
+with its date, platform and live program, attached to the specific
+`(broker, program_line, levelflow_symbol)` value it establishes, and pinned in
+`tests/brokerReference.test.ts` in the same change set — the same discipline
+every other broker number already lives under. An observation upgrades the row
+it names and no other. It never generalises across instruments, across program
+lines, or from one asset class to another. Where an observation contradicts an
+E8-published value, both are recorded, the contradiction is stated in the row's
+comment, and the spec names the reading it takes — the §20b habit, applied to a
+new kind of source.
+
+**The queue, highest value first.** Ordered by what each observation unblocks,
+and every item names the section it closes.
+
+1. **`XAUUSD`'s minimum lot** — the residual scope of the verified 0.01 step on
+   the one non-forex market wave 1 can size (§19c Step 7). One glance at the
+   order ticket.
+2. **Risk per lot on one USD-quoted pair, one JPY-quoted pair and one cross** —
+   verifies `perUnit = contractSize × usdPerQuote` at all three shapes: the
+   textbook $10/pip case, the `1 / USDJPY` derivation, and a bridged cross.
+   Three observations validate the derivation behind all 28 forex pairs, which
+   with item 1 is the whole sizeable CFD set (§19c Step 3, §20i ruling 1).
+3. **`SP500`'s per-point value on a live ticket** — the map's single largest
+   scale trap ($20/point where retail desks quote $1–$10; §19a rule 3, §19f's
+   SP500 property test). A published number, worth watching once.
+4. **The unpublished contract sizes** — every crypto symbol, silver on the
+   Markets side, the energies class. These are the rows blocked purely on E8's
+   silence (§19c, "What is sizeable in wave 1"), and each one an observation
+   resolves is a market that moves from `Not published` to a number.
+5. **On the futures account: `ZB` and `ZN`** — tick size and value, absent from
+   the fee table, the tick table, the canonical 45-instrument list and the live
+   symbol browser. Their absence is why both rows ship `unconfirmed` (§19a).
+6. **On the futures account: `6J`'s tick and value as the platform computes
+   them** — the one number the boundary explicitly refused to fix with an
+   exchange notional (§20i ruling 5). E8's own table gives `6J` a derived
+   $125,000,000 per price unit against its siblings' $125,000, and no published
+   source reconciles it. A live ticket does. This is the item that turns the
+   inversion machinery from property-tested-and-unused into shipped — and it is
+   the clearest case in either section for why the third route exists.
+7. **The purchase screen's drawdown tier matrix** — §20b's input contract, on
+   both the forex and futures sides.
+
+**What the program does not change.** The refusal stays the default: a row
+without a published or verified value renders its word (§19e, §20f), and no row
+is promoted in anticipation of an observation. Nothing is ever inferred from an
+observation's neighbourhood. And the program is the owner's to run — the spec
+records the offer and the queue; it does not schedule the owner.

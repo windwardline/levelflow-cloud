@@ -158,7 +158,9 @@ hardcode.
 ## 10. Insights recomposition
 
 - Head: "Insights" + record band (setups this week · money-positive % ·
-  net R · best market).
+  net R · best market). The last three read the **lifetime** aggregate, not
+  the loaded page — §18 carries that ruling and the one aggregate serves
+  both; "setups this week" stays the period stat it says it is.
 - One filter row: Market (scope menu §4), Status (All / Open / Pending /
   Closed), Period. **No origin filter and no origin column in the UI**
   (owner ruling: from the user's seat every logged setup arrives the same
@@ -619,11 +621,105 @@ deploy pipeline's own live suite; real users' slates are clean.
    availability lines must not truncate — "OPENS 6:00P SUN" reads in
    full even while the row is disabled.
 
+### §17n. Mobile minimalism (owner ruling, 2026-08-02, durable)
+
+The ruling, verbatim, both halves:
+
+> I want these ancillary things to be as small as possible on the mobile
+> view while still being usable and legible (where text is necessary) —
+> that resize needs to be made a durable rule, and the mobile view needs
+> to be audited for compliance.
+
+> I want to have things tight on the mobile view — as small as possible
+> while being tappable, usable, and legible (as applies).
+
+**The rule.** On every <lg surface, ancillary chrome is sized to the
+smallest form that stays tappable, usable and legible — and no larger.
+*Ancillary* is everything that is not the content the surface exists to
+deliver: pinned control rows, filter rows, record bands, eyebrows and
+section heads, the bottom tab bar, avatar-menu rows, chart tooling,
+badges, the colophon, and every label and gap between them. The content
+region — the single internal scroll region §17g gives each surface — is
+the budget being protected, and chrome yields to it.
+
+**Each test binds only where it applies** (the ruling's "as applies", and
+its "where text is necessary"): a tap target must be tappable, a control
+or region must be usable, text must be legible, and an element carrying
+no text has no legibility floor to clear. An element that clears all
+three at a smaller size is at the wrong size today.
+
+**Durable, not an occasion.** This governs every mobile element that
+ships from now on, not only the ones the audit finds. It has the standing
+force §17f's copy law has, and the two compose: §17f decides whether a
+string exists, §17n decides how large anything is. Where they meet, §17f
+runs first — a string that says what the surface already shows does not
+shrink, it dies.
+
+**The floors, and the exception discipline.** 44px remains the kit floor
+for tap targets (§3, §17g's own "44px targets still bind"), enforced in
+the kit's own CSS — `.primary-button`/`.secondary-button` at 44px,
+`.field` at 48px, `.tertiary-link` and `.cpv-copy` at 44px with negative
+margins so the reach does not inflate the layout. Exactly one
+owner-approved exception is on record: the expanded chart overlay's
+button cluster at 28px with its icons held at 16px for legibility
+(PR #149 — "small as stays tappable"). Exceptions are granted per element
+by the owner, recorded here, and **pinned by a guard with the grant
+named** — an unpinned exception is indistinguishable from a regression six
+months later. None is ever inferred from another element's exception, and
+none is granted to a primary control.
+
+**Where a mock set the size.** §16 gives the mockups composition and §17c
+settles the precedence: live product outranks mock where they conflict.
+This ruling is later than both, so a mock-set dimension is in scope — the
+compact chart's 168px, the frame's 12/16px gutters, the tab bar's 10.5px
+type. The audit measures them like everything else and states the test
+that holds each one; it does not treat a mock number as exempt from the
+rule the owner wrote after approving the mock.
+
+**The compliance audit is mandated, not optional** — "the mobile view
+needs to be audited for compliance." Every <lg surface and every piece of
+shared mobile chrome is measured against the **built CSS at 375×812**
+(measured, the way ProfilePanel's own row budget was, never asserted), and
+the audit reports per surface: pinned-chrome height, content-region
+height, and for each ancillary element its current size, its proposed
+size, and which of the three tests holds it there. Surfaces in scope:
+Scan, Trades, Insights, Profile, and the avatar-menu surfaces (Guide,
+Donate) — plus the shared chrome: the mobile header, the bottom tab bar,
+the avatar menu including its §17g link set, the Profile colophon, and
+the full-viewport chart overlay. Findings are recorded in the wave's plan
+and PR body. Where a size can be pinned, a guard pins it (§17c's
+languageGuard-style enforcement habit).
+
+**Approved in the same ruling, ahead of the audit's own findings:**
+slimming the Insights pinned chrome. At 375×812 that chrome measures
+roughly 410–490px of a 743px content row — the record band's four stat
+blocks at 32px gaps with 24px values, then three full-width 48px selects
+stacking to three rows — and leaves the ledger something like 250–330px.
+That ~330px is the finding that prompted the ruling. The record band and
+the filter row above the ledger are approved to shrink now; the audit
+still measures and reports every other surface rather than assuming
+Insights was the only offender.
+
 ### §18. Attribution (hedge-mind pillar 1, owner-ordered 2026-08-01)
 
 Insights gains an **Attribution** section: the user's OWN resolved
-history sliced four ways, all computed from existing row data — no new
-columns, no engine involvement.
+history sliced four ways, computed over the **complete** history — every
+resolved setup on the account, not the page Insights happens to have
+loaded. Engine involvement is authorized for exactly that reason (owner,
+2026-08-02: "Can we let it involve the engine? If so, do it. I want
+accuracy."), so the aggregate may be computed server-side over the user's
+own rows under existing RLS. No new columns: `realizedR` is read where it
+already lives, in `trade_outcomes.feedback`.
+
+**The record band reads the same lifetime aggregate** (owner ruling
+extended, 2026-08-02: "Yes. I want fidelity across the board"). §10's
+band and this section sit one above the other, so a truncated band under
+a lifetime section would be the same fork these rulings close. Precisely:
+the band's **money-positive %, net R and best market** are lifetime, and
+its **"setups this week"** count stays week-scoped — that one is a period
+stat by §10's own definition, not a truncation. The band's own display
+rules are otherwise untouched; only its window changes. One aggregate
+serves both consumers.
 
 - **Slices**: by asset class (the six); by side (Buy/Sell); by
   confidence band (the existing CONFIDENCE_TIERS via the existing
@@ -633,10 +729,18 @@ columns, no engine involvement.
   stated here as law).
 - **Per slice row**: label · resolved count · money-positive %
   (classifyWinLoss through the one shared helper — the drift-guard map
-  gains the new call site consciously) · net R where every resolved row
-  in the slice recorded a realizedR, the em dash otherwise. "Learning"
-  replaces the percentage below 3 resolved — the record band's own
-  honesty pattern, threshold stated here as law.
+  gains the new call site consciously) · net R.
+- **One gate, both numbers.** Below 3 resolved, **both** the percentage
+  and net R read "Learning" — the same threshold, the same word, the same
+  honesty pattern the record band already uses (owner, 2026-08-02: "Yes.
+  I want fidelity across the board."). Three resolved is stated here as
+  law. At or above the gate, net R renders where every resolved row in
+  the slice recorded a realizedR and the em dash otherwise — the
+  all-or-nothing rule is unchanged, it now sits behind the gate rather
+  than beside it.
+- The two withholdings are different facts and the words keep them
+  apart: **"Learning"** means not enough resolved history yet; **the em
+  dash** means enough history, and one of its rows has no R.
 - **Composition**: flat rows under an "Attribution" h2 below the ledger
   — hairlines only (box discipline), the ledger's mono numerals, no
   narration (§17f: every string is a label). Desktop: after the table
@@ -644,7 +748,18 @@ columns, no engine involvement.
   Insights frame's scroll region below the table. Empty history renders
   the section with its four slice groups all "Learning" — the section
   never hides (its presence teaches what will accrue).
-- **Filters do not apply**: Attribution always reads the FULL resolved
-  history, not the filtered view — the section answers "what works",
+- **Filters do not apply, and neither does the page**: Attribution reads
+  the FULL resolved history — full meaning lifetime, not the filtered
+  view and not the loaded page. The ledger's 80-row read is a display
+  window; Attribution is not inside it. The section answers "what works",
   not "what am I looking at" (stated so nobody wires the filters in
-  later and calls it a fix).
+  later and calls it a fix, and so nobody re-derives the aggregate from
+  `setups` and calls that the full history).
+- **One definition of money-positive, wherever the aggregate runs.**
+  `classifyWinLoss` stays the only definition. If the aggregate runs in
+  SQL, the SQL does not restate it: either the aggregate returns the
+  per-slice resolved rows' minimal fields and the client classifies, or a
+  CI test pins the SQL's classification against `classifyWinLoss`
+  outcome-by-outcome over the whole `SetupOutcome` domain. A second
+  definition of a win is not an implementation detail — it is a second
+  product.
