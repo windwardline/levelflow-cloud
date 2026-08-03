@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import { AVAILABLE_ASSET_GROUPS } from "../../lib/symbolMap";
-import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import type { LifetimeSetupRow, TradeSetupRow } from "../../lib/tradeAnalyzer";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -47,10 +47,16 @@ const PERIOD_OPTIONS: Array<{ label: string; value: InsightsPeriodDays }> = [
 const DEFAULT_PERIOD_DAYS: InsightsPeriodDays = 30;
 
 export function HistoryPanel({
+  lifetimeSetups,
   loadFailed,
   loading,
   setups,
 }: {
+  // The lifetime record (spec §18): what the record band and Attribution are
+  // computed over. Separate from `setups` on purpose — that is the ledger's
+  // display window, and a header describing a page while claiming the account
+  // is the fork these rulings close.
+  lifetimeSetups: LifetimeSetupRow[];
   // Q2-C2: the history fetch failed, so an empty ledger is unknown rather than
   // known-empty.
   loadFailed: boolean;
@@ -67,12 +73,16 @@ export function HistoryPanel({
 
   // A plain per-render read, not a ticking clock: pending/open/closed
   // classification and period-boundary filtering only need "roughly now",
-  // never a stable reference. Every computation below is a cheap scan over
-  // at most 80 rows (fetchTradeSetups' own limit), so none of it is wrapped
-  // in useMemo — with `now` legitimately fresh every render, a memo keyed
-  // on it would recompute every render anyway and buy nothing.
+  // never a stable reference. The ledger's own computations scan at most
+  // LEDGER_WINDOW_ROWS rows; the two lifetime aggregates scan the record, which
+  // is 23 rows on the largest account today (measured 2026-08-03) and grows with
+  // it. None of it is wrapped in useMemo — with `now` legitimately fresh every
+  // render, a memo keyed on it would recompute every render anyway and buy
+  // nothing. The size at which a per-render scan stops being free is also the
+  // size at which the aggregate belongs server-side (§18 authorizes it), so the
+  // answer there is the read, not a memo.
   const now = new Date();
-  const recordBand = buildRecordBand(setups, now);
+  const recordBand = buildRecordBand(lifetimeSetups, now);
   const filteredSetups = filterInsightsSetups(
     setups,
     { market: marketScope, periodDays, status: statusFilter },
@@ -269,13 +279,15 @@ export function HistoryPanel({
     </>
   );
 
-  // Attribution (spec §18, hedge-mind pillar 1). Reads `setups`, never
-  // `filteredSetups`: the section answers "what works", not "what am I looking
-  // at", and §18 states that so nobody wires the filters in later and calls it
-  // a fix. It renders whatever the history holds, including nothing — an empty
-  // record shows all four groups reading "Learning", because the section's
+  // Attribution (spec §18, hedge-mind pillar 1). Reads `lifetimeSetups` — never
+  // `filteredSetups`, and never `setups` either: the section answers "what
+  // works", not "what am I looking at" and not "what did this page load". §18
+  // states both so nobody wires the filters in later and calls it a fix, and so
+  // nobody re-derives the aggregate from the ledger's window and calls that the
+  // full history. It renders whatever the record holds, including nothing — an
+  // empty record shows all four groups reading "Learning", because the section's
   // presence is what teaches which evidence accrues.
-  const attributionGroups = buildAttribution(setups);
+  const attributionGroups = buildAttribution(lifetimeSetups);
 
   // Built once and placed by whichever branch renders, the same way the three
   // blocks above are: below lg it lands in the Insights frame's scroll region
@@ -316,16 +328,27 @@ export function HistoryPanel({
                 </span>
                 {/* The three figures sit in fixed-width right-aligned cells so
                     they read as columns down the group without a table's own
-                    headers, which §17f would have to justify as copy. */}
+                    headers, which §17f would have to justify as copy.
+
+                    One gate, both numbers (§18, amendment 3): below three
+                    resolved both cells withhold, and above it the em dash means
+                    the other withholding entirely — enough history, one row
+                    without an R. The aggregator owns the threshold;
+                    `row.learning` is the whole of it that reaches here, so the
+                    surface cannot drift from the law. */}
                 <span className="flex shrink-0 items-baseline gap-4 font-mono text-sm tabular-nums text-ink">
                   <span className="w-8 text-right">{row.resolved}</span>
                   <span className="w-20 text-right">
-                    {row.moneyPositivePercent === null
+                    {row.learning
                       ? "Learning"
                       : `${row.moneyPositivePercent}%`}
                   </span>
                   <span className="w-20 text-right">
-                    {row.netR === null ? "—" : formatSignedR(row.netR)}
+                    {row.learning
+                      ? "Learning"
+                      : row.netR === null
+                      ? "—"
+                      : formatSignedR(row.netR)}
                   </span>
                 </span>
               </div>

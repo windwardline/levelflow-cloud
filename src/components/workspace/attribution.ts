@@ -1,7 +1,7 @@
 import { CONFIDENCE_TIERS, getConfidenceTier } from "../../lib/confidenceTiers";
 import { classifyWinLoss } from "../../lib/outcomes";
 import { getSecurityOption, SECURITY_GROUPS } from "../../lib/symbolMap";
-import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import type { LifetimeSetupRow } from "../../lib/tradeAnalyzer";
 import {
   buildConfidenceBands,
   extractRealizedR,
@@ -9,25 +9,34 @@ import {
 } from "./historyUtils";
 
 // Attribution (spec §18, hedge-mind pillar 1): the user's OWN resolved history
-// sliced four ways, computed entirely from row data already on hand — no new
-// columns, no engine involvement. A sibling of historyUtils rather than more of
-// it: the ledger module already spans grouping, sorting, price formatting,
-// filtering, the record band and the result vocabulary, and this is one
-// aggregation with its own law. It reuses that module's shared helpers
-// (buildConfidenceBands, getSetupOutcome, extractRealizedR) instead of
-// re-deriving any of them.
+// sliced four ways, computed over the LIFETIME record — every resolved setup on
+// the account, not the page the ledger happens to have loaded (amendment 2,
+// owner 2026-08-02: "Can we let it involve the engine? If so, do it. I want
+// accuracy."). No new columns: the input is fetchLifetimeSetups' walk of the
+// caller's own rows, and realizedR is read where it already lives, in
+// trade_outcomes.feedback.
+//
+// A sibling of historyUtils rather than more of it: the ledger module already
+// spans grouping, sorting, price formatting, filtering, the record band and the
+// result vocabulary, and this is one aggregation with its own law. It reuses that
+// module's shared helpers (buildConfidenceBands, getSetupOutcome,
+// extractRealizedR) instead of re-deriving any of them.
 
 export type AttributionRow = {
   key: string;
   label: string;
-  // null means the slice has too little resolved evidence to publish a rate —
-  // the record band's own honesty pattern, which the surface reads as
-  // "Learning". Never zero: zero is a real rate.
-  moneyPositivePercent: number | null;
-  // null means no figure to state, which the surface reads as the em dash.
-  netR: number | null;
   resolved: number;
-};
+} & (
+  // One gate, both numbers (§18, amendment 3 — owner 2026-08-02: "Yes. I want
+  // fidelity across the board"). Below ATTRIBUTION_LEARNING_MIN_RESOLVED
+  // resolved rows the slice publishes neither figure and the surface reads both
+  // cells as "Learning"; at or above it the rate is always a number, which is
+  // why the two states are a union rather than two independently nullable
+  // fields. netR stays nullable above the gate: null there is the em dash, and
+  // it means something else entirely — enough history, one row without an R.
+  | { learning: true; moneyPositivePercent: null; netR: null }
+  | { learning: false; moneyPositivePercent: number; netR: number | null }
+);
 
 export type AttributionGroup = {
   key: string;
@@ -35,8 +44,8 @@ export type AttributionGroup = {
   rows: AttributionRow[];
 };
 
-// Spec §18, stated there as law: "'Learning' replaces the percentage below 3
-// resolved". Exported so the guard reads the same number the code does.
+// Spec §18, stated there as law: below 3 resolved, BOTH the percentage and net R
+// read "Learning". Exported so the guard reads the same number the code does.
 export const ATTRIBUTION_LEARNING_MIN_RESOLVED = 3;
 
 // Spec §18, stated there as law: three blocks by the setup's creation hour in
@@ -57,7 +66,7 @@ const SESSION_BLOCKS = [
   { endHourUtc: 22, key: "us", label: "US", startHourUtc: 13 },
 ];
 
-const SIDE_SLICES: Array<{ key: TradeSetupRow["side"]; label: string }> = [
+const SIDE_SLICES: Array<{ key: LifetimeSetupRow["side"]; label: string }> = [
   // The ledger's own chip words for the same fact.
   { key: "buy", label: "Buy" },
   { key: "sell", label: "Sell" },
@@ -70,7 +79,9 @@ type SliceTally = {
   wins: number;
 };
 
-export function buildAttribution(setups: TradeSetupRow[]): AttributionGroup[] {
+export function buildAttribution(
+  setups: LifetimeSetupRow[],
+): AttributionGroup[] {
   const byClass = new Map<string, SliceTally>();
   const bySide = new Map<string, SliceTally>();
   const bySession = new Map<string, SliceTally>();
@@ -120,38 +131,39 @@ export function buildAttribution(setups: TradeSetupRow[]): AttributionGroup[] {
       // already sorted by compareAssetCategories). Unfiltered on purpose: a
       // class hidden from the scan menu can still own resolved history.
       rows: SECURITY_GROUPS.map((group) =>
-        toRow(group.label, group.label, byClass.get(group.label))
+        tallyRow(group.label, group.label, byClass.get(group.label))
       ),
     },
     {
       key: "side",
       label: "Side",
       rows: SIDE_SLICES.map((slice) =>
-        toRow(slice.key, slice.label, bySide.get(slice.key))
+        tallyRow(slice.key, slice.label, bySide.get(slice.key))
       ),
     },
     {
       key: "confidence",
       label: "Confidence",
+      // One resolved count for both cells (§18, amendment 3's last line): the
+      // band builder's, which is also the count this row publishes. Gating the
+      // rate on the builder's number and net R on the local tally's would let
+      // the two cells disagree about the same slice.
       rows: CONFIDENCE_TIERS.map((tier, index) => {
         const band = bands[index];
-        return {
-          key: tier.id,
-          label: band.label,
-          moneyPositivePercent:
-            band.resolved >= ATTRIBUTION_LEARNING_MIN_RESOLVED
-              ? band.winRate
-              : null,
-          netR: netRFor(byConfidenceTier.get(tier.id)),
-          resolved: band.resolved,
-        };
+        return toRow(
+          tier.id,
+          band.label,
+          band.resolved,
+          band.winRate,
+          byConfidenceTier.get(tier.id),
+        );
       }),
     },
     {
       key: "session",
       label: "Session",
       rows: SESSION_BLOCKS.map((block) =>
-        toRow(block.key, block.label, bySession.get(block.key))
+        tallyRow(block.key, block.label, bySession.get(block.key))
       ),
     },
   ];
@@ -183,29 +195,75 @@ function recordResolved(
   bucket.set(key, tally);
 }
 
-function toRow(
+function tallyRow(
   key: string,
   label: string,
   tally: SliceTally | undefined,
 ): AttributionRow {
   const resolved = tally?.resolved ?? 0;
+  return toRow(
+    key,
+    label,
+    resolved,
+    resolved > 0 ? Math.round(((tally?.wins ?? 0) / resolved) * 100) : null,
+    tally,
+  );
+}
+
+/**
+ * The one place §18's gate is applied, for all four slice groups.
+ *
+ * `winPercent` is the slice's ungated rate — computed from the tally for three
+ * groups, taken from buildConfidenceBands for the fourth. It is null only when
+ * the slice has no resolved rows at all, which is already below the gate, so the
+ * check below reads as one rule rather than two: no publishable rate, nothing
+ * published.
+ */
+function toRow(
+  key: string,
+  label: string,
+  resolved: number,
+  winPercent: number | null,
+  tally: SliceTally | undefined,
+): AttributionRow {
+  if (resolved < ATTRIBUTION_LEARNING_MIN_RESOLVED || winPercent === null) {
+    return {
+      key,
+      label,
+      learning: true,
+      moneyPositivePercent: null,
+      netR: null,
+      resolved,
+    };
+  }
+
   return {
     key,
     label,
-    moneyPositivePercent: resolved >= ATTRIBUTION_LEARNING_MIN_RESOLVED
-      ? Math.round(((tally?.wins ?? 0) / resolved) * 100)
-      : null,
-    netR: netRFor(tally),
+    learning: false,
+    moneyPositivePercent: winPercent,
+    netR: netRFor(tally, resolved),
     resolved,
   };
 }
 
 // Spec §18: net R "where every resolved row in the slice recorded a realizedR,
-// the em dash otherwise". A partial sum would read as the slice's result while
-// silently omitting rows, so a single missing figure withholds the whole
-// total. A slice with no resolved rows has nothing to sum.
-function netRFor(tally: SliceTally | undefined): number | null {
-  if (!tally || tally.resolved === 0) {
+// the em dash otherwise" — the all-or-nothing rule, which now sits behind the
+// gate rather than beside it. A partial sum would read as the slice's result
+// while silently omitting rows, so a single missing figure withholds the whole
+// total.
+//
+// `resolved` is the count the row publishes, and the sum is withheld unless the
+// tally accounts for exactly those rows: the confidence slice counts its rows
+// twice over (buildConfidenceBands for the count, the local pass for the sum),
+// and the day those two readings of one taxonomy diverge, this withholds a total
+// rather than publishing one computed over a different set of rows than the
+// count beside it.
+function netRFor(
+  tally: SliceTally | undefined,
+  resolved: number,
+): number | null {
+  if (!tally || tally.resolved !== resolved) {
     return null;
   }
   return tally.resolvedWithRealizedR === tally.resolved
@@ -217,11 +275,11 @@ function netRFor(tally: SliceTally | undefined): number | null {
 // which is the app's standing behaviour everywhere a symbol's class is read
 // (groupHistorySetups, matchesMarketFilter, formatSetupConfidence) — so this
 // reads the class exactly the way the ledger's own grouping reads it.
-function assetClassOf(setup: TradeSetupRow): string {
+function assetClassOf(setup: LifetimeSetupRow): string {
   return getSecurityOption(setup.symbol).assetType;
 }
 
-function sessionBlockKeyOf(setup: TradeSetupRow): string | null {
+function sessionBlockKeyOf(setup: LifetimeSetupRow): string | null {
   const hourUtc = new Date(setup.created_at).getUTCHours();
   if (!Number.isFinite(hourUtc)) {
     return null;

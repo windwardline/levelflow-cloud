@@ -60,10 +60,38 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
 
   it("reports the failure as a flag the hook returns, never a message nobody reads", () => {
     assert.match(source, /const \[loadFailed, setLoadFailed\] = useState\(false\);/);
-    assert.match(source, /return \{\s*loadFailed,/);
+    assert.match(source, /return \{\s*lifetimeSetups,\s*loadFailed,/);
     // The discarded string is gone rather than left beside its replacement.
     assert.doesNotMatch(source, /setError/);
     assert.doesNotMatch(source, /\berror,\s*\n\s*loading,/);
+  });
+
+  it("reads the display window and the lifetime record together, under one failure (spec §18)", () => {
+    // Amendment 2's data path. Two reads, one refresh, one catch: a lifetime
+    // aggregate computed while the window read failed — or a window rendered
+    // under a stale lifetime header — would be two accounts on one surface, and
+    // the failure word the reader sees stays the one that already exists.
+    assert.match(
+      source,
+      /const \[windowRows, lifetimeRows\] = await Promise\.all\(\[\s*fetchTradeSetups\(\),\s*fetchLifetimeSetups\(\),\s*\]\);\s*setSetups\(windowRows\);\s*setLifetimeSetups\(lifetimeRows\);/,
+    );
+    // Exactly one catch, so neither read has a failure story of its own.
+    assert.equal((source.match(/\} catch \(/g) ?? []).length, 2);
+    const catchBlock =
+      source.match(/\} catch \(requestError\) \{[\s\S]*?\n {4}\} finally \{/)?.[0] ??
+        "";
+    assert.doesNotMatch(catchBlock, /setLifetimeSetups/);
+  });
+
+  it("clears the lifetime record wherever it clears the rows — never one without the other", () => {
+    // The header must never outlive the account it describes: signed out, and
+    // signed in as somebody with no session, both empty both sets.
+    assert.equal((source.match(/setSetups\(\[\]\);/g) ?? []).length, 2);
+    assert.equal(
+      (source.match(/setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);/g) ?? [])
+        .length,
+      2,
+    );
   });
 
   it("clears the flag at the start of every attempt, so a recovery is visible", () => {
@@ -118,7 +146,7 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     );
     assert.match(
       source,
-      /setSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+      /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
     );
   });
 });

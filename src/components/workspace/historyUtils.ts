@@ -15,7 +15,7 @@ import {
   type SecurityType,
 } from "../../lib/symbolMap";
 import { deriveTradeState, entryHasFilled } from "../../lib/tradeState";
-import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
+import type { LifetimeSetupRow, TradeSetupRow } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
 import type { ScanScope } from "./ScopeMenu";
 
@@ -117,7 +117,7 @@ export function groupHistorySetups(
   return Array.from(groups.values());
 }
 
-export function buildConfidenceBands(setups: TradeSetupRow[]) {
+export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
   const bands = CONFIDENCE_TIERS.map((tier) => ({
     ambiguous: 0,
     count: 0,
@@ -162,7 +162,13 @@ export function buildConfidenceBands(setups: TradeSetupRow[]) {
   });
 }
 
-export function getSetupOutcome(setup: TradeSetupRow): SetupOutcome {
+// Takes only the two fields normalizeSetupOutcome reads, so the lifetime
+// record's narrower row (LifetimeSetupRow) reaches the one outcome taxonomy
+// without a second copy of the predicate — the convention entryHasFilled
+// already follows.
+export function getSetupOutcome(
+  setup: Pick<TradeSetupRow, "status" | "trade_outcomes">,
+): SetupOutcome {
   return normalizeSetupOutcome(setup);
 }
 
@@ -298,7 +304,9 @@ export function formatSignedR(value: number | null): string {
 // absent everywhere else including every open/placed row and every
 // take_profit/stop_loss resolution — callers must treat null as "no
 // figure yet," never as zero.
-export function extractRealizedR(setup: TradeSetupRow): number | null {
+export function extractRealizedR(
+  setup: Pick<TradeSetupRow, "trade_outcomes">,
+): number | null {
   const feedback = asRecord(setup.trade_outcomes?.[0]?.feedback);
   return asNumber(feedback.realizedR);
 }
@@ -326,7 +334,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // counts as within the period. Also backs the record band's "setups this
 // week" figure (days = 7), so both use one boundary rule.
 export function isWithinPeriod(
-  setup: TradeSetupRow,
+  setup: Pick<TradeSetupRow, "created_at">,
   days: number,
   now: Date,
 ): boolean {
@@ -420,11 +428,18 @@ export type RecordBand = {
 
 const RECORD_BAND_WEEK_DAYS = 7;
 
-// Always computed from every loaded row, independent of the panel's own
-// Market/Status/Period filters (spec §10: "computed from the loaded
-// rows") — a stable header even while the table below is filtered down.
+// Computed over the LIFETIME record, independent of the panel's own
+// Market/Status/Period filters and independent of the ledger's display window
+// (spec §10 as amended, and §18's own extension — owner 2026-08-02: "Yes. I want
+// fidelity across the board", so one aggregate serves the band and the section
+// below it). A stable header even while the table below is filtered down.
+//
+// "Setups this week" is the one figure that is not lifetime by intent: §10
+// defines it as a period stat, and reading it off the lifetime record is what
+// makes it exact — the display window could not count a week that ran past its
+// own ceiling.
 export function buildRecordBand(
-  setups: TradeSetupRow[],
+  setups: LifetimeSetupRow[],
   now: Date,
 ): RecordBand {
   const setupsThisWeek = setups.filter((setup) =>

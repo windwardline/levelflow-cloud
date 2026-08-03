@@ -869,3 +869,26 @@ serves both consumers.
   outcome-by-outcome over the whole `SetupOutcome` domain. A second
   definition of a win is not an implementation detail — it is a second
   product.
+
+**As built (2026-08-03).** Two reads, one taxonomy. The ledger keeps its
+display window, now named `LEDGER_WINDOW_ROWS`, because reopening a row
+restores the Advisor stage from its stored analysis. `fetchLifetimeSetups`
+walks the caller's whole history under existing RLS in `LIFETIME_PAGE_ROWS`
+pages, ordered on `(created_at, id)` so an offset page continues where the
+last one stopped. It selects only what the two aggregates read, plus `id`
+for the walk's own dedupe and the outcome embed — measured 2026-08-03,
+`confluence` and `risk_model` are ~5.6KB of the ~5.9KB a full row weighs,
+and neither aggregate reads them. Both reads pass the one
+`normalizeEmbeddedOutcomes` seam, and both land in one refresh under one
+failure flag.
+
+Nothing about resolution is asked of the server: this is the first of the
+two routes above, and `normalizeSetupOutcome` with `classifyWinLoss` stay
+the only definitions of a resolved row and a money-positive one. A
+`where outcome in (...)` would be the second product this section forbids,
+since resolution also reads `status` and whether the entry ever filled.
+
+The walk throws rather than return a truncated set as a lifetime. The scale
+path is the RPC this section authorizes, and the number that decides it is
+the row count: 23 on the largest account today, one page covering every
+account forty times over.

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
-import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../lib/tradeAnalyzer";
+import {
+  fetchLifetimeSetups,
+  fetchTradeSetups,
+  type LifetimeSetupRow,
+  refreshTradeOutcomes,
+  type TradeSetupRow,
+} from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
 
 // Module scope on purpose: the Desk, Insights and the trades rail all mount and
@@ -17,6 +23,13 @@ type RefreshSetupsOptions = {
 
 export function useTradeSetups() {
   const [setups, setSetups] = useState<TradeSetupRow[]>([]);
+  // The lifetime record (spec §18, amendment 2), read beside the ledger's
+  // display window rather than derived from it: the window carries full rows
+  // because reopening one restores the Advisor stage, and the lifetime read
+  // carries only the fields the record band and Attribution aggregate over.
+  // Both are set from one refresh, so the header can never describe a different
+  // account than the table under it.
+  const [lifetimeSetups, setLifetimeSetups] = useState<LifetimeSetupRow[]>([]);
   const [loading, setLoading] = useState(true);
   // Q2-C2: one bit, not the provider's message. This used to be an `error` string
   // no consumer read, so a failed fetch reached Insights and the trades rail as
@@ -40,6 +53,7 @@ export function useTradeSetups() {
         } = await supabase.auth.getUser();
         if (!user) {
           setSetups([]);
+          setLifetimeSetups([]);
           return;
         }
       }
@@ -57,7 +71,16 @@ export function useTradeSetups() {
           console.warn("[history] outcome refresh failed; history may lag", error);
         }
       }
-      setSetups(await fetchTradeSetups());
+      // Both reads or neither: a lifetime aggregate computed while the window
+      // read failed — or a window rendered beside a stale lifetime header — is
+      // two accounts on one surface. Either failure lands in the one catch
+      // below, which is also why there is no second failure word to write.
+      const [windowRows, lifetimeRows] = await Promise.all([
+        fetchTradeSetups(),
+        fetchLifetimeSetups(),
+      ]);
+      setSetups(windowRows);
+      setLifetimeSetups(lifetimeRows);
     } catch (requestError) {
       // Loud where it is useful, quiet where it is not: the operator gets the
       // real cause, the reader gets one sentence. The rows are deliberately left
@@ -133,6 +156,7 @@ export function useTradeSetups() {
         refreshSetups({ refreshOutcomes: true });
       } else {
         setSetups([]);
+        setLifetimeSetups([]);
         // M6: the throttle is module scope, so it outlives the session that set
         // it. Without this, signing out and back in — as the same person or
         // another — could leave the first load of the new session inside a
@@ -241,6 +265,7 @@ export function useTradeSetups() {
   }, [readAfterGap, refreshSetups]);
 
   return {
+    lifetimeSetups,
     loadFailed,
     loading,
     refreshSetups,
