@@ -1273,3 +1273,31 @@ at both widths — rendered options to choose from, never prose descriptions —
 per the visual-overhaul precedent where mocks are the binding composition
 authority. The owner's standing preference governs the candidates: succinct
 language that does not crowd nearby elements.
+
+**Amendment 19 — the checkout record rules the catalog (owner, 2026-08-03,
+restated per standing preference).** Four rulings, answering the §19
+retrofit plan's open questions:
+
+1. **The purchase-checkout screenshots are the single source of truth for
+   what E8 offers**, for every E8 account class — Forex, Futures, and
+   Crypto. The catalog adheres to them. Whenever an offering is uncertain
+   or sources conflict, the owner's screenshots — the account checkout
+   screens and the in-platform TradeLocker captures of 2026-08-02 —
+   overrule every other record, the dossiers included. Consequence the
+   controller derived and applies (flagged for the owner's plan review,
+   not itself owner text): `zero`, the forex-family line, appears on no
+   checkout walk, so it is not offered and never enters the rendered
+   catalog — not even greyed. Greying is for sold-but-unverified
+   (MatchTrader); unsold is absent. Its data record stays (amendment 13:
+   nothing deleted).
+2. **E8 Trial is out of scope entirely.** Levelflow builds nothing for
+   trial accounts. Their absence from the catalog is correct by ruling,
+   not a gap.
+3. **Forex-carried crypto stays forex-scoped.** The crypto markets a Forex
+   account carries are confirmed part of that account's offering, but they
+   are separate from what the actual E8 Crypto accounts will report and
+   make available. Evidence observed on them never crosses onto
+   Crypto-classification lines — the narrow reading of contract-size
+   adjacency stands.
+4. **Where the documentation suffices, proceed on it** — always under
+   clause 1's precedence when the two conflict.
