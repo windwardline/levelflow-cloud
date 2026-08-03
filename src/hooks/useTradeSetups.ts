@@ -189,7 +189,37 @@ export function useTradeSetups() {
         // flight — and phoenix keeps its `receive` hooks across a rejoin
         // (Push.reset clears the ref and the response, not recHooks), which is
         // what makes this fire again at all.
-        .subscribe((status) => {
+        .subscribe((status, err) => {
+          // The quietest failure this hook has: a subscription that fails is not
+          // a read that fails. The rows on screen stay correct, they just stop
+          // changing — an RLS policy change, an expired token, a channel-limit
+          // rejection — and neither the rail nor the ledger has anything to say
+          // about it, so without this the operator's first clue is a reader
+          // asking why a resolved trade still looks live. The wake paths above
+          // and the manual refresh still read the table, which is why this is a
+          // warning about degradation rather than an error about breakage.
+          //
+          // `err` goes in whole, never flattened to its message string:
+          // realtime-js builds it as `new Error(message, { cause: error })`, so
+          // the reason the server actually gave lives in `cause` — its own
+          // subscribe() docblock says to log the full error for exactly this
+          // reason. The status rides along because TIMED_OUT arrives with no
+          // `err` at all.
+          //
+          // Named affirmatively rather than as "not SUBSCRIBED" so that CLOSED
+          // stays out: removeChannel in this effect's cleanup reports CLOSED on
+          // every deliberate teardown, and a warning there would cry failure at
+          // a clean shutdown.
+          if (
+            status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR ||
+            status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT
+          ) {
+            console.warn(
+              "[history] realtime subscription failed; rows update only on wake or refresh",
+              status,
+              err,
+            );
+          }
           if (status !== REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
             return;
           }
