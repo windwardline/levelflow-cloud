@@ -1,7 +1,6 @@
 import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
 import {
   CONFIDENCE_TIERS,
-  formatConfidenceTierRange,
   formatConfidenceWithTier,
   resolveConfidenceTier,
 } from "../../lib/confidenceTiers";
@@ -154,17 +153,19 @@ export function confidenceThresholdForSymbol(symbol: string): number {
  * generation below the bar — lands in no band and is returned as
  * `unbanded` rather than being silently dropped: sum of every band's count
  * plus `unbanded` equals the rows given, on any input (the exhaustiveness
- * invariant, pinned in tests/core.test.ts). No surface renders the
- * remainder today; naming it on a surface would take a new rendered word,
- * which is the owner's call, not this builder's. The count exists so the
- * arithmetic is checkable.
+ * invariant, pinned in tests/core.test.ts). Deliberately unrendered, by
+ * owner ruling (2026-08-03, recorded in §18's As-built note): the launch
+ * slate-clean plus the engine's below-bar refusal make this population
+ * structurally zero on every real account, so there is nothing a sentence
+ * could honestly announce. The counter exists so the arithmetic is
+ * checkable — and so a future calibration raise that strands resolved rows
+ * below a new bar reopens the rendering question with real rows on screen.
  *
- * Qualified's `range` is the em dash: its lower edge is each class's own
- * bar now, so "66-74" stopped being one truth this builder could state, and
- * the em dash is the app's standing token for a figure that cannot be
- * stated (formatPriceValue, Attribution's net R column). Strong and Best
- * keep their fixed ranges. Nothing renders any band's range today — the
- * field is pinned so whichever surface adopts it inherits the honest form.
+ * The rows carry no `range`: Qualified's lower edge is each class's own
+ * bar now, so a single stated range stopped being one truth, and a field
+ * with no reader is not carried as data (CONFIDENCE_TIERS' own min/max
+ * stay the raw bounds of record). Each row carries its tier `id` instead —
+ * the join key buildAttribution's confidence slice reads.
  */
 export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
   const bands = CONFIDENCE_TIERS.map((tier) => ({
@@ -173,7 +174,6 @@ export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
     id: tier.id,
     label: tier.label,
     losses: 0,
-    range: tier.id === "qualified" ? "—" : formatConfidenceTierRange(tier),
     wins: 0,
   }));
   let unbanded = 0;
@@ -208,8 +208,8 @@ export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
       return {
         ambiguous: band.ambiguous,
         count: band.count,
+        id: band.id,
         label: band.label,
-        range: band.range,
         resolved,
         winRate: resolved > 0
           ? Math.round((band.wins / resolved) * 100)

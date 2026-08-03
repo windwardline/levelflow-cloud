@@ -47,10 +47,6 @@ export function getConfidenceTier(score: number | string | null | undefined) {
   ) ?? null;
 }
 
-export function formatConfidenceTierRange(tier: ConfidenceTier) {
-  return `${tier.min}-${tier.max}`;
-}
-
 // `threshold` is the setup's own class's qualifying bar (advisorReview.ts's
 // CONFIDENCE_THRESHOLD_BY_ASSET_TYPE). CONFIDENCE_TIERS' fixed 66-100 bands
 // predate per-class thresholds and describe absolute strength (Strong,
@@ -111,7 +107,11 @@ export function formatConfidenceWithTier(
     return "Pending";
   }
 
+  // The resolver rounds; this rounding is only for the printed number. The
+  // raw score goes through so the resolver's comment stays literally true —
+  // rounding happens there, once — and the parity sweep in
+  // tests/core.test.ts holds the two sites together on fractional input.
+  const tier = resolveConfidenceTier(numericScore, threshold);
   const roundedScore = Math.round(numericScore);
-  const tier = resolveConfidenceTier(roundedScore, threshold);
   return tier ? `${tier.label} ${roundedScore}%` : `${roundedScore}%`;
 }

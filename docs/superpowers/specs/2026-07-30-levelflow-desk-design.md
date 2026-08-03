@@ -929,17 +929,33 @@ account forty times over.
 are threshold-aware. "The existing CONFIDENCE_TIERS via the existing
 buildConfidenceBands" stands, and membership now follows the same rule the
 ledger's confidence column prints with (`resolveConfidenceTier`, the law
-`formatConfidenceWithTier` shipped for display): a row whose score cleared
-its own class's qualifying bar has earned Qualified even below the fixed 66
-floor — Forex qualifies at 40, and its whole 40-65 range used to vanish
-from this aggregate while the ledger printed "Qualified" beside every one
-of those rows. Strong and Best stay absolute. A row that cleared no bar
-(legacy rows only; the engine refuses generation below the bar) lands in no
-band and is returned by the builder as an explicit `unbanded` count rather
-than dropped — sum of band counts plus `unbanded` equals the rows given, on
-any input — and no surface renders that remainder: naming it would take a
-new rendered word, which is the owner's to give. Qualified's `range` field
-is the em dash now (its lower edge is each class's own bar, so "66-74"
-stopped being one truth); no surface renders any band's range today. The
-net R tally keys through the same resolver, so the slice's two cells keep
-reading one taxonomy.
+`formatConfidenceWithTier` shipped for display), in both directions: a row
+whose score cleared its own class's qualifying bar has earned Qualified
+even below the fixed 66 floor — Forex qualifies at 40, and its whole 40-65
+range used to vanish from this aggregate while the ledger printed
+"Qualified" beside every one of those rows — and a score inside the fixed
+66-74 band keeps Qualified even when it did NOT clear its class's bar (a
+Crypto 70 against the 82 bar), because a fixed-tier match always wins and
+the threshold only ever fills the gap below 66. That second direction is
+the pre-existing display rule, pinned in tests/core.test.ts. Strong and
+Best stay absolute. The net R tally keys through the same resolver, so the
+slice's two cells keep reading one taxonomy, and each band row carries its
+tier `id` — the join key the confidence slice reads, replacing the old
+positional band-to-tier contract. Band rows carry no `range`: Qualified's
+lower edge is each class's own bar, so "66-74" stopped being one truth, and
+a field with no reader is not carried as data (`formatConfidenceTierRange`
+lost its last production reader with it and was swept; CONFIDENCE_TIERS'
+own min/max stay the raw bounds of record).
+
+A row that cleared no bar lands in no band and is returned by the builder
+as an explicit `unbanded` count rather than dropped — sum of band counts
+plus `unbanded` equals the rows given, on any input, enforced at the
+builder level by tests. **Deliberately unrendered — decision of record
+(owner, 2026-08-03).** The launch slate-clean (2026-08-01) plus the
+engine's refusal to generate below the bar make the unbanded population
+structurally zero on every real account, so no sentence could ever render
+and none is shipped: "Why would we even reference anything predated? We
+have a new engine, a new look, new bands, and will be generating new
+trades." If a future calibration raise ever strands resolved rows below a
+new bar, the counter is already in place and the rendering question
+reopens with real rows on screen.

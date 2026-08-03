@@ -154,10 +154,21 @@ describe("buildAttribution — the four slice groups (spec §18)", () => {
     );
   });
 
-  it("carries the three confidence tiers, in CONFIDENCE_TIERS' own order", () => {
+  it("carries the three confidence tiers, in the builder's own order, keyed by the band ids it joins on", () => {
+    // The confidence rows are built FROM the shared builder's bands — the
+    // join reads each band's own `id`, not a position in a parallel array —
+    // so the keys here are the band ids and the order is the builder's
+    // (CONFIDENCE_TIERS' order, which the builder itself maps).
     assert.deepEqual(
-      group([], "confidence").rows.map((sliceRow) => sliceRow.label),
-      ["Qualified", "Strong", "Best"],
+      group([], "confidence").rows.map((sliceRow) => ({
+        key: sliceRow.key,
+        label: sliceRow.label,
+      })),
+      [
+        { key: "qualified", label: "Qualified" },
+        { key: "strong", label: "Strong" },
+        { key: "best", label: "Best" },
+      ],
     );
   });
 

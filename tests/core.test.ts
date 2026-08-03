@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   CONFIDENCE_TIERS,
-  formatConfidenceTierRange,
   formatConfidenceWithTier,
   getConfidenceTier,
   resolveConfidenceTier,
@@ -527,16 +526,23 @@ function buildMarketScanResponse({
 
 describe("confidence tiers", () => {
   it("keeps setup confidence labels on one shared scale", () => {
+    // Pinned on the tiers' own min/max, the raw bounds of record.
+    // formatConfidenceTierRange used to sit between this pin and the data;
+    // it lost its last production reader when the band rows dropped their
+    // unread `range` field (Qualified's lower edge is class-relative now, so
+    // a single stated range stopped being one truth) and was swept as an
+    // orphan rather than kept alive by its own test.
     assert.deepEqual(
       CONFIDENCE_TIERS.map((tier) => ({
         id: tier.id,
         label: tier.label,
-        range: formatConfidenceTierRange(tier),
+        max: tier.max,
+        min: tier.min,
       })),
       [
-        { id: "qualified", label: "Qualified", range: "66-74" },
-        { id: "strong", label: "Strong", range: "75-84" },
-        { id: "best", label: "Best", range: "85-100" },
+        { id: "qualified", label: "Qualified", max: 74, min: 66 },
+        { id: "strong", label: "Strong", max: 84, min: 75 },
+        { id: "best", label: "Best", max: 100, min: 85 },
       ],
     );
   });
@@ -634,17 +640,23 @@ describe("confidence tiers", () => {
     // The display half (formatConfidenceWithTier) shipped first; the resolver
     // is the aggregate half of the same rule. This sweep pins them together
     // in both directions: a tier resolved is a word printed, and no tier is
-    // a bare percentage.
+    // a bare percentage. Quarter-point steps, not integers: both sites round
+    // before deciding, and a future divergence in either rounding site (the
+    // formatter rounds for printing, the resolver rounds for membership)
+    // would only ever show on fractional input — the seam the old raw
+    // min/max comparison dropped rows into.
     const thresholds = [
       ...Object.values(CONFIDENCE_THRESHOLD_BY_ASSET_TYPE),
       undefined,
     ];
     for (const threshold of thresholds) {
-      for (let score = 0; score <= 100; score += 1) {
+      for (let quarter = 0; quarter <= 400; quarter += 1) {
+        const score = quarter / 4;
+        const printed = Math.round(score);
         const tier = resolveConfidenceTier(score, threshold);
         assert.equal(
           formatConfidenceWithTier(score, threshold),
-          tier ? `${tier.label} ${score}%` : `${score}%`,
+          tier ? `${tier.label} ${printed}%` : `${printed}%`,
           `score ${score}, bar ${threshold}`,
         );
       }
@@ -993,20 +1005,46 @@ describe("history workspace logic", () => {
     assert.equal(unbanded, 0);
   });
 
-  it("states no single range for Qualified — its lower edge is each class's own bar — while Strong and Best keep theirs", () => {
-    // "66-74" stopped being one truth the moment Qualified's lower edge
-    // became class-relative; the em dash is the app's standing token for a
-    // figure that cannot be stated (formatPriceValue, the attribution net R).
-    const { bands } = buildConfidenceBands([]);
+  it("returns band rows keyed by tier id and carrying no range — the exact shape, both directions", () => {
+    // No `range`: Qualified's lower edge is each class's own bar now, so a
+    // single stated range stopped being one truth, and a field with no
+    // reader is not carried as data (the same orphan rule that swept
+    // formatConfidenceTierRange — CONFIDENCE_TIERS' own min/max stay the
+    // raw bounds of record). `id` IS carried: it is the join key
+    // buildAttribution's confidence slice reads, replacing the old
+    // positional band[i]↔tier[i] contract.
+    const { bands, unbanded } = buildConfidenceBands([]);
 
     assert.deepEqual(
-      bands.map((band) => ({ label: band.label, range: band.range })),
+      bands,
       [
-        { label: "Qualified", range: "—" },
-        { label: "Strong", range: "75-84" },
-        { label: "Best", range: "85-100" },
+        {
+          ambiguous: 0,
+          count: 0,
+          id: "qualified",
+          label: "Qualified",
+          resolved: 0,
+          winRate: null,
+        },
+        {
+          ambiguous: 0,
+          count: 0,
+          id: "strong",
+          label: "Strong",
+          resolved: 0,
+          winRate: null,
+        },
+        {
+          ambiguous: 0,
+          count: 0,
+          id: "best",
+          label: "Best",
+          resolved: 0,
+          winRate: null,
+        },
       ],
     );
+    assert.equal(unbanded, 0);
   });
 });
 

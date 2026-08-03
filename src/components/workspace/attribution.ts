@@ -1,7 +1,4 @@
-import {
-  CONFIDENCE_TIERS,
-  resolveConfidenceTier,
-} from "../../lib/confidenceTiers";
+import { resolveConfidenceTier } from "../../lib/confidenceTiers";
 import { classifyWinLoss } from "../../lib/outcomes";
 import { getSecurityOption, SECURITY_GROUPS } from "../../lib/symbolMap";
 import type { LifetimeSetupRow } from "../../lib/tradeAnalyzer";
@@ -127,14 +124,14 @@ export function buildAttribution(
     );
   }
 
-  // buildConfidenceBands maps CONFIDENCE_TIERS in order, so band[i] is
-  // tier[i] — pinned by tests/attribution.test.ts, which compares the whole
-  // label/resolved sequence against the shared builder's own output. Resolved
-  // counts and the rate come from that builder untouched; only net R, which it
-  // does not compute, comes from the pass above. The builder's `unbanded`
-  // remainder (rows that cleared no bar) is deliberately unread here: the
-  // slice renders the three tiers, and a remainder row would need a rendered
-  // word the owner has not given.
+  // The confidence rows are built from the shared builder's own bands, each
+  // joined to its net R tally by the band's `id` — no positional contract
+  // with a parallel array. Resolved counts and the rate come from the
+  // builder untouched; only net R, which it does not compute, comes from the
+  // pass above. The builder's `unbanded` remainder is deliberately unread
+  // here and rendered nowhere, by owner ruling (2026-08-03, §18 As-built):
+  // the launch slate-clean plus the engine's below-bar refusal make that
+  // population structurally zero on every real account.
   const { bands } = buildConfidenceBands(setups);
 
   return [
@@ -162,16 +159,15 @@ export function buildAttribution(
       // band builder's, which is also the count this row publishes. Gating the
       // rate on the builder's number and net R on the local tally's would let
       // the two cells disagree about the same slice.
-      rows: CONFIDENCE_TIERS.map((tier, index) => {
-        const band = bands[index];
-        return toRow(
-          tier.id,
+      rows: bands.map((band) =>
+        toRow(
+          band.id,
           band.label,
           band.resolved,
           band.winRate,
-          byConfidenceTier.get(tier.id),
-        );
-      }),
+          byConfidenceTier.get(band.id),
+        )
+      ),
     },
     {
       key: "session",
