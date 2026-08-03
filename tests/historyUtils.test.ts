@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { MAX_PRICE_DECIMALS } from "../src/components/workspace/advisorFormat";
 import {
@@ -23,6 +24,15 @@ import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 const NOW = new Date("2026-07-30T12:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Same walker tests/deskComposition.test.ts and tests/tailwindVariantGuard.test.ts
+// use, so a tree-wide guard here reads the same set of files they do.
+function allSourceFiles(root: string): string[] {
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"))
+    .map((file) => join(root, file));
+}
 
 // Same builder shape as tests/tradeState.test.ts and
 // tests/currentTradesRail.test.tsx — every field a real TradeSetupRow needs,
@@ -605,38 +615,34 @@ describe("compareSetupsByConfidence — one comparator, two surfaces", () => {
       "src/components/workspace/historyUtils.ts",
       "utf8",
     );
-    // Exactly one confidence subtraction in the file: sortHistorySetups
-    // delegates its tie-break tiers to the shared comparator instead of
-    // spelling them out a second time.
-    assert.equal(
-      (source.match(/confidence_score\)\s*-/g) ?? []).length,
-      1,
-      "expected exactly one confidence ordering, the shared comparator's",
-    );
     assert.match(
       source,
       /return secondDate - firstDate \|\| compareSetupsByConfidence\(first, second\);/,
     );
   });
 
-  it("has no twin anywhere in src", () => {
+  it("is the only confidence ordering anywhere in src", () => {
     // A second comparator would drift the moment either surface's tie-break
     // moved. The precedent for a sanctioned mirror is
     // tests/scanBatching.test.ts's — a client/Deno boundary that genuinely
     // cannot import across itself. This one has no such boundary, so the guard
     // is absence rather than byte-equality.
-    for (
-      const file of [
-        "src/components/workspace/CurrentTradesRail.tsx",
-        "src/components/workspace/HistoryPanel.tsx",
-      ]
-    ) {
-      const source = readFileSync(file, "utf8");
-      assert.doesNotMatch(
-        source,
-        /confidence_score\)\s*-/,
-        `${file} must not compute its own confidence ordering`,
-      );
-    }
+    //
+    // The whole tree, and BOTH shapes the subtraction can take: the coerced
+    // `Number(b.confidence_score) - Number(a.confidence_score)` this comparator
+    // uses, and the bare `b.confidence_score - a.confidence_score` a twin would
+    // more likely be written as. A guard that saw only the wrapped form, in only
+    // the two files it happened to name, would have missed both.
+    const hits = allSourceFiles("src").filter((file) =>
+      /confidence_score\s*\)?\s*-(?!-)/.test(readFileSync(file, "utf8"))
+    );
+    assert.deepEqual(hits, ["src/components/workspace/historyUtils.ts"]);
+    // And in that one file it appears exactly once — sortHistorySetups delegates
+    // its tie-break tiers instead of spelling them out again.
+    assert.equal(
+      (readFileSync(hits[0], "utf8")
+        .match(/confidence_score\s*\)?\s*-(?!-)/g) ?? []).length,
+      1,
+    );
   });
 });

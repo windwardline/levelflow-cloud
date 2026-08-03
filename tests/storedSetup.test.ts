@@ -102,11 +102,9 @@ describe("storedSetupAsCandidate — the stored row as the stage's one input", (
   });
 
   it("invents nothing the row does not hold — no expiry, no provider, no scan meta", () => {
-    // trade_setups has no expires_at column at all, and AnalyzerSetup's
-    // dataProvider/fmpSymbol are wire-only fields no src reader touches. A
-    // restored stage therefore shows no "valid until" half on its stamp, which
-    // is the honest reading rather than a window computed after the fact
-    // (§17f).
+    // Gaps 1 and 2 of the three storedSetup.ts's own docblock names (the third
+    // is the Size row's bridged-pair degrade, which lives in
+    // lib/broker/quotes.ts and has no assertion to make here).
     const candidate = storedSetupAsCandidate(buildSetup());
     assert.equal(candidate.setup?.expiresAt, undefined);
     assert.equal(candidate.setup?.dataProvider, undefined);
@@ -118,6 +116,45 @@ describe("storedSetupAsCandidate — the stored row as the stage's one input", (
     assert.equal(candidate.rationale, undefined);
     assert.equal(candidate.reason, undefined);
     assert.equal(candidate.blocked, undefined);
+  });
+
+  it("restores no setup at all rather than a ladder of NaN when a required level is unreadable", () => {
+    // Every required level through the same finite guard take_profit_1 already
+    // used. The stage's formatNumber does not guard, so a price that slipped
+    // through as NaN would print the literal "NaN" on the ladder while the rail
+    // card beside it drew "—" for the same column.
+    for (
+      const column of [
+        "breakeven_trigger_price",
+        "limit_entry",
+        "stop_loss",
+        "take_profit",
+      ] as const
+    ) {
+      const candidate = storedSetupAsCandidate(
+        buildSetup({ [column]: "not-a-number" }),
+      );
+      assert.equal(candidate.setup, undefined, column);
+      // The market is still selected; only the setup is withheld.
+      assert.equal(candidate.symbol, "EURUSD", column);
+    }
+  });
+
+  it("keeps a readable score readable and lets an unreadable one fall to its own downstream floor", () => {
+    assert.equal(
+      storedSetupAsCandidate(buildSetup({ confidence_score: "78" })).setup
+        ?.confidenceScore,
+      78,
+    );
+    // Not in the refusal set: ConfidenceUnit clamps a non-finite score to 0
+    // (clampConfidencePercent), so it degrades to a meter at zero rather than to
+    // a printed lie — and withholding a whole setup over the score would take
+    // the ladder down with it.
+    const candidate = storedSetupAsCandidate(
+      buildSetup({ confidence_score: "not-a-number" }),
+    );
+    assert.ok(candidate.setup, "expected the setup to survive an unreadable score");
+    assert.ok(Number.isNaN(candidate.setup!.confidenceScore));
   });
 
   it("derives the asset class the same way every other surface does", () => {

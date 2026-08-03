@@ -1757,6 +1757,13 @@ for (const width of [1280, 375]) {
       .toHaveCount(0);
     await expect(page.getByRole("button", { name: "Expand chart" }))
       .toBeVisible();
+    // The loading overlay legitimately covers the empty state (MarketChart draws
+    // one or the other, never both), so the empty check has to come AFTER the
+    // load settles — otherwise it greens a chart that is still fetching and then
+    // resolves to no data. Same order as the Insights leg below.
+    await expect(page.getByText("Loading market data")).toHaveCount(0, {
+      timeout: 30_000,
+    });
     await expect(page.getByText("No chart data available yet")).toHaveCount(0);
 
     // The stored levels, both surfaces printing the same numbers through the

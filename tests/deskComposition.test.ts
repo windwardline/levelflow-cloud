@@ -167,9 +167,12 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       stage,
       /openRequest\?: \{ setup: TradeSetupRow; token: number \} \| null;/,
     );
-    // setAnalysisState has exactly three writers in the file: the two scan-verdict
-    // branches and the adoption door itself.
-    assert.equal((stage.match(/setAnalysisState\(\{/g) ?? []).length, 3);
+    // setAnalysisState has exactly four call sites in the file, and the pattern
+    // matches the CALL rather than an object-literal argument so a writer that
+    // hands over a variable, a spread or an updater function cannot slip past it:
+    // the two scan-verdict branches, the adoption door's own write, and
+    // selectSymbolForReview's `null` clear that every selection starts with.
+    assert.equal((stage.match(/setAnalysisState\(/g) ?? []).length, 4);
   });
 
   // Spec §17m.1: "All trades originate from the Scan column — no other path."

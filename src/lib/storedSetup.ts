@@ -15,6 +15,25 @@ import type { MarketScanCandidate, TradeSetupRow } from "./tradeAnalyzer";
  * the only request a restore makes is the chart's own bars (the same fetch every
  * market selection already triggers). Zero analyzer claims.
  *
+ * THE THREE GAPS a restored stage has against a scan-adopted one. Written here,
+ * beside the code that would have to invent the missing datum, because this is
+ * where a later reader edits:
+ *
+ * 1. **No "valid until" half on the stagehead's stamp.** trade_setups has no
+ *    expires_at column at all, so there is no stored window to print. The half
+ *    is absent rather than computed after the fact (§17f).
+ * 2. **No dataProvider and no fmpSymbol.** Both are wire-only fields on
+ *    AnalyzerSetup that no reader in src touches, so their absence is invisible.
+ * 3. **The Size row degrades for a bridged pair.** collectBrokerQuotes (§19c)
+ *    may read only the quotes the client already holds, and a restore holds
+ *    exactly one: this setup's own latestClose. So a cross like GBPJPY under E8
+ *    Pro Forex, whose sizing needs a USD leg, reads `Rate unavailable` where a
+ *    stage adopted from an All-markets scan — which left those legs in hand —
+ *    printed a real lot size. The degrade itself is §19c's own rule and stays;
+ *    reaching for a rate to close the gap is what the boundary forbids.
+ *
+ * Everything else comes back whole, including all five "Why this setup" rows.
+ *
  * Its own module rather than a member of tradeAnalyzer.ts, whose import graph
  * reaches the Supabase client and so cannot be pulled into this repo's
  * jsdom-free, env-free unit-test harness; and not a member of the history
@@ -26,12 +45,34 @@ export function storedSetupAsCandidate(
   setup: TradeSetupRow,
 ): MarketScanCandidate {
   const symbol = setup.symbol as SupportedSymbol;
-  // take_profit_1 is genuinely absent on a non-laddered instrument, and
-  // `Number(null) === 0` — a zero here would make AdvisorRecommendationPanel's
-  // hasLadder check draw a "Target 1 · bank half" row at price 0. Undefined is
-  // what the analyzer's own wire shape uses for "no first target", so the
-  // restored setup says exactly what a freshly scanned one would.
+  // Every level through one coercion, so no price can reach the stage in a shape
+  // another surface would refuse to print. The rail's own formatLevel and the
+  // ledger's formatPriceValue both guard and render an em dash; the stage's
+  // formatNumber does not guard at all, so an unreadable price passed through
+  // here would print the literal "NaN" on the ladder beside the "—" the rail
+  // drew for the same column.
+  const breakevenTriggerPrice = asPrice(setup.breakeven_trigger_price);
+  const entryPrice = asPrice(setup.limit_entry);
+  const stopLoss = asPrice(setup.stop_loss);
+  const takeProfit = asPrice(setup.take_profit);
+  // take_profit_1 is the one level genuinely absent on a non-laddered
+  // instrument, and `Number(null) === 0` — a zero here would make
+  // AdvisorRecommendationPanel's hasLadder check draw a "Target 1 · bank half"
+  // row at price 0. Undefined is what the analyzer's own wire shape uses for "no
+  // first target", so the restored setup says exactly what a freshly scanned one
+  // would.
   const takeProfit1 = asPrice(setup.take_profit_1);
+
+  // The four above are NOT NULL and `> 0` in the schema, so this is defensive:
+  // only a change in how PostgREST represents numeric could deliver one
+  // unreadable. If it ever does, the honest answer is that there is no setup to
+  // restore — the market is still selected and the stage says it has no setup,
+  // which is a state it already draws, rather than a ladder of NaN presented as
+  // stored levels (§17f). The score is not in this set: it has its own floor
+  // downstream (ConfidenceUnit's clampConfidencePercent), so it degrades to 0
+  // rather than to a printed lie.
+  const restorable = breakevenTriggerPrice !== null && entryPrice !== null &&
+    stopLoss !== null && takeProfit !== null;
 
   return {
     // Derived, not invented: getSecurityOption is where every other surface in
@@ -41,24 +82,28 @@ export function storedSetupAsCandidate(
     // setup) plus the class above. The scan row's own reporting — cost chip,
     // payoff, regime, rationale — belongs to a scan that has just run; it is not
     // a stored fact, and a restore states nothing it cannot read (§17f).
-    setup: {
-      breakevenTriggerPrice: Number(setup.breakeven_trigger_price),
-      confidenceScore: Number(setup.confidence_score),
-      // The receipt ("Why this setup") renders entirely from these two jsonb
-      // columns, and the analyzer persists both verbatim
-      // (trade-analyzer/index.ts). So a restored stage's five rows are the same
-      // five a scan-adopted stage draws — not a reduced version of them.
-      confluence: setup.confluence ?? {},
-      correlationGroup: setup.correlation_group ?? "",
-      entryPrice: Number(setup.limit_entry),
-      orderType: "limit",
-      riskModel: setup.risk_model ?? {},
-      side: setup.side,
-      stopLoss: Number(setup.stop_loss),
-      symbol,
-      takeProfit: Number(setup.take_profit),
-      ...(takeProfit1 === null ? {} : { takeProfit1 }),
-    },
+    ...(restorable
+      ? {
+        setup: {
+          breakevenTriggerPrice,
+          confidenceScore: Number(setup.confidence_score),
+          // The receipt ("Why this setup") renders entirely from these two jsonb
+          // columns, and the analyzer persists both verbatim
+          // (trade-analyzer/index.ts). So a restored stage's five rows are the
+          // same five a scan-adopted stage draws — not a reduced version of them.
+          confluence: setup.confluence ?? {},
+          correlationGroup: setup.correlation_group ?? "",
+          entryPrice,
+          orderType: "limit" as const,
+          riskModel: setup.risk_model ?? {},
+          side: setup.side,
+          stopLoss,
+          symbol,
+          takeProfit,
+          ...(takeProfit1 === null ? {} : { takeProfit1 }),
+        },
+      }
+      : {}),
     symbol,
   };
 }
