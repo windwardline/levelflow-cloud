@@ -15,3 +15,16 @@ export const SUPPORT_EMAIL = "help@windwardline.com";
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${
   encodeURIComponent("[Levelflow] Help")
 }`;
+
+// The other letter this inbox receives, and the same lesson one level down: the
+// Donate page and the sign-in screen's donation block each built this string
+// themselves, byte-identical, from two different sources for one address — a prop
+// on one surface, the constant above on the other. §17o's fold: one definition
+// everywhere it can be one.
+export const DONATION_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${
+  encodeURIComponent("[Levelflow] Development support")
+}&body=${
+  encodeURIComponent(
+    "I would like the current donation link for Levelflow development and maintenance.",
+  )
+}`;

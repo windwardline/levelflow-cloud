@@ -11,10 +11,15 @@ import {
 import { DonationOptions } from "../donations/DonationOptions";
 import { describeAuthEmailError } from "../../lib/authErrors";
 import { donateRequested } from "../../lib/donateEntry";
+import {
+  loadSignInDraft,
+  saveSignInDraft,
+  sentMessage,
+} from "../../lib/signInDraft";
 import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
-import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../../lib/support";
+import { DONATION_REQUEST_MAILTO, SUPPORT_MAILTO } from "../../lib/support";
 
 type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
@@ -23,10 +28,17 @@ type AuthScreenProps = {
 };
 
 export function AuthScreen({ themeControl }: AuthScreenProps) {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<AuthStatus>("idle");
+  // What this tab remembers from before the reader stepped away to read a document.
+  // §17o tier 2 navigates those links in the same tab, so this screen's own state is
+  // the thing that has to survive the trip — see src/lib/signInDraft.ts. Read once,
+  // at mount, which is the only moment it can be the truth.
+  const draft = loadSignInDraft();
+  const [email, setEmail] = useState(draft?.email ?? "");
+  const [status, setStatus] = useState<AuthStatus>(draft?.sent ? "sent" : "idle");
   const [message, setMessage] = useState(
-    "Enter your email. We'll send one secure link to open your workspace.",
+    draft?.sent
+      ? sentMessage(draft.email)
+      : "Enter your email. We'll send one secure link to open your workspace.",
   );
   const [error, setError] = useState("");
   // The same ask the authed shell now opens its Donate tab on, read from the one
@@ -85,8 +97,10 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
     // form is what tells the reader to check their inbox, from this same "sent"
     // state — and the two used to say it simultaneously, one twelve words after
     // the other. What this line has that the notice cannot is the address the
-    // link went to.
-    setMessage(`Magic link sent to ${normalizedEmail}.`);
+    // link went to. The sentence itself lives in src/lib/signInDraft.ts now,
+    // because restoring this state has to say the same thing.
+    setMessage(sentMessage(normalizedEmail));
+    saveSignInDraft({ email: normalizedEmail, sent: true });
   }
 
   async function signInWithOAuth(
@@ -128,9 +142,6 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const body = isSupabaseConfigured
     ? message
     : "Levelflow isn't connected to the cloud yet.";
-  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
-    "I would like the current donation link for Levelflow development and maintenance.",
-  )}`;
 
   return (
     // Spec §17i: the frame reaches the login screen too — the hero and the card
@@ -241,7 +252,11 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
                   className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-ink outline-hidden"
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setEmail(value);
+                    saveSignInDraft({ email: value, sent: false });
+                  }}
                   placeholder="trader@example.com"
                   required
                 />
@@ -336,7 +351,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
                   {DONATION_SUPPORT_COPY}
                 </p>
                 <DonationOptions
-                  fallbackHref={donationFallbackHref}
+                  fallbackHref={DONATION_REQUEST_MAILTO}
                   mode="compact"
                 />
               </div>

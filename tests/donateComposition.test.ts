@@ -216,13 +216,16 @@ describe("DonationOptions — two live callers, and no caller-specific chrome (w
   const auth = readFileSync("src/components/auth/AuthScreen.tsx", "utf8");
 
   it("has two call sites, one per mode, so neither branch is dead code", () => {
+    // §17o's mailto fold: the fallback href was built twice, byte-identical, from
+    // two different sources for one address. Both callers take the one constant now
+    // (tests/linkDoctrine.test.ts pins that no surface rebuilds it).
     assert.match(
       donatePanel,
-      /<DonationOptions fallbackHref=\{donationFallbackHref\} \/>/,
+      /<DonationOptions fallbackHref=\{DONATION_REQUEST_MAILTO\} \/>/,
     );
     assert.match(
       auth,
-      /<DonationOptions\s+fallbackHref=\{donationFallbackHref\}\s+mode="compact"\s*\/>/,
+      /<DonationOptions\s+fallbackHref=\{DONATION_REQUEST_MAILTO\}\s+mode="compact"\s*\/>/,
     );
   });
 

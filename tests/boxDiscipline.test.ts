@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { sentMessage } from "../src/lib/signInDraft";
 
 // Spec §17c, standing: "Box-on-box, global and standing — sweep every remaining
 // gratuitous box on every tab, view, and platform. A bordered sheet survives
@@ -411,7 +412,12 @@ describe("§17c reaches the pre-auth notices — callouts, not cards (owner ruli
   // notice keeps it; the body keeps what the notice cannot say, which is the
   // address the link went to.
   it("says open-the-link once after sending, not in both the body and the notice", () => {
-    assert.match(auth, /setMessage\(`Magic link sent to \$\{normalizedEmail\}\.`\)/);
+    // The sentence lives in src/lib/signInDraft.ts since §17o's F7 fold — the screen
+    // has to say the same thing when it RESTORES this state after a reader steps away
+    // to a document, and one sentence with two authors is how two paths come to word
+    // one fact differently. Read from the module, still exactly once.
+    assert.match(auth, /setMessage\(sentMessage\(normalizedEmail\)\)/);
+    assert.equal(sentMessage("reader@example.com"), "Magic link sent to reader@example.com.");
     const instructions =
       auth.match(/open (?:that email|the magic link) to continue/g) ?? [];
     assert.deepEqual(instructions, ["open the magic link to continue"]);

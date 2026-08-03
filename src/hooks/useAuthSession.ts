@@ -6,6 +6,7 @@ import {
   clearBrowserSession,
   markBrowserSession,
 } from "../lib/browserSession";
+import { clearSignInDraft } from "../lib/signInDraft";
 
 type AuthSessionState = {
   session: Session | null;
@@ -81,6 +82,9 @@ function shouldKeepSession(authRedirectInProgress: boolean) {
 function markSession(session: Session | null) {
   if (session) {
     markBrowserSession();
+    // The sign-in screen's draft is spent: a session exists, so the address it was
+    // holding for the reader has nothing left to do (src/lib/signInDraft.ts).
+    clearSignInDraft();
   } else {
     clearBrowserSession();
   }
