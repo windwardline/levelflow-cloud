@@ -105,10 +105,16 @@ export async function adminFetchRows<T>(path: string): Promise<T[]> {
   return (await response.json()) as T[];
 }
 
-export async function adminInsertRows<T = unknown>(
+// `return=minimal` asks PostgREST for no rows back, and PostgREST answers a
+// successful insert with 201 and an empty body — not 204. Parsing that body
+// threw `SyntaxError: Unexpected end of JSON input` on every insert that
+// worked, so recordAnalyzerEvent reported failure for rows already committed
+// and the warning drowned the two real runtime errors in the same log window.
+// Nothing reads rows this never returns; the response body is simply not read.
+export async function adminInsertRows(
   table: string,
   payload: Record<string, unknown> | Array<Record<string, unknown>>,
-): Promise<T[]> {
+): Promise<void> {
   const response = await adminSupabaseFetch(table, {
     body: JSON.stringify(payload),
     headers: {
@@ -119,10 +125,7 @@ export async function adminInsertRows<T = unknown>(
   if (!response.ok) {
     throw new Error(await response.text());
   }
-  if (response.status === 204) {
-    return [];
-  }
-  return (await response.json()) as T[];
+  await response.body?.cancel();
 }
 
 export async function adminUpdateRows<T = unknown>(
