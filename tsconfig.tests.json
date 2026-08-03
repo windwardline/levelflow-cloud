@@ -48,6 +48,7 @@
     "scripts/**/*.ts",
     "playwright.config.ts",
     "src",
+    "supabase/functions/trade-analyzer/bars.ts",
     "supabase/functions/trade-analyzer/calibration.ts",
     "supabase/functions/trade-analyzer/concurrency.ts",
     "supabase/functions/trade-analyzer/cotContext.ts",

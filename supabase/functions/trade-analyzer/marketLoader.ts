@@ -1,3 +1,4 @@
+import { type FmpBar, normalizeFmpBars } from "./bars.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import {
   type Bar,
@@ -21,15 +22,6 @@ const CANDLE_CACHE_TTL_MS: Record<Timeframe, number> = {
 };
 const SLOW_PROVIDER_CALL_MS = 2_500;
 const candleCache = new Map<string, { bars: Bar[]; expiresAt: number }>();
-
-type FmpBar = {
-  close?: number;
-  date?: string;
-  high?: number;
-  low?: number;
-  open?: number;
-  volume?: number;
-};
 
 type MarketDataEventPayload = {
   action: string;
@@ -240,7 +232,7 @@ export async function fetchFmpBars(
         timeframe,
       },
     });
-    return cached.bars.map((bar) => ({ ...bar }));
+    return cached.bars;
   }
 
   const endpoint = timeframe === "1day"
@@ -343,29 +335,19 @@ export async function fetchFmpBars(
     throw new Error(`FMP ${timeframe} response was not an array`);
   }
 
-  const bars = (payload as FmpBar[])
-    .filter((point) =>
-      typeof point.date === "string" && typeof point.open === "number" &&
-      typeof point.high === "number" && typeof point.low === "number" &&
-      typeof point.close === "number"
-    )
-    .map((point) => ({
-      close: point.close as number,
-      high: point.high as number,
-      low: point.low as number,
-      open: point.open as number,
-      time: toTimestamp(point.date as string),
-      volume: point.volume ?? 0,
-    }))
-    .sort((first, second) => first.time - second.time)
-    .slice(-maxBarsForTimeframe(timeframe));
+  const bars = normalizeFmpBars(
+    payload as FmpBar[],
+    maxBarsForTimeframe(timeframe),
+  );
 
   candleCache.set(cacheKey, {
     bars,
     expiresAt: Date.now() + CANDLE_CACHE_TTL_MS[timeframe],
   });
 
-  return bars.map((bar) => ({ ...bar }));
+  // Shared with the cache rather than copied: every consumer reads bars and
+  // builds its own arrays, and tests/barDecode.test.ts keeps it that way.
+  return bars;
 }
 
 function pickPrimaryTimeframe(
@@ -446,14 +428,4 @@ function maxBarsForTimeframe(timeframe: Timeframe) {
     case "1day":
       return 1_000;
   }
-}
-
-function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value.includes("T")
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  const timestamp = new Date(normalized).getTime();
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
 }

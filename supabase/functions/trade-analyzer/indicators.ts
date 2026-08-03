@@ -93,12 +93,42 @@ export function averageTrueRange(bars: Bar[], period: number) {
     Math.max(ranges.length, 1);
 }
 
+// The same series the old shape produced, without rebuilding the history for
+// every point of it. `averageTrueRange(bars.slice(0, index), period)` allocated
+// an array of length `index` on each of ~1,000 daily iterations — half a million
+// copied references to read the last `period` of them — and classifyRegime calls
+// this once per symbol on every scan. Each window is still summed left to right
+// from zero over the same `period` true ranges, so every value is bit-identical;
+// tests/barDecode.test.ts proves it against the old implementation.
 export function rollingAtr(bars: Bar[], period: number) {
   const values: number[] = [];
-  for (let index = period + 1; index <= bars.length; index += 1) {
-    values.push(averageTrueRange(bars.slice(0, index), period));
+  if (period < 1 || bars.length < period + 1) {
+    return values;
   }
-  return values.filter((value) => Number.isFinite(value) && value > 0);
+
+  // trueRanges[index - 1] is bar `index` measured against its predecessor.
+  const trueRanges: number[] = [];
+  for (let index = 1; index < bars.length; index += 1) {
+    const bar = bars[index];
+    const previousClose = bars[index - 1].close;
+    trueRanges.push(Math.max(
+      bar.high - bar.low,
+      Math.abs(bar.high - previousClose),
+      Math.abs(bar.low - previousClose),
+    ));
+  }
+
+  for (let end = period; end <= trueRanges.length; end += 1) {
+    let sum = 0;
+    for (let offset = end - period; offset < end; offset += 1) {
+      sum += trueRanges[offset];
+    }
+    const value = sum / period;
+    if (Number.isFinite(value) && value > 0) {
+      values.push(value);
+    }
+  }
+  return values;
 }
 
 export function relativeStrengthIndex(bars: Bar[], period: number) {
