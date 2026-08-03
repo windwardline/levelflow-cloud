@@ -446,6 +446,17 @@ Live product outranks mock where they conflict.
   fields, buttons) or the mock-drawn Insights table frame — never as
   passive grouping. languageGuard-style CI enforcement where a guard can
   pin it.
+- **The deploy notice radiates (owner, 2026-08-03, mockup A of
+  `docs/design/mockups/deploy-notice-v1.html`)**: the reload notice wears
+  the Scan button's own kit chrome (`.primary-button`, a solid fill — not
+  a bordered box) in ALL CAPS (a CSS transform; the §20j-pinned sentence
+  is unchanged) and carries the app's ONE sanctioned glow — the
+  `.phosphor-pulse` kit class, layered accent depth-shadows breathing on a
+  2.4s alternate, held static under `prefers-reduced-motion`. The element
+  exists to interrupt; nothing else may take the class. A radiance draws
+  no perimeter, so the box-on-box sweep above is untouched by it. Full
+  measure below lg, content-width beside the nav at ≥lg; the 44px floor
+  is the kit's own.
 
 ### §17d. The result vocabulary — canonical (owner-approved verbatim, 2026-07-31)
 

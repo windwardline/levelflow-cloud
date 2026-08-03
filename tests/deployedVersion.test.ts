@@ -374,27 +374,38 @@ describe("the reload notice (§17f — one string, and it is the button)", () =>
     assert.deepEqual(rendered, [RELOAD_NOTICE]);
   });
 
-  it("is the market notice's own presentation, with the kit's tap floor", () => {
-    // No new chrome: the type is the closed-market notice's exactly
-    // (AdvisorWorkspace's marketNotice paragraph — text-sm font-medium
-    // text-ink-muted), so this adds a sentence and not a surface. What it adds on
-    // top is what makes a notice a control: §17n's 44px floor at both widths, the
-    // left alignment a button does not have by default, and the same
-    // hover:text-ink every other muted text control in the app takes.
+  it("wears the Scan button's own chrome and radiates (owner mockup A, 2026-08-03)", () => {
+    // The pick is docs/design/mockups/deploy-notice-v1.html, option A, recorded
+    // as a §17c ruling: the kit's .primary-button — the Scan control's exact
+    // chrome and size (MarketScanPanel's px-4 py-2 text-[13px]), a solid fill
+    // and not a bordered box — in ALL CAPS by CSS transform (the §20j sentence
+    // above is untouched), radiating through the phosphor-pulse kit class.
+    // Full measure below lg, content-width beside the nav at ≥lg; the 44px
+    // floor is the kit's own.
     assert.match(
       app,
-      /className="mt-2 flex min-h-11 w-full items-center text-left text-sm font-medium text-ink-muted transition hover:text-ink"/,
+      /className="primary-button phosphor-pulse mt-2 w-full px-4 py-2 text-\[13px\] uppercase tracking-\[0\.08em\] lg:w-auto"/,
     );
-    const stage = readFileSync(
-      "src/components/workspace/AdvisorWorkspace.tsx",
-      "utf8",
-    );
-    assert.match(stage, /className="mt-3 text-sm font-medium text-ink-muted"/);
-    // Flat: the notice draws no box of its own (§17c), which is also why
-    // tests/boxDiscipline.test.ts needs no new entry for it.
+    // The radiance is defined once, in the kit, and breathes. Reduced motion
+    // needs no exception of its own: the kit's global collapse zeroes the
+    // animation and the class's base shadow holds — the static variant by
+    // architecture. Only the spinner is restored there, because a frozen
+    // spinner asserts idle; a frozen glow asserts nothing false. So the
+    // reduced-motion block must NOT mention phosphor at all.
+    const styles = readFileSync("src/styles/index.css", "utf8");
+    assert.equal(styles.match(/\.phosphor-pulse \{/g)?.length, 1);
+    assert.match(styles, /@keyframes phosphor-pulse/);
+    const reducedMotion = styles.match(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\n  \}/,
+    )?.[0] ?? "";
+    assert.ok(reducedMotion.length > 0, "expected the reduced-motion collapse");
+    assert.doesNotMatch(reducedMotion, /phosphor/);
+    assert.equal(app.match(/className="[^"]*phosphor-pulse/g)?.length, 1);
+    // Still no perimeter of its own: §17c's box law is about boxes, and a
+    // radiance draws none — no border, no sheet plane beyond the kit fill.
     assert.doesNotMatch(
       app.match(/function ReloadNotice[\s\S]*?\n\}/)?.[0] ?? "",
-      /border|bg-sheet|rounded|shadow/,
+      /border|bg-sheet/,
     );
   });
 
