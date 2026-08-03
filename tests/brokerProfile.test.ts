@@ -316,3 +316,90 @@ describe("§19 retrofit — the multi-account schema (amendment 14)", () => {
     assert.match(ACCOUNTS_MIGRATION, /\(select auth\.uid\(\)\) = user_id/);
   });
 });
+
+// `buildDefaultProfile` is already imported at the top of this file (from
+// "../src/lib/profile.ts"); repeating it here would be a duplicate identifier
+// under this project's strict TS config, so this second import carries only
+// the names not already in scope.
+import {
+  activeAccountOf,
+  brokerAccountProblem,
+  type BrokerAccount,
+  type BrokerAccountDraft,
+} from "../src/lib/profile";
+
+const PRO_FOREX: BrokerAccountDraft = {
+  accountSize: 100_000,
+  brokerId: "e8",
+  classification: "forex",
+  drawdownTier: "2.5-8",
+  platform: "tradelocker",
+  programLine: "pro_forex",
+  riskPercent: 0.5,
+  stage: "performance",
+};
+
+describe("§19 retrofit — brokerAccountProblem rejects what the checkout does not sell", () => {
+  it("accepts a real E8 Pro Forex account", () => {
+    assert.equal(brokerAccountProblem(PRO_FOREX), null);
+  });
+
+  it("rejects an off-ladder size", () => {
+    assert.match(
+      brokerAccountProblem({ ...PRO_FOREX, accountSize: 123_000 }) ?? "",
+      /account size 123000 is not on pro_forex's ladder/,
+    );
+  });
+
+  it("rejects a classification the program line does not belong to", () => {
+    assert.match(
+      brokerAccountProblem({ ...PRO_FOREX, classification: "futures" }) ?? "",
+      /pro_forex is not sold on the futures market/,
+    );
+  });
+
+  it("rejects a platform the catalog does not offer on that line", () => {
+    assert.match(
+      brokerAccountProblem({ ...PRO_FOREX, platform: "matchtrader" }) ?? "",
+      /pro_forex does not offer matchtrader/,
+    );
+  });
+
+  it("rejects a drawdown tier on a preset line and a null one on a customizable line", () => {
+    assert.match(
+      brokerAccountProblem({
+        ...PRO_FOREX,
+        classification: "futures",
+        platform: "tradovate",
+        programLine: "signature_futures",
+        accountSize: 100_000,
+      }) ?? "",
+      /signature_futures has no drawdown tier to select/,
+    );
+    assert.match(
+      brokerAccountProblem({ ...PRO_FOREX, drawdownTier: null }) ?? "",
+      /pro_forex requires a drawdown tier/,
+    );
+  });
+
+  it("resolves the active account by the pointer, and null when it dangles", () => {
+    const saved: BrokerAccount = { ...PRO_FOREX, id: "acc-1" };
+    const profile = {
+      ...buildDefaultProfile("user-1", "a@b.c"),
+      activeBrokerAccountId: "acc-1",
+      brokerAccounts: [saved],
+    };
+    assert.deepEqual(activeAccountOf(profile), saved);
+    assert.equal(
+      activeAccountOf({ ...profile, activeBrokerAccountId: "acc-missing" }),
+      null,
+    );
+    assert.equal(activeAccountOf({ ...profile, brokerAccounts: [] }), null);
+  });
+
+  it("defaults a fresh profile to no accounts and no active pointer", () => {
+    const fresh = buildDefaultProfile("user-1", "a@b.c");
+    assert.deepEqual(fresh.brokerAccounts, []);
+    assert.equal(fresh.activeBrokerAccountId, null);
+  });
+});
