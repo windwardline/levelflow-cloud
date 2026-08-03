@@ -1353,7 +1353,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
         ],
         [
           "src/components/workspace/ProfilePanel.tsx",
-          'className="mx-auto w-full max-w-[880px]"',
+          'className="mx-auto w-[880px] max-w-full"',
         ],
         [
           "src/components/workspace/GuidePanel.tsx",

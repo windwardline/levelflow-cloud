@@ -78,16 +78,16 @@ export function LegalDocumentPanel({ slug }: LegalDocumentPanelProps) {
   // capping it was measured and found not to work. The ≥lg content region is
   // `mx-auto` inside a grid row, so its used width is fit-content: it takes the width
   // of what it holds, and this surface's widest child is a paragraph block capped at
-  // the app's 62ch reading measure. `w-full max-w-[880px]` therefore resolved to
-  // 626px in the built CSS at 1280 — an 880 that was never once 880. A definite width
-  // is what a fit-content parent can size to; max-w-full keeps it inside the region
-  // at the narrow end of ≥lg (at the 1024px breakpoint the region's 32px gutters
-  // leave 960).
+  // the app's 62ch reading measure. A percentage width under a max-width cap
+  // therefore resolved to 626px in the built CSS at 1280 — an 880 that was never once
+  // 880. A definite width is what a fit-content parent can size to, and a max-width
+  // of 100% keeps it inside the region at the narrow end of ≥lg (at the 1024px
+  // breakpoint the region's 32px gutters leave 960).
   //
-  // ProfilePanel, whose sheet §17o names as the source of this number, declares the
-  // same 880 and measures 514px at both 1280 and 1440 for exactly the same reason.
-  // That is its finding to fix, not this file's: the number here is the ruling's, and
-  // this surface renders it.
+  // ProfilePanel, whose sheet §17o names as the source of this number, had declared
+  // the same 880 and rendered 514px for exactly this reason since it was built. It
+  // claims the width the same way as of 2026-08-03, so the two surfaces are one
+  // treatment again rather than one treatment and its intention.
   return (
     <div className="mx-auto w-[880px] max-w-full" data-testid="document-panel">
       {title}

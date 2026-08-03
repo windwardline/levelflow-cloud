@@ -146,15 +146,16 @@ describe("§17o tier 2 — the document surface is the app's own page compositio
     // definite width is what a fit-content parent can size to, and max-w-full is what
     // keeps it inside the region at 1024.
     //
-    // Measured on Profile too, rather than assumed: its sheet declares the same 880
-    // and renders 514px at 1280 and at 1440, by the same mechanism. Recorded as a
-    // separate finding — this guard asserts Profile still DECLARES the number §17o
-    // took from it, not that Profile currently reaches it.
-    assert.match(panel, /mx-auto w-\[880px\] max-w-full/);
-    assert.match(
-      readFileSync("src/components/workspace/ProfilePanel.tsx", "utf8"),
-      /max-w-\[880px\]/,
-    );
+    // Measured on both, rather than assumed: 880px at 1280 and at 1440, on this
+    // surface and on Profile. Profile reached the number in its own change, once the
+    // §17o wave had found the mechanism here.
+    // Both surfaces claim the width the same way now. The downgrade this assertion
+    // carried — "Profile still DECLARES the number" — was true only while Profile's
+    // own sheet was capping at 880 and rendering 514; that is fixed, so the pin is
+    // the strong one again: one string, both files.
+    const column = /className="mx-auto w-\[880px\] max-w-full"/;
+    assert.match(panel, column);
+    assert.match(readFileSync("src/components/workspace/ProfilePanel.tsx", "utf8"), column);
     // And it is not two numbers pretending to be one.
     const widths = new Set(
       Array.from(panel.matchAll(/\[(\d+)px\]/g), (match) => match[1]),
