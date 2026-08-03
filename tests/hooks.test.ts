@@ -84,6 +84,31 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     assert.doesNotMatch(catchBlock, /setSetups/);
   });
 
+  it("warns when the realtime subscription itself fails, with the cause intact", () => {
+    // The hook's third failure path, and the quietest: a failed subscription is
+    // not a failed read. The rows on screen stay correct, they just stop
+    // changing, so an RLS policy change, an expired token or a channel-limit
+    // rejection ends live updates with nothing said on either surface. This
+    // console.warn is the operator's only signal, and it joins the same
+    // "[history] ..." family as the two above — loud for the operator, silent
+    // for the reader.
+    assert.match(
+      source,
+      /if \(\s*status === REALTIME_SUBSCRIBE_STATES\.CHANNEL_ERROR \|\|\s*status === REALTIME_SUBSCRIBE_STATES\.TIMED_OUT\s*\) \{\s*console\.warn\(\s*"\[history\] realtime subscription failed; rows update only on wake or refresh",\s*status,\s*err,\s*\);\s*\}/,
+    );
+    assert.match(source, /\.subscribe\(\(status, err\) => \{/);
+    // The whole error, never err.message: realtime-js builds it as
+    // `new Error(message, { cause: error })`, so the structured reason lives in
+    // `cause` — which is why its own subscribe() docblock says to log the full
+    // err. The status rides along because TIMED_OUT arrives with no err at all.
+    assert.doesNotMatch(source, /err\.message/);
+    // CLOSED is not a failure: removeChannel in the effect's cleanup reports it
+    // on every deliberate teardown, so warning on it would cry failure at a
+    // clean shutdown. Naming the two real failures affirmatively is what keeps
+    // it out, rather than a "not SUBSCRIBED" catch-all.
+    assert.doesNotMatch(source, /REALTIME_SUBSCRIBE_STATES\.CLOSED/);
+  });
+
   it("stamps the outcome-refresh throttle on success only, and clears it on sign-out", () => {
     // M6, already fixed in wave 1 — pinned here so the hook's one piece of
     // module-scope state stays covered by a test rather than only by a comment.
