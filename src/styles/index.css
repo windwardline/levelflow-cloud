@@ -272,6 +272,42 @@ html[data-theme="dark"] {
   }
   .primary-button:hover:not(:disabled) { background: var(--color-accent-pressed); }
 
+  /* The deploy notice's radiance — the app's ONE sanctioned glow (§17c ruling,
+     owner mockup A, 2026-08-03). Layered accent depth-shadows breathing
+     brighter on alternate: never off, only dimmer. A radiance draws no
+     perimeter, so the box-on-box sweep is untouched by it — and nothing else
+     may take this class; the notice exists to interrupt, and the ruling that
+     created the exception scopes it to that one element. */
+  .phosphor-pulse {
+    box-shadow:
+      0 0 7px color-mix(in srgb, var(--color-accent) 75%, transparent),
+      0 0 20px color-mix(in srgb, var(--color-accent) 48%, transparent),
+      0 0 46px color-mix(in srgb, var(--color-accent) 26%, transparent);
+    animation: phosphor-pulse 2.4s ease-in-out infinite alternate;
+  }
+
+  @keyframes phosphor-pulse {
+    from {
+      box-shadow:
+        0 0 6px color-mix(in srgb, var(--color-accent) 55%, transparent),
+        0 0 16px color-mix(in srgb, var(--color-accent) 32%, transparent),
+        0 0 34px color-mix(in srgb, var(--color-accent) 16%, transparent);
+    }
+    to {
+      box-shadow:
+        0 0 9px color-mix(in srgb, var(--color-accent) 90%, transparent),
+        0 0 28px color-mix(in srgb, var(--color-accent) 62%, transparent),
+        0 0 58px color-mix(in srgb, var(--color-accent) 40%, transparent);
+    }
+  }
+
+  /* Stillness for readers who asked for it: the same radiance, held. */
+  @media (prefers-reduced-motion: reduce) {
+    .phosphor-pulse {
+      animation: none;
+    }
+  }
+
   .secondary-button {
     border: 1px solid var(--color-ink);
     background: transparent;

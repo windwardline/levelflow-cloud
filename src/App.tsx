@@ -808,16 +808,18 @@ function mainShellClassName(isMobileViewport: boolean): string {
 // reader where to tap. The whole line is the button, because a notice the reader
 // must act on and the control they act with are one object here.
 //
-// The presentation is the market notice's, unchanged: the closed-market line's own
-// type (AdvisorWorkspace's marketNotice paragraph — text-sm font-medium
-// text-ink-muted), flat, with no plane and no icon, so this adds a sentence to the
-// app and not a surface to it. What it adds on top is what a control needs and a
-// paragraph does not: §17n's 44px floor at both widths, the left alignment a
-// button has to ask for, and the hover the app's other muted text controls take.
+// The presentation is the Scan button's (the owner's pick, 2026-08-03 — mockup A
+// of docs/design/mockups/deploy-notice-v1.html, recorded as a §17c ruling): the
+// kit's .primary-button in the Scan control's own size, a solid fill and not a
+// bordered box, ALL CAPS by CSS transform — the §20j-pinned sentence is
+// untouched — radiating through .phosphor-pulse, the app's one sanctioned glow
+// (styles/index.css; held static under prefers-reduced-motion). Full measure
+// below lg, content-width beside the nav at ≥lg; §17n's 44px floor is the
+// kit's own.
 function ReloadNotice() {
   return (
     <button
-      className="mt-2 flex min-h-11 w-full items-center text-left text-sm font-medium text-ink-muted transition hover:text-ink"
+      className="primary-button phosphor-pulse mt-2 w-full px-4 py-2 text-[13px] uppercase tracking-[0.08em] lg:w-auto"
       type="button"
       onClick={() => window.location.reload()}
     >
