@@ -335,6 +335,35 @@ describe("§19b — the broker program controls, inside the row that already exi
     assert.equal((PANEL_SOURCE.match(/title="Broker"/g) ?? []).length, 1);
   });
 
+  it("renders every dropdown option in caps, and only the options (owner, 2026-08-03)", () => {
+    // The owner's ruling scopes to the SELECTABLE options: the values inside
+    // the dropdowns render ALL CAPS; the field labels above them do not.
+    // Caps happen at render (optionCaps) rather than CSS because Safari's
+    // native dropdown menus ignore text-transform on <option> — and the
+    // stored catalog strings stay byte-intact underneath (§20j pins source
+    // strings, which are unchanged).
+    assert.match(
+      PANEL_SOURCE,
+      /const optionCaps = \(label: string\) => label\.toUpperCase\(\);/,
+    );
+    // Slice to the next top-level function: the component's props close at
+    // column 0, so a lazy body regex would stop 57 characters in.
+    const start = PANEL_SOURCE.indexOf("function BrokerProgramControls");
+    const controls = PANEL_SOURCE.slice(
+      start,
+      PANEL_SOURCE.indexOf("\nfunction ", start + 1),
+    );
+    assert.ok(controls.includes("</select>"), "expected the controls' JSX");
+    // Every option-text renderer in the broker controls goes through the
+    // helper — six sites, no bare option text left…
+    assert.equal((controls.match(/<option/g) ?? []).length, 6);
+    assert.equal((controls.match(/\{optionCaps\(/g) ?? []).length, 6);
+    // …and the labels stay untransformed: no uppercase utility in the
+    // controls. The closed select needs no class either — it displays the
+    // option text, which arrives already capped.
+    assert.doesNotMatch(controls, /uppercase/);
+  });
+
   it("renders five controls, in the spec's order, each a select with its label", () => {
     const labels = Array.from(
       PANEL_SOURCE.matchAll(/<BrokerControlRow label="([^"]+)">/g),
@@ -378,7 +407,11 @@ describe("§19b — the broker program controls, inside the row that already exi
   });
 
   it("defaults to None and renders only Program until a program is selected", () => {
-    assert.match(PANEL_SOURCE, /<option value="none">None<\/option>/);
+    // None rides the caps helper like every other option (owner, 2026-08-03).
+    assert.match(
+      PANEL_SOURCE,
+      /<option value="none">\{optionCaps\("None"\)\}<\/option>/,
+    );
     assert.match(PANEL_SOURCE, /value=\{profile\.brokerProgramLine \?\? "none"\}/);
     // The other four sit behind the program check, so with None they do not exist.
     assert.match(
@@ -417,11 +450,13 @@ describe("§19b — the broker program controls, inside the row that already exi
     for (const box of ["terminal-panel", "rounded-lg", "shadow", "bg-accent"]) {
       assert.ok(!controls.includes(box), `${box} must not reach the Broker row`);
     }
-    // The only strings this block renders are the five labels, None, and the
-    // options the data module formats — §20j's list, with nothing added.
+    // The only strings this block renders are the five labels and the options
+    // the data module formats — §20j's list, with nothing added. Since the
+    // caps ruling (owner, 2026-08-03), even None flows through optionCaps, so
+    // no bare JSX text remains at all.
     const jsxText = Array.from(controls.matchAll(/>([A-Za-z][^<>{}]*)</g), (m) =>
       m[1].trim());
-    assert.deepEqual(jsxText.filter((text) => text.length > 0), ["None"]);
+    assert.deepEqual(jsxText.filter((text) => text.length > 0), []);
   });
 
   it("persists on change with every other saved field riding along", () => {
