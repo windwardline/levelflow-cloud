@@ -348,6 +348,15 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       stage,
       /\{marketNotice\n\s*\? \(\n\s*<p className="mt-3 text-sm font-medium text-ink-muted">/,
     );
+    // The regex above matches only the MOBILE paragraph — the >=lg one carries
+    // shrink-0 in its class string, so an unconditional >=lg notice (an empty
+    // paragraph leaving its mt-3 margin on the stage after every successful
+    // load, the exact defect this test names) passed CI until this second
+    // direction pinned it.
+    assert.match(
+      stage,
+      /\{marketNotice\n\s*\? \(\n\s*<p className="mt-3 shrink-0 text-sm font-medium text-ink-muted">/,
+    );
   });
 });
 
