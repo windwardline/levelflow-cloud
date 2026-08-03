@@ -224,6 +224,20 @@ describe("§19g — every save carries the selection", () => {
   it("rides the selection along on a theme-only save", () => {
     assert.match(panel, /\.\.\.brokerSelectionOf\(profile\),\s*defaultTimeframe:/);
   });
+
+  it("carries the saved-accounts pair along on a theme-only save too (§19 retrofit)", () => {
+    // The multi-account sibling of "rides the selection along" above:
+    // nextProfile is rebuilt from buildDefaultProfile + input on every save,
+    // and input (SaveProfileInput) never carries brokerAccounts or
+    // activeBrokerAccountId — this path doesn't write either one to
+    // broker_accounts. Without an explicit carry-forward from the hook's own
+    // current profile state, a theme- or timezone-only save would silently
+    // wipe a loaded profile's accounts and active pointer from client state.
+    // §19g: a save path must never wipe a sibling field it wasn't asked to
+    // change.
+    assert.match(hook, /activeBrokerAccountId: profile\?\.activeBrokerAccountId \?\? null/);
+    assert.match(hook, /brokerAccounts: profile\?\.brokerAccounts \?\? \[\]/);
+  });
 });
 
 const ACCOUNTS_MIGRATION = readFileSync(
