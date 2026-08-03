@@ -49,28 +49,35 @@ function buildSetup(overrides: Partial<TradeSetupRow> = {}): TradeSetupRow {
   };
 }
 
-describe("buildTradeCards", () => {
-  it("keeps pending and open setups, in their given order, paired with their derived state", () => {
-    const pending = buildSetup({ id: "a", status: "generated" });
-    const open = buildSetup({
-      id: "b",
-      status: "placed",
-      trade_outcomes: [
-        {
-          exit_at: null,
-          feedback: { tp1Hit: false },
-          filled_at: null,
-          outcome: "pending",
-          realized_pnl: null,
-          reviewed_at: null,
-        },
-      ],
-    });
+// An open (filled and live) row, since half of the rail's ordering is which
+// state group a card belongs to.
+function buildOpenSetup(overrides: Partial<TradeSetupRow> = {}): TradeSetupRow {
+  return buildSetup({
+    status: "placed",
+    trade_outcomes: [
+      {
+        exit_at: null,
+        feedback: { tp1Hit: false },
+        filled_at: null,
+        outcome: "pending",
+        realized_pnl: null,
+        reviewed_at: null,
+      },
+    ],
+    ...overrides,
+  });
+}
 
-    const cards = buildTradeCards([pending, open], NOW);
-    assert.deepEqual(cards.map((card) => card.setup.id), ["a", "b"]);
-    assert.equal(cards[0]?.state.status, "pending");
-    assert.equal(cards[1]?.state.status, "open");
+describe("buildTradeCards", () => {
+  it("pairs each surviving setup with its derived state", () => {
+    const cards = buildTradeCards(
+      [buildSetup({ id: "a", status: "generated" }), buildOpenSetup({ id: "b" })],
+      NOW,
+    );
+    assert.deepEqual(
+      cards.map((card) => [card.setup.id, card.state.status]),
+      [["b", "open"], ["a", "pending"]],
+    );
   });
 
   it("drops resolved/closed setups entirely — deriveTradeState's null contract", () => {
@@ -80,6 +87,73 @@ describe("buildTradeCards", () => {
 
   it("returns an empty list for no setups", () => {
     assert.deepEqual(buildTradeCards([], NOW), []);
+  });
+});
+
+// The durable sort law (spec §4): "Menus are alphabetical for finding; results
+// are sorted by confidence for deciding — that is the only sorting deviation."
+// The rail is a results surface and rendered fetch order (created_at
+// descending) until this wave — the owner's own first finding, 2026-08-02.
+describe("the Current trades rail obeys the durable sort law", () => {
+  it("orders by confidence descending, not the order the fetch delivered", () => {
+    const cards = buildTradeCards(
+      [
+        buildOpenSetup({ confidence_score: 62, id: "weak", symbol: "EURUSD" }),
+        buildOpenSetup({ confidence_score: 91, id: "strong", symbol: "XAUUSD" }),
+        buildOpenSetup({ confidence_score: 74, id: "middle", symbol: "USDJPY" }),
+      ],
+      NOW,
+    );
+    assert.deepEqual(cards.map((card) => card.setup.id), [
+      "strong",
+      "middle",
+      "weak",
+    ]);
+  });
+
+  it("breaks a confidence tie exactly the way the Insights ledger does", () => {
+    const tied = [
+      buildOpenSetup({ confidence_score: 74, id: "e", symbol: "EURUSD" }),
+      buildOpenSetup({ confidence_score: 74, id: "b", symbol: "BTCUSD" }),
+      buildOpenSetup({ confidence_score: 74, id: "a", symbol: "ADAUSD" }),
+    ];
+    assert.deepEqual(
+      buildTradeCards(tied, NOW).map((card) => card.setup.symbol),
+      ["ADAUSD", "BTCUSD", "EURUSD"],
+    );
+  });
+
+  it("groups Open above Pending — the trade with money at risk reads first", () => {
+    // The adjudication, stated: spec §8 names the two statuses that live here
+    // but rules nothing about their order, so the rail groups by state and
+    // sorts by confidence inside each group — the same shape the Insights
+    // ledger uses (day groups, the durable sort within one). A weak Open still
+    // outranks a strong Pending, because a filled position is the one that can
+    // move against the reader while they read.
+    const cards = buildTradeCards(
+      [
+        buildSetup({ confidence_score: 99, id: "pending", status: "generated" }),
+        buildOpenSetup({ confidence_score: 51, id: "open" }),
+      ],
+      NOW,
+    );
+    assert.deepEqual(cards.map((card) => card.setup.id), ["open", "pending"]);
+  });
+
+  it("sorts a copy — the caller's own array is never reordered underneath it", () => {
+    const setups = [
+      buildOpenSetup({ confidence_score: 62, id: "weak" }),
+      buildOpenSetup({ confidence_score: 91, id: "strong" }),
+    ];
+    buildTradeCards(setups, NOW);
+    assert.deepEqual(setups.map((setup) => setup.id), ["weak", "strong"]);
+  });
+
+  it("takes the ordering from the shared comparator rather than writing its own", () => {
+    assert.match(
+      RAIL_SOURCE,
+      /import \{[\s\S]{0,140}compareSetupsByConfidence[\s\S]{0,140}\} from "\.\/historyUtils"/,
+    );
   });
 });
 
@@ -202,15 +276,76 @@ describe("CurrentTradesRail markup (source-pinned — see header comment)", () =
     assert.match(RAIL_SOURCE, /as of \{formatClockTime\(lastRefreshedAt\)\} ·/);
   });
 
-  it("never invents its own fetch machinery or nav — refresh defers to the onRefresh prop, the cross-link to WorkspaceNav", () => {
-    // Exhaustive by design: the surface has exactly two controls, and neither
-    // may grow a fetch or a routing mechanism of its own.
+  it("never invents its own fetch machinery or nav — refresh defers to the onRefresh prop, every jump to WorkspaceNav", () => {
+    // Exhaustive by design: the surface has exactly three controls, and none of
+    // them may grow a fetch or a routing mechanism of its own.
     const onClickHandlers = RAIL_SOURCE.match(/onClick=\{[^}]*\}/g) ?? [];
     assert.deepEqual(onClickHandlers, [
       "onClick={handleRefresh}",
       "onClick={() => nav.openInsights()}",
+      "onClick={() => nav.openAdvisor(setup)}",
     ]);
     assert.match(RAIL_SOURCE, /onRefresh\(\)/);
+  });
+});
+
+// The owner's second finding, 2026-08-02: "The whole point of the Current
+// Trades section is to serve as a reliable reference for the trades we
+// generate, so we need to be able to come back to the expanded detail view if
+// we click on it." The card is the affordance, so the card is a button — the
+// same shape MarketScanRow already is, spans inside rather than block elements
+// a <button> may not legally contain.
+describe("each position card is the affordance that reopens its own setup", () => {
+  // The card element itself, start to end — located from its own handler
+  // outward rather than by a `<button` regex, which would otherwise start at
+  // the rail's refresh control higher up the file.
+  const CARD_HANDLER = "onClick={() => nav.openAdvisor(setup)}";
+  const card = RAIL_SOURCE.slice(
+    RAIL_SOURCE.lastIndexOf("<button", RAIL_SOURCE.indexOf(CARD_HANDLER)),
+    RAIL_SOURCE.lastIndexOf("</button>") + "</button>".length,
+  );
+
+  it("is a real <button>, keyboard-reachable and typed", () => {
+    assert.ok(card.includes(CARD_HANDLER), "expected to locate the card's <button>");
+    assert.match(card, /type="button"/);
+  });
+
+  it("hands the whole stored row to the one cross-link, never a bare symbol", () => {
+    // §17m.1 killed symbol-only stage entry: a symbol alone reloads the chart
+    // and leaves the ladder, the why rows and the receipt empty, which is
+    // exactly the third finding of this wave on the Insights side.
+    assert.doesNotMatch(RAIL_SOURCE, /nav\.openAdvisor\(setup\.symbol\)/);
+    assert.match(RAIL_SOURCE, /nav\.openAdvisor\(setup\)/);
+  });
+
+  it("reflects the stage's own selection with the scan rail's treatment and aria-current", () => {
+    // a-desk-v3.html:153's `.mkt.sel`, the app's existing selected row: the
+    // sheet fill it already has plus the 3px inset accent edge, and no new
+    // border (§17c box discipline). Nothing textual is added — the edge and
+    // aria-current say it, so §17f writes no string.
+    assert.match(card, /aria-current=\{selected\}/);
+    assert.match(card, /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/);
+    // Still exactly one bordered frame in the file — the card itself — so the
+    // selected state cannot have been drawn as a second box.
+    assert.equal((RAIL_SOURCE.match(/border border-hairline/g) ?? []).length, 1);
+  });
+
+  it("holds phrasing content only — no article, heading, paragraph or div inside a button", () => {
+    assert.doesNotMatch(card, /<article/);
+    assert.doesNotMatch(card, /<h\d/);
+    assert.doesNotMatch(card, /<p\b/);
+    assert.doesNotMatch(card, /<div/);
+    // And the type scale the block elements carried is intact on the spans that
+    // replaced them.
+    assert.match(card, /<span className="truncate text-base font-semibold text-ink">/);
+    assert.match(card, /<span className="mt-2 block text-sm leading-5 text-ink-muted">/);
+  });
+
+  it("adds no label of its own — the card's own content is the accessible name (§17f)", () => {
+    // MarketScanRow's precedent: a result row's name comes from what it shows.
+    // An aria-label here would REPLACE the symbol, side, status, instruction and
+    // levels with one sentence — less reference, not more.
+    assert.doesNotMatch(card, /aria-label/);
   });
 });
 

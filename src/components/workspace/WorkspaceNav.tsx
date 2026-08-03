@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
 
 export type GuideAnchor =
   | "how-review-works"
@@ -10,7 +11,13 @@ export type GuideAnchor =
 
 export interface WorkspaceNav {
   openGuide: (anchor: GuideAnchor) => void;
-  openAdvisor: (symbol: string) => void;
+  // Reopen a stored setup on the Desk stage. The whole row, never a bare symbol
+  // (owner ruling, 2026-08-02): a symbol alone reselects the market and leaves
+  // the stage with no analysis state, so the chart reloads and the ladder, the
+  // why rows and the receipt below it stay empty — which was the owner's third
+  // finding about the Insights ledger. The stage restores the row through the
+  // one adoption path scan rows use (§17m.1's single door).
+  openAdvisor: (setup: TradeSetupRow) => void;
   openInsights: () => void;
 }
 

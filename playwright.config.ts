@@ -55,14 +55,18 @@ export default defineConfig({
   // chunks, not clicks. What the workspace project spends, all in:
   //   4 All-markets scans (the two Guide/receipt link specs, the ladder-copy
   //     spec, the persistence spec)  6 claims each = 24
-  //   4 Crypto-scoped scans (§19d, two per width leg)          1 each =  4
+  //   8 Crypto-scoped scans (§19d and the rail-reference wave,
+  //     two specs per width leg each)                          1 each =  8
   //   1 single-market scan (the one-door spec)                            1
-  //                                                                   ── 29
+  //                                                                   ── 33
   // spread across a project whose runtime is minutes, against 40 per
   // minute-aligned tumbling 60s window — a ledger that assumes retries: 0
   // (unset here; pinned in tests/scanBatching.test.ts). visual-proof scans
   // nothing (it captures surfaces) but its ten Desk/Insights surface visits
-  // are a heavy consumer of the refresh budget; analyzer-abuse then spends 2
+  // are a heavy consumer of the refresh budget — as, more modestly, are the
+  // rail-reference specs, which each cross the Desk/Insights boundary two or
+  // three times and so claim the 12/60s refresh_outcomes budget on every
+  // crossing (App.tsx's tab-activation effect); analyzer-abuse then spends 2
   // refusals + a 55-request flood, deliberately over the limit, which is the
   // 429 it exists to prove.
   //

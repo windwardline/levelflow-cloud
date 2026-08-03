@@ -159,9 +159,16 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
     assert.match(PANEL_SOURCE, /const nav = useWorkspaceNav\(\);/);
   });
 
-  it("wires the Market cell's button to nav.openAdvisor(setup.symbol), exactly one call site", () => {
+  // The owner's third finding, 2026-08-02: "Clicking on the trade in the
+  // Insights tab loads the chart, but not the details below it. It should." The
+  // cause was the argument — a bare symbol reselects the market and leaves the
+  // stage's analysis state null, so the ladder, the why rows and the receipt
+  // have nothing to draw. The row hands over its whole stored setup now, and the
+  // stage restores it through the one adoption path scan rows use.
+  it("wires the Market cell's button to nav.openAdvisor(setup) — the stored row, exactly one call site", () => {
     const calls = PANEL_SOURCE.match(/nav\.openAdvisor\([^)]*\)/g) ?? [];
-    assert.deepEqual(calls, ["nav.openAdvisor(setup.symbol)"]);
+    assert.deepEqual(calls, ["nav.openAdvisor(setup)"]);
+    assert.doesNotMatch(PANEL_SOURCE, /nav\.openAdvisor\(setup\.symbol\)/);
   });
 
   it("the Market cell is a real, keyboard-focusable <button> (not a div/span with onClick), 44px touch target", () => {
@@ -169,7 +176,7 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
     // to the tag's own closing ">" — safe here since none of this button's
     // attribute values contain a literal ">".
     const openingTag = PANEL_SOURCE.match(
-      /<button[\s\S]*?onClick=\{\(\) => nav\.openAdvisor\(setup\.symbol\)\}[\s\S]*?>/,
+      /<button[\s\S]*?onClick=\{\(\) => nav\.openAdvisor\(setup\)\}[\s\S]*?>/,
     )?.[0];
     assert.ok(
       openingTag,
@@ -189,7 +196,7 @@ describe("HistoryPanel markup (source-pinned — see header comment)", () => {
   it("renders the symbol itself as the button's visible label — no separate caption, no new column", () => {
     assert.match(
       PANEL_SOURCE,
-      /onClick=\{\(\) => nav\.openAdvisor\(setup\.symbol\)\}\s*>\s*\{setup\.symbol\}\s*<\/button>/,
+      /onClick=\{\(\) => nav\.openAdvisor\(setup\)\}\s*>\s*\{setup\.symbol\}\s*<\/button>/,
     );
   });
 });

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { MAX_PRICE_DECIMALS } from "../src/components/workspace/advisorFormat";
 import {
@@ -7,6 +8,7 @@ import {
   asRecord,
   buildInsightsGroups,
   buildRecordBand,
+  compareSetupsByConfidence,
   computeInsightsStatus,
   extractRealizedR,
   filterInsightsSetups,
@@ -22,6 +24,15 @@ import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 const NOW = new Date("2026-07-30T12:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Same walker tests/deskComposition.test.ts and tests/tailwindVariantGuard.test.ts
+// use, so a tree-wide guard here reads the same set of files they do.
+function allSourceFiles(root: string): string[] {
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"))
+    .map((file) => join(root, file));
+}
 
 // Same builder shape as tests/tradeState.test.ts and
 // tests/currentTradesRail.test.tsx — every field a real TradeSetupRow needs,
@@ -548,5 +559,90 @@ describe("signed R has one formatter and one minus sign (Q1-I12)", () => {
     );
     assert.doesNotMatch(rail, /function formatProgressR/);
     assert.match(rail, /\{formatSignedR\(state\.progressR\)\}/);
+  });
+});
+
+// The durable sort law's one comparator (spec §4: "results are sorted by
+// confidence for deciding — that is the only sorting deviation"). It was born
+// inline in sortHistorySetups as the ledger's tie-break tiers (PR #150,
+// owner-observed 2026-08-01); the Current trades rail needs exactly the same
+// chain as its PRIMARY order, so the chain is extracted here and both surfaces
+// call it. One function, not a mirror — the rail already imports from this
+// module, so there is no layering reason for a second copy to exist.
+describe("compareSetupsByConfidence — one comparator, two surfaces", () => {
+  it("puts the stronger setup first", () => {
+    assert.ok(
+      compareSetupsByConfidence(
+        buildSetup({ confidence_score: 62 }),
+        buildSetup({ confidence_score: 88 }),
+      ) > 0,
+    );
+    assert.ok(
+      compareSetupsByConfidence(
+        buildSetup({ confidence_score: 88 }),
+        buildSetup({ confidence_score: 62 }),
+      ) < 0,
+    );
+  });
+
+  it("breaks a confidence tie with the universal symbol comparator, never input order", () => {
+    const tied = [
+      buildSetup({ confidence_score: 74, id: "e", symbol: "EURUSD" }),
+      buildSetup({ confidence_score: 74, id: "b", symbol: "BTCUSD" }),
+      buildSetup({ confidence_score: 74, id: "a", symbol: "ADAUSD" }),
+    ];
+    assert.deepEqual(
+      [...tied].sort(compareSetupsByConfidence).map((setup) => setup.symbol),
+      // compareAssetSymbols orders by category first (Crypto before Forex),
+      // then base/quote — the same chain the scope menu and Insights use.
+      ["ADAUSD", "BTCUSD", "EURUSD"],
+    );
+  });
+
+  it("reads a string confidence the way the database returns one", () => {
+    // numeric(…) arrives over PostgREST as a string; the ledger has always
+    // coerced, and the extracted comparator must not quietly stop.
+    assert.ok(
+      compareSetupsByConfidence(
+        buildSetup({ confidence_score: "62" }),
+        buildSetup({ confidence_score: "88" }),
+      ) > 0,
+    );
+  });
+
+  it("is the ledger's own tie-break tier rather than a second copy of it", () => {
+    const source = readFileSync(
+      "src/components/workspace/historyUtils.ts",
+      "utf8",
+    );
+    assert.match(
+      source,
+      /return secondDate - firstDate \|\| compareSetupsByConfidence\(first, second\);/,
+    );
+  });
+
+  it("is the only confidence ordering anywhere in src", () => {
+    // A second comparator would drift the moment either surface's tie-break
+    // moved. The precedent for a sanctioned mirror is
+    // tests/scanBatching.test.ts's — a client/Deno boundary that genuinely
+    // cannot import across itself. This one has no such boundary, so the guard
+    // is absence rather than byte-equality.
+    //
+    // The whole tree, and BOTH shapes the subtraction can take: the coerced
+    // `Number(b.confidence_score) - Number(a.confidence_score)` this comparator
+    // uses, and the bare `b.confidence_score - a.confidence_score` a twin would
+    // more likely be written as. A guard that saw only the wrapped form, in only
+    // the two files it happened to name, would have missed both.
+    const hits = allSourceFiles("src").filter((file) =>
+      /confidence_score\s*\)?\s*-(?!-)/.test(readFileSync(file, "utf8"))
+    );
+    assert.deepEqual(hits, ["src/components/workspace/historyUtils.ts"]);
+    // And in that one file it appears exactly once — sortHistorySetups delegates
+    // its tie-break tiers instead of spelling them out again.
+    assert.equal(
+      (readFileSync(hits[0], "utf8")
+        .match(/confidence_score\s*\)?\s*-(?!-)/g) ?? []).length,
+      1,
+    );
   });
 });

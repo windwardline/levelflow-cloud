@@ -40,6 +40,41 @@ export type HistorySetupGroup = {
 };
 
 /**
+ * The durable sort law, as one comparator: the strongest setup first, ties
+ * settled by the universal base/quote symbol comparator.
+ *
+ * Spec §4: "Menus are alphabetical for finding; results are sorted by confidence
+ * for deciding — that is the only sorting deviation." Two result surfaces obey
+ * it, so it is written once:
+ *
+ * - the Insights ledger, where it is the tie-break chain UNDER the day key —
+ *   a scan batch shares one created_at second, and before this chain existed
+ *   those rows rendered in whatever order the fetch happened to deliver
+ *   (owner-observed, 2026-08-01);
+ * - the Current trades rail, where it is the PRIMARY order inside each state
+ *   group — the rail rendered fetch order until the owner's 2026-08-02 finding.
+ *
+ * One function, not a mirror: the rail already imports from this module, so
+ * there is no layering boundary that would force a second copy (the sanctioned
+ * mirror in this repo, src/lib/scanBatching.ts against the analyzer's own
+ * scanRanking.ts, exists because a browser module cannot import a Deno one —
+ * and it is pinned byte-for-byte in tests/scanBatching.test.ts for exactly that
+ * reason).
+ *
+ * `confidence_score` arrives from PostgREST as a numeric string, hence the
+ * coercion. A non-numeric score yields NaN, which is falsy, so such a row falls
+ * through to the symbol tier rather than poisoning the sort — the behavior the
+ * ledger has always had.
+ */
+export function compareSetupsByConfidence(
+  first: TradeSetupRow,
+  second: TradeSetupRow,
+) {
+  return Number(second.confidence_score) - Number(first.confidence_score) ||
+    compareAssetSymbols(first.symbol, second.symbol);
+}
+
+/**
  * The ledger's one ordering: newest first, then the tie-break tiers.
  *
  * Q1-#20 removed the mode parameter. Only buildInsightsGroups calls this, always
@@ -48,21 +83,11 @@ export type HistorySetupGroup = {
  * for does not exist, and §10's ledger is chronological.
  */
 export function sortHistorySetups(setups: TradeSetupRow[]) {
-  // Every mode ends in the same full tie-break chain so no ordering is ever
-  // left to database return order — a scan batch shares one created_at
-  // second, and before this chain existed those rows rendered in whatever
-  // order the fetch happened to deliver (owner-observed, 2026-08-01). The
-  // tiers after the mode's own key: confidence descending (the strongest
-  // first, echoing the scan results' one sanctioned ordering deviation),
-  // then the universal base/quote symbol comparator.
   return [...setups].sort((first, second) => {
     const firstDate = new Date(first.created_at).getTime();
     const secondDate = new Date(second.created_at).getTime();
-    const confidenceGap =
-      Number(second.confidence_score) - Number(first.confidence_score);
-    const symbolOrder = compareAssetSymbols(first.symbol, second.symbol);
 
-    return secondDate - firstDate || confidenceGap || symbolOrder;
+    return secondDate - firstDate || compareSetupsByConfidence(first, second);
   });
 }
 

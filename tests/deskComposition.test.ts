@@ -98,30 +98,39 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
   // tested "drops the missing half" branch reachable in the app, which it was
   // not while every analysis state stamped Date.now().
   it("stamps the review time only where a review actually ran", () => {
-    // Every write of the field, in source order: the two branches of the scan
-    // verdict the stage adopts the moment a scan finishes (§17m.1 — the scan IS
-    // the review of the market on screen, and it just ran against live data),
-    // then the scan-ROW handler's synthetic state, which claims nothing. Since
-    // §17m.1's one door there is no other writer: the single-market review path
-    // that used to stamp three more is gone. The trailing comma is what keeps
-    // the type declaration (`reviewedAt: number | null;`) out of the set.
+    // Every literal write of the field, in source order: the two branches of the
+    // scan verdict the stage adopts the moment a scan finishes (§17m.1 — the scan
+    // IS the review of the market on screen, and it just ran against live data).
+    // Since §17m.1's one door there is no other literal writer: the
+    // single-market review path that used to stamp three more is gone. The
+    // trailing comma is what keeps the type declaration
+    // (`reviewedAt: number | null;`) out of the set.
     const writes = (stage.match(/reviewedAt: [^,;\n]+,/g) ?? [])
-      .map((write) => write.replace(/,$/, ""));
+      .map((write) => write.replace(/,$/, ""))
+      // The adoption door's own parameter declaration is not a write.
+      .filter((write) => write !== "reviewedAt: number | null = null");
     assert.deepEqual(writes, [
       "reviewedAt: Date.now()",
       "reviewedAt: Date.now()",
-      "reviewedAt: null",
     ]);
+    // The third state — the one the adoption door builds — takes the moment from
+    // its caller and defaults to claiming nothing. A scan ROW click passes no
+    // moment (that scan may have run an hour before the click), and a stored row
+    // passes its own created_at, which IS when those levels were computed.
+    assert.match(
+      stage,
+      /reviewedAt: number \| null = null,\s*\) => \{/,
+    );
+    assert.match(stage, /if \(candidate\.setup\) \{[\s\S]{0,400}?\n\s*reviewedAt,\n/);
     // The scan-selection state is the one that must not claim a review. Anchored
     // on the state it builds rather than on a notice string: Q1-I9 deleted the
     // `message: "Selected from Market Scan."` write it used to carry, which was
     // the last notice-shaped string left on this surface and rendered nowhere —
     // §16 deleted every reader of AnalyzerResponse.message on the Desk.
-    const scanSelected = stage.match(
-      /if \(candidate\.setup\) \{[\s\S]{0,900}?reviewedAt: ([^,\n]+)/,
+    assert.match(
+      stage,
+      /onSelectCandidate=\{selectCandidate\}/,
     );
-    assert.ok(scanSelected, "expected the scan-selection analysis state");
-    assert.equal(scanSelected[1], "null");
     assert.doesNotMatch(stage, /Selected from Market Scan/);
     // And the displayed value is gated on that field, not merely on a setup
     // being present — otherwise the null branch is unreachable again.
@@ -131,6 +140,39 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
     );
     // The old always-now field is gone entirely.
     assert.doesNotMatch(stage, /requestedAt/);
+  });
+
+  // The owner's 2026-08-02 wave: a Current trades card and an Insights row must
+  // reopen the same stage a scan row opens. §17m.1's one door is what makes that
+  // one behavior rather than three — the cross-link effect adopts through
+  // selectCandidate, exactly as both scan-row call sites do, so no second
+  // renderer of a setup can exist to drift from it.
+  it("routes the cross-link through the same adoption path scan rows use", () => {
+    const effect = stage.match(
+      /const requestedSetup = openRequest\?\.setup;[\s\S]*?\n  \}, \[[^\]]*\]\);/,
+    )?.[0] ?? "";
+    assert.ok(effect.length > 0, "expected the openRequest effect");
+    assert.match(
+      effect,
+      /selectCandidate\(\s*storedSetupAsCandidate\(requestedSetup\),\s*storedSetupReviewedAt\(requestedSetup\),\s*\);/,
+    );
+    // The effect writes no selection of its own: the door owns setSymbol and
+    // setAnalysisState, and a second writer here is how "loads the chart but not
+    // the details" happened in the first place.
+    assert.doesNotMatch(effect, /setSymbol\(/);
+    assert.doesNotMatch(effect, /setAnalysisState\(/);
+    // And the request carries the stored row, never a bare symbol (§17m.1 killed
+    // symbol-only stage entry).
+    assert.match(
+      stage,
+      /openRequest\?: \{ setup: TradeSetupRow; token: number \} \| null;/,
+    );
+    // setAnalysisState has exactly four call sites in the file, and the pattern
+    // matches the CALL rather than an object-literal argument so a writer that
+    // hands over a variable, a spread or an updater function cannot slip past it:
+    // the two scan-verdict branches, the adoption door's own write, and
+    // selectSymbolForReview's `null` clear that every selection starts with.
+    assert.equal((stage.match(/setAnalysisState\(/g) ?? []).length, 4);
   });
 
   // Spec §17m.1: "All trades originate from the Scan column — no other path."
@@ -1190,9 +1232,13 @@ describe("Current trades rail composition — the mock's elements are present (a
   });
 
   it("keeps the position card as the one frame the mock draws: hairline border on sheet at .pos's 12/14 padding", () => {
+    // Since the owner's 2026-08-02 wave the card is the affordance that reopens
+    // its own setup, so the frame rides a <button> and takes a full-width,
+    // left-aligned reset — the .pos treatment itself is unchanged, and the
+    // selected/hover halves append to it rather than replacing anything.
     assert.match(
       tradesRail,
-      /className="min-w-0 rounded-lg border border-hairline bg-sheet px-3\.5 py-3"/,
+      /className=\{`w-full min-w-0 rounded-lg border border-hairline bg-sheet px-3\.5 py-3 text-left transition \$\{/,
     );
   });
 
