@@ -1,9 +1,13 @@
-import { CONFIDENCE_TIERS, getConfidenceTier } from "../../lib/confidenceTiers";
+import {
+  CONFIDENCE_TIERS,
+  resolveConfidenceTier,
+} from "../../lib/confidenceTiers";
 import { classifyWinLoss } from "../../lib/outcomes";
 import { getSecurityOption, SECURITY_GROUPS } from "../../lib/symbolMap";
 import type { LifetimeSetupRow } from "../../lib/tradeAnalyzer";
 import {
   buildConfidenceBands,
+  confidenceThresholdForSymbol,
   extractRealizedR,
   getSetupOutcome,
 } from "./historyUtils";
@@ -108,9 +112,16 @@ export function buildAttribution(
     recordResolved(byClass, assetClassOf(setup), winLoss, realizedR);
     recordResolved(bySide, setup.side, winLoss, realizedR);
     recordResolved(bySession, sessionBlockKeyOf(setup), winLoss, realizedR);
+    // The same threshold-aware membership buildConfidenceBands resolves —
+    // one taxonomy, so the netR this tally sums always answers for the
+    // count that builder publishes (netRForSlice's mismatch guard is the
+    // backstop, not the plan).
     recordResolved(
       byConfidenceTier,
-      getConfidenceTier(setup.confidence_score)?.id ?? null,
+      resolveConfidenceTier(
+        setup.confidence_score,
+        confidenceThresholdForSymbol(setup.symbol),
+      )?.id ?? null,
       winLoss,
       realizedR,
     );
@@ -120,8 +131,11 @@ export function buildAttribution(
   // tier[i] — pinned by tests/attribution.test.ts, which compares the whole
   // label/resolved sequence against the shared builder's own output. Resolved
   // counts and the rate come from that builder untouched; only net R, which it
-  // does not compute, comes from the pass above.
-  const bands = buildConfidenceBands(setups);
+  // does not compute, comes from the pass above. The builder's `unbanded`
+  // remainder (rows that cleared no bar) is deliberately unread here: the
+  // slice renders the three tiers, and a remainder row would need a rendered
+  // word the owner has not given.
+  const { bands } = buildConfidenceBands(setups);
 
   return [
     {
@@ -177,9 +191,11 @@ function recordResolved(
 ) {
   if (key === null) {
     // The row belongs to no slice of this group — an unreadable creation
-    // timestamp, or a confidence score below the tiers' own floor. Guessing a
-    // bucket would invent a fact, so the row simply does not count here; every
-    // other group still counts it.
+    // timestamp, or a confidence score that cleared no bar (below its own
+    // class's threshold and outside every fixed tier; legacy rows only, the
+    // engine refuses generation below the bar). Guessing a bucket would
+    // invent a fact, so the row simply does not count here; every other
+    // group still counts it.
     return;
   }
   const tally = bucket.get(key) ??
@@ -261,9 +277,11 @@ function toRow(
  * it.
  *
  * Exported for that last clause alone. Both readings agree today by construction —
- * identical tier bounds, identical resolved definition — so buildAttribution cannot
- * reach the mismatch from any input, and a guard no test can exercise is a guard
- * nobody can trust. tests/attribution.test.ts drives it directly.
+ * one threshold-aware resolver (resolveConfidenceTier through
+ * confidenceThresholdForSymbol, both here and in the builder), identical resolved
+ * definition — so buildAttribution cannot reach the mismatch from any input, and a
+ * guard no test can exercise is a guard nobody can trust.
+ * tests/attribution.test.ts drives it directly.
  */
 export function netRForSlice(
   tally: SliceTally | undefined,

@@ -924,3 +924,22 @@ The walk throws rather than return a truncated set as a lifetime. The scale
 path is the RPC this section authorizes, and the number that decides it is
 the row count: 23 on the largest account today, one page covering every
 account forty times over.
+
+**As built (2026-08-03, the banding wave).** The confidence slice's bands
+are threshold-aware. "The existing CONFIDENCE_TIERS via the existing
+buildConfidenceBands" stands, and membership now follows the same rule the
+ledger's confidence column prints with (`resolveConfidenceTier`, the law
+`formatConfidenceWithTier` shipped for display): a row whose score cleared
+its own class's qualifying bar has earned Qualified even below the fixed 66
+floor — Forex qualifies at 40, and its whole 40-65 range used to vanish
+from this aggregate while the ledger printed "Qualified" beside every one
+of those rows. Strong and Best stay absolute. A row that cleared no bar
+(legacy rows only; the engine refuses generation below the bar) lands in no
+band and is returned by the builder as an explicit `unbanded` count rather
+than dropped — sum of band counts plus `unbanded` equals the rows given, on
+any input — and no surface renders that remainder: naming it would take a
+new rendered word, which is the owner's to give. Qualified's `range` field
+is the em dash now (its lower edge is each class's own bar, so "66-74"
+stopped being one truth); no surface renders any band's range today. The
+net R tally keys through the same resolver, so the slice's two cells keep
+reading one taxonomy.

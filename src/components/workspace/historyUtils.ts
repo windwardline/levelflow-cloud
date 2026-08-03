@@ -3,6 +3,7 @@ import {
   CONFIDENCE_TIERS,
   formatConfidenceTierRange,
   formatConfidenceWithTier,
+  resolveConfidenceTier,
 } from "../../lib/confidenceTiers";
 import {
   classifyWinLoss,
@@ -121,24 +122,72 @@ export function groupHistorySetups(
   return Array.from(groups.values());
 }
 
+// The one lookup path from a symbol to its class's qualifying bar: the class
+// from the same symbol→class mapping every surface reads (getSecurityOption,
+// Forex-shaped fallback for unknown tickers included), the bar from the
+// calibration mirror tests/core.test.ts pins against the engine's own values.
+// formatSetupConfidence, buildConfidenceBands and Attribution's confidence
+// tally all resolve through here, so the word printed beside a row's score
+// and the band it counts under can never read different bars.
+export function confidenceThresholdForSymbol(symbol: string): number {
+  return CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[
+    getSecurityOption(symbol).assetType
+  ];
+}
+
+/**
+ * The confidence aggregate behind §18 Attribution's confidence slice —
+ * threshold-aware, row by row, through the same resolveConfidenceTier rule
+ * the ledger's confidence column prints with (§18's parked "confidence
+ * 40-65 band gap" observation, closed 2026-08-03).
+ *
+ * Membership: a score inside a fixed tier keeps that tier; a score below
+ * the fixed 66 floor that cleared its own class's qualifying bar has earned
+ * Qualified (Forex qualifies at 40, so its whole 40-65 range used to vanish
+ * from this aggregate while the ledger printed "Qualified" beside every one
+ * of those rows); Strong and Best stay absolute. Resolution rounds exactly
+ * as the formatter rounds — the old raw min/max comparison also dropped any
+ * fractional score in the seams between bands (74.6 printed "Strong 75%"
+ * and counted nowhere).
+ *
+ * A row that cleared no bar — legacy/historical only, the engine refuses
+ * generation below the bar — lands in no band and is returned as
+ * `unbanded` rather than being silently dropped: sum of every band's count
+ * plus `unbanded` equals the rows given, on any input (the exhaustiveness
+ * invariant, pinned in tests/core.test.ts). No surface renders the
+ * remainder today; naming it on a surface would take a new rendered word,
+ * which is the owner's call, not this builder's. The count exists so the
+ * arithmetic is checkable.
+ *
+ * Qualified's `range` is the em dash: its lower edge is each class's own
+ * bar now, so "66-74" stopped being one truth this builder could state, and
+ * the em dash is the app's standing token for a figure that cannot be
+ * stated (formatPriceValue, Attribution's net R column). Strong and Best
+ * keep their fixed ranges. Nothing renders any band's range today — the
+ * field is pinned so whichever surface adopts it inherits the honest form.
+ */
 export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
   const bands = CONFIDENCE_TIERS.map((tier) => ({
     ambiguous: 0,
     count: 0,
+    id: tier.id,
     label: tier.label,
     losses: 0,
-    max: tier.max,
-    min: tier.min,
-    range: formatConfidenceTierRange(tier),
+    range: tier.id === "qualified" ? "—" : formatConfidenceTierRange(tier),
     wins: 0,
   }));
+  let unbanded = 0;
 
   for (const setup of setups) {
-    const score = Number(setup.confidence_score);
-    const band = bands.find(
-      (candidate) => score >= candidate.min && score <= candidate.max,
+    const tier = resolveConfidenceTier(
+      setup.confidence_score,
+      confidenceThresholdForSymbol(setup.symbol),
     );
+    const band = tier
+      ? bands.find((candidate) => candidate.id === tier.id)
+      : undefined;
     if (!band) {
+      unbanded += 1;
       continue;
     }
     const outcome = getSetupOutcome(setup);
@@ -153,17 +202,22 @@ export function buildConfidenceBands(setups: LifetimeSetupRow[]) {
     }
   }
 
-  return bands.map((band) => {
-    const resolved = band.wins + band.losses;
-    return {
-      ambiguous: band.ambiguous,
-      count: band.count,
-      label: band.label,
-      range: band.range,
-      resolved,
-      winRate: resolved > 0 ? Math.round((band.wins / resolved) * 100) : null,
-    };
-  });
+  return {
+    bands: bands.map((band) => {
+      const resolved = band.wins + band.losses;
+      return {
+        ambiguous: band.ambiguous,
+        count: band.count,
+        label: band.label,
+        range: band.range,
+        resolved,
+        winRate: resolved > 0
+          ? Math.round((band.wins / resolved) * 100)
+          : null,
+      };
+    }),
+    unbanded,
+  };
 }
 
 // Takes only the fields normalizeSetupOutcome reads (OutcomeEvidenceRow), so the
@@ -270,10 +324,9 @@ export function asNumber(value: unknown) {
 // ---------------------------------------------------------------------------
 
 export function formatSetupConfidence(setup: TradeSetupRow): string {
-  const category = getSecurityOption(setup.symbol).assetType;
   return formatConfidenceWithTier(
     setup.confidence_score,
-    CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[category],
+    confidenceThresholdForSymbol(setup.symbol),
   );
 }
 

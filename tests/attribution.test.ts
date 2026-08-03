@@ -308,7 +308,7 @@ describe("buildAttribution — one gate, both numbers (spec §18: below 3 resolv
     // The reused slice reports a rate at 2 resolved; §18's gate is what
     // withholds it here, so the two are genuinely different numbers and this
     // is a real assertion rather than a restatement.
-    const band = buildConfidenceBands(setups).find(
+    const band = buildConfidenceBands(setups).bands.find(
       (candidate) => candidate.label === "Strong",
     );
     assert.equal(band?.resolved, 2);
@@ -329,7 +329,7 @@ describe("buildAttribution — one gate, both numbers (spec §18: below 3 resolv
       won({ confidence_score: 84, id: "c" }, 0.5),
     ];
 
-    const band = buildConfidenceBands(setups).find(
+    const band = buildConfidenceBands(setups).bands.find(
       (candidate) => candidate.label === "Strong",
     );
     const strong = row(setups, "confidence", "Strong");
@@ -549,7 +549,7 @@ describe("buildAttribution — the confidence slice reuses buildConfidenceBands"
       lost({ confidence_score: 100, id: "e" }),
     ];
 
-    const bands = buildConfidenceBands(setups);
+    const { bands } = buildConfidenceBands(setups);
     assert.deepEqual(
       group(setups, "confidence").rows.map((sliceRow) => ({
         label: sliceRow.label,
@@ -559,18 +559,43 @@ describe("buildAttribution — the confidence slice reuses buildConfidenceBands"
     );
   });
 
-  it("drops a score below the tiers' own floor from the confidence slice only", () => {
-    // CONFIDENCE_TIERS start at 66; a Forex setup qualifies at 40. Rows in
-    // that gap match no band — buildConfidenceBands' own long-standing
-    // behaviour, inherited here rather than re-decided — so the confidence
-    // slice can legitimately count fewer rows than the class slice.
+  it("counts a row that cleared its own class's bar into Qualified, even below the fixed 66 floor", () => {
+    // CONFIDENCE_TIERS start at 66; a Forex setup qualifies at 40. The ledger
+    // already prints these rows "Qualified 50%" (formatConfidenceWithTier's
+    // threshold rule), and the slice now counts them where that word puts
+    // them — the banding half of the same law. Before this wave they were
+    // silently dropped from the confidence slice while every other slice
+    // counted them (§18's parked observation, closed).
     const setups = [
-      won({ confidence_score: 50, id: "a" }),
-      won({ confidence_score: 50, id: "b" }),
-      won({ confidence_score: 50, id: "c" }),
+      won({ confidence_score: 50, id: "a" }, 1),
+      won({ confidence_score: 50, id: "b" }, 1),
+      lost({ confidence_score: 50, id: "c" }, -1),
     ];
 
     assert.equal(row(setups, "class", "Forex").resolved, 3);
+    const qualified = row(setups, "confidence", "Qualified");
+    assert.equal(qualified.resolved, 3);
+    assert.equal(qualified.learning, false);
+    assert.equal(qualified.moneyPositivePercent, 67);
+    // The net R tally reads the same threshold-aware membership the count
+    // does — one taxonomy, so the all-or-nothing sum publishes rather than
+    // tripping netRForSlice's mismatch guard.
+    assert.equal(qualified.netR, 1);
+  });
+
+  it("keeps a row that cleared no bar out of every band — class-relative in both directions", () => {
+    // The same 52 that lands in Qualified for Forex (bar 40) belongs to no
+    // band for Crypto (bar 82). Only legacy rows can sit here — the engine
+    // refuses generation below the bar — and they are counted by the builder
+    // (tests/core.test.ts pins the exhaustiveness invariant), just never
+    // labeled with a word they did not earn.
+    const setups = [
+      won({ confidence_score: 52, id: "a", symbol: "BTCUSD" }),
+      won({ confidence_score: 52, id: "b", symbol: "BTCUSD" }),
+      won({ confidence_score: 52, id: "c", symbol: "BTCUSD" }),
+    ];
+
+    assert.equal(row(setups, "class", "Crypto").resolved, 3);
     assert.equal(
       group(setups, "confidence").rows.reduce(
         (total, sliceRow) => total + sliceRow.resolved,
@@ -578,6 +603,7 @@ describe("buildAttribution — the confidence slice reuses buildConfidenceBands"
       ),
       0,
     );
+    assert.equal(buildConfidenceBands(setups).unbanded, 3);
   });
 
   it("sums net R per band on the same all-or-nothing rule as every other slice", () => {
