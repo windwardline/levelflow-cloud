@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   CONFIDENCE_TIERS,
-  formatConfidenceTierRange,
   formatConfidenceWithTier,
   getConfidenceTier,
+  resolveConfidenceTier,
 } from "../src/lib/confidenceTiers";
 import { normalizeSetupOutcome, OUTCOME_COPY } from "../src/lib/outcomes";
 import { deriveTradeState } from "../src/lib/tradeState";
@@ -526,16 +526,23 @@ function buildMarketScanResponse({
 
 describe("confidence tiers", () => {
   it("keeps setup confidence labels on one shared scale", () => {
+    // Pinned on the tiers' own min/max, the raw bounds of record.
+    // formatConfidenceTierRange used to sit between this pin and the data;
+    // it lost its last production reader when the band rows dropped their
+    // unread `range` field (Qualified's lower edge is class-relative now, so
+    // a single stated range stopped being one truth) and was swept as an
+    // orphan rather than kept alive by its own test.
     assert.deepEqual(
       CONFIDENCE_TIERS.map((tier) => ({
         id: tier.id,
         label: tier.label,
-        range: formatConfidenceTierRange(tier),
+        max: tier.max,
+        min: tier.min,
       })),
       [
-        { id: "qualified", label: "Qualified", range: "66-74" },
-        { id: "strong", label: "Strong", range: "75-84" },
-        { id: "best", label: "Best", range: "85-100" },
+        { id: "qualified", label: "Qualified", max: 74, min: 66 },
+        { id: "strong", label: "Strong", max: 84, min: 75 },
+        { id: "best", label: "Best", max: 100, min: 85 },
       ],
     );
   });
@@ -591,6 +598,69 @@ describe("confidence tiers", () => {
     assert.equal(formatConfidenceWithTier(39, 40), "39%");
     assert.equal(formatConfidenceWithTier(40, 40), "Qualified 40%");
     assert.equal(formatConfidenceWithTier(41, 40), "Qualified 41%");
+  });
+
+  it("resolves band membership by the same rule the formatter labels with — the class bar fills the gap below 66, never overrides a real tier", () => {
+    const forex = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex;
+    const crypto = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto;
+
+    // Cleared its own class's bar below the fixed 66 floor: Qualified.
+    assert.equal(resolveConfidenceTier(52, forex)?.id, "qualified");
+    // The same score against a bar it did NOT clear: no band.
+    assert.equal(resolveConfidenceTier(52, crypto), null);
+    // A score inside a real fixed band keeps that band's own tier,
+    // whatever the class bar says.
+    assert.equal(resolveConfidenceTier(70, crypto)?.id, "qualified");
+    assert.equal(resolveConfidenceTier(crypto, crypto)?.id, "strong");
+    assert.equal(
+      resolveConfidenceTier(
+        CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
+        CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
+      )?.id,
+      "best",
+    );
+    // Inclusive at the bar, exclusive below it — the formatter's own edges.
+    assert.equal(resolveConfidenceTier(forex, forex)?.id, "qualified");
+    assert.equal(resolveConfidenceTier(39, forex), null);
+    // Rounds the way the formatter rounds, so the band a row lands in and
+    // the word printed beside its score can never disagree.
+    assert.equal(resolveConfidenceTier(74.6, forex)?.id, "strong");
+    assert.equal(resolveConfidenceTier(65.5, crypto)?.id, "qualified");
+    // Without a threshold: exactly the fixed-band behavior.
+    assert.equal(resolveConfidenceTier(65), null);
+    assert.equal(resolveConfidenceTier(70)?.id, "qualified");
+    // An unreadable score resolves to no band rather than throwing.
+    assert.equal(resolveConfidenceTier(null, forex), null);
+    assert.equal(resolveConfidenceTier(undefined, forex), null);
+    assert.equal(resolveConfidenceTier("", forex), null);
+    assert.equal(resolveConfidenceTier("not-a-score", forex), null);
+  });
+
+  it("agrees with the formatter on every score and every class bar — one law, two readers", () => {
+    // The display half (formatConfidenceWithTier) shipped first; the resolver
+    // is the aggregate half of the same rule. This sweep pins them together
+    // in both directions: a tier resolved is a word printed, and no tier is
+    // a bare percentage. Quarter-point steps, not integers: both sites round
+    // before deciding, and a future divergence in either rounding site (the
+    // formatter rounds for printing, the resolver rounds for membership)
+    // would only ever show on fractional input — the seam the old raw
+    // min/max comparison dropped rows into.
+    const thresholds = [
+      ...Object.values(CONFIDENCE_THRESHOLD_BY_ASSET_TYPE),
+      undefined,
+    ];
+    for (const threshold of thresholds) {
+      for (let quarter = 0; quarter <= 400; quarter += 1) {
+        const score = quarter / 4;
+        const printed = Math.round(score);
+        const tier = resolveConfidenceTier(score, threshold);
+        assert.equal(
+          formatConfidenceWithTier(score, threshold),
+          tier ? `${tier.label} ${printed}%` : `${printed}%`,
+          `score ${score}, bar ${threshold}`,
+        );
+      }
+    }
   });
 
   it("wires the class threshold into every formatConfidenceWithTier call site", () => {
@@ -847,7 +917,7 @@ describe("history workspace logic", () => {
 
 
   it("builds confidence bands without counting pending setups as resolved", () => {
-    const bands = buildConfidenceBands([
+    const { bands } = buildConfidenceBands([
       makeHistorySetup({ confidence: 70, outcome: "take_profit" }),
       makeHistorySetup({ confidence: 80, outcome: "stop_loss" }),
       makeHistorySetup({ confidence: 90, outcome: "ambiguous" }),
@@ -867,6 +937,114 @@ describe("history workspace logic", () => {
         { count: 2, label: "Best", resolved: 0, winRate: null },
       ],
     );
+  });
+
+  it("bands every row that cleared its own class's bar and counts the rest — no row vanishes (the exhaustiveness invariant)", () => {
+    // EURUSD qualifies at 40 (CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex), so a
+    // 52 cleared its own bar and belongs to Qualified — the aggregate half of
+    // formatConfidenceWithTier's shipped rule, which already prints this row
+    // "Qualified 52%". Before this wave the band find() dropped it silently.
+    const setups = [
+      makeHistorySetup({ confidence: 52, outcome: "take_profit" }),
+      makeHistorySetup({ confidence: 70, outcome: "stop_loss" }),
+      makeHistorySetup({ confidence: 80, outcome: "take_profit" }),
+      // BTCUSD qualifies at 82 (…Crypto): the same 52 cleared nothing there,
+      // so it lands in no band — class-relative in both directions — but it
+      // is counted, never dropped.
+      makeHistorySetup({
+        confidence: 52,
+        outcome: "take_profit",
+        symbol: "BTCUSD",
+      }),
+    ];
+
+    const { bands, unbanded } = buildConfidenceBands(setups);
+
+    assert.deepEqual(
+      bands.map((band) => ({
+        count: band.count,
+        label: band.label,
+        resolved: band.resolved,
+        winRate: band.winRate,
+      })),
+      [
+        { count: 2, label: "Qualified", resolved: 2, winRate: 50 },
+        { count: 1, label: "Strong", resolved: 1, winRate: 100 },
+        { count: 0, label: "Best", resolved: 0, winRate: null },
+      ],
+    );
+    assert.equal(unbanded, 1);
+    assert.equal(
+      bands.reduce((total, band) => total + band.count, 0) + unbanded,
+      setups.length,
+    );
+  });
+
+  it("counts a row with an unreadable score in the unbanded remainder, so the invariant holds on any input", () => {
+    const { bands, unbanded } = buildConfidenceBands([
+      makeHistorySetup({ confidence: Number.NaN }),
+      makeHistorySetup({ confidence: 70, outcome: "take_profit" }),
+    ]);
+
+    assert.equal(unbanded, 1);
+    assert.equal(
+      bands.reduce((total, band) => total + band.count, 0) + unbanded,
+      2,
+    );
+  });
+
+  it("bands a fractional score exactly where the ledger's formatter prints it", () => {
+    // 74.6 rounds to 75 and the ledger prints "Strong 75%" — the old raw
+    // min/max comparison matched it to no band at all (74.6 sits between
+    // Qualified's 74 and Strong's 75), one more way a row could vanish.
+    const { bands, unbanded } = buildConfidenceBands([
+      makeHistorySetup({ confidence: 74.6, outcome: "take_profit" }),
+    ]);
+
+    assert.equal(bands[1].count, 1);
+    assert.equal(unbanded, 0);
+  });
+
+  it("returns band rows keyed by tier id and carrying no range — the exact shape, both directions", () => {
+    // No `range`: Qualified's lower edge is each class's own bar now, so a
+    // single stated range stopped being one truth, and a field with no
+    // reader is not carried as data (the same orphan rule that swept
+    // formatConfidenceTierRange — CONFIDENCE_TIERS' own min/max stay the
+    // raw bounds of record). `id` IS carried: it is the join key
+    // buildAttribution's confidence slice reads, replacing the old
+    // positional band[i]↔tier[i] contract.
+    const { bands, unbanded } = buildConfidenceBands([]);
+
+    assert.deepEqual(
+      bands,
+      [
+        {
+          ambiguous: 0,
+          count: 0,
+          id: "qualified",
+          label: "Qualified",
+          resolved: 0,
+          winRate: null,
+        },
+        {
+          ambiguous: 0,
+          count: 0,
+          id: "strong",
+          label: "Strong",
+          resolved: 0,
+          winRate: null,
+        },
+        {
+          ambiguous: 0,
+          count: 0,
+          id: "best",
+          label: "Best",
+          resolved: 0,
+          winRate: null,
+        },
+      ],
+    );
+    assert.equal(unbanded, 0);
   });
 });
 
