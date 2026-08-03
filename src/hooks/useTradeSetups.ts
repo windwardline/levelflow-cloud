@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { fetchTradeSetups, refreshTradeOutcomes, type TradeSetupRow } from "../lib/tradeAnalyzer";
 import { supabase } from "../lib/supabase";
 
@@ -75,6 +76,51 @@ export function useTradeSetups() {
     refreshSetups({ refreshOutcomes: true });
   }, [refreshSetups]);
 
+  // The realtime subscription below is the only thing that notices a row change
+  // after mount, and it delivers nothing that happened while its socket was
+  // down. Supabase's reconnect re-subscribes but does not replay: @supabase/
+  // phoenix's `rejoin()` calls `joinPush.resend()`, which re-sends the channel's
+  // original join payload — for postgres_changes just {event, schema, table,
+  // filter}, with no cursor and no `since` — so the server starts streaming from
+  // the moment of the rejoin. (realtime-js does have a `replay: { since }`
+  // option, but only for broadcast on private channels; RealtimeChannel throws
+  // if a public channel asks for it.) A laptop closed overnight therefore comes
+  // back to a rail still rendering a trade that stopped out hours ago, because
+  // the resubscribe never re-read the table. Only a read closes that gap, which
+  // is what the two wake paths below do.
+  //
+  // Silent, so the rail and the ledger re-read under the reader instead of
+  // flashing their loading state over rows that are already on screen. And
+  // refreshOutcomes rather than forceOutcomeRefresh: the table read is the part
+  // that closes the gap and it runs either way, while the provider-heavy outcome
+  // refresh stays behind OUTCOME_REFRESH_INTERVAL_MS so returning to the tab
+  // cannot drive it once per trip. The force path stays App.tsx's, where spec §8
+  // spends it deliberately on a tab the reader just opened.
+  const readAfterGap = useCallback(() => {
+    refreshSetups({ refreshOutcomes: true, silent: true });
+  }, [refreshSetups]);
+
+  // Wake path one, and the one that matters to the reader: the tab coming back
+  // is both the moment a gap may have closed behind us and the moment stale rows
+  // become visible. It fires immediately, long before the socket itself notices
+  // it died — the heartbeat interval is 25s and the reconnect ladder adds
+  // 1s–10s on top — so leaving this to the rejoin would leave a resolved trade
+  // reading as live for the first half-minute the reader is looking at it.
+  // Guarded to the became-visible transition: 'hidden' fires the same event, and
+  // reading on the way out serves nobody.
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        readAfterGap();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [readAfterGap]);
+
   useEffect(() => {
     if (!supabase) {
       return;
@@ -106,6 +152,7 @@ export function useTradeSetups() {
 
     let channel: ReturnType<typeof client.channel> | null = null;
     let cancelled = false;
+    let resubscribed = false;
 
     async function subscribe() {
       const {
@@ -132,7 +179,25 @@ export function useTradeSetups() {
             refreshSetups({ silent: true });
           },
         )
-        .subscribe();
+        // Wake path two, covering what visibility cannot: a network change while
+        // the tab is in the foreground reconnects with no visibilitychange to
+        // hear, and even after a real wake the read above is taken while the
+        // socket is still down, so anything landing between it and a live
+        // subscription would be missed as well. This read is the first one taken
+        // with the subscription actually up. Only a RE-subscribe implies a gap —
+        // the first SUBSCRIBED is the mount effect's own read, already in
+        // flight — and phoenix keeps its `receive` hooks across a rejoin
+        // (Push.reset clears the ref and the response, not recHooks), which is
+        // what makes this fire again at all.
+        .subscribe((status) => {
+          if (status !== REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+            return;
+          }
+          if (resubscribed) {
+            readAfterGap();
+          }
+          resubscribed = true;
+        });
     }
 
     subscribe();
@@ -143,7 +208,7 @@ export function useTradeSetups() {
         client.removeChannel(channel);
       }
     };
-  }, [refreshSetups]);
+  }, [readAfterGap, refreshSetups]);
 
   return {
     loadFailed,
