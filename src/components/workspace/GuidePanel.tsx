@@ -65,7 +65,7 @@ const GUIDE_SECTIONS = {
   "replay-record": { number: "07", title: "The record" },
   "timeframes": { number: "08", title: "Timeframes" },
   "market-hours": { number: "09", title: "When a market is closed" },
-  "vocabulary": { number: "10", title: "What the words mean here" },
+  "vocabulary": { number: "10", title: "Glossary" },
 } satisfies Record<string, GuideSectionMeta>;
 
 // The id prop's own type, so a section id that is not in the map above is a

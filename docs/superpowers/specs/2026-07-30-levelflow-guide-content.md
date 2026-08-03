@@ -171,7 +171,9 @@ evening; crypto never closes. Scans skip closed markets automatically,
 and the scanned count only ever counts markets that were actually
 checked.
 
-## 10. What the words mean here
+## 10. Glossary
+
+(Retitled from "What the words mean here" — owner copy, 2026-08-03.)
 
 - **Bank half** — close half your position and take that profit now.
 - **Move your stop to your entry** — edit the stop-loss order to the
