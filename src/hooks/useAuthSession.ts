@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import {
+  browserSessionActive,
+  clearBrowserSession,
+  markBrowserSession,
+} from "../lib/browserSession";
 
 type AuthSessionState = {
   session: Session | null;
   loading: boolean;
 };
 
-const SESSION_MARKER_KEY = "levelflow-active-browser-session";
+type AuthClient = NonNullable<typeof supabase>;
 
 export function useAuthSession(): AuthSessionState {
   const [session, setSession] = useState<Session | null>(null);
@@ -29,8 +34,7 @@ export function useAuthSession(): AuthSessionState {
       }
 
       if (data.session && !shouldKeepSession(authRedirectInProgress)) {
-        window.sessionStorage.removeItem(SESSION_MARKER_KEY);
-        void client.auth.signOut();
+        forgetStoredSession(client);
         setSession(null);
       } else {
         markSession(data.session);
@@ -46,11 +50,10 @@ export function useAuthSession(): AuthSessionState {
         markSession(nextSession);
         setSession(nextSession);
       } else if (nextSession && event === "INITIAL_SESSION") {
-        window.sessionStorage.removeItem(SESSION_MARKER_KEY);
-        void client.auth.signOut();
+        forgetStoredSession(client);
         setSession(null);
       } else {
-        window.sessionStorage.removeItem(SESSION_MARKER_KEY);
+        clearBrowserSession();
         setSession(null);
       }
       setLoading(false);
@@ -72,13 +75,25 @@ function hasAuthRedirectParams() {
 }
 
 function shouldKeepSession(authRedirectInProgress: boolean) {
-  return authRedirectInProgress || window.sessionStorage.getItem(SESSION_MARKER_KEY) === "true";
+  return authRedirectInProgress || browserSessionActive();
 }
 
 function markSession(session: Session | null) {
   if (session) {
-    window.sessionStorage.setItem(SESSION_MARKER_KEY, "true");
+    markBrowserSession();
   } else {
-    window.sessionStorage.removeItem(SESSION_MARKER_KEY);
+    clearBrowserSession();
   }
+}
+
+// A stored session with no live browser session behind it: the next person at the
+// machine. It goes — and "local" is the scope that says so. The default "global"
+// revokes the refresh token at GoTrue, which is how one unmarked tab used to sign
+// the reader out of every tab AND every other device, with no reload able to
+// recover it. Removing this browser's own copy is the whole of what the posture
+// asks for. The app's Sign out buttons keep the default deliberately: a
+// deliberate sign-out is meant to end every session the reader has.
+function forgetStoredSession(client: AuthClient) {
+  clearBrowserSession();
+  void client.auth.signOut({ scope: "local" });
 }
