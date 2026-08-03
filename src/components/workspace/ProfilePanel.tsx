@@ -354,6 +354,16 @@ function ProfileDetailRow({ label, value }: { label: string; value: string }) {
 // second layout. `.field` is the app's established select treatment
 // (styles/index.css); a bordered control is an affordance, which is the one thing
 // §17c's box discipline keeps.
+
+// The owner's caps ruling (2026-08-03): every SELECTABLE option in these
+// dropdowns renders ALL CAPS — and only the options; the field labels above
+// stay as they are. At render rather than CSS, because Safari's native
+// dropdown menus ignore text-transform on <option>; the stored catalog
+// strings are untouched underneath, so §20j's source pins hold byte-intact.
+// The closed select needs nothing extra — it displays the option text,
+// which arrives already capped.
+const optionCaps = (label: string) => label.toUpperCase();
+
 function BrokerProgramControls({
   onChange,
   profile,
@@ -407,10 +417,10 @@ function BrokerProgramControls({
           onChange={(event) => selectProgram(event.target.value)}
           value={profile.brokerProgramLine ?? "none"}
         >
-          <option value="none">None</option>
+          <option value="none">{optionCaps("None")}</option>
           {PROGRAM_LINES.map((line) => (
             <option key={line.line} value={line.line}>
-              {line.label}
+              {optionCaps(line.label)}
             </option>
           ))}
         </select>
@@ -428,7 +438,7 @@ function BrokerProgramControls({
               >
                 {program.accountSizes.map((size) => (
                   <option key={size} value={size}>
-                    {formatAccountSize(size)}
+                    {optionCaps(formatAccountSize(size))}
                   </option>
                 ))}
               </select>
@@ -447,7 +457,7 @@ function BrokerProgramControls({
               >
                 {STAGE_OPTIONS.map((stage) => (
                   <option key={stage.value} value={stage.value}>
-                    {stage.label}
+                    {optionCaps(stage.label)}
                   </option>
                 ))}
               </select>
@@ -462,7 +472,7 @@ function BrokerProgramControls({
               >
                 {RISK_PERCENT_OPTIONS.map((percent) => (
                   <option key={percent} value={percent}>
-                    {formatRiskPercent(percent)}
+                    {optionCaps(formatRiskPercent(percent))}
                   </option>
                 ))}
               </select>
@@ -482,7 +492,7 @@ function BrokerProgramControls({
                   >
                     {program.drawdownTiers.map((tier) => (
                       <option key={tier} value={tier}>
-                        {formatDrawdownTier(tier)}
+                        {optionCaps(formatDrawdownTier(tier))}
                       </option>
                     ))}
                   </select>
