@@ -100,3 +100,19 @@ sizing on a forex-line account uses the observed 1:1.
   energies (incl. the Brent discovery), 6 indices, 8 crypto, all observed.
 - Remaining unobserved: the futures line (owner's planned E8 futures account
   purchase covers it), and per-line leverage variance for crypto accounts.
+
+---
+
+# Observation batch 4 — 2026-08-02 (owner, TradeLocker, same account) — THE SET CLOSES
+
+Six final tickets: AUDCHF ($123.90 ✓ CHF class), EURAUD ($70.42 ✓ AUD class),
+AUDCAD ($71.35 ✓ CAD class), GBPJPY ($63.39 ✓ JPY class), CADJPY ($63.38 ✓ JPY
+class), EURNZD ($58.97 ✓ NZD class).
+
+**All 28 forex pairs are now directly observed** — batch 3's "21 of 28, rest by
+class formula" is superseded: there is no unobserved pair. Across batches 1–4:
+28 forex + 2 metals + 2 energies (incl. the Brent discovery) + 6 indices (three
+FX-denominated) + 8 crypto = **46 instruments — the complete CFD universe —
+empirically verified on the broker's live platform**, every value agreeing with
+its derivation. Remaining empirical queue: the futures line (owner's planned
+futures-account purchase) and crypto-line leverage variance.
