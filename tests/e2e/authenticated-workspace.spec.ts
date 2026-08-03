@@ -1,9 +1,18 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import {
+  expect,
+  type Locator,
+  type Page,
+  type Response,
+  test,
+} from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { filterSymbolsByAvailability } from "../../src/components/workspace/marketScanFilters";
 import { SIZE_STATE_WORDS } from "../../src/lib/broker/types";
 import { marketAvailability } from "../../src/lib/marketHours";
+import { chunkScanSymbols } from "../../src/lib/scanBatching";
 import {
   AVAILABLE_ASSET_GROUPS,
+  AVAILABLE_ASSET_SYMBOLS,
   formatSecurityDisplaySymbol,
 } from "../../src/lib/symbolMap";
 
@@ -1657,19 +1666,37 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   test.setTimeout(120_000);
   await page.goto("/");
 
-  // The scan's own response, read as it lands: the server's persistence
-  // report is the only place "qualified 6, wrote 0" is visible, and reading it
-  // here is what makes this spec able to fail for the owner's reason.
+  // One click is one scan, and since the 2026-08-02 CPU failures a scan is a
+  // fan-out of request-sized chunks (src/lib/scanBatching.ts). EVERY chunk's
+  // response is collected here, because the contract below is about the scan,
+  // and a scan missing a chunk is a failed scan rather than a smaller one.
+  //
   // Matched on the ACTION, not just the URL: the Desk's own mount fires a
-  // refresh_outcomes call at the same endpoint, and waiting on "a POST to
-  // trade-analyzer" would read that one's body instead of the scan's.
-  const scanResponsePromise = page.waitForResponse(
-    (response) =>
+  // refresh_outcomes call at the same endpoint, and "a POST to trade-analyzer"
+  // would collect that one too.
+  const scanResponses: Response[] = [];
+  page.on("response", (response) => {
+    if (
       response.url().includes("/functions/v1/trade-analyzer") &&
       response.request().method() === "POST" &&
-      (response.request().postData() ?? "").includes("scan_opportunities"),
-    { timeout: 90_000 },
+      (response.request().postData() ?? "").includes("scan_opportunities")
+    ) {
+      scanResponses.push(response);
+    }
+  });
+  // What this click owes, derived from the same source the app derives it from
+  // — the availability-filtered universe, partitioned by the same function
+  // AdvisorWorkspace's scan calls. A hard count, not a floor: fewer means the
+  // fan-out dropped a request, more means it sent one twice. Read once, right
+  // before the click, since the workspace computes its own list at render time
+  // and a market crossing an open/close boundary in between would move both.
+  const expectedChunkLists = chunkScanSymbols(
+    filterSymbolsByAvailability(AVAILABLE_ASSET_SYMBOLS, new Date()),
   );
+  const expectedChunks = expectedChunkLists.length;
+  const expectedScanned = expectedChunkLists.flat().length;
+  expect(expectedChunks).toBeGreaterThan(0);
+
   // Scoped to the rail rather than the page: the mobile tab bar carries a
   // "Scan" tab of its own (hidden at this desktop viewport, still in the DOM),
   // and scoping is what keeps the rail's action unambiguous whatever the button
@@ -1686,15 +1713,23 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // documented below). playwright.config.ts now runs analyzer-abuse.spec.ts
   // in its own project, strictly after this one, so this should never fire —
   // if it does, that guarantee broke, and this must fail, not skip.
-  const scanResponse = await scanResponsePromise;
+  //
+  // Every chunk, not the first: one 429 among the rest's 200s is exactly the
+  // partial scan this suite must never read as a quiet market.
+  await expect
+    .poll(() => scanResponses.length, {
+      message: `expected ${expectedChunks} scan chunk request(s) for one Scan click`,
+      timeout: 90_000,
+    })
+    .toBe(expectedChunks);
   expect(
-    scanResponse.status(),
-    "the scan's HTTP status must be 200 — 429 means the suite's live-user " +
-      "requests collided despite playwright.config.ts's project chain; any " +
-      "other status is a real server failure. Neither may reach the skip " +
-      "path below, which is reserved for a scan that succeeded and found " +
-      "a quiet market",
-  ).toBe(200);
+    scanResponses.map((response) => response.status()),
+    "every chunk of the scan must return 200 — a 429 means the suite's " +
+      "live-user requests collided despite playwright.config.ts's project " +
+      "chain; any other status is a real server failure. Neither may reach " +
+      "the skip path below, which is reserved for a scan that succeeded and " +
+      "found a quiet market",
+  ).toEqual(Array.from({ length: expectedChunks }, () => 200));
 
   // Scoped by testid since spec §16 deleted the heading this used to locate.
   const scanSection = page.getByTestId("market-scan-rail");
@@ -1723,32 +1758,59 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // never rewrite a live trade), or FAILED. The three must add up to what
   // qualified, nothing may fail, and a scan that qualified anything must have
   // written at least the markets it did not skip.
-  const scanBody = await scanResponse.json() as {
-    opportunities?: Array<{ symbol: string }>;
-    persistence?: {
-      attempted: number;
-      failed: number;
-      persisted: number;
-      skipped: number;
-    };
-    qualified?: number;
+  //
+  // The identity is per request and the scan is several requests, so the sums
+  // are what the reader's rail is showing — the same arithmetic
+  // src/lib/scanBatching.ts's mergeScanResponses does to build the one result
+  // the UI renders.
+  const chunkBodies = await Promise.all(
+    scanResponses.map((response) =>
+      response.json() as Promise<{
+        persistence?: {
+          attempted: number;
+          failed: number;
+          persisted: number;
+          skipped: number;
+        };
+        qualified?: number;
+        scanned?: number;
+      }>
+    ),
+  );
+  const scanBody = {
+    qualified: chunkBodies.reduce(
+      (total, chunk) => total + (chunk.qualified ?? 0),
+      0,
+    ),
+    scanned: chunkBodies.reduce((total, chunk) => total + (chunk.scanned ?? 0), 0),
   };
-  const persistence = scanBody.persistence;
   expect(
-    persistence,
-    "the scan response carries no persistence report — spec §17m.2",
-  ).toBeTruthy();
-  expect(persistence!.attempted).toBe(scanBody.qualified);
-  expect(persistence!.persisted + persistence!.skipped + persistence!.failed)
-    .toBe(persistence!.attempted);
+    chunkBodies.every((chunk) => chunk.persistence),
+    "a scan chunk carries no persistence report — spec §17m.2",
+  ).toBe(true);
+  const persistence = chunkBodies.reduce(
+    (total, chunk) => ({
+      attempted: total.attempted + chunk.persistence!.attempted,
+      failed: total.failed + chunk.persistence!.failed,
+      persisted: total.persisted + chunk.persistence!.persisted,
+      skipped: total.skipped + chunk.persistence!.skipped,
+    }),
+    { attempted: 0, failed: 0, persisted: 0, skipped: 0 },
+  );
+  // Every market the click asked about was actually attempted — no chunk
+  // quietly scanned a shorter list than it was sent.
+  expect(scanBody.scanned).toBe(expectedScanned);
+  expect(persistence.attempted).toBe(scanBody.qualified);
+  expect(persistence.persisted + persistence.skipped + persistence.failed)
+    .toBe(persistence.attempted);
   expect(
-    persistence!.failed,
+    persistence.failed,
     "the scan failed to persist part of what it showed (see analyzer_events)",
   ).toBe(0);
   expect(
-    persistence!.persisted,
+    persistence.persisted,
     `the scan qualified ${scanBody.qualified} markets and wrote none`,
-  ).toBe(persistence!.attempted - persistence!.skipped);
+  ).toBe(persistence.attempted - persistence.skipped);
 
   // …and the same claim from the reader's seat. Every qualifying market must be
   // in the ledger; the only exemption is the live-position skip the response
@@ -1804,8 +1866,8 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
     missing.length,
     `qualifying markets absent from the Insights ledger: ${
       missing.join(", ")
-    } (the scan reported ${persistence!.skipped} live-position skip(s))`,
-  ).toBeLessThanOrEqual(persistence!.skipped);
+    } (the scan reported ${persistence.skipped} live-position skip(s))`,
+  ).toBeLessThanOrEqual(persistence.skipped);
 
   // §17m supersedes I1: every generated setup is a pending order, so the
   // scan's freshly persisted batch must also reach the Current trades rail
@@ -1813,7 +1875,7 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // rail). Back on the Desk, the rail's auto-refresh-on-show plus the batch
   // just written means at least one Pending chip — unless nothing was newly
   // persisted this run (every qualifier a live-position skip).
-  if (persistence!.persisted > 0) {
+  if (persistence.persisted > 0) {
     await page.getByRole("button", { name: "Desk", exact: true }).click();
     const rail = page.getByTestId("current-trades-rail");
     await expect(rail).toBeVisible();

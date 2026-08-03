@@ -21,11 +21,48 @@ describe("security hardening", () => {
       initSql,
       /grant execute on function public\.claim_analyzer_request\(uuid, text, integer, integer\) to service_role/,
     );
-    assert.match(analyzerSource, /scan_opportunities:\s*8/);
+    // 20, not 8: a scan is a fan-out of ≤10-market requests since the
+    // 2026-08-02 CPU failures, so the old budget would have rate-limited a
+    // scan against itself. tests/scanBatching.test.ts holds the arithmetic
+    // (a full fan-out fits, with room to repeat it); this holds the number.
+    assert.match(analyzerSource, /scan_opportunities: 20,/);
     assert.match(
       analyzerSource,
       /const rateLimit = await claimAnalyzerRequest\(user\.id, actionName\);[\s\S]*if \(!rateLimit\.allowed\)/,
     );
+  });
+
+  it("makes a budget-exceeding scan request structurally impossible", () => {
+    const analyzerSource = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+
+    // The durable fix for the production 546s ("CPU Time exceeded"): the
+    // request that could exceed the 2s CPU budget cannot be made. A cap the
+    // server enforces, refused rather than truncated, and no empty-list form
+    // that means "every market" any more.
+    assert.match(analyzerSource, /const MAX_SCAN_SYMBOLS = 15;/);
+    assert.match(
+      analyzerSource,
+      /if \(!Array\.isArray\(requested\) \|\| requested\.length === 0\) \{\s*return \{ reason: "A market scan must name the markets to scan\." \};/,
+    );
+    assert.match(
+      analyzerSource,
+      /if \(requested\.length > MAX_SCAN_SYMBOLS\) \{\s*return \{\s*reason:/,
+    );
+    // Refused before any engine work: no learning refresh, no provider fetch,
+    // no telemetry insert a refused caller could force.
+    const scanRefusal = analyzerSource.indexOf(
+      "const scanRequest = readScanRequestSymbols(body.symbols);",
+    );
+    const learningRefresh = analyzerSource.indexOf(
+      "const learningRefresh = await refreshGlobalStrategyWeightsThrottled();\n    const scan = await scanOpportunities(",
+    );
+    assert.ok(scanRefusal > -1 && learningRefresh > scanRefusal);
+    // And the retired fallback is gone from the scan itself, not merely
+    // unreachable from the door: normalization has no universe to fall back to.
+    assert.equal(analyzerSource.includes(": defaultScanSymbols)"), false);
   });
 
   it("keeps scheduled sync endpoints token-gated and deployed", () => {

@@ -44,8 +44,10 @@ export default defineConfig({
   ],
   // Q4-C1: every authed spec signs in as the same dedicated E2E user, and two
   // of its analyzer actions are rate-limited per user
-  // (trade-analyzer/index.ts: scan_opportunities 8/60s, refresh_outcomes
-  // 12/60s). analyzer-abuse.spec.ts deliberately exhausts the scan budget to
+  // (trade-analyzer/index.ts: scan_opportunities 20/60s — a scan is a fan-out
+  // of chunked requests since the 2026-08-02 CPU failures, so one Scan click
+  // spends several of that budget — refresh_outcomes 12/60s).
+  // analyzer-abuse.spec.ts deliberately exhausts the scan budget to
   // prove the 429 path, and visual-proof.spec.ts's ten Desk/Insights surface
   // visits are a second heavy consumer of the refresh budget. Playwright's
   // default is to run spec files concurrently across workers, so either one

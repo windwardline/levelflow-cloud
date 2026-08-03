@@ -87,8 +87,23 @@ const RATE_LIMIT_WINDOW_SECONDS = 60;
 // sends it any more.
 const RATE_LIMITS = {
   refresh_outcomes: 12,
-  scan_opportunities: 8,
+  // A scan is a fan-out of chunked requests since the 2026-08-02 CPU failures
+  // (src/lib/scanBatching.ts): today's 50-market universe arrives as 6, so the
+  // old budget of 8 would have rate-limited the second scan of a minute against
+  // the first. Twenty passes a full scan three times over —
+  // tests/scanBatching.test.ts pins that a whole fan-out fits with room to
+  // repeat it, so this number can never fall back under one scan's width.
+  scan_opportunities: 20,
 } as const;
+// The hard ceiling on one request's work, and what makes a 546 impossible
+// rather than unlikely: a 50-market scan measured ~1.84s of CPU against
+// Supabase's 2s budget (PR #168), and roughly half of 2026-08-02's open-market
+// scans exceeded it. No request may carry a fraction of the universe large
+// enough to reach that. Fifteen leaves the client's 10-market chunks room
+// without ever admitting a request that could. Requests above it are refused,
+// not truncated — a scan that silently dropped five of the markets it named
+// would report a count the caller never asked for.
+const MAX_SCAN_SYMBOLS = 15;
 type AnalyzerAction = keyof typeof RATE_LIMITS;
 type AnalyzeRequest = {
   action?: AnalyzerAction;
@@ -293,8 +308,23 @@ Deno.serve(async (req) => {
     // The one door (§17m.1). Reached by exhaustion, not by default: the only
     // other action returned above, and anything else was refused before the
     // rate limit was even claimed.
+    //
+    // Every scan names its markets, and never more than one request's worth.
+    // Refused before any engine work — no learning refresh, no provider fetch,
+    // no telemetry row a caller could force. The meter above already counted
+    // the request, which is the honest order: a malformed request is still a
+    // request, and refusing it must not be the cheap way to make many.
+    //
+    // A tab left open across this deploy still posts the retired all-markets
+    // form (no symbols at all, which used to mean "the server's own curated
+    // universe"). It gets this 400 carrying its reason, and reloading is the
+    // fix — the same acknowledged cost as §17m.1's one-door 400.
+    const scanRequest = readScanRequestSymbols(body.symbols);
+    if (scanRequest.reason !== undefined) {
+      return jsonResponse(req, { error: scanRequest.reason }, 400);
+    }
     const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
-    const scan = await scanOpportunities(token, user.id, body.symbols);
+    const scan = await scanOpportunities(token, user.id, scanRequest.symbols);
     await recordAnalyzerEvent({
       action: "scan_opportunities",
       metadata: {
@@ -330,21 +360,48 @@ Deno.serve(async (req) => {
   }
 });
 
+/**
+ * The scan request's symbol contract: a named, request-sized list, or the reason
+ * it is refused.
+ *
+ * The empty list is no longer the "all markets" form. It used to mean "use the
+ * server's own curated universe" (defaultScanSymbols), and that is precisely
+ * the request that spent ~1.84s of a 2s CPU budget and failed roughly half the
+ * time under open markets on 2026-08-02. The client resolves "All markets" to an
+ * explicit list already (marketScanFilters.ts, so closed markets drop out of the
+ * count) and now splits it into request-sized chunks (src/lib/scanBatching.ts) —
+ * so nothing legitimate sends either shape this refuses.
+ */
+function readScanRequestSymbols(
+  requested: string[] | undefined,
+):
+  | { reason: string; symbols?: undefined }
+  | { reason?: undefined; symbols: string[] } {
+  if (!Array.isArray(requested) || requested.length === 0) {
+    return { reason: "A market scan must name the markets to scan." };
+  }
+  if (requested.length > MAX_SCAN_SYMBOLS) {
+    return {
+      reason:
+        `A market scan may cover at most ${MAX_SCAN_SYMBOLS} markets per request; this one named ${requested.length}.`,
+    };
+  }
+  return { symbols: requested };
+}
+
 async function scanOpportunities(
   token: string,
   userId: string,
-  requestedSymbols: string[] | undefined,
+  requestedSymbols: string[],
 ) {
   const normalizedSymbols = Array.from(
     new Set(
-      (requestedSymbols && requestedSymbols.length > 0
-        ? requestedSymbols
-        : defaultScanSymbols).map((symbol) => normalizeSymbol(symbol)).filter(
-          (symbol) =>
-            Boolean(symbol) && isKnownSymbol(symbol) &&
-            !isTemporarilyUnavailableSymbol(symbol) &&
-            !noScanSymbols.has(symbol),
-        ),
+      requestedSymbols.map((symbol) => normalizeSymbol(symbol)).filter(
+        (symbol) =>
+          Boolean(symbol) && isKnownSymbol(symbol) &&
+          !isTemporarilyUnavailableSymbol(symbol) &&
+          !noScanSymbols.has(symbol),
+      ),
     ),
   );
 
