@@ -1,6 +1,18 @@
-# Windward Line Levelflow Cloud
+# Levelflow Cloud
 
-Levelflow Cloud is a React/Vite and Supabase platform for disciplined market review, chart analysis, and limit-order setup generation. The app uses Supabase Auth, strict user-owned data tables with RLS, server-side market data, an Edge Function analyzer, and a focused web workspace for logged-in users.
+Live: **[levelflow.windwardline.com](https://levelflow.windwardline.com)**
+
+![Levelflow's front door: one page that reads the market for you — live charts, timing, and only the trade setups that survive review](docs/readme-hero.png)
+
+Levelflow Cloud is a Windward Line production: a React/Vite and Supabase platform for disciplined market review, chart analysis, and limit-order setup generation. The app uses Supabase Auth, strict user-owned data tables with RLS, server-side market data, an Edge Function analyzer, and a focused web workspace for logged-in users.
+
+## What holds it
+
+- **User-owned data by construction.** Row-level security on all fourteen tables — own-row CRUD on user tables, read-only shared reference data — enforced in the database, so a client bug cannot leak another user's records ([supabase/init.sql](/supabase/init.sql)).
+- **Fail-closed, and tested for it.** The analyzer refuses ambiguity rather than reinterpreting it: missing auth 401, unrecognized action 400, over-budget 429 with an audit row. Rate-limit tables and the claim function are revoked from every user role, and [tests/securityHardening.test.ts](/tests/securityHardening.test.ts) asserts each grant line — a privilege regression is a red build.
+- **Auditable to the exact build.** Append-only `analyzer_events` records actor, action, outcome, latency, and the bundle stamp of the code that served the request.
+- **No plausible numbers.** A financial figure enters by exactly three routes — the broker publishes it, Levelflow derives it by a published method, or the owner observes it live and records it dated and attributed. Where the routes run out, the interface renders a word instead of a number, and that refusal is the feature working.
+- **A design system defended by CI.** Roughly 1,300 automated tests include every text pair's WCAG contrast ratio in both themes ([tests/contrast.test.ts](/tests/contrast.test.ts)), the design-token contract, a motion-law census, and a language guard that pins rendered strings bidirectionally to the spec.
 
 ## Architecture
 
