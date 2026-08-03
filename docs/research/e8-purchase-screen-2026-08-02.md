@@ -1,21 +1,29 @@
-# E8 purchase-screen parameters — 2026-08-02 (owner, e8x.e8markets.com checkout, live walk)
+# E8 purchase-screen parameters — 2026-08-02 (owner, e8x.e8markets.com checkout, live walks)
 
 Provenance: `verified` (owner-supplied purchase-screen observation per amendment 10's
-input contract). Market: **Forex**, balance **$100,000**, eleven screenshots walking the
-checkout's customization matrix across E8 One, E8 Pro, and E8 Signature. Dollar figures
-on the summary are percentages of the selected tier (basis: initial balance), so the
-percentages are the invariant; enrollment prices are $100K-tier prices.
+input contract). Three walks at balance **$100,000**: the **Forex market (thirteen
+frames)**, the **Crypto market (eleven frames)**, and the **Futures market (five
+frames)** — twenty-nine frames total. Dollar figures on the order summary are
+percentages of the selected tier (basis: initial balance), so the percentages are the
+invariant; enrollment prices shown are $100K-tier prices. Frame inventories close each
+market's section.
 
-## Programs offered in the Forex market flow
-E8 One (1 step) · E8 Pro (1 step – Static Drawdown) · E8 Signature (1 step) · E8 Trial.
-**No E8 Zero** (futures-only, consistent with the dossiers). Platforms: E8 One offers
-**MatchTrader and TradeLocker**; E8 Pro and E8 Signature offer **TradeLocker only**.
-Leverage shows **1:30** for Forex on every program. Every line offers the trading-
-conditions choice **No Commissions | Raw Spreads** (all observations below taken with
-Raw Spreads selected). Swap-free account: +10% on final price, any line.
+---
 
-## E8 One — the coupled customization matrix ($100K, Raw Spreads, payout 80%)
-Balances offered: $5K / $10K / $25K / $50K / $100K / $200K / $400K / $500K (8 tiers).
+## THE FOREX MARKET WALK (thirteen frames)
+
+### Programs and platforms
+E8 One (1 step) · E8 Pro (1 step – Static Drawdown) · E8 Signature (1 step) ·
+**E8 Trial**. No E8 Zero (futures-only). Platforms: **E8 One offers MatchTrader AND
+TradeLocker**; E8 Pro and E8 Signature offer TradeLocker only. **Leverage 1:30** on
+every forex program. The forex checkout runs five steps, and the Additional-modifiers
+step carries the trading-conditions choice **No Commissions | Raw Spreads** on every
+line (all matrix readings below with Raw Spreads). Swap-free account: +10% on final
+price, any line. A "Customize account more" button accompanies NEXT STEP on the
+Set-account step.
+
+### E8 One — the coupled customization matrix ($100K, Raw Spreads, payout 80%)
+Balances: $5K / $10K / $25K / $50K / $100K / $200K / $400K / $500K (8 tiers).
 Payout options: 80% / 90% / 100%. Dynamic Drawdown options: 4/6/8/10/14%.
 **Choosing the dynamic drawdown moves the daily drawdown AND the profit target
 together** — one selection, three coupled values:
@@ -34,11 +42,11 @@ Target = 1.5 × dynamic exactly, every row. Daily is NOT a clean ratio (0.75, 0.
 must be stored as the selected pair, because two independently chosen numbers could
 encode a configuration E8 does not sell.
 
-## E8 Pro — static drawdown matrix ($100K, Raw Spreads, payout 80%)
-Balances: same 8 tiers as One. Payout options: **80% / 100% only** (no 90%).
-Static Drawdown options: 6/8/10%. **Daily drawdown is FIXED at 2.5% ($2,500) and the
-Daily Profit Cap is FIXED at 2% ($2,000) regardless of static choice**; the profit
-target equals the static drawdown:
+### E8 Pro — static drawdown matrix ($100K, Raw Spreads, payout 80%)
+Balances: same 8 tiers. Payout options: **80% / 100% only** (no 90%).
+Static Drawdown options: 6/8/10%. **Daily drawdown FIXED at 2.5% ($2,500) and Daily
+Profit Cap FIXED at 2% ($2,000) regardless of static choice**; profit target equals
+the static drawdown:
 
 | Static DD | Daily DD | Daily Profit Cap | Profit Target | Price ($100K) |
 |---|---|---|---|---|
@@ -49,21 +57,115 @@ target equals the static drawdown:
 The on-screen Daily Profit Cap 2% confirms the claw-back rule's number (15319043) at
 the point of sale.
 
-## E8 Signature — no drawdown customization ($100K)
-Balances: **$25K / $50K / $100K / $150K** (4 tiers, matches the published ladder).
-Modifiers: trading conditions only — no drawdown or payout choices. Summary: **EOD
-Drawdown 3% ($3,000)** · Payout 80% · Profit Target 6% ($6,000) · **$260**.
-**Cross-check**: $3,000 at $100K matches the owner's canonical EOD Dynamic table
-($1,000/25K · $2,000/50K · $3,000/100K · $4,500/150K) exactly — the purchase screen
-corroborates the 4/4/3/3 tiering at its third row.
+### E8 Signature — no drawdown customization ($100K)
+Balances: **$25K / $50K / $100K / $150K** (4 tiers). Modifiers: trading conditions
+only. Summary: **EOD Drawdown 3% ($3,000)** · Payout 80% · Profit Target 6%
+($6,000) · **$260**. **Cross-check**: $3,000 at $100K matches the owner's canonical
+EOD table ($1,000/25K · $2,000/50K · $3,000/100K · $4,500/150K) exactly.
+
+### Forex frame inventory (thirteen)
+F1 One, Set-account (2 of 5), default → $488 (6%/4%/9%). F2 One, modifiers (3 of 5),
+dynamic 4% → $398. F3 One, dynamic 6% → $488. F4 One, dynamic 8% → $586. F5 One,
+dynamic 8% → $586 — a second capture of the same state moments later (identical
+data; recorded as its own frame). F6 One, dynamic 10% → $684. F7 One, dynamic 14% →
+$879. F8 Pro, Set-account, default → $488 (static 8% / daily 2.5% / cap 2%). F9 Pro,
+modifiers, static 6% → $468. F10 Pro, static 8% → $488. F11 Pro, static 10% → $538.
+F12 Signature, Set-account → $260 (EOD 3%). F13 Signature, modifiers (trading
+conditions only; steps 4 Billing and 5 Payment visible, not completed).
+
+---
+
+## THE CRYPTO MARKET WALK (eleven frames)
+
+### Programs and platforms — the deltas from Forex
+E8 One (1 step) · E8 Pro (1 step – Static Drawdown) · E8 Signature (1 step) —
+**no E8 Trial in the Crypto flow**. Platform: **TradeLocker only on every line,
+E8 One included** (MatchTrader is forex-One-only). **Leverage 1:5** on every crypto
+program's summary. **No trading-conditions section anywhere in the Crypto flow** —
+the modifiers step opens directly at Dynamic Drawdown (No Commissions | Raw Spreads
+is forex-only). Swap-free +10% still offered. **Signature-Crypto's checkout is
+Step 2 of 4** — with no modifiers step at all: market → account → billing → payment.
+
+### E8 One Crypto ($100K, payout 80%)
+Balances: same 8 tiers as forex. Payout options 80/90/100. Dynamic options
+4/6/8/10/14. **The matrix — couplings AND prices — is identical to forex One**:
+4% → $398 (daily 3%, target 6%) · 6% (default) → $488 (4%, 9%) · 8% → $586 (5.3%,
+12%) · 10% → $684 (6.6%, 15%) · 14% → $879 (9.2%, 21%).
+
+### E8 Pro Crypto ($100K, payout 80%)
+Same shape and prices as forex Pro: static 6% → $468 · 8% (default) → $488 · 10% →
+$538; **daily fixed 2.5% ($2,500), Daily Profit Cap fixed 2% ($2,000)** throughout;
+target = static; payout options 80/100.
+
+### E8 Signature Crypto ($100K)
+Balances $25K/$50K/$100K/$150K · **EOD Drawdown 3% ($3,000)** · Payout 80% · Target
+6% ($6,000) · **$260** · Leverage 1:5. Same numbers as forex Signature.
+
+### Crypto frame inventory (eleven)
+C1 One, Set-account (2 of 5), default → $488 (6%/4%/9%, leverage 1:5). C2 One,
+modifiers (3 of 5), dynamic 4% → $398. C3 One, dynamic 6% → $488. C4 One, dynamic
+8% → $586. C5 One, dynamic 10% → $684. C6 One, dynamic 14% → $879. C7 Pro,
+Set-account, default → $488 (static 8%, daily 2.5%, cap 2%). C8 Pro, modifiers,
+static 6% → $468. C9 Pro, static 8% → $488. C10 Pro, static 10% → $538.
+C11 Signature, Set-account (2 of 4) → $260 (EOD 3%).
+
+---
+
+## THE FUTURES MARKET WALK (five frames)
+
+### Programs and platforms
+**E8 Zero MAX (1 step) · E8 Zero Starter (1 step) · E8 Signature (1 step)** — no
+One, no Pro, no Trial in the Futures flow. Platform: **Tradovate only**. No leverage
+line on the futures summaries (contract margining instead). No trading-conditions
+section. The only modifier on any futures line is the payout split — **the EOD
+Drawdown selector shows a single option, [3%]** — futures drawdown is not
+customizable.
+
+### E8 Zero MAX and Zero Starter ($100K)
+Balances: **$50,000 / $100,000 / $200,000** (3 tiers, both Zero lines — matches the
+dossier ladder). Payout options: 80% / 100%. Summary, both lines: **EOD Drawdown 3%
+($3,000)** · Payout 80% · **Profit Target 6.5% ($6,500)** — the precise Zero target
+number, distinct from Signature's 6%. Prices at $100K: **Zero MAX $588 · Zero
+Starter $278** (same rules; the dossier records MAX vs Starter differing in payout
+caps).
+
+### E8 Signature Futures ($100K)
+Balances: **$25K / $50K / $100K / $150K**. Summary: **EOD Drawdown 3% ($3,000)** ·
+Payout 80% · **Profit Target 6% ($6,000)** · **$260** — identical numbers to
+Signature on the other two markets. The futures 2%-of-tier Daily Pause (11969807,
+Performance stage) is not a checkout line; it remains rulebook data.
+
+### Futures frame inventory (five)
+FU1 Zero MAX, Set-account (header "Step 2 of 4"), $100K → $588 (EOD 3%, target
+6.5%). FU2 Zero MAX, modifiers (header "Step 3 of 5" — E8's own stepper is
+inconsistent within this flow; immaterial, recorded for exactness): EOD [3%] single
+option, payout 80/100 → $588. FU3 Zero Starter, Set-account (2 of 5) → $278 (EOD
+3%, target 6.5%). FU4 Zero Starter, modifiers (3 of 5): EOD [3%], payout 80/100 →
+$278. FU5 Signature, Set-account (2 of 4) → $260 (EOD 3%, target 6%).
+
+---
+
+## The crypto-leverage picture, resolved by scope
+The checkout shows **account-level leverage 1:5 for every Crypto-market program**,
+while the owner's E8 Pro **Forex** account showed crypto tickets margined at full
+notional (1:1). These compose instead of contradicting: **leverage follows the
+account's selected market** — a forex-market account extends no leverage to crypto
+symbols; a crypto-market account carries 1:5. The published per-symbol split
+(BTC/ETH 1:5, others 1:2 — 5514982) remains to be observed inside a live
+crypto-market account; until then the rulebook records the checkout's account-level
+1:5 (`verified`) and the article's per-symbol split (`primary`) with their scopes.
 
 ## Consequences
-1. Amendment 10's input contract is FULFILLED for the Forex market's three lines:
-   the tier matrices above enter the §20 rulebook as `verified`.
-2. The One-line coupling (dynamic→daily→target) and the Pro-line constants are the
-   rulebook's authoritative shapes; `broker_drawdown_tier` holds the pair token.
-3. Platform availability differs per line (One: MatchTrader+TradeLocker; Pro/
-   Signature: TradeLocker only) — a program-facts detail.
-4. Unobserved remainder: per-tier prices beyond $100K (percentages are the invariant;
-   prices matter only to the breach-cost model), the Crypto-market flow's matrices,
-   and E8 Trial's shape.
+1. Amendment 10's input contract is FULFILLED for all three markets: every program
+   line's tier matrix, constants, and prices at $100K enter the §20 rulebook as
+   `verified`.
+2. The One-line coupling (dynamic→daily→target, 1.5× law) and the Pro-line constants
+   hold identically across Forex and Crypto; `broker_drawdown_tier` holds the pair
+   token. Futures lines have NO drawdown customization (single EOD 3% option), and
+   Zero's profit target is 6.5% against Signature's 6%.
+3. Program-facts details per market: Trial forex-only; MatchTrader forex-One-only;
+   trading-conditions choice forex-only; Tradovate futures-only; Signature-Crypto
+   and the futures lines run 4-step checkouts (with E8's own stepper count wobbling
+   between 4 and 5 in the futures flow).
+4. Unobserved remainder: per-tier prices beyond $100K, the per-symbol leverage split
+   inside a crypto-market account, and E8 Trial's shape.
