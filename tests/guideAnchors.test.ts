@@ -208,8 +208,8 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
   });
 
   // Spec §17d, the one sanctioned addition to the deck's own copy: the owner
-  // approved these definition lines verbatim for §10's "What the words mean
-  // here" ("the Guide's 'What the words mean here' section teaches these exact
+  // approved these definition lines verbatim for §10, now titled "Glossary
+  // here" ("the Guide's Glossary section — owner-retitled 2026-08-03 — teaches these exact
   // definitions … replacing/adding entries as needed"), so the Guide teaches
   // exactly the words the ledger renders. Pinned as term/body pairs rather than
   // loose substrings — a definition attached to the wrong term would still pass

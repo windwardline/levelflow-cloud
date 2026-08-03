@@ -607,6 +607,24 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   ).toBeVisible();
 });
 
+test("a Contents click stays on the Guide, and Back stays there too (§17o fragment claiming)", async ({ page }) => {
+  // The §17o review's F1: a fragment navigation fires popstate with a null
+  // state, exactly like a traversal. Before the fold, clicking the Guide's own
+  // Contents rail ejected the reader to the Desk on the spot, and Back walked
+  // dead entries afterwards. Source pins hold the claiming semantics; this is
+  // the one guard that exercises the defect the way it was found — in a
+  // browser, on the rail the Guide itself renders at >=lg.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await page.getByRole("link", { name: "Guide", exact: true }).click();
+  const toc = page.getByRole("navigation", { name: "Guide sections" });
+  await expect(toc).toBeVisible();
+  await toc.getByRole("link").nth(2).click();
+  await expect(toc).toBeVisible(); // still the Guide, not the Desk
+  await page.goBack();
+  await expect(toc).toBeVisible(); // Back stays on the Guide (claimed entry)
+});
+
 test("a receipt How this works link lands on the Guide's record section", async ({ page }) => {
   // The receipt only exists once a review has run, so this test asks the
   // live analyzer for one (and, like any review, saves it against the

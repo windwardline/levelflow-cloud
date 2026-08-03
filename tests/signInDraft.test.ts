@@ -67,7 +67,11 @@ describe("the sign-in screen's draft survives a trip to a document", () => {
 
 describe("the screen saves it, restores it, and gives it up on sign-in", () => {
   it("opens from the draft rather than from blank", () => {
-    assert.match(AUTH, /const draft = loadSignInDraft\(\);/);
+    // A lazy initializer, not a body call: the read happens once, at mount, as a
+    // property of useState rather than a hope about render counts (morning batch,
+    // 2026-08-03 — the §17o closing review's nit 2).
+    assert.match(AUTH, /const \[draft\] = useState\(loadSignInDraft\);/);
+    assert.doesNotMatch(AUTH, /const draft = loadSignInDraft\(\)/);
     assert.match(AUTH, /useState\(draft\?\.email \?\? ""\)/);
     // The sent state and its line come back together, or the reader is looking at a
     // screen that says nothing happened while their inbox says otherwise.

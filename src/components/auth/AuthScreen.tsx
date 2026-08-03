@@ -31,8 +31,9 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   // What this tab remembers from before the reader stepped away to read a document.
   // §17o tier 2 navigates those links in the same tab, so this screen's own state is
   // the thing that has to survive the trip — see src/lib/signInDraft.ts. Read once,
-  // at mount, which is the only moment it can be the truth.
-  const draft = loadSignInDraft();
+  // through a lazy initializer — mount is the only moment it can be the truth, and
+  // the initializer is what makes "once" a property rather than a hope.
+  const [draft] = useState(loadSignInDraft);
   const [email, setEmail] = useState(draft?.email ?? "");
   const [status, setStatus] = useState<AuthStatus>(draft?.sent ? "sent" : "idle");
   const [message, setMessage] = useState(
