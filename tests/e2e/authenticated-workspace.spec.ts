@@ -1146,8 +1146,13 @@ test("the mobile account menu carries the footer's link set (spec §17g)", async
   for (const label of ["Risk disclaimer", "Privacy", "Terms"]) {
     const link = menu.getByRole("menuitem", { name: label, exact: true });
     await expect(link).toHaveCount(1);
-    await expect(link).toHaveAttribute("target", "_blank");
-    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // §17o tier 2: our own documents present in frame — the menu item opens
+    // the document surface in place, so it spawns nothing and carries no
+    // target. (This line asserted the pre-§17o law until the first live run
+    // caught it: authed specs execute only in the deploy, so it survived
+    // every pre-merge gate. The in-frame open itself is proven by the
+    // doctrine's own tier-2 specs.)
+    await expect(link).not.toHaveAttribute("target", "_blank");
     const box = await link.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
