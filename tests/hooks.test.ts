@@ -98,6 +98,71 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
   });
 });
 
+// The wake gap. Supabase's realtime reconnect re-subscribes but never replays:
+// @supabase/phoenix's `rejoin()` calls `joinPush.resend()`, which re-sends the
+// channel's original join payload — for postgres_changes only
+// {event, schema, table, filter}, with no cursor and no `since` — and
+// realtime-js accepts a `replay` option for broadcast on PRIVATE channels only
+// (RealtimeChannel throws otherwise). So the server streams from the moment of
+// the rejoin, every event that landed while the socket was down is gone, and
+// nothing in the client reads the table again. A trade that stopped out
+// overnight therefore keeps rendering as live until the reader reloads by hand.
+describe("useTradeSetups re-reads on wake (source-pinned — see header)", () => {
+  const source = readFileSync("src/hooks/useTradeSetups.ts", "utf8");
+
+  it("re-reads the table when the tab comes back, and only on the way in", () => {
+    // Guarded to the became-visible transition: 'hidden' fires the same event,
+    // and re-reading on the way out serves nobody.
+    assert.match(
+      source,
+      /document\.addEventListener\("visibilitychange", onVisible\)/,
+    );
+    assert.match(
+      source,
+      /if \(document\.visibilityState === "visible"\) \{\s*readAfterGap\(\);/,
+    );
+  });
+
+  it("removes the visibility listener on unmount", () => {
+    assert.match(
+      source,
+      /return \(\) =>\s*document\.removeEventListener\("visibilitychange", onVisible\);/,
+    );
+  });
+
+  it("re-reads on a re-subscribe, never on the first one", () => {
+    // The rejoin covers what visibility cannot: a foreground network change
+    // reconnects with no visibilitychange to hear. The first SUBSCRIBED is not a
+    // gap — it is the mount effect's own read, already in flight.
+    assert.match(
+      source,
+      /if \(status !== REALTIME_SUBSCRIBE_STATES\.SUBSCRIBED\) \{\s*return;\s*\}\s*if \(resubscribed\) \{\s*readAfterGap\(\);\s*\}\s*resubscribed = true;/,
+    );
+    assert.match(source, /let resubscribed = false;/);
+  });
+
+  it("routes both wake paths through one reader that respects the outcome throttle", () => {
+    // Silent so the rail and the ledger re-read under the reader rather than
+    // flashing their loading state, and refreshOutcomes rather than
+    // forceOutcomeRefresh so a reader flicking between tabs cannot drive the
+    // provider-heavy refresh once per switch. The table read is what closes the
+    // gap, and it runs either way.
+    assert.match(
+      source,
+      /const readAfterGap = useCallback\(\(\) => \{\s*refreshSetups\(\{ refreshOutcomes: true, silent: true \}\);\s*\}, \[refreshSetups\]\);/,
+    );
+    // One reader, two callers — the force path stays App.tsx's, spec §8.
+    assert.equal((source.match(/readAfterGap\(\)/g) ?? []).length, 2);
+    assert.doesNotMatch(source, /forceOutcomeRefresh: true/);
+  });
+
+  it("leaves the two postgres_changes handlers exactly as they were", () => {
+    const handlers = source.match(/refreshSetups\(\{ silent: true \}\);/g) ?? [];
+    assert.equal(handlers.length, 2);
+    assert.equal((source.match(/"postgres_changes"/g) ?? []).length, 2);
+  });
+});
+
 // Security-adjacent: this is what makes a Levelflow session end with the browser
 // tab rather than persist in localStorage for the next person at the machine.
 describe("useAuthSession browser-session marker (source-pinned — see header)", () => {
