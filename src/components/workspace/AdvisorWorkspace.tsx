@@ -354,9 +354,17 @@ export function AdvisorWorkspace(
   // both Scan controls disable at length 0, and crypto trades 24/7 so that
   // length is never 0 anyway — so the old `= []` default and the `undefined`
   // it turned into (which asked the server for its own curated universe) were
-  // unreachable. marketScanFilters' filterSymbolsByAvailability is what resolves
+  // unreachable. The analyzer now refuses both shapes outright, because that
+  // request is the one that exceeded Supabase's CPU budget in production.
+  // marketScanFilters' filterSymbolsByAvailability is what resolves
   // "All markets" to an explicit list now, precisely so closed markets drop out
   // of it and the server's `scanned` count matches what was really attempted.
+  //
+  // One click is still one scan here. Underneath, scanMarketOpportunities
+  // splits that list into request-sized chunks and merges them
+  // (src/lib/scanBatching.ts) — and throws if ANY chunk fails, so the catch
+  // below renders the same failure state a single failed request rendered. A
+  // scan missing a fifth of its markets is a failed scan, never a smaller one.
   async function scanMarkets(symbols: SupportedSymbol[]) {
     // Not a bump — a reading. Any selection change while this scan is in
     // flight (a scan row click, a scope change, an Insights cross-link) moves
@@ -387,6 +395,15 @@ export function AdvisorWorkspace(
         qualified: 0,
         scanned: 0,
       });
+      // A failed scan is not a scan that wrote nothing. Whatever chunks
+      // completed before the failure have already persisted their setups
+      // server-side (spec §17m.2 — the write is part of the request, not of the
+      // render), so the rail and Insights are refreshed here for the same reason
+      // they are on success: the reader sees the failure line AND every setup
+      // that really was saved. Suppressing this would leave the honest failure
+      // copy sitting above a stale history that quietly disagrees with the
+      // database — the §17m.2 divergence, arriving through the error path.
+      onSetupsChanged();
     } finally {
       setScanCompletedAt(new Date());
       setScanStatus("idle");

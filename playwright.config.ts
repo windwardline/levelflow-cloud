@@ -44,11 +44,28 @@ export default defineConfig({
   ],
   // Q4-C1: every authed spec signs in as the same dedicated E2E user, and two
   // of its analyzer actions are rate-limited per user
-  // (trade-analyzer/index.ts: scan_opportunities 8/60s, refresh_outcomes
-  // 12/60s). analyzer-abuse.spec.ts deliberately exhausts the scan budget to
-  // prove the 429 path, and visual-proof.spec.ts's ten Desk/Insights surface
-  // visits are a second heavy consumer of the refresh budget. Playwright's
-  // default is to run spec files concurrently across workers, so either one
+  // (trade-analyzer/index.ts: scan_opportunities 40/60s, refresh_outcomes
+  // 12/60s).
+  //
+  // A Scan click is no longer one request. Since the 2026-08-02 CPU failures the
+  // client splits a scan into ≤10-market requests (src/lib/scanBatching.ts), and
+  // each one claims the scan budget — so this project's spend is counted in
+  // chunks, not clicks. What the workspace project spends, all in:
+  //   4 All-markets scans (the two Guide/receipt link specs, the ladder-copy
+  //     spec, the persistence spec)  6 claims each = 24
+  //   4 Crypto-scoped scans (§19d, two per width leg)          1 each =  4
+  //   1 single-market scan (the one-door spec)                            1
+  //                                                                   ── 29
+  // spread across a project whose runtime is minutes, against 40 per
+  // minute-aligned tumbling 60s window — a ledger that assumes retries: 0
+  // (unset here; pinned in tests/scanBatching.test.ts). visual-proof scans
+  // nothing (it captures surfaces) but its ten Desk/Insights surface visits
+  // are a heavy consumer of the refresh budget; analyzer-abuse then spends 2
+  // refusals + a 55-request flood, deliberately over the limit, which is the
+  // 429 it exists to prove.
+  //
+  // Playwright's default is to run spec files concurrently across workers, so
+  // either one
   // running alongside authenticated-workspace.spec.ts could 429 a scan or
   // refresh that spec depends on — and a rate-limited scan there reads as a
   // skipped test today (the app can't tell a 429 apart from a quiet market),

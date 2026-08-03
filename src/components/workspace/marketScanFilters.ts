@@ -59,6 +59,11 @@ export function filterMarketScanCandidatesByScope(
 // finally letting closed markets drop out of it too. The server's own
 // `scanned` count (normalizedSymbols.length) then reflects exactly this
 // list's length - only markets actually attempted.
+//
+// That empty-list form is now refused rather than merely unused: one request
+// covering every market is what exceeded the 2s CPU budget in production, so
+// the list this returns is what src/lib/scanBatching.ts splits into
+// request-sized chunks.
 export function filterSymbolsByAvailability(
   symbols: SupportedSymbol[],
   now: Date,

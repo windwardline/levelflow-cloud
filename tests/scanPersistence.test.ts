@@ -211,13 +211,24 @@ describe("scan persistence — the call site honours the contract", () => {
     assert.match(analyzer, /onFailure: async \(symbol, error\) => \{/);
     assert.match(
       analyzer,
-      /Scan setup persistence failed: \$\{[\s\S]{0,200}status: "scan_failure",/,
+      /Scan setup persistence failed: \$\{[\s\S]{0,400}status: "scan_failure",/,
+    );
+    // And it says which click's chunk failed. A scan is several requests now
+    // (src/lib/scanBatching.ts), so a per-symbol write failure is only legible
+    // beside the scan that produced it — hence the trace on this event too.
+    assert.match(
+      analyzer,
+      /Scan setup persistence failed: \$\{[\s\S]{0,400}metadata: \{ \.\.\.trace \},/,
     );
     assert.match(
       analyzer,
       /status: scan\.persistence\.failed > 0 \? "scan_failure" : "success",/,
     );
     assert.match(analyzer, /persistence: scan\.persistence,/);
+    // The request-level event carries the same trace (the ...scanTrace spread
+    // beside `scanned`) — dropping it would silently orphan every chunk's
+    // per-symbol rows from the click they belonged to.
+    assert.match(analyzer, /scanned: scan\.scanned,[\s\S]{0,200}\.\.\.scanTrace,/);
   });
 
   it("keeps the C2 live-position guard, now reported as a skip", () => {
