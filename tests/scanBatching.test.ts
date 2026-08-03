@@ -464,6 +464,51 @@ describe("the scan client sends chunks and merges only whole results", () => {
     assert.match(scanSource, /chunkIndex,/);
     assert.match(scanSource, /scanId,/);
   });
+
+  it("says which bundle sent it, on every analyzer request", () => {
+    // The build stamp, and the incident that asked for it (2026-08-03): a reader's
+    // overnight tab kept sending the retired all-markets request, and the fleet
+    // had no way to see that two bundles were live at once — the refusals reached
+    // function_edge_logs as bare 400s, and analyzer_events never heard about them
+    // at all. Every request now names the bundle that sent it, so a stale tab is
+    // legible in the record the requests DO write.
+    //
+    // Passthrough, exactly as the scan trace is: the client sends it, the server
+    // validates the shape and echoes it into telemetry, and nothing anywhere
+    // branches on it.
+    assert.match(
+      clientSource,
+      /import \{ runningBundleId \} from "\.\/deployedVersion";/,
+    );
+    const scanStart = clientSource.indexOf(
+      "export async function scanMarketOpportunities",
+    );
+    const scanEnd = clientSource.indexOf("export async function refreshTradeOutcomes");
+    const scanSource = clientSource.slice(scanStart, scanEnd);
+    const refreshSource = clientSource.slice(
+      scanEnd,
+      clientSource.indexOf("export function normalizeEmbeddedOutcomes"),
+    );
+    assert.ok(refreshSource.length > 0, "expected the outcome-refresh request");
+
+    // Both actions: a reader who never scans is still a tab in the fleet, and a
+    // stale one still asks for outcomes on every surface show.
+    for (const body of [scanSource, refreshSource]) {
+      assert.match(body, /buildStamp: runningBundleId\(\) \?\? undefined,/);
+    }
+    assert.equal(
+      (clientSource.match(/buildStamp: runningBundleId\(\) \?\? undefined,/g) ?? [])
+        .length,
+      2,
+    );
+    // Absent rather than faked where there is no built bundle to name (the dev
+    // server's entry is `/src/main.tsx`), which is the same choice scanId makes
+    // where crypto.randomUUID is missing.
+    assert.doesNotMatch(clientSource, /buildStamp: runningBundleId\(\) \?\? "/);
+    // Nothing client-side reads it back: it is a label on the request, never an
+    // input to it.
+    assert.equal((clientSource.match(/runningBundleId\(\)/g) ?? []).length, 2);
+  });
 });
 
 describe("a failed scan still shows what it wrote", () => {

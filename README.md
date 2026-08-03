@@ -40,6 +40,11 @@ test type error fails the production build too) and serves it at
 build runs independently of `deploy.yml`, so a frontend that depends on a new
 migration should land one push after the migration.
 
+A tab that was open when a deploy landed says so: the signed-in shell compares the
+bundle it is running against the one `/` now serves and offers a reload in the
+masthead. Every analyzer request also names its own bundle, which the analyzer
+records in `analyzer_events`. See [docs/deployment.md](/docs/deployment.md).
+
 ## Production Checklist
 
 1. Create or select a Supabase project.

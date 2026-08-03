@@ -115,6 +115,12 @@ const MAX_SCAN_SYMBOLS = 15;
 type AnalyzerAction = keyof typeof RATE_LIMITS;
 type AnalyzeRequest = {
   action?: AnalyzerAction;
+  // Which bundle the caller is running (its entry filename). A tab left open
+  // across a deploy keeps sending the old bundle's requests — on 2026-08-03 one
+  // sent the retired all-markets form all morning — and the fleet had no way to
+  // see it: the refusals never reached analyzer_events at all. Echoed into
+  // telemetry and nothing else, exactly like the trace below.
+  buildStamp?: string;
   // The caller's own name for one scan, and this request's place in it. A scan
   // is several requests now, and without these its record in analyzer_events is
   // several unrelated rows — this is what lets an operator put one click back
@@ -146,6 +152,26 @@ function readScanTrace(body: AnalyzeRequest) {
       ? body.scanId
       : undefined,
   };
+}
+
+/**
+ * The caller's build stamp, read the way readScanTrace reads the trace.
+ *
+ * Same column, same rule: `analyzer_events.metadata` is the one field that takes
+ * free JSON, so a caller-supplied label is shape-checked before it lands there —
+ * a bounded string over a closed set, or nothing. Sixty-four characters is four
+ * times what Vite's `index-<hash>.js` needs, and the set admits no path
+ * separator, no whitespace and no quote.
+ *
+ * A malformed stamp is dropped, never refused: the label on a request says nothing
+ * about the work it asks for, and a 4xx over it would cost the reader a scan for a
+ * field no code path reads.
+ */
+function readBuildStamp(body: AnalyzeRequest) {
+  return typeof body.buildStamp === "string" &&
+      /^[A-Za-z0-9._-]{1,64}$/.test(body.buildStamp)
+    ? body.buildStamp
+    : undefined;
 }
 type ScanTrace = ReturnType<typeof readScanTrace>;
 
@@ -308,6 +334,10 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { error: "Unsupported analyzer action" }, 400);
     }
 
+    // Read once, for whichever of the two actions this is: both write an event,
+    // and the sender's bundle is as true of an outcome refresh as of a scan.
+    const buildStamp = readBuildStamp(body);
+
     const rateLimit = await claimAnalyzerRequest(user.id, actionName);
     if (!rateLimit.allowed) {
       await recordAnalyzerEvent({
@@ -332,7 +362,7 @@ Deno.serve(async (req) => {
       const learningRefresh = await refreshGlobalStrategyWeightsThrottled();
       await recordAnalyzerEvent({
         action: "refresh_outcomes",
-        metadata: { outcomeRefresh, learningRefresh },
+        metadata: { buildStamp, outcomeRefresh, learningRefresh },
         status: outcomeRefresh.failed > 0 ? "error" : "success",
         userId: user.id,
       });
@@ -374,6 +404,10 @@ Deno.serve(async (req) => {
       action: "scan_opportunities",
       metadata: {
         blocked: scan.blocked.length,
+        // Which bundle sent this scan. A fleet running two bundles is invisible
+        // without it, which is how 2026-08-03's stale tab went a whole morning
+        // unnoticed.
+        buildStamp,
         opportunities: scan.opportunities.length,
         // The persistence contract, in the record of the request itself:
         // a scan that showed setups and wrote none is now legible in

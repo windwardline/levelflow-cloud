@@ -2440,3 +2440,79 @@ for (const width of [375, 1280]) {
     await resetProgramToNone(page, width);
   });
 }
+
+// The reload notice, from the only direction a browser test can honestly take it:
+// it must never appear when nothing has been deployed under the tab.
+//
+// The positive case is out of reach here, and deliberately so. The notice fires on
+// a mismatch between the bundle this tab is running (import.meta.url in the entry
+// module) and the bundle the origin's "/" now names — and this project runs against
+// the dev server, whose entry is `/src/main.tsx`, so neither side is a built bundle
+// and the comparison is unknown against unknown, which never fires (that rule is
+// real tested behaviour in tests/deployedVersion.test.ts). Fulfilling the
+// detector's own fetch with invented HTML would prove the mock, not the deploy. So
+// the parse and the compare are unit-tested, the hook's shape is source-pinned
+// (tests/hooks.test.ts), and what a browser proves is the half that protects the
+// reader: at both widths, in normal operation, the sentence is nowhere.
+for (const width of [375, 1280]) {
+  test(`the reload notice never fires when the tab is current (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ height: width < 1024 ? 812 : 800, width });
+
+    // Every version check, counted as its RESPONSE lands, so each assertion below
+    // sits behind a check that actually answered rather than in a race with one. A
+    // fetch of "/" is a check; the document navigation is not (resourceType
+    // "document"), which is what tells the two apart.
+    const checks: number[] = [];
+    page.on("response", (response) => {
+      if (
+        response.request().resourceType() === "fetch" &&
+        new URL(response.url()).pathname === "/"
+      ) {
+        checks.push(response.status());
+      }
+    });
+
+    await page.goto("/");
+
+    // The masthead is up, so the notice's own row would be up with it.
+    await expect(
+      page.getByTestId(width < 1024 ? "mobile-header" : "desktop-header"),
+    ).toBeVisible();
+
+    async function wake() {
+      await page.evaluate(() => {
+        const show = (state: string) => {
+          Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            get: () => state,
+          });
+          document.dispatchEvent(new Event("visibilitychange"));
+        };
+        show("hidden");
+        show("visible");
+      });
+    }
+
+    // One on mount, then one per wake — and the third is what makes the second
+    // provably finished rather than merely started. The hook holds an in-flight
+    // flag that only its own `finally` clears, and that `finally` runs after the
+    // comparison and any state it sets, so a third request cannot exist unless the
+    // second check had already compared and declined to raise anything. No
+    // arbitrary settle: the causality is the wait.
+    await expect.poll(() => checks.length).toBe(1);
+    await wake();
+    await expect.poll(() => checks.length).toBe(2);
+    await wake();
+    await expect.poll(() => checks.length).toBe(3);
+    expect(checks).toEqual([200, 200, 200]);
+
+    await expect(
+      page.getByText("Levelflow has updated. Reload to continue."),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", {
+        name: "Levelflow has updated. Reload to continue.",
+      }),
+    ).toHaveCount(0);
+  });
+}

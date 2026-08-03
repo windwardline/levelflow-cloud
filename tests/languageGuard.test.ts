@@ -4,6 +4,13 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 const ROOTS = [
+  // The shell itself. App.tsx renders chrome that carries copy — the masthead's
+  // section names, the account menu's rows, and since 2026-08-03 the reload notice
+  // (§17f's one approved sentence for that wave) — and it sat outside every root
+  // here, so the plain-language scan reached every surface the shell frames and
+  // not the frame. Non-recursive, like the roots below, so it adds App.tsx and
+  // main.tsx and nothing that already has a root of its own.
+  "src",
   // Non-recursive per root, so the app-chrome files that sit directly in
   // src/components (AppFooter.tsx, spec §17c) need this entry of their own —
   // without it a new surface could land there unscanned.
