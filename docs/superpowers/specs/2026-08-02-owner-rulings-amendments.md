@@ -1266,3 +1266,10 @@ re-scopes the Desk live — markets, sizing, and record follow the newly
 active account through the same reactivity §19's dormancy already uses.
 Targets hold the §17n floors. Lands with the §19 retrofit's multi-account
 schema.
+
+**Amendment 18a — label decisions arrive as mockups (owner, 2026-08-03).**
+When the switcher's label decisions come due, they are presented as mockups
+at both widths — rendered options to choose from, never prose descriptions —
+per the visual-overhaul precedent where mocks are the binding composition
+authority. The owner's standing preference governs the candidates: succinct
+language that does not crowd nearby elements.
