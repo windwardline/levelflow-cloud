@@ -281,10 +281,13 @@ describe("fetchLifetimeSetups — the read itself (source-pinned)", () => {
     assert.doesNotMatch(ANALYZER_SOURCE, /\.limit\(80\)/);
   });
 
-  it("reads the table from exactly two places, both through the one embed reader", () => {
+  it("reads the table from exactly three places, all through the one embed reader", () => {
+    // The window read, the lifetime walk, and the rail's by-id hydration read
+    // (spec §8's beyond-window actives) — no fourth reader may appear without
+    // facing this count and the shape rule below.
     assert.equal(
       (ANALYZER_SOURCE.match(/\.from\("trade_setups"\)/g) ?? []).length,
-      2,
+      3,
     );
     assert.match(
       ANALYZER_SOURCE.match(

@@ -53,6 +53,29 @@ const RESOLVED_OUTCOMES = new Set([
 ]);
 
 /**
+ * The rail's one active/closed predicate (spec §8): a setup belongs on the
+ * Current trades surface exactly when its status is still live AND no
+ * resolved outcome exists for it. Both "off the rail" checks live together
+ * here (Q2-I6): the resolved-outcome check is defensive — a resolved outcome
+ * on a still-generated row is a finished trade, and the rail must never
+ * offer it as an order to place. Today's engine writes status before outcome
+ * sequentially, so it cannot produce that pair — and not relying on that is
+ * exactly why the check exists.
+ *
+ * Takes the evidence shape rather than a full row (the same reasoning as
+ * entryHasFilled below), so the lifetime record's narrow rows reach the same
+ * one predicate the rail's full rows do — useTradeSetups classifies the
+ * actives its display window missed with this, then hydrates them by id.
+ */
+export function isActiveSetup(setup: OutcomeEvidenceRow): boolean {
+  if (CLOSED_SETUP_STATUSES.has(setup.status)) {
+    return false;
+  }
+  const outcomeRow = setup.trade_outcomes?.[0];
+  return !(outcomeRow && RESOLVED_OUTCOMES.has(outcomeRow.outcome));
+}
+
+/**
  * Derives the Current trades rail's live state for one setup (spec §8).
  *
  * DB-naming surprises this function has to reconcile (traced through
@@ -89,21 +112,11 @@ export function deriveTradeState(
   // `_symbol` parameter.
   _now: Date,
 ): TradeState | null {
-  if (CLOSED_SETUP_STATUSES.has(setup.status)) {
+  if (!isActiveSetup(setup)) {
     return null;
   }
 
-  // Both "off the rail" checks run before any state is derived (Q2-I6). The
-  // generated early return below used to precede this one, which made the
-  // defensive contract stated at RESOLVED_OUTCOMES a dead letter: a resolved
-  // outcome on a still-generated row came back Pending, and the rail offered a
-  // finished trade as an order to place. Today's engine writes status before
-  // outcome sequentially, so it cannot produce that pair — and not relying on
-  // that is exactly why the check is here.
   const outcomeRow = setup.trade_outcomes?.[0];
-  if (outcomeRow && RESOLVED_OUTCOMES.has(outcomeRow.outcome)) {
-    return null;
-  }
 
   if (setup.status === "generated") {
     return {

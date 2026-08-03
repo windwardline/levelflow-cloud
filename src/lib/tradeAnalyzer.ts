@@ -251,6 +251,13 @@ export const LIFETIME_MAX_PAGES = 40;
 const LIFETIME_SELECT =
   "id, symbol, side, confidence_score, status, created_at, trade_outcomes(outcome, filled_at, feedback)";
 
+// One literal, two readers: the ledger's window read and the rail's
+// by-id hydration read below must return identically-shaped rows — a
+// hydrated card restores the Advisor stage exactly as a window card does,
+// which is the point of hydrating at full width at all.
+const LEDGER_SELECT =
+  "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, origin, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)";
+
 /**
  * One scan, several requests. The analyzer refuses more than MAX_SCAN_SYMBOLS
  * per request (and no longer accepts the empty "all markets" list), because a
@@ -409,11 +416,49 @@ export async function fetchTradeSetups(): Promise<TradeSetupRow[]> {
 
   const query = supabase
     .from("trade_setups")
-    .select(
-      "id, symbol, side, limit_entry, stop_loss, take_profit, take_profit_1, breakeven_trigger_price, confidence_score, analyzer_version, confluence, risk_model, correlation_group, status, origin, created_at, trade_outcomes(outcome, realized_pnl, reviewed_at, filled_at, exit_at, feedback)",
-    )
+    .select(LEDGER_SELECT)
     .order("created_at", { ascending: false })
     .limit(LEDGER_WINDOW_ROWS);
+
+  const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeEmbeddedOutcomes(
+    (data ?? []) as unknown as FetchedTradeSetupRow[],
+  );
+}
+
+/**
+ * Full window-shaped rows for specific setups, by id — the hydration read
+ * behind the trades rail's population (spec §8). An account can push a
+ * still-live trade past the display window with newer resolved rows;
+ * useTradeSetups classifies the lifetime record's rows with the rail's own
+ * predicate (isActiveSetup) and hands the ids here, so the server is only
+ * ever ADDRESSED, never asked what "active" means — §18's one-classifier
+ * rule holds for this read exactly as it does for the lifetime walk.
+ *
+ * Empty in, empty out, without a request: in the steady state every active
+ * row is inside the window and this read costs nothing. The short-circuit
+ * sits ahead of the client check on purpose — an empty answer needs no
+ * client to be correct.
+ */
+export async function fetchSetupsByIds(
+  ids: readonly string[],
+): Promise<TradeSetupRow[]> {
+  if (ids.length === 0) {
+    return [];
+  }
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const query = supabase
+    .from("trade_setups")
+    .select(LEDGER_SELECT)
+    .in("id", [...ids]);
 
   const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
 

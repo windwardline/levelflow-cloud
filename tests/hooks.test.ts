@@ -67,15 +67,17 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
   });
 
   it("reads the display window and the lifetime record together, under one failure (spec §18)", () => {
-    // Amendment 2's data path. Two reads, one refresh, one catch: a lifetime
-    // aggregate computed while the window read failed — or a window rendered
-    // under a stale lifetime header — would be two accounts on one surface, and
-    // the failure word the reader sees stays the one that already exists.
+    // Amendment 2's data path. Two reads — plus the rail's hydration read
+    // when the lifetime record holds an active row the window missed — one
+    // refresh, one catch: a lifetime aggregate computed while the window
+    // read failed, or a rail missing its beyond-window actives, would be two
+    // accounts on one surface, and the failure word the reader sees stays
+    // the one that already exists.
     assert.match(
       source,
-      /const \[windowRows, lifetimeRows\] = await Promise\.all\(\[\s*fetchTradeSetups\(\),\s*fetchLifetimeSetups\(\),\s*\]\);\s*setSetups\(windowRows\);\s*setLifetimeSetups\(lifetimeRows\);/,
+      /const \[windowRows, lifetimeRows\] = await Promise\.all\(\[\s*fetchTradeSetups\(\),\s*fetchLifetimeSetups\(\),\s*\]\);/,
     );
-    // Exactly one catch, so neither read has a failure story of its own.
+    // Exactly one catch, so no read has a failure story of its own.
     assert.equal((source.match(/\} catch \(/g) ?? []).length, 2);
     const catchBlock =
       source.match(/\} catch \(requestError\) \{[\s\S]*?\n {4}\} finally \{/)?.[0] ??
@@ -83,12 +85,36 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     assert.doesNotMatch(catchBlock, /setLifetimeSetups/);
   });
 
-  it("clears the lifetime record wherever it clears the rows — never one without the other", () => {
+  it("hydrates exactly the actives the window missed, and only when there are any (spec §8)", () => {
+    // Classification happens here, client-side, with the rail's own predicate
+    // — the id list is the only thing the server is asked for. The length
+    // guard is the steady state's whole cost: every active inside the window
+    // means no third request at all.
+    assert.match(
+      source,
+      /const missingActiveIds = lifetimeRows\s*\n\s*\.filter\(\(row\) => isActiveSetup\(row\) && !windowIds\.has\(row\.id\)\)\s*\n\s*\.map\(\(row\) => row\.id\);/,
+    );
+    assert.match(
+      source,
+      /const hydratedActives = missingActiveIds\.length > 0\s*\n\s*\? await fetchSetupsByIds\(missingActiveIds\)\s*\n\s*: \[\];/,
+    );
+    // The rail's population: the window plus the hydrated actives — and the
+    // window alone when nothing was missing, so the common path allocates no
+    // second array.
+    assert.match(
+      source,
+      /setRailSetups\(\s*hydratedActives\.length > 0\s*\? windowRows\.concat\(hydratedActives\)\s*: windowRows,\s*\);/,
+    );
+  });
+
+  it("clears the lifetime record and the rail wherever it clears the rows — never one without the others", () => {
     // The header must never outlive the account it describes: signed out, and
-    // signed in as somebody with no session, both empty both sets.
+    // signed in as somebody with no session, both empty all three sets.
     assert.equal((source.match(/setSetups\(\[\]\);/g) ?? []).length, 2);
     assert.equal(
-      (source.match(/setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);/g) ?? [])
+      (source.match(
+        /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);\s*setRailSetups\(\[\]\);/g,
+      ) ?? [])
         .length,
       2,
     );
@@ -146,7 +172,7 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     );
     assert.match(
       source,
-      /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+      /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);\s*setRailSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
     );
   });
 });
@@ -473,11 +499,27 @@ describe("App and the trades rail pass only what the surface owns", () => {
   );
 
   it("builds the Trades badge's clock once per setups change, not once per render (Q2-M7)", () => {
+    // railSetups, not setups: the badge counts the rail's own population —
+    // the window plus any active rows hydrated from beyond it — so the two
+    // can never disagree about how many trades are live (spec §3/§8).
     assert.match(
       app,
-      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.setups, new Date\(\)\),\s*\n?\s*\[setupState\.setups\],\s*\n?\s*\);/,
+      /const tradeBadgeCount = useMemo\(\s*\n?\s*\(\) => currentTradeBadgeCount\(setupState\.railSetups, new Date\(\)\),\s*\n?\s*\[setupState\.railSetups\],\s*\n?\s*\);/,
     );
     assert.match(app, /tradeBadgeCount=\{tradeBadgeCount\}/);
+  });
+
+  it("feeds the Desk's rails the rail population and Insights the ledger window", () => {
+    // Two consumers, two reads, deliberately (spec §8 vs §18): the rail must
+    // never lose an active trade to the 80-row display window, while the
+    // ledger IS that display window — reopening a row restores the stage from
+    // its stored analysis, which only full window rows carry.
+    const advisorCall = app.match(/<AdvisorWorkspace\n[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(advisorCall.length > 0, "expected the AdvisorWorkspace call site");
+    assert.match(advisorCall, /setups=\{setupState\.railSetups\}/);
+    const historyCall = app.match(/<HistoryPanel\n[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(historyCall.length > 0, "expected the HistoryPanel call site");
+    assert.match(historyCall, /setups=\{setupState\.setups\}/);
   });
 
   it("never hands the ≥lg rail a mobile sub-view state (Q1-#31)", () => {
