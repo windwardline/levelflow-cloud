@@ -318,3 +318,37 @@ Forex — 1-Step, Fast Payouts.")
 uniform in every cell** — the earlier "not separately photographed" caveat for
 the forex card set is superseded. The only card set not photographed anywhere
 remains E8 Pro's (its constants and $100K prices are checkout-verified).
+
+---
+
+## THE E8 PRO (CRYPTO) MARKETING-SITE WALK (four frames)
+
+P1 Challenge (5K–100K) · P2 Performance (5K–100K) · P3 Challenge (100K–500K) ·
+P4 Performance (100K–500K), at the **8% static default**. Page positioning:
+"Pro — Flat Fee, Daily Payouts, Keep 100%."
+
+| Size | Base price (code-E8 first order) | Target / Max DD (Static) | Daily DD | Daily profit cap |
+|---|---|---|---|---|
+| $5K | $32 ($24) | $400 / $400 | $125 | $100 |
+| $10K | $68 ($51) | $800 / $800 | $250 | $200 |
+| $25K | $148 ($111) | $2,000 / $2,000 | $625 | $500 |
+| $50K | $228 ($171) | $4,000 / $4,000 | $1,250 | $1,000 |
+| $100K | $488 ($366) — Recommended | $8,000 / $8,000 | $2,500 | $2,000 |
+| $200K | $998 ($749) | $16,000 / $16,000 | $5,000 | $4,000 |
+| $400K | $2,098 ($1,574) | $32,000 / $32,000 | $10,000 | $8,000 |
+| $500K | $2,598 ($1,949) | $40,000 / $40,000 | $12,500 | $10,000 |
+
+- **Pro's checkout constants confirmed per size**: target = static = max drawdown
+  (8% of tier at the default), daily drawdown 2.5% of tier flat, daily profit
+  cap 2% of tier flat, Static type, both stages carrying the same dollars.
+- **No consistency rule at either stage** (matching "No best day"); Performance
+  first payout "in as little as 1 Day" (the daily-payouts positioning). The
+  Challenge cards carry NO pass-cadence line — unique among the lines.
+- **The $2,598 mystery closes**: Pro's $500K base price is **$2,598** on E8's
+  own site — the exact ceiling the custom-account article quoted in a sentence
+  about E8 One. The full price chain is now: One $500K = $1,998 · Pro $500K =
+  $2,598 · the aggregator's "$1,627" matches nothing on any E8 surface. The
+  dossier's price contradiction #2 is fully resolved.
+- Pro Forex's card set remains the one unphotographed view; Pro Crypto's
+  per-size dollars match the forex checkout's constants exactly, so uniformity
+  is expected but not yet photographed.
