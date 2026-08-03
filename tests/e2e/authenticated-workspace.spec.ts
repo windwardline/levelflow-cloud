@@ -1699,7 +1699,11 @@ for (const width of [1280, 375]) {
     // those two can legitimately differ when a live position made the scan skip
     // its write (scanPersistence's skipped_live_position, the C2 guard), and the
     // card is the thing the owner is pointing at.
-    test.setTimeout(120_000);
+    //
+    // 150s rather than the file's usual 120s: this walk carries a live scan's own
+    // 90s ceiling AND two Desk/Insights crossings with a chart load on each side
+    // of them, which is more after the scan than any other scan-driven spec here.
+    test.setTimeout(150_000);
     await page.setViewportSize({ width, height: width < 1024 ? 812 : 800 });
     await page.goto("/");
 
@@ -1774,7 +1778,7 @@ for (const width of [1280, 375]) {
     // the chart, but not the details below it. It should." The row used to hand
     // over a bare symbol, which reselected the market and left the stage's
     // analysis state null — chart above an empty ladder.
-    test.setTimeout(120_000);
+    test.setTimeout(150_000);
     await page.setViewportSize({ width, height: width < 1024 ? 812 : 800 });
     await page.goto("/");
 
