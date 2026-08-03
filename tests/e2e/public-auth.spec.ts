@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DONATION_SUPPORT_COPY } from "../../src/lib/donationCopy";
+import { legalDocument, type LegalSlug } from "../../src/lib/legalDocuments";
 
 // The owner's navigation report of 2026-08-02, as a browser test: signed in, open
 // a legal page from the app, come back with the page's own link — and the app was
@@ -94,6 +95,13 @@ function rememberedTab(page: Page) {
     (key) => window.localStorage.getItem(key),
     REMEMBERED_TAB_KEY,
   );
+}
+
+// The document's own opening sentence, read from the module the published files are
+// held to (tests/legalDocuments.test.ts), so the browser assertion below cannot
+// drift from the words either surface actually ships.
+function firstParagraph(slug: string): string {
+  return legalDocument(slug as LegalSlug).paragraphs[0];
 }
 
 // The app, not the sign-in screen. content-region is the authed shell's own
@@ -519,11 +527,18 @@ test("every link in the footer's row clears the 44px tap floor, without moving t
     .toBeCloseTo(measured.footerHeight.withoutOverlay, 1);
 });
 
-// The owner's report, walked. 375 is where he found it — below lg the legal trio
-// lives in the account menu and that menu is the only way to those documents —
-// and 1280 is the confirmation he asked for: the footer's own copies of the same
-// links, whose new tab reaches the app root by the same door, so this was never
-// a mobile-only defect.
+// The owner's report of 2026-08-02, walked, at the width he found it and the width
+// he asked to have confirmed.
+//
+// §17o has since taken the new tab off the app's own legal links, so the route this
+// walks is no longer the one the app offers by default — but the defect it guards is
+// not about that link. It is about what a Levelflow tab does when the app loads in a
+// browsing context that never signed in, and every §17o tier keeps at least one way
+// to reach that: the published files' hrefs are real (a ⌘-click, a bookmark, a
+// search result, a link from another app), and each of those documents still carries
+// "Back to Levelflow". So the walk starts where those readers start — the published
+// document, in a tab of its own — which is exactly the state the old in-app new tab
+// produced, minus the click that produced it.
 for (const width of [375, 1280]) {
   test(`a signed-in browser keeps its session through the legal pages at ${width}px`, async ({
     context,
@@ -533,27 +548,18 @@ for (const width of [375, 1280]) {
       !sessionsConfigured,
       "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
     );
-    const mobile = width < 1024;
     await page.setViewportSize({ width, height: 812 });
     await seedStoredSession(page);
     await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
     await expectSignedIn(page);
 
-    // Tapped exactly where the app offers it, which is a different element per
-    // width: a menuitem inside the account menu below lg, a footer link at ≥lg.
-    if (mobile) {
-      await page.getByRole("button", { name: "Account menu" }).click();
-    }
-    const [legalTab] = await Promise.all([
-      context.waitForEvent("page"),
-      page
-        .getByRole(mobile ? "menuitem" : "link", { name: "Privacy", exact: true })
-        .click(),
-    ]);
-    await legalTab.waitForLoadState("domcontentloaded");
-    // A new tab is the same phone: the way back has to work at the width the
-    // reader is holding, not at whatever the harness opens a tab at.
+    // The published document, in a tab of its own — a noopener tab's empty
+    // sessionStorage shed is what the defect fed on, and context.newPage() is that
+    // shed. Same width, because the way back has to work at the width the reader is
+    // holding.
+    const legalTab = await context.newPage();
     await legalTab.setViewportSize({ width, height: 812 });
+    await legalTab.goto("/legal/privacy.html", { waitUntil: "domcontentloaded" });
     await expect(legalTab.getByRole("heading", { name: "Levelflow" }))
       .toBeVisible();
 
@@ -673,3 +679,247 @@ for (const width of [375, 1280]) {
     expect(analyzerCalls, "a donate arrival spent analyzer budget").toEqual([]);
   });
 }
+
+// §17o (owner ruling, 2026-08-02): "Test thoroughly for all views and links and
+// pages and states." Every walk below runs at both widths, because the surface a
+// document lands on is two compositions (§17g's fixed frame below lg, the 880px
+// editorial column at ≥lg) and because the link is reached from a different element
+// at each — the account menu below lg, the footer's own row at ≥lg.
+const DOCUMENTS = [
+  { label: "Risk disclaimer", slug: "risk-disclaimer" },
+  { label: "Privacy", slug: "privacy" },
+  { label: "Terms", slug: "terms" },
+];
+
+// The trio, wherever this width keeps it. Below lg that is inside the account menu,
+// which has to be opened first; at ≥lg it is the footer row, always on screen.
+async function openLegalLink(page: Page, label: string, width: number) {
+  if (width < 1024) {
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: label, exact: true }).click();
+    return;
+  }
+  await page.getByRole("link", { name: label, exact: true }).click();
+}
+
+for (const width of [375, 1280]) {
+  test(`§17o tier 2 — a signed-in reader reads the documents in the frame at ${width}px`, async ({
+    context,
+    page,
+  }) => {
+    test.skip(
+      !sessionsConfigured,
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    );
+    await page.setViewportSize({ width, height: 812 });
+    await seedStoredSession(page);
+    await seedRememberedTab(page, "guide");
+    const analyzerCalls: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/functions/v1/")) {
+        analyzerCalls.push(request.url());
+      }
+    });
+    await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+    // §17o tier 1: "Surfaces have no addresses." So whatever the URL is when the
+    // reader arrives is what it stays — compared against itself rather than against
+    // a literal, since this harness's own arrival parameter is still on it (auth-js
+    // strips only a code it actually consumed).
+    const entryUrl = page.url();
+
+    for (const { label, slug } of DOCUMENTS) {
+      // No new tab, ever: the surface changes inside the tab the reader is in.
+      const before = context.pages().length;
+      await openLegalLink(page, label, width);
+      await expect(page.getByRole("heading", { name: label, exact: true }))
+        .toBeVisible();
+      expect(context.pages().length, `${label} spawned a tab`).toBe(before);
+      // The document itself, not a link to it: its first paragraph is on screen,
+      // and it is the same first paragraph the published file carries.
+      await expect(page.getByText(firstParagraph(slug))).toBeVisible();
+      // The composition this width is meant to be.
+      await expect(page.getByTestId("mobile-document-scroll"))
+        .toHaveCount(width < 1024 ? 1 : 0);
+      await expect(page.getByTestId("document-panel"))
+        .toHaveCount(width < 1024 ? 0 : 1);
+      // And the URL is untouched.
+      expect(page.url(), `${label} changed the address`).toBe(entryUrl);
+    }
+
+    // The reader's own position is never overwritten by any of it.
+    expect(await rememberedTab(page)).toBe("guide");
+    expect(analyzerCalls, "reading a document spent analyzer budget").toEqual([]);
+  });
+
+  test(`§17o tier 1 — Back walks the surfaces a reader visited at ${width}px`, async ({
+    page,
+  }) => {
+    test.skip(
+      !sessionsConfigured,
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    );
+    await page.setViewportSize({ width, height: 812 });
+    await seedStoredSession(page);
+    await seedRememberedTab(page, "guide");
+    await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+      .toBeVisible();
+
+    // Three surfaces deep: Guide (the entry) → Privacy → Terms.
+    await openLegalLink(page, "Privacy", width);
+    await expect(page.getByRole("heading", { name: "Privacy", exact: true }))
+      .toBeVisible();
+    await openLegalLink(page, "Terms", width);
+    await expect(page.getByRole("heading", { name: "Terms", exact: true }))
+      .toBeVisible();
+
+    // Back, twice, walks it in reverse — and the third Back leaves Levelflow
+    // rather than trapping the reader on the entry surface.
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "Privacy", exact: true }))
+      .toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+      .toBeVisible();
+    // Forward returns along the same path.
+    await page.goForward();
+    await expect(page.getByRole("heading", { name: "Privacy", exact: true }))
+      .toBeVisible();
+
+    // No history spam: the same surface, asked for twice, is one entry — so ONE
+    // Back from here is the Guide again, not Privacy a second time.
+    await openLegalLink(page, "Privacy", width);
+    await openLegalLink(page, "Privacy", width);
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+      .toBeVisible();
+  });
+
+  test(`§17o tier 1 — a history move leaves focus somewhere at ${width}px`, async ({
+    page,
+  }) => {
+    test.skip(
+      !sessionsConfigured,
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    );
+    await page.setViewportSize({ width, height: 812 });
+    await seedStoredSession(page);
+    await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+    await openLegalLink(page, "Terms", width);
+    await expect(page.getByRole("heading", { name: "Terms", exact: true }))
+      .toBeVisible();
+
+    await page.goBack();
+    // Back can retire the element focus was on. What must never happen is focus
+    // falling to the body, which leaves a keyboard reader with nothing to move.
+    const landed = await page.evaluate(() => ({
+      onBody: document.activeElement === document.body,
+      testid: document.activeElement?.getAttribute("data-testid") ?? null,
+    }));
+    expect(landed.onBody, "a history move stranded focus on the body").toBe(false);
+    expect(landed.testid).toBe("content-region");
+  });
+
+  test(`§17o tier 2 — signed out, the documents navigate in the same tab at ${width}px`, async ({
+    context,
+    page,
+  }) => {
+    // No session at all here, so this one needs no configuration: the sign-in
+    // screen's own footer is where a signed-out reader finds the trio.
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto("/", { waitUntil: "networkidle" });
+    await expect(page.getByRole("button", { name: "Send magic link" }))
+      .toBeVisible();
+
+    const before = context.pages().length;
+    // At every width: the signed-out screens keep the footer at all widths
+    // (satelliteFrame.ts), so the trio is in the footer's row here even at 375.
+    await page.getByRole("link", { name: "Privacy", exact: true }).click();
+    await page.waitForLoadState("domcontentloaded");
+    expect(context.pages().length, "a signed-out legal link spawned a tab").toBe(
+      before,
+    );
+    expect(new URL(page.url()).pathname).toBe("/legal/privacy.html");
+    // The published document, marking itself in its own row (§17o's self-link).
+    await expect(
+      page.getByRole("link", { name: "Privacy", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+
+    // And Back returns to sign-in, which is the whole point of the same tab.
+    await page.goBack({ waitUntil: "networkidle" });
+    await expect(page.getByRole("button", { name: "Send magic link" }))
+      .toBeVisible();
+  });
+}
+
+test("§17o tier 2 — a document survives a refresh by returning the reader home", async ({
+  page,
+}) => {
+  test.skip(
+    !sessionsConfigured,
+    "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+  );
+  // The state model's honest consequence, pinned rather than left to be discovered:
+  // surfaces have no addresses (§17o tier 1), so a reload mid-document cannot
+  // restore the document — it restores the remembered tab, exactly as a reload on
+  // Donate or Guide does. What must NOT happen is a blank frame or a lost session.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await seedStoredSession(page);
+  await seedRememberedTab(page, "guide");
+  await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+  await openLegalLink(page, "Terms", 375);
+  await expect(page.getByRole("heading", { name: "Terms", exact: true }))
+    .toBeVisible();
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
+    .toBeVisible();
+  expect(await tokenPresent(page), "a refresh lost the session").toBe(true);
+});
+
+test("§17o tier 3 — the externals still leave, and they are the only ones that do", async ({
+  page,
+}) => {
+  test.skip(
+    !sessionsConfigured,
+    "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+  );
+  // Rendered, not read from source: tests/linkDoctrine.test.ts pins the allowlist
+  // across the tree, and this is the same claim in a browser — every anchor the
+  // authed app actually draws, and which of them says it is leaving.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await seedStoredSession(page);
+  await page.goto(MAGIC_LINK_ARRIVAL, { waitUntil: "networkidle" });
+
+  const links = await page.evaluate(() =>
+    [...document.querySelectorAll("a")].map((anchor) => ({
+      href: anchor.getAttribute("href") ?? "",
+      target: anchor.getAttribute("target"),
+      rel: anchor.getAttribute("rel"),
+    }))
+  );
+  expect(links.length).toBeGreaterThan(0);
+  for (const link of links) {
+    // lightweight-charts injects TradingView's attribution link into the chart it
+    // draws, with target="_blank" and no rel. It is a true external, so the new tab
+    // is right by tier 3; the missing rel belongs to a node this product does not
+    // author, and every shipping browser has implied noopener for target="_blank"
+    // for years (Chrome 88, Safari 12.1, Firefox 79). Named here rather than waved
+    // past with a blanket exemption, so a NEW unrelled tab still fails this.
+    if (link.href.includes("tradingview.com")) {
+      expect(link.target).toBe("_blank");
+      continue;
+    }
+    const external = link.href.startsWith("http") || link.href.startsWith("mailto:");
+    if (link.target === "_blank") {
+      expect(external, `${link.href} spawns a tab but never leaves`).toBe(true);
+      expect(link.rel, `${link.href} spawns a tab without noopener`).toBe(
+        "noopener noreferrer",
+      );
+    }
+    // Our own documents are reached in place — the whole of tier 2.
+    if (link.href.includes("/legal/")) {
+      expect(link.target, `${link.href} still spawns a tab`).toBeNull();
+    }
+  }
+});

@@ -700,6 +700,86 @@ the filter row above the ledger are approved to shrink now; the audit
 still measures and reports every other surface rather than assuming
 Insights was the only offender.
 
+### §17o. Links, in three tiers (owner ruling, 2026-08-02)
+
+The ruling, verbatim:
+
+> I like your recommended 3 tier approach for links. Get it done. Test
+> thoroughly for all views and links and pages and states.
+
+**The law, in one line: a new tab means you left Levelflow.** Every link
+the product ships is one of three kinds, and the kind decides the
+behaviour — not the taste of the surface that draws it. A reader can tell
+from what happened where they now are.
+
+**What this cures.** The same three documents were reached three
+different ways: the app opened them in a new tab, the documents linked
+back to the app in the same tab, and they linked to each other in the
+same tab. And no in-app surface had a history entry at all, so the
+browser's Back — the one navigation control every reader already knows,
+and the only one an OS hands a phone — could not walk the path a reader
+had actually taken through the app. It left Levelflow instead.
+
+**Tier 1 — in-app destinations switch surfaces, never spawn.** Donate,
+Guide, Insights, Profile, the Desk and its two mobile sub-surfaces are
+reached through the app's own navigation, in place. Each switch pushes a
+history entry, so Back walks the surface path backwards, and:
+
+- The entry load pushes nothing. Back from the first pushed state
+  restores the surface the reader entered on; from the entry state, Back
+  leaves Levelflow normally. Nothing is intercepted, and no reader is
+  trapped.
+- A control that names the surface already showing pushes nothing. Ten
+  taps on Insights leave one entry, not ten.
+- The URL is not the carrier. Surfaces have no addresses; the state
+  does, and the address bar stays as the reader found it — which is what
+  lets the consumed `?donate` arrival compose (the arrival is cleaned
+  from the URL, and the pushed model inherits it clean).
+
+**Tier 2 — our own documents present in-frame.** Risk disclaimer,
+Privacy and Terms are Levelflow's own writing, so reading them is not
+leaving. Inside the app they open as a surface: at ≥lg the 880px
+editorial column §17c gives Profile, below lg the §17g fixed frame with a
+pinned title over one scrolling region. The document's name is its title,
+in the same ruled page head the four titled surfaces already carry.
+
+- **The static files stay canonical.** `public/legal/*.html` remain the
+  published documents — direct links, search engines, and every
+  signed-out reader land on them. The in-app surface is a second
+  presentation of the same words, never a second copy of them: one module
+  owns the prose, the surface renders it, and a guard holds the static
+  files to it in both directions, so neither can drift.
+- **Signed-out, the links navigate in the same tab**, and Back returns to
+  sign-in. This is safe as of the 2026-08-02 session fix: a Levelflow
+  session belongs to the browser session rather than to one tab, so
+  leaving the tab and coming back no longer signs anyone out. The
+  `target="_blank"` those links used to carry is gone from every
+  signed-out surface.
+
+**Tier 3 — a new tab is for leaving.** Only true externals get one: the
+donation providers, the colophon's windwardline.com, and `mailto:`.
+Every one carries `rel="noopener noreferrer"`. The set is an allowlist
+pinned in both directions — these get a new tab, and nothing else may.
+
+**§17k is Tier 3 and stands verbatim.** Its rationale — a new tab "so it
+never navigates the workspace away" — is why the colophon keeps its new
+tab, and why our own documents no longer need one: Tier 1 and Tier 2
+navigate the workspace to a surface and back, which is not navigating it
+away.
+
+**A document's footer lists itself.** Each static document's link row
+names all three documents, its own included, because §17c makes that row
+identical on every page. The self-link stays and is marked as the current
+page rather than dropped — a row that loses one item per page is three
+different rows, and a reader who cannot see which document they are in
+is worse served than one who can click where they already are.
+
+**One definition of the support address.** `Help` is the same mailto
+everywhere it appears. The app builds it from one constant; the static
+pages cannot import it, so a guard asserts every occurrence is equal to
+that constant instead. Six spellings of one address is five chances to
+be wrong.
+
 ### §18. Attribution (hedge-mind pillar 1, owner-ordered 2026-08-01)
 
 Insights gains an **Attribution** section: the user's OWN resolved

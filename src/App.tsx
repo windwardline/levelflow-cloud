@@ -21,7 +21,23 @@ import {
 } from "lucide-react";
 import { AppFooter } from "./components/AppFooter";
 import { LevelflowMark } from "./components/LevelflowMark";
-import { LEGAL_LINKS } from "./components/legal/LegalLinks";
+import {
+  legalDocumentHref,
+  openInFrame,
+} from "./components/legal/LegalLinks";
+import { LegalDocumentPanel } from "./components/legal/LegalDocumentPanel";
+import {
+  isLegalSlug,
+  LEGAL_SLUGS,
+  legalDocument as legalDocumentBySlug,
+  type LegalSlug,
+} from "./lib/legalDocuments";
+import {
+  pushSurface,
+  readSurfaceState,
+  sameSurface,
+  type Surface,
+} from "./lib/surfaceHistory";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { ParkingScreen } from "./components/auth/ParkingScreen";
 import { clearDonateRequest, donateRequested } from "./lib/donateEntry";
@@ -51,10 +67,14 @@ import {
   type ThemeMode,
 } from "./lib/profile";
 import { supabase } from "./lib/supabase";
-import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "./lib/support";
+import { SUPPORT_MAILTO } from "./lib/support";
 import type { TradeSetupRow } from "./lib/tradeAnalyzer";
 
-type AppTab = "advisor" | "history" | "guide" | "profile" | "donate";
+// "legal" arrived with §17o tier 2: the three documents Levelflow publishes are
+// its own writing, so reading one is a surface of the app rather than a new tab
+// pointed at a file. Which document is a second piece of state (legalDocument
+// below), because one tab holds all three.
+type AppTab = "advisor" | "history" | "guide" | "profile" | "donate" | "legal";
 // The three bottom-tab-bar destinations (spec §17e). Two of them ("scan" |
 // "trades") are sub-views of the single "advisor" AppTab — see deskMobileView
 // below — so the tab bar's own selection model is a distinct, slightly wider
@@ -83,8 +103,21 @@ const REGION_LABELS: Record<AppTab, string> = {
   donate: "Donate",
   guide: "Guide",
   history: "Insights",
+  // The name the link row and the account menu's group already announce
+  // themselves with (LegalLinks' own nav landmark, and MobileAccountMenu's
+  // role="group" below). The region says which set of documents it holds; the
+  // surface's h1 says which one of them is open, the way every other surface here
+  // names itself once (§17f: no second word invented for the same thing).
+  legal: "Legal",
   profile: "Profile",
 };
+// Whether a string off a history state is one of this build's tabs. REGION_LABELS
+// is the tab list itself — tests/appFrame.test.ts pins its keys against the AppTab
+// union — so membership in it is the check, with no second list to keep in step.
+function isAppTab(value: string): value is AppTab {
+  return value in REGION_LABELS;
+}
+
 const PERSISTED_TABS = new Set<AppTab>([
   "advisor",
   "history",
@@ -139,6 +172,94 @@ export default function App() {
   // between them — remounting on every tap would be a much worse mobile
   // experience than desktop's "just look at another column".
   const [deskMobileView, setDeskMobileView] = useState<DeskMobileView>("scan");
+  // Which of the three published documents the "legal" tab is showing (§17o tier
+  // 2). Null on every other tab, which the one navigation funnel below guarantees.
+  const [legalDocument, setLegalDocument] = useState<LegalSlug | null>(null);
+
+  // §17o tier 1, and the reason these three setters have exactly one caller each:
+  // "in-app destinations … are reached through the app's own navigation", and every
+  // one of those arrivals owes a history entry. Fourteen call sites each setting
+  // their own state is fourteen chances to forget one, so this is the only door.
+  //
+  // A surface is the three coordinates src/lib/surfaceHistory.ts names — tab, the
+  // Desk's mobile sub-view, and the open document — so Back walks the path the
+  // reader actually took, the mobile tab bar's Scan/Trades included.
+  const currentSurface: Surface = {
+    tab: activeTab,
+    deskView: deskMobileView,
+    document: legalDocument,
+  };
+  // The surface the entry load opened on. That load pushes nothing (§17o: "The
+  // entry load pushes nothing"), so its history entry carries no surface of ours —
+  // and this is what Back onto that entry restores. A ref, not state: it is read
+  // inside an event handler and must never re-run a render or re-subscribe.
+  const entrySurface = useRef(currentSurface);
+  // What the frame's scrolling region is, so a history move can hand focus
+  // somewhere deterministic (see applyPoppedSurface), and whether the commit now
+  // landing is one of those moves.
+  const contentRegion = useRef<HTMLDivElement>(null);
+  const restoreFocus = useRef(false);
+
+  // The one place a surface becomes state, so the three setters have one caller
+  // each and a fourth coordinate added later cannot be applied on one path and
+  // forgotten on the other. Every field is narrowed rather than asserted: a popped
+  // state can be older than the build reading it, or belong to another writer on
+  // the origin, and an unrecognised tab would otherwise render a frame with nothing
+  // in it. REGION_LABELS is the tab list itself (tests/appFrame.test.ts pins its
+  // keys against the union), so membership in it IS the check.
+  function applySurface(surface: Surface) {
+    setActiveTab(isAppTab(surface.tab) ? surface.tab : "advisor");
+    setDeskMobileView(surface.deskView === "trades" ? "trades" : "scan");
+    setLegalDocument(isLegalSlug(surface.document) ? surface.document : null);
+  }
+
+  function goToSurface(next: Surface) {
+    // A control that names the surface already showing pushes nothing: ten taps on
+    // Insights leave one entry, not ten.
+    if (sameSurface(next, currentSurface)) {
+      return;
+    }
+
+    pushSurface(next);
+    applySurface(next);
+  }
+
+  // Back and Forward, applied. A state with no surface of ours IS the entry, whose
+  // surface is the one the reader arrived on.
+  //
+  // Focus moves here and only here. Back can retire the element focus was on — a
+  // link inside the document just left — and focus falling to document.body strands
+  // a keyboard reader, the failure MobileAccountMenu's closeAndFocusTrigger exists
+  // to prevent. A click keeps the app's existing behaviour: focus returns to the
+  // control that was clicked.
+  function applyPoppedSurface(event: PopStateEvent) {
+    applySurface(readSurfaceState(event.state) ?? entrySurface.current);
+    restoreFocus.current = true;
+  }
+
+  useEffect(() => {
+    window.addEventListener("popstate", applyPoppedSurface);
+    return () => {
+      window.removeEventListener("popstate", applyPoppedSurface);
+    };
+  });
+
+  // Focused after the commit, never inside the handler: the region is keyed on the
+  // surface (regionKey below), so a surface change REPLACES that element — focusing
+  // it from the handler would focus the node React is about to remove, and focus
+  // would land on the body after all. Measured, not reasoned: the 375px leg of
+  // "a history move leaves focus somewhere" caught exactly that.
+  //
+  // No dependency array, because the flag is the dependency: this runs after every
+  // commit and does nothing but read a boolean unless a history move set it.
+  useEffect(() => {
+    if (!restoreFocus.current) {
+      return;
+    }
+
+    restoreFocus.current = false;
+    contentRegion.current?.focus();
+  });
 
   // AdvisorWorkspace only exists in the tree while its tab is active, so
   // switching tabs away and back remounts it fresh. Without clearing the
@@ -158,11 +279,10 @@ export default function App() {
   // three buttons (if any) renders as current.
   function selectMobileTab(tab: MobileTab) {
     if (tab === "insights") {
-      setActiveTab("history");
+      goToSurface({ ...currentSurface, tab: "history", document: null });
       return;
     }
-    setActiveTab("advisor");
-    setDeskMobileView(tab);
+    goToSurface({ tab: "advisor", deskView: tab, document: null });
   }
   const activeMobileTab: MobileTab | null = activeTab === "history"
     ? "insights"
@@ -170,8 +290,15 @@ export default function App() {
     ? deskMobileView
     : null;
 
-  const workspaceNav = useMemo<WorkspaceNav>(() => ({
-    openGuide: (anchor) => { setGuideAnchor(anchor); setActiveTab("guide"); },
+  // Not memoised on [] any more: it closes over goToSurface, which reads the
+  // surface showing right now to decide whether a move is a move at all. A stale
+  // closure here would compare against the surface of some earlier render and push
+  // an entry for a tap that changed nothing — or skip one that did.
+  const workspaceNav: WorkspaceNav = {
+    openGuide: (anchor) => {
+      setGuideAnchor(anchor);
+      goToSurface({ ...currentSurface, tab: "guide", document: null });
+    },
     // I3: also lands mobile on the merged Scan surface — without this, a jump
     // here (Insights' "Open X in Advisor" row button, or a Current trades card)
     // could leave a mobile user staring at the Trades tab instead of the market
@@ -181,11 +308,11 @@ export default function App() {
     // lives inside the Desk, but only App owns which mobile surface is showing.
     openAdvisor: (setup) => {
       setAdvisorRequest({ setup, token: Date.now() });
-      setActiveTab("advisor");
-      setDeskMobileView("scan");
+      goToSurface({ tab: "advisor", deskView: "scan", document: null });
     },
-    openInsights: () => setActiveTab("history"),
-  }), []);
+    openInsights: () =>
+      goToSurface({ ...currentSurface, tab: "history", document: null }),
+  };
   const setupState = useTradeSetups();
   // Q2-M7: one clock per setups change rather than a fresh Date on every render
   // of the app shell. deriveTradeState ignores `now` today (see its `_now`), so
@@ -333,6 +460,11 @@ export default function App() {
   // does nothing. The name and the role ride the same gate for the same reason —
   // they exist to announce the tab stop.
   const regionScrolls = !isMobileViewport && !isDeskTab;
+  // What makes the region remount, and so what re-runs §8's 120ms fade and resets
+  // the scroll it had. The tab alone was enough until §17o tier 2 put three
+  // documents behind one tab: a reader partway down Privacy who taps Terms would
+  // otherwise land partway down Terms, in a region that never remounted.
+  const regionKey = legalDocument ?? activeTab;
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
@@ -368,9 +500,15 @@ export default function App() {
               <div className="flex shrink-0 items-center gap-2">
                 <BrokerChip compact />
                 <MobileAccountMenu
-                  onOpenDonate={() => setActiveTab("donate")}
-                  onOpenGuide={() => setActiveTab("guide")}
-                  onOpenProfile={() => setActiveTab("profile")}
+                  currentDocument={legalDocument}
+                  onOpenDocument={(slug) =>
+                    goToSurface({ ...currentSurface, tab: "legal", document: slug })}
+                  onOpenDonate={() =>
+                    goToSurface({ ...currentSurface, tab: "donate", document: null })}
+                  onOpenGuide={() =>
+                    goToSurface({ ...currentSurface, tab: "guide", document: null })}
+                  onOpenProfile={() =>
+                    goToSurface({ ...currentSurface, tab: "profile", document: null })}
                   onSignOut={() => supabase?.auth.signOut()}
                   supportMailto={SUPPORT_MAILTO}
                 />
@@ -402,7 +540,12 @@ export default function App() {
                       key={tab.value}
                       type="button"
                       className="group -my-3.5 inline-flex min-h-11 items-center"
-                      onClick={() => setActiveTab(tab.value)}
+                      onClick={() =>
+                        goToSurface({
+                          ...currentSurface,
+                          tab: tab.value,
+                          document: null,
+                        })}
                     >
                       {/* group-hover, not hover: :hover matches the element the
                           pointer is over and its ancestors, never its children,
@@ -444,7 +587,7 @@ export default function App() {
             deskMobileView: flipping the mobile Desk between Scan and Trades must
             leave AdvisorWorkspace mounted (see the two refresh effects above). */}
         <div
-          key={activeTab}
+          key={regionKey}
           aria-label={regionScrolls ? REGION_LABELS[activeTab] : undefined}
           className={isMobileViewport
             // Every mobile surface owns its own gutters and its own bottom
@@ -483,8 +626,14 @@ export default function App() {
             ? "motion-fade-in mx-auto w-full max-w-7xl px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden lg:pb-5"
             : "scrolly motion-fade-in mx-auto max-w-7xl space-y-5 px-4 py-4 pb-24 sm:px-8 sm:pt-5 lg:min-h-0 lg:overflow-y-auto lg:pb-5"}
           data-testid="content-region"
+          ref={contentRegion}
           role={regionScrolls ? "region" : undefined}
-          tabIndex={regionScrolls ? 0 : undefined}
+          // A tab stop only where this box is the scroller, exactly as before — a
+          // stop on a box that cannot scroll is a stop that does nothing. The -1 is
+          // what §17o tier 1 added: not a stop, but a focus target, so a Back that
+          // retires the element focus was on can hand focus somewhere deterministic
+          // instead of letting it fall to document.body (applyPoppedSurface).
+          tabIndex={regionScrolls ? 0 : -1}
         >
           {activeTab === "advisor" ? (
             <AdvisorWorkspace
@@ -521,8 +670,12 @@ export default function App() {
               onAnchorHandled={clearGuideAnchor}
             />
           ) : null}
-          {activeTab === "donate" ? (
-            <DonatePanel supportEmail={SUPPORT_EMAIL} />
+          {activeTab === "donate" ? <DonatePanel /> : null}
+          {/* §17o tier 2. The slug is what decides which document, and the tab
+              cannot be "legal" without one: the navigation funnel sets the two
+              together, and applySurface drops a slug it does not recognise. */}
+          {activeTab === "legal" && legalDocument ? (
+            <LegalDocumentPanel slug={legalDocument} />
           ) : null}
         </div>
 
@@ -536,7 +689,13 @@ export default function App() {
             branch). */}
         {isMobileViewport ? null : (
           <AppFooter
-            donate={{ onSelect: () => setActiveTab("donate") }}
+            currentDocument={legalDocument}
+            donate={{
+              onSelect: () =>
+                goToSurface({ ...currentSurface, tab: "donate", document: null }),
+            }}
+            onOpenDocument={(slug) =>
+              goToSurface({ ...currentSurface, tab: "legal", document: slug })}
             supportMailto={SUPPORT_MAILTO}
           />
         )}
@@ -755,12 +914,16 @@ function MobileTabBar({
 // users could reach before becomes unreachable now that the header no
 // longer shows those buttons directly.
 function MobileAccountMenu({
+  currentDocument,
+  onOpenDocument,
   onOpenDonate,
   onOpenGuide,
   onOpenProfile,
   onSignOut,
   supportMailto,
 }: {
+  currentDocument: LegalSlug | null;
+  onOpenDocument: (slug: LegalSlug) => void;
   onOpenDonate: () => void;
   onOpenGuide: () => void;
   onOpenProfile: () => void;
@@ -928,17 +1091,24 @@ function MobileAccountMenu({
               className="flex flex-wrap items-center gap-x-3 px-3 text-xs font-semibold text-ink-muted"
               role="group"
             >
-              {LEGAL_LINKS.map((link) => (
+              {LEGAL_SLUGS.map((slug) => (
                 <a
-                  key={link.href}
+                  key={slug}
+                  aria-current={currentDocument === slug ? "page" : undefined}
                   className="inline-flex min-h-11 items-center transition hover:text-ink"
-                  href={link.href}
-                  rel="noopener noreferrer"
+                  href={legalDocumentHref(slug)}
                   role="menuitem"
-                  target="_blank"
-                  onClick={closeAndFocusTrigger}
+                  // §17o tier 2: no new tab. The document opens in the frame, and
+                  // the menu closes the way it closes for every other item — the
+                  // trigger keeps the focus. The href is still real, so a reader who
+                  // means "somewhere else" (⌘, Ctrl, Shift, Alt, middle button) gets
+                  // the published file; openInFrame is what tells the two apart.
+                  onClick={(event) => {
+                    closeAndFocusTrigger();
+                    openInFrame(event, slug, onOpenDocument);
+                  }}
                 >
-                  {link.label}
+                  {legalDocumentBySlug(slug).title}
                 </a>
               ))}
             </div>

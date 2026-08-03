@@ -99,8 +99,12 @@ describe("§8 — the 120ms fade, on the surfaces the spec names", () => {
     // attributes being adjacent: §17i's own scroll region carries a11y
     // attributes between them now (the tab stop that made it keyboard-scrollable),
     // and none of that is what this test is about.
+    //
+    // The key is the surface rather than the tab since §17o tier 2, which put three
+    // documents behind one tab: switching between them has to re-run this fade and
+    // reset the region's scroll, and only a changing key does either.
     const region = APP.match(
-      /<div\n\s*key=\{activeTab\}[\s\S]*?data-testid="content-region"/,
+      /<div\n\s*key=\{regionKey\}[\s\S]*?data-testid="content-region"/,
     )?.[0] ?? "";
     assert.ok(region.length > 0, "expected the keyed content region");
     assert.match(region, /className=\{isMobileViewport/);

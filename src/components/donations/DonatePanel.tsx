@@ -1,5 +1,6 @@
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
+import { DONATION_REQUEST_MAILTO } from "../../lib/support";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -7,14 +8,7 @@ import {
 } from "../mobileFrame";
 import { DonationOptions } from "./DonationOptions";
 
-type DonatePanelProps = {
-  supportEmail: string;
-};
-
-export function DonatePanel({ supportEmail }: DonatePanelProps) {
-  const donationFallbackHref = `mailto:${supportEmail}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
-    "I would like the current donation link for Levelflow development and maintenance.",
-  )}`;
+export function DonatePanel() {
   // Which composition this surface is (spec §17g): below lg a fixed-viewport
   // frame with the title pinned and the body scrolling inside it, at ≥lg the flat
   // 620px page, unchanged. Title and body are built once and placed by whichever
@@ -49,7 +43,7 @@ export function DonatePanel({ supportEmail }: DonatePanelProps) {
             them was a box drawn around buttons, which is the shape the sweep
             removes. Nothing else changes: the same options, the same wiring. */}
         <section className="mt-3">
-          <DonationOptions fallbackHref={donationFallbackHref} />
+          <DonationOptions fallbackHref={DONATION_REQUEST_MAILTO} />
         </section>
       </div>
 

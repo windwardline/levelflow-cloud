@@ -14,7 +14,7 @@ import { donateRequested } from "../../lib/donateEntry";
 import { DONATION_SUPPORT_COPY } from "../../lib/donationCopy";
 import { appConfig, isSupabaseConfigured } from "../../lib/env";
 import { supabase } from "../../lib/supabase";
-import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../../lib/support";
+import { DONATION_REQUEST_MAILTO, SUPPORT_MAILTO } from "../../lib/support";
 
 type AuthStatus = "idle" | "sending" | "sent" | "oauth";
 
@@ -128,9 +128,6 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
   const body = isSupabaseConfigured
     ? message
     : "Levelflow isn't connected to the cloud yet.";
-  const donationFallbackHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("[Levelflow] Development support")}&body=${encodeURIComponent(
-    "I would like the current donation link for Levelflow development and maintenance.",
-  )}`;
 
   return (
     // Spec §17i: the frame reaches the login screen too — the hero and the card
@@ -336,7 +333,7 @@ export function AuthScreen({ themeControl }: AuthScreenProps) {
                   {DONATION_SUPPORT_COPY}
                 </p>
                 <DonationOptions
-                  fallbackHref={donationFallbackHref}
+                  fallbackHref={DONATION_REQUEST_MAILTO}
                   mode="compact"
                 />
               </div>

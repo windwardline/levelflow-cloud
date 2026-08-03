@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { LEGAL_SLUGS, legalDocument } from "../src/lib/legalDocuments";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -407,8 +408,11 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     // AppFooter's link row at ≥lg) and the Guide's and Profile's copies are gone.
     // The arrow form specifically, so a sentence naming this mechanism in a
     // comment does not count itself into the total.
+    // §17o tier 1 routed every in-app destination through one navigation funnel, so
+    // the two homes are two calls to it. The arrow form specifically, so a sentence
+    // naming this mechanism in a comment does not count itself into the total.
     assert.equal(
-      (APP_SOURCE.match(/\(\) => setActiveTab\("donate"\)/g) ?? []).length,
+      (APP_SOURCE.match(/tab: "donate", document: null \}\)/g) ?? []).length,
       2,
     );
     // Same two homes for the support address, each taking the one shared mailto
@@ -670,7 +674,7 @@ describe("nav.openAdvisor lands mobile on the merged Scan surface (source-pinned
   it('sets deskMobileView("scan") alongside the existing advisorRequest/activeTab side effects', () => {
     assert.match(
       APP_SOURCE,
-      /openAdvisor: \(setup\) => \{\s*setAdvisorRequest\(\{ setup, token: Date\.now\(\) \}\);\s*setActiveTab\("advisor"\);\s*setDeskMobileView\("scan"\);\s*\},/,
+      /openAdvisor: \(setup\) => \{\s*setAdvisorRequest\(\{ setup, token: Date\.now\(\) \}\);\s*goToSurface\(\{ tab: "advisor", deskView: "scan", document: null \}\);\s*\},/,
     );
     // And the Desk opens there by default, rather than on a tab that no longer
     // exists.
@@ -1383,7 +1387,7 @@ describe("§17g — every <lg surface is a fixed-viewport frame", () => {
     // them (tests/appFooter.test.ts owns that composition).
     const footer = readFileSync("src/components/AppFooter.tsx", "utf8");
     assert.match(footer, /A Windward Line production/);
-    assert.match(footer, /<LegalLinks \/>/);
+    assert.match(footer, /<LegalLinks current=\{currentDocument\} onOpen=\{onOpenDocument\} \/>/);
     assert.match(footer, /aria-label="Support"/);
   });
 
@@ -1417,21 +1421,21 @@ describe("§17g — the account menu carries the legal trio", () => {
     // Not restated here: the labels and hrefs come out of LegalLinks.tsx's own
     // array, so the menu block and the ≥lg footer can never list different
     // documents.
+    // The one source is src/lib/legalDocuments.ts since §17o tier 2 — the module the
+    // published files under public/legal/ are held to in both directions — and both
+    // homes read it, so the menu and the ≥lg footer can never list different
+    // documents. The href helper is shared too, so neither builds its own.
     assert.match(
       APP_SOURCE,
-      /import \{ LEGAL_LINKS \} from "\.\/components\/legal\/LegalLinks";/,
+      /import \{\s*legalDocumentHref,\s*openInFrame,\s*\} from "\.\/components\/legal\/LegalLinks";/,
     );
-    assert.match(menuBlock, /\{LEGAL_LINKS\.map\(\(link\) => \(/);
-    const legal = readFileSync(
-      "src/components/legal/LegalLinks.tsx",
-      "utf8",
-    );
-    assert.match(legal, /export const LEGAL_LINKS = \[/);
-    const labels = Array.from(
-      legal.matchAll(/label: "([^"]+)"/g),
-      (match) => match[1],
-    );
-    assert.deepEqual(labels, ["Risk disclaimer", "Privacy", "Terms"]);
+    assert.match(menuBlock, /\{LEGAL_SLUGS\.map\(\(slug\) => \(/);
+    assert.match(menuBlock, /href=\{legalDocumentHref\(slug\)\}/);
+    assert.deepEqual(LEGAL_SLUGS.map((slug) => legalDocument(slug).title), [
+      "Risk disclaimer",
+      "Privacy",
+      "Terms",
+    ]);
   });
 
   it("keeps the menu's aria contract: menuitem per link, inside a named group", () => {
@@ -1443,19 +1447,30 @@ describe("§17g — the account menu carries the legal trio", () => {
       menuBlock,
       /aria-label="Legal"[\s\S]{0,200}role="group"/,
     );
-    assert.match(menuBlock, /role="menuitem"[\s\S]{0,200}\{link\.label\}/);
-    assert.match(menuBlock, /rel="noopener noreferrer"/);
-    assert.match(menuBlock, /target="_blank"/);
+    // Scoped to the trio's own group rather than measured as a distance from the
+    // first menuitem in the menu — that one is the Help mailto above it.
+    const legalGroup = menuBlock.match(/aria-label="Legal"[\s\S]*?<\/div>/)?.[0] ?? "";
+    assert.ok(legalGroup.length > 0, "expected the menu's legal group");
+    assert.match(legalGroup, /role="menuitem"/);
+    assert.match(legalGroup, /legalDocumentBySlug\(slug\)\.title/);
+    // §17o tier 2 took the new tab off these three: the document opens in the frame,
+    // so the rel that paired with it is gone too (tests/linkDoctrine.test.ts pins the
+    // whole allowlist in both directions). The href stays real — openInFrame answers
+    // only a plain click — and the document being read is marked rather than offered.
+    assert.doesNotMatch(menuBlock, /target="_blank"/);
+    assert.doesNotMatch(menuBlock, /rel="noopener noreferrer"/);
+    assert.match(menuBlock, /openInFrame\(event, slug, onOpenDocument\)/);
+    assert.match(menuBlock, /aria-current=\{currentDocument === slug \? "page" : undefined\}/);
     // Every dismissal path still returns focus to the trigger, links included.
     assert.match(
       menuBlock,
-      /\{LEGAL_LINKS\.map[\s\S]{0,600}onClick=\{closeAndFocusTrigger\}/,
+      /\{LEGAL_SLUGS\.map[\s\S]{0,900}closeAndFocusTrigger\(\);/,
     );
   });
 
   it("holds a 44px target for each link while staying the compact block §17g asks for", () => {
     const link = menuBlock.match(
-      /className="(inline-flex min-h-11[^"]*)"\n\s*href=\{link\.href\}/,
+      /className="(inline-flex min-h-11[^"]*)"\n\s*href=\{legalDocumentHref\(slug\)\}/,
     )?.[1] ?? "";
     assert.ok(link.length > 0, "expected the legal links' own className");
     assert.match(link, /\bmin-h-11\b/);

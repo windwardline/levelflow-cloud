@@ -1,4 +1,5 @@
 import { LegalLinks } from "./legal/LegalLinks";
+import type { LegalSlug } from "../lib/legalDocuments";
 
 // Where Donate goes, which is the one thing that cannot be the same on every
 // surface (spec §17i: satellite pages "carry the same footer composition with
@@ -13,7 +14,12 @@ export type FooterDonate =
   | { expanded?: boolean; onSelect: () => void };
 
 type AppFooterProps = {
+  // Which document is open, and how to open one, when this footer is inside the app
+  // (§17o tier 2). Both absent on the signed-out surfaces, where LegalLinks stays a
+  // set of plain same-tab links because there is no frame to present a document in.
+  currentDocument?: LegalSlug | null;
   donate: FooterDonate;
+  onOpenDocument?: (slug: LegalSlug) => void;
   supportMailto: string;
 };
 
@@ -38,7 +44,12 @@ type AppFooterProps = {
 // one quiet line. Since §17i this row is the ONLY home either link has on a
 // desktop surface, which is what retired the Guide's Support section and
 // Profile's Support row.
-export function AppFooter({ donate, supportMailto }: AppFooterProps) {
+export function AppFooter({
+  currentDocument,
+  donate,
+  onOpenDocument,
+  supportMailto,
+}: AppFooterProps) {
   return (
     <footer className="w-full border-t border-hairline">
       {/* The mock's own symmetrical 18px, on one axis-wide utility. The bottom
@@ -100,7 +111,7 @@ export function AppFooter({ donate, supportMailto }: AppFooterProps) {
                 </button>
               )}
           </nav>
-          <LegalLinks />
+          <LegalLinks current={currentDocument} onOpen={onOpenDocument} />
         </div>
       </div>
     </footer>

@@ -6,15 +6,20 @@
 //
 // It is a session cookie, and it used to be a sessionStorage key. sessionStorage
 // is scoped to one TAB, so it could not tell "a second tab of this browser" apart
-// from "a different person tomorrow" — and the app hands its readers new tabs by
-// design: every legal link carries target="_blank" rel="noopener noreferrer"
-// (LegalLinks.tsx and App.tsx's account menu), and a noopener tab starts with an
-// empty sessionStorage shed. So when /legal/*.html's own "Back to Levelflow"
+// from "a different person tomorrow" — and a tab opened with rel="noopener" starts
+// with an empty sessionStorage shed. At the time the app spawned such a tab for
+// each of the three legal links, so when /legal/*.html's own "Back to Levelflow"
 // (href="/") or "Donate" (href="/?donate") navigated that tab to the app,
 // useAuthSession found a stored session with no marker beside it and signed the
 // reader out — of that tab, of the tab they came from, and (through the default
 // global scope) of every other device they held. Opening the app itself in a
 // second tab did the same. That was the owner's report of 2026-08-02.
+//
+// §17o has since taken the new tab off those links (they present in the frame, and
+// navigate in place when signed out), but nothing here rests on that: the colophon
+// and the donation providers still spawn tabs because they are other people's
+// pages, a reader can still open any of our own links in a tab deliberately, and
+// "a second tab is not a second person" is the rule either way.
 //
 // A cookie with no Expires and no Max-Age is the primitive that draws the line
 // where this posture actually wants it: every tab of the running browser shares

@@ -58,10 +58,14 @@ describe("construction soft gate", () => {
     // The footer's own link row is where the trio comes from, and it reads the
     // single source LegalLinks.tsx exports (tests/appFooter.test.ts pins that).
     assert.match(screen, /<AppFooter\s+donate=\{\{ href: "\/\?donate" \}\}/);
+    // Signed out there is no frame to present a document in, so this screen passes
+    // neither §17o tier-2 prop and the trio stays a set of plain links — which now
+    // navigate in the SAME tab, the new tab having been the thing §17o removed.
     assert.match(
       readFileSync("src/components/AppFooter.tsx", "utf8"),
-      /<LegalLinks \/>/,
+      /<LegalLinks current=\{currentDocument\} onOpen=\{onOpenDocument\} \/>/,
     );
+    assert.doesNotMatch(screen, /currentDocument|onOpenDocument/);
   });
 
   it("the static twin links to all three legal pages, quietly, from its own footer row", () => {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { LEGAL_SLUGS, legalDocument } from "../src/lib/legalDocuments";
 
 // Spec §17c (owner live-QA, binding): "Footer, one standard everywhere — a
 // single footer component, identical composition, dimensions, and spacing on
@@ -69,7 +70,7 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
   it("carries the §17 link row: Help and Donate before the legal trio, in the mock's order", () => {
     assert.match(
       footer,
-      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,900}Donate[\s\S]{0,300}<LegalLinks \/>/,
+      /aria-label="Support"[\s\S]{0,400}href=\{supportMailto\}[\s\S]{0,80}Help[\s\S]{0,900}Donate[\s\S]{0,300}<LegalLinks current=\{currentDocument\} onOpen=\{onOpenDocument\} \/>/,
     );
     // Three tertiary links for two controls: Help, and Donate in each of its two
     // element forms (§17i's satellite pages need a link where the app needs a
@@ -102,7 +103,10 @@ describe("AppFooter — the one footer's composition (p-profile-v2.html:96-99)",
     assert.match(footer, /aria-expanded=\{donate\.expanded\}/);
     // Every caller, and which target each one gives: the app switches tabs, the
     // login screen reveals its own donation block, parking links to the app root.
-    assert.match(app, /donate=\{\{ onSelect: \(\) => setActiveTab\("donate"\) \}\}/);
+    // §17o tier 1 put every in-app destination behind one navigation funnel, so the
+    // app's Donate target is that funnel rather than a bare setState — which is also
+    // what gives the switch its history entry.
+    assert.match(app, /onSelect: \(\) =>\s*goToSurface\(\{ \.\.\.currentSurface, tab: "donate", document: null \}\)/);
     assert.match(
       readFileSync("src/components/auth/ParkingScreen.tsx", "utf8"),
       /<AppFooter donate=\{\{ href: "\/\?donate" \}\} supportMailto=\{SUPPORT_MAILTO\} \/>/,
@@ -230,10 +234,12 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
 
   it("is mounted once in App.tsx, outside every tab branch, so no surface can miss it", () => {
     assert.equal((app.match(/<AppFooter/g) ?? []).length, 1);
-    assert.match(
-      app,
-      /<AppFooter\s+donate=\{\{ onSelect: \(\) => setActiveTab\("donate"\) \}\}\s+supportMailto=\{SUPPORT_MAILTO\}\s*\/>/,
-    );
+    // The props it is mounted with: §17o tier 2 hands it which document is open and
+    // how to open one, since the ≥lg footer is one of the two places the legal trio
+    // is reached from.
+    assert.match(app, /<AppFooter\s+currentDocument=\{legalDocument\}/);
+    assert.match(app, /onOpenDocument=\{\(slug\) =>/);
+    assert.match(app, /supportMailto=\{SUPPORT_MAILTO\}\s*\/>/);
     // Spec §17g narrows §17c's "every scrolling page and view" to ≥lg: below lg
     // no view scrolls as a page at all, so the footer is a ≥lg component and
     // leaves the tree outright rather than going invisible inside a fixed frame.
@@ -258,12 +264,15 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.match(footer, /A Windward Line production/);
     assert.match(footer, /href=\{supportMailto\}/);
     assert.match(footer, /onClick=\{donate\.onSelect\}/);
-    assert.match(footer, /<LegalLinks \/>/);
-    const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
-    assert.deepEqual(
-      Array.from(legal.matchAll(/label: "([^"]+)"/g), (match) => match[1]),
-      ["Risk disclaimer", "Privacy", "Terms"],
-    );
+    assert.match(footer, /<LegalLinks current=\{currentDocument\} onOpen=\{onOpenDocument\} \/>/);
+    // The three documents themselves moved to src/lib/legalDocuments.ts with §17o
+    // tier 2, so that the in-app surface and the published files cannot list
+    // different documents; tests/legalDocuments.test.ts owns their titles and order.
+    assert.deepEqual(LEGAL_SLUGS.map((slug) => legalDocument(slug).title), [
+      "Risk disclaimer",
+      "Privacy",
+      "Terms",
+    ]);
     // Below lg: not hidden — absent. The component itself carries no max-lg:
     // treatment, because the decision is App.tsx's presence gate above.
     assert.doesNotMatch(footer, /max-lg:/);
@@ -282,7 +291,11 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
   // layout entirely — reach without a pixel of drift.
   it("gives the legal trio the same 44px floor its row-mates already have", () => {
     const legal = readFileSync("src/components/legal/LegalLinks.tsx", "utf8");
-    assert.match(legal, /className="legal-link transition hover:text-ink"/);
+    // Both of the row's states carry .legal-link, so the floor is the same 44px
+    // whether or not this is the document you are reading (§17o's self-link mark
+    // changes the colour, never the reach).
+    assert.match(legal, /"legal-link text-ink transition"/);
+    assert.match(legal, /"legal-link transition hover:text-ink"/);
     const css = readFileSync("src/styles/index.css", "utf8");
     assert.match(
       css,
