@@ -773,8 +773,7 @@ for (const width of [375, 1280]) {
     await expect(page.getByRole("heading", { name: "Terms", exact: true }))
       .toBeVisible();
 
-    // Back, twice, walks it in reverse — and the third Back leaves Levelflow
-    // rather than trapping the reader on the entry surface.
+    // Back, twice, walks it in reverse.
     await page.goBack();
     await expect(page.getByRole("heading", { name: "Privacy", exact: true }))
       .toBeVisible();
@@ -793,6 +792,11 @@ for (const width of [375, 1280]) {
     await page.goBack();
     await expect(page.getByRole("heading", { name: "How to use Levelflow" }))
       .toBeVisible();
+
+    // And the entry traps nobody: from the surface the reader arrived on, Back is
+    // the browser's own — it leaves Levelflow rather than being intercepted.
+    await page.goBack();
+    await expect(page.getByTestId("content-region")).toHaveCount(0);
   });
 
   test(`§17o tier 1 — a history move leaves focus somewhere at ${width}px`, async ({
@@ -849,6 +853,45 @@ for (const width of [375, 1280]) {
     await page.goBack({ waitUntil: "networkidle" });
     await expect(page.getByRole("button", { name: "Send magic link" }))
       .toBeVisible();
+  });
+
+  test(`§17o tier 2 — sign-in survives the trip to a document at ${width}px`, async ({
+    page,
+  }) => {
+    // The owner delegated this one and the call was to engineer it: same tab means the
+    // same session storage, so a reader who wonders what they are agreeing to can read
+    // it and come back to the screen they left. Typing, then reading Terms, then Back.
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto("/", { waitUntil: "networkidle" });
+    await page.getByLabel("Email").fill("reader@example.com");
+
+    await page.getByRole("link", { name: "Terms", exact: true }).click();
+    await page.waitForLoadState("domcontentloaded");
+    expect(new URL(page.url()).pathname).toBe("/legal/terms.html");
+    await page.goBack({ waitUntil: "networkidle" });
+
+    await expect(page.getByLabel("Email")).toHaveValue("reader@example.com");
+  });
+
+  test(`§17o tier 2 — the sent state comes back too, and its own line with it at ${width}px`, async ({
+    page,
+  }) => {
+    // The other half of the draft, reached without asking GoTrue for a real link: the
+    // state the screen would be in after a send is exactly the draft it writes, so
+    // seeding that draft proves the restore renders "check your email" AND the line
+    // naming the address — which comes from one definition shared with the send path.
+    await page.setViewportSize({ width, height: 812 });
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem(
+        "levelflow-sign-in-draft",
+        JSON.stringify({ email: "waiting@example.com", sent: true }),
+      );
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+
+    await expect(page.getByText("Magic link sent to waiting@example.com."))
+      .toBeVisible();
+    await expect(page.getByText("open the magic link to continue")).toBeVisible();
   });
 }
 

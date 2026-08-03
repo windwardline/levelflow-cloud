@@ -35,6 +35,7 @@ import {
 import {
   pushSurface,
   readSurfaceState,
+  replaceSurface,
   sameSurface,
   type Surface,
 } from "./lib/surfaceHistory";
@@ -114,8 +115,12 @@ const REGION_LABELS: Record<AppTab, string> = {
 // Whether a string off a history state is one of this build's tabs. REGION_LABELS
 // is the tab list itself — tests/appFrame.test.ts pins its keys against the AppTab
 // union — so membership in it is the check, with no second list to keep in step.
+//
+// Object.hasOwn, not `in`: `in` walks the prototype chain, so "constructor" and
+// "toString" would both pass as tabs and a crafted state would render a frame with
+// nothing in it instead of degrading to the Desk.
 function isAppTab(value: string): value is AppTab {
-  return value in REGION_LABELS;
+  return Object.hasOwn(REGION_LABELS, value);
 }
 
 const PERSISTED_TABS = new Set<AppTab>([
@@ -189,11 +194,10 @@ export default function App() {
     deskView: deskMobileView,
     document: legalDocument,
   };
-  // The surface the entry load opened on. That load pushes nothing (§17o: "The
-  // entry load pushes nothing"), so its history entry carries no surface of ours —
-  // and this is what Back onto that entry restores. A ref, not state: it is read
-  // inside an event handler and must never re-run a render or re-subscribe.
-  const entrySurface = useRef(currentSurface);
+  // The surface the entry load opened on, stamped onto the entry itself below. A
+  // ref, not state: it is the value one mount-time effect needs and must never
+  // re-run a render.
+  const mountSurface = useRef(currentSurface);
   // What the frame's scrolling region is, so a history move can hand focus
   // somewhere deterministic (see applyPoppedSurface), and whether the commit now
   // landing is one of those moves.
@@ -224,16 +228,46 @@ export default function App() {
     applySurface(next);
   }
 
-  // Back and Forward, applied. A state with no surface of ours IS the entry, whose
-  // surface is the one the reader arrived on.
+  // The entry gets the arrival surface stamped onto it, once. replaceState adds no
+  // entry, so §17o's "the entry load pushes nothing" is intact — but the entry can
+  // now say which surface it is, and that is what makes a null popped state mean
+  // something specific instead of meaning "the entry" by assumption.
+  useEffect(() => {
+    replaceSurface(mountSurface.current);
+  }, []);
+
+  // Back and Forward, applied — and nothing else is.
   //
-  // Focus moves here and only here. Back can retire the element focus was on — a
-  // link inside the document just left — and focus falling to document.body strands
-  // a keyboard reader, the failure MobileAccountMenu's closeAndFocusTrigger exists
-  // to prevent. A click keeps the app's existing behaviour: focus returns to the
-  // control that was clicked.
+  // A popped state with no surface of ours is an entry this app never made: a
+  // same-document fragment navigation (the Guide's ≥lg table of contents makes ten
+  // of them, and a fragment click fires popstate with a null state exactly as a
+  // traversal does), or another writer on the origin. The surface is left alone for
+  // those. Reading null as "the entry" is what threw a reader off the Guide the
+  // instant they clicked its own Contents list — measured, not theorised.
+  //
+  // Focus moves only when the surface actually changed. Back can retire the element
+  // focus was on — a link inside the document just left — and focus falling to
+  // document.body strands a keyboard reader, the failure MobileAccountMenu's
+  // closeAndFocusTrigger exists to prevent. But a pop that changes nothing has
+  // nothing to hand focus to, and raising the flag anyway would leave it raised for
+  // the next unrelated commit to spend. A click keeps the app's existing behaviour:
+  // focus returns to the control that was clicked.
   function applyPoppedSurface(event: PopStateEvent) {
-    applySurface(readSurfaceState(event.state) ?? entrySurface.current);
+    const surface = readSurfaceState(event.state);
+    if (!surface) {
+      // The entry belongs to the surface that was showing when the browser made it,
+      // so it is told as much — and nothing changes now. Claiming it is what keeps
+      // Back honest later: an entry left anonymous moves no surface when a reader
+      // walks back through it, which is a Back press that visibly does nothing, once
+      // per fragment the reader clicked. Measured both ways in Chromium.
+      replaceSurface(currentSurface);
+      return;
+    }
+    if (sameSurface(surface, currentSurface)) {
+      return;
+    }
+
+    applySurface(surface);
     restoreFocus.current = true;
   }
 
@@ -464,7 +498,10 @@ export default function App() {
   // the scroll it had. The tab alone was enough until §17o tier 2 put three
   // documents behind one tab: a reader partway down Privacy who taps Terms would
   // otherwise land partway down Terms, in a region that never remounted.
-  const regionKey = legalDocument ?? activeTab;
+  // Both coordinates, each in its own half: a bare `legalDocument ?? activeTab` put
+  // slugs and tab names in one namespace, where a document named after a tab would
+  // silently share its key and its scroll position.
+  const regionKey = `${activeTab}:${legalDocument ?? ""}`;
 
   return (
     <WorkspaceNavContext.Provider value={workspaceNav}>
@@ -588,7 +625,13 @@ export default function App() {
             leave AdvisorWorkspace mounted (see the two refresh effects above). */}
         <div
           key={regionKey}
-          aria-label={regionScrolls ? REGION_LABELS[activeTab] : undefined}
+          // Named at every width, not only where it is a tab stop: §17o tier 1 hands
+          // focus to this element after a history move, and below lg — and on the
+          // Desk — regionScrolls is false, so the gate that used to carry the name
+          // would have handed focus to something that announces as nothing at exactly
+          // the 375px case. The role and the tab stop keep their gate below, because
+          // a box that cannot scroll is not a scroll region and not a stop.
+          aria-label={REGION_LABELS[activeTab]}
           className={isMobileViewport
             // Every mobile surface owns its own gutters and its own bottom
             // clearance (spec §17g, m-scan-v3.html:29,32), so this wrapper

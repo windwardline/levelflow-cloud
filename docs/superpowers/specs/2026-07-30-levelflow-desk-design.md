@@ -757,9 +757,16 @@ in the same ruled page head the four titled surfaces already carry.
   signed-out surface.
 
 **Tier 3 — a new tab is for leaving.** Only true externals get one: the
-donation providers, the colophon's windwardline.com, and `mailto:`.
-Every one carries `rel="noopener noreferrer"`. The set is an allowlist
-pinned in both directions — these get a new tab, and nothing else may.
+donation providers and the colophon's windwardline.com. Both carry
+`rel="noopener noreferrer"`. The set is an allowlist pinned in both
+directions — these get a new tab, and nothing else may.
+
+`mailto:` is tier 3 by classification and takes neither. It leaves
+Levelflow by handing the reader to their mail client, so there is no page
+to open and nothing to open it in: a `_blank` mailto strands an empty tab
+in several browsers, and a `rel` that governs an opened document governs
+nothing here. Tier 3 is about where a link sends you, not about how many
+tabs it costs.
 
 **§17k is Tier 3 and stands verbatim.** Its rationale — a new tab "so it
 never navigates the workspace away" — is why the colophon keeps its new
@@ -779,6 +786,25 @@ everywhere it appears. The app builds it from one constant; the static
 pages cannot import it, so a guard asserts every occurrence is equal to
 that constant instead. Six spellings of one address is five chances to
 be wrong.
+
+**One consequence of the state model, named rather than discovered.**
+Surfaces live in history state, and history outlives a session: after
+signing out, Back still walks the entries the signed-in reader left. Each
+one lands on the sign-in screen, because the auth gate decides what
+renders before any surface does — no authed content returns, and nothing
+is exposed; what is left is a Back press that moves nothing. That is the
+honest behaviour of a model where the app decides what a state means, and
+the alternative — erasing entries the app does not own — is bookkeeping
+that fails quietly. If it is ever to change, it changes here first.
+
+**Sign-in survives the trip.** Because tier 2 navigates in the same tab
+when signed out, the sign-in screen keeps its own draft — the address
+typed, and whether the link has already been sent — in that tab's session
+storage, and picks it up on the way back. A reader who wonders what they
+are agreeing to can read it and come back to the screen they left, which
+is the whole point of reading it there. The draft is one address and one
+flag, it never leaves the tab, and it is given up the moment a session
+exists.
 
 ### §18. Attribution (hedge-mind pillar 1, owner-ordered 2026-08-01)
 

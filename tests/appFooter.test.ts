@@ -236,10 +236,17 @@ describe("AppFooter — one footer, everywhere, and nowhere twice (spec §17c)",
     assert.equal((app.match(/<AppFooter/g) ?? []).length, 1);
     // The props it is mounted with: §17o tier 2 hands it which document is open and
     // how to open one, since the ≥lg footer is one of the two places the legal trio
-    // is reached from.
-    assert.match(app, /<AppFooter\s+currentDocument=\{legalDocument\}/);
-    assert.match(app, /onOpenDocument=\{\(slug\) =>/);
-    assert.match(app, /supportMailto=\{SUPPORT_MAILTO\}\s*\/>/);
+    // is reached from. Read out of the AppFooter element itself — the account menu
+    // takes the same two props, so a file-wide match would pass on its copy.
+    const mount = app.match(/<AppFooter[\s\S]*?\/>/)?.[0] ?? "";
+    assert.ok(mount.length > 0, "expected App's AppFooter element");
+    assert.match(mount, /currentDocument=\{legalDocument\}/);
+    assert.match(mount, /onOpenDocument=\{\(slug\) =>/);
+    assert.match(mount, /supportMailto=\{SUPPORT_MAILTO\}/);
+    assert.match(
+      mount,
+      /onSelect: \(\) =>\s*goToSurface\(\{ \.\.\.currentSurface, tab: "donate", document: null \}\)/,
+    );
     // Spec §17g narrows §17c's "every scrolling page and view" to ≥lg: below lg
     // no view scrolls as a page at all, so the footer is a ≥lg component and
     // leaves the tree outright rather than going invisible inside a fixed frame.

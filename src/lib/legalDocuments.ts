@@ -89,6 +89,9 @@ export function legalDocument(slug: LegalSlug): LegalDocument {
 // Whether a value off a history state or a link is one of the three. The document
 // surface is reached by slug, and a slug that came from outside this module is not
 // a slug until it has been through here.
+// Object.hasOwn, not `in`: `in` walks the prototype chain, so "constructor" and
+// "toString" would both answer true here and the document surface would then read
+// paragraphs off a function — a white screen where the point was to degrade quietly.
 export function isLegalSlug(value: unknown): value is LegalSlug {
-  return typeof value === "string" && value in DOCUMENTS;
+  return typeof value === "string" && Object.hasOwn(DOCUMENTS, value);
 }

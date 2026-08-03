@@ -212,7 +212,12 @@ describe("§17i — every region the frame scrolls is keyboard-reachable (WCAG 2
       APP,
       /const regionScrolls = !isMobileViewport && !isDeskTab;/,
     );
-    assert.match(APP, /aria-label=\{regionScrolls \? REGION_LABELS\[activeTab\] : undefined\}/);
+    // The NAME left the gate with §17o tier 1: a history move hands focus to this
+    // element, and below lg — and on the Desk — regionScrolls is false, so a gated
+    // name meant focus landing on something that announces as nothing at exactly the
+    // 375px case. The role and the stop stay gated, because a box that cannot scroll
+    // is neither a scroll region nor a place Tab should stop.
+    assert.match(APP, /aria-label=\{REGION_LABELS\[activeTab\]\}/);
     assert.match(APP, /role=\{regionScrolls \? "region" : undefined\}/);
     // A tab STOP only where the box scrolls, unchanged. The else branch became -1
     // with §17o tier 1: not a stop, but a focus target, so a history Back that

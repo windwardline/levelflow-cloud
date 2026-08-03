@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { LEGAL_SLUGS, legalDocument } from "../src/lib/legalDocuments";
+import {
+  isLegalSlug,
+  LEGAL_SLUGS,
+  legalDocument,
+} from "../src/lib/legalDocuments";
 
 // Spec §17o tier 2: "Risk disclaimer, Privacy and Terms are Levelflow's own
 // writing, so reading them is not leaving." Inside the app they open as a
@@ -18,10 +22,35 @@ import { LEGAL_SLUGS, legalDocument } from "../src/lib/legalDocuments";
 const DOCUMENT_SURFACE = "src/components/legal/LegalDocumentPanel.tsx";
 const LEGAL_LINKS = "src/components/legal/LegalLinks.tsx";
 
+// The comparison below is only as good as its reach: reading the FIRST bare-<p>
+// section would let a sixth clause ship unnoticed in a second section, after
+// </section>, or as <p class="…">. So the file's shape is asserted first, and the
+// prose is read from a document proven to have exactly one place to keep it.
 function staticParagraphs(slug: string): string[] {
   const source = readFileSync(`public/legal/${slug}.html`, "utf8");
-  const section = source.match(/<section>([\s\S]*?)<\/section>/)?.[1] ?? "";
+  const main = source.match(/<main[\s\S]*?<\/main>/)?.[0] ?? "";
+  assert.ok(main.length > 0, `${slug}.html: expected the document's main region`);
+  assert.equal(
+    (main.match(/<section/g) ?? []).length,
+    1,
+    `${slug}.html: the prose lives in exactly one section`,
+  );
+  const section = main.match(/<section>([\s\S]*?)<\/section>/)?.[1] ?? "";
   assert.ok(section.length > 0, `${slug}.html: expected the document's section`);
+  // Nothing but the return link between the prose and the end of the region: a
+  // paragraph out here is a clause the module would never know about.
+  const afterSection = main.slice(main.indexOf("</section>") + "</section>".length);
+  const strayProse = [...afterSection.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)]
+    .map((match) => match[1].trim())
+    .filter((text) => !/^<a [^>]*>[^<]*<\/a>$/.test(text));
+  assert.deepEqual(strayProse, [], `${slug}.html: prose outside the document's section`);
+  // And every paragraph inside it is a plain <p>, since that is what the reader
+  // below matches — a classed one would be invisible to the comparison.
+  assert.equal(
+    (section.match(/<p[^>]/g) ?? []).length,
+    0,
+    `${slug}.html: a paragraph carries attributes the no-drift reader cannot see`,
+  );
   return [...section.matchAll(/<p>([\s\S]*?)<\/p>/g)].map((match) => match[1].trim());
 }
 
@@ -67,6 +96,20 @@ describe("§17o tier 2 — the surface and the published file are one document",
     });
   }
 
+  it("admits three slugs and nothing off Object's prototype", () => {
+    // `in` would have answered true for "constructor" and "toString", and the
+    // document surface would then read paragraphs off a function — a white screen
+    // where the whole point of narrowing a popped state is to degrade quietly.
+    for (const slug of LEGAL_SLUGS) {
+      assert.equal(isLegalSlug(slug), true, slug);
+    }
+    for (const impostor of ["constructor", "toString", "hasOwnProperty", "__proto__"]) {
+      assert.equal(isLegalSlug(impostor), false, impostor);
+    }
+    assert.equal(isLegalSlug(undefined), false);
+    assert.equal(isLegalSlug(null), false);
+  });
+
   it("is the only list of the documents — LegalLinks reads it", () => {
     const links = readFileSync(LEGAL_LINKS, "utf8");
     assert.match(links, /from "\.\.\/\.\.\/lib\/legalDocuments"/);
@@ -97,11 +140,16 @@ describe("§17o tier 2 — the document surface is the app's own page compositio
     // §17o names the width, and it is not a new number: ProfilePanel's own sheet
     // (p-profile-v2.html's composition authority). The CLASS differs from Profile's
     // on purpose, and the difference is the whole content of this guard: the ≥lg
-    // content region is mx-auto inside a grid row, so its used width is fit-content.
-    // Profile's rows widen it to 880 by themselves; this surface's widest child is a
-    // 62ch paragraph block, so a capped `max-w-[880px]` measured 626px in the browser
-    // — an 880 that was never 880. A definite width is what a fit-content parent can
-    // size to, and max-w-full is what keeps it inside the region at 1024.
+    // content region is mx-auto inside a grid row, so its used width is fit-content,
+    // and this surface's widest child is a 62ch paragraph block — so a capped
+    // `max-w-[880px]` measured 626px in the browser, an 880 that was never 880. A
+    // definite width is what a fit-content parent can size to, and max-w-full is what
+    // keeps it inside the region at 1024.
+    //
+    // Measured on Profile too, rather than assumed: its sheet declares the same 880
+    // and renders 514px at 1280 and at 1440, by the same mechanism. Recorded as a
+    // separate finding — this guard asserts Profile still DECLARES the number §17o
+    // took from it, not that Profile currently reaches it.
     assert.match(panel, /mx-auto w-\[880px\] max-w-full/);
     assert.match(
       readFileSync("src/components/workspace/ProfilePanel.tsx", "utf8"),

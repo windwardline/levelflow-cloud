@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { openInFrame } from "../src/components/legal/LegalLinks";
 import { DONATION_REQUEST_MAILTO, SUPPORT_MAILTO } from "../src/lib/support";
 
 // Spec §17o (owner ruling, 2026-08-02): "I like your recommended 3 tier approach
@@ -30,7 +31,11 @@ const SOURCES = [
   ...filesUnder("public", ".html"),
 ];
 
-// A JSX attribute and an HTML attribute, since the sweep reads both trees.
+// A JSX attribute and an HTML attribute, since the sweep reads both trees. It reads
+// COMMENTS too, on purpose and not by accident: a file that writes target="_blank" in
+// prose is a file describing behaviour, and after this ruling that description is
+// either about another tier's link or out of date. src/lib/browserSession.ts carried
+// exactly such a sentence and was corrected rather than exempted.
 const NEW_TAB = /target=(?:"|\{")_blank/g;
 const REL = /rel=(?:"|\{")noopener noreferrer/g;
 
@@ -166,5 +171,78 @@ describe("§17o — a document's footer says which document you are in", () => {
     for (const page of ["public/404.html", "public/construction.html"]) {
       assert.doesNotMatch(readFileSync(page, "utf8"), /aria-current/, page);
     }
+  });
+});
+
+// §17o tier 2 keeps the href real: a plain click is answered in the frame, and every
+// gesture that means "not here" is left to the browser. That branch had no test —
+// deleting the modifier check passed the whole suite — and it is the difference
+// between a link and a button wearing one.
+describe("§17o tier 2 — which click the app answers itself", () => {
+  type Click = {
+    button: number;
+    metaKey: boolean;
+    ctrlKey: boolean;
+    shiftKey: boolean;
+    altKey: boolean;
+    prevented: boolean;
+    preventDefault: () => void;
+  };
+
+  function click(overrides: Partial<Click> = {}): Click {
+    const event: Click = {
+      button: 0,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      prevented: false,
+      preventDefault() {
+        event.prevented = true;
+      },
+      ...overrides,
+    };
+    return event;
+  }
+
+  // The shape openInFrame actually reads, which is a subset of React's MouseEvent.
+  function open(event: Click, onOpen?: (slug: "privacy") => void) {
+    openInFrame(
+      event as unknown as Parameters<typeof openInFrame>[0],
+      "privacy",
+      onOpen as Parameters<typeof openInFrame>[2],
+    );
+  }
+
+  it("answers a plain left click in the frame, and stops the navigation", () => {
+    const opened: string[] = [];
+    const event = click();
+    open(event, (slug) => opened.push(slug));
+    assert.deepEqual(opened, ["privacy"]);
+    assert.equal(event.prevented, true);
+  });
+
+  it("leaves every gesture that means somewhere else to the browser", () => {
+    for (const gesture of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { button: 1 },
+    ]) {
+      const opened: string[] = [];
+      const event = click(gesture);
+      open(event, (slug) => opened.push(slug));
+      assert.deepEqual(opened, [], JSON.stringify(gesture));
+      assert.equal(event.prevented, false, JSON.stringify(gesture));
+    }
+  });
+
+  it("does nothing at all where no surface can present a document", () => {
+    // The signed-out surfaces pass no onOpen, and there the link is just a link —
+    // navigating in the same tab, which is what §17o requires of them.
+    const event = click();
+    open(event, undefined);
+    assert.equal(event.prevented, false);
   });
 });

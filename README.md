@@ -5,7 +5,8 @@ Levelflow Cloud is a React/Vite and Supabase platform for disciplined market rev
 ## Architecture
 
 - `public/brand/` contains the Levelflow mark in both themes; the favicon set, manifest, and og-image live at the `public/` root. Run `node scripts/render-brand-assets.mjs` to regenerate all of them from the app's colour tokens.
-- `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, legal links, and charting components.
+- `src/` contains the React application, Supabase client, passwordless/OAuth login, advisor workspace, profile preferences, history, donation options, the legal document surface, and charting components.
+- `public/legal/` holds the three published documents — risk disclaimer, privacy, terms — as static HTML. They are what direct links, search engines, and signed-out readers land on. Inside the app the same documents open as a surface, rendered from `src/lib/legalDocuments.ts`, which owns their prose; a guard holds the static files to that module in both directions so the two presentations cannot drift. Links follow the three tiers in spec §17o: in-app destinations switch surfaces, our own documents present in-frame, and only true externals open a new tab.
 - `supabase/functions/` contains the production backend: authenticated market data, trade analysis, calendar ingestion, and scheduled outcome-resolution Edge Functions.
 - `supabase/` contains the SQL bootstrap, launch migrations, RLS policies, Realtime setup, and Edge Functions.
 - `.env.example` separates public browser keys from server-only service-role credentials.

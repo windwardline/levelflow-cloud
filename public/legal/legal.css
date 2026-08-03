@@ -407,10 +407,11 @@ footer p {
 /*
   §17o: the row lists all three documents on every page, its own included, because
   §17c makes it identical everywhere — so the one you are reading says so instead of
-  offering to send you where you already are. Ink against the row's muted rest
-  state, which is exactly how the app's masthead marks the tab you are on: no new
-  colour, no second treatment, and the same mark a screen reader hears from the
-  aria-current="page" that carries it.
+  offering to send you where you already are. Ink against the row's muted rest state:
+  the same ink/muted pair the masthead uses for the tab you are on, without its
+  underline, because this is a 12px footer row where a rule under one item would be
+  the loudest thing in it. No new colour, and the same mark a screen reader hears
+  from the aria-current="page" that carries it.
 */
 .legal-links a[aria-current="page"] {
   color: var(--color-ink);

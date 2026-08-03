@@ -406,11 +406,9 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     // TWO since §17i, not four: each link lives in exactly one home per platform,
     // so the two call sites are the two homes (the account menu below lg,
     // AppFooter's link row at ≥lg) and the Guide's and Profile's copies are gone.
-    // The arrow form specifically, so a sentence naming this mechanism in a
-    // comment does not count itself into the total.
-    // §17o tier 1 routed every in-app destination through one navigation funnel, so
-    // the two homes are two calls to it. The arrow form specifically, so a sentence
-    // naming this mechanism in a comment does not count itself into the total.
+    // §17o tier 1 then routed both through one navigation funnel, so what is counted
+    // is two calls to it — in the arrow form specifically, so that a sentence naming
+    // this mechanism in a comment does not count itself into the total.
     assert.equal(
       (APP_SOURCE.match(/tab: "donate", document: null \}\)/g) ?? []).length,
       2,

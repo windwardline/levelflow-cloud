@@ -99,16 +99,42 @@ describe("§17o tier 1 — App switches surfaces through one door, and it is the
     assert.equal((APP.match(/pushSurface\(/g) ?? []).length, 1);
   });
 
-  it("pushes nothing for the load that opened the app", () => {
-    // The entry is the browser's own entry. Back onto it restores the surface the
-    // reader entered on — remembered at mount, since that state carries no surface
-    // of ours — and Back from there leaves normally.
-    assert.doesNotMatch(APP, /replaceSurface|history\.pushState/);
-    assert.match(APP, /const entrySurface = useRef/);
+  it("pushes nothing for the load that opened the app — it stamps that entry instead", () => {
+    // replaceState creates no entry, so §17o's "the entry load pushes nothing" holds
+    // exactly. What it buys is that the entry SAYS which surface it is, which is the
+    // only way to tell it apart from an entry this app never made.
+    assert.doesNotMatch(APP, /history\.pushState|history\.replaceState/);
+    assert.match(APP, /const mountSurface = useRef\(currentSurface\);/);
     assert.match(
       APP,
-      /readSurfaceState\(event\.state\) \?\? entrySurface\.current/,
+      /useEffect\(\(\) => \{\s*replaceSurface\(mountSurface\.current\);\s*\}, \[\]\);/,
     );
+  });
+
+  it("never mistakes an entry it did not create for the entry load", () => {
+    // The blocking defect this closes: the Guide's ≥lg table of contents makes ten
+    // fragment anchors, a fragment click fires popstate with a null state exactly as
+    // a traversal does, and reading null as "the entry" threw the reader off the
+    // Guide the instant they used its own Contents list. Measured in Chromium.
+    const popped = APP.match(/function applyPoppedSurface[\s\S]*?\n {2}\}/)?.[0] ?? "";
+    assert.ok(popped.length > 0, "expected the popstate handler");
+    assert.match(popped, /if \(!surface\) \{[\s\S]*?replaceSurface\(currentSurface\);\s*return;/);
+    assert.doesNotMatch(popped, /entrySurface/);
+    // Claiming it is what keeps a later Back honest: an anonymous entry moves no
+    // surface when a reader walks back through it, which is a Back press that does
+    // nothing, once per fragment they clicked.
+    assert.equal((APP.match(/replaceSurface\(/g) ?? []).length, 2);
+  });
+
+  it("changes nothing, and moves no focus, for a pop that names the surface already showing", () => {
+    const popped = APP.match(/function applyPoppedSurface[\s\S]*?\n {2}\}/)?.[0] ?? "";
+    assert.match(popped, /if \(sameSurface\(surface, currentSurface\)\) \{\s*return;/);
+    // The flag is raised after the early returns, never before them: a pop that
+    // changes nothing has nothing to hand focus to, and a flag left raised is focus
+    // stolen by the next unrelated commit.
+    const flagAt = popped.indexOf("restoreFocus.current = true;");
+    const sameAt = popped.indexOf("sameSurface(surface, currentSurface)");
+    assert.ok(sameAt > 0 && flagAt > sameAt, popped);
   });
 
   it("subscribes to popstate for the lifetime of the app, and unsubscribes", () => {
@@ -141,6 +167,10 @@ describe("§17o tier 1 — App switches surfaces through one door, and it is the
     // Programmatic only: the region is a tab stop at ≥lg by §17i, and this must not
     // add a second one below lg where the surface's own region scrolls.
     assert.match(APP, /tabIndex=\{regionScrolls \? 0 : -1\}/);
+    // And it announces as something when focus lands on it. The name used to ride
+    // the same gate as the stop, which is false below lg and on the Desk — so at
+    // exactly the 375px case the focus move announced nothing at all.
+    assert.match(APP, /aria-label=\{REGION_LABELS\[activeTab\]\}/);
   });
 
   it("leaves the URL exactly as the reader found it", () => {

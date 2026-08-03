@@ -36,11 +36,15 @@ export function encodeSurfaceState(surface: Surface): SurfaceHistoryState {
   return { [SURFACE_KEY]: { ...surface } };
 }
 
-// The surface a history entry carries, or null for "no surface of ours" — which is
-// both the entry load's own state (§17o: "The entry load pushes nothing") and any
-// state another writer left. Null is what tells App to restore the surface the
-// reader entered on, and Back from there leaves Levelflow, because nothing is
-// intercepted at the entry.
+// The surface a history entry carries, or null for "no surface of ours".
+//
+// Null does NOT mean "the entry". The entry gets this state stamped onto it at mount
+// (replaceSurface below), so the entries left carrying null are the ones this app
+// did not create: a same-document fragment navigation — which the Guide's own table
+// of contents performs ten times over, and which fires popstate with a null state
+// exactly as a traversal does — or another writer on the origin. App leaves the
+// surface alone for those, because a reader clicking "Confidence" in the Guide's
+// contents is not asking to go anywhere else.
 export function readSurfaceState(state: unknown): Surface | null {
   if (typeof state !== "object" || state === null || !(SURFACE_KEY in state)) {
     return null;
@@ -63,12 +67,25 @@ export function readSurfaceState(state: unknown): Surface | null {
   return { tab, deskView, document };
 }
 
-// No URL. §17o: "Surfaces have no addresses; the state does, and the address bar
-// stays as the reader found it" — which is what lets the consumed ?donate arrival
-// compose, since a model that pushed paths or queries would put something back into
-// a URL another ruling just cleaned.
+// No URL, in either of the two writers below. §17o: "Surfaces have no addresses; the
+// state does, and the address bar stays as the reader found it" — which is what lets
+// the consumed ?donate arrival compose, since a model that pushed paths or queries
+// would put something back into a URL another ruling just cleaned. Omitting the
+// third argument entirely is what leaves the URL untouched.
 export function pushSurface(surface: Surface): void {
   window.history.pushState(
+    encodeSurfaceState(surface),
+    "",
+  );
+}
+
+// The entry, stamped with the surface the reader arrived on. replaceState creates no
+// history entry, so §17o's "the entry load pushes nothing" holds exactly — what
+// changes is that the entry now SAYS which surface it is, which is the only way to
+// tell it apart from an entry this app never made (a fragment navigation). Called
+// once, at mount, and nowhere else.
+export function replaceSurface(surface: Surface): void {
+  window.history.replaceState(
     encodeSurfaceState(surface),
     "",
   );
