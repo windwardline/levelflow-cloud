@@ -352,3 +352,23 @@ P4 Performance (100K–500K), at the **8% static default**. Page positioning:
 - Pro Forex's card set remains the one unphotographed view; Pro Crypto's
   per-size dollars match the forex checkout's constants exactly, so uniformity
   is expected but not yet photographed.
+
+---
+
+## THE E8 PRO (FOREX) MARKETING-SITE WALK (four frames) — THE CATALOG CLOSES
+
+PF1 Challenge (5K–100K) · PF2 Performance (5K–100K) · PF3 Challenge (100K–500K) ·
+PF4 Performance (100K–500K). **Identical to Pro Crypto in every cell**: the same
+base-price ladder ($32/$68/$148/$228/$488/$998/$2,098/$2,598), target = static =
+max drawdown at 8% of tier, daily drawdown 2.5% flat, daily profit cap 2% flat,
+Static type both stages, no consistency rule, no Challenge pass-cadence line,
+Performance first payout "in as little as 1 Day", no activation fee.
+
+**With this batch the E8 catalog's photographic record is COMPLETE**: every
+program line (One, Pro, Signature, Zero MAX, Zero Starter), on every market it
+is sold (Forex, Crypto, Futures), at every size, at both stages, is now
+photographed — checkout flows AND marketing cards — and every line is proven
+uniform across its markets. Session total: fifty-five frames across eight
+walks. The only remaining empirical items are behavioral, not catalog:
+per-symbol leverage inside a live crypto-market account, and the owner's
+planned futures-account purchase for in-platform verification.
