@@ -250,6 +250,11 @@ Consequential population facts, each pinned by test:
 
 ### §19b. The program ladder and the profile
 
+**The configuration is a catalog, not a form** (§20i ruling 7): every
+selectable option is one E8 actually sells, transcribed from the verified
+purchase-screen record, and no free-form numeric entry exists. A selection
+the checkout does not sell must be impossible to express.
+
 **Ten program lines ship** — the researched set, less two. The bar is a
 [PRIMARY] account-size ladder and a [PRIMARY] rule set. `E8 Classic` fails
 it: its article 404'd on re-fetch and its drawdown is described two ways
@@ -1439,6 +1444,20 @@ here so a later reader sees what was decided rather than re-deciding it.
    offered by E8." Discontinued, not under-evidenced — so the draft's
    "re-enter only behind fresh primary research" path does not exist; a future
    reappearance is a new product. (§19b.)
+7. **The catalog is static and predefined** (owner, 2026-08-02, verbatim):
+   "Now you should be able to properly configure the different E8 account
+   setups. These should be presented as static, predefined options for the
+   user when the pillar build plan gets to a point that requires it as a
+   feature." The Profile's broker configuration therefore presents E8's REAL
+   catalog and nothing else: market → program line → balance tier →
+   drawdown-pair token where E8 sells a choice (the futures lines' single
+   EOD option is auto-set, never asked). The option sets are transcribed
+   from the verified purchase-screen record
+   (`docs/research/e8-purchase-screen-2026-08-02.md`) — all three market
+   walks, twenty-nine frames. No free-form numeric entry exists anywhere in
+   the configuration, and no selectable combination may exist that the
+   checkout does not sell. Binds the §19 retrofit and the §20 build. (§19b,
+   §20b.)
 
 ## §20j. Every rendered string
 
