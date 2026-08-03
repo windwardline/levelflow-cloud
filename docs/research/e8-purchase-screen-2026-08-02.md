@@ -228,3 +228,37 @@ Zero MAX/Performance · FR5 Zero Starter/Challenge · FR6 Zero Starter/Performan
 3. Zero's per-size target curve (6/6.5/6.75%) supersedes any flat reading.
 4. Stage-scoped payout cadence recorded: Signature 3-day first payout;
    Zero 1-day (daily) at Performance.
+
+---
+
+## THE E8 ONE (FOREX) MARKETING-SITE WALK (four frames — e8markets.com Challenges page)
+
+Per-size cards for all eight E8 One tiers at the **6% dynamic default**, Challenge
+and Performance tabs. Four frames: M1 Challenge (5K–100K) · M2 Performance
+(5K–100K) · M3 Challenge (100K–500K) · M4 Performance (100K–500K). Drawdown chips
+read "6% Max"; drawdown type **Dynamic** on every card, both stages.
+
+| Size | Base price (code-E8 first order) | Challenge: target / max DD / daily DD | Performance: max DD / daily DD / consistency |
+|---|---|---|---|
+| $5K | $48 ($36) | $450 / $300 / $200 | $300 / $200 / 40% |
+| $10K | $88 ($66) | $900 / $600 / $400 | $600 / $400 / 40% |
+| $25K | $188 ($141) | $2,250 / $1,500 / $1,000 | $1,500 / $1,000 / 40% |
+| $50K | $288 ($216) | $4,500 / $3,000 / $2,000 | $3,000 / $2,000 / 40% |
+| $100K | $488 ($366) — Recommended | $9,000 / $6,000 / $4,000 | $6,000 / $4,000 / 40% |
+| $200K | $798 ($599) | $18,000 / $12,000 / $8,000 | $12,000 / $8,000 / 40% |
+| $400K | $1,598 ($1,199) | $36,000 / $24,000 / $16,000 | $24,000 / $16,000 / 40% |
+| $500K | $1,998 ($1,499) | $45,000 / $30,000 / $20,000 | $30,000 / $20,000 / 40% |
+
+- **Every size is exactly the checkout's 6%-default row scaled**: max DD 6% of
+  tier, daily 4%, target 9% — flat percentages across all eight tiers, both
+  stages carrying the same dollar drawdowns.
+- **Consistency 40% at Performance only** (Challenge cards show none) —
+  per-size confirmation of One's funded-stage best-day rule.
+- **Cadence**: Challenge passes "in as little as 1 Day"; Performance first
+  payout "in as little as 3 Days". No activation fee at any size.
+- **The full One base-price ladder lands**: $48 / $88 / $188 / $288 / $488 /
+  $798 / $1,598 / $1,998 (5K→500K, 6% default). This ANCHORS the dossier's
+  price contradiction #2: the $500K base at the default configuration is
+  **$1,998** (`verified`) — the custom-account article's "$2,598" ceiling
+  presumably prices a higher drawdown tier (which tier is unobserved), and the
+  secondary's "$1,627" matches nothing observed on any surface.
