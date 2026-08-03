@@ -10,6 +10,7 @@ import { filterSymbolsByAvailability } from "../../src/components/workspace/mark
 import { SIZE_STATE_WORDS } from "../../src/lib/broker/types";
 import { marketAvailability } from "../../src/lib/marketHours";
 import { chunkScanSymbols } from "../../src/lib/scanBatching";
+import { LEDGER_WINDOW_ROWS } from "../../src/lib/tradeAnalyzer";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
@@ -2026,6 +2027,89 @@ test("Insights renders the setup ledger table, and no below-table blurb", async 
   for (const group of ["Asset class", "Side", "Confidence", "Session"]) {
     await expect(attribution.getByText(group, { exact: true })).toBeVisible();
   }
+});
+
+// Spec §18 (amendment 2, owner 2026-08-02: "Can we let it involve the engine? If
+// so, do it. I want accuracy."): the record band and Attribution read the
+// LIFETIME record, and the presence checks above cannot tell a lifetime aggregate
+// from one computed over the page — both render four groups. This one asserts
+// VALUES the loaded page could not have produced: a single slice holding more
+// resolved rows than the ledger's whole display window, every one of them older
+// than the widest Period filter.
+//
+// The lifetime read is stubbed and the ledger's own read is not, which is what
+// makes the two sources distinguishable on screen. The stub also arrives in
+// PostgREST's real one-to-one shape — trade_outcomes as an OBJECT — so a lifetime
+// read that skipped the shared normalizer (PR #186) would render these rows as
+// unresolved and fail here rather than in production.
+test("the record band and Attribution publish figures the ledger's page could not hold", async ({ page }) => {
+  const RESOLVED_ROWS = LEDGER_WINDOW_ROWS + 4;
+  const ancient = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000);
+  const lifetimeRows = Array.from({ length: RESOLVED_ROWS }, (_, index) => ({
+    confidence_score: 90,
+    created_at: new Date(ancient.getTime() + index * 1000).toISOString(),
+    id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    side: "buy",
+    status: "filled",
+    symbol: "XAUUSD",
+    // Exactly the fields LIFETIME_SELECT asks for, in PostgREST's real
+    // one-to-one shape: a stub that carried more than the query selects would
+    // stop being the wire this read actually meets.
+    trade_outcomes: {
+      feedback: { realizedR: 1 },
+      filled_at: ancient.toISOString(),
+      outcome: "take_profit",
+    },
+  }));
+
+  await page.route("**/rest/v1/trade_setups*", (route) => {
+    // The ledger's read is the one that carries the analysis payload for the
+    // Advisor handoff; the lifetime read selects none of it. That is the whole
+    // difference between the two requests, and it is the discriminator here.
+    if (route.request().url().includes("confluence")) {
+      return route.continue();
+    }
+    return route.fulfill({
+      body: JSON.stringify(lifetimeRows),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Insights", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Insights", exact: true }),
+  ).toBeVisible();
+
+  // The record band's three lifetime figures (§10 as amended). "Setups this
+  // week" stays the period stat it says it is, and every stubbed row is 200 days
+  // old — so a band still reading the ledger's rows would print a nonzero count
+  // here beside a live account's own week.
+  const bandValue = (label: string) =>
+    page.getByText(label, { exact: true }).locator("..").locator("p").first();
+  await expect(bandValue("Money-positive")).toHaveText("100%");
+  await expect(bandValue("Net R")).toHaveText(`+${RESOLVED_ROWS}.0R`);
+  await expect(bandValue("Best market")).toHaveText("XAUUSD");
+  await expect(bandValue("Setups this week")).toHaveText("0");
+
+  // Attribution's own slices, read off the row's three figure cells: resolved
+  // count, money-positive rate, net R.
+  const attribution = page.getByTestId("attribution");
+  for (const label of ["Metals", "Best"]) {
+    const figures = attribution.getByText(label, { exact: true }).locator("..")
+      .locator("span > span");
+    await expect(figures.nth(0)).toHaveText(String(RESOLVED_ROWS));
+    await expect(figures.nth(1)).toHaveText("100%");
+    await expect(figures.nth(2)).toHaveText(`+${RESOLVED_ROWS}.0R`);
+  }
+
+  // One slice holding LEDGER_WINDOW_ROWS + 4 resolved rows is the assertion the
+  // page cannot satisfy: the ledger's own read stops at the window, and it is
+  // still reading it — the table below renders from its own unstubbed request.
+  await expect(
+    page.getByRole("columnheader", { name: "Result", exact: true }),
+  ).toBeVisible();
 });
 
 test("a qualifying market scan persists into Insights, not just onto the scan rail", async ({ page }) => {

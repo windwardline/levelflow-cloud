@@ -564,9 +564,11 @@ describe("the outcome-refresh throttle earns its blackout", () => {
   });
 
   it("clears the throttle on sign-out, since it outlives the session", () => {
+    // The span allows for the lifetime record being emptied on the same branch
+    // (spec §18): sign-out clears both row sets and then the throttle.
     assert.match(
       hook,
-      /\} else \{\s*setSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
+      /\} else \{\s*setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);[\s\S]{0,300}lastOutcomeRefreshAt = 0;/,
     );
   });
 });
@@ -601,7 +603,7 @@ describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)",
       normalizeSetupOutcome({
         ...base,
         status: "generated",
-        trade_outcomes: [{ outcome: "expired", realized_pnl: null }],
+        trade_outcomes: [{ outcome: "expired" }],
       }),
       "entry_not_filled",
     );
@@ -609,12 +611,12 @@ describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)",
 
   it("never claims Unfilled for a row whose entry did fill", () => {
     for (const filled of [
-      { status: "filled", trade_outcomes: [{ outcome: "expired", realized_pnl: null }] },
-      { status: "placed", trade_outcomes: [{ outcome: "expired", realized_pnl: null }] },
+      { status: "filled", trade_outcomes: [{ outcome: "expired" }] },
+      { status: "placed", trade_outcomes: [{ outcome: "expired" }] },
       {
         status: "generated",
         trade_outcomes: [
-          { filled_at: "2026-06-16T13:00:00.000Z", outcome: "expired", realized_pnl: null },
+          { filled_at: "2026-06-16T13:00:00.000Z", outcome: "expired" },
         ],
       },
     ]) {

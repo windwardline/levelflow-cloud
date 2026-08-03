@@ -3,13 +3,15 @@ import { describe, it } from "node:test";
 import {
   ATTRIBUTION_LEARNING_MIN_RESOLVED,
   buildAttribution,
+  netRForSlice,
+  type SliceTally,
 } from "../src/components/workspace/attribution";
 import {
   buildConfidenceBands,
   filterInsightsSetups,
   formatSignedR,
 } from "../src/components/workspace/historyUtils";
-import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
+import { LEDGER_WINDOW_ROWS, type TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 // Same builder shape as tests/historyUtils.test.ts and
 // tests/outcomes.test.ts — every field a real TradeSetupRow needs,
@@ -129,9 +131,10 @@ describe("buildAttribution — the four slice groups (spec §18)", () => {
     for (const slice of attribution) {
       for (const sliceRow of slice.rows) {
         assert.equal(sliceRow.resolved, 0);
-        // Below the threshold, so the percentage is withheld ("Learning").
+        // Below the gate, so BOTH figures are withheld and both read
+        // "Learning" (§18, amendment 3: one gate, both numbers).
+        assert.equal(sliceRow.learning, true);
         assert.equal(sliceRow.moneyPositivePercent, null);
-        // No resolved row means no figure to sum: the em dash, not zero.
         assert.equal(sliceRow.netR, null);
       }
     }
@@ -226,34 +229,83 @@ describe("buildAttribution — slice math", () => {
   });
 });
 
-describe("buildAttribution — the Learning threshold (spec §18: below 3 resolved)", () => {
+describe("buildAttribution — one gate, both numbers (spec §18: below 3 resolved)", () => {
   it("states the threshold as the spec states it", () => {
     assert.equal(ATTRIBUTION_LEARNING_MIN_RESOLVED, 3);
   });
 
-  it("withholds the percentage at 2 resolved", () => {
-    const setups = [won({ id: "a" }), lost({ id: "b" })];
+  it("withholds both figures at 2 resolved, even with an R on every row", () => {
+    // Amendment 3 (owner, 2026-08-02: "Yes. I want fidelity across the
+    // board."): net R sits BEHIND the gate now, not beside it. Two settled
+    // rows that both recorded an R still publish nothing — three resolved is
+    // the bar for both cells.
+    const setups = [won({ id: "a" }, 1.5), lost({ id: "b" }, -1)];
     const buy = row(setups, "side", "Buy");
 
     assert.equal(buy.resolved, 2);
+    assert.equal(buy.learning, true);
     assert.equal(buy.moneyPositivePercent, null);
+    assert.equal(buy.netR, null);
   });
 
-  it("publishes the percentage at exactly 3 resolved", () => {
-    const setups = [won({ id: "a" }), lost({ id: "b" }), lost({ id: "c" })];
+  it("publishes both figures at exactly 3 resolved", () => {
+    const setups = [
+      won({ id: "a" }, 1),
+      lost({ id: "b" }, -1),
+      lost({ id: "c" }, -1),
+    ];
     const buy = row(setups, "side", "Buy");
 
     assert.equal(buy.resolved, 3);
+    assert.equal(buy.learning, false);
     assert.equal(buy.moneyPositivePercent, 33);
+    assert.equal(buy.netR, -1);
   });
 
-  it("applies the same threshold to the confidence slice, which buildConfidenceBands does not itself apply", () => {
+  it("keeps the two withholdings apart: Learning is too little history, the em dash is a missing R", () => {
+    // §18 states them as different facts. Above the gate with one row lacking
+    // an R, the slice is not learning — it has settled evidence and no total.
     const setups = [
-      won({ confidence_score: 78, id: "a" }),
-      lost({ confidence_score: 80, id: "b" }),
+      won({ id: "a" }, 1.5),
+      lost({ id: "b" }, -1),
+      won({ id: "c" }, null),
+    ];
+    const buy = row(setups, "side", "Buy");
+
+    assert.equal(buy.learning, false);
+    assert.equal(buy.moneyPositivePercent, 67);
+    assert.equal(buy.netR, null);
+  });
+
+  it("gates on resolved rows, never on rows loaded — an unresolved row cannot open the gate", () => {
+    const setups = [
+      won({ id: "a" }, 1),
+      lost({ id: "b" }, -1),
+      buildSetup({ id: "pending" }),
+      buildSetup({ id: "pending-2" }),
+    ];
+    const buy = row(setups, "side", "Buy");
+
+    assert.equal(buy.resolved, 2);
+    assert.equal(buy.learning, true);
+  });
+
+  it("withholds nothing but the figures — the resolved count is always published", () => {
+    // The count is what makes "Learning" legible: two of three is visible
+    // progress toward the bar, not a hidden state.
+    const setups = [won({ id: "a" }), lost({ id: "b" })];
+
+    assert.equal(row(setups, "side", "Buy").resolved, 2);
+    assert.equal(row(setups, "class", "Forex").resolved, 2);
+  });
+
+  it("applies the same gate to the confidence slice, which buildConfidenceBands does not itself apply", () => {
+    const setups = [
+      won({ confidence_score: 78, id: "a" }, 1.5),
+      lost({ confidence_score: 80, id: "b" }, -1),
     ];
 
-    // The reused slice reports a rate at 2 resolved; §18's threshold is what
+    // The reused slice reports a rate at 2 resolved; §18's gate is what
     // withholds it here, so the two are genuinely different numbers and this
     // is a real assertion rather than a restatement.
     const band = buildConfidenceBands(setups).find(
@@ -261,7 +313,30 @@ describe("buildAttribution — the Learning threshold (spec §18: below 3 resolv
     );
     assert.equal(band?.resolved, 2);
     assert.equal(band?.winRate, 50);
-    assert.equal(row(setups, "confidence", "Strong").moneyPositivePercent, null);
+
+    const strong = row(setups, "confidence", "Strong");
+    assert.equal(strong.learning, true);
+    assert.equal(strong.moneyPositivePercent, null);
+    // Amendment 3's last line: the confidence row's two cells are gated on one
+    // resolved count, so net R cannot publish while the rate beside it withholds.
+    assert.equal(strong.netR, null);
+  });
+
+  it("opens the confidence gate on the same count both cells read", () => {
+    const setups = [
+      won({ confidence_score: 78, id: "a" }, 1.5),
+      lost({ confidence_score: 80, id: "b" }, -1),
+      won({ confidence_score: 84, id: "c" }, 0.5),
+    ];
+
+    const band = buildConfidenceBands(setups).find(
+      (candidate) => candidate.label === "Strong",
+    );
+    const strong = row(setups, "confidence", "Strong");
+    assert.equal(strong.resolved, band?.resolved);
+    assert.equal(strong.learning, false);
+    assert.equal(strong.moneyPositivePercent, band?.winRate);
+    assert.equal(strong.netR, 1);
   });
 });
 
@@ -312,9 +387,74 @@ describe("buildAttribution — net R is all-or-nothing (spec §18)", () => {
   });
 
   it("sums a slice whose figures cancel to zero as zero, not as absent", () => {
-    const setups = [won({ id: "a" }, 1), lost({ id: "b" }, -1)];
+    // Stated at the gate's own floor (amendment 3): below three resolved this
+    // slice would read "Learning" and the case would stop testing the thing it
+    // was written for — that zero is a real total, not a missing one.
+    const setups = [
+      won({ id: "a" }, 1.5),
+      lost({ id: "b" }, -1),
+      lost({ id: "c" }, -0.5),
+    ];
 
-    assert.equal(row(setups, "side", "Buy").netR, 0);
+    const buy = row(setups, "side", "Buy");
+    assert.equal(buy.resolved, 3);
+    assert.equal(buy.netR, 0);
+  });
+});
+
+describe("netRForSlice — the sum answers for the count beside it (spec §18)", () => {
+  // The confidence slice publishes buildConfidenceBands' resolved count and sums
+  // net R from this module's own tally. They agree by construction today —
+  // identical tier bounds, identical resolved definition — so buildAttribution
+  // cannot reach a mismatch from any input, which is exactly why the guard is
+  // driven directly here rather than left as a comment nobody can exercise.
+  function tally(overrides: Partial<SliceTally> = {}): SliceTally {
+    return {
+      realizedRSum: 3,
+      resolved: 3,
+      resolvedWithRealizedR: 3,
+      wins: 2,
+      ...overrides,
+    };
+  }
+
+  it("sums when the tally accounts for exactly the rows the row publishes", () => {
+    assert.equal(netRForSlice(tally(), 3), 3);
+  });
+
+  it("withholds when the tally holds FEWER rows than the count published", () => {
+    // The real defect this stops: a total summed over 2 rows printed beside a
+    // resolved count of 3 reads as the settled result of all three.
+    assert.equal(
+      netRForSlice(
+        tally({ realizedRSum: 2, resolved: 2, resolvedWithRealizedR: 2 }),
+        3,
+      ),
+      null,
+    );
+  });
+
+  it("withholds when the tally holds MORE rows than the count published", () => {
+    assert.equal(
+      netRForSlice(
+        tally({ realizedRSum: 4, resolved: 4, resolvedWithRealizedR: 4 }),
+        3,
+      ),
+      null,
+    );
+  });
+
+  it("withholds when one accounted row carried no R", () => {
+    assert.equal(netRForSlice(tally({ resolvedWithRealizedR: 2 }), 3), null);
+  });
+
+  it("withholds when there is no tally at all", () => {
+    assert.equal(netRForSlice(undefined, 3), null);
+    assert.equal(netRForSlice(undefined, 0), null);
+  });
+
+  it("sums a zero total as zero, not as absent", () => {
+    assert.equal(netRForSlice(tally({ realizedRSum: 0 }), 3), 0);
   });
 });
 
@@ -441,24 +581,35 @@ describe("buildAttribution — the confidence slice reuses buildConfidenceBands"
   });
 
   it("sums net R per band on the same all-or-nothing rule as every other slice", () => {
+    // Three resolved in each band, so both are through the gate and the only
+    // thing separating them is the all-or-nothing rule itself.
     const setups = [
       won({ confidence_score: 78, id: "a" }, 1.5),
       lost({ confidence_score: 82, id: "b" }, -1),
-      won({ confidence_score: 90, id: "c" }, null),
+      won({ confidence_score: 75, id: "c" }, 0.5),
+      won({ confidence_score: 90, id: "d" }, 2),
+      lost({ confidence_score: 95, id: "e" }, -1),
+      won({ confidence_score: 100, id: "f" }, null),
     ];
 
-    assert.equal(row(setups, "confidence", "Strong").netR, 0.5);
+    assert.equal(row(setups, "confidence", "Strong").netR, 1);
     assert.equal(row(setups, "confidence", "Best").netR, null);
+    assert.equal(row(setups, "confidence", "Best").learning, false);
   });
 });
 
 describe("buildAttribution — net R is the raw sum; the ledger's formatter rounds it", () => {
   it("returns the unrounded total, which the surface renders through formatSignedR", () => {
-    // 1.2 + (-1) is 0.19999999999999996 in binary floating point. Rounding
-    // inside the aggregator would decide the display precision here instead of
-    // at the one place that owns it, so the sum stays raw and the ledger's own
-    // one-decimal formatter is what the reader sees.
-    const setups = [won({ id: "a" }, 1.2), lost({ id: "b" }, -1)];
+    // 1.2 - 0.5 - 0.5 is 0.19999999999999996 in binary floating point (three
+    // rows, so the slice is through the gate). Rounding inside the aggregator
+    // would decide the display precision here instead of at the one place that
+    // owns it, so the sum stays raw and the ledger's own one-decimal formatter
+    // is what the reader sees.
+    const setups = [
+      won({ id: "a" }, 1.2),
+      lost({ id: "b" }, -0.5),
+      lost({ id: "c" }, -0.5),
+    ];
     const netR = row(setups, "side", "Buy").netR;
 
     assert.ok(netR !== null);
@@ -467,12 +618,34 @@ describe("buildAttribution — net R is the raw sum; the ledger's formatter roun
   });
 });
 
-describe("buildAttribution — the panel's filters do not apply (spec §18)", () => {
+describe("buildAttribution — neither the filters nor the page apply (spec §18)", () => {
   it("takes no filter argument at all — there is nothing to wire in", () => {
-    // The signature is the guard: one parameter, the full row set. A period,
-    // a status, a market scope, or even `now` would all have to be added
-    // before Attribution could narrow, and adding one fails this.
+    // The signature is the guard: one parameter, the lifetime row set. A
+    // period, a status, a market scope, or even `now` would all have to be
+    // added before Attribution could narrow, and adding one fails this.
     assert.equal(buildAttribution.length, 1);
+  });
+
+  it("counts every resolved row past the ledger's display window (amendment 2)", () => {
+    // The truncation the ruling closes: 80 rows is what the ledger reads, so a
+    // section fed the ledger's array published a lifetime claim about a page.
+    // Rows beyond the window here are the only Metals in the record, and their
+    // figures are what the window could not have produced.
+    const setups = [
+      ...Array.from({ length: LEDGER_WINDOW_ROWS }, (_, index) =>
+        won({ id: `window-${index}`, symbol: "EURUSD" })),
+      ...Array.from({ length: 4 }, (_, index) =>
+        won({ id: `beyond-${index}`, symbol: "XAUUSD" }, 1)),
+      lost({ id: "beyond-loss", symbol: "XAUUSD" }, -1),
+    ];
+
+    const displayWindow = setups.slice(0, LEDGER_WINDOW_ROWS);
+    assert.equal(row(displayWindow, "class", "Metals").resolved, 0);
+
+    const metals = row(setups, "class", "Metals");
+    assert.equal(metals.resolved, 5);
+    assert.equal(metals.moneyPositivePercent, 80);
+    assert.equal(metals.netR, 3);
   });
 
   it("counts rows the panel's own default filters exclude", () => {

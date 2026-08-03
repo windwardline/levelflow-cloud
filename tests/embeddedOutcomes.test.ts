@@ -282,18 +282,40 @@ describe("both directions — the schema fact the normalizer follows from", () =
   it("routes every trade_setups read through the normalizer", () => {
     // One seam, so a second fetch path cannot quietly reintroduce wire-shaped
     // rows. The normalizer is only a fix while every row the app renders has
-    // passed through it.
+    // passed through it — and spec §18's lifetime read is the second reader of
+    // this embed, which is exactly the case this guard was written for.
+    const source = readFileSync("src/lib/tradeAnalyzer.ts", "utf8");
     const selectors = sourceFiles("src").filter((file) =>
       readFileSync(file, "utf8").includes('from("trade_setups")')
     );
 
     assert.deepEqual(selectors, ["src/lib/tradeAnalyzer.ts"]);
     assert.match(
-      readFileSync("src/lib/tradeAnalyzer.ts", "utf8").match(
-        /export async function fetchTradeSetups[\s\S]*?\n}\n/,
-      )?.[0] ?? "",
+      source.match(/export async function fetchTradeSetups[\s\S]*?\n}\n/)?.[0] ??
+        "",
       /normalizeEmbeddedOutcomes\(/,
     );
+    // The lifetime read normalizes in its walk, so the pin follows it there —
+    // and the walk is where every page lands, first or fortieth.
+    assert.match(
+      source.match(/export async function fetchLifetimeSetups[\s\S]*?\n}\n/)
+        ?.[0] ?? "",
+      /paginateLifetimeSetups\(/,
+    );
+    assert.match(
+      source.match(
+        /export async function paginateLifetimeSetups[\s\S]*?\n}\n/,
+      )?.[0] ?? "",
+      /normalizeEmbeddedOutcome\(row\.trade_outcomes\)/,
+    );
+    // One shape rule, not two. The two reads select different outcome fields, so
+    // each keeps its own row type — but object-versus-array is decided once, in
+    // normalizeEmbeddedOutcome, and that is the whole of PR #186's fix.
+    assert.equal(
+      (source.match(/export function normalizeEmbeddedOutcome\b/g) ?? []).length,
+      1,
+    );
+    assert.equal((source.match(/Array\.isArray\(/g) ?? []).length, 1);
   });
 });
 

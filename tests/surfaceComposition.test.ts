@@ -471,20 +471,33 @@ describe("Attribution composition — the section is present (spec §18)", () =>
     const block = attributionBlock();
     assert.match(block, /font-mono text-sm tabular-nums text-ink/);
     assert.match(block, /\{row\.resolved\}/);
-    // The record band's own honesty pattern for too little evidence, and the
-    // em dash every absent figure on this surface already renders.
+    // One gate, both numbers (spec §18, amendment 3 — owner 2026-08-02: "Yes. I
+    // want fidelity across the board"): the record band's own honesty pattern
+    // for too little evidence now covers net R as well, and the em dash keeps
+    // its own separate meaning above the gate.
     assert.match(
       block,
-      /\{row\.moneyPositivePercent === null\s*\? "Learning"\s*: `\$\{row\.moneyPositivePercent\}%`\}/,
+      /\{row\.learning\s*\? "Learning"\s*: `\$\{row\.moneyPositivePercent\}%`\}/,
     );
     assert.match(
+      block,
+      /\{row\.learning\s*\? "Learning"\s*: row\.netR === null\s*\? "—"\s*: formatSignedR\(row\.netR\)\}/,
+    );
+    // Both directions: the two-way net-R render the gate replaced cannot come
+    // back, and neither cell may restate the threshold the aggregator owns.
+    assert.doesNotMatch(
       block,
       /\{row\.netR === null \? "—" : formatSignedR\(row\.netR\)\}/,
     );
+    assert.doesNotMatch(block, /ATTRIBUTION_LEARNING_MIN_RESOLVED/);
   });
 
-  it("reads the full row set, never the filtered view (spec §18, stated so nobody wires the filters in later)", () => {
-    assert.match(history, /const attributionGroups = buildAttribution\(setups\);/);
+  it("reads the lifetime record, never the filtered view and never the loaded page (spec §18)", () => {
+    assert.match(
+      history,
+      /const attributionGroups = buildAttribution\(lifetimeSetups\);/,
+    );
+    assert.doesNotMatch(history, /buildAttribution\(setups\)/);
     assert.doesNotMatch(history, /buildAttribution\(filteredSetups\)/);
     assert.doesNotMatch(history, /buildAttribution\(groupedSetups\)/);
   });
@@ -532,15 +545,17 @@ describe("Attribution composition — the section draws no box and says nothing 
   it("carries no copy but its own title — no caption, no note, no column headers", () => {
     const block = attributionBlock();
     // Every string the section renders, with class lists, keys and the testid
-    // stripped first: the two value words the figures fall back to, and
-    // nothing else. A caption or a column header would land in this list.
+    // stripped first: the value words the figures fall back to, and nothing
+    // else. A caption or a column header would land in this list. "Learning"
+    // appears twice because one gate now withholds two cells (spec §18,
+    // amendment 3) — the same word for the same fact, not a new string.
     const withoutAttributes = block.replace(
       /\s(?:className|data-testid|key)=(?:"[^"]*"|\{[^{}]*\})/g,
       "",
     );
     assert.deepEqual(
       Array.from(withoutAttributes.matchAll(/"([^"]*)"/g), (match) => match[1]),
-      ["Learning", "—"],
+      ["Learning", "Learning", "—"],
     );
     // And the one piece of JSX text in the whole section is its own heading:
     // every other word on screen is a label the aggregator supplies.

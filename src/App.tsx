@@ -709,6 +709,7 @@ export default function App() {
           ) : null}
           {activeTab === "history" ? (
             <HistoryPanel
+              lifetimeSetups={setupState.lifetimeSetups}
               loadFailed={setupState.loadFailed}
               loading={setupState.loading}
               setups={setupState.setups}
