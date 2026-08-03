@@ -1238,3 +1238,12 @@ tonight's insights, determines inclusion for BNB, the indices, and
 whatever else it reaches. Controller note, marked as such: the three
 stable-offset instruments (XAGUSD, WTI, BRENT) are the prime candidates
 for better-matching sources under this gate.
+
+**Amendment 17 — docs ride along (owner, 2026-08-03, restated per the
+owner's standing preference).** The Guide, every document under docs/, and
+the README receive applicable updates every time a feature, change, or
+launch lands that touches their intended purpose — in the same change set,
+not after. A change set that touches none of them says so in its PR body
+with a sentence of reasoning, and the merge-gate review checks that claim
+in both directions. Also written into the global standard the same night
+("Docs ride along", ~/AGENTS.md Code quality).
