@@ -56,14 +56,16 @@ export default defineConfig({
   //   4 Crypto-scoped scans (§19d, two per width leg)          1 each =  4
   //   1 single-market scan (the one-door spec)                            1
   //                                                                   ── 29
-  // spread across a project whose runtime is minutes, against 40 per rolling
-  // 60s — a ledger that assumes retries: 0 (unset here; pinned in
-  // tests/scanBatching.test.ts). visual-proof scans nothing (it captures
-  // surfaces) but its ten Desk/Insights surface visits are a heavy consumer of
-  // the refresh budget; analyzer-abuse then spends 2 refusals + a 55-request
-  // flood, deliberately over the limit, which is the 429 it exists to prove.
-  // Playwright's
-  // default is to run spec files concurrently across workers, so either one
+  // spread across a project whose runtime is minutes, against 40 per
+  // minute-aligned tumbling 60s window — a ledger that assumes retries: 0
+  // (unset here; pinned in tests/scanBatching.test.ts). visual-proof scans
+  // nothing (it captures surfaces) but its ten Desk/Insights surface visits
+  // are a heavy consumer of the refresh budget; analyzer-abuse then spends 2
+  // refusals + a 55-request flood, deliberately over the limit, which is the
+  // 429 it exists to prove.
+  //
+  // Playwright's default is to run spec files concurrently across workers, so
+  // either one
   // running alongside authenticated-workspace.spec.ts could 429 a scan or
   // refresh that spec depends on — and a rate-limited scan there reads as a
   // skipped test today (the app can't tell a 429 apart from a quiet market),

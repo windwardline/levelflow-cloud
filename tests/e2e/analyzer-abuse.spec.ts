@@ -15,9 +15,10 @@ test.skip(
 // supabase/functions/trade-analyzer/index.ts): one scan is a fan-out of chunked
 // requests now, and this suite's own peak window runs several of them back to
 // back. The window is minute-aligned and tumbling (supabase/init.sql), so a
-// burst can straddle a boundary: fifty-five keeps the trip certain with the
-// same shaped margin the old 25-on-20 flood had, where forty-five would need
-// 41 of its requests to land inside one window.
+// burst can straddle a boundary: fifty-five keeps the trip near-certain —
+// tripping needs 41 of the 55 inside one window (75%), a wider margin than
+// the old 25-on-20 flood's 21 of 25, where forty-five would have needed 41
+// of 45.
 const FLOOD_SIZE = 55;
 const SCAN_RATE_LIMIT = 40;
 
