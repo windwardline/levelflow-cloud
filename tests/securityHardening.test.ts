@@ -210,7 +210,7 @@ describe("security hardening", () => {
 
   it("renames auth mail branding only with the full SMTP block", () => {
     const script = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
-    for (const key of ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_admin_email", "smtp_sender_name", "smtp_max_frequency", "mailer_subjects_magic_link"]) {
+    for (const key of ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_admin_email", "smtp_sender_name", "smtp_max_frequency", "mailer_subjects_magic_link", "mailer_templates_magic_link_content"]) {
       assert.match(script, new RegExp(key), key);
     }
     assert.match(script, /Your Levelflow sign-in link/);
@@ -222,6 +222,38 @@ describe("security hardening", () => {
     // raw body echo that could carry smtp_pass back to the terminal.
     assert.doesNotMatch(script, /echo "\$resp"/);
     assert.match(script, /PATCH failed/);
+  });
+
+  // Sender name, subject, and body are three separate auth-config fields, and
+  // the body is the one a rename forgets. On 2026-07-30 two magic-link emails
+  // went out addressed from "Levelflow" with a body that still said "LevelFlow"
+  // and painted the retired navy button — the delivered HTML is recorded in
+  // docs/research/magic-link-audit-2026-08-02.md. The subject and sender name
+  // were already pinned above; the body was not, which is why it drifted alone.
+  // Every line of the standing Windward Line template is pinned here, so the
+  // next palette move fails CI instead of shipping a half-branded email.
+  it("carries the whole magic-link body — Levelflow casing, current accent, standard copy", () => {
+    const script = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
+    // Assert against the template literal alone. Asserting over the whole file
+    // would read the verifier's own `'LevelFlow' not in t` as the old casing.
+    const template = /template = """([\s\S]*?)"""/.exec(script)?.[1];
+    assert.ok(template, "the script must define the body template");
+    assert.match(template, /<h2[^>]*>Sign in to Levelflow<\/h2>/);
+    assert.match(
+      template,
+      /Click the button below to sign in\. This link expires in 15 minutes\./,
+    );
+    assert.match(template, /background:#2244FF;color:#fff/);
+    assert.match(template, />Sign in<\/a>/);
+    assert.match(template, /If you didn&#39;t request this, you can ignore it\./);
+    // The retired pre-overhaul palette, navy included, must not come back —
+    // tests/brandAssets.test.ts guards the icons against the same three.
+    assert.doesNotMatch(template, /#111c38|#F7F8F4|#5B8266/i);
+    assert.doesNotMatch(template, /LevelFlow/);
+    // And the script's own verifier has to read the body, not just the two
+    // header fields — that asymmetry is what let the body drift alone.
+    assert.match(script, /'Sign in to Levelflow' in t/);
+    assert.match(script, /'#2244FF' in t/);
   });
 });
 
