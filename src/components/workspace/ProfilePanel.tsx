@@ -475,10 +475,14 @@ function BrokerProgramControls({
   );
 }
 
-// ProfileDetailRow's own shape with a control in place of the value: the same
-// 520px measure, the same block padding, the same muted label column. Centered
-// rather than baseline-aligned because a 48px `.field` has no text baseline to
-// share with the label.
+// A stacked field: the label on its own line, the control on the row's whole
+// measure — keeping ProfileDetailRow's 520px cap and py-1.5 rhythm. This row
+// first borrowed ProfileDetailRow's label-left shape with a fixed 220px
+// control column, and the live content column — narrower than the cap by
+// half — handed the label the leftovers: "Risk per trade" rendered three
+// lines deep (owner, 2026-08-02). A 48px `.field` is not a short text value;
+// the app's own shape for a labeled control is the stacked one (AuthScreen's
+// email label above its field), and the broker rows take it at every width.
 function BrokerControlRow({
   children,
   label,
@@ -487,9 +491,9 @@ function BrokerControlRow({
   label: string;
 }) {
   return (
-    <label className="flex min-w-0 max-w-[520px] items-center justify-between gap-3 py-1.5 text-sm">
-      <span className="min-w-0 text-[12.5px] text-ink-muted">{label}</span>
-      <span className="min-w-0 shrink-0 basis-[220px]">{children}</span>
+    <label className="grid min-w-0 max-w-[520px] gap-1.5 py-1.5 text-sm">
+      <span className="text-[12.5px] text-ink-muted">{label}</span>
+      {children}
     </label>
   );
 }

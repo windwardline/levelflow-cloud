@@ -340,6 +340,26 @@ describe("§19b — the broker program controls, inside the row that already exi
     assert.equal((PANEL_SOURCE.match(/<select\n/g) ?? []).length, 5);
   });
 
+  it("stacks each control's label above the full-measure field (owner, 2026-08-02)", () => {
+    // The live content column runs far narrower than the 520px cap — beside a
+    // fixed 220px control column the label got the leftovers, and "Risk per
+    // trade" rendered three lines deep on the production Profile. A 48px .field
+    // is not a short text value, so the rows do not take ProfileDetailRow's
+    // label-left shape; the app's own shape for a labeled control is the stacked
+    // one (AuthScreen's email label above its field), and the broker rows take
+    // it at every width.
+    assert.match(
+      PANEL_SOURCE,
+      /<label className="grid min-w-0 max-w-\[520px\] gap-1\.5 py-1\.5 text-sm">/,
+    );
+    // The other direction: no fixed control column beside a shrinking label
+    // survives anywhere in the panel.
+    assert.ok(
+      !PANEL_SOURCE.includes("basis-[220px]"),
+      "the side-by-side control column is back — the label will fold again",
+    );
+  });
+
   it("defaults to None and renders only Program until a program is selected", () => {
     assert.match(PANEL_SOURCE, /<option value="none">None<\/option>/);
     assert.match(PANEL_SOURCE, /value=\{profile\.brokerProgramLine \?\? "none"\}/);
