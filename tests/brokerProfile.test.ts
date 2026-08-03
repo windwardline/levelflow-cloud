@@ -426,6 +426,48 @@ describe("§19 retrofit — brokerAccountProblem rejects what the checkout does 
     );
   });
 
+  // Amendment 19 (owner, 2026-08-03): `zero` is unsold — on no checkout walk
+  // — so a draft naming it must be rejected regardless of how internally
+  // consistent its other fields are. Before this fix, every other check on
+  // this draft passes: classificationOf("zero") is "forex" (matching the
+  // draft's own claim), platformsFor("zero") includes "tradelocker", and
+  // 50,000 is on zero's ladder — nothing else in brokerAccountProblem
+  // catches it.
+  it("rejects `zero` even with an internally consistent draft — it is unsold", () => {
+    assert.match(
+      brokerAccountProblem({
+        accountSize: 50_000,
+        brokerId: "e8",
+        classification: "forex",
+        drawdownTier: null,
+        platform: "tradelocker",
+        programLine: "zero",
+        riskPercent: 0.5,
+        stage: "challenge",
+      }) ?? "",
+      /zero is not sold on any checkout walk/,
+    );
+  });
+
+  // The fix must key off catalog membership (programLinesFor), never off the
+  // literal string "zero" — zero_futures_starter and zero_futures_max carry
+  // the same name prefix and are genuinely sold on the Futures walk.
+  it("still accepts zero_futures_starter — a different, actually-sold line", () => {
+    assert.equal(
+      brokerAccountProblem({
+        accountSize: 50_000,
+        brokerId: "e8",
+        classification: "futures",
+        drawdownTier: null,
+        platform: "tradovate",
+        programLine: "zero_futures_starter",
+        riskPercent: 0.5,
+        stage: "challenge",
+      }),
+      null,
+    );
+  });
+
   it("resolves the active account by the pointer, and null when it dangles", () => {
     const saved: BrokerAccount = { ...PRO_FOREX, id: "acc-1" };
     const profile = {

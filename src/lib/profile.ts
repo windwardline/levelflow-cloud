@@ -1,4 +1,4 @@
-import { classificationOf, platformsFor } from "./broker/catalog";
+import { classificationOf, platformsFor, programLinesFor } from "./broker/catalog";
 import {
   RISK_PERCENT_MAX,
   RISK_PERCENT_MIN,
@@ -178,6 +178,20 @@ export function brokerAccountProblem(draft: BrokerAccountDraft): string | null {
   const program = getProgramLine(draft.programLine);
   if (!program) {
     return `program line ${draft.programLine} is not one E8 sells`;
+  }
+  // Amendment 19: a program line can be a real, documented E8 product (it
+  // passes the check above) and still be unsold — `zero` is on no checkout
+  // walk at all. programLinesFor is the catalog's own exclusion and the only
+  // source of truth for what a walk offers, so this checks membership rather
+  // than naming `zero` (or any other line) directly. A draft's other fields
+  // can be perfectly self-consistent — as `zero`'s are — and still describe a
+  // purchase the checkout does not sell.
+  if (
+    !programLinesFor(classificationOf(draft.programLine)).some(
+      (candidate) => candidate.line === draft.programLine,
+    )
+  ) {
+    return `${draft.programLine} is not sold on any checkout walk`;
   }
   if (classificationOf(draft.programLine) !== draft.classification) {
     return `${draft.programLine} is not sold on the ${draft.classification} market`;

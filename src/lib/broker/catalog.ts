@@ -90,7 +90,12 @@ export function isPlatformVerified(platform: BrokerPlatform): boolean {
   return platform !== "matchtrader";
 }
 
-/** `zero` appears on no purchase-screen walk. Greyed until the owner rules. */
+/**
+ * `zero` is unsold (amendment 19): it is on no checkout walk at all, so it is
+ * never presented and never greyed — "greyed" is MatchTrader's state alone, a
+ * platform that IS sold but not yet verified. This returns false for `zero`
+ * as defense in depth, should a future edit ever re-add it to a walk.
+ */
 export function isProgramLineVerified(line: ProgramLine): boolean {
   return getProgramLine(line) !== null && line !== "zero";
 }
