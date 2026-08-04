@@ -16,7 +16,7 @@ Vite 8 + React 19, Tailwind v4, @supabase/supabase-js, lightweight-charts. TypeS
 
 ## Gates — CI in order
 
-`npm ci` → check → lint → check:migrations → `npm audit --audit-level=high` → test → build → check:bundle. E2E runs at deploy time only (`deploy.yml`), which also polls production security headers and fails on any `unsafe-inline`. A parallel `security.yml` (PRs, pushes, weekly cron) gates Semgrep, secret scan, and dependency scan. An advisory Claude review runs on every PR (`claude-review.yml`, activating once the `ANTHROPIC_API_KEY` repo secret exists).
+`npm ci` → check → lint → check:migrations → `npm audit --audit-level=high` → test → build → check:bundle. E2E runs at deploy time only (`deploy.yml`), which also polls production security headers and fails on any `unsafe-inline`. A parallel `security.yml` (PRs, pushes, weekly cron) gates Semgrep, secret scan, and dependency scan. An advisory Claude review runs on every same-repo PR via `claude-review.yml`, which deliberately calls the fleet reusable at `@main` — one merge updates every repo. It activates only when the `ANTHROPIC_API_KEY` secret is present; fork PRs never receive secrets, so they skip it by security design.
 
 ## Laws
 
