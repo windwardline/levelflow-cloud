@@ -220,15 +220,18 @@ describe("amendment 13 — market availability follows the account classificatio
 // the reset effect's own block, not merely that these calls exist somewhere
 // in the file, so a future edit that moves setScanResult/setScanCompletedAt
 // out of this branch (rather than genuinely fixing it) still fails this pin.
+// Fix round 2 (Task 9 review) added a third clear alongside the original
+// two — scanClassification, the stamp its own describe block below pins —
+// so this same regex now requires it too.
 describe("amendment 13 fix round 1 — the scope reset also drops the stale scan", () => {
-  it("clears scanResult and scanCompletedAt in the same block that resets scope to All markets", () => {
+  it("clears scanResult, scanCompletedAt and scanClassification in the same block that resets scope to All markets", () => {
     const source = readFileSync(
       "src/components/workspace/AdvisorWorkspace.tsx",
       "utf8",
     );
     assert.match(
       source,
-      /if \(!stillVisible\) \{\s*setScope\(\{ kind: "all" \}\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*\}/,
+      /if \(!stillVisible\) \{\s*setScope\(\{ kind: "all" \}\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*setScanClassification\(null\);\s*\}/,
     );
   });
 });
@@ -267,6 +270,67 @@ describe("amendment 13 — the scan action never reaches a hidden market", () =>
       filterMarketScanCandidatesByScope(candidates, { kind: "all" }, FOREX_ACCOUNT)
         .map((row) => row.symbol),
       ["EURUSD"],
+    );
+  });
+});
+
+// Task 9 review, fix round 1 (Important finding): the render-side filter
+// above drops a foreign account's stale ROWS from a completed scan, but
+// MarketScanPanel's count line (formatScopeCountLine) reads result.scanned/
+// result.qualified straight off that same scanResult, unfiltered — server-
+// truth numbers describing the universe the scan actually ran under, not
+// whatever account is active now. The amendment-13 reset effect
+// (pinned above) only clears scanResult for a NAMED scope the new account
+// hides, and returns early for scope "all" (every account can see
+// *something*, so "all" is never itself invalid) — so a One→Futures
+// BrokerChip switch under scope "all" left the honest filtered row list
+// sitting under a count line still describing the forex scan. Source-pinned
+// against AdvisorWorkspace.tsx for the same no-jsdom reason every other
+// describe block in this file is: scanClassification is the stamp that
+// closes the gap, recording which classification activeAccount carried
+// when scanMarkets last set scanResult, so a later mismatch can clear the
+// WHOLE result — counts included — rather than re-deriving a second set of
+// counts the server-truth numbers would then disagree with.
+describe("amendment 13 fix round 2 — a completed scan carries its own classification stamp", () => {
+  const source = readFileSync(
+    "src/components/workspace/AdvisorWorkspace.tsx",
+    "utf8",
+  );
+
+  it("declares scanClassification alongside scanResult/scanCompletedAt", () => {
+    assert.match(
+      source,
+      /const \[scanClassification, setScanClassification\] = useState<\s*BrokerClassification \| null\s*>\(\s*null\s*\);/,
+    );
+  });
+
+  it("stamps activeAccount's classification every time scanMarkets sets a result — the success path and the failure path both", () => {
+    const stamps = source.match(
+      /setScanClassification\(activeAccount\?\.classification \?\? null\);/g,
+    ) ?? [];
+    assert.equal(
+      stamps.length,
+      2,
+      "expected one stamp where scanMarkets sets the success result and one where it sets the failure sentinel",
+    );
+  });
+
+  it("clears the stamp at every site that clears scanResult to null — no site drops one without the other", () => {
+    const resultClears = source.match(/setScanResult\(null\);/g) ?? [];
+    const classificationClears =
+      source.match(/setScanClassification\(null\);/g) ?? [];
+    assert.ok(resultClears.length > 0, "expected at least one scanResult clear site to compare against");
+    assert.equal(
+      classificationClears.length,
+      resultClears.length,
+      "every setScanResult(null) site must also clear scanClassification",
+    );
+  });
+
+  it("a classification mismatch clears the whole result — rows and counts both — never just the rows", () => {
+    assert.match(
+      source,
+      /if \(scanResult === null\) \{\s*return;\s*\}\s*if \(\(activeAccount\?\.classification \?\? null\) !== scanClassification\) \{\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*setScanClassification\(null\);\s*\}/,
     );
   });
 });

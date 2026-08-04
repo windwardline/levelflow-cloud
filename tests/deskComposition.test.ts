@@ -1100,9 +1100,12 @@ describe("scan scope ownership — one state, one derivation, two surfaces (§17
   it("routes every scope change through the stage's one handler, which resets the stale result and follows a single market", () => {
     assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}onSelect=\{onSelectScope\}/);
     assert.match(stage, /onSelectScope=\{selectScope\}/);
+    // Task 9 review, fix round 1: selectScope also clears scanClassification
+    // now (tests/marketScanFilters.test.ts pins the stamp itself), so this
+    // shape gained a third clear alongside the original two.
     assert.match(
       stage,
-      /function selectScope\(nextScope: ScanScope\) \{\s*setScope\(nextScope\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*if \(nextScope\.kind === "symbol"\) \{\s*selectSymbolForReview\(nextScope\.symbol\);/,
+      /function selectScope\(nextScope: ScanScope\) \{\s*setScope\(nextScope\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*setScanClassification\(null\);\s*if \(nextScope\.kind === "symbol"\) \{\s*selectSymbolForReview\(nextScope\.symbol\);/,
     );
   });
 

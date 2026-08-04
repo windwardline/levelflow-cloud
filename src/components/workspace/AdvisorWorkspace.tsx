@@ -26,7 +26,11 @@ import {
   type MarketDataResponse,
 } from "../../lib/marketData";
 import { visibleAssetGroups, visibleAssetSymbols } from "../../lib/broker/visibility";
-import { activeAccountOf, type UserProfile } from "../../lib/profile";
+import {
+  activeAccountOf,
+  type BrokerClassification,
+  type UserProfile,
+} from "../../lib/profile";
 import {
   storedSetupAsCandidate,
   storedSetupReviewedAt,
@@ -138,6 +142,16 @@ export function AdvisorWorkspace(
   const [scope, setScope] = useState<ScanScope>({ kind: "all" });
   const [scanResult, setScanResult] = useState<MarketScanResponse | null>(null);
   const [scanCompletedAt, setScanCompletedAt] = useState<Date | null>(null);
+  // §19 retrofit, Task 9 fix round 1 (amendment 13): which classification
+  // activeAccount carried when scanMarkets last stamped scanResult — the
+  // visibility universe scanResult's rows AND its scanned/qualified counts
+  // both describe. Cleared everywhere scanResult is cleared to null, so
+  // "non-null iff scanResult is" holds without exception. The guard effect
+  // below reads it to catch what the amendment-13 reset effect further down
+  // cannot: scope "all" surviving a cross-classification account switch.
+  const [scanClassification, setScanClassification] = useState<
+    BrokerClassification | null
+  >(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
   const [clockNow, setClockNow] = useState(() => new Date());
   // Spec §17's mobile Expand chart. Owned here rather than inside MarketChart
@@ -263,8 +277,43 @@ export function AdvisorWorkspace(
       setScope({ kind: "all" });
       setScanResult(null);
       setScanCompletedAt(null);
+      setScanClassification(null);
     }
   }, [activeAccount, scope]);
+
+  // §19 retrofit, Task 9 fix round 1 (amendment 13): the effect above only
+  // clears a scope the new account can no longer see, and returns early for
+  // "all" — every account can see *something*, so "all" is never itself
+  // invalid. That leaves exactly the gap the review found: scope stays "all"
+  // across a cross-classification switch (a One→Futures BrokerChip pick,
+  // say — AdvisorWorkspace never unmounts when the chip fires), and the
+  // scanResult a forex account earned is still sitting there. Its ROWS are
+  // already dropped by MarketScanPanel's render-side filter (Task 9,
+  // marketScanFilters.ts), but formatScopeCountLine reads result.scanned/
+  // result.qualified straight off that same stale result — server-truth
+  // numbers describing the scan that actually ran, not whatever account is
+  // active now — so the rail was left showing an honest row list under a
+  // count line describing a universe the reader can no longer see. That is
+  // the same visible-list-vs-count disagreement the m3 note
+  // (marketScanFilters.ts) retired the Quality band over, one layer up.
+  // Rather than teach the count line to re-derive its own filtered counts
+  // (which would then disagree with the server's own scanned/qualified
+  // numbers), the whole result yields to the null un-scanned state (§17c): a
+  // foreign classification means every number in it, not just the rows,
+  // describes a universe that is no longer honestly on screen. A
+  // same-classification switch (E8 Pro $25K → E8 One $100K, both forex)
+  // leaves a still-honest scanResult alone — amendment 18's spirit is that
+  // switching accounts never destroys work that remains true.
+  useEffect(() => {
+    if (scanResult === null) {
+      return;
+    }
+    if ((activeAccount?.classification ?? null) !== scanClassification) {
+      setScanResult(null);
+      setScanCompletedAt(null);
+      setScanClassification(null);
+    }
+  }, [activeAccount, scanClassification, scanResult]);
 
   // What "the stage follows the Scan column" is made of: the scope menu's own
   // symbol selection and a scan-row click both land here (spec §4: selecting a
@@ -422,6 +471,7 @@ export function AdvisorWorkspace(
     setScope(nextScope);
     setScanResult(null);
     setScanCompletedAt(null);
+    setScanClassification(null);
     if (nextScope.kind === "symbol") {
       selectSymbolForReview(nextScope.symbol);
     }
@@ -495,6 +545,9 @@ export function AdvisorWorkspace(
     try {
       const nextResult = await scanMarketOpportunities(symbols);
       setScanResult(nextResult);
+      // Task 9 fix round 1: which universe this result belongs to — see
+      // scanClassification's own comment above.
+      setScanClassification(activeAccount?.classification ?? null);
       if (requestIdRef.current === requestId && adoptScanVerdict(nextResult)) {
         // The engine analyzed live provider data server-side moments ago;
         // re-fetching the chart for the market that just took this scan's
@@ -515,6 +568,7 @@ export function AdvisorWorkspace(
         qualified: 0,
         scanned: 0,
       });
+      setScanClassification(activeAccount?.classification ?? null);
       // A failed scan is not a scan that wrote nothing. Whatever chunks
       // completed before the failure have already persisted their setups
       // server-side (spec §17m.2 — the write is part of the request, not of the
