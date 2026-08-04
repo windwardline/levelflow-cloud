@@ -140,11 +140,16 @@ async function scanForSetupOnStage(page: Page): Promise<boolean> {
   await rail.getByRole("button", { name: "Scan", exact: true }).click();
   // Every finished scan says what it checked or says it could not complete.
   // That pair is unconditional and waited for hard: neither arriving is rot.
+  // The budget outlasts a full client-limiter window (40/60s tumbling, per
+  // user): in the full matrix the CI user's window can arrive hot from the
+  // preceding legs' scans, and deploy 30891469472 showed a scan still
+  // honestly in flight at the old 90s line — slow completion under that
+  // load is not rot, so the wait covers one whole window plus the scan.
   const countLine = rail.getByText(/\d+ scanned/);
   const scanFailed = rail.getByText(
     "Market scan could not complete. Try again shortly.",
   );
-  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 90_000 });
+  await expect(countLine.or(scanFailed)).toBeVisible({ timeout: 150_000 });
   if (await isVisibleWithin(scanFailed, 1_000)) {
     return false;
   }
@@ -570,7 +575,7 @@ test("a How this works link opens the Guide at the section it names", async ({ p
   // explained. That row only exists once a review has produced a setup, so
   // this now follows the same live-dependency and honest-skip pattern as the
   // file's other review-driven specs.
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await page.goto("/");
   test.skip(
     !(await scanForSetupOnStage(page)),
@@ -632,7 +637,7 @@ test("a receipt How this works link lands on the Guide's record section", async 
   // dedicated E2E user). A market that is standing aside returns no setup
   // and therefore no receipt — a legitimate outcome, not a failure — so the
   // test skips itself rather than pinning behavior on market conditions.
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await page.goto("/");
   test.skip(
     !(await scanForSetupOnStage(page)),
@@ -1727,7 +1732,7 @@ for (const width of [1280, 375]) {
     // 150s rather than the file's usual 120s: this walk carries a live scan's own
     // 90s ceiling AND two Desk/Insights crossings with a chart load on each side
     // of them, which is more after the scan than any other scan-driven spec here.
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
     await page.setViewportSize({ width, height: width < 1024 ? 812 : 800 });
     await page.goto("/");
 
@@ -1809,7 +1814,7 @@ for (const width of [1280, 375]) {
     // the chart, but not the details below it. It should." The row used to hand
     // over a bare symbol, which reselected the market and left the stage's
     // analysis state null — chart above an empty ladder.
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
     await page.setViewportSize({ width, height: width < 1024 ? 812 : 800 });
     await page.goto("/");
 
@@ -1944,7 +1949,7 @@ test("the trades rail force-refreshes outcomes on every Desk/Insights re-navigat
 test("each ladder value copies independently, flipping its own button to a checked state", async ({ page }) => {
   // The ladder only exists once a scan has produced a setup — same
   // live-dependency and skip pattern as the receipt specs above.
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await page.goto("/");
   test.skip(
     !(await scanForSetupOnStage(page)),
@@ -2432,11 +2437,23 @@ async function openBrokerProfile(page: Page, width: number) {
 // list rather than resetting a single field.
 async function removeAllAccounts(page: Page, width: number) {
   const profile = await openBrokerProfile(page, width);
+  const removeButtons = profile.getByRole("button", { name: "Remove" });
   for (;;) {
-    const removeButtons = profile.getByRole("button", { name: "Remove" });
     const remaining = await removeButtons.count();
     if (remaining === 0) {
-      return profile;
+      // The rows render from the profile fetch, which this helper cannot
+      // see — a zero read taken before that fetch resolves is
+      // indistinguishable from a truly empty list, and deploy 30891469472
+      // hit exactly that: a straggler row from a prior leg's mid-flight
+      // failure surfaced only after the reload. Zero is trusted only once
+      // it has held long enough for a late fetch to have landed.
+      const appeared = await removeButtons.first()
+        .waitFor({ state: "visible", timeout: 2_000 })
+        .then(() => true, () => false);
+      if (!appeared) {
+        return profile;
+      }
+      continue;
     }
     await removeButtons.first().click();
     await expect(removeButtons).toHaveCount(remaining - 1);
@@ -2496,7 +2513,7 @@ for (const width of [375, 1280]) {
     // in the live run this shape was written against finished in 7.5s — and both
     // are Crypto-scoped now (one request of seven markets), so 90s is headroom
     // rather than a real expectation.
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
     await page.setViewportSize({ height: 812, width });
     await page.goto("/");
 
@@ -2625,7 +2642,7 @@ for (const width of [375, 1280]) {
     // One scan, not §19d's two: this leg never needs the "no account
     // active" absence state, so there is one fewer live-market wait to
     // budget for.
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
     await page.setViewportSize({ height: width < 1024 ? 812 : 800, width });
     await page.goto("/");
 
