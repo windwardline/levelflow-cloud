@@ -110,7 +110,7 @@ export function brokerSelectionProblem(selection: BrokerSelection): string | nul
   ) {
     return `risk per trade ${String(selection.brokerRiskPercent)} is off the published band`;
   }
-  const tiers = program.drawdownTiers;
+  const tiers = program.drawdownTiers?.value ?? null;
   if (tiers === null) {
     return selection.brokerDrawdownTier === null
       ? null
@@ -242,7 +242,7 @@ export function brokerAccountProblem(draft: BrokerAccountDraft): string | null {
   ) {
     return `risk per trade ${draft.riskPercent} is off the published band`;
   }
-  const tiers = program.drawdownTiers;
+  const tiers = program.drawdownTiers?.value ?? null;
   if (!tiers) {
     return draft.drawdownTier === null
       ? null

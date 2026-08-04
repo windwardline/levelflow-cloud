@@ -451,7 +451,7 @@ describe("§19 retrofit — the catalog walk beneath the accounts list (amendmen
 
   it("resets platform, account size and the tier on a market or program change, carrying risk and stage forward", () => {
     assert.match(PANEL_SOURCE, /accountSize: next\.accountSizes\[0\]/);
-    assert.match(PANEL_SOURCE, /drawdownTier: next\.drawdownTiers\?\.\[0\] \?\? null/);
+    assert.match(PANEL_SOURCE, /drawdownTier: next\.drawdownTiers\?\.value\?\.\[0\] \?\? null/);
     assert.match(PANEL_SOURCE, /platform: platformsFor\(next\.line\)\[0\]/);
     // Risk per trade and stage are not program parameters (unchanged rationale
     // from the retired walk) — carried forward from the PREVIOUS local draft
@@ -462,7 +462,7 @@ describe("§19 retrofit — the catalog walk beneath the accounts list (amendmen
 
   it("renders the ladder, the tiers and the market/program/platform lists from the data modules, never a local copy", () => {
     assert.match(PANEL_SOURCE, /program\.accountSizes\.map/);
-    assert.match(PANEL_SOURCE, /program\.drawdownTiers\.map/);
+    assert.match(PANEL_SOURCE, /program\.drawdownTiers\.value!\.map/);
     assert.match(PANEL_SOURCE, /RISK_PERCENT_OPTIONS\.map/);
     assert.match(PANEL_SOURCE, /STAGE_OPTIONS\.map/);
     assert.match(PANEL_SOURCE, /CLASSIFICATIONS\.map/);

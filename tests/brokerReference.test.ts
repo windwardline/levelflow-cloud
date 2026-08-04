@@ -34,9 +34,11 @@ import {
   TICK_SIZES,
   ZERO_PRODUCT,
   allowedMarginFor,
+  drawdownTiersFor,
   formatAccountSize,
   formatDrawdownTier,
   formatRiskPercent,
+  getProgramLine,
 } from "../src/lib/broker/programs.ts";
 import { CFD_LOT_STEP } from "../src/lib/broker/sizing.ts";
 import type {
@@ -283,7 +285,7 @@ describe("§19b — the ten program lines", () => {
 
   it("carries the drawdown tier domain on the four customizable lines only", () => {
     const tiers = Object.fromEntries(
-      PROGRAM_LINES.map((program) => [program.line, program.drawdownTiers]),
+      PROGRAM_LINES.map((program) => [program.line, program.drawdownTiers?.value ?? null]),
     );
     assert.deepEqual(tiers.one, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
     assert.deepEqual(tiers.one_crypto, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
@@ -299,6 +301,38 @@ describe("§19b — the ten program lines", () => {
     ]) {
       assert.equal(tiers[preset], null, `${preset} must have no tier column`);
     }
+  });
+
+  it("§19b — Classic and Track are discontinued, not under-evidenced (amendment 9)", () => {
+    const source = readFileSync("src/lib/broker/programs.ts", "utf8");
+    assert.ok(
+      !source.includes("only behind a fresh primary-research pass"),
+      "amendment 9 abolishes the re-entry path this comment describes",
+    );
+    assert.match(source, /no longer offered by E8/);
+    assert.match(source, /no re-entry path/);
+    assert.equal(PROGRAM_LINES.length, 10);
+  });
+
+  it("§20b — the tier data carries provenance (amendment 10)", () => {
+    const one = getProgramLine("one")!;
+    assert.deepEqual(one.drawdownTiers?.value, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
+    assert.equal(one.drawdownTiers?.source.tag, "verified");
+    assert.equal(
+      one.drawdownTiers?.source.observation?.platform,
+      "E8 purchase screen",
+    );
+    assert.equal(one.drawdownTiers?.source.observation?.date, "2026-08-02");
+    const pro = getProgramLine("pro_forex")!;
+    assert.deepEqual(pro.drawdownTiers?.value, ["2.5-6", "2.5-8", "2.5-10"]);
+    for (const line of [
+      "signature_forex", "signature_crypto", "signature_futures",
+      "zero", "zero_futures_starter", "zero_futures_max",
+    ]) {
+      assert.equal(getProgramLine(line)!.drawdownTiers, null);
+    }
+    assert.deepEqual(drawdownTiersFor("one"), ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
+    assert.equal(drawdownTiersFor("zero"), null);
   });
 
   it("renders E8's own tiers verbatim from the paired token", () => {
@@ -1062,6 +1096,11 @@ function allProvenances(): Provenance[] {
   }
   for (const program of PROGRAM_LINES) {
     sources.push(program.accountSizeSource);
+    // Task 12: drawdownTiers became Valued<> to carry the purchase-screen
+    // observation (amendment 10); null on the six preset lines with no tier.
+    if (program.drawdownTiers) {
+      sources.push(program.drawdownTiers.source);
+    }
     for (const leverageValue of Object.values(program.leverage)) {
       if (leverageValue) {
         sources.push(leverageValue.source);

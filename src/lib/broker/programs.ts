@@ -11,9 +11,16 @@ import type {
 // [PRIMARY] account-size ladder and a [PRIMARY] rule set. `E8 Classic` fails it
 // (its article 404'd on re-fetch and its drawdown is described two ways);
 // `E8 Track` and `E8 Track 1:1` fail it (never found on either help subdomain,
-// secondary-only). Neither appears in the selector, and neither re-enters on
-// recollection or a checkout screenshot — only behind a fresh primary-research
-// pass that clears the same bar the ten cleared (§20i ruling 6).
+// secondary-only). Neither is offered by E8 any longer (owner, 2026-08-02:
+// "Classic and Track are no longer offered by E8."), which retires the
+// evidence question rather than answering it: the 404'd Classic article and
+// Track's secondary-only citations are what a withdrawn product's
+// documentation looks like. Neither appears in the selector, and there is
+// no re-entry path — no research pass to run against a product that is not
+// sold. The ten lines are E8's current catalogue. If E8 ever reintroduces
+// either name, it enters as a new product on its own primary research,
+// dated and committed to docs/research/ like the rest — a restoration of a
+// 2026 row is never the mechanism (amendment 9, §20i ruling 6).
 
 const HELP = "https://help.e8markets.com/en/articles";
 const HELP_FUTURES = "https://helpfutures.e8markets.com/en/articles";
@@ -101,9 +108,11 @@ export type ProgramLineSpec = {
    * (§19g). Encoded as the paired token the selector renders, because daily and
    * dynamic move together — "Profit Target adjusts automatically with drawdown
    * changes" — so a two-number column could hold a configuration E8 does not
-   * sell.
+   * sell. `verified` against the E8 purchase screen (amendment 10) — the
+   * purchase screen is the definitive statement of what a buyer chooses from,
+   * ahead of a help-centre article.
    */
-  drawdownTiers: string[] | null;
+  drawdownTiers: Valued<string[]> | null;
   leverage: Partial<Record<LeverageClass, Valued<number>>>;
   /**
    * 10155917's allowed-margin figure per size and stage. The published
@@ -180,12 +189,39 @@ const PRO_LADDER = [
 const SIGNATURE_LADDER = [25_000, 50_000, 100_000, 150_000];
 const ZERO_LADDER = [50_000, 100_000, 200_000];
 
-// E8's own tiers, paired as E8 pairs them (8880316): daily % and dynamic % move
-// together on One; Pro's daily is a fixed 2.5% on every tier and only the static
-// leg moves, but the token still carries both so one column shape serves all
-// four customizable lines.
-const ONE_DRAWDOWN_TIERS = ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"];
-const PRO_DRAWDOWN_TIERS = ["2.5-6", "2.5-8", "2.5-10"];
+// Amendment 10's input contract: the purchase screen is the definitive
+// statement of what E8 offers a buyer, verified across three market walks on
+// 2026-08-02 (docs/research/e8-purchase-screen-2026-08-02.md).
+const PURCHASE_SCREEN: Provenance = {
+  article: null,
+  method: null,
+  observation: {
+    date: "2026-08-02",
+    note: "Three market walks, twenty-nine frames, balance $100,000.",
+    platform: "E8 purchase screen",
+    program: "E8 One / E8 Pro / E8 Signature / E8 Zero",
+  },
+  tag: "verified",
+  url: null,
+};
+
+// The One-line coupling, verified: choosing the dynamic drawdown moves the daily
+// drawdown AND the profit target together — 4%→3.0%/6%, 6%→4.0%/9%,
+// 8%→5.3%/12%, 10%→6.6%/15%, 14%→9.2%/21%. Daily is not a clean ratio of
+// dynamic, which is exactly why the column holds one paired token: two
+// independently chosen numbers could encode a configuration E8 does not sell
+// (docs/research/e8-purchase-screen-2026-08-02.md).
+const ONE_DRAWDOWN_TIERS: Valued<string[]> = {
+  source: PURCHASE_SCREEN,
+  value: ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"],
+};
+
+// Pro: daily FIXED at 2.5% and the daily profit cap FIXED at 2% regardless of
+// the static choice; only the static leg moves. Verified on the same walks.
+const PRO_DRAWDOWN_TIERS: Valued<string[]> = {
+  source: PURCHASE_SCREEN,
+  value: ["2.5-6", "2.5-8", "2.5-10"],
+};
 
 export const PROGRAM_LINES: ProgramLineSpec[] = [
   {
@@ -397,7 +433,7 @@ export function formatDrawdownTier(token: string, accountSize?: number) {
 }
 
 export function drawdownTiersFor(line: string): string[] | null {
-  return getProgramLine(line)?.drawdownTiers ?? null;
+  return getProgramLine(line)?.drawdownTiers?.value ?? null;
 }
 
 /**
