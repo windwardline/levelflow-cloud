@@ -40,26 +40,22 @@ h1 { font-size: 20px; margin-bottom: 4px; }
 </style>
 </head>
 <body>
-<h1 class="display">The account switcher below lg — the same one dressing</h1>
+<h1 class="display">The account switcher below lg — RULED: piped, (1) suffix, cap 14</h1>
 <p class="note">375px frames, the compact chip in the real header (wordmark left, chip + avatar right), the §17g full-screen sheet as the menu. <b>Same candidates as the desktop file — whichever you pick there is the format here too.</b> Both chips below are measured at the longest live label; the rename cap follows from the measurement.</p>
 
 <!--
-  §17n MEASUREMENTS at 375px (rendered, this file's own CSS):
-  Header inner width: 375 − 32 (px-16 gutters) = 343px.
-  Left side (wordmark "Levelflow" 18px/700): ~86px. Gap 12. Avatar 28 + gap 8.
-  Chip space remaining: 343 − 86 − 12 − 28 − 8 = ~209px.
-  Candidate 1 chip "E8 | FOREX | 100K" @12px/700 caps +.05em with dot+gap+padding+chevron:
-    text ~118px + chrome ~46px = ~164px → FITS (45px slack).
-  Candidate 1 worst live label "E8 | FUTURES | 50K": text ~130px + chrome 46 = ~176px → FITS (33px slack).
-  Candidate 2 chip "E8-FOREX-100K": text ~100px + chrome 46 = ~146px → FITS (63px slack).
-  Candidate 2 worst "E8-FUTURES-50K": text ~112px + chrome 46 = ~158px → FITS (51px slack).
-  Suffixed collision "E8-FOREX-100K-1" (+2ch ≈ 15px): 1 → ~191px tight-but-fits; 2 → ~173px fits.
-  RENAME CAP derivation: chip budget 209px − chrome 46px = 163px of text.
-    Caps text @12px/700/.05em ≈ 7.8px/char → 20 chars hard max.
-    Proposed cap: 16 CHARACTERS (renders ~125px — clears the suffixed formula's own worst case,
-    leaves 38px slack, and matches the longest formula label's footprint so a rename can never
-    crowd harder than the default it replaces).
-  Sheet rows: min-height 44px, full measure — no width constraint below lg.
+  §17n MEASUREMENTS at 375px — MEASURED (headless Chromium against this file, 2026-08-03,
+  superseding the earlier arithmetic estimates):
+  Chip budget beside wordmark+avatar: 211px.
+  E8 | FOREX | 100K (active, plain): 160px  → clearance 51px.
+  E8 | FOREX | 100K (1) (active, suffixed): 180px → clearance 31px.
+  E8 | FUTURES | 50K (worst live): 169px → clearance 42px.
+  E8 | FUTURES | 50K (1) (worst suffixed): 189px → clearance 22px. NO TRUNCATION.
+  OWNER CONDITIONS: both clear → RULED: piped dressing everywhere; suffix = single space + (1).
+  RENAME CAP: 16 chars at worst-glyph stress (all M) measured 211px — exactly zero clearance —
+  so the cap is 14 CHARACTERS: worst-glyph 14 ≈ 190px, parity with the worst suffixed formula
+  label (189px). A rename can never crowd the header harder than the longest default.
+  Sheet rows: min-height 44px, full measure.
 -->
 
 <!-- ============ CANDIDATE 1: PIPED ============ -->
@@ -79,7 +75,7 @@ h1 { font-size: 20px; margin-bottom: 4px; }
       <div class="row"><span>E8 | FOREX | 100K</span><span class="on">ACTIVE</span></div>
       <div class="row"><span>E8 | FUTURES | 50K</span></div>
       <div class="row"><span>E8 | FOREX | 25K</span></div>
-      <div class="row"><span>E8 | FOREX | 100K-1</span><span class="renote">collision, suffixed</span></div>
+      <div class="row"><span>E8 | FOREX | 100K (1)</span><span class="renote">collision, suffixed</span></div>
       <div class="row"><span>SWING BOOK</span><span class="renote">renamed — suffix gone</span></div>
       <div class="row manage"><span>Manage accounts</span></div>
     </div>
@@ -89,7 +85,7 @@ h1 { font-size: 20px; margin-bottom: 4px; }
 <p class="cap">Chip measured: ~164px of the ~209px available (worst live label ~176px) — fits with slack beside the avatar. Sheet rows at 44px, full measure.</p>
 
 <!-- ============ CANDIDATE 2: CONDENSED ============ -->
-<div class="sec"><div class="eyebrow">Candidate 2 — condensed, compact chip + §17g sheet</div></div>
+<div class="sec"><div class="eyebrow">Candidate 2 — condensed (NOT SHIPPING — the owner chose piped)</div></div>
 <div class="grid2">
 <div class="phone">
   <div class="phead">
@@ -105,13 +101,13 @@ h1 { font-size: 20px; margin-bottom: 4px; }
       <div class="row"><span>E8-FOREX-100K</span><span class="on">ACTIVE</span></div>
       <div class="row"><span>E8-FUTURES-50K</span></div>
       <div class="row"><span>E8-FOREX-25K</span></div>
-      <div class="row"><span>E8-FOREX-100K-1</span><span class="renote">collision, suffixed</span></div>
+      <div class="row"><span>E8-FOREX-100K (1)</span><span class="renote">collision, suffixed</span></div>
       <div class="row"><span>SWING BOOK</span><span class="renote">renamed — suffix gone</span></div>
       <div class="row manage"><span>Manage accounts</span></div>
     </div>
   </div>
 </div>
 </div>
-<p class="cap">Chip measured: ~146px of ~209px (worst live label ~158px; the suffixed collision ~173px) — the roomier of the two at every label. <b>Rename cap, derived from the measurements: 16 characters</b> — clears the worst suffixed formula label's own footprint, so a rename can never crowd the header harder than the default it replaces. Both candidates hold the cap; the number rides the Task 7 build whichever dressing wins.</p>
+<p class="cap">Chip measured: ~146px of ~209px (worst live label ~158px; the suffixed collision ~173px) — the roomier of the two at every label. <b>Rename cap, measured: 14 characters</b> — the 16-char worst-glyph stress case rendered exactly the full 211px budget (zero clearance), so the cap tightens to 14, putting the worst possible rename at parity with the worst suffixed formula label. Rides the Task 7 build with the piped verdict.</p>
 </body>
 </html>
