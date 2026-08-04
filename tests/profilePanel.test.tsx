@@ -321,17 +321,22 @@ describe("ProfileRow's last-row rule matches the row, not whatever ends the regi
   });
 });
 
-// Spec §19b, both directions per §16. The controls live inside the existing Broker
-// row, and with None the feature is dormant: no second Broker section, no card, no
-// facts block, and no control at all beyond the one that opens the door.
-describe("§19b — the broker program controls, inside the row that already exists", () => {
-  it("puts the controls in the Broker row beneath the chip, in one component", () => {
+// §19 retrofit (amendment 14, 18), both directions per §16. This block
+// pinned the retired single-selection `BrokerProgramControls` (five fields,
+// a "None" sentinel, progressive reveal); Task 4 renamed and rewrote that
+// component into `BrokerAccountsSection` (the confirmed-accounts list above
+// a seven-field catalog walk that is never dormant), so the facts below are
+// updated to match rather than left pinning code that no longer exists. The
+// walk still lives inside the existing Broker row: no second Broker section,
+// no card, no facts block.
+describe("§19 retrofit — the catalog walk beneath the accounts list (amendment 14, 18)", () => {
+  it("puts the section in the Broker row beneath the chip, wired to the three account callbacks", () => {
     assert.match(
       PANEL_SOURCE,
-      /<BrokerChip \/>\s*\n\s*<BrokerProgramControls onChange=\{saveSelection\} profile=\{profile\} \/>/,
+      /<BrokerChip \/>\s*\n\s*<BrokerAccountsSection\s*\n\s*onActivateAccount=\{onActivateAccount\}\s*\n\s*onRemoveAccount=\{onRemoveAccount\}\s*\n\s*onSaveAccount=\{onSaveAccount\}\s*\n\s*profile=\{profile\}\s*\n\s*\/>/,
     );
     // One Broker row, not two: the row count and its titles are pinned above, and
-    // this is the second direction — no new ProfileRow was added for the program.
+    // this is the second direction — no new ProfileRow was added for the walk.
     assert.equal((PANEL_SOURCE.match(/title="Broker"/g) ?? []).length, 1);
   });
 
@@ -348,29 +353,34 @@ describe("§19b — the broker program controls, inside the row that already exi
     );
     // Slice to the next top-level function: the component's props close at
     // column 0, so a lazy body regex would stop 57 characters in.
-    const start = PANEL_SOURCE.indexOf("function BrokerProgramControls");
+    const start = PANEL_SOURCE.indexOf("function BrokerAccountsSection");
     const controls = PANEL_SOURCE.slice(
       start,
       PANEL_SOURCE.indexOf("\nfunction ", start + 1),
     );
     assert.ok(controls.includes("</select>"), "expected the controls' JSX");
-    // Every option-text renderer in the broker controls goes through the
-    // helper — six sites, no bare option text left…
-    assert.equal((controls.match(/<option/g) ?? []).length, 6);
-    assert.equal((controls.match(/\{optionCaps\(/g) ?? []).length, 6);
+    // Every option-text renderer in the walk goes through the helper — seven
+    // sites (Market, Program, Platform, Account size, Stage, Risk per trade,
+    // Drawdown), no bare option text left…
+    assert.equal((controls.match(/<option/g) ?? []).length, 7);
+    assert.equal((controls.match(/\{optionCaps\(/g) ?? []).length, 7);
     // …and the labels stay untransformed: no uppercase utility in the
     // controls. The closed select needs no class either — it displays the
-    // option text, which arrives already capped.
+    // option text, which arrives already capped. The row's OWNER COPY words
+    // (Active, Remove, Add account) are excluded from this helper on
+    // purpose — the owner's ruling scopes to option text alone.
     assert.doesNotMatch(controls, /uppercase/);
   });
 
-  it("renders five controls, in the spec's order, each a select with its label", () => {
+  it("renders seven controls, in the catalog's order, each a select with its own accessible name", () => {
     const labels = Array.from(
       PANEL_SOURCE.matchAll(/<BrokerControlRow label="([^"]+)">/g),
       (match) => match[1],
     );
     assert.deepEqual(labels, [
+      "Market",
       "Program",
+      "Platform",
       "Account size",
       "Stage",
       "Risk per trade",
@@ -383,7 +393,7 @@ describe("§19b — the broker program controls, inside the row that already exi
         `${label} needs an accessible name`,
       );
     }
-    assert.equal((PANEL_SOURCE.match(/<select\n/g) ?? []).length, 5);
+    assert.equal((PANEL_SOURCE.match(/<select\n/g) ?? []).length, 7);
   });
 
   it("stacks each control's label above the full-measure field (owner, 2026-08-02)", () => {
@@ -393,7 +403,8 @@ describe("§19b — the broker program controls, inside the row that already exi
     // is not a short text value, so the rows do not take ProfileDetailRow's
     // label-left shape; the app's own shape for a labeled control is the stacked
     // one (AuthScreen's email label above its field), and the broker rows take
-    // it at every width.
+    // it at every width. Reused verbatim from the retired single-selection walk
+    // — BrokerControlRow itself did not change.
     assert.match(
       PANEL_SOURCE,
       /<label className="grid min-w-0 max-w-\[520px\] gap-1\.5 py-1\.5 text-sm">/,
@@ -406,68 +417,124 @@ describe("§19b — the broker program controls, inside the row that already exi
     );
   });
 
-  it("defaults to None and renders only Program until a program is selected", () => {
-    // None rides the caps helper like every other option (owner, 2026-08-03).
-    assert.match(
-      PANEL_SOURCE,
-      /<option value="none">\{optionCaps\("None"\)\}<\/option>/,
-    );
-    assert.match(PANEL_SOURCE, /value=\{profile\.brokerProgramLine \?\? "none"\}/);
-    // The other four sit behind the program check, so with None they do not exist.
-    assert.match(
-      PANEL_SOURCE,
-      /<\/BrokerControlRow>\s*\{program\s*\n\s*\? \(\s*\n\s*<>/,
-    );
+  it("seeds the walk from the catalog's own first market and program — never a bare 'no selection' state", () => {
+    // Amendment 18: unlike the retired BrokerSelection walk, BrokerAccountDraft
+    // has no field that means "nothing chosen yet", so there is no "None"
+    // option and no progressive reveal gated behind one — the draft is always
+    // a complete, sellable account, from the catalog's own first entries.
+    assert.match(PANEL_SOURCE, /function initialDraft\(\): BrokerAccountDraft \{/);
+    assert.match(PANEL_SOURCE, /const classification = CLASSIFICATIONS\[0\]\.value;/);
+    assert.doesNotMatch(PANEL_SOURCE, /<option value="none">/);
+    assert.doesNotMatch(PANEL_SOURCE, /optionCaps\("None"\)/);
   });
 
   it("draws the Drawdown control only where a tier exists to purchase", () => {
     assert.match(PANEL_SOURCE, /\{program\.drawdownTiers\s*\n\s*\? \(\s*\n\s*<BrokerControlRow label="Drawdown">/);
   });
 
-  it("resets the size and the tier on a program change, and seeds risk once", () => {
-    assert.match(PANEL_SOURCE, /brokerAccountSize: next\.accountSizes\[0\]/);
-    assert.match(PANEL_SOURCE, /brokerDrawdownTier: next\.drawdownTiers\?\.\[0\] \?\? null/);
-    assert.match(
-      PANEL_SOURCE,
-      /brokerRiskPercent: profile\.brokerRiskPercent \?\? RISK_PERCENT_DEFAULT/,
-    );
+  it("resets platform, account size and the tier on a market or program change, carrying risk and stage forward", () => {
+    assert.match(PANEL_SOURCE, /accountSize: next\.accountSizes\[0\]/);
+    assert.match(PANEL_SOURCE, /drawdownTier: next\.drawdownTiers\?\.\[0\] \?\? null/);
+    assert.match(PANEL_SOURCE, /platform: platformsFor\(next\.line\)\[0\]/);
+    // Risk per trade and stage are not program parameters (unchanged rationale
+    // from the retired walk) — carried forward from the PREVIOUS local draft
+    // rather than re-read off `profile`, since the draft is now local state.
+    assert.match(PANEL_SOURCE, /riskPercent,\s*\n\s*stage,\s*\n\s*\};/);
+    assert.match(PANEL_SOURCE, /prev\.riskPercent, prev\.stage/);
   });
 
-  it("renders the ladder and the tiers from the data module, never a local copy", () => {
+  it("renders the ladder, the tiers and the market/program/platform lists from the data modules, never a local copy", () => {
     assert.match(PANEL_SOURCE, /program\.accountSizes\.map/);
     assert.match(PANEL_SOURCE, /program\.drawdownTiers\.map/);
     assert.match(PANEL_SOURCE, /RISK_PERCENT_OPTIONS\.map/);
-    assert.match(PANEL_SOURCE, /PROGRAM_LINES\.map/);
     assert.match(PANEL_SOURCE, /STAGE_OPTIONS\.map/);
+    assert.match(PANEL_SOURCE, /CLASSIFICATIONS\.map/);
+    assert.match(PANEL_SOURCE, /programLinesFor\(/);
+    assert.match(PANEL_SOURCE, /platformsFor\(/);
     // No literal ladder, tier or percentage anywhere in the component.
     assert.doesNotMatch(PANEL_SOURCE, /\$100,000|\$5,000|0\.50%|3% daily/);
   });
 
-  it("adds no card, no chrome and no copy of its own (§17c, §20j)", () => {
+  it("adds no card, no chrome to the section (§17c)", () => {
     const controls = PANEL_SOURCE.slice(
-      PANEL_SOURCE.indexOf("function BrokerProgramControls"),
+      PANEL_SOURCE.indexOf("function BrokerAccountsSection"),
     );
     for (const box of ["terminal-panel", "rounded-lg", "shadow", "bg-accent"]) {
       assert.ok(!controls.includes(box), `${box} must not reach the Broker row`);
     }
-    // The only strings this block renders are the five labels and the options
-    // the data module formats — §20j's list, with nothing added. Since the
-    // caps ruling (owner, 2026-08-03), even None flows through optionCaps, so
-    // no bare JSX text remains at all.
+    // Every string this block renders is either an option the data module
+    // formats (through optionCaps) or one of the six OWNER COPY words —
+    // Active, Remove, Add account — each carried as a quoted string literal
+    // rather than bare JSX prose (the same technique "None" used on the
+    // retired walk), so no UN-registered copy of its own survives as bare
+    // JSX text.
     const jsxText = Array.from(controls.matchAll(/>([A-Za-z][^<>{}]*)</g), (m) =>
       m[1].trim());
     assert.deepEqual(jsxText.filter((text) => text.length > 0), []);
   });
 
-  it("persists on change with every other saved field riding along", () => {
+  it("submits the local draft exactly, via the new per-account write path", () => {
+    assert.match(PANEL_SOURCE, /onClick=\{\(\) => onSaveAccount\(draft\)\}/);
+  });
+});
+
+describe("§19 retrofit — the Broker row is the confirmed-accounts list (amendment 18)", () => {
+  // Brief discrepancy, resolved: task-4-brief.md's Step 1 snippet names this
+  // constant `PROFILE_SOURCE`, but this file's own established binding (see
+  // the top of the file) is `PANEL_SOURCE` — the name every other describe
+  // block in this file already reads from. `PROFILE_SOURCE` is undefined
+  // anywhere in this module, so pasting the brief verbatim would fail with a
+  // ReferenceError rather than the assertion failures Step 2 predicts.
+  // Resolved toward the file's real constant, matching Task 3's own
+  // precedent for a brief-prose mismatch (report it, don't silently pick).
+  it("keeps exactly one Broker row and its approved description", () => {
+    assert.equal(
+      (PANEL_SOURCE.match(/title="Broker"/g) ?? []).length,
+      1,
+    );
     assert.match(
       PANEL_SOURCE,
-      /function saveSelection\(selection: BrokerSelection\) \{\s*onSave\(\{\s*\.\.\.selection,\s*defaultTimeframe:/,
+      /description="Markets, costs, and record follow the broker\."/,
     );
-    assert.match(PANEL_SOURCE, /themePreference: profile\.themePreference,/);
-    assert.match(
-      PANEL_SOURCE,
-      /console\.error\("\[profile\] broker program save failed", error\)/,
+  });
+
+  it("renders the accounts list, one active, above the add-account walk", () => {
+    const section = PANEL_SOURCE.slice(
+      PANEL_SOURCE.indexOf("function BrokerAccountsSection"),
     );
+    assert.match(section, /profile\.brokerAccounts\.map\(/);
+    assert.match(section, /activeBrokerAccountId === account\.id/);
+    assert.match(section, /onActivateAccount\(account\.id\)/);
+    assert.match(section, /onRemoveAccount\(account\.id\)/);
+  });
+
+  it("walks the catalog in order: Market, Program, Platform, Account size, Stage, Risk per trade, Drawdown", () => {
+    const labels = [...PANEL_SOURCE.matchAll(/<BrokerControlRow label="([^"]+)"/g)]
+      .map((match) => match[1]);
+    assert.deepEqual(labels, [
+      "Market",
+      "Program",
+      "Platform",
+      "Account size",
+      "Stage",
+      "Risk per trade",
+      "Drawdown",
+    ]);
+  });
+
+  it("disables what the catalog does not sell rather than hiding it", () => {
+    assert.match(PANEL_SOURCE, /disabled=\{!isPlatformVerified\(/);
+    assert.match(PANEL_SOURCE, /disabled=\{!isProgramLineVerified\(/);
+  });
+
+  it("offers no free-form numeric entry anywhere in the section", () => {
+    assert.doesNotMatch(PANEL_SOURCE, /<input[^>]*type="number"/);
+  });
+
+  it("keeps every account row at the 44px tap floor (§17n)", () => {
+    const section = PANEL_SOURCE.slice(
+      PANEL_SOURCE.indexOf("function BrokerAccountsSection"),
+    );
+    assert.match(section, /min-h-11/);
   });
 });

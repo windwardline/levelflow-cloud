@@ -309,13 +309,17 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "Not confirmed",
     "Not published",
     "Rate unavailable",
-    // The Profile Broker controls.
+    // The Profile Broker controls. "None" retired with the single-selection
+    // walk it was the sentinel for (§19 retrofit, Task 4): BrokerAccountDraft
+    // has no field that means "nothing chosen yet", so nothing in shipped
+    // source renders the word any more — removed from here rather than left
+    // pinning a string that no longer exists (checked in both directions
+    // below, so a stale entry here would fail loudly rather than drift).
     "Program",
     "Account size",
     "Stage",
     "Risk per trade",
     "Drawdown",
-    "None",
     "E8 One",
     "E8 One Crypto",
     "E8 Pro Forex",
@@ -336,6 +340,18 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "TradeLocker",
     "MatchTrader",
     "Tradovate",
+    // §19 retrofit, Task 4 (amendment 14, 18): the two new field labels the
+    // catalog walk adds ahead of the retired walk's five, and the
+    // confirmed-accounts list's own OWNER COPY (owner copy of 2026-08-03,
+    // the plan's proposal — see the spec paragraph below and this task's
+    // commit body for the pending-ruling caveat). `Manage accounts` is
+    // forward-registered for task 7's chip menu, which has not landed yet.
+    "Market",
+    "Platform",
+    "Active",
+    "Remove",
+    "Add account",
+    "Manage accounts",
   ];
 
   it("names every string this feature renders in §20j", () => {

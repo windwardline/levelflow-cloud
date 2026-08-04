@@ -721,7 +721,22 @@ export default function App() {
           {activeTab === "profile" ? (
             <ProfilePanel
               memberSince={session.user.created_at}
+              onActivateAccount={(id) => {
+                profileState.activateBrokerAccount(id).catch((error) => {
+                  console.error("[profile] broker account save failed", error);
+                });
+              }}
+              onRemoveAccount={(id) => {
+                profileState.removeBrokerAccount(id).catch((error) => {
+                  console.error("[profile] broker account save failed", error);
+                });
+              }}
               onSave={profileState.saveProfile}
+              onSaveAccount={(draft) => {
+                profileState.saveBrokerAccount(draft).catch((error) => {
+                  console.error("[profile] broker account save failed", error);
+                });
+              }}
               onSignOut={() => supabase?.auth.signOut()}
               onThemeChange={theme.setMode}
               profile={profile}

@@ -1494,16 +1494,27 @@ verbatim; nothing else this feature draws is text.
 **§19 — the ladder Size row.** `Size · lots` · `Size · contracts` ·
 `Not offered` · `Not confirmed` · `Not published` · `Rate unavailable`.
 
-**§19 — the Profile Broker controls.** Labels: `Program` · `Account size` ·
-`Stage` · `Risk per trade` · `Drawdown`. Program options: `None` · `E8 One` ·
-`E8 One Crypto` · `E8 Pro Forex` · `E8 Pro Crypto` · `E8 Signature Forex` ·
+**§19 — the Profile Broker controls.** Labels: `Market` · `Program` ·
+`Platform` · `Account size` · `Stage` · `Risk per trade` · `Drawdown`.
+Program options: `E8 One` · `E8 One Crypto` · `E8 Pro Forex` ·
+`E8 Pro Crypto` · `E8 Signature Forex` ·
 `E8 Signature Crypto` · `E8 Signature Futures` · `E8 Zero` ·
 `E8 Zero Futures Starter` · `E8 Zero Futures Max`. Stage options:
 `Challenge` · `Performance`. Account-size options: the selected program's
 ladder as `$5,000` … `$500,000`. Risk options: `0.10%` … `1.50%` in `0.05%`
 steps. Drawdown options: the eight paired tokens in §19b item 5. Market
 options: `Forex` · `Crypto` · `Futures`. Platform options: `TradeLocker` ·
-`MatchTrader` · `Tradovate`.
+`MatchTrader` · `Tradovate`. `None` retired with the single-selection walk it
+was the sentinel for (§19 retrofit, Task 4): the catalog walk that replaced
+it always names a complete account, so nothing renders the word any more.
+
+**§19 retrofit — the confirmed-accounts list (owner copy of 2026-08-03).**
+Each saved account's row carries, on the active row only, `Active`, and
+every row carries a `Remove` control. The walk's own submit control is
+`Add account`. `Manage accounts` is registered here ahead of task 7's own
+chip menu, which has not shipped yet. All four ship as written — the plan's
+proposal — pending the owner's ruling on the wording, recorded pending in
+Task 4's commit.
 
 **§20 — the compliance line.** `No E8 route on any program` ·
 `Front month only` · `Size capped at the program limit` · `Flatten 15:10 CT` ·
