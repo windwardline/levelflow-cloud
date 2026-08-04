@@ -16,7 +16,7 @@ Vite 8 + React 19, Tailwind v4, @supabase/supabase-js, lightweight-charts. TypeS
 
 ## Gates — CI in order
 
-`npm ci` → check → lint → check:migrations → `npm audit --audit-level=high` → test → build → check:bundle. E2E runs at deploy time only (`deploy.yml`), which also polls production security headers and fails on any `unsafe-inline`.
+`npm ci` → check → lint → check:migrations → `npm audit --audit-level=high` → test → build → check:bundle. E2E runs at deploy time only (`deploy.yml`), which also polls production security headers and fails on any `unsafe-inline`. A parallel `security.yml` (PRs, pushes, weekly cron) gates Semgrep, secret scan, and dependency scan.
 
 ## Laws
 
