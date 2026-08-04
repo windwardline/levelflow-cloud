@@ -1,4 +1,6 @@
+import { visibleAssetSymbols } from "../../lib/broker/visibility";
 import { marketAvailability } from "../../lib/marketHours";
+import type { BrokerAccount } from "../../lib/profile";
 import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
@@ -15,17 +17,30 @@ function normalizeAssetType(value: string) {
 
 // Scope-aware market-scan filtering, keyed on ScopeMenu.tsx's ScanScope
 // (which adds a "symbol" kind alongside "all" and per-group scoping).
+//
+// §19 retrofit, Task 9 (amendment 13): intersected with
+// visibleAssetSymbols(account), the same table Task 8 put behind the scope
+// menu — so the scan action itself can never REQUEST a market this account
+// cannot trade, menu-visible or not. A named symbol/group scope the account
+// hides resolves to an empty list rather than a hidden market slipping
+// through: both Scan buttons already disable at length === 0 (AdvisorWorkspace,
+// MarketScanPanel), so this is what disables them for an all-hidden scope
+// rather than a new string doing it (spec §17f). visibleAssetSymbols(null)
+// returns every symbol, so this is a no-op with no active account.
 export function getMarketScanSymbolsForScope(
   scope: ScanScope,
+  account: BrokerAccount | null,
 ): SupportedSymbol[] {
+  const visible = new Set(visibleAssetSymbols(account));
   if (scope.kind === "all") {
-    return AVAILABLE_ASSET_SYMBOLS;
+    return AVAILABLE_ASSET_SYMBOLS.filter((symbol) => visible.has(symbol));
   }
   if (scope.kind === "symbol") {
-    return [scope.symbol];
+    return visible.has(scope.symbol) ? [scope.symbol] : [];
   }
-  return AVAILABLE_ASSET_GROUPS.find((group) => group.label === scope.assetType)
-    ?.options.map((option) => option.symbol) ?? [];
+  return (AVAILABLE_ASSET_GROUPS.find((group) => group.label === scope.assetType)
+    ?.options.map((option) => option.symbol) ?? [])
+    .filter((symbol) => visible.has(symbol));
 }
 
 // Defensive, not strictly load-bearing today: AdvisorWorkspace's selectScope
@@ -39,11 +54,26 @@ export function getMarketScanSymbolsForScope(
 // legacy Quality filter is retired (spec §5 has none), since letting a
 // client-side band hide rows made the visible list disagree with the
 // server-truth scanned/qualified count line.
+//
+// §19 retrofit, Task 9 (amendment 13): also intersected with
+// visibleAssetSymbols(account) — NOT redundant with AdvisorWorkspace's
+// scope-reset effect above. That effect only fires for a named group/symbol
+// scope the new account hides, and deliberately leaves scope "all" alone
+// (every account can see *something*, so "all" is never itself invalid). A
+// scan completed under one account can therefore still be sitting in
+// scanResult, under scope "all", after a switch to an account of a
+// different classification — this intersection is what keeps its
+// now-untradeable rows from rendering. visibleAssetSymbols(null) returns
+// every symbol, so this is a no-op with no active account.
 export function filterMarketScanCandidatesByScope(
   candidates: MarketScanCandidate[],
   scope: ScanScope,
+  account: BrokerAccount | null,
 ) {
-  return candidates.filter((candidate) => matchesScanScope(candidate, scope));
+  const visible = new Set(visibleAssetSymbols(account));
+  return candidates.filter((candidate) =>
+    matchesScanScope(candidate, scope) && visible.has(candidate.symbol)
+  );
 }
 
 // I5: the scan must never ask the server to attempt a market that's

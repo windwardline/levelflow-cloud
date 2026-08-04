@@ -62,7 +62,7 @@ describe("filterSymbolsByAvailability (I5: the scan must never attempt a closed 
 
 describe("getMarketScanSymbolsForScope + filterSymbolsByAvailability composed (I5's actual call shape)", () => {
   it('resolves "all" to every available symbol explicitly, never an empty placeholder list for the server to fill in', () => {
-    const resolved = getMarketScanSymbolsForScope({ kind: "all" });
+    const resolved = getMarketScanSymbolsForScope({ kind: "all" }, null);
     assert.ok(resolved.length > 0);
     assert.deepEqual(resolved, ALL_AVAILABLE_SYMBOLS);
   });
@@ -71,7 +71,7 @@ describe("getMarketScanSymbolsForScope + filterSymbolsByAvailability composed (I
     const resolved = getMarketScanSymbolsForScope({
       kind: "symbol",
       symbol: "EURUSD",
-    });
+    }, null);
     assert.deepEqual(
       filterSymbolsByAvailability(resolved, SATURDAY_NOON_ET),
       [],
@@ -82,7 +82,7 @@ describe("getMarketScanSymbolsForScope + filterSymbolsByAvailability composed (I
     const resolved = getMarketScanSymbolsForScope({
       assetType: "Metals",
       kind: "group",
-    });
+    }, null);
     assert.ok(resolved.length > 0);
     assert.deepEqual(
       filterSymbolsByAvailability(resolved, SATURDAY_NOON_ET),
@@ -107,6 +107,7 @@ describe("filterMarketScanCandidatesByScope (m3: no longer also bands by confide
     const result = filterMarketScanCandidatesByScope(
       [candidate({ confidenceScore: 5 })],
       { kind: "all" },
+      null,
     );
     assert.equal(result.length, 1);
   });
@@ -115,6 +116,7 @@ describe("filterMarketScanCandidatesByScope (m3: no longer also bands by confide
     const result = filterMarketScanCandidatesByScope(
       [candidate({ symbol: "BTCUSD" })],
       { kind: "symbol", symbol: "EURUSD" },
+      null,
     );
     assert.deepEqual(result, []);
   });
@@ -227,6 +229,44 @@ describe("amendment 13 fix round 1 — the scope reset also drops the stale scan
     assert.match(
       source,
       /if \(!stillVisible\) \{\s*setScope\(\{ kind: "all" \}\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*\}/,
+    );
+  });
+});
+
+// §19 retrofit, Task 9: the scan ACTION and its RESULTS follow the active
+// account, not just the scope menu Task 8 already scoped. The reset effect
+// pinned just above only fires for a named group/symbol scope the new
+// account hides, and deliberately leaves scope "all" alone (every account
+// can see *something*, so "all" is never itself invalid) — so a scan
+// completed under one account can still be sitting in scanResult, under
+// scope "all", after a switch to an account of a different classification.
+// getMarketScanSymbolsForScope (the request) and
+// filterMarketScanCandidatesByScope (the render) both close that gap.
+describe("amendment 13 — the scan action never reaches a hidden market", () => {
+  it("amendment 13 — the scan action never reaches a hidden market", () => {
+    const all = getMarketScanSymbolsForScope({ kind: "all" }, FOREX_ACCOUNT);
+    for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "MGCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
+      assert.ok(!all.includes(futures));
+    }
+    assert.ok(all.includes("EURUSD") && all.includes("WTI") && all.includes("XAUUSD"));
+  });
+
+  it("amendment 13 — a named hidden symbol yields no scan rather than a hidden one", () => {
+    assert.deepEqual(
+      getMarketScanSymbolsForScope({ kind: "symbol", symbol: "ESUSD" }, FOREX_ACCOUNT),
+      [],
+    );
+  });
+
+  it("amendment 13 — results drop hidden markets too", () => {
+    const candidates = [
+      { symbol: "EURUSD" },
+      { symbol: "ESUSD" },
+    ] as Parameters<typeof filterMarketScanCandidatesByScope>[0];
+    assert.deepEqual(
+      filterMarketScanCandidatesByScope(candidates, { kind: "all" }, FOREX_ACCOUNT)
+        .map((row) => row.symbol),
+      ["EURUSD"],
     );
   });
 });

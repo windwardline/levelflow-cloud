@@ -161,14 +161,25 @@ export function AdvisorWorkspace(
   // name per control at every width.
   const isMobile = useIsMobileViewport();
 
+  // §19 retrofit (Task 5): keyed on activeAccountOf(profile), not the six
+  // retired profile columns — amendment 18's confirmed-accounts list can hold a
+  // saved account that isn't the active one, and a saved-but-inactive account
+  // must not price the ladder. Computed ahead of openScanSymbols below,
+  // which needs it too as of Task 9.
+  const activeAccount = activeAccountOf(profile);
   // I5: never sent straight to the server — a closed market has no chance of
   // qualifying and would only inflate the server's `scanned` count with markets
   // that were never really attempted. Computed fresh on every render rather
   // than memoized (same reasoning as ScopeMenu.tsx's own clock: a `new Date()`
   // dependency would defeat a memo anyway) so a scan fired right on a market's
   // open/close boundary still sees the current answer.
+  // §19 retrofit, Task 9 (amendment 13): also never sent for a market
+  // activeAccount cannot trade — getMarketScanSymbolsForScope intersects with
+  // visibleAssetSymbols(activeAccount) itself (Task 8's own table), so the
+  // scan action follows the same account the scope menu below is already
+  // scoped to.
   const openScanSymbols = filterSymbolsByAvailability(
-    getMarketScanSymbolsForScope(scope),
+    getMarketScanSymbolsForScope(scope, activeAccount),
     new Date(),
   );
   const selectedAsset = getSecurityOption(symbol);
@@ -182,11 +193,6 @@ export function AdvisorWorkspace(
   // them the Size row renders `Rate unavailable` rather than reaching elsewhere.
   // Dormant is exact: with no active account nothing downstream reads these, so
   // the collection itself doesn't run.
-  // §19 retrofit (Task 5): keyed on activeAccountOf(profile), not the six
-  // retired profile columns — amendment 18's confirmed-accounts list can hold a
-  // saved account that isn't the active one, and a saved-but-inactive account
-  // must not price the ladder.
-  const activeAccount = activeAccountOf(profile);
   const brokerQuotes = activeAccount === null
     ? {}
     : collectBrokerQuotes({ scan: scanResult, setup });
@@ -691,6 +697,7 @@ export function AdvisorWorkspace(
               symbol={symbol}
             />
             <MarketScanResults
+              account={activeAccount}
               onSelectCandidate={selectCandidate}
               result={scanResult}
               scanCompletedAt={scanCompletedAt}
@@ -744,6 +751,7 @@ export function AdvisorWorkspace(
       {/* Left rail: the scan (a-desk-v3.html:87-158). */}
       <div className="scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4">
         <MarketScanPanel
+          account={activeAccount}
           groups={visibleGroups}
           onScan={scanMarkets}
           onSelectCandidate={selectCandidate}
