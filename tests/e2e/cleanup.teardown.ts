@@ -73,9 +73,20 @@ test("the run's setups leave the learning cohort", async () => {
   // captures, which would gain a fifth ladder row). The run's state contract
   // lives here, not in the specs' happy paths: the profile leaves as it
   // arrived, program-less, every time.
+  //
+  // §19 retrofit (amendment 14) widens that contract: the run's state now
+  // lives on saved broker_accounts rows too, not just these six legacy
+  // columns, so active_broker_account_id is nulled in this same update —
+  // before the row it points to is ever deleted, below — and the saved rows
+  // themselves are swept in the next step. A mid-test failure between
+  // addAndActivateAccount and removeAllAccounts is exactly the gap this
+  // closes: left alone, the next run's authenticated-workspace.spec.ts:807
+  // zero-accounts assertion (`getByLabel("E8 Markets")`) would inherit a
+  // saved, active account instead.
   const { error: profileError } = await client
     .from("profiles")
     .update({
+      active_broker_account_id: null,
       broker_account_size: null,
       broker_drawdown_tier: null,
       broker_id: null,
@@ -90,4 +101,29 @@ test("the run's setups leave the learning cohort", async () => {
     );
   }
   console.log("[e2e cleanup] broker selection reset to none");
+
+  // The pointer above is already null by the time this runs, so a saved
+  // account is never deleted out from under an active pointer — the FK's own
+  // on-delete-set-null (migration 20260803010000) would catch it regardless,
+  // but nulling it explicitly first means this step never depends on that
+  // cascade firing in any particular order relative to this delete.
+  //
+  // broker_accounts does not exist in the production DB until tonight's
+  // deploy applies migration 20260803010000 — the deploy's own `db push` runs
+  // before the browser matrix (recorded ruling), so there is no path where
+  // this teardown executes against a pre-migration DB. Nothing here
+  // special-cases a missing-table error the way the rest of this file
+  // refuses to swallow a real one.
+  const { count: accountsDeleted, error: accountsError } = await client
+    .from("broker_accounts")
+    .delete({ count: "exact" })
+    .eq("user_id", data.user.id);
+  if (accountsError) {
+    throw new Error(
+      `E2E cleanup could not delete its broker_accounts rows: ${accountsError.message}`,
+    );
+  }
+  console.log(
+    `[e2e cleanup] deleted ${accountsDeleted ?? 0} broker_accounts for the E2E user`,
+  );
 });

@@ -297,6 +297,13 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "src/components/workspace/ProfilePanel.tsx",
     "utf8",
   );
+  // §19 retrofit, Task 7: the switcher sheet's pinned-head title (`Accounts`)
+  // and its foot row (`Manage accounts`) render only here — omitting this
+  // file let the vacuous disjunct below hide that gap (F2).
+  const switcherMenu = readFileSync(
+    "src/components/workspace/AccountSwitcherMenu.tsx",
+    "utf8",
+  );
   const types = readFileSync("src/lib/broker/types.ts", "utf8");
   const programs = readFileSync("src/lib/broker/programs.ts", "utf8");
   const catalog = readFileSync("src/lib/broker/catalog.ts", "utf8");
@@ -372,16 +379,36 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     }
   });
 
+  // AccountSwitcherMenu (§19 retrofit, Task 7) renders `Accounts` and
+  // `Manage accounts` as bare JSX text — `<span>Accounts</span>`, not
+  // ProfilePanel's `{"Active"}`-style quoted literal — so the exact-quote
+  // check below cannot see either one and needs this one named exception.
+  const BARE_JSX_TEXT = ["Accounts", "Manage accounts"];
+
   it("renders every §19 string §20j names, somewhere in the shipped source", () => {
-    const shipped = [types, programs, catalog, panel, profilePanel].join("\n");
+    const shipped =
+      [types, programs, catalog, panel, profilePanel, switcherMenu].join("\n");
     for (const string of RENDERED) {
-      // `Size · lots` and `Size · contracts` are composed from the unit, so the
-      // unit is what the source carries.
-      const needle = string.startsWith("Size · ") ? string.slice(7) : string;
-      assert.ok(
-        shipped.includes(`"${needle}"`) || shipped.includes(`Size · $`),
-        `nothing renders ${string}`,
-      );
+      if (string.startsWith("Size · ")) {
+        // `Size · lots` and `Size · contracts` are composed from the unit
+        // (sizeUnitFor, src/lib/broker/sizing.ts — outside this file's own
+        // roster), so this checks the template literal's own prefix rather
+        // than the composed string. Scoped to just these two strings: this
+        // disjunct used to run unconditionally for every entry in RENDERED,
+        // which made the whole assertion constant-true (F2) since `panel`
+        // always carries the `` `Size · ${...}` `` literal regardless of
+        // which string is under test.
+        assert.ok(shipped.includes("Size · $"), `nothing renders ${string}`);
+        continue;
+      }
+      if (BARE_JSX_TEXT.includes(string)) {
+        const rendersAsJsxText = shipped
+          .split("\n")
+          .some((line) => line.trim() === string);
+        assert.ok(rendersAsJsxText, `nothing renders ${string}`);
+        continue;
+      }
+      assert.ok(shipped.includes(`"${string}"`), `nothing renders ${string}`);
     }
   });
 

@@ -261,6 +261,16 @@ describe("amendment 13 — the scan action never reaches a hidden market", () =>
     );
   });
 
+  // Minors-triage item 5 (final review): the group branch shares the tested
+  // all/symbol branches' visible.has intersection (marketScanFilters.ts), but
+  // had no test of its own naming a hidden group directly.
+  it("amendment 13 — a named hidden group scope yields no scan rather than a hidden one", () => {
+    assert.deepEqual(
+      getMarketScanSymbolsForScope({ assetType: "Futures", kind: "group" }, FOREX_ACCOUNT),
+      [],
+    );
+  });
+
   it("amendment 13 — results drop hidden markets too", () => {
     const candidates = [
       { symbol: "EURUSD" },

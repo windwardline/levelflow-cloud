@@ -866,8 +866,9 @@ today.
 
 A second broker; per-broker calibration or per-broker history (§12's
 declared future, still future); a size on the Trades rail or in Insights;
-program-aware market availability (§20e names it); anything E8 does not
-publish.
+anything E8 does not publish. Program-aware market availability (§20e
+names it) is **no longer out of scope**: it shipped in the §19 retrofit
+Phase 4 (amendment 13), 2026-08-04.
 
 ### §19i. The account switcher's label (owner ruling, TASK 6 VERDICT, 2026-08-03 22:07)
 
@@ -1285,10 +1286,11 @@ CT needs no such hedge — the US DST calendar is fixed and public, and
 continues to show a futures market open through 16:00 CT while E8 Signature
 and E8 Zero are flat from 15:10 CT, and to show crypto always open while
 Signature Crypto flattens nightly at 23:00 server. The divergence is
-surfaced by clauses 4 and 5 only. A program-aware availability calendar —
-one that greys the scope menu by the selected program's session, not the
-asset class's — is real and is V2 (§20h), because it changes the scope menu
-that every surface reads and that is not a wave-2 compliance-line change.
+surfaced by clauses 4 and 5 only. Account-scoped market visibility by
+classification **shipped** in the §19 retrofit Phase 4 (amendment 13),
+2026-08-04 (§19h, §20h). The piece that remains V2: a calendar that greys
+the scope menu by the selected program's *session*, not the asset class's
+— a distinct dimension amendment 13 does not touch.
 
 ### §20f. Unconfirmed discipline
 
@@ -1436,10 +1438,12 @@ routes are a user-supplied read-only export, a manual entry surface, or an
 E8 integration that does not exist. Until one of those is real, V2 is not
 buildable and no amount of engineering makes it so.
 
-Also V2: program-aware market availability in the scope menu (§20e);
-payout-readiness facts; the Best Day denominators evaluated against a real
-profit history; and the account-reset economics (11640147 — a 10% discount,
-same size and settings only, valid for 7 days after failure) as a
+Program-aware market availability in the scope menu **shipped** in the §19
+retrofit Phase 4 (amendment 13), 2026-08-04 — no longer V2 (a
+session-hours calendar per §20e is the distinct piece still open). Also
+V2: payout-readiness facts; the Best Day denominators evaluated against a
+real profit history; and the account-reset economics (11640147 — a 10%
+discount, same size and settings only, valid for 7 days after failure) as a
 bankroll-continuity input.
 
 ---
