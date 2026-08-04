@@ -36,7 +36,12 @@ const PUBLIC = join(ROOT, "public");
 function tokens() {
   const css = readFileSync(join(ROOT, "src/styles/index.css"), "utf8");
   const read = (block, name) => {
-    const value = block.match(new RegExp(`${name}:\\s*(#[0-9A-Fa-f]{6});`))?.[1];
+    // Plain string scan + literal regex — same `name:\s*(#hex);` contract as
+    // before, without constructing a RegExp from a string.
+    const at = block.indexOf(`${name}:`);
+    const end = at === -1 ? -1 : block.indexOf(";", at);
+    const raw = at === -1 || end === -1 ? "" : block.slice(at + name.length + 1, end);
+    const value = /^\s*(#[0-9A-Fa-f]{6})$/.exec(raw)?.[1];
     if (!value) {
       throw new Error(`${name} not found — src/styles/index.css moved it`);
     }
