@@ -2369,18 +2369,19 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
 // itself dormant (every field renders from first paint; there is no "None").
 // What §19d's presence check now means: the LADDER's Size row still keys off
 // whether the reader has a priced account, but "priced account" is decided
-// by task 5's `activeAccountOf(profile)` (docs/superpowers/plans/
-// 2026-08-03-s19-retrofit.md, "Task 5: The Size row and the Desk read the
-// active account") rather than by the six retired profile columns this file
-// used to write through `selectOption`. As committed at Task 4, `SizeRow`
-// (AdvisorRecommendationPanel.tsx) still reads those six retired columns —
-// task 4 never touches that file — so this spec, re-aimed to the target
-// truth below, will not go green in a live run until task 5 ships and
-// `SizeRow` is switched over. That is Task 5's own gate to close, which is
-// exactly why this file stays syntax- and type-checked here (`npm run
-// check` builds tests/e2e via tsconfig.tests.json's "tests" include, and
-// `npx playwright test --list` must enumerate it) without being asserted
-// green against a live deploy from this task.
+// by `activeAccountOf(profile)` (src/lib/profile.ts) rather than by the six
+// retired profile columns this file used to write through `selectOption`.
+//
+// Task 5 (docs/superpowers/plans/2026-08-03-s19-retrofit.md, "Task 5: The
+// Size row and the Desk read the active account") has since switched
+// `SizeRow` and `AdvisorWorkspace`'s `brokerQuotes` dormancy over to
+// `activeAccountOf(profile)` — this spec now asserts real, shipped behavior
+// rather than a forward-registered target. It still cannot run live in every
+// environment (this suite's own top-of-file `test.skip` gates on Supabase
+// and dedicated-test-user credentials that are not available everywhere),
+// which is why `npm run check` (tsconfig.tests.json's "tests" include) and
+// `npx playwright test --list` are the gates every environment can run
+// regardless of credentials.
 const SIZE_STATE_WORD_LIST: string[] = Object.values(SIZE_STATE_WORDS);
 
 async function openProfile(page: Page, width: number) {
@@ -2475,9 +2476,6 @@ async function addAndActivateAccount(
 
 for (const width of [375, 1280]) {
   test(`the ladder grows one Size row only once an account is active (§19d, amendment 18, ${width}px)`, async ({ page }) => {
-    test.skip(true, "Task 5 wiring in progress — SizeRow/brokerQuotes still read the six retired columns");
-    return;
-
     // Two scans, and the helper allows each 90s, so the budget is stated at what
     // the walk can actually cost rather than at what a fast one does. Both scans
     // in the live run this shape was written against finished in 7.5s — and both
@@ -2553,9 +2551,8 @@ for (const width of [375, 1280]) {
     // Now save and activate an account. E8 One is a CFD line, so its unit is
     // lots — the family answers the label, never the market that qualified,
     // and a blocked row carries the same label as a priced one
-    // (broker/sizing.ts sizeUnitFor). Task 5 target: once SizeRow reads
-    // activeAccountOf(profile) instead of the six retired columns, this
-    // activation is what the ladder is expected to key off.
+    // (broker/sizing.ts sizeUnitFor). SizeRow reads activeAccountOf(profile)
+    // (Task 5), so this activation is what the ladder now keys off.
     await addAndActivateAccount(page, width, "E8 One", "$5,000");
 
     await showDesk(page, width);
