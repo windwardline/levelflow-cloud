@@ -2660,8 +2660,12 @@ for (const width of [375, 1280]) {
     // BrokerAccountsSection never removes a row on Add, so the futures
     // account stays saved — the switcher needs two SAVED accounts to draw
     // two rows, and an ACTIVE marker on only the one this second call
-    // activates.
-    await addAndActivateAccount(page, width, "E8 One", "$5,000");
+    // activates. Market is explicit here: after the futures add the walk
+    // no longer sits at its fresh-profile FOREX default, so "E8 One"
+    // only exists once the Market select is put back to Forex (deploy
+    // 30889908665 hung 150s on exactly this — the walk offered three
+    // futures programs and the forex label matched none of them).
+    await addAndActivateAccount(page, width, "E8 One", "$5,000", "Forex");
 
     await showDesk(page, width);
     await scopeScanToGroup(page, "Crypto");
