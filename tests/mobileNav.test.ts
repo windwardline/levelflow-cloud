@@ -858,6 +858,36 @@ describe("amendment 18 — the chip is the switcher, in the machinery the app al
     assert.match(menu, />\s*Manage accounts\s*</);
   });
 
+  // Fix round (controller review of the initial ship): every other §17g/dialog
+  // sheet in this codebase names itself in its pinned head (ScopeMenu's own
+  // `label` via aria-labelledby, ExpandedChartOverlay's title) — the switcher
+  // had been the one exception, carrying a hard-coded aria-label instead of a
+  // real title. This pins ScopeMenu's exact wiring shape (id + aria-labelledby
+  // both pointing at `${baseId}-sheet-title`), reused here since there is no
+  // separate outer caption element to point to the way ScopeMenu's `${baseId}
+  // -label` does — the visible title IS the accessible name here.
+  it("gives the <lg sheet a real pinned-head title, wired like ScopeMenu's own sheet", () => {
+    const menu = readFileSync(
+      "src/components/workspace/AccountSwitcherMenu.tsx",
+      "utf8",
+    );
+    assert.match(menu, /aria-labelledby=\{`\$\{baseId\}-sheet-title`\}/);
+    assert.match(
+      menu,
+      /id=\{`\$\{baseId\}-sheet-title`\}[\s\S]{0,80}>\s*Accounts\s*</,
+    );
+    // The dialog's own opening tag no longer hard-codes the chip's name as
+    // its accessible name — that was the outlier this fix removes. Bounded
+    // to the dialog's own tag (not the whole file) so the row list's
+    // separate aria-label="E8 Markets" a few lines later — untouched by this
+    // fix, since it was never the reviewed outlier — doesn't make this
+    // assertion vacuous.
+    const dialogOpenTag = menu.match(/role="dialog"[\s\S]*?>/)?.[0] ?? "";
+    assert.ok(dialogOpenTag.length > 0, "expected to find the dialog's opening tag");
+    assert.doesNotMatch(dialogOpenTag, /aria-label="E8 Markets"/);
+    assert.match(dialogOpenTag, /aria-labelledby=/);
+  });
+
   it("renders only catalog vocabulary — no invented word reaches the label", () => {
     const menu = readFileSync(
       "src/components/workspace/AccountSwitcherMenu.tsx",

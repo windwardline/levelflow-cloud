@@ -1550,6 +1550,16 @@ chip menu, which has not shipped yet. All four ship as written — the plan's
 proposal — pending the owner's ruling on the wording, recorded pending in
 Task 4's commit.
 
+**§19 retrofit — the switcher sheet's pinned head (owner copy of
+2026-08-04, Task 7's fix round).** The <lg sheet's header renders
+`Accounts` as its visible, `aria-labelledby`-linked title — every other
+§17g/dialog sheet in this codebase already names itself in its pinned head
+(ScopeMenu's own `label` prop, `ExpandedChartOverlay`'s title), and the
+switcher's first ship had been the one exception, carrying a hard-coded
+`aria-label` instead. Ships as written — this task's proposal — pending
+the owner's ruling on the wording, the same caveat the four words above
+carry.
+
 **§20 — the compliance line.** `No E8 route on any program` ·
 `Front month only` · `Size capped at the program limit` · `Flatten 15:10 CT` ·
 `Flatten 23:00 server` · `News window`. Separator ` · `, three clauses

@@ -400,16 +400,27 @@ export function AccountSwitcherMenu(
           ref={sheetRef}
           role="dialog"
           aria-modal="true"
-          // No visible title: the mockup's "Accounts" sheet caption is not
-          // in this task's composition authority (chip classes, anchored
-          // menu, §17g sheet, ACTIVE marker, Manage accounts foot row), and
-          // it is not yet a registered §20j string — the accessible name
-          // below reuses the chip's own established one instead of coining
-          // new copy.
-          aria-label="E8 Markets"
+          // ScopeMenu's own wiring, reused verbatim (id + aria-labelledby
+          // both pointing at `${baseId}-sheet-title`): every other §17g/
+          // dialog sheet in this codebase names itself in its pinned head,
+          // and a hard-coded aria-label here — this task's initial ship —
+          // was the one exception. No separate outer caption element exists
+          // to point to the way ScopeMenu's own `${baseId}-label` does, so
+          // the visible title below IS this dialog's accessible name.
+          aria-labelledby={`${baseId}-sheet-title`}
           className="motion-fade-in fixed inset-0 z-30 flex flex-col bg-sheet"
         >
-          <div className="flex shrink-0 items-center justify-end border-b border-hairline px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+            {/* OWNER COPY pending (owner copy of 2026-08-04, this task's
+                proposal — spec §20j, tests/languageGuard.test.ts's RENDERED,
+                the same pending discipline Task 4's six words already
+                carry). */}
+            <span
+              id={`${baseId}-sheet-title`}
+              className="text-sm font-semibold text-ink"
+            >
+              Accounts
+            </span>
             <button
               aria-label="Close"
               className="cpv-copy"

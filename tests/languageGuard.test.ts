@@ -352,6 +352,15 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "Remove",
     "Add account",
     "Manage accounts",
+    // §19 retrofit, Task 7 fix round (amendment 18): the switcher's <lg
+    // sheet gets a visible, aria-labelledby-linked pinned-head title — the
+    // one thing every other §17g/dialog sheet in this codebase already has
+    // (ScopeMenu's own `label`, ExpandedChartOverlay's title) and the
+    // switcher had been the lone exception. OWNER COPY pending, the same
+    // discipline Task 4's six words above used (owner copy of 2026-08-04,
+    // this task's proposal — see the spec §20j paragraph and this commit's
+    // body for the pending-ruling caveat).
+    "Accounts",
   ];
 
   it("names every string this feature renders in §20j", () => {
