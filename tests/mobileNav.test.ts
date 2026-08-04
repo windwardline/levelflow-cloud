@@ -1283,7 +1283,7 @@ const RECEIPT_SOURCE = readFileSync(
 describe("the merged mobile Scan surface's ladder rows (m-scan-v3.html:34-37)", () => {
   it("renders each ladder value as one line — label, mono value, Copy — not the card m-mobile-v3 drew", () => {
     const row = LADDER_SOURCE.match(
-      /className="flex min-h-11 min-w-0 items-baseline[^"]*"/,
+      /className="grid min-h-11 min-w-0[^"]*"/,
     )?.[0] ?? "";
     assert.ok(row.length > 0, "expected to find the copy row's className");
     // The mock's `.copy`: a three-column grid at a 10px gap, hairline-separated,
@@ -1301,7 +1301,7 @@ describe("the merged mobile Scan surface's ladder rows (m-scan-v3.html:34-37)", 
     // grid, which is how one DOM serves both platforms.
     assert.match(
       LADDER_SOURCE,
-      /className="flex min-w-0 items-baseline gap-1 max-lg:contents"/,
+      /className="flex min-w-0 items-baseline gap-2 max-lg:contents"/,
     );
     // The mock's type: a 10px letterspaced label and a 15.5px mono value.
     assert.match(LADDER_SOURCE, /max-lg:text-\[10px\] max-lg:tracking-\[0\.07em\]/);

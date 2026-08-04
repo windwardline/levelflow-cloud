@@ -229,7 +229,14 @@ function CopyableMetricRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="flex min-h-11 min-w-0 items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:grid max-lg:grid-cols-[1fr_auto_auto] max-lg:items-center max-lg:gap-x-2.5 max-lg:px-0.5 max-lg:last:border-b">
+    // The ≥lg row is a grid whose value column is `auto` — the same
+    // structural guarantee the sub-lg grid below has always used: an auto
+    // column can never be squeezed below its content, so a long label
+    // WRAPS instead of shrinking the value block and letting nowrap
+    // digits paint under the copy control (the owner's second screenshot
+    // verdict: Target 1's two-line label did exactly that while the
+    // measured boxes claimed clearance — boxes shrink, paint does not).
+    <div className="grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 border-b border-hairline py-1.5 last:border-b-0 max-lg:grid-cols-[1fr_auto_auto] max-lg:items-center max-lg:gap-x-2.5 max-lg:px-0.5 max-lg:last:border-b">
       <span className="eyebrow min-w-0 max-lg:text-[10px] max-lg:tracking-[0.07em]">
         {label}
       </span>
@@ -240,24 +247,20 @@ function CopyableMetricRow({
           </span>
         )
         : (
-      <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
+      <span className="flex min-w-0 items-baseline gap-2 max-lg:contents">
         <span
           // The value never wraps, truncates, or loses a digit — a price is
-          // the product (owner finding, 2026-08-04: 8-decimal crypto prices
-          // crowded the copy control at text-xl in the ≥lg ladder column).
-          // The type steps down by length instead, uniformly for every row
-          // this component draws: ≤9 characters keep the display size, 10+
-          // (the 0.19636671 class) take lg, 13+ (a five-figure crypto price
-          // with cents) take base. Below lg the row's own grid already
-          // gives the value an auto column at 15.5px — verified uncrowded
-          // at 375px alongside this change.
-          className={`min-w-0 whitespace-nowrap text-right font-mono font-bold tabular-nums max-lg:text-[15.5px] ${
-            value.length >= 13
-              ? "lg:text-base"
-              : value.length >= 10
-              ? "lg:text-lg"
-              : "lg:text-xl"
-          } ${valueClassName}`}
+          // the product. OWNER DIRECTIVE (2026-08-04, second ruling on this
+          // row, superseding the stepped-by-length sizes): the ladder is
+          // smaller in px, flat — one 16px size at every length, so the
+          // longest live value keeps visible air before its copy control
+          // instead of fitting by measurement. The gap-2 beside it is the
+          // other half of the same ruling: 4px of technical clearance
+          // between bold mono digits and an icon reads as run-on (the
+          // owner's screenshot verdict on the first fix); 8px reads as
+          // separation. Below lg the row's own grid already gives the
+          // value an auto column at 15.5px.
+          className={`min-w-0 whitespace-nowrap text-right font-mono font-bold tabular-nums max-lg:text-[15.5px] lg:text-base ${valueClassName}`}
         >
           {value}
         </span>
