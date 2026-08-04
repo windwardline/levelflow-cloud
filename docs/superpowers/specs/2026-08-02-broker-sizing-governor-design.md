@@ -868,7 +868,8 @@ A second broker; per-broker calibration or per-broker history (§12's
 declared future, still future); a size on the Trades rail or in Insights;
 anything E8 does not publish. Program-aware market availability (§20e
 names it) is **no longer out of scope**: it shipped in the §19 retrofit
-Phase 4 (amendment 13), 2026-08-04.
+Phase 4 (amendment 13), 2026-08-04 — classification visibility only; the
+session-hours calendar §20e and §20h carve out stays V2.
 
 ### §19i. The account switcher's label (owner ruling, TASK 6 VERDICT, 2026-08-03 22:07)
 
