@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S — The account switcher, mobile (one dressing, chosen once)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+body { padding: 28px 32px 64px; }
+h1 { font-size: 20px; margin-bottom: 4px; }
+.note { font-size: 12.5px; color: var(--muted); max-width: 780px; margin-bottom: 22px; }
+.note b { color: var(--ink); }
+.sec { margin: 30px 0 10px; }
+.cap { font-size: 11px; color: var(--muted); margin: 8px 0 0; max-width: 900px; }
+.cap b { color: var(--ink); }
+.grid2 { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+
+/* phone frame, m-mobile-v3 heritage */
+.phone { width:375px; height: 480px; border:1px solid var(--hairline); border-radius:14px; background:var(--paper); overflow:hidden; display:flex; flex-direction:column; }
+.phead { display:flex; min-width:0; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px 12px; border-bottom:1px solid var(--hairline); background:color-mix(in srgb, var(--paper) 92%, transparent); flex:none; }
+.phead .wm { font-size:18px; font-weight:700; }
+.phead .right { display:flex; align-items:center; gap:8px; min-width:0; }
+.avatar { width:28px; height:28px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--sheet); flex:none; }
+
+/* compact chip — built compact classes px-[9px] py-[5px] text-xs, capped */
+.chipm { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--hairline); background:var(--sheet); border-radius:6px; padding:5px 9px; font-weight:700; font-size:12px; color:var(--ink); cursor:pointer; min-width:0;
+  text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+.chipm .dot { width:7px; height:7px; border-radius:50%; background:var(--buy); flex:none; }
+.chipm .cev { color:var(--muted); font-size:9px; letter-spacing:0; }
+
+/* §17g full sheet: pinned head + scrolling rows */
+.sheet { flex:1; display:flex; flex-direction:column; min-height:0; background:var(--sheet); }
+.sheet .shead { flex:none; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--hairline); font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:600; color:var(--muted); }
+.sheet .shead .x { font-size:14px; color:var(--ink); }
+.sheet .rows { flex:1; overflow-y:auto; }
+.sheet .row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:44px; padding:0 16px; font-size:13px; font-weight:700; color:var(--ink); border-bottom:1px solid var(--hairline);
+  text-transform:uppercase; letter-spacing:.05em; }
+.sheet .row .on { color:var(--accent); font-size:10.5px; letter-spacing:.08em; }
+.sheet .row .renote { color:var(--muted); font-size:10px; font-weight:500; letter-spacing:0; text-transform:none; text-align:right; }
+.sheet .row.manage { color:var(--muted); font-weight:600; border-bottom:none; }
+</style>
+</head>
+<body>
+<h1 class="display">The account switcher below lg — RULED: piped, (1) suffix, cap 14</h1>
+<p class="note">375px frames, the compact chip in the real header (wordmark left, chip + avatar right), the §17g full-screen sheet as the menu. <b>Same candidates as the desktop file — whichever you pick there is the format here too.</b> Both chips below are measured at the longest live label; the rename cap follows from the measurement.</p>
+
+<!--
+  §17n MEASUREMENTS at 375px — MEASURED (headless Chromium against this file, 2026-08-03,
+  superseding the earlier arithmetic estimates):
+  Chip budget beside wordmark+avatar: 211px.
+  E8 | FOREX | 100K (active, plain): 160px  → clearance 51px.
+  E8 | FOREX | 100K (1) (active, suffixed): 180px → clearance 31px.
+  E8 | FUTURES | 50K (worst live): 169px → clearance 42px.
+  E8 | FUTURES | 50K (1) (worst suffixed): 189px → clearance 22px. NO TRUNCATION.
+  OWNER CONDITIONS: both clear → RULED: piped dressing everywhere; suffix = single space + (1).
+  RENAME CAP: 16 chars at worst-glyph stress (all M) measured 211px — exactly zero clearance —
+  so the cap is 14 CHARACTERS: worst-glyph 14 ≈ 190px, parity with the worst suffixed formula
+  label (189px). A rename can never crowd the header harder than the longest default.
+  Sheet rows: min-height 44px, full measure.
+-->
+
+<!-- ============ CANDIDATE 1: PIPED ============ -->
+<div class="sec"><div class="eyebrow">Candidate 1 — piped, compact chip + §17g sheet</div></div>
+<div class="grid2">
+<div class="phone">
+  <div class="phead">
+    <span class="wm display">Levelflow</span>
+    <span class="right"><button class="chipm" type="button"><span class="dot"></span>E8 | FOREX | 100K <span class="cev">▾</span></button><span class="avatar"></span></span>
+  </div>
+  <div class="stagebit" style="padding:14px 16px; font-size:12px; color:var(--muted);">Surface under it… (chip tap opens the sheet →)</div>
+</div>
+<div class="phone">
+  <div class="sheet">
+    <div class="shead"><span>Accounts</span><span class="x">✕</span></div>
+    <div class="rows">
+      <div class="row"><span>E8 | FOREX | 100K</span><span class="on">ACTIVE</span></div>
+      <div class="row"><span>E8 | FUTURES | 50K</span></div>
+      <div class="row"><span>E8 | FOREX | 25K</span></div>
+      <div class="row"><span>E8 | FOREX | 100K (1)</span><span class="renote">collision, suffixed</span></div>
+      <div class="row"><span>SWING BOOK</span><span class="renote">renamed — suffix gone</span></div>
+      <div class="row manage"><span>Manage accounts</span></div>
+    </div>
+  </div>
+</div>
+</div>
+<p class="cap">Chip measured: ~164px of the ~209px available (worst live label ~176px) — fits with slack beside the avatar. Sheet rows at 44px, full measure.</p>
+
+<!-- ============ CANDIDATE 2: CONDENSED ============ -->
+<div class="sec"><div class="eyebrow">Candidate 2 — condensed (NOT SHIPPING — the owner chose piped)</div></div>
+<div class="grid2">
+<div class="phone">
+  <div class="phead">
+    <span class="wm display">Levelflow</span>
+    <span class="right"><button class="chipm" type="button"><span class="dot"></span>E8-FOREX-100K <span class="cev">▾</span></button><span class="avatar"></span></span>
+  </div>
+  <div class="stagebit" style="padding:14px 16px; font-size:12px; color:var(--muted);">Surface under it… (chip tap opens the sheet →)</div>
+</div>
+<div class="phone">
+  <div class="sheet">
+    <div class="shead"><span>Accounts</span><span class="x">✕</span></div>
+    <div class="rows">
+      <div class="row"><span>E8-FOREX-100K</span><span class="on">ACTIVE</span></div>
+      <div class="row"><span>E8-FUTURES-50K</span></div>
+      <div class="row"><span>E8-FOREX-25K</span></div>
+      <div class="row"><span>E8-FOREX-100K (1)</span><span class="renote">collision, suffixed</span></div>
+      <div class="row"><span>SWING BOOK</span><span class="renote">renamed — suffix gone</span></div>
+      <div class="row manage"><span>Manage accounts</span></div>
+    </div>
+  </div>
+</div>
+</div>
+<p class="cap">Chip measured: ~146px of ~209px (worst live label ~158px; the suffixed collision ~173px) — the roomier of the two at every label. <b>Rename cap, measured: 14 characters</b> — the 16-char worst-glyph stress case rendered exactly the full 211px budget (zero clearance), so the cap tightens to 14, putting the worst possible rename at parity with the worst suffixed formula label. Rides the Task 7 build with the piped verdict.</p>
+</body>
+</html>

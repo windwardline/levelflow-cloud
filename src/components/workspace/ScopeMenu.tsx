@@ -203,6 +203,13 @@ export function showsAffordance(row: ScopeMenuRow): boolean {
 // the one home for both the number and the comparison, and tests/hooks.test.ts
 // covers them there.
 type ScopeMenuProps = {
+  // §19 retrofit, amendment 13: which groups this menu offers, decided by the
+  // caller (visibleAssetGroups(activeAccount)) rather than by this component —
+  // ScopeMenu itself stays account-agnostic, the same way it is already
+  // clock-agnostic via `now`. Required, not defaulted: buildScopeMenuRows'
+  // own default parameter exists for direct callers (tests, mainly), not for
+  // this component to fall back on silently.
+  groups: SecurityGroup[];
   /** Accessible label for the trigger ("Scan scope"), and the sheet's title. */
   label: string;
   /** Injectable clock for tests; defaults to `new Date()`. */
@@ -231,6 +238,7 @@ type ScopeMenuProps = {
 // would be cut off at the column edge.
 export function ScopeMenu(
   {
+    groups,
     label,
     now,
     onSelect,
@@ -265,7 +273,7 @@ export function ScopeMenu(
   // whatever it was when the component last happened to re-render for some
   // other reason.
   const clock = now ?? new Date();
-  const rows = buildScopeMenuRows(clock);
+  const rows = buildScopeMenuRows(clock, groups);
 
   function place() {
     const rect = triggerRef.current?.getBoundingClientRect();

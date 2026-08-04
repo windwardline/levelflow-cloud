@@ -2353,13 +2353,35 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   }
 });
 
-// Spec §19d/§19f: one presence check per new surface, at 375px and 1280px. With
-// None the ladder has four rows and no Size row; with a program set, five rows and
-// either a number or one of §19e's four words. Exact locators — the substring twin
-// lives page-wide (PR #147). §19e's vocabulary comes from the app's own constant
-// rather than a copy of it: a fifth word, or a reworded one, must fail this spec
-// by rendering something the list does not carry, not pass because the list was
-// edited to agree.
+// Spec §19d/§19f: one presence check per new surface, at 375px and 1280px.
+// With no saved account the ladder has four rows and no Size row; with one
+// active, five rows and either a number or one of §19e's four words. Exact
+// locators — the substring twin lives page-wide (PR #147). §19e's vocabulary
+// comes from the app's own constant rather than a copy of it: a fifth word,
+// or a reworded one, must fail this spec by rendering something the list
+// does not carry, not pass because the list was edited to agree.
+//
+// §19 retrofit (Task 4 review, fix round 1): this spec used to drive the
+// retired single-selection walk — a "None" sentinel on one Program select,
+// with Account size/Stage/Risk per trade/Drawdown appearing only once a
+// program was chosen. Amendment 18 replaced that surface with the
+// confirmed-accounts list above a seven-select catalog walk that is never
+// itself dormant (every field renders from first paint; there is no "None").
+// What §19d's presence check now means: the LADDER's Size row still keys off
+// whether the reader has a priced account, but "priced account" is decided
+// by `activeAccountOf(profile)` (src/lib/profile.ts) rather than by the six
+// retired profile columns this file used to write through `selectOption`.
+//
+// Task 5 (docs/superpowers/plans/2026-08-03-s19-retrofit.md, "Task 5: The
+// Size row and the Desk read the active account") has since switched
+// `SizeRow` and `AdvisorWorkspace`'s `brokerQuotes` dormancy over to
+// `activeAccountOf(profile)` — this spec now asserts real, shipped behavior
+// rather than a forward-registered target. It still cannot run live in every
+// environment (this suite's own top-of-file `test.skip` gates on Supabase
+// and dedicated-test-user credentials that are not available everywhere),
+// which is why `npm run check` (tsconfig.tests.json's "tests" include) and
+// `npx playwright test --list` are the gates every environment can run
+// regardless of credentials.
 const SIZE_STATE_WORD_LIST: string[] = Object.values(SIZE_STATE_WORDS);
 
 async function openProfile(page: Page, width: number) {
@@ -2385,40 +2407,90 @@ async function showDesk(page: Page, width: number) {
   await page.getByRole("button", { exact: true, name: "Desk" }).click();
 }
 
-async function selectProgram(page: Page, width: number, label: string) {
+async function openBrokerProfile(page: Page, width: number) {
   await openProfile(page, width);
   const profile = page.getByTestId("profile-panel");
   await expect(profile).toBeVisible();
-  await profile.getByLabel("Program", { exact: true }).selectOption({ label });
   return profile;
 }
 
-// Puts the shared profile row back to None and waits for the write to LAND.
+// §19 retrofit: removes every saved account, waiting for each write to land
+// before removing the next — the multi-account sibling of the retired
+// resetProgramToNone.
 //
-// The two viewport legs below are separate tests sharing one live profile, and
-// the broker selection is a server row rather than page state — so whatever one
-// leg leaves there is the next leg's opening state. Run 30773120782 is what that
-// costs: the 375px leg skipped on a quiet market with E8 One already bought, and
-// the 1280px leg opened onto `Received: "one"` 1.5 seconds in, having asserted
-// nothing of its own.
+// The two viewport legs below are separate tests sharing one live profile,
+// and a saved account is a server row rather than page state — so whatever
+// one leg leaves there is the next leg's opening state. Run 30773120782 (the
+// retired helper's own finding) is what skipping this costs: a stale account
+// from one leg becomes the next leg's unwanted opening state.
 //
-// The four dependent controls disappearing is the write having landed, not an
-// optimistic paint: useUserProfile.saveProfile awaits the upsert and only then
-// calls applyProfile, so the controlled select and its dependents re-render off
-// server-confirmed state. A native selectOption can leave the select itself
-// reading "none" for a beat that a failed write would revert, which is why the
-// dependents — not the select's own value — are what this waits on.
-async function resetProgramToNone(page: Page, width: number) {
-  await openProfile(page, width);
-  const profile = page.getByTestId("profile-panel");
-  await expect(profile).toBeVisible();
-  await profile.getByLabel("Program", { exact: true }).selectOption("none");
-  await expect(profile.getByLabel("Account size", { exact: true }))
-    .toHaveCount(0);
+// Amendment 18 removed both the "None" sentinel and any deactivate control —
+// activating never un-activates, and removing an account is the only write
+// that can clear `active_broker_account_id` (the FK's on-delete-set-null,
+// per profile.ts's activeAccountOf comment). "No saved accounts" is
+// therefore the only reachable dormant state, so this helper drains the
+// list rather than resetting a single field.
+async function removeAllAccounts(page: Page, width: number) {
+  const profile = await openBrokerProfile(page, width);
+  for (;;) {
+    const removeButtons = profile.getByRole("button", { name: "Remove" });
+    const remaining = await removeButtons.count();
+    if (remaining === 0) {
+      return profile;
+    }
+    await removeButtons.first().click();
+    await expect(removeButtons).toHaveCount(remaining - 1);
+  }
+}
+
+// §19 retrofit: builds a draft through the seven-select catalog walk and
+// saves it, then activates the new row with a second, separate tap — never
+// a same-handler save-then-activate chain. activateBrokerAccount closes
+// over `profile` at render time (Task 2b's review), so calling it
+// immediately after saveBrokerAccount in the same handler would use the
+// PRE-SAVE closure and falsely refuse the id it just created; App.tsx wires
+// no such chain, and this helper does not either.
+//
+// Market defaults to the catalog's first entry (Forex), which already lists
+// E8 One first, so only the Program select needs a value for this walk's
+// original caller — and choosing it resets Account size to E8 One's own
+// first ladder rung, `$5,000`, which is what the saved row's own label
+// renders. marketLabel is optional and additive (Task 7 fix round, the
+// switcher legs below): passing it selects Market first — needed for a
+// program line outside Forex, e.g. `"Futures"` for E8 Signature Futures —
+// and every existing call site, which never passes it, keeps its exact
+// original behavior.
+async function addAndActivateAccount(
+  page: Page,
+  width: number,
+  programLabel: string,
+  accountSizeLabel: string,
+  marketLabel?: string,
+) {
+  const profile = await openBrokerProfile(page, width);
+  // The walk's options render through optionCaps (the owner's caps ruling —
+  // a real toUpperCase() in the DOM, not a CSS transform), and Playwright's
+  // selectOption label matching is case-sensitive: the helper must match
+  // the DOM's actual text, so the labels uppercase here. Proven live
+  // 2026-08-04 — the mixed-case form waited out the full timeout.
+  if (marketLabel) {
+    await profile.getByLabel("Market", { exact: true })
+      .selectOption({ label: marketLabel.toUpperCase() });
+  }
+  await profile.getByLabel("Program", { exact: true })
+    .selectOption({ label: programLabel.toUpperCase() });
+  await profile.getByRole("button", { name: "Add account" }).click();
+  const row = profile.getByRole("button", {
+    exact: true,
+    name: `${programLabel} · ${accountSizeLabel}`,
+  });
+  await expect(row).toBeVisible();
+  await row.click();
+  return profile;
 }
 
 for (const width of [375, 1280]) {
-  test(`the ladder grows one Size row only once a program is selected (§19d, ${width}px)`, async ({ page }) => {
+  test(`the ladder grows one Size row only once an account is active (§19d, amendment 18, ${width}px)`, async ({ page }) => {
     // Two scans, and the helper allows each 90s, so the budget is stated at what
     // the walk can actually cost rather than at what a fast one does. Both scans
     // in the live run this shape was written against finished in 7.5s — and both
@@ -2430,32 +2502,43 @@ for (const width of [375, 1280]) {
 
     // This leg sets its own opening state rather than inheriting the other's.
     // The reload is the part a DOM assertion cannot stand in for: it drops every
-    // piece of client state and re-reads the row from the server, so "none" here
-    // is the persisted value and not a select this session happened to leave
-    // looking right.
-    await resetProgramToNone(page, width);
+    // piece of client state and re-reads the accounts list from the server, so
+    // "no saved accounts" here is the persisted value and not a page this
+    // session happened to leave looking right.
+    await removeAllAccounts(page, width);
     await page.reload();
 
-    // With None — the app's own default, and what a fresh reader sees — Profile's
-    // Broker row carries the chip and the one selector, and nothing else.
-    await openProfile(page, width);
-    const profile = page.getByTestId("profile-panel");
-    await expect(profile).toBeVisible();
-    await expect(profile.getByLabel("Program", { exact: true })).toHaveValue("none");
-    for (const absent of ["Account size", "Stage", "Risk per trade", "Drawdown"]) {
-      await expect(profile.getByLabel(absent, { exact: true })).toHaveCount(0);
+    // With no saved accounts — a fresh reader's own opening state — Profile's
+    // Broker row carries the chip, an empty accounts list, and the seven-select
+    // walk: unlike the retired single-selection controls, the walk itself is
+    // never dormant, so every field is visible even with nothing saved yet.
+    const profile = await openBrokerProfile(page, width);
+    for (
+      const label of [
+        "Market",
+        "Program",
+        "Platform",
+        "Account size",
+        "Stage",
+        "Risk per trade",
+        "Drawdown",
+      ]
+    ) {
+      await expect(profile.getByLabel(label, { exact: true })).toBeVisible();
     }
+    await expect(profile.getByRole("button", { name: "Remove" })).toHaveCount(0);
 
-    // Each ladder claim scans for its own setup, and the program is bought
-    // between them rather than before both. Two reasons, one per live failure
-    // this shape answers. AdvisorWorkspace "only exists in the tree while its tab
-    // is active, so switching tabs away and back remounts it fresh" (App.tsx), so
-    // a setup staged before a Profile trip is gone when the walk returns — which
-    // is why the first live run read the Size row off a stage showing "No setup
-    // yet". And buying the program only after the absence leg has cleared means
-    // the earlier of the two skip gates cannot exit holding a program: a quiet
-    // market is a legitimate state, and it must not become the next leg's opening
-    // state, nor a fifth row in visual-proof's captures.
+    // Each ladder claim scans for its own setup, and the account is saved and
+    // activated between them rather than before both. Two reasons, one per live
+    // failure this shape answers. AdvisorWorkspace "only exists in the tree
+    // while its tab is active, so switching tabs away and back remounts it
+    // fresh" (App.tsx), so a setup staged before a Profile trip is gone when the
+    // walk returns — which is why the first live run read the Size row off a
+    // stage showing "No setup yet". And activating an account only after the
+    // absence leg has cleared means the earlier of the two skip gates cannot
+    // exit holding one: a quiet market is a legitimate state, and it must not
+    // become the next leg's opening state, nor a fifth row in visual-proof's
+    // captures.
     //
     // A scan is how a setup arrives (§17m.1), so the walk skips honestly when
     // nothing qualifies.
@@ -2476,29 +2559,25 @@ for (const width of [375, 1280]) {
     // No Size row at all: not a dash, not an empty value, not a prompt. The
     // ladder is on stage first, and only then is the row absent from it — without
     // that order the absence is unfalsifiable, since an empty stage has no Size
-    // row either and says nothing about what a program controls.
+    // row either and says nothing about what an active account controls.
     await expect(page.getByText("Limit entry", { exact: true })).toBeVisible();
     await expect(page.getByText(/^Size · (lots|contracts)$/)).toHaveCount(0);
 
-    // Now buy a program. E8 One is a CFD line, so its unit is lots — the family
-    // answers the label, never the market that qualified, and a blocked row
-    // carries the same label as a priced one (broker/sizing.ts sizeUnitFor).
-    await selectProgram(page, width, "E8 One");
-    await expect(
-      page.getByTestId("profile-panel").getByLabel("Account size", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("profile-panel").getByLabel("Risk per trade", { exact: true }),
-    ).toHaveValue("0.5");
+    // Now save and activate an account. E8 One is a CFD line, so its unit is
+    // lots — the family answers the label, never the market that qualified,
+    // and a blocked row carries the same label as a priced one
+    // (broker/sizing.ts sizeUnitFor). SizeRow reads activeAccountOf(profile)
+    // (Task 5), so this activation is what the ladder now keys off.
+    await addAndActivateAccount(page, width, "E8 One", "$5,000");
 
     await showDesk(page, width);
     // Same scope as the absence leg: the Desk remounted on the way back from
     // Profile, so the scope reset to All markets with it.
     await scopeScanToGroup(page, "Crypto");
     if (!(await scanForSetupOnStage(page))) {
-      // Past this point the program is bought, so the skip path hands the row
-      // back before it leaves.
-      await resetProgramToNone(page, width);
+      // Past this point the account is active, so the skip path hands the
+      // profile back to no-saved-accounts before it leaves.
+      await removeAllAccounts(page, width);
       test.skip(true, "No Crypto market qualified in this window.");
       return;
     }
@@ -2517,11 +2596,187 @@ for (const width of [375, 1280]) {
     ).toBe(true);
     expect(rendered).not.toContain("—");
 
-    // Hand the row back on the way out. The next leg normalizes anyway, so this
-    // is politeness rather than the guarantee — but it is also what keeps a
-    // leftover program out of visual-proof, which runs after this project and
+    // Hand the profile back on the way out. The next leg normalizes anyway, so
+    // this is politeness rather than the guarantee — but it is also what keeps
+    // a leftover account out of visual-proof, which runs after this project and
     // before the cleanup teardown that resets the selection.
-    await resetProgramToNone(page, width);
+    await removeAllAccounts(page, width);
+  });
+}
+
+// §19 retrofit, Task 7 fix round (amendment 18, controller ruling — "the
+// surface ships with executed coverage or not at all"). Every other broker
+// spec in this file drives Profile's own accounts list; this is the one leg
+// that drives the masthead chip and its popup directly, since that surface
+// has its own machinery (ScopeMenu's own portal/sheet split, reapplied)
+// nothing else here exercises live. A sibling of the §19d legs above, not a
+// replacement — those stay untouched.
+//
+// Two saved accounts, deliberately of different classifications — E8 One
+// (forex) and E8 Signature Futures (futures) — rather than two same-market
+// accounts: sizeUnitFor keys on programLine's family alone
+// (src/lib/broker/sizing.ts), so switching between them flips the Size
+// row's own unit label ("Size · contracts" <-> "Size · lots"), a re-scope
+// signal that needs no live price to be meaningful — the same technique
+// §19d's own Size-row read already uses, reapplied to prove the switch
+// rather than the mere presence of an active account.
+for (const width of [375, 1280]) {
+  test(`the account switcher chip drives activation and the Desk re-scopes with it (§19 retrofit, amendment 18, ${width}px)`, async ({ page }) => {
+    // One scan, not §19d's two: this leg never needs the "no account
+    // active" absence state, so there is one fewer live-market wait to
+    // budget for.
+    test.setTimeout(150_000);
+    await page.setViewportSize({ height: width < 1024 ? 812 : 800, width });
+    await page.goto("/");
+
+    // Same reasoning as removeAllAccounts' own header comment: a saved
+    // account is a server row, not page state, so this leg's opening state
+    // is set explicitly rather than inherited from whatever a prior leg or
+    // a prior run left behind.
+    await removeAllAccounts(page, width);
+    await page.reload();
+
+    const oneLabel = "E8 | Forex | 5K";
+    const futuresLabel = "E8 | Futures | 25K";
+
+    // Futures first, One second — the ORDER is load-bearing since Task 8
+    // (amendment 13): a Futures-classified active account hides the Crypto
+    // group from the scope menu, and Crypto is the one calendar this suite
+    // can scan in any window. So the account that ends ACTIVE here is E8
+    // One (forex — Crypto visible), the scan runs under it, and the
+    // switch TO the futures account happens through the chip afterwards,
+    // which is exactly the surface this leg exists to prove: chip
+    // switching re-scopes live without remounting the Desk, so the staged
+    // Crypto setup survives the switch (a Profile round trip would have
+    // unmounted AdvisorWorkspace and lost it — see the ladder legs' own
+    // remount note above).
+    await addAndActivateAccount(
+      page,
+      width,
+      "E8 Signature Futures",
+      "$25,000",
+      "Futures",
+    );
+    // BrokerAccountsSection never removes a row on Add, so the futures
+    // account stays saved — the switcher needs two SAVED accounts to draw
+    // two rows, and an ACTIVE marker on only the one this second call
+    // activates.
+    await addAndActivateAccount(page, width, "E8 One", "$5,000");
+
+    await showDesk(page, width);
+    await scopeScanToGroup(page, "Crypto");
+    if (!(await scanForSetupOnStage(page))) {
+      await removeAllAccounts(page, width);
+      test.skip(true, "No Crypto market qualified in this window.");
+      return;
+    }
+
+    // The ladder is already keyed off E8 One — the forex account this leg
+    // just activated — before the switcher touches anything: the same §19d
+    // technique (a unit label needs no live price to be meaningful).
+    await expect(page.getByText("Size · lots", { exact: true }))
+      .toBeVisible();
+
+    const header = page.getByTestId(
+      width < 1024 ? "mobile-header" : "desktop-header",
+    );
+    // Matched by content ("|" is structural to every possible formula
+    // label, TASK 6 VERDICT) rather than by the account's current label:
+    // this same locator is reused after (d) switches the active account,
+    // by which point its accessible name has changed to the futures
+    // account's own.
+    // MobileAccountMenu's own trigger carries no text at all (an icon
+    // only), so this cannot collide with it.
+    const trigger = header.getByRole("button").filter({ hasText: "|" });
+
+    // (a) the chip renders the active account's piped label, ALL CAPS by a
+    // CSS transform over the byte-intact formula underneath (TASK 6
+    // VERDICT) — checked as two separate, unambiguous facts rather than
+    // through a locator's own name-matching semantics: the raw DOM text is
+    // the mixed-case catalog formula, and the element's own computed style
+    // is what makes it read as capitals.
+    await expect(trigger).toBeVisible();
+    await expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect((await trigger.textContent())?.trim()).toBe(oneLabel);
+    expect(
+      await trigger.evaluate((el) => getComputedStyle(el).textTransform),
+    ).toBe("uppercase");
+
+    // (b) tap/click opens the right container for this width — the
+    // anchored popup at >=lg, the §17g sheet below it, its pinned head
+    // carrying the fix-round title this leg exists partly to prove.
+    await trigger.click();
+    if (width < 1024) {
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByText("Accounts", { exact: true }))
+        .toBeVisible();
+    } else {
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+    const menu = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+
+    // (c) rows list both saved accounts in the piped formula, ACTIVE on
+    // the active one only, Manage accounts at the foot.
+    const items = menu.getByRole("menuitem");
+    await expect(items).toHaveCount(3);
+    const oneRow = menu.getByRole("menuitem").filter({ hasText: oneLabel });
+    const futuresRow = menu.getByRole("menuitem").filter({
+      hasText: futuresLabel,
+    });
+    await expect(oneRow).toBeVisible();
+    await expect(futuresRow).toBeVisible();
+    // The byte-exact read belongs to the row WITHOUT the badge: the active
+    // row's textContent is its label concatenated with the Active badge's
+    // own text, so exactness there would assert a join, not a label.
+    expect((await futuresRow.textContent())?.trim()).toBe(futuresLabel);
+    await expect(oneRow).toContainText(/active/i);
+    await expect(futuresRow).not.toContainText(/active/i);
+    const itemNames = await items.evaluateAll((nodes) =>
+      nodes.map((node) => node.textContent?.trim())
+    );
+    expect(itemNames.at(-1)).toMatch(/manage accounts/i);
+
+    // (d) selecting a different account closes the menu, and the Desk
+    // re-scopes live through the same reactivity Task 5 wired
+    // (activeAccountOf(profile), read plain in SizeRow —
+    // tests/deskComposition.test.ts pins that read): the unit label flips
+    // from E8 One's "lots" to the futures account's "contracts" with no
+    // reload — and the staged Crypto setup SURVIVES the switch, which is
+    // the amendment-18 claim in one assertion: the chip re-scopes the
+    // Desk without remounting it. (Amendment 13 resets the SCOPE control
+    // to All markets under the futures account — the stage is not the
+    // scope, and sizeUnitFor keys on the account family alone.)
+    await futuresRow.click();
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText("Size · contracts", { exact: true }))
+      .toBeVisible();
+
+    // Task 8 fix round 1 (review finding on 22e5fc1): the chip switch above
+    // re-scopes the Desk live, and the amendment-13 reset effect that fires
+    // with it now clears the stale Crypto scan along with the scope it was
+    // keyed to — not scope alone. Before the fix, scanResult survived the
+    // switch untouched: filterMarketScanCandidatesByScope's "all" case
+    // passes every candidate through unconditionally, so the Crypto rows
+    // this leg just scanned (unreachable and untradeable under a futures
+    // account) would still be sitting in the rail, fully clickable, under a
+    // scanned/qualified count line that no longer honestly described them.
+    // scanForSetupOnStage's own row locator is reused here: the same
+    // pattern that found a row to click above must now find none at all —
+    // the rail is back in its un-scanned state, same as it renders before
+    // any scan ever ran.
+    await expect(
+      scanSurface(page).getByText(/^(Buy|Sell) · confidence \d+$/),
+    ).toHaveCount(0);
+
+    // (e) focus returns to the trigger on close — the file's own
+    // focus-return idiom (see the Expand-chart dialog's Escape/Close
+    // checks above).
+    await expect(trigger).toBeFocused();
+
+    await removeAllAccounts(page, width);
   });
 }
 

@@ -297,8 +297,16 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "src/components/workspace/ProfilePanel.tsx",
     "utf8",
   );
+  // §19 retrofit, Task 7: the switcher sheet's pinned-head title (`Accounts`)
+  // and its foot row (`Manage accounts`) render only here — omitting this
+  // file let the vacuous disjunct below hide that gap (F2).
+  const switcherMenu = readFileSync(
+    "src/components/workspace/AccountSwitcherMenu.tsx",
+    "utf8",
+  );
   const types = readFileSync("src/lib/broker/types.ts", "utf8");
   const programs = readFileSync("src/lib/broker/programs.ts", "utf8");
+  const catalog = readFileSync("src/lib/broker/catalog.ts", "utf8");
 
   const RENDERED = [
     // The ladder Size row.
@@ -308,13 +316,17 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "Not confirmed",
     "Not published",
     "Rate unavailable",
-    // The Profile Broker controls.
+    // The Profile Broker controls. "None" retired with the single-selection
+    // walk it was the sentinel for (§19 retrofit, Task 4): BrokerAccountDraft
+    // has no field that means "nothing chosen yet", so nothing in shipped
+    // source renders the word any more — removed from here rather than left
+    // pinning a string that no longer exists (checked in both directions
+    // below, so a stale entry here would fail loudly rather than drift).
     "Program",
     "Account size",
     "Stage",
     "Risk per trade",
     "Drawdown",
-    "None",
     "E8 One",
     "E8 One Crypto",
     "E8 Pro Forex",
@@ -327,6 +339,35 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "E8 Zero Futures Max",
     "Challenge",
     "Performance",
+    // Task 3's catalog walk: the market and platform vocabulary (§20i
+    // ruling 7).
+    "Forex",
+    "Crypto",
+    "Futures",
+    "TradeLocker",
+    "MatchTrader",
+    "Tradovate",
+    // §19 retrofit, Task 4 (amendment 14, 18): the two new field labels the
+    // catalog walk adds ahead of the retired walk's five, and the
+    // confirmed-accounts list's own OWNER COPY (owner copy of 2026-08-03,
+    // the plan's proposal — see the spec paragraph below and this task's
+    // commit body for the pending-ruling caveat). `Manage accounts` is
+    // forward-registered for task 7's chip menu, which has not landed yet.
+    "Market",
+    "Platform",
+    "Active",
+    "Remove",
+    "Add account",
+    "Manage accounts",
+    // §19 retrofit, Task 7 fix round (amendment 18): the switcher's <lg
+    // sheet gets a visible, aria-labelledby-linked pinned-head title — the
+    // one thing every other §17g/dialog sheet in this codebase already has
+    // (ScopeMenu's own `label`, ExpandedChartOverlay's title) and the
+    // switcher had been the lone exception. OWNER COPY pending, the same
+    // discipline Task 4's six words above used (owner copy of 2026-08-04,
+    // this task's proposal — see the spec §20j paragraph and this commit's
+    // body for the pending-ruling caveat).
+    "Accounts",
   ];
 
   it("names every string this feature renders in §20j", () => {
@@ -338,16 +379,36 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     }
   });
 
+  // AccountSwitcherMenu (§19 retrofit, Task 7) renders `Accounts` and
+  // `Manage accounts` as bare JSX text — `<span>Accounts</span>`, not
+  // ProfilePanel's `{"Active"}`-style quoted literal — so the exact-quote
+  // check below cannot see either one and needs this one named exception.
+  const BARE_JSX_TEXT = ["Accounts", "Manage accounts"];
+
   it("renders every §19 string §20j names, somewhere in the shipped source", () => {
-    const shipped = [types, programs, panel, profilePanel].join("\n");
+    const shipped =
+      [types, programs, catalog, panel, profilePanel, switcherMenu].join("\n");
     for (const string of RENDERED) {
-      // `Size · lots` and `Size · contracts` are composed from the unit, so the
-      // unit is what the source carries.
-      const needle = string.startsWith("Size · ") ? string.slice(7) : string;
-      assert.ok(
-        shipped.includes(`"${needle}"`) || shipped.includes(`Size · $`),
-        `nothing renders ${string}`,
-      );
+      if (string.startsWith("Size · ")) {
+        // `Size · lots` and `Size · contracts` are composed from the unit
+        // (sizeUnitFor, src/lib/broker/sizing.ts — outside this file's own
+        // roster), so this checks the template literal's own prefix rather
+        // than the composed string. Scoped to just these two strings: this
+        // disjunct used to run unconditionally for every entry in RENDERED,
+        // which made the whole assertion constant-true (F2) since `panel`
+        // always carries the `` `Size · ${...}` `` literal regardless of
+        // which string is under test.
+        assert.ok(shipped.includes("Size · $"), `nothing renders ${string}`);
+        continue;
+      }
+      if (BARE_JSX_TEXT.includes(string)) {
+        const rendersAsJsxText = shipped
+          .split("\n")
+          .some((line) => line.trim() === string);
+        assert.ok(rendersAsJsxText, `nothing renders ${string}`);
+        continue;
+      }
+      assert.ok(shipped.includes(`"${string}"`), `nothing renders ${string}`);
     }
   });
 

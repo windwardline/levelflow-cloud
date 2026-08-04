@@ -2,7 +2,14 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import {
-  PROGRAM_LINES,
+  CLASSIFICATIONS,
+  PLATFORM_LABELS,
+  isPlatformVerified,
+  isProgramLineVerified,
+  platformsFor,
+  programLinesFor,
+} from "../../lib/broker/catalog";
+import {
   RISK_PERCENT_DEFAULT,
   RISK_PERCENT_OPTIONS,
   STAGE_OPTIONS,
@@ -10,9 +17,16 @@ import {
   formatDrawdownTier,
   formatRiskPercent,
   getProgramLine,
-  isProgramLine,
+  type ProgramLineSpec,
 } from "../../lib/broker/programs";
-import type { BrokerSelection, ThemeMode, UserProfile } from "../../lib/profile";
+import type {
+  BrokerAccountDraft,
+  BrokerClassification,
+  BrokerPlatform,
+  BrokerSelection,
+  ThemeMode,
+  UserProfile,
+} from "../../lib/profile";
 import {
   MOBILE_FRAME,
   MOBILE_FRAME_PINNED,
@@ -48,6 +62,8 @@ import { ThemeToggle } from "./ThemeToggle";
 // Support row here was a second home for links already on screen.
 type ProfilePanelProps = {
   memberSince: string;
+  onActivateAccount: (id: string) => void;
+  onRemoveAccount: (id: string) => void;
   onSave: (
     input: Pick<
       UserProfile,
@@ -58,6 +74,7 @@ type ProfilePanelProps = {
       | "themePreference"
     > & BrokerSelection,
   ) => Promise<void>;
+  onSaveAccount: (draft: BrokerAccountDraft) => void;
   onSignOut: () => void;
   onThemeChange: (mode: ThemeMode) => void;
   profile: UserProfile;
@@ -66,7 +83,10 @@ type ProfilePanelProps = {
 
 export function ProfilePanel({
   memberSince,
+  onActivateAccount,
+  onRemoveAccount,
   onSave,
+  onSaveAccount,
   onSignOut,
   onThemeChange,
   profile,
@@ -98,25 +118,6 @@ export function ProfilePanel({
     }).catch((error) => {
       console.error("[profile] theme save failed", error);
       setThemeSaveFailed(true);
-    });
-  }
-
-  // Spec §19b: the program selection persists the moment it changes, the same
-  // no-Save-button discipline Appearance follows, and every other saved field
-  // rides along. The selects read their value straight off `profile`, so a
-  // rejected or failed write leaves the control showing what is actually stored
-  // rather than a selection that never landed — and §20j allows this feature no
-  // string of its own to say so with.
-  function saveSelection(selection: BrokerSelection) {
-    onSave({
-      ...selection,
-      defaultTimeframe: profile.defaultTimeframe,
-      defaultTimezone: profile.defaultTimezone,
-      displayName: profile.displayName,
-      preferredSession: profile.preferredSession,
-      themePreference: profile.themePreference,
-    }).catch((error) => {
-      console.error("[profile] broker program save failed", error);
     });
   }
 
@@ -163,17 +164,32 @@ export function ProfilePanel({
         </button>
       </ProfileRow>
 
-      {/* Spec §19b: the program controls live inside this existing row, beneath
-          the chip, as ProfileDetailRow-shaped label/control pairs. No card, no new
+      {/* §19 retrofit (amendment 14, 18): the confirmed-accounts list and its
+          catalog walk live inside this existing row, beneath the chip, as
+          ProfileDetailRow-shaped label/control pairs. No card, no new
           chrome, no second Broker section — and the row's approved description is
           unchanged, because it already says what the row cannot show and the
-          selector below it is self-evident. */}
+          list and the walk below it are self-evident. */}
       <ProfileRow
         description="Markets, costs, and record follow the broker."
         title="Broker"
       >
-        <BrokerChip />
-        <BrokerProgramControls onChange={saveSelection} profile={profile} />
+        <BrokerChip
+          accounts={profile.brokerAccounts}
+          activeId={profile.activeBrokerAccountId}
+          // No-op: this mount already sits directly above
+          // BrokerAccountsSection, which IS where "Manage accounts" would
+          // navigate — so picking it here would just close the switcher onto
+          // the very list already open beneath it.
+          onManage={() => {}}
+          onSelect={onActivateAccount}
+        />
+        <BrokerAccountsSection
+          onActivateAccount={onActivateAccount}
+          onRemoveAccount={onRemoveAccount}
+          onSaveAccount={onSaveAccount}
+          profile={profile}
+        />
       </ProfileRow>
 
       <ProfileRow
@@ -345,9 +361,15 @@ function ProfileDetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// Spec §19b: five controls, in this order, each a select. Program is the door and
-// draws always; the other four exist only once a program is selected, because with
-// None the feature is dormant and adds no surface anywhere.
+// §19 retrofit (amendment 14, 18): the Broker row now shows the confirmed
+// accounts a profile has already saved, one of them active, above the
+// seven-select catalog walk that builds the next one. The walk is never
+// dormant the way the retired single-selection controls above it were — a
+// draft always names a complete, sellable account from first render, because
+// BrokerAccountDraft (unlike BrokerSelection) has no field that means "no
+// selection yet." Market comes first because it is the catalog's own first
+// fork (§20i ruling 7): choosing it decides which Program options exist at
+// all, and Program does the same for Platform.
 //
 // The pairs take ProfileDetailRow's own measure — label left, control right, the
 // mock's 520px cap — so the Broker row's rhythm is the sheet's rhythm and not a
@@ -364,144 +386,279 @@ function ProfileDetailRow({ label, value }: { label: string; value: string }) {
 // which arrives already capped.
 const optionCaps = (label: string) => label.toUpperCase();
 
-function BrokerProgramControls({
-  onChange,
+// The reset every market or program change applies: platform, account size
+// and drawdown tier are priced per program line, so a change resets all
+// three to the new line's own first option — the same "reset to index 0"
+// rule the retired single-selection walk used. Risk per trade and stage are
+// not program parameters, so the caller carries them forward instead of
+// resetting them here.
+function draftForProgram(
+  classification: BrokerClassification,
+  next: ProgramLineSpec,
+  riskPercent: number,
+  stage: BrokerAccountDraft["stage"],
+): BrokerAccountDraft {
+  return {
+    accountSize: next.accountSizes[0],
+    brokerId: "e8",
+    classification,
+    drawdownTier: next.drawdownTiers?.[0] ?? null,
+    platform: platformsFor(next.line)[0],
+    programLine: next.line,
+    riskPercent,
+    stage,
+  };
+}
+
+// The walk's own seed: the catalog's first market and that market's first
+// program, challenge stage, the published default risk. There is no "None"
+// to start from — every BrokerAccountDraft names a complete account.
+function initialDraft(): BrokerAccountDraft {
+  const classification = CLASSIFICATIONS[0].value;
+  return draftForProgram(
+    classification,
+    programLinesFor(classification)[0],
+    RISK_PERCENT_DEFAULT,
+    "challenge",
+  );
+}
+
+function BrokerAccountsSection({
+  onActivateAccount,
+  onRemoveAccount,
+  onSaveAccount,
   profile,
 }: {
-  onChange: (selection: BrokerSelection) => void;
+  onActivateAccount: (id: string) => void;
+  onRemoveAccount: (id: string) => void;
+  onSaveAccount: (draft: BrokerAccountDraft) => void;
   profile: UserProfile;
 }) {
-  const program = profile.brokerProgramLine === null
-    ? null
-    : getProgramLine(profile.brokerProgramLine);
+  const [draft, setDraft] = useState<BrokerAccountDraft>(initialDraft);
 
-  // Changing program resets the account size and the tier to the new program's own
-  // domain: the ladders are not shared (E8 Pro carries a $150,000 tier E8 One's
-  // eight do not) and six of the ten lines have no tier at all, so carrying either
-  // across would compose a configuration E8 does not sell. Risk per trade is not a
-  // program parameter, so it survives the change and only seeds on the first
-  // selection.
-  function selectProgram(value: string) {
-    if (!isProgramLine(value)) {
-      onChange({
-        brokerAccountSize: null,
-        brokerDrawdownTier: null,
-        brokerId: null,
-        brokerProgramLine: null,
-        brokerRiskPercent: null,
-        brokerStage: null,
-      });
+  const programs = programLinesFor(draft.classification);
+  const program = getProgramLine(draft.programLine)!;
+  const platforms = platformsFor(draft.programLine);
+
+  function selectMarket(value: string) {
+    const classification = value as BrokerClassification;
+    const next = programLinesFor(classification)[0];
+    setDraft((prev) =>
+      draftForProgram(classification, next, prev.riskPercent, prev.stage));
+  }
+
+  function selectProgramLine(value: string) {
+    const next = getProgramLine(value);
+    if (!next) {
       return;
     }
-    const next = getProgramLine(value)!;
-    onChange({
-      brokerAccountSize: next.accountSizes[0],
-      brokerDrawdownTier: next.drawdownTiers?.[0] ?? null,
-      brokerId: "e8",
-      brokerProgramLine: next.line,
-      brokerRiskPercent: profile.brokerRiskPercent ?? RISK_PERCENT_DEFAULT,
-      brokerStage: profile.brokerStage ?? "challenge",
-    });
+    setDraft((prev) =>
+      draftForProgram(draft.classification, next, prev.riskPercent, prev.stage));
   }
 
-  function update(patch: Partial<BrokerSelection>) {
-    onChange({ ...brokerSelectionOf(profile), ...patch });
+  function update(patch: Partial<BrokerAccountDraft>) {
+    setDraft((prev) => ({ ...prev, ...patch }));
   }
 
+  // §20j / task 7 (forward-registered here per this task's brief):
+  // "Manage accounts" is the confirmed-accounts chip menu's own control,
+  // not yet rendered by this section — pinning the string now means that
+  // surface ships with it already reviewed rather than adding one later.
   return (
     <div className="mt-3 grid">
-      <BrokerControlRow label="Program">
-        <select
-          aria-label="Program"
-          className="field"
-          onChange={(event) => selectProgram(event.target.value)}
-          value={profile.brokerProgramLine ?? "none"}
-        >
-          <option value="none">{optionCaps("None")}</option>
-          {PROGRAM_LINES.map((line) => (
-            <option key={line.line} value={line.line}>
-              {optionCaps(line.label)}
-            </option>
-          ))}
-        </select>
-      </BrokerControlRow>
-      {program
+      {profile.brokerAccounts.length > 0
         ? (
-          <>
-            <BrokerControlRow label="Account size">
-              <select
-                aria-label="Account size"
-                className="field"
-                onChange={(event) =>
-                  update({ brokerAccountSize: Number(event.target.value) })}
-                value={String(profile.brokerAccountSize ?? "")}
-              >
-                {program.accountSizes.map((size) => (
-                  <option key={size} value={size}>
-                    {optionCaps(formatAccountSize(size))}
-                  </option>
-                ))}
-              </select>
-            </BrokerControlRow>
-            <BrokerControlRow label="Stage">
-              <select
-                aria-label="Stage"
-                className="field"
-                onChange={(event) =>
-                  update({
-                    brokerStage: event.target.value === "performance"
-                      ? "performance"
-                      : "challenge",
-                  })}
-                value={profile.brokerStage ?? "challenge"}
-              >
-                {STAGE_OPTIONS.map((stage) => (
-                  <option key={stage.value} value={stage.value}>
-                    {optionCaps(stage.label)}
-                  </option>
-                ))}
-              </select>
-            </BrokerControlRow>
-            <BrokerControlRow label="Risk per trade">
-              <select
-                aria-label="Risk per trade"
-                className="field"
-                onChange={(event) =>
-                  update({ brokerRiskPercent: Number(event.target.value) })}
-                value={String(profile.brokerRiskPercent ?? RISK_PERCENT_DEFAULT)}
-              >
-                {RISK_PERCENT_OPTIONS.map((percent) => (
-                  <option key={percent} value={percent}>
-                    {optionCaps(formatRiskPercent(percent))}
-                  </option>
-                ))}
-              </select>
-            </BrokerControlRow>
-            {/* The purchased tier, on the four customizable lines only. The six
-                preset lines publish their parameters per size, so there is nothing
-                to ask and no control to draw. */}
-            {program.drawdownTiers
-              ? (
-                <BrokerControlRow label="Drawdown">
-                  <select
-                    aria-label="Drawdown"
-                    className="field"
-                    onChange={(event) =>
-                      update({ brokerDrawdownTier: event.target.value })}
-                    value={profile.brokerDrawdownTier ?? program.drawdownTiers[0]}
+          <div className="grid">
+            {profile.brokerAccounts.map((account) => {
+              const accountProgram = getProgramLine(account.programLine)!;
+              const isActive = profile.activeBrokerAccountId === account.id;
+              return (
+                <div
+                  key={account.id}
+                  className="flex min-h-11 w-full items-center justify-between gap-3 py-1.5 text-left text-sm"
+                >
+                  {/* §17n fix round 1: min-h-11 on the row alone left this
+                      button small and centered inside an inert 44px box — a
+                      tap between the text and the row's edge hit nothing.
+                      The floor belongs on the tappable element itself
+                      (MarketScanRow's own idiom, MarketScanPanel.tsx): flex
+                      + min-h-11 + items-center grows the button to the full
+                      row height and centers its content in it, rather than
+                      leaving the row to center a shorter box. */}
+                  <button
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+                    type="button"
+                    aria-current={isActive}
+                    onClick={() => onActivateAccount(account.id)}
                   >
-                    {program.drawdownTiers.map((tier) => (
-                      <option key={tier} value={tier}>
-                        {optionCaps(formatDrawdownTier(tier))}
-                      </option>
-                    ))}
-                  </select>
-                </BrokerControlRow>
-              )
-              : null}
-          </>
+                    <span className="min-w-0 truncate">
+                      {`${accountProgram.label} · ${formatAccountSize(account.accountSize)}`}
+                    </span>
+                    {isActive
+                      ? (
+                        <span className="shrink-0 font-semibold text-accent">
+                          {"Active"}
+                        </span>
+                      )
+                      : null}
+                  </button>
+                  {/* Remove is short text inside a flex row, where
+                      .tertiary-link's negative-margin trick would move the
+                      row's own geometry (the same reason AppFooter's link
+                      trio uses .legal-link instead, styles/index.css) — the
+                      kit's absolutely-positioned overlay reaches 44px
+                      without affecting layout at all. */}
+                  <button
+                    className="legal-link shrink-0 text-xs font-semibold text-ink-muted"
+                    type="button"
+                    onClick={() => onRemoveAccount(account.id)}
+                  >
+                    {"Remove"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         )
         : null}
+
+      <div className="mt-3 grid">
+        <BrokerControlRow label="Market">
+          <select
+            aria-label="Market"
+            className="field"
+            onChange={(event) => selectMarket(event.target.value)}
+            value={draft.classification}
+          >
+            {CLASSIFICATIONS.map((classification) => (
+              <option key={classification.value} value={classification.value}>
+                {optionCaps(classification.label)}
+              </option>
+            ))}
+          </select>
+        </BrokerControlRow>
+        <BrokerControlRow label="Program">
+          <select
+            aria-label="Program"
+            className="field"
+            onChange={(event) => selectProgramLine(event.target.value)}
+            value={draft.programLine}
+          >
+            {programs.map((line) => (
+              <option
+                disabled={!isProgramLineVerified(line.line)}
+                key={line.line}
+                value={line.line}
+              >
+                {optionCaps(line.label)}
+              </option>
+            ))}
+          </select>
+        </BrokerControlRow>
+        {/* Amendment 12: Platform renders even where a line sells only one —
+            a single-option select is not a form, it is the catalog stating
+            the platform, so the field's presence never varies by line. */}
+        <BrokerControlRow label="Platform">
+          <select
+            aria-label="Platform"
+            className="field"
+            onChange={(event) =>
+              update({ platform: event.target.value as BrokerPlatform })}
+            value={draft.platform}
+          >
+            {platforms.map((platform) => (
+              <option
+                disabled={!isPlatformVerified(platform)}
+                key={platform}
+                value={platform}
+              >
+                {optionCaps(PLATFORM_LABELS[platform])}
+              </option>
+            ))}
+          </select>
+        </BrokerControlRow>
+        <BrokerControlRow label="Account size">
+          <select
+            aria-label="Account size"
+            className="field"
+            onChange={(event) =>
+              update({ accountSize: Number(event.target.value) })}
+            value={String(draft.accountSize)}
+          >
+            {program.accountSizes.map((size) => (
+              <option key={size} value={size}>
+                {optionCaps(formatAccountSize(size))}
+              </option>
+            ))}
+          </select>
+        </BrokerControlRow>
+        <BrokerControlRow label="Stage">
+          <select
+            aria-label="Stage"
+            className="field"
+            onChange={(event) =>
+              update({
+                stage: event.target.value === "performance"
+                  ? "performance"
+                  : "challenge",
+              })}
+            value={draft.stage}
+          >
+            {STAGE_OPTIONS.map((stage) => (
+              <option key={stage.value} value={stage.value}>
+                {optionCaps(stage.label)}
+              </option>
+            ))}
+          </select>
+        </BrokerControlRow>
+        <BrokerControlRow label="Risk per trade">
+          <select
+            aria-label="Risk per trade"
+            className="field"
+            onChange={(event) =>
+              update({ riskPercent: Number(event.target.value) })}
+            value={String(draft.riskPercent)}
+          >
+            {RISK_PERCENT_OPTIONS.map((percent) => (
+              <option key={percent} value={percent}>
+                {optionCaps(formatRiskPercent(percent))}
+              </option>
+            ))}
+          </select>
+        </BrokerControlRow>
+        {/* The purchased tier, on the four customizable lines only. The six
+            preset lines publish their parameters per size, so there is nothing
+            to ask and no control to draw. */}
+        {program.drawdownTiers
+          ? (
+            <BrokerControlRow label="Drawdown">
+              <select
+                aria-label="Drawdown"
+                className="field"
+                onChange={(event) =>
+                  update({ drawdownTier: event.target.value })}
+                value={draft.drawdownTier ?? program.drawdownTiers[0]}
+              >
+                {program.drawdownTiers.map((tier) => (
+                  <option key={tier} value={tier}>
+                    {optionCaps(formatDrawdownTier(tier))}
+                  </option>
+                ))}
+              </select>
+            </BrokerControlRow>
+          )
+          : null}
+      </div>
+
+      <div className="mt-3">
+        <button
+          className="secondary-button px-3.5 py-2 text-[13px]"
+          type="button"
+          onClick={() => onSaveAccount(draft)}
+        >
+          {"Add account"}
+        </button>
+      </div>
     </div>
   );
 }

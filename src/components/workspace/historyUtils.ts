@@ -401,14 +401,17 @@ export function isWithinPeriod(
 
 // The Market filter is structured after the scan scope menu's universal
 // contract (spec §4: all → groups alphabetical → symbols nested) and reuses
-// its ScanScope type and AVAILABLE_ASSET_GROUPS data for that ordering. It
-// is deliberately NOT the ScopeMenu component itself: that component grays
-// out and disables closed markets and labels them with scan affordances
-// ("SCAN {N}", "OPENS {time}") — correct for choosing what to scan right
-// now, wrong for filtering a historical ledger, where a market closed for
-// the weekend must still be selectable to see its past setups. A plain
-// <select> (HistoryPanel.tsx) carries the same three-tier data without
-// borrowing scan-only behavior that doesn't apply here.
+// its ScanScope type for that ordering, over the same active-account-scoped
+// groups the scope menu now offers (visibleAssetGroups(activeAccount) — §19
+// retrofit, amendment 13, superseding the raw AVAILABLE_ASSET_GROUPS this
+// comment used to name). It is deliberately NOT the ScopeMenu component
+// itself: that component grays out and disables closed markets and labels
+// them with scan affordances ("SCAN {N}", "OPENS {time}") — correct for
+// choosing what to scan right now, wrong for filtering a historical ledger,
+// where a market closed for the weekend must still be selectable to see its
+// past setups. A plain <select> (HistoryPanel.tsx) carries the same
+// three-tier data without borrowing scan-only behavior that doesn't apply
+// here.
 export const ALL_MARKETS_FILTER = "all";
 
 export function marketFilterValue(scope: ScanScope): string {

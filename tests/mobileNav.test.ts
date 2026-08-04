@@ -11,7 +11,9 @@ import {
   buildTradeCards,
   currentTradeBadgeCount,
 } from "../src/components/workspace/CurrentTradesRail";
+import { labelAccounts } from "../src/components/workspace/AccountSwitcherMenu";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
+import type { BrokerAccount } from "../src/lib/profile";
 
 // App.tsx itself can never be `import`-ed directly in this harness: its
 // module-level TABS array embeds JSX that evaluates eagerly on import
@@ -305,7 +307,15 @@ describe("App.tsx mobile tab bar + header (source-pinned — see header comment)
     )?.[0] ?? "";
     // The mobile masthead takes the compact variant (m-mobile-v3.html:43:
     // the pill reads "E8" at 12px there; content surfaces keep the full name).
-    assert.match(mobileHeaderBlock, /<BrokerChip compact \/>/);
+    const chipCallSite = mobileHeaderBlock.match(/<BrokerChip[\s\S]*?\/>/)?.[0] ?? "";
+    assert.match(chipCallSite, /accounts=\{profile\.brokerAccounts\}/);
+    assert.match(chipCallSite, /activeId=\{profile\.activeBrokerAccountId\}/);
+    assert.match(chipCallSite, /\bcompact\b/);
+    assert.match(
+      chipCallSite,
+      /onManage=\{\(\) =>\s*\n\s*goToSurface\(\{ \.\.\.currentSurface, tab: "profile", document: null \}\)\}/,
+    );
+    assert.match(chipCallSite, /onSelect=\{handleActivateAccount\}/);
     assert.match(mobileHeaderBlock, /<MobileAccountMenu/);
   });
 
@@ -462,7 +472,15 @@ describe("desktop masthead composition (spec §16, source-pinned — see header 
       desktopHeaderBlock,
       /<nav\s+aria-label="Levelflow sections"\s+className="flex items-center gap-6"\s*>/,
     );
-    assert.match(desktopHeaderBlock, /<BrokerChip \/>/);
+    const chipCallSite = desktopHeaderBlock.match(/<BrokerChip[\s\S]*?\/>/)?.[0] ?? "";
+    assert.match(chipCallSite, /accounts=\{profile\.brokerAccounts\}/);
+    assert.match(chipCallSite, /activeId=\{profile\.activeBrokerAccountId\}/);
+    assert.doesNotMatch(chipCallSite, /\bcompact\b/);
+    assert.match(
+      chipCallSite,
+      /onManage=\{\(\) =>\s*\n\s*goToSurface\(\{ \.\.\.currentSurface, tab: "profile", document: null \}\)\}/,
+    );
+    assert.match(chipCallSite, /onSelect=\{handleActivateAccount\}/);
     assert.match(
       desktopHeaderBlock,
       /<button\s+className="secondary-button min-h-10 px-3 py-2"\s+type="button"\s+onClick=\{\(\) => supabase\?\.auth\.signOut\(\)\}\s*>\s*Sign out\s*<\/button>/,
@@ -765,6 +783,13 @@ describe("AdvisorWorkspace stage notice for a closed market (source-pinned, I4/�
 // radius, and an 8px buy-colored dot. One component still feeds all three call
 // sites (both headers plus Profile's Broker card), so this is pinned once.
 // Literal utility strings against the real token names, per the C1 guard.
+//
+// §19 retrofit, amendment 18: min-h-11 joins both pill geometries here
+// (never present before Task 7) because the chip stops being purely
+// informational the moment either state below is real — zero saved accounts
+// still routes a tap to Profile, and one or more turns it into the switcher
+// trigger. Spec §12's "no toggle" is what let the un-sized pill stand until
+// now.
 describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", () => {
   const BROKER_CHIP_SOURCE = readFileSync(
     "src/components/workspace/BrokerChip.tsx",
@@ -774,7 +799,7 @@ describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", (
   it("is a hairline-bordered pill on sheet at the mock's geometry, not the .chip idiom", () => {
     assert.match(
       BROKER_CHIP_SOURCE,
-      /className="inline-flex items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-3 py-\[7px\] text-\[13px\] font-bold text-ink"/,
+      /className="inline-flex min-h-11 items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-3 py-\[7px\] text-\[13px\] font-bold text-ink"/,
     );
     assert.doesNotMatch(BROKER_CHIP_SOURCE, /className="chip\b/);
   });
@@ -786,7 +811,7 @@ describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", (
     );
   });
 
-  it("still names the broker in text — the dot is decoration, not the label", () => {
+  it("still names the broker in text with no saved account — the dot is decoration, not the label", () => {
     assert.match(BROKER_CHIP_SOURCE, />\s*E8 Markets\s*</);
   });
 
@@ -796,10 +821,251 @@ describe("BrokerChip renders the mock's .broker treatment (tokens.css:22-24)", (
   it("offers the mobile masthead's compact variant at the mock's geometry", () => {
     assert.match(
       BROKER_CHIP_SOURCE,
-      /className="inline-flex items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-\[9px\] py-\[5px\] text-xs font-bold text-ink"/,
+      /className="inline-flex min-h-11 items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-\[9px\] py-\[5px\] text-xs font-bold text-ink"/,
     );
     assert.match(BROKER_CHIP_SOURCE, /aria-label="E8 Markets"/);
     assert.match(BROKER_CHIP_SOURCE, />\s*E8\s*</);
+  });
+});
+
+describe("amendment 18 — the chip is the switcher, in the machinery the app already has", () => {
+  const BROKER_CHIP_SOURCE = readFileSync(
+    "src/components/workspace/BrokerChip.tsx",
+    "utf8",
+  );
+
+  it("keeps today's informational form with no saved account", () => {
+    assert.match(BROKER_CHIP_SOURCE, /accounts\.length === 0/);
+    assert.match(BROKER_CHIP_SOURCE, />\s*E8 Markets\s*</);
+    assert.match(BROKER_CHIP_SOURCE, /onOpenProfile/);
+  });
+
+  it("becomes a menu trigger once an account is saved", () => {
+    assert.match(BROKER_CHIP_SOURCE, /aria-haspopup="menu"/);
+    assert.match(BROKER_CHIP_SOURCE, /aria-expanded=\{open\}/);
+  });
+
+  it("uses the app's dual presentation: anchored at >=lg, the §17g sheet below", () => {
+    const menu = readFileSync(
+      "src/components/workspace/AccountSwitcherMenu.tsx",
+      "utf8",
+    );
+    assert.match(menu, /useIsMobileViewport\(\)/);
+    assert.match(menu, /createPortal\(/);
+    assert.match(menu, /role="dialog"[\s\S]*aria-modal="true"/);
+    assert.match(menu, /role="menu"/);
+    assert.match(menu, /min-h-11/);
+    assert.match(menu, />\s*Manage accounts\s*</);
+  });
+
+  // Fix round (controller review of the initial ship): every other §17g/dialog
+  // sheet in this codebase names itself in its pinned head (ScopeMenu's own
+  // `label` via aria-labelledby, ExpandedChartOverlay's title) — the switcher
+  // had been the one exception, carrying a hard-coded aria-label instead of a
+  // real title. This pins ScopeMenu's exact wiring shape (id + aria-labelledby
+  // both pointing at `${baseId}-sheet-title`), reused here since there is no
+  // separate outer caption element to point to the way ScopeMenu's `${baseId}
+  // -label` does — the visible title IS the accessible name here.
+  it("gives the <lg sheet a real pinned-head title, wired like ScopeMenu's own sheet", () => {
+    const menu = readFileSync(
+      "src/components/workspace/AccountSwitcherMenu.tsx",
+      "utf8",
+    );
+    assert.match(menu, /aria-labelledby=\{`\$\{baseId\}-sheet-title`\}/);
+    assert.match(
+      menu,
+      /id=\{`\$\{baseId\}-sheet-title`\}[\s\S]{0,80}>\s*Accounts\s*</,
+    );
+    // The dialog's own opening tag no longer hard-codes the chip's name as
+    // its accessible name — that was the outlier this fix removes. Bounded
+    // to the dialog's own tag (not the whole file) so the row list's
+    // separate aria-label="E8 Markets" a few lines later — untouched by this
+    // fix, since it was never the reviewed outlier — doesn't make this
+    // assertion vacuous.
+    const dialogOpenTag = menu.match(/role="dialog"[\s\S]*?>/)?.[0] ?? "";
+    assert.ok(dialogOpenTag.length > 0, "expected to find the dialog's opening tag");
+    assert.doesNotMatch(dialogOpenTag, /aria-label="E8 Markets"/);
+    assert.match(dialogOpenTag, /aria-labelledby=/);
+  });
+
+  it("renders only catalog vocabulary — no invented word reaches the label", () => {
+    const menu = readFileSync(
+      "src/components/workspace/AccountSwitcherMenu.tsx",
+      "utf8",
+    );
+    for (const invented of ["Switch to", "Currently", "Selected", "Your account", "Live"]) {
+      assert.ok(!menu.includes(invented), `${invented} is not catalog vocabulary`);
+    }
+  });
+
+  // §17n: the chip stops being purely decorative once it is genuinely
+  // tappable, so both states share MobileAccountMenu's own 44px-trigger
+  // technique (App.tsx: className="flex h-11 w-11 ...", one element, sized
+  // directly to the floor) rather than a wrapper div absorbing the height —
+  // the simplest shape, and the one that keeps a single element per state,
+  // matching the box-discipline table below.
+  it("bakes the 44px floor into the trigger element itself, in both switcher pill geometries", () => {
+    assert.match(
+      BROKER_CHIP_SOURCE,
+      /min-h-11 items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-3 py-\[7px\] text-\[13px\] font-bold uppercase/,
+    );
+    assert.match(
+      BROKER_CHIP_SOURCE,
+      /min-h-11 items-center gap-2 rounded-md border-\[1\.5px\] border-hairline bg-sheet px-\[9px\] py-\[5px\] text-xs font-bold uppercase/,
+    );
+  });
+
+  // ALL CAPS is a render-time transform (App.tsx's ReloadNotice/.phosphor-pulse
+  // technique — the §20j-pinned sentence renders mixed-case and .phosphor-pulse's
+  // sibling `uppercase` class does the work) over byte-intact tokens, never a
+  // JS string mutation — TASK 6 VERDICT.
+  it("never calls .toUpperCase() on the label — the transform is CSS, not JS", () => {
+    assert.doesNotMatch(BROKER_CHIP_SOURCE, /\.toUpperCase\(\)/);
+    const menu = readFileSync(
+      "src/components/workspace/AccountSwitcherMenu.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(menu, /\.toUpperCase\(\)/);
+    assert.match(menu, /uppercase/);
+  });
+
+  // Amendment 18: switching re-scopes the Desk live through the same
+  // reactivity Task 5 already wired (activeAccountOf(profile), read plain in
+  // SizeRow's own body — tests/deskComposition.test.ts pins that read). No
+  // new subscription is needed because profile is the single source both
+  // chip mounts already receive; this pins the one new thing Task 7 adds —
+  // that both mounts route a real, non-swallowed activation rather than a
+  // fire-and-forget call, the same guard Task 2b's ProfilePanel wiring
+  // already applied to onActivateAccount.
+  it("both chip mounts and Profile's own onActivateAccount share one guarded handler", () => {
+    assert.match(
+      APP_SOURCE,
+      /const handleActivateAccount = \(id: string\) => \{\s*\n\s*profileState\.activateBrokerAccount\(id\)\.catch\(\(error\) => \{\s*\n\s*console\.error\("\[profile\] broker account save failed", error\);\s*\n\s*\}\);\s*\n\s*\};/,
+    );
+    assert.equal(
+      (APP_SOURCE.match(/onSelect=\{handleActivateAccount\}/g) ?? []).length,
+      2,
+    );
+    assert.match(APP_SOURCE, /onActivateAccount=\{handleActivateAccount\}/);
+  });
+});
+
+// TASK 6 VERDICT (plan 2026-08-03, "docs: Task 6 VERDICT — piped everywhere,
+// the (1) suffix, rename cap 14"): the label formula is ONE function so the
+// trigger's own text and every row in the popup can never drift apart. These
+// tests call it directly rather than re-deriving the string via regex,
+// mirroring tests/scopeMenu.test.tsx's approach to ScopeMenu.tsx's own pure
+// functions (no jsdom in this stack — see that file's header comment).
+describe("labelAccounts — the owner's piped formula plus the space-(1) collision suffix (TASK 6 VERDICT)", () => {
+  function buildAccount(overrides: Partial<BrokerAccount> = {}): BrokerAccount {
+    return {
+      accountSize: 100_000,
+      brokerId: "e8",
+      classification: "forex",
+      drawdownTier: null,
+      id: "acct-1",
+      platform: "tradelocker",
+      programLine: "pro_forex",
+      riskPercent: 0.5,
+      stage: "challenge",
+      ...overrides,
+    };
+  }
+
+  it("formula shape: broker token | classification label | K-form of size, piped", () => {
+    const [entry] = labelAccounts([
+      buildAccount({ id: "a", classification: "forex", accountSize: 100_000 }),
+    ]);
+    assert.equal(entry.label, "E8 | Forex | 100K");
+  });
+
+  it("keeps every classification's own byte-intact word, not the catalog's storage token", () => {
+    assert.equal(
+      labelAccounts([buildAccount({ id: "a", classification: "crypto", accountSize: 50_000 })])[0]
+        .label,
+      "E8 | Crypto | 50K",
+    );
+    assert.equal(
+      labelAccounts([buildAccount({ id: "a", classification: "futures", accountSize: 25_000 })])[0]
+        .label,
+      "E8 | Futures | 25K",
+    );
+  });
+
+  it("caps-at-render, tokens intact underneath: the function itself never produces ALL CAPS", () => {
+    const [entry] = labelAccounts([buildAccount()]);
+    assert.ok(entry.label.includes("Forex"), "expected the byte-intact classification word");
+    assert.ok(!entry.label.includes("FOREX"), "the function must not pre-uppercase the label");
+  });
+
+  it("carries no suffix at all when no two accounts collide", () => {
+    const accounts = [
+      buildAccount({ id: "a", classification: "forex", accountSize: 100_000 }),
+      buildAccount({ id: "b", classification: "futures", accountSize: 50_000 }),
+      buildAccount({ id: "c", classification: "forex", accountSize: 25_000 }),
+    ];
+    assert.deepEqual(
+      labelAccounts(accounts).map((entry) => entry.label),
+      ["E8 | Forex | 100K", "E8 | Futures | 50K", "E8 | Forex | 25K"],
+    );
+  });
+
+  it("suffixes only a colliding pair, with a single space then (1) — never the mockup's retired -1", () => {
+    const accounts = [
+      buildAccount({ id: "b-second", classification: "forex", accountSize: 100_000, programLine: "one" }),
+      buildAccount({ id: "a-first", classification: "forex", accountSize: 100_000, programLine: "pro_forex" }),
+    ];
+    const byId = new Map(labelAccounts(accounts).map((entry) => [entry.account.id, entry.label]));
+    assert.equal(byId.get("a-first"), "E8 | Forex | 100K");
+    assert.equal(byId.get("b-second"), "E8 | Forex | 100K (1)");
+  });
+
+  it("extends a three-way collision as bare, (1), (2) — ordinals sorted by id", () => {
+    const accounts = [
+      buildAccount({ id: "3333", classification: "forex", accountSize: 100_000 }),
+      buildAccount({ id: "1111", classification: "forex", accountSize: 100_000 }),
+      buildAccount({ id: "2222", classification: "forex", accountSize: 100_000 }),
+    ];
+    const byId = new Map(labelAccounts(accounts).map((entry) => [entry.account.id, entry.label]));
+    assert.equal(byId.get("1111"), "E8 | Forex | 100K");
+    assert.equal(byId.get("2222"), "E8 | Forex | 100K (1)");
+    assert.equal(byId.get("3333"), "E8 | Forex | 100K (2)");
+  });
+
+  it("assigns ordinals from the account SET, not from the caller's array order (deterministic, order-independent)", () => {
+    const one = buildAccount({ id: "1111", classification: "forex", accountSize: 100_000 });
+    const two = buildAccount({ id: "2222", classification: "forex", accountSize: 100_000 });
+    const three = buildAccount({ id: "3333", classification: "forex", accountSize: 100_000 });
+
+    const asLabeled = (list: BrokerAccount[]) =>
+      labelAccounts(list)
+        .map((entry) => [entry.account.id, entry.label] as const)
+        .sort(([a], [b]) => a.localeCompare(b));
+
+    assert.deepEqual(asLabeled([one, two, three]), asLabeled([three, one, two]));
+    assert.deepEqual(asLabeled([one, two, three]), asLabeled([two, three, one]));
+  });
+
+  it("a rename is out of this task's scope — the formula never reads a name field", () => {
+    // Task 7 implements the formula and the suffix machinery only (TASK 6
+    // VERDICT: "the rename is a later task"). BrokerAccount carries no name/
+    // nickname field yet, so there is nothing here for a future rename task
+    // to override but the formula's own inputs.
+    assert.deepEqual(Object.keys(buildAccount()).sort(), [
+      "accountSize",
+      "brokerId",
+      "classification",
+      "drawdownTier",
+      "id",
+      "platform",
+      "programLine",
+      "riskPercent",
+      "stage",
+    ]);
+  });
+
+  it("returns an empty list for an empty account set", () => {
+    assert.deepEqual(labelAccounts([]), []);
   });
 });
 

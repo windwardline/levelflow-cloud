@@ -1,6 +1,8 @@
 import { Loader2 } from "lucide-react";
+import type { BrokerAccount } from "../../lib/profile";
 import {
   formatSecurityDisplaySymbol,
+  type SecurityGroup,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import type {
@@ -15,6 +17,16 @@ import { describeExecutionLabel } from "./reviewCopy";
 import { formatScopeCountLine, ScopeMenu, type ScanScope } from "./ScopeMenu";
 
 type MarketScanPanelProps = {
+  // §19 retrofit, Task 9 (amendment 13): the same active account
+  // AdvisorWorkspace already derived for `groups` below, threaded one level
+  // further down to MarketScanResults' own account-visibility filter — this
+  // rail otherwise stays account-agnostic, same as ScopeMenu does.
+  account: BrokerAccount | null;
+  // §19 retrofit, amendment 13: which groups the scope menu offers, decided by
+  // AdvisorWorkspace (visibleAssetGroups(activeAccount)) and threaded straight
+  // through to ScopeMenu — this rail stays account-agnostic itself, same as
+  // ScopeMenu does now.
+  groups: SecurityGroup[];
   // The availability-filtered symbol list this scope would actually scan, and
   // the scope itself. Both are derived once in AdvisorWorkspace (spec §17e: the
   // merged mobile surface fires the same scan from its own control row, and two
@@ -61,6 +73,8 @@ type MarketScanPanelProps = {
 // see: a scan in flight, a scan that failed, or a result the current scope
 // filtered down to nothing.
 export function MarketScanPanel({
+  account,
+  groups,
   onScan,
   onSelectCandidate,
   onSelectScope,
@@ -88,6 +102,7 @@ export function MarketScanPanel({
         </h3>
         <div className="order-last w-full min-w-0">
           <ScopeMenu
+            groups={groups}
             label="Scan scope"
             showLabel={false}
             value={scope}
@@ -115,6 +130,7 @@ export function MarketScanPanel({
       </div>
 
       <MarketScanResults
+        account={account}
         onSelectCandidate={onSelectCandidate}
         result={result}
         scanCompletedAt={scanCompletedAt}
@@ -132,6 +148,7 @@ export function MarketScanPanel({
 // where it sits inside that surface's single scrolling region instead of under
 // the rail's own control row — one implementation, two compositions.
 export function MarketScanResults({
+  account,
   onSelectCandidate,
   result,
   scanCompletedAt,
@@ -139,6 +156,12 @@ export function MarketScanResults({
   selectedSymbol,
   status,
 }: {
+  // §19 retrofit, Task 9 (amendment 13): so a completed scan's rows can never
+  // outlive an account switch that makes them untradeable — see
+  // filterMarketScanCandidatesByScope's own header comment
+  // (marketScanFilters.ts) for why this is not redundant with
+  // AdvisorWorkspace's scope-reset effect.
+  account: BrokerAccount | null;
   onSelectCandidate: (candidate: MarketScanCandidate) => void;
   result: MarketScanResponse | null;
   scanCompletedAt: Date | null;
@@ -149,6 +172,7 @@ export function MarketScanResults({
   const filteredOpportunities = filterMarketScanCandidatesByScope(
     result?.opportunities ?? [],
     scope,
+    account,
   );
   // null is the un-scanned rail: no result, no failure, nothing in flight, and
   // so nothing to say (spec §17c). The render below is gated on it, so the

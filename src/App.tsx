@@ -372,6 +372,18 @@ export default function App() {
     session?.user.email ?? "",
     theme.setMode,
   );
+  // §19 retrofit, Task 7 (amendment 18): both BrokerChip mounts' onSelect and
+  // Profile's own onActivateAccount land here — one guarded-activate closure
+  // rather than three copies of the same catch. activateBrokerAccount can
+  // reject (Task 2b: a foreign id throws; the async call can also fail on the
+  // network), and a bare, unguarded call from either chip would leave that
+  // rejection unhandled rather than logged, same silent failure the write
+  // paths below already refuse to have.
+  const handleActivateAccount = (id: string) => {
+    profileState.activateBrokerAccount(id).catch((error) => {
+      console.error("[profile] broker account save failed", error);
+    });
+  };
 
   // Insights (spec §10) and the Desk's Current trades rail (spec §8) both
   // show live outcome state and must never open onto stale data: each
@@ -545,7 +557,14 @@ export default function App() {
                 Levelflow
               </p>
               <div className="flex shrink-0 items-center gap-2">
-                <BrokerChip compact />
+                <BrokerChip
+                  accounts={profile.brokerAccounts}
+                  activeId={profile.activeBrokerAccountId}
+                  compact
+                  onManage={() =>
+                    goToSurface({ ...currentSurface, tab: "profile", document: null })}
+                  onSelect={handleActivateAccount}
+                />
                 <MobileAccountMenu
                   currentDocument={legalDocument}
                   onOpenDocument={(slug) =>
@@ -613,7 +632,13 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-3">
-                <BrokerChip />
+                <BrokerChip
+                  accounts={profile.brokerAccounts}
+                  activeId={profile.activeBrokerAccountId}
+                  onManage={() =>
+                    goToSurface({ ...currentSurface, tab: "profile", document: null })}
+                  onSelect={handleActivateAccount}
+                />
                 <button
                   className="secondary-button min-h-10 px-3 py-2"
                   type="button"
@@ -715,13 +740,25 @@ export default function App() {
               lifetimeSetups={setupState.lifetimeSetups}
               loadFailed={setupState.loadFailed}
               loading={setupState.loading}
+              profile={profile}
               setups={setupState.setups}
             />
           ) : null}
           {activeTab === "profile" ? (
             <ProfilePanel
               memberSince={session.user.created_at}
+              onActivateAccount={handleActivateAccount}
+              onRemoveAccount={(id) => {
+                profileState.removeBrokerAccount(id).catch((error) => {
+                  console.error("[profile] broker account save failed", error);
+                });
+              }}
               onSave={profileState.saveProfile}
+              onSaveAccount={(draft) => {
+                profileState.saveBrokerAccount(draft).catch((error) => {
+                  console.error("[profile] broker account save failed", error);
+                });
+              }}
               onSignOut={() => supabase?.auth.signOut()}
               onThemeChange={theme.setMode}
               profile={profile}

@@ -1,4 +1,7 @@
+import { classificationOf, platformsFor, programLinesFor } from "./broker/catalog";
 import {
+  RISK_PERCENT_MAX,
+  RISK_PERCENT_MIN,
   RISK_PERCENT_OPTIONS,
   getProgramLine,
   isProgramLine,
@@ -32,6 +35,14 @@ export type UserProfile = {
   brokerStage: Stage | null;
   brokerRiskPercent: number | null;
   brokerDrawdownTier: string | null;
+  // §19 retrofit, amendment 14: saved accounts layered above the single
+  // selection above. `brokerAccounts` holds only rows that already cleared
+  // brokerAccountProblem — useUserProfile drops an invalid row before it ever
+  // reaches a UserProfile — and `activeBrokerAccountId` is the pointer
+  // activeAccountOf resolves, returning null rather than a stale account when
+  // it dangles.
+  brokerAccounts: BrokerAccount[];
+  activeBrokerAccountId: string | null;
 };
 
 export type BrokerSelection = Pick<
@@ -65,7 +76,15 @@ export const NO_BROKER_SELECTION: BrokerSelection = {
  * ignores an off-ladder size or an off-domain tier.
  */
 export function brokerSelectionProblem(selection: BrokerSelection): string | null {
-  const nulls = Object.values(selection).filter((value) => value === null).length;
+  // Counted by BrokerSelection's own six keys, not by every own-enumerable
+  // property of whatever was actually passed: saveProfile calls this with the
+  // full nextProfile (a UserProfile), and since the §19 retrofit that object
+  // carries a seventh nullable field (activeBrokerAccountId) a plain
+  // Object.values(selection) would count right along with these six —
+  // wrongly failing the shortcut below for the ordinary case of no selection
+  // and no active account.
+  const nulls = (Object.keys(NO_BROKER_SELECTION) as (keyof BrokerSelection)[])
+    .filter((key) => selection[key] === null).length;
   if (nulls === 6) {
     return null;
   }
@@ -120,6 +139,107 @@ export function selectedProgram(profile: BrokerSelection) {
   return profile.brokerProgramLine === null
     ? null
     : getProgramLine(profile.brokerProgramLine);
+}
+
+// §19 retrofit (amendment 14): the multi-account model. A profile now SAVES
+// several confirmed accounts rather than a single selection, with one marked
+// active; the six columns above become that first saved account (task 1's
+// migration seeds it) and stay live for anyone who has not saved a second one.
+export type BrokerClassification = "forex" | "crypto" | "futures";
+export type BrokerPlatform = "tradelocker" | "matchtrader" | "tradovate";
+
+/** What the checkout would ask for, before broker_accounts has assigned it a row. */
+export type BrokerAccountDraft = {
+  accountSize: number;
+  brokerId: "e8";
+  classification: BrokerClassification;
+  drawdownTier: string | null;
+  platform: BrokerPlatform;
+  programLine: ProgramLine;
+  riskPercent: number;
+  stage: Stage;
+};
+
+/** A draft once it has a saved row. */
+export type BrokerAccount = BrokerAccountDraft & { id: string };
+
+/**
+ * Why this draft is not an account the checkout would sell, or null when it
+ * is — the multi-account sibling of brokerSelectionProblem above, checked
+ * against the same program-line catalog plus the classification/platform
+ * pairing the checkout walk fixes per line. The write path rejects on a
+ * non-null return; it never accepts and silently ignores an off-catalog
+ * account.
+ */
+export function brokerAccountProblem(draft: BrokerAccountDraft): string | null {
+  if (draft.brokerId !== "e8") {
+    return `broker ${draft.brokerId} is not E8`;
+  }
+  const program = getProgramLine(draft.programLine);
+  if (!program) {
+    return `program line ${draft.programLine} is not one E8 sells`;
+  }
+  // Amendment 19: a program line can be a real, documented E8 product (it
+  // passes the check above) and still be unsold — `zero` is on no checkout
+  // walk at all. programLinesFor is the catalog's own exclusion and the only
+  // source of truth for what a walk offers, so this checks membership rather
+  // than naming `zero` (or any other line) directly. A draft's other fields
+  // can be perfectly self-consistent — as `zero`'s are — and still describe a
+  // purchase the checkout does not sell.
+  if (
+    !programLinesFor(classificationOf(draft.programLine)).some(
+      (candidate) => candidate.line === draft.programLine,
+    )
+  ) {
+    return `${draft.programLine} is not sold on any checkout walk`;
+  }
+  if (classificationOf(draft.programLine) !== draft.classification) {
+    return `${draft.programLine} is not sold on the ${draft.classification} market`;
+  }
+  if (!platformsFor(draft.programLine).includes(draft.platform)) {
+    return `${draft.programLine} does not offer ${draft.platform}`;
+  }
+  if (!program.accountSizes.includes(draft.accountSize)) {
+    return `account size ${draft.accountSize} is not on ${program.line}'s ladder`;
+  }
+  if (!isStage(draft.stage)) {
+    return `stage ${draft.stage} is neither challenge nor performance`;
+  }
+  if (
+    !Number.isFinite(draft.riskPercent) ||
+    draft.riskPercent < RISK_PERCENT_MIN ||
+    draft.riskPercent > RISK_PERCENT_MAX
+  ) {
+    return `risk per trade ${draft.riskPercent} is off the published band`;
+  }
+  const tiers = program.drawdownTiers;
+  if (!tiers) {
+    return draft.drawdownTier === null
+      ? null
+      : `${program.line} has no drawdown tier to select`;
+  }
+  if (draft.drawdownTier === null) {
+    return `${program.line} requires a drawdown tier`;
+  }
+  return tiers.includes(draft.drawdownTier)
+    ? null
+    : `drawdown tier ${draft.drawdownTier} is not one of ${program.line}'s`;
+}
+
+/**
+ * The active account, resolved by the pointer rather than by position — a
+ * profile's accounts carry no other notion of order. Null both when nothing is
+ * active and when the pointer names an id `brokerAccounts` does not carry
+ * (useUserProfile already dropped that row, or the FK's on-delete-set-null
+ * cleared the pointer and the next read has not landed yet).
+ */
+export function activeAccountOf(profile: UserProfile): BrokerAccount | null {
+  if (profile.activeBrokerAccountId === null) {
+    return null;
+  }
+  return profile.brokerAccounts.find(
+    (account) => account.id === profile.activeBrokerAccountId,
+  ) ?? null;
 }
 
 /**
@@ -184,6 +304,8 @@ export function buildDefaultProfile(id: string, email: string): UserProfile {
     preferredSession: "any",
     themePreference: "system",
     ...NO_BROKER_SELECTION,
+    brokerAccounts: [],
+    activeBrokerAccountId: null,
   };
 }
 

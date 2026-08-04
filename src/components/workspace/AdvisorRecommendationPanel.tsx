@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, XCircle } from "lucide-react";
 import { sizeSetup, sizeUnitFor } from "../../lib/broker/sizing";
-import type { UserProfile } from "../../lib/profile";
+import { activeAccountOf, type UserProfile } from "../../lib/profile";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
 import type { AnalyzerResponse, AnalyzerSetup } from "../../lib/tradeAnalyzer";
 import { HowThisWorksLink } from "./HowThisWorksLink";
@@ -272,8 +272,14 @@ function CopyableMetricRow({
 // bare number, and the copy payload is the same bare number, so a paste into a
 // quantity field is clean.
 //
-// With no program selected the row DOES NOT EXIST: not a dash, not an empty value,
+// With no ACTIVE account the row DOES NOT EXIST: not a dash, not an empty value,
 // not a prompt to go set one. The ladder is exactly what it is today.
+//
+// §19 retrofit (Task 5): reads activeAccountOf(profile) — amendment 14's
+// confirmed-accounts list — rather than the six retired single-selection
+// columns. Those columns stay live on UserProfile (task 1's migration seeds
+// them, and brokerSelectionProblem still validates them), but a saved
+// account that is not the active one must not price this row.
 function SizeRow({
   copied,
   onCopy,
@@ -287,25 +293,23 @@ function SizeRow({
   quotes: Readonly<Record<string, number>>;
   setup: AnalyzerSetup;
 }) {
-  if (
-    profile.brokerProgramLine === null || profile.brokerAccountSize === null ||
-    profile.brokerStage === null || profile.brokerRiskPercent === null
-  ) {
+  const activeAccount = activeAccountOf(profile);
+  if (activeAccount === null) {
     return null;
   }
 
   const size = sizeSetup({
-    accountSize: profile.brokerAccountSize,
+    accountSize: activeAccount.accountSize,
     entryPrice: setup.entryPrice,
     levelflowSymbol: setup.symbol,
-    programLine: profile.brokerProgramLine,
+    programLine: activeAccount.programLine,
     quotes,
-    riskPercent: profile.brokerRiskPercent,
-    stage: profile.brokerStage,
+    riskPercent: activeAccount.riskPercent,
+    stage: activeAccount.stage,
     stopLoss: setup.stopLoss,
   });
 
-  const label = `Size · ${sizeUnitFor(profile.brokerProgramLine)}`;
+  const label = `Size · ${sizeUnitFor(activeAccount.programLine)}`;
   if (size.kind === "blocked") {
     return <CopyableMetricRow label={label} value={size.word} />;
   }

@@ -42,6 +42,9 @@ create table if not exists public.profiles (
   broker_stage text,
   broker_risk_percent numeric(4,2),
   broker_drawdown_tier text,
+  -- §19 retrofit, amendment 14: the active pointer into broker_accounts
+  -- (declared below); null until a saved account is selected.
+  active_broker_account_id uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint profiles_default_timezone_us_valid check (
@@ -208,6 +211,51 @@ create table if not exists public.analyzer_events (
   created_at timestamptz not null default now()
 );
 
+-- §19 retrofit, amendment 14: confirmed accounts are SAVED, so a user holding
+-- several can select among them without re-entry. See
+-- supabase/migrations/20260803010000_broker_accounts.sql for the seed that
+-- carries every existing single selection forward as a saved account.
+create table if not exists public.broker_accounts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  broker_id text not null,
+  classification text not null,
+  platform text not null,
+  program_line text not null,
+  account_size numeric(14,2) not null,
+  stage text not null,
+  risk_percent numeric(4,2) not null,
+  drawdown_tier text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint broker_accounts_broker_id_valid
+    check (broker_id in ('e8')),
+  constraint broker_accounts_classification_valid
+    check (classification in ('forex', 'crypto', 'futures')),
+  constraint broker_accounts_platform_valid
+    check (platform in ('tradelocker', 'matchtrader', 'tradovate')),
+  constraint broker_accounts_program_line_valid
+    check (program_line in (
+      'one', 'one_crypto', 'pro_forex', 'pro_crypto',
+      'signature_forex', 'signature_crypto', 'signature_futures',
+      'zero', 'zero_futures_starter', 'zero_futures_max')),
+  constraint broker_accounts_stage_valid
+    check (stage in ('challenge', 'performance')),
+  constraint broker_accounts_account_size_positive
+    check (account_size > 0),
+  constraint broker_accounts_risk_percent_range
+    check (risk_percent >= 0.10 and risk_percent <= 1.50)
+);
+
+-- A fresh provision cannot inline this reference: broker_accounts is declared
+-- after profiles in this file, so the column exists nullable above and the
+-- foreign key is added only once both tables exist.
+alter table public.profiles
+  add constraint profiles_active_broker_account_fk
+    foreign key (active_broker_account_id)
+    references public.broker_accounts (id)
+    on delete set null;
+
 create or replace function private.set_updated_at()
 returns trigger
 language plpgsql
@@ -298,6 +346,11 @@ create trigger set_profiles_updated_at
   before update on public.profiles
   for each row execute function private.set_updated_at();
 
+drop trigger if exists set_broker_accounts_updated_at on public.broker_accounts;
+create trigger set_broker_accounts_updated_at
+  before update on public.broker_accounts
+  for each row execute function private.set_updated_at();
+
 drop trigger if exists set_trade_setups_updated_at on public.trade_setups;
 create trigger set_trade_setups_updated_at
   before update on public.trade_setups
@@ -329,6 +382,7 @@ create trigger set_market_data_health_updated_at
   for each row execute function private.set_updated_at();
 
 create index if not exists profiles_email_idx on public.profiles (email);
+create index if not exists broker_accounts_user_id_idx on public.broker_accounts (user_id);
 create index if not exists trade_setups_user_created_idx on public.trade_setups (user_id, created_at desc);
 create index if not exists trade_setups_user_symbol_created_idx on public.trade_setups (user_id, symbol, created_at desc);
 create index if not exists trade_setups_user_active_symbol_idx
@@ -356,6 +410,7 @@ alter table public.system_notices enable row level security;
 alter table public.analyzer_rate_limits enable row level security;
 alter table public.market_data_health enable row level security;
 alter table public.analyzer_events enable row level security;
+alter table public.broker_accounts enable row level security;
 
 revoke all on public.analyzer_rate_limits from anon, authenticated;
 revoke all on public.analyzer_events from anon, authenticated;
@@ -370,6 +425,7 @@ grant select, insert, update, delete on
   public.trade_outcomes,
   public.system_notices
 to authenticated;
+grant select, insert, update, delete on public.broker_accounts to authenticated;
 grant select, insert, update, delete on public.analyzer_events, public.market_data_health to service_role;
 
 drop policy if exists "profiles select own" on public.profiles;
@@ -400,6 +456,35 @@ on public.profiles
 for delete
 to authenticated
 using ((select auth.uid()) = id);
+
+drop policy if exists "broker accounts select own" on public.broker_accounts;
+create policy "broker accounts select own"
+on public.broker_accounts
+for select
+to authenticated
+using ((select auth.uid()) = user_id);
+
+drop policy if exists "broker accounts insert own" on public.broker_accounts;
+create policy "broker accounts insert own"
+on public.broker_accounts
+for insert
+to authenticated
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "broker accounts update own" on public.broker_accounts;
+create policy "broker accounts update own"
+on public.broker_accounts
+for update
+to authenticated
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "broker accounts delete own" on public.broker_accounts;
+create policy "broker accounts delete own"
+on public.broker_accounts
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
 
 drop policy if exists "economic events readable by authenticated users" on public.economic_events;
 create policy "economic events readable by authenticated users"

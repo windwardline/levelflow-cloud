@@ -362,6 +362,16 @@ floor is 0.10% so the smallest ladder tier still produces a placeable size.
 Levelflow does not know how many trades the user has open, so this is a
 per-setup percentage and never a daily budget. That boundary is §20h.
 
+**The saved-account walk.** The §19 retrofit's multi-account model
+(`broker_accounts`) walks broker → market → program line → platform →
+balance tier → drawdown token, in that order, wherever E8 sells a choice at
+that step — the futures lines' single EOD option is auto-set, never asked
+(§20i ruling 7). `src/lib/broker/catalog.ts` owns the two layers the five
+controls above do not: `CLASSIFICATIONS` (`Forex` · `Crypto` · `Futures`)
+partitions the ten program lines by the market that sells each one, and
+`PLATFORM_LABELS` (`TradeLocker` · `MatchTrader` · `Tradovate`) names the
+platform each line offers — both in the checkout's own words.
+
 ### §19c. The sizing math
 
 One formula, four gates, one rounding rule. Every step either produces a
@@ -856,8 +866,44 @@ today.
 
 A second broker; per-broker calibration or per-broker history (§12's
 declared future, still future); a size on the Trades rail or in Insights;
-program-aware market availability (§20e names it); anything E8 does not
-publish.
+anything E8 does not publish. Program-aware market availability (§20e
+names it) is **no longer out of scope**: it shipped in the §19 retrofit
+Phase 4 (amendment 13), 2026-08-04 — classification visibility only; the
+session-hours calendar §20e and §20h carve out stays V2.
+
+### §19i. The account switcher's label (owner ruling, TASK 6 VERDICT, 2026-08-03 22:07)
+
+The chip that names the broker becomes an account switcher once a profile
+holds one or more saved accounts (amendment 18). Its label is a formula over
+already-registered tokens, not new copy: the broker token (`E8`) piped with
+the account's classification label (§20j: `Forex` / `Crypto` / `Futures`)
+and the account size's K-form (`$100,000` → `100K`) — `E8 | FOREX | 100K`.
+ALL CAPS is a render-time CSS transform over this byte-intact string (the
+`ReloadNotice`/`.phosphor-pulse` technique, App.tsx), never a stored or
+computed uppercase value, so a future rename (out of this wave's scope)
+still displays exactly what the reader typed, under the same transform.
+
+The formula carries only classification and size — never program line,
+platform, stage, or drawdown tier — so two accounts can formulate
+identically (an E8 One $100,000 account and an E8 Pro Forex $100,000
+account both read `E8 | FOREX | 100K`). Where they do, every account past
+the first in that colliding group appends a single space then its 1-based
+ordinal in parentheses — `E8 | FOREX | 100K (1)`, `(2)`, … — assigned by
+sorting the colliding group by its accounts' `id`, so the assignment is a
+pure function of the account set rather than of whatever order a caller's
+array happens to arrive in (Supabase's own `.select()` carries no `ORDER
+BY`). A group of one never carries a suffix. This is the owner's revision of
+the mockup's own `-1` sketch (`docs/design/mockups/s-switcher-v1.html`,
+`s-switcher-mobile-v1.html`): the space-then-parens form, measured at 375px
+with 22px of clearance against the worst live case (`E8 | FUTURES | 50K
+(1)`, 189px of a 211px chip budget).
+
+A user-set rename is a later task: it will be the formula's override once it
+ships, capped at 14 characters (measured: the worst-glyph 16-character
+stress case exactly filled the 211px budget; 14 puts the worst rename at
+parity with the worst suffixed formula label), and the suffix dissolves once
+a rename resolves its collision. Task 7 builds the formula and the suffix
+machinery only — `BrokerAccount` carries no name field yet.
 
 ---
 
@@ -1241,10 +1287,11 @@ CT needs no such hedge — the US DST calendar is fixed and public, and
 continues to show a futures market open through 16:00 CT while E8 Signature
 and E8 Zero are flat from 15:10 CT, and to show crypto always open while
 Signature Crypto flattens nightly at 23:00 server. The divergence is
-surfaced by clauses 4 and 5 only. A program-aware availability calendar —
-one that greys the scope menu by the selected program's session, not the
-asset class's — is real and is V2 (§20h), because it changes the scope menu
-that every surface reads and that is not a wave-2 compliance-line change.
+surfaced by clauses 4 and 5 only. Account-scoped market visibility by
+classification **shipped** in the §19 retrofit Phase 4 (amendment 13),
+2026-08-04 (§19h, §20h). The piece that remains V2: a calendar that greys
+the scope menu by the selected program's *session*, not the asset class's
+— a distinct dimension amendment 13 does not touch.
 
 ### §20f. Unconfirmed discipline
 
@@ -1392,10 +1439,12 @@ routes are a user-supplied read-only export, a manual entry surface, or an
 E8 integration that does not exist. Until one of those is real, V2 is not
 buildable and no amount of engineering makes it so.
 
-Also V2: program-aware market availability in the scope menu (§20e);
-payout-readiness facts; the Best Day denominators evaluated against a real
-profit history; and the account-reset economics (11640147 — a 10% discount,
-same size and settings only, valid for 7 days after failure) as a
+Program-aware market availability in the scope menu **shipped** in the §19
+retrofit Phase 4 (amendment 13), 2026-08-04 — no longer V2 (a
+session-hours calendar per §20e is the distinct piece still open). Also
+V2: payout-readiness facts; the Best Day denominators evaluated against a
+real profit history; and the account-reset economics (11640147 — a 10%
+discount, same size and settings only, valid for 7 days after failure) as a
 bankroll-continuity input.
 
 ---
@@ -1484,14 +1533,37 @@ verbatim; nothing else this feature draws is text.
 **§19 — the ladder Size row.** `Size · lots` · `Size · contracts` ·
 `Not offered` · `Not confirmed` · `Not published` · `Rate unavailable`.
 
-**§19 — the Profile Broker controls.** Labels: `Program` · `Account size` ·
-`Stage` · `Risk per trade` · `Drawdown`. Program options: `None` · `E8 One` ·
-`E8 One Crypto` · `E8 Pro Forex` · `E8 Pro Crypto` · `E8 Signature Forex` ·
+**§19 — the Profile Broker controls.** Labels: `Market` · `Program` ·
+`Platform` · `Account size` · `Stage` · `Risk per trade` · `Drawdown`.
+Program options: `E8 One` · `E8 One Crypto` · `E8 Pro Forex` ·
+`E8 Pro Crypto` · `E8 Signature Forex` ·
 `E8 Signature Crypto` · `E8 Signature Futures` · `E8 Zero` ·
 `E8 Zero Futures Starter` · `E8 Zero Futures Max`. Stage options:
 `Challenge` · `Performance`. Account-size options: the selected program's
 ladder as `$5,000` … `$500,000`. Risk options: `0.10%` … `1.50%` in `0.05%`
-steps. Drawdown options: the eight paired tokens in §19b item 5.
+steps. Drawdown options: the eight paired tokens in §19b item 5. Market
+options: `Forex` · `Crypto` · `Futures`. Platform options: `TradeLocker` ·
+`MatchTrader` · `Tradovate`. `None` retired with the single-selection walk it
+was the sentinel for (§19 retrofit, Task 4): the catalog walk that replaced
+it always names a complete account, so nothing renders the word any more.
+
+**§19 retrofit — the confirmed-accounts list (owner copy of 2026-08-03).**
+Each saved account's row carries, on the active row only, `Active`, and
+every row carries a `Remove` control. The walk's own submit control is
+`Add account`. `Manage accounts` is registered here ahead of task 7's own
+chip menu, which has not shipped yet. All four ship as written — the plan's
+proposal — pending the owner's ruling on the wording, recorded pending in
+Task 4's commit.
+
+**§19 retrofit — the switcher sheet's pinned head (owner copy of
+2026-08-04, Task 7's fix round).** The <lg sheet's header renders
+`Accounts` as its visible, `aria-labelledby`-linked title — every other
+§17g/dialog sheet in this codebase already names itself in its pinned head
+(ScopeMenu's own `label` prop, `ExpandedChartOverlay`'s title), and the
+switcher's first ship had been the one exception, carrying a hard-coded
+`aria-label` instead. Ships as written — this task's proposal — pending
+the owner's ruling on the wording, the same caveat the four words above
+carry.
 
 **§20 — the compliance line.** `No E8 route on any program` ·
 `Front month only` · `Size capped at the program limit` · `Flatten 15:10 CT` ·

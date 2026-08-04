@@ -25,7 +25,12 @@ import {
   fetchMarketData,
   type MarketDataResponse,
 } from "../../lib/marketData";
-import type { UserProfile } from "../../lib/profile";
+import { visibleAssetGroups, visibleAssetSymbols } from "../../lib/broker/visibility";
+import {
+  activeAccountOf,
+  type BrokerClassification,
+  type UserProfile,
+} from "../../lib/profile";
 import {
   storedSetupAsCandidate,
   storedSetupReviewedAt,
@@ -137,6 +142,16 @@ export function AdvisorWorkspace(
   const [scope, setScope] = useState<ScanScope>({ kind: "all" });
   const [scanResult, setScanResult] = useState<MarketScanResponse | null>(null);
   const [scanCompletedAt, setScanCompletedAt] = useState<Date | null>(null);
+  // §19 retrofit, Task 9 fix round 1 (amendment 13): which classification
+  // activeAccount carried when scanMarkets last stamped scanResult — the
+  // visibility universe scanResult's rows AND its scanned/qualified counts
+  // both describe. Cleared everywhere scanResult is cleared to null, so
+  // "non-null iff scanResult is" holds without exception. The guard effect
+  // below reads it to catch what the amendment-13 reset effect further down
+  // cannot: scope "all" surviving a cross-classification account switch.
+  const [scanClassification, setScanClassification] = useState<
+    BrokerClassification | null
+  >(null);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning">("idle");
   const [clockNow, setClockNow] = useState(() => new Date());
   // Spec §17's mobile Expand chart. Owned here rather than inside MarketChart
@@ -160,14 +175,25 @@ export function AdvisorWorkspace(
   // name per control at every width.
   const isMobile = useIsMobileViewport();
 
+  // §19 retrofit (Task 5): keyed on activeAccountOf(profile), not the six
+  // retired profile columns — amendment 18's confirmed-accounts list can hold a
+  // saved account that isn't the active one, and a saved-but-inactive account
+  // must not price the ladder. Computed ahead of openScanSymbols below,
+  // which needs it too as of Task 9.
+  const activeAccount = activeAccountOf(profile);
   // I5: never sent straight to the server — a closed market has no chance of
   // qualifying and would only inflate the server's `scanned` count with markets
   // that were never really attempted. Computed fresh on every render rather
   // than memoized (same reasoning as ScopeMenu.tsx's own clock: a `new Date()`
   // dependency would defeat a memo anyway) so a scan fired right on a market's
   // open/close boundary still sees the current answer.
+  // §19 retrofit, Task 9 (amendment 13): also never sent for a market
+  // activeAccount cannot trade — getMarketScanSymbolsForScope intersects with
+  // visibleAssetSymbols(activeAccount) itself (Task 8's own table), so the
+  // scan action follows the same account the scope menu below is already
+  // scoped to.
   const openScanSymbols = filterSymbolsByAvailability(
-    getMarketScanSymbolsForScope(scope),
+    getMarketScanSymbolsForScope(scope, activeAccount),
     new Date(),
   );
   const selectedAsset = getSecurityOption(symbol);
@@ -179,12 +205,17 @@ export function AdvisorWorkspace(
   // already holds — the active setup's own latest close plus every scan
   // opportunity's. No fetch and no added scan; where a bridge leg is not among
   // them the Size row renders `Rate unavailable` rather than reaching elsewhere.
-  // Dormant is exact: with no program selected nothing downstream reads these,
-  // so the collection itself doesn't run.
-  const brokerQuotes =
-    profile.brokerProgramLine === null
-      ? {}
-      : collectBrokerQuotes({ scan: scanResult, setup });
+  // Dormant is exact: with no active account nothing downstream reads these, so
+  // the collection itself doesn't run.
+  const brokerQuotes = activeAccount === null
+    ? {}
+    : collectBrokerQuotes({ scan: scanResult, setup });
+  // §19 retrofit, Task 8 (amendment 13): the scope menu — both the ≥lg rail's
+  // and the merged mobile control row's — offers only what this account can
+  // trade. Computed fresh every render off activeAccount, never cached, the
+  // same rule activeAccountOf itself follows (Task 5): a switch is live in the
+  // menu the instant the pointer changes rather than on some later recompute.
+  const visibleGroups = visibleAssetGroups(activeAccount);
   // The stagehead's confidence meta line says when this review ran, alongside
   // the setup's own expiry (spec §16 folds both into one quiet line in place of
   // the deleted metric card). Read straight off the analysis state so a
@@ -206,6 +237,83 @@ export function AdvisorWorkspace(
   useEffect(() => {
     selectedSymbolRef.current = symbol;
   }, [symbol]);
+
+  // §19 retrofit, Task 8 (amendment 13): a scope naming a market this account
+  // can no longer trade is a filter the reader can neither see (the menu no
+  // longer lists it) nor clear (nothing left in the menu maps back to it) — so
+  // an account switch that hides the current scope falls back to "All
+  // markets" on its own, exactly as if the reader had picked it themselves —
+  // which now includes dropping whatever scan just finished, the same as
+  // selectScope's own reset does on every reader-driven scope change (below).
+  // Fix round 1 (review finding on 22e5fc1): the reset used to touch only
+  // `scope`, leaving a stale scanResult on screen under a scope the menu no
+  // longer offers. filterMarketScanCandidatesByScope's "all" case passes
+  // every candidate through unconditionally (marketScanFilters.ts), so the
+  // rail would keep rendering the old scan's rows — fully clickable, with no
+  // account-visibility check anywhere downstream — while the rail's own
+  // scanned/qualified count line went on describing a scan those rows no
+  // longer honestly belong to. That is the exact visible-list-vs-count
+  // disagreement marketScanFilters.ts's m3 note retired the Quality band
+  // over: a render-side filter alone would only reintroduce it one layer up.
+  // Clearing scanResult/scanCompletedAt here instead returns the rail to its
+  // null, un-scanned state — §17c-honest, not a stale board pretending to
+  // still mean something.
+  // The bare setters are called directly rather than through selectScope:
+  // selectScope is unmemoized, so depending on it here would either re-run
+  // this effect every render (were it added to the deps) or violate
+  // exhaustive-deps (were it called without being listed).
+  // "All" is never hidden (visibleAssetGroups never returns empty for a real
+  // classification), so this can always resolve.
+  useEffect(() => {
+    if (scope.kind === "all") {
+      return;
+    }
+    const stillVisible = scope.kind === "group"
+      ? visibleAssetGroups(activeAccount).some((group) =>
+        group.label === scope.assetType
+      )
+      : visibleAssetSymbols(activeAccount).includes(scope.symbol);
+    if (!stillVisible) {
+      setScope({ kind: "all" });
+      setScanResult(null);
+      setScanCompletedAt(null);
+      setScanClassification(null);
+    }
+  }, [activeAccount, scope]);
+
+  // §19 retrofit, Task 9 fix round 1 (amendment 13): the effect above only
+  // clears a scope the new account can no longer see, and returns early for
+  // "all" — every account can see *something*, so "all" is never itself
+  // invalid. That leaves exactly the gap the review found: scope stays "all"
+  // across a cross-classification switch (a One→Futures BrokerChip pick,
+  // say — AdvisorWorkspace never unmounts when the chip fires), and the
+  // scanResult a forex account earned is still sitting there. Its ROWS are
+  // already dropped by MarketScanPanel's render-side filter (Task 9,
+  // marketScanFilters.ts), but formatScopeCountLine reads result.scanned/
+  // result.qualified straight off that same stale result — server-truth
+  // numbers describing the scan that actually ran, not whatever account is
+  // active now — so the rail was left showing an honest row list under a
+  // count line describing a universe the reader can no longer see. That is
+  // the same visible-list-vs-count disagreement the m3 note
+  // (marketScanFilters.ts) retired the Quality band over, one layer up.
+  // Rather than teach the count line to re-derive its own filtered counts
+  // (which would then disagree with the server's own scanned/qualified
+  // numbers), the whole result yields to the null un-scanned state (§17c): a
+  // foreign classification means every number in it, not just the rows,
+  // describes a universe that is no longer honestly on screen. A
+  // same-classification switch (E8 Pro $25K → E8 One $100K, both forex)
+  // leaves a still-honest scanResult alone — amendment 18's spirit is that
+  // switching accounts never destroys work that remains true.
+  useEffect(() => {
+    if (scanResult === null) {
+      return;
+    }
+    if ((activeAccount?.classification ?? null) !== scanClassification) {
+      setScanResult(null);
+      setScanCompletedAt(null);
+      setScanClassification(null);
+    }
+  }, [activeAccount, scanClassification, scanResult]);
 
   // What "the stage follows the Scan column" is made of: the scope menu's own
   // symbol selection and a scan-row click both land here (spec §4: selecting a
@@ -363,6 +471,7 @@ export function AdvisorWorkspace(
     setScope(nextScope);
     setScanResult(null);
     setScanCompletedAt(null);
+    setScanClassification(null);
     if (nextScope.kind === "symbol") {
       selectSymbolForReview(nextScope.symbol);
     }
@@ -436,6 +545,9 @@ export function AdvisorWorkspace(
     try {
       const nextResult = await scanMarketOpportunities(symbols);
       setScanResult(nextResult);
+      // Task 9 fix round 1: which universe this result belongs to — see
+      // scanClassification's own comment above.
+      setScanClassification(activeAccount?.classification ?? null);
       if (requestIdRef.current === requestId && adoptScanVerdict(nextResult)) {
         // The engine analyzed live provider data server-side moments ago;
         // re-fetching the chart for the market that just took this scan's
@@ -456,6 +568,7 @@ export function AdvisorWorkspace(
         qualified: 0,
         scanned: 0,
       });
+      setScanClassification(activeAccount?.classification ?? null);
       // A failed scan is not a scan that wrote nothing. Whatever chunks
       // completed before the failure have already persisted their setups
       // server-side (spec §17m.2 — the write is part of the request, not of the
@@ -535,6 +648,7 @@ export function AdvisorWorkspace(
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
                 <ScopeMenu
+                  groups={visibleGroups}
                   label="Scan scope"
                   showLabel={false}
                   value={scope}
@@ -637,6 +751,7 @@ export function AdvisorWorkspace(
               symbol={symbol}
             />
             <MarketScanResults
+              account={activeAccount}
               onSelectCandidate={selectCandidate}
               result={scanResult}
               scanCompletedAt={scanCompletedAt}
@@ -690,6 +805,8 @@ export function AdvisorWorkspace(
       {/* Left rail: the scan (a-desk-v3.html:87-158). */}
       <div className="scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4">
         <MarketScanPanel
+          account={activeAccount}
+          groups={visibleGroups}
           onScan={scanMarkets}
           onSelectCandidate={selectCandidate}
           onSelectScope={selectScope}

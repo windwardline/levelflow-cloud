@@ -1100,9 +1100,12 @@ describe("scan scope ownership — one state, one derivation, two surfaces (§17
   it("routes every scope change through the stage's one handler, which resets the stale result and follows a single market", () => {
     assert.match(rail, /<ScopeMenu\b[\s\S]{0,200}onSelect=\{onSelectScope\}/);
     assert.match(stage, /onSelectScope=\{selectScope\}/);
+    // Task 9 review, fix round 1: selectScope also clears scanClassification
+    // now (tests/marketScanFilters.test.ts pins the stamp itself), so this
+    // shape gained a third clear alongside the original two.
     assert.match(
       stage,
-      /function selectScope\(nextScope: ScanScope\) \{\s*setScope\(nextScope\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*if \(nextScope\.kind === "symbol"\) \{\s*selectSymbolForReview\(nextScope\.symbol\);/,
+      /function selectScope\(nextScope: ScanScope\) \{\s*setScope\(nextScope\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*setScanClassification\(null\);\s*if \(nextScope\.kind === "symbol"\) \{\s*selectSymbolForReview\(nextScope\.symbol\);/,
     );
   });
 
@@ -1393,9 +1396,27 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
 
   it("puts the unit in the label and the bare number in the value", () => {
     // The same idiom as `Target 1 · bank half`, so the numeral column stays clean.
-    assert.match(panel, /const label = `Size · \$\{sizeUnitFor\(profile\.brokerProgramLine\)\}`;/);
+    assert.match(panel, /const label = `Size · \$\{sizeUnitFor\(activeAccount\.programLine\)\}`;/);
     assert.match(sizing, /return getProgramLine\(programLine\)\?\.family === "futures"\s*\? "contracts"\s*: "lots";/);
     assert.match(panel, /value=\{formatNumber\(size\.units\)\}/);
+  });
+
+  it("§19d — the ladder's Size row reads the ACTIVE account (amendment 14)", () => {
+    // §19 retrofit, Task 5: SizeRow and brokerQuotes's dormancy key on
+    // activeAccountOf(profile) — amendment 14's multi-account model — rather
+    // than the six retired profile columns a saved-but-inactive account must
+    // not price the ladder with.
+    assert.match(stage, /const activeAccount = activeAccountOf\(profile\);/);
+    assert.match(
+      stage,
+      /const brokerQuotes = activeAccount === null\s*\?\s*\{\}\s*:\s*collectBrokerQuotes\(/,
+    );
+    assert.match(
+      panel,
+      /const label = `Size · \$\{sizeUnitFor\(activeAccount\.programLine\)\}`;/,
+    );
+    // The kill list stands: no file outside the panel reads broker sizing.
+    assert.doesNotMatch(stage, /from "\.\.\/\.\.\/lib\/broker\/sizing"/);
   });
 
   it("renders the value in mono tabular-nums when it is a number", () => {
@@ -1418,14 +1439,27 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
     assert.ok(!blockedSlot.includes("tabular-nums"));
   });
 
-  it("does not exist with no program selected", () => {
+  it("§19d — no active account means no Size row, still", () => {
     const sizeRow = sizeRowSource();
-    assert.match(
-      sizeRow,
-      /profile\.brokerProgramLine === null[\s\S]{0,200}\) \{\n\s*return null;/,
-    );
-    // Not a dash, not an empty value, not a prompt.
-    assert.doesNotMatch(sizeRow, /"—"|value=""|Select a program|Set a program/);
+    assert.match(sizeRow, /activeAccount === null/);
+    // Not a dash, not an empty value, not a prompt. Scoped to the Size row's
+    // own source rather than the whole panel file: this file's prose
+    // comments use em dashes legitimately throughout (16 of them outside
+    // this function, at last count), so a whole-file substring scan for
+    // "—" would fail on correct, unrelated comments — the same reason the
+    // em-dash sibling test below scopes to sizeRowSource() and extracts
+    // string literals only rather than scanning raw text.
+    for (
+      const banned of [
+        "—",
+        'value=""',
+        "Select a program",
+        "Set a program",
+        "Add an account",
+      ]
+    ) {
+      assert.ok(!sizeRow.includes(banned), `${banned} must not render`);
+    }
   });
 
   it("renders exactly the four state words §19e names, and no fifth voice", () => {
@@ -1479,7 +1513,7 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
     // and the gate's empty branch is a literal, not a fetch.
     assert.match(
       stage,
-      /const brokerQuotes =\s*\n\s*profile\.brokerProgramLine === null\s*\n\s*\? \{\}\s*\n\s*: collectBrokerQuotes\(\{ scan: scanResult, setup \}\);/,
+      /const brokerQuotes = activeAccount === null\s*\?\s*\{\}\s*:\s*collectBrokerQuotes\(\{ scan: scanResult, setup \}\);/,
     );
   });
 });

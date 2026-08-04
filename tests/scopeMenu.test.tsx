@@ -174,12 +174,33 @@ describe("the stage picker's symbolOnly mode is gone (§17m.1)", () => {
     assert.doesNotMatch(SOURCE, /HEADING_MENU_MIN_WIDTH_PX/);
   });
 
-  it("renders the menu straight off the row model, with every row as built", () => {
-    assert.match(SOURCE, /const rows = buildScopeMenuRows\(clock\);/);
+  // §19 retrofit, Task 8 (amendment 13): the menu no longer always shows every
+  // market — the caller now says which groups are in play, threaded straight
+  // into buildScopeMenuRows rather than the component reaching for the
+  // AVAILABLE_ASSET_GROUPS default itself. buildScopeMenuRows's own default
+  // parameter is what keeps every OTHER test in this file (which calls it
+  // directly with one argument) passing unchanged.
+  it("renders the menu straight off the row model, with every row as built, from the caller's own groups", () => {
+    assert.match(SOURCE, /const rows = buildScopeMenuRows\(clock, groups\);/);
     // "All markets" is a real row again for both hosts — no call site drops it.
     const rows = buildScopeMenuRows(WEDNESDAY_2PM_ET);
     assert.equal(rows[0]?.key, "all");
     assert.equal(resolveRowActivation(rows[0]!)?.kind, "all");
+  });
+});
+
+describe("ScopeMenu takes its groups from the caller (§19 retrofit, amendment 13)", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/ScopeMenu.tsx",
+    "utf8",
+  );
+
+  it("declares a required groups prop, typed as SecurityGroup[]", () => {
+    const propsBlock = SOURCE.match(
+      /type ScopeMenuProps = \{[\s\S]*?\n\};/,
+    )?.[0] ?? "";
+    assert.ok(propsBlock.length > 0, "expected to find ScopeMenuProps");
+    assert.match(propsBlock, /\n\s*groups: SecurityGroup\[\];/);
   });
 });
 

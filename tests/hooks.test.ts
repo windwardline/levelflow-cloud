@@ -459,7 +459,14 @@ describe("useUserProfile state and theme paths (source-pinned — see header)", 
     assert.doesNotMatch(source, /setStatus/);
     assert.doesNotMatch(source, /\bstatus\b/);
     assert.doesNotMatch(source, /setLoading/);
-    assert.match(source, /return \{\s*profile,\s*saveProfile,\s*\};/);
+    // §19 retrofit: the return grew three real mutators — saveBrokerAccount,
+    // removeBrokerAccount, activateBrokerAccount — the multi-account read/write
+    // seam this wave's later tasks consume. Unlike the dead state above, each
+    // is part of the plan's own interface, not a value with no reader.
+    assert.match(
+      source,
+      /return \{\s*activateBrokerAccount,\s*profile,\s*removeBrokerAccount,\s*saveBrokerAccount,\s*saveProfile,\s*\};/,
+    );
   });
 
   it("applies the loaded profile's theme on every path that sets a profile (Q2-M5)", () => {
