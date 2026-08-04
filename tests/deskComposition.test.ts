@@ -1388,7 +1388,12 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
     // One row shell for the priced and the blocked state alike: the padding, the
     // hairline and the hit target cannot drift between them.
     assert.equal((panel.match(/function CopyableMetricRow/g) ?? []).length, 1);
-    assert.equal((panel.match(/min-h-11 min-w-0 items-baseline/g) ?? []).length, 1);
+    // The shell is a grid since the owner's second ladder ruling: the auto
+    // value column is the structural no-overpaint guarantee at every width.
+    assert.equal(
+      (panel.match(/min-h-11 min-w-0 grid-cols-\[minmax\(0,1fr\)_auto\] items-baseline/g) ?? []).length,
+      1,
+    );
     const sizeRow = sizeRowSource();
     assert.match(sizeRow, /<CopyableMetricRow label=\{label\} value=\{size\.word\} \/>/);
     assert.match(sizeRow, /onCopy=\{\(\) => onCopy\(formatCopyValue\(size\.units\)\)\}/);
@@ -1420,17 +1425,19 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
   });
 
   it("renders the value in mono tabular-nums when it is a number", () => {
-    // Owner finding 2026-08-04: the ≥lg value steps down by length instead of
-    // crowding the copy control — the mono/tabular treatment and the sub-lg
-    // 15.5px are unchanged, and the three steps are pinned with their
-    // thresholds so a size change is a deliberate edit here too.
+    // Owner directive 2026-08-04 (second ruling, superseding the stepped
+    // sizes the first fix tried): the ≥lg ladder value is FLAT 16px at
+    // every length, with gap-2 before the copy control — measured-fit
+    // sizing left 4px of "clearance" that read as run-on in the owner's
+    // own screenshot review. The mono/tabular treatment and the sub-lg
+    // 15.5px are unchanged. Both halves pinned so a size or gap change is
+    // a deliberate edit here too.
     assert.match(
       panel,
-      /min-w-0 whitespace-nowrap text-right font-mono font-bold tabular-nums max-lg:text-\[15\.5px\]/,
+      /min-w-0 whitespace-nowrap text-right font-mono font-bold tabular-nums max-lg:text-\[15\.5px\] lg:text-base/,
     );
-    assert.match(panel, /value\.length >= 13\n\s*\? "lg:text-base"/);
-    assert.match(panel, /value\.length >= 10\n\s*\? "lg:text-lg"/);
-    assert.match(panel, /: "lg:text-xl"/);
+    assert.match(panel, /items-baseline gap-2 max-lg:contents/);
+    assert.doesNotMatch(panel, /value\.length >= /);
   });
 
   it("drops the copy affordance entirely in a blocked state", () => {
@@ -1439,7 +1446,7 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
     assert.match(panel, /\{onCopy === undefined\n\s*\? \(\n\s*<span className="min-w-0 text-right text-sm font-semibold text-ink-muted max-lg:text-\[13px\]">/);
     const blockedSlot = panel.slice(
       panel.indexOf("{onCopy === undefined"),
-      panel.indexOf('<span className="flex min-w-0 items-baseline gap-1'),
+      panel.indexOf('<span className="flex min-w-0 items-baseline gap-2'),
     );
     assert.ok(!blockedSlot.includes("cpv-copy"));
     assert.ok(!blockedSlot.includes("font-mono"));
