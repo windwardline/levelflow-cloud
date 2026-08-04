@@ -190,16 +190,23 @@ const SIGNATURE_LADDER = [25_000, 50_000, 100_000, 150_000];
 const ZERO_LADDER = [50_000, 100_000, 200_000];
 
 // Amendment 10's input contract: the purchase screen is the definitive
-// statement of what E8 offers a buyer, verified across three market walks on
-// 2026-08-02 (docs/research/e8-purchase-screen-2026-08-02.md).
-const PURCHASE_SCREEN: Provenance = {
+// statement of what E8 offers a buyer. Fix round 1: this used to be one
+// PURCHASE_SCREEN observation naming all four families the 2026-08-02
+// session touched ("E8 One / E8 Pro / E8 Signature / E8 Zero"), but only One
+// and Pro's tiers actually source a value from it — Signature has no
+// customization and Zero has none either. An observation is a record of what
+// was SEEN (amendment 4), never a channel for a broader claim, so it is now
+// split: one per tier source, each naming only the program line(s) its own
+// walk actually showed.
+const ONE_PURCHASE_SCREEN: Provenance = {
   article: null,
   method: null,
   observation: {
     date: "2026-08-02",
-    note: "Three market walks, twenty-nine frames, balance $100,000.",
+    note:
+      "Coupled dynamic/daily/target matrix at $100,000, confirmed identically on the Forex walk (7 frames: F1-F7) and the Crypto walk (6 frames: C1-C6).",
     platform: "E8 purchase screen",
-    program: "E8 One / E8 Pro / E8 Signature / E8 Zero",
+    program: "E8 One / E8 One Crypto",
   },
   tag: "verified",
   url: null,
@@ -212,14 +219,28 @@ const PURCHASE_SCREEN: Provenance = {
 // independently chosen numbers could encode a configuration E8 does not sell
 // (docs/research/e8-purchase-screen-2026-08-02.md).
 const ONE_DRAWDOWN_TIERS: Valued<string[]> = {
-  source: PURCHASE_SCREEN,
+  source: ONE_PURCHASE_SCREEN,
   value: ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"],
+};
+
+const PRO_PURCHASE_SCREEN: Provenance = {
+  article: null,
+  method: null,
+  observation: {
+    date: "2026-08-02",
+    note:
+      "Static/daily/target matrix at $100,000, confirmed identically on the Forex walk (4 frames: F8-F11) and the Crypto walk (4 frames: C7-C10).",
+    platform: "E8 purchase screen",
+    program: "E8 Pro Forex / E8 Pro Crypto",
+  },
+  tag: "verified",
+  url: null,
 };
 
 // Pro: daily FIXED at 2.5% and the daily profit cap FIXED at 2% regardless of
 // the static choice; only the static leg moves. Verified on the same walks.
 const PRO_DRAWDOWN_TIERS: Valued<string[]> = {
-  source: PURCHASE_SCREEN,
+  source: PRO_PURCHASE_SCREEN,
   value: ["2.5-6", "2.5-8", "2.5-10"],
 };
 

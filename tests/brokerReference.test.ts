@@ -335,6 +335,53 @@ describe("§19b — the ten program lines", () => {
     assert.equal(drawdownTiersFor("zero"), null);
   });
 
+  // Fix round 1: the shared PURCHASE_SCREEN observation named all four
+  // families the 2026-08-02 session touched ("E8 One / E8 Pro / E8 Signature
+  // / E8 Zero"), though only One and Pro's tiers actually source from it —
+  // Signature has no customization and Zero has none either, so the shared
+  // observation over-claimed relative to what its own record backs
+  // (amendment 4's narrow-by-construction rule). Each tier source now names
+  // only the program line(s) its own walk actually showed.
+  it("fix round 1 — the purchase-screen observation is split, naming only what each walk actually showed", () => {
+    const one = getProgramLine("one")!;
+    const oneCrypto = getProgramLine("one_crypto")!;
+    const proForex = getProgramLine("pro_forex")!;
+    const proCrypto = getProgramLine("pro_crypto")!;
+
+    assert.equal(one.drawdownTiers?.source.observation?.program, "E8 One / E8 One Crypto");
+    assert.equal(oneCrypto.drawdownTiers?.source.observation?.program, "E8 One / E8 One Crypto");
+    assert.equal(
+      proForex.drawdownTiers?.source.observation?.program,
+      "E8 Pro Forex / E8 Pro Crypto",
+    );
+    assert.equal(
+      proCrypto.drawdownTiers?.source.observation?.program,
+      "E8 Pro Forex / E8 Pro Crypto",
+    );
+
+    // Two genuinely distinct observations, not one shared object re-labelled.
+    assert.notEqual(one.drawdownTiers?.source, proForex.drawdownTiers?.source);
+    assert.equal(one.drawdownTiers?.source, oneCrypto.drawdownTiers?.source);
+    assert.equal(proForex.drawdownTiers?.source, proCrypto.drawdownTiers?.source);
+
+    // Neither observation claims a family its own record never showed —
+    // Signature and Zero never source a value from either.
+    for (const source of [one.drawdownTiers?.source, proForex.drawdownTiers?.source]) {
+      assert.ok(!source?.observation?.program.includes("Signature"));
+      assert.ok(!source?.observation?.program.includes("Zero"));
+    }
+
+    // Still verified, still dated, still the same platform and values —
+    // this is a provenance-scoping split, not a data change.
+    for (const source of [one.drawdownTiers?.source, proForex.drawdownTiers?.source]) {
+      assert.equal(source?.tag, "verified");
+      assert.equal(source?.observation?.date, "2026-08-02");
+      assert.equal(source?.observation?.platform, "E8 purchase screen");
+    }
+    assert.deepEqual(one.drawdownTiers?.value, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
+    assert.deepEqual(proForex.drawdownTiers?.value, ["2.5-6", "2.5-8", "2.5-10"]);
+  });
+
   it("renders E8's own tiers verbatim from the paired token", () => {
     assert.equal(formatDrawdownTier("3-4"), "3% daily · 4% max");
     assert.equal(formatDrawdownTier("5.3-8"), "5.3% daily · 8% max");
