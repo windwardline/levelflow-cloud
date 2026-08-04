@@ -99,6 +99,17 @@ const SURVIVORS: Record<string, Survivor[]> = {
       why: "the scope menu's anchored popup — same reason as the account menu's",
     },
   ],
+  // §19 retrofit, amendment 18: the broker account switcher's own anchored
+  // popup at ≥lg — not App.tsx's MobileAccountMenu (the signed-in-user
+  // "account menu" both older entries above reference), a separate detached
+  // plane naming a different "account" (a saved broker account).
+  "src/components/workspace/AccountSwitcherMenu.tsx": [
+    {
+      match: "rounded-lg border border-hairline bg-sheet py-1 shadow-lg",
+      why:
+        "the switcher's anchored popup at >=lg — same reason as ScopeMenu's and the avatar menu's: a detached plane over page content needs an opaque edge to be legible",
+    },
+  ],
   "src/components/workspace/AdvisorWorkspace.tsx": [
     {
       match: "min-h-11 rounded-lg border border-ink bg-transparent",

@@ -869,6 +869,40 @@ declared future, still future); a size on the Trades rail or in Insights;
 program-aware market availability (§20e names it); anything E8 does not
 publish.
 
+### §19i. The account switcher's label (owner ruling, TASK 6 VERDICT, 2026-08-03 22:07)
+
+The chip that names the broker becomes an account switcher once a profile
+holds one or more saved accounts (amendment 18). Its label is a formula over
+already-registered tokens, not new copy: the broker token (`E8`) piped with
+the account's classification label (§20j: `Forex` / `Crypto` / `Futures`)
+and the account size's K-form (`$100,000` → `100K`) — `E8 | FOREX | 100K`.
+ALL CAPS is a render-time CSS transform over this byte-intact string (the
+`ReloadNotice`/`.phosphor-pulse` technique, App.tsx), never a stored or
+computed uppercase value, so a future rename (out of this wave's scope)
+still displays exactly what the reader typed, under the same transform.
+
+The formula carries only classification and size — never program line,
+platform, stage, or drawdown tier — so two accounts can formulate
+identically (an E8 One $100,000 account and an E8 Pro Forex $100,000
+account both read `E8 | FOREX | 100K`). Where they do, every account past
+the first in that colliding group appends a single space then its 1-based
+ordinal in parentheses — `E8 | FOREX | 100K (1)`, `(2)`, … — assigned by
+sorting the colliding group by its accounts' `id`, so the assignment is a
+pure function of the account set rather than of whatever order a caller's
+array happens to arrive in (Supabase's own `.select()` carries no `ORDER
+BY`). A group of one never carries a suffix. This is the owner's revision of
+the mockup's own `-1` sketch (`docs/design/mockups/s-switcher-v1.html`,
+`s-switcher-mobile-v1.html`): the space-then-parens form, measured at 375px
+with 22px of clearance against the worst live case (`E8 | FUTURES | 50K
+(1)`, 189px of a 211px chip budget).
+
+A user-set rename is a later task: it will be the formula's override once it
+ships, capped at 14 characters (measured: the worst-glyph 16-character
+stress case exactly filled the 211px budget; 14 puts the worst rename at
+parity with the worst suffixed formula label), and the suffix dissolves once
+a rename resolves its collision. Task 7 builds the formula and the suffix
+machinery only — `BrokerAccount` carries no name field yet.
+
 ---
 
 ## §20. The prop-firm risk governor — V1, advisory and plan-scoped

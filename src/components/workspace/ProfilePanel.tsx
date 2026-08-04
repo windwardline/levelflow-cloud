@@ -174,7 +174,16 @@ export function ProfilePanel({
         description="Markets, costs, and record follow the broker."
         title="Broker"
       >
-        <BrokerChip />
+        <BrokerChip
+          accounts={profile.brokerAccounts}
+          activeId={profile.activeBrokerAccountId}
+          // No-op: this mount already sits directly above
+          // BrokerAccountsSection, which IS where "Manage accounts" would
+          // navigate — so picking it here would just close the switcher onto
+          // the very list already open beneath it.
+          onManage={() => {}}
+          onSelect={onActivateAccount}
+        />
         <BrokerAccountsSection
           onActivateAccount={onActivateAccount}
           onRemoveAccount={onRemoveAccount}

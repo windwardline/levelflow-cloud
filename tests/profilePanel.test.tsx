@@ -179,7 +179,15 @@ describe("Profile composition — the mock's elements are present (p-profile-v2.
   });
 
   it("gives Broker the shared chip, and carries no link row of its own any more (§17i)", () => {
-    assert.match(PANEL_SOURCE, /<BrokerChip \/>/);
+    // §19 retrofit, Task 7 (amendment 18): the chip took on the switcher's
+    // accounts/activeId/onSelect props here too, though this mount's own
+    // onManage is a no-op (the confirmed-accounts list it would navigate to
+    // is the very section already open beneath it — see BrokerChip's own
+    // call site for the reasoning).
+    const chipCallSite = PANEL_SOURCE.match(/<BrokerChip[\s\S]*?\/>/)?.[0] ?? "";
+    assert.match(chipCallSite, /accounts=\{profile\.brokerAccounts\}/);
+    assert.match(chipCallSite, /activeId=\{profile\.activeBrokerAccountId\}/);
+    assert.match(chipCallSite, /onSelect=\{onActivateAccount\}/);
     // The mock's `.tlink` pair (:90-91) went with the Support row it lived in: the
     // footer is in the frame twenty pixels below this sheet on every ≥lg surface,
     // and the account menu carries the same two below lg.
@@ -333,7 +341,7 @@ describe("§19 retrofit — the catalog walk beneath the accounts list (amendmen
   it("puts the section in the Broker row beneath the chip, wired to the three account callbacks", () => {
     assert.match(
       PANEL_SOURCE,
-      /<BrokerChip \/>\s*\n\s*<BrokerAccountsSection\s*\n\s*onActivateAccount=\{onActivateAccount\}\s*\n\s*onRemoveAccount=\{onRemoveAccount\}\s*\n\s*onSaveAccount=\{onSaveAccount\}\s*\n\s*profile=\{profile\}\s*\n\s*\/>/,
+      /<BrokerChip\s*\n\s*accounts=\{profile\.brokerAccounts\}\s*\n\s*activeId=\{profile\.activeBrokerAccountId\}\s*\n[\s\S]*?\/>\s*\n\s*<BrokerAccountsSection\s*\n\s*onActivateAccount=\{onActivateAccount\}\s*\n\s*onRemoveAccount=\{onRemoveAccount\}\s*\n\s*onSaveAccount=\{onSaveAccount\}\s*\n\s*profile=\{profile\}\s*\n\s*\/>/,
     );
     // One Broker row, not two: the row count and its titles are pinned above, and
     // this is the second direction — no new ProfileRow was added for the walk.
