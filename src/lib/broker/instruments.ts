@@ -455,7 +455,13 @@ function futuresLineRow(symbol: string, assetType: SecurityType): Omit<
     // by E8 as a scale factor.
     priceScaleFactor: {
       value: spec.tickSize.value === null ? null : 1,
-      source: { article: null, tag: "derived", method: "13004287", url: TICK_SIZES.url },
+      source: {
+        article: null,
+        tag: "derived",
+        method: "13004287",
+        url: TICK_SIZES.url,
+        observation: null,
+      },
     },
     marginPerContract: spec.marginPerContract,
     maxTicketLots: valued<number>(null, LOT_RESTRICTIONS),

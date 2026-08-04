@@ -18,16 +18,34 @@ import {
   findBrokerInstrument,
 } from "../src/lib/broker/instruments.ts";
 import {
+  CANONICAL_LIST,
+  CONTRACT_SIZES,
+  CUSTOM_ACCOUNT,
+  E8X_TRADING_SYMBOLS,
+  INSTRUMENTS_ARTICLE,
+  INSTRUMENT_ROSTER,
+  LEVERAGE_ARTICLE,
+  LOT_RESTRICTIONS,
+  MAX_CONTRACTS,
   PROGRAM_LINES,
   RISK_PERCENT_DEFAULT,
   RISK_PERCENT_OPTIONS,
   STANDARD_FUTURES_MARGIN,
+  TICK_SIZES,
+  ZERO_PRODUCT,
   allowedMarginFor,
   formatAccountSize,
   formatDrawdownTier,
   formatRiskPercent,
 } from "../src/lib/broker/programs.ts";
-import type { ProgramLine, Stage } from "../src/lib/broker/types.ts";
+import type {
+  BrokerInstrument,
+  ProgramLine,
+  Provenance,
+  QuoteUnit,
+  Stage,
+  Valued,
+} from "../src/lib/broker/types.ts";
 
 // Spec §19f. The tests/calibrationState.test.ts precedent: a literal expectation
 // table in the test file, so changing a broker number without changing a test is
@@ -532,7 +550,11 @@ describe("§19a — the row and its states", () => {
           assert.ok(source.method, "a derived value must name the method's article");
           assert.equal(source.article, null, "derived is never also primary");
         }
-        assert.ok(source.url.startsWith("https://"), source.url);
+        if (source.url === null) {
+          assert.equal(source.tag, "verified", "only a verified source has a null url");
+        } else {
+          assert.ok(source.url.startsWith("https://"), source.url);
+        }
       }
     }
   });
@@ -967,5 +989,130 @@ describe("§20i ruling 7 — the catalog walk transcribes the purchase screen", 
   it("offers no free-form entry — every option set is a finite enumeration", () => {
     const source = readFileSync("src/lib/broker/catalog.ts", "utf8");
     assert.doesNotMatch(source, /type="number"|parseFloat|parseInt|Number\(/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Amendment 4 — the `verified` tag and the `Observation` shape
+// ---------------------------------------------------------------------------
+
+function unitValuesOf(unit: QuoteUnit): Valued<number>[] {
+  switch (unit.kind) {
+    case "forex_contract":
+      return [unit.contractSize];
+    case "index_points":
+      return [unit.pointsPerLot];
+    case "futures_tick":
+      return [unit.tickSize, unit.valuePerTick];
+  }
+}
+
+// The Provenance constants programs.ts exports at module scope — every one of
+// them is already reachable transitively through BROKER_INSTRUMENTS or
+// PROGRAM_LINES below, but naming them here too means a future constant that
+// is not yet wired into either structure still gets checked rather than
+// silently skipped.
+const MODULE_LEVEL_PROVENANCES: Provenance[] = [
+  CANONICAL_LIST,
+  CONTRACT_SIZES,
+  CUSTOM_ACCOUNT,
+  E8X_TRADING_SYMBOLS,
+  INSTRUMENTS_ARTICLE,
+  INSTRUMENT_ROSTER,
+  LEVERAGE_ARTICLE,
+  LOT_RESTRICTIONS,
+  MAX_CONTRACTS,
+  TICK_SIZES,
+  ZERO_PRODUCT,
+];
+
+/** Every `Provenance` reachable from the roster, the program lines, and the module's own source constants. */
+function allProvenances(): Provenance[] {
+  const sources: Provenance[] = [...MODULE_LEVEL_PROVENANCES];
+  for (const row of BROKER_INSTRUMENTS) {
+    sources.push(row.tradabilitySource);
+    if (row.brokerSymbolSource) {
+      sources.push(row.brokerSymbolSource);
+    }
+    for (const value of unitValuesOf(row.unit)) {
+      sources.push(value.source);
+    }
+    sources.push(row.priceScaleFactor.source);
+    sources.push(row.marginPerContract.source);
+    sources.push(row.maxTicketLots.source);
+  }
+  for (const program of PROGRAM_LINES) {
+    sources.push(program.accountSizeSource);
+    for (const leverageValue of Object.values(program.leverage)) {
+      if (leverageValue) {
+        sources.push(leverageValue.source);
+      }
+    }
+  }
+  return sources;
+}
+
+/**
+ * The non-null `Valued<>` members a confirmed row's own family actually needs:
+ * the unit's own values, plus priceScaleFactor, marginPerContract and
+ * maxTicketLots wherever the row's family populates them (the other family's
+ * field is always null by construction, so filtering on non-null value is
+ * the family filter).
+ */
+function requiredUnitValues(row: BrokerInstrument): Valued<number>[] {
+  return [
+    ...unitValuesOf(row.unit),
+    row.priceScaleFactor,
+    row.marginPerContract,
+    row.maxTicketLots,
+  ].filter((value) => value.value !== null);
+}
+
+describe("§19a — `verified` is the fifth tag and the third admissible one", () => {
+  const TYPES_SOURCE = readFileSync("src/lib/broker/types.ts", "utf8");
+
+  it("retires the two-route boundary from the header comment", () => {
+    assert.ok(
+      !TYPES_SOURCE.includes("There is no third source"),
+      "the preamble's third route is law since 2026-08-02",
+    );
+    assert.match(TYPES_SOURCE, /the owner observes it directly on the broker's live platform/);
+  });
+
+  it("declares the Observation shape and the widened Provenance", () => {
+    assert.match(TYPES_SOURCE, /export type Observation = \{/);
+    assert.match(TYPES_SOURCE, /tag: "primary" \| "derived" \| "verified" \| "secondary" \| "dossier";/);
+    assert.match(TYPES_SOURCE, /url: string \| null;/);
+    assert.match(TYPES_SOURCE, /observation: Observation \| null;/);
+  });
+
+  it("every verified value carries a dated, platformed observation and is never also primary", () => {
+    for (const source of allProvenances()) {
+      if (source.tag !== "verified") {
+        assert.equal(source.observation, null, "only verified carries an observation");
+        continue;
+      }
+      assert.equal(source.article, null);
+      assert.equal(source.url, null);
+      assert.ok(source.observation, "a verified value carries its observation");
+      assert.match(source.observation.date, /^\d{4}-\d{2}-\d{2}$/);
+      assert.ok(source.observation.platform.length > 0);
+      assert.ok(source.observation.program.length > 0);
+    }
+  });
+
+  it("widens the confirmed implication to admit verified", () => {
+    for (const row of BROKER_INSTRUMENTS.filter((r) => r.tradability === "confirmed")) {
+      assert.ok(
+        ["primary", "verified"].includes(row.tradabilitySource.tag),
+        `${row.programLine}/${row.levelflowSymbol} tradability tag`,
+      );
+      for (const value of requiredUnitValues(row)) {
+        assert.ok(
+          ["primary", "derived", "verified"].includes(value.source.tag),
+          `${row.programLine}/${row.levelflowSymbol} unit value tag`,
+        );
+      }
+    }
   });
 });

@@ -19,7 +19,13 @@ const HELP = "https://help.e8markets.com/en/articles";
 const HELP_FUTURES = "https://helpfutures.e8markets.com/en/articles";
 
 function primary(article: string, slug: string, base = HELP): Provenance {
-  return { article, tag: "primary", method: null, url: `${base}/${article}-${slug}` };
+  return {
+    article,
+    tag: "primary",
+    method: null,
+    url: `${base}/${article}-${slug}`,
+    observation: null,
+  };
 }
 
 /** 8880316 — the Custom Account article, which publishes every ladder. */
@@ -70,6 +76,7 @@ export const E8X_TRADING_SYMBOLS: Provenance = {
   tag: "primary",
   method: null,
   url: "https://e8x.e8markets.com/trading-symbols",
+  observation: null,
 };
 
 function valued<T>(value: T | null, source: Provenance): Valued<T> {

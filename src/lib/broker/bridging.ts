@@ -37,6 +37,7 @@ const DERIVED_PIP_VALUE: Provenance = {
   tag: "derived",
   method: "9453488",
   url: CONTRACT_SIZES.url,
+  observation: null,
 };
 
 const DERIVED_BRIDGE: Provenance = {
@@ -44,6 +45,7 @@ const DERIVED_BRIDGE: Provenance = {
   tag: "derived",
   method: "9453396",
   url: LOT_RESTRICTIONS.url,
+  observation: null,
 };
 
 /**
