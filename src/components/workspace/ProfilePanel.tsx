@@ -468,23 +468,39 @@ function BrokerAccountsSection({
                   key={account.id}
                   className="flex min-h-11 w-full items-center justify-between gap-3 py-1.5 text-left text-sm"
                 >
+                  {/* §17n fix round 1: min-h-11 on the row alone left this
+                      button small and centered inside an inert 44px box — a
+                      tap between the text and the row's edge hit nothing.
+                      The floor belongs on the tappable element itself
+                      (MarketScanRow's own idiom, MarketScanPanel.tsx): flex
+                      + min-h-11 + items-center grows the button to the full
+                      row height and centers its content in it, rather than
+                      leaving the row to center a shorter box. */}
                   <button
-                    className="min-w-0 flex-1 truncate text-left"
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                     type="button"
                     aria-current={isActive}
                     onClick={() => onActivateAccount(account.id)}
                   >
-                    {`${accountProgram.label} · ${formatAccountSize(account.accountSize)}`}
+                    <span className="min-w-0 truncate">
+                      {`${accountProgram.label} · ${formatAccountSize(account.accountSize)}`}
+                    </span>
                     {isActive
                       ? (
-                        <span className="ml-2 font-semibold text-accent">
+                        <span className="shrink-0 font-semibold text-accent">
                           {"Active"}
                         </span>
                       )
                       : null}
                   </button>
+                  {/* Remove is short text inside a flex row, where
+                      .tertiary-link's negative-margin trick would move the
+                      row's own geometry (the same reason AppFooter's link
+                      trio uses .legal-link instead, styles/index.css) — the
+                      kit's absolutely-positioned overlay reaches 44px
+                      without affecting layout at all. */}
                   <button
-                    className="shrink-0 text-xs font-semibold text-ink-muted"
+                    className="legal-link shrink-0 text-xs font-semibold text-ink-muted"
                     type="button"
                     onClick={() => onRemoveAccount(account.id)}
                   >

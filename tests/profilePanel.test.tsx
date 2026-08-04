@@ -532,9 +532,29 @@ describe("§19 retrofit — the Broker row is the confirmed-accounts list (amend
   });
 
   it("keeps every account row at the 44px tap floor (§17n)", () => {
+    // Review fix round 1: a bare /min-h-11/ search passed against min-h-11
+    // sitting on the row alone, with the actual buttons small and centered
+    // inside it — a tap in the gap between a button's own edge and the
+    // row's edge hit nothing. Each assertion below is anchored to the exact
+    // interactive element's own onClick, so the floor is proven to live on
+    // the tappable element itself, not merely somewhere in the section.
     const section = PANEL_SOURCE.slice(
       PANEL_SOURCE.indexOf("function BrokerAccountsSection"),
     );
-    assert.match(section, /min-h-11/);
+    // The activate control: MarketScanRow's own idiom (MarketScanPanel.tsx)
+    // — min-h-11 directly on the button, which is also flex + items-center
+    // so its content is vertically centered in the full 44px it now claims.
+    assert.match(
+      section,
+      /className="flex min-h-11[^"]*"\s*\n\s*type="button"\s*\n\s*aria-current=\{isActive\}\s*\n\s*onClick=\{\(\) => onActivateAccount\(account\.id\)\}/,
+    );
+    // Remove: short text inside a flex row, where .tertiary-link's
+    // negative-margin trick would move the row's own geometry (the reason
+    // AppFooter's link trio uses .legal-link instead) — the kit's
+    // absolutely-positioned overlay reaches 44px without touching layout.
+    assert.match(
+      section,
+      /className="legal-link[^"]*"\s*\n\s*type="button"\s*\n\s*onClick=\{\(\) => onRemoveAccount\(account\.id\)\}/,
+    );
   });
 });

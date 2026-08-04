@@ -77,7 +77,11 @@ function valued<T>(value: T | null, source: Provenance): Valued<T> {
 }
 
 export type ProgramLineSpec = {
-  /** Selector label. §20j pins all eleven option strings, `None` included. */
+  /**
+   * Selector label. §20j pins all ten option strings. `None` retired with
+   * the single-selection walk it was the sentinel for (§19 retrofit, Task
+   * 4) — the catalog walk that replaced it always names a complete account.
+   */
   label: string;
   line: ProgramLine;
   family: ProgramFamily;
