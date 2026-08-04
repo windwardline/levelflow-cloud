@@ -684,7 +684,7 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("tallies the CFD lines exactly as §19a records them", () => {
+  it("tallies the CFD lines exactly as §19a records them (amendment 12, 2026-08-04)", () => {
     for (const line of [
       "one",
       "pro_forex",
@@ -692,15 +692,16 @@ describe("§19a — the row and its states", () => {
       "zero",
     ] as ProgramLine[]) {
       const tally = tallyFor(line);
-      // 28 forex pairs plus XAUUSD.
-      assert.equal(tally.confirmed, 29, `${line} confirmed`);
+      // 28 forex pairs, XAUUSD, and Appendix A's fold: XAGUSD, WTI, BRENT and
+      // all seven scannable crypto rows (batches 1-2, corroborated by F6/F7).
+      assert.equal(tally.confirmed, 39, `${line} confirmed`);
       // The eleven Levelflow Futures rows: E8's futures roster lives exclusively
       // on the futures program lines, and E8 publishes that scope.
       assert.equal(tally.not_offered, 11, `${line} not offered`);
-      // XAGUSD, both energies rows, and all seven crypto rows.
-      assert.equal(tally.not_published, 10, `${line} not published`);
+      // Appendix A closed every CFD-line silence there was left to close.
+      assert.equal(tally.not_published, 0, `${line} not published`);
       assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
-      assert.equal(findBrokerInstrument(line, "XAGUSD")!.tradability, "not_published");
+      assert.equal(findBrokerInstrument(line, "XAGUSD")!.tradability, "confirmed");
       assert.equal(findBrokerInstrument(line, "XAUUSD")!.tradability, "confirmed");
     }
     for (const line of [
@@ -735,24 +736,17 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("keeps the eight no-route markets unconfirmed on every program line", () => {
-    // Crossmap §3.5's finding of record: Brent is a firm NOT OFFERED on futures
-    // plus NOT PUBLISHED on the CFD side; the two Treasury rows are UNCONFIRMED on
-    // futures and rates are not a Markets class; the four altcoins are NOT
-    // PUBLISHED on both sides. §20c is what renders the fact — §19 does not,
-    // because on one program line the honest word is the same either way — so this
-    // pins the property the rows must have, not a derivation of the list.
-    const noRoute = [
-      "ADAUSD",
-      "BCHUSD",
-      "BRENT",
-      "BZUSD",
-      "LTCUSD",
-      "XRPUSD",
-      "ZBUSD",
-      "ZNUSD",
-    ];
-    assert.equal(noRoute.length, 8);
+  it("keeps the three no-route markets unconfirmed on every program line (amendment 12 closes five)", () => {
+    // Crossmap §3.5's finding of record named eight. Appendix A batch 2
+    // (corroborated by F6) gives BRENT, ADAUSD, BCHUSD, LTCUSD and XRPUSD a
+    // confirmed CFD route on the Forex-classification lines, so five of the
+    // eight leave. BZUSD has no E8 route on any program at all; ZBUSD and
+    // ZNUSD publish margin but not tick — all three remain UNCONFIRMED
+    // everywhere. §20c is what renders the fact — §19 does not, because on
+    // one program line the honest word is the same either way — so this pins
+    // the property the rows must have, not a derivation of the list.
+    const noRoute = ["BZUSD", "ZBUSD", "ZNUSD"];
+    assert.equal(noRoute.length, 3);
     for (const symbol of noRoute) {
       assert.ok(AVAILABLE_ASSET_SYMBOLS.includes(symbol), symbol);
       for (const program of PROGRAM_LINES) {
@@ -845,9 +839,40 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("counts what is sizeable in wave 1: 29 on a CFD line, 8 on a futures line, 0 on a crypto line", () => {
-    for (const line of ["one", "pro_forex", "signature_forex", "zero"] as ProgramLine[]) {
-      assert.equal(SIZEABLE_MARKETS_BY_LINE[line].length, 29, line);
+  it("counts what is sizeable in wave 1: 39 on three CFD lines, 37 on Zero, 8 on a futures line, 0 on a crypto line", () => {
+    // Appendix A's fold (amendment 12): the 28 forex pairs and XAUUSD (29,
+    // unchanged) plus XAGUSD, WTI, BRENT and seven scannable crypto rows (10).
+    const APPENDIX_A_SIZEABLE = [
+      "ADAUSD",
+      "BCHUSD",
+      "BRENT",
+      "BTCUSD",
+      "ETHUSD",
+      "LTCUSD",
+      "SOLUSD",
+      "WTI",
+      "XAGUSD",
+      "XRPUSD",
+    ];
+    for (const line of ["one", "pro_forex", "signature_forex"] as ProgramLine[]) {
+      assert.equal(SIZEABLE_MARKETS_BY_LINE[line].length, 39, line);
+      for (const symbol of APPENDIX_A_SIZEABLE) {
+        assert.ok(SIZEABLE_MARKETS_BY_LINE[line].includes(symbol), `${line} misses ${symbol}`);
+      }
+    }
+    // E8 Zero's own product page (15655062) publishes no energies leverage row
+    // -- the same gap that already leaves `zero.leverage.energies` undefined
+    // -- so WTI and BRENT have no computable margin cap there and stay
+    // unsized; the other eight in Appendix A's fold size exactly as they do
+    // on the other three Forex-classification lines.
+    assert.equal(SIZEABLE_MARKETS_BY_LINE.zero.length, 37);
+    for (const symbol of APPENDIX_A_SIZEABLE) {
+      const stillUnsized = symbol === "WTI" || symbol === "BRENT";
+      assert.equal(
+        SIZEABLE_MARKETS_BY_LINE.zero.includes(symbol),
+        !stillUnsized,
+        `zero:${symbol}`,
+      );
     }
     for (
       const line of [
@@ -1218,6 +1243,100 @@ describe("§19a — `verified` is the fifth tag and the third admissible one", (
           `${row.programLine}/${row.levelflowSymbol} unit value tag`,
         );
       }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Appendix A — the 46 observations fold into the Forex-classification rows
+// ---------------------------------------------------------------------------
+
+describe("Appendix A — the 46 observations, on the Forex classification (amendments 12, 4)", () => {
+  const FOREX_LINES = ["one", "pro_forex", "signature_forex", "zero"] as const;
+
+  // batch 2: XAGUSD tick 0.001 = $5 -> 5,000 oz. batch 1 + F6: WTI and BRENT
+  // tick 0.001 = $1 -> 1,000 bbl. batch 2 + F6/F7 corroborate both to the cent.
+  const CONTRACT_SIZES: Record<string, number> = {
+    ADAUSD: 100_000,
+    BCHUSD: 200,
+    BNBUSD: 200,
+    BRENT: 1_000,
+    BTCUSD: 2,
+    ETHUSD: 20,
+    LTCUSD: 500,
+    SOLUSD: 500,
+    WTI: 1_000,
+    XAGUSD: 5_000,
+    XRPUSD: 100_000,
+  };
+
+  for (const line of FOREX_LINES) {
+    for (const [symbol, contractSize] of Object.entries(CONTRACT_SIZES)) {
+      it(`${line}/${symbol} carries its observed contract size`, () => {
+        const row = findBrokerInstrument(line, symbol);
+        assert.ok(row, `${line}/${symbol} exists`);
+        assert.equal(row.tradability, "confirmed");
+        assert.equal(row.tradabilitySource.tag, "verified");
+        assert.equal(row.unit.kind, "forex_contract");
+        assert.equal(row.unit.contractSize.value, contractSize);
+        assert.equal(row.unit.contractSize.source.tag, "verified");
+        assert.equal(row.unit.contractSize.source.observation?.program, "E8 Pro Forex");
+        assert.equal(row.unit.contractSize.source.observation?.platform, "TradeLocker");
+      });
+    }
+  }
+
+  // batch 2's index per-point values. Three of six are foreign-currency
+  // denominated: NIKKEI 500/USDJPY, DAX 5 x EURUSD, ASX 20 x AUDUSD.
+  it("carries the observed index per-point values", () => {
+    const points: Record<string, number> = { DOW: 5, NSDQ: 5, SP: 20 };
+    for (const [symbol, perPoint] of Object.entries(points)) {
+      const row = findBrokerInstrument("pro_forex", symbol)!;
+      assert.equal(row.unit.kind, "index_points");
+      assert.equal(row.unit.pointsPerLot.value, perPoint);
+    }
+    for (const symbol of ["NIKKEI", "DAX", "ASX"]) {
+      const row = findBrokerInstrument("pro_forex", symbol)!;
+      assert.equal(row.unit.kind, "index_points");
+      assert.equal(row.unit.pointsPerLot.source.tag, "verified");
+    }
+  });
+
+  // The in-platform ticker format, the cross-map's biggest gap, closed:
+  // `{E8 name}.C`, with short roots for indices and energies.
+  it("records the .C ticket suffix without rendering it", () => {
+    assert.equal(findBrokerInstrument("pro_forex", "EURUSD")!.brokerSymbolAlt, "EURUSD.C");
+    assert.equal(findBrokerInstrument("pro_forex", "WTI")!.brokerSymbolAlt, "WTI.C");
+    assert.equal(findBrokerInstrument("pro_forex", "SP")!.brokerSymbolAlt, "SP.C");
+  });
+
+  // BRENT's correction: the cross-map's "no E8 route on any program" verdict is
+  // wrong by direct observation (batch 2, corroborated by F6's order ticket).
+  it("gives BRENT an E8 route and leaves BZUSD pointing at it", () => {
+    assert.equal(findBrokerInstrument("pro_forex", "BRENT")!.tradability, "confirmed");
+    assert.equal(findBrokerInstrument("pro_forex", "BZUSD")!.relatedExposure, "BRENT");
+  });
+
+  // The Crypto and Futures classifications are untouched until their own
+  // accounts are observed (amendment 15).
+  it("promotes nothing on a crypto or futures line", () => {
+    for (const line of ["one_crypto", "pro_crypto", "signature_crypto", "signature_futures"] as const) {
+      for (const symbol of Object.keys(CONTRACT_SIZES)) {
+        const row = findBrokerInstrument(line, symbol);
+        if (!row) continue;
+        assert.notEqual(row.tradabilitySource.tag, "verified");
+      }
+    }
+  });
+
+  // The observed forex-line crypto margin was FULL NOTIONAL on every ticket,
+  // which is exactly the 1:1 the built data already carries. No contradiction to
+  // resolve — a corroboration to record.
+  it("corroborates the forex lines' 1:1 crypto leverage", () => {
+    for (const line of FOREX_LINES) {
+      const program = getProgramLine(line)!;
+      if (line === "zero") continue; // E8 Zero's own class list; leverage from 15655062
+      assert.equal(program.leverage.crypto?.value, 1);
     }
   });
 });

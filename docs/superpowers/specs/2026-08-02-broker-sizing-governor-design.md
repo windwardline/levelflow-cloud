@@ -234,17 +234,27 @@ Consequential population facts, each pinned by test:
   NOT PUBLISHED, and both absent from the fee table, the tick table, the
   canonical 45-instrument list, and the live symbol browser), 1 is
   `not_offered` (`BZUSD` — E8 carries no Brent contract).
-- **CFD program lines**: all 11 Futures rows are `not_offered`. Five have a
-  same-exposure CFD at a different contract size and a different P&L per
-  point (`ESUSD`→`SP500`, `NQUSD`→`NAS100`, `YMUSD`→`US30`,
-  `GCUSD`/`MGCUSD`→`XAUUSD`) — recorded in `relatedExposure`, never
-  substituted. `XAGUSD`, `RTYUSD`, `ZBUSD`, `ZNUSD`, `BZUSD`, `SIUSD` are
-  `not_published`: E8's silence is a documentation gap, not a refusal, and
-  the two states get different words (§19e).
-- **Eight markets have no confirmed E8 route on any program line**:
-  `BRENT`, `BZUSD`, `ZBUSD`, `ZNUSD`, `ADAUSD`, `BCHUSD`, `LTCUSD`,
-  `XRPUSD`. §20c carries that fact; §19 does not, because on one program
-  line the honest word is the same either way.
+- **CFD program lines**: all 11 Futures rows are `not_offered` (`RTYUSD`,
+  `ZBUSD`, `ZNUSD`, `BZUSD`, `SIUSD` among them — the Futures roster's own
+  scope, never a documentation gap). Five have a same-exposure CFD at a
+  different contract size and a different P&L per point (`ESUSD`→`SP500`,
+  `NQUSD`→`NAS100`, `YMUSD`→`US30`, `GCUSD`/`MGCUSD`→`XAUUSD`, and since
+  2026-08-04 `BZUSD`→`BRENT`) — recorded in `relatedExposure`, never
+  substituted. **Appendix A's fold (amendment 12, 2026-08-04)** closed the
+  CFD side's last `not_published` row: `XAGUSD`'s silver contract size, once
+  a documentation gap E8 never filled, is `confirmed` on the four
+  Forex-classification lines (`one`, `pro_forex`, `signature_forex`, `zero`)
+  by direct observation (docs/research/e8-observations-2026-08-02.md, batch
+  2). No CFD-line row is `not_published` on those four lines any longer; the
+  two states still get different words (§19e) for the rows that remain
+  `not_offered`.
+- **Three markets have no confirmed E8 route on any program line, down from
+  eight (Appendix A, amendment 12, 2026-08-04)**: `BZUSD`, `ZBUSD`, `ZNUSD`.
+  `BRENT`, `ADAUSD`, `BCHUSD`, `LTCUSD` and `XRPUSD` left the list when the
+  owner's own order tickets gave each a confirmed CFD route on the four
+  Forex-classification lines — `BRENT` corroborated twice, by batch 2 and by
+  the F6 order ticket. §20c carries that fact; §19 does not, because on one
+  program line the honest word is the same either way.
 - **`XAUUSD`'s ticket cap is 20 lots, not 50** (9453396). A shared
   max-ticket value would over-permit gold by 2.5×, so the cap is per row.
 
@@ -504,8 +514,10 @@ required bridge quote is missing or stale, the value is null and the row
 renders `Rate unavailable` (§19e) — the derivation has a published method, but
 it still has no answer without live data.
 
-All 28 forex pairs therefore have a computable margin cap, and the CFD lines
-carry **29 sizeable markets** — 28 pairs plus `XAUUSD`.
+All 28 forex pairs therefore have a computable margin cap, and the bridging
+derivation alone carries **29 sizeable markets** — 28 pairs plus `XAUUSD`.
+Appendix A's fold (2026-08-04) adds ten more on the four Forex-classification
+lines; "What is sizeable in wave 1" below carries the current count.
 
 *Futures lines.* One cap, and it is not a contract count.
 
@@ -583,20 +595,29 @@ never exceeds the risk budget; the size never exceeds any cap; the size is
 monotone non-increasing in stop distance and monotone non-decreasing in risk
 percent; and every null input produces a state word rather than a number.
 
-**What is sizeable in wave 1.** On a CFD program line: 29 markets — all 28
-forex pairs plus `XAUUSD`. On the three futures lines: 8 markets. What stays
-blocked is blocked on E8's silence, not on Levelflow's: every crypto row on
-an unpublished contract size, both energies rows on an unpublished energies
-symbol list, `XAGUSD` on an unpublished silver contract size, `ZBUSD` and
-`ZNUSD` on an unpublished tick, `BRENT` and `BZUSD` on a contract E8 does not
-carry. Not one of those is unblockable by derivation — E8 publishes no method
-that produces a contract size it never printed. Every one of them is
-unblockable by **observation**: a single manual trade on the live platform
-shows what a lot of that instrument is worth, and Appendix A is the standing
-program that collects exactly those. The sizeable counts in this section are
-therefore a floor dated 2026-08-02, not a ceiling — each verified observation
-moves a row from a word to a number, in a change set that names the
-observation.
+**What is sizeable in wave 1 (updated 2026-08-04 — Appendix A's fold,
+amendment 12).** On three CFD program lines (`one`, `pro_forex`,
+`signature_forex`): 39 markets — the 28 forex pairs, `XAUUSD`, and Appendix
+A's fold of `XAGUSD`, `WTI`, `BRENT` and seven scannable crypto rows
+(`ADAUSD`, `BCHUSD`, `BTCUSD`, `ETHUSD`, `LTCUSD`, `SOLUSD`, `XRPUSD`). On
+`E8 Zero`: 37 — the same set less `WTI` and `BRENT`, since E8 Zero's own
+product page (15655062) publishes no energies leverage row and neither has a
+computable margin cap there. On the three futures lines: 8 markets,
+unchanged. What stays blocked is blocked on E8's silence, not on
+Levelflow's, and it has narrowed to three symbols: `ZBUSD` and `ZNUSD` on an
+unpublished tick, `BZUSD` on a contract E8 does not carry. The Crypto and
+Futures classifications remain queued for their own accounts (amendment 15):
+every crypto, metals and energies row on `one_crypto`, `pro_crypto`,
+`signature_crypto` and the futures lines stays exactly where it was, because
+an observation upgrades the row it names and no other (amendment 4) — the
+owner's E8 Pro Forex evidence licenses every account of the FOREX
+classification and nothing adjacent to it. Not one of the three remaining
+blocks is unblockable by derivation — E8 publishes no method that produces a
+contract size or tick it never printed. Each is unblockable by
+**observation**, and Appendix A remains the standing program that collects
+it. The sizeable counts in this section are therefore a floor dated
+2026-08-04, not a ceiling — each verified observation moves a row from a
+word to a number, in a change set that names the observation.
 
 ### §19d. The surfaces
 
@@ -663,10 +684,16 @@ carry no number, and the schema keeps the distinction a later reviewer needs.
 
 `Not offered` and `Not confirmed` must never be swapped. "Not tradable on
 this broker program" is a claim E8 supports for the 39 rows a futures
-program excludes; it is a claim E8 does not support for `XAGUSD`, where
-silence about silver's contract size is a documentation gap. The crossmap is
-explicit that this distinction is load-bearing, and CI pins each row's word
-to its state.
+program excludes; it is a claim E8 does not support for `BTCUSD` on a
+Crypto-classification line (`one_crypto`, `pro_crypto`, `signature_crypto`),
+where silence about a crypto contract size remains a documentation gap.
+(Updated 2026-08-04: this example was `XAGUSD` until Appendix A's fold
+closed silver's gap on the Forex-classification lines by direct observation
+— amendment 12 licenses that evidence for the FOREX classification alone,
+so the Crypto classification's own contract sizes stay `not_published`
+until its own account is observed, amendment 15.) The crossmap is explicit
+that this distinction is load-bearing, and CI pins each row's word to its
+state.
 
 Nothing is rendered in a fifth voice. No `N/A`, no `unknown`, no
 `approximately`, no `estimated`, no `TBD`, no parenthetical hedge — those five
