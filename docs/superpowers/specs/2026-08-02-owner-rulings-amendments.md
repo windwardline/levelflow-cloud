@@ -1337,3 +1337,24 @@ futures offering by rule. A stable basis against an existing FMP match
 decision stands in the §19 retrofit. Month-offset rows are matches under
 F9's month-aware comparison, and the USX-suffix resolutions
 (grains/meats/softs) ARE matches.
+
+## Amendment 21 — every account-specific percentage carries its dollar amount (owner, 2026-08-04, universal)
+
+"If we list any account specific percentages on any interfaces, we should
+also include the dollar amount. It could be drawdown/risk, but also could
+be profit target or daily reset."
+
+1. **The shape is the owner's own: `X%/$XXX`** — the percentage, a slash,
+   the dollar amount that percentage means at the account's size. The
+   money is exact (owner ruling, same day): cents render only when the
+   arithmetic produces them, and `.00` never renders — `8%/$2,000`,
+   `0.25%/$62.50`.
+2. **Scope is every account-specific percentage on every interface** —
+   drawdown, risk per trade, profit target, daily reset/pause, and any
+   future kin. A percentage without a known account size renders alone;
+   the moment a size is in scope, the amount rides.
+3. **Applied on arrival**: the Profile walk's Risk-per-trade and Drawdown
+   selects (the only two account-percentage surfaces live on 2026-08-04),
+   computed from the draft's own selected size, reactive to size changes.
+   The §20 governor build inherits this rule for every surface it adds —
+   profit targets and daily-loss lines land with their amounts from birth.

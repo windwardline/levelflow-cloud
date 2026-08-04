@@ -465,7 +465,7 @@ describe("useUserProfile state and theme paths (source-pinned — see header)", 
     // is part of the plan's own interface, not a value with no reader.
     assert.match(
       source,
-      /return \{\s*activateBrokerAccount,\s*profile,\s*removeBrokerAccount,\s*saveBrokerAccount,\s*saveProfile,\s*\};/,
+      /return \{\s*activateBrokerAccount,\s*profile,\s*removeBrokerAccount,\s*renameBrokerAccount,\s*saveBrokerAccount,\s*saveProfile,\s*\};/,
     );
   });
 

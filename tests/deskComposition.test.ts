@@ -1420,10 +1420,17 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
   });
 
   it("renders the value in mono tabular-nums when it is a number", () => {
+    // Owner finding 2026-08-04: the ≥lg value steps down by length instead of
+    // crowding the copy control — the mono/tabular treatment and the sub-lg
+    // 15.5px are unchanged, and the three steps are pinned with their
+    // thresholds so a size change is a deliberate edit here too.
     assert.match(
       panel,
-      /font-mono text-xl font-bold tabular-nums max-lg:text-\[15\.5px\]/,
+      /min-w-0 whitespace-nowrap text-right font-mono font-bold tabular-nums max-lg:text-\[15\.5px\]/,
     );
+    assert.match(panel, /value\.length >= 13\n\s*\? "lg:text-base"/);
+    assert.match(panel, /value\.length >= 10\n\s*\? "lg:text-lg"/);
+    assert.match(panel, /: "lg:text-xl"/);
   });
 
   it("drops the copy affordance entirely in a blocked state", () => {

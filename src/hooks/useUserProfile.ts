@@ -3,6 +3,7 @@ import { isChartTimeframe } from "../lib/marketData";
 import { isProgramLine, isStage } from "../lib/broker/programs";
 import {
   NO_BROKER_SELECTION,
+  brokerAccountNameProblem,
   brokerAccountProblem,
   buildDefaultProfile,
   brokerSelectionProblem,
@@ -43,6 +44,7 @@ type BrokerAccountRow = {
   account_size: number | string;
   broker_id: string;
   classification: string;
+  display_name: string | null;
   drawdown_tier: string | null;
   id: string;
   platform: string;
@@ -280,6 +282,45 @@ export function useUserProfile(
     [profile, refreshProfile, userId],
   );
 
+  const renameBrokerAccount = useCallback(
+    async (id: string, name: string) => {
+      if (!userId || !supabase) {
+        return;
+      }
+
+      // Same ownership refusal as activateBrokerAccount above (Task 2b's
+      // idiom): RLS already scopes the update, so a foreign id would be a
+      // silent zero-row write — refusing it here surfaces the anomaly
+      // instead of letting a rename vanish without a trace.
+      if (!profile?.brokerAccounts.some((account) => account.id === id)) {
+        throw new Error(
+          `renameBrokerAccount: ${id} is not one of the caller's saved accounts`,
+        );
+      }
+
+      const problem = brokerAccountNameProblem(name);
+      if (problem) {
+        throw new Error(`Broker account rename rejected: ${problem}`);
+      }
+
+      // A cleared rename (empty trim) stores null: the formula labels the
+      // account again, and the DB cap constraint never sees an empty string.
+      const trimmed = name.trim();
+      const { error } = await supabase
+        .from("broker_accounts")
+        .update({ display_name: trimmed === "" ? null : trimmed })
+        .eq("id", id)
+        .eq("user_id", userId);
+
+      if (error) {
+        throw error;
+      }
+
+      await refreshProfile();
+    },
+    [profile, refreshProfile, userId],
+  );
+
   const removeBrokerAccount = useCallback(
     async (id: string) => {
       if (!userId || !supabase) {
@@ -314,6 +355,7 @@ export function useUserProfile(
     activateBrokerAccount,
     profile,
     removeBrokerAccount,
+    renameBrokerAccount,
     saveBrokerAccount,
     saveProfile,
   };
@@ -409,7 +451,10 @@ function rowToBrokerAccount(row: BrokerAccountRow): BrokerAccountReadResult {
   const problem = brokerAccountProblem(draft);
   return problem
     ? { account: null, problem }
-    : { account: { ...draft, id: row.id }, problem: null };
+    : {
+      account: { ...draft, displayName: row.display_name, id: row.id },
+      problem: null,
+    };
 }
 
 /**

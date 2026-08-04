@@ -65,12 +65,29 @@ function formatAccountFormula(account: BrokerAccount): string {
  * (Supabase's own `.select()` carries no ORDER BY — see useUserProfile.ts).
  * The lowest-`id` member of a group renders bare; each next member appends
  * its 1-based position in that sorted group. A group of one never carries a
- * suffix. A rename is a later task (TASK 6 VERDICT) — this is the formula
- * and the suffix machinery only; BrokerAccount carries no name field yet.
+ * suffix.
+ *
+ * The rename (TASK 6 VERDICT's "later task"; owner ruling 2026-08-04): a
+ * non-empty displayName replaces the formula outright and stands OUTSIDE
+ * the suffix machinery entirely — renamed accounts never group, so
+ * renaming one of a colliding pair shrinks the group and the twin's
+ * suffix vanishes, exactly the mockup's demonstration
+ * (s-switcher-v1.html's SWING BOOK row). A user-chosen name is the user's
+ * own collision to make; the machinery only arbitrates the formulas it
+ * generates. Whitespace-only names are no name (the write path stores
+ * null, but a raw row can still carry one — trim decides here too).
  */
 export function labelAccounts(accounts: BrokerAccount[]): LabeledBrokerAccount[] {
+  const renameOf = (account: BrokerAccount): string | null => {
+    const trimmed = account.displayName?.trim() ?? "";
+    return trimmed === "" ? null : trimmed;
+  };
+
   const groups = new Map<string, BrokerAccount[]>();
   for (const account of accounts) {
+    if (renameOf(account) !== null) {
+      continue;
+    }
     const formula = formatAccountFormula(account);
     const group = groups.get(formula);
     if (group) {
@@ -90,7 +107,8 @@ export function labelAccounts(accounts: BrokerAccount[]): LabeledBrokerAccount[]
 
   return accounts.map((account) => ({
     account,
-    label: `${formatAccountFormula(account)}${suffixById.get(account.id) ?? ""}`,
+    label: renameOf(account) ??
+      `${formatAccountFormula(account)}${suffixById.get(account.id) ?? ""}`,
   }));
 }
 

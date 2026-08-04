@@ -242,7 +242,22 @@ function CopyableMetricRow({
         : (
       <span className="flex min-w-0 items-baseline gap-1 max-lg:contents">
         <span
-          className={`min-w-0 text-right font-mono text-xl font-bold tabular-nums max-lg:text-[15.5px] ${valueClassName}`}
+          // The value never wraps, truncates, or loses a digit — a price is
+          // the product (owner finding, 2026-08-04: 8-decimal crypto prices
+          // crowded the copy control at text-xl in the ≥lg ladder column).
+          // The type steps down by length instead, uniformly for every row
+          // this component draws: ≤9 characters keep the display size, 10+
+          // (the 0.19636671 class) take lg, 13+ (a five-figure crypto price
+          // with cents) take base. Below lg the row's own grid already
+          // gives the value an auto column at 15.5px — verified uncrowded
+          // at 375px alongside this change.
+          className={`min-w-0 whitespace-nowrap text-right font-mono font-bold tabular-nums max-lg:text-[15.5px] ${
+            value.length >= 13
+              ? "lg:text-base"
+              : value.length >= 10
+              ? "lg:text-lg"
+              : "lg:text-xl"
+          } ${valueClassName}`}
         >
           {value}
         </span>

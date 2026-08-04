@@ -289,6 +289,27 @@ describe("§19b — the ten program lines", () => {
     assert.equal(formatDrawdownTier("2.5-10"), "2.5% daily · 10% max");
   });
 
+  it("amendment 21 — a listed percentage carries its dollar amount when the account size is known", () => {
+    // The owner's shape, verbatim: X%/$XXX. Exact money — cents render only
+    // when the math produces them, and .00 never renders.
+    assert.equal(formatRiskPercent(0.5, 25_000), "0.50%/$125");
+    assert.equal(formatRiskPercent(0.25, 25_000), "0.25%/$62.50");
+    assert.equal(formatRiskPercent(1, 100_000), "1.00%/$1,000");
+    assert.equal(
+      formatDrawdownTier("3-4", 25_000),
+      "3%/$750 daily · 4%/$1,000 max",
+    );
+    assert.equal(
+      formatDrawdownTier("2.5-8", 100_000),
+      "2.5%/$2,500 daily · 8%/$8,000 max",
+    );
+  });
+
+  it("amendment 21 — without a size, both formatters keep their original shape", () => {
+    assert.equal(formatRiskPercent(0.5), "0.50%");
+    assert.equal(formatDrawdownTier("3-4"), "3% daily · 4% max");
+  });
+
   it("pins leverage to 5514982, per product and per class, never per stage", () => {
     for (const line of ["one", "pro_forex", "signature_forex"] as ProgramLine[]) {
       const leverage = PROGRAM_LINES.find((p) => p.line === line)!.leverage;

@@ -880,8 +880,15 @@ the account's classification label (§20j: `Forex` / `Crypto` / `Futures`)
 and the account size's K-form (`$100,000` → `100K`) — `E8 | FOREX | 100K`.
 ALL CAPS is a render-time CSS transform over this byte-intact string (the
 `ReloadNotice`/`.phosphor-pulse` technique, App.tsx), never a stored or
-computed uppercase value, so a future rename (out of this wave's scope)
-still displays exactly what the reader typed, under the same transform.
+computed uppercase value, so a rename still displays exactly what the
+reader typed, under the same transform. The rename itself **shipped in
+the owner-findings wave of 2026-08-04** (it had been the verdict's
+deferred "later task"): `broker_accounts.display_name`, capped at the
+measured 14 by both the client and a DB check constraint, overrides the
+formula wherever labels render, stands outside the collision-suffix
+machinery entirely (renaming one of a colliding pair shrinks the group,
+so the twin's suffix vanishes — the mockup's SWING BOOK demonstration),
+and clears back to the formula on an empty commit.
 
 The formula carries only classification and size — never program line,
 platform, stage, or drawdown tier — so two accounts can formulate
@@ -1547,13 +1554,23 @@ options: `Forex` · `Crypto` · `Futures`. Platform options: `TradeLocker` ·
 was the sentinel for (§19 retrofit, Task 4): the catalog walk that replaced
 it always names a complete account, so nothing renders the word any more.
 
-**§19 retrofit — the confirmed-accounts list (owner copy of 2026-08-03).**
-Each saved account's row carries, on the active row only, `Active`, and
-every row carries a `Remove` control. The walk's own submit control is
-`Add account`. `Manage accounts` is registered here ahead of task 7's own
-chip menu, which has not shipped yet. All four ship as written — the plan's
-proposal — pending the owner's ruling on the wording, recorded pending in
-Task 4's commit.
+**§19 retrofit — the confirmed-accounts list (owner copy of 2026-08-03;
+owner-APPROVED 2026-08-04).** Each saved account's row carries, on the
+active row only, `Active`, and every row carries a `Remove` control. The
+walk's own submit control is `Add account`. `Manage accounts` is
+registered here ahead of task 7's own chip menu, which has not shipped
+yet. The owner reviewed all of this section's pending vocabulary on
+2026-08-04 ("Everything in 1. is fine") — the pending caveats below are
+resolved approvals now.
+
+**Owner findings wave (2026-08-04) — the rename control.** Every saved
+account's row also carries `Rename` (the owner's explicit choice between
+a labeled control and click-to-edit): it swaps the row's label for an
+inline field capped at the TASK 6 VERDICT's measured 14, Enter/blur
+commit, Escape leaves, an empty commit clears the rename and the piped
+formula labels the account again. The same word is the field's
+`aria-label`, so one registry entry covers the surface. Owner-APPROVED
+at ruling time — never pending.
 
 **§19 retrofit — the switcher sheet's pinned head (owner copy of
 2026-08-04, Task 7's fix round).** The <lg sheet's header renders

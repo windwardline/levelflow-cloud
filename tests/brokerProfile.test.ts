@@ -469,7 +469,7 @@ describe("§19 retrofit — brokerAccountProblem rejects what the checkout does 
   });
 
   it("resolves the active account by the pointer, and null when it dangles", () => {
-    const saved: BrokerAccount = { ...PRO_FOREX, id: "acc-1" };
+    const saved: BrokerAccount = { ...PRO_FOREX, displayName: null, id: "acc-1" };
     const profile = {
       ...buildDefaultProfile("user-1", "a@b.c"),
       activeBrokerAccountId: "acc-1",

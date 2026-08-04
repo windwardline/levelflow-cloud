@@ -19,13 +19,14 @@ import {
   getProgramLine,
   type ProgramLineSpec,
 } from "../../lib/broker/programs";
-import type {
-  BrokerAccountDraft,
-  BrokerClassification,
-  BrokerPlatform,
-  BrokerSelection,
-  ThemeMode,
-  UserProfile,
+import {
+  BROKER_ACCOUNT_NAME_MAX,
+  type BrokerAccountDraft,
+  type BrokerClassification,
+  type BrokerPlatform,
+  type BrokerSelection,
+  type ThemeMode,
+  type UserProfile,
 } from "../../lib/profile";
 import {
   MOBILE_FRAME,
@@ -64,6 +65,7 @@ type ProfilePanelProps = {
   memberSince: string;
   onActivateAccount: (id: string) => void;
   onRemoveAccount: (id: string) => void;
+  onRenameAccount: (id: string, name: string) => void;
   onSave: (
     input: Pick<
       UserProfile,
@@ -85,6 +87,7 @@ export function ProfilePanel({
   memberSince,
   onActivateAccount,
   onRemoveAccount,
+  onRenameAccount,
   onSave,
   onSaveAccount,
   onSignOut,
@@ -187,6 +190,7 @@ export function ProfilePanel({
         <BrokerAccountsSection
           onActivateAccount={onActivateAccount}
           onRemoveAccount={onRemoveAccount}
+          onRenameAccount={onRenameAccount}
           onSaveAccount={onSaveAccount}
           profile={profile}
         />
@@ -426,15 +430,22 @@ function initialDraft(): BrokerAccountDraft {
 function BrokerAccountsSection({
   onActivateAccount,
   onRemoveAccount,
+  onRenameAccount,
   onSaveAccount,
   profile,
 }: {
   onActivateAccount: (id: string) => void;
   onRemoveAccount: (id: string) => void;
+  onRenameAccount: (id: string, name: string) => void;
   onSaveAccount: (draft: BrokerAccountDraft) => void;
   profile: UserProfile;
 }) {
   const [draft, setDraft] = useState<BrokerAccountDraft>(initialDraft);
+  // The rename-in-progress row, if any: entering the mode swaps that row's
+  // label for the capped inline field below; Enter and blur commit, Escape
+  // leaves. One row at a time — starting another closes the first through
+  // the same state.
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
 
   const programs = programLinesFor(draft.classification);
   const program = getProgramLine(draft.programLine)!;
@@ -472,6 +483,20 @@ function BrokerAccountsSection({
             {profile.brokerAccounts.map((account) => {
               const accountProgram = getProgramLine(account.programLine)!;
               const isActive = profile.activeBrokerAccountId === account.id;
+              const rename = account.displayName?.trim() || null;
+              const isRenaming = renaming?.id === account.id;
+              const commitRename = () => {
+                if (!renaming) {
+                  return;
+                }
+                const next = renaming.value.trim();
+                // An unchanged name is not a write; "" clears the rename and
+                // the formula labels the account again (labelAccounts).
+                if (next !== (rename ?? "")) {
+                  onRenameAccount(account.id, next);
+                }
+                setRenaming(null);
+              };
               return (
                 <div
                   key={account.id}
@@ -485,23 +510,71 @@ function BrokerAccountsSection({
                       + min-h-11 + items-center grows the button to the full
                       row height and centers its content in it, rather than
                       leaving the row to center a shorter box. */}
-                  <button
-                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
-                    type="button"
-                    aria-current={isActive}
-                    onClick={() => onActivateAccount(account.id)}
-                  >
-                    <span className="min-w-0 truncate">
-                      {`${accountProgram.label} · ${formatAccountSize(account.accountSize)}`}
-                    </span>
-                    {isActive
-                      ? (
-                        <span className="shrink-0 font-semibold text-accent">
-                          {"Active"}
+                  {isRenaming
+                    ? (
+                      <input
+                        // The rename mode (owner ruling 2026-08-04): the
+                        // row's label becomes the field, capped at the
+                        // verdict's measured 14. The stored bytes stay as
+                        // typed — ALL CAPS is the render transform where
+                        // labels display, never a mutation here.
+                        aria-label="Rename"
+                        autoFocus
+                        className="field min-w-0 flex-1 text-sm"
+                        defaultValue={rename ?? ""}
+                        maxLength={BROKER_ACCOUNT_NAME_MAX}
+                        onBlur={commitRename}
+                        onChange={(event) =>
+                          setRenaming({ id: account.id, value: event.target.value })}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            commitRename();
+                          }
+                          if (event.key === "Escape") {
+                            setRenaming(null);
+                          }
+                        }}
+                        type="text"
+                      />
+                    )
+                    : (
+                      <button
+                        className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+                        type="button"
+                        aria-current={isActive}
+                        onClick={() => onActivateAccount(account.id)}
+                      >
+                        <span className="min-w-0 truncate">
+                          {rename
+                            ? (
+                              <>
+                                <span className="uppercase">{rename}</span>
+                                {` · ${accountProgram.label} · ${formatAccountSize(account.accountSize)}`}
+                              </>
+                            )
+                            : `${accountProgram.label} · ${formatAccountSize(account.accountSize)}`}
                         </span>
-                      )
-                      : null}
-                  </button>
+                        {isActive
+                          ? (
+                            <span className="shrink-0 font-semibold text-accent">
+                              {"Active"}
+                            </span>
+                          )
+                          : null}
+                      </button>
+                    )}
+                  {isRenaming
+                    ? null
+                    : (
+                      <button
+                        className="legal-link shrink-0 text-xs font-semibold text-ink-muted"
+                        type="button"
+                        onClick={() =>
+                          setRenaming({ id: account.id, value: rename ?? "" })}
+                      >
+                        {"Rename"}
+                      </button>
+                    )}
                   {/* Remove is short text inside a flex row, where
                       .tertiary-link's negative-margin trick would move the
                       row's own geometry (the same reason AppFooter's link
@@ -621,7 +694,7 @@ function BrokerAccountsSection({
           >
             {RISK_PERCENT_OPTIONS.map((percent) => (
               <option key={percent} value={percent}>
-                {optionCaps(formatRiskPercent(percent))}
+                {optionCaps(formatRiskPercent(percent, draft.accountSize))}
               </option>
             ))}
           </select>
@@ -641,7 +714,7 @@ function BrokerAccountsSection({
               >
                 {program.drawdownTiers.map((tier) => (
                   <option key={tier} value={tier}>
-                    {optionCaps(formatDrawdownTier(tier))}
+                    {optionCaps(formatDrawdownTier(tier, draft.accountSize))}
                   </option>
                 ))}
               </select>
