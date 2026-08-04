@@ -156,5 +156,8 @@ purchase) and crypto-line leverage variance.
    CFD rows for XAGUSD, WTI, BRENT and all eight crypto symbols are now
    `confirmed` with a `verified` contract size or per-point value; `one_crypto`,
    `pro_crypto`, `signature_crypto` and the futures lines are untouched pending
-   their own accounts (amendment 15). Flagged to the owner as an open question in
-   the Task 13 PR body rather than assumed.
+   their own accounts (amendment 15). The narrow application follows amendment
+   19 clause 3's standing ruling (owner, 2026-08-03): forex-carried crypto stays
+   forex-scoped, and evidence observed on it never crosses onto
+   Crypto-classification lines — "the narrow reading of contract-size adjacency
+   stands." Settled by that ruling, not an open question.

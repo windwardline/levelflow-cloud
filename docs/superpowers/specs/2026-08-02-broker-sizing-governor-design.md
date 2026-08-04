@@ -691,9 +691,12 @@ where silence about a crypto contract size remains a documentation gap.
 closed silver's gap on the Forex-classification lines by direct observation
 — amendment 12 licenses that evidence for the FOREX classification alone,
 so the Crypto classification's own contract sizes stay `not_published`
-until its own account is observed, amendment 15.) The crossmap is explicit
-that this distinction is load-bearing, and CI pins each row's word to its
-state.
+until its own account is observed, amendment 15. This scoping is not an
+open question: amendment 19 clause 3 already rules it — "the narrow
+reading of contract-size adjacency stands" (owner, 2026-08-03) — forex-
+carried crypto evidence never crosses onto Crypto-classification lines.)
+The crossmap is explicit that this distinction is load-bearing, and CI
+pins each row's word to its state.
 
 Nothing is rendered in a fifth voice. No `N/A`, no `unknown`, no
 `approximately`, no `estimated`, no `TBD`, no parenthetical hedge — those five
