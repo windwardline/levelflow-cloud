@@ -962,6 +962,7 @@ describe("labelAccounts — the owner's piped formula plus the space-(1) collisi
       accountSize: 100_000,
       brokerId: "e8",
       classification: "forex",
+      displayName: null,
       drawdownTier: null,
       id: "acct-1",
       platform: "tradelocker",
@@ -1046,15 +1047,39 @@ describe("labelAccounts — the owner's piped formula plus the space-(1) collisi
     assert.deepEqual(asLabeled([one, two, three]), asLabeled([two, three, one]));
   });
 
-  it("a rename is out of this task's scope — the formula never reads a name field", () => {
-    // Task 7 implements the formula and the suffix machinery only (TASK 6
-    // VERDICT: "the rename is a later task"). BrokerAccount carries no name/
-    // nickname field yet, so there is nothing here for a future rename task
-    // to override but the formula's own inputs.
+  it("a rename overrides the formula and never carries a suffix (owner ruling, 2026-08-04)", () => {
+    const [entry] = labelAccounts([
+      buildAccount({ id: "a", displayName: "Swing Book" }),
+    ]);
+    assert.equal(entry.label, "Swing Book");
+  });
+
+  it("renaming one of a colliding pair resolves the collision — the twin's suffix vanishes", () => {
+    const accounts = [
+      buildAccount({ id: "a-first", programLine: "pro_forex" }),
+      buildAccount({ id: "b-second", programLine: "one", displayName: "Swing Book" }),
+    ];
+    const byId = new Map(labelAccounts(accounts).map((entry) => [entry.account.id, entry.label]));
+    assert.equal(byId.get("a-first"), "E8 | Forex | 100K", "the remaining formula account is a group of one — bare");
+    assert.equal(byId.get("b-second"), "Swing Book");
+  });
+
+  it("a whitespace-only rename is no rename: the formula still labels the account", () => {
+    const [entry] = labelAccounts([buildAccount({ displayName: "   " })]);
+    assert.equal(entry.label, "E8 | Forex | 100K");
+  });
+
+  it("the rename task arrived: BrokerAccount carries exactly one field beyond the draft and id", () => {
+    // Task 7's original pin recorded the rename as deferred (TASK 6 VERDICT:
+    // "the rename is a later task"). The later task is the owner-findings
+    // wave of 2026-08-04 — displayName is the override labelAccounts reads,
+    // and this pin keeps the account shape closed so a second new field
+    // cannot ride in unnoticed.
     assert.deepEqual(Object.keys(buildAccount()).sort(), [
       "accountSize",
       "brokerId",
       "classification",
+      "displayName",
       "drawdownTier",
       "id",
       "platform",

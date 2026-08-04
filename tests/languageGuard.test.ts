@@ -359,6 +359,11 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     "Remove",
     "Add account",
     "Manage accounts",
+    // Owner findings wave (2026-08-04): the rename control the owner chose
+    // by explicit ruling ("Rename button per row") — owner-APPROVED copy,
+    // not pending. The inline field reuses the same word as its aria-label,
+    // so this one entry covers the whole rename surface.
+    "Rename",
     // §19 retrofit, Task 7 fix round (amendment 18): the switcher's <lg
     // sheet gets a visible, aria-labelledby-linked pinned-head title — the
     // one thing every other §17g/dialog sheet in this codebase already has

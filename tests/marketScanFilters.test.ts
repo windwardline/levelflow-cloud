@@ -126,6 +126,7 @@ const FOREX_ACCOUNT = {
   accountSize: 100_000,
   brokerId: "e8" as const,
   classification: "forex" as const,
+  displayName: null,
   drawdownTier: "2.5-8",
   id: "acc-1",
   platform: "tradelocker" as const,

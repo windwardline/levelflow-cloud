@@ -753,6 +753,11 @@ export default function App() {
                   console.error("[profile] broker account save failed", error);
                 });
               }}
+              onRenameAccount={(id, name) => {
+                profileState.renameBrokerAccount(id, name).catch((error) => {
+                  console.error("[profile] broker account rename failed", error);
+                });
+              }}
               onSave={profileState.saveProfile}
               onSaveAccount={(draft) => {
                 profileState.saveBrokerAccount(draft).catch((error) => {

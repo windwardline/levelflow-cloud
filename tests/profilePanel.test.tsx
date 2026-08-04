@@ -338,10 +338,12 @@ describe("ProfileRow's last-row rule matches the row, not whatever ends the regi
 // walk still lives inside the existing Broker row: no second Broker section,
 // no card, no facts block.
 describe("§19 retrofit — the catalog walk beneath the accounts list (amendment 14, 18)", () => {
-  it("puts the section in the Broker row beneath the chip, wired to the three account callbacks", () => {
+  it("puts the section in the Broker row beneath the chip, wired to the four account callbacks", () => {
+    // Four since the owner-findings wave (2026-08-04): rename joined
+    // activate/remove/save.
     assert.match(
       PANEL_SOURCE,
-      /<BrokerChip\s*\n\s*accounts=\{profile\.brokerAccounts\}\s*\n\s*activeId=\{profile\.activeBrokerAccountId\}\s*\n[\s\S]*?\/>\s*\n\s*<BrokerAccountsSection\s*\n\s*onActivateAccount=\{onActivateAccount\}\s*\n\s*onRemoveAccount=\{onRemoveAccount\}\s*\n\s*onSaveAccount=\{onSaveAccount\}\s*\n\s*profile=\{profile\}\s*\n\s*\/>/,
+      /<BrokerChip\s*\n\s*accounts=\{profile\.brokerAccounts\}\s*\n\s*activeId=\{profile\.activeBrokerAccountId\}\s*\n[\s\S]*?\/>\s*\n\s*<BrokerAccountsSection\s*\n\s*onActivateAccount=\{onActivateAccount\}\s*\n\s*onRemoveAccount=\{onRemoveAccount\}\s*\n\s*onRenameAccount=\{onRenameAccount\}\s*\n\s*onSaveAccount=\{onSaveAccount\}\s*\n\s*profile=\{profile\}\s*\n\s*\/>/,
     );
     // One Broker row, not two: the row count and its titles are pinned above, and
     // this is the second direction — no new ProfileRow was added for the walk.
@@ -372,12 +374,19 @@ describe("§19 retrofit — the catalog walk beneath the accounts list (amendmen
     // Drawdown), no bare option text left…
     assert.equal((controls.match(/<option/g) ?? []).length, 7);
     assert.equal((controls.match(/\{optionCaps\(/g) ?? []).length, 7);
-    // …and the labels stay untransformed: no uppercase utility in the
-    // controls. The closed select needs no class either — it displays the
-    // option text, which arrives already capped. The row's OWNER COPY words
-    // (Active, Remove, Add account) are excluded from this helper on
-    // purpose — the owner's ruling scopes to option text alone.
-    assert.doesNotMatch(controls, /uppercase/);
+    // …and the labels stay untransformed. Two owner rulings meet here: the
+    // 2026-08-03 caps ruling scopes to option text alone (no uppercase
+    // utility on labels or controls), while the TASK 6 VERDICT renders a
+    // RENAMED value ALL CAPS everywhere it displays — so exactly one
+    // uppercase utility exists in this section, on the row's rename span
+    // (a CSS transform over the byte-intact stored name, the chip's own
+    // technique). A second occurrence is a violation of the first ruling.
+    const uppercaseSites = controls.match(/uppercase/g) ?? [];
+    assert.equal(uppercaseSites.length, 1);
+    assert.match(
+      controls,
+      /<span className="uppercase">\{rename\}<\/span>/,
+    );
   });
 
   it("renders seven controls, in the catalog's order, each a select with its own accessible name", () => {

@@ -160,8 +160,38 @@ export type BrokerAccountDraft = {
   stage: Stage;
 };
 
-/** A draft once it has a saved row. */
-export type BrokerAccount = BrokerAccountDraft & { id: string };
+/**
+ * A draft once it has a saved row — plus the one field that is account
+ * metadata rather than purchase shape: the owner's rename (2026-08-04
+ * ruling; TASK 6 VERDICT's "later task", arrived). Null means the piped
+ * formula labels the account; a value overrides it everywhere labels
+ * render. The walk's draft never carries a name — a rename happens on a
+ * saved row, so it lives here and not on BrokerAccountDraft, and
+ * brokerAccountProblem (catalog validity) never sees it.
+ */
+export type BrokerAccount = BrokerAccountDraft & {
+  displayName: string | null;
+  id: string;
+};
+
+/**
+ * The rename cap is the TASK 6 VERDICT's measured 14: a 16-character
+ * worst-glyph rename rendered the chip's full 211px budget with zero
+ * clearance, so 14 puts the worst rename at parity with the longest
+ * suffixed formula label. The DB check constraint enforces the same
+ * bound; this is the client's own refusal, worded for the console.
+ */
+export const BROKER_ACCOUNT_NAME_MAX = 14;
+
+/** Null when the (trimmed) rename is storable; the refusal otherwise. An
+ * empty trim is not a problem — it means "clear the rename". */
+export function brokerAccountNameProblem(name: string): string | null {
+  const trimmed = name.trim();
+  if (trimmed.length > BROKER_ACCOUNT_NAME_MAX) {
+    return `rename "${trimmed}" is ${trimmed.length} characters — the measured cap is ${BROKER_ACCOUNT_NAME_MAX}`;
+  }
+  return null;
+}
 
 /**
  * Why this draft is not an account the checkout would sell, or null when it

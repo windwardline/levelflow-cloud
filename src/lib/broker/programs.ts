@@ -340,9 +340,33 @@ export const RISK_PERCENT_OPTIONS: number[] = (() => {
   return options;
 })();
 
-/** `0.50%` — the selector's own rendering, comma-free and two-decimal. */
-export function formatRiskPercent(value: number) {
-  return `${value.toFixed(2)}%`;
+/**
+ * Amendment 21 (owner ruling, 2026-08-04, universal): any account-specific
+ * percentage listed on any interface carries the dollar amount it means at
+ * that account's size, in the owner's own shape — `X%/$XXX`. The money is
+ * exact: cents render only when the arithmetic produces them, and `.00`
+ * never renders (0.25% of $25,000 is $62.50, not $63 and not $62.5).
+ */
+function formatPercentDollars(percent: number, accountSize: number) {
+  const amount = (percent / 100) * accountSize;
+  const hasCents = Math.round(amount * 100) % 100 !== 0;
+  return `$${
+    new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: hasCents ? 2 : 0,
+      minimumFractionDigits: hasCents ? 2 : 0,
+    }).format(amount)
+  }`;
+}
+
+/**
+ * `0.50%` — the selector's own rendering, comma-free and two-decimal.
+ * With a size: `0.50%/$125` (amendment 21).
+ */
+export function formatRiskPercent(value: number, accountSize?: number) {
+  const percent = `${value.toFixed(2)}%`;
+  return accountSize === undefined
+    ? percent
+    : `${percent}/${formatPercentDollars(value, accountSize)}`;
 }
 
 /** `$100,000` — comma-grouped, no cents (§19b item 2). */
@@ -352,11 +376,17 @@ export function formatAccountSize(value: number) {
 
 /**
  * `3% daily · 4% max` — E8's own tiers rendered verbatim from the paired token
- * the column holds (§19b item 5, §19g).
+ * the column holds (§19b item 5, §19g). With a size, each percentage carries
+ * its amount: `3%/$750 daily · 4%/$1,000 max` (amendment 21).
  */
-export function formatDrawdownTier(token: string) {
+export function formatDrawdownTier(token: string, accountSize?: number) {
   const [daily, max] = token.split("-");
-  return `${daily}% daily · ${max}% max`;
+  if (accountSize === undefined) {
+    return `${daily}% daily · ${max}% max`;
+  }
+  const dailyDollars = formatPercentDollars(Number(daily), accountSize);
+  const maxDollars = formatPercentDollars(Number(max), accountSize);
+  return `${daily}%/${dailyDollars} daily · ${max}%/${maxDollars} max`;
 }
 
 export function drawdownTiersFor(line: string): string[] | null {

@@ -2876,3 +2876,58 @@ for (const width of [375, 1280]) {
     ).toHaveCount(0);
   });
 }
+
+// Owner findings wave (2026-08-04): the rename control. One width, 1280 —
+// deliberately, unlike the switcher legs' pair: the label override is
+// labelAccounts' output, unit-pinned at both the override and suffix-vanish
+// behaviors (tests/mobileNav.test.ts), and the chip renders that one output
+// identically at every width. What only a live browser can prove is the
+// FLOW — Rename into the inline field, Enter, the chip re-reading the row —
+// and that flow is width-independent Profile machinery. No scan anywhere in
+// this leg, so it carries no market-condition skip path at all.
+test("a rename overrides the chip label, and clearing it restores the formula (owner findings wave, 1280px)", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ height: 800, width: 1280 });
+  await page.goto("/");
+
+  await removeAllAccounts(page, 1280);
+  await page.reload();
+  await addAndActivateAccount(page, 1280, "E8 One", "$5,000");
+
+  const header = page.getByTestId("desktop-header");
+  const trigger = header.getByRole("button").filter({ hasText: "|" });
+  await expect(trigger).toBeVisible();
+  expect((await trigger.textContent())?.trim()).toBe("E8 | Forex | 5K");
+
+  // Rename: the row swaps to the capped inline field; Enter commits. The
+  // stored bytes stay as typed (mixed case here, deliberately) — the caps
+  // the reader sees are the chip's own CSS transform, asserted the same
+  // two-fact way the switcher leg asserts its formula labels.
+  const profile = await openBrokerProfile(page, 1280);
+  await profile.getByRole("button", { name: "Rename" }).click();
+  const field = profile.getByLabel("Rename", { exact: true });
+  await expect(field).toHaveAttribute("maxlength", "14");
+  await field.fill("Swing Book");
+  await field.press("Enter");
+
+  // The chip re-reads the saved row: the rename replaces the formula, byte-
+  // intact under the transform. The trigger locator survives the label
+  // change on the row side, but the rename carries no pipe — so the chip is
+  // re-located by its popup contract instead of by "|" here.
+  const renamedTrigger = header.getByRole("button", { name: /Swing Book/i });
+  await expect(renamedTrigger).toBeVisible();
+  expect((await renamedTrigger.textContent())?.trim()).toBe("Swing Book");
+  expect(
+    await renamedTrigger.evaluate((el) => getComputedStyle(el).textTransform),
+  ).toBe("uppercase");
+
+  // Clearing the field clears the rename: the formula labels the account
+  // again (an empty commit stores null — labelAccounts' whitespace rule).
+  await profile.getByRole("button", { name: "Rename" }).click();
+  await profile.getByLabel("Rename", { exact: true }).fill("");
+  await profile.getByLabel("Rename", { exact: true }).press("Enter");
+  await expect(trigger).toBeVisible();
+  expect((await trigger.textContent())?.trim()).toBe("E8 | Forex | 5K");
+
+  await removeAllAccounts(page, 1280);
+});
