@@ -38,6 +38,7 @@ import {
   formatDrawdownTier,
   formatRiskPercent,
 } from "../src/lib/broker/programs.ts";
+import { CFD_LOT_STEP } from "../src/lib/broker/sizing.ts";
 import type {
   BrokerInstrument,
   ProgramLine,
@@ -1019,13 +1020,19 @@ function unitValuesOf(unit: QuoteUnit): Valued<number>[] {
   }
 }
 
-// The Provenance constants programs.ts exports at module scope — every one of
-// them is already reachable transitively through BROKER_INSTRUMENTS or
-// PROGRAM_LINES below, but naming them here too means a future constant that
-// is not yet wired into either structure still gets checked rather than
-// silently skipped.
+// The Provenance constants programs.ts (and, since Task 11, sizing.ts) export
+// at module scope — every one of them is already reachable transitively
+// through BROKER_INSTRUMENTS or PROGRAM_LINES below, but naming them here too
+// means a future constant that is not yet wired into either structure still
+// gets checked rather than silently skipped. CFD_LOT_STEP is exactly that
+// case: it is the catalog's first real `verified` value, and it lives on a
+// bare sizing constant rather than a BrokerInstrument or ProgramLine field, so
+// this list is the only place its observation is reachable by the invariant
+// below (bridging.ts's own module constants are a known, still-open exclusion
+// — see Task 10's review — and are deliberately not added here).
 const MODULE_LEVEL_PROVENANCES: Provenance[] = [
   CANONICAL_LIST,
+  CFD_LOT_STEP.source,
   CONTRACT_SIZES,
   CUSTOM_ACCOUNT,
   E8X_TRADING_SYMBOLS,
