@@ -507,14 +507,26 @@ describe("§19a — the row and its states", () => {
     );
   });
 
-  it("lets only [PRIMARY] tradability reach confirmed, and only primary or derived values", () => {
+  // Amendment 4 (owner ruling, 2026-08-02) widened the boundary from two
+  // admissible tags to three: `confirmed` tradability used to require
+  // `primary` alone, and a required unit value used to require `primary` or
+  // `derived` alone. Both now also admit `verified` — the owner watching the
+  // broker's live platform confirm a fact is the same class of evidence as
+  // E8 publishing it (types.ts's `Provenance` docblock). The old, narrower
+  // equality/OR-chain retired here because it hard-coded the pre-amendment
+  // two-tag world: it would fail the instant any real `confirmed` row or
+  // required unit value actually carried a `verified` source (Task 11's
+  // `CFD_LOT_STEP`, Task 13's 46 folded observations) — the exact landmine
+  // this rewrite exists to defuse before that data lands. `secondary` and
+  // `dossier` stay inadmissible in both positions: the widening admits
+  // exactly one new tag, nothing more.
+  it("admits primary or verified tradability into confirmed, and primary, derived or verified unit values (amendment 4)", () => {
     for (const row of BROKER_INSTRUMENTS) {
       if (row.tradability !== "confirmed") {
         continue;
       }
-      assert.equal(
-        row.tradabilitySource.tag,
-        "primary",
+      assert.ok(
+        ["primary", "verified"].includes(row.tradabilitySource.tag),
         `${row.programLine}:${row.levelflowSymbol} tradability`,
       );
       const unitValues = row.unit.kind === "forex_contract"
@@ -527,7 +539,7 @@ describe("§19a — the row and its states", () => {
           continue;
         }
         assert.ok(
-          value.source.tag === "primary" || value.source.tag === "derived",
+          ["primary", "derived", "verified"].includes(value.source.tag),
           `${row.programLine}:${row.levelflowSymbol} unit tag ${value.source.tag}`,
         );
       }
