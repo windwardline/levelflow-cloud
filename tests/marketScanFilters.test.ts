@@ -201,3 +201,32 @@ describe("amendment 13 — market availability follows the account classificatio
     );
   });
 });
+
+// Task 8 fix round 1 — review finding on 22e5fc1: AdvisorWorkspace.tsx's
+// amendment-13 reset effect used to touch only `scope`, leaving a just-
+// finished scan's candidates on screen under a scope the menu no longer
+// offers. filterMarketScanCandidatesByScope's "all" case (marketScanFilters.ts,
+// this file's own import) passes every candidate through unconditionally, so
+// the rail would keep rendering the stale rows — fully clickable, with no
+// account-visibility check anywhere downstream — while the scanned/qualified
+// count line kept describing a scan whose rows no longer honestly belong to
+// it. That is the exact visible-list-vs-count disagreement the m3 note above
+// (filterMarketScanCandidatesByScope's own header comment) retired the
+// Quality band over: a render-side filter alone reintroduces it one layer up.
+// Source-pinned rather than rendered — no jsdom in this repo's unit-test
+// stack (see tests/historyPanel.test.tsx's header comment) — and scoped to
+// the reset effect's own block, not merely that these calls exist somewhere
+// in the file, so a future edit that moves setScanResult/setScanCompletedAt
+// out of this branch (rather than genuinely fixing it) still fails this pin.
+describe("amendment 13 fix round 1 — the scope reset also drops the stale scan", () => {
+  it("clears scanResult and scanCompletedAt in the same block that resets scope to All markets", () => {
+    const source = readFileSync(
+      "src/components/workspace/AdvisorWorkspace.tsx",
+      "utf8",
+    );
+    assert.match(
+      source,
+      /if \(!stillVisible\) \{\s*setScope\(\{ kind: "all" \}\);\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*\}/,
+    );
+  });
+});

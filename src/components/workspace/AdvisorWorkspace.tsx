@@ -222,7 +222,26 @@ export function AdvisorWorkspace(
   // can no longer trade is a filter the reader can neither see (the menu no
   // longer lists it) nor clear (nothing left in the menu maps back to it) — so
   // an account switch that hides the current scope falls back to "All
-  // markets" on its own, exactly as if the reader had picked it themselves.
+  // markets" on its own, exactly as if the reader had picked it themselves —
+  // which now includes dropping whatever scan just finished, the same as
+  // selectScope's own reset does on every reader-driven scope change (below).
+  // Fix round 1 (review finding on 22e5fc1): the reset used to touch only
+  // `scope`, leaving a stale scanResult on screen under a scope the menu no
+  // longer offers. filterMarketScanCandidatesByScope's "all" case passes
+  // every candidate through unconditionally (marketScanFilters.ts), so the
+  // rail would keep rendering the old scan's rows — fully clickable, with no
+  // account-visibility check anywhere downstream — while the rail's own
+  // scanned/qualified count line went on describing a scan those rows no
+  // longer honestly belong to. That is the exact visible-list-vs-count
+  // disagreement marketScanFilters.ts's m3 note retired the Quality band
+  // over: a render-side filter alone would only reintroduce it one layer up.
+  // Clearing scanResult/scanCompletedAt here instead returns the rail to its
+  // null, un-scanned state — §17c-honest, not a stale board pretending to
+  // still mean something.
+  // The bare setters are called directly rather than through selectScope:
+  // selectScope is unmemoized, so depending on it here would either re-run
+  // this effect every render (were it added to the deps) or violate
+  // exhaustive-deps (were it called without being listed).
   // "All" is never hidden (visibleAssetGroups never returns empty for a real
   // classification), so this can always resolve.
   useEffect(() => {
@@ -236,6 +255,8 @@ export function AdvisorWorkspace(
       : visibleAssetSymbols(activeAccount).includes(scope.symbol);
     if (!stillVisible) {
       setScope({ kind: "all" });
+      setScanResult(null);
+      setScanCompletedAt(null);
     }
   }, [activeAccount, scope]);
 

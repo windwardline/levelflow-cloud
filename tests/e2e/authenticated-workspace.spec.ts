@@ -2754,6 +2754,23 @@ for (const width of [375, 1280]) {
     await expect(page.getByText("Size · contracts", { exact: true }))
       .toBeVisible();
 
+    // Task 8 fix round 1 (review finding on 22e5fc1): the chip switch above
+    // re-scopes the Desk live, and the amendment-13 reset effect that fires
+    // with it now clears the stale Crypto scan along with the scope it was
+    // keyed to — not scope alone. Before the fix, scanResult survived the
+    // switch untouched: filterMarketScanCandidatesByScope's "all" case
+    // passes every candidate through unconditionally, so the Crypto rows
+    // this leg just scanned (unreachable and untradeable under a futures
+    // account) would still be sitting in the rail, fully clickable, under a
+    // scanned/qualified count line that no longer honestly described them.
+    // scanForSetupOnStage's own row locator is reused here: the same
+    // pattern that found a row to click above must now find none at all —
+    // the rail is back in its un-scanned state, same as it renders before
+    // any scan ever ran.
+    await expect(
+      scanSurface(page).getByText(/^(Buy|Sell) · confidence \d+$/),
+    ).toHaveCount(0);
+
     // (e) focus returns to the trigger on close — the file's own
     // focus-return idiom (see the Expand-chart dialog's Escape/Close
     // checks above).
