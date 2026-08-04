@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import {
   formatSecurityDisplaySymbol,
+  type SecurityGroup,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import type {
@@ -15,6 +16,11 @@ import { describeExecutionLabel } from "./reviewCopy";
 import { formatScopeCountLine, ScopeMenu, type ScanScope } from "./ScopeMenu";
 
 type MarketScanPanelProps = {
+  // §19 retrofit, amendment 13: which groups the scope menu offers, decided by
+  // AdvisorWorkspace (visibleAssetGroups(activeAccount)) and threaded straight
+  // through to ScopeMenu — this rail stays account-agnostic itself, same as
+  // ScopeMenu does now.
+  groups: SecurityGroup[];
   // The availability-filtered symbol list this scope would actually scan, and
   // the scope itself. Both are derived once in AdvisorWorkspace (spec §17e: the
   // merged mobile surface fires the same scan from its own control row, and two
@@ -61,6 +67,7 @@ type MarketScanPanelProps = {
 // see: a scan in flight, a scan that failed, or a result the current scope
 // filtered down to nothing.
 export function MarketScanPanel({
+  groups,
   onScan,
   onSelectCandidate,
   onSelectScope,
@@ -88,6 +95,7 @@ export function MarketScanPanel({
         </h3>
         <div className="order-last w-full min-w-0">
           <ScopeMenu
+            groups={groups}
             label="Scan scope"
             showLabel={false}
             value={scope}

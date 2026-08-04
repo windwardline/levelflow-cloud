@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
-import { AVAILABLE_ASSET_GROUPS } from "../../lib/symbolMap";
+import { visibleAssetGroups } from "../../lib/broker/visibility";
+import { activeAccountOf, type UserProfile } from "../../lib/profile";
 import type { LifetimeSetupRow, TradeSetupRow } from "../../lib/tradeAnalyzer";
 import {
   MOBILE_FRAME,
@@ -50,6 +51,7 @@ export function HistoryPanel({
   lifetimeSetups,
   loadFailed,
   loading,
+  profile,
   setups,
 }: {
   // The lifetime record (spec §18): what the record band and Attribution are
@@ -61,8 +63,17 @@ export function HistoryPanel({
   // known-empty.
   loadFailed: boolean;
   loading: boolean;
+  // §19 retrofit, Task 8 (amendment 13): the Market filter's own options
+  // follow the active account, the same way the scan scope menu's do — this
+  // is the whole of what this surface needs from the profile.
+  profile: UserProfile;
   setups: TradeSetupRow[];
 }) {
+  const activeAccount = activeAccountOf(profile);
+  // Computed fresh every render off activeAccount, never cached — the same
+  // rule AdvisorWorkspace's own visibleGroups follows (Task 5's rule for
+  // activeAccountOf itself).
+  const visibleGroups = visibleAssetGroups(activeAccount);
   const [marketScope, setMarketScope] = useState<ScanScope>({ kind: "all" });
   const [statusFilter, setStatusFilter] = useState<InsightsStatusFilter>(
     "all",
@@ -70,6 +81,30 @@ export function HistoryPanel({
   const [periodDays, setPeriodDays] = useState<InsightsPeriodDays>(
     DEFAULT_PERIOD_DAYS,
   );
+
+  // §19 retrofit, Task 8 (amendment 13): the same rule the scan scope menu
+  // follows (AdvisorWorkspace's own reset effect) — a filter naming a market
+  // this account can no longer trade is one the reader can neither see (the
+  // select no longer lists it) nor clear from the control itself, so an
+  // account switch that hides the current filter falls back to "All markets"
+  // on its own. The ledger's own rows are untouched either way (amendment
+  // 13 deletes nothing): this only resets which filter is ACTIVE, never what
+  // history exists to filter.
+  useEffect(() => {
+    if (marketScope.kind === "all") {
+      return;
+    }
+    const stillVisible = marketScope.kind === "group"
+      ? visibleAssetGroups(activeAccount).some((group) =>
+        group.label === marketScope.assetType
+      )
+      : visibleAssetGroups(activeAccount).some((group) =>
+        group.options.some((option) => option.symbol === marketScope.symbol)
+      );
+    if (!stillVisible) {
+      setMarketScope({ kind: "all" });
+    }
+  }, [activeAccount, marketScope]);
 
   // A plain per-render read, not a ticking clock: pending/open/closed
   // classification and period-boundary filtering only need "roughly now",
@@ -173,7 +208,7 @@ export function HistoryPanel({
             setMarketScope(parseMarketFilterValue(event.target.value))}
         >
           <option value={ALL_MARKETS_FILTER}>All markets</option>
-          {AVAILABLE_ASSET_GROUPS.map((group) => (
+          {visibleGroups.map((group) => (
             <optgroup key={group.label} label={group.label}>
               <option value={`group:${group.label}`}>
                 All {group.label}

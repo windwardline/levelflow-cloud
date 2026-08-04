@@ -25,6 +25,7 @@ import {
   fetchMarketData,
   type MarketDataResponse,
 } from "../../lib/marketData";
+import { visibleAssetGroups, visibleAssetSymbols } from "../../lib/broker/visibility";
 import { activeAccountOf, type UserProfile } from "../../lib/profile";
 import {
   storedSetupAsCandidate,
@@ -189,6 +190,12 @@ export function AdvisorWorkspace(
   const brokerQuotes = activeAccount === null
     ? {}
     : collectBrokerQuotes({ scan: scanResult, setup });
+  // §19 retrofit, Task 8 (amendment 13): the scope menu — both the ≥lg rail's
+  // and the merged mobile control row's — offers only what this account can
+  // trade. Computed fresh every render off activeAccount, never cached, the
+  // same rule activeAccountOf itself follows (Task 5): a switch is live in the
+  // menu the instant the pointer changes rather than on some later recompute.
+  const visibleGroups = visibleAssetGroups(activeAccount);
   // The stagehead's confidence meta line says when this review ran, alongside
   // the setup's own expiry (spec §16 folds both into one quiet line in place of
   // the deleted metric card). Read straight off the analysis state so a
@@ -210,6 +217,27 @@ export function AdvisorWorkspace(
   useEffect(() => {
     selectedSymbolRef.current = symbol;
   }, [symbol]);
+
+  // §19 retrofit, Task 8 (amendment 13): a scope naming a market this account
+  // can no longer trade is a filter the reader can neither see (the menu no
+  // longer lists it) nor clear (nothing left in the menu maps back to it) — so
+  // an account switch that hides the current scope falls back to "All
+  // markets" on its own, exactly as if the reader had picked it themselves.
+  // "All" is never hidden (visibleAssetGroups never returns empty for a real
+  // classification), so this can always resolve.
+  useEffect(() => {
+    if (scope.kind === "all") {
+      return;
+    }
+    const stillVisible = scope.kind === "group"
+      ? visibleAssetGroups(activeAccount).some((group) =>
+        group.label === scope.assetType
+      )
+      : visibleAssetSymbols(activeAccount).includes(scope.symbol);
+    if (!stillVisible) {
+      setScope({ kind: "all" });
+    }
+  }, [activeAccount, scope]);
 
   // What "the stage follows the Scan column" is made of: the scope menu's own
   // symbol selection and a scan-row click both land here (spec §4: selecting a
@@ -539,6 +567,7 @@ export function AdvisorWorkspace(
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
                 <ScopeMenu
+                  groups={visibleGroups}
                   label="Scan scope"
                   showLabel={false}
                   value={scope}
@@ -694,6 +723,7 @@ export function AdvisorWorkspace(
       {/* Left rail: the scan (a-desk-v3.html:87-158). */}
       <div className="scrolly min-w-0 lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-hairline lg:pr-4">
         <MarketScanPanel
+          groups={visibleGroups}
           onScan={scanMarkets}
           onSelectCandidate={selectCandidate}
           onSelectScope={selectScope}

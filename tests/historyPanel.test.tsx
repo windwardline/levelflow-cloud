@@ -229,3 +229,36 @@ describe("Insights says the fetch failed rather than claiming an empty ledger (Q
     );
   });
 });
+
+// §19 retrofit, Task 8 (amendment 13): the Market filter is "structured after
+// the scan scope menu's universal contract" (historyUtils.ts's own words) —
+// this closes the other half of that parallel, so the two surfaces cannot
+// silently drift apart on which account governs what's offered.
+// Source-pinned for the same reason every other interactive check in this
+// file is (see header comment): no jsdom, so the select's real DOM options
+// cannot be read back out.
+describe("the Insights market filter follows the active account (amendment 13, §19 retrofit)", () => {
+  it("takes a profile prop and resolves the active account from it, same as AdvisorWorkspace", () => {
+    assert.match(PANEL_SOURCE, /profile: UserProfile;/);
+    assert.match(PANEL_SOURCE, /const activeAccount = activeAccountOf\(profile\);/);
+  });
+
+  it("builds the Market filter's options from the active account's visible groups, not the raw catalog", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /const visibleGroups = visibleAssetGroups\(activeAccount\);/,
+    );
+    assert.match(PANEL_SOURCE, /\{visibleGroups\.map\(\(group\) => \(/);
+    // The bare catalog import is gone — every reader of this list now goes
+    // through visibleAssetGroups, so a future edit can't quietly reintroduce
+    // a hidden market by mapping the unfiltered constant again.
+    assert.doesNotMatch(PANEL_SOURCE, /AVAILABLE_ASSET_GROUPS/);
+  });
+
+  it("resets the Market filter to All markets when a switch hides the selected one — the same rule the scan scope menu follows, so neither surface strands an unclearable filter", () => {
+    assert.match(
+      PANEL_SOURCE,
+      /setMarketScope\(\{ kind: "all" \}\)/,
+    );
+  });
+});

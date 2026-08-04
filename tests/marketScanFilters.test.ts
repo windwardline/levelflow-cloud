@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   filterMarketScanCandidatesByScope,
   filterSymbolsByAvailability,
   getMarketScanSymbolsForScope,
 } from "../src/components/workspace/marketScanFilters";
-import { AVAILABLE_ASSET_GROUPS } from "../src/lib/symbolMap";
+import {
+  HIDDEN_ASSET_TYPES_BY_CLASSIFICATION,
+  visibleAssetGroups,
+  visibleAssetSymbols,
+} from "../src/lib/broker/visibility";
+import { AVAILABLE_ASSET_GROUPS, AVAILABLE_ASSET_SYMBOLS } from "../src/lib/symbolMap";
 import type { MarketScanCandidate } from "../src/lib/tradeAnalyzer";
 
 // Same known week tests/marketHours.test.ts and tests/scopeMenu.test.tsx
@@ -111,5 +117,87 @@ describe("filterMarketScanCandidatesByScope (m3: no longer also bands by confide
       { kind: "symbol", symbol: "EURUSD" },
     );
     assert.deepEqual(result, []);
+  });
+});
+
+const FOREX_ACCOUNT = {
+  accountSize: 100_000,
+  brokerId: "e8" as const,
+  classification: "forex" as const,
+  drawdownTier: "2.5-8",
+  id: "acc-1",
+  platform: "tradelocker" as const,
+  programLine: "pro_forex" as const,
+  riskPercent: 0.5,
+  stage: "performance" as const,
+};
+
+describe("amendment 13 — market availability follows the account classification", () => {
+  it("shows everything with no active account", () => {
+    assert.deepEqual(visibleAssetGroups(null), AVAILABLE_ASSET_GROUPS);
+    assert.deepEqual(visibleAssetSymbols(null), AVAILABLE_ASSET_SYMBOLS);
+  });
+
+  it("hides Futures on a Forex account and keeps Energies", () => {
+    const labels = visibleAssetGroups(FOREX_ACCOUNT).map((group) => group.label);
+    assert.ok(!labels.includes("Futures"), "E8 Forex accounts cannot trade futures");
+    assert.ok(labels.includes("Energies"), "Energies remain on Forex accounts");
+    const symbols = visibleAssetSymbols(FOREX_ACCOUNT);
+    assert.ok(symbols.includes("WTI") && symbols.includes("BRENT"));
+    for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "MGCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
+      assert.ok(!symbols.includes(futures), `${futures} must not be visible`);
+    }
+  });
+
+  it("shows only Futures on a Futures account", () => {
+    const account = {
+      ...FOREX_ACCOUNT,
+      classification: "futures" as const,
+      drawdownTier: null,
+      platform: "tradovate" as const,
+      programLine: "signature_futures" as const,
+    };
+    assert.deepEqual(
+      visibleAssetGroups(account).map((group) => group.label),
+      ["Futures"],
+    );
+  });
+
+  it("shows only Crypto on a Crypto account", () => {
+    const account = {
+      ...FOREX_ACCOUNT,
+      classification: "crypto" as const,
+      programLine: "pro_crypto" as const,
+    };
+    assert.deepEqual(
+      visibleAssetGroups(account).map((group) => group.label),
+      ["Crypto"],
+    );
+  });
+
+  // The owner was explicit: nothing is deleted behind the curtain.
+  it("deletes nothing — the full universe is still reachable from the modules", () => {
+    const source = readFileSync("src/lib/broker/visibility.ts", "utf8");
+    assert.doesNotMatch(source, /NO_TRADE_SYMBOLS|TEMPORARILY_HIDDEN/);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 50);
+  });
+
+  // HIDDEN_ASSET_TYPES_BY_CLASSIFICATION is the table the four tests above
+  // exercise indirectly, through visibleAssetGroups/visibleAssetSymbols. Pinned
+  // directly too: forex hides only Futures (Indices/Metals have no classification
+  // of their own, so they simply stay off forex's list and remain scannable),
+  // while crypto and futures each hide every other class, Indices/Metals
+  // included — so a future edit to one classification's row can't silently
+  // change another's by accident.
+  it("names exactly what each classification cannot trade", () => {
+    assert.deepEqual(HIDDEN_ASSET_TYPES_BY_CLASSIFICATION.forex, ["Futures"]);
+    assert.deepEqual(
+      HIDDEN_ASSET_TYPES_BY_CLASSIFICATION.crypto,
+      ["Forex", "Metals", "Energies", "Indices", "Futures"],
+    );
+    assert.deepEqual(
+      HIDDEN_ASSET_TYPES_BY_CLASSIFICATION.futures,
+      ["Forex", "Metals", "Energies", "Indices", "Crypto"],
+    );
   });
 });
