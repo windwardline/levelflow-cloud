@@ -313,6 +313,153 @@ class for the futures onboarding. No FMP source found for the Eurex
 family, NKD, EMD, UB, TN, or ZW Chicago wheat. **Futures feed checks
 must be month-aware from here on.**
 
+### F10 — 2026-08-04 · Best-match FMP source resolution (§19 retrofit, Task 15) — the divergence set adjudicated, instrument by instrument
+
+Per amendment 16's E8-Forex-done gate, the three stable-offset instruments
+named by the controller note — XAGUSD, WTI, BRENT — are tested against
+every FMP candidate that could plausibly serve each, live-enumerated
+rather than assumed. No new E8 platform frame was captured for this task:
+the existing frames (F1, F4, F6, F7 for the CFD side; F9 for a
+cross-classification corroboration) already carry clock-corroborated E8
+book readings. What F10 adds is a live, same-minute FMP pull for every
+FMP candidate symbol against those same already-recorded books, per
+amendment 20's rule that resolution means choosing among FMP's own
+candidate symbols, never a third source.
+
+**Step 1 — the live candidate enumeration** (`GET
+.../stable/commodities-list`, re-pulled 2026-08-04, superseding the plan's
+snapshot): SIUSD Silver Futures (USD, Dec) · SILUSD Micro Silver Futures
+(USD, Dec) · CLUSD Crude Oil (USD, Oct) · BZUSD Brent Crude Oil (USD,
+**still Sep** — unchanged from plan time, two days and one
+cross-classification sample later; see BRENT below) · HOUSD Heating Oil
+(Oct) · RBUSD Gasoline RBOB (Oct). Confirmed again: no spot silver and no
+spot WTI symbol exist on this list.
+
+**XAGUSD — candidates SIUSD, SILUSD.** Re-pulled at F1's and F7's exact
+frame minutes, same open/close-by-seconds rule applied to every symbol
+including the incumbent's own re-check:
+
+| Instrument | F1 21:40:18 EDT (E8 mid 58.2095) | F7 22:55:47 EDT (E8 mid 58.098) | Sign |
+|---|---|---|---|
+| XAGUSD (incumbent) | FMP open 58.070 → **+0.140** | FMP close 57.926 → **+0.172** | stable, positive |
+| SIUSD (Dec futures) | FMP open 58.440 → **−0.231** | FMP close 58.280 → **−0.182** | stable, negative |
+| SILUSD (Dec micro futures) | FMP open 58.400 → **−0.191** | FMP close 58.290 → **−0.192** | stable, negative |
+
+(The incumbent's own F1 bar has revised about a cent since the original
+transcription — 58.070/58.999 open/close here vs 58.062/57.999 as first
+read — an ordinary intraday-bar revision, immaterial to the offset.)
+Neither futures candidate beats the incumbent at either anchor, and a
+live re-check today shows why: spot XAGUSD 59.519 against SIUSD 59.845
+and SILUSD 59.835 — a +0.32/+0.33 (~55 bp) December-delivery contango
+premium, present again two days later. SIUSD/SILUSD price a four-month
+forward delivery, not spot; stacking that premium on E8's own
+book-to-spot gap moves further from the book, not closer. **Verdict:
+RECORD-OFFSET, source unchanged.** The ~+0.17 (≈30 bp) basis stands as
+previously measured; F10 adds that it is the best FMP has to offer, not
+merely the incumbent by default.
+
+**WTI — candidates CLUSD (re-confirmed), USO.**
+
+| Instrument | F4 22:40:22 EDT (E8 mid 80.474) | F6 22:54:20 EDT (E8 mid 80.158) | Verdict |
+|---|---|---|---|
+| CLUSD (incumbent, front-month, live tradeMonth Oct) | FMP open 80.230 → **+0.244** | FMP open/close 79.920 → **+0.238** | reproduces F4/F6's own +0.234/+0.238 to the point |
+| USO (ETF) | disqualified on scale before reaching the minute-level test | — | **FAIL (scale)** |
+
+USO's live quote today: $115.78, against CLUSD's live $75.41 the same
+pull — +$40.37, +53.5%. A fund share price is not a per-barrel number; no
+minute-level pull changes that. The pre-registered expectation ("expected
+to fail on scale") is confirmed outright. **Verdict: RECORD-OFFSET,
+source unchanged.** The ~+0.24 (≈30 bp) basis stands as previously
+measured. (USO's continued role as the code's emergency fallback — used
+only if CLUSD itself fails — is a separate question from its fitness as a
+primary source; flagged for Task 16 given the fallback would now silently
+substitute a series roughly 50% off scale rather than fail loudly.)
+
+**BRENT — one candidate.** BZUSD is FMP's only Brent-root symbol,
+live-reconfirmed via the same commodities-list pull: there is nothing
+else in FMP to re-key to under amendment 20's own candidates-must-be-FMP
+rule.
+
+| Instrument | F4 22:41:47 EDT, 85s skew (E8 mid 85.5595) | F4 tightened to the exact minute, 22:40, no skew | F6 22:54:20 EDT (E8 mid 85.2845) |
+|---|---|---|---|
+| BZUSD (incumbent, only candidate) | FMP close 83.930 → **+1.630** | FMP close 83.880 → **+1.680** | FMP close 83.610 → **+1.675** |
+
+All three reproduce F4/F6's own +1.61/+1.675 to the cent. The
+pre-registered hypothesis — expired tradeMonth explains the gap; a
+post-roll frame would show BZUSD tracking — does not hold up: BZUSD's
+tradeMonth label still reads Sep on this same live pull, two days after
+F4/F6 and a day after F9. Yet F9 (2026-08-03, E8 Signature
+Futures/Tradovate — a different classification, cited here only as
+corroboration per amendment 19 clause 3's narrow-reading discipline)
+already found BZV6 (the actually-traded October contract) at 84.05
+against FMP BZUSD at 84.11 — 7 bp apart. BZUSD's own price ran a smooth
+83.6–84.0 on Aug 2 (F4/F6) to 84.11 on Aug 3 (F9) with no discontinuity,
+which is inconsistent with a symbol frozen on an expired September
+settlement suddenly catching up to October pricing overnight. The more
+consistent reading, and the one F9's own text already draws: BZUSD's
+price — whatever its label says — was already on the active contract's
+track during F4/F6, and the CFD's own +1.67 is a contract-month/reference
+difference between E8's Brent CFD and FMP's continuously-active
+front-month root, a structural fact about the CFD product, not a defect
+in FMP's feed, and not fixable by any FMP symbol choice. **Verdict:
+RECORD-OFFSET, source unchanged (no alternative exists).** The ~+1.67
+(≈196 bp) basis stands as previously measured. BZUSD's tradeMonth
+metadata field is now flagged as unreliable for freshness inference — it
+never moved across this entire window — where the price series,
+cross-checked against F9's independent futures-side sample, is what
+actually settles the question.
+
+**Open item 2 — resolved.** All three prime candidates return
+RECORD-OFFSET: the incumbent FMP symbol is kept in every case (no FMP
+alternative ever produces a smaller, stable offset — two of the three
+have no viable alternative candidate at all), and each basis is logged as
+a documented per-instrument constant rather than corrected toward the E8
+book. **No RE-KEY occurs.** Per amendment 16/A16, a source change is what
+forces Task 17's fresh replay sweep; since `src/lib/symbolMap.ts` needs
+no edit, this task does not itself trigger that sweep, and Task 16 has
+nothing to re-key. Energies (WTI, BRENT) re-enter the identity-confirmed
+set with their bases logged, joining XAGUSD; none is a missing match
+under amendment 20 clause 3's exclusion rule — a stable basis against an
+existing FMP match is the standing ruling, now evidenced
+candidate-by-candidate rather than by absence of a search.
+
+**Step 4 — the two remaining confirmation gaps.**
+
+*BNBUSD's exact-minute pin.* F3's frame (22:39:51 EDT, seconds > 30 → the
+22:39 bar's close) pulled live: FMP BNBUSD closed that minute at 584.960,
+against E8's book 585.73/586.50 (mid 586.115, spread 0.77) — outside the
+book and outside one spread width at the strict minute (fails pass tests
+a–c as stated). The immediately surrounding minutes (22:35–22:44, closes
+ranging 584.80–585.84, trending up across the window) bracket much closer
+to, and briefly cross, E8's book by 22:43–22:44; the ~90s-skew figure the
+original F3 write-up used (585.18) is reproduced exactly by this pull's
+22:41 close, cross-validating the record. BNBUSD was a **watchlist row,
+not the active chart symbol**, in F3 (BCHUSD.C was charted) — precisely
+the condition this protocol's own F1 precedent flags as unreliable for a
+clean minute-level read. Net: TRACKS is reconfirmed (order-of-magnitude
+~15 bp across the window, smaller than any of the three confirmed
+metals/energy bases), but the exact-minute figure alone should not be
+over-read given the watchlist-row caveat. A clean pin still wants one
+frame with BNBUSD as the active chart symbol; this record now gives
+Task 18 a live-measured number either way.
+
+*The JPY-cross exact-minute spot-check.* Not closeable from the existing
+record. F5's committed text is a prose summary of a live three-scroll
+sweep (quote-level deltas only: "seven JPY crosses read +3.9 to +12.6
+pips"); no raw per-pair E8 bid/ask with clock corroboration for any JPY
+pair survives anywhere in the repository — checked this document,
+`e8-observations-2026-08-02.md` (whose JPY rows are order-ticket entries
+from a separately-captured, non-clock-corroborated batch),
+`e8-fmp-crossmap.md`, the markets dossier/articles, the purchase-screen
+record, and the commit history for the section that introduced F5
+(`8072233`), which shows the prose was written directly from the
+screenshots without a raw table ever entering git. Closing this item
+needs a fresh frame with a JPY pair as the active chart symbol (USDJPY.C
+or GBPJPY.C), per this protocol's own frame requirement — a
+data-collection step, not an analysis one, and outside what an FMP-only
+tool session can produce. **Left open**, named explicitly rather than
+silently closed.
+
 ## Wiring of record — what the guard pins
 
 - Both price paths — `supabase/functions/market-data/index.ts` (the chart the
@@ -324,10 +471,11 @@ must be month-aware from here on.**
 - The symbol map (`src/lib/symbolMap.ts`): Forex, Metals, Crypto, and
   Futures groups pass `fmpSymbol === symbol` verbatim. The only scannable
   divergences are the energy CFDs — WTI → CLUSD (fallback USO) and
-  BRENT → BZUSD — whose basis F4 has now **measured** (WTI ~+0.23,
-  BRENT ~+1.61, E8 above FMP front-month): open item 2 carries the
-  resolution path, and energies sit outside the identity-confirmed set
-  until it closes. Indices (all non-scannable today) source cash indices
+  BRENT → BZUSD — whose basis F4 **measured** (WTI ~+0.23, BRENT ~+1.61,
+  E8 above FMP front-month) and **F10 resolved**: RECORD-OFFSET on both,
+  no better FMP candidate exists for either, no source edit. WTI and
+  BRENT re-enter the identity-confirmed set with their bases logged, not
+  zeroed. Indices (all non-scannable today) source cash indices
   (`^GSPC` family); F2 established that E8 quotes synthetic cash (futures
   minus fair-value basis), so the cash wiring tracks during each index's
   own cash session and is stale outside it. ASX stays hidden
@@ -352,20 +500,31 @@ must be month-aware from here on.**
 
 1. ~~XAGUSD re-sample~~ — **RESOLVED by F7**: not a stale row but a real,
    stable ~+0.17 basis; silver joins the divergence set.
-2. **The basis-handling decision** (XAG +0.17 · WTI +0.24 · BRENT +1.67,
-   each stable across two samples): re-key the chart source or record
-   per-instrument offsets — a §19-retrofit decision, since relative
-   geometry is offset-invariant and only absolute level transfer is
-   affected. The Appendix-A tickets (F6/F7) are consumed; a post-roll
-   mid-month frame remains queued to test whether BRENT's width narrows to
-   the others' ~30 bp after the roll.
-3. Crypto-market account frame — tonight's F3 was the forex-market
-   account's view (leverage 1); the crypto-account per-symbol leverage
-   values remain unobserved. BNBUSD exact-minute pin also pending.
+2. ~~The basis-handling decision~~ (XAG +0.17 · WTI +0.24 · BRENT +1.67,
+   each stable across two samples) — **RESOLVED by F10** (Task 15,
+   2026-08-04): all three return RECORD-OFFSET. SIUSD/SILUSD carry their
+   own ~55 bp Dec-futures contango and lose to incumbent XAGUSD at both
+   anchors; USO fails on scale outright (+53.5% vs CLUSD); BZUSD is FMP's
+   only Brent symbol, and F9's cross-classification match (BZV6 vs BZUSD,
+   7 bp) shows its price was never stuck on an expired month. No RE-KEY;
+   `src/lib/symbolMap.ts` is unchanged; amendment 16/A16's replay-sweep
+   trigger does not fire from this item. The queued post-roll mid-month
+   frame is superseded by F9's own cross-classification evidence and is
+   no longer needed to close this item.
+3. ~~Crypto-market account frame~~ — **RESOLVED**. Per-symbol leverage:
+   closed by F8 and `e8-crypto-account-2026-08-03.md` (BTC/ETH 1:5, all
+   31 others 1:2, live-confirmed on the actual Crypto-classification
+   account). BNBUSD's exact-minute pin: **measured by F10** (Task 15,
+   2026-08-04) — TRACKS reconfirmed (~15 bp across the F3 window), with
+   the watchlist-row caveat named rather than papered over; a fully clean
+   pin still wants BNBUSD as the active chart symbol on a future frame.
 4. MatchTrader — any One Forex frame, since feed identity is per-platform.
 5. US cash indices during a weekday NY session — the same-second test F2
    could not run with cash closed; one weekday frame completes the
    synthetic-cash finding.
-6. JPY-cross exact-minute spot-check — F5's quote-level JPY deltas were one
-   coherent yen move inside the skew window; a single same-minute bar
-   comparison (USDJPY or GBPJPY on the chart) closes it.
+6. JPY-cross exact-minute spot-check — **attempted by F10** (Task 15,
+   2026-08-04) and found not closeable from the existing record: no raw
+   per-pair E8 quote with clock corroboration survives for any JPY pair
+   (F5's own commit history shows only the prose summary was ever
+   recorded). Still open — needs one fresh frame with a JPY pair
+   (USDJPY.C or GBPJPY.C) as the active chart symbol.
