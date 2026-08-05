@@ -1358,3 +1358,144 @@ be profit target or daily reset."
    computed from the draft's own selected size, reactive to size changes.
    The §20 governor build inherits this rule for every surface it adds —
    profit targets and daily-loss lines land with their amounts from birth.
+
+## Amendment 22 — reliable sizing data is the durable, universal bar for offering Size (owner, 2026-08-05 00:54)
+
+Raised against the futures account's two Treasury rows (`ZB`/`ZN`, tick and
+value never published by E8), and immediately generalized by the owner into
+a standing rule for every market, every account setup, and every broker:
+
+> Your mention of the treasuries being unsizable without reliable data from
+> E8 is acceptable. That is a secondary benefit for the user, so it is okay
+> as an exclusion. It should not restrict the market from being analyzed
+> and offered. In fact, make that rule about reliable data being the bar to
+> reach for sizing to be offered by Levelflow a durable one, applied across
+> all markets, all account setups, all brokers, etc. Now and into
+> perpetuity.
+
+1. **Sizing is a layered, secondary benefit — never a gate on the market
+   itself.** A market's own tradability (is it analyzed, is it offered,
+   does it get setups) is decided on the amendment 19 checkout/platform
+   record alone. Whether Levelflow can also attach a position size to that
+   setup is a second, later question, answered only by the Size layer, and
+   an unanswered second question never reaches back to veto the first.
+2. **The bar for offering Size is RELIABLE data — published, verified, and
+   self-consistent.** "Reliable" is not merely "present": a tick size and a
+   tick value that are both non-null but cannot be reconciled against the
+   instrument's own siblings (E8's own table contradicting itself) is not
+   reliable data, and does not clear the bar, regardless of whether every
+   individual field is non-null. Unpublished data and self-inconsistent
+   data are both failures of the same bar, and both withhold the same
+   layer.
+3. **A sizing-data gap withholds ONLY the Size layer.** The market itself
+   stays analyzed and offered — scanned, shown, eligible for setups. Only
+   the position-size number is absent, rendered as the appropriate §19e/§20f
+   word. Nothing about market visibility, scanning, or setup generation may
+   be made to depend on whether sizing data exists.
+4. **Universal, durable, in perpetuity.** This rule is not scoped to E8, to
+   futures, or to the treasuries that raised it. It applies across every
+   market, every account setup, and every broker Levelflow adds, now and
+   going forward, without needing to be re-decided.
+
+**Consequence for built code.** `src/lib/broker/instruments.ts`'s
+`hasPublishedSizeInputs` — which drives `SIZEABLE_MARKETS_BY_LINE`, the Size
+layer's own eligibility gate — is the durable, general enforcement point.
+It already excludes unpublished data (a null unit value already blocks a
+row); amendment 22 makes it explicit for self-inconsistent published data
+too — `6J`/`6M`'s tick and value are both non-null and both `primary`-tagged,
+yet cannot be reconciled against their siblings (`UNRECONCILED_TICK_AXIS`),
+so the function now names the exclusion rather than relying on the
+happenstance that no Levelflow symbol yet maps to either. This is the
+ruling under which `ZB`, `ZN`, `6J` and `6M` are re-grounded in the same
+change set: tradability moves under amendment 19 (all four are OFFERED);
+sizing stays withheld under amendment 22 (none is RELIABLE) —
+`tests/brokerReference.test.ts` pins both halves.
+
+## Amendment 23 — the broker↔FMP matching relationship is the master list; display and matching are different questions (owner, 2026-08-05 01:14, naming addendum same dispatch)
+
+**Quote A — should vs can, the master list, and per-account visibility.**
+
+> …we are using E8's offering to dictate what we should generate trade
+> setups for, while we are using FMP's offering to dictate what we can
+> generate trade setups for… If the offset is significant enough to impact
+> quality setups, it should be excluded from being displayed on Levelflow
+> for the user, but not disconnected from its match to the E8 market
+> offering on the back end (in our records). Once we identify the proper
+> FMP data for every single E8 offering, across every single E8 account
+> type, I want that matching relationship to be reliably saved. And then,
+> whether the market is shown to the user or not, I want the saved subset
+> of matching E8/FMP data to be the master list for all E8 replay sweeps…
+> The user only sees applicable market categories for the actual account
+> type they are generating setups for… I want this to be the model for
+> every broker we add.
+
+**Quote B — naming follows the broker; the backend reconciles.**
+
+> there will, undoubtedly, be naming mismatches between FMP charts and
+> broker (in this case, E8) charts. Inside Levelflow, for the user, we
+> always show the name of the tradable asset. So there is no confusion. On
+> the backend, we can reconcile the differences in the names… but the user
+> needs to see continuity between their broker and Levelflow, not just for
+> the data, but for the naming conventions.
+
+1. **The broker dictates SHOULD; FMP dictates CAN.** What E8 offers on an
+   account decides what Levelflow *should* generate setups for (amendment
+   19's checkout/platform record, per market and account type). What FMP
+   can actually supply for that same instrument decides what Levelflow
+   *can* generate a setup from (amendment 20's data-foundation rule). The
+   two questions are asked in that order and never collapsed into one.
+2. **The broker↔FMP mapping is saved durably as THE master list for that
+   broker's replay sweeps — regardless of display state.** Once the
+   correct FMP source is identified for an E8 offering, on a given E8
+   account type, the match is recorded permanently. Every E8 replay sweep
+   runs against this saved master list, never against a live
+   re-derivation and never against only the subset currently shown to a
+   user.
+3. **Offset-significant markets are display-excluded, never unmapped.**
+   When a measured basis between the broker's price and FMP's is
+   significant enough to impact quality setups, Levelflow excludes that
+   market from what the user sees — it does not delete, weaken, or omit
+   the underlying E8↔FMP match from the backend record. The match stays in
+   the master list; only the user-facing display and setup generation for
+   that market turn off.
+4. **Account-type visibility follows amendment 13.** The user sees only
+   the market categories applicable to the actual account type they are
+   generating setups for — the same per-classification menu amendment 13
+   already establishes, now stated as part of this broker-integration
+   model rather than as a separate rule standing on its own.
+5. **Display names ALWAYS follow the broker; the backend reconciles
+   tickers.** Wherever FMP's and the broker's naming conventions diverge,
+   the user-facing name is always the broker's own name for the tradable
+   asset, so the user sees continuity between their broker and Levelflow.
+   Ticker/symbol reconciliation between FMP's spelling and the broker's is
+   a backend concern only, invisible to the user.
+6. **The model is universal.** This is the model for every broker
+   Levelflow adds, not an E8-specific pattern — the should/can split, the
+   durable master list, the display-exclusion-without-unmapping rule,
+   account-type visibility, and broker-first naming all carry forward
+   unchanged to the next broker integration.
+
+**Pending, not pre-decided — the offset-significance bar.** Three measured
+E8-vs-FMP bases are on record
+(`docs/research/e8-feed-verification-2026-08-02.md`): Brent ~2% (≈196 bp;
+F4/F6/F10) and XAGUSD/WTI ~30 bp each (F1/F4/F6/F7/F10). The bar for what
+counts as "significant enough to impact quality setups" under clause 3
+above is proposed to the owner and awaits their word: Brent's ~2% is the
+display-exclude candidate; XAGUSD's and WTI's ~30 bp are
+display-plus-basis-line candidates (kept visible, the basis shown alongside
+the price). This amendment records the proposal and the candidates; it does
+not rule on the bar itself, which stays open until the owner decides it.
+
+**Consequence for built code.** No display change ships from this
+amendment alone — the offset-significance bar is still pending (above).
+What is already true and now stated as durable law: `src/lib/symbolMap.ts`'s
+`fmpSymbol` field is exactly this "master list" for the CFD/Forex/Metals/
+Energies/Crypto rows already resolved, and the same discipline extends to
+the Futures side as each E8 offering's FMP match is identified (this task's
+own `ZB`/`ZN` — already matched — and `6J`/`6M` — newly matched; see
+`docs/research/e8-futures-account-2026-08-03.md` and
+`e8-feed-verification-2026-08-02.md`'s F12 entry). No source file renders
+an FMP symbol to the user anywhere in this codebase already
+(`tests/languageGuard.test.ts` bans `brokerSymbol`/`brokerSymbolAlt` in
+JSX); this amendment makes explicit why that discipline is permanent
+rather than incidental.
