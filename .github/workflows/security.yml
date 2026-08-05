@@ -6,7 +6,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "17 9 * * 1"
+    - cron: "17 9 * * 1"   # weekly: full scan suite
+    - cron: "17 13 * * *"  # daily: production Headers live probe only
   workflow_dispatch:
 
 permissions:
@@ -24,7 +25,7 @@ jobs:
     name: Semgrep CE
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'schedule' || github.event.schedule == '17 9 * * 1') }}
     container:
       image: semgrep/semgrep@sha256:2b33f46ba66cf8cc2ad59ccfa7d22951fd00c632c38f1339e84ec8e6e641a942
     steps:
@@ -37,6 +38,7 @@ jobs:
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'schedule' || github.event.schedule == '17 9 * * 1' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,6 +51,7 @@ jobs:
 
   dependency-scan:
     name: Dependency scan
+    if: ${{ github.event_name != 'schedule' || github.event.schedule == '17 9 * * 1' }}
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
     with:
       scan-args: |-
@@ -59,3 +62,24 @@ jobs:
       actions: read
       contents: read
       security-events: write
+
+  headers-live:
+    name: Headers live
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Assert the seven security headers on production
+        run: |
+          sleep 60
+          for attempt in 1 2 3 4 5 6; do
+            missing=""
+            h=$(curl -sI --max-time 20 https://levelflow.windwardline.com/)
+            for want in content-security-policy strict-transport-security x-content-type-options referrer-policy x-frame-options permissions-policy cross-origin-opener-policy; do
+              printf '%s' "$h" | grep -qi "^$want:" || missing="$missing $want"
+            done
+            if [ -z "$missing" ]; then echo "All seven present."; exit 0; fi
+            sleep 45
+          done
+          echo "Missing headers after retries:$missing"
+          exit 1
