@@ -16,6 +16,35 @@ const PRICE_PATHS = [
   "supabase/functions/trade-analyzer/marketLoader.ts",
 ];
 
+// Both edge functions hardcode their OWN independent symbol map — Deno Edge
+// Functions are self-contained modules, so neither imports from the other or
+// from src/lib/symbolMap.ts. market-data/index.ts can never join the
+// resolveProviderSymbols-based pins below: it's a Deno-global file, excluded
+// from tsconfig.tests.json by AGENTS.md's own law ("never widen it to a
+// glob"). trade-analyzer/symbols.ts CAN be imported (it already is, see
+// tests/core.test.ts), but its coverage there only exercises the three
+// symbols someone happened to call resolveProviderSymbols on for another
+// reason (NSDQ, WTI, ASX) — DAX's fallback has never been asserted through
+// that door. Fix round 1 (2026-08-04): a source-text pin, the same idiom
+// tests/mobileNav.test.ts's APP_SOURCE uses, covers both files identically
+// and exhaustively, so neither gap survives a future edit that touches only
+// one of them.
+const EDGE_FUNCTION_SYMBOL_MAP_PATHS = [
+  "supabase/functions/market-data/index.ts",
+  "supabase/functions/trade-analyzer/symbols.ts",
+];
+
+// Every fallback-shaped entry ("SYMBOL: { primary: "...", fallback: "..."
+// }") either file's own hardcoded symbolMap may carry today — byte-identical
+// in both files (verified below, not assumed). Adding, changing, or
+// reintroducing one — WTI/USO included — fails here even though neither
+// file's literal text ever gets imported into this suite for that symbol.
+const FROZEN_FALLBACK_ENTRIES = [
+  'ASX: { primary: "^AXJO", fallback: "EWA" },',
+  'DAX: { primary: "^GDAXI", fallback: "DAX" },',
+  'NSDQ: { primary: "^NDX", fallback: "QQQ" },',
+];
+
 // Every code file allowed to reference the provider. The two price paths
 // carry the verified correspondence; macroContext (Treasury), news-calendar
 // (economic calendar), and replay-sweep (offline research) are FMP consumers
@@ -180,6 +209,36 @@ describe("feed source lock (§20i ruling 8)", () => {
       .sort();
     assert.deepEqual(symbolsWithFallback, ["ASX", "DAX", "NSDQ"]);
   });
+
+  for (const path of EDGE_FUNCTION_SYMBOL_MAP_PATHS) {
+    it(`${path} carries no scale-broken fallback, and none it doesn't already (Task 16b, fix round 1)`, () => {
+      const source = readFileSync(path, "utf8");
+      // Scoped to the object-literal shape a price fallback actually takes
+      // ("fallback: "USO""), not a bare "USO" substring: this same file
+      // legitimately says "USO" elsewhere and would false-positive on a
+      // blanket ban — market-data/index.ts's own explanatory comment above
+      // the WTI entry, and trade-analyzer/symbols.ts's comment plus its
+      // separate, out-of-scope headlineNewsSymbols news-ticker proxy list
+      // (CLUSD/WTI -> ["USO", "CLUSD"], never a "fallback:" key) — none of
+      // which is the price-substitution mechanism this pin guards.
+      assert.ok(
+        !source.includes('fallback: "USO"'),
+        `${path} reintroduces a USO price fallback — F10 measured USO ~53% off CLUSD's scale (docs/research/e8-feed-verification-2026-08-02.md)`,
+      );
+      // Exhaustive, not just targeted: every fallback-shaped entry in the
+      // file, matched on its real line, must be exactly the frozen three —
+      // catching a silent addition (a fourth entry) exactly as it catches a
+      // reintroduction or edit of one of the three.
+      const fallbackEntries = source.match(
+        /[A-Z0-9]+: \{ primary: "[^"]+", fallback: "[^"]+" \},/g,
+      ) ?? [];
+      assert.deepEqual(
+        [...fallbackEntries].sort(),
+        [...FROZEN_FALLBACK_ENTRIES].sort(),
+        `${path}'s fallback entries drifted from the frozen, scale-adjudicated set — see docs/research/e8-feed-verification-2026-08-02.md Open Item 7 and task-16b-report.md before changing this pin`,
+      );
+    });
+  }
 
   it("financialmodelingprep appears only in the recorded wiring files", () => {
     const referencingFiles = codeFiles
