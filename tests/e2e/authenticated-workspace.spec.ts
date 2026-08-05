@@ -1890,15 +1890,22 @@ test("a failed history fetch says so on both surfaces instead of claiming an emp
 
   const rail = page.getByTestId("current-trades-rail");
   await expect(rail).toBeVisible();
+  // The failure copy renders only after the client's retry budget expires —
+  // measured ~15-18s wall-clock after the abort (a local green run took
+  // 17.8s end to end), which sits ON the 15s default assertion timeout:
+  // fast runners squeak under, loaded CI runners time out mid-"Loading"
+  // (deploy 30973943688, twice). The wait outlasts the budget instead —
+  // slow surfacing of an honest failure is not rot (the scan-wait
+  // precedent, #223).
   await expect(
     rail.getByText("Trade history could not load. Try again shortly."),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30_000 });
   await expect(rail.getByText("No current trades.")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
     page.getByText("Trade history could not load. Try again shortly."),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("No setups have been logged yet.")).toHaveCount(0);
 });
 
