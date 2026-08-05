@@ -167,8 +167,8 @@ hardcode.
   followed by a review of the same market doesn't double-log.
 - Outcome tracking covers scan-origin setups identically (outcome-sync is
   already setup-driven; verify the insert shape matches its query).
-- Rationale (owner): "I want to iterate based on every setup it
-  identifies and generates for a user, regardless of the tooling."
+- Rationale (owner ruling): every generated setup should feed iteration,
+  regardless of which tool — scan or review — produced it.
 
 ## 10. Insights recomposition
 
@@ -295,9 +295,9 @@ not occur in src today; "Copy levels" occurs once
 
 The 2026-07-31 ship implemented this spec's behaviors but not the approved
 composition: production kept the old app chrome and stage furniture inside
-the new grid, and the owner rejected it against the mockups ("still the
-box-on-box formatting, much of the old features remain"). Root cause: the
-plan scoped the shell as "a rearrangement, not a redesign," so no task
+the new grid, and the owner rejected it against the mockups — the
+box-on-box formatting persisted, and much of the old chrome remained.
+Root cause: the plan scoped the shell as "a rearrangement, not a redesign," so no task
 deleted the legacy chrome, and reviews verified new-element presence but
 never old-element absence.
 
@@ -382,10 +382,10 @@ report.
   card chrome beyond the article's own rhythm); (c) Profile keeps its
   Support card; (d) the mobile avatar menu keeps both. The Desk's fixed
   desktop shell stays footer-less — Help remains one tap away everywhere.
-- **Expand chart ships on mobile** (owner: "I do not want to skip
-  features just because we can"): an "Expand chart" affordance opens the
-  same MarketChart full-viewport (100dvw/100dvh overlay) with its level
-  lines and theme reactivity; 44px close target, Escape and focus trap,
+- **Expand chart ships on mobile** (owner ruling: a feature is not dropped
+  from mobile just because skipping it is easy): an "Expand chart" affordance
+  opens the same MarketChart full-viewport (100dvw/100dvh overlay) with its
+  level lines and theme reactivity; 44px close target, Escape and focus trap,
   aria-modal, functional labels only. With it, the inline mobile chart may
   take the mock's compact height.
 - **Inline Guide links on the why panel stay** (owner-confirmed; E4
@@ -539,7 +539,7 @@ control, the layout, or the data shows it, the sentence does not exist.
   (44px targets still bind). Desktop's §17c footer standard is unchanged
   at ≥lg.
 
-### §17h. The Levelflow mark (owner-chosen, 2026-08-01: "A")
+### §17h. The Levelflow mark (owner selection, 2026-08-01: option A)
 
 The level lines: a rounded-square tile carrying three horizontals from the
 app's own chart — target (ink, full width), entry (accent, full width),
@@ -560,7 +560,7 @@ windward-line-mark.svg on the 404 and legal pages.
 ### §17i. The desktop frame, single-home links, and the satellite brand (owner rulings, 2026-08-01)
 
 - **Desktop is an app-shell frame on EVERY page — no exceptions**
-  (owner: "Every single page."): the authed tabs (Desk, Insights, Guide,
+  (owner ruling, 2026-08-01): the authed tabs (Desk, Insights, Guide,
   Profile, Donate) AND the seldom-used set (parking, login, the legal
   trio, 404). Top chrome pinned (the masthead where one exists; the
   page's own head region otherwise), THE footer pinned bottom and always
@@ -611,7 +611,7 @@ no underline until hover/focus, `target="_blank"` +
 44px hit target per the kit floor. A guard pins the target URL, the
 new-tab behavior, and the at-rest quietness on every occurrence.
 
-### §17l. Launch (2026-08-01, owner: "go.")
+### §17l. Launch (owner ruling, 2026-08-01: launch authorized)
 
 The overhaul is owner-confirmed complete. The launch runbook executed:
 all trade history cleared for every account (14 setups, 10 outcomes →
@@ -649,15 +649,10 @@ deploy pipeline's own live suite; real users' slates are clean.
 
 ### §17n. Mobile minimalism (owner ruling, 2026-08-02, durable)
 
-The ruling, verbatim, both halves:
-
-> I want these ancillary things to be as small as possible on the mobile
-> view while still being usable and legible (where text is necessary) —
-> that resize needs to be made a durable rule, and the mobile view needs
-> to be audited for compliance.
-
-> I want to have things tight on the mobile view — as small as possible
-> while being tappable, usable, and legible (as applies).
+**The ruling.** Shrink ancillary elements on the mobile view to the smallest
+size that stays tappable, usable, and legible where text is necessary and as
+applies. Make the resize a durable rule, and audit the mobile view for
+compliance.
 
 **The rule.** On every <lg surface, ancillary chrome is sized to the
 smallest form that stays tappable, usable and legible — and no larger.
@@ -702,9 +697,9 @@ type. The audit measures them like everything else and states the test
 that holds each one; it does not treat a mock number as exempt from the
 rule the owner wrote after approving the mock.
 
-**The compliance audit is mandated, not optional** — "the mobile view
-needs to be audited for compliance." Every <lg surface and every piece of
-shared mobile chrome is measured against the **built CSS at 375×812**
+**The compliance audit is mandated, not optional** — the ruling requires it
+directly. Every <lg surface and every piece of shared mobile chrome is
+measured against the **built CSS at 375×812**
 (measured, the way ProfilePanel's own row budget was, never asserted), and
 the audit reports per surface: pinned-chrome height, content-region
 height, and for each ancillary element its current size, its proposed
@@ -728,10 +723,9 @@ Insights was the only offender.
 
 ### §17o. Links, in three tiers (owner ruling, 2026-08-02)
 
-The ruling, verbatim:
-
-> I like your recommended 3 tier approach for links. Get it done. Test
-> thoroughly for all views and links and pages and states.
+**The ruling** (owner, 2026-08-02): the three-tier link approach is
+approved — implement it, and test thoroughly across every view, link, page,
+and state.
 
 **The law, in one line: a new tab means you left Levelflow.** Every link
 the product ships is one of three kinds, and the kind decides the
@@ -837,14 +831,14 @@ exists.
 Insights gains an **Attribution** section: the user's OWN resolved
 history sliced four ways, computed over the **complete** history — every
 resolved setup on the account, not the page Insights happens to have
-loaded. Engine involvement is authorized for exactly that reason (owner,
-2026-08-02: "Can we let it involve the engine? If so, do it. I want
-accuracy."), so the aggregate may be computed server-side over the user's
+loaded. Engine involvement is authorized for exactly that reason (owner
+ruling, 2026-08-02: engine involvement authorized in service of full
+accuracy), so the aggregate may be computed server-side over the user's
 own rows under existing RLS. No new columns: `realizedR` is read where it
 already lives, in `trade_outcomes.feedback`.
 
 **The record band reads the same lifetime aggregate** (owner ruling
-extended, 2026-08-02: "Yes. I want fidelity across the board"). §10's
+extended, 2026-08-02: fidelity applies across the board). §10's
 band and this section sit one above the other, so a truncated band under
 a lifetime section would be the same fork these rulings close. Precisely:
 the band's **money-positive %, net R and best market** are lifetime, and
@@ -864,8 +858,8 @@ serves both consumers.
   gains the new call site consciously) · net R.
 - **One gate, both numbers.** Below 3 resolved, **both** the percentage
   and net R read "Learning" — the same threshold, the same word, the same
-  honesty pattern the record band already uses (owner, 2026-08-02: "Yes.
-  I want fidelity across the board."). Three resolved is stated here as
+  honesty pattern the record band already uses (owner ruling, 2026-08-02:
+  fidelity applies across the board). Three resolved is stated here as
   law. At or above the gate, net R renders where every resolved row in
   the slice recorded a realizedR and the em dash otherwise — the
   all-or-nothing rule is unchanged, it now sits behind the gate rather
@@ -954,8 +948,8 @@ builder level by tests. **Deliberately unrendered — decision of record
 (owner, 2026-08-03).** The launch slate-clean (2026-08-01) plus the
 engine's refusal to generate below the bar make the unbanded population
 structurally zero on every real account, so no sentence could ever render
-and none is shipped: "Why would we even reference anything predated? We
-have a new engine, a new look, new bands, and will be generating new
-trades." If a future calibration raise ever strands resolved rows below a
+and none is shipped — nothing should reference pre-launch data, since the
+engine, look, and bands are all new and every trade going forward is newly
+generated. If a future calibration raise ever strands resolved rows below a
 new bar, the counter is already in place and the rendering question
 reopens with real rows on screen.

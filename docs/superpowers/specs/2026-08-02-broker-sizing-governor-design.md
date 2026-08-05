@@ -290,8 +290,8 @@ it: its article 404'd on re-fetch and its drawdown is described two ways
 (fixed 4%/8% against a customizable 3–7%/6–14%). `E8 Track` and `E8 Track
 1:1` fail it: never found on either help subdomain, secondary-only, absent
 from every current collection listing, possibly legacy. **Neither is offered
-by E8 any longer** (owner, 2026-08-02: "Classic and Track are no longer
-offered by E8."), which retires the evidence question rather than answering
+by E8 any longer** (owner ruling, 2026-08-02: Classic and Track are
+discontinued by E8), which retires the evidence question rather than answering
 it: the 404'd Classic article and Track's secondary-only citations are what a
 withdrawn product's documentation looks like. Neither appears in the
 selector, and **neither has a re-entry path** — there is no research pass to
@@ -585,8 +585,8 @@ units = floorToStep(min(rawUnits, ...caps), step)
 
 Futures step is **1 contract**, exact and confirmed. CFD step is **0.01
 lots**, and it is **verified, not assumed**: the owner confirmed it on their
-live E8 Pro Forex account in TradeLocker on 2026-08-02 — "On forex accounts,
-I can confirm the smallest is 0.01." The value carries `tag: "verified"` with
+live E8 Pro Forex account in TradeLocker on 2026-08-02 — the smallest forex
+lot size is 0.01. The value carries `tag: "verified"` with
 that observation (§19a); E8 still publishes no minimum lot increment on any
 page, and it no longer needs to. The print record that forced the old
 assumption is kept for the reader: the smallest lot E8 names in print is 0.1
@@ -1105,9 +1105,9 @@ who "simplifies" the table to one percentage fails the suite.
 customizable lines (`one`, `one_crypto`, `pro_forex`, `pro_crypto`) sell
 their loss limits as a purchase-time choice, and the definitive statement of
 what E8 offers is the purchase screen itself. The owner has offered to supply
-it (2026-08-02: "We should account for the customizable options and calculate
-things for the user based on the parameters E8 offers. I can provide them
-from the purchase screen, if necessary."). This block states what happens
+it (owner ruling, 2026-08-02: account for E8's customizable purchase-time
+options and calculate accordingly for the user; the owner may supply the
+purchase-screen parameters when needed). This block states what happens
 when they do, and what happens until then, so neither state is improvised.
 
 **When the tier matrix arrives**, it enters as `verified` provenance (§19a):
@@ -1529,8 +1529,8 @@ decided rather than re-deciding it.
    unconfirmed, with the consequence stated: a sub-0.1-lot size may fall under
    the platform's own minimum and be refused at order entry — a rejected
    order, never an account breach. The owner then confirmed the step on the
-   live platform (E8 Pro Forex, TradeLocker, 2026-08-02): "On forex accounts,
-   I can confirm the smallest is 0.01." It carries `tag: "verified"`, and the
+   live platform (E8 Pro Forex, TradeLocker, 2026-08-02): the smallest forex
+   lot size is 0.01. It carries `tag: "verified"`, and the
    refused-at-order-entry hedge is retired on the forex pairs. (§19a, §19c,
    Appendix A.)
 3. **SUPERSEDED by owner canon, 2026-08-02.** As drafted, this ruling
@@ -1561,16 +1561,15 @@ decided rather than re-deciding it.
    inversion machinery ships property-tested awaiting confirmed data, and
    Appendix A item 6 is still its route. (§19a, amendment 19, amendment 22.)
 6. **Ten program lines** — the researched set less E8 Classic and E8 Track.
-   Ground UPDATED by the owner, 2026-08-02: "Classic and Track are no longer
-   offered by E8." Discontinued, not under-evidenced — so the draft's
+   Ground UPDATED by owner ruling, 2026-08-02: Classic and Track are
+   discontinued by E8. Discontinued, not under-evidenced — so the draft's
    "re-enter only behind fresh primary research" path does not exist; a future
    reappearance is a new product. (§19b.)
-7. **The catalog is static and predefined** (owner, 2026-08-02, verbatim):
-   "Now you should be able to properly configure the different E8 account
-   setups. These should be presented as static, predefined options for the
-   user when the pillar build plan gets to a point that requires it as a
-   feature." The Profile's broker configuration therefore presents E8's REAL
-   catalog and nothing else: market → program line → balance tier →
+7. **The catalog is static and predefined** (owner ruling, 2026-08-02): E8
+   account setups are configured as static, predefined options once the
+   build plan reaches that point as a feature. The Profile's broker
+   configuration therefore presents E8's REAL catalog and nothing else:
+   market → program line → balance tier →
    drawdown-pair token where E8 sells a choice (the futures lines' single
    EOD option is auto-set, never asked). The option sets are transcribed
    from the verified purchase-screen record
@@ -1579,13 +1578,12 @@ decided rather than re-deciding it.
    the configuration, and no selectable combination may exist that the
    checkout does not sell. Binds the §19 retrofit and the §20 build. (§19b,
    §20b.)
-8. **The feed is verified and locked** (owner, 2026-08-02, verbatim): "Good!
-   Confirm we are using the right source, and lock it in for E8. Right
-   safeguards so we cannot possibly regress. Once we have the workflow down,
-   I will send other screenshots for the same treatment." And: "Remember,
-   this is E8 Pro Forex. That is important to keep track of." FMP is the
-   codebase's sole price provider, and its correspondence to E8's live feed
-   is established frame-by-frame against the platform's own book — same
+8. **The feed is verified and locked** (owner ruling, 2026-08-02): confirm
+   the correct data source, lock it in for E8, and add safeguards so it
+   cannot regress; the workflow, once established, extends to further
+   screenshots. The verification is scoped explicitly to E8 Pro Forex. FMP
+   is the codebase's sole price provider, and its correspondence to E8's
+   live feed is established frame-by-frame against the platform's own book — same
    second, inside the quoted spread — per the protocol and running sample
    table in `docs/research/e8-feed-verification-2026-08-02.md` (F1:
    EURNZD and XAUUSD confirmed sub-spread on E8 Pro Forex, TradeLocker).
@@ -1623,9 +1621,9 @@ owner-APPROVED 2026-08-04).** Each saved account's row carries, on the
 active row only, `Active`, and every row carries a `Remove` control. The
 walk's own submit control is `Add account`. `Manage accounts` is
 registered here ahead of task 7's own chip menu, which has not shipped
-yet. The owner reviewed all of this section's pending vocabulary on
-2026-08-04 ("Everything in 1. is fine") — the pending caveats below are
-resolved approvals now.
+yet. The owner reviewed and approved all of this section's pending
+vocabulary on 2026-08-04 — the pending caveats below are resolved approvals
+now.
 
 **Owner findings wave (2026-08-04) — the rename control.** Every saved
 account's row also carries `Rename` (the owner's explicit choice between
