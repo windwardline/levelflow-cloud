@@ -167,29 +167,38 @@ name-and-price-confirmed FMP symbol.
 
 ## 5. Notes on the wider deltas
 
-Eleven rows read "outside book," several with deltas past the round
+Twelve rows read "outside book," several with deltas past the round
 0.1%/10 bp figure the task brief cites as the crypto-class standard. Each
 is a known, explainable pattern, not a fresh divergence signal:
 
-- **Tight-spread arithmetic** (`AAVEUSD`, `DASHUSD`, `HBARUSD`, `LINKUSD`,
-  `XLMUSD`, `CAKEUSD`, `DOGEUSD`): these symbols carry the *narrowest*
-  dollar spreads in the table (1–10 bp of price). A composite gap of a few
-  hundredths of a percent — utterly normal cross-venue noise, smaller in
-  absolute terms than several "inside book" rows above — reads as a larger
-  bp figure only because the book itself is narrow. This is the identical
-  shape as F3's BTC precedent: "the same order as its own spread... a
-  standing basis, not a defect."
+- **Tight-spread arithmetic** (`AAVEUSD`, `CAKEUSD`, `DASHUSD`, `DOGEUSD`,
+  `ETCUSD`, `HBARUSD`, `LINKUSD`, `XLMUSD`): these symbols carry the
+  *narrowest* dollar spreads in the table (1–10 bp of price) — `ETCUSD`'s
+  own spread (6.614/6.619) is 7.6 bp, right in this band. A composite gap
+  of a few hundredths of a percent — utterly normal cross-venue noise,
+  smaller in absolute terms than several "inside book" rows above — reads
+  as a larger bp figure only because the book itself is narrow. `ETCUSD`
+  is the only one of this group reading positive (the bar's low sits just
+  $0.001 above the ask, +5.3 bp, trivial) rather than negative (bar below
+  bid) — the sign flips with which side of the book the noise lands on,
+  the mechanism is identical. This is the same shape as F3's BTC
+  precedent: "the same order as its own spread... a standing basis, not a
+  defect."
 - **`GRTUSD` (+57.8 bp)**: not a price disagreement — a **decimal-resolution
   artifact**. E8 books GRTUSD to 5 decimals (0.01471/0.01472); FMP's feed
-  for this sub-cent token is flat at **0.0148** for the entire
-  14:50–15:10 ET window (confirmed by re-pulling the surrounding 20
-  minutes), i.e. FMP is reporting on a coarser tick grid than the E8 book's
-  own $0.00001 spread. The bar sits only $0.00008 above E8's ask — under
-  one FMP tick. Same market, coarser rounding.
-- **`ARWUSD`/`ARUSD` (+16.3 bp) and `TRUMPUSD`/`OTRUMPUSD` (−20.0 bp)**:
-  covered fully in §3. Both pass on name identity plus a price band that
-  brackets or nearly touches the E8 book across the surrounding minutes,
-  not just the single anchor minute.
+  for this sub-cent token steps from **0.0147** (14:50–14:53 ET, the first
+  four minutes of the re-pulled 14:50–15:10 window) to **0.0148**
+  (14:54–15:10 ET, the remaining seventeen minutes, including the 14:59
+  anchor) and holds flat there — i.e. FMP is reporting on a coarser tick
+  grid than the E8 book's own $0.00001 spread, one $0.0001 step across the
+  whole 21-minute window. The anchor bar sits only $0.00008 above E8's
+  ask — under one FMP tick. Same market, coarser rounding.
+- **`TRUMPUSD`/`OTRUMPUSD` (−20.0 bp, outside)**: covered fully in §3 —
+  passes on name identity plus a price band that brackets E8's book across
+  the surrounding minutes, not just the single anchor minute. Grouped here
+  with **`ARWUSD`/`ARUSD` (+16.3 bp)** for narrative continuity from §3,
+  though `ARWUSD` is not one of the twelve — its bar's open already sits
+  inside the book (§4), and its close is what carries the wider delta.
 - **`XMRUSD` (−21.2 bp)**: re-pulled the surrounding 14:50–15:10 ET window
   — Monero trades a stable, real 362.3–362.6 band throughout (confirmed by
   repeated live prints, not a single stale tick), consistently a few tenths
@@ -202,7 +211,7 @@ is a known, explainable pattern, not a fresh divergence signal:
 - **`BNBUSD` (−13.1 bp)**: see §6 — this one carries its own standing
   precedent and directly feeds Task 18.
 
-None of the eleven is a fail-to-match. Every one is either inside its own
+None of the twelve is a fail-to-match. Every one is either inside its own
 book or explained by a documented, class-consistent pattern.
 
 ## 6. BNBUSD — the Task 18 input

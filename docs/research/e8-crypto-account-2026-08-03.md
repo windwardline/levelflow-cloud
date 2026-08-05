@@ -85,19 +85,32 @@ account.
 
 **Notables for the source-resolution work (recorded, not resolved here):**
 
-- **RESOLVED 2026-08-05**: every instrument in this table beyond
-  Levelflow's existing 8 has been matched against FMP with per-symbol
-  name-and-price evidence (zero excluded under amendment 20) — see
-  `docs/research/e8-crypto-source-resolution-2026-08-05.md`.
 - `ARWUSD` is TradeLocker's ticker for what most venues call AR (Arweave).
-- `TRUMPUSD` and `CAKEUSD`, `DYDXUSD`, `IMXUSD`, `GRTUSD`, `EGLDUSD`,
+- ~~`TRUMPUSD` and `CAKEUSD`, `DYDXUSD`, `IMXUSD`, `GRTUSD`, `EGLDUSD`,
   `XMRUSD` are outside Levelflow's current crypto universe; whether FMP
   carries each is a per-symbol best-match resolution question for the
   crypto onboarding, under the A16 pattern (source match → fresh sweep →
-  inclusion verdict).
-- `BNBUSD` is definitively SOLD on the Crypto account. The A16 BNB
+  inclusion verdict).~~ — **RESOLVED 2026-08-05**: every one of these
+  seven, plus the rest of this table's instruments beyond Levelflow's
+  existing 8, is matched against FMP with per-symbol name-and-price
+  evidence (zero excluded under amendment 20) — see
+  `docs/research/e8-crypto-source-resolution-2026-08-05.md`. (`ARWUSD`
+  above resolves to FMP `ARUSD`, and `TRUMPUSD` resolves to FMP
+  `OTRUMPUSD`, not FMP's own literally-spelled `TRUMPUSD` ticker — a
+  different, unrelated coin; both are name-and-price adjudicated in the
+  new document's §3.) The still-open question is the crypto onboarding's
+  own inclusion verdict (A16 pattern: source match → fresh sweep →
+  inclusion verdict) — this resolution is the source-match leg only.
+- ~~`BNBUSD` is definitively SOLD on the Crypto account. The A16 BNB
   question for FOREX-carried crypto remains its own question; this record
-  answers the Crypto-classification side only.
+  answers the Crypto-classification side only.~~ — **RESOLVED 2026-08-05**:
+  BNBUSD's FMP identity is independently reconfirmed a third time (after
+  F3, F10) on this actual Crypto-classification account (591.19 vs the
+  591.95/591.98 book, −13.1 bp, TRACKS) — see
+  `docs/research/e8-crypto-source-resolution-2026-08-05.md` §6. The A16
+  BNB question itself — whether BNBUSD's expectancy justifies lifting it
+  out of `NO_TRADE_SYMBOLS` — is unchanged and still Task 18's to rule on;
+  this resolves the identity leg only.
 - Spreads are a point-in-time sample (2:59 PM ET, Monday), not a cost
   model.
 
