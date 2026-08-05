@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { SECURITY_GROUPS, SECURITY_OPTIONS } from "../src/lib/symbolMap";
+import { isKnownSymbol } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 // §20i ruling 8: the FMP feed was verified against E8's live platform
 // (E8 Pro Forex, TradeLocker, 2026-08-02 — docs/research/
@@ -237,16 +238,41 @@ describe("feed source lock (§20i ruling 8)", () => {
       );
     }
 
-    // Refused before resolveProviderSymbols ever runs — "before any provider
-    // fetch" is the brief's own bar, checked structurally rather than by
-    // running the handler (Deno-global file, cannot be imported here).
+    // Fix round 1: checking the request symbol string against noTradeSymbols
+    // alone isn't enough — normalizeSymbol("^NDX") is "NDX", not "NSDQ", so an
+    // FMP alias (or the pre-existing ASX variant, "^AXJO") normalized past
+    // the gate to a real provider fetch. The fix resolves IDENTITY first:
+    // isKnownSymbol, the same function name and shape
+    // trade-analyzer/symbols.ts exports, and the same precondition
+    // trade-analyzer's own scanOpportunities applies to every requested
+    // symbol before any of it (including reviewCurrentMarket's own
+    // noTradeSymbols check) ever runs. Refusing anything that isn't a
+    // canonical symbolMap key closes the alias hole and the ASX variant in
+    // the same gate — neither ever reaches resolveProviderSymbols.
+    assert.match(
+      source,
+      /function isKnownSymbol\(symbol: string\) \{\s*return normalizeSymbol\(symbol\) in symbolMap;\s*\}/,
+      "market-data/index.ts must resolve identity via its own isKnownSymbol, mirroring trade-analyzer/symbols.ts's function of the same name",
+    );
+
+    // Refused before resolveProviderSymbols ever runs, and before either the
+    // no-trade or temporarily-unavailable gate — "before any provider fetch"
+    // is the brief's own bar, checked structurally rather than by running
+    // the handler (Deno-global file, cannot be imported here).
+    const isKnownIndex = source.indexOf("if (!isKnownSymbol(uiSymbol))");
     const gateIndex = source.indexOf("noTradeSymbols.has(uiSymbol)");
+    const unavailableIndex = source.indexOf(
+      "temporarilyUnavailableSymbols.has(uiSymbol)",
+    );
     const resolveIndex = source.indexOf(
       "resolveProviderSymbols(requestedSymbol)",
     );
     assert.ok(
-      gateIndex > -1 && resolveIndex > -1 && gateIndex < resolveIndex,
-      "market-data/index.ts must refuse a no-trade symbol before calling resolveProviderSymbols",
+      isKnownIndex > -1 && gateIndex > -1 && unavailableIndex > -1 &&
+        resolveIndex > -1 &&
+        isKnownIndex < gateIndex && isKnownIndex < unavailableIndex &&
+        gateIndex < resolveIndex,
+      "market-data/index.ts must resolve identity (isKnownSymbol) before the no-trade gate, the temporarily-unavailable gate, and resolveProviderSymbols",
     );
 
     // The refusal shape mirrors trade-analyzer's own no-trade block exactly
@@ -257,6 +283,38 @@ describe("feed source lock (§20i ruling 8)", () => {
       /if \(noTradeSymbols\.has\(uiSymbol\)\) \{[\s\S]{0,200}?blocked: true,[\s\S]{0,200}?reason:\s*\n\s*"Levelflow's measured record says this market does not earn setups, so reviews are off for it\. It stays under analysis and returns if the data changes\."/,
       "market-data/index.ts's no-trade refusal must match trade-analyzer's blocked/reason copy verbatim",
     );
+
+    // Unknown-symbol refusal reuses the existing "Unsupported Levelflow
+    // market symbol" copy (the same string resolveProviderSymbols's own
+    // empty-result branch already used) rather than inventing new copy.
+    assert.match(
+      source,
+      /if \(!isKnownSymbol\(uiSymbol\)\) \{[\s\S]{0,120}?"Unsupported Levelflow market symbol"[\s\S]{0,40}?400,/,
+      "market-data/index.ts's unknown-symbol refusal must reuse the existing 'Unsupported Levelflow market symbol' copy at 400",
+    );
+  });
+
+  it("no no-trade or hidden index's own FMP alias is itself a known Levelflow symbol (Task 16c, fix round 1)", () => {
+    // The data-level property the isKnownSymbol gate depends on, proved by
+    // execution rather than inspection: trade-analyzer/symbols.ts's real
+    // isKnownSymbol (its symbolMap keys are pinned byte-identical to
+    // market-data/index.ts's own by the source-text pins above) says none of
+    // these six Indices' cash-ticker FMP aliases collides with a canonical
+    // Levelflow symbol name. That is exactly what makes "isKnownSymbol(alias)
+    // is false" the correct, general refusal condition — an FMP alias is
+    // never accidentally indistinguishable from a real Levelflow symbol.
+    const indexSymbols = ["SP", "NSDQ", "DOW", "NIKKEI", "DAX", "ASX"];
+    const indexOptions = SECURITY_OPTIONS.filter((option) =>
+      indexSymbols.includes(option.symbol)
+    );
+    assert.equal(indexOptions.length, indexSymbols.length);
+    for (const option of indexOptions) {
+      assert.equal(
+        isKnownSymbol(option.fmpSymbol),
+        false,
+        `${option.symbol}'s own FMP alias (${option.fmpSymbol}) must not itself resolve as a known Levelflow symbol`,
+      );
+    }
   });
 
   it("financialmodelingprep appears only in the recorded wiring files", () => {

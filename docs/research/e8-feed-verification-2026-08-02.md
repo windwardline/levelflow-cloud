@@ -575,18 +575,42 @@ silently closed.
    `noTradeSymbols` set, byte-identical to `trade-analyzer/symbols.ts`'s
    (copied, never re-membered — the SET stays the analyzer's law), refused
    before any provider fetch with the same `blocked`/`reason` shape
-   `reviewCurrentMarket`'s own no-trade block uses. A direct authenticated
-   call can no longer reach a no-trade symbol's provider fetch at all,
-   fallback or not — closing the gap regardless of what the shipped
-   client's UI already kept unreachable.
+   `reviewCurrentMarket`'s own no-trade block uses.
 
-   `tests/feedSource.test.ts` pins both halves: an exhaustive,
+   **Fix round 1** (2026-08-04, controller review): the `noTradeSymbols`
+   check alone compared the request's *string*, not its *resolved
+   identity* — `normalizeSymbol("^NDX")` is `"NDX"`, not `NSDQ`'s own
+   canonical key, so NSDQ's FMP alias (or any of `^GSPC`/`^DJI`/`^N225`/
+   `^GDAXI`, or `ASX`'s pre-existing `^AXJO` variant of the same gap) read
+   as an unrecognized-but-otherwise-fine symbol and reached a real provider
+   fetch. The fix resolves identity first: `market-data/index.ts` gained
+   its own `isKnownSymbol`, mirroring `trade-analyzer/symbols.ts`'s
+   function of the same name and the same precondition
+   `trade-analyzer`'s own `scanOpportunities` applies to every requested
+   symbol before any of it — including `reviewCurrentMarket`'s own
+   `noTradeSymbols` check — ever runs. Refusing anything that isn't a
+   canonical `symbolMap` key closes the alias hole and the `ASX` variant in
+   the same gate, ahead of the no-trade and temporarily-unavailable checks.
+   With that in place, the claim is exactly true as written: a direct
+   authenticated call — canonical name, FMP alias, or garbage — can no
+   longer reach a no-trade symbol's provider fetch at all, fallback or
+   not, regardless of what the shipped client's UI already kept
+   unreachable.
+
+   `tests/feedSource.test.ts` pins all three layers: an exhaustive,
    now-permanently-empty match for any fallback-shaped entry across both
    edge functions' source text (the mechanism this item's fallbacks used to
-   populate), and a source-text pin confirming `market-data/index.ts`
-   carries the no-trade gate's `noTradeSymbols` set and refusal shape.
-   `docs/research/e8-fmp-crossmap.md:350` named the general shape of this
-   ("ETF fallbacks are a fourth price scale... any sizing number derived
-   from the primary symbol's scale is wrong") on 2026-08-02, before F10
-   existed; that file is unchanged by this resolution (out of this task's
-   scope, same as Task 16b's precedent) and remains stale on this point.
+   populate); a source-text pin confirming `market-data/index.ts` carries
+   the no-trade gate's `noTradeSymbols` set, its `isKnownSymbol`
+   resolved-identity check, their relative order (identity, then no-trade
+   and temporarily-unavailable, then `resolveProviderSymbols`), and the
+   refusal copy; and an import-based pin against
+   `trade-analyzer/symbols.ts`'s real `isKnownSymbol` proving none of the
+   six no-trade/hidden Indices' own FMP aliases collides with a canonical
+   Levelflow symbol name — the data-level property the gate depends on.
+   `docs/research/e8-fmp-crossmap.md:350` named the general shape of the
+   fallback-scale problem ("ETF fallbacks are a fourth price scale... any
+   sizing number derived from the primary symbol's scale is wrong") on
+   2026-08-02, before F10 existed; that file is unchanged by this
+   resolution (out of this task's scope, same as Task 16b's precedent) and
+   remains stale on that point.

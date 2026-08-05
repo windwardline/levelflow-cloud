@@ -158,6 +158,14 @@ Deno.serve(async (req) => {
         ? body.symbol.trim()
         : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
+    if (!isKnownSymbol(uiSymbol)) {
+      return jsonResponse(
+        req,
+        { error: "Unsupported Levelflow market symbol" },
+        400,
+      );
+    }
+
     if (noTradeSymbols.has(uiSymbol)) {
       return jsonResponse(
         req,
@@ -293,6 +301,21 @@ async function getAuthenticatedUser(req: Request) {
 
 function normalizeSymbol(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+// Fix round 1 (Task 16c): checking a request's symbol against noTradeSymbols
+// (or temporarilyUnavailableSymbols) by string membership alone isn't
+// enough — an FMP alias like "^NDX" normalizes to "NDX", not NSDQ's own
+// canonical key, so it read as an unrecognized-but-fine symbol and reached a
+// real provider fetch (the same pre-existing gap ASX's "^AXJO" always had).
+// Mirrors trade-analyzer/symbols.ts's own isKnownSymbol exactly — the same
+// precondition trade-analyzer's scanOpportunities applies to every requested
+// symbol before any of it, including reviewCurrentMarket's own no-trade
+// check, ever runs. Resolving identity first closes the alias hole and the
+// ASX variant in one gate: neither shape is a canonical symbolMap key, so
+// neither ever reaches resolveProviderSymbols.
+function isKnownSymbol(symbol: string) {
+  return normalizeSymbol(symbol) in symbolMap;
 }
 
 function sanitizeFmpSymbol(value: string) {
