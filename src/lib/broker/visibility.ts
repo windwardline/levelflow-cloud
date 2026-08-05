@@ -4,7 +4,7 @@ import {
   type SecurityGroup,
   type SecurityType,
 } from "../symbolMap";
-import { DISPLAY_EXCLUDED_SYMBOLS } from "./offsets";
+import { isDisplayExcluded } from "./offsets";
 
 // Amendment 13. E8 Forex accounts cannot trade futures, so futures markets are
 // removed from user view and from scanner action and results whenever an E8
@@ -41,13 +41,14 @@ export function visibleAssetGroups(account: BrokerAccount | null): SecurityGroup
   // list backend broker-matching and replay sweeps read — see offsets.ts's
   // own header. A group left with zero options (none currently — Energies
   // keeps WTI) drops out entirely rather than rendering an empty menu
-  // section.
+  // section. isDisplayExcluded is the one predicate every other reopen/
+  // affordance check reuses too (fix round 1) — never a second list.
   return AVAILABLE_ASSET_GROUPS
     .filter((group) => !hidden.has(group.label))
     .map((group) => ({
       ...group,
       options: group.options.filter(
-        (option) => !DISPLAY_EXCLUDED_SYMBOLS.has(option.symbol),
+        (option) => !isDisplayExcluded(option.symbol),
       ),
     }))
     .filter((group) => group.options.length > 0);

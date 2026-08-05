@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isDisplayExcluded } from "../../lib/broker/offsets";
 import { formatClockTime } from "../../lib/marketHours";
 import { deriveTradeState, type TradeState } from "../../lib/tradeState";
 import type { TradeSetupRow } from "../../lib/tradeAnalyzer";
@@ -48,6 +49,13 @@ type CurrentTradesRailProps = {
 type TradeCard = {
   setup: TradeSetupRow;
   state: TradeState;
+  // Amendment 23's offset ruling (owner, 2026-08-05), fix round 1: the card
+  // is a record and renders unconditionally — this only ever governs whether
+  // it renders AS THE AFFORDANCE (a clickable <button>) or as a plain,
+  // non-interactive read of the same fields. false for a display-excluded
+  // symbol (BRENT today), which "leaves every user-visible surface...
+  // chart selection" per the ruling — reopening one would defeat that.
+  reopenable: boolean;
 };
 
 // Which state group a card belongs to, and the order the groups read in.
@@ -75,7 +83,7 @@ export function buildTradeCards(
   for (const setup of setups) {
     const state = deriveTradeState(setup, now);
     if (state) {
-      cards.push({ setup, state });
+      cards.push({ reopenable: !isDisplayExcluded(setup.symbol), setup, state });
     }
   }
   // The durable sort law (spec §4: "results are sorted by confidence for
@@ -254,9 +262,10 @@ export function CurrentTradesRail(
         )
         : (
           <div className="mt-2.5 grid gap-2.5">
-            {cards.map(({ setup, state }) => (
+            {cards.map(({ reopenable, setup, state }) => (
               <TradeStateCard
                 key={setup.id}
+                reopenable={reopenable}
                 selected={setup.symbol === selectedSymbol}
                 setup={setup}
                 state={state}
@@ -328,10 +337,12 @@ export function CurrentTradesRail(
 // scale and rhythm are unchanged — every class the elements carried, they still
 // carry.
 function TradeStateCard({
+  reopenable,
   selected,
   setup,
   state,
 }: {
+  reopenable: boolean;
   selected: boolean;
   setup: TradeSetupRow;
   state: TradeState;
@@ -344,6 +355,54 @@ function TradeStateCard({
   const isBuy = setup.side === "buy";
   const isPending = state.status === "pending";
   const levels = buildRemainingLevels(setup, state);
+
+  // Amendment 23's offset ruling (owner, 2026-08-05), fix round 1: a stored
+  // row for a display-excluded symbol (BRENT today) is a record and stays on
+  // this surface in full — every field below renders exactly as it would
+  // for any other card — but the reopen affordance is what the ruling's own
+  // "leaves every user-visible surface... chart selection" closes. §17c: an
+  // inert control is a lie, so this is an ABSENT affordance (a plain,
+  // non-interactive wrapper — no <button>, no onClick, no focus ring), never
+  // a disabled one. The two branches' inner markup is identical by
+  // construction; tests/currentTradesRail.test.tsx and tests/deskComposition.test.ts pin
+  // the two-branch shape from both sides.
+  if (!reopenable) {
+    return (
+      <div className="w-full min-w-0 rounded-lg border border-hairline bg-sheet px-3.5 py-3 text-left">
+        <span className="flex flex-wrap items-center justify-between gap-2">
+          <span className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="truncate text-base font-semibold text-ink">
+              {setup.symbol}
+            </span>
+            <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>
+              {isBuy ? "Buy" : "Sell"}
+            </span>
+            <span className={`chip ${isPending ? "text-caution" : "text-buy"}`}>
+              {isPending ? "Pending" : "Open"}
+            </span>
+          </span>
+          <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-ink">
+            {formatSignedR(state.progressR)}
+          </span>
+        </span>
+
+        <span className="mt-2 block text-sm leading-5 text-ink-muted">
+          {state.instruction}
+        </span>
+
+        <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 font-mono text-xs">
+          {levels.map((level) => (
+            <span key={level.label} className="text-ink-muted">
+              {level.label}
+              <b className="block text-[13px] font-semibold tabular-nums text-ink">
+                {level.value}
+              </b>
+            </span>
+          ))}
+        </span>
+      </div>
+    );
+  }
 
   return (
     // `.pos` (a-desk-v3.html:60, m-trades-v1.html:12): hairline border on

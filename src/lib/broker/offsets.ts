@@ -82,6 +82,19 @@ export const DISPLAY_EXCLUDED_SYMBOLS: ReadonlySet<string> = new Set(
   ),
 );
 
+/**
+ * The one predicate every "does this symbol reach a user surface" check
+ * reuses (fix round 1, 2026-08-05): visibility.ts's own filter, the stored-
+ * setup reopen gate (AdvisorWorkspace.tsx), and the Current trades rail /
+ * Insights row reopen affordances (CurrentTradesRail.tsx, HistoryPanel.tsx)
+ * all call this — never a second, independently-maintained list. A stored
+ * row for a display-excluded symbol is still a record and still renders in
+ * full; only the route back onto the chart closes.
+ */
+export function isDisplayExcluded(symbol: string): boolean {
+  return DISPLAY_EXCLUDED_SYMBOLS.has(symbol);
+}
+
 export function getBrokerOffset(symbol: string): BrokerOffset | null {
   return BROKER_OFFSETS.find((offset) => offset.levelflowSymbol === symbol) ??
     null;

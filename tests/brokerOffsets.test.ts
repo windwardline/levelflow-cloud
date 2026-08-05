@@ -6,6 +6,7 @@ import {
   adjustedEntryFor,
   getBrokerOffset,
   isBasisDisplayed,
+  isDisplayExcluded,
 } from "../src/lib/broker/offsets.ts";
 
 // The offset ruling of record (owner, 2026-08-05 — amendment 23's extension,
@@ -55,6 +56,16 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
     assert.deepEqual([...DISPLAY_EXCLUDED_SYMBOLS], ["BRENT"]);
   });
 
+  // Fix round 1 (2026-08-05): the one predicate every reopen-affordance check
+  // (AdvisorWorkspace's stored-setup gate, the Current trades rail, the
+  // Insights row) reuses — never a second, independently-maintained list.
+  it("isDisplayExcluded agrees with DISPLAY_EXCLUDED_SYMBOLS for every case", () => {
+    assert.equal(isDisplayExcluded("BRENT"), true);
+    assert.equal(isDisplayExcluded("XAGUSD"), false);
+    assert.equal(isDisplayExcluded("WTI"), false);
+    assert.equal(isDisplayExcluded("EURUSD"), false);
+  });
+
   it("shows the basis line for XAGUSD and WTI, never for BRENT or an unrecorded symbol", () => {
     assert.equal(isBasisDisplayed("XAGUSD"), true);
     assert.equal(isBasisDisplayed("WTI"), true);
@@ -80,5 +91,43 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
     it("returns null for a symbol with no recorded offset", () => {
       assert.equal(adjustedEntryFor("EURUSD", 1.085), null);
     });
+  });
+});
+
+// Fix round 1's two remaining pins, source-text form (AdvisorWorkspace's and
+// HistoryPanel's import graphs are browser-shaped; the repo's established
+// source-pin idiom covers what direct import cannot):
+import { readFileSync } from "node:fs";
+
+describe("the reopen routes close for display-excluded symbols (amendment 23, fix round 1)", () => {
+  const workspace = readFileSync(
+    "src/components/workspace/AdvisorWorkspace.tsx",
+    "utf8",
+  );
+  const history = readFileSync(
+    "src/components/workspace/HistoryPanel.tsx",
+    "utf8",
+  );
+
+  it("the stored-setup gate refuses display-excluded symbols", () => {
+    assert.match(
+      workspace,
+      /export function canReopenStoredSetup\(symbol: string\): boolean \{[\s\S]{0,200}?!isDisplayExcluded\(symbol\);/,
+    );
+    assert.match(
+      workspace,
+      /const isAvailable = canReopenStoredSetup\(requestedSetup\.symbol\);/,
+    );
+  });
+
+  it("the Insights row renders a display-excluded symbol as a record without the affordance", () => {
+    assert.match(history, /\{isDisplayExcluded\(setup\.symbol\)/);
+    // The record branch is a plain span; the affordance branch keeps the
+    // button. Both render the symbol — the record never disappears.
+    assert.match(
+      history,
+      /<span className="inline-flex min-h-11 items-center font-semibold text-ink">[\s\S]{0,40}?\{setup\.symbol\}/,
+    );
+    assert.match(history, /aria-label=\{`Open \$\{setup\.symbol\} in Advisor`\}/);
   });
 });

@@ -325,9 +325,14 @@ describe("each position card is the affordance that reopens its own setup", () =
     // aria-current say it, so §17f writes no string.
     assert.match(card, /aria-current=\{selected\}/);
     assert.match(card, /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/);
-    // Still exactly one bordered frame in the file — the card itself — so the
-    // selected state cannot have been drawn as a second box.
-    assert.equal((RAIL_SOURCE.match(/border border-hairline/g) ?? []).length, 1);
+    // Exactly two bordered frames in the file, not one (fix round 1,
+    // amendment 23's offset ruling, 2026-08-05): the reopenable card above
+    // and the non-interactive record TradeStateCard's !reopenable branch
+    // renders for a display-excluded symbol's stored row — same visual
+    // treatment, same "one box" discipline, just two possible wrapper tags
+    // for it now. Not a third, gratuitous box: box-discipline's own
+    // full-repo scan (tests/boxDiscipline.test.ts) still covers this file.
+    assert.equal((RAIL_SOURCE.match(/border border-hairline/g) ?? []).length, 2);
   });
 
   it("holds phrasing content only — no article, heading, paragraph or div inside a button", () => {
