@@ -1494,3 +1494,50 @@ an FMP symbol to the user anywhere in this codebase already
 (`tests/languageGuard.test.ts` bans `brokerSymbol`/`brokerSymbolAlt` in
 JSX); this amendment makes explicit why that discipline is permanent
 rather than incidental.
+
+**The offset ruling of record (owner, 2026-08-05) — the pending bar,
+decided.** XAGUSD and WTI stay in the visible universe, each carrying a
+basis line on the setup surface: the recorded offset and the setup's own
+entry restated on E8's own feed, rendered only while a setup is on stage.
+BRENT is display-excluded — it leaves every user-visible surface (scope
+menus, the scan universe, chart selection) while its FMP match and its own
+basis stay recorded in the master list for backend broker-matching and
+replay sweeps, exactly as ruling A above already specified. `src/lib/broker/
+offsets.ts` is the guarded data module carrying all three values, with
+`displayExcluded` marking BRENT's row; `src/lib/broker/visibility.ts`'s
+`visibleAssetGroups`/`visibleAssetSymbols` is the one place this filter
+applies, so every user surface reads the same withheld universe.
+`AVAILABLE_ASSET_*` (`src/lib/symbolMap.ts`) is untouched by the filter and
+stays the master list. **The enumeration of grounds for exclusion is
+open-ended** — offset magnitude is the ground this ruling decides on, and a
+future case may be posed and decided on an entirely different ground (a
+market with no confirmed FMP source at all is one such case this ruling
+does not need to reach).
+
+**The situational offset protocol (owner, 2026-08-05).** No future offset
+case is auto-decided by a formula or a fixed threshold. Each is posed to the
+owner individually, carrying: the offset's magnitude, its size as a
+percentage of price, how it relates to the setup's own ladder geometry
+(stop distance, target distance), and a per-instrument recommended verdict.
+The owner rules case by case; this amendment records the protocol the
+posing follows, not a bar a future case could clear on its own.
+
+**The reentry rule (owner, 2026-08-05).** Every excluded market, on any
+exclusion ground, is a standing reentry candidate re-evaluated at every
+future replay sweep — exclusion is never treated as final. An offset
+exclusion gets fresh basis re-measurement plus a setup-quality
+re-evaluation at that sweep; a no-source exclusion gets a source-resolution
+refresh. A market's evidence changing returns it to the owner as a newly
+posed case under the situational protocol above — it does not re-enter
+display on its own.
+
+**Rendered strings (spec §17f: nothing else new renders).** The basis
+line's template is the one new string this ruling adds, owner-approved
+copy: `E8 quotes ~+0.17 above this feed — entry there ≈ 57.97`. The two
+numbers are computed live — the recorded basis constant
+(`src/lib/broker/offsets.ts`) and the setup's own entry price — never part
+of the registered vocabulary; the surrounding words are the registered
+vocabulary (`tests/languageGuard.test.ts`). The adjusted entry these
+numbers produce is display-only by construction: it never enters the
+ladder's copy payload and never reaches the chart
+(`tests/advisorRecommendationPanel.test.ts` pins both directions).

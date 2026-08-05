@@ -452,3 +452,41 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     ]);
   });
 });
+
+// The basis line's approved copy (owner ruling, amendment 23's offset
+// extension, 2026-08-05): the same both-directions discipline §19e/§20j
+// applies above, scoped to this feature's one new string (§17f: nothing else
+// new renders). The ledger entry is the registered vocabulary; the two
+// live-computed numbers in the template (the basis constant, the adjusted
+// entry) are data, never part of it.
+describe("the basis line's approved copy is the registered vocabulary (amendment 23's offset extension)", () => {
+  const LEDGER =
+    "docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md";
+  const ledger = readFileSync(LEDGER, "utf8");
+  const panel = readFileSync(
+    "src/components/workspace/AdvisorRecommendationPanel.tsx",
+    "utf8",
+  );
+  const BASIS_LINE_WORDS = [
+    "E8 quotes ~+",
+    " above this feed — entry there ≈ ",
+  ];
+
+  it("the ledger records the approved template", () => {
+    for (const words of BASIS_LINE_WORDS) {
+      assert.ok(
+        ledger.includes(words),
+        `amendment 23's ledger entry must record "${words}"`,
+      );
+    }
+  });
+
+  it("the panel renders the same template words, not a paraphrase", () => {
+    for (const words of BASIS_LINE_WORDS) {
+      assert.ok(
+        panel.includes(words),
+        `AdvisorRecommendationPanel.tsx must render "${words}" verbatim`,
+      );
+    }
+  });
+});
