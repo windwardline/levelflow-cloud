@@ -1677,19 +1677,52 @@ and every item names the section it closes.
 
 1. **`XAUUSD`'s minimum lot** — the residual scope of the verified 0.01 step on
    the one non-forex market wave 1 can size (§19c Step 7). One glance at the
-   order ticket.
+   order ticket. **Still open, 2026-08-04.** Batch 1 confirmed a different,
+   adjacent fact — gold's own contract size, 100 oz, tick 0.01 = $1 — not the
+   minimum lot increment below 1.00 this item asks for; a reader should not
+   strike this item on the strength of that observation.
 2. **Risk per lot on one USD-quoted pair, one JPY-quoted pair and one cross** —
    verifies `perUnit = contractSize × usdPerQuote` at all three shapes: the
    textbook $10/pip case, the `1 / USDJPY` derivation, and a bridged cross.
    Three observations validate the derivation behind all 28 forex pairs, which
    with item 1 is the whole sizeable CFD set (§19c Step 3, §20i ruling 1).
+   **CLOSED, 2026-08-04.** Batches 3 and 4 observed all 28 pairs, and the
+   class formulas agree to the cent: USD-quoted $1.00/tick flat; CHF-quoted
+   10 CHF ÷ USDCHF 0.80725 = $12.388/pip; CAD-quoted 10 CAD ÷ USDCAD 1.40152 =
+   $7.135/pip; JPY-quoted ¥1,000 ÷ USDJPY 157.822 = $6.336/pip. Margin =
+   base-currency notional ÷ 30 on all twenty of batch 3.
 3. **`SP500`'s per-point value on a live ticket** — the map's single largest
    scale trap ($20/point where retail desks quote $1–$10; §19a rule 3, §19f's
-   SP500 property test). A published number, worth watching once.
+   SP500 property test). A published number, worth watching once. **CLOSED,
+   2026-08-04.** Batch 1: `SP.C` tick 0.01 = $0.20, so $20 per 1.00 point —
+   the scale trap is verified, not merely assumed.
 4. **The unpublished contract sizes** — every crypto symbol, silver on the
    Markets side, the energies class. These are the rows blocked purely on E8's
    silence (§19c, "What is sizeable in wave 1"), and each one an observation
    resolves is a market that moves from `Not published` to a number.
+   **CLOSED for the CFD universe, 2026-08-04** (amendment 12, batches 1–2 of
+   `docs/research/e8-observations-2026-08-02.md`). All eight crypto, silver,
+   and both energies now carry observed contract sizes. Silver on the Markets
+   side (`XAGUSD`) is done; the Futures-side `SIUSD` row is not touched by
+   this fold — it was already `confirmed` from E8's own published tick table
+   and was never this item's concern, so it stays exactly as it was. On the
+   CFD lines' scannable tally this closes `not_published` 10 → 0: `XAGUSD`,
+   `WTI`, `BRENT` and the seven scannable crypto rows (`ADAUSD`, `BCHUSD`,
+   `BTCUSD`, `ETHUSD`, `LTCUSD`, `SOLUSD`, `XRPUSD`), pinned in
+   `tests/brokerReference.test.ts`; the eighth crypto symbol, `BNBUSD`, is
+   confirmed the same way but stays outside every tally as one of the nine
+   non-scannable addendum rows, never sizeable regardless of tradability.
+   **Correction of record:** `RTYUSD`, `ZBUSD`, `ZNUSD`, `BZUSD` and the
+   CFD-side `SIUSD` row were never part of this item's count — all five are
+   `not_offered` (Futures-classified, outside the CFD universe this item
+   scopes, never a documentation gap), not `not_published`. This is a
+   pre-existing spec mislabel that this same fold corrected (Task 13), not a
+   row this item ever queued. The fold also stays narrow by amendment 19
+   clause 3 ("the narrow reading of contract-size adjacency stands" — owner,
+   2026-08-03, settled and not an open question): these same eight crypto
+   symbols' contract sizes remain `not_published` on the Crypto-classification
+   lines (`one_crypto`, `pro_crypto`, `signature_crypto`), untouched by this
+   item, pending their own account (amendment 15).
 5. **On the futures account: `ZB` and `ZN`** — tick size and value, absent from
    the fee table, the tick table, the canonical 45-instrument list and the live
    symbol browser. Their absence is why both rows ship `unconfirmed` (§19a).
@@ -1701,7 +1734,19 @@ and every item names the section it closes.
    inversion machinery from property-tested-and-unused into shipped — and it is
    the clearest case in either section for why the third route exists.
 7. **The purchase screen's drawdown tier matrix** — §20b's input contract, on
-   both the forex and futures sides.
+   both the forex and futures sides. **CLOSED on all three markets,
+   2026-08-04** by `docs/research/e8-purchase-screen-2026-08-02.md` (thirteen
+   Forex frames, eleven Crypto frames, five Futures frames, read in full);
+   landed in code by Task 12's `Valued<string[]>` `drawdownTiers` on every
+   program line. `one`/`pro_forex` carry the observed tier array; Signature,
+   Zero and the futures lines carry `null` because their own walks show no
+   customization to select among, not because the question went unanswered.
+8. **The futures-account purchase itself** — the ladder and drawdown tiers as
+   sold, the tradable-asset list as the platform lists it, and tick value per
+   contract as the ticket computes it (amendment 15's Futures-second
+   sequence). The owner's second offer above, made concrete as a queue entry:
+   items 5 and 6 are two of its instrument-level blockers, already queued;
+   this item is the account-level walk neither one alone covers.
 
 **What the program does not change.** The refusal stays the default: a row
 without a published or verified value renders its word (§19e, §20f), and no row
