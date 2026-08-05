@@ -92,6 +92,23 @@ function walkCodeFiles(root: string): string[] {
 
 const codeFiles = CODE_ROOTS.flatMap((root) => walkCodeFiles(root));
 
+// Final review (2026-08-04): extracts the literal SYMBOL: "value" entries out
+// of a hardcoded symbolMap's own object-literal block, as an ordered array of
+// [key, value] pairs — the same readFileSync-as-text idiom every other pin in
+// this file uses, applied to the whole map instead of just its fallback-shaped
+// entries. Returns an array (not a Record) so assert.deepEqual also catches an
+// order difference, not just a membership or value one.
+function extractSymbolMapEntries(path: string): Array<[string, string]> {
+  const source = readFileSync(path, "utf8");
+  const block = source.match(
+    /const symbolMap: Record<string, string> = \{([\s\S]*?)\n\};/,
+  );
+  assert.ok(block, `${path} is missing the expected symbolMap declaration shape`);
+  return [...block[1].matchAll(/^\s*([A-Z0-9]+): "([^"]+)",$/gm)].map(
+    ([, key, value]) => [key, value] as [string, string],
+  );
+}
+
 describe("feed source lock (§20i ruling 8)", () => {
   for (const path of PRICE_PATHS) {
     it(`${path} pins the verified FMP base and endpoints`, () => {
@@ -203,6 +220,40 @@ describe("feed source lock (§20i ruling 8)", () => {
       );
     });
   }
+
+  it("both edge functions' own hardcoded symbolMaps carry identical keys, order, and values (final review)", () => {
+    // Final review, Importance 2: a later pin's own comment claims
+    // trade-analyzer/symbols.ts's isKnownSymbol "symbolMap keys are pinned
+    // byte-identical to market-data/index.ts's own by the source-text pins
+    // above" — true of the two maps TODAY, but until this pin existed, no
+    // source-text check actually compared the two maps to each other; the
+    // pins above only ever checked each file's fallback-shaped entries
+    // (now zero) in isolation. This pin is what makes that claim
+    // machine-true: the two files' independently hardcoded symbolMaps
+    // (Deno Edge Functions are self-contained, so neither imports the
+    // other) must carry exactly the same entries, in the same order.
+    const marketDataEntries = extractSymbolMapEntries(
+      EDGE_FUNCTION_SYMBOL_MAP_PATHS[0],
+    );
+    const analyzerEntries = extractSymbolMapEntries(
+      EDGE_FUNCTION_SYMBOL_MAP_PATHS[1],
+    );
+
+    // Guards against the comparison being vacuously true if the extraction
+    // regex ever stopped matching anything in either file.
+    assert.ok(
+      marketDataEntries.length >= 50,
+      `${EDGE_FUNCTION_SYMBOL_MAP_PATHS[0]}'s symbolMap extraction found too few entries (${marketDataEntries.length}) — the extraction regex may have stopped matching`,
+    );
+
+    assert.deepEqual(
+      marketDataEntries,
+      analyzerEntries,
+      `${EDGE_FUNCTION_SYMBOL_MAP_PATHS[0]} and ${
+        EDGE_FUNCTION_SYMBOL_MAP_PATHS[1]
+      } must carry the identical symbolMap — same keys, same order, same values`,
+    );
+  });
 
   it("market-data/index.ts refuses no-trade symbols before any provider fetch (Task 16c)", () => {
     // Task 16c: market-data gains the same no-trade gate trade-analyzer

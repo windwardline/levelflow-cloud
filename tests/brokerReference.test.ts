@@ -1295,9 +1295,19 @@ describe("Appendix A — the 46 observations, on the Forex classification (amend
       assert.equal(row.unit.kind, "index_points");
       assert.equal(row.unit.pointsPerLot.value, perPoint);
     }
+    // Final review: the foreign-currency three were pinned by kind and
+    // source.tag only, never by value — instruments.ts's own
+    // INDEX_POINT_OBSERVATIONS (NIKKEI 500, DAX 5, ASX 20) could drift
+    // silently. Pinned the same way DOW/NSDQ/SP are above.
+    const foreignCurrencyPoints: Record<string, number> = {
+      NIKKEI: 500,
+      DAX: 5,
+      ASX: 20,
+    };
     for (const symbol of ["NIKKEI", "DAX", "ASX"]) {
       const row = findBrokerInstrument("pro_forex", symbol)!;
       assert.equal(row.unit.kind, "index_points");
+      assert.equal(row.unit.pointsPerLot.value, foreignCurrencyPoints[symbol]);
       assert.equal(row.unit.pointsPerLot.source.tag, "verified");
     }
   });
