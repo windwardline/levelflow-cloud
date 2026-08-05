@@ -1,10 +1,8 @@
 # E8 Crypto — FMP source resolution (2026-08-05)
 
-**Owner directive, verbatim (Task 17a, an owner-directed pre-sweep insertion
-ahead of Task 18, 2026-08-05 00:51):**
-
-> "I want them matched before we begin the next task. Identify the best
-> matches in the FMP data, or adhere to amendment 20."
+**Owner directive** (Task 17a, an owner-directed pre-sweep insertion ahead of
+Task 18, 2026-08-05 00:51): match every remaining instrument before the next
+task begins — identify the best FMP matches, or exclude per amendment 20.
 
 This resolves every remaining instrument on the E8 One Crypto account's
 33-symbol offering (`docs/research/e8-crypto-account-2026-08-03.md` §2)
@@ -35,7 +33,7 @@ fresh, independent identity re-check on the actual Crypto-classification
 account, feeding Task 18's owner verdict directly (§5 below) — not a
 re-litigation of whether it is already "served."
 
-26 rows total, matching the owner directive's "them" — every instrument
+26 rows total, matching the owner directive's scope — every instrument
 this account sells that Levelflow has not already closed out.
 
 ## 2. Method — the F10 protocol, adapted for crypto

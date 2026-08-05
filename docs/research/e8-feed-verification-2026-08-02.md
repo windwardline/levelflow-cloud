@@ -1,12 +1,9 @@
 # E8 feed verification — FMP against the live platform
 
-Started 2026-08-02. The owner's lock-in ruling, verbatim:
-
-> "Good! Confirm we are using the right source, and lock it in for E8. Right
-> safeguards so we cannot possibly regress. Once we have the workflow down, I
-> will send other screenshots for the same treatment."
-
-> "Remember, this is E8 Pro Forex. That is important to keep track of."
+Started 2026-08-02. **The lock-in ruling** (owner, 2026-08-02): confirm the
+correct data source and lock it in for E8, with safeguards so it cannot
+regress; once the workflow is established, further screenshots follow the
+same treatment. The verification is scoped explicitly to E8 Pro Forex.
 
 Recorded as §20i ruling 8 in
 `docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md`. The
@@ -40,9 +37,9 @@ Every sample row names the account it was observed on. Feed identity is
 established per platform and program line, never assumed across them.
 
 **The "E8 DEMO" badge (owner attestation, 2026-08-04, on F11's frame):**
-TradeLocker renders an "E8 DEMO" corner badge on the owner's live Pro
-Forex account at all times — "It is my live pro forex account… it is
-always like that." Every "(demo)" annotation in F1–F7 records that
+TradeLocker renders an "E8 DEMO" corner badge on the owner's live Pro Forex
+account at all times — a permanent platform display, not an indicator of a
+separate demo environment. Every "(demo)" annotation in F1–F7 records that
 badge as observed, not a separate demo environment; the frames were the
 live account throughout. The annotations stay as written (they record
 what the frames showed), with this attestation as their standing
@@ -189,7 +186,8 @@ energies are excluded from the identity-confirmed set.
 
 ### F5 — 2026-08-02 22:40:55 / 22:41:02 / 22:41:08 EDT · Forex.c complete (three scrolls, GBPUSD.C chart)
 
-All 28 pairs captured ("these 3 give you all of Forex" — owner). Countdown
+All 28 pairs captured (owner confirmed the three captures cover the full
+Forex pair list). Countdown
 corroborations 19:04 / 18:57 / 18:51 ✓. Leverage 30 on every pair ✓
 (catalog). Spreads quoted in points (fifth decimal; third on JPY): 0–14
 observed, AUDCAD momentarily locked at 0 (bid = ask 0.98659).
