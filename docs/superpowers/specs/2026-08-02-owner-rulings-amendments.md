@@ -4,10 +4,13 @@ Eight rulings, eleven amendments, two target specs. This file is the
 reviewable unit; the controller folds each amendment into its target and this
 document then reads as the record of what changed and why.
 
-**Every owner quote below is verbatim and is the operative law.** Where an
-amendment compresses a ruling into spec prose, the quote governs the
-compression — a later reader who finds the prose narrower than the quote reads
-the quote.
+**Every ruling below is recorded as distilled operative text, not verbatim
+quotation** (owner ruling, 2026-08-05, effective retroactively to every
+amendment in this document). The controller distills each ruling into tight,
+professional operative prose; owner intent is the standard the distillation is
+held to. Where an amendment compresses a ruling into spec prose, the distilled
+operative text governs the compression — a later reader who finds the prose
+narrower than the operative text reads the operative text.
 
 **Targets.**
 
@@ -42,15 +45,10 @@ against.
 
 > ### §17n. Mobile minimalism (owner ruling, 2026-08-02, durable)
 >
-> The ruling, verbatim, both halves:
->
-> > I want these ancillary things to be as small as possible on the mobile
-> > view while still being usable and legible (where text is necessary) —
-> > that resize needs to be made a durable rule, and the mobile view needs to
-> > be audited for compliance.
->
-> > I want to have things tight on the mobile view — as small as possible
-> > while being tappable, usable, and legible (as applies).
+> **The ruling.** Shrink ancillary elements on the mobile view to the
+> smallest size that stays tappable, usable, and legible where text is
+> necessary and as applies. Make the resize a durable rule, and audit the
+> mobile view for compliance.
 >
 > **The rule.** On every `<lg` surface, ancillary chrome is sized to the
 > smallest form that stays tappable, usable and legible — and no larger.
@@ -161,9 +159,8 @@ candidate, it does not approve it.
 **Target.** Desk spec §18, opening sentence and the "Filters do not apply"
 bullet.
 
-**The ruling.** Asked whether full-history accuracy may involve the engine:
-
-> Can we let it involve the engine? If so, do it. I want accuracy.
+**The ruling** (owner, 2026-08-02): engine involvement in computing
+full-history accuracy is authorized; accuracy governs.
 
 **Change, surgical — §18's opening sentence.**
 
@@ -178,9 +175,9 @@ bullet.
 > Insights gains an **Attribution** section: the user's OWN resolved history
 > sliced four ways, computed over the **complete** history — every resolved
 > setup on the account, not the page Insights happens to have loaded. Engine
-> involvement is authorized for exactly that reason (owner, 2026-08-02: "Can
-> we let it involve the engine? If so, do it. I want accuracy."), so the
-> aggregate may be computed server-side over the user's own rows under
+> involvement is authorized for exactly that reason (owner ruling,
+> 2026-08-02: engine involvement authorized in service of full accuracy), so
+> the aggregate may be computed server-side over the user's own rows under
 > existing RLS. No new columns: `realizedR` is read where it already lives,
 > in `trade_outcomes.feedback`.
 
@@ -249,10 +246,8 @@ on shipped code.
 
 **Target.** Desk spec §18, the "Per slice row" bullet.
 
-**The ruling.** Asked whether net R should carry the same 3-resolved gate the
-rate carries:
-
-> Yes. I want fidelity across the board.
+**The ruling** (owner, 2026-08-02): net R carries the same 3-resolved gate as
+the rate — fidelity applies across the board.
 
 **Change, surgical.**
 
@@ -272,8 +267,8 @@ rate carries:
 >   the new call site consciously) · net R.
 > - **One gate, both numbers.** Below 3 resolved, **both** the percentage and
 >   net R read "Learning" — the same threshold, the same word, the same
->   honesty pattern the record band already uses (owner, 2026-08-02: "Yes. I
->   want fidelity across the board."). Three resolved is stated here as law.
+>   honesty pattern the record band already uses (owner ruling, 2026-08-02:
+>   fidelity applies across the board). Three resolved is stated here as law.
 >   At or above the gate, net R renders where every resolved row in the slice
 >   recorded a realizedR and the em dash otherwise — the all-or-nothing rule
 >   is unchanged, it now sits behind the gate rather than beside it.
@@ -308,10 +303,8 @@ already reworks.
 **Target.** Sizing spec preamble ("The boundary") and §19a (the `Provenance`
 type, rule 1).
 
-**The ruling.** The owner confirmed a value from their own live E8 Pro Forex
-TradeLocker account:
-
-> On forex accounts, I can confirm the smallest is 0.01.
+**The ruling** (owner, 2026-08-02): on their live E8 Pro Forex TradeLocker
+account, the smallest forex lot size confirms at 0.01.
 
 A value observed on the broker's live platform is neither E8-published nor
 E8-method-derived, so the boundary as written excludes it. The boundary gains
@@ -420,9 +413,8 @@ value is also tagged `primary`. Until the type widens, the 0.01 lot step
 **Target.** Sizing spec §19c Step 7 and the "What is sizeable in wave 1"
 paragraph; §20f's lot-step bullet; §20i ruling 2.
 
-**The ruling, verbatim.** On their live E8 Pro Forex TradeLocker account:
-
-> On forex accounts, I can confirm the smallest is 0.01.
+**The ruling** (owner, 2026-08-02): on their live E8 Pro Forex TradeLocker
+account, the smallest forex lot size confirms at 0.01.
 
 **Change, surgical — §19c Step 7's second paragraph.**
 
@@ -445,9 +437,9 @@ paragraph; §20f's lot-step bullet; §20i ruling 2.
 
 > Futures step is **1 contract**, exact and confirmed. CFD step is **0.01
 > lots**, and it is **verified, not assumed**: the owner confirmed it on their
-> live E8 Pro Forex account in TradeLocker on 2026-08-02 — "On forex
-> accounts, I can confirm the smallest is 0.01." The value carries
-> `tag: "verified"` with that observation (§19a); E8 still publishes no
+> live E8 Pro Forex account in TradeLocker on 2026-08-02 — the smallest forex
+> lot size is 0.01. The value carries `tag: "verified"` with that observation
+> (§19a); E8 still publishes no
 > minimum lot increment on any page, and it no longer needs to. The print
 > record that forced the old assumption is kept for the reader: the smallest
 > lot E8 names in print is 0.1 (9453425, "even a 0.1-lot micro-trade counts")
@@ -515,8 +507,8 @@ paragraph; §20f's lot-step bullet; §20i ruling 2.
 > 2. **The CFD step is 0.01 lots — verified, superseding the UNCONFIRMED
 >    mark.** The controller's draft ruling reasoned to 0.01 and marked it
 >    unconfirmed; the owner then confirmed it on the live platform (E8 Pro
->    Forex, TradeLocker, 2026-08-02): "On forex accounts, I can confirm the
->    smallest is 0.01." It carries `tag: "verified"` and the
+>    Forex, TradeLocker, 2026-08-02): the smallest forex lot size is 0.01.
+>    It carries `tag: "verified"` and the
 >    refused-at-order-entry hedge is retired on the forex pairs. (§19a, §19c,
 >    Appendix A.)
 
@@ -651,8 +643,8 @@ owner's direction is that the row render real numbers again, not
 > starting balance, which Levelflow cannot see — a tier-derived dollar is
 > exact only on a day the account starts at its tier and **overstates the
 > real pause line on every day below it**, the direction §20a forbids. The
-> percent is exactly true on every day of the account's life ("Always use
-> the most mathematically accurate answer" — owner, 2026-08-02).
+> percent is exactly true on every day of the account's life (owner ruling,
+> 2026-08-02: the mathematically exact figure governs).
 > `signature_futures`' published amounts — $500 / $1,000 / $2,000 / $3,000
 > at the four tiers (11864618), which are 2% of 25K/50K/100K/150K exactly —
 > stay in the rulebook data as the arithmetic corroborating itself, and CI
@@ -816,9 +808,7 @@ later refactor collapses in the wrong direction.
 
 **Target.** Sizing spec §19b's opening paragraph and §20i ruling 6.
 
-**The ruling, verbatim.**
-
-> Classic and Track are no longer offered by E8.
+**The ruling** (owner, 2026-08-02): Classic and Track are discontinued by E8.
 
 The exclusion's ground changes from evidence quality to product availability.
 That is the stronger ground: a 404'd article and a secondary-only citation
@@ -836,8 +826,8 @@ nothing to research.
 
 *New:*
 
-> **Neither is offered by E8 any longer** (owner, 2026-08-02: "Classic and
-> Track are no longer offered by E8."), which retires the evidence question
+> **Neither is offered by E8 any longer** (owner ruling, 2026-08-02: Classic
+> and Track are discontinued by E8), which retires the evidence question
 > rather than answering it: the 404'd Classic article and Track's
 > secondary-only citations are what a withdrawn product's documentation looks
 > like. Neither appears in the selector, and **neither has a re-entry path** —
@@ -857,9 +847,9 @@ nothing to research.
 *New:*
 
 > 6. **Ten program lines** — the researched set less E8 Classic and E8 Track.
->    Ground updated by the owner, 2026-08-02: "Classic and Track are no longer
->    offered by E8." Discontinued, not under-evidenced; no re-entry path, and
->    a future reappearance is a new product. (§19b.)
+>    Ground updated by owner ruling, 2026-08-02: Classic and Track are
+>    discontinued by E8. Discontinued, not under-evidenced; no re-entry path,
+>    and a future reappearance is a new product. (§19b.)
 
 **Consequence for built code — RETROFIT, comment-only.**
 `src/lib/broker/programs.ts:10-16` carries the old ground in its header
@@ -877,11 +867,9 @@ ten, and with the ground now "not sold" nobody widens either speculatively.
 
 **Target.** Sizing spec §20b, additive block after amendments 6 and 8.
 
-**The ruling, verbatim.**
-
-> We should account for the customizable options and calculate things for the
-> user based on the parameters E8 offers. I can provide them from the purchase
-> screen, if necessary.
+**The ruling** (owner, 2026-08-02): account for E8's customizable
+purchase-time options and calculate accordingly for the user; the owner may
+supply the purchase-screen parameters when needed.
 
 **Full new block.**
 
@@ -1078,12 +1066,12 @@ without making a ruling of my own. Each is flagged for the controller.
    names Attribution, and amendment 2 scopes to it. But `buildRecordBand(setups, now)`
    reads the same 80-row array, so the record band above the ledger carries
    the same silent truncation — and it applies no 3-resolved threshold and a
-   looser net-R rule than Attribution does. Whether "I want accuracy" extends
-   to the record band is an owner call I did not make. If it does, the
-   lifetime aggregate serves both and amendment 2's data path should be
+   looser net-R rule than Attribution does. Whether the accuracy ruling
+   extends to the record band is an owner call I did not make. If it does,
+   the lifetime aggregate serves both and amendment 2's data path should be
    designed for two consumers rather than one.
-   **RESOLVED (controller, 2026-08-02): it extends — "Yes. I want fidelity
-   across the board" reads as the governing sentiment, and once the lifetime
+   **RESOLVED (controller, 2026-08-02): it extends — the fidelity-across-the-
+   board ruling reads as the governing sentiment, and once the lifetime
    path exists the record band reading a different window than the section
    below it would be a fork of exactly the kind these rulings close. The
    record band joins amendment 2's scope; the data path is designed for both
@@ -1173,12 +1161,11 @@ so `6J` — the row the boundary could not fix — has a route.
 
 ## Amendments 12–16 — the broker-architecture rulings (owner, 2026-08-03 ~01:37)
 
-The owner defined the broker architecture on 2026-08-03 and then directed
-that the off-the-cuff original not be preserved verbatim: "You can rewrite
-it to be optimal, but do not lose my intention or make any inferences
-without checking with me." These are the approved restatements — owner
-intent in canonical form, refinements from the follow-up message folded in,
-controller notes marked as such.
+The owner defined the broker architecture on 2026-08-03, then directed that
+the original be rewritten for optimality without losing intention or
+introducing unchecked inferences (owner direction, 2026-08-03). These are the
+approved restatements — owner intent in canonical form, refinements from the
+follow-up message folded in, controller notes marked as such.
 
 **Amendment 12 — classification-wide applicability.** Evidence gathered on
 the owner's E8 Pro Forex account — the feed verification (F1–F7), the 46
@@ -1250,7 +1237,7 @@ in both directions. Also written into the global standard the same night
 
 **Amendment 18 — the account switcher's two homes (owner, 2026-08-03,
 restated per standing preference; design specifics adopted from the
-controller's recommendation with the owner's "open to suggestions").**
+controller's recommendation with the owner open to suggestions).**
 Saved-account switching (amendment 14) must be incredibly easy on desktop
 and mobile, in the established aesthetic, and visible in two places: the
 Profile page (the broker section becomes the confirmed-accounts list with
@@ -1284,11 +1271,11 @@ retrofit plan's open questions:
    or sources conflict, the owner's screenshots — the account checkout
    screens and the in-platform TradeLocker captures of 2026-08-02 —
    overrule every other record, the dossiers included. The `zero`
-   consequence is OWNER-CONFIRMED (2026-08-03, on plan review): "Zero is
-   offered on Futures, as two different account types … But if it is not
-   visible on checkout screens under Forex accounts, then it does not
-   belong there. **Do not include unavailable options, whether greyed or
-   not.**" So: Zero MAX and Zero Starter stay on the Futures walk where
+   consequence is OWNER-CONFIRMED (2026-08-03, on plan review): Zero is
+   offered on Futures as two distinct account types; its absence from the
+   Forex checkout screens means it does not belong on the Forex walk.
+   **Unavailable options are never included, greyed or otherwise.** So:
+   Zero MAX and Zero Starter stay on the Futures walk where
    the checkout sells them; the forex-family `zero` never enters the
    rendered catalog in any form. Greying remains reserved for
    sold-but-unverified (MatchTrader); unavailable is absent — a general
@@ -1340,9 +1327,9 @@ F9's month-aware comparison, and the USX-suffix resolutions
 
 ## Amendment 21 — every account-specific percentage carries its dollar amount (owner, 2026-08-04, universal)
 
-"If we list any account specific percentages on any interfaces, we should
-also include the dollar amount. It could be drawdown/risk, but also could
-be profit target or daily reset."
+**The ruling** (owner, 2026-08-04): any interface listing an
+account-specific percentage must also show the dollar amount — drawdown or
+risk, profit target, or daily reset alike.
 
 1. **The shape is the owner's own: `X%/$XXX`** — the percentage, a slash,
    the dollar amount that percentage means at the account's size. The
@@ -1363,15 +1350,15 @@ be profit target or daily reset."
 
 Raised against the futures account's two Treasury rows (`ZB`/`ZN`, tick and
 value never published by E8), and immediately generalized by the owner into
-a standing rule for every market, every account setup, and every broker:
+a standing rule for every market, every account setup, and every broker.
 
-> Your mention of the treasuries being unsizable without reliable data from
-> E8 is acceptable. That is a secondary benefit for the user, so it is okay
-> as an exclusion. It should not restrict the market from being analyzed
-> and offered. In fact, make that rule about reliable data being the bar to
-> reach for sizing to be offered by Levelflow a durable one, applied across
-> all markets, all account setups, all brokers, etc. Now and into
-> perpetuity.
+**The ruling** (owner, 2026-08-05 00:54): the treasuries being unsizable
+without reliable E8 data is an acceptable exclusion — sizing is a secondary
+benefit for the user, so withholding it this way is fine, and it must not
+restrict the market itself from being analyzed and offered. Generalized into
+a durable rule: reliable data is the bar sizing must clear to be offered by
+Levelflow, applied across all markets, all account setups, and all brokers,
+now and into perpetuity.
 
 1. **Sizing is a layered, secondary benefit — never a gate on the market
    itself.** A market's own tradability (is it analyzed, is it offered,
@@ -1424,30 +1411,23 @@ withheld under amendment 22 (none is RELIABLE) —
 
 ## Amendment 23 — the broker↔FMP matching relationship is the master list; display and matching are different questions (owner, 2026-08-05 01:14, naming addendum same dispatch)
 
-**Quote A — should vs can, the master list, and per-account visibility.**
+**Ruling A — should vs can, the master list, and per-account visibility**
+(owner, 2026-08-05 01:14). E8's offering dictates what Levelflow SHOULD
+generate setups for; FMP's offering dictates what it CAN generate them from.
+A significant offset excludes a market from user-facing display without
+disconnecting its backend match to the E8 offering. Once the correct FMP
+data is identified for every E8 offering across every E8 account type, that
+matching relationship is saved reliably and becomes the master list for all
+E8 replay sweeps, regardless of display state. The user sees only the market
+categories applicable to their actual account type. This is the model for
+every broker Levelflow adds.
 
-> …we are using E8's offering to dictate what we should generate trade
-> setups for, while we are using FMP's offering to dictate what we can
-> generate trade setups for… If the offset is significant enough to impact
-> quality setups, it should be excluded from being displayed on Levelflow
-> for the user, but not disconnected from its match to the E8 market
-> offering on the back end (in our records). Once we identify the proper
-> FMP data for every single E8 offering, across every single E8 account
-> type, I want that matching relationship to be reliably saved. And then,
-> whether the market is shown to the user or not, I want the saved subset
-> of matching E8/FMP data to be the master list for all E8 replay sweeps…
-> The user only sees applicable market categories for the actual account
-> type they are generating setups for… I want this to be the model for
-> every broker we add.
-
-**Quote B — naming follows the broker; the backend reconciles.**
-
-> there will, undoubtedly, be naming mismatches between FMP charts and
-> broker (in this case, E8) charts. Inside Levelflow, for the user, we
-> always show the name of the tradable asset. So there is no confusion. On
-> the backend, we can reconcile the differences in the names… but the user
-> needs to see continuity between their broker and Levelflow, not just for
-> the data, but for the naming conventions.
+**Ruling B — naming follows the broker; the backend reconciles** (owner,
+2026-08-05 01:14, naming addendum, same dispatch). FMP's and the broker's
+(E8's) naming will not always match. Levelflow always displays the broker's
+own name for the tradable asset, so the user sees continuity with no
+confusion; reconciling FMP's naming against the broker's is a backend
+concern only.
 
 1. **The broker dictates SHOULD; FMP dictates CAN.** What E8 offers on an
    account decides what Levelflow *should* generate setups for (amendment
