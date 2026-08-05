@@ -620,21 +620,44 @@ interest-rate-parity result for their respective currencies: corroborating
 evidence that the inverted spot pair is the right market, not a coincidence
 needing further explanation.
 
+**This basis is a decaying, drifting snapshot — not a constant, unlike
+Brent/XAG/WTI's (fix round 1, coordinator review, 2026-08-05).** A
+futures-vs-spot basis driven by interest-rate carry is structurally
+different from the CFD-side offsets recorded elsewhere in this document: it
+decays toward zero as the contract approaches expiry (the rate
+differential's time value shrinks to nothing at settlement) and it drifts
+whenever the underlying rate differential itself moves — a Fed, Banxico or
+BOJ rate change re-prices the whole curve. Brent's ~2% and XAGUSD's/WTI's
+~30 bp are genuinely documented per-instrument constants: each was measured
+and re-measured across separate sessions and days (F1, F4, F6, F7, F9, F10)
+and found stable every time, which is why the §19 retrofit treats them as a
+fixed, reusable basis. `6J`'s +33 bp and `6M`'s −22 bp above are a
+**single 2-minute sample, taken once, on one date, and never re-verified at
+a second time or session.** They answer this entry's own question — does a
+reasonable FMP mate exist, and does it track — and they do not establish
+that either figure is stable over time the way Brent/XAG/WTI's bases are.
+**Any future use of either number — for sizing, for offset handling, or for
+a display decision — must re-measure at time of use; this entry's own
+figures are not to be read off and reused as a constant.**
+
 **Verdict: MATCHED, with evidence, both legs.** `6J` ↔ `USDJPY` (inverted)
 and `6M` ↔ `USDMXN` (inverted) are FMP's mates for these two CME currency
 futures — no FMP currency-futures symbol exists for either, so the spot
 pair is FMP's only candidate, exactly as already established for `6E`.
 Amendment 20's matching question is answered for both: neither is
 FMP-excluded, and the master-list record (amendment 23) can carry both
-matches durably regardless of display state. Neither basis is obviously
-past the display-exclusion conversation the owner is already having about
-Brent/XAG/WTI (amendment 23, pending) — `6J`'s ~33 bp sits in the same
-range as XAG/WTI's ~30 bp, `6M`'s ~22 bp is smaller still — but neither
-`6J` nor `6M` is wired to a Levelflow row or shown to any user today (no
-Levelflow symbol maps to either — `docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md`
-§19a), so no display decision is actually pending on either; this is
-recorded for the master list and for whenever the futures onboarding gives
-either symbol a Levelflow row of its own.
+matches durably regardless of display state. At this one-time snapshot,
+`6J`'s ~33 bp is order-of-magnitude comparable to XAG/WTI's ~30 bp
+*constant* and `6M`'s ~22 bp is smaller still — but a decaying, drifting
+single sample is not evidence of the same character as a multi-sample-verified
+constant, and neither figure is offered here as grounds for a
+display-exclusion decision. Neither `6J` nor `6M` is wired to a Levelflow
+row or shown to any user today (no Levelflow symbol maps to either —
+`docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md` §19a),
+so no display decision is actually pending on either; this is recorded for
+the master list and for whenever the futures onboarding gives either symbol
+a Levelflow row of its own — at which point the basis must be re-measured,
+not read off this entry.
 
 **What this does NOT resolve.** Appendix A item 6's own ask — `6J`'s tick
 and value "as the platform computes them," from a live order ticket — is a

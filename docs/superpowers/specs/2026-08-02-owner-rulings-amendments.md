@@ -1398,17 +1398,28 @@ a standing rule for every market, every account setup, and every broker:
    going forward, without needing to be re-decided.
 
 **Consequence for built code.** `src/lib/broker/instruments.ts`'s
-`hasPublishedSizeInputs` — which drives `SIZEABLE_MARKETS_BY_LINE`, the Size
-layer's own eligibility gate — is the durable, general enforcement point.
-It already excludes unpublished data (a null unit value already blocks a
-row); amendment 22 makes it explicit for self-inconsistent published data
-too — `6J`/`6M`'s tick and value are both non-null and both `primary`-tagged,
-yet cannot be reconciled against their siblings (`UNRECONCILED_TICK_AXIS`),
-so the function now names the exclusion rather than relying on the
-happenstance that no Levelflow symbol yet maps to either. This is the
-ruling under which `ZB`, `ZN`, `6J` and `6M` are re-grounded in the same
-change set: tradability moves under amendment 19 (all four are OFFERED);
-sizing stays withheld under amendment 22 (none is RELIABLE) —
+`hasPublishedSizeInputs` — which drives `SIZEABLE_MARKETS_BY_LINE` — is a
+pinned, test-verified derivation of what the Size layer may size, corrected
+here after Task 17b's fix round 1 review (2026-08-05): it is **not** a
+runtime enforcement point, because nothing in `src/` outside
+`instruments.ts` itself reads `SIZEABLE_MARKETS_BY_LINE` today. It already
+excludes unpublished data (a null unit value already blocks a row);
+amendment 22 makes it explicit for self-inconsistent published data too —
+`6J`/`6M`'s tick and value are both non-null and both `primary`-tagged, yet
+cannot be reconciled against their siblings (`UNRECONCILED_TICK_AXIS`), so
+the function now names the exclusion rather than relying on the
+happenstance that no Levelflow symbol yet maps to either. The actual
+runtime sizing path, `sizing.ts`'s `sizeInstrument`/`perUnitValue`, has no
+independent knowledge of this exclusion and would compute a real (wrong)
+number from `6J`/`6M`'s raw figures were a row ever to reach it with
+`tradability: "confirmed"` — unreachable today (no Levelflow symbol maps to
+either), with the real runtime gate landing wherever a future
+futures-onboarding change first wires one of them to a Levelflow row
+(`sizing.ts`'s own `perUnitValue` docblock carries this pointer, so the
+gap is not left only in an ephemeral task report). This is the ruling under
+which `ZB`, `ZN`, `6J` and `6M` are re-grounded in the same change set:
+tradability moves under amendment 19 (all four are OFFERED); sizing stays
+withheld under amendment 22 (none is RELIABLE) —
 `tests/brokerReference.test.ts` pins both halves.
 
 ## Amendment 23 — the broker↔FMP matching relationship is the master list; display and matching are different questions (owner, 2026-08-05 01:14, naming addendum same dispatch)

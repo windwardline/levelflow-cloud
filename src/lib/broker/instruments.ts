@@ -877,6 +877,20 @@ function unitValues(unit: QuoteUnit): Valued<number>[] {
  * here so a future Levelflow-symbol mapping to `6J` or `6M` cannot silently
  * start sizing off the unresolved anomaly just because both fields happen to
  * be non-null.
+ *
+ * **This is a pinned derivation, not a runtime gate (Task 17b fix round 1
+ * review, 2026-08-05).** `SIZEABLE_MARKETS_BY_LINE` below, the thing this
+ * function drives, has zero consumers in `src/` outside this file today —
+ * nothing in the app actually reads it to decide what to size. The real
+ * runtime sizing path is `sizing.ts`'s `sizeInstrument`/`perUnitValue`,
+ * which has no independent knowledge of `UNRECONCILED_TICK_AXIS` and would
+ * compute a real (wrong) number for `6J`/`6M` if a row carrying either
+ * `brokerSymbol` ever reached it confirmed — see `perUnitValue`'s own
+ * docblock for that pointer. This function and the property test in
+ * `tests/brokerReference.test.ts` that exercises it are what is actually
+ * built; treat them as documentation of the intended rule, not as
+ * protection a future onboarding change can lean on without also wiring
+ * the gate into `sizing.ts`.
  */
 export function hasPublishedSizeInputs(row: BrokerInstrument): boolean {
   const program = PROGRAM_LINES.find((line) => line.line === row.programLine);

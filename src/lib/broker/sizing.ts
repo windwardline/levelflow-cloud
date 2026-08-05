@@ -153,7 +153,27 @@ export function invertedStopDistance(entryPrice: number, stopLoss: number): numb
   return Math.abs(1 / entryPrice - 1 / stopLoss);
 }
 
-/** The dollar value of one 1.0 move on the row's own price axis, per 1.0 unit. */
+/**
+ * The dollar value of one 1.0 move on the row's own price axis, per 1.0 unit.
+ *
+ * **Known gap, by design not by oversight (Task 17b fix round 1 review,
+ * 2026-08-05).** The `futures_tick` branch below has no independent
+ * knowledge of `instruments.ts`'s `UNRECONCILED_TICK_AXIS`. `6J`'s and
+ * `6M`'s own published tick/value ARE both non-null (0.0000001/$12.50 and
+ * 0.00005/$5.00) but self-inconsistent against their 6E/6S siblings by
+ * 1,000x — amendment 22's "self-consistent" clause excludes them from
+ * sizing, but today that exclusion lives only in `instruments.ts`'s
+ * `hasPublishedSizeInputs` (which nothing in this file calls). If a row
+ * ever reaches this function with `brokerSymbol` `"6J"` or `"6M"` and
+ * `tradability: "confirmed"`, this branch computes a real (wrong) number
+ * from the unreconciled figures rather than blocking — it MUST NOT be
+ * reached for either symbol. Unreachable today: no Levelflow symbol maps to
+ * either E8 symbol (`FUTURES_MAPPINGS`/`INVERTED_FX` in `instruments.ts`),
+ * so production code never hands this function such a row. The real
+ * runtime gate belongs here (or in `sizeInstrument` above it) and lands
+ * whenever a future futures-onboarding change first wires either symbol to
+ * a Levelflow row — until then, this comment is the pointer, not the fix.
+ */
 function perUnitValue(
   row: BrokerInstrument,
   quotes: SizingContext["quotes"],
