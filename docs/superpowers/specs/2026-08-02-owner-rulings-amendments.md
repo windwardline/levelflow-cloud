@@ -92,8 +92,8 @@ against.
 > holds each one; it does not treat a mock number as exempt from the rule the
 > owner wrote after approving the mock.
 >
-> **The compliance audit is mandated, not optional** — "the mobile view needs
-> to be audited for compliance." Every `<lg` surface and every piece of
+> **The compliance audit is mandated, not optional** — the ruling requires it
+> directly. Every `<lg` surface and every piece of
 > shared mobile chrome is measured against the **built CSS at 375×812** (the
 > §19d precedent: measured, the way ProfilePanel's row budget was, never
 > asserted), and the audit reports per surface: pinned-chrome height,
@@ -643,8 +643,10 @@ owner's direction is that the row render real numbers again, not
 > starting balance, which Levelflow cannot see — a tier-derived dollar is
 > exact only on a day the account starts at its tier and **overstates the
 > real pause line on every day below it**, the direction §20a forbids. The
-> percent is exactly true on every day of the account's life (owner ruling,
-> 2026-08-02: the mathematically exact figure governs).
+> percent is exactly true on every day of the account's life — this is the
+> founding case of a general standing principle (owner ruling, 2026-08-02):
+> always use the most mathematically accurate answer, a principle stated
+> generally and not scoped to this row alone.
 > `signature_futures`' published amounts — $500 / $1,000 / $2,000 / $3,000
 > at the four tiers (11864618), which are 2% of 25K/50K/100K/150K exactly —
 > stay in the rulebook data as the arithmetic corroborating itself, and CI
@@ -1356,9 +1358,11 @@ a standing rule for every market, every account setup, and every broker.
 without reliable E8 data is an acceptable exclusion — sizing is a secondary
 benefit for the user, so withholding it this way is fine, and it must not
 restrict the market itself from being analyzed and offered. Generalized into
-a durable rule: reliable data is the bar sizing must clear to be offered by
-Levelflow, applied across all markets, all account setups, and all brokers,
-now and into perpetuity.
+a durable rule whose reach the ruling itself states open-ended: reliable
+data is the bar sizing must clear to be offered by Levelflow, across all
+markets, all account setups, all brokers, and whatever else the rule
+reaches — now and into perpetuity. The enumeration is illustrative, not a
+closed list.
 
 1. **Sizing is a layered, secondary benefit — never a gate on the market
    itself.** A market's own tradability (is it analyzed, is it offered,
