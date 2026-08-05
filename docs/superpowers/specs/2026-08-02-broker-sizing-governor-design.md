@@ -198,24 +198,38 @@ every arithmetic check. `priceScaleFactor` is the second half of the same
 defect: `6J`'s published tick is 0.0000001 against an FMP `USDJPY` price at
 three decimals.
 
-**The `6J` row ships `unconfirmed`, and the reason is arithmetic on E8's own
-table.** 6E and 6S publish tick 0.0001 with $12.50 per tick, so their
-derived value per 1.0 price unit is $125,000. `6J` publishes tick 0.0000001
-with the same $12.50, so its derived value per 1.0 unit is $125,000,000 —
-one thousand times its siblings', on the reciprocal axis. The pair cannot be
-reconciled against anything E8 publishes. `6M` (0.00005/$5.00) carries the
-same defect at a smaller factor and has no Levelflow counterpart. Neither
-enters as `confirmed`, and the inversion transform is therefore built and
-property-tested in wave 1 with **zero confirmed inverted rows** (§19f).
+**The `6J` and `6M` rows are OFFERED but stay UNSIZEABLE — two different
+questions, amendment 19 answers the first and amendment 22 keeps the second
+closed (owner rulings, 2026-08-05).** Both appeared with live prices on the
+owner's E8 Signature Futures account
+(`docs/research/e8-futures-account-2026-08-03.md` §2, the F9 sampling
+window), which amendment 19's checkout/platform record makes dispositive
+for tradability the same way an E8-published list would be —
+`tradability: "confirmed"`, sourced `verified` to that sighting, not to the
+canonical roster. **Sizing is the separate, narrower question, and it is
+still arithmetic on E8's own table.** 6E and 6S publish tick 0.0001 with
+$12.50 per tick, so their derived value per 1.0 price unit is $125,000. `6J`
+publishes tick 0.0000001 with the same $12.50, so its derived value per 1.0
+unit is $125,000,000 — one thousand times its siblings', on the reciprocal
+axis. The pair cannot be reconciled against anything E8 publishes. `6M`
+(0.00005/$5.00) carries the same defect at a smaller factor and has no
+Levelflow counterpart. Amendment 22 (owner ruling, 2026-08-05) is the
+durable ground for withholding both anyway: sizing requires RELIABLE —
+published, verified, self-consistent — broker inputs, universally, and an
+unreconciled pair fails "self-consistent" even though every individual
+field is non-null. Neither enters `SIZEABLE_MARKETS_BY_LINE`, and the
+inversion transform stays built and property-tested in wave 1 with **zero
+sizeable inverted rows** (§19f).
 
-An exchange contract notional would resolve `6J` arithmetically, and it is
+An exchange contract notional would resolve `6J`'s arithmetic, and it is
 ruled out: it is neither E8-published nor derivable by an E8-published
 method, and the third route admits an observation of the broker's own
 platform, not a figure from the exchange — so it fails the boundary at the
-head of this document. The row stays `unconfirmed` until E8 publishes a
-reconcilable pair **or the owner observes the live ticket's own tick value**
-(Appendix A, item 6), and the machinery waits for data rather than the data
-being manufactured to fit the machinery.
+head of this document for SIZING purposes. `6J` and `6M` stay unsizeable
+until E8 publishes a reconcilable pair **or the owner observes the live
+ticket's own tick value** (Appendix A, item 6, still open), and the
+machinery waits for data rather than the data being manufactured to fit the
+machinery.
 
 **Row population, wave 1.** Every one of the 50 scannable markets gets a row
 on every shipped program line (§19b) — 500 rows, generated from the
@@ -229,11 +243,13 @@ Consequential population facts, each pinned by test:
 
 - **Futures program lines**: 39 of the 50 markets are `not_offered` — every
   Forex (28), Metals (2), Energies (2) and Crypto (7) row. Of the 11 Futures
-  rows, 8 are `confirmed` (`CL`, `ES`, `GC`, `MGC`, `NQ`, `RTY`, `SI`,
-  `YM`), 2 are `unconfirmed` (`ZB`, `ZN` — margin published, tick and value
-  NOT PUBLISHED, and both absent from the fee table, the tick table, the
-  canonical 45-instrument list, and the live symbol browser), 1 is
-  `not_offered` (`BZUSD` — E8 carries no Brent contract).
+  rows, 10 are `confirmed` (`CL`, `ES`, `GC`, `MGC`, `NQ`, `RTY`, `SI`, `YM`,
+  and since 2026-08-05 `ZB`, `ZN` — OFFERED on the owner's F9
+  futures-account sighting, amendment 19; margin published, tick and value
+  still NOT PUBLISHED and both still absent from the fee table, the tick
+  table, the canonical 45-instrument list, and the live symbol browser, so
+  both stay unsizeable under amendment 22), 1 is `not_offered` (`BZUSD` —
+  E8 carries no Brent contract).
 - **CFD program lines**: all 11 Futures rows are `not_offered` (`RTYUSD`,
   `ZBUSD`, `ZNUSD`, `BZUSD`, `SIUSD` among them — the Futures roster's own
   scope, never a documentation gap). Five have a same-exposure CFD at a
@@ -248,13 +264,16 @@ Consequential population facts, each pinned by test:
   2). No CFD-line row is `not_published` on those four lines any longer; the
   two states still get different words (§19e) for the rows that remain
   `not_offered`.
-- **Three markets have no confirmed E8 route on any program line, down from
-  eight (Appendix A, amendment 12, 2026-08-04)**: `BZUSD`, `ZBUSD`, `ZNUSD`.
-  `BRENT`, `ADAUSD`, `BCHUSD`, `LTCUSD` and `XRPUSD` left the list when the
+- **One market has no confirmed E8 route on any program line, down from
+  three (amendment 19, 2026-08-05) and eight before that (Appendix A,
+  amendment 12, 2026-08-04)**: `BZUSD` alone. `ZBUSD` and `ZNUSD` left the
+  list when the owner's F9 futures-account sighting gave both a confirmed
+  futures-line route (OFFERED, not sizeable — amendment 22); `BRENT`,
+  `ADAUSD`, `BCHUSD`, `LTCUSD` and `XRPUSD` left it earlier when the
   owner's own order tickets gave each a confirmed CFD route on the four
-  Forex-classification lines — `BRENT` corroborated twice, by batch 2 and by
-  the F6 order ticket. §20c carries that fact; §19 does not, because on one
-  program line the honest word is the same either way.
+  Forex-classification lines — `BRENT` corroborated twice, by batch 2 and
+  by the F6 order ticket. §20c carries that fact; §19 does not, because on
+  one program line the honest word is the same either way.
 - **`XAUUSD`'s ticket cap is 20 lots, not 50** (9453396). A shared
   max-ticket value would over-permit gold by 2.5×, so the cap is per row.
 
@@ -738,14 +757,16 @@ the instrument roster. Structural assertions on top:
 - The bridge resolves for all 28 pairs, and every bridge leg it names is in
   `AVAILABLE_ASSET_SYMBOLS` — the boundary as CI, so no bridge can start
   reading a market Levelflow does not already scan.
-- The population tallies: 39 `not_offered` per futures line; 8 `confirmed`,
-  2 `unconfirmed`, 1 `not_offered` among the 11 futures rows; 11
-  `not_offered` per CFD line; the 8 no-route markets.
+- The population tallies: 39 `not_offered` per futures line; 10 `confirmed`,
+  0 `unconfirmed`, 1 `not_offered` among the 11 futures rows (since
+  2026-08-05, `ZB`/`ZN` OFFERED — amendment 19); 11 `not_offered` per CFD
+  line; the one no-route market (`BZUSD`).
 - The contract-cap identity: `floor(allowedMargin / 10000)` equals E8's own
   published "Maximum Contract Size" column for all ten program/size rows.
-- The derived per-unit value of every confirmed futures row is finite and
-  positive, and `6J`'s is 1,000× its 6E/6S siblings' — the assertion that
-  documents why it ships `unconfirmed`.
+- The derived per-unit value of every row with a published tick and value
+  is finite and positive, and `6J`'s is 1,000× its 6E/6S siblings' — the
+  assertion that documents why it stays unsizeable (amendment 22) despite
+  shipping `confirmed` (amendment 19).
 - Both observed spellings present where E8 disagrees with itself: `7E`/`E7`,
   `NG`/`NQ`.
 
@@ -760,8 +781,9 @@ not example rows:
   decreases as risk percent rises.
 - **The 6J inversion**: on a synthetic inverted row, sizing on the broker
   axis and sizing on the Levelflow axis with `priceScaleFactor` applied
-  agree to within one step — and the real `6J` row is asserted to block,
-  with `Not confirmed`.
+  agree to within one step — and `hasPublishedSizeInputs` is asserted to
+  exclude the real `6J` and `6M` specs from `SIZEABLE_MARKETS_BY_LINE`
+  regardless of tradability (amendment 22's self-consistency gate).
 - **The SP500 $20/point scale**: a 10-point stop on a $50,000 account at
   0.50% risk sizes to 1.25 lots at $20/point and would size to 25 lots at
   the $1/point a generic CFD assumption produces. The test pins the former
@@ -1375,9 +1397,13 @@ the answer where the question used to live.
   because the dollar depends on a balance Levelflow cannot see. This was the
   one place where a fully published number was withheld because a second page
   disputed the condition under which it holds, and that case is now closed.
-  `6J` stays withheld, but on arithmetic E8's own table cannot reconcile
-  rather than on a disputed condition (§19a) — a different kind of silence,
-  and Appendix A's queue is where it gets resolved.
+  `6J`'s Size row stays withheld, but on arithmetic E8's own table cannot
+  reconcile rather than on a disputed condition (§19a) — a different kind
+  of silence. As of 2026-08-05 the withholding is `hasPublishedSizeInputs`
+  excluding the row from `SIZEABLE_MARKETS_BY_LINE` (amendment 22), not
+  `stateWordForTradability` returning `Not confirmed` — `6J` itself is
+  `confirmed`/OFFERED (amendment 19) — and Appendix A's queue is still
+  where the underlying reconciliation gets resolved.
 - **Which condition unlocks the higher payout split** — 100% on Zero and
   Pro, 90%/100% on One — is NOT PUBLISHED on any page, and the futures
   dossier confirms the gap is systemic across every multi-tier product
@@ -1518,14 +1544,22 @@ decided rather than re-deciding it.
    (§20b, §20d, §20f.)
 4. **Both profile columns approved** — `broker_stage` and
    `broker_drawdown_tier`, domains per program line in §19g.
-5. **No external contract notional.** The boundary at the head of this
-   document is the ruling: no number that is not E8-published, derived by
-   E8's published method from Levelflow's own data, or observed on E8's own
-   live platform (the third route, added 2026-08-02 — it admits the broker's
-   platform, never the exchange's spec sheet). `6J` stays `unconfirmed` on the
-   $125,000-against-$125,000,000 arithmetic; the inversion machinery ships
-   property-tested awaiting confirmed data, and Appendix A item 6 is its
-   route. (§19a.)
+5. **No external contract notional — SIZING half still stands; TRADABILITY
+   half superseded, 2026-08-05.** The boundary at the head of this document
+   is the ruling: no number that is not E8-published, derived by E8's
+   published method from Levelflow's own data, or observed on E8's own live
+   platform (the third route, added 2026-08-02 — it admits the broker's
+   platform, never the exchange's spec sheet). As drafted, this ruling also
+   left `6J` (and margin-only `ZB`/`ZN`) `unconfirmed` outright. The owner's
+   F9 futures-account sighting (2026-08-03, confirmed as a ruling
+   2026-08-05) makes `6J`, `6M`, `ZB` and `ZN` OFFERED —
+   `tradability: "confirmed"`, `verified` provenance — under amendment 19's
+   checkout/platform record. `6J`/`6M` stay unsizeable on the
+   $125,000-against-$125,000,000 arithmetic; amendment 22 is now the
+   durable, universal ground for withholding sizing on unreconciled or
+   unpublished data, superseding this ruling's narrower reasoning. The
+   inversion machinery ships property-tested awaiting confirmed data, and
+   Appendix A item 6 is still its route. (§19a, amendment 19, amendment 22.)
 6. **Ten program lines** — the researched set less E8 Classic and E8 Track.
    Ground UPDATED by the owner, 2026-08-02: "Classic and Track are no longer
    offered by E8." Discontinued, not under-evidenced — so the draft's
@@ -1723,9 +1757,16 @@ and every item names the section it closes.
    symbols' contract sizes remain `not_published` on the Crypto-classification
    lines (`one_crypto`, `pro_crypto`, `signature_crypto`), untouched by this
    item, pending their own account (amendment 15).
-5. **On the futures account: `ZB` and `ZN`** — tick size and value, absent from
-   the fee table, the tick table, the canonical 45-instrument list and the live
-   symbol browser. Their absence is why both rows ship `unconfirmed` (§19a).
+5. **On the futures account: `ZB` and `ZN`'s tick size and value** — absent
+   from the fee table, the tick table, the canonical 45-instrument list and
+   the live symbol browser. **The futures-account purchase itself (item 8)
+   closed the account-level walk and, with it, both rows' TRADABILITY**
+   (owner, 2026-08-05, confirming both print live on the F9 watchlists):
+   `ZB`/`ZN` ship `confirmed` under amendment 19, sourced to that sighting.
+   Tick size and value remain absent everywhere E8 publishes them, so this
+   item is **still open for SIZING** — a live order ticket, not a watchlist
+   price, is what this item originally asked for, and amendment 22 is now
+   the named reason the gap withholds only the Size layer.
 6. **On the futures account: `6J`'s tick and value as the platform computes
    them** — the one number the boundary explicitly refused to fix with an
    exchange notional (§20i ruling 5). E8's own table gives `6J` a derived
@@ -1733,6 +1774,15 @@ and every item names the section it closes.
    source reconciles it. A live ticket does. This is the item that turns the
    inversion machinery from property-tested-and-unused into shipped — and it is
    the clearest case in either section for why the third route exists.
+   **Still open for sizing.** `6J`'s TRADABILITY closed the same way as
+   item 5's (owner, 2026-08-05, the F9 sighting, amendment 19); `6M` — no
+   Levelflow row yet, but the same F9 account and the same owner ruling —
+   closed identically. Both FMP mates are now on record too: `USDJPY`
+   inverted for `6J`, `USDMXN` inverted for `6M`
+   (`e8-feed-verification-2026-08-02.md` F12), which answers amendment 20's
+   matching question but is a different fact from this item's own ask — a
+   live E8 ticket's own tick/value, which only the owner's platform can
+   still supply.
 7. **The purchase screen's drawdown tier matrix** — §20b's input contract, on
    both the forex and futures sides. **CLOSED on all three markets,
    2026-08-04** by `docs/research/e8-purchase-screen-2026-08-02.md` (thirteen

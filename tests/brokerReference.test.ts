@@ -16,6 +16,7 @@ import {
   INVERTED_FX,
   SIZEABLE_MARKETS_BY_LINE,
   findBrokerInstrument,
+  hasPublishedSizeInputs,
 } from "../src/lib/broker/instruments.ts";
 import {
   CANONICAL_LIST,
@@ -145,26 +146,81 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
     }
   });
 
-  it("marks 6J and 6M unconfirmed despite the canonical list carrying both", () => {
-    // Canonical-list membership is not enough when E8's own tick table cannot be
-    // reconciled with itself: an exchange notional would settle it and is ruled out
-    // by the boundary (§20i ruling 5).
+  it("marks 6J and 6M OFFERED (amendment 19) but unsizeable (amendment 22) despite the canonical list carrying both", () => {
+    // Canonical-list membership was never the only route to OFFERED: the
+    // owner's F9 futures-account sighting (2026-08-03, ruled 2026-08-05)
+    // establishes tradability directly as `verified` provenance -- the same
+    // class of fact E8 publishing the canonical list would be (§19a rule 1).
+    // E8's own tick table still cannot be reconciled with itself on these
+    // two, so SIZING stays withheld under amendment 22's self-consistency
+    // clause -- an exchange notional would settle the arithmetic and is
+    // ruled out by the boundary (§20i ruling 5).
     for (const symbol of ["6J", "6M"]) {
-      assert.equal(E8_FUTURES_SPECS[symbol].canonical, true);
-      assert.equal(E8_FUTURES_SPECS[symbol].tradability, "unconfirmed");
+      const spec = E8_FUTURES_SPECS[symbol];
+      assert.equal(spec.canonical, true);
+      assert.equal(spec.tradability, "confirmed");
+      assert.equal(spec.tradabilitySource.tag, "verified");
+      assert.equal(spec.tradabilitySource.article, null);
+      assert.equal(spec.tradabilitySource.url, null);
+      assert.ok(spec.tradabilitySource.observation, `${symbol} carries an observation`);
+      assert.equal(spec.tradabilitySource.observation?.date, "2026-08-03");
+      assert.equal(spec.tradabilitySource.observation?.platform, "Tradovate");
+      assert.equal(spec.tradabilitySource.observation?.program, "E8 Signature Futures");
+      // Both fields are non-null and primary-tagged -- exactly the shape that
+      // would otherwise satisfy hasPublishedSizeInputs. Mutation-proof: this
+      // fails if the anomaly gate is ever removed, because every other check
+      // the function runs would pass.
+      assert.notEqual(spec.tickSize.value, null);
+      assert.notEqual(spec.valuePerTick.value, null);
+      assert.equal(spec.tickSize.source.tag, "primary");
+      assert.equal(spec.valuePerTick.source.tag, "primary");
+      const syntheticRow: BrokerInstrument = {
+        ...findBrokerInstrument("signature_futures", "ESUSD")!,
+        brokerSymbol: symbol,
+        marginPerContract: spec.marginPerContract,
+        tradability: spec.tradability,
+        unit: {
+          kind: "futures_tick",
+          tickSize: spec.tickSize,
+          valuePerTick: spec.valuePerTick,
+        },
+      };
+      assert.equal(
+        hasPublishedSizeInputs(syntheticRow),
+        false,
+        `${symbol} must stay unsizeable under amendment 22`,
+      );
     }
     for (const symbol of ["6E", "6S", "6A", "6N"]) {
       assert.equal(E8_FUTURES_SPECS[symbol].tradability, "confirmed");
     }
   });
 
-  it("marks ZB and ZN unconfirmed — margin only, absent from all three lists", () => {
+  it("marks ZB and ZN OFFERED (amendment 19) but unsizeable — margin only, tick and value never published (amendment 22)", () => {
     for (const symbol of ["ZB", "ZN"]) {
       const spec = E8_FUTURES_SPECS[symbol];
       assert.equal(spec.canonical, false);
-      assert.equal(spec.tradability, "unconfirmed");
+      assert.equal(spec.tradability, "confirmed");
+      assert.equal(spec.tradabilitySource.tag, "verified");
+      assert.equal(spec.tradabilitySource.article, null);
+      assert.equal(spec.tradabilitySource.url, null);
+      assert.ok(spec.tradabilitySource.observation, `${symbol} carries an observation`);
+      assert.equal(spec.tradabilitySource.observation?.date, "2026-08-03");
+      assert.equal(spec.tradabilitySource.observation?.platform, "Tradovate");
+      assert.equal(spec.tradabilitySource.observation?.program, "E8 Signature Futures");
+      // Unchanged by amendment 19: E8 has never published either number, so
+      // sizing stays withheld on the "published" clause of amendment 22 --
+      // the null itself, not the anomaly gate 6J/6M fail on.
       assert.equal(spec.tickSize.value, null);
       assert.equal(spec.valuePerTick.value, null);
+      const row = findBrokerInstrument("signature_futures", `${symbol}USD`)!;
+      assert.equal(row.tradability, "confirmed");
+      assert.equal(row.tradabilitySource.tag, "verified");
+      assert.equal(
+        hasPublishedSizeInputs(row),
+        false,
+        `${symbol} must stay unsizeable under amendment 22`,
+      );
     }
     const marginOnly = Object.values(E8_FUTURES_SPECS).filter((s) => !s.canonical);
     assert.deepEqual(marginOnly.map((s) => s.symbol).sort(), ["ZB", "ZN"]);
@@ -183,17 +239,21 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
     assert.deepEqual(withAlts, ["7E", "NG"]);
   });
 
-  it("derives a finite positive value per 1.0 price unit for every confirmed row", () => {
+  it("derives a finite positive value per 1.0 price unit for every row with a published tick and value", () => {
+    // Amendment 22 split OFFERED from SIZEABLE: `confirmed` tradability no
+    // longer implies a usable tick/value pair on its own (ZB/ZN are
+    // `confirmed` and null; 6J/6M are `confirmed` and self-inconsistent), so
+    // the skip condition here is the null check itself, not tradability.
     for (const spec of Object.values(E8_FUTURES_SPECS)) {
-      if (spec.tradability !== "confirmed") {
+      if (spec.tickSize.value === null || spec.valuePerTick.value === null) {
         continue;
       }
-      const perUnit = spec.valuePerTick.value! / spec.tickSize.value!;
+      const perUnit = spec.valuePerTick.value / spec.tickSize.value;
       assert.ok(Number.isFinite(perUnit) && perUnit > 0, spec.symbol);
     }
   });
 
-  it("documents why 6J ships unconfirmed: 1,000x its 6E and 6S siblings", () => {
+  it("documents why 6J stays unsizeable despite shipping confirmed: 1,000x its 6E and 6S siblings (amendment 22)", () => {
     const perUnit = (symbol: string) =>
       E8_FUTURES_SPECS[symbol].valuePerTick.value! /
       E8_FUTURES_SPECS[symbol].tickSize.value!;
@@ -653,7 +713,7 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("tallies the futures lines exactly as §19a records them", () => {
+  it("tallies the futures lines exactly as §19a records them (amendment 19, 2026-08-05: ZB/ZN join confirmed)", () => {
     for (const line of [
       "signature_futures",
       "zero_futures_starter",
@@ -668,8 +728,12 @@ describe("§19a — the row and its states", () => {
       assert.ok(nonFutures.every((row) => row.tradability === "not_offered"), line);
 
       const tally = tallyFor(line);
-      assert.equal(tally.confirmed, 8, `${line} confirmed`);
-      assert.equal(tally.unconfirmed, 2, `${line} unconfirmed`);
+      // ZBUSD and ZNUSD moved from unconfirmed to confirmed here (owner
+      // ruling, 2026-08-05, the F9 futures-account sighting) -- OFFERED per
+      // amendment 19. They are still unsizeable (amendment 22): SIZEABLE_MARKETS_BY_LINE
+      // below is unchanged by this move, because their tick/value stay null.
+      assert.equal(tally.confirmed, 10, `${line} confirmed`);
+      assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
       assert.equal(tally.not_offered, 40, `${line} not offered`);
       assert.equal(tally.not_published, 0, `${line} not published`);
 
@@ -677,10 +741,18 @@ describe("§19a — the row and its states", () => {
         .filter((row) => row.tradability === "confirmed")
         .map((row) => row.brokerSymbol)
         .sort();
-      assert.deepEqual(confirmed, ["CL", "ES", "GC", "MGC", "NQ", "RTY", "SI", "YM"]);
+      assert.deepEqual(confirmed, ["CL", "ES", "GC", "MGC", "NQ", "RTY", "SI", "YM", "ZB", "ZN"]);
       assert.equal(findBrokerInstrument(line, "BZUSD")!.tradability, "not_offered");
-      assert.equal(findBrokerInstrument(line, "ZBUSD")!.tradability, "unconfirmed");
-      assert.equal(findBrokerInstrument(line, "ZNUSD")!.tradability, "unconfirmed");
+      assert.equal(findBrokerInstrument(line, "ZBUSD")!.tradability, "confirmed");
+      assert.equal(findBrokerInstrument(line, "ZNUSD")!.tradability, "confirmed");
+      assert.ok(
+        !SIZEABLE_MARKETS_BY_LINE[line].includes("ZBUSD"),
+        `${line}: ZBUSD offered but not sizeable (amendment 22)`,
+      );
+      assert.ok(
+        !SIZEABLE_MARKETS_BY_LINE[line].includes("ZNUSD"),
+        `${line}: ZNUSD offered but not sizeable (amendment 22)`,
+      );
     }
   });
 
@@ -736,24 +808,34 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("keeps the three no-route markets unconfirmed on every program line (amendment 12 closes five)", () => {
+  it("keeps BZUSD unconfirmed on every program line — the one true no-route market left (amendment 19 closes two more)", () => {
     // Crossmap §3.5's finding of record named eight. Appendix A batch 2
-    // (corroborated by F6) gives BRENT, ADAUSD, BCHUSD, LTCUSD and XRPUSD a
+    // (corroborated by F6) gave BRENT, ADAUSD, BCHUSD, LTCUSD and XRPUSD a
     // confirmed CFD route on the Forex-classification lines, so five of the
-    // eight leave. BZUSD has no E8 route on any program at all; ZBUSD and
-    // ZNUSD publish margin but not tick — all three remain UNCONFIRMED
+    // eight left. Amendment 19 (owner ruling, 2026-08-05, the F9
+    // futures-account sighting) gives ZBUSD and ZNUSD's E8 futures
+    // instruments a confirmed route too -- OFFERED, not sizeable (amendment
+    // 22; see `findBrokerInstrument`/`SIZEABLE_MARKETS_BY_LINE` above). BZUSD
+    // alone has no E8 route on any program at all and stays UNCONFIRMED
     // everywhere. §20c is what renders the fact — §19 does not, because on
     // one program line the honest word is the same either way — so this pins
-    // the property the rows must have, not a derivation of the list.
-    const noRoute = ["BZUSD", "ZBUSD", "ZNUSD"];
-    assert.equal(noRoute.length, 3);
-    for (const symbol of noRoute) {
-      assert.ok(AVAILABLE_ASSET_SYMBOLS.includes(symbol), symbol);
-      for (const program of PROGRAM_LINES) {
-        assert.notEqual(
-          findBrokerInstrument(program.line, symbol)!.tradability,
+    // the property the row must have, not a derivation of the list.
+    const symbol = "BZUSD";
+    assert.ok(AVAILABLE_ASSET_SYMBOLS.includes(symbol), symbol);
+    for (const program of PROGRAM_LINES) {
+      assert.notEqual(
+        findBrokerInstrument(program.line, symbol)!.tradability,
+        "confirmed",
+        `${program.line}:${symbol}`,
+      );
+    }
+    // The two that left: both now confirmed on every futures line.
+    for (const program of PROGRAM_LINES.filter((p) => p.family === "futures")) {
+      for (const departed of ["ZBUSD", "ZNUSD"]) {
+        assert.equal(
+          findBrokerInstrument(program.line, departed)!.tradability,
           "confirmed",
-          `${program.line}:${symbol}`,
+          `${program.line}:${departed}`,
         );
       }
     }

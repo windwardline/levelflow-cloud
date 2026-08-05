@@ -391,9 +391,18 @@ describe("§19c step 4 — the inversion machinery, with zero confirmed inverted
     }
   });
 
-  it("blocks the real 6J row with Not confirmed, and ships no confirmed inverted row", () => {
-    assert.equal(E8_FUTURES_SPECS["6J"].tradability, "unconfirmed");
-    assert.equal(stateWordForTradability("unconfirmed"), "Not confirmed");
+  it("blocks USDJPY with Not offered regardless of 6J's own tradability, and ships no confirmed inverted row", () => {
+    // 6J itself is OFFERED as of amendment 19 (owner ruling, 2026-08-05, the
+    // F9 futures-account sighting) -- this block never came from 6J's own
+    // tradability anyway. USDJPY is a spot Forex-classified Levelflow symbol,
+    // and a futures program carries CME futures and nothing else
+    // (`futuresLineRow`'s `assetType !== "Futures"` early return), so the
+    // real USDJPY row on `signature_futures` is `not_offered` independent of
+    // what E8_FUTURES_SPECS["6J"] says. 6J stays unsizeable regardless
+    // (amendment 22) -- proven directly against the spec above, not
+    // re-proven here.
+    assert.equal(E8_FUTURES_SPECS["6J"].tradability, "confirmed");
+    assert.equal(stateWordForTradability("confirmed"), null);
     const result = sizeSetup({
       accountSize: 100_000,
       entryPrice: 151.42,
