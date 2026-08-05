@@ -2604,14 +2604,29 @@ for (const width of [375, 1280]) {
     const sizeLabel = page.getByText("Size · lots", { exact: true });
     await expect(sizeLabel).toBeVisible();
     const sizeRow = sizeLabel.locator("..");
-    const rendered = (await sizeRow.innerText()).replace("Size · lots", "").trim();
+    // innerText reflects CSS text-transform (the eyebrow renders the label
+    // ALL CAPS), so a mixed-case .replace() never stripped it — latent while
+    // the value was a word (the word-list check matched anyway), fatal the
+    // first time Phase 5 made crypto sizeable and a NUMBER arrived (deploy
+    // 30971574548: the number check read the unstripped capped label). The
+    // value is the first line that is neither the label nor the copy
+    // control, compared case-insensitively — the same display-vs-bytes
+    // split the walk's optionCaps taught, from the other side.
+    const sizeLines = (await sizeRow.innerText())
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const sizeValue = sizeLines.find((line) => {
+      const lowered = line.toLowerCase();
+      return lowered !== "size · lots" && lowered !== "copy";
+    }) ?? "";
     // A number or one of the four words — never a fifth voice, never a dash.
-    const isNumber = /^[\d.,]+$/.test(rendered.split("\n")[0].trim());
+    const isNumber = /^[\d.,]+$/.test(sizeValue);
     expect(
-      isNumber || SIZE_STATE_WORD_LIST.some((word) => rendered.includes(word)),
-      `the Size row rendered ${JSON.stringify(rendered)}`,
+      isNumber || SIZE_STATE_WORD_LIST.some((word) => sizeValue.includes(word)),
+      `the Size row rendered ${JSON.stringify(sizeLines.join("\n"))}`,
     ).toBe(true);
-    expect(rendered).not.toContain("—");
+    expect(sizeValue).not.toContain("—");
 
     // Hand the profile back on the way out. The next leg normalizes anyway, so
     // this is politeness rather than the guarantee — but it is also what keeps
