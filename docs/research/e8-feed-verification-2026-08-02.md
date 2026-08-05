@@ -483,7 +483,17 @@ silently closed.
   any tolerance. The honest behavior when CLUSD has no bars is now the
   existing no-data path, not a silent substitute that would corrupt every
   level, stop and target computed from it while still looking like real
-  data. Indices (all non-scannable today) source cash indices
+  data. Task 16b's own audit of the three fallbacks WTI's removal left
+  behind found all three failing the identical bar, more severely
+  (`ASX`→`EWA` ~304x, `NSDQ`→`QQQ` ~41x, `DAX`→`DAX` ~560x off their index
+  primaries); **Task 16c removed all three** (2026-08-04, see Open Item 7),
+  so no symbol in the catalog carries a fallback source anymore — the field
+  itself (`fallbackFmpSymbol` client-side, `{primary, fallback}` in both edge
+  functions' own hardcoded maps) was retired rather than left at zero
+  entries. `market-data/index.ts` also gained its own `noTradeSymbols` gate
+  in the same task, closing the defense-in-depth gap this document had
+  flagged (that function previously enforced no no-trade list of its own).
+  Indices (all non-scannable today) source cash indices
   (`^GSPC` family); F2 established that E8 quotes synthetic cash (futures
   minus fair-value basis), so the cash wiring tracks during each index's
   own cash session and is stale outside it. ASX stays hidden
@@ -536,37 +546,47 @@ silently closed.
    (F5's own commit history shows only the prose summary was ever
    recorded). Still open — needs one fresh frame with a JPY pair
    (USDJPY.C or GBPJPY.C) as the active chart symbol.
-7. **The three remaining code fallbacks all fail the same scale test
-   WTI → USO just failed.** Task 16b (2026-08-04) audited every
+7. ~~The three remaining code fallbacks all fail the same scale test
+   WTI → USO just failed.~~ — **RESOLVED by Task 16c** (2026-08-04,
+   controller-authored insertion from the owner-accepted follow-up chip
+   Task 16b raised). Task 16b (2026-08-04) had audited every
    `fallbackFmpSymbol` left in `src/lib/symbolMap.ts` against live FMP
-   quotes, same day: `ASX` → `EWA` (iShares MSCI Australia ETF) $30.12 vs
-   `^AXJO` 9,154.6 (≈304x off) · `NSDQ` → `QQQ` (Invesco QQQ Trust) $723.85
-   vs `^NDX` 29,733.16 (≈41x off) · `DAX` → the FMP ticker literally named
+   quotes: `ASX` → `EWA` (iShares MSCI Australia ETF) $30.12 vs `^AXJO`
+   9,154.6 (≈304x off) · `NSDQ` → `QQQ` (Invesco QQQ Trust) $723.85 vs
+   `^NDX` 29,733.16 (≈41x off) · `DAX` → the FMP ticker literally named
    `DAX` (Global X - DAX Germany ETF) $47.08 vs `^GDAXI` 26,367.5 (≈560x
-   off). None was removed in Task 16b — its brief scoped the code change
-   to WTI, the one instrument F10 actually measured and ruled on — but
-   none passes the bar either, and `tests/feedSource.test.ts` now pins the
-   exact set of symbols still carrying a fallback (`ASX`, `DAX`, `NSDQ`)
-   so a fourth cannot join it silently. Reachability differs by path:
-   `ASX`'s fallback is unreachable in both edge functions
-   (`isTemporarilyUnavailableSymbol` / `temporarilyUnavailableSymbols`
-   block it before any provider fetch runs); `NSDQ`'s and `DAX`'s are
-   unreachable in the analyzer (`noTradeSymbols` gates
-   `reviewCurrentMarket` before `resolveProviderSymbols` runs) and, as far
-   as traced, unreachable from the shipped client today too — every
-   symbol-selection path (`MarketScanPanel`/`MarketScanResults` candidates,
-   the `openAdvisor` flow that both Insights rows and Current-trades cards
-   use, and the scope menu) resolves through `AVAILABLE_ASSET_OPTIONS` or
-   server-side scan filtering before a symbol ever reaches the chart
-   request. What is NOT true is that `market-data/index.ts` enforces this
-   independently: its own `temporarilyUnavailableSymbols` set names only
-   `ASX`, so it has no `noTradeSymbols` check of its own — a
-   defense-in-depth gap, reachable by any authenticated direct call to the
-   function (or a future client change) rather than by anything the
-   current UI exposes. `docs/research/e8-fmp-crossmap.md:350` named the
-   general shape of this ("ETF fallbacks are a fourth price scale... any
-   sizing number derived from the primary symbol's scale is wrong") on
-   2026-08-02, before F10 existed; this item is that same concern, now
-   live-measured against all three remaining entries and formally left
-   open rather than silently carried. Flagged for a follow-up task, not
-   fixed here.
+   off) — full quotes in task-16b-report.md's adjudication table. None was
+   removed in Task 16b, whose brief scoped the code change to WTI alone;
+   Task 16c's ruling of record was that all three fail on the identical
+   ground as WTI's USO removal (scale-broken stand-ins, zero legitimate
+   consumers) and removed them too. The field itself is retired, not left
+   at zero entries: `fallbackFmpSymbol` is gone from
+   `src/lib/symbolMap.ts`'s `SecurityOption` type, and both edge functions'
+   own independently hardcoded symbol maps (`market-data/index.ts`,
+   `trade-analyzer/symbols.ts`) lost the matching `{primary, fallback}`
+   entries, the now-dead `fallback`-carrying `SymbolConfig` type, and the
+   string/object normalization step each needed only for that shape.
+   `resolveProviderSymbols` in both files now resolves every symbol to its
+   primary alone, unconditionally.
+
+   This item's other finding — `market-data/index.ts` enforcing no
+   no-trade list of its own, unlike the analyzer's `noTradeSymbols` gate on
+   `reviewCurrentMarket` — is closed too: that function now carries its own
+   `noTradeSymbols` set, byte-identical to `trade-analyzer/symbols.ts`'s
+   (copied, never re-membered — the SET stays the analyzer's law), refused
+   before any provider fetch with the same `blocked`/`reason` shape
+   `reviewCurrentMarket`'s own no-trade block uses. A direct authenticated
+   call can no longer reach a no-trade symbol's provider fetch at all,
+   fallback or not — closing the gap regardless of what the shipped
+   client's UI already kept unreachable.
+
+   `tests/feedSource.test.ts` pins both halves: an exhaustive,
+   now-permanently-empty match for any fallback-shaped entry across both
+   edge functions' source text (the mechanism this item's fallbacks used to
+   populate), and a source-text pin confirming `market-data/index.ts`
+   carries the no-trade gate's `noTradeSymbols` set and refusal shape.
+   `docs/research/e8-fmp-crossmap.md:350` named the general shape of this
+   ("ETF fallbacks are a fourth price scale... any sizing number derived
+   from the primary symbol's scale is wrong") on 2026-08-02, before F10
+   existed; that file is unchanged by this resolution (out of this task's
+   scope, same as Task 16b's precedent) and remains stale on this point.

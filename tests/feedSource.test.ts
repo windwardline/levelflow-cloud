@@ -22,28 +22,26 @@ const PRICE_PATHS = [
 // resolveProviderSymbols-based pins below: it's a Deno-global file, excluded
 // from tsconfig.tests.json by AGENTS.md's own law ("never widen it to a
 // glob"). trade-analyzer/symbols.ts CAN be imported (it already is, see
-// tests/core.test.ts), but its coverage there only exercises the three
-// symbols someone happened to call resolveProviderSymbols on for another
-// reason (NSDQ, WTI, ASX) — DAX's fallback has never been asserted through
-// that door. Fix round 1 (2026-08-04): a source-text pin, the same idiom
-// tests/mobileNav.test.ts's APP_SOURCE uses, covers both files identically
-// and exhaustively, so neither gap survives a future edit that touches only
-// one of them.
+// tests/core.test.ts). Fix round 1 (2026-08-04) added a source-text pin, the
+// same idiom tests/mobileNav.test.ts's APP_SOURCE uses, covering both files
+// identically and exhaustively. Task 16c (2026-08-04) retired the mechanism
+// itself — ASX/DAX/NSDQ's fallbacks failed the identical scale bar WTI's USO
+// fallback failed in Task 16b — so the exhaustive matcher below now asserts
+// ZERO fallback-shaped entries survive in either file, forever, not just the
+// frozen three. `SymbolConfig`'s `fallback` field and both files'
+// normalization-object mechanism were removed alongside the last entries,
+// per this file's own "a mechanism with zero entries is not kept" rule.
 const EDGE_FUNCTION_SYMBOL_MAP_PATHS = [
   "supabase/functions/market-data/index.ts",
   "supabase/functions/trade-analyzer/symbols.ts",
 ];
 
 // Every fallback-shaped entry ("SYMBOL: { primary: "...", fallback: "..."
-// }") either file's own hardcoded symbolMap may carry today — byte-identical
-// in both files (verified below, not assumed). Adding, changing, or
-// reintroducing one — WTI/USO included — fails here even though neither
-// file's literal text ever gets imported into this suite for that symbol.
-const FROZEN_FALLBACK_ENTRIES = [
-  'ASX: { primary: "^AXJO", fallback: "EWA" },',
-  'DAX: { primary: "^GDAXI", fallback: "DAX" },',
-  'NSDQ: { primary: "^NDX", fallback: "QQQ" },',
-];
+// }") either file's own hardcoded symbolMap may carry — frozen at empty by
+// Task 16c. Reintroducing even one — WTI/USO or any of ASX/DAX/NSDQ's ETF
+// stand-ins — fails here even though neither file's literal text ever gets
+// imported into this suite for that symbol.
+const FROZEN_FALLBACK_ENTRIES: string[] = [];
 
 // Every code file allowed to reference the provider. The two price paths
 // carry the verified correspondence; macroContext (Treasury), news-calendar
@@ -121,40 +119,29 @@ describe("feed source lock (§20i ruling 8)", () => {
     // six non-scannable indices, and the two energy CFDs charting from
     // front-month futures (their basis check is the verification doc's open
     // item 2). Anything else diverging — or any of these changing — is a
-    // feed change and needs a fresh frame.
-    const recordedDivergences: Record<
-      string,
-      { fallback?: string; fmp: string }
-    > = {
-      ASX: { fallback: "EWA", fmp: "^AXJO" },
-      BRENT: { fmp: "BZUSD" },
-      DAX: { fallback: "DAX", fmp: "^GDAXI" },
-      DOW: { fmp: "^DJI" },
-      NIKKEI: { fmp: "^N225" },
-      NSDQ: { fallback: "QQQ", fmp: "^NDX" },
-      SP: { fmp: "^GSPC" },
-      WTI: { fmp: "CLUSD" },
+    // feed change and needs a fresh frame. Task 16c retired the last three
+    // fallbacks (ASX/DAX/NSDQ), so this pin no longer tracks a `fallback`
+    // side-channel at all — divergence is fmpSymbol-vs-symbol only now.
+    const recordedDivergences: Record<string, string> = {
+      ASX: "^AXJO",
+      BRENT: "BZUSD",
+      DAX: "^GDAXI",
+      DOW: "^DJI",
+      NIKKEI: "^N225",
+      NSDQ: "^NDX",
+      SP: "^GSPC",
+      WTI: "CLUSD",
     };
 
-    const observedDivergences: Record<
-      string,
-      { fallback?: string; fmp: string }
-    > = {};
+    const observedDivergences: Record<string, string> = {};
     for (const group of SECURITY_GROUPS) {
       for (const option of group.options) {
-        const diverges = option.fmpSymbol !== option.symbol ||
-          option.fallbackFmpSymbol !== undefined;
-        if (diverges) {
+        if (option.fmpSymbol !== option.symbol) {
           assert.ok(
             group.label === "Indices" || group.label === "Energies",
             `${option.symbol} (${group.label}) diverges from its FMP symbol — pass-through was verified for ${group.label}`,
           );
-          observedDivergences[option.symbol] = {
-            ...(option.fallbackFmpSymbol
-              ? { fallback: option.fallbackFmpSymbol }
-              : {}),
-            fmp: option.fmpSymbol,
-          };
+          observedDivergences[option.symbol] = option.fmpSymbol;
         }
       }
     }
@@ -162,83 +149,115 @@ describe("feed source lock (§20i ruling 8)", () => {
     assert.deepEqual(observedDivergences, recordedDivergences);
   });
 
-  it("WTI carries no fallback — F10 measured USO ~53% off CLUSD's scale (Task 16b)", () => {
+  it("no security option carries a fallback source — every remaining one failed the scale bar (Task 16c)", () => {
     // Amendment 20's own words are "maximized and aligned precisely"; the
-    // house law is no fallbacks that mask real problems. F10 measured USO
-    // at +53.5% vs CLUSD (docs/research/e8-feed-verification-2026-08-02.md)
-    // and a live re-check the same day (Task 16b) reconfirmed it: USO
-    // $115.78 vs CLUSD $75.87, +52.6%. A fund share price is not a
-    // per-barrel number, at any tolerance — the honest behavior when CLUSD
-    // has no bars is the existing no-data path, not a silent, scale-broken
-    // substitute that would corrupt every level, stop and target computed
-    // from it while still looking like real data.
+    // house law is no fallbacks that mask real problems. Task 16b removed
+    // WTI's USO fallback (F10 measured +53.5% off CLUSD's scale;
+    // docs/research/e8-feed-verification-2026-08-02.md) and audited the
+    // three that were left. Task 16c acted on that audit: ASX -> EWA
+    // (~304x off ^AXJO), NSDQ -> QQQ (~41x off ^NDX), and DAX -> "DAX"
+    // (Global X - DAX Germany ETF, ~560x off ^GDAXI) all failed the
+    // identical "tracks the primary's price level" bar (task-16b-report.md's
+    // adjudication table), so all three are gone too — and with zero entries
+    // left to hold, `fallbackFmpSymbol` is no longer a field `SecurityOption`
+    // has at all. Checked via `in` rather than a direct property read: the
+    // field's total absence from the type is the point, so reading it
+    // directly would be a compile error, not a passing assertion.
+    const symbolsWithFallback = SECURITY_OPTIONS
+      .filter((option) => "fallbackFmpSymbol" in option)
+      .map((option) => option.symbol)
+      .sort();
+    assert.deepEqual(symbolsWithFallback, []);
+
     const wti = SECURITY_OPTIONS.find((option) => option.symbol === "WTI");
     assert.ok(wti, "WTI must remain a known security option");
     assert.equal(wti?.fmpSymbol, "CLUSD");
-    assert.equal(wti?.fallbackFmpSymbol, undefined);
-  });
-
-  it("no symbol may gain a fallback the same scale audit hasn't cleared (Task 16b)", () => {
-    // The rule, not just the WTI instance: a fallback is legitimate only
-    // when its series tracks the primary's PRICE LEVEL (not merely its
-    // direction) closely enough that a silent substitution cannot corrupt a
-    // computed level, stop or target. Every symbol below was live-audited
-    // against that bar on 2026-08-04 (Task 16b, task-16b-report.md) and
-    // EVERY ONE fails it, same as WTI's removed USO fallback did — none is
-    // fixed here because none is reachable from a live setup today:
-    //   - ASX -> EWA (iShares MSCI Australia ETF, ~304x off ^AXJO): blocked
-    //     before any provider fetch in both edge functions
-    //     (isTemporarilyUnavailableSymbol / temporarilyUnavailableSymbols).
-    //   - NSDQ -> QQQ (Invesco QQQ Trust, ~41x off ^NDX) and
-    //     DAX -> "DAX" (Global X - DAX Germany ETF, ~560x off ^GDAXI): both
-    //     blocked in the analyzer (noTradeSymbols gates reviewCurrentMarket
-    //     before resolveProviderSymbols runs), but NOT gated in
-    //     supabase/functions/market-data/index.ts, whose own
-    //     temporarilyUnavailableSymbols set names only ASX — a defense-in-
-    //     depth gap flagged in the research doc's Open Items, not fixed by
-    //     this task (Task 16b's brief scoped the code change to WTI, the
-    //     one instrument F10 actually measured and ruled on).
-    // docs/research/e8-fmp-crossmap.md:350 named the general shape of this
-    // ("ETF fallbacks are a fourth price scale") back on 2026-08-02; this
-    // assertion is what makes it a build failure, not just a comment, the
-    // day any of these three either gains a live path or a fourth symbol
-    // gains a fallback without going through the same audit.
-    const symbolsWithFallback = SECURITY_OPTIONS
-      .filter((option) => option.fallbackFmpSymbol !== undefined)
-      .map((option) => option.symbol)
-      .sort();
-    assert.deepEqual(symbolsWithFallback, ["ASX", "DAX", "NSDQ"]);
   });
 
   for (const path of EDGE_FUNCTION_SYMBOL_MAP_PATHS) {
-    it(`${path} carries no scale-broken fallback, and none it doesn't already (Task 16b, fix round 1)`, () => {
+    it(`${path} carries no fallback of any kind (Task 16c)`, () => {
       const source = readFileSync(path, "utf8");
-      // Scoped to the object-literal shape a price fallback actually takes
-      // ("fallback: "USO""), not a bare "USO" substring: this same file
-      // legitimately says "USO" elsewhere and would false-positive on a
-      // blanket ban — market-data/index.ts's own explanatory comment above
-      // the WTI entry, and trade-analyzer/symbols.ts's comment plus its
-      // separate, out-of-scope headlineNewsSymbols news-ticker proxy list
-      // (CLUSD/WTI -> ["USO", "CLUSD"], never a "fallback:" key) — none of
-      // which is the price-substitution mechanism this pin guards.
+      // Broader than the exhaustive regex below: catches a fallback-shaped
+      // entry even if it drifts from the exact spacing/quoting the regex
+      // requires. This was scoped to a USO-specific substring in Task 16b's
+      // fix round 1 (when ASX/DAX/NSDQ still legitimately carried a
+      // fallback); Task 16c retired the mechanism entirely, so an
+      // unconditional ban on the key shape is now correct — nothing left in
+      // either file's symbol map should ever say "fallback: " again.
       assert.ok(
-        !source.includes('fallback: "USO"'),
-        `${path} reintroduces a USO price fallback — F10 measured USO ~53% off CLUSD's scale (docs/research/e8-feed-verification-2026-08-02.md)`,
+        !source.includes('fallback: "'),
+        `${path} carries a fallback-shaped entry — Task 16c retired the mechanism entirely (docs/research/e8-feed-verification-2026-08-02.md Open Item 7)`,
       );
       // Exhaustive, not just targeted: every fallback-shaped entry in the
-      // file, matched on its real line, must be exactly the frozen three —
-      // catching a silent addition (a fourth entry) exactly as it catches a
-      // reintroduction or edit of one of the three.
+      // file, matched on its real line, must now be none at all — catching a
+      // silent addition exactly as it would catch a reintroduction of WTI's
+      // USO or any of ASX/DAX/NSDQ's removed ETF stand-ins.
       const fallbackEntries = source.match(
         /[A-Z0-9]+: \{ primary: "[^"]+", fallback: "[^"]+" \},/g,
       ) ?? [];
       assert.deepEqual(
         [...fallbackEntries].sort(),
         [...FROZEN_FALLBACK_ENTRIES].sort(),
-        `${path}'s fallback entries drifted from the frozen, scale-adjudicated set — see docs/research/e8-feed-verification-2026-08-02.md Open Item 7 and task-16b-report.md before changing this pin`,
+        `${path}'s fallback entries drifted from the frozen, now-empty set — see docs/research/e8-feed-verification-2026-08-02.md Open Item 7 and task-16b-report.md/task-16c-report.md before changing this pin`,
       );
     });
   }
+
+  it("market-data/index.ts refuses no-trade symbols before any provider fetch (Task 16c)", () => {
+    // Task 16c: market-data gains the same no-trade gate trade-analyzer
+    // already enforces (supabase/functions/trade-analyzer/index.ts's
+    // reviewCurrentMarket, pinned independently by
+    // tests/securityHardening.test.ts's "keeps cash indices out of every
+    // scan path"). The SET is the analyzer's law, copied verbatim, never
+    // edited here — this pin uses the identical regex idiom that one does,
+    // against market-data/index.ts's own independent copy.
+    const source = readFileSync(
+      "supabase/functions/market-data/index.ts",
+      "utf8",
+    );
+
+    for (
+      const sym of [
+        "SP",
+        "NSDQ",
+        "DOW",
+        "NIKKEI",
+        "DAX",
+        "NGUSD",
+        "HGUSD",
+        "BNBUSD",
+      ]
+    ) {
+      assert.match(
+        source,
+        new RegExp(
+          `noTradeSymbols = new Set<string>\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`,
+        ),
+        `market-data/index.ts's noTradeSymbols is missing ${sym} — it must mirror trade-analyzer/symbols.ts's set exactly`,
+      );
+    }
+
+    // Refused before resolveProviderSymbols ever runs — "before any provider
+    // fetch" is the brief's own bar, checked structurally rather than by
+    // running the handler (Deno-global file, cannot be imported here).
+    const gateIndex = source.indexOf("noTradeSymbols.has(uiSymbol)");
+    const resolveIndex = source.indexOf(
+      "resolveProviderSymbols(requestedSymbol)",
+    );
+    assert.ok(
+      gateIndex > -1 && resolveIndex > -1 && gateIndex < resolveIndex,
+      "market-data/index.ts must refuse a no-trade symbol before calling resolveProviderSymbols",
+    );
+
+    // The refusal shape mirrors trade-analyzer's own no-trade block exactly
+    // (supabase/functions/trade-analyzer/index.ts's reviewCurrentMarket) —
+    // no new copy invented, per the Task 16c brief.
+    assert.match(
+      source,
+      /if \(noTradeSymbols\.has\(uiSymbol\)\) \{[\s\S]{0,200}?blocked: true,[\s\S]{0,200}?reason:\s*\n\s*"Levelflow's measured record says this market does not earn setups, so reviews are off for it\. It stays under analysis and returns if the data changes\."/,
+      "market-data/index.ts's no-trade refusal must match trade-analyzer's blocked/reason copy verbatim",
+    );
+  });
 
   it("financialmodelingprep appears only in the recorded wiring files", () => {
     const referencingFiles = codeFiles

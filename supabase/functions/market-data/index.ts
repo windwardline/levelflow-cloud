@@ -8,12 +8,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 const MARKET_DATA_FETCH_TIMEOUT_MS = 15_000;
 
-type SymbolConfig = {
-  fallback?: string;
-  primary: string;
-};
-
-const symbolMap: Record<string, string | SymbolConfig> = {
+const symbolMap: Record<string, string> = {
   EURUSD: "EURUSD",
   GBPUSD: "GBPUSD",
   USDJPY: "USDJPY",
@@ -58,11 +53,18 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   ZBUSD: "ZBUSD",
   ZNUSD: "ZNUSD",
   SP: "^GSPC",
-  NSDQ: { primary: "^NDX", fallback: "QQQ" },
+  // Task 16c: ASX/DAX/NSDQ's ETF fallbacks measured 41x-560x off their index
+  // primaries — ASX/EWA ~304x, NSDQ/QQQ ~41x, DAX/"DAX" ~560x
+  // (docs/research/e8-feed-verification-2026-08-02.md, Open Item 7) — the
+  // same "tracks the primary at scale" failure WTI's USO fallback failed
+  // below, so no symbol keeps a stand-in source anymore. noTradeSymbols below
+  // additionally refuses these three, and the rest of the measured no-trade
+  // list, before any provider fetch.
+  NSDQ: "^NDX",
   NIKKEI: "^N225",
   DOW: "^DJI",
-  DAX: { primary: "^GDAXI", fallback: "DAX" },
-  ASX: { primary: "^AXJO", fallback: "EWA" },
+  DAX: "^GDAXI",
+  ASX: "^AXJO",
   // Task 16b: USO measured ~53% off CLUSD's scale (F10, docs/research/
   // e8-feed-verification-2026-08-02.md) — a fund share price is not a
   // per-barrel number, so no fallback stands in here. When CLUSD has no
@@ -79,15 +81,27 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   ADAUSD: "ADAUSD",
 };
 
-for (const [symbol, value] of Object.entries(symbolMap)) {
-  if (typeof value === "string") {
-    symbolMap[symbol] = { primary: value };
-  }
-}
-
 // Hidden until the chart feed is verified against the matching traded CFD.
 const temporarilyUnavailableSymbols = new Set<string>([
   "ASX",
+]);
+
+// The measured no-trade list — mirrors trade-analyzer/symbols.ts's
+// noTradeSymbols byte-for-byte (tests/feedSource.test.ts pins it). That set
+// is the analyzer's own law (owner directive, r15); this file never edits
+// its membership, only copies its enforcement, the same way the analyzer
+// already refuses these symbols before any engine work (Task 16c: this
+// function previously had no equivalent of its own, a defense-in-depth gap
+// reachable only by a direct authenticated call, never the shipped client).
+const noTradeSymbols = new Set<string>([
+  "SP",
+  "NSDQ",
+  "DOW",
+  "NIKKEI",
+  "DAX",
+  "NGUSD",
+  "HGUSD",
+  "BNBUSD",
 ]);
 
 const intradayTimeframes = ["1min", "5min", "15min", "1hour", "4hour"] as const;
@@ -144,6 +158,19 @@ Deno.serve(async (req) => {
         ? body.symbol.trim()
         : "EURUSD";
     const uiSymbol = normalizeSymbol(requestedSymbol);
+    if (noTradeSymbols.has(uiSymbol)) {
+      return jsonResponse(
+        req,
+        {
+          blocked: true,
+          reason:
+            "Levelflow's measured record says this market does not earn setups, so reviews are off for it. It stays under analysis and returns if the data changes.",
+          symbol: uiSymbol,
+        },
+        400,
+      );
+    }
+
     if (temporarilyUnavailableSymbols.has(uiSymbol)) {
       return jsonResponse(
         req,
@@ -275,12 +302,12 @@ function sanitizeFmpSymbol(value: string) {
 
 function resolveProviderSymbols(symbol: string) {
   const normalized = normalizeSymbol(symbol);
-  const config = symbolMap[normalized] as SymbolConfig | undefined;
+  const provider = symbolMap[normalized];
+  if (provider) {
+    return [provider];
+  }
   const sanitized = sanitizeFmpSymbol(symbol);
-  const symbols = config
-    ? [config.primary, config.fallback].filter(Boolean)
-    : [sanitized].filter(Boolean);
-  return Array.from(new Set(symbols)) as string[];
+  return sanitized ? [sanitized] : [];
 }
 
 async function fetchFmpBars(

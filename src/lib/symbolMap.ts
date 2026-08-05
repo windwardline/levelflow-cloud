@@ -11,7 +11,6 @@ export type SecurityType =
 export type SecurityOption = {
   assetType: SecurityType;
   description: string;
-  fallbackFmpSymbol?: string;
   fmpSymbol: string;
   label: string;
   symbol: SupportedSymbol;
@@ -115,7 +114,6 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
       {
         assetType: "Indices",
         description: "Nasdaq 100 Index",
-        fallbackFmpSymbol: "QQQ",
         fmpSymbol: "^NDX",
         label: "NSDQ - Nasdaq 100 Index",
         symbol: "NSDQ",
@@ -137,7 +135,6 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
       {
         assetType: "Indices",
         description: "DAX Performance Index",
-        fallbackFmpSymbol: "DAX",
         fmpSymbol: "^GDAXI",
         label: "DAX - DAX Performance Index",
         symbol: "DAX",
@@ -145,7 +142,6 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
       {
         assetType: "Indices",
         description: "S&P/ASX 200 Index",
-        fallbackFmpSymbol: "EWA",
         fmpSymbol: "^AXJO",
         label: "ASX - S&P/ASX 200 Index",
         symbol: "ASX",

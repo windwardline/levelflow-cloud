@@ -381,13 +381,15 @@ describe("trade analyzer category handling", () => {
   });
 
   it("keeps analyzer symbol routing aligned with public availability", () => {
-    assert.deepEqual(resolveProviderSymbols("NSDQ"), ["^NDX", "QQQ"]);
-    // Task 16b: F10 measured USO ~53% off CLUSD's scale (docs/research/
-    // e8-feed-verification-2026-08-02.md) — WTI's fallback was removed, so
-    // this resolves to the primary alone now, same shape as any symbol that
-    // never had a fallback.
+    // Task 16c: ASX/DAX/NSDQ's fallbacks were removed too (the same scale
+    // bar WTI's USO fallback failed in Task 16b) — every symbol now resolves
+    // to its primary alone, whether or not it ever had a second source.
+    // DAX included here for the first time: Task 16b's fix round 1 noted its
+    // fallback had never been asserted through this import-based door.
+    assert.deepEqual(resolveProviderSymbols("NSDQ"), ["^NDX"]);
     assert.deepEqual(resolveProviderSymbols("WTI"), ["CLUSD"]);
-    assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO", "EWA"]);
+    assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO"]);
+    assert.deepEqual(resolveProviderSymbols("DAX"), ["^GDAXI"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
     assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
     // r15 re-derivation retired the old CHF-pair and crypto-alt exclusions;
