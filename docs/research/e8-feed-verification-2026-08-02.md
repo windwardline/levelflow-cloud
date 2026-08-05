@@ -39,6 +39,15 @@ explained.
 Every sample row names the account it was observed on. Feed identity is
 established per platform and program line, never assumed across them.
 
+**The "E8 DEMO" badge (owner attestation, 2026-08-04, on F11's frame):**
+TradeLocker renders an "E8 DEMO" corner badge on the owner's live Pro
+Forex account at all times — "It is my live pro forex account… it is
+always like that." Every "(demo)" annotation in F1–F7 records that
+badge as observed, not a separate demo environment; the frames were the
+live account throughout. The annotations stay as written (they record
+what the frames showed), with this attestation as their standing
+explanation.
+
 - Verified so far: **E8 Pro Forex (TradeLocker, demo)** only.
 - Unverified: MatchTrader (E8 One Forex's second platform), crypto-market
   accounts, and the futures lines — futures are exchange data through
@@ -513,6 +522,51 @@ silently closed.
   base URL, endpoint family, or symbol mapping, and on any second
   market-data provider appearing outside its recorded allowance. A red there
   routes here: re-verify against a live frame before updating any pin.
+
+### F11 — 2026-08-04 23:56:32 EDT · USDJPY·1h with the JPY quote board — the family's exact-minute close
+
+One owner-supplied frame from the live Pro Forex account (TradeLocker
+3.94.8/3.19.35). The frame shows an **"E8 DEMO" badge** in the lower
+corner; the owner attests (2026-08-04, same night) that this is the
+live account and TradeLocker always renders that badge there — recorded
+as an owner-supplied platform fact beside the observation, per the
+narrow-observation rule. The Forex.c watchlist and `.C` suffixes match
+every prior live frame. Time base is the strongest of any frame yet: the macOS menu-bar clock (11:56 PM) and the platform footer
+(**11:56:32 PM UTC-4**) agree in-frame, and the 1h candle countdown
+(**03:28**) independently lands the same second — 23:56:32 + 3:28 =
+04:00:00 exactly, the next hourly close.
+
+USDJPY.C charted at 1h, last 157.473, with a momentary zero-spread lock
+(bid = ask 157.473 — F5's AUDCAD phenomenon, second sighting). Three
+more JPY crosses legible on the board at the same second: CHFJPY.C
+194.914/194.914 (also locked), NZDJPY.C 92.475/92.477, GBPJPY.C
+211.892/211.895. Controls: AUDUSD.C 0.70488/0.70489, AUDCAD.C
+0.99176/0.99176.
+
+**FMP same-minute bars (stable `historical-chart/1min`, the production
+endpoint family, pulled 2026-08-05 ~00:00 EDT), frame quote vs the
+23:56 bar:** the frame instant sits mid-bar (:32 of :00–:59), and the
+yen complex was easing through the minute, so the honest comparison is
+the bar's range, with the close (27 s after the frame) as drift
+context —
+
+- USDJPY: frame 157.473 vs bar 157.447–157.471 (close 157.447) — at
+  the bar high +0.2 pips; close −2.6 pips of within-minute drift.
+- CHFJPY: frame 194.914 vs bar 194.878–194.915 — **inside the range**
+  (0.1 pip under the high); close −1.1.
+- NZDJPY: bid 92.475 vs bar high 92.474 — +0.1 pip; close −1.1.
+- GBPJPY: bid 211.892 vs bar high 211.891 — +0.1 pip; close −2.25.
+- Controls at the same second: AUDUSD +0.15 pips vs close, AUDCAD
+  −0.10 — the non-JPY anchor re-confirmed simultaneously.
+
+**Verdict: TRACKS — the JPY family closes.** F5's +3.9-to-+12.6-pip
+one-direction residue re-measures at −1.1 to −2.6 pips when the clock
+skew shrinks from ~3 minutes to 27 seconds — deltas that scale down
+with skew are one market observed at two moments, never a per-pair
+offset — and at the range level every frame quote coincides with its
+bar extreme to 0.1–0.2 pips on a moving yen minute. The frame's non-JPY
+controls land on the same feed identity F1/F5/F7 anchored, tying this
+closure into the family's existing live record.
 
 ## Open items
 
