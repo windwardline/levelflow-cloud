@@ -85,6 +85,10 @@ account.
 
 **Notables for the source-resolution work (recorded, not resolved here):**
 
+- **RESOLVED 2026-08-05**: every instrument in this table beyond
+  Levelflow's existing 8 has been matched against FMP with per-symbol
+  name-and-price evidence (zero excluded under amendment 20) — see
+  `docs/research/e8-crypto-source-resolution-2026-08-05.md`.
 - `ARWUSD` is TradeLocker's ticker for what most venues call AR (Arweave).
 - `TRUMPUSD` and `CAKEUSD`, `DYDXUSD`, `IMXUSD`, `GRTUSD`, `EGLDUSD`,
   `XMRUSD` are outside Levelflow's current crypto universe; whether FMP
