@@ -1,10 +1,10 @@
 import type { BrokerAccount, BrokerClassification } from "../profile";
 import {
   AVAILABLE_ASSET_GROUPS,
-  AVAILABLE_ASSET_SYMBOLS,
   type SecurityGroup,
   type SecurityType,
 } from "../symbolMap";
+import { DISPLAY_EXCLUDED_SYMBOLS } from "./offsets";
 
 // Amendment 13. E8 Forex accounts cannot trade futures, so futures markets are
 // removed from user view and from scanner action and results whenever an E8
@@ -30,17 +30,30 @@ export const HIDDEN_ASSET_TYPES_BY_CLASSIFICATION: Record<
 };
 
 export function visibleAssetGroups(account: BrokerAccount | null): SecurityGroup[] {
-  if (account === null) {
-    return AVAILABLE_ASSET_GROUPS;
-  }
-  const hidden = new Set(HIDDEN_ASSET_TYPES_BY_CLASSIFICATION[account.classification]);
-  return AVAILABLE_ASSET_GROUPS.filter((group) => !hidden.has(group.label));
+  const hidden = account === null
+    ? new Set<SecurityType>()
+    : new Set(HIDDEN_ASSET_TYPES_BY_CLASSIFICATION[account.classification]);
+  // Amendment 23's offset ruling (owner, 2026-08-05): applied after
+  // classification hiding, unconditionally — a display-excluded symbol
+  // (BRENT today) never reaches any user surface regardless of account,
+  // where classification hiding is account-specific. AVAILABLE_ASSET_GROUPS
+  // itself (symbolMap.ts) is untouched by this filter and stays the master
+  // list backend broker-matching and replay sweeps read — see offsets.ts's
+  // own header. A group left with zero options (none currently — Energies
+  // keeps WTI) drops out entirely rather than rendering an empty menu
+  // section.
+  return AVAILABLE_ASSET_GROUPS
+    .filter((group) => !hidden.has(group.label))
+    .map((group) => ({
+      ...group,
+      options: group.options.filter(
+        (option) => !DISPLAY_EXCLUDED_SYMBOLS.has(option.symbol),
+      ),
+    }))
+    .filter((group) => group.options.length > 0);
 }
 
 export function visibleAssetSymbols(account: BrokerAccount | null): string[] {
-  if (account === null) {
-    return AVAILABLE_ASSET_SYMBOLS;
-  }
   return visibleAssetGroups(account).flatMap((group) =>
     group.options.map((option) => option.symbol),
   );

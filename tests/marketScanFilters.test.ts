@@ -64,7 +64,11 @@ describe("getMarketScanSymbolsForScope + filterSymbolsByAvailability composed (I
   it('resolves "all" to every available symbol explicitly, never an empty placeholder list for the server to fill in', () => {
     const resolved = getMarketScanSymbolsForScope({ kind: "all" }, null);
     assert.ok(resolved.length > 0);
-    assert.deepEqual(resolved, ALL_AVAILABLE_SYMBOLS);
+    // Amendment 23's offset ruling (owner, 2026-08-05): "all" intersects with
+    // visibleAssetSymbols (getMarketScanFilters.ts's own contract, above), so
+    // the scan trigger itself withholds BRENT the same as every other user
+    // surface — this is no longer ALL_AVAILABLE_SYMBOLS's raw master count.
+    assert.deepEqual(resolved, visibleAssetSymbols(null));
   });
 
   it("a closed single-market scope resolves to no attemptable symbols at all, on a mocked weekend clock", () => {
@@ -136,17 +140,37 @@ const FOREX_ACCOUNT = {
 };
 
 describe("amendment 13 — market availability follows the account classification", () => {
-  it("shows everything with no active account", () => {
-    assert.deepEqual(visibleAssetGroups(null), AVAILABLE_ASSET_GROUPS);
-    assert.deepEqual(visibleAssetSymbols(null), AVAILABLE_ASSET_SYMBOLS);
+  // Amendment 23's offset ruling (owner, 2026-08-05) sits ahead of
+  // classification in the filter chain: BRENT leaves every user-visible
+  // surface regardless of account, so "shows everything" no longer includes
+  // it. AVAILABLE_ASSET_GROUPS/SYMBOLS (symbolMap.ts) stay the unfiltered
+  // master list — pinned explicitly by the master-vs-visible split test
+  // further down this describe block — while visibleAssetGroups/
+  // visibleAssetSymbols is the one place every user surface (scope menus,
+  // the scan trigger, chart selection) reads from.
+  it("shows everything except the offset-display-excluded markets, with no active account", () => {
+    const withoutBrent = AVAILABLE_ASSET_GROUPS.map((group) => ({
+      ...group,
+      options: group.options.filter((option) => option.symbol !== "BRENT"),
+    })).filter((group) => group.options.length > 0);
+    assert.deepEqual(visibleAssetGroups(null), withoutBrent);
+    assert.ok(!visibleAssetSymbols(null).includes("BRENT"));
+    assert.deepEqual(
+      visibleAssetSymbols(null),
+      AVAILABLE_ASSET_SYMBOLS.filter((symbol) => symbol !== "BRENT"),
+    );
   });
 
-  it("hides Futures on a Forex account and keeps Energies", () => {
+  it("hides Futures on a Forex account, keeps Energies, and still withholds BRENT", () => {
     const labels = visibleAssetGroups(FOREX_ACCOUNT).map((group) => group.label);
     assert.ok(!labels.includes("Futures"), "E8 Forex accounts cannot trade futures");
     assert.ok(labels.includes("Energies"), "Energies remain on Forex accounts");
     const symbols = visibleAssetSymbols(FOREX_ACCOUNT);
-    assert.ok(symbols.includes("WTI") && symbols.includes("BRENT"));
+    assert.ok(symbols.includes("WTI"), "WTI stays visible with its basis line");
+    assert.ok(
+      !symbols.includes("BRENT"),
+      "BRENT stays display-excluded even where Energies itself is shown",
+    );
     for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "MGCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
       assert.ok(!symbols.includes(futures), `${futures} must not be visible`);
     }
@@ -183,6 +207,28 @@ describe("amendment 13 — market availability follows the account classificatio
     const source = readFileSync("src/lib/broker/visibility.ts", "utf8");
     assert.doesNotMatch(source, /NO_TRADE_SYMBOLS|TEMPORARILY_HIDDEN/);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 50);
+  });
+
+  // Amendment 23's offset ruling (owner, 2026-08-05): the same "nothing
+  // deleted" property, now for BRENT's display exclusion specifically. The
+  // 50-symbol identity that used to describe both "the master list" and
+  // "what's visible" in one number now names two different things: the
+  // master list (symbolMap.ts's AVAILABLE_ASSET_SYMBOLS, backend broker
+  // matching and replay sweeps) stays 50 and keeps BRENT; the visible
+  // universe (broker/visibility.ts's visibleAssetSymbols, every user
+  // surface) is 49 and does not.
+  it("splits the 50-symbol identity into master (50, unchanged) vs visible (49) on BRENT's ground", () => {
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 50, "the master list is unchanged");
+    assert.ok(
+      AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
+      "BRENT's FMP match stays in the master list for replay sweeps",
+    );
+    const visible = visibleAssetSymbols(null);
+    assert.equal(visible.length, 49, "the visible universe drops by exactly BRENT");
+    assert.ok(
+      !visible.includes("BRENT"),
+      "BRENT is display-excluded — amendment 23's ~196bp offset ground",
+    );
   });
 
   // HIDDEN_ASSET_TYPES_BY_CLASSIFICATION is the table the four tests above
