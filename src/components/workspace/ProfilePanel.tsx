@@ -406,7 +406,7 @@ function draftForProgram(
     accountSize: next.accountSizes[0],
     brokerId: "e8",
     classification,
-    drawdownTier: next.drawdownTiers?.[0] ?? null,
+    drawdownTier: next.drawdownTiers?.value?.[0] ?? null,
     platform: platformsFor(next.line)[0],
     programLine: next.line,
     riskPercent,
@@ -710,9 +710,9 @@ function BrokerAccountsSection({
                 className="field"
                 onChange={(event) =>
                   update({ drawdownTier: event.target.value })}
-                value={draft.drawdownTier ?? program.drawdownTiers[0]}
+                value={draft.drawdownTier ?? program.drawdownTiers.value![0]}
               >
-                {program.drawdownTiers.map((tier) => (
+                {program.drawdownTiers.value!.map((tier) => (
                   <option key={tier} value={tier}>
                     {optionCaps(formatDrawdownTier(tier, draft.accountSize))}
                   </option>

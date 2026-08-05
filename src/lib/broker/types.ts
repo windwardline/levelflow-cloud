@@ -5,10 +5,12 @@
 // review and out of CI.
 //
 // The boundary at the head of the design document governs every value in this
-// directory: no number enters unless E8 publishes it, or Levelflow derives it by
-// a method E8 publishes from data Levelflow already holds. There is no third
-// source. Where those two run out, the row carries null and the surface renders
-// a word (§19e) — the refusal is the feature working.
+// directory: a number enters by exactly three routes — E8 publishes it,
+// Levelflow derives it by a method E8 publishes from data Levelflow already
+// holds, or the owner observes it directly on the broker's live platform and
+// it is recorded dated and attributed (owner ruling, 2026-08-02). There is no
+// fourth. Where the three run out, the row carries null and the surface
+// renders a word (§19e) — the refusal is the feature working.
 
 /**
  * Where a value came from. Travels with the value, never with the table, so a
@@ -16,21 +18,45 @@
  * (crossmap §5.3).
  *
  * `article` is the E8 help-centre article ID that publishes the value, or null
- * when the source is a non-article E8 page (the e8x trading-symbols dashboard)
- * or the dossier alone.
+ * when the source is a non-article E8 page (the e8x trading-symbols dashboard),
+ * a verified observation, or the dossier alone.
  *
- * `derived` is the fourth tag and the only one this feature adds to the
+ * `derived` is the fourth tag and the second this feature adds to the
  * dossiers' three (§19a rule 1). It marks a value E8 does not print but
  * instructs the reader to compute. It is never a synonym for `primary`: it
  * carries the article publishing the METHOD, its inputs are Levelflow's own
  * in-roster quotes, and CI keeps the two tags distinguishable. A `derived` value
  * may support a `confirmed` row; a `secondary` or `dossier` value may not.
+ *
+ * `verified` is the fifth tag and the third admissible one (amendment 4, owner
+ * ruling 2026-08-02). It marks a value the owner observed directly on the
+ * broker's live platform: it carries no article and no url, and it carries a
+ * non-null `observation` naming the date, the platform, and the live program
+ * the observation was made under. It is never a synonym for `primary` either —
+ * CI keeps the two distinguishable so a later reviewer can see at a glance
+ * which numbers E8 wrote down and which the owner watched the platform do. A
+ * `verified` value may support a `confirmed` row, and a `verified` observation
+ * may establish tradability itself: the owner seeing an instrument tradable on
+ * the live account is the same class of fact as E8 publishing that it is.
+ * `secondary` and `dossier` remain inadmissible for either.
  */
+export type Observation = {
+  /** ISO date the owner made the observation. */
+  date: string;
+  /** Where it was seen: "TradeLocker" | "E8X dashboard" | "E8 purchase screen". */
+  platform: string;
+  /** The live account it was made on, e.g. "E8 Pro Forex". */
+  program: string;
+  /** What was seen, in the owner's own terms. */
+  note: string | null;
+};
+
 export type Provenance = {
   article: string | null;
-  tag: "primary" | "derived" | "secondary" | "dossier";
+  tag: "primary" | "derived" | "verified" | "secondary" | "dossier";
   method: string | null;
-  url: string;
+  url: string | null; // null only when tag is "verified"
+  observation: Observation | null; // required when tag is "verified", null otherwise
 };
 
 /** Null blocks. Null never defaults (§19a rule 2). */

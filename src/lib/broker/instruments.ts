@@ -224,11 +224,13 @@ type CfdMapping = {
 function forexCfd(symbol: string): CfdMapping {
   // The slash format is the E8X dashboard's display convention, generated from
   // the pair rather than transcribed 28 times. Every one of the 28 pairs carries
-  // identical terms: contract size 100,000 units.
+  // identical terms: contract size 100,000 units. Appendix A batches 3-4 (F5)
+  // put every pair's own order ticket on screen too, which is what the .C alt
+  // below is sourced from -- the slash format's article never printed it.
   const display = `${symbol.slice(0, 3)}/${symbol.slice(3)}`;
   return {
     brokerSymbol: display,
-    brokerSymbolAlt: null,
+    brokerSymbolAlt: ticketAlt(symbol),
     brokerSymbolSource: E8X_TRADING_SYMBOLS,
     tradability: "confirmed",
     tradabilitySource: E8X_TRADING_SYMBOLS,
@@ -242,13 +244,13 @@ function forexCfd(symbol: string): CfdMapping {
 }
 
 function indexCfd(
+  levelflowSymbol: string,
   brokerSymbol: string,
   pointsPerLot: number,
-  brokerSymbolAlt: string | null = null,
 ): CfdMapping {
   return {
     brokerSymbol,
-    brokerSymbolAlt,
+    brokerSymbolAlt: ticketAlt(levelflowSymbol),
     brokerSymbolSource: CONTRACT_SIZES,
     tradability: "confirmed",
     tradabilitySource: CONTRACT_SIZES,
@@ -258,39 +260,160 @@ function indexCfd(
   };
 }
 
-/**
- * A market E8's own lists do not reach. Not `not_offered`: the crossmap reserves
- * that for E8 Futures, whose 45-instrument roster was cross-checked against three
- * independent listings. Everywhere else E8's list is itself incomplete or
- * inaccessible, so absence proves nothing — and "not tradable on this broker
- * program" is a claim E8 does not support (§19e).
- */
-function unpublishedCfd(
-  source: Provenance,
-  unit: QuoteUnit,
-  relatedExposure: string | null = null,
-): CfdMapping {
-  return {
-    brokerSymbol: null,
-    brokerSymbolAlt: null,
-    brokerSymbolSource: null,
-    tradability: "not_published",
-    tradabilitySource: source,
-    unit,
-    maxTicketLots: TICKET_CAP_DEFAULT,
-    relatedExposure,
-  };
-}
-
 const nullContractSize = (source: Provenance): QuoteUnit => ({
   kind: "forex_contract",
   contractSize: valued<number>(null, source),
 });
 
-const nullPointsPerLot = (source: Provenance): QuoteUnit => ({
-  kind: "index_points",
-  pointsPerLot: valued<number>(null, source),
-});
+// ---------------------------------------------------------------------------
+// Appendix A — the owner's 46 live-platform observations, E8 Pro Forex on
+// TradeLocker, 2026-08-02 (docs/research/e8-observations-2026-08-02.md,
+// batches 1-4; F6/F7 in docs/research/e8-feed-verification-2026-08-02.md
+// corroborate the energies and metals order tickets to the cent). Amendment
+// 12 makes the evidence classification-wide: every E8 account of the FOREX
+// classification -- `one`, `pro_forex`, `signature_forex`, `zero` -- and no
+// other. The Crypto and Futures classifications wait for their own accounts
+// (amendment 15's sequence; the 2026-08-03 Crypto and Futures account
+// records are those accounts' own evidence, not a source for these rows).
+// ---------------------------------------------------------------------------
+
+/**
+ * The owner's live-platform tickets, E8 Pro Forex on TradeLocker, 2026-08-02:
+ * 46 instruments across four batches, every value read from the platform's own
+ * order ticket at 1.00 lot (docs/research/e8-observations-2026-08-02.md).
+ * Amendment 12 makes the evidence classification-wide: it applies to every E8
+ * account of the FOREX classification, and to no other.
+ */
+export function proForexTicket(note: string): Provenance {
+  return {
+    article: null,
+    method: null,
+    observation: {
+      date: "2026-08-02",
+      note,
+      platform: "TradeLocker",
+      program: "E8 Pro Forex",
+    },
+    tag: "verified",
+    url: null,
+  };
+}
+
+/**
+ * Every order ticket on the account names its instrument `{E8 name}.C` --
+ * indices and energies under a short root, everything else under its own
+ * Levelflow symbol -- and every one of the 46 observed tickets carries it
+ * (docs/research/e8-observations-2026-08-02.md, "The in-platform ticker
+ * format"). Recorded uniformly because it was observed uniformly.
+ */
+function ticketAlt(levelflowSymbol: string): string {
+  return `${levelflowSymbol}.C`;
+}
+
+// Appendix A item 4's queue, closed in one session: every crypto symbol,
+// silver on the Markets side, and the whole energies class. Each note is the
+// promoted row's own ticket arithmetic (Amendment 4: narrow by construction,
+// nothing borrowed from a sibling instrument's ticket).
+const FOREX_CONTRACT_OBSERVATIONS: Record<string, { contractSize: number; note: string }> = {
+  XAGUSD: {
+    contractSize: 5_000,
+    note: "tick 0.001 = $5/lot -> contract 5,000 oz; margin 58.419 x 5,000 / 15 (batch 2)",
+  },
+  WTI: {
+    contractSize: 1_000,
+    note: "tick 0.001 = $1/lot -> contract 1,000 bbl; margin 80.984 x 1,000 / 15 = $5,398.39 (batch 1), corroborated at entry 80.223 = $5,347.67 (F6)",
+  },
+  BRENT: {
+    contractSize: 1_000,
+    note: "tick 0.001 = $1/lot -> contract 1,000 bbl; margin 85.885 x 1,000 / 15 = $5,725.09 (batch 2), corroborated at entry 85.345 = $5,689.10 (F6) -- the E8 route the crossmap's no-route verdict missed",
+  },
+  BTCUSD: {
+    contractSize: 2,
+    note: "tick 0.01 = $0.02/lot -> contract 2; margin 63,432.98 x 2 = $126,865.96, full notional (1:1) against E8's published 1:5 (batch 2)",
+  },
+  ETHUSD: {
+    contractSize: 20,
+    note: "$0.20/tick -> contract 20; margin on the 1,876.89 sell ticket = $37,537.80, full notional (1:1) against E8's published 1:5 (batch 2)",
+  },
+  BCHUSD: {
+    contractSize: 200,
+    note: "$2/tick -> contract 200; margin 212.95 x 200 = $42,590.00, full notional (1:1) against E8's published 1:2 (batch 2)",
+  },
+  BNBUSD: {
+    contractSize: 200,
+    note: "$2/tick -> contract 200; margin 587.47 x 200 = $117,494.00, full notional (1:1) against E8's published 1:2 (batch 2); a non-scannable roster row",
+  },
+  LTCUSD: {
+    contractSize: 500,
+    note: "$5/tick -> contract 500; margin 44.78 x 500 = $22,390.00, full notional (1:1) against E8's published 1:2 (batch 2)",
+  },
+  SOLUSD: {
+    contractSize: 500,
+    note: "tick 0.01 = $5/lot (a 200-tick stop prices at $1,000) -> contract 500; margin 73.69 x 500 = $36,845.00, full notional (1:1) against E8's published 1:2 (batch 1)",
+  },
+  XRPUSD: {
+    contractSize: 100_000,
+    note: "tick 0.00001 = $1/lot -> contract 100,000; margin on the 1.08404 sell ticket = $108,404.00, full notional (1:1) against E8's published 1:2 (batch 2)",
+  },
+  ADAUSD: {
+    contractSize: 100_000,
+    note: "tick 0.00001 = $1/lot -> contract 100,000; margin 0.18976 x 100,000 = $18,976.00, full notional (1:1) against E8's published 1:2 (batch 2)",
+  },
+};
+
+// batch 2's per-lot index values. Half of six are foreign-currency
+// denominated: the stored value is the ticket's own local-currency multiplier
+// (yen, euro, or Australian-dollar per point), not yet bridged to USD --
+// sizing.ts's index_points arm reads pointsPerLot as a flat dollar figure the
+// way DOW/NSDQ/SP already publish theirs, and these three stay outside wave
+// 1's scannable roster (they are among the nine addendum markets) so nothing
+// sizes against the unbridged figure today.
+const INDEX_POINT_OBSERVATIONS: Record<string, { note: string; pointsPerLot: number }> = {
+  NIKKEI: {
+    pointsPerLot: 500,
+    note: "100 ticks = $3.17 at USDJPY (0.00634) -> Y500/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
+  },
+  DAX: {
+    pointsPerLot: 5,
+    note: "100 ticks = $5.77 at EURUSD 1.1544 -> EUR5/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
+  },
+  ASX: {
+    pointsPerLot: 20,
+    note: "100 ticks = $14.08 at AUDUSD (~0.704) -> AUD20/point (batch 2, blocked by closed-market validation; the ticket's own arithmetic still prices it)",
+  },
+};
+
+/** A promoted forex_contract row: Appendix A's ticket is every source it needs. */
+function promotedContractCfd(symbol: string): CfdMapping {
+  const { contractSize, note } = FOREX_CONTRACT_OBSERVATIONS[symbol];
+  const source = proForexTicket(note);
+  return {
+    brokerSymbol: null,
+    brokerSymbolAlt: ticketAlt(symbol),
+    brokerSymbolSource: source,
+    tradability: "confirmed",
+    tradabilitySource: source,
+    unit: { kind: "forex_contract", contractSize: valued(contractSize, source) },
+    maxTicketLots: TICKET_CAP_DEFAULT,
+    relatedExposure: null,
+  };
+}
+
+/** A promoted index_points row: same shape, the ticket's per-point multiplier. */
+function promotedIndexCfd(symbol: string): CfdMapping {
+  const { pointsPerLot, note } = INDEX_POINT_OBSERVATIONS[symbol];
+  const source = proForexTicket(note);
+  return {
+    brokerSymbol: null,
+    brokerSymbolAlt: ticketAlt(symbol),
+    brokerSymbolSource: source,
+    tradability: "confirmed",
+    tradabilitySource: source,
+    unit: { kind: "index_points", pointsPerLot: valued(pointsPerLot, source) },
+    maxTicketLots: TICKET_CAP_DEFAULT,
+    relatedExposure: null,
+  };
+}
 
 const CFD_MAPPINGS: Record<string, CfdMapping> = {
   // Metals. Gold is the only metal with a published spec: contract size 100 oz
@@ -298,7 +421,7 @@ const CFD_MAPPINGS: Record<string, CfdMapping> = {
   // max-ticket value would over-permit gold by 2.5x.
   XAUUSD: {
     brokerSymbol: "XAUUSD",
-    brokerSymbolAlt: null,
+    brokerSymbolAlt: ticketAlt("XAUUSD"),
     brokerSymbolSource: CONTRACT_SIZES,
     tradability: "confirmed",
     tradabilitySource: CONTRACT_SIZES,
@@ -307,30 +430,36 @@ const CFD_MAPPINGS: Record<string, CfdMapping> = {
     relatedExposure: null,
   },
   // "Metals" is a confirmed class but the contract-size article renders only
-  // four rows and silver is not among them. E8's silence about silver is a
-  // documentation gap, not a refusal.
-  XAGUSD: unpublishedCfd(CONTRACT_SIZES, nullContractSize(CONTRACT_SIZES)),
+  // four rows and silver was not among them -- E8's silence about silver was a
+  // documentation gap, not a refusal, and Appendix A batch 2 closed it: the
+  // owner's own order ticket prices silver at 5,000 oz per lot.
+  XAGUSD: promotedContractCfd("XAGUSD"),
 
   // Energies. E8 confirms the class and publishes no symbol list, no contract
-  // size and no energies-specific leverage figure anywhere accessible.
-  WTI: unpublishedCfd(INSTRUMENTS_ARTICLE, nullContractSize(INSTRUMENTS_ARTICLE)),
-  BRENT: unpublishedCfd(INSTRUMENTS_ARTICLE, nullContractSize(INSTRUMENTS_ARTICLE)),
+  // size and no energies-specific leverage figure anywhere accessible --
+  // Appendix A batches 1-2 (corroborated by F6) close both rows directly.
+  WTI: promotedContractCfd("WTI"),
+  BRENT: promotedContractCfd("BRENT"),
 
-  // Indices. Three rows are published (9453488); the rest are named in secondary
-  // sources and in the primary article's CATEGORY list only, so their symbols
-  // never reach `confirmed` (§19a rule 1). E8's own two-spelling strings are
-  // recorded where the dossier reproduces them.
-  SP: indexCfd("SP500", 20),
-  NSDQ: indexCfd("NAS100", 5),
-  DOW: indexCfd("US30", 5),
-  NIKKEI: unpublishedCfd(INSTRUMENTS_ARTICLE, nullPointsPerLot(INSTRUMENTS_ARTICLE)),
-  DAX: unpublishedCfd(INSTRUMENTS_ARTICLE, nullPointsPerLot(INSTRUMENTS_ARTICLE)),
-  ASX: unpublishedCfd(INSTRUMENTS_ARTICLE, nullPointsPerLot(INSTRUMENTS_ARTICLE)),
+  // Indices. Three rows are published (9453488); the rest were named only in
+  // secondary sources and in the primary article's CATEGORY list, so their
+  // symbols never reached `confirmed` on a published tag alone (§19a rule 1).
+  // Appendix A batch 2 observed all six directly, three of them (NIKKEI, DAX,
+  // ASX) at a foreign-currency per-point multiplier the ticket itself showed.
+  SP: indexCfd("SP", "SP500", 20),
+  NSDQ: indexCfd("NSDQ", "NAS100", 5),
+  DOW: indexCfd("DOW", "US30", 5),
+  NIKKEI: promotedIndexCfd("NIKKEI"),
+  DAX: promotedIndexCfd("DAX"),
+  ASX: promotedIndexCfd("ASX"),
 };
 
 /**
  * The same-exposure CFD for a Levelflow futures row, at a different contract
  * size and a different P&L per point. Recorded, never substituted (§19a).
+ * `BZUSD` joins by direct observation (Appendix A batch 2, corroborated by
+ * F6): BRENT is where E8 actually carries this exposure, correcting the
+ * crossmap's "no E8 route on any program" verdict for the pair.
  */
 const CFD_RELATED_EXPOSURE: Record<string, string> = {
   ESUSD: "SP500",
@@ -338,6 +467,7 @@ const CFD_RELATED_EXPOSURE: Record<string, string> = {
   YMUSD: "US30",
   GCUSD: "XAUUSD",
   MGCUSD: "XAUUSD",
+  BZUSD: "BRENT",
 };
 
 /** The E8 futures instrument that reaches a spot row's exposure (crossmap §2.2). */
@@ -455,7 +585,13 @@ function futuresLineRow(symbol: string, assetType: SecurityType): Omit<
     // by E8 as a scale factor.
     priceScaleFactor: {
       value: spec.tickSize.value === null ? null : 1,
-      source: { article: null, tag: "derived", method: "13004287", url: TICK_SIZES.url },
+      source: {
+        article: null,
+        tag: "derived",
+        method: "13004287",
+        url: TICK_SIZES.url,
+        observation: null,
+      },
     },
     marginPerContract: spec.marginPerContract,
     maxTicketLots: valued<number>(null, LOT_RESTRICTIONS),
@@ -512,6 +648,29 @@ function cfdLineRow(
   }
 
   if (isCrypto) {
+    const observation = family === "cfd_forex" ? FOREX_CONTRACT_OBSERVATIONS[symbol] : undefined;
+    if (observation) {
+      // Appendix A batches 1-2: the Forex-classification account's own order
+      // tickets fill every crypto contract size in one session. Amendment 12
+      // scopes this to the Forex classification alone -- the Crypto-
+      // classification lines wait for their own account (amendment 15), whose
+      // 2026-08-03 record is that account's own evidence, not a source here.
+      const source = proForexTicket(observation.note);
+      return {
+        ...base,
+        tradability: "confirmed",
+        tradabilitySource: source,
+        brokerSymbol: null,
+        brokerSymbolAlt: ticketAlt(symbol),
+        brokerSymbolSource: source,
+        unit: {
+          kind: "forex_contract",
+          contractSize: valued(observation.contractSize, source),
+        },
+        maxTicketLots: valued<number>(TICKET_CAP_DEFAULT, LOT_RESTRICTIONS),
+        relatedExposure: FUTURES_RELATED_EXPOSURE[symbol] ?? null,
+      };
+    }
     // Leverage is the only PRIMARY crypto fact. Contract size is NOT PUBLISHED
     // for every crypto symbol, the exhaustive symbol list is NOT PUBLISHED, and
     // only BTC/ETH/SOL are named at all — [SECONDARY], which cannot support a

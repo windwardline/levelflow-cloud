@@ -1,11 +1,6 @@
 import type { SupportedSymbol } from "./types.ts";
 
-type SymbolConfig = {
-  fallback?: string;
-  primary: string;
-};
-
-const symbolMap: Record<string, string | SymbolConfig> = {
+const symbolMap: Record<string, string> = {
   EURUSD: "EURUSD",
   GBPUSD: "GBPUSD",
   USDJPY: "USDJPY",
@@ -50,12 +45,23 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   ZBUSD: "ZBUSD",
   ZNUSD: "ZNUSD",
   SP: "^GSPC",
-  NSDQ: { primary: "^NDX", fallback: "QQQ" },
+  // Task 16c: ASX/DAX/NSDQ's ETF fallbacks measured 41x-560x off their index
+  // primaries — ASX/EWA ~304x, NSDQ/QQQ ~41x, DAX/"DAX" ~560x
+  // (docs/research/e8-feed-verification-2026-08-02.md, Open Item 7) — the
+  // same "tracks the primary at scale" failure WTI's USO fallback failed
+  // below, so no symbol keeps a stand-in source anymore. noTradeSymbols below
+  // already refuses these three, and the rest of the measured no-trade list,
+  // before any provider fetch.
+  NSDQ: "^NDX",
   NIKKEI: "^N225",
   DOW: "^DJI",
-  DAX: { primary: "^GDAXI", fallback: "DAX" },
-  ASX: { primary: "^AXJO", fallback: "EWA" },
-  WTI: { primary: "CLUSD", fallback: "USO" },
+  DAX: "^GDAXI",
+  ASX: "^AXJO",
+  // Task 16b: USO measured ~53% off CLUSD's scale (F10, docs/research/
+  // e8-feed-verification-2026-08-02.md) — a fund share price is not a
+  // per-barrel number, so no fallback stands in here. When CLUSD has no
+  // bars, the honest behavior is the existing no-data path.
+  WTI: "CLUSD",
   BRENT: "BZUSD",
   XRPUSD: "XRPUSD",
   SOLUSD: "SOLUSD",
@@ -66,13 +72,6 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   BCHUSD: "BCHUSD",
   ADAUSD: "ADAUSD",
 };
-
-const normalizedSymbolMap: Record<string, SymbolConfig> = Object.fromEntries(
-  Object.entries(symbolMap).map(([symbol, value]) => [
-    symbol,
-    typeof value === "string" ? { primary: value } : value,
-  ]),
-);
 
 // Hidden until the chart feed is verified against the matching traded CFD.
 const temporarilyUnavailableSymbols = new Set<string>([
@@ -270,14 +269,14 @@ export const noTradeSymbols = new Set<string>([
 // Scan-path exclusion set: everything no-trade, by definition.
 export const noScanSymbols = noTradeSymbols;
 
-export const defaultScanSymbols = Object.keys(normalizedSymbolMap).filter(
+export const defaultScanSymbols = Object.keys(symbolMap).filter(
   (symbol) =>
     !temporarilyUnavailableSymbols.has(symbol) &&
     !noScanSymbols.has(symbol),
 );
 
 export function isKnownSymbol(symbol: string) {
-  return normalizeSymbol(symbol) in normalizedSymbolMap;
+  return normalizeSymbol(symbol) in symbolMap;
 }
 
 export function isTemporarilyUnavailableSymbol(symbol: string) {
@@ -347,12 +346,12 @@ export function getRelatedSymbols(symbol: string) {
 
 export function resolveProviderSymbols(symbol: string) {
   const normalized = normalizeSymbol(symbol);
-  const config = normalizedSymbolMap[normalized];
+  const provider = symbolMap[normalized];
+  if (provider) {
+    return [provider];
+  }
   const sanitized = sanitizeFmpSymbol(symbol);
-  const symbols = config
-    ? [config.primary, config.fallback].filter(Boolean)
-    : [sanitized].filter(Boolean);
-  return Array.from(new Set(symbols)) as string[];
+  return sanitized ? [sanitized] : [];
 }
 
 function normalizeSymbol(value: string) {

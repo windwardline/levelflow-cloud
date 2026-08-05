@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { AVAILABLE_ASSET_SYMBOLS } from "../src/lib/symbolMap.ts";
 import {
@@ -8,6 +9,7 @@ import {
   findBrokerInstrument,
 } from "../src/lib/broker/instruments.ts";
 import {
+  CFD_LOT_STEP,
   CFD_STEP,
   FUTURES_STEP,
   floorToStep,
@@ -636,5 +638,30 @@ describe("§19c — E8's own worked examples reproduce exactly", () => {
       stopLoss: 1.0832,
     });
     assert.equal(result.kind === "size" ? result.units : null, 1);
+  });
+});
+
+describe("§19c step 7 — the CFD lot step is verified, not assumed (amendment 5)", () => {
+  it("§19c step 7 — the CFD step is 0.01, verified by name (amendment 5)", () => {
+    assert.equal(CFD_LOT_STEP.value, 0.01);
+    assert.equal(CFD_LOT_STEP.source.tag, "verified");
+    assert.equal(CFD_LOT_STEP.source.article, null);
+    assert.equal(CFD_LOT_STEP.source.url, null);
+    assert.deepEqual(CFD_LOT_STEP.source.observation, {
+      date: "2026-08-02",
+      note: "On forex accounts, I can confirm the smallest is 0.01.",
+      platform: "TradeLocker",
+      program: "E8 Pro Forex",
+    });
+    assert.equal(CFD_STEP, CFD_LOT_STEP.value);
+    assert.equal(FUTURES_STEP, 1);
+  });
+
+  it("§19c step 7 — the UNCONFIRMED mark is gone from the docblock", () => {
+    const source = readFileSync("src/lib/broker/sizing.ts", "utf8");
+    assert.ok(!source.includes("marked UNCONFIRMED"));
+    assert.ok(!source.includes("may fall under"));
+    assert.match(source, /verified, not assumed/);
+    assert.match(source, /2026-08-02/);
   });
 });

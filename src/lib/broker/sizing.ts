@@ -12,6 +12,7 @@ import {
   type SizeStateWord,
   type Stage,
   type Tradability,
+  type Valued,
 } from "./types";
 
 // Spec §19c. One formula, four gates, one rounding rule. Every step either
@@ -26,16 +27,41 @@ import {
 export const FUTURES_STEP = 1;
 
 /**
- * CFD step, marked UNCONFIRMED: E8 publishes no minimum lot increment anywhere.
- * The smallest lot it names in print is 0.1 (9453425) and its worked examples use
- * 0.3 and 5 lots, which distinguishes nothing. 0.01 is taken over 0.1 because
- * flooring to 0.1 produces no size at all on the small ladder tiers — a $5,000
- * account at 0.50% risk with a 30-pip EURUSD stop sizes to 0.083 lots. The
- * consequence is stated rather than hidden: a size below 0.1 lots may fall under
- * the trading platform's own minimum and be refused at order entry, which is a
- * rejected order and never an account breach (§20i ruling 2).
+ * CFD step, verified, not assumed: the owner confirmed it on their live E8 Pro
+ * Forex account in TradeLocker on 2026-08-02 — "On forex accounts, I can
+ * confirm the smallest is 0.01." E8 still publishes no minimum lot increment on
+ * any page, and it no longer needs to (§19c step 7, §20i ruling 2, Appendix A).
+ *
+ * The print record that forced the old assumption is kept for the reader: the
+ * smallest lot E8 names in print is 0.1 (9453425, "even a 0.1-lot micro-trade
+ * counts") and its worked examples use 0.3 and 5 lots (14722843), which
+ * distinguished nothing — which is why the value came in unconfirmed before the
+ * owner watched the platform. That 0.1 would have been wrong is corroboration,
+ * not justification: a $5,000 account at 0.50% risk with a 30-pip EURUSD stop
+ * sizes to 0.083 lots, which a 0.1 step floors to zero.
+ *
+ * The observation's scope is the ACCOUNT, not the instrument list. It was made
+ * on a forex-line account, so the 28 pairs carry the verified step. XAUUSD keeps
+ * 0.01 as its working step and sits first in Appendix A's queue.
  */
-export const CFD_STEP = 0.01;
+export const CFD_LOT_STEP: Valued<number> = {
+  source: {
+    article: null,
+    method: null,
+    observation: {
+      date: "2026-08-02",
+      note: "On forex accounts, I can confirm the smallest is 0.01.",
+      platform: "TradeLocker",
+      program: "E8 Pro Forex",
+    },
+    tag: "verified",
+    url: null,
+  },
+  value: 0.01,
+};
+
+/** The unwrapped value, kept so `sizeInstrument`'s arithmetic is unchanged. */
+export const CFD_STEP = CFD_LOT_STEP.value!;
 
 export type SizeUnit = "lots" | "contracts";
 

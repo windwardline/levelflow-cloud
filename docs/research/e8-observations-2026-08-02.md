@@ -148,3 +148,16 @@ purchase) and crypto-line leverage variance.
 3. Alt-spelling machinery gains the `.C` ticket suffix and the index/energy roots.
 4. Crypto leverage enters dual-valued: published (1:5 / 1:2) per line, observed
    1:1 on the forex line — the row's scope decides which applies.
+5. **Item 1 landed, 2026-08-04 (Task 13)** — narrower than item 1's own phrasing.
+   "Contract size is an instrument property" would carry a crypto contract size
+   onto a Crypto-classification line; amendment 12 licenses this evidence
+   classification-wide instead — every E8 account of the FOREX classification
+   (`one`, `pro_forex`, `signature_forex`, `zero`) and no other. Those four lines'
+   CFD rows for XAGUSD, WTI, BRENT and all eight crypto symbols are now
+   `confirmed` with a `verified` contract size or per-point value; `one_crypto`,
+   `pro_crypto`, `signature_crypto` and the futures lines are untouched pending
+   their own accounts (amendment 15). The narrow application follows amendment
+   19 clause 3's standing ruling (owner, 2026-08-03): forex-carried crypto stays
+   forex-scoped, and evidence observed on it never crosses onto
+   Crypto-classification lines — "the narrow reading of contract-size adjacency
+   stands." Settled by that ruling, not an open question.

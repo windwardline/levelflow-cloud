@@ -18,16 +18,37 @@ import {
   findBrokerInstrument,
 } from "../src/lib/broker/instruments.ts";
 import {
+  CANONICAL_LIST,
+  CONTRACT_SIZES,
+  CUSTOM_ACCOUNT,
+  E8X_TRADING_SYMBOLS,
+  INSTRUMENTS_ARTICLE,
+  INSTRUMENT_ROSTER,
+  LEVERAGE_ARTICLE,
+  LOT_RESTRICTIONS,
+  MAX_CONTRACTS,
   PROGRAM_LINES,
   RISK_PERCENT_DEFAULT,
   RISK_PERCENT_OPTIONS,
   STANDARD_FUTURES_MARGIN,
+  TICK_SIZES,
+  ZERO_PRODUCT,
   allowedMarginFor,
+  drawdownTiersFor,
   formatAccountSize,
   formatDrawdownTier,
   formatRiskPercent,
+  getProgramLine,
 } from "../src/lib/broker/programs.ts";
-import type { ProgramLine, Stage } from "../src/lib/broker/types.ts";
+import { CFD_LOT_STEP } from "../src/lib/broker/sizing.ts";
+import type {
+  BrokerInstrument,
+  ProgramLine,
+  Provenance,
+  QuoteUnit,
+  Stage,
+  Valued,
+} from "../src/lib/broker/types.ts";
 
 // Spec §19f. The tests/calibrationState.test.ts precedent: a literal expectation
 // table in the test file, so changing a broker number without changing a test is
@@ -264,7 +285,7 @@ describe("§19b — the ten program lines", () => {
 
   it("carries the drawdown tier domain on the four customizable lines only", () => {
     const tiers = Object.fromEntries(
-      PROGRAM_LINES.map((program) => [program.line, program.drawdownTiers]),
+      PROGRAM_LINES.map((program) => [program.line, program.drawdownTiers?.value ?? null]),
     );
     assert.deepEqual(tiers.one, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
     assert.deepEqual(tiers.one_crypto, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
@@ -280,6 +301,85 @@ describe("§19b — the ten program lines", () => {
     ]) {
       assert.equal(tiers[preset], null, `${preset} must have no tier column`);
     }
+  });
+
+  it("§19b — Classic and Track are discontinued, not under-evidenced (amendment 9)", () => {
+    const source = readFileSync("src/lib/broker/programs.ts", "utf8");
+    assert.ok(
+      !source.includes("only behind a fresh primary-research pass"),
+      "amendment 9 abolishes the re-entry path this comment describes",
+    );
+    assert.match(source, /no longer offered by E8/);
+    assert.match(source, /no re-entry path/);
+    assert.equal(PROGRAM_LINES.length, 10);
+  });
+
+  it("§20b — the tier data carries provenance (amendment 10)", () => {
+    const one = getProgramLine("one")!;
+    assert.deepEqual(one.drawdownTiers?.value, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
+    assert.equal(one.drawdownTiers?.source.tag, "verified");
+    assert.equal(
+      one.drawdownTiers?.source.observation?.platform,
+      "E8 purchase screen",
+    );
+    assert.equal(one.drawdownTiers?.source.observation?.date, "2026-08-02");
+    const pro = getProgramLine("pro_forex")!;
+    assert.deepEqual(pro.drawdownTiers?.value, ["2.5-6", "2.5-8", "2.5-10"]);
+    for (const line of [
+      "signature_forex", "signature_crypto", "signature_futures",
+      "zero", "zero_futures_starter", "zero_futures_max",
+    ]) {
+      assert.equal(getProgramLine(line)!.drawdownTiers, null);
+    }
+    assert.deepEqual(drawdownTiersFor("one"), ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
+    assert.equal(drawdownTiersFor("zero"), null);
+  });
+
+  // Fix round 1: the shared PURCHASE_SCREEN observation named all four
+  // families the 2026-08-02 session touched ("E8 One / E8 Pro / E8 Signature
+  // / E8 Zero"), though only One and Pro's tiers actually source from it —
+  // Signature has no customization and Zero has none either, so the shared
+  // observation over-claimed relative to what its own record backs
+  // (amendment 4's narrow-by-construction rule). Each tier source now names
+  // only the program line(s) its own walk actually showed.
+  it("fix round 1 — the purchase-screen observation is split, naming only what each walk actually showed", () => {
+    const one = getProgramLine("one")!;
+    const oneCrypto = getProgramLine("one_crypto")!;
+    const proForex = getProgramLine("pro_forex")!;
+    const proCrypto = getProgramLine("pro_crypto")!;
+
+    assert.equal(one.drawdownTiers?.source.observation?.program, "E8 One / E8 One Crypto");
+    assert.equal(oneCrypto.drawdownTiers?.source.observation?.program, "E8 One / E8 One Crypto");
+    assert.equal(
+      proForex.drawdownTiers?.source.observation?.program,
+      "E8 Pro Forex / E8 Pro Crypto",
+    );
+    assert.equal(
+      proCrypto.drawdownTiers?.source.observation?.program,
+      "E8 Pro Forex / E8 Pro Crypto",
+    );
+
+    // Two genuinely distinct observations, not one shared object re-labelled.
+    assert.notEqual(one.drawdownTiers?.source, proForex.drawdownTiers?.source);
+    assert.equal(one.drawdownTiers?.source, oneCrypto.drawdownTiers?.source);
+    assert.equal(proForex.drawdownTiers?.source, proCrypto.drawdownTiers?.source);
+
+    // Neither observation claims a family its own record never showed —
+    // Signature and Zero never source a value from either.
+    for (const source of [one.drawdownTiers?.source, proForex.drawdownTiers?.source]) {
+      assert.ok(!source?.observation?.program.includes("Signature"));
+      assert.ok(!source?.observation?.program.includes("Zero"));
+    }
+
+    // Still verified, still dated, still the same platform and values —
+    // this is a provenance-scoping split, not a data change.
+    for (const source of [one.drawdownTiers?.source, proForex.drawdownTiers?.source]) {
+      assert.equal(source?.tag, "verified");
+      assert.equal(source?.observation?.date, "2026-08-02");
+      assert.equal(source?.observation?.platform, "E8 purchase screen");
+    }
+    assert.deepEqual(one.drawdownTiers?.value, ["3-4", "4-6", "5.3-8", "6.6-10", "9.2-14"]);
+    assert.deepEqual(proForex.drawdownTiers?.value, ["2.5-6", "2.5-8", "2.5-10"]);
   });
 
   it("renders E8's own tiers verbatim from the paired token", () => {
@@ -489,14 +589,26 @@ describe("§19a — the row and its states", () => {
     );
   });
 
-  it("lets only [PRIMARY] tradability reach confirmed, and only primary or derived values", () => {
+  // Amendment 4 (owner ruling, 2026-08-02) widened the boundary from two
+  // admissible tags to three: `confirmed` tradability used to require
+  // `primary` alone, and a required unit value used to require `primary` or
+  // `derived` alone. Both now also admit `verified` — the owner watching the
+  // broker's live platform confirm a fact is the same class of evidence as
+  // E8 publishing it (types.ts's `Provenance` docblock). The old, narrower
+  // equality/OR-chain retired here because it hard-coded the pre-amendment
+  // two-tag world: it would fail the instant any real `confirmed` row or
+  // required unit value actually carried a `verified` source (Task 11's
+  // `CFD_LOT_STEP`, Task 13's 46 folded observations) — the exact landmine
+  // this rewrite exists to defuse before that data lands. `secondary` and
+  // `dossier` stay inadmissible in both positions: the widening admits
+  // exactly one new tag, nothing more.
+  it("admits primary or verified tradability into confirmed, and primary, derived or verified unit values (amendment 4)", () => {
     for (const row of BROKER_INSTRUMENTS) {
       if (row.tradability !== "confirmed") {
         continue;
       }
-      assert.equal(
-        row.tradabilitySource.tag,
-        "primary",
+      assert.ok(
+        ["primary", "verified"].includes(row.tradabilitySource.tag),
         `${row.programLine}:${row.levelflowSymbol} tradability`,
       );
       const unitValues = row.unit.kind === "forex_contract"
@@ -509,7 +621,7 @@ describe("§19a — the row and its states", () => {
           continue;
         }
         assert.ok(
-          value.source.tag === "primary" || value.source.tag === "derived",
+          ["primary", "derived", "verified"].includes(value.source.tag),
           `${row.programLine}:${row.levelflowSymbol} unit tag ${value.source.tag}`,
         );
       }
@@ -532,7 +644,11 @@ describe("§19a — the row and its states", () => {
           assert.ok(source.method, "a derived value must name the method's article");
           assert.equal(source.article, null, "derived is never also primary");
         }
-        assert.ok(source.url.startsWith("https://"), source.url);
+        if (source.url === null) {
+          assert.equal(source.tag, "verified", "only a verified source has a null url");
+        } else {
+          assert.ok(source.url.startsWith("https://"), source.url);
+        }
       }
     }
   });
@@ -568,7 +684,7 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("tallies the CFD lines exactly as §19a records them", () => {
+  it("tallies the CFD lines exactly as §19a records them (amendment 12, 2026-08-04)", () => {
     for (const line of [
       "one",
       "pro_forex",
@@ -576,15 +692,16 @@ describe("§19a — the row and its states", () => {
       "zero",
     ] as ProgramLine[]) {
       const tally = tallyFor(line);
-      // 28 forex pairs plus XAUUSD.
-      assert.equal(tally.confirmed, 29, `${line} confirmed`);
+      // 28 forex pairs, XAUUSD, and Appendix A's fold: XAGUSD, WTI, BRENT and
+      // all seven scannable crypto rows (batches 1-2, corroborated by F6/F7).
+      assert.equal(tally.confirmed, 39, `${line} confirmed`);
       // The eleven Levelflow Futures rows: E8's futures roster lives exclusively
       // on the futures program lines, and E8 publishes that scope.
       assert.equal(tally.not_offered, 11, `${line} not offered`);
-      // XAGUSD, both energies rows, and all seven crypto rows.
-      assert.equal(tally.not_published, 10, `${line} not published`);
+      // Appendix A closed every CFD-line silence there was left to close.
+      assert.equal(tally.not_published, 0, `${line} not published`);
       assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
-      assert.equal(findBrokerInstrument(line, "XAGUSD")!.tradability, "not_published");
+      assert.equal(findBrokerInstrument(line, "XAGUSD")!.tradability, "confirmed");
       assert.equal(findBrokerInstrument(line, "XAUUSD")!.tradability, "confirmed");
     }
     for (const line of [
@@ -619,24 +736,17 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("keeps the eight no-route markets unconfirmed on every program line", () => {
-    // Crossmap §3.5's finding of record: Brent is a firm NOT OFFERED on futures
-    // plus NOT PUBLISHED on the CFD side; the two Treasury rows are UNCONFIRMED on
-    // futures and rates are not a Markets class; the four altcoins are NOT
-    // PUBLISHED on both sides. §20c is what renders the fact — §19 does not,
-    // because on one program line the honest word is the same either way — so this
-    // pins the property the rows must have, not a derivation of the list.
-    const noRoute = [
-      "ADAUSD",
-      "BCHUSD",
-      "BRENT",
-      "BZUSD",
-      "LTCUSD",
-      "XRPUSD",
-      "ZBUSD",
-      "ZNUSD",
-    ];
-    assert.equal(noRoute.length, 8);
+  it("keeps the three no-route markets unconfirmed on every program line (amendment 12 closes five)", () => {
+    // Crossmap §3.5's finding of record named eight. Appendix A batch 2
+    // (corroborated by F6) gives BRENT, ADAUSD, BCHUSD, LTCUSD and XRPUSD a
+    // confirmed CFD route on the Forex-classification lines, so five of the
+    // eight leave. BZUSD has no E8 route on any program at all; ZBUSD and
+    // ZNUSD publish margin but not tick — all three remain UNCONFIRMED
+    // everywhere. §20c is what renders the fact — §19 does not, because on
+    // one program line the honest word is the same either way — so this pins
+    // the property the rows must have, not a derivation of the list.
+    const noRoute = ["BZUSD", "ZBUSD", "ZNUSD"];
+    assert.equal(noRoute.length, 3);
     for (const symbol of noRoute) {
       assert.ok(AVAILABLE_ASSET_SYMBOLS.includes(symbol), symbol);
       for (const program of PROGRAM_LINES) {
@@ -729,9 +839,40 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("counts what is sizeable in wave 1: 29 on a CFD line, 8 on a futures line, 0 on a crypto line", () => {
-    for (const line of ["one", "pro_forex", "signature_forex", "zero"] as ProgramLine[]) {
-      assert.equal(SIZEABLE_MARKETS_BY_LINE[line].length, 29, line);
+  it("counts what is sizeable in wave 1: 39 on three CFD lines, 37 on Zero, 8 on a futures line, 0 on a crypto line", () => {
+    // Appendix A's fold (amendment 12): the 28 forex pairs and XAUUSD (29,
+    // unchanged) plus XAGUSD, WTI, BRENT and seven scannable crypto rows (10).
+    const APPENDIX_A_SIZEABLE = [
+      "ADAUSD",
+      "BCHUSD",
+      "BRENT",
+      "BTCUSD",
+      "ETHUSD",
+      "LTCUSD",
+      "SOLUSD",
+      "WTI",
+      "XAGUSD",
+      "XRPUSD",
+    ];
+    for (const line of ["one", "pro_forex", "signature_forex"] as ProgramLine[]) {
+      assert.equal(SIZEABLE_MARKETS_BY_LINE[line].length, 39, line);
+      for (const symbol of APPENDIX_A_SIZEABLE) {
+        assert.ok(SIZEABLE_MARKETS_BY_LINE[line].includes(symbol), `${line} misses ${symbol}`);
+      }
+    }
+    // E8 Zero's own product page (15655062) publishes no energies leverage row
+    // -- the same gap that already leaves `zero.leverage.energies` undefined
+    // -- so WTI and BRENT have no computable margin cap there and stay
+    // unsized; the other eight in Appendix A's fold size exactly as they do
+    // on the other three Forex-classification lines.
+    assert.equal(SIZEABLE_MARKETS_BY_LINE.zero.length, 37);
+    for (const symbol of APPENDIX_A_SIZEABLE) {
+      const stillUnsized = symbol === "WTI" || symbol === "BRENT";
+      assert.equal(
+        SIZEABLE_MARKETS_BY_LINE.zero.includes(symbol),
+        !stillUnsized,
+        `zero:${symbol}`,
+      );
     }
     for (
       const line of [
@@ -967,5 +1108,245 @@ describe("§20i ruling 7 — the catalog walk transcribes the purchase screen", 
   it("offers no free-form entry — every option set is a finite enumeration", () => {
     const source = readFileSync("src/lib/broker/catalog.ts", "utf8");
     assert.doesNotMatch(source, /type="number"|parseFloat|parseInt|Number\(/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Amendment 4 — the `verified` tag and the `Observation` shape
+// ---------------------------------------------------------------------------
+
+function unitValuesOf(unit: QuoteUnit): Valued<number>[] {
+  switch (unit.kind) {
+    case "forex_contract":
+      return [unit.contractSize];
+    case "index_points":
+      return [unit.pointsPerLot];
+    case "futures_tick":
+      return [unit.tickSize, unit.valuePerTick];
+  }
+}
+
+// The Provenance constants programs.ts (and, since Task 11, sizing.ts) export
+// at module scope — every one of them is already reachable transitively
+// through BROKER_INSTRUMENTS or PROGRAM_LINES below, but naming them here too
+// means a future constant that is not yet wired into either structure still
+// gets checked rather than silently skipped. CFD_LOT_STEP is exactly that
+// case: it is the catalog's first real `verified` value, and it lives on a
+// bare sizing constant rather than a BrokerInstrument or ProgramLine field, so
+// this list is the only place its observation is reachable by the invariant
+// below (bridging.ts's own module constants are a known, still-open exclusion
+// — see Task 10's review — and are deliberately not added here).
+const MODULE_LEVEL_PROVENANCES: Provenance[] = [
+  CANONICAL_LIST,
+  CFD_LOT_STEP.source,
+  CONTRACT_SIZES,
+  CUSTOM_ACCOUNT,
+  E8X_TRADING_SYMBOLS,
+  INSTRUMENTS_ARTICLE,
+  INSTRUMENT_ROSTER,
+  LEVERAGE_ARTICLE,
+  LOT_RESTRICTIONS,
+  MAX_CONTRACTS,
+  TICK_SIZES,
+  ZERO_PRODUCT,
+];
+
+/** Every `Provenance` reachable from the roster, the program lines, and the module's own source constants. */
+function allProvenances(): Provenance[] {
+  const sources: Provenance[] = [...MODULE_LEVEL_PROVENANCES];
+  for (const row of BROKER_INSTRUMENTS) {
+    sources.push(row.tradabilitySource);
+    if (row.brokerSymbolSource) {
+      sources.push(row.brokerSymbolSource);
+    }
+    for (const value of unitValuesOf(row.unit)) {
+      sources.push(value.source);
+    }
+    sources.push(row.priceScaleFactor.source);
+    sources.push(row.marginPerContract.source);
+    sources.push(row.maxTicketLots.source);
+  }
+  for (const program of PROGRAM_LINES) {
+    sources.push(program.accountSizeSource);
+    // Task 12: drawdownTiers became Valued<> to carry the purchase-screen
+    // observation (amendment 10); null on the six preset lines with no tier.
+    if (program.drawdownTiers) {
+      sources.push(program.drawdownTiers.source);
+    }
+    for (const leverageValue of Object.values(program.leverage)) {
+      if (leverageValue) {
+        sources.push(leverageValue.source);
+      }
+    }
+  }
+  return sources;
+}
+
+/**
+ * The non-null `Valued<>` members a confirmed row's own family actually needs:
+ * the unit's own values, plus priceScaleFactor, marginPerContract and
+ * maxTicketLots wherever the row's family populates them (the other family's
+ * field is always null by construction, so filtering on non-null value is
+ * the family filter).
+ */
+function requiredUnitValues(row: BrokerInstrument): Valued<number>[] {
+  return [
+    ...unitValuesOf(row.unit),
+    row.priceScaleFactor,
+    row.marginPerContract,
+    row.maxTicketLots,
+  ].filter((value) => value.value !== null);
+}
+
+describe("§19a — `verified` is the fifth tag and the third admissible one", () => {
+  const TYPES_SOURCE = readFileSync("src/lib/broker/types.ts", "utf8");
+
+  it("retires the two-route boundary from the header comment", () => {
+    assert.ok(
+      !TYPES_SOURCE.includes("There is no third source"),
+      "the preamble's third route is law since 2026-08-02",
+    );
+    assert.match(TYPES_SOURCE, /the owner observes it directly on the broker's live platform/);
+  });
+
+  it("declares the Observation shape and the widened Provenance", () => {
+    assert.match(TYPES_SOURCE, /export type Observation = \{/);
+    assert.match(TYPES_SOURCE, /tag: "primary" \| "derived" \| "verified" \| "secondary" \| "dossier";/);
+    assert.match(TYPES_SOURCE, /url: string \| null;/);
+    assert.match(TYPES_SOURCE, /observation: Observation \| null;/);
+  });
+
+  it("every verified value carries a dated, platformed observation and is never also primary", () => {
+    for (const source of allProvenances()) {
+      if (source.tag !== "verified") {
+        assert.equal(source.observation, null, "only verified carries an observation");
+        continue;
+      }
+      assert.equal(source.article, null);
+      assert.equal(source.url, null);
+      assert.ok(source.observation, "a verified value carries its observation");
+      assert.match(source.observation.date, /^\d{4}-\d{2}-\d{2}$/);
+      assert.ok(source.observation.platform.length > 0);
+      assert.ok(source.observation.program.length > 0);
+    }
+  });
+
+  it("widens the confirmed implication to admit verified", () => {
+    for (const row of BROKER_INSTRUMENTS.filter((r) => r.tradability === "confirmed")) {
+      assert.ok(
+        ["primary", "verified"].includes(row.tradabilitySource.tag),
+        `${row.programLine}/${row.levelflowSymbol} tradability tag`,
+      );
+      for (const value of requiredUnitValues(row)) {
+        assert.ok(
+          ["primary", "derived", "verified"].includes(value.source.tag),
+          `${row.programLine}/${row.levelflowSymbol} unit value tag`,
+        );
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Appendix A — the 46 observations fold into the Forex-classification rows
+// ---------------------------------------------------------------------------
+
+describe("Appendix A — the 46 observations, on the Forex classification (amendments 12, 4)", () => {
+  const FOREX_LINES = ["one", "pro_forex", "signature_forex", "zero"] as const;
+
+  // batch 2: XAGUSD tick 0.001 = $5 -> 5,000 oz. batch 1 + F6: WTI and BRENT
+  // tick 0.001 = $1 -> 1,000 bbl. batch 2 + F6/F7 corroborate both to the cent.
+  const CONTRACT_SIZES: Record<string, number> = {
+    ADAUSD: 100_000,
+    BCHUSD: 200,
+    BNBUSD: 200,
+    BRENT: 1_000,
+    BTCUSD: 2,
+    ETHUSD: 20,
+    LTCUSD: 500,
+    SOLUSD: 500,
+    WTI: 1_000,
+    XAGUSD: 5_000,
+    XRPUSD: 100_000,
+  };
+
+  for (const line of FOREX_LINES) {
+    for (const [symbol, contractSize] of Object.entries(CONTRACT_SIZES)) {
+      it(`${line}/${symbol} carries its observed contract size`, () => {
+        const row = findBrokerInstrument(line, symbol);
+        assert.ok(row, `${line}/${symbol} exists`);
+        assert.equal(row.tradability, "confirmed");
+        assert.equal(row.tradabilitySource.tag, "verified");
+        assert.equal(row.unit.kind, "forex_contract");
+        assert.equal(row.unit.contractSize.value, contractSize);
+        assert.equal(row.unit.contractSize.source.tag, "verified");
+        assert.equal(row.unit.contractSize.source.observation?.program, "E8 Pro Forex");
+        assert.equal(row.unit.contractSize.source.observation?.platform, "TradeLocker");
+      });
+    }
+  }
+
+  // batch 2's index per-point values. Three of six are foreign-currency
+  // denominated: NIKKEI 500/USDJPY, DAX 5 x EURUSD, ASX 20 x AUDUSD.
+  it("carries the observed index per-point values", () => {
+    const points: Record<string, number> = { DOW: 5, NSDQ: 5, SP: 20 };
+    for (const [symbol, perPoint] of Object.entries(points)) {
+      const row = findBrokerInstrument("pro_forex", symbol)!;
+      assert.equal(row.unit.kind, "index_points");
+      assert.equal(row.unit.pointsPerLot.value, perPoint);
+    }
+    // Final review: the foreign-currency three were pinned by kind and
+    // source.tag only, never by value — instruments.ts's own
+    // INDEX_POINT_OBSERVATIONS (NIKKEI 500, DAX 5, ASX 20) could drift
+    // silently. Pinned the same way DOW/NSDQ/SP are above.
+    const foreignCurrencyPoints: Record<string, number> = {
+      NIKKEI: 500,
+      DAX: 5,
+      ASX: 20,
+    };
+    for (const symbol of ["NIKKEI", "DAX", "ASX"]) {
+      const row = findBrokerInstrument("pro_forex", symbol)!;
+      assert.equal(row.unit.kind, "index_points");
+      assert.equal(row.unit.pointsPerLot.value, foreignCurrencyPoints[symbol]);
+      assert.equal(row.unit.pointsPerLot.source.tag, "verified");
+    }
+  });
+
+  // The in-platform ticker format, the cross-map's biggest gap, closed:
+  // `{E8 name}.C`, with short roots for indices and energies.
+  it("records the .C ticket suffix without rendering it", () => {
+    assert.equal(findBrokerInstrument("pro_forex", "EURUSD")!.brokerSymbolAlt, "EURUSD.C");
+    assert.equal(findBrokerInstrument("pro_forex", "WTI")!.brokerSymbolAlt, "WTI.C");
+    assert.equal(findBrokerInstrument("pro_forex", "SP")!.brokerSymbolAlt, "SP.C");
+  });
+
+  // BRENT's correction: the cross-map's "no E8 route on any program" verdict is
+  // wrong by direct observation (batch 2, corroborated by F6's order ticket).
+  it("gives BRENT an E8 route and leaves BZUSD pointing at it", () => {
+    assert.equal(findBrokerInstrument("pro_forex", "BRENT")!.tradability, "confirmed");
+    assert.equal(findBrokerInstrument("pro_forex", "BZUSD")!.relatedExposure, "BRENT");
+  });
+
+  // The Crypto and Futures classifications are untouched until their own
+  // accounts are observed (amendment 15).
+  it("promotes nothing on a crypto or futures line", () => {
+    for (const line of ["one_crypto", "pro_crypto", "signature_crypto", "signature_futures"] as const) {
+      for (const symbol of Object.keys(CONTRACT_SIZES)) {
+        const row = findBrokerInstrument(line, symbol);
+        if (!row) continue;
+        assert.notEqual(row.tradabilitySource.tag, "verified");
+      }
+    }
+  });
+
+  // The observed forex-line crypto margin was FULL NOTIONAL on every ticket,
+  // which is exactly the 1:1 the built data already carries. No contradiction to
+  // resolve — a corroboration to record.
+  it("corroborates the forex lines' 1:1 crypto leverage", () => {
+    for (const line of FOREX_LINES) {
+      const program = getProgramLine(line)!;
+      if (line === "zero") continue; // E8 Zero's own class list; leverage from 15655062
+      assert.equal(program.leverage.crypto?.value, 1);
+    }
   });
 });
