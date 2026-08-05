@@ -63,7 +63,11 @@ const symbolMap: Record<string, string | SymbolConfig> = {
   DOW: "^DJI",
   DAX: { primary: "^GDAXI", fallback: "DAX" },
   ASX: { primary: "^AXJO", fallback: "EWA" },
-  WTI: { primary: "CLUSD", fallback: "USO" },
+  // Task 16b: USO measured ~53% off CLUSD's scale (F10, docs/research/
+  // e8-feed-verification-2026-08-02.md) — a fund share price is not a
+  // per-barrel number, so no fallback stands in here. When CLUSD has no
+  // bars, the honest behavior is the existing no-data path.
+  WTI: "CLUSD",
   BRENT: "BZUSD",
   XRPUSD: "XRPUSD",
   SOLUSD: "SOLUSD",

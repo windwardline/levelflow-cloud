@@ -470,12 +470,20 @@ silently closed.
   daily, symbol passed as a query parameter.
 - The symbol map (`src/lib/symbolMap.ts`): Forex, Metals, Crypto, and
   Futures groups pass `fmpSymbol === symbol` verbatim. The only scannable
-  divergences are the energy CFDs — WTI → CLUSD (fallback USO) and
-  BRENT → BZUSD — whose basis F4 **measured** (WTI ~+0.23, BRENT ~+1.61,
-  E8 above FMP front-month) and **F10 resolved**: RECORD-OFFSET on both,
-  no better FMP candidate exists for either, no source edit. WTI and
-  BRENT re-enter the identity-confirmed set with their bases logged, not
-  zeroed. Indices (all non-scannable today) source cash indices
+  divergences are the energy CFDs — WTI → CLUSD and BRENT → BZUSD — whose
+  basis F4 **measured** (WTI ~+0.23, BRENT ~+1.61, E8 above FMP
+  front-month) and **F10 resolved**: RECORD-OFFSET on both, no better FMP
+  candidate exists for either, no source edit. WTI and BRENT re-enter the
+  identity-confirmed set with their bases logged, not zeroed. WTI's code
+  fallback to `USO` — a distinct question from its source identity, per
+  F10's own closing note — was **removed in Task 16b** (2026-08-04): USO
+  priced $115.78 against CLUSD's live $75.87 the same pull (+52.6%,
+  reconfirming F10's own +53.5%), so it fails the "tracks the primary at
+  scale" bar outright — a fund share price is not a per-barrel number, at
+  any tolerance. The honest behavior when CLUSD has no bars is now the
+  existing no-data path, not a silent substitute that would corrupt every
+  level, stop and target computed from it while still looking like real
+  data. Indices (all non-scannable today) source cash indices
   (`^GSPC` family); F2 established that E8 quotes synthetic cash (futures
   minus fair-value basis), so the cash wiring tracks during each index's
   own cash session and is stale outside it. ASX stays hidden
@@ -528,3 +536,37 @@ silently closed.
    (F5's own commit history shows only the prose summary was ever
    recorded). Still open — needs one fresh frame with a JPY pair
    (USDJPY.C or GBPJPY.C) as the active chart symbol.
+7. **The three remaining code fallbacks all fail the same scale test
+   WTI → USO just failed.** Task 16b (2026-08-04) audited every
+   `fallbackFmpSymbol` left in `src/lib/symbolMap.ts` against live FMP
+   quotes, same day: `ASX` → `EWA` (iShares MSCI Australia ETF) $30.12 vs
+   `^AXJO` 9,154.6 (≈304x off) · `NSDQ` → `QQQ` (Invesco QQQ Trust) $723.85
+   vs `^NDX` 29,733.16 (≈41x off) · `DAX` → the FMP ticker literally named
+   `DAX` (Global X - DAX Germany ETF) $47.08 vs `^GDAXI` 26,367.5 (≈560x
+   off). None was removed in Task 16b — its brief scoped the code change
+   to WTI, the one instrument F10 actually measured and ruled on — but
+   none passes the bar either, and `tests/feedSource.test.ts` now pins the
+   exact set of symbols still carrying a fallback (`ASX`, `DAX`, `NSDQ`)
+   so a fourth cannot join it silently. Reachability differs by path:
+   `ASX`'s fallback is unreachable in both edge functions
+   (`isTemporarilyUnavailableSymbol` / `temporarilyUnavailableSymbols`
+   block it before any provider fetch runs); `NSDQ`'s and `DAX`'s are
+   unreachable in the analyzer (`noTradeSymbols` gates
+   `reviewCurrentMarket` before `resolveProviderSymbols` runs) and, as far
+   as traced, unreachable from the shipped client today too — every
+   symbol-selection path (`MarketScanPanel`/`MarketScanResults` candidates,
+   the `openAdvisor` flow that both Insights rows and Current-trades cards
+   use, and the scope menu) resolves through `AVAILABLE_ASSET_OPTIONS` or
+   server-side scan filtering before a symbol ever reaches the chart
+   request. What is NOT true is that `market-data/index.ts` enforces this
+   independently: its own `temporarilyUnavailableSymbols` set names only
+   `ASX`, so it has no `noTradeSymbols` check of its own — a
+   defense-in-depth gap, reachable by any authenticated direct call to the
+   function (or a future client change) rather than by anything the
+   current UI exposes. `docs/research/e8-fmp-crossmap.md:350` named the
+   general shape of this ("ETF fallbacks are a fourth price scale... any
+   sizing number derived from the primary symbol's scale is wrong") on
+   2026-08-02, before F10 existed; this item is that same concern, now
+   live-measured against all three remaining entries and formally left
+   open rather than silently carried. Flagged for a follow-up task, not
+   fixed here.

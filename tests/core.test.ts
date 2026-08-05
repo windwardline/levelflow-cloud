@@ -382,7 +382,11 @@ describe("trade analyzer category handling", () => {
 
   it("keeps analyzer symbol routing aligned with public availability", () => {
     assert.deepEqual(resolveProviderSymbols("NSDQ"), ["^NDX", "QQQ"]);
-    assert.deepEqual(resolveProviderSymbols("WTI"), ["CLUSD", "USO"]);
+    // Task 16b: F10 measured USO ~53% off CLUSD's scale (docs/research/
+    // e8-feed-verification-2026-08-02.md) — WTI's fallback was removed, so
+    // this resolves to the primary alone now, same shape as any symbol that
+    // never had a fallback.
+    assert.deepEqual(resolveProviderSymbols("WTI"), ["CLUSD"]);
     assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO", "EWA"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
     assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);

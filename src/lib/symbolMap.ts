@@ -273,7 +273,6 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
       {
         assetType: "Energies",
         description: "WTI Crude Oil",
-        fallbackFmpSymbol: "USO",
         fmpSymbol: "CLUSD",
         label: "WTI - WTI Crude Oil",
         symbol: "WTI",

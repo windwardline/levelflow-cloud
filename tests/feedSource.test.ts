@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { SECURITY_GROUPS } from "../src/lib/symbolMap";
+import { SECURITY_GROUPS, SECURITY_OPTIONS } from "../src/lib/symbolMap";
 
 // §20i ruling 8: the FMP feed was verified against E8's live platform
 // (E8 Pro Forex, TradeLocker, 2026-08-02 — docs/research/
@@ -104,7 +104,7 @@ describe("feed source lock (§20i ruling 8)", () => {
       NIKKEI: { fmp: "^N225" },
       NSDQ: { fallback: "QQQ", fmp: "^NDX" },
       SP: { fmp: "^GSPC" },
-      WTI: { fallback: "USO", fmp: "CLUSD" },
+      WTI: { fmp: "CLUSD" },
     };
 
     const observedDivergences: Record<
@@ -131,6 +131,54 @@ describe("feed source lock (§20i ruling 8)", () => {
     }
 
     assert.deepEqual(observedDivergences, recordedDivergences);
+  });
+
+  it("WTI carries no fallback — F10 measured USO ~53% off CLUSD's scale (Task 16b)", () => {
+    // Amendment 20's own words are "maximized and aligned precisely"; the
+    // house law is no fallbacks that mask real problems. F10 measured USO
+    // at +53.5% vs CLUSD (docs/research/e8-feed-verification-2026-08-02.md)
+    // and a live re-check the same day (Task 16b) reconfirmed it: USO
+    // $115.78 vs CLUSD $75.87, +52.6%. A fund share price is not a
+    // per-barrel number, at any tolerance — the honest behavior when CLUSD
+    // has no bars is the existing no-data path, not a silent, scale-broken
+    // substitute that would corrupt every level, stop and target computed
+    // from it while still looking like real data.
+    const wti = SECURITY_OPTIONS.find((option) => option.symbol === "WTI");
+    assert.ok(wti, "WTI must remain a known security option");
+    assert.equal(wti?.fmpSymbol, "CLUSD");
+    assert.equal(wti?.fallbackFmpSymbol, undefined);
+  });
+
+  it("no symbol may gain a fallback the same scale audit hasn't cleared (Task 16b)", () => {
+    // The rule, not just the WTI instance: a fallback is legitimate only
+    // when its series tracks the primary's PRICE LEVEL (not merely its
+    // direction) closely enough that a silent substitution cannot corrupt a
+    // computed level, stop or target. Every symbol below was live-audited
+    // against that bar on 2026-08-04 (Task 16b, task-16b-report.md) and
+    // EVERY ONE fails it, same as WTI's removed USO fallback did — none is
+    // fixed here because none is reachable from a live setup today:
+    //   - ASX -> EWA (iShares MSCI Australia ETF, ~304x off ^AXJO): blocked
+    //     before any provider fetch in both edge functions
+    //     (isTemporarilyUnavailableSymbol / temporarilyUnavailableSymbols).
+    //   - NSDQ -> QQQ (Invesco QQQ Trust, ~41x off ^NDX) and
+    //     DAX -> "DAX" (Global X - DAX Germany ETF, ~560x off ^GDAXI): both
+    //     blocked in the analyzer (noTradeSymbols gates reviewCurrentMarket
+    //     before resolveProviderSymbols runs), but NOT gated in
+    //     supabase/functions/market-data/index.ts, whose own
+    //     temporarilyUnavailableSymbols set names only ASX — a defense-in-
+    //     depth gap flagged in the research doc's Open Items, not fixed by
+    //     this task (Task 16b's brief scoped the code change to WTI, the
+    //     one instrument F10 actually measured and ruled on).
+    // docs/research/e8-fmp-crossmap.md:350 named the general shape of this
+    // ("ETF fallbacks are a fourth price scale") back on 2026-08-02; this
+    // assertion is what makes it a build failure, not just a comment, the
+    // day any of these three either gains a live path or a fourth symbol
+    // gains a fallback without going through the same audit.
+    const symbolsWithFallback = SECURITY_OPTIONS
+      .filter((option) => option.fallbackFmpSymbol !== undefined)
+      .map((option) => option.symbol)
+      .sort();
+    assert.deepEqual(symbolsWithFallback, ["ASX", "DAX", "NSDQ"]);
   });
 
   it("financialmodelingprep appears only in the recorded wiring files", () => {
