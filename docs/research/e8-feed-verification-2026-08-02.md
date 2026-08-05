@@ -346,7 +346,7 @@ including the incumbent's own re-check:
 | SILUSD (Dec micro futures) | FMP open 58.400 → **−0.191** | FMP close 58.290 → **−0.192** | stable, negative |
 
 (The incumbent's own F1 bar has revised about a cent since the original
-transcription — 58.070/58.999 open/close here vs 58.062/57.999 as first
+transcription — 58.070/57.999 open/close here vs 58.062/57.999 as first
 read — an ordinary intraday-bar revision, immaterial to the offset.)
 Neither futures candidate beats the incumbent at either anchor, and a
 live re-check today shows why: spot XAGUSD 59.519 against SIUSD 59.845
