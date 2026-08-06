@@ -21,6 +21,7 @@ import {
   type SizingContext,
 } from "../src/lib/broker/sizing.ts";
 import { PROGRAM_LINES, allowedMarginFor } from "../src/lib/broker/programs.ts";
+import { SIZE_STATE_WORDS } from "../src/lib/broker/types.ts";
 import type {
   BrokerInstrument,
   ProgramLine,
@@ -138,10 +139,19 @@ describe("§19c — the budget invariant, over generated inputs", () => {
             stage,
           });
           const result = sizeSetup({ ...context, levelflowSymbol: symbol, programLine: line });
-          assert.equal(result.kind, "size", `${line}:${symbol}`);
-          if (result.kind !== "size") {
+          // A generated case may legitimately fall below one step — a $5,000
+          // account cannot carry one gold contract at any stop. That is the only
+          // non-size outcome permitted here; anything else is a real failure, and
+          // the `cases > 500` floor below still proves the size path ran.
+          if (result.kind === "blocked") {
+            assert.ok(
+              result.word === SIZE_STATE_WORDS.belowOneContract ||
+                result.word === SIZE_STATE_WORDS.belowOneLot,
+              `${line}:${symbol} blocked with "${result.word}", which these inputs should never produce`,
+            );
             continue;
           }
+          assert.equal(result.kind, "size", `${line}:${symbol}`);
           const row = findBrokerInstrument(line, symbol)!;
           const stopDistance = Math.abs(context.entryPrice - context.stopLoss);
           const worstCaseLoss = result.units * stopDistance * perUnitFor(row, context);
@@ -171,6 +181,11 @@ describe("§19c — the budget invariant, over generated inputs", () => {
     for (const symbol of ["EURUSD", "GBPJPY", "XAUUSD"]) {
       const base = contextFor(symbol, random);
       let previous = Infinity;
+      // Monotonicity now has a floor: past some stop width the size falls below
+      // one step and the row becomes a state word. That is the same curve
+      // continuing, not an exception to it — so once it blocks it must STAY
+      // blocked as the stop widens further, which is the stronger assertion.
+      let blockedAt: number | null = null;
       for (const multiple of [0.5, 1, 2, 4, 8]) {
         const distance = Math.abs(base.entryPrice - base.stopLoss) * multiple;
         const result = sizeSetup({
@@ -179,14 +194,23 @@ describe("§19c — the budget invariant, over generated inputs", () => {
           programLine: "one",
           stopLoss: base.entryPrice - distance,
         });
-        assert.equal(result.kind, "size");
-        if (result.kind !== "size") {
+        if (result.kind === "blocked") {
+          blockedAt ??= multiple;
           continue;
         }
+        assert.equal(
+          blockedAt,
+          null,
+          `${symbol} sized again at ${multiple}x after blocking at ${blockedAt}x`,
+        );
         assert.ok(result.units <= previous, `${symbol} grew as the stop widened`);
         previous = result.units;
       }
       let smaller = 0;
+      // The same floor, read from the other end: the smallest risk settings may
+      // not buy one step. Rising risk can therefore go blocked → sized, but never
+      // back, so a block after a size is the real failure.
+      let sizedAt: number | null = null;
       for (const riskPercent of [0.1, 0.25, 0.5, 1, 1.5]) {
         const result = sizeSetup({
           ...base,
@@ -194,10 +218,15 @@ describe("§19c — the budget invariant, over generated inputs", () => {
           programLine: "one",
           riskPercent,
         });
-        assert.equal(result.kind, "size");
-        if (result.kind !== "size") {
+        if (result.kind === "blocked") {
+          assert.equal(
+            sizedAt,
+            null,
+            `${symbol} blocked at ${riskPercent}% after sizing at ${sizedAt}%`,
+          );
           continue;
         }
+        sizedAt ??= riskPercent;
         assert.ok(result.units >= smaller, `${symbol} shrank as risk rose`);
         smaller = result.units;
       }
@@ -672,5 +701,101 @@ describe("§19c step 7 — the CFD lot step is verified, not assumed (amendment 
     assert.ok(!source.includes("may fall under"));
     assert.match(source, /verified, not assumed/);
     assert.match(source, /2026-08-02/);
+  });
+});
+
+// §19e's law is "a number or a state word, there is no third outcome". A size
+// that rounds to zero is a number that means NOT TAKEABLE, which says nothing,
+// and it renders beside a live copy button — the affordance that copies a word
+// is a lie, and so is the one that copies a zero.
+//
+// It is not an edge case. On a $25,000 E8 Signature Futures account at the
+// 0.50% default, EVERY mapped futures market rounds to zero at a 1.0-ATR stop,
+// because one gold contract risks $1,354 against a $125 budget. That is 135% of
+// the account's entire EOD Dynamic drawdown allowance in one trade, and the
+// operator is shown a 0 and a copy button.
+describe("§19e — a size below one step is a state word, never a zero", () => {
+  const futuresContext = (
+    entryPrice: number,
+    stopDistance: number,
+    accountSize: number,
+  ): SizingContext => ({
+    accountSize,
+    entryPrice,
+    quotes: { GCUSD: entryPrice },
+    riskPercent: 0.5,
+    stage: "performance",
+    stopLoss: entryPrice - stopDistance,
+  });
+
+  it("blocks rather than returning zero contracts on a small futures account", () => {
+    const result = sizeSetup({
+      ...futuresContext(4_326, 13.5, 25_000),
+      levelflowSymbol: "GCUSD",
+      programLine: "signature_futures",
+    });
+    assert.equal(
+      result.kind,
+      "blocked",
+      "one gold contract risks ~$1,354 against a $125 budget — that is not a size of 0, it is no size",
+    );
+  });
+
+  it("still sizes normally when at least one whole step fits", () => {
+    const result = sizeSetup({
+      ...futuresContext(4_326, 1.0, 150_000),
+      levelflowSymbol: "GCUSD",
+      programLine: "signature_futures",
+    });
+    assert.equal(result.kind, "size");
+    if (result.kind === "size") {
+      assert.ok(result.units >= result.step);
+    }
+  });
+
+  it("never returns a size below one step, for any market on any line", () => {
+    const random = lcg(9_311);
+    for (const line of Object.keys(SIZEABLE_MARKETS_BY_LINE) as ProgramLine[]) {
+      for (const symbol of SIZEABLE_MARKETS_BY_LINE[line]) {
+        for (const accountSize of [5_000, 25_000, 100_000]) {
+          const result = sizeSetup({
+            ...contextFor(symbol, random, { accountSize }),
+            levelflowSymbol: symbol,
+            programLine: line,
+          });
+          if (result.kind === "size") {
+            assert.ok(
+              result.units >= result.step,
+              `${line}/${symbol} at $${accountSize} returned ${result.units}, below its own ${result.step} step`,
+            );
+          }
+        }
+      }
+    }
+  });
+});
+
+// A stop equal to the entry leaves the risk budget unbinding, so Math.min picks
+// the MARGIN cap — the maximum leverage the account can carry, sitting exactly
+// on E8's stop-out line. One tick of adverse movement is a full margin call.
+// The old comment called this "the arithmetic answer rather than a special
+// case"; the arithmetic answer to a degenerate price is a state word.
+describe("§19e — a stop that is not a stop carries no size", () => {
+  it("blocks when the stop equals the entry rather than sizing to the margin cap", () => {
+    const result = sizeSetup({
+      accountSize: 100_000,
+      entryPrice: 1.15,
+      quotes: { EURUSD: 1.15 },
+      riskPercent: 0.5,
+      stage: "performance",
+      stopLoss: 1.15,
+      levelflowSymbol: "EURUSD",
+      programLine: "signature_forex",
+    });
+    assert.equal(
+      result.kind,
+      "blocked",
+      "a zero stop distance must not size to the margin cap — 26 lots is €2.6M notional on a $100k account",
+    );
   });
 });

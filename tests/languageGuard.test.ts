@@ -441,7 +441,17 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     }
   });
 
-  it("renders no fifth state word — the four are a closed set", () => {
+  it("renders no unregistered state word — the set is closed at six", () => {
+    // Was four. The two below-one-step words were added on 2026-08-06 because a
+    // size that rounds to zero had been rendering as the NUMBER "0" beside a live
+    // copy button — §19e's table has no room for that, and none of the original
+    // four is honest about it: E8 offers the market, the row is confirmed, the
+    // data is published, and the rate is available. The setup is simply smaller
+    // than one contract at the operator's risk setting.
+    //
+    // WORDING IS PENDING AN OWNER RULING. The mechanism is not: rendering a
+    // copyable 0 is a defect either way. §20j carries both strings so the
+    // both-directions check has something to check against.
     const words = types.match(/SIZE_STATE_WORDS = \{[\s\S]*?\} as const;/)![0];
     const values = Array.from(words.matchAll(/: "([^"]+)"/g), (match) => match[1]);
     assert.deepEqual(values, [
@@ -449,6 +459,8 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
       "Not confirmed",
       "Not published",
       "Rate unavailable",
+      "Below one contract",
+      "Below one lot",
     ]);
   });
 });

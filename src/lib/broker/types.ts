@@ -168,6 +168,12 @@ export const SIZE_STATE_WORDS = {
   notConfirmed: "Not confirmed",
   notPublished: "Not published",
   rateUnavailable: "Rate unavailable",
+  // §19e's law is "a number or a state word, there is no third outcome", and a
+  // size that rounds to zero was a third outcome wearing a number's clothes: it
+  // renders "0" beside a live copy button and says nothing about why. The unit
+  // is already on the label, so these two only have to carry "less than one".
+  belowOneContract: "Below one contract",
+  belowOneLot: "Below one lot",
 } as const;
 
 export type SizeStateWord = (typeof SIZE_STATE_WORDS)[keyof typeof SIZE_STATE_WORDS];
