@@ -49,6 +49,11 @@ const FROZEN_FALLBACK_ENTRIES: string[] = [];
 // (economic calendar), and replay-sweep (offline research) are FMP consumers
 // outside the price-identity claim but inside the single-provider rule.
 const FMP_FILE_ALLOWLIST = [
+  // The 1-minute bar bank (docs/minute-bank.md): appends FMP's rolling 3-day
+  // 1-minute window to a durable store so intrabar order becomes answerable
+  // later. Read-only against the feed and never a price path into the
+  // product — it writes to disk, and nothing in the product reads it yet.
+  "scripts/bank-minute-bars.ts",
   "scripts/replay-sweep.ts",
   // The match-confirmation gate (owner directive, 2026-08-05): probes every
   // master-list row's FMP mate for real, deep, current bars and exits
