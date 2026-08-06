@@ -1,5 +1,6 @@
 export type AssetType =
   | "agriculture"
+  | "livestock"
   | "crypto"
   | "energies"
   | "forex"
@@ -62,6 +63,11 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
   // be hand-authored, which is the failure this whole exercise exists to avoid.
   // They stay in `futures` with their thinness as the stated reason, and remain
   // standing reentry candidates when more data exists.
+  livestock: [
+    "LEUSX",
+    "GFUSX",
+    "HEUSX",
+  ],
   agriculture: [
     "ZCUSX",
     "ZSUSX",
@@ -144,9 +150,6 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
     "RBUSD",
     "PLUSD",
     "PAUSD",
-    "LEUSX",
-    "GFUSX",
-    "HEUSX",
     "FESX",
     "FDAX",
     "EMD",
@@ -165,6 +168,58 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
 };
 
 const CALIBRATION: Record<AssetType, CategoryCalibration> = {
+  // Livestock, derived 2026-08-06 — and built only after a refusal was
+  // overturned. Two hours earlier this class was declined on the grounds that
+  // 55 filled setups across all three markets could not calibrate anything, and
+  // that was read as thin trading and thin FMP intraday. The starvation audit
+  // (amendment 25, scripts/starvation-audit.ts) proved otherwise: livestock
+  // reached the geometry stage 416 times and the LADDER REFUSED 396 of them, a
+  // 5% survival rate against a healthy core running 73-99%. The data was there;
+  // a 6-hour review window was throwing it away.
+  //
+  // Cattle and hogs trade a short CME session with no overnight, so
+  // expectedWindowMove (dailyATR x sqrt(reviewHours/24)) is small at 6h while an
+  // ATR-scaled stop is not. Risk overran the reachable band and the setup was
+  // refused before it could have an outcome.
+  //
+  // DERIVED: defaultReviewHours 6 -> 24. Total R across both splits goes
+  // +2.9/+1.4 to +32.4/+36.9 on 158 test setups against EIGHT, with planRejected
+  // collapsing 474 -> 103. Per market at 24h: live cattle +0.244 (84% hit, 6%
+  // stop), feeder cattle +0.237 (84%, 5%), lean hogs +0.222 (87%, 8%).
+  //
+  // 48h earns slightly more train R (+36.3) and less test (+33.5), and widening
+  // the runner ceiling instead tops out lower (+32.4 at 2.0). The window is also
+  // the lever that addresses the CAUSE — too little time — rather than widening
+  // the target to compensate for it.
+  //
+  // Everything else is the configuration these numbers were measured under, and
+  // is marked as such. Each is replaced when its own grid lands.
+  livestock: {
+    blockedRegimes: ["volatile_chop"],
+    // AWAITING ITS OWN GRID — the 24h window changed the sample this would be
+    // derived from, so any floor computed on the starved corpus is void.
+    confidenceThreshold: 30,
+    dailyStopAtrMultiplier: 0.14,
+    dailyTargetAtrMultiplier: 0.38,
+    // DERIVED 2026-08-06: 6 -> 24 hours. The single change that made this class
+    // measurable at all.
+    defaultReviewHours: 24,
+    entryOffsetDefault: 0.58,
+    entryOffsetTrend: 0.75,
+    maxNewsPenalty: 8,
+    maxProviderPenalty: 7,
+    maxStopAtrMultiplier: 1.4,
+    minimumTargetRewardRisk: 1.6,
+    minRewardRisk: 1.25,
+    newsPenaltyPerEvent: 3,
+    providerWarningPenalty: 3,
+    runnerWindowShare: 0.6,
+    stopAtrMultiplier: 1.3,
+    timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
+    tp1RiskShare: 0.4,
+    volatilityTargetAtrMultiplier: 3.4,
+  },
   // Agriculture, derived 2026-08-06 from its own first sweep. The grains sat in
   // `futures` only as transport for that sweep; their measured character says
   // they do not belong there. Minimum spread from tick over price runs 1.5 bps
@@ -421,6 +476,9 @@ export function getAssetType(symbol: string): AssetType {
   const normalized = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (ASSET_TYPE_BY_SYMBOL.agriculture.includes(normalized)) {
     return "agriculture";
+  }
+  if (ASSET_TYPE_BY_SYMBOL.livestock.includes(normalized)) {
+    return "livestock";
   }
   if (ASSET_TYPE_BY_SYMBOL.crypto.includes(normalized)) {
     return "crypto";

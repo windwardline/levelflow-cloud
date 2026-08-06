@@ -19,16 +19,25 @@ describe("agriculture is its own calibration class (derived 2026-08-06)", () => 
     }
   });
 
-  it("leaves livestock in futures — 55 setups cannot calibrate a class", () => {
-    // The honest half of this change. Live cattle, feeder cattle and lean hogs
-    // produced 55 filled setups across all three markets and all available
-    // history: not one confidence bucket carries enough test fills to judge. A
-    // livestock class could only be hand-authored, which is the exact failure
-    // this class exists to escape. They stay in futures with thinness as the
-    // stated reason, and remain reentry candidates when more data exists.
+  it("gives livestock its own class on a derived 24-hour window", () => {
+    // OVERTURNED, and the reversal is the lesson. This test first asserted
+    // livestock stayed in `futures` because 55 filled setups could not calibrate
+    // anything — read at the time as thin trading and thin FMP intraday. The
+    // starvation audit proved the opposite: livestock reached the geometry stage
+    // 416 times and the LADDER REFUSED 396, a 5% survival rate. The data was
+    // there and a 6-hour review window was discarding it.
+    //
+    // At 24h: total R across both splits +2.9/+1.4 -> +32.4/+36.9, on 158 test
+    // setups against EIGHT. Live cattle +0.244, feeder cattle +0.237, lean hogs
+    // +0.222, all at 84-87% hit rates. Amendment 25 exists because of this.
     for (const symbol of LIVESTOCK) {
-      assert.equal(getAssetType(symbol), "futures", symbol);
+      assert.equal(getAssetType(symbol), "livestock", symbol);
+      assert.equal(getCategoryCalibration(symbol).defaultReviewHours, 24);
     }
+    // And the window change is scoped: the classes it was NOT derived for keep
+    // their own.
+    assert.equal(getCategoryCalibration("ZCUSX").defaultReviewHours, 6);
+    assert.equal(getCategoryCalibration("ESUSD").defaultReviewHours, 6);
   });
 
   it("pins the derived confidence floor at 30, distinct from futures' 68", () => {

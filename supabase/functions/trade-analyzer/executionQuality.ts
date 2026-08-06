@@ -60,6 +60,28 @@ type ExecutionProfile = {
 const COST_EPSILON = 1e-9;
 
 const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
+  // Livestock, 2026-08-06. Same tick-over-price derivation as agriculture, and
+  // it lands somewhere different — which is the point of measuring rather than
+  // assuming the two "commodity" classes resemble each other:
+  //   feeder cattle  0.025 / 348.30 = 0.72 bps
+  //   live cattle    0.025 / 231.40 = 1.08
+  //   lean hogs      0.025 / 97.65  = 2.56
+  // A mean one-tick spread of 1.45 bps — FINER than agriculture's 4.0 and close
+  // to the futures profile's 1.4, because these contracts tick in cents on
+  // two-and-three-figure prices.
+  //
+  // Recorded as a one-tick FLOOR, not a claim about the live book: livestock is
+  // thinly traded and real spreads may run wider than one tick. The model
+  // prefers a quoted spread whenever the provider supplies one, so this governs
+  // only the modeled fallback — and a future quoted-spread measurement should
+  // revisit it.
+  livestock: {
+    atrSlippageFactor: 0.008,
+    atrSpreadFactor: 0.012,
+    maxPenalty: 10,
+    slippageBps: 1.0,
+    spreadBps: 1.5,
+  },
   // Agriculture, 2026-08-06. The bps terms are DERIVED, not judged: one tick is
   // the tightest spread a contract can quote, and tick over price is arithmetic.
   // Measured against the F9 sighting's own prices —
