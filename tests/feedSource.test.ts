@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { SECURITY_GROUPS, SECURITY_OPTIONS } from "../src/lib/symbolMap";
+import {
+  NO_TRADE_SYMBOLS,
+  SECURITY_GROUPS,
+  SECURITY_OPTIONS,
+} from "../src/lib/symbolMap";
 import { isKnownSymbol } from "../supabase/functions/trade-analyzer/symbols.ts";
 
 // §20i ruling 8: the FMP feed was verified against E8's live platform
@@ -303,34 +307,62 @@ describe("feed source lock (§20i ruling 8)", () => {
     // already enforces (supabase/functions/trade-analyzer/index.ts's
     // reviewCurrentMarket, pinned independently by
     // tests/securityHardening.test.ts's "keeps cash indices out of every
-    // scan path"). The SET is the analyzer's law, copied verbatim, never
-    // edited here — this pin uses the identical regex idiom that one does,
-    // against market-data/index.ts's own independent copy.
+    // scan path"). The SET is the analyzer's law; market-data keeps its own
+    // copy because a Deno-global Edge Function module cannot import across
+    // that boundary.
+    //
+    // This pin used to name the expected members as a LITERAL and assert only
+    // that each appeared in market-data's copy. Both halves were wrong, and
+    // round 28 proved it: the release took the analyzer's set from eight
+    // symbols to three, market-data kept the old eight, and this test passed
+    // — because a literal cannot notice the law changing, and a one-way
+    // containment check cannot notice an EXTRA member. The result was eight
+    // released markets whose chart returned 400 while the scan ranked them.
+    //
+    // So it now derives BOTH sets from source and asserts set equality in
+    // both directions. It has no opinion about which symbols are withheld;
+    // it only insists the two copies agree. This is the same lesson round 28
+    // applied to the exclusion tests — assert the wiring, never the roster.
     const source = readFileSync(
       "supabase/functions/market-data/index.ts",
       "utf8",
     );
 
-    for (
-      const sym of [
-        "SP",
-        "NSDQ",
-        "DOW",
-        "NIKKEI",
-        "DAX",
-        "NGUSD",
-        "HGUSD",
-        "BNBUSD",
-      ]
-    ) {
-      assert.match(
-        source,
-        new RegExp(
-          `noTradeSymbols = new Set<string>\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`,
-        ),
-        `market-data/index.ts's noTradeSymbols is missing ${sym} — it must mirror trade-analyzer/symbols.ts's set exactly`,
+    const membersOf = (text: string, path: string) => {
+      const block = text.match(
+        /noTradeSymbols = new Set<string>\(\[([\s\S]*?)\]\)/,
       );
-    }
+      assert.ok(block, `${path} must declare noTradeSymbols as a Set literal`);
+      // Strip comments first: the analyzer's set carries a long rationale that
+      // names other symbols (FDXM, ZOUSX, MGC) which are NOT members.
+      const withoutComments = block[1]
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/[^\n]*/g, "");
+      return new Set(
+        [...withoutComments.matchAll(/"([^"]+)"/g)].map((match) => match[1]),
+      );
+    };
+
+    const analyzerPath = "supabase/functions/trade-analyzer/symbols.ts";
+    const lawful = membersOf(readFileSync(analyzerPath, "utf8"), analyzerPath);
+    const mirrored = membersOf(source, "supabase/functions/market-data/index.ts");
+
+    assert.ok(lawful.size > 0, "the analyzer's noTradeSymbols must not be empty");
+    // Both directions. Missing a member lets a withheld market reach a chart;
+    // carrying an extra one refuses a chart for a market the scan offers.
+    assert.deepEqual(
+      [...mirrored].sort(),
+      [...lawful].sort(),
+      "market-data/index.ts's noTradeSymbols must equal trade-analyzer/symbols.ts's — a missing member serves a withheld market, an extra one blocks a served one",
+    );
+
+    // The set the analyzer enforces is itself the same one the client shows,
+    // so the mirror chain is closed rather than merely two-of-three agreeing.
+    assert.deepEqual(
+      [...lawful].sort(),
+      [...NO_TRADE_SYMBOLS].sort(),
+      "trade-analyzer/symbols.ts's noTradeSymbols must equal src/lib/symbolMap.ts's NO_TRADE_SYMBOLS",
+    );
 
     // Fix round 1: checking the request symbol string against noTradeSymbols
     // alone isn't enough — normalizeSymbol("^NDX") is "NDX", not "NSDQ", so an

@@ -139,14 +139,18 @@ const temporarilyUnavailableSymbols = new Set<string>([
 // function previously had no equivalent of its own, a defense-in-depth gap
 // reachable only by a direct authenticated call, never the shipped client).
 const noTradeSymbols = new Set<string>([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-  "NGUSD",
-  "HGUSD",
-  "BNBUSD",
+  // Mirrors trade-analyzer/symbols.ts's noTradeSymbols across the Deno
+  // boundary, which neither file can cross by import. Round 28 released the
+  // five cash indices plus NGUSD, HGUSD and BNBUSD, and this copy was not
+  // updated with it — so the scan ranked a market, wrote its setup, printed a
+  // limit price, and the chart returned 400. The pin that was supposed to
+  // catch that named the old eight as a literal and checked one direction, so
+  // it passed on the stale set and would have failed the correction.
+  // tests/feedSource.test.ts now derives both sets from source and asserts
+  // set equality in both directions instead.
+  "ZFUSD",
+  "ZTUSD",
+  "DYDXUSD",
 ]);
 
 const intradayTimeframes = ["1min", "5min", "15min", "1hour", "4hour"] as const;
