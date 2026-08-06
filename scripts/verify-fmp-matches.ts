@@ -135,6 +135,92 @@ async function probe(row: MasterListRow): Promise<Probe> {
   return { ...measured, verdict: "confirmed", note: `${daily.length} daily bars through ${lastDate}` };
 }
 
+/**
+ * The unmatched register's re-probe (owner-approved 2026-08-05).
+ *
+ * A row with no FMP symbol is off the analyzed master list but never off the
+ * books: it stays a reentry candidate, re-examined at every sweep. It cannot
+ * be replay-swept — there is no series — so "swept" means re-probed, and this
+ * is that pass.
+ *
+ * It exists because the alternative failed once, expensively. FGBL sat
+ * recorded as "absent from every FMP list checked" for two days. The check had
+ * queried `commodity-list`, which returns zero entries, instead of
+ * `commodities-list`, which returns forty; FMP had carried the Euro-Bund
+ * future the whole time. That was recovered by hand, by luck, while looking
+ * for something else. Doing it mechanically is the point: a match that
+ * appears — or was always there behind a typo — surfaces on the next run
+ * instead of on the next accident.
+ */
+async function reprobeUnmatched(rows: MasterListRow[]): Promise<void> {
+  if (rows.length === 0) return;
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`UNMATCHED REGISTER — re-probing ${rows.length} rows for a newly available match`);
+  console.log(`${"=".repeat(72)}`);
+
+  // The two authoritative enumerations, fetched once. Guessing tickers is how
+  // the original verdict went wrong; these are the lists of record.
+  const catalogue = new Map<string, string>();
+  for (const path of ["commodities-list", "index-list"]) {
+    try {
+      const url = new URL(`${FMP_API_BASE_URL}/${path}`);
+      url.searchParams.set("apikey", API_KEY!);
+      const payload = await fetchJson(url);
+      if (Array.isArray(payload)) {
+        for (const entry of payload as Array<{ symbol?: string; name?: string }>) {
+          if (entry.symbol) catalogue.set(entry.symbol, entry.name ?? "");
+        }
+      }
+      console.log(`  ${path}: ${Array.isArray(payload) ? payload.length : 0} entries`);
+    } catch (error) {
+      console.log(`  ${path}: FAILED (${(error as Error).message}) — this pass is incomplete`);
+    }
+  }
+
+  for (const row of rows) {
+    const root = row.brokerName;
+    // Direct ticker, then the suffix conventions FMP actually uses for
+    // commodities (USD/USX), then the catalogue by exact symbol.
+    const candidates = [root, `${root}USD`, `${root}USX`];
+    const hits: string[] = [];
+    for (const candidate of candidates) {
+      try {
+        const url = new URL(`${FMP_API_BASE_URL}/quote`);
+        url.searchParams.set("symbol", candidate);
+        url.searchParams.set("apikey", API_KEY!);
+        const payload = await fetchJson(url);
+        const first = Array.isArray(payload)
+          ? (payload[0] as { name?: string; price?: number } | undefined)
+          : undefined;
+        if (first?.name && typeof first.price === "number") {
+          // A quote alone is not a match — the analyzer needs 15-minute bars,
+          // which is exactly what disqualified FGBL after its quote passed.
+          const chart = new URL(`${FMP_API_BASE_URL}/historical-chart/15min`);
+          chart.searchParams.set("symbol", candidate);
+          chart.searchParams.set("apikey", API_KEY!);
+          const bars = await fetchJson(chart);
+          const barCount = Array.isArray(bars) ? bars.length : 0;
+          hits.push(
+            `${candidate} "${first.name}" @${first.price} — ${barCount} 15min bars` +
+              (barCount === 0 ? "  (QUOTE ONLY, not analyzable)" : "  <-- CANDIDATE MATCH"),
+          );
+        }
+      } catch {
+        // A miss is the expected case; only hits are worth reporting.
+      }
+    }
+    if (catalogue.has(root)) {
+      hits.push(`${root} present in the authoritative catalogue as "${catalogue.get(root)}"`);
+    }
+    console.log(`\n  ${root} (${row.status})`);
+    if (hits.length === 0) {
+      console.log(`    no match found — exclusion stands`);
+    } else {
+      for (const hit of hits) console.log(`    ${hit}`);
+    }
+  }
+}
+
 async function main(): Promise<void> {
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
@@ -182,6 +268,8 @@ async function main(): Promise<void> {
     const names = rows.map((row) => `${row.brokerName} (${row.classification})`).join(", ");
     console.log(`  LAPSE ${lapse.fmpSymbol}: ${lapse.note} — affects ${names}`);
   }
+
+  await reprobeUnmatched(unmapped);
 
   const jsonIndex = process.argv.indexOf("--json");
   if (jsonIndex !== -1 && process.argv[jsonIndex + 1]) {
