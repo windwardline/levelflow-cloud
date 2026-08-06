@@ -1147,3 +1147,50 @@ Scale invariance is the invariant now enforced: two contracts with the same
 price:ATR ratio must be charged the same cost-to-risk regardless of where the
 decimal point sits. Before the fix, copper and a synthetic contract 1000x its
 price were charged 1.786 and 0.120.
+
+
+## Round-25 (2026-08-06) — the stop cap, and the harness's resolution ceiling
+
+Stop caps derived per class from a 102-market grid read by TOTAL R across both
+splits. Six classes tightened to 1.0, metals held at 1.6, indices loosened to 3.0.
+Total test R: forex +30457 -> +49828, crypto +3627 -> +4375, futures +855 ->
++1260, agriculture +161 -> +194, energies +58 -> +119, livestock +1.4 -> +27.8,
+indices -32.4 -> -5.6 (still negative, still withheld).
+
+### Why tighter is better, and why it is not a denominator trick
+
+TP1 scales with risk, but the runner is capped by the review window in ABSOLUTE
+terms. A tighter stop therefore puts the runner further away IN R, and winners pay
+more. Under fixed-fractional sizing — position scales inversely with stop distance
+— a 2R win is genuinely twice the dollars of a 1R win, so the gain is real.
+Confirmed on behaviour rather than totals: EURUSD's stop rate FALLS 6% -> 4% and
+its setup count RISES 5947 -> 6259, because a nearer TP1 banks the partial before
+the stop is reached.
+
+### The resolution ceiling — an apparent 60% gain DECLINED
+
+A follow-up probe found the improvement monotone below 1.0: forex test R 5157
+(1.4) -> 7479 (1.0) -> 8565 (0.85) -> 9805 (0.7) -> 12012 (0.5). It was not
+shipped, and the reason is a limit of the harness rather than a property of the
+market.
+
+A stop half as far should be hit MORE often. It is not: EURUSD's stop rate is 6%
+at 1.4 and 7% at 0.5, essentially flat, while expectancy nearly triples. What
+actually rises is the share of setups ending in NEITHER a target nor a stop:
+
+| stop cap | unresolved share (EURUSD) | (ESUSD) |
+|---|---|---|
+| 1.4 | 6% | 12% |
+| 1.0 | 10% | 15% |
+| 0.85 | 13% | 17% |
+| 0.7 | 18% | 20% |
+| 0.5 | **26%** | **26%** |
+
+At a quarter unresolved, the expectancy figure reports how `evaluateSetupOutcome`
+treats expiry and ambiguity, not how the market behaved. The replay resolves
+outcomes from 15-minute bar extremes and cannot order intrabar events, and a stop
+that close to the entry makes that ordering decisive far more often.
+
+**The rule: 1.0 is the tightest stop cap this harness can adjudicate.** Going
+below it requires finer bars or an explicit intrabar model, not a grid. Anything
+past 1.0 should be treated as unmeasured until one of those exists.
