@@ -55,6 +55,15 @@ export type SweepOutcomeRecord = {
   side: string;
   // Which anchor set the stop (r14 cap-binding instrumentation).
   stopProvenance: string;
+  // The other three geometry choice points, instrumented 2026-08-06 on the
+  // principle stopProvenance had already proved: every mechanism that CHOOSES
+  // between alternatives records which one won. stopProvenance existed and
+  // exposed a months-old defect — the ATR cap destroying indices' edge. These
+  // three did not exist, so the runner's structural claim, TP1's binding
+  // constraint, and the entry offset's regime split were all unmeasured.
+  runnerProvenance: string;
+  tp1Provenance: string;
+  entryProvenance: string;
   time: number;
   // Per-method committee votes (r16 weight audit): compact
   // {n: name, d: direction, s: weighted score} per strategy.
@@ -347,6 +356,9 @@ export function simulateSymbol(input: {
       sessionPenalty: sessionContext.penalty,
       side: consensus.side,
       stopProvenance: plan.stopProvenance,
+      runnerProvenance: plan.runnerProvenance,
+      tp1Provenance: plan.tp1Provenance,
+      entryProvenance: plan.entryProvenance,
       time: latest.time,
       votes: votes.map((vote) => ({
         n: vote.name,
