@@ -1570,3 +1570,111 @@ gap. `sweepUniverse()` (every row carrying an FMP mate, regardless of
 display state) and `reentryList()` are the derivations a future
 replay-sweep script is meant to consume; `tests/brokerMasterList.test.ts`
 pins every count and every mapping literally, §19f discipline.
+
+## Amendment 24 — the scannable offering is decided per E8 account type; a per-account-type exclusion is now expressible (owner, 2026-08-05, distilled)
+
+**The end state.** Levelflow's scannable offering, for the account a user
+is actually trading, equals exactly the markets E8 makes visible and
+tradable on that account's classification — nothing broader. Two
+exceptions only: a market with genuinely no FMP counterpart (amendment
+20), and an owner-decided exclusion grounded in data drift or poor
+replay-sweep performance. Inclusion and exclusion are decided per E8
+account type — forex, crypto, futures — because E8 treats the three as
+distinct products; the same market may be included on one account type
+and excluded on another, since performance and E8↔FMP alignment can
+differ per type. Every confirmed match stays a candidate for inclusion AND
+exclusion at every sweep, so the offering stays the most complete,
+money-positive set available. The app's existing account toggle is what
+makes this operational — no new UI, no new menu.
+
+**The gap this closes.** Before this task, exactly two mechanisms governed
+what a user could see, and neither could express the end state above.
+Classification-hiding (amendment 13, `visibility.ts`'s
+`HIDDEN_ASSET_TYPES_BY_CLASSIFICATION`) was account-scoped, but only at the
+coarse SecurityType level — it could hide "all Futures" from a Forex
+account, never one specific symbol on one specific account type.
+Display-exclusion (amendment 23's offset ruling, `offsets.ts`'s
+`isDisplayExcluded`/`DISPLAY_EXCLUDED_SYMBOLS`) was symbol-level, but
+applied unconditionally — its own header comment's word was "regardless of
+account." A single market excluded on forex while staying visible on
+crypto was inexpressible in either mechanism, or in the two composed.
+
+**What shipped (§19 retrofit, Task 19).** One resolver,
+`src/lib/broker/visibility.ts`'s `scannableSymbolsFor` — the single place
+that answers "what is scannable for this account classification," reached
+by `visibleAssetGroups`/`visibleAssetSymbols` (unchanged signatures, so
+every existing call site — the scope menus, the scan universe, chart/
+security selection, the Insights market filter — is untouched). It
+computes: the account type's offered classification groups
+(`OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE`, keyed to the registry's own
+`classification` vocabulary rather than a raw SecurityType — the same
+account-type boundaries `HIDDEN_ASSET_TYPES_BY_CLASSIFICATION` drew,
+proven identical symbol-for-symbol rather than assumed), minus no-FMP-
+source rows (vacuous today by construction — every already-served row
+carries a non-nullable `fmpSymbol`), minus owner exclusions scoped to that
+account type. `HIDDEN_ASSET_TYPES_BY_CLASSIFICATION` is retired, not kept
+alongside the new mechanism — ruling A.1, clause 6's "the model is
+universal" extends here too: one resolver, never two competing sources for
+the same question.
+
+**The exclusion register — `src/lib/broker/exclusions.ts`.** A first-class,
+literal-pinned array: each entry names a Levelflow symbol, the E8 account
+classification(s) it is withheld on, a ground (`no-fmp-source` |
+`data-drift` | `sweep-performance`), and a citation. Every entry is a
+standing reentry candidate by construction — the type carries no field
+that could mark one otherwise, mirroring `masterList.ts`'s own
+`reentryCandidate` derivation for the same reason amendment 23 first
+stated it: no exclusion is ever final. BRENT migrates into this register
+scoped to `["forex"]` — the one account type it was ever offered on, so
+the scoping is a mechanism change with zero observable effect, per this
+amendment's own charge. `symbolMap.ts`'s pre-existing global withholdings
+(`NO_TRADE_SYMBOLS`, `TEMPORARILY_HIDDEN_ASSET_SYMBOLS` — SP/NSDQ/DOW/
+NIKKEI/DAX/NGUSD/HGUSD/BNBUSD/ASX) are deliberately NOT migrated: they
+operate one layer upstream, on what counts as *served* at all, a
+calibration axis this amendment does not touch, and moving them would have
+widened this task's diff onto ground it was not asked to cover.
+
+**BNBUSD is the coming real case, not this amendment's own change.** The
+owner has flagged that BNBUSD will eventually need include-on-crypto /
+absent-on-forex — the first case where the SAME symbol needs opposite
+verdicts on two account types where the underlying calibration record
+supports it. This amendment proves the *mechanism* for exactly that shape
+against a synthetic fixture row (`tests/brokerVisibility.test.ts`) rather
+than pre-empting the owner's own ruling on BNBUSD itself, which stays
+governed by `symbolMap.ts`'s global withholding until that ruling lands.
+
+**Mechanism only — the offering is bit-for-bit unchanged.** Every visible
+set this amendment's resolver produces — forex (38), crypto (7), futures
+(11), and the no-account union (49) — is proven, per account type, equal
+symbol-for-symbol to what the retired mechanism produced
+(`tests/brokerVisibility.test.ts`'s before/after equality suite,
+reconstructing the retired table from the untouched primitives it was
+built from and diffing against the new resolver's output, not merely
+re-asserting the same literal list twice). `masterList.ts` — Task 17e's own
+registry — is untouched by this task's diff: its `sweepUniverse()` still
+returns every FMP-matched row regardless of exclusion or account type
+(BRENT included), its `reentryList()` is unchanged, and its own tests pass
+without a single edit. `AVAILABLE_ASSET_SYMBOLS` (`symbolMap.ts`) stays the
+unfiltered master 50.
+
+**A bundle-safety finding, corrected in the same change set.**
+`masterList.ts`'s own header documents, and Task 17e's own tests assert by
+construction, that the registry is never imported from `src/components` or
+any other client-bundled file — its ~500 lines of per-row ground and
+research-doc citations are deliberately excluded from `dist/assets`. An
+early draft of this task's resolver imported `masterList.ts` directly, in
+service of "registry-derived truth" read too literally; inspecting the
+built client bundle caught the entire registry — status strings, doc
+citations, and all — leaking into the shipped JS. The fix: the live
+resolver is built on `symbolMap.ts`'s already-served master 50 (which
+carries everything the resolver actually needs — per-option `assetType`
+and a non-nullable `fmpSymbol` — for every row that could ever be
+scannable) plus the small `exclusions.ts` register, never on
+`masterList.ts`'s row array. `classificationOfType`, the tiny pure mapping
+from SecurityType to account classification, is duplicated one-for-one
+between `masterList.ts` and `visibility.ts` rather than shared, precisely
+so `visibility.ts` never depends on the module the codebase already
+promises to keep out of the bundle. `tests/brokerVisibility.test.ts` pins
+both the absence of a `masterList.ts` import from any client-bundled file
+and the presence of the registry's own classification vocabulary,
+so a future edit cannot reintroduce the leak unnoticed.

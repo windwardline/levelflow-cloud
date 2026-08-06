@@ -921,7 +921,13 @@ declared future, still future); a size on the Trades rail or in Insights;
 anything E8 does not publish. Program-aware market availability (§20e
 names it) is **no longer out of scope**: it shipped in the §19 retrofit
 Phase 4 (amendment 13), 2026-08-04 — classification visibility only; the
-session-hours calendar §20e and §20h carve out stays V2.
+session-hours calendar §20e and §20h carve out stays V2. (Updated
+2026-08-05, amendment 24, §19 retrofit Task 19: "classification visibility
+only" is superseded — the account-type boundaries stay the same coarse
+shape, but a market can now also be excluded on ONE account type while
+staying visible on another, via `src/lib/broker/exclusions.ts`'s
+per-account-type register. Mechanism only; the offering itself is
+unchanged, proven symbol-for-symbol in `tests/brokerVisibility.test.ts`.)
 
 ### §19i. The account switcher's label (owner ruling, TASK 6 VERDICT, 2026-08-03 22:07)
 
@@ -1348,9 +1354,12 @@ and E8 Zero are flat from 15:10 CT, and to show crypto always open while
 Signature Crypto flattens nightly at 23:00 server. The divergence is
 surfaced by clauses 4 and 5 only. Account-scoped market visibility by
 classification **shipped** in the §19 retrofit Phase 4 (amendment 13),
-2026-08-04 (§19h, §20h). The piece that remains V2: a calendar that greys
-the scope menu by the selected program's *session*, not the asset class's
-— a distinct dimension amendment 13 does not touch.
+2026-08-04 (§19h, §20h); the account-type boundaries hold, and a
+per-account-type, per-symbol exclusion layer joined it in the §19 retrofit
+Task 19 (amendment 24), 2026-08-05 — mechanism only, see §19h's own update
+note. The piece that remains V2: a calendar that greys the scope menu by
+the selected program's *session*, not the asset class's — a distinct
+dimension amendment 13 does not touch.
 
 ### §20f. Unconfirmed discipline
 

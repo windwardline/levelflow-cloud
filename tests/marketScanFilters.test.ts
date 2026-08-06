@@ -7,7 +7,7 @@ import {
   getMarketScanSymbolsForScope,
 } from "../src/components/workspace/marketScanFilters";
 import {
-  HIDDEN_ASSET_TYPES_BY_CLASSIFICATION,
+  OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE,
   visibleAssetGroups,
   visibleAssetSymbols,
 } from "../src/lib/broker/visibility";
@@ -231,23 +231,24 @@ describe("amendment 13 — market availability follows the account classificatio
     );
   });
 
-  // HIDDEN_ASSET_TYPES_BY_CLASSIFICATION is the table the four tests above
-  // exercise indirectly, through visibleAssetGroups/visibleAssetSymbols. Pinned
-  // directly too: forex hides only Futures (Indices/Metals have no classification
-  // of their own, so they simply stay off forex's list and remain scannable),
-  // while crypto and futures each hide every other class, Indices/Metals
-  // included — so a future edit to one classification's row can't silently
-  // change another's by accident.
-  it("names exactly what each classification cannot trade", () => {
-    assert.deepEqual(HIDDEN_ASSET_TYPES_BY_CLASSIFICATION.forex, ["Futures"]);
-    assert.deepEqual(
-      HIDDEN_ASSET_TYPES_BY_CLASSIFICATION.crypto,
-      ["Forex", "Metals", "Energies", "Indices", "Futures"],
-    );
-    assert.deepEqual(
-      HIDDEN_ASSET_TYPES_BY_CLASSIFICATION.futures,
-      ["Forex", "Metals", "Energies", "Indices", "Crypto"],
-    );
+  // §19 retrofit, Task 19 (amendment 24): HIDDEN_ASSET_TYPES_BY_CLASSIFICATION
+  // (SecurityType-keyed) is retired — masterList.ts's
+  // OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE (this module's own
+  // classification vocabulary) is the registry-derived replacement the four
+  // tests above now exercise indirectly, through visibleAssetGroups/
+  // visibleAssetSymbols → masterList.ts's scannableSymbolsFor. Pinned
+  // directly too, as an ALLOWLIST rather than the old table's denylist
+  // shape: forex additionally offers crypto (amendment 19 clause 3 — "the
+  // crypto markets a Forex account carries are confirmed part of that
+  // account's offering"), while crypto and futures each offer only their
+  // own classification — so a future edit to one account type's row can't
+  // silently change another's by accident. tests/brokerMasterList.test.ts
+  // carries the equivalent before/after equality proof against the exact
+  // symbol sets the retired table used to produce.
+  it("names exactly what each account type's E8 product offers", () => {
+    assert.deepEqual(OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE.forex, ["forex", "crypto"]);
+    assert.deepEqual(OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE.crypto, ["crypto"]);
+    assert.deepEqual(OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE.futures, ["futures"]);
   });
 });
 
