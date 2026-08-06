@@ -7,6 +7,14 @@ on:
   pull_request:
     branches:
       - main
+  # Manual dispatch exists for one reason, learned on 2026-08-06: GitHub
+  # sometimes never CREATES a check suite for a commit. Not a failed run — no
+  # run. Two PRs sat unmergeable with `build` required and no way to produce it,
+  # because closing and reopening re-fires the event and the event was not what
+  # was missing. Re-running a failed run cannot help either; there is nothing to
+  # re-run. `security.yml` already had this escape hatch and CI did not, so CI
+  # was the one that could not be recovered.
+  workflow_dispatch:
 
 permissions:
   contents: read
