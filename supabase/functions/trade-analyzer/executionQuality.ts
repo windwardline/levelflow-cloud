@@ -34,17 +34,36 @@ type ExecutionProfile = {
   atrSlippageFactor: number;
   atrSpreadFactor: number;
   maxPenalty: number;
-  minimumCost: number;
   slippageBps: number;
   spreadBps: number;
 };
+
+/**
+ * Divide-by-zero guard, and nothing more.
+ *
+ * This replaced a per-class `minimumCost` expressed as an ABSOLUTE price
+ * increment (futures and indices carried 0.01). A cost floor in absolute
+ * price cannot be right for a class at all: E8's futures program spans
+ * natural gas near 2.67 to the E-mini S&P near 7752, so one constant is
+ * either invisible at the top of the range or ruinous at the bottom. At 0.01
+ * it was ruinous — modeled round-trip cost reached 1.8x copper's whole risk
+ * distance and 2.7x gas's, turning a genuine 2:1 setup into a reported 0.077
+ * and 0.018 and rejecting every one of them. Copper cleared reward:risk 1.25
+ * in 0 of 2304 replayed setups, gas in 0 of 1689, and the 10-year note was
+ * throttled to 136 filled against the bond's 1540.
+ *
+ * Cost is modeled two ways that already scale with the instrument — basis
+ * points of price, and a fraction of ATR. Both are market-specific by
+ * construction. The guard exists only so a zero price or a zero ATR cannot
+ * produce a zero denominator, and it must never outrank either real term.
+ */
+const COST_EPSILON = 1e-9;
 
 const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
   crypto: {
     atrSlippageFactor: 0.012,
     atrSpreadFactor: 0.018,
     maxPenalty: 12,
-    minimumCost: 0.00001,
     slippageBps: 2.5,
     spreadBps: 3.5,
   },
@@ -52,7 +71,6 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     atrSlippageFactor: 0.01,
     atrSpreadFactor: 0.014,
     maxPenalty: 11,
-    minimumCost: 0.001,
     slippageBps: 1.1,
     spreadBps: 1.8,
   },
@@ -60,7 +78,6 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     atrSlippageFactor: 0.006,
     atrSpreadFactor: 0.01,
     maxPenalty: 8,
-    minimumCost: 0.00001,
     slippageBps: 0.16,
     spreadBps: 0.35,
   },
@@ -68,7 +85,6 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     atrSlippageFactor: 0.008,
     atrSpreadFactor: 0.012,
     maxPenalty: 10,
-    minimumCost: 0.01,
     slippageBps: 0.8,
     spreadBps: 1.4,
   },
@@ -76,7 +92,6 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     atrSlippageFactor: 0.008,
     atrSpreadFactor: 0.012,
     maxPenalty: 10,
-    minimumCost: 0.01,
     slippageBps: 0.7,
     spreadBps: 1.1,
   },
@@ -84,7 +99,6 @@ const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
     atrSlippageFactor: 0.008,
     atrSpreadFactor: 0.014,
     maxPenalty: 10,
-    minimumCost: 0.0001,
     slippageBps: 1.1,
     spreadBps: 1.9,
   },
@@ -95,7 +109,7 @@ export function estimateExecutionQuality(
 ): ExecutionQuality {
   const profile = EXECUTION_PROFILES[input.assetType];
   const latestClose = Math.abs(input.latestClose);
-  const atr = Math.max(Math.abs(input.atr), profile.minimumCost);
+  const atr = Math.max(Math.abs(input.atr), COST_EPSILON);
   const dailyAtr = Math.max(Math.abs(input.dailyAtr), atr);
   const riskDistance = Math.abs(input.entryPrice - input.stopLoss);
   const rewardDistance = Math.abs(input.takeProfit - input.entryPrice);
@@ -103,19 +117,19 @@ export function estimateExecutionQuality(
     Math.max(
       latestClose * (profile.spreadBps / 10_000),
       atr * profile.atrSpreadFactor,
-      profile.minimumCost,
+      COST_EPSILON,
     ),
   );
   const quotedSpread = normalizeQuotedSpread(input.quotedSpread);
   const estimatedSpread = quotedSpread === null
     ? modeledSpread
-    : roundPrice(Math.max(quotedSpread, profile.minimumCost));
+    : roundPrice(Math.max(quotedSpread, COST_EPSILON));
   const spreadSource = quotedSpread === null ? "modeled" : "quoted";
   const estimatedSlippage = roundPrice(
     Math.max(
       latestClose * (profile.slippageBps / 10_000),
       atr * profile.atrSlippageFactor,
-      profile.minimumCost,
+      COST_EPSILON,
     ),
   );
   const estimatedRoundTripCost = roundPrice(
