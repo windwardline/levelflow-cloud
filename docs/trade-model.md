@@ -1231,19 +1231,103 @@ structural stops and a runner ceiling set for a different stop — both ours.
 This is the stop-provenance split's prediction confirmed, and precisely the
 failure amendment 25 now guards against.
 
-It does not reopen the cash indices. Two reasons:
+It does not reopen the cash indices, and the final sweep settled why — see
+round 27. Two claims written here first were wrong or incomplete:
 
-1. **The rollup mixes two populations.** The `indices` class holds the traded
-   index futures (ESUSD, NQUSD, YMUSD, RTYUSD) alongside the six withheld cash
-   CFDs (SP, NSDQ, DOW, NIKKEI, DAX, ASX). A class total cannot say which
-   population carries the gain.
-2. **r12 excluded them on ranking, not on expectancy.** The finding was that
-   confidence does not rank outcomes out-of-sample. Positive expectancy does not
-   answer that question; a market whose confidence score is uncorrelated with
-   its outcomes cannot be presented to an operator honestly, however profitable
-   the aggregate.
+1. ~~The rollup mixes traded index futures with the withheld cash CFDs.~~
+   **FALSE.** The `indices` class is cash-only: SP, NSDQ, DOW, NIKKEI, DAX, ASX.
+   The index FUTURES — ESUSD, NQUSD, YMUSD, RTYUSD — classify as `futures`. So
+   the entire +7.4 came from the cash indices, with nothing else mixed in.
+2. **r12 excluded them on ranking, not on expectancy.** Still true, and the
+   final sweep confirms it holds engine-wide rather than for indices alone.
 
-Both are settled by the final sweep at the shipped geometry and its
-confidence-band derivation, per symbol. `noTradeSymbols` shrinks the round the
-evidence flips, exactly as it did for fourteen symbols in r15 — but the evidence
-that flips it has to be about the symbols, and about ranking.
+Correcting (1) makes the conclusion stronger, not weaker. The class's positive
+total R was earned entirely by markets whose geometry stage rejects 55-70% of
+the decisions reaching it — DOW survives 30%, SP 37%, NIKKEI 38%, NSDQ 38%,
+ASX 40%, DAX 45%. Amendment 25 is explicit that a starved sample yields no
+verdict, and it does not carve out favourable ones. The number is not evidence
+of edge; it is another measurement of our own parameters.
+
+`noTradeSymbols` shrinks the round the evidence flips, exactly as it did for
+fourteen symbols in r15 — but the evidence has to be about the symbols, and this
+is not yet about the symbols.
+
+
+## Round-27 (2026-08-06) — the final sweep, and every confidence floor re-derived
+
+One run at the shipped geometry: 102 markets, 1,020,464 setups, 776,531 of them
+clearing the payoff and regime gates. Every per-class confidence floor was
+re-derived from it. The old values were set before the execution-cost and
+stop-cap defects were found, so they were gating against expectancy curves the
+engine no longer produces.
+
+| class | was | now | evidence at the floor |
+|---|---|---|---|
+| crypto | 82 | **25** | test E +0.204, 704 test fills |
+| forex | 40 | **20** | test E +0.298, 479 test fills |
+| futures | 68 | **25** | test E +0.218, 145 test fills |
+| metals | 90 | **30** | test E +0.185, 101 test fills |
+| energies | 69 | **85** | test E +0.308, 122 test fills |
+| livestock | 30 | **40** | test E +0.264, 42 test fills |
+| agriculture | 30 | **30** | HELD — no floor survives |
+| indices | 68 | **68** | HELD — starved sample, amendment 25 |
+
+Four classes drop by 40 to 65 points. Energies moves the other way: its band-80
+bucket is −0.002, which holds the floor up at 85.
+
+### The sample guard
+
+Forex derived a floor of 15 and crypto 20, each resting on 32 to 42 test fills.
+Both were raised one bucket, to 20 (479 fills) and 25 (704). Shipping a
+class-wide gate off 32 fills is the fragility amendment 25 exists to prevent,
+and the cost is nil — forex's band-15 bucket is 42 fills out of 452,565, under a
+hundredth of a percent of volume.
+
+The guard only ever TIGHTENS. Raising the judgeable minimum outright was
+considered and rejected: it would also silence thin NEGATIVE buckets, and
+energies' floor would have fallen from 85 to 75 by ignoring a −0.002 reading on
+69 fills. A robustness rule that can loosen a gate is not a robustness rule.
+
+### Confidence does not rank outcomes anywhere
+
+The finding r12 recorded for indices is engine-wide. Forex test expectancy is
++0.349 at band 15, +0.288 at 25, +0.277 at 30, +0.289 at 85, +0.317 at 95 —
+flat across the whole range. Crypto sits at 0.20-0.25 everywhere, metals
+0.12-0.20, futures 0.20-0.29.
+
+The score separates setups the engine will take from ones it will not. Within
+the accepted population it does not order them by outcome. That is why the
+threshold behaves as a pure volume dial, and why lowering it raises total R
+without costing quality — there is no quality gradient to give up. It is also
+the honest limit on what a confidence number can be presented as meaning.
+
+### The stop is a volatility stop now, except in indices
+
+`stopProvenance` across the final corpus, by class:
+
+| class | cap | pivot | volatility floor |
+|---|---|---|---|
+| agriculture, crypto, energies, forex, futures, livestock | 100% | 0% | 0% |
+| metals (1.6 cap) | 84% | 13% | 3% |
+| indices (3.0 cap) | 5% | **84%** | 11% |
+
+At a 1.0 ATR cap the cap binds on every single stop, so structural pivots no
+longer place it. The ladder is described as pivot-anchored; in six of eight
+classes it is not, and has not been since the caps tightened. That is a
+documentation correction, not a defect — the caps were derived on measured total
+R and tighter won decisively.
+
+Indices is the one class where structure still wins, and structure is exactly
+what starves it: a far pivot at a 3.0 cap makes risk large, and a large risk
+cannot satisfy `minimumTargetRewardRisk` against a runner the review window caps
+in absolute terms. The rejection lands as `planRejected`, which carries all of
+it — `belowPayoff` is zero for all six. **The next indices lever is a JOINT
+(stop cap × runner ceiling) search, not another coordinate pass.** Round 26's
+lesson, one level deeper: two coupled levers cannot be derived one at a time.
+
+### Starvation, engine-wide
+
+1 market of 102 trips the gate — DOW at 30% survival. The five other cash
+indices sit just above the 33% line. Every other market on the list survives
+64% or better, and 83 of them at 90% or better. Before tonight's corrections the
+condition was pervasive.

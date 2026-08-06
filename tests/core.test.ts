@@ -587,9 +587,11 @@ describe("confidence tiers", () => {
 
   it("earns at least Qualified once a score clears its own class's threshold, even below the fixed 66 floor", () => {
     const forexThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex;
+    // Reads the live bar rather than restating it, so the 2026-08-06 move from
+    // 40 to 20 does not need a literal here at all.
     assert.equal(
       formatConfidenceWithTier(forexThreshold, forexThreshold),
-      "Qualified 40%",
+      `Qualified ${forexThreshold}%`,
     );
     assert.equal(formatConfidenceWithTier(55, forexThreshold), "Qualified 55%");
     // A score that already lands in a real fixed band keeps that band's
@@ -597,17 +599,31 @@ describe("confidence tiers", () => {
     // only ever fills the gap below 66, never overrides a real tier match.
     assert.equal(formatConfidenceWithTier(76, forexThreshold), "Strong 76%");
 
-    const cryptoThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto;
-    assert.equal(
-      formatConfidenceWithTier(cryptoThreshold, cryptoThreshold),
-      "Strong 82%",
-    );
+    // A bar that lands INSIDE a real fixed band keeps that band's own label
+    // rather than being relabelled "Qualified". Pinned on literal bars, not on
+    // live calibration: the 2026-08-06 re-derivation moved every class bar below
+    // the 66 floor, and coupling a formatter test to calibration values means it
+    // breaks on every future round without the formatter having changed. The
+    // rule is the subject here; the thresholds are not.
+    assert.equal(formatConfidenceWithTier(82, 82), "Strong 82%");
+    assert.equal(formatConfidenceWithTier(90, 90), "Best 90%");
 
-    const metalsThreshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals;
-    assert.equal(
-      formatConfidenceWithTier(metalsThreshold, metalsThreshold),
-      "Best 90%",
-    );
+    // And the live bars, whatever they are: each class's own bar earns at least
+    // Qualified at its own value. This is the assertion that tracks calibration,
+    // and it holds without naming a single number.
+    for (const bar of Object.values(CONFIDENCE_THRESHOLD_BY_ASSET_TYPE)) {
+      assert.match(formatConfidenceWithTier(bar, bar), /^(Qualified|Strong|Best) /);
+      // One point under the bar is a bare percentage ONLY where the bar sits
+      // below the fixed 66 floor. Above it, a near-miss score is still inside a
+      // real fixed band and keeps that band's word — energies' bar is 85, and 84
+      // is Strong on its own merits, bar or no bar. Asserting bare here would
+      // contradict the very rule this test exists to protect.
+      if (bar - 1 < 66) {
+        assert.equal(formatConfidenceWithTier(bar - 1, bar), `${bar - 1}%`);
+      } else {
+        assert.match(formatConfidenceWithTier(bar - 1, bar), /^(Qualified|Strong|Best) /);
+      }
+    }
   });
 
   it("treats the threshold boundary as inclusive and stays a bare, honest percentage below it", () => {
@@ -620,28 +636,26 @@ describe("confidence tiers", () => {
     const forex = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex;
     const crypto = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto;
 
-    // Cleared its own class's bar below the fixed 66 floor: Qualified.
-    assert.equal(resolveConfidenceTier(52, forex)?.id, "qualified");
-    // The same score against a bar it did NOT clear: no band.
-    assert.equal(resolveConfidenceTier(52, crypto), null);
-    // A score inside a real fixed band keeps that band's own tier,
-    // whatever the class bar says.
-    assert.equal(resolveConfidenceTier(70, crypto)?.id, "qualified");
-    assert.equal(resolveConfidenceTier(crypto, crypto)?.id, "strong");
-    assert.equal(
-      resolveConfidenceTier(
-        CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
-        CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
-      )?.id,
-      "best",
-    );
+    // Class-relative in both directions, on a score that straddles the two live
+    // bars. 22 clears forex's 20 and does not clear crypto's 25 — the same
+    // property the old 52-against-40-and-82 pair carried, re-pointed at the
+    // 2026-08-06 bars instead of hard-coding a gap that no longer exists.
+    assert.ok(forex < 22 && 22 < crypto, "fixture must straddle the live bars");
+    assert.equal(resolveConfidenceTier(22, forex)?.id, "qualified");
+    assert.equal(resolveConfidenceTier(22, crypto), null);
+    // A score inside a real fixed band keeps that band's own tier, whatever the
+    // class bar says. Literal bars, for the reason given in the formatter test:
+    // every live bar now sits below 66, so live values cannot exercise this.
+    assert.equal(resolveConfidenceTier(70, 82)?.id, "qualified");
+    assert.equal(resolveConfidenceTier(82, 82)?.id, "strong");
+    assert.equal(resolveConfidenceTier(90, 90)?.id, "best");
     // Inclusive at the bar, exclusive below it — the formatter's own edges.
     assert.equal(resolveConfidenceTier(forex, forex)?.id, "qualified");
-    assert.equal(resolveConfidenceTier(39, forex), null);
+    assert.equal(resolveConfidenceTier(forex - 1, forex), null);
     // Rounds the way the formatter rounds, so the band a row lands in and
     // the word printed beside its score can never disagree.
     assert.equal(resolveConfidenceTier(74.6, forex)?.id, "strong");
-    assert.equal(resolveConfidenceTier(65.5, crypto)?.id, "qualified");
+    assert.equal(resolveConfidenceTier(65.5, 82)?.id, "qualified");
     // Without a threshold: exactly the fixed-band behavior.
     assert.equal(resolveConfidenceTier(65), null);
     assert.equal(resolveConfidenceTier(70)?.id, "qualified");
@@ -961,19 +975,20 @@ describe("history workspace logic", () => {
   });
 
   it("bands every row that cleared its own class's bar and counts the rest — no row vanishes (the exhaustiveness invariant)", () => {
-    // EURUSD qualifies at 40 (CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex), so a
-    // 52 cleared its own bar and belongs to Qualified — the aggregate half of
+    // EURUSD qualifies at 20 (CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex), so a
+    // 22 cleared its own bar and belongs to Qualified — the aggregate half of
     // formatConfidenceWithTier's shipped rule, which already prints this row
-    // "Qualified 52%". Before this wave the band find() dropped it silently.
+    // "Qualified 22%". Before this wave the band find() dropped it silently.
     const setups = [
-      makeHistorySetup({ confidence: 52, outcome: "take_profit" }),
+      makeHistorySetup({ confidence: 22, outcome: "take_profit" }),
       makeHistorySetup({ confidence: 70, outcome: "stop_loss" }),
       makeHistorySetup({ confidence: 80, outcome: "take_profit" }),
-      // BTCUSD qualifies at 82 (…Crypto): the same 52 cleared nothing there,
+      // BTCUSD qualifies at 25 (…Crypto): the same 22 cleared nothing there,
       // so it lands in no band — class-relative in both directions — but it
-      // is counted, never dropped.
+      // is counted, never dropped. The pair was 52-against-40-and-82 before
+      // the 2026-08-06 re-derivation closed that gap to 20-and-25.
       makeHistorySetup({
-        confidence: 52,
+        confidence: 22,
         outcome: "take_profit",
         symbol: "BTCUSD",
       }),

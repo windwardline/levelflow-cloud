@@ -29,14 +29,23 @@ const STATE = {
   // Agriculture and livestock are new classes and appear in this table for the
   // first time; both are derived, and livestock's 24h window is what made it
   // measurable at all.
+  // Confidence floors ALL re-derived 2026-08-06 from the final 1,020,464-setup
+  // sweep at the shipped geometry: crypto 82->25, forex 40->20, futures 68->25,
+  // metals 90->30, energies 69->85, livestock 30->40. The old values predate the
+  // execution-cost and stop-cap corrections, so they were gating against
+  // expectancy curves the engine no longer produces. Two exceptions, both
+  // deliberate: agriculture HOLDS at 30 because no floor survives its curve
+  // (test expectancy dips negative above every candidate), and indices HOLDS at
+  // 68 because its sample is starved — 55-70% of decisions rejected at the
+  // geometry stage — and amendment 25 forbids a verdict either way on that.
   agriculture: { threshold: 30, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.4, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  livestock: { threshold: 30, window: 24, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  crypto: { threshold: 82, window: 12, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.78, 0.8], payoff: 1.3, newsCap: 4 },
-  energies: { threshold: 69, window: 6, stopCap: 1.0, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
-  forex: { threshold: 40, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
-  futures: { threshold: 68, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  livestock: { threshold: 40, window: 24, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  crypto: { threshold: 25, window: 12, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.78, 0.8], payoff: 1.3, newsCap: 4 },
+  energies: { threshold: 85, window: 6, stopCap: 1.0, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
+  forex: { threshold: 20, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
+  futures: { threshold: 25, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
   indices: { threshold: 68, window: 5, stopCap: 3.0, tp1: 1.2, runner: 1.0, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
-  metals: { threshold: 90, window: 8, stopCap: 1.6, tp1: 0.4, runner: 0.8, offsets: [0.75, 0.78], payoff: 1.25, newsCap: 8 },
+  metals: { threshold: 30, window: 8, stopCap: 1.6, tp1: 0.4, runner: 0.8, offsets: [0.75, 0.78], payoff: 1.25, newsCap: 8 },
 } as const;
 
 const REPRESENTATIVE: Record<keyof typeof STATE, string> = {

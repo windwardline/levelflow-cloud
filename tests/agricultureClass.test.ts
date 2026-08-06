@@ -40,11 +40,14 @@ describe("agriculture is its own calibration class (derived 2026-08-06)", () => 
     assert.equal(getCategoryCalibration("ESUSD").defaultReviewHours, 6);
   });
 
-  it("pins the derived confidence floor at 30, distinct from futures' 68", () => {
+  it("pins the derived confidence floor at 30, distinct from futures' 25", () => {
     // Monotone survival on 6922 filled setups: test expectancy positive at 30
     // and in every judgeable bucket above, 108 test fills at that floor.
     assert.equal(getCategoryCalibration("ZCUSX").confidenceThreshold, 30);
-    assert.equal(getCategoryCalibration("ESUSD").confidenceThreshold, 68);
+    // futures 68 -> 25 on 2026-08-06 from the final sweep. What this assertion
+    // is for is that agriculture carries its OWN floor rather than inheriting
+    // futures', and it still does — 30 against 25.
+    assert.equal(getCategoryCalibration("ESUSD").confidenceThreshold, 25);
   });
 
   it("charges agricultural execution cost about 3x the futures profile", () => {

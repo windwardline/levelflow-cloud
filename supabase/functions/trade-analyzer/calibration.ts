@@ -196,9 +196,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   // is marked as such. Each is replaced when its own grid lands.
   livestock: {
     blockedRegimes: ["volatile_chop"],
-    // AWAITING ITS OWN GRID — the 24h window changed the sample this would be
-    // derived from, so any floor computed on the starved corpus is void.
-    confidenceThreshold: 30,
+    // DERIVED 2026-08-06 from the final 1,020,464-setup sweep at the shipped
+    // geometry: derived floor, 42 test fills. No bucket in livestock's
+    // 1,204-fill corpus reaches 100, so the sample guard cannot apply and the
+    // derived floor stands.
+
+    confidenceThreshold: 40,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.38,
     // DERIVED 2026-08-06: 6 -> 24 hours. The single change that made this class
@@ -257,7 +260,10 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   // hour, not merely a weaker one.
   agriculture: {
     blockedRegimes: ["volatile_chop"],
-    // DERIVED (2026-08-06): monotone-survival floor, 6922 filled setups.
+    // HELD at 30 on 2026-08-06. The final sweep derives NO surviving floor:
+    // test expectancy goes negative somewhere above every candidate (-0.003 at
+    // 40, -0.053 at 90) across a 1,316-fill corpus. A floor cannot be derived
+    // from that, so the standing value stays and the class waits for depth.
     confidenceThreshold: 30,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.38,
@@ -300,9 +306,19 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   crypto: {
     blockedRegimes: ["volatile_chop"],
-    // Sweep 2026-07-28: crypto OOS expectancy is positive only at high
-    // selectivity (ETH +0.21R at 82); lower thresholds trade more and lose.
-    confidenceThreshold: 82,
+    // DERIVED 2026-08-06 from the final 1,020,464-setup sweep at the shipped
+    // geometry: derived floor 20 (32 test fills) raised one bucket to 25
+    // (704). Test E 0.204 at 25 and positive in every judgeable bucket above.
+    // THE SAMPLE GUARD (2026-08-06). Where the derived floor's own bucket
+    // carries under 100 test fills AND a materially larger judgeable bucket
+    // sits one step up, the floor moves up to it. Shipping a class-wide gate
+    // off 32 fills is the fragility amendment 25 exists to prevent, and the
+    // cost is nil: forex's band-15 bucket is 42 fills out of 452,565, so the
+    // volume given up is under a hundredth of a percent. The guard only ever
+    // TIGHTENS — raising the judgeable minimum outright would also silence
+    // thin NEGATIVE buckets, which is how energies' floor would have fallen
+    // from 85 to 75 by ignoring a -0.002 bucket on 69 fills.
+    confidenceThreshold: 25,
     dailyStopAtrMultiplier: 0.16,
     dailyTargetAtrMultiplier: 0.42,
     defaultReviewHours: 12,
@@ -339,7 +355,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   energies: {
     blockedRegimes: ["volatile_chop"],
-    confidenceThreshold: 69,
+    // DERIVED 2026-08-06 from the final 1,020,464-setup sweep at the shipped
+    // geometry: derived floor, 122 test fills. Test E 0.308 at 85; band 80 is
+    // -0.002 on 69 fills, which is what holds the floor this high.
+
+    confidenceThreshold: 85,
     dailyStopAtrMultiplier: 0.16,
     dailyTargetAtrMultiplier: 0.42,
     defaultReviewHours: 6,
@@ -372,13 +392,20 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   forex: {
     blockedRegimes: ["volatile_chop"],
-    // r18: the score does not rank forex outcomes at any band — the old
-    // gate was pure volume tax. r21 confirmed the r18-ledgered 40 on
-    // fresh caches under the restored windows: quality flat on both
-    // splits (train -0.0004, test +0.0001), money-positive 78.6->78.7%,
-    // +35.5% accepted volume vs 55 — exactly the +35.4% r18's own curve
-    // predicted for 40-vs-55.
-    confidenceThreshold: 40,
+    // DERIVED 2026-08-06 from the final 1,020,464-setup sweep at the shipped
+    // geometry: derived floor 15 (42 test fills) raised one bucket to 20 (479)
+    // — see the sample guard below. Test E is 0.298 at 20 and positive in
+    // every judgeable bucket above, to 0.317 at 95.
+    // THE SAMPLE GUARD (2026-08-06). Where the derived floor's own bucket
+    // carries under 100 test fills AND a materially larger judgeable bucket
+    // sits one step up, the floor moves up to it. Shipping a class-wide gate
+    // off 32 fills is the fragility amendment 25 exists to prevent, and the
+    // cost is nil: forex's band-15 bucket is 42 fills out of 452,565, so the
+    // volume given up is under a hundredth of a percent. The guard only ever
+    // TIGHTENS — raising the judgeable minimum outright would also silence
+    // thin NEGATIVE buckets, which is how energies' floor would have fallen
+    // from 85 to 75 by ignoring a -0.002 bucket on 69 fills.
+    confidenceThreshold: 20,
     // Sweep 2026-07-29 (2010-2026, both splits): sells outperformed buys
     // (train +0.042 vs +0.023, test +0.118 vs -0.010).
     sideScoreAdjustments: { buy: -6 },
@@ -418,7 +445,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   futures: {
     blockedRegimes: ["volatile_chop"],
-    confidenceThreshold: 68,
+    // DERIVED 2026-08-06 from the final 1,020,464-setup sweep at the shipped
+    // geometry: derived floor, 145 test fills. Test E 0.218 at 25 and positive
+    // in every judgeable bucket above, to 0.288 at 85.
+
+    confidenceThreshold: 25,
     // Sweep 2026-07-29: sells outperformed buys on both splits
     // (train -0.016 vs -0.035, test +0.110 vs +0.054).
     sideScoreAdjustments: { buy: -6 },
@@ -458,6 +489,12 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   indices: {
     blockedRegimes: ["volatile_chop"],
+    // HELD at 68 on 2026-08-06 under amendment 25. The final sweep derives 85,
+    // and that derivation is REFUSED: this class is cash-only (SP NSDQ DOW
+    // NIKKEI DAX ASX — the index FUTURES are in `futures`), and its geometry
+    // stage rejects 55-70% of the decisions reaching it (DOW survives 30%, SP
+    // 37%, NIKKEI 38%, NSDQ 38%, ASX 40%, DAX 45%). A starved sample yields no
+    // verdict, favourable or otherwise.
     confidenceThreshold: 68,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.36,
@@ -498,12 +535,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
   },
   metals: {
     blockedRegimes: ["volatile_chop"],
-    // Sweep 2026-07-28: metals expectancy improves monotonically with
-    // selectivity (XAU +0.18R, XAG +0.04R OOS at 82).
-    // r18: metals' score genuinely ranks outcomes under the rebuilt engine
-    // (0.131 -> 0.196R by band); 90 is the ceiling with viable samples
-    // (95 collapses acceptance to nothing).
-    confidenceThreshold: 90,
+    // DERIVED 2026-08-06 from the final 1,020,464-setup sweep at the shipped
+    // geometry: derived floor, 101 test fills. Test E 0.185 at 30 and positive
+    // in every judgeable bucket above.
+
+    confidenceThreshold: 30,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.4,
     defaultReviewHours: 8,

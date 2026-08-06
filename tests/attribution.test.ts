@@ -595,15 +595,16 @@ describe("buildAttribution — the confidence slice reuses buildConfidenceBands"
   });
 
   it("keeps a row that cleared no bar out of every band — class-relative in both directions", () => {
-    // The same 52 that lands in Qualified for Forex (bar 40) belongs to no
-    // band for Crypto (bar 82). Only legacy rows can sit here — the engine
+    // The same 22 that lands in Qualified for Forex (bar 20) belongs to no
+    // band for Crypto (bar 25). Only legacy rows can sit here — the engine
     // refuses generation below the bar — and they are counted by the builder
     // (tests/core.test.ts pins the exhaustiveness invariant), just never
-    // labeled with a word they did not earn.
+    // labeled with a word they did not earn. The straddling score was 52 while
+    // the bars were 40 and 82; the 2026-08-06 re-derivation closed the gap.
     const setups = [
-      won({ confidence_score: 52, id: "a", symbol: "BTCUSD" }),
-      won({ confidence_score: 52, id: "b", symbol: "BTCUSD" }),
-      won({ confidence_score: 52, id: "c", symbol: "BTCUSD" }),
+      won({ confidence_score: 22, id: "a", symbol: "BTCUSD" }),
+      won({ confidence_score: 22, id: "b", symbol: "BTCUSD" }),
+      won({ confidence_score: 22, id: "c", symbol: "BTCUSD" }),
     ];
 
     assert.equal(row(setups, "class", "Crypto").resolved, 3);

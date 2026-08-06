@@ -46,8 +46,14 @@ const REVIEW_WINDOW_HOURS_BY_CLASS = {
 
 /** Extra confidence floors for the same two classes. */
 const CONFIDENCE_THRESHOLD_BY_CLASS = {
+  // agriculture HOLDS at 30: the final sweep derives no surviving floor for it
+  // (test expectancy dips negative somewhere above every candidate), so the
+  // standing value stays rather than a fabricated one.
   agriculture: 30,
-  livestock: 30,
+  // livestock 30 -> 40, derived from the final sweep. No bucket in its
+  // 1,204-fill corpus reaches 100 test fills, so the sample guard that raised
+  // forex and crypto cannot apply here and the derived floor stands as-is.
+  livestock: 40,
 } as const;
 
 /**
@@ -90,10 +96,17 @@ export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
 // getCategoryCalibration(...).confidenceThreshold so this can never drift
 // silently from live calibration.
 export const CONFIDENCE_THRESHOLD_BY_ASSET_TYPE: Record<SecurityType, number> = {
-  Crypto: 82,
-  Energies: 69,
-  Forex: 40,
-  Futures: 68,
+  // All six re-derived 2026-08-06 from the final 1,020,464-setup sweep at the
+  // shipped geometry. The old values were set before the execution-cost and
+  // stop-cap defects were found, so they were gating against expectancy curves
+  // the engine no longer produces — four of them by 40 to 60 points.
+  Crypto: 25,
+  Energies: 85,
+  Forex: 20,
+  Futures: 25,
+  // HELD at 68 under amendment 25. The sweep derives 85 and that derivation is
+  // refused: this class is the cash indices, whose geometry stage rejects
+  // 55-70% of the decisions reaching it. A starved sample yields no verdict.
   Indices: 68,
-  Metals: 90,
+  Metals: 30,
 };
