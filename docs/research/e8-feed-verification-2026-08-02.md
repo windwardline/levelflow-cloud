@@ -1,12 +1,9 @@
 # E8 feed verification — FMP against the live platform
 
-Started 2026-08-02. The owner's lock-in ruling, verbatim:
-
-> "Good! Confirm we are using the right source, and lock it in for E8. Right
-> safeguards so we cannot possibly regress. Once we have the workflow down, I
-> will send other screenshots for the same treatment."
-
-> "Remember, this is E8 Pro Forex. That is important to keep track of."
+Started 2026-08-02. **The lock-in ruling** (owner, 2026-08-02): confirm the
+correct data source and lock it in for E8, with safeguards so it cannot
+regress; once the workflow is established, further screenshots follow the
+same treatment. The verification is scoped explicitly to E8 Pro Forex.
 
 Recorded as §20i ruling 8 in
 `docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md`. The
@@ -40,9 +37,9 @@ Every sample row names the account it was observed on. Feed identity is
 established per platform and program line, never assumed across them.
 
 **The "E8 DEMO" badge (owner attestation, 2026-08-04, on F11's frame):**
-TradeLocker renders an "E8 DEMO" corner badge on the owner's live Pro
-Forex account at all times — "It is my live pro forex account… it is
-always like that." Every "(demo)" annotation in F1–F7 records that
+TradeLocker renders an "E8 DEMO" corner badge on the owner's live Pro Forex
+account at all times — a permanent platform display, not an indicator of a
+separate demo environment. Every "(demo)" annotation in F1–F7 records that
 badge as observed, not a separate demo environment; the frames were the
 live account throughout. The annotations stay as written (they record
 what the frames showed), with this attestation as their standing
@@ -189,7 +186,8 @@ energies are excluded from the identity-confirmed set.
 
 ### F5 — 2026-08-02 22:40:55 / 22:41:02 / 22:41:08 EDT · Forex.c complete (three scrolls, GBPUSD.C chart)
 
-All 28 pairs captured ("these 3 give you all of Forex" — owner). Countdown
+All 28 pairs captured (owner confirmed the three captures cover the full
+Forex pair list). Countdown
 corroborations 19:04 / 18:57 / 18:51 ✓. Leverage 30 on every pair ✓
 (catalog). Spreads quoted in points (fifth decimal; third on JPY): 0–14
 observed, AUDCAD momentarily locked at 0 (bid = ask 0.98659).
@@ -567,6 +565,104 @@ offset — and at the range level every frame quote coincides with its
 bar extreme to 0.1–0.2 pips on a moving yen minute. The frame's non-JPY
 controls land on the same feed identity F1/F5/F7 anchored, tying this
 closure into the family's existing live record.
+
+### F12 — 2026-08-05 · `6J` and `6M`'s FMP mates, resolved retrospectively against F9's own anchor window
+
+**Program line: E8 Signature Futures** (the same F9 account and frame; no
+new screenshot). The §19 retrofit's re-grounding of `6J`/`6M`/`ZB`/`ZN`
+(offered per amendment 19, unsizeable per amendment 22) left one question
+distinct from tradability: does FMP carry a market for either CME currency
+future at all, and does it track? `6J` and `6M` do not appear in FMP's
+`stable/commodities-list` (40 symbols, checked live 2026-08-05 — no JPY, no
+MXN, no currency-futures root of any kind; the list is metals, energies,
+grains, meats, softs, financials and equity-index only), so — as F9's own
+text already implied for `6E` ("6EU6 1.15330 vs EURUSD spot 1.15135") — the
+FMP mate for a CME currency future is its spot pair, inverted to match the
+future's quote convention, not a distinct futures symbol.
+
+**Method, retrospective.** F9's own protocol (pull within minutes of the
+frame) does not apply two days later; instead, the production
+`stable/historical-chart/1min` endpoint was pulled for `USDJPY` and
+`USDMXN` on `2026-08-03`, the exact date, and read at F9's own anchor
+window, 15:08–15:09 EDT (FMP intraday timestamps are US Eastern, per this
+document's own protocol) — both the 15:08 and 15:09 bars, open/high/low/close
+all read, since no single-second timestamp survives for which of the eight
+Tradovate tabs was on screen at which instant inside the 15:08:59–15:09:49
+span.
+
+| Instrument | E8 (F9, Tradovate) | FMP anchor window, both bars (15:08–15:09 EDT) | Inverted to match FMP | Basis |
+|---|---|---|---|---|
+| `6J` (Sep contract, 6JU6) | 0.0063985 | USDJPY 156.79–156.818 | 1/USDJPY 0.0063768–0.0063780, mid 0.0063774 | **+0.0000211, +33 bp**, E8 above spot-implied |
+| `6M` (Aug contract, 6MQ6) | 0.057600 | USDMXN 17.32229–17.32384 | 1/USDMXN 0.0577239–0.0577291, mid 0.0577265 | **−0.0001265, −22 bp**, E8 below spot-implied |
+
+**Cross-checked against FMP's own direct-quote symbols** (`JPYUSD`,
+`MXNUSD` — both exist on FMP's forex list independent of the inverted
+majors): `JPYUSD` prints a flat 0.006375–0.006376 across the whole window
+(volume 1 per bar — a thin, apparently-derived mirror of `USDJPY`, not an
+independently-ticking source), consistent with the `1/USDJPY` figure to the
+fourth decimal. `MXNUSD` prints 0.05769–0.05775 (volume up to 21 per bar),
+consistent with `1/USDMXN` to within ~0.00002 — ordinary cross-quote noise,
+not a different market. Both direct symbols corroborate rather than replace
+the major-pair inversion, which stays primary per this document's own
+established `USDJPY` precedent (F9, F11) over a thinner cross.
+
+**Reading the sign.** `6J`'s futures print sits ABOVE its spot-implied
+value, the same direction and a comparable order of magnitude as `6E`'s own
++17-pip (+0.17%) futures-vs-spot basis (F9) — consistent with JPY, like
+EUR, carrying a lower policy rate than USD (the low-rate currency trades at
+a forward premium, quoted direct, under covered interest-rate parity).
+`6M`'s futures print sits BELOW its spot-implied value — the opposite sign
+— consistent with MXN's much higher policy rate producing a forward
+discount rather than a premium. Both directions are the textbook
+interest-rate-parity result for their respective currencies: corroborating
+evidence that the inverted spot pair is the right market, not a coincidence
+needing further explanation.
+
+**This basis is a decaying, drifting snapshot — not a constant, unlike
+Brent/XAG/WTI's (fix round 1, coordinator review, 2026-08-05).** A
+futures-vs-spot basis driven by interest-rate carry is structurally
+different from the CFD-side offsets recorded elsewhere in this document: it
+decays toward zero as the contract approaches expiry (the rate
+differential's time value shrinks to nothing at settlement) and it drifts
+whenever the underlying rate differential itself moves — a Fed, Banxico or
+BOJ rate change re-prices the whole curve. Brent's ~2% and XAGUSD's/WTI's
+~30 bp are genuinely documented per-instrument constants: each was measured
+and re-measured across separate sessions and days (F1, F4, F6, F7, F9, F10)
+and found stable every time, which is why the §19 retrofit treats them as a
+fixed, reusable basis. `6J`'s +33 bp and `6M`'s −22 bp above are a
+**single 2-minute sample, taken once, on one date, and never re-verified at
+a second time or session.** They answer this entry's own question — does a
+reasonable FMP mate exist, and does it track — and they do not establish
+that either figure is stable over time the way Brent/XAG/WTI's bases are.
+**Any future use of either number — for sizing, for offset handling, or for
+a display decision — must re-measure at time of use; this entry's own
+figures are not to be read off and reused as a constant.**
+
+**Verdict: MATCHED, with evidence, both legs.** `6J` ↔ `USDJPY` (inverted)
+and `6M` ↔ `USDMXN` (inverted) are FMP's mates for these two CME currency
+futures — no FMP currency-futures symbol exists for either, so the spot
+pair is FMP's only candidate, exactly as already established for `6E`.
+Amendment 20's matching question is answered for both: neither is
+FMP-excluded, and the master-list record (amendment 23) can carry both
+matches durably regardless of display state. At this one-time snapshot,
+`6J`'s ~33 bp is order-of-magnitude comparable to XAG/WTI's ~30 bp
+*constant* and `6M`'s ~22 bp is smaller still — but a decaying, drifting
+single sample is not evidence of the same character as a multi-sample-verified
+constant, and neither figure is offered here as grounds for a
+display-exclusion decision. Neither `6J` nor `6M` is wired to a Levelflow
+row or shown to any user today (no Levelflow symbol maps to either —
+`docs/superpowers/specs/2026-08-02-broker-sizing-governor-design.md` §19a),
+so no display decision is actually pending on either; this is recorded for
+the master list and for whenever the futures onboarding gives either symbol
+a Levelflow row of its own — at which point the basis must be re-measured,
+not read off this entry.
+
+**What this does NOT resolve.** Appendix A item 6's own ask — `6J`'s tick
+and value "as the platform computes them," from a live order ticket — is a
+different fact from a same-minute FMP price comparison, and stays open.
+This entry answers "does a reliable FMP market exist for this instrument,"
+not "does E8's own tick table reconcile with itself." The two questions
+close independently; only the owner's own live ticket closes the second.
 
 ## Open items
 

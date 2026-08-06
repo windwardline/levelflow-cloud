@@ -26,6 +26,7 @@ import {
   type MarketDataResponse,
 } from "../../lib/marketData";
 import { visibleAssetGroups, visibleAssetSymbols } from "../../lib/broker/visibility";
+import { isDisplayExcluded } from "../../lib/broker/offsets";
 import {
   activeAccountOf,
   type BrokerClassification,
@@ -57,6 +58,25 @@ import {
 // to hold two tabs in their head to read one setup. Owned here, not by App.tsx,
 // because these names only ever mean something inside the Desk tab.
 export type DeskMobileView = "scan" | "trades";
+
+// Amendment 23's offset ruling (owner, 2026-08-05), fix round 1: the stored-
+// setup reopen gate is display-exclusion aware, not just "is this symbol in
+// the app's known universe at all." AVAILABLE_ASSET_OPTIONS alone (the
+// unfiltered master list) let a stored BRENT row — plausible on any account
+// old enough to predate this ruling, since BRENT was a normal visible market
+// until this exact commit — re-stage onto the chart, contradicting "leaves
+// every user-visible surface... chart selection." isDisplayExcluded is the
+// one predicate every other reopen-affordance check reuses (offsets.ts) —
+// never a second, independently-maintained list. Classification-agnostic on
+// purpose, matching the pre-existing AVAILABLE_ASSET_OPTIONS check this
+// extends: an account-scoped restriction was never this gate's job.
+//
+// Exported for direct unit testing (no jsdom — see CurrentTradesRail.tsx's
+// header comment for this repo's established approach).
+export function canReopenStoredSetup(symbol: string): boolean {
+  return AVAILABLE_ASSET_OPTIONS.some((option) => option.symbol === symbol) &&
+    !isDisplayExcluded(symbol);
+}
 
 type AdvisorWorkspaceProps = {
   // Which of the Desk's two mobile surfaces is showing below lg (spec §17e).
@@ -371,9 +391,7 @@ export function AdvisorWorkspace(
     if (!requestedSetup) {
       return;
     }
-    const isAvailable = AVAILABLE_ASSET_OPTIONS.some(
-      (option) => option.symbol === requestedSetup.symbol,
-    );
+    const isAvailable = canReopenStoredSetup(requestedSetup.symbol);
     if (!isAvailable) {
       // Consume the request even though it can't be applied. (Insights had the
       // same shape until Q1-I13 deleted its half: openInsights never passed a

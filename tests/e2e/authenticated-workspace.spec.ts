@@ -8,6 +8,7 @@ import {
 import { createClient } from "@supabase/supabase-js";
 import { filterSymbolsByAvailability } from "../../src/components/workspace/marketScanFilters";
 import { SIZE_STATE_WORDS } from "../../src/lib/broker/types";
+import { visibleAssetGroups, visibleAssetSymbols } from "../../src/lib/broker/visibility";
 import { marketAvailability } from "../../src/lib/marketHours";
 import { chunkScanSymbols } from "../../src/lib/scanBatching";
 import { LEDGER_WINDOW_ROWS } from "../../src/lib/tradeAnalyzer";
@@ -168,10 +169,19 @@ async function scanForSetupOnStage(page: Page): Promise<boolean> {
 // order), then that group's markets, base/quote-sorted (also carried
 // as-is). Shared by both viewport variants below since ScopeMenu.tsx
 // renders the anchored popup and the full-screen sheet from one function.
+//
+// visibleAssetGroups(null), not the raw AVAILABLE_ASSET_GROUPS: this shared
+// E2E user carries no connected broker account through this point in the
+// suite (the first "Add account" click is much later, ~line 2500+), so the
+// real popup renders through visibleAssetGroups(null) — amendment 23's
+// offset ruling (owner, 2026-08-05) withholds BRENT there while
+// AVAILABLE_ASSET_GROUPS itself stays the unfiltered master list. Reading
+// the master list directly here would expect a BRENT row the live menu
+// never draws.
 function expectedScopeMenuLabels(): string[] {
   return [
     "All markets",
-    ...AVAILABLE_ASSET_GROUPS.flatMap((group) => [
+    ...visibleAssetGroups(null).flatMap((group) => [
       group.label,
       ...group.options.map((option) => option.label),
     ]),
@@ -2166,8 +2176,15 @@ test("a qualifying market scan persists into Insights, not just onto the scan ra
   // fan-out dropped a request, more means it sent one twice. Read once, right
   // before the click, since the workspace computes its own list at render time
   // and a market crossing an open/close boundary in between would move both.
+  //
+  // visibleAssetSymbols(null), not the raw AVAILABLE_ASSET_SYMBOLS: no broker
+  // account is connected at this point in the suite, and
+  // getMarketScanSymbolsForScope's "all" resolution — what AdvisorWorkspace's
+  // scan trigger actually calls — intersects with visibleAssetSymbols(account).
+  // Amendment 23's offset ruling (owner, 2026-08-05) withholds BRENT there, so
+  // the live scan's own chunk count is one symbol short of the master list.
   const expectedChunkLists = chunkScanSymbols(
-    filterSymbolsByAvailability(AVAILABLE_ASSET_SYMBOLS, new Date()),
+    filterSymbolsByAvailability(visibleAssetSymbols(null), new Date()),
   );
   const expectedChunks = expectedChunkLists.length;
   const expectedScanned = expectedChunkLists.flat().length;

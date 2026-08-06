@@ -58,6 +58,14 @@ export type E8FuturesSpec = {
    */
   canonical: boolean;
   tradability: Extract<Tradability, "confirmed" | "unconfirmed">;
+  /**
+   * Amendment 19 (owner ruling, 2026-08-05): a live-platform sighting can
+   * establish tradability the same way the canonical list does. `ZB`, `ZN`,
+   * `6J` and `6M` carry the F9 futures-account sighting here rather than
+   * `CANONICAL_LIST`/`MAX_CONTRACTS` — the honest source of the OFFERED fact,
+   * distinct from the SIZING fact `tickSize`/`valuePerTick` carry.
+   */
+  tradabilitySource: Provenance;
 };
 
 // [symbol, product, tickSize, valuePerTick, margin, altSymbol]
@@ -132,33 +140,89 @@ const CANONICAL_ROWS: SpecRow[] = [
 // The two margin-table-only symbols Levelflow already serves, as `ZBUSD` and
 // `ZNUSD`. Absent from the fee table, the tick table, the canonical
 // 45-instrument list and the live symbol browser: margin published, tick size
-// and value NOT PUBLISHED, tradability unconfirmed. The other nine
-// margin-table-only symbols (ZT, ZF, UB, TN, ZQ, GF, MNG, MHG and the
-// blank-symbol "Micro Silver" row) have no Levelflow counterpart and are out of
-// scope for §19 (§19h).
+// and value NOT PUBLISHED — still true, and still why sizing stays withheld
+// (amendment 22). Tradability is a different question: both printed live on
+// the owner's F9 futures-account watchlist sighting (amendment 19; see
+// FUTURES_ACCOUNT_SIGHTINGS below), which OFFERS them the same way a canonical-
+// list listing would. The other nine margin-table-only symbols (ZT, ZF, UB, TN,
+// ZQ, GF, MNG, MHG and the blank-symbol "Micro Silver" row) have no Levelflow
+// counterpart and are out of scope for §19 (§19h).
 const MARGIN_ONLY_ROWS: SpecRow[] = [
   ["ZB", "30-Year Bond", null, null, 10_000, null],
   ["ZN", "10-Year Note", null, null, 10_000, null],
 ];
 
 /**
- * On E8's canonical roster and still not confirmed, because E8's own tick table
- * cannot be reconciled with itself on these two. 6E and 6S publish tick 0.0001 at
- * $12.50, so their value per 1.0 price unit is $125,000; 6J publishes tick
- * 0.0000001 at the same $12.50, which is $125,000,000 — one thousand times its
- * siblings', on the reciprocal axis. 6M (0.00005/$5.00) carries the same defect at
- * a smaller factor and has no Levelflow counterpart in any class.
+ * `6J` and `6M` are OFFERED (owner ruling, 2026-08-05, confirming both appear
+ * with live prices on the 2026-08-03 F9 futures-account screenshots —
+ * amendment 19's checkout/platform record) but stay UNSIZEABLE, because E8's
+ * own tick table cannot be reconciled with itself on these two. 6E and 6S
+ * publish tick 0.0001 at $12.50, so their value per 1.0 price unit is
+ * $125,000; 6J publishes tick 0.0000001 at the same $12.50, which is
+ * $125,000,000 — one thousand times its siblings', on the reciprocal axis. 6M
+ * (0.00005/$5.00) carries the same defect at a smaller factor and has no
+ * Levelflow counterpart in any class.
  *
- * An exchange contract notional would resolve both arithmetically, and it is ruled
- * out: neither E8-published nor derivable by an E8-published method, so it fails
- * the boundary (§20i ruling 5). They stay unconfirmed until E8 publishes a
- * reconcilable pair, and the inversion machinery waits for data rather than the
- * data being manufactured to fit the machinery.
+ * An exchange contract notional would resolve both arithmetically, and it is
+ * ruled out: neither E8-published nor derivable by an E8-published method, so
+ * it fails the boundary (§20i ruling 5). Amendment 22 (owner ruling,
+ * 2026-08-05) is now the durable, universal ground for withholding sizing
+ * here: sizing requires RELIABLE — published, verified, self-consistent —
+ * broker inputs, and withholds only the Size layer when that bar is not met;
+ * the market itself is still analyzed and offered. `hasPublishedSizeInputs`
+ * below consults this list directly so a future Levelflow-symbol mapping to
+ * 6J or 6M cannot start sizing off the unreconciled numbers just because both
+ * happen to be non-null. They stay unsizeable until E8 publishes a
+ * reconcilable pair, and the inversion machinery waits for data rather than
+ * the data being manufactured to fit the machinery.
  */
 const UNRECONCILED_TICK_AXIS = ["6J", "6M"];
 
+/**
+ * The owner's live E8 Signature Futures account, Tradovate watchlists,
+ * 2026-08-03, 15:08:59-15:09:49 EDT
+ * (docs/research/e8-futures-account-2026-08-03.md §2). Amendment 19: the
+ * checkout/platform record is the single source of truth for what E8
+ * offers, so a live-priced watchlist row establishes tradability the same
+ * way an E8-published list would (amendment 4's third route — "a verified
+ * observation may establish tradability itself"). Amendment 22 keeps the
+ * route narrow: it establishes OFFERED, nothing about SIZING — E8's own
+ * tick/value tables still gate that separately (UNRECONCILED_TICK_AXIS
+ * above, and the null tick/value on ZB/ZN's own MARGIN_ONLY_ROWS entry).
+ */
+function signatureFuturesSighting(note: string): Provenance {
+  return {
+    article: null,
+    method: null,
+    observation: {
+      date: "2026-08-03",
+      note,
+      platform: "Tradovate",
+      program: "E8 Signature Futures",
+    },
+    tag: "verified",
+    url: null,
+  };
+}
+
+/**
+ * ZB, ZN, 6J and 6M all appeared with live prices on the F9 futures-account
+ * screenshots (2026-08-03) — the owner ruled (2026-08-05 00:49) that all four
+ * are OFFERED, none joins an exclusion. Keyed on the E8 symbol so `toSpec`
+ * can attach the sighting as `tradabilitySource` regardless of whether the
+ * row is canonical (6J, 6M) or margin-only (ZB, ZN) — narrow by construction:
+ * this says OFFERED and nothing about SIZING.
+ */
+const FUTURES_ACCOUNT_SIGHTINGS: Record<string, string> = {
+  "6J": "6JU6 0.0063985 live on the Currencies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  "6M": "6MQ6 0.057600 live on the Currencies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  ZB: "ZBU6 109'02 (109.0625) live on the Financials watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  ZN: "ZNU6 108'125 (108.390625) live on the Financials watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+};
+
 function toSpec(row: SpecRow, canonical: boolean): E8FuturesSpec {
   const [symbol, product, tickSize, valuePerTick, margin, altSymbol] = row;
+  const sighting = FUTURES_ACCOUNT_SIGHTINGS[symbol];
   return {
     symbol,
     altSymbol,
@@ -167,9 +231,12 @@ function toSpec(row: SpecRow, canonical: boolean): E8FuturesSpec {
     valuePerTick: valued(valuePerTick, TICK_SIZES),
     marginPerContract: valued(margin, MAX_CONTRACTS),
     canonical,
-    tradability: canonical && !UNRECONCILED_TICK_AXIS.includes(symbol)
-      ? "confirmed"
-      : "unconfirmed",
+    tradability: canonical || sighting !== undefined ? "confirmed" : "unconfirmed",
+    tradabilitySource: sighting
+      ? signatureFuturesSighting(sighting)
+      : canonical
+      ? CANONICAL_LIST
+      : MAX_CONTRACTS,
   };
 }
 
@@ -569,7 +636,7 @@ function futuresLineRow(symbol: string, assetType: SecurityType): Omit<
   const spec = E8_FUTURES_SPECS[e8Symbol];
   return {
     tradability: spec.tradability,
-    tradabilitySource: spec.canonical ? CANONICAL_LIST : MAX_CONTRACTS,
+    tradabilitySource: spec.tradabilitySource,
     brokerSymbol: spec.symbol,
     brokerSymbolAlt: spec.altSymbol,
     brokerSymbolSource: spec.altSymbol ? INSTRUMENT_ROSTER : CANONICAL_LIST,
@@ -796,10 +863,41 @@ function unitValues(unit: QuoteUnit): Valued<number>[] {
  * Whether every published value this row's size needs is present. Live-quote
  * availability is a separate question, answered at render time by the bridge
  * (`Rate unavailable`, §19e) — this is the published half.
+ *
+ * Amendment 22 (owner ruling, 2026-08-05): sizing is a durable, universal
+ * gate on RELIABLE — published, verified, self-consistent — broker inputs,
+ * and a sizing-data gap withholds only the Size layer, never the market
+ * itself. `6J` and `6M` are the encoded case: both carry non-null,
+ * `primary`-tagged tick and value (and a non-null margin), every field this
+ * function otherwise checks — yet E8's own tick table cannot reconcile the
+ * two numbers with their 6E/6S siblings (a 1,000x-mismatched value per 1.0
+ * price unit; `UNRECONCILED_TICK_AXIS` above). That is not missing data, it
+ * is self-inconsistent data, and amendment 22's "self-consistent" clause
+ * excludes it from sizing exactly as if it were null — checked explicitly
+ * here so a future Levelflow-symbol mapping to `6J` or `6M` cannot silently
+ * start sizing off the unresolved anomaly just because both fields happen to
+ * be non-null.
+ *
+ * **This is a pinned derivation, not a runtime gate (Task 17b fix round 1
+ * review, 2026-08-05).** `SIZEABLE_MARKETS_BY_LINE` below, the thing this
+ * function drives, has zero consumers in `src/` outside this file today —
+ * nothing in the app actually reads it to decide what to size. The real
+ * runtime sizing path is `sizing.ts`'s `sizeInstrument`/`perUnitValue`,
+ * which has no independent knowledge of `UNRECONCILED_TICK_AXIS` and would
+ * compute a real (wrong) number for `6J`/`6M` if a row carrying either
+ * `brokerSymbol` ever reached it confirmed — see `perUnitValue`'s own
+ * docblock for that pointer. This function and the property test in
+ * `tests/brokerReference.test.ts` that exercises it are what is actually
+ * built; treat them as documentation of the intended rule, not as
+ * protection a future onboarding change can lean on without also wiring
+ * the gate into `sizing.ts`.
  */
 export function hasPublishedSizeInputs(row: BrokerInstrument): boolean {
   const program = PROGRAM_LINES.find((line) => line.line === row.programLine);
   if (!program || row.tradability !== "confirmed") {
+    return false;
+  }
+  if (row.brokerSymbol && UNRECONCILED_TICK_AXIS.includes(row.brokerSymbol)) {
     return false;
   }
   if (unitValues(row.unit).some((value) => value.value === null)) {

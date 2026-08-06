@@ -88,6 +88,35 @@ describe("buildTradeCards", () => {
   it("returns an empty list for no setups", () => {
     assert.deepEqual(buildTradeCards([], NOW), []);
   });
+
+  // Amendment 23's offset ruling (owner, 2026-08-05), fix round 1: the
+  // BEHAVIORAL half of the reopen gate. The source-text pins elsewhere prove
+  // the two render branches exist; only this proves the flag that chooses
+  // between them is computed from the display-exclusion predicate — an
+  // inverted or unreachable `reopenable` passes every source pin and fails
+  // right here.
+  it("marks a display-excluded symbol's card unreopenable, and every other card reopenable", () => {
+    const cards = buildTradeCards(
+      [
+        buildSetup({ id: "brent", symbol: "BRENT" }),
+        buildSetup({ id: "silver", symbol: "XAGUSD" }),
+        buildSetup({ id: "euro", symbol: "EURUSD" }),
+      ],
+      NOW,
+    );
+    const reopenableById = new Map(
+      cards.map((card) => [card.setup.id, card.reopenable]),
+    );
+    // BRENT is display-excluded (offsets.ts's DISPLAY_EXCLUDED_SYMBOLS) — its
+    // record still built a card, which is the records-stay half of the ruling.
+    assert.equal(reopenableById.get("brent"), false);
+    assert.equal(cards.length, 3);
+    // XAGUSD carries a basis of its own and stays fully reopenable: the basis
+    // line and the display exclusion are separate rulings, and only the
+    // exclusion closes the route back.
+    assert.equal(reopenableById.get("silver"), true);
+    assert.equal(reopenableById.get("euro"), true);
+  });
 });
 
 // The durable sort law (spec §4): "Menus are alphabetical for finding; results
@@ -325,9 +354,14 @@ describe("each position card is the affordance that reopens its own setup", () =
     // aria-current say it, so §17f writes no string.
     assert.match(card, /aria-current=\{selected\}/);
     assert.match(card, /shadow-\[inset_3px_0_0_var\(--color-accent\)\]/);
-    // Still exactly one bordered frame in the file — the card itself — so the
-    // selected state cannot have been drawn as a second box.
-    assert.equal((RAIL_SOURCE.match(/border border-hairline/g) ?? []).length, 1);
+    // Exactly two bordered frames in the file, not one (fix round 1,
+    // amendment 23's offset ruling, 2026-08-05): the reopenable card above
+    // and the non-interactive record TradeStateCard's !reopenable branch
+    // renders for a display-excluded symbol's stored row — same visual
+    // treatment, same "one box" discipline, just two possible wrapper tags
+    // for it now. Not a third, gratuitous box: box-discipline's own
+    // full-repo scan (tests/boxDiscipline.test.ts) still covers this file.
+    assert.equal((RAIL_SOURCE.match(/border border-hairline/g) ?? []).length, 2);
   });
 
   it("holds phrasing content only — no article, heading, paragraph or div inside a button", () => {

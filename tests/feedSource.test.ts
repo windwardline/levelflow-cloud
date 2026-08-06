@@ -50,6 +50,12 @@ const FROZEN_FALLBACK_ENTRIES: string[] = [];
 // outside the price-identity claim but inside the single-provider rule.
 const FMP_FILE_ALLOWLIST = [
   "scripts/replay-sweep.ts",
+  // The match-confirmation gate (owner directive, 2026-08-05): probes every
+  // master-list row's FMP mate for real, deep, current bars and exits
+  // non-zero when a SERVED market's feed lapses. It reads the feed to prove
+  // the mapping, and writes nothing to it — an offline verifier, never a
+  // second price path into the product.
+  "scripts/verify-fmp-matches.ts",
   "supabase/functions/market-data/index.ts",
   "supabase/functions/news-calendar/index.ts",
   "supabase/functions/trade-analyzer/macroContext.ts",
@@ -149,6 +155,36 @@ describe("feed source lock (§20i ruling 8)", () => {
       NSDQ: "^NDX",
       SP: "^GSPC",
       WTI: "CLUSD",
+      // The four index futures onboarded 2026-08-05 on owner-accepted
+      // cash-index proxies. FMP carries no Eurex or CME index-futures
+      // contract, so each reads its underlying cash index — a deliberate,
+      // owner-ruled divergence under amendment 23's situational-offset
+      // protocol, and the reason the basis here is never written as a
+      // constant: futures-vs-cash is carry, which decays to expiry.
+      // FDAX and NKD intentionally duplicate DAX's and NIKKEI's series;
+      // amendment 24 decides each account type separately, which requires it.
+      // E8's own crypto spellings, onboarded 2026-08-06. Both traps: FMP calls
+      // Arweave ARUSD, and FMP's literal TRUMPUSD is a DIFFERENT asset — the
+      // match is OTRUMPUSD, so following the identical spelling would have
+      // wired the wrong series while looking perfectly correct.
+      ARWUSD: "ARUSD",
+      TRUMPUSD: "OTRUMPUSD",
+      EMD: "^MID",
+      FDAX: "^GDAXI",
+      FDXM: "^GDAXI",
+      // Group A's seven size variants, wired 2026-08-06. Each reads its
+      // PARENT's series by construction — that is what makes it the same market
+      // at a different notional rather than a market of its own — so the
+      // divergence is the whole point, not a feed change to re-verify.
+      MES: "ESUSD",
+      MNQ: "NQUSD",
+      MYM: "YMUSD",
+      QM: "CLUSD",
+      QG: "NGUSD",
+      XK: "ZSUSX",
+      XC: "ZCUSX",
+      FESX: "^STOXX50E",
+      NKD: "^N225",
     };
 
     const observedDivergences: Record<string, string> = {};
@@ -156,7 +192,8 @@ describe("feed source lock (§20i ruling 8)", () => {
       for (const option of group.options) {
         if (option.fmpSymbol !== option.symbol) {
           assert.ok(
-            group.label === "Indices" || group.label === "Energies",
+            group.label === "Indices" || group.label === "Energies" ||
+              group.label === "Futures" || group.label === "Crypto",
             `${option.symbol} (${group.label}) diverges from its FMP symbol — pass-through was verified for ${group.label}`,
           );
           observedDivergences[option.symbol] = option.fmpSymbol;

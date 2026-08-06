@@ -1,6 +1,6 @@
 # Levelflow Trade Model
 
-Model version: `2026.08.01.one-door-guarded`
+Model version: `2026.08.05.cost-scale-free`
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
 
@@ -95,7 +95,7 @@ whim. Two triggers, whichever comes first:
           count(*) as resolved_filled
    from trade_outcomes o
    join trade_setups ts on ts.id = o.setup_id
-   where o.analyzer_version = '2026.08.01.one-door-guarded'
+   where o.analyzer_version = '2026.08.05.cost-scale-free'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -198,6 +198,14 @@ Sweep of 2026-07-28 (60 days, 10 symbols, out-of-sample):
   validated against the fresh outcome cohort this version starts.
 - NGUSD setups fail the effective-payoff gate almost always — its trading
   costs were never viable; the honest model shows fewer or no NG setups.
+  **FALSIFIED 2026-08-05 (round 24).** The costs were not gas's; they were
+  the cost model's. An absolute-price floor of 0.01 on the futures class
+  charged natural gas 2.7x its entire risk distance. Corrected, NGUSD
+  produces 305 train / 209 test accepted setups. Its expectancy is still
+  split-inconsistent (-0.084 / +0.001), so the *conclusion* to keep gas out
+  survives — but the *reason* recorded here was wrong, and the same bad
+  reason was silently suppressing copper, which turns out to be one of the
+  strongest markets in the book.
 
 ## Round-3 universe findings (2026-07-28)
 
@@ -1077,3 +1085,65 @@ History was reset at the window-feasible model's deploy (migration
 pre-fix outcomes measured an unreachable geometry, not market skill; the
 launch runbook cleared it again on 2026-08-01 (§17l), so the cohort this
 version scopes starts empty by design.
+
+## Round-24 calibration (2026-08-05, the execution-cost scale defect)
+
+The refinement cycle's first shipped finding, and it is a defect rather than
+a tuning result. `executionQuality.ts` floored spread, slippage, and ATR at a
+per-class `minimumCost` expressed as an **absolute price increment** —
+futures and indices carried `0.01`. E8's futures program spans natural gas
+near 2.67 to the E-mini S&P near 7752, a 2,900x range, so no single absolute
+constant can be right across it. At the bottom of the range the guard became
+the governing term.
+
+Measured, with gross reward:risk held at exactly 2.0 by construction:
+
+| instrument | price | risk | modeled cost | cost/risk | effective RR |
+|---|---|---|---|---|---|
+| natural gas | 2.67 | 0.0154 | 0.0300 | 1.95 | 0.018 |
+| copper | 6.73 | 0.0168 | 0.0300 | 1.79 | 0.077 |
+| 10-year note | 108.89 | 0.0630 | 0.0327 | 0.52 | 0.976 |
+| bond | 110.06 | 0.1176 | 0.0330 | 0.28 | 1.342 |
+| E-mini S&P | 7752 | 12.60 | 2.3256 | 0.19 | 1.533 |
+
+The cost was identical (0.0300) for gas and copper — the floor ignores price
+and ATR entirely. Consequences, verified against the emitted corpus:
+
+- HGUSD cleared reward:risk 1.25 in **0 of 2304** replayed setups (max 0.956).
+- NGUSD in **0 of 1689** (max 1.140).
+- ZNUSD was throttled to 136 filled against ZBUSD's 1540.
+- NGUSD's own `maxStopAtrMultiplier: 2.8` override, written to accommodate
+  gas's volatility, doubled its risk and so guaranteed the disqualification
+  it was meant to relieve. Its "currently inert and untestable" comment was
+  describing this defect without naming it.
+
+Fix: `minimumCost` is removed from the class profiles and replaced by a
+single documented `COST_EPSILON = 1e-9` divide-by-zero guard. Cost is already
+modeled two market-specific ways — basis points of price, and a fraction of
+ATR — and the guard may never outrank either.
+
+Result on the same pinned bars (train / test):
+
+| market | before | after | hit | stop |
+|---|---|---|---|---|
+| HGUSD copper | 0 accepted | 403 / 317 | 70% / 84% | 1% / 3% |
+| NGUSD gas | 0 accepted | 305 / 209 | 64% / 69% | 30% / 27% |
+| ZNUSD note | 136 filled | 111 / 15 | 78% / 82% | 10% / 9% |
+| ZBUSD bond | — | 416 / 257 | 83% / 87% | 9% / 8% |
+
+Expectancy: copper **+0.210 / +0.241** (both splits, strongly positive — it
+now ranks among the best markets Levelflow analyzes, and was invisible
+before). Bond +0.221 / +0.220. Note +0.217 / +0.143 but starved: its
+cost-to-risk is a legitimate ~0.52 because 1.4 bps of 108.89 is 0.0152,
+within rounding of ZN's real one-tick spread (1/64), and a 15-minute-ATR stop
+sits only ~4 spreads away. That is a geometry question for ZN's own
+calibration, never something to fix by understating cost — pinned as such in
+`tests/executionQuality.test.ts`. Gas -0.084 / +0.001: no demonstrated edge,
+now honestly measurable rather than structurally silenced.
+
+The fix is a no-op wherever the bps or ATR term already outranked 0.01 — the
+E-mini prices bit-identically before and after, pinned as a regression guard.
+Scale invariance is the invariant now enforced: two contracts with the same
+price:ATR ratio must be charged the same cost-to-risk regardless of where the
+decimal point sits. Before the fix, copper and a synthetic contract 1000x its
+price were charged 1.786 and 0.120.

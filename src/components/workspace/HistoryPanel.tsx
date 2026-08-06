@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isDisplayExcluded } from "../../lib/broker/offsets";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
 import { visibleAssetGroups } from "../../lib/broker/visibility";
 import { activeAccountOf, type UserProfile } from "../../lib/profile";
@@ -472,14 +473,29 @@ function InsightsRow({ now, setup }: { now: Date; setup: TradeSetupRow }) {
           the market and left the stage's analysis state null, so the chart
           reloaded above an empty ladder; the row is what the stage restores from.
         */}
-        <button
-          aria-label={`Open ${setup.symbol} in Advisor`}
-          className="link-accent inline-flex min-h-11 items-center font-semibold text-ink"
-          type="button"
-          onClick={() => nav.openAdvisor(setup)}
-        >
-          {setup.symbol}
-        </button>
+        {isDisplayExcluded(setup.symbol)
+          ? (
+            // Amendment 23's offset ruling (owner, 2026-08-05), fix round 1:
+            // the row is a record and renders in full, but a display-excluded
+            // symbol (BRENT today) has no route back onto the chart — the
+            // affordance is ABSENT, not disabled (§17c: an inert control is a
+            // lie). Same treatment as the Current trades rail's own
+            // !reopenable branch; AdvisorWorkspace's canReopenStoredSetup is
+            // the belt to this suspender.
+            <span className="inline-flex min-h-11 items-center font-semibold text-ink">
+              {setup.symbol}
+            </span>
+          )
+          : (
+            <button
+              aria-label={`Open ${setup.symbol} in Advisor`}
+              className="link-accent inline-flex min-h-11 items-center font-semibold text-ink"
+              type="button"
+              onClick={() => nav.openAdvisor(setup)}
+            >
+              {setup.symbol}
+            </button>
+          )}
       </td>
       <td className="py-2 pr-3">
         <span className={`chip ${isBuy ? "text-buy" : "text-sell"}`}>

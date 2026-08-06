@@ -1306,10 +1306,15 @@ describe("Current trades rail composition — the kill list is absent (spec §16
   it("carries no pill-boxed levels row and no second card inside the position card", () => {
     assert.doesNotMatch(tradesRail, /rounded-md bg-sheet/);
     assert.doesNotMatch(tradesRail, /rounded-lg border border-hairline bg-paper/);
-    // Exactly one bordered frame in the file: the position card itself.
+    // Exactly two source occurrences of the ONE card frame since amendment
+    // 23's offset ruling (fix round 1, 2026-08-05): the reopenable <button>
+    // card and the non-interactive record branch a display-excluded symbol's
+    // stored row renders — the same visual card, two wrapper tags, never a
+    // second card design (tests/currentTradesRail.test.tsx pins the same
+    // count from the rail's own side).
     assert.equal(
       (tradesRail.match(/border border-hairline/g) ?? []).length,
-      1,
+      2,
     );
   });
 

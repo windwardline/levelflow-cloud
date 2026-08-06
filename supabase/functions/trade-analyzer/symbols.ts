@@ -71,6 +71,51 @@ const symbolMap: Record<string, string> = {
   BNBUSD: "BNBUSD",
   BCHUSD: "BCHUSD",
   ADAUSD: "ADAUSD",
+  ZFUSD: "ZFUSD",
+  ZTUSD: "ZTUSD",
+  HOUSD: "HOUSD",
+  RBUSD: "RBUSD",
+  PLUSD: "PLUSD",
+  PAUSD: "PAUSD",
+  ZCUSX: "ZCUSX",
+  ZSUSX: "ZSUSX",
+  ZLUSX: "ZLUSX",
+  ZMUSD: "ZMUSD",
+  ZOUSX: "ZOUSX",
+  ZRUSD: "ZRUSD",
+  LEUSX: "LEUSX",
+  GFUSX: "GFUSX",
+  HEUSX: "HEUSX",
+  FESX: "^STOXX50E",
+  FDAX: "^GDAXI",
+  EMD: "^MID",
+  NKD: "^N225",
+  FDXM: "^GDAXI",
+  AAVEUSD: "AAVEUSD",
+  ALGOUSD: "ALGOUSD",
+  ARWUSD: "ARUSD",
+  ATOMUSD: "ATOMUSD",
+  AVAXUSD: "AVAXUSD",
+  CAKEUSD: "CAKEUSD",
+  DASHUSD: "DASHUSD",
+  DOGEUSD: "DOGEUSD",
+  DOTUSD: "DOTUSD",
+  DYDXUSD: "DYDXUSD",
+  EGLDUSD: "EGLDUSD",
+  ETCUSD: "ETCUSD",
+  FILUSD: "FILUSD",
+  GRTUSD: "GRTUSD",
+  HBARUSD: "HBARUSD",
+  IMXUSD: "IMXUSD",
+  LINKUSD: "LINKUSD",
+  NEARUSD: "NEARUSD",
+  THETAUSD: "THETAUSD",
+  TRUMPUSD: "OTRUMPUSD",
+  TRXUSD: "TRXUSD",
+  UNIUSD: "UNIUSD",
+  XLMUSD: "XLMUSD",
+  XMRUSD: "XMRUSD",
+  XTZUSD: "XTZUSD",
 };
 
 // Hidden until the chart feed is verified against the matching traded CFD.
@@ -264,15 +309,101 @@ export const noTradeSymbols = new Set<string>([
   "NGUSD",
   "HGUSD",
   "BNBUSD",
+  // The 44 markets onboarded 2026-08-05/06 under the owner's standing order:
+  // every market E8 trades with a confirmed FMP match is represented and
+  // analyzed. Withheld here for the order's own condition — visible only once
+  // there is an ACCEPTABLE analyzed match — so they enter the replay universe
+  // and no user surface. This set must stay in step with src/lib/symbolMap.ts's
+  // NO_TRADE_SYMBOLS across the Deno boundary; tests/core.test.ts's scan-door
+  // pin is what catches drift, and it caught exactly this omission.
+  //
+  // FDXM is deliberately ABSENT: it is a contract-size variant, excluded by
+  // `contractSizeVariants` below on entirely different grounds — not withheld
+  // pending evidence, but never a market of its own.
+  "ZFUSD",
+  "ZTUSD",
+  "HOUSD",
+  "RBUSD",
+  "PLUSD",
+  "PAUSD",
+  "ZCUSX",
+  "ZSUSX",
+  "ZLUSX",
+  "ZMUSD",
+  "ZOUSX",
+  "ZRUSD",
+  "LEUSX",
+  "GFUSX",
+  "HEUSX",
+  "FESX",
+  "FDAX",
+  "EMD",
+  "NKD",
+  "AAVEUSD",
+  "ALGOUSD",
+  "ARWUSD",
+  "ATOMUSD",
+  "AVAXUSD",
+  "CAKEUSD",
+  "DASHUSD",
+  "DOGEUSD",
+  "DOTUSD",
+  "DYDXUSD",
+  "EGLDUSD",
+  "ETCUSD",
+  "FILUSD",
+  "GRTUSD",
+  "HBARUSD",
+  "IMXUSD",
+  "LINKUSD",
+  "NEARUSD",
+  "THETAUSD",
+  "TRUMPUSD",
+  "TRXUSD",
+  "UNIUSD",
+  "XLMUSD",
+  "XMRUSD",
+  "XTZUSD",
 ]);
 
 // Scan-path exclusion set: everything no-trade, by definition.
 export const noScanSymbols = noTradeSymbols;
 
+/**
+ * Contract-size variants — the same market at a different notional, so never a
+ * scan slot of its own (owner ruling 2026-08-05).
+ *
+ * Deliberately NOT a second reason to withhold a market, which is why it is not
+ * folded into noScanSymbols: "the scan skips it" and "the server refuses it" are
+ * one condition in this file by documented design, and a variant is neither. It
+ * is a market the server knows and can size, whose PRICE ACTION already belongs
+ * to another row — MGC reads gold, FDXM reads FDAX's ^GDAXI. Scanning it would
+ * put one opportunity on the board twice and count one outcome twice in the
+ * record every calibration decision reads.
+ *
+ * Duplicated from src/lib/broker/contractVariants.ts rather than imported: this
+ * is a Deno-global Edge Function module and cannot reach src/, the same boundary
+ * that makes this file's symbolMap its own independent copy. The two are pinned
+ * to each other by test rather than by import, as every other fact spanning this
+ * boundary is.
+ */
+export const contractSizeVariants = new Set([
+  "MGCUSD",
+  "FDXM",
+  "MES",
+  "MNQ",
+  "MYM",
+  "QM",
+  "QG",
+  "XK",
+  "XC",
+]);
+
 export const defaultScanSymbols = Object.keys(symbolMap).filter(
   (symbol) =>
     !temporarilyUnavailableSymbols.has(symbol) &&
-    !noScanSymbols.has(symbol),
+    !noScanSymbols.has(symbol) &&
+    !contractSizeVariants.has(symbol),
 );
 
 export function isKnownSymbol(symbol: string) {

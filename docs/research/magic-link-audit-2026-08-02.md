@@ -1,13 +1,10 @@
 # Magic-link audit — the mobile/desktop accent difference
 
-Opened 2026-08-02 on the owner's report, verbatim:
-
-> "I noticed last night when I was on mobile, the accent color on my magic link
-> email from Levelflow was a different color than it is when I receive one from
-> desktop. I have no idea how this is possible, but check the entirety of the
-> magic link protocol (including email body copy) to ensure we are adhering to
-> the durable standard for magic links across all projects, existing and in the
-> future."
+**The report** (owner, 2026-08-02): the magic-link email's accent color
+differed between a mobile-received and a desktop-received message, cause
+unknown. Audit the full magic-link protocol, including email body copy,
+against the durable standard used across every project, existing and
+future.
 
 Audited against the standing standard in `~/AGENTS.md` (§ "Magic links (standing
 standard, 2026-07)"). Levelflow's operator script is
@@ -258,8 +255,8 @@ owner. Worth remembering the next time a palette moves.
 
 ## Addendum — dark-mode hardening (owner-approved, 2026-08-02)
 
-The owner approved the coordinated hardening pass ("Okay, do it"), and the
-standard gained its dark-mode clause the same night (~/AGENTS.md, "Dark mode
+The owner approved the coordinated hardening pass, and the standard gained
+its dark-mode clause the same night (~/AGENTS.md, "Dark mode
 (hardened 2026-08-02)"). Levelflow's template now: declares
 `color-scheme:light` on the root wrapper (GoTrue owns the document, so the
 fragment carries its own declaration), backs the wrapper table and the button

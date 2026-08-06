@@ -121,11 +121,31 @@ at ~19:12–19:13 UTC (3–4 minutes after the frames):
 
 F9's protocol entry rides in `e8-feed-verification-2026-08-02.md`.
 
+**Tradability re-grounding, 2026-08-05 (owner ruling, 00:49).** Every
+Financials and Currencies row above prints live — the owner confirmed, after
+reviewing the frames again, that `ZB`, `ZN`, `6J` and `6M` are OFFERED: none
+joins an exclusion. This settles §19a's `ZB`/`ZN` "margin-only, unconfirmed"
+mark and §19a/§20i ruling 5's `6J`/`6M` "unconfirmed on the tick-axis
+arithmetic" mark for TRADABILITY only (amendment 19,
+`2026-08-02-owner-rulings-amendments.md`) — all four ship `confirmed`,
+sourced to this sighting. SIZING is a separate question and stays withheld
+on all four (amendment 22, the same ledger): `ZB`/`ZN`'s tick and value are
+still absent from every E8 list above, and `6J`/`6M`'s published tick and
+value still cannot be reconciled with 6E/6S's (§3's `full-commodities-quotes`
+sweep did not touch this — currency futures were never in that sweep's scope,
+only commodities/equity-index/rates). `6J` and `6M`'s FMP mates —
+`USDJPY` and `USDMXN`, both inverted — are resolved in
+`e8-feed-verification-2026-08-02.md`'s F12 entry, added 2026-08-05.
+
 ## 4. What this record feeds
 
 - The §19 retrofit's catalog build: `signature_futures`'s purchasable
   structure is live-confirmed (ladder rung, 6% target, per-size EOD
   dollars, Challenge staging, Tradovate).
+- The §19 retrofit's `ZB`/`ZN`/`6J`/`6M` re-grounding (2026-08-05): OFFERED
+  per amendment 19 on this record's own Financials/Currencies prints,
+  unsizeable per amendment 22 — `src/lib/broker/instruments.ts`,
+  `tests/brokerReference.test.ts`.
 - The futures onboarding (post-retrofit): the per-tab visibility sets,
   the month-aware comparison rule, the USX symbol resolutions, and the
   no-source list above — each Eurex/absent row needs an offer/exclude

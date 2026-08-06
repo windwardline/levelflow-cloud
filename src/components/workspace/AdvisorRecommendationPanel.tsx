@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, XCircle } from "lucide-react";
+import { adjustedEntryFor, getBrokerOffset } from "../../lib/broker/offsets";
 import { sizeSetup, sizeUnitFor } from "../../lib/broker/sizing";
 import { activeAccountOf, type UserProfile } from "../../lib/profile";
 import { formatSecurityLabel, type SupportedSymbol } from "../../lib/symbolMap";
@@ -14,6 +15,31 @@ import { formatCopyValue, formatNumber } from "./advisorFormat";
 // never paraphrase it, even to shorten a line.
 const LADDER_TARGET_INSTRUCTION =
   "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+
+// The basis line (owner ruling, amendment 23's offset extension, 2026-08-05,
+// docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md). XAGUSD and
+// WTI carry a real, stable broker-vs-feed basis (src/lib/broker/offsets.ts);
+// this states it plainly rather than leaving the ladder's entry looking off
+// by a few cents against what E8's own platform will actually show. The
+// template is owner-approved copy, registered in tests/languageGuard.test.ts
+// — the two numbers are live-computed data, not part of the registered
+// vocabulary. BRENT's own offset is recorded in the same module but never
+// reaches this function: adjustedEntryFor returns null for a display-excluded
+// symbol, so there is nothing here for a future edit to accidentally wire up.
+//
+// Display only, deliberately: the adjusted number returned here must never
+// enter handleCopy's payload and must never reach the chart
+// (tests/advisorRecommendationPanel.test.ts pins both directions).
+function formatBasisLine(symbol: string, entryPrice: number): string | null {
+  const adjustedEntry = adjustedEntryFor(symbol, entryPrice);
+  if (adjustedEntry === null) {
+    return null;
+  }
+  const offset = getBrokerOffset(symbol)!;
+  return `E8 quotes ~+${offset.basis.toFixed(2)} above this feed — entry there ≈ ${
+    formatNumber(adjustedEntry)
+  }`;
+}
 
 // The stage's setup sheet (spec §16, a-desk-v3.html:196-213): the sheet
 // itself is the ONE frame — AdvisorWorkspace draws it, attached hairline-flush
@@ -78,6 +104,7 @@ export function RecommendationPanel({
     const rewardRisk = Number(
       (setup.confluence as Record<string, unknown>)?.rewardRisk ?? 0,
     );
+    const basisLine = formatBasisLine(setup.symbol, setup.entryPrice);
 
     return (
       <div className="grid min-w-0 lg:grid-cols-[1.1fr_0.9fr]">
@@ -152,6 +179,13 @@ export function RecommendationPanel({
               <p className="mt-3 border-t border-hairline pt-2.5 text-xs leading-5 text-ink-muted lg:mt-2 lg:pt-2">
                 {LADDER_TARGET_INSTRUCTION}{" "}
                 <HowThisWorksLink anchor="targets-and-stops" />
+              </p>
+            )
+            : null}
+          {basisLine
+            ? (
+              <p className="mt-2 text-xs leading-5 text-ink-muted lg:mt-1.5">
+                {basisLine}
               </p>
             )
             : null}

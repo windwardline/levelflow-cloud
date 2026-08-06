@@ -88,6 +88,46 @@ const crypto = [
   ["BNBUSD", "BNB/USD", "BNB / U.S. Dollar", "BNBUSD"],
   ["BCHUSD", "BCH/USD", "Bitcoin Cash / U.S. Dollar", "BCHUSD"],
   ["ADAUSD", "ADA/USD", "Cardano / U.S. Dollar", "ADAUSD"],
+  // The E8 Crypto account's other 25, onboarded 2026-08-06 under the owner's
+  // standing order: every market E8 trades with a confirmed FMP match is
+  // represented and analyzed. All 25 carry live bid/ask on the crypto-account
+  // record (docs/research/e8-crypto-account-2026-08-03.md — 33 rows, none
+  // blank) and a resolved FMP mate
+  // (docs/research/e8-crypto-source-resolution-2026-08-05.md).
+  //
+  // The Levelflow symbol is E8'S name, never FMP's. Two diverge, and both are
+  // traps the resolution work caught: E8's ARWUSD (Arweave) reads FMP ARUSD,
+  // and E8's TRUMPUSD reads FMP OTRUMPUSD — FMP also lists a DIFFERENT
+  // TRUMPUSD, so taking the matching spelling would have wired the wrong
+  // asset. Users see E8's spelling; FMP's stays backend-only.
+  //
+  // Gated no-trade until swept: onboarding makes them analyzable, and the
+  // order makes visibility conditional on an ACCEPTABLE analyzed match.
+  ["AAVEUSD", "AAVE/USD", "Aave / U.S. Dollar", "AAVEUSD"],
+  ["ALGOUSD", "ALGO/USD", "Algorand / U.S. Dollar", "ALGOUSD"],
+  ["ARWUSD", "ARW/USD", "Arweave / U.S. Dollar", "ARUSD"],
+  ["ATOMUSD", "ATOM/USD", "Cosmos / U.S. Dollar", "ATOMUSD"],
+  ["AVAXUSD", "AVAX/USD", "Avalanche / U.S. Dollar", "AVAXUSD"],
+  ["CAKEUSD", "CAKE/USD", "PancakeSwap / U.S. Dollar", "CAKEUSD"],
+  ["DASHUSD", "DASH/USD", "Dash / U.S. Dollar", "DASHUSD"],
+  ["DOGEUSD", "DOGE/USD", "Dogecoin / U.S. Dollar", "DOGEUSD"],
+  ["DOTUSD", "DOT/USD", "Polkadot / U.S. Dollar", "DOTUSD"],
+  ["DYDXUSD", "DYDX/USD", "dYdX / U.S. Dollar", "DYDXUSD"],
+  ["EGLDUSD", "EGLD/USD", "MultiversX / U.S. Dollar", "EGLDUSD"],
+  ["ETCUSD", "ETC/USD", "Ethereum Classic / U.S. Dollar", "ETCUSD"],
+  ["FILUSD", "FIL/USD", "Filecoin / U.S. Dollar", "FILUSD"],
+  ["GRTUSD", "GRT/USD", "The Graph / U.S. Dollar", "GRTUSD"],
+  ["HBARUSD", "HBAR/USD", "Hedera / U.S. Dollar", "HBARUSD"],
+  ["IMXUSD", "IMX/USD", "Immutable / U.S. Dollar", "IMXUSD"],
+  ["LINKUSD", "LINK/USD", "Chainlink / U.S. Dollar", "LINKUSD"],
+  ["NEARUSD", "NEAR/USD", "NEAR Protocol / U.S. Dollar", "NEARUSD"],
+  ["THETAUSD", "THETA/USD", "Theta Network / U.S. Dollar", "THETAUSD"],
+  ["TRUMPUSD", "TRUMP/USD", "OFFICIAL TRUMP / U.S. Dollar", "OTRUMPUSD"],
+  ["TRXUSD", "TRX/USD", "TRON / U.S. Dollar", "TRXUSD"],
+  ["UNIUSD", "UNI/USD", "Uniswap / U.S. Dollar", "UNIUSD"],
+  ["XLMUSD", "XLM/USD", "Stellar / U.S. Dollar", "XLMUSD"],
+  ["XMRUSD", "XMR/USD", "Monero / U.S. Dollar", "XMRUSD"],
+  ["XTZUSD", "XTZ/USD", "Tezos / U.S. Dollar", "XTZUSD"],
 ] satisfies Array<[string, string, string, string]>;
 
 const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
@@ -261,6 +301,195 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "ZN - 10-Year Treasury Note Futures",
         symbol: "ZNUSD",
       },
+      {
+        assetType: "Futures",
+        description: "Five-Year Treasury Note Futures",
+        fmpSymbol: "ZFUSD",
+        label: "ZF - Five-Year Treasury Note Futures",
+        symbol: "ZFUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Two-Year Treasury Note Futures",
+        fmpSymbol: "ZTUSD",
+        label: "ZT - Two-Year Treasury Note Futures",
+        symbol: "ZTUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Heating Oil Futures",
+        fmpSymbol: "HOUSD",
+        label: "HO - Heating Oil Futures",
+        symbol: "HOUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "RBOB Gasoline Futures",
+        fmpSymbol: "RBUSD",
+        label: "RB - RBOB Gasoline Futures",
+        symbol: "RBUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Platinum Futures",
+        fmpSymbol: "PLUSD",
+        label: "PL - Platinum Futures",
+        symbol: "PLUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Palladium Futures",
+        fmpSymbol: "PAUSD",
+        label: "PA - Palladium Futures",
+        symbol: "PAUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Corn Futures",
+        fmpSymbol: "ZCUSX",
+        label: "ZC - Corn Futures",
+        symbol: "ZCUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Soybean Futures",
+        fmpSymbol: "ZSUSX",
+        label: "ZS - Soybean Futures",
+        symbol: "ZSUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Soybean Oil Futures",
+        fmpSymbol: "ZLUSX",
+        label: "ZL - Soybean Oil Futures",
+        symbol: "ZLUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Soybean Meal Futures",
+        fmpSymbol: "ZMUSD",
+        label: "ZM - Soybean Meal Futures",
+        symbol: "ZMUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Oat Futures",
+        fmpSymbol: "ZOUSX",
+        label: "ZO - Oat Futures",
+        symbol: "ZOUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Rough Rice Futures",
+        fmpSymbol: "ZRUSD",
+        label: "ZR - Rough Rice Futures",
+        symbol: "ZRUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Live Cattle Futures",
+        fmpSymbol: "LEUSX",
+        label: "LE - Live Cattle Futures",
+        symbol: "LEUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Feeder Cattle Futures",
+        fmpSymbol: "GFUSX",
+        label: "GF - Feeder Cattle Futures",
+        symbol: "GFUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Lean Hogs Futures",
+        fmpSymbol: "HEUSX",
+        label: "HE - Lean Hogs Futures",
+        symbol: "HEUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Euro Stoxx 50 Futures",
+        fmpSymbol: "^STOXX50E",
+        label: "FESX - Euro Stoxx 50 Futures",
+        symbol: "FESX",
+      },
+      {
+        assetType: "Futures",
+        description: "DAX Futures",
+        fmpSymbol: "^GDAXI",
+        label: "FDAX - DAX Futures",
+        symbol: "FDAX",
+      },
+      {
+        assetType: "Futures",
+        description: "E-Mini S&P MidCap 400 Futures",
+        fmpSymbol: "^MID",
+        label: "EMD - E-Mini S&P MidCap 400 Futures",
+        symbol: "EMD",
+      },
+      {
+        assetType: "Futures",
+        description: "Nikkei 225 Futures",
+        fmpSymbol: "^N225",
+        label: "NKD - Nikkei 225 Futures",
+        symbol: "NKD",
+      },
+      {
+        assetType: "Futures",
+        description: "Mini-DAX Futures",
+        fmpSymbol: "^GDAXI",
+        label: "FDXM - Mini-DAX Futures",
+        symbol: "FDXM",
+      },
+      {
+        assetType: "Futures",
+        description: "Micro E-Mini S&P 500 Futures",
+        fmpSymbol: "ESUSD",
+        label: "MES - Micro E-Mini S&P 500 Futures",
+        symbol: "MES",
+      },
+      {
+        assetType: "Futures",
+        description: "Micro E-Mini Nasdaq 100 Futures",
+        fmpSymbol: "NQUSD",
+        label: "MNQ - Micro E-Mini Nasdaq 100 Futures",
+        symbol: "MNQ",
+      },
+      {
+        assetType: "Futures",
+        description: "Micro E-Mini Dow Futures",
+        fmpSymbol: "YMUSD",
+        label: "MYM - Micro E-Mini Dow Futures",
+        symbol: "MYM",
+      },
+      {
+        assetType: "Futures",
+        description: "E-Mini Crude Oil Futures",
+        fmpSymbol: "CLUSD",
+        label: "QM - E-Mini Crude Oil Futures",
+        symbol: "QM",
+      },
+      {
+        assetType: "Futures",
+        description: "E-Mini Natural Gas Futures",
+        fmpSymbol: "NGUSD",
+        label: "QG - E-Mini Natural Gas Futures",
+        symbol: "QG",
+      },
+      {
+        assetType: "Futures",
+        description: "Mini Soybean Futures",
+        fmpSymbol: "ZSUSX",
+        label: "XK - Mini Soybean Futures",
+        symbol: "XK",
+      },
+      {
+        assetType: "Futures",
+        description: "Mini Corn Futures",
+        fmpSymbol: "ZCUSX",
+        label: "XC - Mini Corn Futures",
+        symbol: "XC",
+      },
     ],
   },
   {
@@ -318,6 +547,64 @@ export const NO_TRADE_SYMBOLS = new Set([
   "NGUSD",
   "HGUSD",
   "BNBUSD",
+  // The nineteen E8 futures onboarded 2026-08-05 (owner directive: every E8
+  // market E8 actually trades, with a confirmed FMP match, must be
+  // represented and analyzed in Levelflow). They sit here — analyzed, not yet
+  // visible — for the reason the directive itself states: a market is visible
+  // "so long as there is an analyzed and acceptable match from FMP", and
+  // these have a confirmed match but no sweep evidence yet. Being in
+  // SECURITY_OPTIONS puts them in the replay universe; being here keeps them
+  // off every user surface until a sweep produces an acceptable result.
+  // Promotion out of this set is a calibration decision backed by both
+  // walk-forward splits, exactly as it is for the eight above — two of which
+  // (HGUSD, BNBUSD) are themselves promotion candidates now that the
+  // execution-cost defect is fixed.
+  "ZFUSD",
+  "ZTUSD",
+  "HOUSD",
+  "RBUSD",
+  "PLUSD",
+  "PAUSD",
+  "ZCUSX",
+  "ZSUSX",
+  "ZLUSX",
+  "ZMUSD",
+  "ZOUSX",
+  "ZRUSD",
+  "LEUSX",
+  "GFUSX",
+  "HEUSX",
+  "FESX",
+  "FDAX",
+  "EMD",
+  "NKD",
+  // The Crypto account's other 25 (2026-08-06), same conditional-visibility
+  // reason as the futures above: matched and analyzable, no sweep evidence yet.
+  "AAVEUSD",
+  "ALGOUSD",
+  "ARWUSD",
+  "ATOMUSD",
+  "AVAXUSD",
+  "CAKEUSD",
+  "DASHUSD",
+  "DOGEUSD",
+  "DOTUSD",
+  "DYDXUSD",
+  "EGLDUSD",
+  "ETCUSD",
+  "FILUSD",
+  "GRTUSD",
+  "HBARUSD",
+  "IMXUSD",
+  "LINKUSD",
+  "NEARUSD",
+  "THETAUSD",
+  "TRUMPUSD",
+  "TRXUSD",
+  "UNIUSD",
+  "XLMUSD",
+  "XMRUSD",
+  "XTZUSD",
 ]);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS
