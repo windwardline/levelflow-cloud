@@ -81,6 +81,38 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
     "YMUSD",
     "ZBUSD",
     "ZNUSD",
+    // The nineteen onboarded 2026-08-05. Listing them here is not cosmetic:
+    // getAssetType FALLS BACK TO "forex" for any symbol it does not find, so
+    // an unlisted futures contract would be analyzed with forex's threshold,
+    // window, stop cap and 0.35 bps execution profile. Corn priced like a
+    // currency pair is the same silent-default failure the absolute cost floor
+    // was, and it is caught here rather than discovered in a sweep result.
+    //
+    // Grains and livestock sit in `futures` as an explicitly TEMPORARY
+    // transport for their first sweep. Their measured character — minimum
+    // spreads of 2-8 bps against ES's 0.32, CME day sessions rather than
+    // near-24h, and daily limit moves index futures do not have — says they
+    // belong in classes of their own. Those classes get created from the
+    // sweep's own numbers; seeding them by hand would be inventing parameters.
+    "ZFUSD",
+    "ZTUSD",
+    "HOUSD",
+    "RBUSD",
+    "PLUSD",
+    "PAUSD",
+    "ZCUSX",
+    "ZSUSX",
+    "ZLUSX",
+    "ZMUSD",
+    "ZOUSX",
+    "ZRUSD",
+    "LEUSX",
+    "GFUSX",
+    "HEUSX",
+    "FESX",
+    "FDAX",
+    "EMD",
+    "NKD",
   ],
   indices: ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"],
   metals: ["XAGUSD", "XAUUSD"],
