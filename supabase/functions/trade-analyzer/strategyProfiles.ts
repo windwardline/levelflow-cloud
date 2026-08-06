@@ -52,6 +52,25 @@ const STRATEGY_PROFILE_WEIGHTS: Record<
     volume_value_extension: 1,
     volume_value_retest: 1,
   },
+  // Agriculture, 2026-08-06. These are the weights the class's measured +0.205
+  // was produced under, carried over verbatim from futures — NOT derived. No
+  // per-strategy attribution exists for the grains yet, so inventing weights
+  // that "feel right for agriculture" would be exactly the fabrication the
+  // class was created to escape. They ship unchanged so the measured result is
+  // preserved, and they are a standing item for a strategy-attribution pass.
+  agriculture: {
+    breakout_continuation: 1.08,
+    failed_breakout_reversal: 1.05,
+    momentum_confirmation: 1.03,
+    momentum_divergence: 1,
+    multi_timeframe_bias: 1.06,
+    range_mean_reversion: 0.94,
+    smart_money_liquidity: 1.02,
+    trend_pullback_to_value: 1.08,
+    volatility_expansion: 1.04,
+    volume_value_extension: 1.03,
+    volume_value_retest: 1.03,
+  },
   futures: {
     breakout_continuation: 1.08,
     failed_breakout_reversal: 1.05,

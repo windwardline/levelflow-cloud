@@ -1,4 +1,5 @@
 export type AssetType =
+  | "agriculture"
   | "crypto"
   | "energies"
   | "forex"
@@ -55,6 +56,20 @@ export type CategoryCalibration = {
 };
 
 const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
+  // The six grains. LE/GF/HE are deliberately NOT here: livestock produced 55
+  // filled setups across all three markets and all history — not one confidence
+  // bucket carries enough test fills to judge — so a livestock class could only
+  // be hand-authored, which is the failure this whole exercise exists to avoid.
+  // They stay in `futures` with their thinness as the stated reason, and remain
+  // standing reentry candidates when more data exists.
+  agriculture: [
+    "ZCUSX",
+    "ZSUSX",
+    "ZLUSX",
+    "ZMUSD",
+    "ZOUSX",
+    "ZRUSD",
+  ],
   crypto: [
     "ADAUSD",
     "BCHUSD",
@@ -129,12 +144,6 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
     "RBUSD",
     "PLUSD",
     "PAUSD",
-    "ZCUSX",
-    "ZSUSX",
-    "ZLUSX",
-    "ZMUSD",
-    "ZOUSX",
-    "ZRUSD",
     "LEUSX",
     "GFUSX",
     "HEUSX",
@@ -156,6 +165,58 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
 };
 
 const CALIBRATION: Record<AssetType, CategoryCalibration> = {
+  // Agriculture, derived 2026-08-06 from its own first sweep. The grains sat in
+  // `futures` only as transport for that sweep; their measured character says
+  // they do not belong there. Minimum spread from tick over price runs 1.5 bps
+  // (soybean oil) to 7.9 (oats) against the E-mini S&P's 0.32, they trade a CME
+  // day session rather than near-24h, and they carry daily limit moves index
+  // futures do not have. Forcing them into a block calibrated on ES, GC and ZB
+  // is the same category error that put oil under a doubled TP1 share.
+  //
+  // Measured: 6922 filled setups, 79% win, 9% stop, E=+0.205 — on par with
+  // forex. Invisible to the engine before this.
+  //
+  // DERIVED here: confidenceThreshold, by monotone survival (test expectancy
+  // positive at 30 and in every judgeable bucket above; 108 test fills at that
+  // floor). Every other value is the configuration the +0.205 WAS MEASURED
+  // UNDER — deliberately not a neighbour chosen by resemblance, but the exact
+  // parameters that produced the recorded result, so preserving them preserves
+  // the measurement. Each is replaced when its own grid lands, and each is
+  // marked below.
+  //
+  // Session curve is recorded and deliberately NOT gated: worst UTC hours are
+  // 20h +0.009, 21h +0.084, 22h +0.121, 23h +0.125, against 7h +0.260, 8h
+  // +0.321, 9h +0.244 — the day session against the overnight book. All of them
+  // are POSITIVE, so blocking any would forgo profit. A gate needs a negative
+  // hour, not merely a weaker one.
+  agriculture: {
+    blockedRegimes: ["volatile_chop"],
+    // DERIVED (2026-08-06): monotone-survival floor, 6922 filled setups.
+    confidenceThreshold: 30,
+    dailyStopAtrMultiplier: 0.14,
+    dailyTargetAtrMultiplier: 0.38,
+    defaultReviewHours: 6,
+    entryOffsetDefault: 0.58,
+    entryOffsetTrend: 0.75,
+    maxNewsPenalty: 8,
+    maxProviderPenalty: 7,
+    // AWAITING ITS OWN GRID — the stop-cap grid is running as of this commit,
+    // and provenance says the answer differs by SIGN across classes.
+    maxStopAtrMultiplier: 1.4,
+    minimumTargetRewardRisk: 1.6,
+    minRewardRisk: 1.25,
+    newsPenaltyPerEvent: 3,
+    providerWarningPenalty: 3,
+    // AWAITING ITS OWN GRID (runner selection rule + ceiling width).
+    runnerWindowShare: 0.6,
+    stopAtrMultiplier: 1.3,
+    timeframePenalty: 5,
+    tp1AtrMultiplier: 0.5,
+    // AWAITING ITS OWN GRID. The universe-wide TP1 grid found 0.3 best on 20 of
+    // 21 improving markets, but that grid predates these six being analyzed.
+    tp1RiskShare: 0.4,
+    volatilityTargetAtrMultiplier: 3.4,
+  },
   crypto: {
     blockedRegimes: ["volatile_chop"],
     // Sweep 2026-07-28: crypto OOS expectancy is positive only at high
@@ -340,6 +401,9 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
 
 export function getAssetType(symbol: string): AssetType {
   const normalized = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (ASSET_TYPE_BY_SYMBOL.agriculture.includes(normalized)) {
+    return "agriculture";
+  }
   if (ASSET_TYPE_BY_SYMBOL.crypto.includes(normalized)) {
     return "crypto";
   }

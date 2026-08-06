@@ -60,6 +60,30 @@ type ExecutionProfile = {
 const COST_EPSILON = 1e-9;
 
 const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
+  // Agriculture, 2026-08-06. The bps terms are DERIVED, not judged: one tick is
+  // the tightest spread a contract can quote, and tick over price is arithmetic.
+  // Measured against the F9 sighting's own prices —
+  //   soybean oil  0.01 / 67.75   = 1.5 bps
+  //   soybeans     0.25c / 1168c  = 2.1
+  //   soymeal      0.10 / 313.5   = 3.2
+  //   rough rice   0.005 / 14.205 = 3.5
+  //   corn         0.25c / 449.75c= 5.6
+  //   oats         0.25c / 316.3c = 7.9
+  // — a mean one-tick spread of 4.0 bps against the E-mini S&P's 0.32. That is
+  // the whole reason this class exists: the futures profile's 1.4 bps understates
+  // agricultural cost by roughly 3x, and understating cost is how a market gets
+  // credited with edge it does not have.
+  //
+  // The two ATR-relative factors carry futures' values because nothing in the
+  // corpus measures them, and the bps term dominates at these price levels
+  // anyway. Marked so they are not mistaken for derived.
+  agriculture: {
+    atrSlippageFactor: 0.008,
+    atrSpreadFactor: 0.012,
+    maxPenalty: 10,
+    slippageBps: 2.5,
+    spreadBps: 4.0,
+  },
   crypto: {
     atrSlippageFactor: 0.012,
     atrSpreadFactor: 0.018,
