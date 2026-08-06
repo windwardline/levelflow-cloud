@@ -1194,3 +1194,56 @@ that close to the entry makes that ordering decisive far more often.
 **The rule: 1.0 is the tightest stop cap this harness can adjudicate.** Going
 below it requires finer bars or an explicit intrabar model, not a grid. Anything
 past 1.0 should be treated as unmeasured until one of those exists.
+
+## Round-26 (2026-08-06) — the runner ceiling, re-derived because the stop moved
+
+Runner ceilings derived per class from a 1,020-row grid, read by TOTAL R across
+both splits. Five classes moved; three held.
+
+| class | ceiling | test R before | after |
+|---|---|---|---|
+| forex | 0.6 → **1.0** | +49828 | **+54316** |
+| futures | 0.6 → **1.0** | +1267 | **+1317** |
+| crypto | 0.8 → **1.0** | +4375 | **+4377** |
+| agriculture | 0.8 → **1.4** | +56.6 | **+62.7** |
+| indices | 1.1 → **1.0** | −5.6 | **+7.4** |
+| energies / livestock / metals | held | — | nothing improved both splits |
+
+### Why this grid had to be run twice
+
+The first runner grid ran at the OLD stop caps. Tightening the stop shrinks risk,
+and the runner's minimum distance is derived from risk through
+`minimumTargetRewardRisk` — so the set of structural levels that qualify as
+reachable changes when the stop changes. The two levers are not independent.
+
+The pre-stop-cap grid named 1.4 the best futures ceiling. At the shipped caps it
+is 1.0. Had the first result been applied, the engine would carry a ceiling
+derived for a configuration that no longer exists. **Any lever downstream of risk
+must be re-derived after the stop cap moves** — that now applies to the runner
+ceiling and to TP1's ATR floor.
+
+### Indices turn positive — and what that does NOT yet establish
+
+The indices class posts positive total R on both splits for the first time since
+r12: train +25.3, test +7.4, from −32.4/−5.6 at the start of the night. Nothing
+about the markets changed. What changed is a stop cap that was clipping
+structural stops and a runner ceiling set for a different stop — both ours.
+This is the stop-provenance split's prediction confirmed, and precisely the
+failure amendment 25 now guards against.
+
+It does not reopen the cash indices. Two reasons:
+
+1. **The rollup mixes two populations.** The `indices` class holds the traded
+   index futures (ESUSD, NQUSD, YMUSD, RTYUSD) alongside the six withheld cash
+   CFDs (SP, NSDQ, DOW, NIKKEI, DAX, ASX). A class total cannot say which
+   population carries the gain.
+2. **r12 excluded them on ranking, not on expectancy.** The finding was that
+   confidence does not rank outcomes out-of-sample. Positive expectancy does not
+   answer that question; a market whose confidence score is uncorrelated with
+   its outcomes cannot be presented to an operator honestly, however profitable
+   the aggregate.
+
+Both are settled by the final sweep at the shipped geometry and its
+confidence-band derivation, per symbol. `noTradeSymbols` shrinks the round the
+evidence flips, exactly as it did for fourteen symbols in r15 — but the evidence
+that flips it has to be about the symbols, and about ranking.
