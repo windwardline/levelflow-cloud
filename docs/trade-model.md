@@ -1147,3 +1147,187 @@ Scale invariance is the invariant now enforced: two contracts with the same
 price:ATR ratio must be charged the same cost-to-risk regardless of where the
 decimal point sits. Before the fix, copper and a synthetic contract 1000x its
 price were charged 1.786 and 0.120.
+
+
+## Round-25 (2026-08-06) — the stop cap, and the harness's resolution ceiling
+
+Stop caps derived per class from a 102-market grid read by TOTAL R across both
+splits. Six classes tightened to 1.0, metals held at 1.6, indices loosened to 3.0.
+Total test R: forex +30457 -> +49828, crypto +3627 -> +4375, futures +855 ->
++1260, agriculture +161 -> +194, energies +58 -> +119, livestock +1.4 -> +27.8,
+indices -32.4 -> -5.6 (still negative, still withheld).
+
+### Why tighter is better, and why it is not a denominator trick
+
+TP1 scales with risk, but the runner is capped by the review window in ABSOLUTE
+terms. A tighter stop therefore puts the runner further away IN R, and winners pay
+more. Under fixed-fractional sizing — position scales inversely with stop distance
+— a 2R win is genuinely twice the dollars of a 1R win, so the gain is real.
+Confirmed on behaviour rather than totals: EURUSD's stop rate FALLS 6% -> 4% and
+its setup count RISES 5947 -> 6259, because a nearer TP1 banks the partial before
+the stop is reached.
+
+### The resolution ceiling — an apparent 60% gain DECLINED
+
+A follow-up probe found the improvement monotone below 1.0: forex test R 5157
+(1.4) -> 7479 (1.0) -> 8565 (0.85) -> 9805 (0.7) -> 12012 (0.5). It was not
+shipped, and the reason is a limit of the harness rather than a property of the
+market.
+
+A stop half as far should be hit MORE often. It is not: EURUSD's stop rate is 6%
+at 1.4 and 7% at 0.5, essentially flat, while expectancy nearly triples. What
+actually rises is the share of setups ending in NEITHER a target nor a stop:
+
+| stop cap | unresolved share (EURUSD) | (ESUSD) |
+|---|---|---|
+| 1.4 | 6% | 12% |
+| 1.0 | 10% | 15% |
+| 0.85 | 13% | 17% |
+| 0.7 | 18% | 20% |
+| 0.5 | **26%** | **26%** |
+
+At a quarter unresolved, the expectancy figure reports how `evaluateSetupOutcome`
+treats expiry and ambiguity, not how the market behaved. The replay resolves
+outcomes from 15-minute bar extremes and cannot order intrabar events, and a stop
+that close to the entry makes that ordering decisive far more often.
+
+**The rule: 1.0 is the tightest stop cap this harness can adjudicate.** Going
+below it requires finer bars or an explicit intrabar model, not a grid. Anything
+past 1.0 should be treated as unmeasured until one of those exists.
+
+## Round-26 (2026-08-06) — the runner ceiling, re-derived because the stop moved
+
+Runner ceilings derived per class from a 1,020-row grid, read by TOTAL R across
+both splits. Five classes moved; three held.
+
+| class | ceiling | test R before | after |
+|---|---|---|---|
+| forex | 0.6 → **1.0** | +49828 | **+54316** |
+| futures | 0.6 → **1.0** | +1267 | **+1317** |
+| crypto | 0.8 → **1.0** | +4375 | **+4377** |
+| agriculture | 0.8 → **1.4** | +56.6 | **+62.7** |
+| indices | 1.1 → **1.0** | −5.6 | **+7.4** |
+| energies / livestock / metals | held | — | nothing improved both splits |
+
+### Why this grid had to be run twice
+
+The first runner grid ran at the OLD stop caps. Tightening the stop shrinks risk,
+and the runner's minimum distance is derived from risk through
+`minimumTargetRewardRisk` — so the set of structural levels that qualify as
+reachable changes when the stop changes. The two levers are not independent.
+
+The pre-stop-cap grid named 1.4 the best futures ceiling. At the shipped caps it
+is 1.0. Had the first result been applied, the engine would carry a ceiling
+derived for a configuration that no longer exists. **Any lever downstream of risk
+must be re-derived after the stop cap moves** — that now applies to the runner
+ceiling and to TP1's ATR floor.
+
+### Indices turn positive — and what that does NOT yet establish
+
+The indices class posts positive total R on both splits for the first time since
+r12: train +25.3, test +7.4, from −32.4/−5.6 at the start of the night. Nothing
+about the markets changed. What changed is a stop cap that was clipping
+structural stops and a runner ceiling set for a different stop — both ours.
+This is the stop-provenance split's prediction confirmed, and precisely the
+failure amendment 25 now guards against.
+
+It does not reopen the cash indices, and the final sweep settled why — see
+round 27. Two claims written here first were wrong or incomplete:
+
+1. ~~The rollup mixes traded index futures with the withheld cash CFDs.~~
+   **FALSE.** The `indices` class is cash-only: SP, NSDQ, DOW, NIKKEI, DAX, ASX.
+   The index FUTURES — ESUSD, NQUSD, YMUSD, RTYUSD — classify as `futures`. So
+   the entire +7.4 came from the cash indices, with nothing else mixed in.
+2. **r12 excluded them on ranking, not on expectancy.** Still true, and the
+   final sweep confirms it holds engine-wide rather than for indices alone.
+
+Correcting (1) makes the conclusion stronger, not weaker. The class's positive
+total R was earned entirely by markets whose geometry stage rejects 55-70% of
+the decisions reaching it — DOW survives 30%, SP 37%, NIKKEI 38%, NSDQ 38%,
+ASX 40%, DAX 45%. Amendment 25 is explicit that a starved sample yields no
+verdict, and it does not carve out favourable ones. The number is not evidence
+of edge; it is another measurement of our own parameters.
+
+`noTradeSymbols` shrinks the round the evidence flips, exactly as it did for
+fourteen symbols in r15 — but the evidence has to be about the symbols, and this
+is not yet about the symbols.
+
+
+## Round-27 (2026-08-06) — the final sweep, and every confidence floor re-derived
+
+One run at the shipped geometry: 102 markets, 1,020,464 setups, 776,531 of them
+clearing the payoff and regime gates. Every per-class confidence floor was
+re-derived from it. The old values were set before the execution-cost and
+stop-cap defects were found, so they were gating against expectancy curves the
+engine no longer produces.
+
+| class | was | now | evidence at the floor |
+|---|---|---|---|
+| crypto | 82 | **25** | test E +0.204, 704 test fills |
+| forex | 40 | **20** | test E +0.298, 479 test fills |
+| futures | 68 | **25** | test E +0.218, 145 test fills |
+| metals | 90 | **30** | test E +0.185, 101 test fills |
+| energies | 69 | **85** | test E +0.308, 122 test fills |
+| livestock | 30 | **40** | test E +0.264, 42 test fills |
+| agriculture | 30 | **30** | HELD — no floor survives |
+| indices | 68 | **68** | HELD — starved sample, amendment 25 |
+
+Four classes drop by 40 to 65 points. Energies moves the other way: its band-80
+bucket is −0.002, which holds the floor up at 85.
+
+### The sample guard
+
+Forex derived a floor of 15 and crypto 20, each resting on 32 to 42 test fills.
+Both were raised one bucket, to 20 (479 fills) and 25 (704). Shipping a
+class-wide gate off 32 fills is the fragility amendment 25 exists to prevent,
+and the cost is nil — forex's band-15 bucket is 42 fills out of 452,565, under a
+hundredth of a percent of volume.
+
+The guard only ever TIGHTENS. Raising the judgeable minimum outright was
+considered and rejected: it would also silence thin NEGATIVE buckets, and
+energies' floor would have fallen from 85 to 75 by ignoring a −0.002 reading on
+69 fills. A robustness rule that can loosen a gate is not a robustness rule.
+
+### Confidence does not rank outcomes anywhere
+
+The finding r12 recorded for indices is engine-wide. Forex test expectancy is
++0.349 at band 15, +0.288 at 25, +0.277 at 30, +0.289 at 85, +0.317 at 95 —
+flat across the whole range. Crypto sits at 0.20-0.25 everywhere, metals
+0.12-0.20, futures 0.20-0.29.
+
+The score separates setups the engine will take from ones it will not. Within
+the accepted population it does not order them by outcome. That is why the
+threshold behaves as a pure volume dial, and why lowering it raises total R
+without costing quality — there is no quality gradient to give up. It is also
+the honest limit on what a confidence number can be presented as meaning.
+
+### The stop is a volatility stop now, except in indices
+
+`stopProvenance` across the final corpus, by class:
+
+| class | cap | pivot | volatility floor |
+|---|---|---|---|
+| agriculture, crypto, energies, forex, futures, livestock | 100% | 0% | 0% |
+| metals (1.6 cap) | 84% | 13% | 3% |
+| indices (3.0 cap) | 5% | **84%** | 11% |
+
+At a 1.0 ATR cap the cap binds on every single stop, so structural pivots no
+longer place it. The ladder is described as pivot-anchored; in six of eight
+classes it is not, and has not been since the caps tightened. That is a
+documentation correction, not a defect — the caps were derived on measured total
+R and tighter won decisively.
+
+Indices is the one class where structure still wins, and structure is exactly
+what starves it: a far pivot at a 3.0 cap makes risk large, and a large risk
+cannot satisfy `minimumTargetRewardRisk` against a runner the review window caps
+in absolute terms. The rejection lands as `planRejected`, which carries all of
+it — `belowPayoff` is zero for all six. **The next indices lever is a JOINT
+(stop cap × runner ceiling) search, not another coordinate pass.** Round 26's
+lesson, one level deeper: two coupled levers cannot be derived one at a time.
+
+### Starvation, engine-wide
+
+1 market of 102 trips the gate — DOW at 30% survival. The five other cash
+indices sit just above the 33% line. Every other market on the list survives
+64% or better, and 83 of them at 90% or better. Before tonight's corrections the
+condition was pervasive.

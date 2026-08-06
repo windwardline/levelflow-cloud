@@ -17,6 +17,24 @@ import type { MarketContext, Regime, Side, SupportedSymbol } from "./types.ts";
 // class volatility cap clipping the structural stop nearer.
 export type StopProvenance = "pivot" | "volatility_floor" | "cap";
 
+// Which anchor set the RUNNER: a real structural level inside the reachable
+// band, or the band's own ceiling when no level qualified. The second case is a
+// pure formula with no structure in it, and until now nothing recorded which one
+// happened — so "the runner is the nearest structural level the window can
+// reach" was an unmeasured claim about most of the corpus.
+export type RunnerProvenance = "structural_level" | "window_ceiling";
+
+// Which of TP1's three candidates won. It is min(max(riskShare, atrFloor),
+// windowCap), so exactly one of the three binds: the risk-proportional share,
+// the ATR floor lifting a too-small partial, or the window cap pulling an
+// unreachable one back. Tuning tp1RiskShare is pointless on a market where the
+// ATR floor or the window cap is what actually places TP1.
+export type Tp1Provenance = "risk_share" | "atr_floor" | "window_cap";
+
+// Which entry offset applied. Trend and non-trend regimes carry different
+// offsets in every class, and nothing recorded which one a setup used.
+export type EntryProvenance = "trend_offset" | "default_offset";
+
 export type PricePlan = {
   atr: number;
   contractSpec: FuturesContractSpec | null;
@@ -29,6 +47,9 @@ export type PricePlan = {
   stopLogic: string;
   stopLoss: number;
   stopProvenance: StopProvenance;
+  runnerProvenance: RunnerProvenance;
+  tp1Provenance: Tp1Provenance;
+  entryProvenance: EntryProvenance;
   targetLogic: string;
   takeProfit: number;
   takeProfit1: number;
@@ -49,8 +70,16 @@ export function buildPricePlan(
   const dailyAtr = averageTrueRange(daily, 14);
   const pivots = findSwingPivots(bars, 3);
   const dailyPivots = findSwingPivots(daily, 2);
+  // Recorded, not just applied: trend and non-trend regimes carry different
+  // entry offsets in every class, and until now nothing said which one a setup
+  // used — so an entry-offset grid could not tell which half of the corpus it
+  // was even moving.
+  const usesTrendOffset = regime.name === "trend";
+  const entryProvenance: EntryProvenance = usesTrendOffset
+    ? "trend_offset"
+    : "default_offset";
   const entryOffset = atr *
-    (regime.name === "trend"
+    (usesTrendOffset
       ? calibration.entryOffsetTrend
       : calibration.entryOffsetDefault);
   let entryPrice = side === "buy"
@@ -219,6 +248,9 @@ export function buildPricePlan(
       "Invalidation beyond the nearest confirmed swing pivot with a volatility buffer, capped at the window's volatility ceiling.",
     stopLoss,
     stopProvenance,
+    runnerProvenance: ladder.runnerProvenance,
+    tp1Provenance: ladder.tp1Provenance,
+    entryProvenance,
     targetLogic:
       "TP1 banks a risk-scaled partial; the runner is the nearest structural level the review window can statistically reach.",
     takeProfit,
@@ -242,8 +274,10 @@ export type LadderCalibration = {
 
 export type LadderTargets = {
   expectedWindowMove: number;
+  runnerProvenance: RunnerProvenance;
   runnerTarget: number;
   takeProfit1: number;
+  tp1Provenance: Tp1Provenance;
 };
 
 const TP1_WINDOW_SHARE = 0.6;
@@ -263,13 +297,20 @@ export function buildLadderTargets(input: {
   // TP1 must be meaningful in R terms, not a fixed ATR crumb: the partial
   // is a share of risk, floored by the ATR multiplier, capped by what the
   // window can deliver.
-  const tp1Distance = Math.min(
-    Math.max(
-      riskDistance * calibration.tp1RiskShare,
-      atr * calibration.tp1AtrMultiplier,
-    ),
-    expectedWindowMove * TP1_WINDOW_SHARE,
-  );
+  const tp1FromRisk = riskDistance * calibration.tp1RiskShare;
+  const tp1AtrFloor = atr * calibration.tp1AtrMultiplier;
+  const tp1WindowCap = expectedWindowMove * TP1_WINDOW_SHARE;
+  const tp1Distance = Math.min(Math.max(tp1FromRisk, tp1AtrFloor), tp1WindowCap);
+  // Exactly one of the three binds, and knowing which changes what is worth
+  // tuning: moving tp1RiskShare does nothing on a market where the ATR floor or
+  // the window cap is placing TP1. Tested in the same order the expression
+  // evaluates — the cap outranks both, then the floor outranks the share.
+  const tp1Provenance: Tp1Provenance =
+    tp1WindowCap < Math.max(tp1FromRisk, tp1AtrFloor)
+      ? "window_cap"
+      : tp1AtrFloor > tp1FromRisk
+      ? "atr_floor"
+      : "risk_share";
   // The payoff floor is a feasibility filter, not a target-stretcher: if the
   // required distance exceeds what the window can statistically reach, the
   // setup is rejected instead of decorated with an unreachable target.
@@ -285,7 +326,14 @@ export function buildLadderTargets(input: {
   });
   // Nearest structural level inside the reachable band; with no structure in
   // the band, the expected-move objective itself is the runner.
-  const runnerTarget = nearestLevelBeyond(side, entryPrice, qualifyingLevels) ??
+  const structuralRunner = nearestLevelBeyond(side, entryPrice, qualifyingLevels);
+  // The fallback is a pure formula with no structure in it. Recording which
+  // happened is the whole point: "the runner is the nearest structural level the
+  // window can reach" described the corpus without ever being measured on it.
+  const runnerProvenance: RunnerProvenance = structuralRunner === null
+    ? "window_ceiling"
+    : "structural_level";
+  const runnerTarget = structuralRunner ??
     (side === "buy" ? entryPrice + runnerLimit : entryPrice - runnerLimit);
 
   const runnerDistance = Math.abs(runnerTarget - entryPrice);
@@ -295,7 +343,9 @@ export function buildLadderTargets(input: {
 
   return {
     expectedWindowMove,
+    runnerProvenance,
     runnerTarget,
+    tp1Provenance,
     takeProfit1: side === "buy"
       ? entryPrice + tp1Distance
       : entryPrice - tp1Distance,

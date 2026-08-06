@@ -9,7 +9,7 @@ import {
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 // summarizeSweepOutcomes only reads .outcome and .realizedR (sweep.ts:373-395),
-// but SweepOutcomeRecord carries 13 other fields describing the decision that
+// but SweepOutcomeRecord carries 16 other fields describing the decision that
 // produced it. This fills them with inert placeholders so fixtures below can
 // stay focused on the two fields the function under test actually consumes.
 function outcomeRecord(
@@ -30,6 +30,9 @@ function outcomeRecord(
     sessionPenalty: 0,
     side: "buy",
     stopProvenance: "",
+    runnerProvenance: "",
+    tp1Provenance: "",
+    entryProvenance: "",
     time: 0,
     votes: [],
   };

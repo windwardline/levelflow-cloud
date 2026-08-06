@@ -1678,3 +1678,39 @@ promises to keep out of the bundle. `tests/brokerVisibility.test.ts` pins
 both the absence of a `masterList.ts` import from any client-bundled file
 and the presence of the registry's own classification vocabulary,
 so a future edit cannot reintroduce the leak unnoticed.
+
+
+## Amendment 25 — a market is never judged on a starved sample (owner, 2026-08-06)
+
+A market's measured performance may not be used to exclude it unless the market
+had a fair chance to produce evidence. A verdict drawn on a starved sample is a
+verdict about Levelflow's configuration, not about the market.
+
+The rule exists because one failure repeated five times in a single night, each
+time as a market that looked edgeless and was in fact constrained by a parameter
+we had chosen:
+
+| market | what actually happened |
+|---|---|
+| oil (WTI, BRENT) | an energies TP1 share twice every healthy class's value |
+| the six indices | an ATR cap clipping structural stops; the class negative was a profitable structural subset averaged with a badly negative cap-clipped one |
+| copper, natural gas | an absolute cost floor exceeding their entire risk distance — 0 of 2304 and 0 of 1689 setups could clear reward:risk |
+| oats, rough rice | a runner ceiling too tight to reach; rice's "-0.200" was SEVEN setups, and at a reachable ceiling it produces 71, its stop rate falls 33% to 11%, and it turns positive |
+| livestock | diagnosed as too thinly traded to calibrate; the ladder in fact refused 396 of the 416 decisions that reached it |
+
+**Mechanized, not documented.** `BrokerVisibilityExclusion` requires a
+`starvationCheck` on every `sweep-performance` entry, carrying the market's
+geometry-survival rate and filled-setup count with a cited source.
+`tests/brokerExclusions.test.ts` refuses an exclusion below 0.33 survival or 300
+filled setups, and refuses a starvation check on grounds where it would imply a
+judgement never made. `scripts/starvation-audit.ts` exits non-zero when any
+market is starved.
+
+**Broker-agnostic by construction.** The requirement binds the exclusion
+register, and every broker's exclusions land there. Run the audit against a new
+broker's first sweep before reading any expectancy as a verdict.
+
+**The floors.** 0.33 survival: the five markets that fooled us ran 5% (feeder
+cattle) to 27% (rough rice), while the healthy core of the universe runs 73-99%.
+300 filled setups: the smallest sample any exclusion considered tonight would
+have needed to survive scrutiny.

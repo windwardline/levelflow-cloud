@@ -1,4 +1,4 @@
-import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
+import { confidenceThresholdForAssetOrSymbol } from "../../lib/advisorReview";
 import {
   CONFIDENCE_TIERS,
   formatConfidenceWithTier,
@@ -129,9 +129,13 @@ export function groupHistorySetups(
 // tally all resolve through here, so the word printed beside a row's score
 // and the band it counts under can never read different bars.
 export function confidenceThresholdForSymbol(symbol: string): number {
-  return CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[
-    getSecurityOption(symbol).assetType
-  ];
+  // Symbol-first, because the engine's calibration class is no longer implied by
+  // the display SecurityType: agriculture and livestock both display as Futures
+  // and carry a floor of 30 against futures' 68 (advisorReview.ts).
+  return confidenceThresholdForAssetOrSymbol(
+    symbol,
+    getSecurityOption(symbol).assetType,
+  );
 }
 
 /**

@@ -67,7 +67,59 @@ export type BrokerVisibilityExclusion = {
   /** Free-text citation and reasoning — the WHY behind accountTypes/ground,
    * same discipline masterList.ts's own `ground` field follows. */
   detail: string;
+  /**
+   * REQUIRED for `sweep-performance`, and forbidden otherwise: proof the market
+   * was not STARVED when its performance was judged.
+   *
+   * Amendment 25 (owner, 2026-08-06) exists because one failure repeated five
+   * times in a single night, each time as a market that looked edgeless and
+   * turned out to be constrained by our own parameters:
+   *   oil        — an energies TP1 share twice every healthy class's value
+   *   indices    — an ATR cap clipping structural stops; the class-level
+   *                negative was a profitable structural subset averaged with a
+   *                badly negative cap-clipped one
+   *   copper/gas — an absolute cost floor exceeding their entire risk distance,
+   *                so 0 of 2304 and 0 of 1689 setups could clear reward:risk
+   *   oats/rice  — a runner ceiling too tight to reach; rice's "-0.200" was
+   *                SEVEN setups, and at a reachable ceiling it produces 71,
+   *                its stop rate falls 33% -> 11%, and it turns positive
+   *   livestock  — diagnosed as too thinly traded to calibrate, when in fact
+   *                the ladder refused 396 of 416 decisions that reached it
+   *
+   * A verdict drawn on a starved market is a verdict about our configuration,
+   * not about the market. So an exclusion on performance grounds must carry the
+   * evidence that the market had a fair chance to produce evidence:
+   *
+   *   `survivalRate` — the share of decisions REACHING the geometry stage that
+   *     survived it (1 - (planRejected + belowPayoff) / reached), from
+   *     scripts/starvation-audit.ts. Below 0.33 the geometry, not the market, is
+   *     deciding how much evidence exists, and the exclusion is refused.
+   *   `filledSetups` — the sample the expectancy was computed over. Rice's seven
+   *     is the cautionary number.
+   *
+   * tests/brokerExclusions.test.ts enforces both, so a performance exclusion
+   * cannot be added without them. The rule is broker-agnostic by construction:
+   * it constrains this register, and every broker's exclusions land here.
+   */
+  starvationCheck?: {
+    survivalRate: number;
+    filledSetups: number;
+    /** Where the two numbers came from — the sweep or audit artifact. */
+    source: string;
+  };
 };
+
+/**
+ * The floor a market's geometry-survival rate must clear before its measured
+ * performance may be used to exclude it (amendment 25). One in three decisions
+ * surviving is already generous: the five markets that fooled us ranged from 5%
+ * (feeder cattle) to 27% (rough rice), while the healthy core of the universe
+ * runs 73-99%.
+ */
+export const MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION = 0.33;
+
+/** The smallest sample an expectancy verdict may rest on (amendment 25). */
+export const MIN_FILLED_FOR_PERFORMANCE_EXCLUSION = 300;
 
 export const BROKER_VISIBILITY_EXCLUSIONS: readonly BrokerVisibilityExclusion[] = [
   {

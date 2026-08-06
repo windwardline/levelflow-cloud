@@ -430,6 +430,83 @@ const UNSIZEABLE_BACKEND_ROWS: MasterListRow[] = UNSIZEABLE_BACKEND_FUTURES.map(
 );
 
 // ---------------------------------------------------------------------------
+// New 2026-08-06: the six remaining CME FX majors. E8's futures account shows
+// thirteen CME FX contracts (crossmap §2.2); 6J and 6M are recorded above, and
+// these six were on no row at all — a real gap against the standing order that
+// every visible, tradable E8 market appears on this list, matched or trimmed
+// with its reason.
+//
+// TRADABILITY is settled: the F9 sighting's own words are that "every
+// Financials and Currencies row above prints live", owner-confirmed on a second
+// pass through the frames (amendment 19). None is a blank-valued row.
+//
+// IDENTITY is settled the same way 6J and 6M were: FMP publishes no
+// currency-futures series for these CME contracts, so the mate is the spot
+// pair. Four are direct — E8 names them for the foreign currency but quotes
+// them USD-per-unit, matching the pair. Two are inverted, and that distinction
+// is the whole reason they are not simply switched on.
+//
+// WHY NONE IS SCANNABLE. Each one's mate is a series Levelflow already sweeps
+// on the Forex account, so the (series, class) pair carries a verdict already
+// and no new sweep is owed. What is missing is a price transform:
+//
+//   - Basis. The F9 sighting caught 6EU6 at 1.15330 against EURUSD spot
+//     1.15135 — 17 pips of carry. A ladder computed on spot would hand the
+//     operator an entry, a stop and two targets that are all 17 pips from the
+//     contract they can actually place. TP1 sits around half an ATR out, so
+//     this is a material share of the trade, not a rounding difference.
+//   - Direction and scale, for 6C and 6S. E8 names these "Canadian $" and
+//     "Swiss Franc" — foreign-currency-base contracts. A long 6C is a short
+//     USDCAD, and 6C prices near 0.73 where USDCAD prints near 1.37. Passing
+//     spot levels through unchanged would invert the trade AND misprice it.
+//
+// So they are recorded, matched, and withheld from the scan — the treatment
+// amendment 23 already defines for a row that is real but not yet serveable,
+// and they stay reentry candidates re-examined at every sweep. Onboarding them
+// needs a basis-aware level transform, plus inversion and rescaling for the two
+// CAD/CHF contracts. That is a build, not a flag.
+//
+// The FX MICROS (M6A, M6B, M6E, 7E, MCD) are deliberately absent rather than
+// overlooked. Each is a contract-size variant, and contractVariants.ts's rule
+// is that a variant sizes against an ANALYZED parent. These parents are not
+// analyzed, so there is nothing for them to hang from; they join the list when
+// their parent does.
+// ---------------------------------------------------------------------------
+
+const CROSSMAP_SOURCE = "docs/research/e8-fmp-crossmap.md (§2.2)";
+const F9_SOURCE = "docs/research/e8-futures-account-2026-08-03.md";
+
+const CME_FX_MAJORS: ReadonlyArray<{
+  broker: string;
+  product: string;
+  fmp: string;
+  inverted: boolean;
+}> = [
+  { broker: "6E", product: "Euro FX", fmp: "EURUSD", inverted: false },
+  { broker: "6A", product: "Australian $", fmp: "AUDUSD", inverted: false },
+  { broker: "6B", product: "British Pound", fmp: "GBPUSD", inverted: false },
+  { broker: "6N", product: "New Zealand $", fmp: "NZDUSD", inverted: false },
+  { broker: "6C", product: "Canadian $", fmp: "USDCAD", inverted: true },
+  { broker: "6S", product: "Swiss Franc", fmp: "USDCHF", inverted: true },
+];
+
+const CME_FX_MAJOR_ROWS: MasterListRow[] = CME_FX_MAJORS.map(
+  ({ broker, product, fmp, inverted }) =>
+    row({
+      levelflowSymbol: null,
+      classification: "futures",
+      securityType: "Futures",
+      brokerName: broker,
+      fmpSymbol: fmp,
+      status: "mapped-not-yet-onboarded",
+      ground: inverted
+        ? `E8 "${product}", a ${fmp.slice(3)}-base contract against Levelflow's USD-base ${fmp} — long ${broker} is short ${fmp}, and ${broker} quotes near 1/${fmp} (${CROSSMAP_SOURCE}). FMP publishes no currency-futures series for it, so ${fmp} is the mate and its verdict already covers this series. OFFERED and live-priced per the F9 futures-account sighting (amendment 19); withheld from the scan until a transform inverts and rescales the ladder, because spot levels would reverse the trade direction.`
+        : `E8 "${product}", quoted USD-per-unit and so directionally identical to ${fmp} (${CROSSMAP_SOURCE}). FMP publishes no currency-futures series for it, so ${fmp} is the mate and its verdict already covers this series. OFFERED and live-priced per the F9 futures-account sighting (amendment 19); withheld from the scan until a basis-aware transform exists — the sighting measured 17 pips of carry on 6E, which a spot-derived ladder would place every level away from.`,
+      source: `${CROSSMAP_SOURCE}; ${F9_SOURCE}`,
+    }),
+);
+
+// ---------------------------------------------------------------------------
 // The master list, and its derivations.
 // ---------------------------------------------------------------------------
 
@@ -437,6 +514,7 @@ export const MASTER_LIST_ROWS: readonly MasterListRow[] = [
   ...SERVED_ROWS,
   ...NO_FMP_SOURCE_FUTURES_ROWS,
   ...UNSIZEABLE_BACKEND_ROWS,
+  ...CME_FX_MAJOR_ROWS,
 ];
 
 const BY_LEVELFLOW_SYMBOL = new Map<string, MasterListRow>();

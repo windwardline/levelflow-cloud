@@ -27,17 +27,23 @@ import {
 // exercised by these pins, not trusted on inspection alone.
 
 describe("row counts — total, per classification, per status", () => {
-  it("carries exactly 120 rows", () => {
-    assert.equal(MASTER_LIST_ROWS.length, 120);
+  it("carries exactly 126 rows", () => {
+    // 120 -> 126 on 2026-08-06: the six remaining CME FX majors (6E 6A 6B 6N 6C
+    // 6S) were on no row at all. Every one prints live on the F9 sighting, so
+    // their absence was a gap against the standing order, not a judgement.
+    assert.equal(MASTER_LIST_ROWS.length, 126);
   });
 
-  it("splits 38 forex / 49 futures / 33 crypto", () => {
+  it("splits 38 forex / 55 futures / 33 crypto", () => {
     assert.deepEqual(rowCountsByClassification(), {
       forex: 38,
       // 27 -> 42: nineteen onboarded, less the four cash proxies that moved
       // from mapped-not-yet-onboarded into the served set on the same day.
       // Group A wired 2026-08-06: seven contract-size variants (MES MNQ MYM QM QG XK XC) joined for SIZING only. Each reads its parent's series and holds no scan slot, so knowable grows while scannable and swept do not.
-      futures: 49,
+      // 49 -> 55: the six CME FX majors, added 2026-08-06. Mapped to their
+      // spot mates and withheld from the scan pending a basis-aware level
+      // transform, so knowable grows while scannable and swept do not.
+      futures: 55,
       crypto: 33,
     });
   });
@@ -61,10 +67,12 @@ describe("row counts — total, per classification, per status", () => {
       // 25 crypto mates on 2026-08-06, which leaves FDXM alone: the same
       // ^GDAXI series as FDAX at a different contract size, held pending the
       // owner's micro/mini ruling.
-      // 0: every matched market is onboarded. The status stays in the union
-      // because it names a real future state — a market discovered and matched
-      // before it is wired — not because anything occupies it today.
-      "mapped-not-yet-onboarded": 0,
+      // 0 -> 6 on 2026-08-06. The previous note here read "every matched market
+      // is onboarded ... nothing occupies it today", and that was FALSE: the six
+      // CME FX majors were matched to their spot mates in the crossmap and had
+      // no row on this list to occupy. The status was empty because rows were
+      // missing, not because the work was done.
+      "mapped-not-yet-onboarded": 6,
       "excluded-no-fmp-source": 7,
       "offered-but-unsizeable": 4,
     });
@@ -72,7 +80,7 @@ describe("row counts — total, per classification, per status", () => {
 
   it("agrees with rowsForClassification's own per-classification counts", () => {
     assert.equal(rowsForClassification("forex").length, 38);
-    assert.equal(rowsForClassification("futures").length, 49);
+    assert.equal(rowsForClassification("futures").length, 55);
     assert.equal(rowsForClassification("crypto").length, 33);
   });
 });
@@ -138,6 +146,73 @@ describe("BRENT — display-excluded yet standing in the sweep universe", () => 
   it("is absent from visibleSymbols() while present in servedSymbols()", () => {
     assert.ok(servedSymbols().includes("BRENT"));
     assert.ok(!visibleSymbols().includes("BRENT"));
+  });
+});
+
+describe("the six CME FX majors — mapped-not-yet-onboarded (2026-08-06)", () => {
+  /**
+   * E8's futures account shows thirteen CME FX contracts. 6J and 6M were
+   * already recorded; these six were on no row at all, and every one prints
+   * live on the F9 sighting — so their absence was a gap against the standing
+   * order that every visible, tradable E8 market appears on the master list.
+   *
+   * The pins below are the two facts that make them unshippable rather than
+   * merely unshipped: the mate is a SPOT series (FMP publishes no
+   * currency-futures series for these), and two of the six quote the foreign
+   * currency as base, so a spot ladder would reverse the trade direction.
+   */
+  const DIRECT = { "6E": "EURUSD", "6A": "AUDUSD", "6B": "GBPUSD", "6N": "NZDUSD" };
+  const INVERTED = { "6C": "USDCAD", "6S": "USDCHF" };
+
+  it("maps each to its spot mate with no Levelflow symbol of its own", () => {
+    for (const [broker, mate] of Object.entries({ ...DIRECT, ...INVERTED })) {
+      const entry = findMasterListRowByBrokerName(broker);
+      assert.ok(entry, broker);
+      assert.equal(entry!.fmpSymbol, mate, broker);
+      assert.equal(entry!.levelflowSymbol, null, broker);
+      assert.equal(entry!.status, "mapped-not-yet-onboarded", broker);
+      assert.equal(entry!.classification, "futures", broker);
+    }
+  });
+
+  it("keeps every one out of the served and visible sets", () => {
+    // A row with no Levelflow symbol cannot be served, and the scan must not
+    // reach it: spot-derived levels are 17 pips from the contract on 6E and
+    // outright inverted on 6C/6S.
+    for (const broker of Object.keys({ ...DIRECT, ...INVERTED })) {
+      const entry = findMasterListRowByBrokerName(broker)!;
+      assert.equal(isServedToday(entry), false, broker);
+      assert.equal(isVisibleToday(entry), false, broker);
+    }
+  });
+
+  it("states the direction reversal on the two foreign-currency-base contracts", () => {
+    // The ground text is the only place this hazard is written down for a
+    // future onboarding, so it is pinned rather than left to prose drift.
+    for (const broker of Object.keys(INVERTED)) {
+      const entry = findMasterListRowByBrokerName(broker)!;
+      assert.match(entry.ground, /long 6[CS] is short USD(CAD|CHF)/);
+    }
+    for (const broker of Object.keys(DIRECT)) {
+      const entry = findMasterListRowByBrokerName(broker)!;
+      assert.doesNotMatch(entry.ground, /is short USD/);
+    }
+  });
+
+  it("is exactly these six rows carrying the status, no more and no fewer", () => {
+    const held = MASTER_LIST_ROWS
+      .filter((entry) => entry.status === "mapped-not-yet-onboarded")
+      .map((entry) => entry.brokerName)
+      .sort();
+    assert.deepEqual(held, ["6A", "6B", "6C", "6E", "6N", "6S"]);
+  });
+
+  it("leaves every one a reentry candidate", () => {
+    // Amendment 23: a row that is real but not yet serveable stays on the
+    // books and is re-examined at every sweep.
+    for (const broker of Object.keys({ ...DIRECT, ...INVERTED })) {
+      assert.equal(findMasterListRowByBrokerName(broker)!.reentryCandidate, true, broker);
+    }
   });
 });
 
@@ -381,8 +456,10 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 74 non-happy-path rows", () => {
-    assert.equal(reentryList().length, 74);
+  it("reentryList() returns exactly the 80 non-happy-path rows", () => {
+    // 74 -> 80: the six CME FX majors are reentry candidates by construction —
+    // re-examined at every sweep until the transform that unlocks them exists.
+    assert.equal(reentryList().length, 80);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

@@ -60,6 +60,52 @@ type ExecutionProfile = {
 const COST_EPSILON = 1e-9;
 
 const EXECUTION_PROFILES: Record<AssetType, ExecutionProfile> = {
+  // Livestock, 2026-08-06. Same tick-over-price derivation as agriculture, and
+  // it lands somewhere different — which is the point of measuring rather than
+  // assuming the two "commodity" classes resemble each other:
+  //   feeder cattle  0.025 / 348.30 = 0.72 bps
+  //   live cattle    0.025 / 231.40 = 1.08
+  //   lean hogs      0.025 / 97.65  = 2.56
+  // A mean one-tick spread of 1.45 bps — FINER than agriculture's 4.0 and close
+  // to the futures profile's 1.4, because these contracts tick in cents on
+  // two-and-three-figure prices.
+  //
+  // Recorded as a one-tick FLOOR, not a claim about the live book: livestock is
+  // thinly traded and real spreads may run wider than one tick. The model
+  // prefers a quoted spread whenever the provider supplies one, so this governs
+  // only the modeled fallback — and a future quoted-spread measurement should
+  // revisit it.
+  livestock: {
+    atrSlippageFactor: 0.008,
+    atrSpreadFactor: 0.012,
+    maxPenalty: 10,
+    slippageBps: 1.0,
+    spreadBps: 1.5,
+  },
+  // Agriculture, 2026-08-06. The bps terms are DERIVED, not judged: one tick is
+  // the tightest spread a contract can quote, and tick over price is arithmetic.
+  // Measured against the F9 sighting's own prices —
+  //   soybean oil  0.01 / 67.75   = 1.5 bps
+  //   soybeans     0.25c / 1168c  = 2.1
+  //   soymeal      0.10 / 313.5   = 3.2
+  //   rough rice   0.005 / 14.205 = 3.5
+  //   corn         0.25c / 449.75c= 5.6
+  //   oats         0.25c / 316.3c = 7.9
+  // — a mean one-tick spread of 4.0 bps against the E-mini S&P's 0.32. That is
+  // the whole reason this class exists: the futures profile's 1.4 bps understates
+  // agricultural cost by roughly 3x, and understating cost is how a market gets
+  // credited with edge it does not have.
+  //
+  // The two ATR-relative factors carry futures' values because nothing in the
+  // corpus measures them, and the bps term dominates at these price levels
+  // anyway. Marked so they are not mistaken for derived.
+  agriculture: {
+    atrSlippageFactor: 0.008,
+    atrSpreadFactor: 0.012,
+    maxPenalty: 10,
+    slippageBps: 2.5,
+    spreadBps: 4.0,
+  },
   crypto: {
     atrSlippageFactor: 0.012,
     atrSpreadFactor: 0.018,
