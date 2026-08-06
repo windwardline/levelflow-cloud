@@ -69,6 +69,17 @@ describe("agriculture is its own calibration class (derived 2026-08-06)", () => 
     assert.ok(asAg.effectiveRewardRisk > 1.5, `${asAg.effectiveRewardRisk}`);
   });
 
+  it("pins the derived runner ceiling at 0.8 and TP1 at 0.4", () => {
+    // Runner DERIVED on total R across both splits (+107.5/+23.8 -> +197.7/+72.7,
+    // 648 test setups against 271). TP1 derived as a validated null. The pair
+    // matters together: forex's TP1 optimum is 0.3 and agriculture's is 0.4, so a
+    // shared value would be wrong for one of them.
+    const ag = getCategoryCalibration("ZCUSX");
+    assert.equal(ag.runnerWindowShare, 0.8);
+    assert.equal(ag.tp1RiskShare, 0.4);
+    assert.equal(getCategoryCalibration("EURUSD").tp1RiskShare, 0.4);
+  });
+
   it("carries no grain in the futures symbol list any longer", () => {
     // The bug this caught when it was written: removing the grains from futures
     // by first-match replace deleted them from the agriculture list instead,

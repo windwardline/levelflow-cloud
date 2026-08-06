@@ -207,13 +207,31 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
-    // AWAITING ITS OWN GRID (runner selection rule + ceiling width).
-    runnerWindowShare: 0.6,
+    // DERIVED 2026-08-06 on TOTAL R across both splits: 0.6 -> 0.8 takes total
+    // train R from +107.5 to +197.7 and test from +23.8 to +72.7, on 648 test
+    // setups against 271. Per-trade test expectancy improves too (+0.088 ->
+    // +0.112); train dips (+0.157 -> +0.145), which is why the older
+    // expectancy-only bar would have REJECTED this and forgone two thirds of the
+    // return.
+    //
+    // 1.0 earns more total R still (+232/+86) but at 17% lower per-trade
+    // expectancy. 0.8 is the deliberate choice: on a prop account with a daily
+    // loss limit, per-trade quality is what keeps distance from the limit.
+    // 0.4 nominally beat both splits and was REJECTED as an artifact — 34 test
+    // setups against baseline's 271, because a tighter ceiling makes the
+    // required target unreachable and the setup is refused (rough rice produced
+    // ZERO). That thinness is also what made rice look like a -0.200 market:
+    // seven setups. At 0.8 it produces 71, its stop rate falls 33% -> 11%, and
+    // it turns positive.
+    runnerWindowShare: 0.8,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
-    // AWAITING ITS OWN GRID. The universe-wide TP1 grid found 0.3 best on 20 of
-    // 21 improving markets, but that grid predates these six being analyzed.
+    // DERIVED 2026-08-06 as a validated null: every alternative loses total R on
+    // both splits (0.3 -> +94.9/+22.2, 0.5 -> +88.9/+20.2, 0.6 -> +74.2/+10.8
+    // against baseline +107.5/+23.8). Worth stating plainly because forex's
+    // derived optimum is 0.3 and agriculture's is 0.4 — the classes genuinely
+    // want different geometry, which is the whole case for separating them.
     tp1RiskShare: 0.4,
     volatilityTargetAtrMultiplier: 3.4,
   },
