@@ -5,6 +5,7 @@ import {
   type SecurityGroup,
   type SecurityType,
 } from "../symbolMap";
+import { isContractSizeVariant } from "./contractVariants";
 import {
   BROKER_VISIBILITY_EXCLUSIONS,
   isExcludedForAccountType,
@@ -176,6 +177,13 @@ export function scannableSymbolsFor(
   return AVAILABLE_ASSET_OPTIONS
     .filter((option) =>
       offered.has(classificationOfType(option.assetType)) &&
+      // One analyzed market per underlying, per account type (owner ruling
+      // 2026-08-05). A contract-size variant sizes against its parent in the
+      // §19 layer and never takes a scan slot of its own — two rows for one
+      // gold opportunity would double-count it in the ranking and in the
+      // money-positive record. See contractVariants.ts for why this is
+      // declared rather than detected.
+      !isContractSizeVariant(option.symbol) &&
       !isExcludedForAccountType(option.symbol, classification, exclusions)
     )
     .map((option) => option.symbol);

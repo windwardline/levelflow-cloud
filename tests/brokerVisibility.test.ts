@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { isContractSizeVariant } from "../src/lib/broker/contractVariants.ts";
 import { isDisplayExcluded } from "../src/lib/broker/offsets.ts";
 import {
   BROKER_VISIBILITY_EXCLUSIONS,
@@ -82,7 +83,8 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
   ].sort();
 
   const PINNED_FUTURES = [
-    "BZUSD", "CLUSD", "ESUSD", "GCUSD", "MGCUSD", "NQUSD", "RTYUSD",
+    // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
+    "BZUSD", "CLUSD", "ESUSD", "GCUSD", "NQUSD", "RTYUSD",
     "SIUSD", "YMUSD", "ZBUSD", "ZNUSD",
   ].sort();
 
@@ -98,14 +100,14 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
     assert.equal(PINNED_CRYPTO.length, 7);
   });
 
-  it("futures: exactly 11 symbols, pinned", () => {
+  it("futures: exactly 10 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(FUTURES_ACCOUNT)].sort(), PINNED_FUTURES);
-    assert.equal(PINNED_FUTURES.length, 11);
+    assert.equal(PINNED_FUTURES.length, 10);
   });
 
   it("null (no active account): the union of all three, 49 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(null)].sort(), PINNED_NULL);
-    assert.equal(PINNED_NULL.length, 49);
+    assert.equal(PINNED_NULL.length, 48);
   });
 
   it("scannableSymbolsFor agrees with visibleAssetSymbols for every classification", () => {
@@ -146,6 +148,13 @@ describe("before/after equality — the retrofit changes MECHANISM, not the offe
       .flatMap((group) =>
         group.options
           .filter((option) => !isDisplayExcluded(option.symbol))
+          // The retired mechanism predates the contract-size rule (owner,
+          // 2026-08-05), so reproducing it verbatim would now expect MGCUSD.
+          // Applying the rule to BOTH sides keeps this an equality proof about
+          // the MECHANISM — which is all it ever claimed — instead of silently
+          // becoming a claim that the offering never changes. The offering did
+          // change here, deliberately, by owner ruling.
+          .filter((option) => !isContractSizeVariant(option.symbol))
           .map((option) => option.symbol)
       );
   }
@@ -285,6 +294,12 @@ describe("the sweep universe stays whole — unaffected by account type or the n
   it("still includes every served-but-not-scannable row — these carry an FMP mate and are matched, whatever their scannable-today status", () => {
     const notScannable = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "served-but-not-scannable")
+      // A contract-size variant is the one not-scannable row that is also
+      // deliberately UNSWEPT: it is the same market as its parent, so sweeping
+      // it would duplicate that market's setups in the corpus rather than add
+      // anything. Every other withheld row has its own series and is swept.
+      .filter((entry) => entry.levelflowSymbol !== null &&
+        !isContractSizeVariant(entry.levelflowSymbol))
       .map((entry) => entry.levelflowSymbol);
     // 9 -> 28 on 2026-08-05: the nineteen onboarded futures join the eight
     // originals and ASX here. Every one must stay in the sweep universe —
@@ -301,7 +316,13 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     const sweptCount = sweepUniverse().length;
     const noFmpCount = MASTER_LIST_ROWS.filter((entry) => entry.fmpSymbol === null).length;
     assert.equal(noFmpCount, 7);
-    assert.equal(sweptCount, MASTER_LIST_ROWS.length - noFmpCount);
+    // Two reasons a row leaves the sweep, and only two: no series to sweep, or
+    // it IS another row's market at a different contract size.
+    const variantCount = MASTER_LIST_ROWS.filter((entry) =>
+      entry.levelflowSymbol !== null && isContractSizeVariant(entry.levelflowSymbol)
+    ).length;
+    assert.equal(variantCount, 1);
+    assert.equal(sweptCount, MASTER_LIST_ROWS.length - noFmpCount - variantCount);
   });
 });
 

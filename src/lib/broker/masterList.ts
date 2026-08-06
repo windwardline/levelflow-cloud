@@ -6,6 +6,7 @@ import {
   TEMPORARILY_HIDDEN_ASSET_SYMBOLS,
   type SecurityType,
 } from "../symbolMap";
+import { isContractSizeVariant, parentMarketOf } from "./contractVariants";
 import { DISPLAY_EXCLUDED_SYMBOLS } from "./offsets";
 import { visibleAssetSymbols } from "./visibility";
 
@@ -101,6 +102,12 @@ export const SERVED_COMPATIBLE_STATUSES: readonly MasterListStatus[] = [
   "served-and-visible",
   "served-but-display-excluded",
   "offered-but-unsizeable",
+  // A row in the master 50 may also be withheld from the scan outright — the
+  // eight no-edge/unverified markets have always been, and 2026-08-05 added
+  // contract-size variants (MGCUSD) and the nineteen onboarded futures. All
+  // are served: present in symbolMap, sized, swept where a distinct series
+  // exists. "Served" and "scannable" were conflated here; they are two facts.
+  "served-but-not-scannable",
 ];
 
 /**
@@ -229,6 +236,25 @@ const SERVED_ROWS: MasterListRow[] = SECURITY_OPTIONS.map((option) => {
     fmpSymbol: option.fmpSymbol,
   } as const;
 
+  // A contract-size variant is served and sized but never scannable (owner
+  // ruling 2026-08-05). It reuses `served-but-not-scannable` rather than
+  // earning a seventh status for one row: that status already means exactly
+  // "in the symbol map, withheld from the scan", and the ground below carries
+  // the reason, which is what distinguishes this from a no-edge withholding.
+  if (isContractSizeVariant(symbol)) {
+    return row({
+      ...shared,
+      status: "served-but-not-scannable",
+      ground:
+        `Contract-size variant of ${parentMarketOf(symbol)} — the same market at a ` +
+        `different notional. Levelflow analyzes one market per underlying per ` +
+        `account type, so this row keeps its E8 sizing identity (its tick value ` +
+        `differs, which is the only thing about it that does) and holds no scan ` +
+        `slot: two rows would count one opportunity twice in the ranked scan and ` +
+        `one outcome twice in the money-positive record.`,
+      source: "src/lib/broker/contractVariants.ts",
+    });
+  }
   if (NO_TRADE_SYMBOLS.has(symbol) || TEMPORARILY_HIDDEN_ASSET_SYMBOLS.has(symbol)) {
     return row({
       ...shared,
@@ -518,7 +544,19 @@ export function rowsForClassification(
  * excludes.
  */
 export function sweepUniverse(): MasterListRow[] {
-  return MASTER_LIST_ROWS.filter((entry) => entry.fmpSymbol !== null);
+  return MASTER_LIST_ROWS.filter((entry) =>
+    entry.fmpSymbol !== null &&
+    // Amendment 23 ruling A.2 sweeps every mapped row regardless of display
+    // state, and that still holds: what is filtered here is not an EXCLUDED
+    // market but the SAME market at a second contract size (owner ruling
+    // 2026-08-05, contractVariants.ts). Sweeping MGC alongside GC would add no
+    // information — identical metal, near-identical series — while duplicating
+    // gold's setups in the corpus and inflating the futures class's own
+    // statistics with one market counted twice. The variant loses its sweep
+    // slot for the same reason it loses its scan slot; it keeps its sizing
+    // identity, which is the only thing that differs about it.
+    !(entry.levelflowSymbol !== null && isContractSizeVariant(entry.levelflowSymbol))
+  );
 }
 
 /**

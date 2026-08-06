@@ -43,12 +43,13 @@ describe("row counts — total, per classification, per status", () => {
 
   it("pins the six-way status breakdown", () => {
     assert.deepEqual(rowCountsByStatus(), {
-      "served-and-visible": 47,
+      // MGCUSD became a contract-size variant on 2026-08-05 (owner ruling, contractVariants.ts): micro gold sizes against GCUSD and holds no scan slot, so it moved from served-and-visible to served-but-not-scannable.
+      "served-and-visible": 46,
       "served-but-display-excluded": 1,
       // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
-      "served-but-not-scannable": 28,
+      "served-but-not-scannable": 29,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
@@ -74,9 +75,10 @@ describe("agreement with the live master/visible sets (no re-derivation)", () =>
     assert.equal(servedSymbols().length, 50);
   });
 
-  it("the registry's visible set equals visibleAssetSymbols(null) (the 49) exactly", () => {
+  it("the registry's visible set equals visibleAssetSymbols(null) (the 48) exactly", () => {
     assert.deepEqual(visibleSymbols().sort(), [...visibleAssetSymbols(null)].sort());
-    assert.equal(visibleSymbols().length, 49);
+    // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
+    assert.equal(visibleSymbols().length, 48);
   });
 
   it("every currently-served symbol appears in the registry with a served-compatible status", () => {
@@ -399,8 +401,8 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 66 non-happy-path rows", () => {
-    assert.equal(reentryList().length, 66);
+  it("reentryList() returns exactly the 67 non-happy-path rows", () => {
+    assert.equal(reentryList().length, 67);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

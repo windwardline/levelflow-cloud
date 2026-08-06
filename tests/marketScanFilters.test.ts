@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { isContractSizeVariant } from "../src/lib/broker/contractVariants.ts";
 import {
   filterMarketScanCandidatesByScope,
   filterSymbolsByAvailability,
@@ -148,16 +149,24 @@ describe("amendment 13 — market availability follows the account classificatio
   // further down this describe block — while visibleAssetGroups/
   // visibleAssetSymbols is the one place every user surface (scope menus,
   // the scan trigger, chart selection) reads from.
-  it("shows everything except the offset-display-excluded markets, with no active account", () => {
+  it("shows everything except the display-excluded and size-variant markets, with no active account", () => {
+    // Two withholdings now, on separate grounds: BRENT for its 1.67 offset
+    // (offsets.ts) and MGCUSD as micro gold, a contract-size variant that
+    // sizes against GCUSD and holds no scan slot (contractVariants.ts, owner
+    // ruling 2026-08-05).
     const withoutBrent = AVAILABLE_ASSET_GROUPS.map((group) => ({
       ...group,
-      options: group.options.filter((option) => option.symbol !== "BRENT"),
+      options: group.options.filter((option) =>
+        option.symbol !== "BRENT" && !isContractSizeVariant(option.symbol)
+      ),
     })).filter((group) => group.options.length > 0);
     assert.deepEqual(visibleAssetGroups(null), withoutBrent);
     assert.ok(!visibleAssetSymbols(null).includes("BRENT"));
     assert.deepEqual(
       visibleAssetSymbols(null),
-      AVAILABLE_ASSET_SYMBOLS.filter((symbol) => symbol !== "BRENT"),
+      AVAILABLE_ASSET_SYMBOLS.filter((symbol) =>
+        symbol !== "BRENT" && !isContractSizeVariant(symbol)
+      ),
     );
   });
 
@@ -171,7 +180,7 @@ describe("amendment 13 — market availability follows the account classificatio
       !symbols.includes("BRENT"),
       "BRENT stays display-excluded even where Energies itself is shown",
     );
-    for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "MGCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
+    for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
       assert.ok(!symbols.includes(futures), `${futures} must not be visible`);
     }
   });
@@ -216,18 +225,31 @@ describe("amendment 13 — market availability follows the account classificatio
   // master list (symbolMap.ts's AVAILABLE_ASSET_SYMBOLS, backend broker
   // matching and replay sweeps) stays 50 and keeps BRENT; the visible
   // universe (broker/visibility.ts's visibleAssetSymbols, every user
-  // surface) is 49 and does not.
-  it("splits the 50-symbol identity into master (50, unchanged) vs visible (49) on BRENT's ground", () => {
+  // surface) is 48 and drops two rows on two unrelated grounds — BRENT's
+  // offset, and micro gold being GCUSD's contract-size variant.
+  it("splits the 50-symbol identity into master (50, unchanged) vs visible (48) on BRENT's and micro gold's grounds", () => {
     assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 50, "the master list is unchanged");
     assert.ok(
       AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
       "BRENT's FMP match stays in the master list for replay sweeps",
     );
     const visible = visibleAssetSymbols(null);
-    assert.equal(visible.length, 49, "the visible universe drops by exactly BRENT");
+    assert.equal(
+      visible.length,
+      48,
+      "the visible universe drops BRENT and micro gold, on separate grounds",
+    );
     assert.ok(
       !visible.includes("BRENT"),
       "BRENT is display-excluded — amendment 23's ~196bp offset ground",
+    );
+    assert.ok(
+      !visible.includes("MGCUSD"),
+      "micro gold sizes against GCUSD and holds no scan slot — owner ruling 2026-08-05",
+    );
+    assert.ok(
+      visible.includes("GCUSD"),
+      "gold itself must stay visible — demoting the variant must never cost the market",
     );
   });
 
@@ -296,7 +318,7 @@ describe("amendment 13 fix round 1 — the scope reset also drops the stale scan
 describe("amendment 13 — the scan action never reaches a hidden market", () => {
   it("amendment 13 — the scan action never reaches a hidden market", () => {
     const all = getMarketScanSymbolsForScope({ kind: "all" }, FOREX_ACCOUNT);
-    for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "MGCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
+    for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
       assert.ok(!all.includes(futures));
     }
     assert.ok(all.includes("EURUSD") && all.includes("WTI") && all.includes("XAUUSD"));
