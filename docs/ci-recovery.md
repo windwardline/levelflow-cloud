@@ -1,0 +1,76 @@
+# Recovering CI when GitHub's infrastructure fails
+
+Written from the 2026-08-06 Actions outage, which blocked three armed pull requests for
+seven hours. Three different failures presented as one red PR, and each needed a
+different remedy. Diagnose which one you have before reaching for a fix.
+
+## Diagnose first
+
+`gh pr checks` is not enough. It renders a `cancelled` conclusion as `fail`, and it says
+nothing about a context that was never created. Ask three questions in order.
+
+**Did the check suite exist?**
+
+```bash
+gh api repos/windwardline/levelflow-cloud/commits/<sha>/check-suites \
+  -q '.check_suites[] | "\(.app.slug) \(.status) \(.conclusion) runs=\(.latest_check_runs_count)"'
+```
+
+A suite with `status=queued` and `runs=0` is a run record whose jobs were never created.
+A missing `github-actions` suite means the webhook was dropped entirely.
+
+**Which contexts does the ruleset actually require?**
+
+```bash
+gh api repos/windwardline/levelflow-cloud/rulesets/19863111 \
+  -q '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'
+```
+
+**Are those contexts present and green on the head SHA?**
+
+```bash
+gh api "repos/windwardline/levelflow-cloud/commits/<sha>/check-runs?per_page=100" \
+  -q '.check_runs[] | "\(.name) \(.conclusion)"'
+```
+
+## Remedies, by failure mode
+
+| The run | The remedy |
+|---|---|
+| Ran and failed on infrastructure — `Failed to resolve action download info`, `Bad Gateway`, death at **Set up job** before checkout | `gh run rerun --failed`. `retry-infra-failures.yml` does this automatically, capped at two attempts |
+| Started and was cancelled — *"The job was not acquired by Runner of type hosted even after multiple attempts"* | `gh run rerun`. The run exists; it lost its runner |
+| Never created — no `github-actions` suite on the head SHA | `gh workflow run <file> --ref <branch>`. Dispatch bypasses the webhook path, which is what is broken |
+
+Every required workflow therefore carries `workflow_dispatch`. `ci.yml` did not until this
+outage, which made `build` the one required gate that could not be recovered by hand.
+
+## What does not work
+
+**Close and reopen the PR.** It re-fires `pull_request`, so it helps only when the event
+was lost and webhook delivery has since recovered. During the throttle it produced nothing
+on three attempts. It also clears auto-merge, which then has to be re-armed.
+
+**A fresh push.** Same dependency on the same throttled path.
+
+**`POST /check-suites/{id}/rerequest`.** Returns 404 for Actions-owned suites. The endpoint
+serves third-party apps.
+
+**`gh run cancel` on a stuck suite.** During the outage this answered *"Cannot cancel a
+workflow run that is completed"* for a run the API simultaneously reported as `queued`.
+
+## The pending-suite trap
+
+A `queued` check suite with zero check runs blocks the merge even when every required
+context is present and green on the head SHA — including contexts supplied by a later
+`workflow_dispatch` run. The rollup reads `SUCCESS`, `mergeable` reads `MERGEABLE`, and
+`mergeStateStatus` still reads `BLOCKED`.
+
+The only reliable clear is a new head SHA, because suites attach to a commit. Force-push is
+barred here, so that means an added commit. Prefer one that carries work the branch owes
+anyway over an empty one.
+
+## The standing lesson
+
+The retry workflow catches runs that **failed**. It cannot catch runs that were never
+**created** — nothing fires when nothing happened. `workflow_dispatch` on every required
+workflow is the other half of the mechanism, and both belong in the fleet standard together.
