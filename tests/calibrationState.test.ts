@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import { getCategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { getSessionContext } from "../supabase/functions/trade-analyzer/sessions.ts";
 import { noTradeSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
-import { REVIEW_WINDOW_HOURS_BY_ASSET_TYPE } from "../src/lib/advisorReview.ts";
+import {
+  confidenceThresholdForAssetOrSymbol,
+  reviewWindowHoursForSymbol,
+} from "../src/lib/advisorReview.ts";
 import { REPLAY_RECORD_BY_ASSET_TYPE } from "../src/lib/replayReliability.ts";
 import type { SecurityType } from "../src/lib/symbolMap.ts";
 
@@ -15,15 +18,30 @@ import type { SecurityType } from "../src/lib/symbolMap.ts";
 // this file means someone changed a derived constant without a round —
 // that is the point.
 const STATE = {
-  crypto: { threshold: 82, window: 12, stopCap: 1.8, tp1: 0.4, runner: 0.8, offsets: [0.78, 0.8], payoff: 1.3, newsCap: 4 },
-  energies: { threshold: 69, window: 6, stopCap: 2.4, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
-  forex: { threshold: 40, window: 8, stopCap: 1.4, tp1: 0.4, runner: 0.6, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
-  futures: { threshold: 68, window: 6, stopCap: 1.4, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  indices: { threshold: 68, window: 5, stopCap: 1.8, tp1: 1.2, runner: 1.1, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
+  // Stop caps DERIVED 2026-08-06 from a 102-market grid read by TOTAL R across
+  // both splits. Six classes tightened to 1.0; metals HELD at 1.6 (test R
+  // improves but train degrades, the one class preferring a wider stop); indices
+  // LOOSENED to 3.0, the opposite direction, exactly as the stop-provenance split
+  // predicted. Total test R: forex +30457 -> +49828, crypto +3627 -> +4375,
+  // futures +855 -> +1260, agriculture +161 -> +194, energies +58 -> +119,
+  // livestock +1.4 -> +27.8, indices -32.4 -> -5.6 (still negative, still withheld).
+  //
+  // Agriculture and livestock are new classes and appear in this table for the
+  // first time; both are derived, and livestock's 24h window is what made it
+  // measurable at all.
+  agriculture: { threshold: 30, window: 6, stopCap: 1.0, tp1: 0.4, runner: 0.8, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  livestock: { threshold: 30, window: 24, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  crypto: { threshold: 82, window: 12, stopCap: 1.0, tp1: 0.4, runner: 0.8, offsets: [0.78, 0.8], payoff: 1.3, newsCap: 4 },
+  energies: { threshold: 69, window: 6, stopCap: 1.0, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
+  forex: { threshold: 40, window: 8, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
+  futures: { threshold: 68, window: 6, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  indices: { threshold: 68, window: 5, stopCap: 3.0, tp1: 1.2, runner: 1.1, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
   metals: { threshold: 90, window: 8, stopCap: 1.6, tp1: 0.4, runner: 0.8, offsets: [0.75, 0.78], payoff: 1.25, newsCap: 8 },
 } as const;
 
 const REPRESENTATIVE: Record<keyof typeof STATE, string> = {
+  agriculture: "ZCUSX",
+  livestock: "LEUSX",
   crypto: "BTCUSD",
   energies: "WTI",
   forex: "EURUSD",
@@ -33,6 +51,13 @@ const REPRESENTATIVE: Record<keyof typeof STATE, string> = {
 };
 
 const ASSET_TYPE_BY_CLASS: Record<keyof typeof STATE, SecurityType> = {
+  // Both new classes carry the "Futures" SecurityType: the DISPLAY taxonomy is a
+  // separate axis from the engine's calibration class, and E8 offers corn and
+  // cattle on its futures program. Keeping the two axes independent is what let
+  // agriculture and livestock get their own geometry without inventing a new
+  // display group or moving a single market between account types.
+  agriculture: "Futures",
+  livestock: "Futures",
   crypto: "Crypto",
   energies: "Energies",
   forex: "Forex",
@@ -76,11 +101,22 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
   });
 
   it("keeps the UI review-window mirror in parity for every class", () => {
+    // Resolved by SYMBOL, not by SecurityType. On 2026-08-06 the two stopped
+    // being interchangeable: agriculture and livestock are separate calibration
+    // classes that both DISPLAY as Futures, with windows of 6h and 24h. Keyed by
+    // SecurityType this test could not even express the requirement — and the UI
+    // would have told a lean-hogs user "6h" while the engine used 24.
     for (const [cls, assetType] of Object.entries(ASSET_TYPE_BY_CLASS)) {
+      const symbol = REPRESENTATIVE[cls as keyof typeof STATE];
       assert.equal(
-        REVIEW_WINDOW_HOURS_BY_ASSET_TYPE[assetType],
+        reviewWindowHoursForSymbol(symbol, assetType),
         STATE[cls as keyof typeof STATE].window,
-        `${assetType} review-window mirror drifted from calibration`,
+        `${cls} review-window mirror drifted from calibration`,
+      );
+      assert.equal(
+        confidenceThresholdForAssetOrSymbol(symbol, assetType),
+        STATE[cls as keyof typeof STATE].threshold,
+        `${cls} confidence mirror drifted from calibration`,
       );
     }
   });

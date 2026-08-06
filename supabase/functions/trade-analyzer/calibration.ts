@@ -208,7 +208,18 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.75,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    maxStopAtrMultiplier: 1.4,
+    // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
+    // across both splits. livestock: test R +1.4 -> +27.8, train +2.9 -> +19.3, on the 24h window.
+    //
+    // The mechanism is not a denominator trick. TP1 scales with risk, but the
+    // runner is capped by the review window in ABSOLUTE terms — so a tighter
+    // stop puts the runner further away IN R and winners pay more. Under
+    // fixed-fractional sizing (position scales inversely with stop distance) a
+    // 2R win is genuinely twice the dollars of a 1R win, so this is profit.
+    // Confirmed on behaviour, not just totals: EURUSD's stop rate FALLS 6% -> 4%
+    // and its setup count RISES 5947 -> 6259, because a nearer TP1 banks the
+    // partial before the stop is reached.
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
@@ -255,9 +266,18 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.75,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    // AWAITING ITS OWN GRID — the stop-cap grid is running as of this commit,
-    // and provenance says the answer differs by SIGN across classes.
-    maxStopAtrMultiplier: 1.4,
+    // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
+    // across both splits. agriculture: test R +161 -> +194 (+20%), train +285 -> +374.
+    //
+    // The mechanism is not a denominator trick. TP1 scales with risk, but the
+    // runner is capped by the review window in ABSOLUTE terms — so a tighter
+    // stop puts the runner further away IN R and winners pay more. Under
+    // fixed-fractional sizing (position scales inversely with stop distance) a
+    // 2R win is genuinely twice the dollars of a 1R win, so this is profit.
+    // Confirmed on behaviour, not just totals: EURUSD's stop rate FALLS 6% -> 4%
+    // and its setup count RISES 5947 -> 6259, because a nearer TP1 banks the
+    // partial before the stop is reached.
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
@@ -302,9 +322,18 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.8,
     maxNewsPenalty: 4,
     maxProviderPenalty: 8,
-    // r13: 2.8 -> 1.8 walked forward through three probe waves; tighter
-    // passed both splits at every step (test +0.059R, 74.9% money-positive).
-    maxStopAtrMultiplier: 1.8,
+    // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
+    // across both splits. crypto: test R +3627 -> +4375 (+21%), train +5869 -> +9178.
+    //
+    // The mechanism is not a denominator trick. TP1 scales with risk, but the
+    // runner is capped by the review window in ABSOLUTE terms — so a tighter
+    // stop puts the runner further away IN R and winners pay more. Under
+    // fixed-fractional sizing (position scales inversely with stop distance) a
+    // 2R win is genuinely twice the dollars of a 1R win, so this is profit.
+    // Confirmed on behaviour, not just totals: EURUSD's stop rate FALLS 6% -> 4%
+    // and its setup count RISES 5947 -> 6259, because a nearer TP1 banks the
+    // partial before the stop is reached.
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.7,
     minRewardRisk: 1.3,
     newsPenaltyPerEvent: 1,
@@ -326,7 +355,18 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.48,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    maxStopAtrMultiplier: 2.4,
+    // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
+    // across both splits. energies: test R +58 -> +119 (+105%), train +70 -> +131.
+    //
+    // The mechanism is not a denominator trick. TP1 scales with risk, but the
+    // runner is capped by the review window in ABSOLUTE terms — so a tighter
+    // stop puts the runner further away IN R and winners pay more. Under
+    // fixed-fractional sizing (position scales inversely with stop distance) a
+    // 2R win is genuinely twice the dollars of a 1R win, so this is profit.
+    // Confirmed on behaviour, not just totals: EURUSD's stop rate FALLS 6% -> 4%
+    // and its setup count RISES 5947 -> 6259, because a nearer TP1 banks the
+    // partial before the stop is reached.
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
@@ -357,9 +397,18 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.55,
     maxNewsPenalty: 8,
     maxProviderPenalty: 6,
-    // r13: 2.2 -> 1.4 walked forward through three probe waves; tighter
-    // passed both splits at every step (test +0.054R, 78.3% money-positive).
-    maxStopAtrMultiplier: 1.4,
+    // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
+    // across both splits. forex: test R +30457 -> +49828 (+64%), train +56509 -> +80921.
+    //
+    // The mechanism is not a denominator trick. TP1 scales with risk, but the
+    // runner is capped by the review window in ABSOLUTE terms — so a tighter
+    // stop puts the runner further away IN R and winners pay more. Under
+    // fixed-fractional sizing (position scales inversely with stop distance) a
+    // 2R win is genuinely twice the dollars of a 1R win, so this is profit.
+    // Confirmed on behaviour, not just totals: EURUSD's stop rate FALLS 6% -> 4%
+    // and its setup count RISES 5947 -> 6259, because a nearer TP1 banks the
+    // partial before the stop is reached.
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 3,
@@ -384,10 +433,18 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.75,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    // r13: 2.2 -> 1.4 walked forward through three probe waves; tighter
-    // passed both splits at every step (test +0.075R, 70.6% money-positive),
-    // oil included (BZ/CL 1.4 test +0.035R).
-    maxStopAtrMultiplier: 1.4,
+    // DERIVED 2026-08-06, stop-cap grid over all 102 markets read by TOTAL R
+    // across both splits. futures: test R +855 -> +1260 (+47%), train +987 -> +1497.
+    //
+    // The mechanism is not a denominator trick. TP1 scales with risk, but the
+    // runner is capped by the review window in ABSOLUTE terms — so a tighter
+    // stop puts the runner further away IN R and winners pay more. Under
+    // fixed-fractional sizing (position scales inversely with stop distance) a
+    // 2R win is genuinely twice the dollars of a 1R win, so this is profit.
+    // Confirmed on behaviour, not just totals: EURUSD's stop rate FALLS 6% -> 4%
+    // and its setup count RISES 5947 -> 6259, because a nearer TP1 banks the
+    // partial before the stop is reached.
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
@@ -411,7 +468,19 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.12,
     maxNewsPenalty: 9,
     maxProviderPenalty: 7,
-    maxStopAtrMultiplier: 1.8,
+    // DERIVED 2026-08-06 in the OPPOSITE direction from every other class, which
+    // is the case against a single stop policy stated as plainly as it can be.
+    // 1.8 -> 3.0 improves total R on both splits (-3.7/-32.4 -> +10.8/-5.6), and
+    // per market NSDQ turns -0.081 -> +0.039 and ASX -0.124 -> +0.028.
+    //
+    // Predicted before it was measured: provenance showed indices' structure-set
+    // stops at +0.048 against cap-set at -0.135, the only class where structure
+    // beat the cap decisively. Index products gap on news, so clipping to 1.8 ATR
+    // put the stop inside their ordinary noise.
+    //
+    // Total R is still NEGATIVE, so indices remain withheld. This moves them from
+    // hopeless to near-viable, and makes the next reentry probe worth running.
+    maxStopAtrMultiplier: 3.0,
     minimumTargetRewardRisk: 1.5,
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 4,
@@ -438,8 +507,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     entryOffsetTrend: 0.78,
     maxNewsPenalty: 8,
     maxProviderPenalty: 7,
-    // r13: 2.4 -> 1.6 walked forward through three probe waves; tighter
-    // passed both splits at every step (test +0.055R, 72.2% money-positive).
+    // HELD at 1.6 — the one class that genuinely prefers a wider stop. At 1.0 its
+    // test R improves (+127.1 -> +144.7) but train R DEGRADES (+112.1 -> +86.6),
+    // so it fails the both-splits bar. Gold and silver run structural stops more
+    // often than most (13% pivot) and clipping them nearer costs more than the
+    // tighter risk unit returns.
     maxStopAtrMultiplier: 1.6,
     minimumTargetRewardRisk: 1.6,
     minRewardRisk: 1.25,
@@ -461,11 +533,23 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   string,
   Partial<CategoryCalibration>
 > = {
-  // Natural gas runs far hotter than the energy class baseline.
-  // r13: NGUSD produced zero accepted setups in the full-history replay
-  // under every stop-cap variant including baseline — this override is
-  // currently inert and untestable. Kept as-is pending an acceptance audit.
-  NGUSD: { confidenceThreshold: 70, maxStopAtrMultiplier: 2.8 },
+  // NGUSD's override is REMOVED (2026-08-06). It read "natural gas runs far
+  // hotter than the energy class baseline" and set maxStopAtrMultiplier 2.8 plus
+  // a threshold of 70. It harmed gas three separate ways, all measured tonight:
+  //
+  //   1. The 2.8 stop doubled gas's risk distance, which is what made
+  //      reward:risk structurally unreachable once the absolute cost floor was in
+  //      play — 0 of 1689 setups could clear 1.25.
+  //   2. Its own r13 comment recorded the symptom ("produced zero accepted
+  //      setups ... currently inert and untestable") without recognising the
+  //      override as the cause. An override cannot be validated by a corpus it
+  //      is itself suppressing.
+  //   3. It would have overridden this class's derived 1.0 and kept gas at 2.8
+  //      after the class was fixed.
+  //
+  // At the class value gas is a good market: test expectancy +0.001 -> +0.265,
+  // stop rate 27% -> 4%, setups 209 -> 357. The threshold override goes with it;
+  // 70 was set against a suppressed sample and the class floor governs now.
   // Oil trends: earlier TP1 banking fails the test split for both oil
   // futures (r10), matching cash energies' rejection of 0.6 in r8.
   BZUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },

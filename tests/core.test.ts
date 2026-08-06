@@ -699,9 +699,14 @@ describe("confidence tiers", () => {
         "src/components/workspace/historyUtils.ts",
       ]
     ) {
+      // Either export satisfies the requirement, which is that the threshold
+      // comes from the calibration mirror rather than a literal. Since 2026-08-06
+      // the symbol-aware resolver is the correct one: agriculture and livestock
+      // are separate calibration classes that both DISPLAY as Futures, so the
+      // SecurityType table alone would report futures' 68 for corn's 30.
       assert.match(
         readFileSync(file, "utf8"),
-        /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE/,
+        /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE|confidenceThresholdForAssetOrSymbol/,
         `${file} must resolve its class threshold from the calibration mirror`,
       );
     }
