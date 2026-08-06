@@ -215,7 +215,8 @@ describe("amendment 13 — market availability follows the account classificatio
   it("deletes nothing — the full universe is still reachable from the modules", () => {
     const source = readFileSync("src/lib/broker/visibility.ts", "utf8");
     assert.doesNotMatch(source, /NO_TRADE_SYMBOLS|TEMPORARILY_HIDDEN/);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 50);
+    // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 51);
   });
 
   // Amendment 23's offset ruling (owner, 2026-08-05): the same "nothing
@@ -227,8 +228,8 @@ describe("amendment 13 — market availability follows the account classificatio
   // universe (broker/visibility.ts's visibleAssetSymbols, every user
   // surface) is 48 and drops two rows on two unrelated grounds — BRENT's
   // offset, and micro gold being GCUSD's contract-size variant.
-  it("splits the 50-symbol identity into master (50, unchanged) vs visible (48) on BRENT's and micro gold's grounds", () => {
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 50, "the master list is unchanged");
+  it("splits the master identity into knowable (51) vs visible (48) on BRENT's and the size variants' grounds", () => {
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 51, "the knowable master list");
     assert.ok(
       AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
       "BRENT's FMP match stays in the master list for replay sweeps",

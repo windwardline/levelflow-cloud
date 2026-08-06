@@ -434,6 +434,13 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "NKD - Nikkei 225 Futures",
         symbol: "NKD",
       },
+      {
+        assetType: "Futures",
+        description: "Mini-DAX Futures",
+        fmpSymbol: "^GDAXI",
+        label: "FDXM - Mini-DAX Futures",
+        symbol: "FDXM",
+      },
     ],
   },
   {

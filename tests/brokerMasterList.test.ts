@@ -51,7 +51,7 @@ describe("row counts — total, per classification, per status", () => {
       // on an analyzed and acceptable match and they have no sweep evidence yet.
       // 29 -> 54: the Crypto account's other 25 were onboarded 2026-08-06 and
       // land here, analyzed and withheld, exactly as the nineteen futures did.
-      "served-but-not-scannable": 54,
+      "served-but-not-scannable": 55,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
@@ -60,7 +60,10 @@ describe("row counts — total, per classification, per status", () => {
       // 25 crypto mates on 2026-08-06, which leaves FDXM alone: the same
       // ^GDAXI series as FDAX at a different contract size, held pending the
       // owner's micro/mini ruling.
-      "mapped-not-yet-onboarded": 1,
+      // 0: every matched market is onboarded. The status stays in the union
+      // because it names a real future state — a market discovered and matched
+      // before it is wired — not because anything occupies it today.
+      "mapped-not-yet-onboarded": 0,
       "excluded-no-fmp-source": 7,
       "offered-but-unsizeable": 4,
     });
@@ -74,9 +77,10 @@ describe("row counts — total, per classification, per status", () => {
 });
 
 describe("agreement with the live master/visible sets (no re-derivation)", () => {
-  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 50) exactly", () => {
+  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 51) exactly", () => {
     assert.deepEqual(servedSymbols().sort(), [...AVAILABLE_ASSET_SYMBOLS].sort());
-    assert.equal(servedSymbols().length, 50);
+    // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
+    assert.equal(servedSymbols().length, 51);
   });
 
   it("the registry's visible set equals visibleAssetSymbols(null) (the 48) exactly", () => {
@@ -226,101 +230,47 @@ describe("the seven futures with no usable FMP source", () => {
   });
 });
 
-describe("the cash-index proxy futures (owner-accepted 2026-08-05)", () => {
-  // Amendment 23's situational-offset protocol: each of these was posed to
-  // the owner individually, with the instrument, the candidate series, its
-  // depth, and a suggested verdict — then accepted. The basis here is
-  // categorically different from the three constants in offsets.ts. Those are
-  // stable, measured, and safe to add to a price. A futures-vs-cash basis is
-  // carry: it varies and decays to expiry, which is exactly why these rows
-  // record only the FMP identity and never a basis number.
-  // All five were accepted. Four were onboarded into symbolMap.ts the same
-  // day under the owner's represent-and-analyze directive, so they are served
-  // rows now (gated no-trade until swept) and are pinned as such below.
-  // FDXM alone remains unonboarded: it reads the same ^GDAXI series as FDAX
-  // and differs only in contract size, which is the open micro/mini-variant
-  // question the owner has not ruled on.
-  const PROXIES: ReadonlyArray<[string, string]> = [
-    ["FDXM", "^GDAXI"],
-  ];
+describe("the five recovered cash-proxy futures, all onboarded", () => {
+  // Recovered 2026-08-05 once the authoritative `commodities-list` endpoint
+  // replaced the empty `commodity-list` the first sweep queried. All five are
+  // served rows now: FESX, FDAX, EMD and NKD as analyzed markets withheld
+  // pending their sweep, and FDXM as FDAX's contract-size variant — same
+  // ^GDAXI series, different notional (contractVariants.ts).
   const ONBOARDED: ReadonlyArray<[string, string]> = [
     ["FESX", "^STOXX50E"],
     ["EMD", "^MID"],
     ["FDAX", "^GDAXI"],
     ["NKD", "^N225"],
+    ["FDXM", "^GDAXI"],
   ];
 
-  it("keeps the four onboarded proxies served, mapped, and withheld", () => {
+  it("maps all five to their series, with E8's root as the Levelflow symbol", () => {
     for (const [broker, fmp] of ONBOARDED) {
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, `${broker} must have a row`);
       assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
-      assert.equal(entry!.levelflowSymbol, broker, "the Levelflow symbol is E8's own root");
-      assert.equal(
-        entry!.status,
-        "served-but-not-scannable",
-        `${broker} is analyzed and withheld until a sweep proves it`,
-      );
-    }
-  });
-
-  it("maps the unonboarded proxy to its series", () => {
-    for (const [broker, fmp] of PROXIES) {
-      const entry = findMasterListRowByBrokerName(broker);
-      assert.ok(entry, `${broker} must have a row`);
-      assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
-      // FDXM is genuinely still unonboarded — unlike the crypto mates and the
-      // four sibling proxies, which are served rows now. It waits on the
-      // owner's micro/mini ruling, not on a sweep.
-      assert.equal(entry!.status, "mapped-not-yet-onboarded");
+      assert.equal(entry!.levelflowSymbol, broker);
       assert.equal(entry!.classification, "futures");
-      assert.equal(
-        entry!.levelflowSymbol,
-        null,
-        `${broker} is mapped, not onboarded — no Levelflow symbol may exist yet`,
-      );
+      assert.equal(entry!.status, "served-but-not-scannable");
     }
   });
 
-  it("keeps FDAX and FDXM on one series — size is a sizing fact, not a data one", () => {
-    assert.equal(findMasterListRowByBrokerName("FDAX")!.fmpSymbol, "^GDAXI");
-    assert.equal(findMasterListRowByBrokerName("FDXM")!.fmpSymbol, "^GDAXI");
+  it("sweeps the four analyzed markets and not the size variant", () => {
+    const swept = new Set(sweepUniverse().map((entry) => entry.levelflowSymbol));
+    for (const broker of ["FESX", "EMD", "FDAX", "NKD"]) {
+      assert.ok(swept.has(broker), `${broker} must be swept`);
+    }
+    assert.ok(!swept.has("FDXM"), "FDXM is FDAX's market — sweeping it twice teaches nothing");
   });
 
   it("lets a futures row share a series with an already-served CFD row", () => {
-    // FDAX/^GDAXI and NKD/^N225 duplicate the series Levelflow's DAX and
-    // NIKKEI rows already read. Under amendment 24 the futures account is a
-    // distinct product, so one market can be included on one account type and
-    // excluded on another — which requires exactly this duplication. A test
-    // that forbade it would forbid the amendment.
-    const served = new Set(
-      MASTER_LIST_ROWS
-        .filter((entry) => entry.levelflowSymbol !== null && entry.fmpSymbol !== null)
-        .map((entry) => entry.fmpSymbol!),
-    );
-    assert.ok(served.has("^GDAXI"), "the CFD DAX row should already read ^GDAXI");
-    assert.ok(served.has("^N225"), "the CFD NIKKEI row should already read ^N225");
+    // FDAX/^GDAXI and NKD/^N225 duplicate the series Levelflow's DAX and NIKKEI
+    // rows read. Amendment 24 makes the futures account a distinct product with
+    // its own verdict, so this duplication is required, not accidental.
     assert.equal(findMasterListRowByBrokerName("FDAX")!.fmpSymbol, "^GDAXI");
     assert.equal(findMasterListRowByBrokerName("NKD")!.fmpSymbol, "^N225");
   });
-
-  it("carries every proxy into the sweep universe — a match is always swept", () => {
-    // Amendment 23 ruling A.2: the sweep runs against every mapped row
-    // regardless of display state, and amendment 24 makes each one a standing
-    // candidate both directions at every sweep.
-    const swept = new Set(sweepUniverse().map((entry) => entry.brokerName));
-    for (const [broker] of PROXIES) {
-      assert.ok(swept.has(broker), `${broker} must appear in sweepUniverse()`);
-    }
-  });
-
-  it("makes every proxy a reentry candidate — none is a settled verdict", () => {
-    for (const [broker] of PROXIES) {
-      assert.equal(findMasterListRowByBrokerName(broker)!.reentryCandidate, true);
-    }
-  });
 });
-
 describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-resolution-2026-08-05.md §4)", () => {
   // The doc's own 26-row table, literal. BNBUSD is the one row already
   // served (its own row is generated from symbolMap.ts, not hand-authored

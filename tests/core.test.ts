@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { isContractSizeVariant } from "../src/lib/broker/contractVariants.ts";
 import {
   CONFIDENCE_TIERS,
   formatConfidenceWithTier,
@@ -159,18 +160,27 @@ describe("asset catalog", () => {
     // nor `blocked`. Drift here would leave the stage showing a stale ladder
     // under a rail that found nothing, so it fails the build instead.
     assert.deepEqual(
+      // Contract-size variants are excluded from the comparison, not exempted
+      // from the rule. AVAILABLE_ASSET_SYMBOLS is the knowable-and-sizeable
+      // list; a variant sits there so it earns a BROKER_INSTRUMENTS sizing row,
+      // and visibleAssetGroups filters it before any user surface. So it is
+      // never a market "the menu offers" — this test's actual subject — and the
+      // scan correctly never attempts it, because it reads its parent's series.
       AVAILABLE_ASSET_SYMBOLS.filter(
         (symbol) =>
-          !isKnownSymbol(symbol) || isTemporarilyUnavailableSymbol(symbol) ||
-          !defaultScanSymbols.includes(symbol),
+          !isContractSizeVariant(symbol) &&
+          (!isKnownSymbol(symbol) || isTemporarilyUnavailableSymbol(symbol) ||
+            !defaultScanSymbols.includes(symbol)),
       ),
       [],
     );
     // And the other direction: the default universe a scan of "All markets"
-    // walks is exactly the menu, so no scanned market is unreachable from it.
+    // walks is exactly the menu, so no scanned market is unreachable from it —
+    // the menu being the knowable list minus contract-size variants, which are
+    // present for sizing and are never a market the scan should walk.
     assert.deepEqual(
       [...defaultScanSymbols].sort(),
-      [...AVAILABLE_ASSET_SYMBOLS].sort(),
+      [...AVAILABLE_ASSET_SYMBOLS].filter((symbol) => !isContractSizeVariant(symbol)).sort(),
     );
   });
 });

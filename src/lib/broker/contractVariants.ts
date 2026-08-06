@@ -43,6 +43,11 @@ export const CONTRACT_SIZE_VARIANTS: Readonly<Record<string, string>> = {
   // carry published E8 sizing data — so this row keeps its sizing identity and
   // loses only its claim to a scan slot.
   MGCUSD: "GCUSD",
+  // Eurex mini-DAX against FDAX's full-size contract. Both are live on the F9
+  // futures-account sighting (FDXMU6 26154.0 alongside FDAXU6 26151.0) and both
+  // read the SAME ^GDAXI series — so the price action is not merely similar, it
+  // is identical. Nothing to analyze twice; everything to size differently.
+  FDXM: "FDAX",
 };
 
 /**

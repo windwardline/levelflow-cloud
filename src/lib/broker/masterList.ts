@@ -378,32 +378,12 @@ const NO_FMP_SOURCE_FUTURES_ROWS: MasterListRow[] = NO_FMP_SOURCE_FUTURES.map(
 // only in contract size, which is the open micro/mini-variant question (one row
 // per contract size, or one row per underlying with size handled at the
 // ladder?) the owner has not yet ruled on.
-const CASH_PROXY_FUTURES: ReadonlyArray<{
-  broker: string;
-  fmp: string;
-  ground: string;
-}> = [
-  {
-    broker: "FDXM",
-    fmp: "^GDAXI",
-    ground:
-      `Eurex mini-DAX future, the mini-sized sibling of FDAX, live on the F9 sighting. Reads the same cash index (^GDAXI) as FDAX — the contracts differ only in notional size, which is a SIZING fact instruments.ts carries, never a data-identity difference. Owner-accepted 2026-08-05 as matched on the futures account.`,
-  },
-];
-
-const CASH_PROXY_FUTURES_ROWS: MasterListRow[] = CASH_PROXY_FUTURES.map(
-  (entry) =>
-    row({
-      levelflowSymbol: null,
-      classification: "futures",
-      securityType: "Futures",
-      brokerName: entry.broker,
-      fmpSymbol: entry.fmp,
-      status: "mapped-not-yet-onboarded",
-      ground: entry.ground,
-      source: FUTURES_ACCOUNT_SOURCE,
-    }),
-);
+// All five recovered cash-proxy futures are onboarded now — FESX, FDAX, EMD
+// and NKD on 2026-08-05, and FDXM on 2026-08-06 once the contract-size ruling
+// settled what it is: FDAX's mini sibling on the identical ^GDAXI series, so a
+// sizing variant rather than a market of its own (contractVariants.ts).
+// SERVED_ROWS generates all five; the hand-carried block is gone rather than
+// left standing empty.
 
 // ---------------------------------------------------------------------------
 // New: 6J and 6M, offered per amendment 19 but unsizeable per amendment 22,
@@ -456,7 +436,6 @@ const UNSIZEABLE_BACKEND_ROWS: MasterListRow[] = UNSIZEABLE_BACKEND_FUTURES.map(
 export const MASTER_LIST_ROWS: readonly MasterListRow[] = [
   ...SERVED_ROWS,
   ...NO_FMP_SOURCE_FUTURES_ROWS,
-  ...CASH_PROXY_FUTURES_ROWS,
   ...UNSIZEABLE_BACKEND_ROWS,
 ];
 

@@ -269,10 +269,34 @@ export const noTradeSymbols = new Set<string>([
 // Scan-path exclusion set: everything no-trade, by definition.
 export const noScanSymbols = noTradeSymbols;
 
+/**
+ * Contract-size variants — the same market at a different notional, so never a
+ * scan slot of its own (owner ruling 2026-08-05).
+ *
+ * Deliberately NOT a second reason to withhold a market, which is why it is not
+ * folded into noScanSymbols: "the scan skips it" and "the server refuses it" are
+ * one condition in this file by documented design, and a variant is neither. It
+ * is a market the server knows and can size, whose PRICE ACTION already belongs
+ * to another row — MGC reads gold, FDXM reads FDAX's ^GDAXI. Scanning it would
+ * put one opportunity on the board twice and count one outcome twice in the
+ * record every calibration decision reads.
+ *
+ * Duplicated from src/lib/broker/contractVariants.ts rather than imported: this
+ * is a Deno-global Edge Function module and cannot reach src/, the same boundary
+ * that makes this file's symbolMap its own independent copy. The two are pinned
+ * to each other by test rather than by import, as every other fact spanning this
+ * boundary is.
+ */
+export const contractSizeVariants = new Set([
+  "MGCUSD",
+  "FDXM",
+]);
+
 export const defaultScanSymbols = Object.keys(symbolMap).filter(
   (symbol) =>
     !temporarilyUnavailableSymbols.has(symbol) &&
-    !noScanSymbols.has(symbol),
+    !noScanSymbols.has(symbol) &&
+    !contractSizeVariants.has(symbol),
 );
 
 export function isKnownSymbol(symbol: string) {

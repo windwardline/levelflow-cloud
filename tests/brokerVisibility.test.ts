@@ -321,7 +321,7 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     const variantCount = MASTER_LIST_ROWS.filter((entry) =>
       entry.levelflowSymbol !== null && isContractSizeVariant(entry.levelflowSymbol)
     ).length;
-    assert.equal(variantCount, 1);
+    assert.equal(variantCount, 2);
     assert.equal(sweptCount, MASTER_LIST_ROWS.length - noFmpCount - variantCount);
   });
 });

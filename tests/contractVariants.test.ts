@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { describe, it } from "node:test";
 import {
   CONTRACT_SIZE_VARIANTS,
@@ -45,16 +47,23 @@ describe("contract-size variants are sized, never scanned (owner ruling 2026-08-
     }
   });
 
-  it("keeps every variant's parent scannable — a variant may never orphan its market", () => {
-    // The failure this catches: excluding a variant while its parent is itself
-    // withheld would silently remove the underlying market from Levelflow
-    // altogether. Gold must not vanish because micro gold was demoted.
+  it("keeps every variant's parent ANALYZED — a variant may never orphan its market", () => {
+    // The failure this catches: demoting a variant whose parent is measured
+    // nowhere would remove the underlying market from Levelflow entirely. Gold
+    // must not vanish because micro gold was demoted.
+    //
+    // The bar is ANALYZED, not scannable, and this test is why the distinction
+    // got written down: when FDXM was declared FDAX's variant on 2026-08-06,
+    // requiring a scannable parent failed a CORRECT ruling, because FDAX is
+    // itself withheld pending its own sweep. Nothing is lost while both are
+    // withheld — FDAX is that market's analyzed representation and its
+    // visibility is a separate, pending decision. What would genuinely orphan
+    // the market is a parent absent from the sweep universe.
+    const swept = new Set(sweepUniverse().map((entry) => entry.levelflowSymbol));
     for (const [variant, parent] of Object.entries(CONTRACT_SIZE_VARIANTS)) {
       assert.ok(
-        scannableSymbolsFor("futures").includes(parent) ||
-          scannableSymbolsFor("forex").includes(parent) ||
-          scannableSymbolsFor("crypto").includes(parent),
-        `${variant}'s parent ${parent} is not scannable anywhere — the market would be lost`,
+        swept.has(parent),
+        `${variant}'s parent ${parent} is not swept anywhere — the market would be lost`,
       );
     }
   });
@@ -257,5 +266,42 @@ describe("a Forex account carries eight crypto CFDs, not the Crypto account's se
       !onCrypto.has("BNBUSD"),
       "BNBUSD is withheld by its own no-trade gate, not by the Forex carve-out",
     );
+  });
+});
+
+// The variant rule spans the Deno/browser boundary, so it is declared twice and
+// pinned to itself. src/lib/broker/contractVariants.ts governs the client and
+// the registry; trade-analyzer/symbols.ts governs the server's scan universe.
+// Neither can import the other — that boundary is why this file's symbolMap is
+// its own copy — so drift is caught here instead.
+describe("the variant register is identical on both sides of the Deno boundary", () => {
+  it("declares the same symbols in the Edge Function as in src", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/symbols.ts",
+      "utf8",
+    );
+    const block = source.match(
+      /export const contractSizeVariants = new Set\(\[([\s\S]*?)\]\);/,
+    );
+    assert.ok(block, "the Edge Function must declare contractSizeVariants");
+    const edgeSide = [...block![1].matchAll(/"([A-Z0-9]+)"/g)].map((m) => m[1]).sort();
+    assert.deepEqual(
+      edgeSide,
+      Object.keys(CONTRACT_SIZE_VARIANTS).sort(),
+      "a variant added on one side of the boundary must be added on the other",
+    );
+  });
+
+  it("keeps every variant out of the server's default scan universe", () => {
+    // The failure this caught when it was written: MGCUSD was filtered from the
+    // client resolver but still sat in defaultScanSymbols, so the scan door
+    // would have walked micro gold and duplicated gold in the corpus — the
+    // exact double-count the ruling exists to prevent, surviving the ruling.
+    for (const variant of Object.keys(CONTRACT_SIZE_VARIANTS)) {
+      assert.ok(
+        !defaultScanSymbols.includes(variant),
+        `${variant} must not be in the server's scan universe`,
+      );
+    }
   });
 });

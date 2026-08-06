@@ -142,6 +142,7 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
     "FDAX",
     "EMD",
     "NKD",
+    "FDXM",
   ],
   indices: ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"],
   metals: ["XAGUSD", "XAUUSD"],

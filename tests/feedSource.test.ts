@@ -171,6 +171,7 @@ describe("feed source lock (§20i ruling 8)", () => {
       TRUMPUSD: "OTRUMPUSD",
       EMD: "^MID",
       FDAX: "^GDAXI",
+      FDXM: "^GDAXI",
       FESX: "^STOXX50E",
       NKD: "^N225",
     };
