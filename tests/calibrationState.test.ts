@@ -136,9 +136,19 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
   });
 
   it("pins the no-trade menu exactly", () => {
+    // Eight until 2026-08-05, then 52: the nineteen E8 futures and the Crypto
+    // account's other twenty-five were onboarded under the owner's standing
+    // order — every market E8 trades with a confirmed FMP match is represented
+    // and analyzed — and the same order withholds them until a sweep produces an
+    // acceptable result. Listed literally, so promoting or demoting a market is
+    // always a deliberate edit here as well as a calibration decision.
+    //
+    // FDXM is absent by design: it is a contract-size variant of FDAX
+    // (contractVariants.ts), excluded from the scan on different grounds than
+    // "withheld pending evidence" — it is never a market of its own.
     assert.deepEqual(
       [...noTradeSymbols].sort(),
-      ["BNBUSD", "DAX", "DOW", "HGUSD", "NGUSD", "NIKKEI", "NSDQ", "SP"],
+      ["AAVEUSD", "ALGOUSD", "ARWUSD", "ATOMUSD", "AVAXUSD", "BNBUSD", "CAKEUSD", "DASHUSD", "DAX", "DOGEUSD", "DOTUSD", "DOW", "DYDXUSD", "EGLDUSD", "EMD", "ETCUSD", "FDAX", "FESX", "FILUSD", "GFUSX", "GRTUSD", "HBARUSD", "HEUSX", "HGUSD", "HOUSD", "IMXUSD", "LEUSX", "LINKUSD", "NEARUSD", "NGUSD", "NIKKEI", "NKD", "NSDQ", "PAUSD", "PLUSD", "RBUSD", "SP", "THETAUSD", "TRUMPUSD", "TRXUSD", "UNIUSD", "XLMUSD", "XMRUSD", "XTZUSD", "ZCUSX", "ZFUSD", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD"],
     );
   });
 
