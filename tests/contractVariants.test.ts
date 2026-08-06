@@ -9,6 +9,7 @@ import {
   variantsOf,
 } from "../src/lib/broker/contractVariants.ts";
 import { MASTER_LIST_ROWS, sweepUniverse } from "../src/lib/broker/masterList.ts";
+import { isExcludedForAccountType } from "../src/lib/broker/exclusions.ts";
 import {
   FOREX_ACCOUNT_CRYPTO_CFDS,
   OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE,
@@ -244,12 +245,12 @@ describe("a Forex account carries eight crypto CFDs, not the Crypto account's se
   });
 
   it("leaves the Crypto and Futures accounts untouched by the carve-out", () => {
-    // OFFERED and SCANNABLE are different facts, and BNBUSD is why: E8 prices
-    // it on both account types, so it belongs in the eight, but Levelflow gates
-    // it no-trade pending a promotion decision (a live candidate now that the
-    // execution-cost defect is fixed). The carve-out must not be what withholds
-    // it — its own gate is — so this checks the majors that are actually
-    // onboarded, and separately proves the carve-out never touches Crypto.
+    // OFFERED and SCANNABLE are different facts, and BNBUSD used to be why: E8
+    // prices it on both account types, so it belongs in the eight, but
+    // Levelflow gated it no-trade pending a promotion decision — until round 28
+    // (2026-08-06) promoted it alongside 48 other markets. This checks the
+    // majors that are actually onboarded, and separately proves the carve-out
+    // never touches Crypto.
     const onCrypto = new Set(scannableSymbolsFor("crypto"));
     const onFutures = new Set(scannableSymbolsFor("futures"));
     let checked = 0;
@@ -262,9 +263,43 @@ describe("a Forex account carries eight crypto CFDs, not the Crypto account's se
       );
     }
     assert.ok(checked >= 7, `expected the onboarded majors, checked ${checked}`);
+
+    // MECHANISM, NOT MEMBERSHIP (owner, 2026-08-06). This used to probe BNBUSD
+    // by name, on the ground that it was withheld by its own no-trade gate
+    // rather than by the carve-out — true while BNBUSD sat on the no-trade
+    // list, false now that round 28 released it (it reaches both Crypto and
+    // Forex today, being one of the eight). The property that survives is
+    // structural: scannableSymbolsFor's carve-out clause reads
+    // `classification !== "forex" || ...`, so it short-circuits away for
+    // "crypto" and "futures" and can never narrow either. Proven by
+    // recomputing each account type's set from a formula that never mentions
+    // FOREX_ACCOUNT_CRYPTO_CFDS at all and requiring an exact match — if the
+    // carve-out secretly reached Crypto or Futures, this formula (which never
+    // applies it) would disagree with the real resolver.
+    const securityTypeBySymbol = new Map(
+      SECURITY_OPTIONS.map((option) => [option.symbol, option.assetType]),
+    );
+    const expectedCrypto = AVAILABLE_ASSET_SYMBOLS.filter((symbol) =>
+      securityTypeBySymbol.get(symbol) === "Crypto" &&
+      !isContractSizeVariant(symbol) &&
+      !isExcludedForAccountType(symbol, "crypto")
+    );
+    const expectedFutures = AVAILABLE_ASSET_SYMBOLS.filter((symbol) =>
+      securityTypeBySymbol.get(symbol) === "Futures" &&
+      !isContractSizeVariant(symbol) &&
+      !isExcludedForAccountType(symbol, "futures")
+    );
+    assert.deepEqual([...onCrypto].sort(), expectedCrypto.sort());
+    assert.deepEqual([...onFutures].sort(), expectedFutures.sort());
+
+    // And the carve-out is live, not vacuous: the Crypto account carries
+    // majors beyond the Forex account's eight-CFD carve-out.
+    const cryptoBeyondCarveOut = [...onCrypto].filter((symbol) =>
+      !FOREX_ACCOUNT_CRYPTO_CFDS.has(symbol)
+    );
     assert.ok(
-      !onCrypto.has("BNBUSD"),
-      "BNBUSD is withheld by its own no-trade gate, not by the Forex carve-out",
+      cryptoBeyondCarveOut.length > 0,
+      "the Crypto account must carry majors beyond the Forex carve-out's eight",
     );
   });
 });

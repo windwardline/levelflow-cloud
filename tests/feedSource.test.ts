@@ -49,6 +49,12 @@ const FROZEN_FALLBACK_ENTRIES: string[] = [];
 // (economic calendar), and replay-sweep (offline research) are FMP consumers
 // outside the price-identity claim but inside the single-provider rule.
 const FMP_FILE_ALLOWLIST = [
+  // The 1-minute availability probe (2026-08-06). Answers whether FMP serves
+  // intraday bars fine enough to adjudicate the intrabar ordering 15-minute
+  // replay cannot — the ceiling that made round 25 decline a measured gain. It
+  // asks for bar counts and date ranges and nothing else: read-only, offline,
+  // and never a second price path into the product.
+  "scripts/probe-minute-bars.ts",
   "scripts/replay-sweep.ts",
   // The match-confirmation gate (owner directive, 2026-08-05): probes every
   // master-list row's FMP mate for real, deep, current bars and exits

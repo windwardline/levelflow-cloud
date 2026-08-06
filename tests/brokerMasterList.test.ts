@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { AVAILABLE_ASSET_SYMBOLS } from "../src/lib/symbolMap.ts";
+import { AVAILABLE_ASSET_SYMBOLS, NO_TRADE_SYMBOLS } from "../src/lib/symbolMap.ts";
 import { visibleAssetSymbols } from "../src/lib/broker/visibility.ts";
 import {
   findMasterListRow,
@@ -316,10 +316,13 @@ describe("the seven futures with no usable FMP source", () => {
 
 describe("the five recovered cash-proxy futures, all onboarded", () => {
   // Recovered 2026-08-05 once the authoritative `commodities-list` endpoint
-  // replaced the empty `commodity-list` the first sweep queried. All five are
-  // served rows now: FESX, FDAX, EMD and NKD as analyzed markets withheld
-  // pending their sweep, and FDXM as FDAX's contract-size variant — same
-  // ^GDAXI series, different notional (contractVariants.ts).
+  // replaced the empty `commodity-list` the first sweep queried, and onboarded
+  // withheld pending their own sweep. Round 28 (2026-08-06) was that sweep for
+  // four of the five: FESX, FDAX, EMD and NKD cleared the bar and are
+  // served-and-visible now. FDXM alone stays served-but-not-scannable, and not
+  // because of the release — it is FDAX's contract-size variant (same ^GDAXI
+  // series, different notional, contractVariants.ts), a gate the calibration
+  // sweep does not touch.
   const ONBOARDED: ReadonlyArray<[string, string]> = [
     ["FESX", "^STOXX50E"],
     ["EMD", "^MID"],
@@ -335,7 +338,13 @@ describe("the five recovered cash-proxy futures, all onboarded", () => {
       assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
       assert.equal(entry!.levelflowSymbol, broker);
       assert.equal(entry!.classification, "futures");
-      assert.equal(entry!.status, "served-but-not-scannable");
+      // FDXM's variant status is independent of the no-trade release, so it
+      // is the one exception to "cleared the sweep, now served-and-visible".
+      assert.equal(
+        entry!.status,
+        broker === "FDXM" ? "served-but-not-scannable" : "served-and-visible",
+        broker,
+      );
     }
   });
 
@@ -403,7 +412,9 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
     assert.equal(entry!.brokerName, "ARWUSD");
     assert.equal(entry!.fmpSymbol, "ARUSD");
     assert.notEqual(entry!.brokerName, entry!.fmpSymbol);
-    assert.equal(entry!.status, "served-but-not-scannable");
+    // Round 28 (2026-08-06) released this market from the no-trade list —
+    // served-and-visible now, not served-but-not-scannable.
+    assert.equal(entry!.status, "served-and-visible");
   });
 
   it("the TRUMPUSD trap: FMP's literal TRUMPUSD ticker is NOT the match", () => {
@@ -412,17 +423,25 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
     assert.equal(entry!.brokerName, "TRUMPUSD");
     assert.equal(entry!.fmpSymbol, "OTRUMPUSD");
     assert.notEqual(entry!.fmpSymbol, "TRUMPUSD");
-    assert.equal(entry!.status, "served-but-not-scannable");
+    // Round 28 (2026-08-06) released this market from the no-trade list —
+    // served-and-visible now, not served-but-not-scannable.
+    assert.equal(entry!.status, "served-and-visible");
   });
 
-  it("marks all 25 new mates mapped-not-yet-onboarded, and BNBUSD separately as served-but-not-scannable", () => {
+  it("gives all 26 mates their own Levelflow symbol, and status follows NO_TRADE_SYMBOLS live", () => {
+    // MECHANISM, NOT MEMBERSHIP (owner, 2026-08-06). This used to assert that
+    // all 25 new mates shared one status (served-but-not-scannable) and
+    // BNBUSD carried it separately — true the day they were onboarded pending
+    // their first sweep, false the moment round 28 judged them: 25 of the 26
+    // cleared the bar and are served-and-visible, and DYDXUSD alone did not
+    // (genuinely negative at 90% survival — symbolMap.ts's NO_TRADE_SYMBOLS).
+    // Which ones clear the bar is exactly the calibration verdict the owner's
+    // standing order forbids freezing into a test. What is NOT re-decided
+    // every sweep, and what this asserts instead: every one of the 26 is
+    // onboarded (its own Levelflow symbol, E8's own spelling, never FMP's),
+    // and its status is whichever of the two onboarded-and-served outcomes
+    // the live no-trade list implies.
     for (const broker of Object.keys(CRYPTO_MATES)) {
-      // Every one of the 26 is ONBOARDED as of 2026-08-06 — the owner's
-      // standing order requires that a market E8 trades with a confirmed FMP
-      // match be analyzed, and a row with no Levelflow symbol cannot be: the
-      // replay resolves by Levelflow symbol. So each now carries E8's own name
-      // as its symbol and sits withheld, not unmapped. BNBUSD was already in
-      // this state and is no longer the exception.
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, `${broker} must have a registry row`);
       assert.equal(
@@ -430,16 +449,15 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
         broker,
         `${broker}'s Levelflow symbol is E8's own name, never FMP's`,
       );
+      const expectedStatus = NO_TRADE_SYMBOLS.has(broker)
+        ? "served-but-not-scannable"
+        : "served-and-visible";
       assert.equal(
         entry!.status,
-        "served-but-not-scannable",
-        `${broker} is analyzed and withheld until a sweep proves it`,
+        expectedStatus,
+        `${broker} should be "${expectedStatus}" given its current NO_TRADE_SYMBOLS membership`,
       );
     }
-    const bnb = findMasterListRow("BNBUSD");
-    assert.ok(bnb);
-    assert.equal(bnb!.status, "served-but-not-scannable");
-    assert.equal(bnb!.levelflowSymbol, "BNBUSD");
   });
 
   it("keeps both name traps pointing at the right FMP series", () => {

@@ -9,7 +9,7 @@ import {
   reviewWindowHoursForSymbol,
 } from "../src/lib/advisorReview.ts";
 import { REPLAY_RECORD_BY_ASSET_TYPE } from "../src/lib/replayReliability.ts";
-import type { SecurityType } from "../src/lib/symbolMap.ts";
+import { NO_TRADE_SYMBOLS, type SecurityType } from "../src/lib/symbolMap.ts";
 
 // The state of record after the 23-round calibration arc (2026-07-30,
 // docs/trade-model.md "Current engine state"). Every value here was
@@ -44,7 +44,12 @@ const STATE = {
   energies: { threshold: 85, window: 6, stopCap: 1.0, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
   forex: { threshold: 20, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
   futures: { threshold: 25, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  indices: { threshold: 68, window: 5, stopCap: 3.0, tp1: 1.2, runner: 1.0, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
+  // window/stopCap/tp1 re-derived round 28 (2026-08-06): the 5h window and the
+  // 3.0 stop cap were, together, why the cash indices generated almost no
+  // setups — the review window closed before a TP1 that far out could
+  // resolve, and 37% geometry-survival went to 96% once corrected jointly with
+  // tp1RiskShare. runner and threshold are unchanged.
+  indices: { threshold: 68, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
   metals: { threshold: 30, window: 8, stopCap: 1.6, tp1: 0.4, runner: 0.8, offsets: [0.75, 0.78], payoff: 1.25, newsCap: 8 },
 } as const;
 
@@ -180,21 +185,21 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     }
   });
 
-  it("pins the no-trade menu exactly", () => {
-    // Eight until 2026-08-05, then 52: the nineteen E8 futures and the Crypto
-    // account's other twenty-five were onboarded under the owner's standing
-    // order — every market E8 trades with a confirmed FMP match is represented
-    // and analyzed — and the same order withholds them until a sweep produces an
-    // acceptable result. Listed literally, so promoting or demoting a market is
-    // always a deliberate edit here as well as a calibration decision.
-    //
-    // FDXM is absent by design: it is a contract-size variant of FDAX
-    // (contractVariants.ts), excluded from the scan on different grounds than
-    // "withheld pending evidence" — it is never a market of its own.
-    assert.deepEqual(
-      [...noTradeSymbols].sort(),
-      ["AAVEUSD", "ALGOUSD", "ARWUSD", "ATOMUSD", "AVAXUSD", "BNBUSD", "CAKEUSD", "DASHUSD", "DAX", "DOGEUSD", "DOTUSD", "DOW", "DYDXUSD", "EGLDUSD", "EMD", "ETCUSD", "FDAX", "FESX", "FILUSD", "GFUSX", "GRTUSD", "HBARUSD", "HEUSX", "HGUSD", "HOUSD", "IMXUSD", "LEUSX", "LINKUSD", "NEARUSD", "NGUSD", "NIKKEI", "NKD", "NSDQ", "PAUSD", "PLUSD", "RBUSD", "SP", "THETAUSD", "TRUMPUSD", "TRXUSD", "UNIUSD", "XLMUSD", "XMRUSD", "XTZUSD", "ZCUSX", "ZFUSD", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD"],
-    );
+  it("keeps the server's no-trade list and the client's mirror identical, live", () => {
+    // MECHANISM, NOT MEMBERSHIP (owner, 2026-08-06). This used to pin
+    // noTradeSymbols' full 52-symbol membership as a literal — a calibration
+    // verdict frozen into a test, so it broke the instant round 28 released 49
+    // of the 52 (the nineteen E8 futures and the Crypto account's other
+    // twenty-five had been onboarded withheld pending a sweep; the sweep is
+    // what this round was). tests/securityHardening.test.ts already proves
+    // each live NO_TRADE_SYMBOLS entry is textually wired through both source
+    // files' scan-exclusion code paths. What membership pinning was actually
+    // standing in for, and the reason this test still earns its place: the
+    // server's noTradeSymbols (trade-analyzer/symbols.ts, imported above) and
+    // the client's NO_TRADE_SYMBOLS (symbolMap.ts) must be the SAME set, live
+    // — not two lists someone remembered to keep parallel by hand.
+    assert.ok(noTradeSymbols.size > 0, "a no-trade list of zero would make this vacuous");
+    assert.deepEqual([...noTradeSymbols].sort(), [...NO_TRADE_SYMBOLS].sort());
   });
 
   it("pins the cohort version string", () => {

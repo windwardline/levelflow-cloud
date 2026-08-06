@@ -1714,3 +1714,65 @@ broker's first sweep before reading any expectancy as a verdict.
 cattle) to 27% (rough rice), while the healthy core of the universe runs 73-99%.
 300 filled setups: the smallest sample any exclusion considered tonight would
 have needed to survive scrutiny.
+
+## Amendment 26
+
+**No exclusion is permanent, and every market is re-judged every sweep** (owner,
+2026-08-06).
+
+Every tradable E8 market is live, in its proper place, across and limited to the
+three account types. The only grounds for withholding one:
+
+1. no FMP counterpart, or
+2. the engine cannot produce viable setups for it.
+
+Everything withheld remains on the master list and remains a candidate for later
+inclusion — should FMP add a source, or should the data justify it. A market held
+out on ground (2) must have been individually tuned first; a starved market is to
+be **corrected**, not recorded.
+
+**What this repeals.** Any standing exclusion that reads as a property of a
+market rather than as a current measurement. The owner's own earlier calls
+included: r12's cash-index category verdict, r14's NGUSD/HGUSD "can only ever
+return no setup", and r16's BNBUSD split-disagreement hold. All three were honest
+readings at the time and all three were wrong about the markets — each traced to
+a defect in our own parameters, and each market returned once the defect was
+fixed. The owner's words: an earlier exclusion "is not an indictment on them as
+markets and should not be treated as permanent."
+
+**How it is enforced.** Tests may not name markets as literals in order to assert
+they are excluded. Membership belongs to `noTradeSymbols` and its mirror, derived
+per sweep; tests read the live list and assert the wiring around it — that
+everything withheld is unreachable on every account type, and that everything
+served and not withheld is reachable somewhere. Freezing membership into test
+literals is what turned a data change into a test edit, and it is how a
+provisional verdict came to look like law.
+
+## Amendment 27
+
+**§18's attribution carries FOUR session blocks, not three** (owner, 2026-08-06).
+
+The four major global sessions are Sydney, Tokyo, London and New York. The
+Attribution slice named only the last three, so every setup created while Sydney
+led the day was reported under Asia.
+
+**Pacific** joins, by SPLITTING the old wrapping Asia block at midnight UTC
+rather than redrawing the clock:
+
+| block | UTC | hours |
+|---|---|---|
+| Pacific | 22:00 – 00:00 | 2 |
+| Asia | 00:00 – 07:00 | 7 |
+| Europe | 07:00 – 13:00 | 6 |
+| US | 13:00 – 22:00 | 9 |
+
+07:00, 13:00 and 22:00 keep the meaning they already had, and 00:00 is the only
+new boundary — so the three surviving blocks keep history comparable with what
+comes next. A boundary move would have silently re-bucketed already-resolved
+setups and made every prior Asia, Europe and US figure incomparable.
+
+Sydney trades 08:00–17:00 local at UTC+10, so it opens at 22:00 UTC and leads
+Tokyo — UTC+9, opening 00:00 UTC — by two hours. Those two hours are Pacific
+alone; from 00:00 the two overlap and Tokyo is the larger book, so Asia carries
+them. "Pacific" rather than "Sydney" keeps the regional naming the other three
+use, and it is accurate: Wellington opens earlier still.

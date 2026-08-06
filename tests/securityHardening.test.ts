@@ -1,3 +1,4 @@
+import { NO_TRADE_SYMBOLS } from "../src/lib/symbolMap.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
@@ -188,9 +189,21 @@ describe("security hardening", () => {
     );
     const symbolMap = readFileSync("src/lib/symbolMap.ts", "utf8");
 
-    // The measured no-trade list (r15): server truth in noTradeSymbols,
-    // scan exclusion aliased to it, UI mirror in NO_TRADE_SYMBOLS.
-    for (const sym of ["SP", "NSDQ", "DOW", "NIKKEI", "DAX", "NGUSD", "HGUSD", "BNBUSD"]) {
+    // The measured no-trade list: server truth in noTradeSymbols, scan
+    // exclusion aliased to it, UI mirror in NO_TRADE_SYMBOLS.
+    // MECHANISM, NOT MEMBERSHIP (owner, 2026-08-06). This used to name SP, NSDQ,
+    // DOW, NIKKEI, DAX, NGUSD, HGUSD and BNBUSD as literals, which made a
+    // calibration verdict read as a permanent property of those markets. It is
+    // not: "every single market is subject to inclusion/exclusion every time we
+    // run a replay sweep and tune the engine." Three of those eight came back
+    // the moment a defect of ours was fixed, and the literals were what made
+    // that a test edit instead of a data change.
+    //
+    // So the assertion reads the LIVE list and checks the wiring around it.
+    // Whichever markets calibration puts there are enforced everywhere; which
+    // markets those are belongs to calibration.ts and the sweep, not here.
+    assert.ok(NO_TRADE_SYMBOLS.size > 0, "a no-trade list of zero would make this vacuous");
+    for (const sym of NO_TRADE_SYMBOLS) {
       assert.match(symbols, new RegExp(`noTradeSymbols = new Set<string>\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`));
       assert.match(symbolMap, new RegExp(`NO_TRADE_SYMBOLS = new Set\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`));
     }

@@ -26,6 +26,7 @@ import {
   getRelatedSymbols,
   isKnownSymbol,
   isTemporarilyUnavailableSymbol,
+  noTradeSymbols,
   resolveProviderSymbols,
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
@@ -46,6 +47,7 @@ import {
   AVAILABLE_ASSET_GROUPS,
   AVAILABLE_ASSET_SYMBOLS,
   CORRELATION_GROUPS,
+  NO_TRADE_SYMBOLS,
   formatSecurityLabel,
   getCorrelationGroup as getUiCorrelationGroup,
   isAvailableAssetSymbol,
@@ -65,9 +67,12 @@ describe("asset catalog", () => {
   it("keeps the public asset list focused and sorted by category, base, then quote", () => {
     assert.deepEqual(
       AVAILABLE_ASSET_GROUPS.map((group) => group.label),
-      // Indices vanished in r15: every member is on the measured no-trade
-      // list, so the group has no generatable options.
-      ["Crypto", "Energies", "Forex", "Futures", "Metals"],
+      // Indices vanished in r15 (every member sat on the measured no-trade
+      // list) and came back in round 28 (2026-08-06): SP, NSDQ, DOW, DAX and
+      // NIKKEI cleared the bar once the starved geometry — not the market —
+      // was fixed. ASX stays absent from this group on a SEPARATE ground
+      // (TEMPORARILY_HIDDEN_ASSET_SYMBOLS, an unverified chart feed).
+      ["Crypto", "Energies", "Forex", "Futures", "Indices", "Metals"],
     );
 
     const forex = AVAILABLE_ASSET_GROUPS.find(
@@ -84,34 +89,78 @@ describe("asset catalog", () => {
       "CHFJPY",
     ]);
 
+    // 7 -> 32 (round 28, 2026-08-06): the owner's standing order onboarded the
+    // Crypto account's other 25 mates plus BNBUSD's reentry, all sorted in by
+    // base symbol like every other row here.
     const crypto = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Crypto",
     )?.options.map((option) => option.symbol);
     assert.deepEqual(crypto, [
+      "AAVEUSD",
       "ADAUSD",
+      "ALGOUSD",
+      "ARWUSD",
+      "ATOMUSD",
+      "AVAXUSD",
       "BCHUSD",
+      "BNBUSD",
       "BTCUSD",
+      "CAKEUSD",
+      "DASHUSD",
+      "DOGEUSD",
+      "DOTUSD",
+      "EGLDUSD",
+      "ETCUSD",
       "ETHUSD",
+      "FILUSD",
+      "GRTUSD",
+      "HBARUSD",
+      "IMXUSD",
+      "LINKUSD",
       "LTCUSD",
+      "NEARUSD",
       "SOLUSD",
+      "THETAUSD",
+      "TRUMPUSD",
+      "TRXUSD",
+      "UNIUSD",
+      "XLMUSD",
+      "XMRUSD",
       "XRPUSD",
+      "XTZUSD",
     ]);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("BNBUSD"), false);
+    // Was false: BNBUSD sat on the measured no-trade list until round 28
+    // (2026-08-06) released it alongside the other 48. The crypto list above
+    // already proves it structurally; this pin keeps the specific fact named.
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("BNBUSD"), true);
 
     const energies = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Energies",
     )?.options.map((option) => option.symbol);
     assert.deepEqual(energies, ["BRENT", "WTI"]);
 
-    const indices = AVAILABLE_ASSET_GROUPS.find(
-      (group) => group.label === "Indices",
+    // MECHANISM, NOT MEMBERSHIP (owner, 2026-08-06). This block asserted that
+    // the Indices group did not exist and that SP, NGUSD, HGUSD and ASX were
+    // unavailable — a calibration verdict frozen into a catalog test. All four
+    // are available now, three of them because defects of OURS were fixed
+    // rather than because the markets changed. The catalog's job is to expose
+    // exactly what is served and withhold exactly what is not; which markets
+    // those are is the sweep's answer, re-asked every round.
+    const withheld = [...AVAILABLE_ASSET_SYMBOLS].filter((symbol) =>
+      NO_TRADE_SYMBOLS.has(symbol)
     );
-    assert.equal(indices, undefined);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("NGUSD"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("HGUSD"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("ASX"), false);
-    assert.equal(isAvailableAssetSymbol("ASX"), false);
+    assert.deepEqual(withheld, [], "a withheld market must not be available");
+    for (const symbol of NO_TRADE_SYMBOLS) {
+      assert.equal(isAvailableAssetSymbol(symbol), false, symbol);
+    }
+    // Every group that renders carries at least one option, and every option in
+    // it is available — no empty category, no phantom row.
+    for (const group of AVAILABLE_ASSET_GROUPS) {
+      assert.ok(group.options.length > 0, `${group.label} renders empty`);
+      for (const option of group.options) {
+        assert.ok(isAvailableAssetSymbol(option.symbol), option.symbol);
+      }
+    }
   });
 
   it("formats user-facing asset labels without provider fallback details", () => {
@@ -145,7 +194,14 @@ describe("asset catalog", () => {
         group.options.map((option) => option.symbol)
       ),
     );
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
+    // Read live rather than name a symbol: SP was the fixed example while
+    // indices sat wholesale on the no-trade list, and round 28 (2026-08-06)
+    // released it. Any current no-trade symbol proves the same point — it is
+    // absent from the flattened list the deepEqual above just proved equals
+    // AVAILABLE_ASSET_SYMBOLS.
+    for (const symbol of NO_TRADE_SYMBOLS) {
+      assert.equal(AVAILABLE_ASSET_SYMBOLS.includes(symbol), false, symbol);
+    }
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
 
@@ -403,14 +459,23 @@ describe("trade analyzer category handling", () => {
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
     assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
     // r15 re-derivation retired the old CHF-pair and crypto-alt exclusions;
-    // r16 made the menu binary — the only exclusions are the measured
-    // no-trade list (cash indices, NGUSD, HGUSD, BNBUSD), out of every scan.
-    assert.equal(defaultScanSymbols.includes("NSDQ"), false);
+    // The menu is binary: whatever calibration currently withholds is out of
+    // every scan, and nothing else is. Read from the live list rather than
+    // naming markets — the 2026-08-06 standing order makes membership a
+    // per-sweep answer, not a standing fact about any market.
+    for (const symbol of noTradeSymbols) {
+      assert.equal(defaultScanSymbols.includes(symbol), false, symbol);
+    }
     assert.equal(defaultScanSymbols.includes("USDCHF"), true);
     assert.equal(defaultScanSymbols.includes("SOLUSD"), true);
-    assert.equal(defaultScanSymbols.includes("BNBUSD"), false);
-    assert.equal(defaultScanSymbols.includes("NGUSD"), false);
-    assert.equal(defaultScanSymbols.includes("HGUSD"), false);
+    // All three were false: round 28 (2026-08-06) released BNBUSD (r16's split
+    // disagreement is gone at +0.219/+0.244) and NGUSD/HGUSD — round 14's "zero
+    // accepted setups" on them was an absolute cost floor exceeding their
+    // entire risk distance, a defect of ours, not a fact about natural gas or
+    // copper.
+    assert.equal(defaultScanSymbols.includes("BNBUSD"), true);
+    assert.equal(defaultScanSymbols.includes("NGUSD"), true);
+    assert.equal(defaultScanSymbols.includes("HGUSD"), true);
     assert.equal(isKnownSymbol("NSDQ"), true);
     assert.equal(isKnownSymbol("USDCHF"), true);
     assert.equal(defaultScanSymbols.includes("WTI"), true);

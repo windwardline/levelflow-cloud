@@ -216,7 +216,10 @@ describe("amendment 13 — market availability follows the account classificatio
     const source = readFileSync("src/lib/broker/visibility.ts", "utf8");
     assert.doesNotMatch(source, /NO_TRADE_SYMBOLS|TEMPORARILY_HIDDEN/);
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 58);
+    // 58 -> 107 (round 28, 2026-08-06): AVAILABLE is derived through
+    // NO_TRADE_SYMBOLS, so releasing 49 markets grows it by 49 — the same
+    // module, the same "nothing deleted" property, over a bigger universe.
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 107);
   });
 
   // Amendment 23's offset ruling (owner, 2026-08-05): the same "nothing
@@ -224,12 +227,14 @@ describe("amendment 13 — market availability follows the account classificatio
   // 50-symbol identity that used to describe both "the master list" and
   // "what's visible" in one number now names two different things: the
   // master list (symbolMap.ts's AVAILABLE_ASSET_SYMBOLS, backend broker
-  // matching and replay sweeps) stays 50 and keeps BRENT; the visible
-  // universe (broker/visibility.ts's visibleAssetSymbols, every user
-  // surface) is 48 and drops two rows on two unrelated grounds — BRENT's
-  // offset, and micro gold being GCUSD's contract-size variant.
-  it("splits the master identity into knowable (58) vs visible (48) on BRENT's and the size variants' grounds", () => {
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 58, "the knowable master list");
+  // matching and replay sweeps) and the visible universe
+  // (broker/visibility.ts's visibleAssetSymbols, every user surface), which
+  // drops rows on grounds of its own — BRENT's offset and micro gold's
+  // contract-size variant status — on top of whatever the master list itself
+  // withholds. 58/48 until round 28 (2026-08-06); the release moved both
+  // numbers by the same 49, so the two-row gap between them is unchanged.
+  it("splits the master identity into knowable (107) vs visible (97) on BRENT's and the size variants' grounds", () => {
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 107, "the knowable master list");
     assert.ok(
       AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
       "BRENT's FMP match stays in the master list for replay sweeps",
@@ -237,7 +242,7 @@ describe("amendment 13 — market availability follows the account classificatio
     const visible = visibleAssetSymbols(null);
     assert.equal(
       visible.length,
-      48,
+      97,
       "the visible universe drops BRENT and micro gold, on separate grounds",
     );
     assert.ok(

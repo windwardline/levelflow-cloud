@@ -84,7 +84,12 @@ export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
   Energies: 6,
   Forex: 8,
   Futures: 6,
-  Indices: 5,
+  // 5 -> 8 (round 28, 2026-08-06). The five-hour window was half of why the
+  // cash indices were starved: it capped the runner so near that no plan could
+  // satisfy minimumTargetRewardRisk against a TP1 required further out than the
+  // stop. Derived jointly with tp1RiskShare and the stop cap, because those
+  // three could not be derived one at a time.
+  Indices: 8,
   Metals: 8,
 };
 

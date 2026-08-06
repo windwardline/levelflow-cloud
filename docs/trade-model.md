@@ -1331,3 +1331,90 @@ lesson, one level deeper: two coupled levers cannot be derived one at a time.
 indices sit just above the 33% line. Every other market on the list survives
 64% or better, and 83 of them at 90% or better. Before tonight's corrections the
 condition was pervasive.
+
+## Round-28 (2026-08-06) — the starvation was ours, and the exclusions were not permanent
+
+Owner order, and the one that governs the rest of this section: **every tradable
+E8 market is live, in its proper place, across and limited to the three account
+types.** The only grounds for withholding are (a) no FMP counterpart, or (b) the
+engine cannot produce viable setups. Everything withheld stays a candidate for
+later inclusion. No exclusion is permanent, and every market is re-judged at
+every replay sweep.
+
+### The indices starvation, attacked rather than recorded
+
+Round 27 recorded that the cash indices refused 63% of decisions reaching the
+geometry stage and named a joint stop-cap × runner-ceiling search as the next
+lever. That search ran: **96 variants** over stop cap, review window, runner
+ceiling and `minimumTargetRewardRisk`. Survival moved **one point**, 37% → 38%,
+and the grid named the then-current setting as its own best combination. Four
+levers ruled out.
+
+The cause was the value left fixed. `tp1RiskShare` sat at **1.2** where every
+other class runs 0.4–0.8 — TP1 required FURTHER out than the stop itself. At a
+3.0 ATR stop that asked for 3.6 ATR of room inside a five-hour window. No plan
+could satisfy it, and the refusal surfaced as `planRejected`, which names nothing
+about TP1.
+
+| | before | after |
+|---|---|---|
+| geometry survival | 37% | **96%** |
+| setups | 512 | **1,421** |
+| train R | +25.3 | **+38.2** |
+| test R | +7.4 | **+19.2** |
+
+Shipped: `tp1RiskShare` 1.2 → 0.4, stop cap 3.0 → 1.0, review window 5 → 8,
+`tp1AtrMultiplier` 0.5 → 0.3. Stop provenance flips from pivot 84% to cap 100%,
+in line with the other classes. The threshold **holds at 68**: no floor survives
+the monotone rule, and 68 is the threshold the winning variant was measured at,
+so moving it would invalidate the measurement that justifies the release.
+
+r12's "confidence does not rank outcomes out-of-sample" was drawn on a sample
+this defect had already cut to a third. The ranking finding still stands at the
+new geometry — bands bounce without monotone structure — but it was never
+evidence about the markets.
+
+### Oats, the same shape
+
+An 81-variant joint grid over four holdouts rescued one. At the agriculture class
+values ZOUSX refused 56% of decisions and read as split disagreement (+0.001
+train / −0.168 test). It was a market being asked for the wrong shape: a 24-hour
+window, a 1.4 stop and a 1.0 runner give survival 44% → 69%, setups 473 → 748,
+and **+26.8 train / +12.9 test**. The same window is what made livestock
+measurable — oats is the thinnest grain E8 lists, and a five-hour window asks a
+slow book for a move it does not make.
+
+### What is live, and the three that are not
+
+`noTradeSymbols` went **52 → 3**. Released: 43 markets with both-splits-positive
+records from the final sweep, the five cash indices once un-starved, and oats
+once re-geometried. Three prior exclusions turned out to be defects of ours —
+NGUSD and HGUSD ("zero accepted setups; generation can only ever return no
+setup", r14) were the absolute cost floor, and BNBUSD's r16 split disagreement is
+gone at +0.219/+0.244.
+
+What remains, both on ground (b):
+
+- **ZFUSD and ZTUSD** — 4% and 1% geometry survival, 67 and 9 accepted setups
+  across FULL history. 81 joint variants, not one produces a both-splits positive
+  record on even 200 setups. Rates futures move in ticks against a yield curve
+  and the ATR ladder has no purchase on them. The ground is generation volume,
+  not expectancy, so no expectancy claim is made about either — amendment 25 is
+  not being sidestepped.
+- **DYDXUSD** — −493.1 train R against +27.2 test across 3,777 setups at 90%
+  survival. Not starved; the sample is the market's own.
+
+### Mechanism, not membership
+
+The tests that enforced these exclusions named markets as literals, which made a
+calibration verdict read as a permanent property. Three of eight came back the
+moment a defect was fixed, and the literals were what turned a data change into a
+test edit. Those assertions now read the LIVE withheld list and check the wiring
+around it. Which markets sit there is calibration's answer, re-asked every round.
+
+### The harness gained a cross product
+
+`--grid` now crosses semicolon-separated axes. One axis behaves exactly as
+before. It had to exist because levers downstream of risk are not separable — and
+it is what found `tp1RiskShare`, which no single axis could show, because every
+axis alone is starved at every value it tries.

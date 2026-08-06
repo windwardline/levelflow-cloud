@@ -10,7 +10,24 @@ import type { MarketScanCandidate, MarketScanResponse } from "./tradeAnalyzer";
 // The server enforces its own cap (MAX_SCAN_SYMBOLS, currently 15);
 // tests/scanBatching.test.ts reads it out of the analyzer source and fails if
 // this number ever rises above it.
-export const SCAN_SYMBOLS_PER_REQUEST = 10;
+//
+// 10 -> 15 on 2026-08-06, because the universe nearly doubled. Round 28's
+// release took AVAILABLE_ASSET_SYMBOLS from 58 markets to 107, which took a full
+// scan from 6 chunked requests to 11 — and 11 against the analyzer's 40/minute
+// scan budget no longer carried the e2e suite's peak window. Fifteen is the
+// server's own cap, so it opens no door the server did not already hold.
+//
+// CPU still cannot be reached: the #168 benchmark put a 50-market request at
+// ~1.84s against Supabase's 2s budget, so 15 markets is roughly 0.55s — a 3.6x
+// margin, against 5.4x at ten. The 2026-08-02 failures were 50-market requests;
+// this is under a third of one.
+//
+// It does NOT change FMP spend for a scan. A scan's provider cost is markets x
+// ~7 calls regardless of how the markets are grouped, so chunk size moves the
+// request count and nothing else. That distinction matters, because the request
+// count is what the rate limit governs and the call count is what FMP's
+// 3,000/minute governs — two ceilings, and only one of them is helped here.
+export const SCAN_SYMBOLS_PER_REQUEST = 15;
 
 // How many of those requests are in flight at once. Two, not five: the whole
 // fan-out shares one rate-limit budget and one FMP account, and the point of
