@@ -254,11 +254,15 @@ describe("no-FMP-source rows and NOT_SCANNABLE rows never appear in any account 
     assert.ok(!scannableSymbolsFor(null).includes("BNBUSD"));
   });
 
-  it("the twelve no-FMP-source futures orphans never appear — they carry no Levelflow symbol to appear as", () => {
+  it("the seven no-FMP-source futures orphans never appear — they carry no Levelflow symbol to appear as", () => {
     const orphanBrokerNames = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "excluded-no-fmp-source")
       .map((entry) => entry.brokerName);
-    assert.equal(orphanBrokerNames.length, 12);
+    // Was twelve until 2026-08-05, when FDAX/FDXM/FESX/NKD/EMD were matched to
+    // owner-accepted cash-index proxies. They are still absent from every
+    // account type's resolved set — being mapped is not being onboarded — but
+    // they are no longer counted here.
+    assert.equal(orphanBrokerNames.length, 7);
     for (const classification of ["forex", "crypto", "futures"] as const) {
       const resolved = new Set(scannableSymbolsFor(classification));
       for (const brokerName of orphanBrokerNames) {
@@ -289,10 +293,10 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     }
   });
 
-  it("excludes only the twelve rows with no FMP mate at all — nothing the new exclusion register names", () => {
+  it("excludes only the seven rows with no FMP mate at all — nothing the new exclusion register names", () => {
     const sweptCount = sweepUniverse().length;
     const noFmpCount = MASTER_LIST_ROWS.filter((entry) => entry.fmpSymbol === null).length;
-    assert.equal(noFmpCount, 12);
+    assert.equal(noFmpCount, 7);
     assert.equal(sweptCount, MASTER_LIST_ROWS.length - noFmpCount);
   });
 });

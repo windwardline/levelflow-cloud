@@ -26,8 +26,9 @@ import { visibleAssetSymbols } from "./visibility";
 //     generated from symbolMap.ts below since it already has one).
 //   - docs/research/e8-futures-account-2026-08-03.md — the futures
 //     account's own FMP sweep: matches, USX-suffixed roots, micro-variants
-//     sharing their parents' sources, and the twelve names with no FMP
-//     source at all.
+//     sharing their parents' sources, the twelve names the futures-account sweep found with no FMP
+//     source, five of which were recovered on 2026-08-05 once the
+//     authoritative `commodities-list` endpoint was used.
 //   - docs/research/e8-feed-verification-2026-08-02.md — F12's 6J/6M spot
 //     mates (inverted), and (via symbolMap.ts's own fmpSymbol field,
 //     already resolved by the earlier F-series frames) the forex/CFD side.
@@ -313,30 +314,20 @@ const NEW_CRYPTO_ROWS: MasterListRow[] = NEW_CRYPTO_MATES.map(([broker, fmp]) =>
 const FUTURES_ACCOUNT_SOURCE = "docs/research/e8-futures-account-2026-08-03.md";
 
 const NO_FMP_SOURCE_FUTURES_GROUND: Record<string, string> = {
-  FDAX: `Eurex-listed index future, live on the F9 futures-account sighting; absent from every FMP list checked in the futures-account sweep (${FUTURES_ACCOUNT_SOURCE} §3).`,
-  FDXM: `Eurex-listed index future (the mini-sized sibling of FDAX), live on the F9 sighting; absent from every FMP list checked (${FUTURES_ACCOUNT_SOURCE} §3).`,
-  FESX: `Eurex-listed index future, live on the F9 sighting; absent from every FMP list checked (${FUTURES_ACCOUNT_SOURCE} §3).`,
-  FGBL: `Eurex-listed rates future, live on the F9 sighting; absent from every FMP list checked (${FUTURES_ACCOUNT_SOURCE} §3).`,
+  FGBL: `Eurex-listed rates future, live on the F9 sighting. FMP DOES carry it — /quote returns name "Euro Bund Futures" at 125.27, yearHigh 130.57, yearLow 123.72, with 1091 daily bars — so the earlier "absent from every FMP list" verdict was wrong (that sweep queried \`commodity-list\`, which returns zero entries; the real endpoint is \`commodities-list\`). Excluded on GRANULARITY instead: the finest bars FMP serves are 1-hour (164 of them) and 4-hour (307). The analyzer's primary timeframe is 15-minute and it resamples upward, so there is nothing to feed it. Re-probe the intraday endpoints at any future sweep — this exclusion turns the moment 15-minute bars appear (verified 2026-08-05).`,
   FGBM: `Eurex-listed rates future, live on the F9 sighting; absent from every FMP list checked (${FUTURES_ACCOUNT_SOURCE} §3).`,
   FGBS: `Eurex-listed rates future, live on the F9 sighting; absent from every FMP list checked (${FUTURES_ACCOUNT_SOURCE} §3).`,
   FGBX: `Eurex-listed rates future, live on the F9 sighting; absent from every FMP list checked (${FUTURES_ACCOUNT_SOURCE} §3).`,
-  NKD: `CME Nikkei future — E8-canonical, confirmed OFFERED (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.NKD) — but no FMP source found for the futures contract itself in the sweep (${FUTURES_ACCOUNT_SOURCE} §3). Levelflow's own NIKKEI row (above) reads a cash index (^N225), a different instrument this row does not stand in for.`,
-  EMD: `CME E-mini S&P MidCap 400 future — E8-canonical, confirmed OFFERED (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.EMD) — no FMP source found in the sweep (${FUTURES_ACCOUNT_SOURCE} §3).`,
   UB: `CME Ultra Treasury Bond future, live-priced on the F9 sighting; no Levelflow row exists and no FMP source was found in the sweep (${FUTURES_ACCOUNT_SOURCE} §2-3).`,
   TN: `CME Ultra 10-Year Treasury Note future, live-priced on the F9 sighting; no Levelflow row exists and no FMP source was found in the sweep (${FUTURES_ACCOUNT_SOURCE} §2-3).`,
-  ZW: `CME Chicago wheat future — E8-canonical, confirmed OFFERED with full published sizing data (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.ZW) — but only Kansas/KC wheat (FMP's KEUSX) appears on FMP, not Chicago wheat. The should/can split's clean negative case: E8 offers a fully-priced instrument FMP cannot supply (${FUTURES_ACCOUNT_SOURCE} §3).`,
+  ZW: `CME Chicago wheat future — E8-canonical, confirmed OFFERED with full published sizing data (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.ZW) — but only Kansas/KC wheat (FMP's KEUSX) appears on FMP, not Chicago wheat. The should/can split's clean negative case: E8 offers a fully-priced instrument FMP cannot supply (${FUTURES_ACCOUNT_SOURCE} §3). Re-confirmed 2026-08-05 against the authoritative \`commodities-list\` (40 entries): KEUSX is the only wheat FMP serves, and although FMP labels it the generic "Wheat Futures", the KE ticker is Kansas City hard red winter — a different contract with its own basis. Posed to the owner as a proxy-match judgment call under amendment 23's situational-offset protocol and DECLINED: a differently-specified contract wearing a generic label is not a match.`,
 };
 
 const NO_FMP_SOURCE_FUTURES: readonly string[] = [
-  "FDAX",
-  "FDXM",
-  "FESX",
   "FGBL",
   "FGBM",
   "FGBS",
   "FGBX",
-  "NKD",
-  "EMD",
   "UB",
   "TN",
   "ZW",
@@ -352,6 +343,84 @@ const NO_FMP_SOURCE_FUTURES_ROWS: MasterListRow[] = NO_FMP_SOURCE_FUTURES.map(
       fmpSymbol: null,
       status: "excluded-no-fmp-source",
       ground: NO_FMP_SOURCE_FUTURES_GROUND[broker],
+      source: FUTURES_ACCOUNT_SOURCE,
+    }),
+);
+
+// ---------------------------------------------------------------------------
+// Five futures contracts recovered from the no-FMP-source list on 2026-08-05.
+// The earlier sweep's negative rested on a wrong endpoint name — it queried
+// `commodity-list` (zero entries) rather than `commodities-list` (40) — so
+// each of these was re-investigated against the authoritative lists and the
+// live feed rather than inherited.
+//
+// None of the five futures CONTRACTS is on FMP. What exists is each one's
+// underlying CASH index, with real depth. That makes them proxy matches, and
+// the basis is materially different in kind from the three constant bases
+// offsets.ts records: a futures-vs-cash basis is carry, so it is
+// TIME-VARYING and decays to expiry. Posed to the owner as such under
+// amendment 23's situational-offset protocol, with details and a suggested
+// verdict per instrument, and ACCEPTED (2026-08-05).
+//
+// Status is `mapped-not-yet-onboarded` for all five, which is the honest
+// state: the FMP identity is now recorded, and no Levelflow symbol is wired
+// to any of them. FESX and EMD carry the owner's "display-excluded until
+// replay proves it" condition in their grounds — there is no display state to
+// exclude yet, so recording the condition on the row is what keeps it from
+// being lost at onboarding time. FDAX, FDXM and NKD map onto series Levelflow
+// ALREADY reads for its CFD-account index rows (DAX -> ^GDAXI, NIKKEI ->
+// ^N225); the duplication is deliberate and per amendment 24 correct, because
+// the futures account is a distinct product whose verdict on the same market
+// is decided separately.
+// ---------------------------------------------------------------------------
+
+const CASH_PROXY_FUTURES: ReadonlyArray<{
+  broker: string;
+  fmp: string;
+  ground: string;
+}> = [
+  {
+    broker: "FESX",
+    fmp: "^STOXX50E",
+    ground:
+      `Eurex Euro Stoxx 50 future, live on the F9 sighting. The contract is not on FMP; its cash index is — ^STOXX50E, 1275 daily bars through 2026-08-05, 1495 fifteen-minute bars. Proxy match on a TIME-VARYING futures-vs-cash basis (carry, decaying to expiry), never a constant like the three in offsets.ts. Owner-accepted 2026-08-05 as matched but display-excluded until a replay sweep proves it.`,
+  },
+  {
+    broker: "EMD",
+    fmp: "^MID",
+    ground:
+      `CME E-mini S&P MidCap 400 future — E8-canonical, confirmed OFFERED (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.EMD). The contract is absent from \`commodities-list\`; the cash index is present — ^MID, 1254 daily bars through 2026-08-05, 1170 fifteen-minute bars. Same time-varying carry basis as FESX. Owner-accepted 2026-08-05 as matched but display-excluded until a replay sweep proves it.`,
+  },
+  {
+    broker: "FDAX",
+    fmp: "^GDAXI",
+    ground:
+      `Eurex DAX future, live on the F9 sighting. The contract is not on FMP; the cash index is — ^GDAXI, 1274 daily bars, 24447 cached fifteen-minute bars. This is the same series Levelflow's CFD-account DAX row reads; under amendment 24 the futures account is a distinct product, so the shared series carries an independently decided verdict. Owner-accepted 2026-08-05 as matched on the futures account.`,
+  },
+  {
+    broker: "FDXM",
+    fmp: "^GDAXI",
+    ground:
+      `Eurex mini-DAX future, the mini-sized sibling of FDAX, live on the F9 sighting. Reads the same cash index (^GDAXI) as FDAX — the contracts differ only in notional size, which is a SIZING fact instruments.ts carries, never a data-identity difference. Owner-accepted 2026-08-05 as matched on the futures account.`,
+  },
+  {
+    broker: "NKD",
+    fmp: "^N225",
+    ground:
+      `CME Nikkei future — E8-canonical, confirmed OFFERED (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.NKD). The contract is not on FMP; the cash index is — ^N225, 1222 daily bars, 15511 cached fifteen-minute bars, the same series Levelflow's CFD-account NIKKEI row reads. Omitted from the batch first posed to the owner and raised separately as structurally identical to FDAX; approved 2026-08-05.`,
+  },
+];
+
+const CASH_PROXY_FUTURES_ROWS: MasterListRow[] = CASH_PROXY_FUTURES.map(
+  (entry) =>
+    row({
+      levelflowSymbol: null,
+      classification: "futures",
+      securityType: "Futures",
+      brokerName: entry.broker,
+      fmpSymbol: entry.fmp,
+      status: "mapped-not-yet-onboarded",
+      ground: entry.ground,
       source: FUTURES_ACCOUNT_SOURCE,
     }),
 );
@@ -408,6 +477,7 @@ export const MASTER_LIST_ROWS: readonly MasterListRow[] = [
   ...SERVED_ROWS,
   ...NEW_CRYPTO_ROWS,
   ...NO_FMP_SOURCE_FUTURES_ROWS,
+  ...CASH_PROXY_FUTURES_ROWS,
   ...UNSIZEABLE_BACKEND_ROWS,
 ];
 

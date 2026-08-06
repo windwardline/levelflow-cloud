@@ -44,8 +44,12 @@ describe("row counts — total, per classification, per status", () => {
       "served-and-visible": 47,
       "served-but-display-excluded": 1,
       "served-but-not-scannable": 9,
-      "mapped-not-yet-onboarded": 25,
-      "excluded-no-fmp-source": 12,
+      // 2026-08-05: five futures moved from excluded to mapped once the
+      // authoritative `commodities-list` endpoint replaced the empty
+      // `commodity-list` the first sweep queried. Total stays 98 — rows
+      // changed category, none were added.
+      "mapped-not-yet-onboarded": 30,
+      "excluded-no-fmp-source": 7,
       "offered-but-unsizeable": 4,
     });
   });
@@ -152,23 +156,37 @@ describe("the four amendment-22 unsizeable rows — offered-but-unsizeable", () 
   });
 });
 
-describe("the twelve no-FMP-source futures orphans", () => {
+describe("the seven futures with no usable FMP source", () => {
+  // Was twelve. Five left on 2026-08-05 — FDAX, FDXM, FESX, NKD, EMD — once
+  // the earlier verdict was re-tested rather than inherited: it had queried
+  // `commodity-list`, which returns zero entries, instead of
+  // `commodities-list`, which returns forty. Their cash-index proxies are
+  // owner-accepted and live in CASH_PROXY_FUTURES_ROWS.
+  //
+  // These seven are settled negatives, each for its own reason:
+  //   UB, TN      — FMP carries ZB/ZN/ZF/ZT/ZQ and no Ultra contract at all.
+  //   FGBM/S/X    — Bobl, Schatz, Buxl: no contract, and no cash proxy.
+  //   FGBL        — the one case where FMP HAS the contract (its /quote
+  //                 returns "Euro Bund Futures") but serves nothing finer
+  //                 than 1-hour bars. The analyzer's primary timeframe is
+  //                 15-minute, so there is nothing to feed it. Excluded on
+  //                 granularity, and the row's ground says so — a future
+  //                 sweep that finds 15-minute bars turns this exclusion.
+  //   ZW          — Chicago wheat. FMP serves only KEUSX, labeled generically
+  //                 "Wheat Futures" but a Kansas City HRW contract with its
+  //                 own basis. Posed to the owner as a proxy match and
+  //                 declined.
   const ORPHANS = [
-    "FDAX",
-    "FDXM",
-    "FESX",
     "FGBL",
     "FGBM",
     "FGBS",
     "FGBX",
-    "NKD",
-    "EMD",
     "UB",
     "TN",
     "ZW",
   ];
 
-  it("is exactly these twelve broker names, no more and no fewer", () => {
+  it("is exactly these seven broker names, no more and no fewer", () => {
     const orphans = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "excluded-no-fmp-source")
       .map((entry) => entry.brokerName)
@@ -191,6 +209,76 @@ describe("the twelve no-FMP-source futures orphans", () => {
     const sweptBrokerNames = new Set(sweepUniverse().map((entry) => entry.brokerName));
     for (const broker of ORPHANS) {
       assert.ok(!sweptBrokerNames.has(broker), `${broker} must not appear in sweepUniverse()`);
+    }
+  });
+});
+
+describe("the five cash-index proxy futures (owner-accepted 2026-08-05)", () => {
+  // Amendment 23's situational-offset protocol: each of these was posed to
+  // the owner individually, with the instrument, the candidate series, its
+  // depth, and a suggested verdict — then accepted. The basis here is
+  // categorically different from the three constants in offsets.ts. Those are
+  // stable, measured, and safe to add to a price. A futures-vs-cash basis is
+  // carry: it varies and decays to expiry, which is exactly why these rows
+  // record only the FMP identity and never a basis number.
+  const PROXIES: ReadonlyArray<[string, string]> = [
+    ["FESX", "^STOXX50E"],
+    ["EMD", "^MID"],
+    ["FDAX", "^GDAXI"],
+    ["FDXM", "^GDAXI"],
+    ["NKD", "^N225"],
+  ];
+
+  it("maps exactly these five contracts to exactly these series", () => {
+    for (const [broker, fmp] of PROXIES) {
+      const entry = findMasterListRowByBrokerName(broker);
+      assert.ok(entry, `${broker} must have a row`);
+      assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
+      assert.equal(entry!.status, "mapped-not-yet-onboarded");
+      assert.equal(entry!.classification, "futures");
+      assert.equal(
+        entry!.levelflowSymbol,
+        null,
+        `${broker} is mapped, not onboarded — no Levelflow symbol may exist yet`,
+      );
+    }
+  });
+
+  it("keeps FDAX and FDXM on one series — size is a sizing fact, not a data one", () => {
+    assert.equal(findMasterListRowByBrokerName("FDAX")!.fmpSymbol, "^GDAXI");
+    assert.equal(findMasterListRowByBrokerName("FDXM")!.fmpSymbol, "^GDAXI");
+  });
+
+  it("lets a futures row share a series with an already-served CFD row", () => {
+    // FDAX/^GDAXI and NKD/^N225 duplicate the series Levelflow's DAX and
+    // NIKKEI rows already read. Under amendment 24 the futures account is a
+    // distinct product, so one market can be included on one account type and
+    // excluded on another — which requires exactly this duplication. A test
+    // that forbade it would forbid the amendment.
+    const served = new Set(
+      MASTER_LIST_ROWS
+        .filter((entry) => entry.levelflowSymbol !== null && entry.fmpSymbol !== null)
+        .map((entry) => entry.fmpSymbol!),
+    );
+    assert.ok(served.has("^GDAXI"), "the CFD DAX row should already read ^GDAXI");
+    assert.ok(served.has("^N225"), "the CFD NIKKEI row should already read ^N225");
+    assert.equal(findMasterListRowByBrokerName("FDAX")!.fmpSymbol, "^GDAXI");
+    assert.equal(findMasterListRowByBrokerName("NKD")!.fmpSymbol, "^N225");
+  });
+
+  it("carries every proxy into the sweep universe — a match is always swept", () => {
+    // Amendment 23 ruling A.2: the sweep runs against every mapped row
+    // regardless of display state, and amendment 24 makes each one a standing
+    // candidate both directions at every sweep.
+    const swept = new Set(sweepUniverse().map((entry) => entry.brokerName));
+    for (const [broker] of PROXIES) {
+      assert.ok(swept.has(broker), `${broker} must appear in sweepUniverse()`);
+    }
+  });
+
+  it("makes every proxy a reentry candidate — none is a settled verdict", () => {
+    for (const [broker] of PROXIES) {
+      assert.equal(findMasterListRowByBrokerName(broker)!.reentryCandidate, true);
     }
   });
 });
