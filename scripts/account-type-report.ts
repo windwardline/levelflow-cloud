@@ -31,7 +31,11 @@ import {
   MASTER_LIST_ROWS,
   type MasterListRow,
 } from "../src/lib/broker/masterList.ts";
-import { accountTypesOffering } from "../src/lib/broker/visibility.ts";
+import { isContractSizeVariant } from "../src/lib/broker/contractVariants.ts";
+import {
+  FOREX_ACCOUNT_CRYPTO_CFDS,
+  accountTypesOffering,
+} from "../src/lib/broker/visibility.ts";
 import type { BrokerClassification } from "../src/lib/profile.ts";
 
 const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
@@ -104,7 +108,19 @@ function symbolsByClassification(): Map<BrokerClassification, MasterListRow[]> {
       MASTER_LIST_ROWS.filter(
         (row) =>
           row.levelflowSymbol !== null &&
-          accountTypesOffering(row.classification).includes(classification),
+          accountTypesOffering(row.classification).includes(classification) &&
+          // The Forex carve-out, or this table misreports the offering: a
+          // Forex-line account carries only the eight crypto CFDs its own
+          // screenshots ticket, not the Crypto account's thirty-three.
+          // accountTypesOffering answers the coarse classification question and
+          // cannot express "some of this classification" — the same limit that
+          // made the blanket reading wrong in visibility.ts.
+          (classification !== "forex" ||
+            row.classification !== "crypto" ||
+            FOREX_ACCOUNT_CRYPTO_CFDS.has(row.levelflowSymbol)) &&
+          // Size variants are sized, never scanned, so they are not markets
+          // this table should count or judge.
+          !isContractSizeVariant(row.levelflowSymbol),
       ),
     );
   }
