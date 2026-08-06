@@ -121,13 +121,29 @@ describe("the reopen routes close for display-excluded symbols (amendment 23, fi
   });
 
   it("the Insights row renders a display-excluded symbol as a record without the affordance", () => {
-    assert.match(history, /\{isDisplayExcluded\(setup\.symbol\)/);
-    // The record branch is a plain span; the affordance branch keeps the
-    // button. Both render the symbol — the record never disappears.
+    // ONE anchored pattern spanning the whole ternary, deliberately: three
+    // separate matches all pass under a SWAPPED ternary (excluded symbols
+    // keeping the button, ordinary ones losing it) — which is the exact
+    // Critical this fix round closes. The branch ORDER is the assertion:
+    // isDisplayExcluded -> plain span (the record, no affordance) THEN the
+    // <button> branch with its aria-label. Both branches render
+    // {setup.symbol}: the record never disappears from the ledger.
     assert.match(
       history,
-      /<span className="inline-flex min-h-11 items-center font-semibold text-ink">[\s\S]{0,40}?\{setup\.symbol\}/,
+      /\{isDisplayExcluded\(setup\.symbol\)\)?[\s\S]{0,80}?\?[\s\S]{0,900}?<span className="inline-flex min-h-11 items-center font-semibold text-ink">[\s\S]{0,60}?\{setup\.symbol\}[\s\S]{0,200}?:[\s\S]{0,400}?aria-label=\{`Open \$\{setup\.symbol\} in Advisor`\}/,
     );
-    assert.match(history, /aria-label=\{`Open \$\{setup\.symbol\} in Advisor`\}/);
+    // And the record branch is not a disabled control wearing a span's
+    // clothes (§17c): between the predicate and the branch separator there is
+    // no button and no handler at all. The slice stops AT the separator on
+    // purpose — one character further and it swallows the else branch's own
+    // <button>, which is exactly what it must not be measuring.
+    const branchStart = history.indexOf("{isDisplayExcluded(setup.symbol)");
+    const recordBranch = history.slice(
+      branchStart,
+      history.indexOf("\n          : (", branchStart),
+    );
+    assert.ok(recordBranch.length > 0 && recordBranch.length < 900);
+    assert.doesNotMatch(recordBranch, /onClick|<button/);
+    assert.match(recordBranch, /<span className="inline-flex min-h-11/);
   });
 });
