@@ -48,6 +48,27 @@ export const CONTRACT_SIZE_VARIANTS: Readonly<Record<string, string>> = {
   // read the SAME ^GDAXI series — so the price action is not merely similar, it
   // is identical. Nothing to analyze twice; everything to size differently.
   FDXM: "FDAX",
+  // Group A, wired 2026-08-06. Every one is a live, priced row on the F9
+  // futures-account sighting whose contract differs from its parent only in
+  // notional — CME's micro E-minis, NYMEX's e-mini energies, CBOT's mini
+  // grains. Each reads its parent's own FMP series, so its price action is not
+  // similar to the parent's, it IS the parent's.
+  //
+  // Three F9 rows are deliberately NOT here, because the evidence does not
+  // identify them and a wrong parent produces plausible setups against the
+  // wrong market: MC (2712.25 on the sighting, which rules out Russell — FMP's
+  // RTYUSD was 3025.40 two days later), BIT (64180 beside BTC's 64070, both
+  // bitcoin, parentage unestablished), and SIC (silver's active month per the
+  // research doc, likely SI's front month rather than a separate instrument).
+  // XW is excluded by inheritance: its parent is Chicago wheat, which has no
+  // FMP source at all.
+  MES: "ESUSD",
+  MNQ: "NQUSD",
+  MYM: "YMUSD",
+  QM: "CLUSD",
+  QG: "NGUSD",
+  XK: "ZSUSX",
+  XC: "ZCUSX",
 };
 
 /**

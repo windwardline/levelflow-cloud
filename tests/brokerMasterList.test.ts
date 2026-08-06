@@ -27,16 +27,17 @@ import {
 // exercised by these pins, not trusted on inspection alone.
 
 describe("row counts — total, per classification, per status", () => {
-  it("carries exactly 113 rows", () => {
-    assert.equal(MASTER_LIST_ROWS.length, 113);
+  it("carries exactly 120 rows", () => {
+    assert.equal(MASTER_LIST_ROWS.length, 120);
   });
 
-  it("splits 38 forex / 42 futures / 33 crypto", () => {
+  it("splits 38 forex / 49 futures / 33 crypto", () => {
     assert.deepEqual(rowCountsByClassification(), {
       forex: 38,
       // 27 -> 42: nineteen onboarded, less the four cash proxies that moved
       // from mapped-not-yet-onboarded into the served set on the same day.
-      futures: 42,
+      // Group A wired 2026-08-06: seven contract-size variants (MES MNQ MYM QM QG XK XC) joined for SIZING only. Each reads its parent's series and holds no scan slot, so knowable grows while scannable and swept do not.
+      futures: 49,
       crypto: 33,
     });
   });
@@ -51,7 +52,7 @@ describe("row counts — total, per classification, per status", () => {
       // on an analyzed and acceptable match and they have no sweep evidence yet.
       // 29 -> 54: the Crypto account's other 25 were onboarded 2026-08-06 and
       // land here, analyzed and withheld, exactly as the nineteen futures did.
-      "served-but-not-scannable": 55,
+      "served-but-not-scannable": 62,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
@@ -71,16 +72,16 @@ describe("row counts — total, per classification, per status", () => {
 
   it("agrees with rowsForClassification's own per-classification counts", () => {
     assert.equal(rowsForClassification("forex").length, 38);
-    assert.equal(rowsForClassification("futures").length, 42);
+    assert.equal(rowsForClassification("futures").length, 49);
     assert.equal(rowsForClassification("crypto").length, 33);
   });
 });
 
 describe("agreement with the live master/visible sets (no re-derivation)", () => {
-  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 51) exactly", () => {
+  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 58) exactly", () => {
     assert.deepEqual(servedSymbols().sort(), [...AVAILABLE_ASSET_SYMBOLS].sort());
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(servedSymbols().length, 51);
+    assert.equal(servedSymbols().length, 58);
   });
 
   it("the registry's visible set equals visibleAssetSymbols(null) (the 48) exactly", () => {
@@ -380,8 +381,8 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 67 non-happy-path rows", () => {
-    assert.equal(reentryList().length, 67);
+  it("reentryList() returns exactly the 74 non-happy-path rows", () => {
+    assert.equal(reentryList().length, 74);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

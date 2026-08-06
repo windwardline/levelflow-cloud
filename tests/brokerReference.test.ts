@@ -627,16 +627,16 @@ describe("§19a — the row and its states", () => {
       ),
     );
     assert.equal(keys.size, BROKER_INSTRUMENTS.length);
-    // 104 code-present markets on each of the ten shipped lines: the 50
+    // 111 code-present markets on each of the ten shipped lines: the 50
     // scannable ones plus the 53 that stay in the symbol map and the replay
     // universe. 59/9/590 until 2026-08-05, then 78/28/780 with nineteen E8
     // futures, then this with the Crypto account's other 25 — all onboarded
     // withheld: represented and analyzed, not yet visible.
-    assert.equal(ALL_MAPPED_SYMBOLS.length, 104);
-    assert.equal(SCANNABLE.size, 51);
+    assert.equal(ALL_MAPPED_SYMBOLS.length, 111);
+    assert.equal(SCANNABLE.size, 58);
     assert.equal(ADDENDUM.length, 53);
-    assert.equal(BROKER_INSTRUMENTS.length, 1040);
-    assert.equal(scannableRowsFor("one").length, 51);
+    assert.equal(BROKER_INSTRUMENTS.length, 1110);
+    assert.equal(scannableRowsFor("one").length, 58);
   });
 
   it("never keys a row on the FMP symbol — WTI/CLUSD and BRENT/BZUSD prove it cannot", () => {
@@ -724,7 +724,7 @@ describe("§19a — the row and its states", () => {
     ] as ProgramLine[]) {
       const rows = scannableRowsFor(line);
       const nonFutures = rows.filter(
-        (row) => !["BZUSD", "CLUSD", "ESUSD", "FDXM", "GCUSD", "MGCUSD", "NQUSD", "RTYUSD", "SIUSD", "YMUSD", "ZBUSD", "ZNUSD"].includes(row.levelflowSymbol),
+        (row) => !["BZUSD", "CLUSD", "ESUSD", "FDXM", "GCUSD", "MES", "MGCUSD", "MNQ", "MYM", "NQUSD", "QG", "QM", "RTYUSD", "SIUSD", "XC", "XK", "YMUSD", "ZBUSD", "ZNUSD"].includes(row.levelflowSymbol),
       );
       // Every Forex (28), Metals (2), Energies (2) and Crypto (7) row.
       assert.equal(nonFutures.length, 39);
@@ -737,7 +737,7 @@ describe("§19a — the row and its states", () => {
       // below is unchanged by this move, because their tick/value stay null.
       assert.equal(tally.confirmed, 10, `${line} confirmed`);
       assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
-      assert.equal(tally.not_offered, 41, `${line} not offered`);
+      assert.equal(tally.not_offered, 48, `${line} not offered`);
       assert.equal(tally.not_published, 0, `${line} not published`);
 
       const confirmed = scannableRowsFor(line)
@@ -773,7 +773,7 @@ describe("§19a — the row and its states", () => {
       // The twelve Levelflow Futures rows (eleven until FDXM joined 2026-08-06
       // as FDAX's size variant): E8's futures roster lives exclusively on the
       // futures program lines, and E8 publishes that scope.
-      assert.equal(tally.not_offered, 12, `${line} not offered`);
+      assert.equal(tally.not_offered, 19, `${line} not offered`);
       // Appendix A closed every CFD-line silence there was left to close.
       assert.equal(tally.not_published, 0, `${line} not published`);
       assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
@@ -787,7 +787,7 @@ describe("§19a — the row and its states", () => {
     ] as ProgramLine[]) {
       const tally = tallyFor(line);
       // 5514977, verbatim: "Crypto only". 43 until FDXM joined 2026-08-06.
-      assert.equal(tally.not_offered, 44, `${line} not offered`);
+      assert.equal(tally.not_offered, 51, `${line} not offered`);
       assert.equal(tally.not_published, 7, `${line} not published`);
       assert.equal(tally.confirmed, 0, `${line} confirmed`);
     }

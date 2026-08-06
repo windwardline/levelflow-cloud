@@ -172,6 +172,17 @@ describe("feed source lock (§20i ruling 8)", () => {
       EMD: "^MID",
       FDAX: "^GDAXI",
       FDXM: "^GDAXI",
+      // Group A's seven size variants, wired 2026-08-06. Each reads its
+      // PARENT's series by construction — that is what makes it the same market
+      // at a different notional rather than a market of its own — so the
+      // divergence is the whole point, not a feed change to re-verify.
+      MES: "ESUSD",
+      MNQ: "NQUSD",
+      MYM: "YMUSD",
+      QM: "CLUSD",
+      QG: "NGUSD",
+      XK: "ZSUSX",
+      XC: "ZCUSX",
       FESX: "^STOXX50E",
       NKD: "^N225",
     };

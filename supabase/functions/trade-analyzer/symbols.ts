@@ -390,6 +390,13 @@ export const noScanSymbols = noTradeSymbols;
 export const contractSizeVariants = new Set([
   "MGCUSD",
   "FDXM",
+  "MES",
+  "MNQ",
+  "MYM",
+  "QM",
+  "QG",
+  "XK",
+  "XC",
 ]);
 
 export const defaultScanSymbols = Object.keys(symbolMap).filter(
