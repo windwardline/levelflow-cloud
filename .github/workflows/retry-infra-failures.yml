@@ -1,0 +1,73 @@
+# Re-runs a workflow that died on GitHub's own infrastructure rather than on
+# this repo's code.
+#
+# The failure mode this exists for, observed twice. GitHub's action-resolution
+# service returns 502/503; every job in the run dies at "Set up job", before
+# checkout, with `Failed to resolve action download info`. Nothing in the
+# repository is wrong and nothing in the repository can prevent it — the retry
+# has to happen at the run level, because "Set up job" is upstream of any step a
+# workflow could add.
+#
+# Why it cannot be left to auto-merge. `gh pr merge --auto` waits for required
+# checks to pass but never re-runs a failed one, so a PR armed for auto-merge
+# sits open indefinitely after a blip. On 2026-08-06 that left PR #238 stalled
+# with three red required checks, none of which had executed a line of our code.
+#
+# Deliberately narrow. It re-runs ONLY when the run's own annotations name an
+# infrastructure fault, and only twice. A genuine test failure re-runs zero
+# times: flaky-until-green is how a real defect reaches main, and this must never
+# become that. If the annotations do not match, the job logs why and exits clean.
+name: Retry infra failures
+
+on:
+  workflow_run:
+    workflows: [CI, Security analysis, Deploy Levelflow Cloud]
+    types: [completed]
+
+permissions:
+  actions: write
+
+jobs:
+  retry:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run only if the failure was GitHub's, not ours
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          # Every job's annotations, across the whole run. An infra fault hits
+          # each job identically, so one match is enough — but reading them all
+          # keeps a partial outage (one job resolved, another did not) visible.
+          messages=""
+          for job_id in $(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" \
+            --paginate -q '.jobs[].id'); do
+            annotations=$(gh api "repos/$REPO/check-runs/$job_id/annotations" \
+              -q '.[].message' 2>/dev/null || true)
+            messages="$messages$annotations
+          "
+          done
+
+          echo "::group::annotations on run $RUN_ID (attempt $ATTEMPT)"
+          printf '%s\n' "$messages"
+          echo "::endgroup::"
+
+          # The signatures GitHub emits when its own services are degraded.
+          # "Failed to resolve action download info" is the one seen twice; the
+          # gateway pair rides with it. Anchored to these strings on purpose —
+          # a broad match on "error" would retry real failures.
+          if printf '%s' "$messages" | grep -qiE \
+            'Failed to resolve action download info|Unable to resolve action|Bad Gateway|Service Unavailable|502 Server Error|503 Server Error'; then
+            echo "Infrastructure fault confirmed — re-running failed jobs."
+            gh run rerun "$RUN_ID" --failed
+          else
+            echo "No infrastructure signature in the annotations."
+            echo "This run failed on its own merits. Leaving it red, by design."
+          fi
