@@ -27,14 +27,16 @@ import {
 // exercised by these pins, not trusted on inspection alone.
 
 describe("row counts — total, per classification, per status", () => {
-  it("carries exactly 98 rows", () => {
-    assert.equal(MASTER_LIST_ROWS.length, 98);
+  it("carries exactly 113 rows", () => {
+    assert.equal(MASTER_LIST_ROWS.length, 113);
   });
 
-  it("splits 38 forex / 27 futures / 33 crypto", () => {
+  it("splits 38 forex / 42 futures / 33 crypto", () => {
     assert.deepEqual(rowCountsByClassification(), {
       forex: 38,
-      futures: 27,
+      // 27 -> 42: nineteen onboarded, less the four cash proxies that moved
+      // from mapped-not-yet-onboarded into the served set on the same day.
+      futures: 42,
       crypto: 33,
     });
   });
@@ -43,12 +45,17 @@ describe("row counts — total, per classification, per status", () => {
     assert.deepEqual(rowCountsByStatus(), {
       "served-and-visible": 47,
       "served-but-display-excluded": 1,
-      "served-but-not-scannable": 9,
+      // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
+      // served-and-visible, because the directive makes visibility conditional
+      // on an analyzed and acceptable match and they have no sweep evidence yet.
+      "served-but-not-scannable": 28,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
       // changed category, none were added.
-      "mapped-not-yet-onboarded": 30,
+      // 30 -> 26: four of the five cash proxies (FESX, FDAX, EMD, NKD) were
+      // onboarded the same day, leaving 25 crypto mates and FDXM.
+      "mapped-not-yet-onboarded": 26,
       "excluded-no-fmp-source": 7,
       "offered-but-unsizeable": 4,
     });
@@ -56,7 +63,7 @@ describe("row counts — total, per classification, per status", () => {
 
   it("agrees with rowsForClassification's own per-classification counts", () => {
     assert.equal(rowsForClassification("forex").length, 38);
-    assert.equal(rowsForClassification("futures").length, 27);
+    assert.equal(rowsForClassification("futures").length, 42);
     assert.equal(rowsForClassification("crypto").length, 33);
   });
 });
@@ -213,7 +220,7 @@ describe("the seven futures with no usable FMP source", () => {
   });
 });
 
-describe("the five cash-index proxy futures (owner-accepted 2026-08-05)", () => {
+describe("the cash-index proxy futures (owner-accepted 2026-08-05)", () => {
   // Amendment 23's situational-offset protocol: each of these was posed to
   // the owner individually, with the instrument, the candidate series, its
   // depth, and a suggested verdict — then accepted. The basis here is
@@ -221,15 +228,37 @@ describe("the five cash-index proxy futures (owner-accepted 2026-08-05)", () => 
   // stable, measured, and safe to add to a price. A futures-vs-cash basis is
   // carry: it varies and decays to expiry, which is exactly why these rows
   // record only the FMP identity and never a basis number.
+  // All five were accepted. Four were onboarded into symbolMap.ts the same
+  // day under the owner's represent-and-analyze directive, so they are served
+  // rows now (gated no-trade until swept) and are pinned as such below.
+  // FDXM alone remains unonboarded: it reads the same ^GDAXI series as FDAX
+  // and differs only in contract size, which is the open micro/mini-variant
+  // question the owner has not ruled on.
   const PROXIES: ReadonlyArray<[string, string]> = [
+    ["FDXM", "^GDAXI"],
+  ];
+  const ONBOARDED: ReadonlyArray<[string, string]> = [
     ["FESX", "^STOXX50E"],
     ["EMD", "^MID"],
     ["FDAX", "^GDAXI"],
-    ["FDXM", "^GDAXI"],
     ["NKD", "^N225"],
   ];
 
-  it("maps exactly these five contracts to exactly these series", () => {
+  it("keeps the four onboarded proxies served, mapped, and withheld", () => {
+    for (const [broker, fmp] of ONBOARDED) {
+      const entry = findMasterListRowByBrokerName(broker);
+      assert.ok(entry, `${broker} must have a row`);
+      assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
+      assert.equal(entry!.levelflowSymbol, broker, "the Levelflow symbol is E8's own root");
+      assert.equal(
+        entry!.status,
+        "served-but-not-scannable",
+        `${broker} is analyzed and withheld until a sweep proves it`,
+      );
+    }
+  });
+
+  it("maps the unonboarded proxy to its series", () => {
     for (const [broker, fmp] of PROXIES) {
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, `${broker} must have a row`);
@@ -370,8 +399,8 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 51 non-happy-path rows", () => {
-    assert.equal(reentryList().length, 51);
+  it("reentryList() returns exactly the 66 non-happy-path rows", () => {
+    assert.equal(reentryList().length, 66);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

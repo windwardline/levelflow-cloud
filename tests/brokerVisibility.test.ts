@@ -282,11 +282,15 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     assert.ok(symbols.includes("BRENT"));
   });
 
-  it("still includes every served-but-not-scannable row (SP, NSDQ, DOW, NIKKEI, DAX, NGUSD, HGUSD, BNBUSD, ASX) — these carry an FMP mate and are matched, whatever their scannable-today status", () => {
+  it("still includes every served-but-not-scannable row — these carry an FMP mate and are matched, whatever their scannable-today status", () => {
     const notScannable = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "served-but-not-scannable")
       .map((entry) => entry.levelflowSymbol);
-    assert.equal(notScannable.length, 9);
+    // 9 -> 28 on 2026-08-05: the nineteen onboarded futures join the eight
+    // originals and ASX here. Every one must stay in the sweep universe —
+    // that is the whole point of onboarding them withheld rather than leaving
+    // them unrepresented.
+    assert.equal(notScannable.length, 28);
     const swept = new Set(sweepUniverse().map((entry) => entry.levelflowSymbol));
     for (const symbol of notScannable) {
       assert.ok(swept.has(symbol), `${symbol} must stay in the sweep universe`);

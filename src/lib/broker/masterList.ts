@@ -200,6 +200,25 @@ const UNSIZEABLE_MASTER_SYMBOLS = new Set(["ZBUSD", "ZNUSD"]);
 const UNSIZEABLE_MASTER_GROUND =
   "E8's margin-only table has never published a tick size or a value per tick for this row. OFFERED per the 2026-08-03 F9 futures-account sighting (amendment 19); Size stays withheld per amendment 22's reliable-data bar (docs/research/e8-futures-account-2026-08-03.md).";
 
+/**
+ * The ground for a market onboarded under the owner's 2026-08-05 directive —
+ * every market E8 actually trades, with a confirmed FMP match, is represented
+ * and analyzed in Levelflow — but not yet promoted to a user surface.
+ *
+ * The directive's own condition is why: a market is visible "so long as there
+ * is an analyzed and acceptable match from FMP". These carry a confirmed match
+ * and no sweep evidence, so they are analyzed and withheld. The eight older
+ * not-scannable rows keep their individual grounds in NOT_SCANNABLE_GROUND;
+ * this covers the batch that shares one reason, rather than repeating one
+ * sentence nineteen times.
+ */
+const ONBOARDED_PENDING_SWEEP_GROUND =
+  "Onboarded 2026-08-05 from E8's live futures-account offering with a " +
+  "confirmed FMP series carrying usable daily and 15-minute depth. In the " +
+  "replay universe now; withheld from every user surface until a sweep " +
+  "produces an acceptable, both-splits result. Promotion is a calibration " +
+  "decision, and so is continued exclusion.";
+
 const SERVED_ROWS: MasterListRow[] = SECURITY_OPTIONS.map((option) => {
   const symbol = option.symbol;
   const shared = {
@@ -214,7 +233,7 @@ const SERVED_ROWS: MasterListRow[] = SECURITY_OPTIONS.map((option) => {
     return row({
       ...shared,
       status: "served-but-not-scannable",
-      ground: NOT_SCANNABLE_GROUND[symbol],
+      ground: NOT_SCANNABLE_GROUND[symbol] ?? ONBOARDED_PENDING_SWEEP_GROUND,
       source: "src/lib/symbolMap.ts",
     });
   }
@@ -348,7 +367,7 @@ const NO_FMP_SOURCE_FUTURES_ROWS: MasterListRow[] = NO_FMP_SOURCE_FUTURES.map(
 );
 
 // ---------------------------------------------------------------------------
-// Five futures contracts recovered from the no-FMP-source list on 2026-08-05.
+// Futures contracts recovered from the no-FMP-source list on 2026-08-05.
 // The earlier sweep's negative rested on a wrong endpoint name — it queried
 // `commodity-list` (zero entries) rather than `commodities-list` (40) — so
 // each of these was re-investigated against the authoritative lists and the
@@ -374,40 +393,24 @@ const NO_FMP_SOURCE_FUTURES_ROWS: MasterListRow[] = NO_FMP_SOURCE_FUTURES.map(
 // is decided separately.
 // ---------------------------------------------------------------------------
 
+// Of the five recovered, four (FESX, FDAX, EMD, NKD) were onboarded into
+// symbolMap.ts the same day under the owner's rule that every E8-traded market
+// with a confirmed FMP match must be represented and analyzed — so SERVED_ROWS
+// generates them now and they are gated no-trade until a sweep proves them.
+// FDXM alone stays here: it reads the same ^GDAXI series as FDAX and differs
+// only in contract size, which is the open micro/mini-variant question (one row
+// per contract size, or one row per underlying with size handled at the
+// ladder?) the owner has not yet ruled on.
 const CASH_PROXY_FUTURES: ReadonlyArray<{
   broker: string;
   fmp: string;
   ground: string;
 }> = [
   {
-    broker: "FESX",
-    fmp: "^STOXX50E",
-    ground:
-      `Eurex Euro Stoxx 50 future, live on the F9 sighting. The contract is not on FMP; its cash index is — ^STOXX50E, 1275 daily bars through 2026-08-05, 1495 fifteen-minute bars. Proxy match on a TIME-VARYING futures-vs-cash basis (carry, decaying to expiry), never a constant like the three in offsets.ts. Owner-accepted 2026-08-05 as matched but display-excluded until a replay sweep proves it.`,
-  },
-  {
-    broker: "EMD",
-    fmp: "^MID",
-    ground:
-      `CME E-mini S&P MidCap 400 future — E8-canonical, confirmed OFFERED (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.EMD). The contract is absent from \`commodities-list\`; the cash index is present — ^MID, 1254 daily bars through 2026-08-05, 1170 fifteen-minute bars. Same time-varying carry basis as FESX. Owner-accepted 2026-08-05 as matched but display-excluded until a replay sweep proves it.`,
-  },
-  {
-    broker: "FDAX",
-    fmp: "^GDAXI",
-    ground:
-      `Eurex DAX future, live on the F9 sighting. The contract is not on FMP; the cash index is — ^GDAXI, 1274 daily bars, 24447 cached fifteen-minute bars. This is the same series Levelflow's CFD-account DAX row reads; under amendment 24 the futures account is a distinct product, so the shared series carries an independently decided verdict. Owner-accepted 2026-08-05 as matched on the futures account.`,
-  },
-  {
     broker: "FDXM",
     fmp: "^GDAXI",
     ground:
       `Eurex mini-DAX future, the mini-sized sibling of FDAX, live on the F9 sighting. Reads the same cash index (^GDAXI) as FDAX — the contracts differ only in notional size, which is a SIZING fact instruments.ts carries, never a data-identity difference. Owner-accepted 2026-08-05 as matched on the futures account.`,
-  },
-  {
-    broker: "NKD",
-    fmp: "^N225",
-    ground:
-      `CME Nikkei future — E8-canonical, confirmed OFFERED (src/lib/broker/instruments.ts's E8_FUTURES_SPECS.NKD). The contract is not on FMP; the cash index is — ^N225, 1222 daily bars, 15511 cached fifteen-minute bars, the same series Levelflow's CFD-account NIKKEI row reads. Omitted from the batch first posed to the owner and raised separately as structurally identical to FDAX; approved 2026-08-05.`,
   },
 ];
 

@@ -261,6 +261,139 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "ZN - 10-Year Treasury Note Futures",
         symbol: "ZNUSD",
       },
+      {
+        assetType: "Futures",
+        description: "Five-Year Treasury Note Futures",
+        fmpSymbol: "ZFUSD",
+        label: "ZF - Five-Year Treasury Note Futures",
+        symbol: "ZFUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Two-Year Treasury Note Futures",
+        fmpSymbol: "ZTUSD",
+        label: "ZT - Two-Year Treasury Note Futures",
+        symbol: "ZTUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Heating Oil Futures",
+        fmpSymbol: "HOUSD",
+        label: "HO - Heating Oil Futures",
+        symbol: "HOUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "RBOB Gasoline Futures",
+        fmpSymbol: "RBUSD",
+        label: "RB - RBOB Gasoline Futures",
+        symbol: "RBUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Platinum Futures",
+        fmpSymbol: "PLUSD",
+        label: "PL - Platinum Futures",
+        symbol: "PLUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Palladium Futures",
+        fmpSymbol: "PAUSD",
+        label: "PA - Palladium Futures",
+        symbol: "PAUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Corn Futures",
+        fmpSymbol: "ZCUSX",
+        label: "ZC - Corn Futures",
+        symbol: "ZCUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Soybean Futures",
+        fmpSymbol: "ZSUSX",
+        label: "ZS - Soybean Futures",
+        symbol: "ZSUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Soybean Oil Futures",
+        fmpSymbol: "ZLUSX",
+        label: "ZL - Soybean Oil Futures",
+        symbol: "ZLUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Soybean Meal Futures",
+        fmpSymbol: "ZMUSD",
+        label: "ZM - Soybean Meal Futures",
+        symbol: "ZMUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Oat Futures",
+        fmpSymbol: "ZOUSX",
+        label: "ZO - Oat Futures",
+        symbol: "ZOUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Rough Rice Futures",
+        fmpSymbol: "ZRUSD",
+        label: "ZR - Rough Rice Futures",
+        symbol: "ZRUSD",
+      },
+      {
+        assetType: "Futures",
+        description: "Live Cattle Futures",
+        fmpSymbol: "LEUSX",
+        label: "LE - Live Cattle Futures",
+        symbol: "LEUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Feeder Cattle Futures",
+        fmpSymbol: "GFUSX",
+        label: "GF - Feeder Cattle Futures",
+        symbol: "GFUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Lean Hogs Futures",
+        fmpSymbol: "HEUSX",
+        label: "HE - Lean Hogs Futures",
+        symbol: "HEUSX",
+      },
+      {
+        assetType: "Futures",
+        description: "Euro Stoxx 50 Futures",
+        fmpSymbol: "^STOXX50E",
+        label: "FESX - Euro Stoxx 50 Futures",
+        symbol: "FESX",
+      },
+      {
+        assetType: "Futures",
+        description: "DAX Futures",
+        fmpSymbol: "^GDAXI",
+        label: "FDAX - DAX Futures",
+        symbol: "FDAX",
+      },
+      {
+        assetType: "Futures",
+        description: "E-Mini S&P MidCap 400 Futures",
+        fmpSymbol: "^MID",
+        label: "EMD - E-Mini S&P MidCap 400 Futures",
+        symbol: "EMD",
+      },
+      {
+        assetType: "Futures",
+        description: "Nikkei 225 Futures",
+        fmpSymbol: "^N225",
+        label: "NKD - Nikkei 225 Futures",
+        symbol: "NKD",
+      },
     ],
   },
   {
@@ -318,6 +451,37 @@ export const NO_TRADE_SYMBOLS = new Set([
   "NGUSD",
   "HGUSD",
   "BNBUSD",
+  // The nineteen E8 futures onboarded 2026-08-05 (owner directive: every E8
+  // market E8 actually trades, with a confirmed FMP match, must be
+  // represented and analyzed in Levelflow). They sit here — analyzed, not yet
+  // visible — for the reason the directive itself states: a market is visible
+  // "so long as there is an analyzed and acceptable match from FMP", and
+  // these have a confirmed match but no sweep evidence yet. Being in
+  // SECURITY_OPTIONS puts them in the replay universe; being here keeps them
+  // off every user surface until a sweep produces an acceptable result.
+  // Promotion out of this set is a calibration decision backed by both
+  // walk-forward splits, exactly as it is for the eight above — two of which
+  // (HGUSD, BNBUSD) are themselves promotion candidates now that the
+  // execution-cost defect is fixed.
+  "ZFUSD",
+  "ZTUSD",
+  "HOUSD",
+  "RBUSD",
+  "PLUSD",
+  "PAUSD",
+  "ZCUSX",
+  "ZSUSX",
+  "ZLUSX",
+  "ZMUSD",
+  "ZOUSX",
+  "ZRUSD",
+  "LEUSX",
+  "GFUSX",
+  "HEUSX",
+  "FESX",
+  "FDAX",
+  "EMD",
+  "NKD",
 ]);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS

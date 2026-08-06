@@ -155,6 +155,18 @@ describe("feed source lock (§20i ruling 8)", () => {
       NSDQ: "^NDX",
       SP: "^GSPC",
       WTI: "CLUSD",
+      // The four index futures onboarded 2026-08-05 on owner-accepted
+      // cash-index proxies. FMP carries no Eurex or CME index-futures
+      // contract, so each reads its underlying cash index — a deliberate,
+      // owner-ruled divergence under amendment 23's situational-offset
+      // protocol, and the reason the basis here is never written as a
+      // constant: futures-vs-cash is carry, which decays to expiry.
+      // FDAX and NKD intentionally duplicate DAX's and NIKKEI's series;
+      // amendment 24 decides each account type separately, which requires it.
+      EMD: "^MID",
+      FDAX: "^GDAXI",
+      FESX: "^STOXX50E",
+      NKD: "^N225",
     };
 
     const observedDivergences: Record<string, string> = {};
@@ -162,7 +174,8 @@ describe("feed source lock (§20i ruling 8)", () => {
       for (const option of group.options) {
         if (option.fmpSymbol !== option.symbol) {
           assert.ok(
-            group.label === "Indices" || group.label === "Energies",
+            group.label === "Indices" || group.label === "Energies" ||
+              group.label === "Futures",
             `${option.symbol} (${group.label}) diverges from its FMP symbol — pass-through was verified for ${group.label}`,
           );
           observedDivergences[option.symbol] = option.fmpSymbol;

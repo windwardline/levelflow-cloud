@@ -627,12 +627,14 @@ describe("§19a — the row and its states", () => {
       ),
     );
     assert.equal(keys.size, BROKER_INSTRUMENTS.length);
-    // 59 code-present markets on each of the ten shipped lines: the 50 scannable
-    // ones plus the nine that stay in the symbol map and the replay universe.
-    assert.equal(ALL_MAPPED_SYMBOLS.length, 59);
+    // 78 code-present markets on each of the ten shipped lines: the 50
+    // scannable ones plus the 28 that stay in the symbol map and the replay
+    // universe. Was 59/9/590 until 2026-08-05, when nineteen E8 futures were
+    // onboarded withheld — represented and analyzed, not yet visible.
+    assert.equal(ALL_MAPPED_SYMBOLS.length, 78);
     assert.equal(SCANNABLE.size, 50);
-    assert.equal(ADDENDUM.length, 9);
-    assert.equal(BROKER_INSTRUMENTS.length, 590);
+    assert.equal(ADDENDUM.length, 28);
+    assert.equal(BROKER_INSTRUMENTS.length, 780);
     assert.equal(scannableRowsFor("one").length, 50);
   });
 
@@ -898,17 +900,42 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("keeps the nine non-scannable markets present and never sizeable", () => {
+  it("keeps every non-scannable market present and never sizeable", () => {
+    // Nine until 2026-08-05, then 28: the nineteen E8 futures onboarded under
+    // the owner's represent-and-analyze directive join the list. Each is in the
+    // symbol map and the replay universe, and none is scannable or sizeable
+    // yet — sizing needs E8's published tick/value data (amendment 22) and
+    // visibility needs an acceptable sweep result. Listed literally so a
+    // promotion or a demotion cannot happen without a deliberate test edit.
     assert.deepEqual(ADDENDUM.sort(), [
       "ASX",
       "BNBUSD",
       "DAX",
       "DOW",
+      "EMD",
+      "FDAX",
+      "FESX",
+      "GFUSX",
+      "HEUSX",
       "HGUSD",
+      "HOUSD",
+      "LEUSX",
       "NGUSD",
       "NIKKEI",
+      "NKD",
       "NSDQ",
+      "PAUSD",
+      "PLUSD",
+      "RBUSD",
       "SP",
+      "ZCUSX",
+      "ZFUSD",
+      "ZLUSX",
+      "ZMUSD",
+      "ZOUSX",
+      "ZRUSD",
+      "ZSUSX",
+      "ZTUSD",
     ]);
     for (const program of PROGRAM_LINES) {
       for (const symbol of ADDENDUM) {
