@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   BROKER_VISIBILITY_EXCLUSIONS,
+  MIN_FILLED_FOR_PERFORMANCE_EXCLUSION,
+  MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION,
   isExcludedForAccountType,
   isReentryCandidate,
   reentryCandidates,
@@ -107,5 +109,66 @@ describe("the reentry rule — no visibility exclusion is permanent", () => {
     const [brent] = BROKER_VISIBILITY_EXCLUSIONS;
     const keys = Object.keys(brent).sort();
     assert.deepEqual(keys, ["accountTypes", "detail", "ground", "levelflowSymbol"]);
+  });
+});
+
+// Amendment 25 (owner, 2026-08-06). One failure repeated five times in a single
+// night — oil, indices, copper/gas, oats/rice, livestock — each a market that
+// looked edgeless and was in fact constrained by our own parameters. The rule:
+// a market's measured performance may not exclude it unless the market had a
+// fair chance to produce evidence. Enforced here rather than documented, and
+// deliberately enforced on the REGISTER, so it binds every broker that ever
+// lands an exclusion in it, not just E8.
+describe("amendment 25 — a performance exclusion must prove the market was not starved", () => {
+  it("requires a starvation check on every sweep-performance entry", () => {
+    for (const entry of BROKER_VISIBILITY_EXCLUSIONS) {
+      if (entry.ground !== "sweep-performance") continue;
+      assert.ok(
+        entry.starvationCheck,
+        `${entry.levelflowSymbol} is excluded on performance with no starvation check — ` +
+          `run scripts/starvation-audit.ts and record survivalRate + filledSetups`,
+      );
+    }
+  });
+
+  it("refuses a performance exclusion on a starved or thin market", () => {
+    for (const entry of BROKER_VISIBILITY_EXCLUSIONS) {
+      if (entry.ground !== "sweep-performance" || !entry.starvationCheck) continue;
+      const { survivalRate, filledSetups, source } = entry.starvationCheck;
+      assert.ok(
+        survivalRate >= MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION,
+        `${entry.levelflowSymbol}: survival ${survivalRate} is below ` +
+          `${MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION} — the geometry, not the market, ` +
+          `is deciding how much evidence exists. Fix the geometry, re-sweep, then judge.`,
+      );
+      assert.ok(
+        filledSetups >= MIN_FILLED_FOR_PERFORMANCE_EXCLUSION,
+        `${entry.levelflowSymbol}: ${filledSetups} filled setups is under ` +
+          `${MIN_FILLED_FOR_PERFORMANCE_EXCLUSION}. Rough rice's "-0.200" was seven.`,
+      );
+      assert.ok(source.length > 10, `${entry.levelflowSymbol} must cite its source artifact`);
+    }
+  });
+
+  it("forbids a starvation check on grounds where it means nothing", () => {
+    // A no-fmp-source or data-drift exclusion is not a performance claim, so
+    // attaching survival evidence to one would imply a judgement that was never
+    // made — and would let a future reader think the market had been measured.
+    for (const entry of BROKER_VISIBILITY_EXCLUSIONS) {
+      if (entry.ground === "sweep-performance") continue;
+      assert.equal(
+        entry.starvationCheck,
+        undefined,
+        `${entry.levelflowSymbol} carries a starvation check on ${entry.ground} grounds`,
+      );
+    }
+  });
+
+  it("keeps the floors at the values the failures justify", () => {
+    // 0.33: the five markets that fooled us ran 5% (feeder cattle) to 27%
+    // (rough rice); the healthy core runs 73-99%. 300: the smallest sample any
+    // exclusion tonight would have needed to survive scrutiny.
+    assert.equal(MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION, 0.33);
+    assert.equal(MIN_FILLED_FOR_PERFORMANCE_EXCLUSION, 300);
   });
 });
