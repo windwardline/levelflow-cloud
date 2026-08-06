@@ -539,72 +539,28 @@ export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap(
 // chart sources, and every calibration round re-derives their record from
 // accruing FMP history — the list shrinks when the evidence flips.
 export const NO_TRADE_SYMBOLS = new Set([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-  "NGUSD",
-  "HGUSD",
-  "BNBUSD",
-  // The nineteen E8 futures onboarded 2026-08-05 (owner directive: every E8
-  // market E8 actually trades, with a confirmed FMP match, must be
-  // represented and analyzed in Levelflow). They sit here — analyzed, not yet
-  // visible — for the reason the directive itself states: a market is visible
-  // "so long as there is an analyzed and acceptable match from FMP", and
-  // these have a confirmed match but no sweep evidence yet. Being in
-  // SECURITY_OPTIONS puts them in the replay universe; being here keeps them
-  // off every user surface until a sweep produces an acceptable result.
-  // Promotion out of this set is a calibration decision backed by both
-  // walk-forward splits, exactly as it is for the eight above — two of which
-  // (HGUSD, BNBUSD) are themselves promotion candidates now that the
-  // execution-cost defect is fixed.
+  // Mirrors the server's noTradeSymbols (trade-analyzer/symbols.ts), which
+  // carries the full reasoning. Four entries, all on the standing order's
+  // ground (b): the engine cannot produce viable setups for them.
+  //
+  // The list was 52 before the 2026-08-06 standing order — every tradable E8
+  // market live unless it has no FMP match or the engine cannot serve it. The
+  // 43 markets held "pending sweep evidence" have their evidence now, and the
+  // five cash indices turned out to be starved by our own tp1RiskShare rather
+  // than short of edge (round 28: 37% -> 96% geometry survival).
+  //
+  // ZFUSD / ZTUSD — generation barely fires (4% and 1% geometry survival, 67 and
+  // 9 setups across full history), and none of 81 joint variants changes it.
+  // DYDXUSD — genuinely negative at 90% survival, so not starved: -493.1 train R
+  // against +27.2 test over 3,777 setups.
+  //
+  // Oats (ZOUSX) was here on the same suspicion and left it: the grid showed a
+  // geometry problem, not a market problem (calibration.ts's ZOUSX override).
+  //
+  // Each stays a candidate for later inclusion, per the order's own terms.
   "ZFUSD",
   "ZTUSD",
-  "HOUSD",
-  "RBUSD",
-  "PLUSD",
-  "PAUSD",
-  "ZCUSX",
-  "ZSUSX",
-  "ZLUSX",
-  "ZMUSD",
-  "ZOUSX",
-  "ZRUSD",
-  "LEUSX",
-  "GFUSX",
-  "HEUSX",
-  "FESX",
-  "FDAX",
-  "EMD",
-  "NKD",
-  // The Crypto account's other 25 (2026-08-06), same conditional-visibility
-  // reason as the futures above: matched and analyzable, no sweep evidence yet.
-  "AAVEUSD",
-  "ALGOUSD",
-  "ARWUSD",
-  "ATOMUSD",
-  "AVAXUSD",
-  "CAKEUSD",
-  "DASHUSD",
-  "DOGEUSD",
-  "DOTUSD",
   "DYDXUSD",
-  "EGLDUSD",
-  "ETCUSD",
-  "FILUSD",
-  "GRTUSD",
-  "HBARUSD",
-  "IMXUSD",
-  "LINKUSD",
-  "NEARUSD",
-  "THETAUSD",
-  "TRUMPUSD",
-  "TRXUSD",
-  "UNIUSD",
-  "XLMUSD",
-  "XMRUSD",
-  "XTZUSD",
 ]);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS

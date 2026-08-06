@@ -403,23 +403,52 @@ function parseArgs(argv: string[]): SweepArgs {
   const gridSpec = get("grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
   if (gridSpec) {
-    const [rawKey, values] = gridSpec.split("=");
-    const key = rawKey.trim();
-    // A typo'd key used to pass silently — the untyped cast below accepted
-    // any string, so a misspelled field produced a "variant" that overrode
-    // nothing and reported the baseline's numbers back as if it had.
-    if (!isGridOverrideKey(key)) {
-      throw new Error(
-        `--grid key "${key}" is not a numeric CategoryCalibration field. ` +
-          `Valid keys: ${GRID_OVERRIDE_KEYS.join(", ")}`,
-      );
-    }
-    for (const value of (values ?? "").split(",")) {
-      const numeric = Number(value);
-      if (Number.isFinite(numeric)) {
-        grid.push({ [key]: numeric });
+    // Semicolon-separated axes, crossed (2026-08-06). One axis stays exactly as
+    // before — `key=a,b,c` — so every prior invocation means what it always did.
+    //
+    // Why the cross product had to exist. Levers downstream of risk are not
+    // separable: the runner's minimum distance derives from risk, and the stop
+    // cap sets risk, so a one-axis-at-a-time search finds the best value of B at
+    // A's OLD setting. Round 26 hit this from the measurement side — the runner
+    // grid had to be re-run after the caps moved, and the answer changed. Round
+    // 28 hits it from the other side: the cash indices are starved by a
+    // COMBINATION (a wide cap puts the pivot far out, a 5-hour window caps the
+    // runner near, and no plan can satisfy minimumTargetRewardRisk between
+    // them), and no single axis can show that, because each axis alone is
+    // starved at every value it tries.
+    // Crossed separately from the baseline: seeding the cross with `{}` and then
+    // re-crossing `grid` itself would keep re-seeding partial assignments, so a
+    // three-axis spec would emit single- and double-axis "variants" alongside the
+    // real ones. Every combination here is a full assignment across the named
+    // axes, and the baseline is added once at the end.
+    let combos: Array<Partial<CategoryCalibration>> = [{}];
+    for (const axis of gridSpec.split(";")) {
+      if (!axis.trim()) continue;
+      const [rawKey, values] = axis.split("=");
+      const key = rawKey.trim();
+      // A typo'd key used to pass silently — the untyped cast below accepted
+      // any string, so a misspelled field produced a "variant" that overrode
+      // nothing and reported the baseline's numbers back as if it had.
+      if (!isGridOverrideKey(key)) {
+        throw new Error(
+          `--grid key "${key}" is not a numeric CategoryCalibration field. ` +
+            `Valid keys: ${GRID_OVERRIDE_KEYS.join(", ")}`,
+        );
       }
+      const numerics = (values ?? "")
+        .split(",")
+        .map((value) => Number(value))
+        .filter((numeric) => Number.isFinite(numeric));
+      if (numerics.length === 0) continue;
+      const crossed: Array<Partial<CategoryCalibration>> = [];
+      for (const existing of combos) {
+        for (const numeric of numerics) {
+          crossed.push({ ...existing, [key]: numeric });
+        }
+      }
+      combos = crossed;
     }
+    grid.push(...combos);
   }
   return {
     cacheDir: get("cache-dir"),

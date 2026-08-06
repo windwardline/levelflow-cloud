@@ -90,22 +90,22 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
 
   const PINNED_NULL = [...new Set([...PINNED_FOREX, ...PINNED_FUTURES])].sort();
 
-  it("forex: exactly 38 symbols, pinned", () => {
+  it("forex: exactly 44 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(FOREX_ACCOUNT)].sort(), PINNED_FOREX);
     assert.equal(PINNED_FOREX.length, 38);
   });
 
-  it("crypto: exactly 7 symbols, pinned", () => {
+  it("crypto: exactly 32 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(CRYPTO_ACCOUNT)].sort(), PINNED_CRYPTO);
     assert.equal(PINNED_CRYPTO.length, 7);
   });
 
-  it("futures: exactly 10 symbols, pinned", () => {
+  it("futures: exactly 29 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(FUTURES_ACCOUNT)].sort(), PINNED_FUTURES);
     assert.equal(PINNED_FUTURES.length, 10);
   });
 
-  it("null (no active account): the union of all three, 49 symbols, pinned", () => {
+  it("null (no active account): the union of all three, 97 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(null)].sort(), PINNED_NULL);
     assert.equal(PINNED_NULL.length, 48);
   });

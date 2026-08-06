@@ -51,14 +51,19 @@ describe("row counts — total, per classification, per status", () => {
   it("pins the six-way status breakdown", () => {
     assert.deepEqual(rowCountsByStatus(), {
       // MGCUSD became a contract-size variant on 2026-08-05 (owner ruling, contractVariants.ts): micro gold sizes against GCUSD and holds no scan slot, so it moved from served-and-visible to served-but-not-scannable.
-      "served-and-visible": 46,
+      // 46 -> 95: the 2026-08-06 standing order released 49 markets from
+      // NO_TRADE_SYMBOLS, and this status is derived from that set.
+      "served-and-visible": 95,
       "served-but-display-excluded": 1,
       // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
       // 29 -> 54: the Crypto account's other 25 were onboarded 2026-08-06 and
       // land here, analyzed and withheld, exactly as the nineteen futures did.
-      "served-but-not-scannable": 62,
+      // 62 -> 13: what remains is the nine contract-size variants, BRENT's
+      // display exclusion's sibling rows, and the three genuinely unservable
+      // markets. Nothing here is withheld "pending evidence" any more.
+      "served-but-not-scannable": 13,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
@@ -86,16 +91,19 @@ describe("row counts — total, per classification, per status", () => {
 });
 
 describe("agreement with the live master/visible sets (no re-derivation)", () => {
-  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 58) exactly", () => {
+  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 107) exactly", () => {
     assert.deepEqual(servedSymbols().sort(), [...AVAILABLE_ASSET_SYMBOLS].sort());
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(servedSymbols().length, 58);
+    // 58 -> 107. AVAILABLE is derived through NO_TRADE_SYMBOLS, so releasing 49
+    // markets grows it by 49.
+    assert.equal(servedSymbols().length, 107);
   });
 
-  it("the registry's visible set equals visibleAssetSymbols(null) (the 48) exactly", () => {
+  it("the registry's visible set equals visibleAssetSymbols(null) (the 97) exactly", () => {
     assert.deepEqual(visibleSymbols().sort(), [...visibleAssetSymbols(null)].sort());
     // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
-    assert.equal(visibleSymbols().length, 48);
+    // 48 -> 97, the same 49 markets.
+    assert.equal(visibleSymbols().length, 97);
   });
 
   it("every currently-served symbol appears in the registry with a served-compatible status", () => {
@@ -456,10 +464,10 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 80 non-happy-path rows", () => {
-    // 74 -> 80: the six CME FX majors are reentry candidates by construction —
-    // re-examined at every sweep until the transform that unlocks them exists.
-    assert.equal(reentryList().length, 80);
+  it("reentryList() returns exactly the 31 non-happy-path rows", () => {
+    // 80 -> 31: 49 rows became served-and-visible on the standing order, and a
+    // served-and-visible row is by definition not a reentry candidate.
+    assert.equal(reentryList().length, 31);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

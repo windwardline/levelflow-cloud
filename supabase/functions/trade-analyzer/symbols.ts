@@ -290,80 +290,67 @@ const correlationGroups: Record<string, string[]> = {
 // refused server-side — they are not an option, period (owner directive,
 // r15). They remain full members of the symbol map and the replay universe:
 // every calibration round re-derives their record from accruing FMP history,
-// and this list shrinks the round the evidence flips (exactly how 14
-// symbols left the deprioritized list in r15).
-// - Cash indices (r12 dedicated round: confidence does not rank outcomes
-//   out-of-sample; r15 re-check: DAX/NSDQ negative both splits, DOW/NIKKEI
-//   mixed-weak, SP weak — the category verdict stands).
-// - NGUSD/HGUSD (r14 audit: zero accepted setups across full history;
-//   generation can only ever return "no setup").
-// - BNBUSD (r16, owner standard: a mixed record — train -0.030 / test
-//   +0.099, split disagreement — does not meet the provable bar; the menu
-//   is binary now, measured-in or fully out).
+// and this list shrinks the round the evidence flips.
+//
+// STANDING ORDER (owner, 2026-08-06): every tradable E8 market is live, in its
+// proper place, across and limited to the three account types. The ONLY grounds
+// for withholding are (a) no FMP match, or (b) the engine cannot produce viable
+// setups for it. Everything withheld stays a candidate for later inclusion —
+// should FMP add a source, or should the data justify it.
+//
+// The list went from 52 entries to 4 on that order. What left it, and why:
+//
+// - The 43 markets onboarded 2026-08-05/06 (25 crypto, 6 futures, 3 livestock,
+//   3 agriculture, plus EMD/FDAX/FESX/NKD/ZMUSD/ZSUSX). Every one posts positive
+//   expectancy on BOTH walk-forward splits in the 1,020,464-setup final sweep.
+//   The condition they were held on — an acceptable analyzed match — is met.
+// - The cash indices SP/NSDQ/DOW/NIKKEI/DAX. r12 excluded the category because
+//   confidence did not rank their outcomes out-of-sample, and r15 re-confirmed
+//   it. Round 28 found that verdict was drawn on a sample a defect of OURS had
+//   cut to a third: tp1RiskShare sat at 1.2, requiring TP1 further out than the
+//   stop, so 63% of decisions were refused at the geometry stage. Fixed, the
+//   class runs 96% survival, 1,421 setups and +38.2 train / +19.2 test R.
+// - NGUSD and HGUSD. The r14 audit recorded "zero accepted setups across full
+//   history; generation can only ever return no setup". That was the absolute
+//   execution-cost floor, not the markets — NGUSD now runs +0.237/+0.265 and
+//   HGUSD +0.281/+0.313.
+// - BNBUSD. The r16 standard withheld it on split disagreement (train -0.030 /
+//   test +0.099). The disagreement is gone: +0.219 train / +0.244 test on 400
+//   setups. Released under the 2026-08-06 standing order, which supersedes the
+//   r16 hold on exactly the ground r16 itself named — the menu is binary, and
+//   this market is now measured in.
+//
+// What REMAINS, all four on ground (b), and all four re-gridded before being
+// left here — an 81-variant joint search over tp1 share, stop cap, review
+// window and runner ceiling:
 export const noTradeSymbols = new Set<string>([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-  "NGUSD",
-  "HGUSD",
-  "BNBUSD",
-  // The 44 markets onboarded 2026-08-05/06 under the owner's standing order:
-  // every market E8 trades with a confirmed FMP match is represented and
-  // analyzed. Withheld here for the order's own condition — visible only once
-  // there is an ACCEPTABLE analyzed match — so they enter the replay universe
-  // and no user surface. This set must stay in step with src/lib/symbolMap.ts's
-  // NO_TRADE_SYMBOLS across the Deno boundary; tests/core.test.ts's scan-door
-  // pin is what catches drift, and it caught exactly this omission.
+  // ZFUSD and ZTUSD — the 5-year and 2-year Treasury note futures. Generation
+  // barely fires: 4% and 1% of decisions reaching the geometry stage survive it,
+  // giving 67 and 9 accepted setups across FULL history. That is starvation, and
+  // it was attacked rather than assumed — 81 joint variants over tp1 share, stop
+  // cap, review window and runner ceiling, and not one produces a both-splits
+  // positive record on even 200 setups. Rates futures move in ticks against a
+  // yield curve; the ATR ladder has no purchase on them. Ground (b), and the
+  // ground is generation volume rather than expectancy, so amendment 25's bar on
+  // judging a starved sample is not being sidestepped: no expectancy claim is
+  // made about either one.
+  //
+  // DYDXUSD — genuinely negative, and not starved: 90% of decisions reaching the
+  // geometry stage survive it, so the sample is the market's own. Train R -493.1
+  // against test +27.2 across 3,777 setups, and none of 81 grid variants makes
+  // both splits positive. Oats sat here on the same suspicion and turned out to
+  // be a geometry problem (see calibration.ts's ZOUSX override); DYDX was
+  // re-gridded the same way and is not.
+  //
+  // This set must stay in step with src/lib/symbolMap.ts's NO_TRADE_SYMBOLS
+  // across the Deno boundary; tests/core.test.ts's scan-door pin catches drift.
   //
   // FDXM is deliberately ABSENT: it is a contract-size variant, excluded by
   // `contractSizeVariants` below on entirely different grounds — not withheld
   // pending evidence, but never a market of its own.
   "ZFUSD",
   "ZTUSD",
-  "HOUSD",
-  "RBUSD",
-  "PLUSD",
-  "PAUSD",
-  "ZCUSX",
-  "ZSUSX",
-  "ZLUSX",
-  "ZMUSD",
-  "ZOUSX",
-  "ZRUSD",
-  "LEUSX",
-  "GFUSX",
-  "HEUSX",
-  "FESX",
-  "FDAX",
-  "EMD",
-  "NKD",
-  "AAVEUSD",
-  "ALGOUSD",
-  "ARWUSD",
-  "ATOMUSD",
-  "AVAXUSD",
-  "CAKEUSD",
-  "DASHUSD",
-  "DOGEUSD",
-  "DOTUSD",
   "DYDXUSD",
-  "EGLDUSD",
-  "ETCUSD",
-  "FILUSD",
-  "GRTUSD",
-  "HBARUSD",
-  "IMXUSD",
-  "LINKUSD",
-  "NEARUSD",
-  "THETAUSD",
-  "TRUMPUSD",
-  "TRXUSD",
-  "UNIUSD",
-  "XLMUSD",
-  "XMRUSD",
-  "XTZUSD",
 ]);
 
 // Scan-path exclusion set: everything no-trade, by definition.

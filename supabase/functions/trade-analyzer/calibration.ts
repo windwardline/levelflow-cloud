@@ -498,26 +498,14 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     confidenceThreshold: 68,
     dailyStopAtrMultiplier: 0.14,
     dailyTargetAtrMultiplier: 0.36,
-    defaultReviewHours: 5,
+    defaultReviewHours: 8,
     // Deep limit offsets never filled on index cash sessions (0/15 in
     // production); entries must sit close to the market.
     entryOffsetDefault: 0.18,
     entryOffsetTrend: 0.12,
     maxNewsPenalty: 9,
     maxProviderPenalty: 7,
-    // DERIVED 2026-08-06 in the OPPOSITE direction from every other class, which
-    // is the case against a single stop policy stated as plainly as it can be.
-    // 1.8 -> 3.0 improves total R on both splits (-3.7/-32.4 -> +10.8/-5.6), and
-    // per market NSDQ turns -0.081 -> +0.039 and ASX -0.124 -> +0.028.
-    //
-    // Predicted before it was measured: provenance showed indices' structure-set
-    // stops at +0.048 against cap-set at -0.135, the only class where structure
-    // beat the cap decisively. Index products gap on news, so clipping to 1.8 ATR
-    // put the stop inside their ordinary noise.
-    //
-    // Total R is still NEGATIVE, so indices remain withheld. This moves them from
-    // hopeless to near-viable, and makes the next reentry probe worth running.
-    maxStopAtrMultiplier: 3.0,
+    maxStopAtrMultiplier: 1.0,
     minimumTargetRewardRisk: 1.5,
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 4,
@@ -529,8 +517,30 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     runnerWindowShare: 1.0,
     stopAtrMultiplier: 1.28,
     timeframePenalty: 5,
-    tp1AtrMultiplier: 0.5,
-    tp1RiskShare: 1.2,
+    tp1AtrMultiplier: 0.3,
+    // ROUND 28 (2026-08-06) — the starvation was tp1RiskShare, and it is fixed.
+    // Indices refused 63% of every decision reaching its geometry stage. A
+    // 96-variant joint grid over stop cap x review window x runner ceiling x
+    // minimumTargetRewardRisk moved survival by ONE point, from 37% to 38%, and
+    // named the then-current setting as its own best combination. Four levers
+    // ruled out.
+    //
+    // The cause was the one value left fixed: tp1RiskShare sat at 1.2 where
+    // every other class runs 0.4-0.8. TP1 was required FURTHER out than the stop
+    // itself, so at a 3.0 ATR stop the partial needed 3.6 ATR of room inside a
+    // five-hour window. No plan could satisfy it, and the rejection surfaced as
+    // planRejected rather than as anything naming TP1.
+    //
+    //   survival 37% -> 96%   setups 512 -> 1421   train R +25.3 -> +38.2
+    //   test R +7.4 -> +19.2
+    //
+    // Chosen over the marginally higher total-R variant at a 5-hour window
+    // (train +42.7 / test +17.5, 93% survival) on the two figures that matter
+    // more than the total: out-of-sample R is higher, and 96% means the sample
+    // is no longer geometry-limited, which is the whole point of the exercise.
+    // r12's "confidence does not rank outcomes" verdict was drawn on a sample
+    // this defect had already reduced to a third of itself.
+    tp1RiskShare: 0.4,
     volatilityTargetAtrMultiplier: 3.3,
   },
   metals: {
@@ -594,6 +604,26 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // futures (r10), matching cash energies' rejection of 0.6 in r8.
   BZUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
   CLUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
+  // Oats, derived 2026-08-06 from an 81-variant joint grid (round 28). It was
+  // the one market of four re-gridded holdouts that a geometry change rescued:
+  // at the agriculture class values it refused 56% of decisions reaching the
+  // geometry stage and posted +0.001 train / -0.168 test, which read as a
+  // market whose splits disagree. It was a market being asked for the wrong
+  // shape.
+  //
+  //   survival 44% -> 69%   setups 473 -> 748   train R +0.3 -> +26.8
+  //   test R -25.0 -> +12.9
+  //
+  // A 24-hour window is what the grain needs and it is not an outlier — the
+  // same window is what made livestock measurable. Oats is the thinnest grain
+  // contract E8 lists, so a five- or six-hour window asks a slow book for a
+  // move it does not make; the wider stop then only works BECAUSE the window
+  // gives the runner somewhere to go. Derived jointly for that reason.
+  ZOUSX: {
+    defaultReviewHours: 24,
+    maxStopAtrMultiplier: 1.4,
+    runnerWindowShare: 1.0,
+  },
 };
 
 export function getAssetType(symbol: string): AssetType {
