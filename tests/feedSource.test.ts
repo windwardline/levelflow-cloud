@@ -50,6 +50,12 @@ const FROZEN_FALLBACK_ENTRIES: string[] = [];
 // outside the price-identity claim but inside the single-provider rule.
 const FMP_FILE_ALLOWLIST = [
   "scripts/replay-sweep.ts",
+  // The match-confirmation gate (owner directive, 2026-08-05): probes every
+  // master-list row's FMP mate for real, deep, current bars and exits
+  // non-zero when a SERVED market's feed lapses. It reads the feed to prove
+  // the mapping, and writes nothing to it — an offline verifier, never a
+  // second price path into the product.
+  "scripts/verify-fmp-matches.ts",
   "supabase/functions/market-data/index.ts",
   "supabase/functions/news-calendar/index.ts",
   "supabase/functions/trade-analyzer/macroContext.ts",

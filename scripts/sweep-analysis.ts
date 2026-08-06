@@ -12,7 +12,8 @@
 // futures 68 · indices 68 · metals 90. Every curve below is printed against
 // them so a proposed change is a delta from the resting state, never a number
 // arriving from nowhere.
-import { readFileSync } from "node:fs";
+import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 
 type Row = {
@@ -69,33 +70,46 @@ function classOf(symbol: string): string {
 
 type Stats = {
   n: number;
+  filled: number;
   tp1: number;
   stopped: number;
-  unfilled: number;
+  ambiguous: number;
   rSum: number;
-  rN: number;
 };
 
 function emptyStats(): Stats {
-  return { n: 0, rN: 0, rSum: 0, stopped: 0, tp1: 0, unfilled: 0 };
+  return { ambiguous: 0, filled: 0, n: 0, rSum: 0, stopped: 0, tp1: 0 };
 }
 
+// Mirrors summarizeSweepOutcomes (supabase/functions/trade-analyzer/sweep.ts)
+// field for field, deliberately: an analysis that computes its own rates can
+// drift from the engine's, and this one did — a first cut classified wins by
+// regex (/tp1|target/), which silently dropped every `take_profit` (the
+// biggest wins) and divided by all rows instead of filled ones, understating
+// every hit rate and diluting expectancy with the unfilled rows' realizedR of
+// 0. The engine's vocabulary is the authority: filled = outcome !== unfilled;
+// a win is take_profit OR tp1_partial; a stop is stop_loss; expectancy is the
+// mean realizedR OVER FILLED. `ambiguous` is reported in its own column
+// rather than folded anywhere, because a run the simulator could not resolve
+// is neither a win nor a loss and hiding it inside a denominator would be the
+// same class of error.
 function add(stats: Stats, row: Row): void {
   stats.n += 1;
-  // The outcome vocabulary is the engine's own (sweep.ts): anything naming a
-  // target is a win at TP1, "stopped" is the loss, "unfilled" never traded.
-  if (/tp1|target/i.test(row.outcome)) {
+  if (row.outcome === "unfilled") {
+    return;
+  }
+  stats.filled += 1;
+  stats.rSum += typeof row.realizedR === "number" && Number.isFinite(row.realizedR)
+    ? row.realizedR
+    : 0;
+  if (row.outcome === "take_profit" || row.outcome === "tp1_partial") {
     stats.tp1 += 1;
   }
-  if (/stop/i.test(row.outcome)) {
+  if (row.outcome === "stop_loss") {
     stats.stopped += 1;
   }
-  if (/unfilled/i.test(row.outcome)) {
-    stats.unfilled += 1;
-  }
-  if (typeof row.realizedR === "number" && Number.isFinite(row.realizedR)) {
-    stats.rSum += row.realizedR;
-    stats.rN += 1;
+  if (row.outcome === "ambiguous") {
+    stats.ambiguous += 1;
   }
 }
 
@@ -104,7 +118,7 @@ function rate(part: number, whole: number): string {
 }
 
 function expectancy(stats: Stats): string {
-  return stats.rN === 0 ? "—" : (stats.rSum / stats.rN).toFixed(3);
+  return stats.filled === 0 ? "—" : (stats.rSum / stats.filled).toFixed(3);
 }
 
 function table(title: string, header: string[], rows: string[][]): void {
@@ -121,7 +135,7 @@ function table(title: string, header: string[], rows: string[][]): void {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const emitPath = args[args.indexOf("--emit") + 1];
   const minNIndex = args.indexOf("--min-n");
@@ -131,10 +145,39 @@ function main(): void {
     process.exit(1);
   }
 
-  const rows: Row[] = readFileSync(emitPath, "utf8")
-    .split("\n")
-    .filter((line) => line.trim().length > 0)
-    .map((line) => JSON.parse(line) as Row);
+  // Streamed, and narrowed to the fields the tables use: the 2026-08-05 run
+  // emitted 672,739 records (505 MB), where a readFileSync + split would hold
+  // the whole file, an array of every line, AND every parsed object at once.
+  // One pass, compact records, no ceiling worth worrying about.
+  const rows: Row[] = [];
+  const reader = createInterface({
+    crlfDelay: Infinity,
+    input: createReadStream(emitPath),
+  });
+  for await (const line of reader) {
+    if (line.trim().length === 0) {
+      continue;
+    }
+    const parsed = JSON.parse(line) as Row;
+    rows.push({
+      accepted: parsed.accepted,
+      confidenceScore: parsed.confidenceScore,
+      cotStance: parsed.cotStance,
+      newsPenalty: parsed.newsPenalty,
+      outcome: parsed.outcome,
+      realizedR: parsed.realizedR,
+      regime: parsed.regime,
+      rewardRisk: parsed.rewardRisk,
+      sessionLabel: parsed.sessionLabel,
+      sessionPenalty: parsed.sessionPenalty,
+      side: parsed.side,
+      split: parsed.split,
+      stopProvenance: parsed.stopProvenance,
+      symbol: parsed.symbol,
+      time: parsed.time,
+      variant: parsed.variant,
+    });
+  }
 
   console.log(`# Sweep analysis — ${rows.length} evaluated setups`);
   console.log(`Emit: ${emitPath} · min-n for a reportable cell: ${minN}`);
@@ -164,11 +207,11 @@ function main(): void {
         name,
         String(LIVE_THRESHOLDS[name] ?? "—"),
         String(cell.accepted.n),
-        rate(cell.accepted.tp1, cell.accepted.n),
-        rate(cell.accepted.stopped, cell.accepted.n),
+        rate(cell.accepted.tp1, cell.accepted.filled),
+        rate(cell.accepted.stopped, cell.accepted.filled),
         expectancy(cell.accepted),
         String(cell.all.n),
-        rate(cell.all.tp1, cell.all.n),
+        rate(cell.all.tp1, cell.all.filled),
         expectancy(cell.all),
       ]),
   );
@@ -196,9 +239,9 @@ function main(): void {
         .map(([bucket, stats]) => [
           `${bucket}-${bucket + 4}`,
           String(stats.n),
-          rate(stats.tp1, stats.n),
-          rate(stats.stopped, stats.n),
-          rate(stats.unfilled, stats.n),
+          rate(stats.tp1, stats.filled),
+          rate(stats.stopped, stats.filled),
+          rate(stats.n - stats.filled, stats.n),
           expectancy(stats),
           `${bucket <= live && live <= bucket + 4 ? "*" : ""}${stats.n < minN ? "!" : ""}`,
         ]),
@@ -227,8 +270,8 @@ function main(): void {
         return [
           String(threshold),
           String(stats.n),
-          rate(stats.tp1, stats.n),
-          rate(stats.stopped, stats.n),
+          rate(stats.tp1, stats.filled),
+          rate(stats.stopped, stats.filled),
           expectancy(stats),
           `${threshold === live ? "* live" : ""}${stats.n < minN ? " !" : ""}`,
         ];
@@ -257,7 +300,7 @@ function main(): void {
         symbol,
         classOf(symbol),
         String(cell.accepted.n),
-        rate(cell.accepted.tp1, cell.accepted.n),
+        rate(cell.accepted.tp1, cell.accepted.filled),
         expectancy(cell.accepted),
         String(cell.all.n),
         expectancy(cell.all),
@@ -292,8 +335,8 @@ function main(): void {
         .map(([key, stats]) => [
           key,
           String(stats.n),
-          rate(stats.tp1, stats.n),
-          rate(stats.stopped, stats.n),
+          rate(stats.tp1, stats.filled),
+          rate(stats.stopped, stats.filled),
           expectancy(stats),
           stats.n < minN ? "!" : "",
         ]),
@@ -325,7 +368,7 @@ function main(): void {
         className,
         split,
         String(stats.n),
-        rate(stats.tp1, stats.n),
+        rate(stats.tp1, stats.filled),
         expectancy(stats),
         stats.n < minN ? "!" : "",
       ]);
@@ -338,4 +381,4 @@ function main(): void {
   );
 }
 
-main();
+await main();
