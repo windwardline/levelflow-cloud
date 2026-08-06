@@ -82,3 +82,24 @@ First run, 2026-08-06: 338,971 bars across 100 symbols, 42 MB.
 The bank has no backup, the same gap the calibration corpus has. It is small enough
 today that an off-machine copy is cheap, and it becomes irreplaceable the moment it
 holds more than three days.
+
+## Keeping it running
+
+A launchd agent runs it twice daily, at 07:20 and 19:20 local:
+
+```
+scripts/ops/bank-minute-bars-daily.sh
+scripts/ops/com.windwardline.levelflow-minute-bank.plist  →  ~/Library/LaunchAgents/
+```
+
+Twice rather than once because the cost of an extra run is nothing — it appends
+only what is new — and the cost of a missed window is permanent. launchd rather
+than an in-app scheduler for the same reason: a job that only fires while an app
+happens to be open is not a guarantee, and this one catches up on wake.
+
+A locked keychain logs a skip and exits zero. That is a deferral, not a failure,
+because the window is three days wide — but a run of consecutive skips is the
+job silently doing nothing, so the log says it out loud.
+
+A separate daily watchdog reads the log and the sidecars and escalates if the
+newest `highWaterMark` falls more than two days behind.
