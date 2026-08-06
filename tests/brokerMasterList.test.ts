@@ -49,14 +49,18 @@ describe("row counts — total, per classification, per status", () => {
       // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
-      "served-but-not-scannable": 29,
+      // 29 -> 54: the Crypto account's other 25 were onboarded 2026-08-06 and
+      // land here, analyzed and withheld, exactly as the nineteen futures did.
+      "served-but-not-scannable": 54,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
       // changed category, none were added.
-      // 30 -> 26: four of the five cash proxies (FESX, FDAX, EMD, NKD) were
-      // onboarded the same day, leaving 25 crypto mates and FDXM.
-      "mapped-not-yet-onboarded": 26,
+      // 30 -> 26 -> 1. The four cash proxies were onboarded 2026-08-05 and the
+      // 25 crypto mates on 2026-08-06, which leaves FDXM alone: the same
+      // ^GDAXI series as FDAX at a different contract size, held pending the
+      // owner's micro/mini ruling.
+      "mapped-not-yet-onboarded": 1,
       "excluded-no-fmp-source": 7,
       "offered-but-unsizeable": 4,
     });
@@ -265,6 +269,9 @@ describe("the cash-index proxy futures (owner-accepted 2026-08-05)", () => {
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, `${broker} must have a row`);
       assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
+      // FDXM is genuinely still unonboarded — unlike the crypto mates and the
+      // four sibling proxies, which are served rows now. It waits on the
+      // owner's micro/mini ruling, not on a sweep.
       assert.equal(entry!.status, "mapped-not-yet-onboarded");
       assert.equal(entry!.classification, "futures");
       assert.equal(
@@ -362,7 +369,7 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
     assert.equal(entry!.brokerName, "ARWUSD");
     assert.equal(entry!.fmpSymbol, "ARUSD");
     assert.notEqual(entry!.brokerName, entry!.fmpSymbol);
-    assert.equal(entry!.status, "mapped-not-yet-onboarded");
+    assert.equal(entry!.status, "served-but-not-scannable");
   });
 
   it("the TRUMPUSD trap: FMP's literal TRUMPUSD ticker is NOT the match", () => {
@@ -371,22 +378,44 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
     assert.equal(entry!.brokerName, "TRUMPUSD");
     assert.equal(entry!.fmpSymbol, "OTRUMPUSD");
     assert.notEqual(entry!.fmpSymbol, "TRUMPUSD");
-    assert.equal(entry!.status, "mapped-not-yet-onboarded");
+    assert.equal(entry!.status, "served-but-not-scannable");
   });
 
   it("marks all 25 new mates mapped-not-yet-onboarded, and BNBUSD separately as served-but-not-scannable", () => {
     for (const broker of Object.keys(CRYPTO_MATES)) {
-      if (broker === "BNBUSD") {
-        continue;
-      }
+      // Every one of the 26 is ONBOARDED as of 2026-08-06 — the owner's
+      // standing order requires that a market E8 trades with a confirmed FMP
+      // match be analyzed, and a row with no Levelflow symbol cannot be: the
+      // replay resolves by Levelflow symbol. So each now carries E8's own name
+      // as its symbol and sits withheld, not unmapped. BNBUSD was already in
+      // this state and is no longer the exception.
       const entry = findMasterListRowByBrokerName(broker);
-      assert.equal(entry!.levelflowSymbol, null, `${broker} must have no Levelflow symbol yet`);
-      assert.equal(entry!.status, "mapped-not-yet-onboarded");
+      assert.ok(entry, `${broker} must have a registry row`);
+      assert.equal(
+        entry!.levelflowSymbol,
+        broker,
+        `${broker}'s Levelflow symbol is E8's own name, never FMP's`,
+      );
+      assert.equal(
+        entry!.status,
+        "served-but-not-scannable",
+        `${broker} is analyzed and withheld until a sweep proves it`,
+      );
     }
     const bnb = findMasterListRow("BNBUSD");
     assert.ok(bnb);
     assert.equal(bnb!.status, "served-but-not-scannable");
     assert.equal(bnb!.levelflowSymbol, "BNBUSD");
+  });
+
+  it("keeps both name traps pointing at the right FMP series", () => {
+    // The two divergences the resolution work caught, and the reason the
+    // Levelflow symbol must be E8's spelling rather than FMP's: FMP lists a
+    // DIFFERENT TRUMPUSD, so matching on spelling would have wired the wrong
+    // asset entirely. Pinned because the failure is silent — a wrong series
+    // still produces plausible setups.
+    assert.equal(findMasterListRowByBrokerName("ARWUSD")!.fmpSymbol, "ARUSD");
+    assert.equal(findMasterListRowByBrokerName("TRUMPUSD")!.fmpSymbol, "OTRUMPUSD");
   });
 });
 

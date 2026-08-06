@@ -163,6 +163,12 @@ describe("feed source lock (§20i ruling 8)", () => {
       // constant: futures-vs-cash is carry, which decays to expiry.
       // FDAX and NKD intentionally duplicate DAX's and NIKKEI's series;
       // amendment 24 decides each account type separately, which requires it.
+      // E8's own crypto spellings, onboarded 2026-08-06. Both traps: FMP calls
+      // Arweave ARUSD, and FMP's literal TRUMPUSD is a DIFFERENT asset — the
+      // match is OTRUMPUSD, so following the identical spelling would have
+      // wired the wrong series while looking perfectly correct.
+      ARWUSD: "ARUSD",
+      TRUMPUSD: "OTRUMPUSD",
       EMD: "^MID",
       FDAX: "^GDAXI",
       FESX: "^STOXX50E",
@@ -175,7 +181,7 @@ describe("feed source lock (§20i ruling 8)", () => {
         if (option.fmpSymbol !== option.symbol) {
           assert.ok(
             group.label === "Indices" || group.label === "Energies" ||
-              group.label === "Futures",
+              group.label === "Futures" || group.label === "Crypto",
             `${option.symbol} (${group.label}) diverges from its FMP symbol — pass-through was verified for ${group.label}`,
           );
           observedDivergences[option.symbol] = option.fmpSymbol;

@@ -627,14 +627,15 @@ describe("§19a — the row and its states", () => {
       ),
     );
     assert.equal(keys.size, BROKER_INSTRUMENTS.length);
-    // 78 code-present markets on each of the ten shipped lines: the 50
-    // scannable ones plus the 28 that stay in the symbol map and the replay
-    // universe. Was 59/9/590 until 2026-08-05, when nineteen E8 futures were
-    // onboarded withheld — represented and analyzed, not yet visible.
-    assert.equal(ALL_MAPPED_SYMBOLS.length, 78);
+    // 103 code-present markets on each of the ten shipped lines: the 50
+    // scannable ones plus the 53 that stay in the symbol map and the replay
+    // universe. 59/9/590 until 2026-08-05, then 78/28/780 with nineteen E8
+    // futures, then this with the Crypto account's other 25 — all onboarded
+    // withheld: represented and analyzed, not yet visible.
+    assert.equal(ALL_MAPPED_SYMBOLS.length, 103);
     assert.equal(SCANNABLE.size, 50);
-    assert.equal(ADDENDUM.length, 28);
-    assert.equal(BROKER_INSTRUMENTS.length, 780);
+    assert.equal(ADDENDUM.length, 53);
+    assert.equal(BROKER_INSTRUMENTS.length, 1030);
     assert.equal(scannableRowsFor("one").length, 50);
   });
 
@@ -936,7 +937,32 @@ describe("§19a — the row and its states", () => {
       "ZRUSD",
       "ZSUSX",
       "ZTUSD",
-    ]);
+      "AAVEUSD",
+      "ALGOUSD",
+      "ARWUSD",
+      "ATOMUSD",
+      "AVAXUSD",
+      "CAKEUSD",
+      "DASHUSD",
+      "DOGEUSD",
+      "DOTUSD",
+      "DYDXUSD",
+      "EGLDUSD",
+      "ETCUSD",
+      "FILUSD",
+      "GRTUSD",
+      "HBARUSD",
+      "IMXUSD",
+      "LINKUSD",
+      "NEARUSD",
+      "THETAUSD",
+      "TRUMPUSD",
+      "TRXUSD",
+      "UNIUSD",
+      "XLMUSD",
+      "XMRUSD",
+      "XTZUSD",
+    ].sort());
     for (const program of PROGRAM_LINES) {
       for (const symbol of ADDENDUM) {
         assert.ok(findBrokerInstrument(program.line, symbol), `${program.line}:${symbol}`);

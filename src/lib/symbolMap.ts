@@ -88,6 +88,46 @@ const crypto = [
   ["BNBUSD", "BNB/USD", "BNB / U.S. Dollar", "BNBUSD"],
   ["BCHUSD", "BCH/USD", "Bitcoin Cash / U.S. Dollar", "BCHUSD"],
   ["ADAUSD", "ADA/USD", "Cardano / U.S. Dollar", "ADAUSD"],
+  // The E8 Crypto account's other 25, onboarded 2026-08-06 under the owner's
+  // standing order: every market E8 trades with a confirmed FMP match is
+  // represented and analyzed. All 25 carry live bid/ask on the crypto-account
+  // record (docs/research/e8-crypto-account-2026-08-03.md — 33 rows, none
+  // blank) and a resolved FMP mate
+  // (docs/research/e8-crypto-source-resolution-2026-08-05.md).
+  //
+  // The Levelflow symbol is E8'S name, never FMP's. Two diverge, and both are
+  // traps the resolution work caught: E8's ARWUSD (Arweave) reads FMP ARUSD,
+  // and E8's TRUMPUSD reads FMP OTRUMPUSD — FMP also lists a DIFFERENT
+  // TRUMPUSD, so taking the matching spelling would have wired the wrong
+  // asset. Users see E8's spelling; FMP's stays backend-only.
+  //
+  // Gated no-trade until swept: onboarding makes them analyzable, and the
+  // order makes visibility conditional on an ACCEPTABLE analyzed match.
+  ["AAVEUSD", "AAVE/USD", "Aave / U.S. Dollar", "AAVEUSD"],
+  ["ALGOUSD", "ALGO/USD", "Algorand / U.S. Dollar", "ALGOUSD"],
+  ["ARWUSD", "ARW/USD", "Arweave / U.S. Dollar", "ARUSD"],
+  ["ATOMUSD", "ATOM/USD", "Cosmos / U.S. Dollar", "ATOMUSD"],
+  ["AVAXUSD", "AVAX/USD", "Avalanche / U.S. Dollar", "AVAXUSD"],
+  ["CAKEUSD", "CAKE/USD", "PancakeSwap / U.S. Dollar", "CAKEUSD"],
+  ["DASHUSD", "DASH/USD", "Dash / U.S. Dollar", "DASHUSD"],
+  ["DOGEUSD", "DOGE/USD", "Dogecoin / U.S. Dollar", "DOGEUSD"],
+  ["DOTUSD", "DOT/USD", "Polkadot / U.S. Dollar", "DOTUSD"],
+  ["DYDXUSD", "DYDX/USD", "dYdX / U.S. Dollar", "DYDXUSD"],
+  ["EGLDUSD", "EGLD/USD", "MultiversX / U.S. Dollar", "EGLDUSD"],
+  ["ETCUSD", "ETC/USD", "Ethereum Classic / U.S. Dollar", "ETCUSD"],
+  ["FILUSD", "FIL/USD", "Filecoin / U.S. Dollar", "FILUSD"],
+  ["GRTUSD", "GRT/USD", "The Graph / U.S. Dollar", "GRTUSD"],
+  ["HBARUSD", "HBAR/USD", "Hedera / U.S. Dollar", "HBARUSD"],
+  ["IMXUSD", "IMX/USD", "Immutable / U.S. Dollar", "IMXUSD"],
+  ["LINKUSD", "LINK/USD", "Chainlink / U.S. Dollar", "LINKUSD"],
+  ["NEARUSD", "NEAR/USD", "NEAR Protocol / U.S. Dollar", "NEARUSD"],
+  ["THETAUSD", "THETA/USD", "Theta Network / U.S. Dollar", "THETAUSD"],
+  ["TRUMPUSD", "TRUMP/USD", "OFFICIAL TRUMP / U.S. Dollar", "OTRUMPUSD"],
+  ["TRXUSD", "TRX/USD", "TRON / U.S. Dollar", "TRXUSD"],
+  ["UNIUSD", "UNI/USD", "Uniswap / U.S. Dollar", "UNIUSD"],
+  ["XLMUSD", "XLM/USD", "Stellar / U.S. Dollar", "XLMUSD"],
+  ["XMRUSD", "XMR/USD", "Monero / U.S. Dollar", "XMRUSD"],
+  ["XTZUSD", "XTZ/USD", "Tezos / U.S. Dollar", "XTZUSD"],
 ] satisfies Array<[string, string, string, string]>;
 
 const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
@@ -482,6 +522,33 @@ export const NO_TRADE_SYMBOLS = new Set([
   "FDAX",
   "EMD",
   "NKD",
+  // The Crypto account's other 25 (2026-08-06), same conditional-visibility
+  // reason as the futures above: matched and analyzable, no sweep evidence yet.
+  "AAVEUSD",
+  "ALGOUSD",
+  "ARWUSD",
+  "ATOMUSD",
+  "AVAXUSD",
+  "CAKEUSD",
+  "DASHUSD",
+  "DOGEUSD",
+  "DOTUSD",
+  "DYDXUSD",
+  "EGLDUSD",
+  "ETCUSD",
+  "FILUSD",
+  "GRTUSD",
+  "HBARUSD",
+  "IMXUSD",
+  "LINKUSD",
+  "NEARUSD",
+  "THETAUSD",
+  "TRUMPUSD",
+  "TRXUSD",
+  "UNIUSD",
+  "XLMUSD",
+  "XMRUSD",
+  "XTZUSD",
 ]);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS

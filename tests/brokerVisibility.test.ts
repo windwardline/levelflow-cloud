@@ -305,7 +305,7 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     // originals and ASX here. Every one must stay in the sweep universe —
     // that is the whole point of onboarding them withheld rather than leaving
     // them unrepresented.
-    assert.equal(notScannable.length, 28);
+    assert.equal(notScannable.length, 53);
     const swept = new Set(sweepUniverse().map((entry) => entry.levelflowSymbol));
     for (const symbol of notScannable) {
       assert.ok(swept.has(symbol), `${symbol} must stay in the sweep universe`);
