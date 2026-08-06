@@ -1541,3 +1541,32 @@ vocabulary (`tests/languageGuard.test.ts`). The adjusted entry these
 numbers produce is display-only by construction: it never enters the
 ladder's copy payload and never reaches the chart
 (`tests/advisorRecommendationPanel.test.ts` pins both directions).
+
+**The registry of record (§19 retrofit, Task 17e).** `src/lib/broker/
+masterList.ts` is the concrete module ruling A's clause 2 describes: one row
+per E8 instrument, across all three account classifications (forex,
+futures, crypto), each carrying its broker-facing name, its FMP mate where
+one exists, a status, a short exclusion/limitation ground, and a
+reentry-candidate flag per the reentry rule above. Ninety-eight rows total
+— 38 forex-classification, 27 futures, 33 crypto — generated from
+`symbolMap.ts`'s 59 already-mapped instruments wherever a row already has a
+source, and hand-carried only where none existed yet: the 25 crypto mates
+and the 12 no-FMP-source futures names this task's own research settled
+(`docs/research/e8-crypto-source-resolution-2026-08-05.md`,
+`docs/research/e8-futures-account-2026-08-03.md`), plus the two
+backend-only unsizeable futures instruments (`6J`/`6M`) F12 resolved
+(`docs/research/e8-feed-verification-2026-08-02.md`). `symbolMap.ts`'s
+`AVAILABLE_ASSET_SYMBOLS` and `visibility.ts`'s `visibleAssetSymbols` stay
+unchanged and remain the one live source of truth for what is served and
+what is visible today; the registry's own derivations check membership
+against them directly rather than keeping an independent copy. One status
+beyond ruling A's own three (`served-and-visible`,
+`served-but-display-excluded`, and sizing's `offered-but-unsizeable`) —
+`served-but-not-scannable` — covers the nine rows `symbolMap.ts`'s
+pre-existing no-trade and feed-verification exclusions already withhold, a
+calibration axis distinct from this amendment's broker↔FMP-matching
+concern and named here for completeness rather than left an unrepresented
+gap. `sweepUniverse()` (every row carrying an FMP mate, regardless of
+display state) and `reentryList()` are the derivations a future
+replay-sweep script is meant to consume; `tests/brokerMasterList.test.ts`
+pins every count and every mapping literally, §19f discipline.

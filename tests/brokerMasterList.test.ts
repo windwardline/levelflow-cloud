@@ -1,0 +1,356 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { AVAILABLE_ASSET_SYMBOLS } from "../src/lib/symbolMap.ts";
+import { visibleAssetSymbols } from "../src/lib/broker/visibility.ts";
+import {
+  findMasterListRow,
+  findMasterListRowByBrokerName,
+  isServedToday,
+  isVisibleToday,
+  MASTER_LIST_ROWS,
+  reentryList,
+  rowCountsByClassification,
+  rowCountsByStatus,
+  rowsForClassification,
+  servedSymbols,
+  SERVED_COMPATIBLE_STATUSES,
+  sweepUniverse,
+  visibleSymbols,
+  type MasterListRow,
+} from "../src/lib/broker/masterList.ts";
+
+// Amendment 23 (owner, 2026-08-05, docs/superpowers/specs/
+// 2026-08-02-owner-rulings-amendments.md) and its offset-ruling extension.
+// §19f discipline throughout: every count and every symbol pair below is a
+// literal expectation, so a mapping cannot change without a deliberate test
+// edit citing a fresh source. The row-generation logic in masterList.ts is
+// exercised by these pins, not trusted on inspection alone.
+
+describe("row counts — total, per classification, per status", () => {
+  it("carries exactly 98 rows", () => {
+    assert.equal(MASTER_LIST_ROWS.length, 98);
+  });
+
+  it("splits 38 forex / 27 futures / 33 crypto", () => {
+    assert.deepEqual(rowCountsByClassification(), {
+      forex: 38,
+      futures: 27,
+      crypto: 33,
+    });
+  });
+
+  it("pins the six-way status breakdown", () => {
+    assert.deepEqual(rowCountsByStatus(), {
+      "served-and-visible": 47,
+      "served-but-display-excluded": 1,
+      "served-but-not-scannable": 9,
+      "mapped-not-yet-onboarded": 25,
+      "excluded-no-fmp-source": 12,
+      "offered-but-unsizeable": 4,
+    });
+  });
+
+  it("agrees with rowsForClassification's own per-classification counts", () => {
+    assert.equal(rowsForClassification("forex").length, 38);
+    assert.equal(rowsForClassification("futures").length, 27);
+    assert.equal(rowsForClassification("crypto").length, 33);
+  });
+});
+
+describe("agreement with the live master/visible sets (no re-derivation)", () => {
+  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 50) exactly", () => {
+    assert.deepEqual(servedSymbols().sort(), [...AVAILABLE_ASSET_SYMBOLS].sort());
+    assert.equal(servedSymbols().length, 50);
+  });
+
+  it("the registry's visible set equals visibleAssetSymbols(null) (the 49) exactly", () => {
+    assert.deepEqual(visibleSymbols().sort(), [...visibleAssetSymbols(null)].sort());
+    assert.equal(visibleSymbols().length, 49);
+  });
+
+  it("every currently-served symbol appears in the registry with a served-compatible status", () => {
+    for (const symbol of AVAILABLE_ASSET_SYMBOLS) {
+      const found = findMasterListRow(symbol);
+      assert.ok(found, `${symbol} is served today but has no registry row`);
+      assert.ok(
+        SERVED_COMPATIBLE_STATUSES.includes(found!.status),
+        `${symbol} is served today but carries status "${found!.status}", ` +
+          `not one of ${SERVED_COMPATIBLE_STATUSES.join(", ")}`,
+      );
+    }
+  });
+
+  it("a row is never served-and-visible without also being served and visible by the live sets", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      if (entry.status === "served-and-visible") {
+        assert.ok(isServedToday(entry), `${entry.brokerName} claims served-and-visible but isServedToday is false`);
+        assert.ok(isVisibleToday(entry), `${entry.brokerName} claims served-and-visible but isVisibleToday is false`);
+      }
+    }
+  });
+
+  it("no unserved row (no Levelflow symbol) is ever reported served or visible", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      if (entry.levelflowSymbol === null) {
+        assert.equal(isServedToday(entry), false);
+        assert.equal(isVisibleToday(entry), false);
+      }
+    }
+  });
+});
+
+describe("BRENT — display-excluded yet standing in the sweep universe", () => {
+  it("carries served-but-display-excluded, not excluded from the master list", () => {
+    const brent = findMasterListRow("BRENT");
+    assert.ok(brent);
+    assert.equal(brent!.status, "served-but-display-excluded");
+    assert.equal(brent!.fmpSymbol, "BZUSD");
+    assert.equal(isServedToday(brent!), true);
+    assert.equal(isVisibleToday(brent!), false);
+  });
+
+  it("stays inside sweepUniverse() despite being withheld from display", () => {
+    assert.ok(sweepUniverse().some((entry) => entry.levelflowSymbol === "BRENT"));
+  });
+
+  it("is absent from visibleSymbols() while present in servedSymbols()", () => {
+    assert.ok(servedSymbols().includes("BRENT"));
+    assert.ok(!visibleSymbols().includes("BRENT"));
+  });
+});
+
+describe("the four amendment-22 unsizeable rows — offered-but-unsizeable", () => {
+  it("marks ZBUSD and ZNUSD unsizeable while they stay served and visible", () => {
+    for (const symbol of ["ZBUSD", "ZNUSD"]) {
+      const entry = findMasterListRow(symbol);
+      assert.ok(entry, symbol);
+      assert.equal(entry!.status, "offered-but-unsizeable");
+      assert.equal(isServedToday(entry!), true);
+      assert.equal(isVisibleToday(entry!), true);
+    }
+  });
+
+  it("marks 6J and 6M unsizeable with no Levelflow symbol and an inverted FMP mate", () => {
+    const sixJ = findMasterListRowByBrokerName("6J");
+    const sixM = findMasterListRowByBrokerName("6M");
+    assert.ok(sixJ);
+    assert.ok(sixM);
+    assert.equal(sixJ!.levelflowSymbol, null);
+    assert.equal(sixJ!.fmpSymbol, "USDJPY");
+    assert.equal(sixM!.levelflowSymbol, null);
+    assert.equal(sixM!.fmpSymbol, "USDMXN");
+    assert.equal(sixJ!.status, "offered-but-unsizeable");
+    assert.equal(sixM!.status, "offered-but-unsizeable");
+  });
+
+  it("is exactly these four rows, no more and no fewer", () => {
+    const unsizeable = MASTER_LIST_ROWS
+      .filter((entry) => entry.status === "offered-but-unsizeable")
+      .map((entry) => entry.brokerName)
+      .sort();
+    assert.deepEqual(unsizeable, ["6J", "6M", "ZBUSD", "ZNUSD"]);
+  });
+});
+
+describe("the twelve no-FMP-source futures orphans", () => {
+  const ORPHANS = [
+    "FDAX",
+    "FDXM",
+    "FESX",
+    "FGBL",
+    "FGBM",
+    "FGBS",
+    "FGBX",
+    "NKD",
+    "EMD",
+    "UB",
+    "TN",
+    "ZW",
+  ];
+
+  it("is exactly these twelve broker names, no more and no fewer", () => {
+    const orphans = MASTER_LIST_ROWS
+      .filter((entry) => entry.status === "excluded-no-fmp-source")
+      .map((entry) => entry.brokerName)
+      .sort();
+    assert.deepEqual(orphans, [...ORPHANS].sort());
+  });
+
+  it("every orphan carries no FMP symbol and a non-empty ground", () => {
+    for (const broker of ORPHANS) {
+      const entry = findMasterListRowByBrokerName(broker);
+      assert.ok(entry, broker);
+      assert.equal(entry!.fmpSymbol, null, `${broker} must carry no FMP mate`);
+      assert.equal(entry!.levelflowSymbol, null);
+      assert.equal(entry!.classification, "futures");
+      assert.ok(entry!.ground.length > 20, `${broker}'s ground is too thin`);
+    }
+  });
+
+  it("excludes every orphan from the sweep universe (nothing to sweep against)", () => {
+    const sweptBrokerNames = new Set(sweepUniverse().map((entry) => entry.brokerName));
+    for (const broker of ORPHANS) {
+      assert.ok(!sweptBrokerNames.has(broker), `${broker} must not appear in sweepUniverse()`);
+    }
+  });
+});
+
+describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-resolution-2026-08-05.md §4)", () => {
+  // The doc's own 26-row table, literal. BNBUSD is the one row already
+  // served (its own row is generated from symbolMap.ts, not hand-authored
+  // here) — looked up the same way as the other 25 to prove one lookup path
+  // covers both origins.
+  const CRYPTO_MATES: Record<string, string> = {
+    AAVEUSD: "AAVEUSD",
+    ALGOUSD: "ALGOUSD",
+    ARWUSD: "ARUSD",
+    ATOMUSD: "ATOMUSD",
+    AVAXUSD: "AVAXUSD",
+    CAKEUSD: "CAKEUSD",
+    DASHUSD: "DASHUSD",
+    DOGEUSD: "DOGEUSD",
+    DOTUSD: "DOTUSD",
+    DYDXUSD: "DYDXUSD",
+    EGLDUSD: "EGLDUSD",
+    ETCUSD: "ETCUSD",
+    FILUSD: "FILUSD",
+    GRTUSD: "GRTUSD",
+    HBARUSD: "HBARUSD",
+    IMXUSD: "IMXUSD",
+    LINKUSD: "LINKUSD",
+    NEARUSD: "NEARUSD",
+    THETAUSD: "THETAUSD",
+    TRUMPUSD: "OTRUMPUSD",
+    TRXUSD: "TRXUSD",
+    UNIUSD: "UNIUSD",
+    XLMUSD: "XLMUSD",
+    XMRUSD: "XMRUSD",
+    XTZUSD: "XTZUSD",
+    BNBUSD: "BNBUSD",
+  };
+
+  it("resolves all 26 broker tickers to their pinned FMP mate", () => {
+    for (const [broker, fmp] of Object.entries(CRYPTO_MATES)) {
+      const entry = findMasterListRowByBrokerName(broker);
+      assert.ok(entry, broker);
+      assert.equal(entry!.fmpSymbol, fmp, `${broker} -> ${fmp}`);
+    }
+  });
+
+  it("the ARWUSD trap: broker spelling and FMP spelling genuinely differ", () => {
+    const entry = findMasterListRowByBrokerName("ARWUSD");
+    assert.ok(entry);
+    assert.equal(entry!.brokerName, "ARWUSD");
+    assert.equal(entry!.fmpSymbol, "ARUSD");
+    assert.notEqual(entry!.brokerName, entry!.fmpSymbol);
+    assert.equal(entry!.status, "mapped-not-yet-onboarded");
+  });
+
+  it("the TRUMPUSD trap: FMP's literal TRUMPUSD ticker is NOT the match", () => {
+    const entry = findMasterListRowByBrokerName("TRUMPUSD");
+    assert.ok(entry);
+    assert.equal(entry!.brokerName, "TRUMPUSD");
+    assert.equal(entry!.fmpSymbol, "OTRUMPUSD");
+    assert.notEqual(entry!.fmpSymbol, "TRUMPUSD");
+    assert.equal(entry!.status, "mapped-not-yet-onboarded");
+  });
+
+  it("marks all 25 new mates mapped-not-yet-onboarded, and BNBUSD separately as served-but-not-scannable", () => {
+    for (const broker of Object.keys(CRYPTO_MATES)) {
+      if (broker === "BNBUSD") {
+        continue;
+      }
+      const entry = findMasterListRowByBrokerName(broker);
+      assert.equal(entry!.levelflowSymbol, null, `${broker} must have no Levelflow symbol yet`);
+      assert.equal(entry!.status, "mapped-not-yet-onboarded");
+    }
+    const bnb = findMasterListRow("BNBUSD");
+    assert.ok(bnb);
+    assert.equal(bnb!.status, "served-but-not-scannable");
+    assert.equal(bnb!.levelflowSymbol, "BNBUSD");
+  });
+});
+
+describe("reentry candidates — no exclusion or limitation is permanent", () => {
+  it("every non-served-and-visible row is a reentry candidate", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      if (entry.status === "served-and-visible") {
+        assert.equal(entry.reentryCandidate, false, entry.brokerName);
+      } else {
+        assert.equal(entry.reentryCandidate, true, entry.brokerName);
+      }
+    }
+  });
+
+  it("reentryList() returns exactly the 51 non-happy-path rows", () => {
+    assert.equal(reentryList().length, 51);
+    assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
+  });
+
+  it("reentryList() is the complement of the served-and-visible rows", () => {
+    const reentryNames = new Set(reentryList().map((entry) => entry.brokerName));
+    for (const entry of MASTER_LIST_ROWS) {
+      assert.equal(
+        reentryNames.has(entry.brokerName),
+        entry.status !== "served-and-visible",
+        entry.brokerName,
+      );
+    }
+  });
+});
+
+describe("lookup helpers", () => {
+  it("findMasterListRow returns null for a symbol with no row", () => {
+    assert.equal(findMasterListRow("NOT-A-REAL-SYMBOL"), null);
+  });
+
+  it("findMasterListRowByBrokerName returns null for a name with no row", () => {
+    assert.equal(findMasterListRowByBrokerName("NOT-A-REAL-BROKER-NAME"), null);
+  });
+
+  it("every row is reachable by its own brokerName", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      assert.equal(findMasterListRowByBrokerName(entry.brokerName), entry);
+    }
+  });
+
+  it("every row with a Levelflow symbol is reachable by that symbol", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      if (entry.levelflowSymbol !== null) {
+        assert.equal(findMasterListRow(entry.levelflowSymbol), entry);
+      }
+    }
+  });
+});
+
+describe("row shape — every row is a complete, honest record", () => {
+  it("every row carries a non-empty ground string", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      assert.equal(typeof entry.ground, "string", entry.brokerName);
+      assert.ok(entry.ground.length > 0, `${entry.brokerName} has an empty ground`);
+    }
+  });
+
+  it("every row carries a non-empty source citation", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      assert.equal(typeof entry.source, "string", entry.brokerName);
+      assert.ok(entry.source.length > 0, `${entry.brokerName} has an empty source`);
+    }
+  });
+
+  it("fmpSymbol is null if and only if status is excluded-no-fmp-source", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      if (entry.fmpSymbol === null) {
+        assert.equal(entry.status, "excluded-no-fmp-source", entry.brokerName);
+      } else {
+        assert.notEqual(entry.status, "excluded-no-fmp-source", entry.brokerName);
+      }
+    }
+  });
+
+  it("every row's classification is one of the three account classifications", () => {
+    for (const entry of MASTER_LIST_ROWS) {
+      assert.ok(["forex", "futures", "crypto"].includes(entry.classification), entry.brokerName);
+    }
+  });
+});
