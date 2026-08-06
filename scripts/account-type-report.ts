@@ -31,6 +31,7 @@ import {
   MASTER_LIST_ROWS,
   type MasterListRow,
 } from "../src/lib/broker/masterList.ts";
+import { accountTypesOffering } from "../src/lib/broker/visibility.ts";
 import type { BrokerClassification } from "../src/lib/profile.ts";
 
 const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
@@ -74,19 +75,36 @@ function passesOtherGates(row: Row): boolean {
 }
 
 /**
- * Which Levelflow symbols each account classification can actually see.
- * Built from the master list's own classification column so the report can
- * never drift from the record. A symbol appearing under two classifications
- * is intentional — BNB is offered on both Forex and Crypto — and is reported
- * under both, because its verdict is per account type.
+ * Which Levelflow symbols each E8 account type can actually see.
+ *
+ * Derived from the registry's rows through `accountTypesOffering`, so the
+ * report can never drift from the offering rule. A symbol appearing under two
+ * account types is intentional and required: every crypto-classified market is
+ * offered on Crypto AND Forex (amendment 19 clause 3), and amendment 24 judges
+ * each account type separately, so each listing needs its own line.
  */
 function symbolsByClassification(): Map<BrokerClassification, MasterListRow[]> {
   const map = new Map<BrokerClassification, MasterListRow[]>();
   for (const classification of CLASSIFICATIONS) {
     map.set(
       classification,
+      // Keyed on which account types OFFER the row, not on the single
+      // classification its evidence came from. Filtering by
+      // `row.classification === classification` understated the offering: E8's
+      // Forex accounts carry every crypto-classified market (amendment 19
+      // clause 3), so all 33 crypto rows are dual-listed and this report showed
+      // them under Crypto alone. BNBUSD is where that surfaced — the owner's
+      // own order ticket priced it on the live Pro Forex account — but it was
+      // never a fact about BNB.
+      //
+      // A dual-listed row appearing under both account types is the point, not
+      // duplication: amendment 24 decides inclusion per account type, so the
+      // same market can earn a place on one and an exclusion on the other, and
+      // each needs its own line to be judged on.
       MASTER_LIST_ROWS.filter(
-        (row) => row.classification === classification && row.levelflowSymbol !== null,
+        (row) =>
+          row.levelflowSymbol !== null &&
+          accountTypesOffering(row.classification).includes(classification),
       ),
     );
   }

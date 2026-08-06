@@ -133,11 +133,76 @@ export const OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE: Record<
   futures: ["futures"],
 };
 
+/**
+ * The crypto CFDs an E8 FOREX-line account actually offers — eight, not the
+ * Crypto account's thirty-three.
+ *
+ * CORRECTED 2026-08-06 against the screenshots, per the owner's standing
+ * instruction to confirm each account type's tradable markets from the live
+ * record rather than from inference. Amendment 19 clause 3 had been read as
+ * "a Forex account carries every crypto-classified market", and the table
+ * above still expresses that coarsely by classification. It is wrong at that
+ * granularity: the Pro Forex record
+ * (docs/research/e8-observations-2026-08-02.md) tickets exactly these eight,
+ * each with E8's `.C` CFD suffix, and totals the account itself — "+ 8 crypto
+ * = 46 instruments — the complete CFD universe".
+ *
+ * The error was latent rather than visible, which is why it survived: only
+ * these eight crypto rows are onboarded today, so "all crypto" and "these
+ * eight" coincide. Onboarding the Crypto account's other twenty-five — which
+ * the standing order requires — would have silently put all of them on Forex
+ * accounts that cannot trade them.
+ *
+ * Stated as an explicit symbol list because that is what the evidence is. A
+ * classification-level rule cannot express "some of this classification", and
+ * guessing which crypto a CFD desk carries is precisely the inference this
+ * replaces.
+ */
+export const FOREX_ACCOUNT_CRYPTO_CFDS: ReadonlySet<string> = new Set([
+  "ADAUSD",
+  "BCHUSD",
+  "BNBUSD",
+  "BTCUSD",
+  "ETHUSD",
+  "LTCUSD",
+  "SOLUSD",
+  "XRPUSD",
+]);
+
 const ALL_CLASSIFICATIONS: readonly BrokerClassification[] = [
   "forex",
   "crypto",
   "futures",
 ];
+
+/**
+ * The inverse of OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE: given a market's
+ * registry classification, which E8 ACCOUNT TYPES actually offer it.
+ *
+ * The two directions answer different questions and only one of them is the
+ * offering. `classification` is a single value by design — masterList.ts's own
+ * JSDoc calls it where an instrument's offering EVIDENCE came from — so reading
+ * it as "the account type this market belongs to" quietly understates reality.
+ * Amendment 19 clause 3 rules that a Forex account carries every
+ * crypto-classified market, which makes all 33 crypto rows dual-listed: offered
+ * on Crypto AND Forex. BNBUSD is simply where that first became visible (the
+ * owner's own order ticket priced it on the live Pro Forex account,
+ * docs/research/e8-observations-2026-08-02.md), but it was never a fact about
+ * BNB.
+ *
+ * Derived rather than stored, so a single classification can never drift from
+ * the bundling rule beside it — and so amendment 24's per-account-type verdicts
+ * have an honest domain to range over: a market offered on two account types
+ * can be included on one and excluded on the other, which is exactly what
+ * exclusions.ts's `accountTypes` scoping expresses.
+ */
+export function accountTypesOffering(
+  classification: BrokerClassification,
+): BrokerClassification[] {
+  return ALL_CLASSIFICATIONS.filter((accountType) =>
+    OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE[accountType].includes(classification)
+  );
+}
 
 /**
  * THE resolver (§19 retrofit, Task 19 / amendment 24): the single place
@@ -184,6 +249,13 @@ export function scannableSymbolsFor(
       // money-positive record. See contractVariants.ts for why this is
       // declared rather than detected.
       !isContractSizeVariant(option.symbol) &&
+      // A Forex-line account carries only the eight crypto CFDs its own
+      // screenshots ticket, never the Crypto account's full thirty-three.
+      // Without this, onboarding the Crypto account's remaining mates would
+      // put every one of them on Forex accounts that cannot trade them.
+      (classification !== "forex" ||
+        classificationOfType(option.assetType) !== "crypto" ||
+        FOREX_ACCOUNT_CRYPTO_CFDS.has(option.symbol)) &&
       !isExcludedForAccountType(option.symbol, classification, exclusions)
     )
     .map((option) => option.symbol);

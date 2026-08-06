@@ -7,7 +7,12 @@ import {
   variantsOf,
 } from "../src/lib/broker/contractVariants.ts";
 import { MASTER_LIST_ROWS, sweepUniverse } from "../src/lib/broker/masterList.ts";
-import { scannableSymbolsFor } from "../src/lib/broker/visibility.ts";
+import {
+  FOREX_ACCOUNT_CRYPTO_CFDS,
+  OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE,
+  accountTypesOffering,
+  scannableSymbolsFor,
+} from "../src/lib/broker/visibility.ts";
 import { AVAILABLE_ASSET_SYMBOLS, SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
 import { BROKER_INSTRUMENTS } from "../src/lib/broker/instruments.ts";
 
@@ -106,5 +111,151 @@ describe("contract-size variants are sized, never scanned (owner ruling 2026-08-
       assert.ok(known.has(variant), `${variant} is not a registry row`);
       assert.ok(known.has(parent), `${parent} is not a registry row`);
     }
+  });
+});
+
+// The dual-listing model (owner-directed 2026-08-06). A market's registry
+// `classification` records where its offering evidence came from — one value,
+// by design. Reading it as "the account type this market belongs to"
+// understates the offering, because amendment 19 clause 3 rules that an E8
+// Forex account carries every crypto-classified market. So every crypto row is
+// dual-listed, and the per-account-type view has to say so or it misreports
+// two thirds of what those accounts actually offer.
+describe("dual listing — one market, more than one account type", () => {
+  it("offers every crypto-classified market on both Crypto and Forex accounts", () => {
+    assert.deepEqual(accountTypesOffering("crypto").sort(), ["crypto", "forex"]);
+  });
+
+  it("keeps forex and futures single-listed — the bundling runs one way only", () => {
+    // A Crypto account does NOT carry forex, and a Futures account carries
+    // neither. Asserting the negative matters: a symmetric rule would silently
+    // put futures on forex accounts, which amendment 13 exists to forbid.
+    assert.deepEqual(accountTypesOffering("forex"), ["forex"]);
+    assert.deepEqual(accountTypesOffering("futures"), ["futures"]);
+  });
+
+  it("agrees with the resolver it inverts, for every classification", () => {
+    // The two directions must never drift, which is why this is derived from
+    // OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE rather than stored beside it.
+    for (const accountType of ["forex", "crypto", "futures"] as const) {
+      for (const offered of OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE[accountType]) {
+        assert.ok(
+          accountTypesOffering(offered).includes(accountType),
+          `${accountType} offers ${offered}, so ${offered} must list ${accountType}`,
+        );
+      }
+    }
+  });
+
+  it("puts BNBUSD on both account types — the case that exposed the gap", () => {
+    const bnb = MASTER_LIST_ROWS.find((entry) => entry.brokerName === "BNBUSD");
+    assert.ok(bnb, "BNBUSD must have a registry row");
+    assert.deepEqual(
+      accountTypesOffering(bnb!.classification).sort(),
+      ["crypto", "forex"],
+      "E8 prices BNB on the live Pro Forex account as well as on Crypto",
+    );
+  });
+
+  it("lets a dual-listed market be scannable on one account and excluded on the other", () => {
+    // The mechanism amendment 24 requires, proved against a real dual-listed
+    // symbol rather than asserted. Exclusion is scoped by account type, so the
+    // same market can carry different verdicts — which is only meaningful
+    // because the market is genuinely offered on both.
+    const scoped = [{
+      levelflowSymbol: "BTCUSD",
+      accountTypes: ["forex"] as const,
+      ground: "sweep-performance" as const,
+      detail: "synthetic fixture — exercises per-account-type scoping only",
+    }];
+    assert.ok(!scannableSymbolsFor("forex", scoped).includes("BTCUSD"));
+    assert.ok(scannableSymbolsFor("crypto", scoped).includes("BTCUSD"));
+  });
+});
+
+// Corrected 2026-08-06 against the screenshots, on the owner's instruction to
+// confirm each account type's offering from the live record rather than infer
+// it. Amendment 19 clause 3 had been applied as "a Forex account carries every
+// crypto-classified market"; the Pro Forex record tickets exactly eight crypto
+// CFDs and totals itself at 46 instruments — "the complete CFD universe".
+describe("a Forex account carries eight crypto CFDs, not the Crypto account's set", () => {
+  it("names exactly the eight the screenshots ticket", () => {
+    assert.deepEqual([...FOREX_ACCOUNT_CRYPTO_CFDS].sort(), [
+      "ADAUSD",
+      "BCHUSD",
+      "BNBUSD",
+      "BTCUSD",
+      "ETHUSD",
+      "LTCUSD",
+      "SOLUSD",
+      "XRPUSD",
+    ]);
+  });
+
+  it("carries every onboarded major, and no crypto beyond them", () => {
+    // Deliberately NOT pinned at E8's own 46. That is E8's instrument count
+    // (38 FX-denominated + 8 crypto); Levelflow's scannable forex set is
+    // smaller because indices and BNBUSD are gated no-trade and BRENT is
+    // display-excluded. Pinning 46 here would conflate what E8 offers with
+    // what Levelflow currently scans — two different facts, and the standing
+    // order is about closing the gap between them, not about hiding it behind
+    // a number that happens to match.
+    const forexScannable = new Set(scannableSymbolsFor("forex"));
+    const cryptoOnForex = [...forexScannable].filter((symbol) =>
+      FOREX_ACCOUNT_CRYPTO_CFDS.has(symbol)
+    );
+    assert.ok(cryptoOnForex.length > 0, "the majors must reach Forex accounts");
+    for (const symbol of forexScannable) {
+      const isCrypto = scannableSymbolsFor("crypto").includes(symbol);
+      if (isCrypto) {
+        assert.ok(
+          FOREX_ACCOUNT_CRYPTO_CFDS.has(symbol),
+          `${symbol} is on a Forex account but is not one of the eight ticketed CFDs`,
+        );
+      }
+    }
+  });
+
+  it("keeps a crypto market off Forex when the screenshots never ticketed it", () => {
+    // The regression this exists for, and it was latent rather than visible:
+    // today only the eight are onboarded, so "all crypto" and "these eight"
+    // coincide and the bug is invisible. This asserts against the mechanism,
+    // not against today's data — a synthetic crypto option stands in for the
+    // twenty-five mates the standing order will onboard, and it must appear on
+    // a Crypto account while staying off a Forex one.
+    const cryptoOnly = "ATOMUSD";
+    assert.ok(
+      !FOREX_ACCOUNT_CRYPTO_CFDS.has(cryptoOnly),
+      "ATOMUSD is a Crypto-account market the Forex screenshots never priced",
+    );
+    assert.ok(
+      !scannableSymbolsFor("forex").includes(cryptoOnly),
+      "a Crypto-only market must never reach a Forex account",
+    );
+  });
+
+  it("leaves the Crypto and Futures accounts untouched by the carve-out", () => {
+    // OFFERED and SCANNABLE are different facts, and BNBUSD is why: E8 prices
+    // it on both account types, so it belongs in the eight, but Levelflow gates
+    // it no-trade pending a promotion decision (a live candidate now that the
+    // execution-cost defect is fixed). The carve-out must not be what withholds
+    // it — its own gate is — so this checks the majors that are actually
+    // onboarded, and separately proves the carve-out never touches Crypto.
+    const onCrypto = new Set(scannableSymbolsFor("crypto"));
+    const onFutures = new Set(scannableSymbolsFor("futures"));
+    let checked = 0;
+    for (const major of FOREX_ACCOUNT_CRYPTO_CFDS) {
+      if (!onCrypto.has(major)) continue;
+      checked += 1;
+      assert.ok(
+        !onFutures.has(major),
+        `${major} must not appear on a Futures account`,
+      );
+    }
+    assert.ok(checked >= 7, `expected the onboarded majors, checked ${checked}`);
+    assert.ok(
+      !onCrypto.has("BNBUSD"),
+      "BNBUSD is withheld by its own no-trade gate, not by the Forex carve-out",
+    );
   });
 });
