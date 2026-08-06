@@ -29,13 +29,13 @@ const STATE = {
   // Agriculture and livestock are new classes and appear in this table for the
   // first time; both are derived, and livestock's 24h window is what made it
   // measurable at all.
-  agriculture: { threshold: 30, window: 6, stopCap: 1.0, tp1: 0.4, runner: 0.8, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  agriculture: { threshold: 30, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.4, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
   livestock: { threshold: 30, window: 24, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  crypto: { threshold: 82, window: 12, stopCap: 1.0, tp1: 0.4, runner: 0.8, offsets: [0.78, 0.8], payoff: 1.3, newsCap: 4 },
+  crypto: { threshold: 82, window: 12, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.78, 0.8], payoff: 1.3, newsCap: 4 },
   energies: { threshold: 69, window: 6, stopCap: 1.0, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
-  forex: { threshold: 40, window: 8, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
-  futures: { threshold: 68, window: 6, stopCap: 1.0, tp1: 0.4, runner: 0.6, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  indices: { threshold: 68, window: 5, stopCap: 3.0, tp1: 1.2, runner: 1.1, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
+  forex: { threshold: 40, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
+  futures: { threshold: 68, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
+  indices: { threshold: 68, window: 5, stopCap: 3.0, tp1: 1.2, runner: 1.0, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
   metals: { threshold: 90, window: 8, stopCap: 1.6, tp1: 0.4, runner: 0.8, offsets: [0.75, 0.78], payoff: 1.25, newsCap: 8 },
 } as const;
 

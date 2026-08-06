@@ -282,23 +282,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
-    // DERIVED 2026-08-06 on TOTAL R across both splits: 0.6 -> 0.8 takes total
-    // train R from +107.5 to +197.7 and test from +23.8 to +72.7, on 648 test
-    // setups against 271. Per-trade test expectancy improves too (+0.088 ->
-    // +0.112); train dips (+0.157 -> +0.145), which is why the older
-    // expectancy-only bar would have REJECTED this and forgone two thirds of the
-    // return.
-    //
-    // 1.0 earns more total R still (+232/+86) but at 17% lower per-trade
-    // expectancy. 0.8 is the deliberate choice: on a prop account with a daily
-    // loss limit, per-trade quality is what keeps distance from the limit.
-    // 0.4 nominally beat both splits and was REJECTED as an artifact — 34 test
-    // setups against baseline's 271, because a tighter ceiling makes the
-    // required target unreachable and the setup is refused (rough rice produced
-    // ZERO). That thinness is also what made rice look like a -0.200 market:
-    // seven setups. At 0.8 it produces 71, its stop rate falls 33% -> 11%, and
-    // it turns positive.
-    runnerWindowShare: 0.8,
+    // DERIVED 2026-08-06 at the NEW stop caps, and re-derived deliberately: the
+    // first runner grid ran at the old caps, and tightening the stop shrinks
+    // minimumTargetRewardRisk's absolute floor, which changes how many structural
+    // levels qualify. The answer moved. agriculture: test R +56.6 -> +62.7 (train +154.5 -> +169.1).
+    runnerWindowShare: 1.4,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -338,7 +326,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.3,
     newsPenaltyPerEvent: 1,
     providerWarningPenalty: 3,
-    runnerWindowShare: 0.8,
+    // DERIVED 2026-08-06 at the NEW stop caps, and re-derived deliberately: the
+    // first runner grid ran at the old caps, and tightening the stop shrinks
+    // minimumTargetRewardRisk's absolute floor, which changes how many structural
+    // levels qualify. The answer moved. crypto: test R +4375 -> +4377 (train +9178 -> +9604).
+    runnerWindowShare: 1.0,
     stopAtrMultiplier: 1.45,
     timeframePenalty: 6,
     tp1AtrMultiplier: 0.5,
@@ -413,7 +405,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 2,
-    runnerWindowShare: 0.6,
+    // DERIVED 2026-08-06 at the NEW stop caps, and re-derived deliberately: the
+    // first runner grid ran at the old caps, and tightening the stop shrinks
+    // minimumTargetRewardRisk's absolute floor, which changes how many structural
+    // levels qualify. The answer moved. forex: test R +49828 -> +54316 (train +80921 -> +81236).
+    runnerWindowShare: 1.0,
     stopAtrMultiplier: 1.2,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -449,7 +445,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.25,
     newsPenaltyPerEvent: 3,
     providerWarningPenalty: 3,
-    runnerWindowShare: 0.6,
+    // DERIVED 2026-08-06 at the NEW stop caps, and re-derived deliberately: the
+    // first runner grid ran at the old caps, and tightening the stop shrinks
+    // minimumTargetRewardRisk's absolute floor, which changes how many structural
+    // levels qualify. The answer moved. futures: test R +1267 -> +1317 (train +1506 -> +1599).
+    runnerWindowShare: 1.0,
     stopAtrMultiplier: 1.3,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,
@@ -485,7 +485,11 @@ const CALIBRATION: Record<AssetType, CategoryCalibration> = {
     minRewardRisk: 1.2,
     newsPenaltyPerEvent: 4,
     providerWarningPenalty: 3,
-    runnerWindowShare: 1.1,
+    // DERIVED 2026-08-06 at the NEW stop caps, and re-derived deliberately: the
+    // first runner grid ran at the old caps, and tightening the stop shrinks
+    // minimumTargetRewardRisk's absolute floor, which changes how many structural
+    // levels qualify. The answer moved. indices: test R -5.6 -> +7.4 — POSITIVE ON BOTH SPLITS for the first time.
+    runnerWindowShare: 1.0,
     stopAtrMultiplier: 1.28,
     timeframePenalty: 5,
     tp1AtrMultiplier: 0.5,

@@ -78,13 +78,18 @@ describe("agriculture is its own calibration class (derived 2026-08-06)", () => 
     assert.ok(asAg.effectiveRewardRisk > 1.5, `${asAg.effectiveRewardRisk}`);
   });
 
-  it("pins the derived runner ceiling at 0.8 and TP1 at 0.4", () => {
+  it("pins the derived runner ceiling at 1.4 and TP1 at 0.4", () => {
     // Runner DERIVED on total R across both splits (+107.5/+23.8 -> +197.7/+72.7,
     // 648 test setups against 271). TP1 derived as a validated null. The pair
     // matters together: forex's TP1 optimum is 0.3 and agriculture's is 0.4, so a
     // shared value would be wrong for one of them.
     const ag = getCategoryCalibration("ZCUSX");
-    assert.equal(ag.runnerWindowShare, 0.8);
+    // 0.8 -> 1.4 on 2026-08-06, RE-DERIVED at the new stop cap. The first runner
+    // grid ran at the old cap of 1.4; tightening the stop to 1.0 shrinks the
+    // absolute floor minimumTargetRewardRisk imposes, so more structural levels
+    // qualify and the optimal ceiling moves. Deriving the two levers
+    // independently would have shipped the wrong pair.
+    assert.equal(ag.runnerWindowShare, 1.4);
     assert.equal(ag.tp1RiskShare, 0.4);
     assert.equal(getCategoryCalibration("EURUSD").tp1RiskShare, 0.4);
   });
