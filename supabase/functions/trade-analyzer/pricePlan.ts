@@ -200,6 +200,7 @@ export function buildPricePlan(
       stopLoss,
       symbol,
       takeProfit,
+      takeProfit1,
     })
     : null;
 
@@ -208,7 +209,14 @@ export function buildPricePlan(
     stopLoss = futuresTickPlan.stopLoss;
     takeProfit = futuresTickPlan.takeProfit;
     riskDistance = Math.abs(entryPrice - stopLoss);
-    takeProfit1 = clampBetween(takeProfit1, entryPrice, takeProfit);
+    // Clamp AFTER alignment, and take the aligned TP1 as the input. The clamp
+    // moves a level only when the aligned entry or target has crossed it, and
+    // clampBetween returns one of its own bounds — both already on the grid.
+    takeProfit1 = clampBetween(
+      futuresTickPlan.takeProfit1 ?? takeProfit1,
+      entryPrice,
+      takeProfit,
+    );
   }
 
   if (side === "buy" && roundPrice(takeProfit) <= roundPrice(entryPrice)) {

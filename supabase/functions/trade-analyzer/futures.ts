@@ -13,6 +13,13 @@ export type FuturesPricePlanInput = {
   stopLoss: number;
   symbol: string;
   takeProfit: number;
+  /**
+   * TP1 was the one ladder level never passed in here, so it was never aligned
+   * — 98.9% of futures plans shipped a TP1 off the contract's grid, with a copy
+   * button beside it. An ES TP1 of 4557.080357142857 is 18,228.32 ticks at 0.25.
+   * Nullable because a plan without a ladder has no TP1 to align.
+   */
+  takeProfit1: number | null;
 };
 
 export type FuturesPricePlan = FuturesPricePlanInput & {
@@ -128,6 +135,14 @@ export function applyFuturesTickRules(
     contractSpec.tickSize,
     input.side === "buy" ? "up" : "down",
   );
+  // Toward ENTRY, not outward. TP1 is the level the operator banks half at, so
+  // rounding it further away can make a reachable partial unreachable; rounding
+  // it nearer costs a fraction of a tick and keeps the ladder honest.
+  const takeProfit1 = input.takeProfit1 === null ? null : alignFuturesLevel(
+    input.takeProfit1,
+    contractSpec.tickSize,
+    input.side === "buy" ? "down" : "up",
+  );
   const adjustments: string[] = [];
   const minStopDistance = contractSpec.tickSize * contractSpec.minStopTicks;
   const minTargetDistance = contractSpec.tickSize *
@@ -167,7 +182,7 @@ export function applyFuturesTickRules(
     }
   }
 
-  return {
+  const plan: FuturesPricePlan = {
     adjustments,
     contractSpec,
     entryPrice,
@@ -175,7 +190,41 @@ export function applyFuturesTickRules(
     stopLoss,
     symbol: input.symbol,
     takeProfit,
+    takeProfit1,
   };
+  assertOnGrid(plan);
+  return plan;
+}
+
+/**
+ * Every returned level is an exact multiple of the contract's tick.
+ *
+ * A post-condition rather than a test, because the defect this closes was a
+ * level that never entered the alignment at all — a test asserting the levels
+ * it knew about could not have caught the one nobody passed in. This checks the
+ * plan that is actually returned, so a fifth level added later is covered on
+ * the day it is added.
+ */
+function assertOnGrid(plan: FuturesPricePlan) {
+  const tick = plan.contractSpec.tickSize;
+  for (
+    const [name, level] of [
+      ["entryPrice", plan.entryPrice],
+      ["stopLoss", plan.stopLoss],
+      ["takeProfit", plan.takeProfit],
+      ["takeProfit1", plan.takeProfit1],
+    ] as const
+  ) {
+    if (level === null) {
+      continue;
+    }
+    const ticks = level / tick;
+    if (Math.abs(ticks - Math.round(ticks)) > 1e-6) {
+      throw new Error(
+        `${plan.symbol} ${name} ${level} is not a multiple of its ${tick} tick`,
+      );
+    }
+  }
 }
 
 function alignFuturesLevel(
@@ -191,7 +240,25 @@ function alignFuturesLevel(
   return Number((tickCount * tickSize).toFixed(decimalPlaces(tickSize)));
 }
 
+/**
+ * Decimals implied by a tick size, correct for exponential notation.
+ *
+ * The previous form split `value.toString()` on "." — and a tick of 1e-7
+ * stringifies as "1e-7", which has no decimal part, so it returned 0 and
+ * toFixed(0) rounded the aligned price to a whole number. Latent today, and
+ * armed the moment the grid is generated from E8's own table: E8 publishes
+ * 6J at exactly 1e-7 (instruments.ts's E8_FUTURES_SPECS).
+ */
 function decimalPlaces(value: number) {
-  const [, decimals = ""] = value.toString().split(".");
+  const text = value.toString();
+  // Exponential notation carries its decimals in the exponent, so splitting on
+  // "." finds none and returns 0 — which made toFixed(0) round an aligned price
+  // to a whole number. Latent today and armed the moment the grid is generated
+  // from E8's own table: E8 publishes 6J at exactly 1e-7.
+  const exponential = text.match(/^\d+(?:\.(\d+))?e-(\d+)$/);
+  if (exponential) {
+    return Number(exponential[2]) + (exponential[1]?.length ?? 0);
+  }
+  const [, decimals = ""] = text.split(".");
   return decimals.length;
 }
