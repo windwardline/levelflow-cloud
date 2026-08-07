@@ -441,17 +441,20 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
     }
   });
 
-  it("renders no unregistered state word — the set is closed at six", () => {
-    // Was four. The two below-one-step words were added on 2026-08-06 because a
-    // size that rounds to zero had been rendering as the NUMBER "0" beside a live
-    // copy button — §19e's table has no room for that, and none of the original
-    // four is honest about it: E8 offers the market, the row is confirmed, the
-    // data is published, and the rate is available. The setup is simply smaller
-    // than one contract at the operator's risk setting.
+  it("renders no unregistered state word — the set is closed at five", () => {
+    // Was four. The fifth arrived 2026-08-06 because a size that rounds to zero
+    // had been rendering as the NUMBER "0" beside a live copy button — §19e's
+    // table has no room for that, and none of the original four is honest about
+    // it: E8 offers the market, the row is confirmed, the data is published, and
+    // the rate is available. The setup is simply smaller than one unit at the
+    // operator's risk setting.
     //
-    // WORDING IS PENDING AN OWNER RULING. The mechanism is not: rendering a
-    // copyable 0 is a defect either way. §20j carries both strings so the
-    // both-directions check has something to check against.
+    // It shipped for one day as two unit-specific literals and was reduced to one
+    // on 2026-08-07. The row's label already renders "Size · lots" or
+    // "Size · contracts", so a word ending in the unit said what the surface was
+    // already showing (§17f). Two strings meaning one thing is also two strings
+    // that can drift, and the pair existed only to feed a unit-selection branch
+    // that no longer exists.
     const words = types.match(/SIZE_STATE_WORDS = \{[\s\S]*?\} as const;/)![0];
     const values = Array.from(words.matchAll(/: "([^"]+)"/g), (match) => match[1]);
     assert.deepEqual(values, [
@@ -459,9 +462,23 @@ describe("§19e — the rendered vocabulary is exactly §20j's list", () => {
       "Not confirmed",
       "Not published",
       "Rate unavailable",
-      "Below one contract",
-      "Below one lot",
+      "Below one",
     ]);
+  });
+
+  it("names no unit in any state word — the label already carries it", () => {
+    // The §17f property behind the reduction above, pinned as a rule rather than
+    // as a snapshot: whatever the set grows to, no member may repeat the unit the
+    // row's own label renders. A future "Below one contract" fails here.
+    const words = types.match(/SIZE_STATE_WORDS = \{[\s\S]*?\} as const;/)![0];
+    const values = Array.from(words.matchAll(/: "([^"]+)"/g), (match) => match[1]);
+    for (const value of values) {
+      assert.doesNotMatch(
+        value,
+        /\b(lot|lots|contract|contracts)\b/i,
+        `"${value}" names a unit the Size row's label already shows`,
+      );
+    }
   });
 });
 

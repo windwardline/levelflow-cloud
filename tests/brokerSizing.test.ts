@@ -145,8 +145,7 @@ describe("§19c — the budget invariant, over generated inputs", () => {
           // the `cases > 500` floor below still proves the size path ran.
           if (result.kind === "blocked") {
             assert.ok(
-              result.word === SIZE_STATE_WORDS.belowOneContract ||
-                result.word === SIZE_STATE_WORDS.belowOneLot,
+              result.word === SIZE_STATE_WORDS.belowOne,
               `${line}:${symbol} blocked with "${result.word}", which these inputs should never produce`,
             );
             continue;

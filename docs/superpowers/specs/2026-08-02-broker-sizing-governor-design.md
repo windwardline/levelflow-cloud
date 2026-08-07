@@ -1610,10 +1610,18 @@ verbatim; nothing else this feature draws is text.
 
 **§19 — the ladder Size row.** `Size · lots` · `Size · contracts` ·
 `Not offered` · `Not confirmed` · `Not published` · `Rate unavailable` ·
-`Below one contract` · `Below one lot`.
+`Below one`.
 
-*The last two added 2026-08-06; the WORDING is pending an owner ruling, the
-mechanism is not.* §19e's law is "a number or a state word, there is no third
+*Added 2026-08-06 as two unit-specific literals; reduced to this one on
+2026-08-07 when the owner authorized the wording.* **It names no unit on
+purpose.** `Size · lots` and `Size · contracts` are already on the row's label,
+so a word ending in "contract" would say what the surface is showing — §17f, and
+the standing reason copy gets rejected here. What the label cannot carry is the
+comparison, so that is all the word carries, and it reads correctly under either
+one. One literal also retires the unit-selection branch that produced it, which
+is the durable half: two strings meaning one thing is two strings that can drift.
+
+§19e's law is "a number or a state word, there is no third
 outcome," and a size that rounds to zero was a third outcome wearing a number's
 clothes — it rendered `0` beside a live copy button, which is the same lie as an
 affordance that copies a word. It is not a rare path: on a $25,000 Signature
