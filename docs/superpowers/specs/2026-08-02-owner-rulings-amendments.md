@@ -1789,3 +1789,38 @@ So there are exactly three states, and every market is in one:
 it belongs in the per-asset tuning the owner has directed rather than being
 frozen as a display constant. The basis is recorded per symbol with the frames
 that measured it; a sweep that narrows it should narrow the line with it.
+
+## Amendment 31 — full matched coverage is the resting state (owner, 2026-08-07)
+
+The owner confirmed the shipped result on the live site and fixed it as the
+position to hold:
+
+> "I saw that all matching tradable markets are live on Levelflow on the public
+> site. This is where we need to stay, unless the calibration later determines
+> we add matched markets to the exclusion list."
+
+**The default is ON.** Every E8 market with a verified FMP source is visible and
+usable on its account type, and that is the resting state rather than a snapshot
+of one release. Amendment 30 settled how a matched market is *presented*; this
+settles that it is presented at all, and that nothing needs to argue for its
+inclusion.
+
+**There is exactly one path off the list, and caution is not it.** A matched
+market leaves the offering only when calibration produces evidence against it —
+a measured result, on the record, in the per-asset work. Not a hunch, not an
+unverified suspicion about a feed, and not the general nervousness that
+originally built a 52-symbol no-trade list in which every single symbol turned
+out to have a match. That list is the precedent this amendment exists to prevent
+recurring.
+
+**The asymmetry is deliberate.** Adding a market needs only a verified source.
+Removing one needs a measurement. The two directions are not equally cheap
+because they were not equally cheap in their consequences: a market wrongly
+withheld is invisible, so nothing ever surfaces the error, while a market
+wrongly served is visible and its record accumulates where the owner can see it.
+
+**What this does not freeze.** The unmatched dormant list still re-admits
+automatically the moment `scripts/verify-fmp-matches.ts` finds a source, and
+still ejects a SERVED market whose feed lapses — that is a source failure, not a
+calibration verdict, and it remains automatic. Amendment 31 governs the
+judgment calls, not the source gate.

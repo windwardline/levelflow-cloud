@@ -6,6 +6,8 @@ Operating contract for AI work in this repo; the global `~/AGENTS.md` still appl
 
 §-numbered specs are binding, amended through owner rulings: `docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md` (distilled operative text governs where prose is narrower, per its own preamble) over `2026-07-30-levelflow-desk-design.md` and `2026-08-02-broker-sizing-governor-design.md`. Most test files cite § sections — read the section before touching its tests. Engine state of record: `docs/trade-model.md`. Contrast rules: `docs/design/contrast.md`, enforced by `tests/contrast.test.ts`.
 
+**Start here: `docs/HANDOFF.md`** — the total state of record. What is live, what is parked and how to unpark it, the approvals already given, the findings verified as non-problems, and the full ordered sequence. Read it before re-deriving anything. It is tracked in git deliberately: the previous handoff lived in a gitignored worktree and was destroyed when that worktree was removed.
+
 ## Stack — do not substitute without flagging
 
 Vite 8 + React 19, Tailwind v4, @supabase/supabase-js, lightweight-charts. TypeScript 6, ESLint 10, tests on node:test via tsx (not vitest), Playwright for E2E. Node ≥24, ESM only.

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,16 +12,37 @@ test.skip(
   "Set Levelflow E2E Supabase and dedicated test-user credentials to run analyzer abuse tests.",
 );
 
-// The scan budget is 40 requests per 60s (RATE_LIMITS in
-// supabase/functions/trade-analyzer/index.ts): one scan is a fan-out of chunked
-// requests now, and this suite's own peak window runs several of them back to
-// back. The window is minute-aligned and tumbling (supabase/init.sql), so a
-// burst can straddle a boundary: fifty-five keeps the trip near-certain —
-// tripping needs 41 of the 55 inside one window (75%), a wider margin than
-// the old 25-on-20 flood's 21 of 25, where forty-five would have needed 41
-// of 45.
-const FLOOD_SIZE = 55;
-const SCAN_RATE_LIMIT = 40;
+// READ from the analyzer, never restated here. This constant was hardcoded at 40
+// and the budget moved to 60 on 2026-08-07; the flood then fired 55 requests at a
+// 60-request limit and asserted a trip that could not happen. Nothing local caught
+// it, because this suite runs at deploy time and `npm test` never loads it — so the
+// pin that guards the number (tests/securityHardening.test.ts) passed while the
+// test that USES it shipped broken. Deriving it is the only version of this that
+// cannot drift.
+function scanRateLimit(): number {
+  const source = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+  const found = /scan_opportunities:\s*(\d+),/.exec(source);
+  if (!found) {
+    throw new Error(
+      "could not read scan_opportunities out of the analyzer's RATE_LIMITS",
+    );
+  }
+  return Number(found[1]);
+}
+
+const SCAN_RATE_LIMIT = scanRateLimit();
+
+// One scan is a fan-out of chunked requests, and this suite's own peak window runs
+// several back to back. The window is minute-aligned and tumbling
+// (supabase/init.sql), so a burst can straddle a boundary and tripping needs
+// LIMIT+1 requests to land inside ONE window. Sizing the flood at 4/3 of that
+// keeps the trip near-certain: 75% of the burst on one side of the boundary, the
+// same margin the previous 55-on-40 flood carried, now derived instead of
+// recomputed by hand each time the budget moves.
+const FLOOD_SIZE = Math.ceil((SCAN_RATE_LIMIT + 1) / 0.75);
 
 // Order is a contract here, not a convenience: the door test asserts real 400s,
 // so it has to run while the budget still has room — before the flood that

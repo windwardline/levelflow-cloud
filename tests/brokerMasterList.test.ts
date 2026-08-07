@@ -573,3 +573,90 @@ describe("row shape — every row is a complete, honest record", () => {
     }
   });
 });
+
+// Amendment 31 (owner, 2026-08-07): "all matching tradable markets are live on
+// Levelflow... This is where we need to stay, unless the calibration later
+// determines we add matched markets to the exclusion list."
+//
+// Full matched coverage is the RESTING STATE, and the only path off it is a
+// calibration verdict. Literal per-account counts cannot enforce that — 46 and
+// 45 are both just numbers, and an edit that lowers one lowers the pin beside
+// it. This does the enforcing instead: it derives the invisible set and demands
+// that every member of it sit in a NAMED justified state.
+describe("amendment 31 — matched coverage cannot shrink quietly", () => {
+  // The only reasons a row may be invisible. Each is a category, not a market:
+  //   excluded-no-fmp-source   no data at all, or a same-ticker impostor
+  //                            (METUSD is Metronome, not Micro Ether)
+  //   served-but-not-scannable a contract-size variant of a market already
+  //                            visible under its full-size name
+  //   offered-but-unsizeable   E8 offers it; no FMP series exists and the
+  //                            mapping is a derivation, not a match
+  //   mapped-not-yet-onboarded a real match, real remaining work — the one
+  //                            state that is a TODO rather than a verdict
+  const JUSTIFIED_INVISIBLE = new Set([
+    "excluded-no-fmp-source",
+    "served-but-not-scannable",
+    "offered-but-unsizeable",
+    "mapped-not-yet-onboarded",
+  ]);
+
+  it("every invisible row sits in a named justified state", () => {
+    for (const row of MASTER_LIST_ROWS) {
+      if (isVisibleToday(row)) continue;
+      assert.ok(
+        JUSTIFIED_INVISIBLE.has(row.status),
+        `${row.levelflowSymbol ?? row.brokerName} is invisible with status "${row.status}", which amendment 31 does not justify`,
+      );
+    }
+  });
+
+  it("pins the not-yet-onboarded register so it cannot grow in silence", () => {
+    // The only state that is a TODO. Six CME currency futures, each mapping to a
+    // spot pair already visible on forex accounts. They are NOT served because
+    // two of them invert: 6C is a CAD-base contract against Levelflow's USD-base
+    // USDCAD, and long 6C is SHORT USDCAD — serving it unconverted would hand a
+    // futures user a backwards direction on a correct-looking setup. That is the
+    // work, and it is owed under amendment 31 rather than excused by it.
+    //
+    // A NEW entry here means a matched market was parked instead of served, and
+    // that is a decision someone has to make in a test diff.
+    const pending = MASTER_LIST_ROWS
+      .filter((row) => row.status === "mapped-not-yet-onboarded")
+      .map((row) => row.levelflowSymbol ?? row.brokerName)
+      .sort();
+    assert.deepEqual(pending, ["6A", "6B", "6C", "6E", "6N", "6S"]);
+  });
+
+  it("keeps every contract-size variant pointing at a market that IS visible", () => {
+    // A variant is invisible for a reason that only holds while its full-size
+    // sibling is served. If ESUSD ever went dark, MES would silently become a
+    // market withheld for no stated reason at all — invisible, and with its
+    // stated justification quietly false.
+    //
+    // Checked against the sibling the GROUND names, not against fmpSymbol.
+    // Those are not the same thing and MGCUSD is why: FMP carries a distinct
+    // series for micro gold, so MGCUSD's fmpSymbol is itself while the market
+    // it duplicates is GCUSD. Keying on fmpSymbol would have asserted that
+    // MGCUSD is a variant of MGCUSD, which is true of nothing.
+    const visible = new Set(
+      MASTER_LIST_ROWS.filter(isVisibleToday).map((row) => row.levelflowSymbol),
+    );
+    let checked = 0;
+    for (const row of MASTER_LIST_ROWS) {
+      if (row.status !== "served-but-not-scannable") continue;
+      const named = /Contract-size variant of ([A-Z0-9^]+)/.exec(row.ground);
+      assert.ok(
+        named,
+        `${row.levelflowSymbol ?? row.brokerName} is held back as not-scannable without naming what it is a variant of`,
+      );
+      assert.ok(
+        visible.has(named![1]),
+        `${row.levelflowSymbol ?? row.brokerName} is held back as a variant of ${named![1]}, which is no longer visible`,
+      );
+      checked += 1;
+    }
+    // The loop must actually run. A status rename would otherwise turn this
+    // into a test that passes by checking nothing.
+    assert.equal(checked, 9);
+  });
+});

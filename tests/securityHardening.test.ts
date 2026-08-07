@@ -36,6 +36,31 @@ describe("security hardening", () => {
     // four full scans a minute is the physical ceiling, FMP enforces it rather
     // than this limiter, and the source comment beside the limit says so.
     assert.match(analyzerSource, /scan_opportunities: 60,/);
+
+    // And the deploy-time flood must DERIVE this number rather than restate it.
+    // On 2026-08-07 the budget moved 40 -> 60 and this pin was updated while
+    // tests/e2e/analyzer-abuse.spec.ts kept its own `const SCAN_RATE_LIMIT = 40`
+    // — so it fired 55 requests at a 60 limit and asserted a trip that could not
+    // happen. `npm test` never loads Playwright, so every local gate was green and
+    // the failure surfaced only in the deploy. A pin that guards a number while
+    // the test USING it holds a stale copy is worse than no pin: it reports
+    // safety it is not measuring.
+    const abuseSource = readFileSync("tests/e2e/analyzer-abuse.spec.ts", "utf8");
+    // A plain substring, not a regex-matching-a-regex. The first version of this
+    // assertion was the latter and passed only through a double-escaping
+    // coincidence — unreadable, and the wrong shape for a guard whose whole
+    // purpose is being obviously right.
+    assert.ok(
+      abuseSource.includes(
+        'readFileSync(\n    "supabase/functions/trade-analyzer/index.ts",',
+      ),
+      "the abuse flood must read the analyzer source to learn the limit",
+    );
+    assert.doesNotMatch(
+      abuseSource,
+      /const SCAN_RATE_LIMIT = \d+/,
+      "the abuse flood must not hardcode the scan rate limit",
+    );
     assert.match(
       analyzerSource,
       /const rateLimit = await claimAnalyzerRequest\(user\.id, actionName\);[\s\S]*if \(!rateLimit\.allowed\)/,
