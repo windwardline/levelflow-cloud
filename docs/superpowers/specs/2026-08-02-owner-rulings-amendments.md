@@ -1719,3 +1719,41 @@ broker's first sweep before reading any expectancy as a verdict.
 cattle) to 27% (rough rice), while the healthy core of the universe runs 73-99%.
 300 filled setups: the smallest sample any exclusion considered tonight would
 have needed to survive scrutiny.
+
+## Amendment 29 — Insights and Attribution are exempt from account segmentation (owner, 2026-08-07)
+
+**Numbering note.** 26, 27 and 28 are enacted on the `s19-release` branch and
+land with PR #240; this is the next free number on `main`.
+
+**The ruling, in the owner's own frame:** *"The Insights and Attribution
+features track all trades, across all markets, and all accounts for the user
+and are exempt from this segmentation."*
+
+**What it supersedes.** Amendment 13 made market availability follow the account
+classification, and §19 retrofit Task 8 applied that to the Insights market
+filter — the filter's options were built from `visibleAssetGroups(activeAccount)`,
+and an account switch reset a filter naming a market the new account could not
+trade. That reading is now narrowed: amendment 13 governs surfaces that GENERATE,
+and Insights generates nothing.
+
+**Why the distinction is the right one.** The Desk is segmented for a concrete
+reason — offering a futures market to a forex account produces a limit price the
+operator cannot place, which is the worst failure this product has. Insights
+produces no price. It is the record of what the operator has already traded, on
+every account they hold, and a record that hides part of itself depending on
+which account is selected today is not a record.
+
+**What was actually wrong.** The ledger rows were never filtered by account, so
+the *tracking* was already exempt. The **filter** was not: an operator on a forex
+account could not slice their own history to a futures market they had traded.
+The data was there and the way to look at it was not, which is the more insidious
+half — nothing looked broken.
+
+**The mechanism.** `HistoryPanel` no longer takes a `profile` prop at all. It
+cannot consult the account, so the exemption is structural rather than a rule
+someone has to keep. The filter's options come from `groupsForTradedSymbols`,
+derived from the ledger itself: exactly the markets that have rows, in the
+roster's own group order. Wider than one account's offering, and narrower than
+the whole roster — a filter option for a market with no rows behind it is noise,
+and on a 100+ market universe it is a lot of noise. It is also self-maintaining
+as both the universe and the operator's history grow.

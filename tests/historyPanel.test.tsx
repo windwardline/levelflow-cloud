@@ -237,28 +237,40 @@ describe("Insights says the fetch failed rather than claiming an empty ledger (Q
 // Source-pinned for the same reason every other interactive check in this
 // file is (see header comment): no jsdom, so the select's real DOM options
 // cannot be read back out.
-describe("the Insights market filter follows the active account (amendment 13, §19 retrofit)", () => {
-  it("takes a profile prop and resolves the active account from it, same as AdvisorWorkspace", () => {
-    assert.match(PANEL_SOURCE, /profile: UserProfile;/);
-    assert.match(PANEL_SOURCE, /const activeAccount = activeAccountOf\(profile\);/);
-  });
-
-  it("builds the Market filter's options from the active account's visible groups, not the raw catalog", () => {
-    assert.match(
-      PANEL_SOURCE,
-      /const visibleGroups = visibleAssetGroups\(activeAccount\);/,
-    );
-    assert.match(PANEL_SOURCE, /\{visibleGroups\.map\(\(group\) => \(/);
-    // The bare catalog import is gone — every reader of this list now goes
-    // through visibleAssetGroups, so a future edit can't quietly reintroduce
-    // a hidden market by mapping the unfiltered constant again.
+describe("Insights is exempt from account segmentation (amendment 29, owner 2026-08-07)", () => {
+  it("cannot consult the account at all — the exemption is structural", () => {
+    // Amendment 13 made availability follow the classification, and §19
+    // retrofit Task 8 applied it here. Amendment 29 narrows that to surfaces
+    // that GENERATE: the Desk is segmented because offering a futures market to
+    // a forex account produces a limit price the operator cannot place.
+    // Insights produces no price. It is the record of what was already traded
+    // on every account the operator holds, and a record that hides part of
+    // itself depending on today's selection is not a record.
+    //
+    // Pinned as an ABSENCE rather than a rule, because a rule can be forgotten:
+    // the panel takes no profile prop, so there is nothing to segment by.
+    // The dependency, not the word: the prose above explains what was removed
+    // and naming it in a comment is not a use of it.
+    assert.doesNotMatch(PANEL_SOURCE, /from "\.\.\/\.\.\/lib\/broker\/visibility"/);
+    assert.doesNotMatch(PANEL_SOURCE, /from "\.\.\/\.\.\/lib\/profile"/);
+    assert.doesNotMatch(PANEL_SOURCE, /visibleAssetGroups\(/);
+    assert.doesNotMatch(PANEL_SOURCE, /activeAccountOf\(/);
+    assert.doesNotMatch(PANEL_SOURCE, /profile: UserProfile;/);
     assert.doesNotMatch(PANEL_SOURCE, /AVAILABLE_ASSET_GROUPS/);
   });
 
-  it("resets the Market filter to All markets when a switch hides the selected one — the same rule the scan scope menu follows, so neither surface strands an unclearable filter", () => {
-    assert.match(
-      PANEL_SOURCE,
-      /setMarketScope\(\{ kind: "all" \}\)/,
-    );
+  it("offers exactly the markets this operator has actually traded", () => {
+    // Not the whole roster either: a filter option for a market with no rows
+    // behind it is noise, and on a 100+ market universe it is a lot of noise.
+    // Derived from the ledger, so it is self-maintaining as both the universe
+    // and the operator's history grow.
+    assert.match(PANEL_SOURCE, /groupsForTradedSymbols\(setups\)/);
+    assert.match(PANEL_SOURCE, /\{tradedGroups\.map\(\(group\) => \(/);
+  });
+
+  it("resets a filter only when the LEDGER stops carrying it, never on an account switch", () => {
+    assert.match(PANEL_SOURCE, /tradedGroups\.some\(\(group\) =>/);
+    assert.match(PANEL_SOURCE, /\}, \[tradedGroups, marketScope\]\);/);
+    assert.match(PANEL_SOURCE, /setMarketScope\(\{ kind: "all" \}\)/);
   });
 });
