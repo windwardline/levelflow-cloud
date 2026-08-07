@@ -59,11 +59,11 @@ const E8_FUTURES_WATCHLIST: Record<string, string[]> = {
  * NEXT unnamed instrument is a gap in a known frontier rather than a surprise.
  */
 const NO_MASTER_LIST_ROW: Record<string, string> = {
-  MC: "unidentified — MCU6 printed 2712.25 on the Indices tab and no research frame resolves what it is",
-  BIT: "unidentified CME crypto future — named in the §20i open list with SIC, no source resolved",
+  MC: "unidentified — MCU6 printed 2712.25 on the Indices tab; Russell 2000 is ruled out (RTYUSD printed 3025.40 two days later) and no E8 document names it",
+  BIT: "unidentified CME crypto future — BITQ6 64180 printed beside BTCQ6 64070; no E8 document names it and its parentage is unestablished",
   MBT: "micro Bitcoin future — a contract-size variant of BTC, but never enumerated",
   MET: "micro Ether future — a contract-size variant of ETH, but never enumerated",
-  SIC: "unidentified — SICU6 58.18 is silver's active month beside SIQ6 57.800; whether it is a distinct instrument is unresolved",
+  SIC: "unresolved — SICU6 58.18 matches FMP SIUSD 58.195 at 3 bp, so it is likely SI's front month rather than a separate instrument, but that is a Levelflow price inference and no E8 document identifies it",
   M6E: "micro CME FX future — amendment 28 excludes the FX futures family on verified feed identity (6EU6 measured 17 pips off EURUSD spot)",
   E7: "half-size CME FX future — same ground as M6E",
   M6A: "micro CME FX future — same ground as M6E",
