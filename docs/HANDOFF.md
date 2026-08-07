@@ -70,16 +70,31 @@ step leaves every signed-in operator working behind a closed door.
 
 ---
 
-## 3. The one open gap against amendment 31
+## 3. Proxy-priced markets — a gap and a live defect, one cause
 
-Six CME currency futures are matched but not served: **6E, 6A, 6B, 6N, 6C, 6S**
-(`mapped-not-yet-onboarded`). Each maps to a spot pair already visible on forex
-accounts, so a futures-account operator cannot analyse Euro FX today.
+Ten markets are priced off a series that is not their own contract, and none of them
+handles the basis between the two. Amendment 32 rules on it; **item 1.5 builds the fix**.
 
-**Why they are parked rather than shipped:** 6C and 6S invert. 6C is a CAD-base contract
-against Levelflow's USD-base `USDCAD` — long 6C is *short* USDCAD. Serving them
-unconverted hands a futures operator a backwards direction on a correct-looking setup.
-The inversion work is real and unfinished; the mapping is not the hard part.
+**The gap — six CME currency futures withheld.** 6E, 6A, 6B, 6N, 6C, 6S, all
+`mapped-not-yet-onboarded`. Each maps to a spot pair already visible on forex accounts,
+so a futures-account operator cannot analyse Euro FX today.
+
+*Correcting the record:* an earlier note in this session gave the reason as "6C and 6S
+invert." That is a third of it. The F9 sighting measured **17 pips of carry on 6E** —
+one of the four that does *not* invert — so the blocker for all six is a time-varying
+basis. Inversion is a second transform that two of them also need.
+
+**The live defect — four index futures already served with it.** EMD (`^MID`), FDAX
+(`^GDAXI`), FESX (`^STOXX50E`) and NKD (`^N225`) are `served-and-visible` on cash index
+series with their futures basis unmodeled, FDXM behind FDAX as a variant. They ship
+levels today that are confidently wrong by an unstated and changing amount. **This is
+the more urgent half** — a withheld market is a coverage gap, a served market with a
+silent error is an honesty defect, and amendment 33's second obligation is exactly the
+one it breaks.
+
+It is not fixed by withdrawing them. Amendment 31 governs removal and a missing
+transform is not a calibration verdict. It is fixed by building the model, and until it
+exists by saying plainly on those markets that the basis is unmodeled.
 
 Everything else invisible is justified and asserted as such:
 
@@ -98,6 +113,37 @@ Re-ranked. The organising principle is unchanged and still correct: **repairing 
 harness precedes everything that consumes it**, because four independent defects push
 the same numbers the same way and re-running the sweep after each would be wasted
 compute.
+
+### 0 — CI verification integrity — **FIRST, and it is half an hour of work**
+`cancel-in-progress: true` on the deploy concurrency group severed four deploys
+across two nights. Three of those were on 2026-08-06 alone, and the cost was not
+theoretical: a real test fix went unverified through two cycles because each
+successor merge killed the run that would have proven it.
+
+It gets worse under load, and the calibration program below **is** load — many PRs,
+many merges, every one of them wanting a trustworthy deploy. A verification
+pipeline you cannot trust corrupts everything measured through it, which is the
+same argument items 2 and 3 make about the evaluator, applied one level out.
+
+The latent risk is worse than the wasted time: the cancel can land *between*
+`Apply Supabase migrations` and `Deploy Supabase functions`, leaving the database
+migrated and the functions on old code, with nothing raising an alarm.
+
+*Fix, three parts:*
+- `cancel-in-progress: false` on the deploy group. A deploy is never severed
+  mid-flight. **Not** on the other workflows — cancelling a superseded lint run is
+  correct and cheap; cancelling a superseded *deploy* is neither.
+- A superseded-check at job start: compare `github.sha` against the ref's current
+  tip and exit 0 early if it is no longer tip. That recovers the speed
+  `cancel-in-progress` was buying — N rapid merges do one real deploy, not N —
+  without ever killing a run that is already writing to production. Skip, do not
+  fail: a superseded deploy is not an error.
+- A test asserting `cancel-in-progress: false` for deploy.yml, so this cannot
+  regress silently. Same discipline as the parking-gate pin: a literal, not an
+  alternation.
+
+*Do not do this while the desk is parked and unattended if it means an unverified
+deploy config.* Land it, watch one full green run, then continue.
 
 ### RUNNING — bank 1-minute bars
 Started 2026-08-06. Daily at 07:02. Not scheduled work; work to not break.
@@ -147,6 +193,47 @@ classes · **1p** TP1 never tick-aligned for futures (98.9% off-grid — fold in
 
 Done: 1a, 1d, 1k, 1n, 1s.
 
+### 1.5 — The basis layer — **before the sweep, and it fixes a live defect**
+Amendment 32. Markets priced off a proxy series need their basis handled as a
+declared property, not as a per-symbol special case.
+
+**This corrects my own earlier account of it.** I reported the six currency
+futures as blocked by the 6C/6S inversion. That was wrong, or at best a third of
+the reason: the F9 sighting measured **17 pips of carry on 6E**, which is one of
+the four that does *not* invert. Carry blocks all six. Inversion is an additional
+transform that two of them also need.
+
+**And four markets are shipping the defect right now.** EMD (`^MID`), FDAX
+(`^GDAXI`), FESX (`^STOXX50E`) and NKD (`^N225`) are served-and-visible on cash
+index series with their futures basis unmodeled — confidently wrong levels by an
+unstated, changing amount, with FDXM behind FDAX as a variant. The withheld six
+are a coverage gap; these four are an honesty defect, and the honesty defect is
+the more urgent half.
+
+*Design — one mechanism, three independent declarations:*
+- `basis: none` — the series *is* the market. Almost everything.
+- `basis: static` — a measured constant with its frames. XAGUSD, WTI, BRENT.
+  Amendment 30, unchanged.
+- `basis: carry` — computed per decision from rate differential and days to
+  expiry. The four index futures and all six currency futures.
+- `inverted: true` — composes with any of the above. 6C, 6S.
+
+*Two things that will bite whoever builds it:*
+- **Inverting OHLC is not `1/x` four times.** The high of the reciprocal is the
+  reciprocal of the **low**. Map high→high and you get a negative range, a
+  nonsense ATR, and a stop on the wrong side of entry. Assert `high ≥ low` on the
+  transform's output and test against a known inverted pair before any market
+  ships on it.
+- **A constant offset mostly cancels in geometry** — ATR and level distances are
+  differences — but a *decaying* basis does not. It is a drift term, and it
+  reaches the sweep's returns. That is why this precedes item 5 rather than
+  following it.
+
+*Why here:* it is independent of the evaluator repair, so it can run in parallel
+with items 2–3, but it must land before item 5's sweep. Calibrating a market on a
+proxy series with an unmodeled basis calibrates the wrong instrument, and doing it
+afterwards means sweeping those ten markets twice.
+
 ### 2 — Repair the evaluator, as ONE change set, then re-sweep once
 **2a** look-ahead — admit a daily bar only once its own day closed ·
 **2b** timestamps normalised at the provider boundary, timezone probed not assumed ·
@@ -171,18 +258,107 @@ embargo · **3d** fit/select/confirm split · **3e** market holdout outside all 
 **3f** a release gate stated in standard errors · **3g** accept on total R *and*
 per-trade expectancy delta.
 
-### 4 — Re-sweep once, re-derive everything, re-judge every release
-Confidence floors, class geometry, every exclusion. `ANALYZER_VERSION` bumps,
-`tests/calibrationState.test.ts` re-pins.
+### 4 — THE CALIBRATION PROGRAM (amendment 33)
+**This is the point of the whole retrofit, and it is not one item.** Everything
+above exists so this can be done once, honestly. The owner's standing goal, in
+their framing:
 
-**Round 28 is the argument for doing this jointly.** A 96-variant grid over four axes
-moved indices' survival by one point and declared the status quo optimal, because the
-axis that mattered was held fixed. `replay-sweep.ts` now takes crossed axes
-(`--grid a=1,2;b=3,4`); use them. A lever downstream of risk cannot be derived at
-another lever's old setting.
+> Levelflow operating like a finely tuned, highly sophisticated tool which can
+> identify an overwhelmingly high number of money-positive trade setups, can
+> justify how it did it, and can present reliable, defensible information to the
+> user.
 
-**This is also where amendment 31's only exit lives.** If a market fails here, it leaves
-on the evidence — that is the mechanism, and nothing else is.
+Three obligations, and the middle one is the one that gets dropped: **find the
+setups, justify the method, defend the presentation.** A calibration that lifts
+expectancy but cannot explain itself fails this as surely as one that lifts
+nothing.
+
+Five phases, in order. Do not collapse them.
+
+#### 4a — Discover the data limits. Do not assume them.
+Per market **and per timeframe**, find the true earliest usable bar and the true
+*continuous* span — depth varies by market, and item 2k exists because nothing
+currently counts holes. A sweep that assumes a common span silently truncates the
+markets with more history and manufactures confidence about the markets with
+less.
+
+Output a committed manifest: per market, per timeframe, first bar, last bar, bar
+count, largest gap, usable span. That manifest is what "to the limit of our data"
+*means* for each market, and every later phase reads it rather than guessing.
+Cheap, and it gates everything.
+
+#### 4b — Review the geometry MODEL before tuning it
+Owner-directed, and the most valuable phase if it finds anything. Round 28 is the
+cheap version of this lesson: a 96-variant grid declared the status quo optimal
+because the axis that mattered was not in the grid. **Tuning parameters inside a
+wrong model is the most expensive way to learn nothing.**
+
+Questions this phase must actually answer, with evidence, not opinion:
+- Is **TP1 + runner** the right shape? Does a third leg, a trailing stop after
+  TP1, or a time-stop earn more than the partial does?
+- Is the stop right as **static-at-entry**? `breakeven_trigger_price` exists —
+  is moving to breakeven the best use of it, or is it giving away runners?
+- Is **confidence-as-a-scalar** the right ranking device at all? r12 said it does
+  not rank outcomes, and round 28 proved that verdict was drawn on a sample a
+  geometry defect had cut to a third. Re-ask it on a repaired sample, and if it
+  still does not rank, replace it rather than keeping a number that decorates.
+- Is a **fixed review window** the right expiry device, or should it be
+  volatility-conditional? Livestock and oats both needed 24h for reasons that
+  were about the book, not the clock.
+- Is **entry-as-limit-offset** right for every market, or do some want
+  market-on-touch or breakout entries?
+- Are there **regime-conditional structures** we simply do not have?
+
+Adversarial, several lenses, one each. Output is a recommendation with its
+evidence; the owner decides before the sweep runs. Anything adopted here changes
+what 4c must measure, which is exactly why it cannot come after.
+
+#### 4c — Sweep every matched market to its own limit
+All 111, at the repaired evaluator (item 2), on the discovered spans (4a), in
+whatever model 4b settled. **Crossed axes** — `replay-sweep.ts` takes
+`--grid a=1,2;b=3,4` now, and a lever downstream of risk cannot be derived at
+another lever's old setting. Corpus manifest per 2i, so no analysis can silently
+read a corpus built under different calibration.
+
+#### 4d — Derive per market, not per class
+Every parameter family, per market, gated by item 3's acceptance procedure —
+nothing ships that does not clear its own out-of-sample bar corrected for the
+family it was selected from:
+
+- **stop** — cap, ATR multiple, structural floor, pivot search. Note 8a: the
+  floor currently makes the cap bind unconditionally in seven of eight classes,
+  so both levers are dead. Fix before deriving, or this measures nothing again.
+- **TP1** — distance, risk share, and whether it should fire *at all* for a given
+  market.
+- **TP2 / runner** — ceiling, window share, exit policy. Blocked on 2f: today
+  `tp1_partial` returns the same 0.25R whether the runner expired at breakeven or
+  one tick short, and it is 63–68% of all fills.
+- **entry** — offset default and trend, and the offset *model*, not just its two
+  constants.
+- **window and timing** — review hours, session gates, day-of-week.
+- **confidence** — floor, and banding or its replacement per 4b.
+- **tick and pip** — alignment thresholds and minimum viable distance. 1b and 1p
+  must already be in.
+- **starvation** — refusal accounting per market, so a starved market is *known*
+  starved rather than silently thin. This is what caught indices and oats, and it
+  is the difference between "no edge" and "never measured."
+
+A class value survives only where a market's own data says it should. Broadly
+applied standards have been measured wrong too many times to keep by default:
+indices at `tp1RiskShare` 1.2, oats at a 6-hour window, livestock unmeasurable at
+6h, execution cost off by 1.79–2.69× on copper and gas.
+
+`ANALYZER_VERSION` bumps. `tests/calibrationState.test.ts` re-pins every derived
+value.
+
+#### 4e — Iterate until the returns diminish, then say so
+Rounds continue while they yield. When a round returns only nulls and
+validations, declare the diminished-returns point out loud rather than
+manufacturing another. The stopping rule stands and this does not license change
+for its own sake.
+
+**Amendment 31's only exit lives in 4d.** If a market leaves the offering, it
+leaves on this evidence. Nothing else removes one.
 
 ### 5 — Prop-firm survival
 Median 9 open positions, p90 25, max 43 — 4.5% / 12.5% / 21.5% of the account at the
@@ -279,18 +455,27 @@ Every measurement of render cost, scan latency, correlation coverage and session
 handling predates a universe that more than doubled. That is a coverage question about
 the *product*, not the engine, and nothing in the current sequence owns it.
 
+And item 4b is itself a fresh-eyes round pointed at the geometry model rather than at
+the codebase — the one place the protocol has never been aimed. It belongs to the
+sequence rather than to a review cycle because its output changes what 4c measures, but
+it should be run with the same adversarial discipline: several lenses, each asked what
+the model is missing rather than how to tune it.
+
 ---
 
-## 6. The kickoff prompt for the next session
 
-Kept here so it cannot drift from the state it describes. Update both together.
+## 6. Two prompts
+
+Kept here so they cannot drift from the state they describe. Update together.
+
+### 6a. The kickoff prompt — opens a fresh session
 
 ```
 Continue Levelflow. Read docs/HANDOFF.md first — it is tracked in the repo now, not in
 a worktree. It is the total state of record: what is live, what is parked and how to
 unpark it, the approvals already given, the reasoning behind decisions declined or
 reversed, the measured evidence, and the full ordered sequence. Do not re-derive what it
-records. Do not re-ask decisions A-F, amendments 26 and 29-31, or any item in sections 2
+records. Do not re-ask decisions A-F, amendments 26 and 29-33, or any item in sections 2
 and 4 — all approved. Section 5 records findings VERIFIED as non-problems; do not
 re-investigate those.
 
@@ -301,20 +486,53 @@ anything you are about to ship would be wrong to ship while it is closed.
 
 Coverage is settled and is not open for reconsideration. Amendment 31: all 111
 FMP-matched E8 markets are live, per account type, and that is the resting state. The
-only path to removing a market is a calibration verdict from item 4 — never caution,
+only path to removing a market is a calibration verdict from item 4d — never caution,
 never a hunch about a feed.
 
-Start with item 1, the live product defects. Nothing in it depends on the calibration
-being right, and the release changed its urgency: defects that were harmless while
-markets were withheld are live now that nothing is. Fold 1p into 1b. Then item 2, the
-evaluator, AS ONE CHANGE SET — 2l must land with 2a or the re-sweep measures the wrong
-committee. Then item 3, then item 4's single re-sweep.
+Work the sequence in order.
 
-Item 4 is the one that can invalidate everything upstream of it, and round 28 is the
-warning: a 96-variant grid over four axes moved indices' survival by one point and
-declared the status quo optimal, because the axis that mattered was held fixed. Use
-replay-sweep's crossed axes (--grid a=1,2;b=3,4). A lever downstream of risk cannot be
-derived at another lever's old setting. Tune per asset, not per class.
+Item 0 first: CI verification integrity. Half an hour, and it protects every
+verification after it. Three deploys were severed mid-flight in one night by
+cancel-in-progress, and one real test fix went unverified through two cycles as a
+result. The calibration program is many merges; do not run it through a pipeline that
+kills its own evidence.
+
+Then item 1, the live product defects — nothing in it depends on the calibration being
+right, and the release changed its urgency: defects that were harmless while markets
+were withheld are live now that nothing is. Fold 1p into 1b.
+
+Item 1.5 is the basis layer, and it can run in parallel with 2 and 3 but must land
+before 4c. Four index futures are SERVED TODAY on cash series with an unmodeled,
+time-varying basis — that is a live honesty defect, not a coverage gap, and it is the
+more urgent half of that item. Six currency futures are withheld for the same missing
+mechanism. Read amendment 32 before designing it; inverting OHLC is not 1/x four times.
+
+Then item 2, the evaluator, AS ONE CHANGE SET — 2l must land with 2a or the re-sweep
+measures the wrong committee. Then item 3, the acceptance procedure.
+
+THEN ITEM 4, THE CALIBRATION PROGRAM. This is the point of the whole retrofit and it is
+five phases; do not collapse them. 4a discovers each market's true data limit per
+timeframe — measure it, never assume it, it varies. 4b reviews the geometry MODEL before
+tuning it, and is the highest-value phase if it finds anything: is TP1+runner the right
+shape, is the stop right as static-at-entry, does confidence rank outcomes at all on a
+repaired sample or should it be replaced, is a fixed review window right, are there
+regime-conditional structures we do not have. Adversarial, several lenses, evidence not
+opinion, and I decide before the sweep runs. 4c sweeps all 111 markets to their own
+discovered limits with crossed axes. 4d derives PER MARKET, not per class — stops, TP1,
+runner, entries, windows and timing, confidence bands or their replacement, tick and pip
+thresholds, starvation accounting — each gated by item 3's acceptance bar. 4e iterates
+until the returns diminish, then says so out loud.
+
+The standard for done, in my words, is amendment 33: Levelflow operating like a finely
+tuned, highly sophisticated tool which can identify an overwhelmingly high number of
+money-positive trade setups, can justify how it did it, and can present reliable,
+defensible information to the user. Find the setups, justify the method, defend the
+presentation — all three.
+
+Round 28 is the standing warning: a 96-variant grid over four axes moved indices'
+survival by one point and declared the status quo optimal, because the axis that
+mattered was held fixed. A lever downstream of risk cannot be derived at another lever's
+old setting. Use replay-sweep's crossed axes (--grid a=1,2;b=3,4).
 
 BEFORE any hedge-mind work advances, and repeatedly as the work proceeds, run this
 cycle: (1) record the prior round's recommendations as approved; (2) run a genuinely
@@ -330,8 +548,8 @@ cost, coverage, risk management and prop-firm survival, product honesty, operati
 each asked what is wrong or missing rather than what to improve. Round 8 should probe
 what the round-6 and round-7 fixes THEMSELVES assume, and must include one lens nothing
 has yet owned: the product at 111 markets rather than 50 — render cost, scan latency,
-correlation coverage, session handling, all of which were measured on a universe less
-than half this size.
+correlation coverage, session handling, all measured on a universe less than half this
+size.
 
 You have full autonomy and my authorization to use agents freely and in parallel.
 Approve your own tool use. Make routine judgment calls yourself; bring me only decisions
@@ -349,4 +567,22 @@ Run to completion. Do not stop at turn boundaries to check in, do not narrate op
 you will not take, and do not end a turn with work you could still advance — if compute
 is running, monitor it and keep working. Keep docs/HANDOFF.md the truth as state
 changes, and tell me when a stopping point is genuinely reached.
+```
+
+### 6b. The continuation prompt — paste any time to keep it moving
+
+Short on purpose. It is the whole loop in one paste, and it works even if the agent
+has lost its earlier context, because it names the file that holds everything.
+
+```
+Continue. Work docs/HANDOFF.md's sequence from wherever it now stands, and fold anything
+your own work has surfaced since into its correct rank rather than appending it. When the
+current item is genuinely done — gates green, deployed, verified in production, branches
+cleaned — run another full cycle of the fresh-eyes gap analysis: several adversarial
+agents, one lens each, each asked what is wrong or missing rather than what to improve;
+durable fixes, not patches; re-rank the whole sequence rather than appending to it; test
+whether it now reaches best-possible positioning and keep hunting if not, or name the
+input boundary that stops you. Then update docs/HANDOFF.md and report to me in chat with
+the full sequence visible. Do not stop at turn boundaries. Never claim green when it is
+not.
 ```

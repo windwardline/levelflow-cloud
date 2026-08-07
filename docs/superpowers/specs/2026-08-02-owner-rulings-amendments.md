@@ -1824,3 +1824,92 @@ automatically the moment `scripts/verify-fmp-matches.ts` finds a source, and
 still ejects a SERVED market whose feed lapses — that is a source failure, not a
 calibration verdict, and it remains automatic. Amendment 31 governs the
 judgment calls, not the source gate.
+
+## Amendment 32 — a basis that moves needs a model, not a number (2026-08-07)
+
+Amendment 30 settled the static case: a market priced off a proxy series with a
+**measured, stable** offset is served with the line that states it. XAGUSD +0.17,
+WTI +0.24, BRENT +1.67 — each measured across sessions and days, each stable.
+
+**A futures basis is not that.** A currency or index future trades at spot plus
+carry to expiry, and that carry **decays toward zero as expiry approaches**. A
+single measured number is right on the day it was taken and wrong every day
+after. Publishing it as a constant states a wrong figure with the authority of a
+measured one, which is worse than stating nothing.
+
+So proxy-priced markets fall into two kinds, and they get different treatment:
+
+1. **Static basis** — amendment 30 stands unchanged. Measure it, state it, serve
+   the market.
+2. **Time-varying basis** — needs a **model**: the basis is computed per decision
+   from the rate differential and days to expiry, not read from a constant. Until
+   a market has one, the surface must not imply its levels are exact on the
+   broker's book.
+
+**Reciprocal quoting composes with both and is separate from both.** E8's 6C is a
+CAD-base contract against Levelflow's USD-base USDCAD; long 6C is *short* USDCAD.
+Inversion is a transform of the axis, carry is a transform of the level, and a
+market can need one, the other, or both. They are declared independently.
+
+**What this obliges, in both directions.** Six E8 currency futures — 6E, 6A, 6B,
+6N, 6C, 6S — are withheld today for exactly this reason, and the F9 sighting
+measured 17 pips of carry on 6E, which is one of the four that does *not* invert.
+The inversion was never the whole blocker; the carry is, and it applies to all
+six. Under amendment 31 they are owed, not excused.
+
+And it cuts the other way, which is the part that matters more: **four index
+futures are already served on cash series with this basis unmodeled** — EMD on
+`^MID`, FDAX on `^GDAXI`, FESX on `^STOXX50E`, NKD on `^N225`, with FDXM behind
+FDAX as a variant. They ship levels today that are confidently wrong by an
+unstated and changing amount. That is a live honesty defect, not a coverage gap,
+and it is not fixed by withdrawing them — amendment 31 governs removal and a
+missing transform is not a calibration verdict. It is fixed by building the
+model, and until it exists by saying plainly on those markets that the basis is
+unmodeled.
+
+**Inverting OHLC is not `1/x` applied four times.** The high of the reciprocal is
+the reciprocal of the **low**. A transform that maps high→high silently produces
+a negative range, a nonsense ATR, and a stop on the wrong side. Whatever
+implements this asserts `high ≥ low` on its output and is tested against a known
+inverted pair before any market ships on it.
+
+## Amendment 33 — the calibration mandate (owner ruling, 2026-08-07)
+
+The standing goal, in the owner's own framing, for everything between here and
+the hedge mind:
+
+> Levelflow operating like a finely tuned, highly sophisticated tool which can
+> identify an overwhelmingly high number of money-positive trade setups, can
+> justify how it did it, and can present reliable, defensible information to the
+> user.
+
+Three obligations, and the middle one is the one that usually gets dropped:
+**find the setups**, **justify the method**, **defend the presentation**. A
+calibration that improves expectancy but cannot explain itself fails this ruling
+as surely as one that does not improve expectancy.
+
+**Per market, not per class.** Broadly applied standards have been repeatedly
+measured wrong — indices' `tp1RiskShare` at 1.2 where every other class ran
+0.4–0.8, oats starved at its class's 6-hour window, livestock unmeasurable until
+its window tripled, execution cost off by 1.79–2.69× on copper and gas. Every one
+of those was a class value applied to a market it did not fit. The next
+derivation is per market, and a class value survives only where a market's own
+data says it should.
+
+**To the true limit of each market's data, discovered rather than assumed.**
+History depth varies per market and per timeframe, and a sweep that assumes a
+common span silently truncates the markets with more and fabricates confidence
+about the markets with less. The span is measured first, per market, per
+timeframe, and recorded.
+
+**Everything is in scope, including the model itself.** Stops, TP1 and runner,
+entries, review windows and timing thresholds, confidence bands or whatever
+replaces them, tick and pip thresholds, starvation accounting, session gating,
+regime conditioning. And before tuning any of it: an honest review of whether the
+geometry *model* is the right shape at all. Tuning parameters inside a wrong
+model is the most expensive way to learn nothing, and round 28 is the cheap
+version of that lesson.
+
+**Iterate until the returns diminish, then stop and say so.** This does not
+license change for its own sake — the stopping rule stands. Rounds continue while
+they yield, and the diminished-returns point is declared out loud when reached.
