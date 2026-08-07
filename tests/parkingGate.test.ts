@@ -7,19 +7,23 @@ import { readFileSync } from "node:fs";
 describe("construction soft gate", () => {
   it("keeps the gate flag and bypass in one flippable module", () => {
     const gate = readFileSync("src/lib/parkingGate.ts", "utf8");
-    // Q2-M2: pinned to the operative value (false, since §17l's launch), not
-    // an (true|false) alternation — that regex would accept a re-park
-    // silently. A future deliberate re-park updates this guard alongside
-    // the flag, the same way any other source-pin does.
-    assert.match(gate, /export const PARKING_GATE = false;/);
+    // Q2-M2: pinned to the operative value, not an (true|false) alternation —
+    // that regex would accept a re-park silently. A deliberate re-park updates
+    // this guard alongside the flag, the same way any other source-pin does.
+    //
+    // TRUE since the 2026-08-07 re-park (§17m). This is the guard doing its
+    // job, not an obstacle to it: the pin is the reason a flag this consequential
+    // cannot move without someone saying so in a test diff.
+    assert.match(gate, /export const PARKING_GATE = true;/);
     assert.match(gate, /sessionStorage/);
     assert.match(gate, /has\("enter"\)/);
   });
 
-  // Q2-M2: renamed from "App shows the parking view to signed-out visitors
-  // unless bypassed" — false since §17l opened the gate; this only proves
-  // the branch is still wired, not that it currently renders for anyone.
-  it("keeps App's parking-view branch wired for whenever the gate reopens", () => {
+  // Live again since the 2026-08-07 re-park: with PARKING_GATE true this
+  // branch is what every signed-out visitor actually renders, so the
+  // assertion is once more a claim about the public face and not only about
+  // the wiring surviving.
+  it("shows the parking view to signed-out visitors unless bypassed", () => {
     const app = readFileSync("src/App.tsx", "utf8");
     assert.match(app, /PARKING_GATE && !parkingBypassActive\(\)/);
     assert.match(app, /<ParkingScreen/);
