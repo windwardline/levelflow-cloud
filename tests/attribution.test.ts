@@ -126,7 +126,11 @@ describe("buildAttribution — the four slice groups (spec §18)", () => {
     const attribution = buildAttribution([]);
     assert.deepEqual(
       attribution.map((slice) => slice.rows.length),
-      [6, 2, 3, 3],
+      // Groups in render order: asset class, side, confidence, SESSION — so the
+      // last figure is the one Pacific moves, 3 -> 4. Asset class stays 6:
+      // agriculture and livestock are calibration classes carrying the
+      // "Futures" SecurityType, and this slice keys on the DISPLAY taxonomy.
+      [6, 2, 3, 4],
     );
     for (const slice of attribution) {
       for (const sliceRow of slice.rows) {
@@ -172,10 +176,13 @@ describe("buildAttribution — the four slice groups (spec §18)", () => {
     );
   });
 
-  it("carries the three session blocks, named as spec §18 names them", () => {
+  it("carries the four session blocks, named as spec §18 names them", () => {
+    // Pacific joined 2026-08-06 (owner): the four major global sessions are
+    // Sydney, Tokyo, London and New York, and this slice named only the last
+    // three, so every setup created while Sydney led the day reported as Asia.
     assert.deepEqual(
       group([], "session").rows.map((sliceRow) => sliceRow.label),
-      ["Asia", "Europe", "US"],
+      ["Pacific", "Asia", "Europe", "US"],
     );
   });
 });
@@ -494,18 +501,24 @@ describe("buildAttribution — session blocks by created_at UTC hour (spec §18)
     assert.equal(sessionOf("13:00"), "US");
   });
 
-  it("gives 22:00 exactly to Asia, not to US", () => {
-    assert.equal(sessionOf("22:00"), "Asia");
+  it("gives 22:00 exactly to Pacific, not to US", () => {
+    // 22:00 UTC is Sydney's open (08:00 local at UTC+10). It was Asia's start
+    // before Pacific existed; the boundary itself has not moved.
+    assert.equal(sessionOf("22:00"), "Pacific");
   });
 
   it("gives the last minute before each boundary to the block that owns it", () => {
     assert.equal(sessionOf("06:59"), "Asia");
     assert.equal(sessionOf("12:59"), "Europe");
     assert.equal(sessionOf("21:59"), "US");
+    assert.equal(sessionOf("23:59"), "Pacific");
   });
 
-  it("wraps Asia across midnight UTC — 23:00 and 00:00 are the same block", () => {
-    assert.equal(sessionOf("23:00"), "Asia");
+  it("wraps Pacific across midnight UTC and hands 00:00 to Asia", () => {
+    // Pacific is the wrapping block now, and it wraps INTO the boundary rather
+    // than across it: 23:00 is Sydney alone, and 00:00 is Tokyo's open, where
+    // the larger book takes over. Asia used to own both.
+    assert.equal(sessionOf("23:00"), "Pacific");
     assert.equal(sessionOf("00:00"), "Asia");
   });
 
@@ -514,7 +527,7 @@ describe("buildAttribution — session blocks by created_at UTC hour (spec §18)
     assert.equal(sessionOf("18:00"), "US");
   });
 
-  it("claims all 24 hours across the three blocks, once each", () => {
+  it("claims all 24 hours across the four blocks, once each", () => {
     const setups = Array.from({ length: 24 }, (_, hour) =>
       won({
         created_at: `2026-07-30T${String(hour).padStart(2, "0")}:30:00.000Z`,
@@ -528,7 +541,9 @@ describe("buildAttribution — session blocks by created_at UTC hour (spec §18)
     );
     assert.deepEqual(
       sessions.rows.map((sliceRow) => [sliceRow.label, sliceRow.resolved]),
-      [["Asia", 9], ["Europe", 6], ["US", 9]],
+      // 2 + 7 + 6 + 9 = 24. Pacific takes 22:00-00:00 out of what Asia held,
+      // so Asia falls from 9 hours to 7 and no other block moves.
+      [["Pacific", 2], ["Asia", 7], ["Europe", 6], ["US", 9]],
     );
   });
 
