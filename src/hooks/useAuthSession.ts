@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import {
+  authExchangePending,
   browserSessionActive,
   clearBrowserSession,
   markBrowserSession,
@@ -69,10 +70,11 @@ export function useAuthSession(): AuthSessionState {
   return { session, loading };
 }
 
+// A sign-in is in flight only if THIS browser started one. See
+// authExchangePending: the URL is the one piece of state a third party controls,
+// so it cannot be the thing that unlocks a stored session.
 function hasAuthRedirectParams() {
-  const search = window.location.search;
-  const hash = window.location.hash;
-  return search.includes("code=") || search.includes("token_hash=") || hash.includes("access_token=") || hash.includes("refresh_token=");
+  return authExchangePending();
 }
 
 function shouldKeepSession(authRedirectInProgress: boolean) {

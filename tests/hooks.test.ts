@@ -108,16 +108,33 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
   });
 
   it("clears the lifetime record and the rail wherever it clears the rows — never one without the others", () => {
-    // The header must never outlive the account it describes: signed out, and
-    // signed in as somebody with no session, both empty all three sets.
-    assert.equal((source.match(/setSetups\(\[\]\);/g) ?? []).length, 2);
+    // The header must never outlive the account it describes: wherever the rows
+    // go, the lifetime record and the rail go with them.
+    //
+    // Asserted as a property rather than as a count of sites. There used to be
+    // two — sign-out, and a getUser() pre-flight that emptied everything when it
+    // saw no user. That second one was deleted: auth-js swallows every AuthError
+    // and answers `{user: null}`, so a network blip rendered the rail as "No
+    // current trades." with positions open. Counting sites made removing a
+    // WRONG clear-site fail a test whose subject is the clears that remain.
+    const clears = source.match(/setSetups\(\[\]\);/g) ?? [];
+    assert.ok(clears.length >= 1, "expected at least the sign-out clear");
     assert.equal(
       (source.match(
         /setSetups\(\[\]\);\s*setLifetimeSetups\(\[\]\);\s*setRailSetups\(\[\]\);/g,
-      ) ?? [])
-        .length,
-      2,
+      ) ?? []).length,
+      clears.length,
+      "every setSetups([]) must clear the lifetime record and the rail in the same breath",
     );
+    // And the deleted one stays deleted: no auth pre-flight may empty the
+    // account before the read that would have reported the failure honestly.
+    // Scoped to the read path — the realtime subscribe still calls getUser for a
+    // channel filter, and a failure there costs live updates rather than
+    // replacing honest rows with an empty account.
+    const readPath =
+      source.match(/const refreshSetups = useCallback\([\s\S]*?\n {2}\}, \[\]\);/)?.[0] ?? "";
+    assert.ok(readPath.length > 0, "expected the refreshSetups body");
+    assert.doesNotMatch(readPath, /auth\.getUser\(\)/);
   });
 
   it("clears the flag at the start of every attempt, so a recovery is visible", () => {
@@ -423,17 +440,36 @@ describe("useAuthSession browser-session marker (source-pinned — see header)",
     assert.equal((app.match(/auth\.signOut\(\)/g) ?? []).length, 3);
   });
 
-  it("keeps a session that arrived through a magic-link redirect, before any marker exists", () => {
+  it("keeps a session only while THIS browser has a sign-in in flight", () => {
     // The marker cannot be set yet on the redirect that creates the session, so
-    // the redirect's own parameters are what license keeping it.
+    // something else has to license keeping it for that one load.
     assert.match(
       source,
       /function shouldKeepSession\(authRedirectInProgress: boolean\) \{\s*return authRedirectInProgress \|\| browserSessionActive\(\);/,
     );
-    assert.match(source, /search\.includes\("code="\)/);
-    assert.match(source, /search\.includes\("token_hash="\)/);
-    assert.match(source, /hash\.includes\("access_token="\)/);
-    assert.match(source, /hash\.includes\("refresh_token="\)/);
+    // It used to be four substring tests on the address bar. Far too wide —
+    // `?promocode=` matches `code=`, as does the browser autocompleting to an
+    // old magic-link URL — and answerable by anyone, because the URL is the one
+    // piece of state a third party controls. On a shared machine that defeated
+    // the whole posture: person B types "levelflow", Chrome completes person A's
+    // old callback, and person B lands on person A's Desk.
+    //
+    // PKCE holds the honest answer. signInWithOtp writes a code verifier and
+    // exchangeCodeForSession removes it, so its presence IS "this browser
+    // started a sign-in and has not finished it". No URL creates one.
+    assert.match(source, /return authExchangePending\(\);/);
+    for (const urlTest of [
+      /search\.includes\("code="\)/,
+      /search\.includes\("token_hash="\)/,
+      /hash\.includes\("access_token="\)/,
+      /hash\.includes\("refresh_token="\)/,
+    ]) {
+      assert.doesNotMatch(
+        source,
+        urlTest,
+        "no URL a third party can type may restore a stored session",
+      );
+    }
   });
 
   it("clears the marker on every path that ends with no session", () => {

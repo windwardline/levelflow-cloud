@@ -104,3 +104,44 @@ export function clearBrowserSession(): void {
 function isSecureOrigin(): boolean {
   return window.location.protocol === "https:";
 }
+
+// The one legitimate reason to restore a stored session with no marker beside
+// it: a sign-in is genuinely in flight, so the marker has not been written yet.
+//
+// This used to be answered by string-matching the address bar —
+// `search.includes("code=")` and three siblings. Two things are wrong with that.
+// It is far too wide: `?promocode=`, `?discount_code=`, and any UTM parameter
+// ending in `code=` all match, as does the browser autocompleting to a history
+// entry for an old magic-link callback. And it is answerable by anyone, because
+// the URL is the one piece of state a third party controls. On a shared machine
+// that is the whole posture defeated — person B types "levelflow", Chrome
+// completes person A's old callback URL, and person B lands on person A's Desk.
+//
+// PKCE already holds the honest answer. `signInWithOtp` writes a code verifier
+// to storage and `exchangeCodeForSession` removes it, so the verifier's presence
+// IS "this browser started a sign-in and has not finished it". No URL a third
+// party can type creates one, and every real callback has one.
+//
+// The key is auth-js's own `${storageKey}-code-verifier`, and the client uses
+// the default storage key derived from the project ref — matched by shape rather
+// than reconstructed, so a storageKey change cannot silently make this return
+// false forever (the failure mode that matters: this returning false too often
+// signs people out mid-callback, and returning true too often is the defect it
+// replaces).
+const CODE_VERIFIER_KEY = /^sb-.+-auth-token-code-verifier$/;
+
+export function authExchangePending(): boolean {
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key !== null && CODE_VERIFIER_KEY.test(key)) {
+        return true;
+      }
+    }
+  } catch {
+    // Storage can throw in a partitioned or blocked context. No verifier
+    // readable means no exchange we can vouch for, which is the safe answer.
+    return false;
+  }
+  return false;
+}

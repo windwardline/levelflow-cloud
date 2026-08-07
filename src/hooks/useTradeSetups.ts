@@ -104,18 +104,21 @@ export function useTradeSetups() {
     setLoadFailed(false);
 
     try {
-      if (supabase) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          setSetups([]);
-          setLifetimeSetups([]);
-          setRailSetups([]);
-          return;
-        }
-      }
-
+      // There was a getUser() pre-flight here that emptied all three row states
+      // and returned when it saw no user. It broke the law the catch below
+      // states — "a failed read keeps whatever was last read successfully rather
+      // than replacing it with an empty account" — because auth-js's _getUser
+      // swallows EVERY AuthError and answers `{user: null}`, including a plain
+      // network failure reaching /auth/v1/user. One blip therefore rendered the
+      // rail as "No current trades." with positions open at the broker, and
+      // Insights as "No setups have been logged yet.", both with loadFailed
+      // false. On the surface whose entire purpose is knowing what is open, that
+      // is the most expensive thing this app could say.
+      //
+      // Nothing replaces it. RLS scopes every read to the caller already, so the
+      // call bought no safety and only added a failure mode; a genuinely dead
+      // session makes the PostgREST read itself 401, which lands in the catch
+      // below and reports honestly.
       const shouldRefreshOutcomes =
         options?.forceOutcomeRefresh === true || (options?.refreshOutcomes === true && Date.now() - lastOutcomeRefreshAt > OUTCOME_REFRESH_INTERVAL_MS);
       if (shouldRefreshOutcomes) {
