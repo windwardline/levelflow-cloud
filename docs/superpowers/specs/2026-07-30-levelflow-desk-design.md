@@ -974,12 +974,16 @@ runbook's logout step is therefore part of this ruling and not a sequel to
 it — `DELETE FROM auth.sessions; DELETE FROM auth.refresh_tokens;`, run
 after the gate is live so nobody signs in behind it.
 
+Executed and verified 2026-08-07, after the gate was live in production:
+sessions 3,570 → 0, refresh tokens 3,587 → 0. Accounts untouched at 13.
+
 The honest caveat, unchanged from §17l: sessions die immediately
 server-side, and outstanding JWTs expire within their ≤60-minute TTL. The
 nuclear alternative — rotating the JWT secret — kills tokens instantly but
 re-keys the whole project, and is not worth it unless the owner asks.
 
-**Not done, because it was not asked for:** trade history is untouched.
+**Not done, because it was not asked for:** trade history is untouched —
+188 setups and 139 outcomes before the logout, and the same after.
 The launch runbook's step 1 clears `trade_outcomes` and `trade_setups`;
 this instruction was to log users out and put the page up, and a re-park is
 not a reason to destroy anyone's record. Reopening runs the runbook's
