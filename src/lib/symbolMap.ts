@@ -23,9 +23,12 @@ export type SecurityGroup = {
 
 export const TEMPORARILY_HIDDEN_ASSET_TYPES = new Set<SecurityType>();
 // Hidden until the chart feed is verified against the matching traded CFD.
-export const TEMPORARILY_HIDDEN_ASSET_SYMBOLS = new Set<SupportedSymbol>([
-  "ASX",
-]);
+//
+// Empty since 2026-08-07. ASX was the last entry and its own condition is met:
+// F2 measured `^AXJO` against E8's AUS200 book at -5.7 (0.06%) during Sydney's
+// cash session — "TRACKS (cash hours)", the identical verdict NIKKEI and DAX
+// carry. The hide outlived the question it was asking.
+export const TEMPORARILY_HIDDEN_ASSET_SYMBOLS = new Set<SupportedSymbol>([]);
 const ASSET_CATEGORY_ORDER: SecurityType[] = [
   "Crypto",
   "Energies",
@@ -538,73 +541,29 @@ export const SECURITY_OPTIONS = SECURITY_GROUPS.flatMap(
 // accepted setups across full history). They keep their identities and
 // chart sources, and every calibration round re-derives their record from
 // accruing FMP history — the list shrinks when the evidence flips.
-export const NO_TRADE_SYMBOLS = new Set([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-  "NGUSD",
-  "HGUSD",
-  "BNBUSD",
-  // The nineteen E8 futures onboarded 2026-08-05 (owner directive: every E8
-  // market E8 actually trades, with a confirmed FMP match, must be
-  // represented and analyzed in Levelflow). They sit here — analyzed, not yet
-  // visible — for the reason the directive itself states: a market is visible
-  // "so long as there is an analyzed and acceptable match from FMP", and
-  // these have a confirmed match but no sweep evidence yet. Being in
-  // SECURITY_OPTIONS puts them in the replay universe; being here keeps them
-  // off every user surface until a sweep produces an acceptable result.
-  // Promotion out of this set is a calibration decision backed by both
-  // walk-forward splits, exactly as it is for the eight above — two of which
-  // (HGUSD, BNBUSD) are themselves promotion candidates now that the
-  // execution-cost defect is fixed.
-  "ZFUSD",
-  "ZTUSD",
-  "HOUSD",
-  "RBUSD",
-  "PLUSD",
-  "PAUSD",
-  "ZCUSX",
-  "ZSUSX",
-  "ZLUSX",
-  "ZMUSD",
-  "ZOUSX",
-  "ZRUSD",
-  "LEUSX",
-  "GFUSX",
-  "HEUSX",
-  "FESX",
-  "FDAX",
-  "EMD",
-  "NKD",
-  // The Crypto account's other 25 (2026-08-06), same conditional-visibility
-  // reason as the futures above: matched and analyzable, no sweep evidence yet.
-  "AAVEUSD",
-  "ALGOUSD",
-  "ARWUSD",
-  "ATOMUSD",
-  "AVAXUSD",
-  "CAKEUSD",
-  "DASHUSD",
-  "DOGEUSD",
-  "DOTUSD",
-  "DYDXUSD",
-  "EGLDUSD",
-  "ETCUSD",
-  "FILUSD",
-  "GRTUSD",
-  "HBARUSD",
-  "IMXUSD",
-  "LINKUSD",
-  "NEARUSD",
-  "THETAUSD",
-  "TRUMPUSD",
-  "TRXUSD",
-  "UNIUSD",
-  "XLMUSD",
-  "XMRUSD",
-  "XTZUSD",
+export const NO_TRADE_SYMBOLS = new Set<string>([
+  // Empty, and the emptiness is the rule rather than an accident.
+  //
+  // Owner ruling 2026-08-07: "If a market exists for an account type on E8, and
+  // we have a match for the data on FMP, it needs to be visible and usable on
+  // Levelflow when a user is working within that account structure. This is
+  // nonnegotiable." The only ground for withholding is **no verifiable data
+  // source** — a market E8 offers that FMP does not carry.
+  //
+  // Measured 2026-08-07: every one of the 52 markets previously withheld here
+  // has an FMP match, and no roster row lacks a source at all. So the set is
+  // empty by derivation, not by fiat.
+  //
+  // What this set is NOT for, and what it used to be used for: expectancy. ZFUSD
+  // and ZTUSD generate few setups and DYDXUSD measured negative — those are
+  // reasons for the ENGINE to return no setup, and for per-market geometry to be
+  // tuned, never reasons to hide a market the operator's account offers and the
+  // data supports. The engine may honestly answer "no setup for this market
+  // today"; the product may not pretend the market does not exist.
+  //
+  // A market with no FMP counterpart belongs in masterList.ts's
+  // `excluded-no-fmp-source` status — enumerated, dormant, re-probed by
+  // verify-fmp-matches.ts each run, and re-admitted the moment a source appears.
 ]);
 
 export const AVAILABLE_ASSET_GROUPS = SECURITY_GROUPS

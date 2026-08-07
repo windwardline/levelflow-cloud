@@ -20,6 +20,21 @@ import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 // Every live row below is a market the operator can actually see and trade on
 // that account. Each must have a master-list row, or an entry in the register
 // beneath saying why not. An instrument in neither is one nobody has looked at.
+//
+// OWNER RULINGS, 2026-08-07, which decide what the register means:
+//
+//   1. "If a market exists for an account type on E8, and we have a match for
+//      the data on FMP, it needs to be visible and usable on Levelflow when a
+//      user is working within that account structure. This is nonnegotiable."
+//      So the ONLY ground for withholding is no verifiable data source.
+//   2. "If no source is identified for an E8 offering, that means there is no
+//      FMP match, and they go to the excluded dormant list." An instrument
+//      nobody can identify cannot be matched, so it is excluded — dormant, not
+//      forgotten, and re-admitted the moment a source is confirmed.
+//   3. "We will not trade softs and stocks." The two uncaptured tabs are out of
+//      scope, so their absence is no longer a gap.
+//
+// Every absence below was probed against FMP on 2026-08-07 rather than assumed.
 
 /**
  * E8 Signature Futures, every LIVE row, by watchlist tab. Contract-month codes
@@ -59,19 +74,23 @@ const E8_FUTURES_WATCHLIST: Record<string, string[]> = {
  * NEXT unnamed instrument is a gap in a known frontier rather than a surprise.
  */
 const NO_MASTER_LIST_ROW: Record<string, string> = {
-  MC: "unidentified — MCU6 printed 2712.25 on the Indices tab; Russell 2000 is ruled out (RTYUSD printed 3025.40 two days later) and no E8 document names it",
-  BIT: "unidentified CME crypto future — BITQ6 64180 printed beside BTCQ6 64070; no E8 document names it and its parentage is unestablished",
-  MBT: "micro Bitcoin future — a contract-size variant of BTC, but never enumerated",
-  MET: "micro Ether future — a contract-size variant of ETH, but never enumerated",
-  SIC: "unresolved — SICU6 58.18 matches FMP SIUSD 58.195 at 3 bp, so it is likely SI's front month rather than a separate instrument, but that is a Levelflow price inference and no E8 document identifies it",
-  M6E: "micro CME FX future — amendment 28 excludes the FX futures family on verified feed identity (6EU6 measured 17 pips off EURUSD spot)",
-  E7: "half-size CME FX future — same ground as M6E",
-  M6A: "micro CME FX future — same ground as M6E",
-  M6B: "micro CME FX future — same ground as M6E",
-  J7: "half-size CME yen future — same ground as M6E, with the inverted-quote hazard on top",
-  MCD: "micro CME Canadian dollar future — same ground as M6E",
-  MSF: "micro CME Swiss franc future — same ground as M6E",
-  XW: "mini wheat — XK and XC are enumerated and this one was missed; no ground, this is an omission",
+  // All thirteen probed against FMP 2026-08-07: no series under the E8 ticker
+  // with any suffix Levelflow uses. Dormant, not forgotten —
+  // verify-fmp-matches.ts re-probes each run and a source appearing is what
+  // re-admits them.
+  MC: "unidentified, therefore unmatchable — MCU6 printed 2712.25 on Indices, Russell 2000 is ruled out (RTYUSD printed 3025.40 two days later), and no E8 document names it. Owner ruling: no source identified means no FMP match",
+  BIT: "unidentified, therefore unmatchable — BITQ6 64180 printed beside BTCQ6 64070 and no E8 document names it",
+  SIC: "unidentified, therefore unmatchable — SICU6 58.18 matches FMP SIUSD at 3 bp, so it is likely SI's front month, but that is a Levelflow price inference and no E8 document identifies it",
+  MBT: "micro Bitcoin future — FMP carries no series (MBTUSD and MBTUSX both empty, probed 2026-08-07)",
+  MET: "micro Ether future — FMP's METUSD is Metronome USD, a crypto token at $0.54 against E8's $1,871 book. The same HEUSD/GFUSD trap class: a matching spelling for a different asset, which is worse than no match",
+  M6E: "micro CME FX future — no FMP series (probed 2026-08-07), and amendment 28 already excludes the family on verified feed identity",
+  E7: "half-size CME FX future — no FMP series (probed 2026-08-07)",
+  M6A: "micro CME FX future — no FMP series; the family carries no CME FX futures on FMP at all",
+  M6B: "micro CME FX future — no FMP series",
+  J7: "half-size CME yen future — no FMP series (probed 2026-08-07), with the inverted-quote hazard on top",
+  MCD: "micro CME Canadian dollar future — no FMP series (probed 2026-08-07)",
+  MSF: "micro CME Swiss franc future — no FMP series (probed 2026-08-07)",
+  XW: "mini wheat — no FMP series (probed 2026-08-07), and its parent ZW is already excluded-no-fmp-source for the same reason",
 };
 
 const SUFFIXES = ["", "USD", "USX"];
@@ -135,5 +154,6 @@ describe("E8's own frames and Levelflow's master list agree", () => {
     );
     assert.equal(everyRow.length, 68, "the frames transcribe 68 live rows");
     assert.equal(covered, 55);
+    assert.equal(Object.keys(NO_MASTER_LIST_ROW).length, 13);
   });
 });

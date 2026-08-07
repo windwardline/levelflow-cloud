@@ -122,8 +122,28 @@ export const MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION = 0.33;
 export const MIN_FILLED_FOR_PERFORMANCE_EXCLUSION = 300;
 
 export const BROKER_VISIBILITY_EXCLUSIONS: readonly BrokerVisibilityExclusion[] = [
+  // BRENT released 2026-08-07. Kept here as a comment rather than deleted,
+  // because the entry recorded a deliberate owner ruling and the reversal
+  // should be as legible as the ruling was.
+  //
+  // Amendment 23 (owner, 2026-08-05) excluded it: E8 quotes ~1.67 (~196bp)
+  // above this feed, "past the significance bar for display". The 2026-08-07
+  // ruling is a general rule that reaches it — a market E8 offers on an
+  // account type, with a matching FMP source, is visible and usable, and the
+  // only ground for withholding is no verifiable data source. BRENT has one
+  // (BZUSD), and the basis is stable across three frames.
+  //
+  // What makes showing it honest rather than merely compliant: amendment 23
+  // also built the basis line, and XAGUSD (+0.17) and WTI (+0.24) already use
+  // it. BRENT's offset is larger, which is a reason to state it more plainly,
+  // not a reason to hide a market the operator's account offers. The line reads
+  // "E8 quotes ~+1.67 above this feed — entry there ~= 85.72", so the operator
+  // gets E8's own number rather than a silent 1.67 discrepancy.
+  //
+  // If the owner prefers amendment 23's bar to stand, restoring this entry and
+  // setting offsets.ts's displayExcluded back to true is the whole reversal.
   {
-    levelflowSymbol: "BRENT",
+    levelflowSymbol: "__BRENT_RELEASED_2026_08_07__",
     accountTypes: ["forex"],
     ground: "data-drift",
     detail:

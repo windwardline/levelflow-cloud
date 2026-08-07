@@ -139,14 +139,11 @@ const temporarilyUnavailableSymbols = new Set<string>([
 // function previously had no equivalent of its own, a defense-in-depth gap
 // reachable only by a direct authenticated call, never the shipped client).
 const noTradeSymbols = new Set<string>([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-  "NGUSD",
-  "HGUSD",
-  "BNBUSD",
+  // Mirrors trade-analyzer/symbols.ts across the Deno boundary, which neither
+  // file can cross by import. Empty since the 2026-08-07 release: every market
+  // E8 offers with an FMP match is served, and the only ground for withholding
+  // is no verifiable data source. tests/feedSource.test.ts derives both sets
+  // from source and asserts equality in both directions.
 ]);
 
 const intradayTimeframes = ["1min", "5min", "15min", "1hour", "4hour"] as const;
