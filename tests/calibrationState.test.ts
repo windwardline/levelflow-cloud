@@ -9,7 +9,7 @@ import {
   reviewWindowHoursForSymbol,
 } from "../src/lib/advisorReview.ts";
 import { REPLAY_RECORD_BY_ASSET_TYPE } from "../src/lib/replayReliability.ts";
-import type { SecurityType } from "../src/lib/symbolMap.ts";
+import { SECURITY_OPTIONS, type SecurityType } from "../src/lib/symbolMap.ts";
 
 // The state of record after the 23-round calibration arc (2026-07-30,
 // docs/trade-model.md "Current engine state"). Every value here was
@@ -44,7 +44,13 @@ const STATE = {
   energies: { threshold: 85, window: 6, stopCap: 1.0, tp1: 0.8, runner: 0.8, offsets: [0.6, 0.48], payoff: 1.25, newsCap: 8 },
   forex: { threshold: 20, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.55, 0.55], payoff: 1.2, newsCap: 8 },
   futures: { threshold: 25, window: 6, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.58, 0.75], payoff: 1.25, newsCap: 8 },
-  indices: { threshold: 68, window: 5, stopCap: 3.0, tp1: 1.2, runner: 1.0, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
+  // indices ROUND 28 (2026-08-06): window 5 -> 8, stopCap 3.0 -> 1.0, tp1 1.2 ->
+  // 0.4. The 3.0 cap derived the day before is REVERSED, and the reversal is the
+  // finding: it was measured with tp1RiskShare pinned at 1.2, where TP1 sits
+  // further out than the stop, so widening the cap was buying relief from a TP1
+  // constraint and reporting it as a stop-cap result. Survival 37% -> 96%,
+  // setups 512 -> 1421, train R +25.3 -> +38.2, test R +7.4 -> +19.2.
+  indices: { threshold: 68, window: 8, stopCap: 1.0, tp1: 0.4, runner: 1.0, offsets: [0.18, 0.12], payoff: 1.2, newsCap: 9 },
   metals: { threshold: 30, window: 8, stopCap: 1.6, tp1: 0.4, runner: 0.8, offsets: [0.75, 0.78], payoff: 1.25, newsCap: 8 },
 } as const;
 
@@ -128,6 +134,43 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
         `${cls} confidence mirror drifted from calibration`,
       );
     }
+  });
+
+  it("keeps the mirror in parity for EVERY tradable symbol, not one per class", () => {
+    // Round 28 (2026-08-07) is why this is exhaustive rather than one
+    // representative apiece. Oats took a symbol-level override of
+    // defaultReviewHours — the first override to touch a value this file
+    // mirrors — and the class-representative loop above could not see it,
+    // because agriculture's representative is corn. The engine would have
+    // reviewed oats over 24 hours while the surface said 6.
+    //
+    // Asserted against the ENGINE'S OWN RESOLVER rather than a table here, so
+    // the next override needs no edit to this test to be covered. A second
+    // table would just be a third place to forget.
+    for (const option of SECURITY_OPTIONS) {
+      const engine = getCategoryCalibration(option.symbol);
+      assert.equal(
+        reviewWindowHoursForSymbol(option.symbol, option.assetType),
+        engine.defaultReviewHours,
+        `${option.symbol}: UI review window disagrees with the engine`,
+      );
+      assert.equal(
+        confidenceThresholdForAssetOrSymbol(option.symbol, option.assetType),
+        engine.confidenceThreshold,
+        `${option.symbol}: UI confidence floor disagrees with the engine`,
+      );
+    }
+  });
+
+  it("pins the oats override that round 28 derived", () => {
+    const oats = getCategoryCalibration("ZOUSX");
+    assert.equal(oats.defaultReviewHours, 24, "oats needs the grain window");
+    assert.equal(oats.maxStopAtrMultiplier, 1.4);
+    assert.equal(oats.runnerWindowShare, 1.0);
+    // And its class did NOT move with it — the override is per-symbol.
+    const corn = getCategoryCalibration("ZCUSX");
+    assert.equal(corn.defaultReviewHours, 6);
+    assert.equal(corn.maxStopAtrMultiplier, 1.0);
   });
 
   it("pins the measured replay record the UI shows", () => {

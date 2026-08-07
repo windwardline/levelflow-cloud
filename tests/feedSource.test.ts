@@ -54,6 +54,11 @@ const FMP_FILE_ALLOWLIST = [
   // later. Read-only against the feed and never a price path into the
   // product — it writes to disk, and nothing in the product reads it yet.
   "scripts/bank-minute-bars.ts",
+  // The 1-minute availability probe (round 28): reports coverage, depth and
+  // recency per market so the resolution question can be answered before any
+  // per-symbol geometry is tuned at 15-minute bars. Same standing as the bank
+  // above — reads the feed, writes a report, and is not a price path.
+  "scripts/probe-minute-bars.ts",
   "scripts/replay-sweep.ts",
   // The match-confirmation gate (owner directive, 2026-08-05): probes every
   // master-list row's FMP mate for real, deep, current bars and exits

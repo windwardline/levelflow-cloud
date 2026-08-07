@@ -18,25 +18,38 @@ population the weights learn from and which writes are allowed to land.
 Round 23's measurements below stand unchanged; they were made on the
 geometry, not on the cohort filter.
 
-## Current engine state (2026-07-30)
+## Current engine state (2026-08-07)
 
-The state of record after 23 calibration rounds, every value derived at
-full available history under the walk-forward both-splits gate. The
-sections that follow this one explain the mechanisms; the round journal
-at the bottom is history.
+The state of record through round 28. Every value is derived at full
+available history under the walk-forward both-splits gate. The sections
+that follow explain the mechanisms; the round journal at the bottom is
+history.
+
+`tests/calibrationState.test.ts` pins this table against the engine's own
+values, so a number here that drifts from the code fails CI. Read it as
+current, not as a snapshot.
 
 | Class | Threshold | Window | Stop cap | TP1 share | Runner share | Entry offsets (def/trend) | News cap |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Crypto | 82 | 12h | 1.8 | 0.4 | 0.8 | 0.78 / 0.80 | 4 |
-| Energies | 69 | 6h | 2.4 | 0.8 | 0.8 | 0.60 / 0.48 | 8 |
-| Forex | 40 | 8h | 1.4 | 0.4 | 0.6 | 0.55 / 0.55 | 8 |
-| Futures | 68 | 6h | 1.4 | 0.4 | 0.6 | 0.58 / 0.75 | 8 |
-| Indices | 68 | 5h | 1.8 | 1.2 | 1.1 | 0.18 / 0.12 | 9 |
-| Metals | 90 | 8h | 1.6 | 0.4 | 0.8 | 0.75 / 0.78 | 8 |
+| Agriculture | 30 | 6h | 1.0 | 0.4 | 1.4 | 0.58 / 0.75 | 8 |
+| Livestock | 40 | 24h | 1.0 | 0.4 | 0.6 | 0.58 / 0.75 | 8 |
+| Crypto | 25 | 12h | 1.0 | 0.4 | 1.0 | 0.78 / 0.80 | 4 |
+| Energies | 85 | 6h | 1.0 | 0.8 | 0.8 | 0.60 / 0.48 | 8 |
+| Forex | 20 | 8h | 1.0 | 0.4 | 1.0 | 0.55 / 0.55 | 8 |
+| Futures | 25 | 6h | 1.0 | 0.4 | 1.0 | 0.58 / 0.75 | 8 |
+| Indices | 68 | 8h | 1.0 | 0.4 | 1.0 | 0.18 / 0.12 | 9 |
+| Metals | 30 | 8h | 1.6 | 0.4 | 0.8 | 0.75 / 0.78 | 8 |
+
+Agriculture and livestock are calibration classes, not display groups:
+both render as Futures. The two axes are independent, which is what let
+corn and cattle take their own geometry without moving between account
+types.
 
 Per-symbol overrides: BZUSD/CLUSD keep TP1 0.6 and runner 0.8 (oil
-trends; both reject earlier banking on test). NGUSD carries a legacy
-override that is inert — the symbol is no-trade.
+trends; both reject earlier banking on test). ZOUSX takes a 24-hour
+window, a 1.4 stop cap and a 1.0 runner (round 28) — the only override
+that touches a value the UI mirrors, which is why
+`src/lib/advisorReview.ts` now resolves per symbol before per class.
 
 Session gates: 12:00–18:00 UTC blocked for crypto, futures, and indices
 (r22 full-depth validation — futures emphatic, crypto retained as a
@@ -46,24 +59,40 @@ Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
 blocks reviews; penalties per the caps above (r23 validated them as
 calibrated).
 
-Tradable menu: 50 markets — 28 forex pairs, 11 futures, 7 crypto,
-2 metals, 2 energies. **No indices.** No-trade (server-refused, absent
-from the UI): SP, NSDQ, DOW, NIKKEI, DAX, NGUSD, HGUSD, BNBUSD; ASX is
-separately held back while chart coverage is verified, which leaves the
-Indices class with no reachable symbol at all in production. Its
-calibration block, session gate and strategy profile are live only in the
-offline sweep. Reintroduction requires a fresh full-depth derivation, not
-a toggle. There is no second tier: `noScanSymbols` IS `noTradeSymbols`, so
+Tradable menu: **111 markets, nothing withheld.** Every market E8 offers
+on an account type, for which FMP carries a verified series, is visible
+and scannable on that account type (owner ruling, 2026-08-07):
+
+| Account | Markets | Composition |
+| --- | --- | --- |
+| Forex | 46 | 28 forex · 8 crypto · 6 indices · 2 metals · 2 energies |
+| Crypto | 33 | 33 crypto |
+| Futures | 31 | 31 futures |
+
+Forex and crypto match E8's published offering exactly. Futures is 31 of
+45: the remaining fourteen have no FMP series at all, or — for `METUSD`,
+Metronome USD at \$0.54 against E8's Micro Ether — a series that is worse
+than absent. Those fourteen are dormant candidates, re-probed each run by
+`scripts/verify-fmp-matches.ts`, not permanent exclusions.
+
+`noTradeSymbols` is empty by derivation: every symbol it held turned out
+to have a match. The mechanism stays, and still refuses anything added to
+it. There is no second tier — `noScanSymbols` IS `noTradeSymbols`, so
 "the scan skips it" and "the server refuses it" are one condition, and the
 menu the UI offers is exactly the universe a scan of All markets walks
 (pinned by `tests/core.test.ts`).
 
+Indices are reachable in production for the first time. The class was
+withheld through r12 on a negative record; round 28 found the record had
+been drawn on a starved sample (see below) and the class now posts
+positive R on both splits.
+
 Measured record (test split, filled setups, money-positive): forex
 .89/123,254 · metals .90/453 · futures .83/2,368 · crypto .87/6,106 ·
-energies .60/474 · indices .51/952 (replay only — the class is
-production-unreachable, and the row exists so its record stays legible).
-The UI's replay-record rows mirror these exactly
-(`src/lib/replayReliability.ts`).
+energies .60/474 · indices .51/952. The indices row predates round 28 and
+is the pre-fix record; it is left as measured rather than restated, and
+re-measuring it is the first item when the sweeps resume. The UI's
+replay-record rows mirror these exactly (`src/lib/replayReliability.ts`).
 
 Operational loop, running without operator attention: hourly
 outcome-sync (cron :23) resolves pending setups; hourly news-calendar
@@ -1331,3 +1360,82 @@ lesson, one level deeper: two coupled levers cannot be derived one at a time.
 indices sit just above the 33% line. Every other market on the list survives
 64% or better, and 83 of them at 90% or better. Before tonight's corrections the
 condition was pervasive.
+
+## Round-28 (2026-08-06) — the starvation was ours, and a derivation reversed
+
+Round 27 closed with the cash indices refusing 63% of every decision that
+reached their geometry stage, and r12's verdict on the class — "confidence
+does not rank outcomes" — resting on whatever survived. A starved sample
+yields no verdict, so the sample was the thing to fix.
+
+**Four levers ruled out.** A 96-variant joint grid over stop cap × review
+window × runner ceiling × `minimumTargetRewardRisk` moved survival by one
+point, 37% → 38%, and named the then-current setting as its own best
+combination. That result reads as "the geometry is right." It was the
+search being exhaustive over the wrong space.
+
+**The cause was the value the grid held fixed.** `tp1RiskShare` sat at 1.2
+for indices where every other class runs 0.4–0.8. At 1.2 the partial is
+required *further out than the stop itself*, so at a 3.0 ATR stop TP1
+needed 3.6 ATR of room inside a five-hour window. No plan could satisfy
+it. The rejection surfaced as `planRejected` — a counter that names no
+lever, which is why four grids walked past it.
+
+    survival 37% → 96%    setups 512 → 1421
+    train R +25.3 → +38.2   test R +7.4 → +19.2
+
+Chosen over a marginally higher total-R variant at a five-hour window
+(train +42.7 / test +17.5, 93% survival) on the two figures that matter
+more than the total: out-of-sample R is higher, and 96% means the sample
+is no longer geometry-limited, which was the whole point.
+
+**A derivation reversed, and the reversal is the finding.** The stop cap
+went 3.0 → 1.0, undoing a value derived the day before on evidence that
+looked strong — it improved total R on both splits, NSDQ turned −0.081 →
++0.039, ASX −0.124 → +0.028, and provenance had *predicted* it, indices
+being the one class where structure-set stops beat cap-set. All of it was
+measured at `tp1RiskShare` 1.2. Every widening of the cap pushed TP1 out
+with it, so "wider is better" was the search climbing the wrong gradient:
+it was buying relief from a TP1 constraint and reporting it as a stop-cap
+result. At 0.4, the wide stop stops paying.
+
+This is the lesson round 26 met from the measurement side, when the runner
+grid had to be re-run after the caps moved. A lever downstream of risk
+cannot be derived at another lever's old setting.
+`scripts/replay-sweep.ts` now takes semicolon-separated crossed axes
+(`--grid a=1,2;b=3,4`) so joint derivation is the cheap path rather than
+the deliberate one. One axis still means exactly what it always did.
+
+**Oats, one of four re-gridded holdouts.** `ZOUSX` refused 56% of
+decisions at agriculture's class values and posted +0.001 train / −0.168
+test, which reads as a market whose splits disagree. It was a market being
+asked for the wrong shape.
+
+    survival 44% → 69%    setups 473 → 748
+    train R +0.3 → +26.8   test R −25.0 → +12.9
+
+A 24-hour window is what the grain needs, and it is not an outlier — the
+same window is what made livestock measurable. Oats is the thinnest grain
+contract E8 lists, so a five- or six-hour window asks a slow book for a
+move it does not make; the wider stop then works only *because* the window
+gives the runner somewhere to go. Derived jointly for that reason. The
+other three holdouts were not rescued and keep their class values.
+
+**One defect this surfaced.** `ZOUSX` is the first per-symbol override to
+touch `defaultReviewHours`, a value `src/lib/advisorReview.ts` mirrors for
+the UI. The mirror resolved per class and would have shown an oats user
+"6h" while the engine reviewed over 24. It now resolves per symbol first,
+and `tests/calibrationState.test.ts` walks *every* tradable symbol against
+the engine's own resolver rather than one representative per class — so
+the next override is covered without an edit to that test.
+
+**Bar resolution is still the ceiling, and is now measurable.**
+`scripts/probe-minute-bars.ts` reports 1-minute coverage, depth and
+recency per market. 15-minute bars cannot order intrabar events, which is
+why a measured ~60% gain at sub-1.0 stop caps was declined in round 25 —
+at a 0.5 cap, 26% of setups end in neither a target nor a stop, and the
+expectancy figure then reports how the harness treats ambiguity rather
+than how the market behaved. Resolution sits upstream of the stop cap the
+way the stop cap sits upstream of the runner ceiling. Per-symbol geometry
+tuned at 15 minutes before that question is answered would repeat round
+26's mistake one level up.
