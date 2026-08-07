@@ -170,10 +170,15 @@ export const SIZE_STATE_WORDS = {
   rateUnavailable: "Rate unavailable",
   // §19e's law is "a number or a state word, there is no third outcome", and a
   // size that rounds to zero was a third outcome wearing a number's clothes: it
-  // renders "0" beside a live copy button and says nothing about why. The unit
-  // is already on the label, so these two only have to carry "less than one".
-  belowOneContract: "Below one contract",
-  belowOneLot: "Below one lot",
+  // rendered "0" beside a live copy button and said nothing about why.
+  //
+  // ONE literal, not one per unit. The row's label already renders "Size · lots"
+  // or "Size · contracts", so a word naming the unit again would say what the
+  // surface is already showing — §17f, and the reason this shipped as
+  // "Below one contract" / "Below one lot" for one day and then did not. What
+  // the surface cannot show is the comparison, so that is all the word carries,
+  // and it reads correctly under either label.
+  belowOne: "Below one",
 } as const;
 
 export type SizeStateWord = (typeof SIZE_STATE_WORDS)[keyof typeof SIZE_STATE_WORDS];

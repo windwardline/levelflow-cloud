@@ -368,12 +368,11 @@ export function sizeInstrument(
   // contract risks $1,354 against a $125 budget and one E-mini $256. An operator
   // who reads 0 on a tradeable instrument buys one anyway, and one contract is
   // 135% of that account's entire drawdown allowance.
+  //
+  // The word names no unit. "Size · contracts" is already on the row's label, so
+  // the value only has to carry the comparison the label cannot.
   if (units < step) {
-    return blocked(
-      unit === "contracts"
-        ? SIZE_STATE_WORDS.belowOneContract
-        : SIZE_STATE_WORDS.belowOneLot,
-    );
+    return blocked(SIZE_STATE_WORDS.belowOne);
   }
   return { kind: "size", units, step, unit, caps: caps.caps };
 }
