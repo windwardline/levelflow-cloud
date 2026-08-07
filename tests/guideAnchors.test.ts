@@ -152,15 +152,18 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
     );
   });
 
-  it("renders §7's weak-record threshold verbatim, including the 55% figure", () => {
+  it("claims no curation the scan does not perform (§7, amended 2026-08-07)", () => {
+    // Was a verbatim pin on "Below 55% money-positive ... scans stop offering
+    // it". No code ever did that, so the pin was holding a false claim in place.
     assert.ok(
       collapsedIncludes(
         guideSource,
-        `Below 55% money-positive, Levelflow treats a market's record
-         as weak: scans stop offering it, and if you review it
-         directly, the setup says so plainly.`,
+        `A market's record does not gate the scan. Read it and size
+         accordingly.`,
       ),
     );
+    assert.doesNotMatch(guideSource, /scans stop offering it/);
+    assert.doesNotMatch(guideSource, /Below 55% money-positive/);
   });
 
   it("renders §9's exact reopen-label example verbatim, quotes included", () => {

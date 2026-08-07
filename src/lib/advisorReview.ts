@@ -28,7 +28,7 @@ import type { SecurityType } from "./symbolMap";
  * boundary every other mirror in this file crosses by duplication.
  * tests/calibrationState.test.ts pins these against the engine's real values.
  */
-const AGRICULTURE_SYMBOLS = new Set([
+export const AGRICULTURE_SYMBOLS = new Set([
   "ZCUSX",
   "ZSUSX",
   "ZLUSX",
@@ -36,7 +36,7 @@ const AGRICULTURE_SYMBOLS = new Set([
   "ZOUSX",
   "ZRUSD",
 ]);
-const LIVESTOCK_SYMBOLS = new Set(["LEUSX", "GFUSX", "HEUSX"]);
+export const LIVESTOCK_SYMBOLS = new Set(["LEUSX", "GFUSX", "HEUSX"]);
 
 /** Extra review windows for the classes SecurityType cannot distinguish. */
 const REVIEW_WINDOW_HOURS_BY_CLASS = {

@@ -55,6 +55,18 @@ export type PricePlan = {
   takeProfit1: number;
 };
 
+// One sentence per provenance, so the description cannot outlive the mechanism.
+// If a future geometry lets the pivot bind again, the copy follows without
+// anyone remembering to change it.
+const STOP_LOGIC_BY_PROVENANCE: Record<StopProvenance, string> = {
+  cap:
+    "Invalidation at the review window's volatility ceiling — the furthest stop this window can defend.",
+  pivot:
+    "Invalidation beyond the nearest confirmed swing pivot, with a volatility buffer.",
+  volatility_floor:
+    "Invalidation at the minimum volatility width, no confirmed swing pivot sitting nearer.",
+};
+
 export function buildPricePlan(
   side: Side,
   symbol: SupportedSymbol,
@@ -244,8 +256,14 @@ export function buildPricePlan(
     futuresTickAdjustments: futuresTickPlan?.adjustments ?? [],
     grossRewardRisk: rewardRisk,
     rewardRisk: executionQuality.effectiveRewardRisk,
-    stopLogic:
-      "Invalidation beyond the nearest confirmed swing pivot with a volatility buffer, capped at the window's volatility ceiling.",
+    // Derived from what actually happened, never asserted. The constant this
+    // replaces said "Invalidation beyond the nearest confirmed swing pivot with
+    // a volatility buffer" on EVERY setup — and the pivot never wins in seven of
+    // eight classes, because structuralStop is floored at 1.25 ATR while the cap
+    // is maxStopAtrMultiplier x ATR, which is 1.0 everywhere except metals. So
+    // the sentence was false wherever it mattered most, and stopProvenance was
+    // sitting two lines away recording the truth.
+    stopLogic: STOP_LOGIC_BY_PROVENANCE[stopProvenance],
     stopLoss,
     stopProvenance,
     runnerProvenance: ladder.runnerProvenance,

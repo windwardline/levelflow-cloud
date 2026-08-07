@@ -143,12 +143,28 @@ for the major currency pairs, more than a decade — and counting setups
 the way a trade actually pays: take-profit reached, half banked at
 Target 1, or a finish that closed in profit. Any finish that ended in
 profit counts as **money-positive**; every other finish counts against
-the record.
+the record. The replay fills an order whenever price touches the level
+and deducts no spread, so every figure is **before costs** — a ceiling,
+not a forecast.
 
-Below 55% money-positive, Levelflow treats a market's record as weak:
-scans stop offering it, and if you review it directly, the setup says
-so plainly. You can still trade it — the history just is not on your
-side.
+A market's record does not gate the scan. Read it and size accordingly.
+
+*Amended 2026-08-07.* This section used to read "Below 55%
+money-positive, Levelflow treats a market's record as weak: scans stop
+offering it." No code ever did that. `TEMPORARILY_HIDDEN_ASSET_TYPES` is
+empty and `defaultScanSymbols` excludes only no-trade, unavailable and
+contract-variant symbols, so an operator could see SP in the scan
+results and read on the next screen that scans skip it. The damage is
+not the contradiction on one screen; it is that a stated curation rule
+turned out not to be enforced, which retroactively devalues every other
+rule the app states about itself. A gate must be code, never a sentence.
+If a weak-record gate is wanted, it belongs in `defaultScanSymbols` and
+this paragraph comes back describing it.
+
+The "before costs" bound was added in the same amendment. Grepping
+`sweep.ts` and `replay.ts` for a cost term returns nothing — cost enters
+the acceptance gate and never the ledger — so a rate presented without
+it reads as a net result the engine cannot support.
 
 Finished setups across all of Levelflow feed back into future reviews,
 so the product learns from the whole record, not one person at a time.

@@ -187,6 +187,7 @@ function buildQualityReceipt(
   const costRating = asText(executionQuality.label);
   const costPenalty = asNumber(executionQuality.confidencePenalty) ?? 0;
   const record = describeReplayRecord(
+    setup.symbol,
     getSecurityOption(setup.symbol).assetType,
   );
 
