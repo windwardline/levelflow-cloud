@@ -49,20 +49,37 @@ export type AttributionGroup = {
 // read "Learning". Exported so the guard reads the same number the code does.
 export const ATTRIBUTION_LEARNING_MIN_RESOLVED = 3;
 
-// Spec §18, stated there as law: three blocks by the setup's creation hour in
-// UTC. Each boundary belongs to the block that STARTS there — half-open
-// [start, end) — the one reading that partitions all 24 hours with no gap and
-// no overlap, so 07:00 is Europe, 13:00 is US and 22:00 is Asia. Asia wraps
-// midnight, which is why the resolver handles start > end rather than assuming
-// an ascending pair.
+// Spec §18, amended 2026-08-06 (owner): FOUR blocks by the setup's creation
+// hour in UTC, not three. The Pacific open was missing, so every setup created
+// while Sydney led the day was being reported under Asia — the four major
+// global sessions are Sydney, Tokyo, London and New York, and the attribution
+// slice named only the last three.
 //
-// These are the spec's own three names. The Guide's deck names the concept
-// ("the trading session") but no individual block, so there was no deck
-// vocabulary to defer to; volatilityWindows.ts's four exchange-local session
-// labels answer a different question (which exchanges are open right now, in
-// their own local hours) and are not these three UTC blocks.
+// Each boundary belongs to the block that STARTS there — half-open
+// [start, end) — the one reading that partitions all 24 hours with no gap and
+// no overlap. Pacific wraps midnight, which is why the resolver handles
+// start > end rather than assuming an ascending pair.
+//
+// The amendment SPLITS the old wrapping Asia block (22:00-07:00) at midnight
+// rather than redrawing the clock: 07:00, 13:00 and 22:00 all still mean what
+// they meant, and 00:00 is the only new boundary. That matters because the
+// three surviving blocks keep comparable history — a boundary move would have
+// silently re-bucketed already-resolved setups and made every prior Asia,
+// Europe and US figure incomparable with the next one.
+//
+// Why 22:00-00:00 is the honest cut for Pacific. Sydney trades 08:00-17:00
+// local at UTC+10, so it opens at 22:00 UTC and leads Tokyo — which opens at
+// 00:00 UTC, UTC+9 — by two hours. Those two hours are Pacific alone; from
+// 00:00 the two overlap and Tokyo is the larger book, so the block carrying
+// them is Asia. "Pacific" rather than "Sydney" keeps the regional naming the
+// other three already use, and it is accurate: Wellington opens earlier still.
+//
+// volatilityWindows.ts's exchange-local session labels answer a different
+// question (which exchanges are open right now, in their own local hours) and
+// are not these four UTC blocks.
 const SESSION_BLOCKS = [
-  { endHourUtc: 7, key: "asia", label: "Asia", startHourUtc: 22 },
+  { endHourUtc: 0, key: "pacific", label: "Pacific", startHourUtc: 22 },
+  { endHourUtc: 7, key: "asia", label: "Asia", startHourUtc: 0 },
   { endHourUtc: 13, key: "europe", label: "Europe", startHourUtc: 7 },
   { endHourUtc: 22, key: "us", label: "US", startHourUtc: 13 },
 ];
