@@ -1246,7 +1246,12 @@ Profile page (the broker section becomes the confirmed-accounts list with
 one active) and the main app interface. The main-interface home is the
 existing broker chip, evolved: it displays the ACTIVE account rather than
 the bare broker — catalog vocabulary only (the §20j program labels +
-formatAccountSize; no invented words), condensed on mobile — and activates
+formatAccountSize; no invented words), condensed on mobile [SUPERSEDED
+2026-08-03 by the piped-dressing ruling: the piped form `E8 | FOREX | 100K`
+ships at EVERY width and on every surface, and the condensed candidate does
+not ship at all — `docs/design/mockups/s-switcher-v1.html`'s recorded verdict
+and `AccountSwitcherMenu.tsx`'s implementation both follow the later ruling;
+this clause is amendment 18's original text, kept for the record] — and activates
 the app's existing menu machinery: an anchored menu at ≥lg, the §17g sheet
 below, listing every saved account (tap to switch) plus a Manage-accounts
 route to the Profile section. With no saved account the chip keeps today's
