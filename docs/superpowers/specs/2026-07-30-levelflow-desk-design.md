@@ -953,3 +953,42 @@ engine, look, and bands are all new and every trade going forward is newly
 generated. If a future calibration raise ever strands resolved rows below a
 new bar, the counter is already in place and the rendering question
 reopens with real rows on screen.
+
+### §17p. Re-park (owner instruction, 2026-08-07: close the desk)
+
+The desk is closed again, on the owner's word: "Log every user out of
+Levelflow and put up the parking page."
+
+`PARKING_GATE` returns to `true`. That is the whole change — §17j's saved
+standard is why closing the desk is a one-line flag and not a rebuild, and
+this re-park is the first proof that saving it was right. The parking
+page's canonical line carries the occasion without naming it, exactly as
+§17j required of it: *"The desk is closed while we work on it. Sign-in
+resumes the moment it reopens."* No duration promised, no occasion
+explained.
+
+**The gate alone does not close the desk.** App consults `PARKING_GATE`
+inside its `!session` branch, so a live session walks straight past it.
+Raising the flag turns away arrivals; it does not end visits. The launch
+runbook's logout step is therefore part of this ruling and not a sequel to
+it — `DELETE FROM auth.sessions; DELETE FROM auth.refresh_tokens;`, run
+after the gate is live so nobody signs in behind it.
+
+The honest caveat, unchanged from §17l: sessions die immediately
+server-side, and outstanding JWTs expire within their ≤60-minute TTL. The
+nuclear alternative — rotating the JWT secret — kills tokens instantly but
+re-keys the whole project, and is not worth it unless the owner asks.
+
+**Not done, because it was not asked for:** trade history is untouched.
+The launch runbook's step 1 clears `trade_outcomes` and `trade_setups`;
+this instruction was to log users out and put the page up, and a re-park is
+not a reason to destroy anyone's record. Reopening runs the runbook's
+step 3 (flip the flag back, with the e2e specs' gate expectations) and
+nothing else.
+
+The quiet-entry doormat (`/?enter`) is load-bearing again rather than a
+documented no-op, and the public-auth e2e suite's sign-in tests reach the
+screen through it. The two gate tests invert to gate-up expectations, and
+`tests/parkingGate.test.ts` pins the flag to its new operative value —
+that guard is deliberately a literal, never an alternation, so a flag this
+consequential cannot move without someone saying so in a test diff.

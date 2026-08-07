@@ -460,13 +460,21 @@ for (const width of [375, 1280]) {
   });
 }
 
-test("the gate is open — signed-out visitors land on sign-in, not parking", async ({ page }) => {
+test("the gate is up — signed-out visitors land on parking, not sign-in", async ({ page }) => {
+  // Re-parked 2026-08-07 (§17m). The inverse of this assertion ran from launch
+  // until then, which is the point of writing it as a claim about the CURRENT
+  // public face rather than as an alternation that would pass either way.
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.getByLabel("Email")).toBeVisible();
-  await expect(page.getByText("Under construction")).toHaveCount(0);
+  await expect(page.getByText("Under construction")).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveCount(0);
 });
 
-test("the old quiet-entry path is a harmless no-op with the gate open", async ({ page }) => {
+test("the quiet-entry path unlocks sign-in, and holds for the browser session", async ({ page }) => {
+  // A doormat, not a lock: ?enter is the owner's way past the gate, and it has
+  // to survive a plain navigation afterwards or it would be useless on any
+  // screen that reloads. sessionStorage is what carries it, so a NEW browser
+  // session lands back on parking — proved by the test above, which runs its
+  // own context.
   await page.goto("/?enter", { waitUntil: "networkidle" });
   await expect(page.getByLabel("Email")).toBeVisible();
   await page.goto("/", { waitUntil: "networkidle" });
@@ -610,7 +618,7 @@ test("a browser session that never signed in does not inherit a stored session",
   // Reached with no redirect parameter and a cookie jar this browser has never
   // written, which is what a new browser session is.
   await seedStoredSession(page);
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/?enter", { waitUntil: "networkidle" });
 
   await expect(page.getByRole("button", { name: "Send magic link" }))
     .toBeVisible();
@@ -847,7 +855,7 @@ for (const width of [375, 1280]) {
     // No session at all here, so this one needs no configuration: the sign-in
     // screen's own footer is where a signed-out reader finds the trio.
     await page.setViewportSize({ width, height: 812 });
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/?enter", { waitUntil: "networkidle" });
     await expect(page.getByRole("button", { name: "Send magic link" }))
       .toBeVisible();
 
@@ -878,7 +886,7 @@ for (const width of [375, 1280]) {
     // same session storage, so a reader who wonders what they are agreeing to can read
     // it and come back to the screen they left. Typing, then reading Terms, then Back.
     await page.setViewportSize({ width, height: 812 });
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/?enter", { waitUntil: "networkidle" });
     await page.getByLabel("Email").fill("reader@example.com");
 
     await page.getByRole("link", { name: "Terms", exact: true }).click();
@@ -903,7 +911,7 @@ for (const width of [375, 1280]) {
         JSON.stringify({ email: "waiting@example.com", sent: true }),
       );
     });
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/?enter", { waitUntil: "networkidle" });
 
     await expect(page.getByText("Magic link sent to waiting@example.com."))
       .toBeVisible();
