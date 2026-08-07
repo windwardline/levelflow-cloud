@@ -17,8 +17,14 @@ coverage question closed, and the desk went dark on purpose.
 
 `PARKING_GATE` is `true` (owner instruction, 2026-08-07). Signed-out visitors see the
 §17j parking page; every session was invalidated — 3,570 sessions and 3,587 refresh
-tokens to zero, accounts untouched at 13. Trade history was deliberately **not** wiped:
-188 setups and 139 outcomes, the same before and after.
+tokens to zero, accounts untouched at 13. Verified after: **zero sessions belonging to
+any real user**; the only sessions that exist are the E2E account's, recreated by the
+deploy pipeline itself.
+
+Trade history was deliberately **not** wiped: **167 setups and 139 outcomes across
+three real accounts**, unchanged. (Count totals with care — the E2E account's rows
+appear and are swept on every deploy, so a raw `count(*)` reads differently depending
+on when you take it. Group by user.)
 
 **Reopening is one flag plus its tests.** Flip `PARKING_GATE` to `false`, invert the two
 gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
@@ -189,10 +195,11 @@ the spec and nowhere in code. 33% of simulated runs breach the 40% Best Day cap.
 Global learning's 414 at ~200 setups blocks item 8's cohort work · `outcome-sync`'s
 non-atomic write and its 300/run starvation · `init.sql` applied by hand and unscanned ·
 no Edge Function rollback, and functions deploy *before* E2E · `cancel-in-progress: true`
-severed a live deploy on 2026-08-06 — **and did so twice more today**, cancelling both
-#258's and #259's deploy runs. Harmless each time and provably so, but the cancel can
-land *between* migrate and functions-deploy. `cancel-in-progress: false` on deploy
-specifically · the Supabase CLI that migrates production is unpinned and scanned by
+severed a live deploy on 2026-08-06 — **and did so three more times that night**,
+cancelling #258's, #259's and #261's deploy runs as each successor merged. Harmless
+each time and provably so, but it meant a real test fix went unverified through two
+cycles, and the cancel can land *between* migrate and functions-deploy.
+`cancel-in-progress: false` on deploy specifically · the Supabase CLI that migrates production is unpinned and scanned by
 nothing · `engines.node: ">=24"` lets Vercel build on a Node major CI never ran ·
 CSP `connect-src` trusts every Supabase tenant on the internet · CI verifies an artifact
 Vercel does not build · the CSP style hash is hand-copied with nothing binding it to the

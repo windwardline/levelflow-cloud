@@ -982,8 +982,18 @@ server-side, and outstanding JWTs expire within their ≤60-minute TTL. The
 nuclear alternative — rotating the JWT secret — kills tokens instantly but
 re-keys the whole project, and is not worth it unless the owner asks.
 
-**Not done, because it was not asked for:** trade history is untouched —
-188 setups and 139 outcomes before the logout, and the same after.
+**Not done, because it was not asked for:** trade history is untouched.
+**167 setups and 139 outcomes across three real accounts**, unchanged through the
+re-park.
+
+The first version of this line read "188 setups and 139 outcomes before the
+logout, and the same after," and that number was misleading in a way worth
+correcting rather than quietly restating. 188 was measured while the deploy's
+own E2E suite had 21 rows in flight; `cleanup.teardown.ts` swept them minutes
+later, so the total moved to 167 with no real row touched. Pairing a
+before-and-after that both include transient pipeline rows proves less than it
+appears to. The real-account figure is the one that means anything, and it did
+not move.
 The launch runbook's step 1 clears `trade_outcomes` and `trade_setups`;
 this instruction was to log users out and put the page up, and a re-park is
 not a reason to destroy anyone's record. Reopening runs the runbook's
