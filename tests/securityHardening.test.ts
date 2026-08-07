@@ -388,3 +388,80 @@ describe("the chart library's one inline stylesheet is allowed by content hash, 
     );
   });
 });
+
+// The engine is the only legitimate author of a setup or an outcome.
+//
+// `authenticated` used to hold insert/update/delete on both tables. RLS scoped
+// those to the caller's own rows, which was the whole problem: own rows are all
+// an attacker needs. `refreshGlobalStrategyWeights` reads `trade_outcomes` with
+// the SERVICE ROLE and no user_id predicate, ordered by a user-writable
+// `reviewed_at`, limit 2500; `setup_key` comes off a user-writable jsonb column;
+// and the resulting `confidence_adjustment` is applied to scoring for EVERY
+// user. One account could fabricate the entire learning input and set any
+// setup_key to ±10 platform-wide.
+//
+// These pins are the mechanism, not a description of it. A future edit that
+// restores the grant, or moves a write back onto the caller's token, fails here.
+describe("the learning corpus is engine-written only", () => {
+  const initSql = readFileSync("supabase/init.sql", "utf8");
+  const migration = readFileSync(
+    "supabase/migrations/20260807010000_engine_owns_setups_and_outcomes.sql",
+    "utf8",
+  );
+  const analyzer = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+
+  it("revokes every client write on the two tables the aggregate reads", () => {
+    for (const table of ["trade_setups", "trade_outcomes"]) {
+      assert.match(
+        migration,
+        new RegExp(`revoke insert, update, delete on public\\.${table} from authenticated`),
+        `${table} must carry no client write grant — the aggregate reads it unscoped`,
+      );
+    }
+    // init.sql still grants them, because it is the pre-migration baseline and
+    // is applied before the migrations run. The revoke is what stands; this pin
+    // exists so that when init.sql is folded into a baseline migration (a known
+    // §7 item 6 gap) the grant is not silently carried forward.
+    assert.match(initSql, /grant select, insert, update, delete on/);
+  });
+
+  it("writes every setup and outcome through the service role, never the caller's token", () => {
+    // The five writes that used to run on the caller's token. Each already
+    // passed an explicit user_id — RLS was defence in depth over a filter the
+    // code applies itself — so moving them costs no scoping.
+    assert.match(analyzer, /await adminInsertSingle\("trade_setups"/);
+    assert.match(analyzer, /await adminUpsertRows\(\s*"trade_outcomes"/);
+    assert.equal(
+      (analyzer.match(/await adminUpdateRows\(/g) ?? []).length,
+      3,
+      "the supersede PATCH, the invalidate sweep and the status flip all run as admin",
+    );
+    // No token-authenticated write may return to this file.
+    for (const helper of ["insertSingle", "upsertRows", "updateRows"]) {
+      assert.doesNotMatch(
+        analyzer,
+        new RegExp(`[^n]\\b${helper}\\(`),
+        `${helper} writes on the caller's token — the engine must write as admin`,
+      );
+    }
+  });
+
+  it("reads global learning scoped to the running analyzer version", () => {
+    // The WRITE has always filtered on ANALYZER_VERSION. The reads did not, so a
+    // version bump left production applying the previous engine's adjustments
+    // indefinitely while reporting `updated: 0`. Every calibration round that
+    // bumps the version depends on this.
+    const reads = analyzer.match(/strategy_weightings_global\?select=[^`]*/g) ?? [];
+    assert.equal(reads.length, 2, "expected exactly the two scoring read sites");
+    for (const read of reads) {
+      assert.match(
+        read,
+        /analyzer_version=eq\.\$\{encodeURIComponent\(ANALYZER_VERSION\)\}/,
+        `a learning read without the version predicate applies a stale engine's adjustments: ${read}`,
+      );
+    }
+  });
+});

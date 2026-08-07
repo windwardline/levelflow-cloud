@@ -37,12 +37,17 @@ const REST = readFileSync(
   "utf8",
 );
 
-function body(source: string, start: string, end: string) {
+// One function's source, bounded by its own end rather than by whichever export
+// happens to follow it. The previous helper took an explicit terminator, so
+// adding an unrelated sibling between two exports silently widened this slice
+// and failed an assertion about a function nobody had touched — a defect in the
+// test, not in the code.
+function body(source: string, start: string) {
   const from = source.indexOf(start);
   assert.notEqual(from, -1, `expected to find ${start}`);
-  const to = source.indexOf(end, from + start.length);
-  assert.notEqual(to, -1, `expected to find ${end}`);
-  return source.slice(from, to);
+  const rest = source.slice(from + start.length);
+  const next = rest.search(/\nexport /);
+  return start + (next === -1 ? rest : rest.slice(0, next));
 }
 
 describe("a provider failure is recorded, never swallowed", () => {
@@ -113,11 +118,7 @@ describe("a provider failure is recorded, never swallowed", () => {
   // row sat in the table. On the night of the scan_opportunities CPU failures
   // that warning filled the log window the two real runtime errors were in.
   it("never parses a body it told PostgREST not to send", () => {
-    const insert = body(
-      REST,
-      "export async function adminInsertRows(",
-      "\nexport async function adminUpdateRows",
-    );
+    const insert = body(REST, "export async function adminInsertRows(");
     assert.match(insert, /Prefer: "return=minimal"/);
     assert.doesNotMatch(insert, /response\.json\(\)/);
     // A real insert failure still throws — the body is only skipped on success.
