@@ -1401,7 +1401,11 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
     );
     const sizeRow = sizeRowSource();
     assert.match(sizeRow, /<CopyableMetricRow label=\{label\} value=\{size\.word\} \/>/);
-    assert.match(sizeRow, /onCopy=\{\(\) => onCopy\(formatCopyValue\(size\.units\)\)\}/);
+    // The payload is now hoisted, because the row builds its own copy token
+    // from it — only SizeRow knows its own value, so only it can key the
+    // confirmation to that value rather than to the field name.
+    assert.match(sizeRow, /const payload = formatCopyValue\(size\.units\);/);
+    assert.match(sizeRow, /onCopy=\{\(\) => onCopy\(payload\)\}/);
   });
 
   it("puts the unit in the label and the bare number in the value", () => {

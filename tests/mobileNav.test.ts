@@ -1311,36 +1311,45 @@ describe("the merged mobile Scan surface's ladder rows (m-scan-v3.html:34-37)", 
   });
 
   it("labels the copy button below lg at the mock's quiet .cbtn treatment, keeping the icon-only ≥lg affordance", () => {
-    const branches = LADDER_SOURCE.match(
-      /className=\{copied\n\s*\? "([^"]*)"\n\s*: "([^"]*)"\}/,
+    // The className was a copied/idle ternary of two whole strings. It is now
+    // one shared base plus a per-state tone suffix, because the button grew a
+    // THIRD state: a write the browser rejected. Duplicating the chip treatment
+    // across three branches is how two of them drift, so the base is written
+    // once and only the tone varies.
+    const base = LADDER_SOURCE.match(
+      /className=\{`(cpv-copy[^`]*?)\$\{/,
     );
-    assert.ok(branches, "expected the copy button's copied/idle classes");
-    const [, copiedClasses, idleClasses] = branches;
-    for (const classes of [copiedClasses, idleClasses]) {
-      assert.match(classes, /^cpv-copy\b/);
-      assert.match(classes, /max-lg:m-0/);
-      assert.match(classes, /max-lg:rounded-md/);
-      assert.match(classes, /max-lg:border max-lg:border-hairline/);
-      assert.match(classes, /max-lg:bg-sheet/);
-      assert.match(classes, /max-lg:text-\[11\.5px\]/);
-      // m-scan-v3.html:37 draws a hairline button, not the accent-bordered one
-      // m-mobile-v3 drew.
-      assert.doesNotMatch(classes, /max-lg:border-\[1\.5px\]/);
-      assert.doesNotMatch(classes, /max-lg:border-accent/);
-    }
-    // Only the copied state takes the buy tone; idle inherits .cpv-copy's muted.
-    assert.match(copiedClasses, /max-lg:text-buy/);
-    assert.doesNotMatch(idleClasses, /max-lg:text-buy/);
+    assert.ok(base, "expected the copy button's shared class base");
+    const baseClasses = base[1];
+    assert.match(baseClasses, /^cpv-copy\b/);
+    assert.match(baseClasses, /max-lg:m-0/);
+    assert.match(baseClasses, /max-lg:rounded-md/);
+    assert.match(baseClasses, /max-lg:border max-lg:border-hairline/);
+    assert.match(baseClasses, /max-lg:bg-sheet/);
+    assert.match(baseClasses, /max-lg:text-\[11\.5px\]/);
+    // m-scan-v3.html:37 draws a hairline button, not the accent-bordered one
+    // m-mobile-v3 drew.
+    assert.doesNotMatch(baseClasses, /max-lg:border-\[1\.5px\]/);
+    assert.doesNotMatch(baseClasses, /max-lg:border-accent/);
+    // The base itself is toneless — idle inherits .cpv-copy's muted — and each
+    // of the two settled states takes its own tone, buy for copied and sell for
+    // a rejected write.
+    assert.doesNotMatch(baseClasses, /max-lg:text-buy/);
+    assert.doesNotMatch(baseClasses, /max-lg:text-sell/);
+    assert.match(
+      LADDER_SOURCE,
+      /copied \? " max-lg:text-buy" : failed \? " max-lg:text-sell" : ""/,
+    );
     // Wave-2C's clipboard behavior is untouched: the word is functional
     // labeling, mobile-only, and never displaces the aria-label every copy test
     // locates these buttons by.
     assert.match(
       LADDER_SOURCE,
-      /<span className="lg:hidden">\s*\{copied \? "Copied" : "Copy"\}\s*<\/span>/,
+      /<span className="lg:hidden">\s*\{copied \? "Copied" : failed \? "Not copied" : "Copy"\}\s*<\/span>/,
     );
     assert.match(
       LADDER_SOURCE,
-      /aria-label=\{copied \? `\$\{label\} copied` : `Copy \$\{label\}`\}/,
+      /aria-label=\{copied\s*\? `\$\{label\} copied`\s*: failed\s*\? `\$\{label\} not copied`\s*: `Copy \$\{label\}`\}/,
     );
   });
 
