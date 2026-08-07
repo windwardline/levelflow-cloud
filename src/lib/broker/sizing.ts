@@ -345,11 +345,35 @@ export function sizeInstrument(
     return blocked(caps.word ?? SIZE_STATE_WORDS.notPublished);
   }
 
-  // Step 5 — the raw size. A zero stop distance leaves the budget unbinding and the
-  // caps deciding, which is the arithmetic answer rather than a special case.
+  // Step 5 — the raw size. A stop that is not a stop leaves the risk budget
+  // unbinding, so Math.min falls through to the MARGIN cap: the largest position
+  // the account can carry, sitting exactly on E8's stop-out line. EURUSD at a zero
+  // stop distance sized to 26.08 lots — €2.6M notional on a $100,000 account, one
+  // tick from a margin call. This was previously called the arithmetic answer
+  // rather than a special case; the arithmetic answer to a degenerate price is a
+  // state word, and step 2 already treats an unusable price that way.
+  if (!(stopDistance > 0)) {
+    return blocked(SIZE_STATE_WORDS.rateUnavailable);
+  }
   const rawUnits = riskBudget / (stopDistance * perUnit.value);
 
   // Step 7 — round DOWN to the broker's step.
   const units = floorToStep(Math.min(rawUnits, ...caps.caps), step);
+
+  // Step 8 — below one step is no size at all. Rounding down is correct and it
+  // bottoms out at zero, which §19e's table has no room for: "0" renders as a
+  // number beside a live copy button and tells the operator nothing about why the
+  // setup is not takeable. It is not rare — on a $25,000 Signature Futures account
+  // at the 0.50% default, every mapped market lands here, because one gold
+  // contract risks $1,354 against a $125 budget and one E-mini $256. An operator
+  // who reads 0 on a tradeable instrument buys one anyway, and one contract is
+  // 135% of that account's entire drawdown allowance.
+  if (units < step) {
+    return blocked(
+      unit === "contracts"
+        ? SIZE_STATE_WORDS.belowOneContract
+        : SIZE_STATE_WORDS.belowOneLot,
+    );
+  }
   return { kind: "size", units, step, unit, caps: caps.caps };
 }

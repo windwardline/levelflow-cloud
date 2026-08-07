@@ -1609,7 +1609,22 @@ completeness without reading the spec. Every string below is rendered
 verbatim; nothing else this feature draws is text.
 
 **§19 — the ladder Size row.** `Size · lots` · `Size · contracts` ·
-`Not offered` · `Not confirmed` · `Not published` · `Rate unavailable`.
+`Not offered` · `Not confirmed` · `Not published` · `Rate unavailable` ·
+`Below one contract` · `Below one lot`.
+
+*The last two added 2026-08-06; the WORDING is pending an owner ruling, the
+mechanism is not.* §19e's law is "a number or a state word, there is no third
+outcome," and a size that rounds to zero was a third outcome wearing a number's
+clothes — it rendered `0` beside a live copy button, which is the same lie as an
+affordance that copies a word. It is not a rare path: on a $25,000 Signature
+Futures account at the 0.50% default, **every** mapped market lands there,
+because one gold contract risks $1,354 against a $125 budget and one E-mini $256
+— and one gold contract is 135% of that account's entire EOD Dynamic drawdown
+allowance. None of the original four words is honest about it: E8 offers the
+market, the row is confirmed, the data is published, and the rate is available.
+The setup is simply smaller than one contract at the operator's risk setting.
+Two literals rather than one because the unit differs by line, and the label
+already carries it.
 
 **§19 — the Profile Broker controls.** Labels: `Market` · `Program` ·
 `Platform` · `Account size` · `Stage` · `Risk per trade` · `Drawdown`.
