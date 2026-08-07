@@ -70,11 +70,33 @@ export function useAuthSession(): AuthSessionState {
   return { session, loading };
 }
 
-// A sign-in is in flight only if THIS browser started one. See
-// authExchangePending: the URL is the one piece of state a third party controls,
-// so it cannot be the thing that unlocks a stored session.
+// A sign-in is in flight only when BOTH halves hold: this browser started one,
+// and this load is the callback. Either alone is a defect, and the two were
+// found in that order.
+//
+// The URL alone was the original: `search.includes("code=")` matched
+// `?promocode=`, and matched the browser autocompleting to someone else's old
+// magic-link URL — so on a shared machine the address bar handed person B
+// person A's Desk. The URL is the one piece of state a third party controls, so
+// it can never be sufficient.
+//
+// The VERIFIER alone was the fix's own defect, caught by the e2e suite: a
+// verifier outlives an abandoned sign-in, so a stored session with no live
+// browser session behind it was restored on a plain "/" load — exactly the
+// next-person-at-the-machine case the whole posture exists to close.
+//
+// Together they are right. The verifier proves this browser started the flow
+// and nobody else can create one; the callback parameter proves this particular
+// load is that flow arriving, and not some later visit.
 function hasAuthRedirectParams() {
-  return authExchangePending();
+  return authCallbackInUrl() && authExchangePending();
+}
+
+function authCallbackInUrl() {
+  const search = window.location.search;
+  const hash = window.location.hash;
+  return search.includes("code=") || search.includes("token_hash=") ||
+    hash.includes("access_token=") || hash.includes("refresh_token=");
 }
 
 function shouldKeepSession(authRedirectInProgress: boolean) {
