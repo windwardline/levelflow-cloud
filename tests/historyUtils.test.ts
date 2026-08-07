@@ -466,6 +466,57 @@ describe("buildRecordBand", () => {
   });
 
   it("picks the symbol with the highest money-positive rate as best market", () => {
+    const win = (symbol: string) =>
+      buildSetup({ symbol, trade_outcomes: [buildOutcome({ outcome: "take_profit" })] });
+    const loss = (symbol: string) =>
+      buildSetup({ symbol, trade_outcomes: [buildOutcome({ outcome: "stop_loss" })] });
+    const band = buildRecordBand(
+      // Both symbols clear §18's 3-resolved gate, so the comparison is about
+      // the rate rather than about which one happened to resolve first.
+      [win("EURUSD"), win("EURUSD"), win("EURUSD"), win("GBPUSD"), loss("GBPUSD"), loss("GBPUSD")],
+      NOW,
+    );
+    // EURUSD: 3/3 = 100%. GBPUSD: 1/3 = 33%.
+    assert.equal(band.bestMarket, "EURUSD");
+  });
+
+  it("withholds best market below the same gate every other figure obeys", () => {
+    // §18's law is "below 3 resolved, publish nothing." Attribution obeys it on
+    // every slice; this stat block did not, and published a SUPERLATIVE on a
+    // single outcome twenty lines above rows reading "Learning". One lucky oats
+    // win outranked forty EURUSD trades, and the panel contradicted its own
+    // stated rule on one screen.
+    const band = buildRecordBand(
+      [
+        // ZOUSX: 1/1 = 100%, below the gate.
+        buildSetup({
+          symbol: "ZOUSX",
+          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+        }),
+        // EURUSD: 2/3 = 67%, at the gate.
+        buildSetup({
+          symbol: "EURUSD",
+          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+        }),
+        buildSetup({
+          symbol: "EURUSD",
+          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+        }),
+        buildSetup({
+          symbol: "EURUSD",
+          trade_outcomes: [buildOutcome({ outcome: "stop_loss" })],
+        }),
+      ],
+      NOW,
+    );
+    assert.equal(
+      band.bestMarket,
+      "EURUSD",
+      "a 100% rate on one trade must not outrank a measured one on three",
+    );
+  });
+
+  it("reads Learning when no symbol has reached the gate", () => {
     const band = buildRecordBand(
       [
         buildSetup({
@@ -476,30 +527,23 @@ describe("buildRecordBand", () => {
           symbol: "GBPUSD",
           trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
         }),
-        buildSetup({
-          symbol: "GBPUSD",
-          trade_outcomes: [buildOutcome({ outcome: "stop_loss" })],
-        }),
       ],
       NOW,
     );
-    // EURUSD: 1/1 = 100%. GBPUSD: 1/2 = 50%.
-    assert.equal(band.bestMarket, "EURUSD");
+    assert.equal(band.bestMarket, null);
   });
 
   it("breaks a tied win rate by resolved-count, then breaks a full tie alphabetically", () => {
     const band = buildRecordBand(
       [
-        // Both symbols are 100% at 1 resolved trade each — alphabetical
-        // tiebreak should pick BTCUSD over ETHUSD.
-        buildSetup({
-          symbol: "ETHUSD",
-          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
-        }),
-        buildSetup({
-          symbol: "BTCUSD",
-          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
-        }),
+        // Both symbols are 100% at 3 resolved trades each — a full tie above
+        // the gate, so the alphabetical tiebreak decides and picks BTCUSD.
+        ...["ETHUSD", "ETHUSD", "ETHUSD", "BTCUSD", "BTCUSD", "BTCUSD"].map((symbol) =>
+          buildSetup({
+            symbol,
+            trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+          })
+        ),
       ],
       NOW,
     );

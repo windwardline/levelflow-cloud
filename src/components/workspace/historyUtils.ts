@@ -21,6 +21,7 @@ import type {
   TradeSetupRow,
 } from "../../lib/tradeAnalyzer";
 import { formatNumber } from "./advisorFormat";
+import { ATTRIBUTION_LEARNING_MIN_RESOLVED } from "./attribution";
 import type { ScanScope } from "./ScopeMenu";
 
 /**
@@ -555,16 +556,23 @@ export function buildRecordBand(
     ? Math.round((wins / resolved) * 100)
     : null;
 
-  // Best market: highest money-positive rate among symbols with at least
-  // one resolved outcome, tie-broken by more resolved evidence, then
-  // alphabetically for a fully deterministic result.
+  // Best market: highest money-positive rate among symbols that have reached
+  // §18's gate, tie-broken by more resolved evidence, then alphabetically for a
+  // fully deterministic result.
+  //
+  // The gate used to be `> 0`, which crowned a market on ONE outcome — and it
+  // rendered a superlative twenty lines above attribution rows that were
+  // reading "Learning" on the same screen for the same reason. One lucky oats
+  // win outranked forty EURUSD trades, and the panel contradicted its own
+  // stated law in one glance. A superlative is a claim; it obeys the same
+  // threshold every other published figure here obeys.
   const bestMarket = Array.from(bySymbol.entries())
     .map(([symbol, stat]) => ({
       resolved: stat.wins + stat.losses,
       symbol,
       winRate: stat.wins / (stat.wins + stat.losses),
     }))
-    .filter((entry) => entry.resolved > 0)
+    .filter((entry) => entry.resolved >= ATTRIBUTION_LEARNING_MIN_RESOLVED)
     .sort((first, second) =>
       second.winRate - first.winRate ||
       second.resolved - first.resolved ||
