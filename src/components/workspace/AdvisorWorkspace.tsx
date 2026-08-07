@@ -40,6 +40,7 @@ import {
   AVAILABLE_ASSET_OPTIONS,
   formatSecurityDisplaySymbol,
   getSecurityOption,
+  hasVerifiedMarketDataSource,
   type SupportedSymbol,
 } from "../../lib/symbolMap";
 import {
@@ -458,12 +459,26 @@ export function AdvisorWorkspace(
             symbol,
             new Date(),
           );
+          // A failed fetch is not evidence about coverage. This used to say
+          // "Verified market data is not available for this market yet." on
+          // ANY failure — a network blip, an FMP 500, a rate limit, a bad
+          // parse — so a transient fault rendered as a permanent statement
+          // about what Levelflow serves. The operator concluded the market was
+          // uncovered and stopped trying, when a retry would have worked; and
+          // when FMP degrades across the board, every market says the same
+          // thing and nothing says the feed is down.
+          //
+          // Coverage absence IS knowable — symbolMap answers it without a
+          // network call — so the two states are distinguished at the source
+          // rather than collapsed into the more alarming one.
           setMarketNotice(
-            availability.open
-              ? "Verified market data is not available for this market yet."
-              : `Closed · opens ${
+            !availability.open
+              ? `Closed · opens ${
                 formatReopen(availability.opensAt, new Date())
-              }.`,
+              }.`
+              : hasVerifiedMarketDataSource(symbol)
+              ? "Market data did not load. Try again shortly."
+              : "Verified market data is not available for this market yet.",
           );
         }
       } finally {

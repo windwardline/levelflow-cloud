@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { isContractSizeVariant } from "../src/lib/broker/contractVariants.ts";
 import {
+  hasVerifiedMarketDataSource,
+  SECURITY_OPTIONS,
+} from "../src/lib/symbolMap";
+import {
   filterMarketScanCandidatesByScope,
   filterSymbolsByAvailability,
   getMarketScanSymbolsForScope,
@@ -413,5 +417,39 @@ describe("amendment 13 fix round 2 — a completed scan carries its own classifi
       source,
       /if \(scanResult === null\) \{\s*return;\s*\}\s*if \(\(activeAccount\?\.classification \?\? null\) !== scanClassification\) \{\s*setScanResult\(null\);\s*setScanCompletedAt\(null\);\s*setScanClassification\(null\);\s*\}/,
     );
+  });
+});
+
+// A failed fetch is not evidence about coverage.
+//
+// The market notice said "Verified market data is not available for this market
+// yet." on ANY failure — a network blip, an FMP 500, a rate limit, a bad parse —
+// so a transient fault rendered as a permanent statement about what Levelflow
+// serves. The operator concluded the market was uncovered and stopped trying;
+// and when FMP degrades across the board, every market says the same thing and
+// nothing says the feed is down.
+//
+// Coverage absence is knowable from the roster without a network call, which is
+// what makes the two states separable at all.
+describe("coverage absence is a fact, not a symptom", () => {
+  it("answers from the roster, with no network call", () => {
+    for (const symbol of ["EURUSD", "BTCUSD", "XAUUSD", "ESUSD"]) {
+      assert.equal(
+        hasVerifiedMarketDataSource(symbol),
+        true,
+        `${symbol} is served and must not be reported as uncovered`,
+      );
+    }
+  });
+
+  it("agrees with the roster for every scannable market", () => {
+    // The predicate cannot be more pessimistic than the scan: a market the scan
+    // offers and this calls uncovered would put the wrong sentence on screen
+    // for a market that works.
+    for (const option of SECURITY_OPTIONS) {
+      if (option.fmpSymbol) {
+        assert.equal(hasVerifiedMarketDataSource(option.symbol), true, option.symbol);
+      }
+    }
   });
 });
