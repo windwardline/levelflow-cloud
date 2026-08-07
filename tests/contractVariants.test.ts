@@ -244,12 +244,11 @@ describe("a Forex account carries eight crypto CFDs, not the Crypto account's se
   });
 
   it("leaves the Crypto and Futures accounts untouched by the carve-out", () => {
-    // OFFERED and SCANNABLE are different facts, and BNBUSD is why: E8 prices
-    // it on both account types, so it belongs in the eight, but Levelflow gates
-    // it no-trade pending a promotion decision (a live candidate now that the
-    // execution-cost defect is fixed). The carve-out must not be what withholds
-    // it — its own gate is — so this checks the majors that are actually
-    // onboarded, and separately proves the carve-out never touches Crypto.
+    // OFFERED and SCANNABLE were different facts here, and BNBUSD was why: E8
+    // priced it on both account types while Levelflow gated it no-trade pending
+    // a promotion decision. That decision landed on 2026-08-07 — an FMP match
+    // is the only test — so the two facts now agree for all eight, and the
+    // carve-out's own job is unchanged: it never touches Crypto or Futures.
     const onCrypto = new Set(scannableSymbolsFor("crypto"));
     const onFutures = new Set(scannableSymbolsFor("futures"));
     let checked = 0;
@@ -262,10 +261,14 @@ describe("a Forex account carries eight crypto CFDs, not the Crypto account's se
       );
     }
     assert.ok(checked >= 7, `expected the onboarded majors, checked ${checked}`);
-    assert.ok(
-      !onCrypto.has("BNBUSD"),
-      "BNBUSD is withheld by its own no-trade gate, not by the Forex carve-out",
-    );
+    // BNBUSD was withheld by its own no-trade gate, and the release removed it:
+    // E8 prices BNBUSD on both account types and FMP matches it (-13.1 bp,
+    // measured on the live crypto book). So it is now among the eight the
+    // carve-out covers, present on crypto and on forex, absent on futures —
+    // which is exactly what the loop above already asserts for it.
+    assert.ok(onCrypto.has("BNBUSD"));
+    assert.ok(FOREX_ACCOUNT_CRYPTO_CFDS.has("BNBUSD"));
+    assert.ok(!onFutures.has("BNBUSD"));
   });
 });
 

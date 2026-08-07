@@ -119,9 +119,16 @@ const symbolMap: Record<string, string> = {
 };
 
 // Hidden until the chart feed is verified against the matching traded CFD.
-const temporarilyUnavailableSymbols = new Set<string>([
-  "ASX",
-]);
+//
+// Empty since 2026-08-07. ASX was the last entry and its own condition is met:
+// F2 measured ^AXJO against E8's AUS200 book at -5.7 (0.06%) during Sydney's
+// cash session — "TRACKS (cash hours)", the same verdict NIKKEI and DAX carry.
+// The hide outlived the question it was asking.
+//
+// Mirrors src/lib/symbolMap.ts's TEMPORARILY_HIDDEN_ASSET_SYMBOLS and
+// market-data/index.ts's own copy; tests/core.test.ts's scan-door invariant is
+// what caught this file lagging the other two.
+const temporarilyUnavailableSymbols = new Set<string>([]);
 
 const equityCalendarSensitiveSymbols = new Set([
   "ASX",
@@ -301,69 +308,18 @@ const correlationGroups: Record<string, string[]> = {
 //   +0.099, split disagreement — does not meet the provable bar; the menu
 //   is binary now, measured-in or fully out).
 export const noTradeSymbols = new Set<string>([
-  "SP",
-  "NSDQ",
-  "DOW",
-  "NIKKEI",
-  "DAX",
-  "NGUSD",
-  "HGUSD",
-  "BNBUSD",
-  // The 44 markets onboarded 2026-08-05/06 under the owner's standing order:
-  // every market E8 trades with a confirmed FMP match is represented and
-  // analyzed. Withheld here for the order's own condition — visible only once
-  // there is an ACCEPTABLE analyzed match — so they enter the replay universe
-  // and no user surface. This set must stay in step with src/lib/symbolMap.ts's
-  // NO_TRADE_SYMBOLS across the Deno boundary; tests/core.test.ts's scan-door
-  // pin is what catches drift, and it caught exactly this omission.
+  // Empty. Owner ruling 2026-08-07: a market E8 offers on an account type, with
+  // a matching FMP source, is visible and usable — nonnegotiable. The only
+  // ground for withholding is no verifiable data source, and measured
+  // 2026-08-07 every previously-withheld market has one.
   //
-  // FDXM is deliberately ABSENT: it is a contract-size variant, excluded by
-  // `contractSizeVariants` below on entirely different grounds — not withheld
-  // pending evidence, but never a market of its own.
-  "ZFUSD",
-  "ZTUSD",
-  "HOUSD",
-  "RBUSD",
-  "PLUSD",
-  "PAUSD",
-  "ZCUSX",
-  "ZSUSX",
-  "ZLUSX",
-  "ZMUSD",
-  "ZOUSX",
-  "ZRUSD",
-  "LEUSX",
-  "GFUSX",
-  "HEUSX",
-  "FESX",
-  "FDAX",
-  "EMD",
-  "NKD",
-  "AAVEUSD",
-  "ALGOUSD",
-  "ARWUSD",
-  "ATOMUSD",
-  "AVAXUSD",
-  "CAKEUSD",
-  "DASHUSD",
-  "DOGEUSD",
-  "DOTUSD",
-  "DYDXUSD",
-  "EGLDUSD",
-  "ETCUSD",
-  "FILUSD",
-  "GRTUSD",
-  "HBARUSD",
-  "IMXUSD",
-  "LINKUSD",
-  "NEARUSD",
-  "THETAUSD",
-  "TRUMPUSD",
-  "TRXUSD",
-  "UNIUSD",
-  "XLMUSD",
-  "XMRUSD",
-  "XTZUSD",
+  // Expectancy is not a ground. A thin or negative market is one the ENGINE
+  // declines to produce a setup for, and one per-market geometry has to earn;
+  // it is not a market the product hides.
+  //
+  // Stays in step with src/lib/symbolMap.ts's NO_TRADE_SYMBOLS and with
+  // market-data/index.ts across the Deno boundary — tests/feedSource.test.ts
+  // asserts all three are equal, in both directions.
 ]);
 
 // Scan-path exclusion set: everything no-trade, by definition.

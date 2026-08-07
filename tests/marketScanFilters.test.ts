@@ -153,36 +153,40 @@ describe("amendment 13 — market availability follows the account classificatio
   // further down this describe block — while visibleAssetGroups/
   // visibleAssetSymbols is the one place every user surface (scope menus,
   // the scan trigger, chart selection) reads from.
-  it("shows everything except the display-excluded and size-variant markets, with no active account", () => {
-    // Two withholdings now, on separate grounds: BRENT for its 1.67 offset
+  it("shows everything except the size-variant markets, with no active account", () => {
+    // One withholding now, not two. BRENT was released by amendment 30 — a real
+    // match with a measurable offset is SHOWN with its basis line — so the only
+    // ground left here is the contract-size variant, which is one market at two
+    // notionals rather than a market withheld.
+    // (was: two withholdings, BRENT for its 1.67 offset
     // (offsets.ts) and MGCUSD as micro gold, a contract-size variant that
     // sizes against GCUSD and holds no scan slot (contractVariants.ts, owner
     // ruling 2026-08-05).
     const withoutBrent = AVAILABLE_ASSET_GROUPS.map((group) => ({
       ...group,
       options: group.options.filter((option) =>
-        option.symbol !== "BRENT" && !isContractSizeVariant(option.symbol)
+        !isContractSizeVariant(option.symbol)
       ),
     })).filter((group) => group.options.length > 0);
     assert.deepEqual(visibleAssetGroups(null), withoutBrent);
-    assert.ok(!visibleAssetSymbols(null).includes("BRENT"));
+    assert.ok(visibleAssetSymbols(null).includes("BRENT"));
     assert.deepEqual(
       visibleAssetSymbols(null),
       AVAILABLE_ASSET_SYMBOLS.filter((symbol) =>
-        symbol !== "BRENT" && !isContractSizeVariant(symbol)
+        !isContractSizeVariant(symbol)
       ),
     );
   });
 
-  it("hides Futures on a Forex account, keeps Energies, and still withholds BRENT", () => {
+  it("hides Futures on a Forex account and keeps Energies, BRENT included", () => {
     const labels = visibleAssetGroups(FOREX_ACCOUNT).map((group) => group.label);
     assert.ok(!labels.includes("Futures"), "E8 Forex accounts cannot trade futures");
     assert.ok(labels.includes("Energies"), "Energies remain on Forex accounts");
     const symbols = visibleAssetSymbols(FOREX_ACCOUNT);
     assert.ok(symbols.includes("WTI"), "WTI stays visible with its basis line");
     assert.ok(
-      !symbols.includes("BRENT"),
-      "BRENT stays display-excluded even where Energies itself is shown",
+      symbols.includes("BRENT"),
+      "BRENT is served alongside WTI — amendment 30 shows a measured offset rather than hiding it",
     );
     for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
       assert.ok(!symbols.includes(futures), `${futures} must not be visible`);
@@ -220,7 +224,7 @@ describe("amendment 13 — market availability follows the account classificatio
     const source = readFileSync("src/lib/broker/visibility.ts", "utf8");
     assert.doesNotMatch(source, /NO_TRADE_SYMBOLS|TEMPORARILY_HIDDEN/);
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 58);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 111);
   });
 
   // Amendment 23's offset ruling (owner, 2026-08-05): the same "nothing
@@ -229,11 +233,13 @@ describe("amendment 13 — market availability follows the account classificatio
   // "what's visible" in one number now names two different things: the
   // master list (symbolMap.ts's AVAILABLE_ASSET_SYMBOLS, backend broker
   // matching and replay sweeps) stays 50 and keeps BRENT; the visible
-  // universe (broker/visibility.ts's visibleAssetSymbols, every user
-  // surface) is 48 and drops two rows on two unrelated grounds — BRENT's
-  // offset, and micro gold being GCUSD's contract-size variant.
-  it("splits the master identity into knowable (58) vs visible (48) on BRENT's and the size variants' grounds", () => {
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 58, "the knowable master list");
+  // universe (broker/visibility.ts's visibleAssetSymbols, every user surface)
+  // is 102 and drops exactly the contract-size variants — one market at two
+  // notionals, never a market withheld. BRENT left this gap on 2026-08-07:
+  // amendment 30 shows a measured offset with its basis line rather than
+  // hiding the market.
+  it("splits the master identity into knowable (111) vs visible (102) on the size variants' grounds alone", () => {
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 111, "the knowable master list");
     assert.ok(
       AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
       "BRENT's FMP match stays in the master list for replay sweeps",
@@ -241,12 +247,12 @@ describe("amendment 13 — market availability follows the account classificatio
     const visible = visibleAssetSymbols(null);
     assert.equal(
       visible.length,
-      48,
-      "the visible universe drops BRENT and micro gold, on separate grounds",
+      102,
+      "the visible universe drops only the contract-size variants",
     );
     assert.ok(
-      !visible.includes("BRENT"),
-      "BRENT is display-excluded — amendment 23's ~196bp offset ground",
+      visible.includes("BRENT"),
+      "BRENT is visible — amendment 30 retired amendment 23's significance bar",
     );
     assert.ok(
       !visible.includes("MGCUSD"),

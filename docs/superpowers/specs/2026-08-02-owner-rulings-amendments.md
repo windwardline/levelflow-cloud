@@ -1757,3 +1757,35 @@ roster's own group order. Wider than one account's offering, and narrower than
 the whole roster — a filter option for a market with no rows behind it is noise,
 and on a 100+ market universe it is a lot of noise. It is also self-maintaining
 as both the universe and the operator's history grow.
+
+## Amendment 30 — a measurable offset is stated, never hidden (owner, 2026-08-07)
+
+**The ruling:** where E8 and FMP are a real match but the price carries a
+measurable offset, the market is **shown with its basis line**. The offset's
+size is not a reason to withhold. Calibration is what tightens it.
+
+**What it settles.** Amendment 23 built the basis line and drew a significance
+bar, excluding BRENT at ~196bp as past it. That bar is retired. The line's whole
+purpose is to make an offset legible — *"E8 quotes ~+1.67 above this feed —
+entry there ≈ 85.72"* — so a larger offset is a reason to state it more plainly,
+not a reason to hide a market the operator's account offers and the data
+supports. XAGUSD (+0.17) and WTI (+0.24) were already shown this way; BRENT now
+joins them, and the rule is general rather than per-market.
+
+**The boundary this does NOT move.** A measurable offset is a real match. It is
+categorically different from no match at all — a market E8 offers that FMP does
+not carry, or carries under a spelling that resolves to a different asset
+(FMP's `METUSD` is Metronome at $0.54 against E8's Micro Ether at $1,871; its
+`HEUSD` is a crypto token, not lean hogs). Those have **no verifiable data
+source** and stay on the dormant excluded list, re-probed each run.
+
+So there are exactly three states, and every market is in one:
+1. **Matched, no material offset** — served plainly.
+2. **Matched with a measurable offset** — served with the basis line stating it.
+3. **Unmatched** — dormant excluded, invisible, out of every analysis, and
+   re-admitted automatically the moment a source appears.
+
+**What follows for calibration.** An offset is a measurement about a market, so
+it belongs in the per-asset tuning the owner has directed rather than being
+frozen as a display constant. The basis is recorded per symbol with the frames
+that measured it; a sweep that narrows it should narrow the line with it.

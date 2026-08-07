@@ -17,13 +17,22 @@ import {
 // test edit.
 
 describe("BROKER_VISIBILITY_EXCLUSIONS — the register's current content", () => {
-  it("carries exactly one entry today: BRENT, scoped to forex only", () => {
-    assert.equal(BROKER_VISIBILITY_EXCLUSIONS.length, 1);
-    const [brent] = BROKER_VISIBILITY_EXCLUSIONS;
-    assert.equal(brent.levelflowSymbol, "BRENT");
-    assert.deepEqual(brent.accountTypes, ["forex"]);
-    assert.equal(brent.ground, "data-drift");
-    assert.ok(brent.detail.length > 20, "BRENT's exclusion detail is too thin");
+  it("carries no entries today, and the emptiness is a ruling", () => {
+    // BRENT was its only entry, excluded under amendment 23 at ~196bp as "past
+    // the significance bar for display". Amendment 30 retires that bar: a real
+    // match with a measurable offset is SHOWN with the line that states it.
+    //
+    // The register is not retired with it. It exists for a different shape —
+    // withholding a market on ONE account type while it stays visible on
+    // another — and the resolver, its per-account-type scoping and its
+    // full-replacement contract are all still exercised by
+    // tests/brokerVisibility.test.ts's synthetic fixtures. An empty production
+    // register is the correct state today, not a dead mechanism.
+    //
+    // A market with no verifiable data source does NOT belong here either: that
+    // is masterList.ts's `excluded-no-fmp-source` status, dormant and re-probed
+    // each run.
+    assert.equal(BROKER_VISIBILITY_EXCLUSIONS.length, 0);
   });
 
   it("every entry names at least one account type — an exclusion naming zero would not exclude anything", () => {
@@ -53,13 +62,10 @@ describe("BROKER_VISIBILITY_EXCLUSIONS — the register's current content", () =
 });
 
 describe("isExcludedForAccountType", () => {
-  it("BRENT is excluded on forex", () => {
-    assert.equal(isExcludedForAccountType("BRENT", "forex"), true);
-  });
-
-  it("BRENT is not excluded on crypto or futures — it is not offered there either, but the predicate itself must say so honestly", () => {
-    assert.equal(isExcludedForAccountType("BRENT", "crypto"), false);
-    assert.equal(isExcludedForAccountType("BRENT", "futures"), false);
+  it("BRENT is excluded nowhere — amendment 30 released it with its basis line", () => {
+    for (const classification of ["forex", "crypto", "futures"] as const) {
+      assert.equal(isExcludedForAccountType("BRENT", classification), false);
+    }
   });
 
   it("a symbol with no register entry is excluded on no account type", () => {
@@ -106,9 +112,26 @@ describe("the reentry rule — no visibility exclusion is permanent", () => {
   });
 
   it("BrokerVisibilityExclusion's own type carries no field that could mark an entry permanent", () => {
-    const [brent] = BROKER_VISIBILITY_EXCLUSIONS;
-    const keys = Object.keys(brent).sort();
-    assert.deepEqual(keys, ["accountTypes", "detail", "ground", "levelflowSymbol"]);
+    // Read off a synthetic entry rather than a production one, since the
+    // register is empty. The shape is what amendment 26 rests on — nothing here
+    // can say "forever", so every entry is re-examined at every sweep — and it
+    // has to be assertable whether or not anything currently occupies it.
+    const shaped: BrokerVisibilityExclusion = {
+      levelflowSymbol: "SYNTHETIC",
+      accountTypes: ["forex"],
+      ground: "data-drift",
+      detail: "synthetic fixture — never a production exclusion",
+    };
+    assert.deepEqual(
+      Object.keys(shaped).sort(),
+      ["accountTypes", "detail", "ground", "levelflowSymbol"],
+    );
+    for (const entry of BROKER_VISIBILITY_EXCLUSIONS) {
+      assert.deepEqual(
+        Object.keys(entry).sort(),
+        ["accountTypes", "detail", "ground", "levelflowSymbol"],
+      );
+    }
   });
 });
 

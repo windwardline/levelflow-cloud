@@ -61,7 +61,15 @@ export const BROKER_OFFSETS: readonly BrokerOffset[] = [
   {
     levelflowSymbol: "BRENT",
     basis: 1.67,
-    displayExcluded: true,
+    // Was display-excluded on the size of its basis. That is inconsistent with
+    // how XAGUSD (+0.17) and WTI (+0.24) are handled — both carry a measured,
+    // stable offset and both are SHOWN with the basis line that states it. A
+    // bigger number is a reason to state it more prominently, not to hide a
+    // market E8 offers and FMP matches (owner ruling 2026-08-07).
+    //
+    // The basis is stable across three frames, which is what makes the line
+    // honest: "E8 quotes ~+1.67 above this feed — entry there ~= {adjusted}".
+    displayExcluded: false,
     measuredAt: ["F4", "F6", "F10"],
   },
 ];

@@ -310,26 +310,6 @@ describe("feed source lock (§20i ruling 8)", () => {
       "utf8",
     );
 
-    for (
-      const sym of [
-        "SP",
-        "NSDQ",
-        "DOW",
-        "NIKKEI",
-        "DAX",
-        "NGUSD",
-        "HGUSD",
-        "BNBUSD",
-      ]
-    ) {
-      assert.match(
-        source,
-        new RegExp(
-          `noTradeSymbols = new Set<string>\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`,
-        ),
-        `market-data/index.ts's noTradeSymbols is missing ${sym} — it must mirror trade-analyzer/symbols.ts's set exactly`,
-      );
-    }
 
     // Fix round 1: checking the request symbol string against noTradeSymbols
     // alone isn't enough — normalizeSymbol("^NDX") is "NDX", not "NSDQ", so an
