@@ -555,8 +555,12 @@ survival by one point and declared the status quo optimal, because the axis that
 mattered was held fixed. A lever downstream of risk cannot be derived at another lever's
 old setting. Use replay-sweep's crossed axes (--grid a=1,2;b=3,4).
 
-BEFORE any hedge-mind work advances, and repeatedly as the work proceeds, run this
-cycle: (1) record the prior round's recommendations as approved; (2) run a genuinely
+BEFORE any hedge-mind work advances, and repeatedly as the work proceeds, run the
+CONVERGE cycle below. When I type CONVERGE — on its own or in a sentence — that is what
+I am asking for, in full, without further explanation from me. Treat it as a standing
+command for the rest of this rebuild.
+
+CONVERGE means: (1) record the prior round's recommendations as approved; (2) run a genuinely
 new fresh-eyes review for remaining gaps, probing areas not yet swept rather than
 re-listing known ones; (3) design durable fixes, not patches; (4) place each at its
 correct rank in the sequence, never appended, with an explicit pointer to where it
@@ -571,6 +575,12 @@ what the round-6 and round-7 fixes THEMSELVES assume, and must include one lens 
 has yet owned: the product at 111 markets rather than 50 — render cost, scan latency,
 correlation coverage, session handling, all measured on a universe less than half this
 size.
+
+CONVERGE runs until the sequence reaches best-possible positioning for the data and
+constraints we have, or until every remaining limit is an input boundary you can name.
+That is the bar for closing this part of the rebuild and moving to the hedge mind — not
+a number of rounds, and not my patience. If a round yields only nulls and validations,
+say the diminished-returns point is reached rather than manufacturing another.
 
 You have full autonomy and my authorization to use agents freely and in parallel.
 Approve your own tool use. Make routine judgment calls yourself; bring me only decisions
@@ -590,10 +600,12 @@ is running, monitor it and keep working. Keep docs/HANDOFF.md the truth as state
 changes, and tell me when a stopping point is genuinely reached.
 ```
 
-### 6b. The continuation prompt — paste any time to keep it moving
+### 6b. CONVERGE — the one-word trigger, and its long form
 
-Short on purpose. It is the whole loop in one paste, and it works even if the agent
-has lost its earlier context, because it names the file that holds everything.
+`CONVERGE` is defined inside the kickoff prompt as a standing command, so once a
+session has read it the single word is enough. The paste below is its long form:
+use it when the agent has lost context, when a session did not open with 6a, or
+any time the full loop should be restated rather than invoked.
 
 ```
 Continue. Work docs/HANDOFF.md's sequence from wherever it now stands, and fold anything
