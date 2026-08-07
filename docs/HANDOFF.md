@@ -271,3 +271,75 @@ One further lens has never been run: **the product with 111 markets rather than 
 Every measurement of render cost, scan latency, correlation coverage and session
 handling predates a universe that more than doubled. That is a coverage question about
 the *product*, not the engine, and nothing in the current sequence owns it.
+
+---
+
+## 6. The kickoff prompt for the next session
+
+Kept here so it cannot drift from the state it describes. Update both together.
+
+```
+Continue Levelflow. Read docs/HANDOFF.md first — it is tracked in the repo now, not in
+a worktree. It is the total state of record: what is live, what is parked and how to
+unpark it, the approvals already given, the reasoning behind decisions declined or
+reversed, the measured evidence, and the full ordered sequence. Do not re-derive what it
+records. Do not re-ask decisions A-F, amendments 26 and 29-31, or any item in sections 2
+and 4 — all approved. Section 5 records findings VERIFIED as non-problems; do not
+re-investigate those.
+
+THE DESK IS PARKED. I closed it on 2026-08-07: PARKING_GATE is true, every session
+invalidated, trade history deliberately intact. Section 1 has the exact reopening
+procedure — one flag and its tests. Do not reopen it without my word, and tell me if
+anything you are about to ship would be wrong to ship while it is closed.
+
+Coverage is settled and is not open for reconsideration. Amendment 31: all 111
+FMP-matched E8 markets are live, per account type, and that is the resting state. The
+only path to removing a market is a calibration verdict from item 4 — never caution,
+never a hunch about a feed.
+
+Start with item 1, the live product defects. Nothing in it depends on the calibration
+being right, and the release changed its urgency: defects that were harmless while
+markets were withheld are live now that nothing is. Fold 1p into 1b. Then item 2, the
+evaluator, AS ONE CHANGE SET — 2l must land with 2a or the re-sweep measures the wrong
+committee. Then item 3, then item 4's single re-sweep.
+
+Item 4 is the one that can invalidate everything upstream of it, and round 28 is the
+warning: a 96-variant grid over four axes moved indices' survival by one point and
+declared the status quo optimal, because the axis that mattered was held fixed. Use
+replay-sweep's crossed axes (--grid a=1,2;b=3,4). A lever downstream of risk cannot be
+derived at another lever's old setting. Tune per asset, not per class.
+
+BEFORE any hedge-mind work advances, and repeatedly as the work proceeds, run this
+cycle: (1) record the prior round's recommendations as approved; (2) run a genuinely
+new fresh-eyes review for remaining gaps, probing areas not yet swept rather than
+re-listing known ones; (3) design durable fixes, not patches; (4) place each at its
+correct rank in the sequence, never appended, with an explicit pointer to where it
+belongs; (5) test whether the sequence now reaches best-possible positioning for the
+data and constraints available, and if not keep hunting until it does or until the
+remaining limits are input boundaries you can name; (6) update docs/HANDOFF.md; (7)
+report to me in chat with the full sequence visible. Use adversarial agents for the
+review — several, one lens each (look-ahead and statistical validity, fill realism,
+cost, coverage, risk management and prop-firm survival, product honesty, operations),
+each asked what is wrong or missing rather than what to improve. Round 8 should probe
+what the round-6 and round-7 fixes THEMSELVES assume, and must include one lens nothing
+has yet owned: the product at 111 markets rather than 50 — render cost, scan latency,
+correlation coverage, session handling, all of which were measured on a universe less
+than half this size.
+
+You have full autonomy and my authorization to use agents freely and in parallel.
+Approve your own tool use. Make routine judgment calls yourself; bring me only decisions
+that genuinely change the work, with a recommendation and its justification.
+
+Follow our protocols: branch off main, never commit to main, Conventional Commits,
+typecheck + lint + tests green before anything is called done, docs ride along in the
+same change set, `gh pr merge --squash --auto --delete-branch`, verify production after
+deploy, clean up branches and orphans. Note that `npm test` does NOT run Playwright — a
+constant duplicated into an e2e spec is invisible to every local gate, which is how a
+broken rate-limit test shipped on 2026-08-06. Derive across that boundary; never restate.
+Report failures honestly with the output; never claim green when it is not.
+
+Run to completion. Do not stop at turn boundaries to check in, do not narrate options
+you will not take, and do not end a turn with work you could still advance — if compute
+is running, monitor it and keep working. Keep docs/HANDOFF.md the truth as state
+changes, and tell me when a stopping point is genuinely reached.
+```
