@@ -3,8 +3,27 @@ import path from "node:path";
 
 const migrationsDir = path.resolve("supabase", "migrations");
 const migrationNamePattern = /^\d{14}_[a-z0-9_]+\.sql$/;
+// A SECURITY DEFINER function runs as its owner, so RLS does not constrain it —
+// every entry here is a deliberate decision that the function scopes itself.
 const reviewedSecurityDefinerMigrations = new Set([
   "20260603010000_launch_readiness.sql",
+  // delete_own_trade_setups(). Reviewed 2026-08-07.
+  //
+  // Scoped by auth.uid() INSIDE the function, with no user_id parameter — a
+  // function that takes one is a function someone can pass another user's id
+  // to. It raises rather than deleting when the caller is unauthenticated, and
+  // execute is revoked from public and anon.
+  //
+  // Why it exists: 20260807010000 revoked delete on trade_setups from
+  // `authenticated`, because the learning aggregate reads that table with the
+  // service role and no user predicate, so a client write grant let one account
+  // fabricate the corpus. That reasoning is about writes that CREATE rows.
+  // Deleting your own rows cannot insert a fabricated outcome and cannot reach
+  // another account, and the E2E teardown needs it so CI rows never train the
+  // model — the same corpus the revoke protects. CI holds no service-role key,
+  // and putting one in a browser-test job to solve this would be a far wider
+  // tool than the problem wants.
+  "20260807030000_delete_own_setups.sql",
 ]);
 
 const files = (await readdir(migrationsDir))
