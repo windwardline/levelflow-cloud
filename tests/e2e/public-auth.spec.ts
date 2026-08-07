@@ -52,21 +52,37 @@ function storedSession() {
 //
 // Nothing here marks the browser session as signed in. That is the app's own job
 // on the load that consumes a magic link, and the test reaches it the way a
-// reader does, by arriving with a redirect parameter (below) — so these tests
-// know nothing about WHERE the app keeps that mark, only whether a second tab of
-// the same browser can still see it.
+// reader does — so these tests know nothing about WHERE the app keeps that mark,
+// only whether a second tab of the same browser can still see it.
+//
+// The PKCE code verifier is seeded beside the session, and that is the whole
+// point of this fixture now. It used to seed the session alone and arrive at
+// `/?code=<invented>`, relying on the app treating any URL containing `code=` as
+// a sign-in load. That was a real defect wearing a passing test: `?promocode=`
+// matched it, and so did the browser autocompleting to someone else's old
+// callback on a shared machine. The app now asks PKCE instead — a verifier is
+// written by signInWithOtp and removed by exchangeCodeForSession, so its
+// presence is the only honest answer to "did THIS browser start a sign-in" — and
+// the fixture models a browser that genuinely did.
 async function seedStoredSession(page: Page) {
-  await page.addInitScript(({ key, value }) => {
+  await page.addInitScript(({ key, value, verifierKey }) => {
     if (!window.localStorage.getItem(key)) {
       window.localStorage.setItem(key, value);
     }
-  }, { key: storageKey, value: storedSession() });
+    if (!window.localStorage.getItem(verifierKey)) {
+      window.localStorage.setItem(verifierKey, "levelflow-e2e-verifier");
+    }
+  }, {
+    key: storageKey,
+    value: storedSession(),
+    verifierKey: `${storageKey}-code-verifier`,
+  });
 }
 
 // auth-js only exchanges a `code` when it also holds the verifier that flow
-// stored (GoTrueClient._isPKCECallback), so this arrives as a redirect without
-// asking the network for anything: the app reads it as the sign-in load, and the
-// stored session above is what it keeps.
+// stored (GoTrueClient._isPKCECallback), and the invented code below matches no
+// real one — so this arrives as a redirect without asking the network for
+// anything, and the stored session above is what the app keeps.
 const MAGIC_LINK_ARRIVAL = "/?code=levelflow-e2e-navigation";
 
 function tokenPresent(page: Page) {
