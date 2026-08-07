@@ -5,7 +5,7 @@ Owner-supplied primary evidence: nine screenshots taken 2026-08-03,
 (order 20260852522). One frame of the E8X dashboard, eight frames of
 Tradovate's watchlist tabs (Indices · Crypto · Financials · Currencies ·
 Energies · Metals · Grains · Meats; the Softs and Stocks tabs exist in the
-chrome and were not captured). Under amendment 19 these screenshots are
+chrome and were not captured — see the gap note below). Under amendment 19 these screenshots are
 the single source of truth for what this account class offers; this file
 is their transcription of record. Companion to
 `e8-crypto-account-2026-08-03.md`, purchased the same afternoon.
@@ -56,7 +56,7 @@ ETH/USD (spot display rows, not contracts).
 124.81 · FGBMU6 114.080 · FGBSU6 105.535 · FGBXU6 106.56 · ZTU6 102'278 ·
 ZBU6 109'02 · UBU6 110'16 · TNU6 110'065.
 
-**Currencies** (16 rows, 14 live): 6EU6 1.15330 · 6JU6 0.0063985 · 6AU6
+**Currencies** (16 rows, 15 live): 6EU6 1.15330 · 6JU6 0.0063985 · 6AU6
 0.69940 · 6BU6 1.3432 · 6CU6 0.71335 · 6MQ6 0.057600 · M6EU6 1.1533 ·
 6NU6 0.58775 · 6SU6 1.24010 · E7U6 1.1533 · M6AU6 0.6994 · M6BU6 1.3431 ·
 J7U6 0.006401 · MCDU6 0.7134 · MSFU6 1.2401 · stale: DXU4.
@@ -152,3 +152,49 @@ only commodities/equity-index/rates). `6J` and `6M`'s FMP mates —
   decision under the A16 pattern before anything renders.
 - §20 governor inputs: EOD-only guardrail in Challenge (no daily), the
   platform-native Manual Lockout, and the margin meters.
+
+
+---
+
+## Appendix — what this record does NOT establish (added 2026-08-07)
+
+Recorded so the gaps are a known frontier rather than a surprise, per §7 of the
+retrofit handoff.
+
+**Two tabs were never captured.** Softs and Stocks exist in the platform chrome.
+No E8 document names a single instrument on either — a sweep of every published
+source for cocoa, coffee, sugar, cotton, orange juice, lumber, KC, SB, CT, OJ and
+CC returns zero instrument hits, and E8's canonical 45-instrument list contains no
+softs and no equities at all. Eight captured tabs produced twenty instruments E8
+documents nowhere, so the two uncaptured tabs plausibly hold more.
+
+**This is the dominant source of incompleteness in the futures roster, and it
+cannot be closed from inside the repository.** It needs two more frames.
+
+*A trap to avoid while it is open:* §3 above lists `CTUSX · SBUSX · KCUSX ·
+OJUSX` — cotton, sugar, coffee, orange juice. Those are **FMP symbol resolutions
+from a sweep of FMP's commodities book**, not E8 evidence, and must never be read
+as an E8 offering.
+
+**Four canonical-list instruments are absent from tabs that WERE captured.** `RTY`
+and `M2K` should be on Indices; `MCL` and `NG` on Energies. All four carry full
+tick, value and margin on E8's own 45-instrument roster. Either Tradovate's default
+watchlist is curated below the offering — it is a default watchlist, not the
+tradable universe — or E8's roster is stale. The evidence does not resolve it.
+
+**Three instruments on the frames are unidentified.** `MC` (Indices, 2712.25),
+`BIT` (Crypto, 64180) and `SIC` (Metals, 58.18) appear on no E8 document. Russell
+2000 is ruled out for MC; SIC is probably SI's front month on a 3 bp price match,
+but that is a Levelflow inference rather than an E8 identification.
+
+**Seven margin-table-only symbols are live and the dossier says they should not
+be.** `ZT ZF ZN ZB UB TN GF` print live prices here, while
+`e8-futures-dossier.md:227` marks them "NOT reliably tradable pending direct
+confirmation" on a three-listing cross-check. **Under amendment 19 the screenshots
+overrule the dossier: those seven are offered.** `instruments.ts` gives ZB and ZN
+that treatment already; ZT, ZF, UB, TN and GF carry identical evidence and have
+not yet received it.
+
+**One correction to this file's own prose.** The Currencies heading read "16 rows,
+14 live" while enumerating fifteen live tickers plus one stale (`DXU4`). The
+enumeration is correct and the count was wrong; corrected above.
