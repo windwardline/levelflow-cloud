@@ -816,3 +816,14 @@ function splitBaseQuote(value: string) {
     quote,
   };
 }
+
+// Whether Levelflow has a verified price source for this market at all — a fact
+// about the roster, answerable without a network call.
+//
+// It exists to keep a transient fetch failure from being reported as a coverage
+// statement. "Verified market data is not available for this market yet" is a
+// claim about what the product serves; a timeout is not evidence for it, and
+// saying it anyway tells an operator to stop trying when a retry would work.
+export function hasVerifiedMarketDataSource(symbol: string): boolean {
+  return Boolean(getSecurityOption(symbol).fmpSymbol);
+}
