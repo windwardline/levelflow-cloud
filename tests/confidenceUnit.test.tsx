@@ -349,8 +349,16 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
       /async function handleCopy\([\s\S]*?\n  \}/,
     )?.[0] ?? "";
     assert.match(handleCopyBlock, /await navigator\.clipboard\.writeText\(value\);/);
-    assert.match(handleCopyBlock, /catch \{\s*return;\s*\}/);
     assert.doesNotMatch(source, /void navigator\.clipboard\?\.writeText/);
+    // m1 asserted `catch { return; }`, which proved the tick never appears on a
+    // rejection — and let the PREVIOUS row's tick stand through one. Silence
+    // after a tap reads as success, so a failure must settle the state rather
+    // than leave it. Both failure paths therefore call settle(false), and the
+    // stronger property is that neither returns without settling first.
+    assert.match(handleCopyBlock, /if \(!navigator\.clipboard\) \{\s*settle\(false\);/);
+    assert.match(handleCopyBlock, /catch \{\s*settle\(false\);/);
+    assert.match(handleCopyBlock, /settle\(true\);/);
+    assert.doesNotMatch(handleCopyBlock, /catch \{\s*return;\s*\}/);
   });
 
   it('labels the ladder rows exactly "Target 1 · bank half" and "Target 2 · take-profit" (spec §7)', () => {
@@ -405,19 +413,19 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("entry", formatCopyValue\(setup\.entryPrice\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("entry", "Limit entry", formatCopyValue\(setup\.entryPrice\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("stop", formatCopyValue\(setup\.stopLoss\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("stop", "Stop loss", formatCopyValue\(setup\.stopLoss\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("target1", formatCopyValue\(setup\.takeProfit1!\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("target1", "Target 1", formatCopyValue\(setup\.takeProfit1!\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("target2", formatCopyValue\(setup\.takeProfit\)\)\}/,
+      /onCopy=\{\(\) => handleCopy\("target2", hasLadder \? "Target 2" : "Target", formatCopyValue\(setup\.takeProfit\)\)\}/,
     );
     // Belt and suspenders: no handleCopy(...) call anywhere reaches for
     // formatNumber, the locale-dependent display formatter, by name.
@@ -428,7 +436,7 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     const displayFormatNumberCalls =
       source.match(/value=\{formatNumber\(/g) ?? [];
     assert.equal(displayFormatNumberCalls.length, 5);
-    assert.match(source, /onCopy=\{\(\) => onCopy\(formatCopyValue\(size\.units\)\)\}/);
+    assert.match(source, /const payload = formatCopyValue\(size\.units\);[\s\S]*?onCopy=\{\(\) => onCopy\(payload\)\}/);
   });
 
   it("flips each copy affordance to a checkmark for a bounded window, keyed per row", () => {
@@ -445,14 +453,19 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     const copyButtonTag = source.match(/<button\b[^>]*\bonClick=\{onCopy\}/)?.[0] ??
       "";
     assert.ok(copyButtonTag.length > 0, "expected the ladder's copy button");
-    assert.equal((copyButtonTag.match(/\bcpv-copy\b/g) ?? []).length, 2);
-    // The ✓ state is transient (~2s) and keyed by field via copiedField,
-    // not a single flag — copying one row never shows a false ✓ on
-    // another, and the icon swap reads straight off that same state.
+    assert.equal((copyButtonTag.match(/\bcpv-copy\b/g) ?? []).length, 1);
+    // The ✓ state is transient (~2s) and keyed by VALUE, not by field name.
+    // Keyed by name it outlived what it described: a scan-row tap swaps the
+    // setup on this same instance, so the ladder became another market's while
+    // the Entry row still read "Copied" beside the previous market's number in
+    // the clipboard. The token carries symbol and value, so a tick can only
+    // survive while the exact number it described is still on screen.
     assert.match(
       source,
-      /window\.setTimeout\(\(\) => setCopiedField\(null\), 2000\)/,
+      /const tokenFor = \(field: string, value: string\) =>\s*`\$\{symbol\}:\$\{field\}:\$\{value\}`/,
     );
+    assert.doesNotMatch(source, /copiedField/);
+    assert.match(source, /setCopiedToken\(null\);\s*setFailedToken\(null\);\s*\}, 2000\)/);
     assert.match(
       source,
       /\? <Check aria-hidden="true" className="h-4 w-4 text-buy" \/>/,
@@ -461,5 +474,14 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
       source,
       /: <Copy aria-hidden="true" className="h-4 w-4" \/>/,
     );
+    // The third state. A rejected write must not look like an untouched row.
+    assert.match(
+      source,
+      /<XCircle aria-hidden="true" className="h-4 w-4 text-sell" \/>/,
+    );
+    assert.match(source, /\{copied \? "Copied" : failed \? "Not copied" : "Copy"\}/);
+    // The only non-visual channel: one polite region for the whole panel, so
+    // sequential copies read in order instead of racing one name change.
+    assert.match(source, /aria-live="polite" className="sr-only" role="status"/);
   });
 });

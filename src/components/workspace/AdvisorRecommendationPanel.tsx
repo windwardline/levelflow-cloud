@@ -64,8 +64,30 @@ export function RecommendationPanel({
   setup: AnalyzerSetup | null;
   symbol: SupportedSymbol;
 }) {
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  // The confirmation belongs to a VALUE, not to a field name. Keyed on the
+  // name alone it outlived the thing it described in two ways, both of which
+  // put the previous market's price under a green tick:
+  //
+  //   - Tapping a scan row swaps `setup` on this same instance (no `key` at
+  //     either render site), so the ladder became XAU/USD's while the Entry
+  //     row still read "Copied" beside a EUR/USD number in the clipboard.
+  //   - adoptScanVerdict rewrites the DISPLAYED market's prices in place when
+  //     a scan returns, so the four numbers changed under a standing tick.
+  //
+  // Both are the same bug and the token closes both: symbol and value are in
+  // it, so a tick can only survive while the exact number it described is
+  // still on screen. Nothing has to remember to clear it.
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  // A rejected write needs its own state, not merely the absence of the tick.
+  // Silence is what the operator already gets from a row they never touched,
+  // so silence after a tap reads as "it worked" — which is the failure this
+  // whole mechanism exists to prevent.
+  const [failedToken, setFailedToken] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<string>("");
   const copyResetRef = useRef<number | null>(null);
+
+  const tokenFor = (field: string, value: string) =>
+    `${symbol}:${field}:${value}`;
 
   // The ✓ confirmation is transient (spec §7); a second copy before the
   // first one clears must restart the clock, not race it, and a pending
@@ -78,23 +100,42 @@ export function RecommendationPanel({
     };
   }, []);
 
-  // m1: the ✓ is now success-conditional — it only appears once the write
-  // actually resolves, never on a rejected/unavailable clipboard, so it
-  // can't silently claim a copy that didn't happen.
-  async function handleCopy(field: string, value: string) {
+  // m1: the ✓ is success-conditional — it only appears once the write actually
+  // resolves, never on a rejected or unavailable clipboard.
+  //
+  // What m1 did not do was CLEAR it. Both failure paths returned early, so the
+  // last successful row kept its tick while a later row silently failed: the
+  // operator taps Copy on Stop loss, iOS rejects the write because focus went
+  // to the broker app, nothing on screen changes — and Entry is still green
+  // beside a clipboard that still holds the entry price. They paste it into the
+  // stop field. A failed copy must therefore leave NOTHING confirmed, which is
+  // why both paths now clear rather than return.
+  async function handleCopy(field: string, label: string, value: string) {
+    const token = tokenFor(field, value);
+    if (copyResetRef.current !== null) {
+      window.clearTimeout(copyResetRef.current);
+      copyResetRef.current = null;
+    }
+    const settle = (ok: boolean) => {
+      setCopiedToken(ok ? token : null);
+      setFailedToken(ok ? null : token);
+      setCopyStatus(ok ? `${label} copied` : `${label} not copied`);
+      copyResetRef.current = window.setTimeout(() => {
+        setCopiedToken(null);
+        setFailedToken(null);
+      }, 2000);
+    };
     if (!navigator.clipboard) {
+      settle(false);
       return;
     }
     try {
       await navigator.clipboard.writeText(value);
     } catch {
+      settle(false);
       return;
     }
-    if (copyResetRef.current !== null) {
-      window.clearTimeout(copyResetRef.current);
-    }
-    setCopiedField(field);
-    copyResetRef.current = window.setTimeout(() => setCopiedField(null), 2000);
+    settle(true);
   }
 
   if (setup) {
@@ -108,6 +149,16 @@ export function RecommendationPanel({
 
     return (
       <div className="grid min-w-0 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* The only non-visual confirmation this surface has. Before it, the
+            tick was the whole signal: a name change on an already-focused
+            control, announced by NVDA, unreliably by VoiceOver, and never on
+            the revert — so five rows sharing one state produced no
+            distinguishable audio at all. One polite region, owned here rather
+            than per row, so sequential copies read in order. .sr-only is
+            position:absolute, so it consumes no grid cell. */}
+        <span aria-live="polite" className="sr-only" role="status">
+          {copyStatus}
+        </span>
         {/* §17m.3's budget: the ladder owns the majority of the sheet, and the
             sheet is a share of the region rather than whatever its content
             wants — so the ≥lg insets tighten (the mock's 20px inset stays
@@ -128,34 +179,38 @@ export function RecommendationPanel({
               separation, so there is no gap to add below lg either. */}
           <div className="grid">
             <CopyableMetricRow
-              copied={copiedField === "entry"}
+              copied={copiedToken === tokenFor("entry", formatCopyValue(setup.entryPrice))}
+              failed={failedToken === tokenFor("entry", formatCopyValue(setup.entryPrice))}
               label="Limit entry"
-              onCopy={() => handleCopy("entry", formatCopyValue(setup.entryPrice))}
+              onCopy={() => handleCopy("entry", "Limit entry", formatCopyValue(setup.entryPrice))}
               value={formatNumber(setup.entryPrice)}
               valueClassName={isBuy ? "text-buy" : "text-sell"}
             />
             <CopyableMetricRow
-              copied={copiedField === "stop"}
+              copied={copiedToken === tokenFor("stop", formatCopyValue(setup.stopLoss))}
+              failed={failedToken === tokenFor("stop", formatCopyValue(setup.stopLoss))}
               label="Stop loss"
-              onCopy={() => handleCopy("stop", formatCopyValue(setup.stopLoss))}
+              onCopy={() => handleCopy("stop", "Stop loss", formatCopyValue(setup.stopLoss))}
               value={formatNumber(setup.stopLoss)}
               valueClassName="text-sell"
             />
             {hasLadder
               ? (
                 <CopyableMetricRow
-                  copied={copiedField === "target1"}
+                  copied={copiedToken === tokenFor("target1", formatCopyValue(setup.takeProfit1!))}
+              failed={failedToken === tokenFor("target1", formatCopyValue(setup.takeProfit1!))}
                   label="Target 1 · bank half"
-                  onCopy={() => handleCopy("target1", formatCopyValue(setup.takeProfit1!))}
+                  onCopy={() => handleCopy("target1", "Target 1", formatCopyValue(setup.takeProfit1!))}
                   value={formatNumber(setup.takeProfit1!)}
                   valueClassName="text-buy"
                 />
               )
               : null}
             <CopyableMetricRow
-              copied={copiedField === "target2"}
+              copied={copiedToken === tokenFor("target2", formatCopyValue(setup.takeProfit))}
+              failed={failedToken === tokenFor("target2", formatCopyValue(setup.takeProfit))}
               label={hasLadder ? "Target 2 · take-profit" : "Target"}
-              onCopy={() => handleCopy("target2", formatCopyValue(setup.takeProfit))}
+              onCopy={() => handleCopy("target2", hasLadder ? "Target 2" : "Target", formatCopyValue(setup.takeProfit))}
               value={formatNumber(setup.takeProfit)}
               valueClassName="text-buy"
             />
@@ -167,8 +222,10 @@ export function RecommendationPanel({
                 inherits the existing flush-hairline rhythm without touching a single
                 row above it. Both platforms get it from this one render path. */}
             <SizeRow
-              copied={copiedField === "size"}
-              onCopy={(payload) => handleCopy("size", payload)}
+              copiedToken={copiedToken}
+              failedToken={failedToken}
+              onCopy={(payload) => handleCopy("size", "Size", payload)}
+              tokenFor={tokenFor}
               profile={profile}
               quotes={quotes}
               setup={setup}
@@ -251,12 +308,17 @@ export function RecommendationPanel({
 // priced row and a blocked one.
 function CopyableMetricRow({
   copied = false,
+  failed = false,
   label,
   onCopy,
   value,
   valueClassName = "text-ink",
 }: {
   copied?: boolean;
+  /** A write the browser rejected. Distinct from "not copied yet": an
+      untouched row and a failed one must never look the same, because the
+      operator reads silence after a tap as success. */
+  failed?: boolean;
   label: string;
   onCopy?: () => void;
   value: string;
@@ -299,19 +361,29 @@ function CopyableMetricRow({
           {value}
         </span>
         <button
-          aria-label={copied ? `${label} copied` : `Copy ${label}`}
-          className={copied
-            ? "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet max-lg:px-2.5 max-lg:text-[11.5px] max-lg:font-semibold max-lg:text-buy"
-            : "cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet max-lg:px-2.5 max-lg:text-[11.5px] max-lg:font-semibold"}
+          aria-label={copied
+            ? `${label} copied`
+            : failed
+            ? `${label} not copied`
+            : `Copy ${label}`}
+          className={`cpv-copy max-lg:m-0 max-lg:gap-1.5 max-lg:rounded-md max-lg:border max-lg:border-hairline max-lg:bg-sheet max-lg:px-2.5 max-lg:text-[11.5px] max-lg:font-semibold${
+            copied ? " max-lg:text-buy" : failed ? " max-lg:text-sell" : ""
+          }`}
           onClick={onCopy}
           type="button"
         >
           {copied
             ? <Check aria-hidden="true" className="h-4 w-4 text-buy" />
+            : failed
+            ? <XCircle aria-hidden="true" className="h-4 w-4 text-sell" />
             : <Copy aria-hidden="true" className="h-4 w-4" />}
           {/* The mock's own button text (:28-29). aria-label still supplies the
-              accessible name, so every copy contract keeps its exact wording. */}
-          <span className="lg:hidden">{copied ? "Copied" : "Copy"}</span>
+              accessible name, so every copy contract keeps its exact wording.
+              The third state is the browser refusing the write — it reuses the
+              row's own two-word register rather than explaining itself. */}
+          <span className="lg:hidden">
+            {copied ? "Copied" : failed ? "Not copied" : "Copy"}
+          </span>
         </button>
       </span>
         )}
@@ -333,17 +405,22 @@ function CopyableMetricRow({
 // them, and brokerSelectionProblem still validates them), but a saved
 // account that is not the active one must not price this row.
 function SizeRow({
-  copied,
+  copiedToken,
+  failedToken,
   onCopy,
   profile,
   quotes,
   setup,
+  tokenFor,
 }: {
-  copied: boolean;
+  copiedToken: string | null;
+  failedToken: string | null;
   onCopy: (payload: string) => void;
   profile: UserProfile;
   quotes: Readonly<Record<string, number>>;
   setup: AnalyzerSetup;
+  /** Only this row knows its own payload, so only it can build its token. */
+  tokenFor: (field: string, value: string) => string;
 }) {
   const activeAccount = activeAccountOf(profile);
   if (activeAccount === null) {
@@ -366,11 +443,13 @@ function SizeRow({
     return <CopyableMetricRow label={label} value={size.word} />;
   }
 
+  const payload = formatCopyValue(size.units);
   return (
     <CopyableMetricRow
-      copied={copied}
+      copied={copiedToken === tokenFor("size", payload)}
+      failed={failedToken === tokenFor("size", payload)}
       label={label}
-      onCopy={() => onCopy(formatCopyValue(size.units))}
+      onCopy={() => onCopy(payload)}
       value={formatNumber(size.units)}
     />
   );
