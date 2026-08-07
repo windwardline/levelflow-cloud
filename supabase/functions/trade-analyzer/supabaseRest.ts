@@ -128,6 +128,30 @@ export async function adminInsertRows(
   await response.body?.cancel();
 }
 
+// The admin twin of insertSingle, returning the created row because the caller
+// needs its id. Used for trade_setups: the engine is the only legitimate author
+// of a setup, so the write runs on the service role and `authenticated` holds no
+// insert grant on that table at all. Every caller still passes an explicit
+// user_id, which is what scopes the row — RLS was defence in depth over a filter
+// the code already applies, never the thing doing the scoping.
+export async function adminInsertSingle(
+  table: string,
+  payload: Record<string, unknown>,
+) {
+  const response = await adminSupabaseFetch(table, {
+    body: JSON.stringify(payload),
+    headers: {
+      Prefer: "return=representation",
+    },
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const rows = (await response.json()) as Array<{ id: string }>;
+  return rows[0];
+}
+
 export async function adminUpdateRows<T = unknown>(
   path: string,
   payload: Record<string, unknown>,

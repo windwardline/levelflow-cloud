@@ -62,7 +62,9 @@ import {
 import { recordAnalyzerEvent, recordMarketDataHealth } from "./telemetry.ts";
 import {
   adminFetchRows,
+  adminInsertSingle,
   adminRpcRows,
+  adminUpdateRows,
   adminUpsertRows,
   fetchRows,
   fetchSingle,
@@ -70,9 +72,6 @@ import {
   getAuthenticatedUser,
   hasSupabaseAdminConfig,
   hasSupabaseRuntimeConfig,
-  insertSingle,
-  updateRows,
-  upsertRows,
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
@@ -1079,9 +1078,15 @@ async function analyzeSetup(
     }
   >(
     token,
+    // The version predicate is not decoration. The learning WRITE filters on
+    // ANALYZER_VERSION and the reads did not, so a version bump left production
+    // applying adjustments fitted by the previous engine — forever, because the
+    // refresh then matches zero outcomes at the new version, upserts nothing,
+    // and reports `updated: 0`, which reads as "nothing to do". Every calibration
+    // round that bumps the version depends on this being here.
     `strategy_weightings_global?select=confidence_adjustment,sample_weight,total_setups&setup_key=eq.${
       encodeURIComponent(setupKey)
-    }&limit=1`,
+    }&analyzer_version=eq.${encodeURIComponent(ANALYZER_VERSION)}&limit=1`,
   );
   const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
 
@@ -1266,9 +1271,11 @@ async function explainNoSetup(
       { confidence_adjustment: number | string }
     >(
       token,
+      // Same version predicate as the single-market path above, for the same
+      // reason — the scan path scores with the same adjustment.
       `strategy_weightings_global?select=confidence_adjustment&setup_key=eq.${
         encodeURIComponent(setupKey)
-      }&limit=1`,
+      }&analyzer_version=eq.${encodeURIComponent(ANALYZER_VERSION)}&limit=1`,
     );
     const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
     const pricePlan = buildPricePlan(
@@ -1409,8 +1416,7 @@ async function upsertActiveSetup(
     // one setup, two verdicts, the second measured against prices that never
     // existed at decision time. With it, the write simply matches nothing and
     // this scan reports the symbol as failed.
-    const updatedRows = await updateRows(
-      token,
+    const updatedRows = await adminUpdateRows(
       `trade_setups?id=eq.${encodeURIComponent(activeSetup.id)}&user_id=eq.${
         encodeURIComponent(userId)
       }&status=eq.${encodeURIComponent(activeSetup.status)}`,
@@ -1470,7 +1476,7 @@ async function upsertActiveSetup(
     }
   }
 
-  const tradeSetup = await insertSingle(token, "trade_setups", {
+  const tradeSetup = await adminInsertSingle("trade_setups", {
     user_id: userId,
     symbol,
     provider_symbol: fmpSymbol,
@@ -1516,8 +1522,7 @@ async function invalidateActiveSetupsForSymbol(
   userId: string,
   symbol: SupportedSymbol,
 ): Promise<number> {
-  const invalidatedRows = await updateRows(
-    token,
+  const invalidatedRows = await adminUpdateRows(
     `trade_setups?user_id=eq.${encodeURIComponent(userId)}&symbol=eq.${
       encodeURIComponent(symbol)
     }&status=in.(generated,placed)`,
@@ -1653,8 +1658,7 @@ async function markSetupStatus(
   setup: SetupForOutcome,
   status: "expired" | "filled" | "placed",
 ) {
-  const updatedRows = await updateRows(
-    token,
+  const updatedRows = await adminUpdateRows(
     `trade_setups?id=eq.${encodeURIComponent(setup.id)}&user_id=eq.${
       encodeURIComponent(userId)
     }&status=eq.${encodeURIComponent(setup.status)}`,
@@ -1682,8 +1686,7 @@ async function upsertOutcome(
     reviewedAt: string;
   },
 ) {
-  await upsertRows(
-    token,
+  await adminUpsertRows(
     "trade_outcomes",
     {
       analyzer_version: setup.analyzer_version ?? "unversioned",
