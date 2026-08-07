@@ -1824,3 +1824,129 @@ automatically the moment `scripts/verify-fmp-matches.ts` finds a source, and
 still ejects a SERVED market whose feed lapses — that is a source failure, not a
 calibration verdict, and it remains automatic. Amendment 31 governs the
 judgment calls, not the source gate.
+
+## Amendment 32 — a derivative is not its underlying (owner ruling, 2026-08-07)
+
+> "If we have index futures from E8 with no index futures from FMP matched, they
+> need to be on the dormant list as unmatched. I know the data is identical for
+> cash indices, but the measurements are different and that is where the offset
+> is coming from. No matches, no inclusion, but we need to be able to revisit
+> that later as product offerings change."
+
+**Universal, every broker and every account type** (owner, same ruling): *"If we
+do not have an actual match on FMP, it needs to be on the dormant list and
+excluded for the user of Levelflow. Data integrity is critical to maintain."*
+This is not a futures rule or an E8 rule. It is the identity rule for every
+market Levelflow will ever serve.
+
+**A future written on X is not X.** The cash index and the future on it are two
+different instruments with two different measurements, and the gap between them
+is not a venue quirk to be measured off — it *is* the difference between the
+instruments. Same for a currency future against its spot pair. Matching one to
+the other is not a match, so amendment 31's coverage floor never applied to them
+and there is nothing to remove under it: they were never matched in the first
+place.
+
+**This retires the design that briefly stood in this section.** An earlier draft
+of amendment 32 proposed modelling the carry — a basis computed per decision from
+rate differential and days to expiry — so these markets could keep being served.
+That was the wrong answer to the right observation. Building a model to
+manufacture a series we do not have is not the same as having the series, and it
+would have shipped a derived number wearing a measured number's clothes. The
+ruling is simpler: no match, no inclusion.
+
+**What it covers — thirteen rows, four of them live.** `EMD` on `^MID`, `FDAX` on
+`^GDAXI`, `FESX` on `^STOXX50E`, `NKD` on `^N225` were served and visible; `FDXM`
+sat behind `FDAX` as a variant; and eight CME currency futures — `6E`, `6A`,
+`6B`, `6N`, `6C`, `6S`, `6J`, `6M` — were mapped to spot pairs. All thirteen are
+**unmatched and dormant**: invisible, out of every analysis, and out of the sweep.
+
+**What it does NOT cover, and the line is the instrument, not the ticker.** A CFD
+that tracks an instrument, matched to that instrument's own series, is a real
+match and is unaffected:
+- The six cash index CFDs — ASX, DAX, DOW, NIKKEI, NSDQ, SP — are *cash* products
+  on cash series. Correct, and they stay.
+- The static measured offsets of amendment 30 — XAGUSD +0.17, WTI +0.24,
+  BRENT +1.67 — are the same instrument quoted by two venues, not two different
+  instruments. Amendment 30 stands unchanged.
+
+**Revisitable, and automatically.** This is a dormancy, not a verdict. Product
+offerings change and FMP's coverage changes; `scripts/verify-fmp-matches.ts`
+re-probes for a genuine futures series on every run, and any of these thirteen
+returns the moment one exists. Nothing here requires a human to remember.
+
+### The audit this ruling forces, and the one case it does not settle
+
+Every served market was checked for instrument identity, not just the futures.
+102 served, 14 whose FMP symbol differs from their Levelflow symbol. Twelve
+resolve cleanly:
+
+- **Two are spelling, same coin** — `ARWUSD`→`ARUSD` (Arweave) and
+  `TRUMPUSD`→`OTRUMPUSD` (FMP's literal `TRUMPUSD` is a different, moribund
+  token). Real matches.
+- **Six are cash CFDs on cash series** — ASX, DAX, DOW, NIKKEI, NSDQ, SP. Real
+  matches, and the contrast that makes this ruling coherent: the same `^GDAXI`
+  series is a correct match for the DAX *cash* CFD and an incorrect one for the
+  `FDAX` *future*.
+- **Four are the index futures this ruling removes.**
+
+**Undecided, and it needs the owner: BRENT→`BZUSD` and WTI→`CLUSD`.** Both are E8
+oil CFDs mapped to FMP's oil *futures*. Broker oil CFDs are conventionally written
+on the front-month future, which would make these the same instrument and a real
+match — and amendment 30 ruled on them that way earlier the same day, explicitly
+retiring the significance bar that had excluded BRENT.
+
+What is not established is whether E8 tracks the *same expiry* FMP publishes. The
+measured offsets point different ways: WTI at +0.24 on ~\$80 is about 30bp, which
+is spread-shaped; BRENT at +1.67 on ~\$85 is about 196bp, which is large enough to
+be a different contract month rather than a spread. A different month is a
+different instrument and would fall under this ruling.
+
+*Recommendation:* keep both serving for now — amendment 30 is a direct ruling on
+these two markets and this ruling was aimed at derivatives-on-underlyings, not at
+CFD-on-future. Settle it with one frame: compare E8's live BRENT and WTI quotes
+against FMP's front-month **and** next-month. If E8 tracks the front month, they
+are matches and amendment 30 stands unchanged. If BRENT tracks a different month,
+it goes dormant under this ruling and amendment 30's BRENT clause is superseded.
+Until that frame exists, neither is asserted as settled.
+
+## Amendment 33 — the calibration mandate (owner ruling, 2026-08-07)
+
+The standing goal, in the owner's own framing, for everything between here and
+the hedge mind:
+
+> Levelflow operating like a finely tuned, highly sophisticated tool which can
+> identify an overwhelmingly high number of money-positive trade setups, can
+> justify how it did it, and can present reliable, defensible information to the
+> user.
+
+Three obligations, and the middle one is the one that usually gets dropped:
+**find the setups**, **justify the method**, **defend the presentation**. A
+calibration that improves expectancy but cannot explain itself fails this ruling
+as surely as one that does not improve expectancy.
+
+**Per market, not per class.** Broadly applied standards have been repeatedly
+measured wrong — indices' `tp1RiskShare` at 1.2 where every other class ran
+0.4–0.8, oats starved at its class's 6-hour window, livestock unmeasurable until
+its window tripled, execution cost off by 1.79–2.69× on copper and gas. Every one
+of those was a class value applied to a market it did not fit. The next
+derivation is per market, and a class value survives only where a market's own
+data says it should.
+
+**To the true limit of each market's data, discovered rather than assumed.**
+History depth varies per market and per timeframe, and a sweep that assumes a
+common span silently truncates the markets with more and fabricates confidence
+about the markets with less. The span is measured first, per market, per
+timeframe, and recorded.
+
+**Everything is in scope, including the model itself.** Stops, TP1 and runner,
+entries, review windows and timing thresholds, confidence bands or whatever
+replaces them, tick and pip thresholds, starvation accounting, session gating,
+regime conditioning. And before tuning any of it: an honest review of whether the
+geometry *model* is the right shape at all. Tuning parameters inside a wrong
+model is the most expensive way to learn nothing, and round 28 is the cheap
+version of that lesson.
+
+**Iterate until the returns diminish, then stop and say so.** This does not
+license change for its own sake — the stopping rule stands. Rounds continue while
+they yield, and the diminished-returns point is declared out loud when reached.
