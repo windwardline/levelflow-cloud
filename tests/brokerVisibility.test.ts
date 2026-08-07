@@ -378,14 +378,21 @@ describe("no user surface bypasses the resolver — source-text pins over the fo
     assert.doesNotMatch(source, /OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE/);
   });
 
-  it("HistoryPanel.tsx (the Insights market filter) imports the resolver from visibility.ts, not a competing table", () => {
+  it("HistoryPanel.tsx resolves nothing — Insights is exempt (amendment 29)", () => {
+    // This used to require the resolver import, on the reasoning that every
+    // user surface must reach the offering through one place rather than a
+    // competing table. Correct for surfaces that GENERATE; wrong for Insights,
+    // which produces no price and is the record of every account the operator
+    // holds (amendment 29, owner 2026-08-07).
+    //
+    // The requirement inverts rather than relaxes: Insights must consult NO
+    // account resolver, so there is nothing to compete with. A competing table
+    // is still barred, and now so is the resolver itself.
     const source = readFileSync("src/components/workspace/HistoryPanel.tsx", "utf8");
-    assert.match(
-      source,
-      /import \{ visibleAssetGroups \} from "\.\.\/\.\.\/lib\/broker\/visibility";/,
-    );
+    assert.doesNotMatch(source, /from "\.\.\/\.\.\/lib\/broker\/visibility"/);
     assert.doesNotMatch(source, /HIDDEN_ASSET_TYPES_BY_CLASSIFICATION/);
     assert.doesNotMatch(source, /OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE/);
+    assert.doesNotMatch(source, /AVAILABLE_ASSET_GROUPS/);
   });
 
   it("ScopeMenu.tsx and MarketScanPanel.tsx never import visibility.ts, masterList.ts, or exclusions.ts directly — they render whatever pre-filtered groups/symbols their caller threads through as props", () => {

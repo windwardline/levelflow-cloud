@@ -740,7 +740,6 @@ export default function App() {
               lifetimeSetups={setupState.lifetimeSetups}
               loadFailed={setupState.loadFailed}
               loading={setupState.loading}
-              profile={profile}
               setups={setupState.setups}
             />
           ) : null}

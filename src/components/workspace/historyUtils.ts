@@ -12,6 +12,8 @@ import {
 import {
   compareAssetSymbols,
   getSecurityOption,
+  SECURITY_GROUPS,
+  type SecurityGroup,
   type SecurityType,
 } from "../../lib/symbolMap";
 import { deriveTradeState, entryHasFilled } from "../../lib/tradeState";
@@ -664,4 +666,32 @@ export function formatInsightsResult(
 
 function withRealizedR(label: string, realizedR: number | null): string {
   return realizedR === null ? label : `${label} · ${formatSignedR(realizedR)}`;
+}
+
+/**
+ * The market groups an operator has actually traded, for Insights' filter.
+ *
+ * Insights is exempt from account segmentation (owner ruling, 2026-08-07): it
+ * generates nothing, so there is no unplaceable-price risk to protect against,
+ * and it is the record of every market across every account the operator holds.
+ * A record that hides part of itself because of which account is selected today
+ * is not a record.
+ *
+ * Not the whole roster either. A filter option for a market with no rows behind
+ * it is noise, and on a 100+ market universe it is a lot of noise. So the list
+ * is derived from the ledger itself: exactly the markets that have rows, in the
+ * roster's own group order, which makes it self-maintaining as the universe
+ * grows and as the operator's history does.
+ */
+export function groupsForTradedSymbols(
+  setups: Pick<TradeSetupRow, "symbol">[],
+): SecurityGroup[] {
+  const traded = new Set(setups.map((setup) => setup.symbol));
+  if (traded.size === 0) {
+    return [];
+  }
+  return SECURITY_GROUPS.map((group) => ({
+    ...group,
+    options: group.options.filter((option) => traded.has(option.symbol)),
+  })).filter((group) => group.options.length > 0);
 }

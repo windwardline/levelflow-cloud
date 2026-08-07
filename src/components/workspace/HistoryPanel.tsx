@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { isDisplayExcluded } from "../../lib/broker/offsets";
 import { useIsMobileViewport } from "../../hooks/useMobileViewport";
-import { visibleAssetGroups } from "../../lib/broker/visibility";
-import { activeAccountOf, type UserProfile } from "../../lib/profile";
 import type { LifetimeSetupRow, TradeSetupRow } from "../../lib/tradeAnalyzer";
 import {
   MOBILE_FRAME,
@@ -23,6 +21,7 @@ import {
   formatSignedR,
   getOutcomeClassName,
   getSetupOutcome,
+  groupsForTradedSymbols,
   HISTORY_LOAD_FAILED_COPY,
   marketFilterValue,
   parseMarketFilterValue,
@@ -52,7 +51,6 @@ export function HistoryPanel({
   lifetimeSetups,
   loadFailed,
   loading,
-  profile,
   setups,
 }: {
   // The lifetime record (spec §18): what the record band and Attribution are
@@ -64,17 +62,26 @@ export function HistoryPanel({
   // known-empty.
   loadFailed: boolean;
   loading: boolean;
-  // §19 retrofit, Task 8 (amendment 13): the Market filter's own options
-  // follow the active account, the same way the scan scope menu's do — this
-  // is the whole of what this surface needs from the profile.
-  profile: UserProfile;
   setups: TradeSetupRow[];
 }) {
-  const activeAccount = activeAccountOf(profile);
-  // Computed fresh every render off activeAccount, never cached — the same
-  // rule AdvisorWorkspace's own visibleGroups follows (Task 5's rule for
-  // activeAccountOf itself).
-  const visibleGroups = visibleAssetGroups(activeAccount);
+  // Insights is EXEMPT from account segmentation (owner ruling, 2026-08-07).
+  //
+  // The Desk is segmented because it generates setups: offering a futures
+  // market to a forex account would produce a limit price the operator cannot
+  // place. Insights generates nothing. It is the record of what the operator
+  // has ALREADY traded, across every market and every account they hold, and a
+  // record that hides part of itself because of which account is selected today
+  // is not a record.
+  //
+  // The rows were never filtered — the ledger has always shown everything — but
+  // the market FILTER was built from visibleAssetGroups, so an operator on a
+  // forex account could not slice their own history to a futures market they
+  // had traded. The data was there and the way to look at it was not.
+  //
+  // The filter now offers exactly the markets this operator has actually
+  // traded, which is both wider than one account's offering and narrower than
+  // the whole roster: a market with no rows is not a filter, it is noise.
+  const tradedGroups = groupsForTradedSymbols(setups);
   const [marketScope, setMarketScope] = useState<ScanScope>({ kind: "all" });
   const [statusFilter, setStatusFilter] = useState<InsightsStatusFilter>(
     "all",
@@ -96,16 +103,14 @@ export function HistoryPanel({
       return;
     }
     const stillVisible = marketScope.kind === "group"
-      ? visibleAssetGroups(activeAccount).some((group) =>
-        group.label === marketScope.assetType
-      )
-      : visibleAssetGroups(activeAccount).some((group) =>
+      ? tradedGroups.some((group) => group.label === marketScope.assetType)
+      : tradedGroups.some((group) =>
         group.options.some((option) => option.symbol === marketScope.symbol)
       );
     if (!stillVisible) {
       setMarketScope({ kind: "all" });
     }
-  }, [activeAccount, marketScope]);
+  }, [tradedGroups, marketScope]);
 
   // A plain per-render read, not a ticking clock: pending/open/closed
   // classification and period-boundary filtering only need "roughly now",
@@ -209,7 +214,7 @@ export function HistoryPanel({
             setMarketScope(parseMarketFilterValue(event.target.value))}
         >
           <option value={ALL_MARKETS_FILTER}>All markets</option>
-          {visibleGroups.map((group) => (
+          {tradedGroups.map((group) => (
             <optgroup key={group.label} label={group.label}>
               <option value={`group:${group.label}`}>
                 All {group.label}
