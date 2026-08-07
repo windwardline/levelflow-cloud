@@ -70,8 +70,8 @@ step leaves every signed-in operator working behind a closed door.
   covered, so removing it is not a coverage reversal.
 - **Amendment 33** — **the calibration mandate.** Per market, never per class; to
   each market's own discovered data limit; the geometry model reviewed before it
-  is tuned. The standard is a tool that finds an overwhelmingly high number of
-  money-positive setups, can justify how, and presents defensible information.
+  is tuned. The standard: identify money-positive setups at a high rate, account
+  for how each was derived, present figures the operator can defend.
 - Decisions A–F, amendment 26, and every item in the old sections 6 and 8 remain
   approved. Sections 5 and 8 also record findings **verified as non-problems** — do not
   re-investigate those.
@@ -201,9 +201,9 @@ classes · **1p** TP1 never tick-aligned for futures (98.9% off-grid — fold in
 Done: 1a, 1d, 1k, 1n, 1s.
 
 ### 1.5 — Unmatched markets go dormant (amendment 32) — **spec'd, ready to run**
-Owner ruling: *"If we do not have an actual match on FMP, it needs to be on the
-dormant list and excluded for the user of Levelflow. Data integrity is critical to
-maintain."* Universal — every broker, every account type.
+Owner ruling: any market without a genuine FMP match is dormant and excluded from
+the user's view. Data integrity outranks coverage. Universal — every broker, every
+account type.
 
 **A future written on X is not X.** The cash index and the future on it are two
 different instruments; the gap between them is not a venue offset to be measured
@@ -282,18 +282,14 @@ per-trade expectancy delta.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
 **This is the point of the whole retrofit, and it is not one item.** Everything
-above exists so this can be done once, honestly. The owner's standing goal, in
-their framing:
+above exists so this can be done once, honestly.
 
-> Levelflow operating like a finely tuned, highly sophisticated tool which can
-> identify an overwhelmingly high number of money-positive trade setups, can
-> justify how it did it, and can present reliable, defensible information to the
-> user.
-
-Three obligations, and the middle one is the one that gets dropped: **find the
-setups, justify the method, defend the presentation.** A calibration that lifts
-expectancy but cannot explain itself fails this as surely as one that lifts
-nothing.
+The standard, per amendment 33: the engine identifies money-positive setups at a
+high rate, can account for how each was derived, and presents figures the operator
+can rely on and defend to someone else. **Find, justify, defend** — three
+obligations, and the second is the one most often dropped. A calibration that
+lifts expectancy while remaining unable to explain itself fails this as completely
+as one that lifts nothing.
 
 Five phases, in order. Do not collapse them.
 
@@ -549,11 +545,10 @@ runner, entries, windows and timing, confidence bands or their replacement, tick
 thresholds, starvation accounting — each gated by item 3's acceptance bar. 4e iterates
 until the returns diminish, then says so out loud.
 
-The standard for done, in my words, is amendment 33: Levelflow operating like a finely
-tuned, highly sophisticated tool which can identify an overwhelmingly high number of
-money-positive trade setups, can justify how it did it, and can present reliable,
-defensible information to the user. Find the setups, justify the method, defend the
-presentation — all three.
+The standard for done is amendment 33: the engine identifies money-positive setups at a
+high rate, can account for how each one was derived, and presents figures I can rely on
+and defend to someone else. Find, justify, defend — all three, and the second is the one
+that gets dropped.
 
 Round 28 is the standing warning: a 96-variant grid over four axes moved indices'
 survival by one point and declared the status quo optimal, because the axis that
