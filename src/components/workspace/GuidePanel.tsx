@@ -327,7 +327,7 @@ function GuideDeck() {
         <blockquote className="border-l-[3px] border-accent bg-accent/5 py-3 pl-4 pr-4 text-base font-semibold leading-7 text-ink sm:text-lg">
           {CANONICAL_LADDER_INSTRUCTION}
         </blockquote>
-        <p>In platform terms, that is three moments:</p>
+        <p>In platform terms, that is four moments:</p>
         <ol className="grid list-decimal gap-2 ps-5">
           <li>
             <strong className="text-ink">Place the trade.</strong> Open a
@@ -340,14 +340,19 @@ function GuideDeck() {
             <strong className="text-ink">Target 1 hits.</strong> Close
             half the position (a partial close), and modify the stop
             loss to your entry price. Half your profit is real money
-            now, and the rest of the trade can no longer cost you
-            anything.
+            now, and the rest risks only the spread.
           </li>
           <li>
             <strong className="text-ink">The finish.</strong> The
             remaining half either reaches Target 2 — your take-profit
             closes it — or comes back to your entry and closes flat.
-            Profit either way. That is the whole design.
+            Profit either way on the second half.
+          </li>
+          <li>
+            <strong className="text-ink">The stop hits first.</strong>{" "}
+            The trade closes for a full loss of what you risked. This is
+            the common case the payoff is built to outweigh, not a
+            failure of the setup.
           </li>
         </ol>
         <p>
@@ -422,13 +427,13 @@ function GuideDeck() {
           take-profit reached, half banked at Target 1, or a finish that
           closed in profit. Any finish that ended in profit counts as
           {" "}<strong className="text-ink">money-positive</strong>; every
-          other finish counts against the record.
+          other finish counts against the record. The replay fills an
+          order whenever price touches the level and deducts no spread,
+          so every figure is before costs — a ceiling, not a forecast.
         </p>
         <p>
-          Below 55% money-positive, Levelflow treats a market's record
-          as weak: scans stop offering it, and if you review it
-          directly, the setup says so plainly. You can still trade it —
-          the history just is not on your side.
+          A market's record does not gate the scan. Read it and size
+          accordingly.
         </p>
         <p>
           Finished setups across all of Levelflow feed back into future

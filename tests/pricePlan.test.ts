@@ -290,4 +290,56 @@ describe("price plan integration", () => {
       );
     }
   });
+
+// stopLogic was a constant asserting the stop sat "beyond the nearest confirmed
+// swing pivot with a volatility buffer" on EVERY setup. It does not: structural
+// candidates are floored at 1.25 ATR while the cap is maxStopAtrMultiplier × ATR
+// — 1.0 in seven of eight classes — so the cap binds unconditionally and the
+// pivot never wins outside metals. The sentence was false wherever it mattered,
+// while stopProvenance sat two lines away recording the truth.
+//
+// It is now derived from that provenance, so the description cannot outlive the
+// mechanism. These assert the pairing rather than any one wording.
+describe("stopLogic describes what actually set the stop", () => {
+  const cases: Array<[string, string]> = [
+    ["cap", "volatility ceiling"],
+    ["pivot", "swing pivot"],
+    ["volatility_floor", "minimum volatility width"],
+  ];
+
+  it("says the ceiling bound it when the ceiling bound it", () => {
+    const plan = buildPricePlan(
+      "buy",
+      "EURUSD",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(plan);
+    const expected = cases.find(([provenance]) =>
+      provenance === plan.stopProvenance
+    );
+    assert.ok(expected, `unknown provenance ${plan.stopProvenance}`);
+    assert.match(plan.stopLogic, new RegExp(expected![1]));
+  });
+
+  it("never claims a pivot anchored a stop the cap set", () => {
+    const plan = buildPricePlan(
+      "buy",
+      "EURUSD",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(plan);
+    if (plan.stopProvenance !== "pivot") {
+      assert.doesNotMatch(
+        plan.stopLogic,
+        /swing pivot/,
+        "a stop the pivot did not set must not be described as pivot-anchored",
+      );
+    }
+  });
 });
+});
+

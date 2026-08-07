@@ -1,3 +1,4 @@
+import { AGRICULTURE_SYMBOLS, LIVESTOCK_SYMBOLS } from "./advisorReview";
 import type { SecurityType } from "./symbolMap";
 
 // Measured outcomes from the 2026-07-30 instrumented replay: each symbol's
@@ -25,19 +26,36 @@ export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
   Metals: { moneyPositiveRate: 0.9, sampleSize: 453 },
 };
 
-export function describeReplayRecord(assetType: SecurityType) {
+// A record belongs to the population it was measured on, and to no other.
+//
+// The table above is keyed on the DISPLAY SecurityType, and agriculture and
+// livestock both display as `Futures` — so corn, soybeans, oats and lean hogs
+// were each carrying "Across 2,368 past Futures setups ... 83%", a figure
+// measured on a handful of CME financials weeks before any of them existed in
+// the universe. A precise, numeric, market-specific sentence is exactly what
+// makes a claim credible, and exactly what makes a wrong one damaging.
+//
+// They resolve to their own engine class, which has no record of its own yet,
+// so they render none. An absent row is honest; an inherited one is not.
+function hasOwnMeasuredRecord(symbol: string): boolean {
+  return !AGRICULTURE_SYMBOLS.has(symbol) && !LIVESTOCK_SYMBOLS.has(symbol);
+}
+
+export function describeReplayRecord(symbol: string, assetType: SecurityType) {
   const record = REPLAY_RECORD_BY_ASSET_TYPE[assetType];
-  if (!record) {
+  if (!record || !hasOwnMeasuredRecord(symbol)) {
     return null;
   }
   const rate = Math.round(record.moneyPositiveRate * 100);
-  const weakRecord = record.moneyPositiveRate < 0.55;
-  const base =
-    `Across ${record.sampleSize} past ${assetType} setups reserved for honest testing, filled setups ended money-positive ${rate}% of the time.`;
+  // "before costs" is the whole of the bound, and it is not decoration. The
+  // replay fills an order whenever price touches the level and subtracts no
+  // spread, commission or financing anywhere — grep sweep.ts and replay.ts for
+  // a cost term and there is none. So this is a ceiling, not a forecast, and a
+  // reader who takes it for a net figure has been misled by omission.
   return {
-    detail: weakRecord
-      ? `${base} This market's historical record is weak, so Levelflow's scans skip it — review it here only with care.`
-      : base,
-    value: `${rate}% money-positive`,
+    detail:
+      `Across ${record.sampleSize} past ${assetType} setups reserved for honest testing, ` +
+      `filled setups ended money-positive ${rate}% of the time before costs.`,
+    value: `${rate}% money-positive before costs`,
   };
 }
