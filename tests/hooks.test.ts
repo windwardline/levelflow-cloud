@@ -457,19 +457,22 @@ describe("useAuthSession browser-session marker (source-pinned — see header)",
     // PKCE holds the honest answer. signInWithOtp writes a code verifier and
     // exchangeCodeForSession removes it, so its presence IS "this browser
     // started a sign-in and has not finished it". No URL creates one.
-    assert.match(source, /return authExchangePending\(\);/);
-    for (const urlTest of [
-      /search\.includes\("code="\)/,
-      /search\.includes\("token_hash="\)/,
-      /hash\.includes\("access_token="\)/,
-      /hash\.includes\("refresh_token="\)/,
-    ]) {
-      assert.doesNotMatch(
-        source,
-        urlTest,
-        "no URL a third party can type may restore a stored session",
-      );
-    }
+    // BOTH halves, and the second was learned the hard way. A verifier alone
+    // outlives an abandoned sign-in, so it restored a stored session on a plain
+    // "/" load — the next-person-at-the-machine case the posture exists to
+    // close. The e2e suite caught it at deploy time.
+    assert.match(
+      source,
+      /return authCallbackInUrl\(\) && authExchangePending\(\);/,
+    );
+    // The URL half may exist, but never alone: it is the one piece of state a
+    // third party controls, so it can only ever narrow, never unlock.
+    assert.match(source, /function authCallbackInUrl\(\)/);
+    assert.doesNotMatch(
+      source,
+      /return authExchangePending\(\);\s*\}/,
+      "the verifier alone restores a session an abandoned sign-in left behind",
+    );
   });
 
   it("clears the marker on every path that ends with no session", () => {
