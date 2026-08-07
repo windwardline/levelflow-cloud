@@ -44,6 +44,24 @@ const REVIEW_WINDOW_HOURS_BY_CLASS = {
   livestock: 24,
 } as const;
 
+/**
+ * Per-symbol windows, mirroring the engine's SYMBOL_CALIBRATION_OVERRIDES.
+ *
+ * A third resolution layer, added 2026-08-07 because round 28 created the first
+ * symbol override to touch a value this file mirrors. Oats gets 24 hours where
+ * its agriculture class gets 6, and without this the UI would have told an oats
+ * user "6h" while the engine reviewed over 24 — the same divergence the
+ * class-level layer was built to prevent, one level further down.
+ *
+ * Checked FIRST, because the engine resolves symbol overrides last and therefore
+ * most specifically. tests/calibrationState.test.ts walks every tradable symbol
+ * against the engine's own resolver, so the next override that lands here fails
+ * that test rather than shipping a wrong number to the surface.
+ */
+const REVIEW_WINDOW_HOURS_BY_SYMBOL: Record<string, number> = {
+  ZOUSX: 24,
+};
+
 /** Extra confidence floors for the same two classes. */
 const CONFIDENCE_THRESHOLD_BY_CLASS = {
   // agriculture HOLDS at 30: the final sweep derives no surviving floor for it
@@ -64,6 +82,8 @@ export function reviewWindowHoursForSymbol(
   symbol: string,
   assetType: SecurityType,
 ): number {
+  const bySymbol = REVIEW_WINDOW_HOURS_BY_SYMBOL[symbol];
+  if (bySymbol !== undefined) return bySymbol;
   if (AGRICULTURE_SYMBOLS.has(symbol)) return REVIEW_WINDOW_HOURS_BY_CLASS.agriculture;
   if (LIVESTOCK_SYMBOLS.has(symbol)) return REVIEW_WINDOW_HOURS_BY_CLASS.livestock;
   return REVIEW_WINDOW_HOURS_BY_ASSET_TYPE[assetType];
@@ -84,7 +104,12 @@ export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
   Energies: 6,
   Forex: 8,
   Futures: 6,
-  Indices: 5,
+  // 5 -> 8 (round 28, 2026-08-06). The five-hour window was half of why the
+  // cash indices were starved: it capped the runner so near that no plan could
+  // satisfy minimumTargetRewardRisk against a TP1 required further out than the
+  // stop. Derived jointly with tp1RiskShare and the stop cap, because those
+  // three could not be derived one at a time.
+  Indices: 8,
   Metals: 8,
 };
 
