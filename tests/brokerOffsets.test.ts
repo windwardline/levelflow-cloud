@@ -19,7 +19,7 @@ import {
 const STATE = {
   XAGUSD: { basis: 0.17, displayExcluded: false },
   WTI: { basis: 0.24, displayExcluded: false },
-  BRENT: { basis: 1.67, displayExcluded: true },
+  BRENT: { basis: 1.67, displayExcluded: false },
 } as const;
 
 describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () => {
@@ -52,24 +52,30 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
     }
   });
 
-  it("display-excludes exactly BRENT — the offset ruling's own scope", () => {
-    assert.deepEqual([...DISPLAY_EXCLUDED_SYMBOLS], ["BRENT"]);
+  it("display-excludes nothing — amendment 30 retired the significance bar", () => {
+    // BRENT was its only member. Amendment 30: a real match with a measurable
+    // offset is SHOWN with the line that states it, never hidden — the offset's
+    // size is a reason to state it more plainly, not to withhold the market.
+    // The set stays as the mechanism; nothing occupies it today.
+    assert.deepEqual([...DISPLAY_EXCLUDED_SYMBOLS], []);
   });
 
   // Fix round 1 (2026-08-05): the one predicate every reopen-affordance check
   // (AdvisorWorkspace's stored-setup gate, the Current trades rail, the
   // Insights row) reuses — never a second, independently-maintained list.
   it("isDisplayExcluded agrees with DISPLAY_EXCLUDED_SYMBOLS for every case", () => {
-    assert.equal(isDisplayExcluded("BRENT"), true);
+    assert.equal(isDisplayExcluded("BRENT"), false);
     assert.equal(isDisplayExcluded("XAGUSD"), false);
     assert.equal(isDisplayExcluded("WTI"), false);
     assert.equal(isDisplayExcluded("EURUSD"), false);
   });
 
-  it("shows the basis line for XAGUSD and WTI, never for BRENT or an unrecorded symbol", () => {
+  it("shows the basis line for every recorded offset, and only for those", () => {
     assert.equal(isBasisDisplayed("XAGUSD"), true);
     assert.equal(isBasisDisplayed("WTI"), true);
-    assert.equal(isBasisDisplayed("BRENT"), false);
+    // The whole point of amendment 30: BRENT now SHOWS its basis, like the
+    // other two recorded offsets.
+    assert.equal(isBasisDisplayed("BRENT"), true);
     assert.equal(isBasisDisplayed("EURUSD"), false);
   });
 
@@ -84,8 +90,10 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
       assert.equal(adjustedEntryFor("WTI", 80.00), 80.24);
     });
 
-    it("never computes an adjusted entry for BRENT — display-excluded means never shown", () => {
-      assert.equal(adjustedEntryFor("BRENT", 85.00), null);
+    it("adds BRENT's basis too, now that it is shown rather than hidden", () => {
+      // 85.00 + 1.67 = 86.67. The operator sees E8's own number instead of a
+      // silent 1.67 discrepancy between the ladder and their platform.
+      assert.equal(adjustedEntryFor("BRENT", 85.00), 86.67);
     });
 
     it("returns null for a symbol with no recorded offset", () => {

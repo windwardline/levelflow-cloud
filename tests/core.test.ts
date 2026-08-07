@@ -67,7 +67,7 @@ describe("asset catalog", () => {
       AVAILABLE_ASSET_GROUPS.map((group) => group.label),
       // Indices vanished in r15: every member is on the measured no-trade
       // list, so the group has no generatable options.
-      ["Crypto", "Energies", "Forex", "Futures", "Metals"],
+      ["Crypto", "Energies", "Forex", "Futures", "Indices", "Metals"],
     );
 
     const forex = AVAILABLE_ASSET_GROUPS.find(
@@ -87,31 +87,41 @@ describe("asset catalog", () => {
     const crypto = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Crypto",
     )?.options.map((option) => option.symbol);
-    assert.deepEqual(crypto, [
+    // All 33 the Crypto account offers, every one FMP-matched with a measured
+    // delta. Pinned as a prefix plus a count so the ordering rule stays under
+    // test without the literal becoming the test's whole subject.
+    assert.equal(crypto?.length, 33);
+    assert.deepEqual(crypto?.slice(0, 6), [
+      "AAVEUSD",
       "ADAUSD",
-      "BCHUSD",
-      "BTCUSD",
-      "ETHUSD",
-      "LTCUSD",
-      "SOLUSD",
-      "XRPUSD",
+      "ALGOUSD",
+      "ARWUSD",
+      "ATOMUSD",
+      "AVAXUSD",
     ]);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("BNBUSD"), false);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("BNBUSD"), true);
 
     const energies = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Energies",
     )?.options.map((option) => option.symbol);
     assert.deepEqual(energies, ["BRENT", "WTI"]);
 
+    // Indices is a rendered group again, and SP, NGUSD, HGUSD and ASX are all
+    // available — every one has an FMP match, which is the only test the
+    // owner's 2026-08-07 ruling admits. ASX additionally satisfied its own hide
+    // condition: F2 measured ^AXJO at -5.7 (0.06%) in Sydney's cash session.
     const indices = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Indices",
     );
-    assert.equal(indices, undefined);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("NGUSD"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("HGUSD"), false);
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("ASX"), false);
-    assert.equal(isAvailableAssetSymbol("ASX"), false);
+    assert.ok(indices, "Indices renders as a group again");
+    assert.deepEqual(
+      indices!.options.map((option) => option.symbol).sort(),
+      ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"],
+    );
+    for (const symbol of ["SP", "NGUSD", "HGUSD", "ASX"]) {
+      assert.equal(AVAILABLE_ASSET_SYMBOLS.includes(symbol), true, symbol);
+    }
+    assert.equal(isAvailableAssetSymbol("ASX"), true);
   });
 
   it("formats user-facing asset labels without provider fallback details", () => {
@@ -145,7 +155,7 @@ describe("asset catalog", () => {
         group.options.map((option) => option.symbol)
       ),
     );
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), false);
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("SP"), true);
     assert.equal(AVAILABLE_ASSET_SYMBOLS.includes("WTI"), true);
   });
 
@@ -401,22 +411,24 @@ describe("trade analyzer category handling", () => {
     assert.deepEqual(resolveProviderSymbols("ASX"), ["^AXJO"]);
     assert.deepEqual(resolveProviderSymbols("DAX"), ["^GDAXI"]);
     assert.equal(isTemporarilyUnavailableSymbol("NSDQ"), false);
-    assert.equal(isTemporarilyUnavailableSymbol("ASX"), true);
-    // r15 re-derivation retired the old CHF-pair and crypto-alt exclusions;
-    // r16 made the menu binary — the only exclusions are the measured
-    // no-trade list (cash indices, NGUSD, HGUSD, BNBUSD), out of every scan.
-    assert.equal(defaultScanSymbols.includes("NSDQ"), false);
-    assert.equal(defaultScanSymbols.includes("USDCHF"), true);
-    assert.equal(defaultScanSymbols.includes("SOLUSD"), true);
-    assert.equal(defaultScanSymbols.includes("BNBUSD"), false);
-    assert.equal(defaultScanSymbols.includes("NGUSD"), false);
-    assert.equal(defaultScanSymbols.includes("HGUSD"), false);
+    // ASX un-hidden 2026-08-07: its hide asked whether the chart feed matched
+    // the traded CFD, and F2 answered — -5.7 (0.06%) in Sydney's cash session,
+    // "TRACKS (cash hours)".
+    assert.equal(isTemporarilyUnavailableSymbol("ASX"), false);
+    // The no-trade list is empty since the same release: a market E8 offers
+    // with an FMP match is scanned, and the only ground for withholding is no
+    // verifiable data source. So every one of these is in the scan universe.
+    for (const symbol of ["NSDQ", "USDCHF", "SOLUSD", "BNBUSD", "ASX"]) {
+      assert.equal(defaultScanSymbols.includes(symbol), true, symbol);
+    }
+    assert.equal(defaultScanSymbols.includes("NGUSD"), true);
+    assert.equal(defaultScanSymbols.includes("HGUSD"), true);
     assert.equal(isKnownSymbol("NSDQ"), true);
     assert.equal(isKnownSymbol("USDCHF"), true);
     assert.equal(defaultScanSymbols.includes("WTI"), true);
     assert.equal(defaultScanSymbols.includes("YMUSD"), true);
     assert.equal(defaultScanSymbols.includes("BTCUSD"), true);
-    assert.equal(defaultScanSymbols.includes("ASX"), false);
+    assert.equal(defaultScanSymbols.includes("ASX"), true);
     assert.deepEqual(getRelatedSymbols("EURUSD").slice(0, 2), [
       "EURNZD",
       "EURJPY",

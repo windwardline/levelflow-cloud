@@ -95,7 +95,7 @@ describe("buildTradeCards", () => {
   // between them is computed from the display-exclusion predicate — an
   // inverted or unreachable `reopenable` passes every source pin and fails
   // right here.
-  it("marks a display-excluded symbol's card unreopenable, and every other card reopenable", () => {
+  it("marks every card reopenable — nothing is display-excluded today", () => {
     const cards = buildTradeCards(
       [
         buildSetup({ id: "brent", symbol: "BRENT" }),
@@ -107,9 +107,15 @@ describe("buildTradeCards", () => {
     const reopenableById = new Map(
       cards.map((card) => [card.setup.id, card.reopenable]),
     );
-    // BRENT is display-excluded (offsets.ts's DISPLAY_EXCLUDED_SYMBOLS) — its
-    // record still built a card, which is the records-stay half of the ruling.
-    assert.equal(reopenableById.get("brent"), false);
+    // BRENT was the only display-excluded symbol, and amendment 30 released it:
+    // a real match with a measurable offset is SHOWN with its basis line rather
+    // than hidden. Its card is reopenable like any other.
+    //
+    // The mechanism is unchanged and still asserted below — a symbol in
+    // DISPLAY_EXCLUDED_SYMBOLS builds a card whose reopen affordance is off,
+    // which is the records-stay half of the ruling. Nothing occupies that set
+    // today.
+    assert.equal(reopenableById.get("brent"), true);
     assert.equal(cards.length, 3);
     // XAGUSD carries a basis of its own and stays fully reopenable: the basis
     // line and the display exclusion are separate rulings, and only the

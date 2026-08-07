@@ -180,21 +180,22 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     }
   });
 
-  it("pins the no-trade menu exactly", () => {
-    // Eight until 2026-08-05, then 52: the nineteen E8 futures and the Crypto
-    // account's other twenty-five were onboarded under the owner's standing
-    // order — every market E8 trades with a confirmed FMP match is represented
-    // and analyzed — and the same order withholds them until a sweep produces an
-    // acceptable result. Listed literally, so promoting or demoting a market is
-    // always a deliberate edit here as well as a calibration decision.
+  it("pins the no-trade menu exactly — empty, by derivation", () => {
+    // Eight until 2026-08-05, then 52, then zero on 2026-08-07.
     //
-    // FDXM is absent by design: it is a contract-size variant of FDAX
-    // (contractVariants.ts), excluded from the scan on different grounds than
-    // "withheld pending evidence" — it is never a market of its own.
-    assert.deepEqual(
-      [...noTradeSymbols].sort(),
-      ["AAVEUSD", "ALGOUSD", "ARWUSD", "ATOMUSD", "AVAXUSD", "BNBUSD", "CAKEUSD", "DASHUSD", "DAX", "DOGEUSD", "DOTUSD", "DOW", "DYDXUSD", "EGLDUSD", "EMD", "ETCUSD", "FDAX", "FESX", "FILUSD", "GFUSX", "GRTUSD", "HBARUSD", "HEUSX", "HGUSD", "HOUSD", "IMXUSD", "LEUSX", "LINKUSD", "NEARUSD", "NGUSD", "NIKKEI", "NKD", "NSDQ", "PAUSD", "PLUSD", "RBUSD", "SP", "THETAUSD", "TRUMPUSD", "TRXUSD", "UNIUSD", "XLMUSD", "XMRUSD", "XTZUSD", "ZCUSX", "ZFUSD", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD"],
-    );
+    // Owner ruling: a market E8 offers on an account type, with a matching FMP
+    // source, is visible and usable — nonnegotiable — and the ONLY ground for
+    // withholding is no verifiable data source. Measured the same day, every
+    // one of the 52 had a match and no roster row lacked a source at all, so
+    // the set is empty by derivation rather than by decision.
+    //
+    // Calibration is not a ground. A thin or negative market is one the ENGINE
+    // declines to produce a setup for, and one per-asset geometry has to earn;
+    // it is not a market the product hides. A market with no FMP counterpart
+    // belongs in masterList.ts's `excluded-no-fmp-source` status instead —
+    // enumerated, dormant, re-probed each run, re-admitted when a source
+    // appears.
+    assert.deepEqual([...noTradeSymbols].sort(), []);
   });
 
   it("pins the cohort version string", () => {

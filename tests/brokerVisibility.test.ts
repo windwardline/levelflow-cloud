@@ -17,6 +17,7 @@ import {
 } from "../src/lib/symbolMap.ts";
 import type { BrokerClassification } from "../src/lib/profile.ts";
 import {
+  FOREX_ACCOUNT_CRYPTO_CFDS,
   OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE,
   scannableSymbolsFor,
   visibleAssetGroups,
@@ -60,54 +61,97 @@ const FUTURES_ACCOUNT = {
 };
 
 describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, pinned symbol-for-symbol", () => {
-  // Captured from the pre-retrofit code (visibility.ts's old
-  // HIDDEN_ASSET_TYPES_BY_CLASSIFICATION + offsets.ts's unconditional
-  // isDisplayExcluded, applied to symbolMap's raw AVAILABLE_ASSET_GROUPS)
-  // before this task touched a single line, via a throwaway probe script
-  // against the pre-edit files. Every array below is that captured output,
-  // sorted. A future change to the visible offering — deliberate or not —
-  // must edit this literal table; that edit is the review's signal to ask
-  // whether the change is the owner's separate ruling this task explicitly
-  // disclaims making.
+  // The offering, pinned symbol-for-symbol.
+  //
+  // These arrays were captured from the pre-retrofit code as a before/after
+  // equality proof — the §19 retrofit changed the MECHANISM by which the
+  // offering was derived and deliberately did not change the offering itself.
+  // That premise is now retired on purpose.
+  //
+  // Owner ruling 2026-08-07: "If a market exists for an account type on E8, and
+  // we have a match for the data on FMP, it needs to be visible and usable on
+  // Levelflow when a user is working within that account structure. This is
+  // nonnegotiable." The only ground for withholding is no verifiable data
+  // source. Measured the same day: every one of the 52 markets that had been
+  // withheld has an FMP match, and no roster row lacks a source at all — so the
+  // withheld list is empty by derivation.
+  //
+  // Forex 38 -> 46 and crypto 7 -> 33 are now EXACT matches to what E8 offers
+  // on those account types, counted from the owner's own live-account frames.
+  // Futures 10 -> 31; its remainder is not withholding but the rule working —
+  // the rest of E8's futures roster has no FMP series, probed 2026-08-07, and
+  // sits on the dormant excluded list (tests/e8RosterConformance.test.ts).
+  //
+  // The table stays a literal on purpose. A future change to the visible
+  // offering — deliberate or not — must edit it, and that edit is the review's
+  // signal to ask whether the change is an owner ruling or an accident.
   const PINNED_FOREX = [
-    "ADAUSD", "AUDCAD", "AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD", "BCHUSD",
-    "BTCUSD", "CADCHF", "CADJPY", "CHFJPY", "ETHUSD", "EURAUD", "EURCAD",
-    "EURCHF", "EURGBP", "EURJPY", "EURNZD", "EURUSD", "GBPAUD", "GBPCAD",
-    "GBPCHF", "GBPJPY", "GBPNZD", "GBPUSD", "LTCUSD", "NZDCAD", "NZDCHF",
-    "NZDJPY", "NZDUSD", "SOLUSD", "USDCAD", "USDCHF", "USDJPY", "WTI",
-    "XAGUSD", "XAUUSD", "XRPUSD",
+    // 28 FX pairs: the closed 8-currency matrix, C(8,2) = 28, matching E8's own
+    // published table symbol for symbol.
+    "AUDCAD", "AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD", "CADCHF", "CADJPY",
+    "CHFJPY", "EURAUD", "EURCAD", "EURCHF", "EURGBP", "EURJPY", "EURNZD",
+    "EURUSD", "GBPAUD", "GBPCAD", "GBPCHF", "GBPJPY", "GBPNZD", "GBPUSD",
+    "NZDCAD", "NZDCHF", "NZDJPY", "NZDUSD", "USDCAD", "USDCHF", "USDJPY",
+    // 8 crypto CFDs — a FOREX account carries eight, not the Crypto account's
+    // thirty-three. BNBUSD released with the rest.
+    "ADAUSD", "BCHUSD", "BNBUSD", "BTCUSD", "ETHUSD", "LTCUSD", "SOLUSD",
+    "XRPUSD",
+    // 2 metals, 2 energies. BRENT joins WTI under amendment 30: a real match
+    // with a measurable offset is shown WITH its basis line, never hidden.
+    "XAGUSD", "XAUUSD", "WTI", "BRENT",
+    // 6 indices. ASX un-hidden — F2 measured ^AXJO against E8's AUS200 book at
+    // -5.7 (0.06%) in Sydney's cash session, the same "TRACKS (cash hours)"
+    // verdict NIKKEI and DAX carry, so the hide's own condition was met.
+    "ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP",
   ].sort();
 
   const PINNED_CRYPTO = [
-    "ADAUSD", "BCHUSD", "BTCUSD", "ETHUSD", "LTCUSD", "SOLUSD", "XRPUSD",
+    // All 33 E8 offers on a Crypto account, every one FMP-matched with a
+    // measured delta (docs/research/e8-crypto-source-resolution-2026-08-05.md).
+    // Two carry name traps in the map: ARWUSD reads FMP's ARUSD, and TRUMPUSD
+    // reads OTRUMPUSD — FMP's literal TRUMPUSD is a different, moribund coin.
+    "AAVEUSD", "ADAUSD", "ALGOUSD", "ARWUSD", "ATOMUSD", "AVAXUSD", "BCHUSD",
+    "BNBUSD", "BTCUSD", "CAKEUSD", "DASHUSD", "DOGEUSD", "DOTUSD", "DYDXUSD",
+    "EGLDUSD", "ETCUSD", "ETHUSD", "FILUSD", "GRTUSD", "HBARUSD", "IMXUSD",
+    "LINKUSD", "LTCUSD", "NEARUSD", "SOLUSD", "THETAUSD", "TRUMPUSD", "TRXUSD",
+    "UNIUSD", "XLMUSD", "XMRUSD", "XRPUSD", "XTZUSD",
   ].sort();
 
   const PINNED_FUTURES = [
-    // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
-    "BZUSD", "CLUSD", "ESUSD", "GCUSD", "NQUSD", "RTYUSD",
-    "SIUSD", "YMUSD", "ZBUSD", "ZNUSD",
+    // MGCUSD stays out: micro gold is a contract-size variant of GCUSD, and one
+    // analyzed market per underlying per account type is its own owner ruling
+    // (contractVariants.ts). It keeps its sizing identity and loses its scan
+    // slot — that is not a data-source withholding.
+    "BZUSD", "CLUSD", "EMD", "ESUSD", "FDAX", "FESX", "GCUSD", "GFUSX",
+    "HEUSX", "HGUSD", "HOUSD", "LEUSX", "NGUSD", "NKD", "NQUSD", "PAUSD",
+    "PLUSD", "RBUSD", "RTYUSD", "SIUSD", "YMUSD", "ZBUSD", "ZCUSX", "ZFUSD",
+    "ZLUSX", "ZMUSD", "ZNUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD",
   ].sort();
 
-  const PINNED_NULL = [...new Set([...PINNED_FOREX, ...PINNED_FUTURES])].sort();
+  // Crypto is no longer a subset of forex's crypto CFDs, so the union takes all
+  // three. Forex and crypto overlap on exactly the eight CFDs above.
+  const PINNED_NULL = [
+    ...new Set([...PINNED_FOREX, ...PINNED_CRYPTO, ...PINNED_FUTURES]),
+  ].sort();
 
-  it("forex: exactly 38 symbols, pinned", () => {
+  it("forex: exactly 46 symbols — E8's whole forex offering", () => {
     assert.deepEqual([...visibleAssetSymbols(FOREX_ACCOUNT)].sort(), PINNED_FOREX);
-    assert.equal(PINNED_FOREX.length, 38);
+    assert.equal(PINNED_FOREX.length, 46);
   });
 
-  it("crypto: exactly 7 symbols, pinned", () => {
+  it("crypto: exactly 33 symbols — E8's whole crypto offering", () => {
     assert.deepEqual([...visibleAssetSymbols(CRYPTO_ACCOUNT)].sort(), PINNED_CRYPTO);
-    assert.equal(PINNED_CRYPTO.length, 7);
+    assert.equal(PINNED_CRYPTO.length, 33);
   });
 
-  it("futures: exactly 10 symbols, pinned", () => {
+  it("futures: exactly 31 symbols — every futures market with an FMP source", () => {
     assert.deepEqual([...visibleAssetSymbols(FUTURES_ACCOUNT)].sort(), PINNED_FUTURES);
-    assert.equal(PINNED_FUTURES.length, 10);
+    assert.equal(PINNED_FUTURES.length, 31);
   });
 
-  it("null (no active account): the union of all three, 49 symbols, pinned", () => {
+  it("null (no active account): the union of all three, 102 symbols, pinned", () => {
     assert.deepEqual([...visibleAssetSymbols(null)].sort(), PINNED_NULL);
-    assert.equal(PINNED_NULL.length, 48);
+    assert.equal(PINNED_NULL.length, 102);
   });
 
   it("scannableSymbolsFor agrees with visibleAssetSymbols for every classification", () => {
@@ -155,6 +199,22 @@ describe("before/after equality — the retrofit changes MECHANISM, not the offe
           // becoming a claim that the offering never changes. The offering did
           // change here, deliberately, by owner ruling.
           .filter((option) => !isContractSizeVariant(option.symbol))
+          // The same treatment for the forex crypto-CFD correction (owner,
+          // 2026-08-06). The retired mechanism hid by asset TYPE, so on a forex
+          // account it offered every Crypto-typed row — all 33. That was wrong,
+          // and FOREX_ACCOUNT_CRYPTO_CFDS is the correction: a forex account
+          // carries eight crypto CFDs, ticketed live on the Pro Forex record.
+          //
+          // It went unnoticed while NO_TRADE_SYMBOLS withheld 26 of the 33, so
+          // both sides answered 7 and agreed by accident. The 2026-08-07
+          // release removed that withholding and the accident with it.
+          // Applying the correction to both sides keeps this an equality proof
+          // about the MECHANISM, which is all it ever claimed.
+          .filter((option) =>
+            classification !== "forex" ||
+            option.assetType !== "Crypto" ||
+            FOREX_ACCOUNT_CRYPTO_CFDS.has(option.symbol)
+          )
           .map((option) => option.symbol)
       );
   }
@@ -246,21 +306,43 @@ describe("an exclusion scoped to ONE account type — present on another (synthe
   });
 
   it("passing an exclusions list is a full replacement, not an addition — proven directly, since the resolver's own contract depends on it", () => {
-    // A bare synthetic-only list (no BRENT entry) un-excludes BRENT on
-    // forex — this is the exact mistake the tests above avoid by spreading
-    // BROKER_VISIBILITY_EXCLUSIONS first. Pinned here so the contract is
-    // asserted, not just relied upon silently.
-    assert.ok(!scannableSymbolsFor("forex").includes("BRENT"));
-    assert.ok(scannableSymbolsFor("forex", [syntheticExclusion]).includes("BRENT"));
+    // Proven the other way round since the register emptied. BRENT used to be
+    // its only entry, so "a synthetic-only list un-excludes BRENT" was the
+    // natural demonstration; amendment 30 released BRENT (a real match with a
+    // measurable offset is shown WITH its basis line, never hidden), so there
+    // is no production entry left to drop.
+    //
+    // Replacement is the same contract read from the other end: a synthetic
+    // list naming BTCUSD must REMOVE it, which can only happen if the passed
+    // list is what the resolver uses rather than something added to a
+    // production register that never mentioned BTCUSD.
+    const dropsBtc = {
+      levelflowSymbol: "BTCUSD",
+      accountTypes: ["forex"] as const,
+      ground: "data-drift" as const,
+      detail: "synthetic fixture — never a production exclusion",
+    };
+    assert.ok(scannableSymbolsFor("forex").includes("BTCUSD"));
+    assert.ok(!scannableSymbolsFor("forex", [dropsBtc]).includes("BTCUSD"));
+    // And the production register is genuinely empty, which is what makes the
+    // first assertion meaningful rather than incidental.
+    assert.equal(BROKER_VISIBILITY_EXCLUSIONS.length, 0);
   });
 });
 
 describe("no-FMP-source rows and NOT_SCANNABLE rows never appear in any account type's resolved set", () => {
-  it("BNBUSD stays absent from every account type — governed by symbolMap.ts's own NO_TRADE_SYMBOLS, upstream of this resolver and unruled-on by the owner still", () => {
-    for (const classification of ["forex", "crypto", "futures"] as const) {
-      assert.ok(!scannableSymbolsFor(classification).includes("BNBUSD"));
-    }
-    assert.ok(!scannableSymbolsFor(null).includes("BNBUSD"));
+  it("BNBUSD is served on both account types that offer it — the withholding is gone", () => {
+    // Was pinned absent everywhere, "unruled-on by the owner still". It is
+    // ruled on now: 2026-08-07, a market E8 offers with an FMP match is visible
+    // and usable, and BNBUSD is matched (-13.1 bp, measured on the live crypto
+    // book). It was withheld on a calibration finding, which amendment 30's
+    // three states no longer admit as a ground.
+    assert.ok(scannableSymbolsFor("forex").includes("BNBUSD"));
+    assert.ok(scannableSymbolsFor("crypto").includes("BNBUSD"));
+    assert.ok(scannableSymbolsFor(null).includes("BNBUSD"));
+    // Futures is a different offering, not a withholding: a Crypto-classified
+    // CFD is not on a Tradovate futures account at all.
+    assert.ok(!scannableSymbolsFor("futures").includes("BNBUSD"));
   });
 
   it("the seven no-FMP-source futures orphans never appear — they carry no Levelflow symbol to appear as", () => {
@@ -301,11 +383,27 @@ describe("the sweep universe stays whole — unaffected by account type or the n
       .filter((entry) => entry.levelflowSymbol !== null &&
         !isContractSizeVariant(entry.levelflowSymbol))
       .map((entry) => entry.levelflowSymbol);
-    // 9 -> 28 on 2026-08-05: the nineteen onboarded futures join the eight
-    // originals and ASX here. Every one must stay in the sweep universe —
-    // that is the whole point of onboarding them withheld rather than leaving
-    // them unrepresented.
-    assert.equal(notScannable.length, 53);
+    // 53 -> 9 on 2026-08-07. The release emptied NO_TRADE_SYMBOLS, so every
+    // market withheld on a calibration finding became served-and-visible and
+    // left this population. What remains is the rows withheld for reasons the
+    // release does not touch — a contract-size variant is one market at two
+    // notionals, not a market with no source.
+    //
+    // The invariant is unchanged and is the point: whatever sits here still
+    // has an FMP mate and must stay in the sweep universe, because being
+    // withheld from the scan is not being absent from the corpus.
+    // Zero after the contract-variant filter. All nine rows still carrying this
+    // status ARE contract-size variants — one market at two notionals, which is
+    // the one not-scannable ground the release does not touch and the one row
+    // deliberately left unswept, since sweeping it would duplicate its parent's
+    // setups in the corpus rather than add anything.
+    //
+    // So the loop below is vacuous today. Kept, because the invariant is what
+    // matters and it is the one this whole describe exists for: anything
+    // withheld from the scan for a reason OTHER than being a variant still has
+    // an FMP mate and must stay in the sweep universe. Being invisible to the
+    // operator is not being absent from the corpus.
+    assert.equal(notScannable.length, 0);
     const swept = new Set(sweepUniverse().map((entry) => entry.levelflowSymbol));
     for (const symbol of notScannable) {
       assert.ok(swept.has(symbol), `${symbol} must stay in the sweep universe`);
@@ -339,7 +437,14 @@ describe("cross-consistency — masterList's display-excluded STATUS label agree
     const displayExcludedRows = MASTER_LIST_ROWS.filter(
       (entry) => entry.status === "served-but-display-excluded",
     );
-    assert.ok(displayExcludedRows.length > 0, "expected at least one display-excluded row to check");
+    // Zero since amendment 30. BRENT was the only one, and a real match with a
+    // measurable offset is now shown WITH its basis line rather than hidden —
+    // so the cross-consistency this test asserts holds vacuously today.
+    //
+    // Kept rather than deleted, because the mechanism is what matters: if a row
+    // ever earns this status again, it must be excluded on every account type
+    // that would otherwise reach it, and this is what says so.
+    assert.equal(displayExcludedRows.length, 0);
     for (const entry of displayExcludedRows) {
       const symbol = entry.levelflowSymbol as string;
       for (const classification of ["forex", "crypto", "futures"] as const) {

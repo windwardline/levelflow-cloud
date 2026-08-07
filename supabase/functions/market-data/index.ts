@@ -127,9 +127,12 @@ const symbolMap: Record<string, string> = {
 };
 
 // Hidden until the chart feed is verified against the matching traded CFD.
-const temporarilyUnavailableSymbols = new Set<string>([
-  "ASX",
-]);
+//
+// Empty since 2026-08-07. ASX was the last entry and its own condition is met:
+// F2 measured ^AXJO against E8's AUS200 book at -5.7 (0.06%) during Sydney's
+// cash session — "TRACKS (cash hours)", the same verdict NIKKEI and DAX carry.
+// Mirrors src/lib/symbolMap.ts's TEMPORARILY_HIDDEN_ASSET_SYMBOLS.
+const temporarilyUnavailableSymbols = new Set<string>([]);
 
 // The measured no-trade list — mirrors trade-analyzer/symbols.ts's
 // noTradeSymbols byte-for-byte (tests/feedSource.test.ts pins it). That set

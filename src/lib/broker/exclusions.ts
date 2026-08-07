@@ -121,57 +121,34 @@ export const MIN_SURVIVAL_FOR_PERFORMANCE_EXCLUSION = 0.33;
 /** The smallest sample an expectancy verdict may rest on (amendment 25). */
 export const MIN_FILLED_FOR_PERFORMANCE_EXCLUSION = 300;
 
-export const BROKER_VISIBILITY_EXCLUSIONS: readonly BrokerVisibilityExclusion[] = [
-  // BRENT released 2026-08-07. Kept here as a comment rather than deleted,
-  // because the entry recorded a deliberate owner ruling and the reversal
-  // should be as legible as the ruling was.
-  //
-  // Amendment 23 (owner, 2026-08-05) excluded it: E8 quotes ~1.67 (~196bp)
-  // above this feed, "past the significance bar for display". The 2026-08-07
-  // ruling is a general rule that reaches it — a market E8 offers on an
-  // account type, with a matching FMP source, is visible and usable, and the
-  // only ground for withholding is no verifiable data source. BRENT has one
-  // (BZUSD), and the basis is stable across three frames.
-  //
-  // What makes showing it honest rather than merely compliant: amendment 23
-  // also built the basis line, and XAGUSD (+0.17) and WTI (+0.24) already use
-  // it. BRENT's offset is larger, which is a reason to state it more plainly,
-  // not a reason to hide a market the operator's account offers. The line reads
-  // "E8 quotes ~+1.67 above this feed — entry there ~= 85.72", so the operator
-  // gets E8's own number rather than a silent 1.67 discrepancy.
-  //
-  // If the owner prefers amendment 23's bar to stand, restoring this entry and
-  // setting offsets.ts's displayExcluded back to true is the whole reversal.
-  {
-    levelflowSymbol: "__BRENT_RELEASED_2026_08_07__",
-    accountTypes: ["forex"],
-    ground: "data-drift",
-    detail:
-      "Amendment 23's offset ruling (owner, 2026-08-05 01:14): E8 quotes " +
-      "~1.67 (~2%, ~196bp) above this feed, past the significance bar for " +
-      "display (docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md). " +
-      "Scoped to \"forex\" because BRENT (an Energies-type row) is offered " +
-      "on no other E8 account type — masterList.ts's " +
-      "OFFERED_CLASSIFICATIONS_BY_ACCOUNT_TYPE never routes an Energies row " +
-      "to a crypto or futures account — so this scoping changes nothing a " +
-      "user sees; it only re-expresses the same fact per account type " +
-      "instead of unconditionally (§19 retrofit, Task 19, amendment 24).",
-  },
-  // The BNBUSD ruling the owner has flagged as coming (include on crypto,
-  // absent on forex) is NOT this entry. BNBUSD stays governed by
-  // symbolMap.ts's own NO_TRADE_SYMBOLS today (a calibration finding,
-  // global, upstream of this register and of the account-classification
-  // question entirely) until the owner rules on its reentry. This register
-  // is where that future ruling will land — a single entry naming BNBUSD,
-  // accountTypes: ["forex"], ground: "sweep-performance" or whatever the
-  // fresh sweep supports — once symbolMap.ts's global withholding is lifted
-  // for it. Until then, adding it here would do nothing (a row absent from
-  // AVAILABLE_ASSET_SYMBOLS never reaches scannableSymbolsFor's served-row
-  // filter to be excluded from) and would misstate a ruling that has not
-  // happened. tests/brokerMasterList.test.ts proves the MECHANISM this
-  // future entry will need — a symbol excluded on one account type, present
-  // on another — with a synthetic fixture row instead.
-];
+export const BROKER_VISIBILITY_EXCLUSIONS: readonly BrokerVisibilityExclusion[] =
+  [
+    // Empty since 2026-08-07, and the emptiness is a ruling rather than an
+    // oversight.
+    //
+    // BRENT was its only entry. Amendment 23 had excluded it because E8 quotes
+    // ~1.67 (~196bp) above this feed, "past the significance bar for display".
+    // Amendment 30 retires that bar: a real match with a measurable offset is
+    // shown WITH its basis line — "E8 quotes ~+1.67 above this feed — entry
+    // there ~= 85.72" — never hidden. XAGUSD (+0.17) and WTI (+0.24) were
+    // already served that way; a larger offset is a reason to state it more
+    // plainly, not a reason to hide a market the operator's account offers and
+    // the data supports.
+    //
+    // What this register is still FOR, unchanged: withholding a market on ONE
+    // account type while it stays visible on another. That is a real shape —
+    // an instrument E8 offers on a futures account and not on a forex one, or
+    // a feed that drifts only where a particular account prices it — and the
+    // resolver, its per-account-type scoping and its full-replacement contract
+    // are all still exercised by tests/brokerVisibility.test.ts's synthetic
+    // fixtures. An empty production register is the correct state today, not a
+    // retired mechanism.
+    //
+    // A market with no verifiable data source does NOT belong here. That is
+    // masterList.ts's `excluded-no-fmp-source` status: enumerated, dormant,
+    // re-probed by verify-fmp-matches.ts each run, and re-admitted the moment a
+    // source appears.
+  ];
 
 /**
  * The register's own clean, independently-testable predicate — the one

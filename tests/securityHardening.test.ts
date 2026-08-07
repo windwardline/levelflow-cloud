@@ -21,15 +21,21 @@ describe("security hardening", () => {
       initSql,
       /grant execute on function public\.claim_analyzer_request\(uuid, text, integer, integer\) to service_role/,
     );
-    // 40, not 8: a scan is a fan-out of ≤10-market requests since the
-    // 2026-08-02 CPU failures, so the old budget would have rate-limited a scan
-    // against itself, and the e2e suite's peak window runs several back to back.
-    // tests/scanBatching.test.ts holds the arithmetic (chunks × 5 ≤ limit); this
-    // holds the number. Not a wider provider door for the app's own client
-    // either: 8 × ~350 FMP calls and 40 × ~70 are both 2,800 a minute; the
-    // hand-crafted 15-market worst case (~4,200) is accepted at the source
-    // comment beside the limit.
-    assert.match(analyzerSource, /scan_opportunities: 40,/);
+    // 60, not 40, and not 8. A scan is a fan-out of ≤10-market requests since
+    // the 2026-08-02 CPU failures, and the 2026-08-07 release took the universe
+    // from 50 markets to 111 — so a full scan is 12 chunks, and 40 would have
+    // rate-limited a scan against its own second half.
+    // tests/scanBatching.test.ts holds the arithmetic (chunks × 5 ≤ limit);
+    // this holds the number.
+    //
+    // The old note here argued safety from FMP's budget — "40 × ~70 is 2,800
+    // against 3,000". That argument no longer holds and is not repaired by a
+    // bigger number: a 111-market scan costs ~780 provider calls, so five full
+    // scans is ~3,900 against 3,000, and chunk size cannot help because a
+    // scan's provider cost is markets × 7 however they are grouped. Roughly
+    // four full scans a minute is the physical ceiling, FMP enforces it rather
+    // than this limiter, and the source comment beside the limit says so.
+    assert.match(analyzerSource, /scan_opportunities: 60,/);
     assert.match(
       analyzerSource,
       /const rateLimit = await claimAnalyzerRequest\(user\.id, actionName\);[\s\S]*if \(!rateLimit\.allowed\)/,
@@ -177,7 +183,7 @@ describe("security hardening", () => {
     assert.equal(timeoutCount, 2);
   });
 
-  it("keeps cash indices out of every scan path", () => {
+  it("keeps the no-trade enforcement wired, whatever the list contains", () => {
     const symbols = readFileSync(
       "supabase/functions/trade-analyzer/symbols.ts",
       "utf8",
@@ -188,12 +194,19 @@ describe("security hardening", () => {
     );
     const symbolMap = readFileSync("src/lib/symbolMap.ts", "utf8");
 
-    // The measured no-trade list (r15): server truth in noTradeSymbols,
-    // scan exclusion aliased to it, UI mirror in NO_TRADE_SYMBOLS.
-    for (const sym of ["SP", "NSDQ", "DOW", "NIKKEI", "DAX", "NGUSD", "HGUSD", "BNBUSD"]) {
-      assert.match(symbols, new RegExp(`noTradeSymbols = new Set<string>\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`));
-      assert.match(symbolMap, new RegExp(`NO_TRADE_SYMBOLS = new Set\\(\\[[\\s\\S]*?"${sym}"[\\s\\S]*?\\]\\)`));
-    }
+    // This used to name the eight cash-index and calibration exclusions as a
+    // literal, which made it a pin on the LIST rather than on the enforcement.
+    // The 2026-08-07 release emptied the list — a market E8 offers with an FMP
+    // match is scanned, and the only ground for withholding is no verifiable
+    // data source — and a literal pin would simply have had to be deleted.
+    //
+    // The enforcement is the thing worth guarding, so that is what is asserted:
+    // the two declarations exist, the scan exclusion is aliased to the trade
+    // one rather than maintained separately, and the server refuses both at
+    // generation and at scan-symbol filtering. Whatever the list contains, it
+    // is enforced in every path.
+    assert.match(symbols, /noTradeSymbols = new Set<string>\(\[/);
+    assert.match(symbolMap, /NO_TRADE_SYMBOLS = new Set<string>\(\[/);
     assert.match(symbols, /noScanSymbols = noTradeSymbols/);
     // The server refuses setup generation on no-trade markets — the block is
     // not a UI courtesy.

@@ -87,20 +87,27 @@ const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMITS = {
   refresh_outcomes: 12,
   // A scan is a fan-out of chunked requests since the 2026-08-02 CPU failures
-  // (src/lib/scanBatching.ts): today's 50-market universe arrives as 6, so the
-  // old budget of 8 would have rate-limited the second scan of a minute against
-  // the first. Forty passes a full scan six times over, which is what the e2e
-  // suite's own peak window needs — tests/scanBatching.test.ts pins the relation
-  // (chunks × 5 ≤ limit), so this can never fall back under the real spend.
+  // (src/lib/scanBatching.ts). 40 -> 60 on 2026-08-07: the release took the
+  // universe from 50 markets to 111, so a full scan is 12 chunks rather than 6,
+  // and the old budget would have rate-limited a scan against its own second
+  // half. tests/scanBatching.test.ts pins the relation (chunks x 5 <= limit) so
+  // this can never fall back under the real spend.
   //
-  // For the app's own ≤10-market chunks this opens no wider a door onto the
-  // provider than the old ceiling did: 8 full scans of ~350 FMP calls was
-  // 2,800 calls a minute; 40 chunks of ~70 is 2,800, against FMP Ultimate's
-  // 3,000. The door the server itself holds is MAX_SCAN_SYMBOLS: a
-  // hand-crafted caller sending 15-market requests can reach 40 × 15 = 600
-  // reviews (~4,200 FMP calls) a minute — accepted, because the consequence
-  // is the provider refusing that caller's own requests, never data or auth.
-  scan_opportunities: 40,
+  // The honest arithmetic, because the old note's version no longer holds. The
+  // binding constraint is not this limiter, it is FMP: a 111-market scan costs
+  // roughly 111 x 7 = 780 provider calls, so five full scans in a minute is
+  // ~3,900 against FMP Ultimate's 3,000. Chunk size cannot help — a scan's
+  // provider cost is markets x 7 however the markets are grouped — so raising
+  // SCAN_SYMBOLS_PER_REQUEST would move requests around without moving calls.
+  //
+  // What that means in practice: roughly FOUR full scans a minute is the
+  // physical ceiling, and this limiter is no longer the thing that enforces it.
+  // A single operator never approaches that; the e2e suite is the only caller
+  // that runs full scans back to back, and spacing them is the fix on that
+  // side rather than a wider door here. Recorded so the next reader does not
+  // re-derive a safety argument from a number that has stopped being the
+  // binding one.
+  scan_opportunities: 60,
 } as const;
 // The hard ceiling on one request's work, and what makes a 546 impossible
 // rather than unlikely: a 50-market scan measured ~1.84s of CPU against

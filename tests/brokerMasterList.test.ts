@@ -51,14 +51,23 @@ describe("row counts — total, per classification, per status", () => {
   it("pins the six-way status breakdown", () => {
     assert.deepEqual(rowCountsByStatus(), {
       // MGCUSD became a contract-size variant on 2026-08-05 (owner ruling, contractVariants.ts): micro gold sizes against GCUSD and holds no scan slot, so it moved from served-and-visible to served-but-not-scannable.
-      "served-and-visible": 46,
-      "served-but-display-excluded": 1,
-      // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
+      "served-and-visible": 100,
+            // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
       // 29 -> 54: the Crypto account's other 25 were onboarded 2026-08-06 and
+      // 48 -> 100 and 62 -> 9 on 2026-08-07. The release emptied
+      // NO_TRADE_SYMBOLS: a market E8 offers with an FMP match is visible and
+      // usable, and the only ground for withholding is no verifiable data
+      // source (owner ruling). Every market withheld on a calibration finding
+      // moved from withheld to visible in one step.
+      //
+      // served-but-display-excluded is GONE as a status, not merely zero:
+      // BRENT was its only holder and amendment 30 released it with its basis
+      // line, so nothing derives the status any more.
+      //
       // land here, analyzed and withheld, exactly as the nineteen futures did.
-      "served-but-not-scannable": 62,
+      "served-but-not-scannable": 9,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
@@ -75,6 +84,11 @@ describe("row counts — total, per classification, per status", () => {
       "mapped-not-yet-onboarded": 6,
       "excluded-no-fmp-source": 7,
       "offered-but-unsizeable": 4,
+      // Zero holders, and the key stays: the status is still derivable, so a
+      // row earning it again must still be excluded on every account type that
+      // would otherwise reach it (tests/brokerVisibility.test.ts asserts that
+      // direction). BRENT was the only holder and amendment 30 released it.
+      "served-but-display-excluded": 0,
     });
   });
 
@@ -86,16 +100,19 @@ describe("row counts — total, per classification, per status", () => {
 });
 
 describe("agreement with the live master/visible sets (no re-derivation)", () => {
-  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 58) exactly", () => {
+  it("the registry's served set equals AVAILABLE_ASSET_SYMBOLS (the master 111) exactly", () => {
     assert.deepEqual(servedSymbols().sort(), [...AVAILABLE_ASSET_SYMBOLS].sort());
+    // 58 -> 111 on 2026-08-07: the released markets are served identities now,
+    // not withheld ones. The equality is the assertion; the count is the record
+    // of where it stands.
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(servedSymbols().length, 58);
+    assert.equal(servedSymbols().length, 111);
   });
 
-  it("the registry's visible set equals visibleAssetSymbols(null) (the 48) exactly", () => {
+  it("the registry's visible set equals visibleAssetSymbols(null) (the 102) exactly", () => {
     assert.deepEqual(visibleSymbols().sort(), [...visibleAssetSymbols(null)].sort());
     // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
-    assert.equal(visibleSymbols().length, 48);
+    assert.equal(visibleSymbols().length, 102);
   });
 
   it("every currently-served symbol appears in the registry with a served-compatible status", () => {
@@ -130,22 +147,28 @@ describe("agreement with the live master/visible sets (no re-derivation)", () =>
 });
 
 describe("BRENT — display-excluded yet standing in the sweep universe", () => {
-  it("carries served-but-display-excluded, not excluded from the master list", () => {
+  it("is served and visible, with its basis line rather than a hide (amendment 30)", () => {
+    // Amendment 23 excluded it at ~196bp as "past the significance bar for
+    // display". Amendment 30 retires that bar: a real match with a measurable
+    // offset is SHOWN with the line that states it — "E8 quotes ~+1.67 above
+    // this feed — entry there ~= 85.72". XAGUSD (+0.17) and WTI (+0.24) were
+    // already served that way, and a larger offset is a reason to state it more
+    // plainly, not to hide a market the account offers and the data supports.
     const brent = findMasterListRow("BRENT");
     assert.ok(brent);
-    assert.equal(brent!.status, "served-but-display-excluded");
+    assert.equal(brent!.status, "served-and-visible");
     assert.equal(brent!.fmpSymbol, "BZUSD");
     assert.equal(isServedToday(brent!), true);
-    assert.equal(isVisibleToday(brent!), false);
+    assert.equal(isVisibleToday(brent!), true);
   });
 
   it("stays inside sweepUniverse() despite being withheld from display", () => {
     assert.ok(sweepUniverse().some((entry) => entry.levelflowSymbol === "BRENT"));
   });
 
-  it("is absent from visibleSymbols() while present in servedSymbols()", () => {
+  it("is present in both servedSymbols() and visibleSymbols()", () => {
     assert.ok(servedSymbols().includes("BRENT"));
-    assert.ok(!visibleSymbols().includes("BRENT"));
+    assert.ok(visibleSymbols().includes("BRENT"));
   });
 });
 
@@ -327,7 +350,18 @@ describe("the five recovered cash-proxy futures, all onboarded", () => {
       assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
       assert.equal(entry!.levelflowSymbol, broker);
       assert.equal(entry!.classification, "futures");
-      assert.equal(entry!.status, "served-but-not-scannable");
+      // served-but-not-scannable -> served-and-visible on 2026-08-07 for the
+      // four analyzed markets: they were onboarded WITHHELD pending a sweep,
+      // and the owner's ruling makes an FMP match the only test. They have one.
+      //
+      // FDXM is the exception and not an exception to the ruling: it is FDAX's
+      // contract-size variant on the same ^GDAXI series, so it is one market at
+      // two notionals rather than a market with no source. It keeps its sizing
+      // identity and stays out of the scan (contractVariants.ts).
+      assert.equal(
+        entry!.status,
+        broker === "FDXM" ? "served-but-not-scannable" : "served-and-visible",
+      );
     }
   });
 
@@ -395,7 +429,7 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
     assert.equal(entry!.brokerName, "ARWUSD");
     assert.equal(entry!.fmpSymbol, "ARUSD");
     assert.notEqual(entry!.brokerName, entry!.fmpSymbol);
-    assert.equal(entry!.status, "served-but-not-scannable");
+    assert.equal(entry!.status, "served-and-visible");
   });
 
   it("the TRUMPUSD trap: FMP's literal TRUMPUSD ticker is NOT the match", () => {
@@ -404,17 +438,17 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
     assert.equal(entry!.brokerName, "TRUMPUSD");
     assert.equal(entry!.fmpSymbol, "OTRUMPUSD");
     assert.notEqual(entry!.fmpSymbol, "TRUMPUSD");
-    assert.equal(entry!.status, "served-but-not-scannable");
+    assert.equal(entry!.status, "served-and-visible");
   });
 
-  it("marks all 25 new mates mapped-not-yet-onboarded, and BNBUSD separately as served-but-not-scannable", () => {
+  it("serves all 26 crypto mates, BNBUSD included — every one FMP-matched", () => {
     for (const broker of Object.keys(CRYPTO_MATES)) {
-      // Every one of the 26 is ONBOARDED as of 2026-08-06 — the owner's
-      // standing order requires that a market E8 trades with a confirmed FMP
-      // match be analyzed, and a row with no Levelflow symbol cannot be: the
-      // replay resolves by Levelflow symbol. So each now carries E8's own name
-      // as its symbol and sits withheld, not unmapped. BNBUSD was already in
-      // this state and is no longer the exception.
+      // Onboarded 2026-08-06 and WITHHELD pending a sweep; released 2026-08-07.
+      // All 26 carry a measured FMP match (docs/research/
+      // e8-crypto-source-resolution-2026-08-05.md, zero exclusions), and an FMP
+      // match is the only test the owner's ruling admits. Each carries E8's own
+      // name as its Levelflow symbol, never FMP's — which is what the two name
+      // traps make load-bearing.
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, `${broker} must have a registry row`);
       assert.equal(
@@ -424,13 +458,13 @@ describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-res
       );
       assert.equal(
         entry!.status,
-        "served-but-not-scannable",
-        `${broker} is analyzed and withheld until a sweep proves it`,
+        "served-and-visible",
+        `${broker} is matched, so it is served`,
       );
     }
     const bnb = findMasterListRow("BNBUSD");
     assert.ok(bnb);
-    assert.equal(bnb!.status, "served-but-not-scannable");
+    assert.equal(bnb!.status, "served-and-visible");
     assert.equal(bnb!.levelflowSymbol, "BNBUSD");
   });
 
@@ -456,10 +490,19 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     }
   });
 
-  it("reentryList() returns exactly the 80 non-happy-path rows", () => {
-    // 74 -> 80: the six CME FX majors are reentry candidates by construction —
-    // re-examined at every sweep until the transform that unlocks them exists.
-    assert.equal(reentryList().length, 80);
+  it("reentryList() returns exactly the 26 non-happy-path rows", () => {
+    // 80 -> 26 on 2026-08-07. The release moved every market withheld on a
+    // calibration finding into served-and-visible, so it left the reentry
+    // population — which is the list working, not shrinking: a reentry
+    // candidate is a row that is NOT served-and-visible, and re-entry is
+    // exactly what happened to fifty-four of them at once.
+    //
+    // What remains is the population the owner's ruling actually describes:
+    // rows with no verifiable data source, rows E8 offers that FMP does not
+    // carry, and contract-size variants. Every one is still re-examined at
+    // every sweep, and amendment 26's rule that no exclusion is permanent is
+    // what this list mechanises.
+    assert.equal(reentryList().length, 26);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 
