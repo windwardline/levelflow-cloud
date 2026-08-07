@@ -449,6 +449,32 @@ describe("the learning corpus is engine-written only", () => {
     }
   });
 
+  it("restores deleting your own rows as a function that cannot widen", () => {
+    const rpc = readFileSync(
+      "supabase/migrations/20260807030000_delete_own_setups.sql",
+      "utf8",
+    );
+    // Scoped INSIDE the function, and by identity rather than by argument — a
+    // function taking a user_id is a function someone can pass another user's
+    // id to. Deleting your own rows is not the attack the revoke closed: it
+    // cannot insert a fabricated outcome and cannot reach another account.
+    assert.match(rpc, /create or replace function public\.delete_own_trade_setups\(\)/);
+    assert.doesNotMatch(
+      rpc,
+      /delete_own_trade_setups\(\s*[a-z_]+\s+uuid/,
+      "the function must take no user_id — identity is the filter",
+    );
+    assert.match(rpc, /where user_id = \(select auth\.uid\(\)\)/);
+    assert.match(rpc, /if auth\.uid\(\) is null then\s*raise exception/);
+    assert.match(rpc, /set search_path = public, pg_temp/);
+    assert.match(
+      rpc,
+      /revoke all on function public\.delete_own_trade_setups\(\) from public, anon/,
+    );
+    // And the table grant stays gone — the RPC is the only door.
+    assert.match(migration, /revoke insert, update, delete on public\.trade_setups/);
+  });
+
   it("reads global learning scoped to the running analyzer version", () => {
     // The WRITE has always filtered on ANALYZER_VERSION. The reads did not, so a
     // version bump left production applying the previous engine's adjustments

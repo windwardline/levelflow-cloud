@@ -33,9 +33,9 @@ test.skip(
 // deploy.yml's concurrency group forbids parallel runs, every scanning
 // project has already finished when this executes, and sweeping the whole
 // account also clears leftovers from any earlier interrupted run that died
-// before its cleanup. It runs through the user's own JWT (the "delete own"
-// RLS policy, supabase/init.sql), and trade_outcomes cascades on setup
-// delete — no service-role key in CI, no reach into any other account.
+// before its cleanup. It runs through the user's own JWT and a SECURITY DEFINER
+// function that scopes itself by auth.uid(), and trade_outcomes cascades on
+// setup delete — no service-role key in CI, no reach into any other account.
 test("the run's setups leave the learning cohort", async () => {
   const client = createClient(supabaseUrl!, supabaseKey!, {
     auth: {
@@ -56,10 +56,15 @@ test("the run's setups leave the learning cohort", async () => {
       }`,
     );
   }
-  const { count, error: deleteError } = await client
-    .from("trade_setups")
-    .delete({ count: "exact" })
-    .eq("user_id", data.user.id);
+  // Through the RPC, not a table delete: `authenticated` holds no delete grant
+  // on trade_setups since 20260807010000, because the learning aggregate reads
+  // that table unscoped and a client write grant let one account fabricate the
+  // corpus. delete_own_trade_setups() scopes itself by auth.uid() and takes no
+  // argument, so this reaches exactly the rows this run created and nothing
+  // else. trade_outcomes still cascades.
+  const { data: count, error: deleteError } = await client.rpc(
+    "delete_own_trade_setups",
+  );
   if (deleteError) {
     throw new Error(
       `E2E cleanup could not delete its setups: ${deleteError.message}`,
