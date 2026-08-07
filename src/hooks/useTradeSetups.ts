@@ -172,8 +172,19 @@ export function useTradeSetups() {
     }
   }, []);
 
+  // The rows, and only the rows. App owns the outcome refresh and gates it to
+  // the Desk and Insights (its `activeTab === "advisor" || "history"` effect,
+  // which also fires on mount because the default tab is "advisor"), so asking
+  // for one here bypassed that gate on every surface — the Guide, Donate, the
+  // legal frame, Profile. A reader who opened a document spent an Edge Function
+  // call for outcome state no surface they were looking at renders.
+  //
+  // It went unnoticed because the getUser() pre-flight above used to return
+  // early on the e2e's fabricated session token, suppressing the call before it
+  // was made. Removing that pre-flight — correct on its own terms, since it was
+  // rendering a network blip as an empty account — exposed this one underneath.
   useEffect(() => {
-    refreshSetups({ refreshOutcomes: true });
+    refreshSetups();
   }, [refreshSetups]);
 
   // The realtime subscription below is the only thing that notices a row change
@@ -262,7 +273,14 @@ export function useTradeSetups() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        refreshSetups({ refreshOutcomes: true });
+        // Rows, not outcomes — the same division the mount effect above makes,
+        // and for the same reason. This fires on every load (INITIAL_SESSION
+        // included), so asking for an outcome refresh here spent an Edge
+        // Function call on the Guide, on Donate, and inside the legal frame,
+        // where no surface renders outcome state. App's own effect keys on
+        // `session`, so a genuine sign-in still refreshes outcomes wherever the
+        // tab warrants it.
+        refreshSetups();
       } else {
         setSetups([]);
         setLifetimeSetups([]);
