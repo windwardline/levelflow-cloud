@@ -64,46 +64,53 @@ step leaves every signed-in operator working behind a closed door.
   precedent this exists to prevent. Guarded by
   `tests/brokerMasterList.test.ts` — every invisible row must sit in a named justified
   state, and the not-yet-onboarded register is pinned so it cannot grow in silence.
+- **Amendment 32** — **a derivative is not its underlying.** No actual FMP match,
+  no inclusion — dormant instead, every broker and every account type. Data
+  integrity over coverage. Reconciles with 31: an unmatched market was never
+  covered, so removing it is not a coverage reversal.
+- **Amendment 33** — **the calibration mandate.** Per market, never per class; to
+  each market's own discovered data limit; the geometry model reviewed before it
+  is tuned. The standard is a tool that finds an overwhelmingly high number of
+  money-positive setups, can justify how, and presents defensible information.
 - Decisions A–F, amendment 26, and every item in the old sections 6 and 8 remain
   approved. Sections 5 and 8 also record findings **verified as non-problems** — do not
   re-investigate those.
 
 ---
 
-## 3. Proxy-priced markets — a gap and a live defect, one cause
+## 3. Unmatched markets — the identity rule
 
-Ten markets are priced off a series that is not their own contract, and none of them
-handles the basis between the two. Amendment 32 rules on it; **item 1.5 builds the fix**.
+Amendment 32, owner ruling 2026-08-07, **universal across brokers and account
+types**: if there is no actual FMP match, the market is dormant and excluded.
+Data integrity over coverage.
 
-**The gap — six CME currency futures withheld.** 6E, 6A, 6B, 6N, 6C, 6S, all
-`mapped-not-yet-onboarded`. Each maps to a spot pair already visible on forex accounts,
-so a futures-account operator cannot analyse Euro FX today.
+**A derivative is not its underlying.** An index future matched to a cash index is
+not a match — the two are different instruments and the gap between them is the
+difference, not an offset. Same for a currency future against spot. Amendment 31's
+coverage floor never applied to these, so removing them reverses nothing.
 
-*Correcting the record:* an earlier note in this session gave the reason as "6C and 6S
-invert." That is a third of it. The F9 sighting measured **17 pips of carry on 6E** —
-one of the four that does *not* invert — so the blocker for all six is a time-varying
-basis. Inversion is a second transform that two of them also need.
+**Thirteen rows go dormant, four of them currently served.** `EMD`, `FDAX`,
+`FESX`, `NKD` (served on cash indices), `FDXM` (variant behind FDAX), and the eight
+CME currency futures `6E 6A 6B 6N 6C 6S 6J 6M` (mapped to spot pairs). Item 1.5
+carries the full spec and file list. **Futures 31 → 27.**
 
-**The live defect — four index futures already served with it.** EMD (`^MID`), FDAX
-(`^GDAXI`), FESX (`^STOXX50E`) and NKD (`^N225`) are `served-and-visible` on cash index
-series with their futures basis unmodeled, FDXM behind FDAX as a variant. They ship
-levels today that are confidently wrong by an unstated and changing amount. **This is
-the more urgent half** — a withheld market is a coverage gap, a served market with a
-silent error is an honesty defect, and amendment 33's second obligation is exactly the
-one it breaks.
+Dormant is not a verdict — `scripts/verify-fmp-matches.ts` re-probes every run, so
+any of them returns automatically the moment FMP publishes a real series.
 
-It is not fixed by withdrawing them. Amendment 31 governs removal and a missing
-transform is not a calibration verdict. It is fixed by building the model, and until it
-exists by saying plainly on those markets that the basis is unmodeled.
+**The contrast that makes the rule coherent:** the six cash index CFDs — ASX, DAX,
+DOW, NIKKEI, NSDQ, SP — are *cash* products on cash series and are real matches.
+`^GDAXI` is correct for the DAX cash CFD and incorrect for the FDAX future. The
+rule is about instrument identity, not about ticker strings.
+
+**Open owner decision:** BRENT→`BZUSD` and WTI→`CLUSD`, oil CFDs on oil futures.
+See item 1.5 — one frame against front-month and next-month settles it.
 
 Everything else invisible is justified and asserted as such:
 
-- **9 contract-size variants** (QM, MES, FDXM, MGCUSD, QG, MNQ, XC, XK, MYM) — the same
-  underlying as a market already visible under its full-size name.
-- **2 unsizeable** (6J, 6M) — no FMP currency-futures series exists; their mapping is a
-  derivation (1/USDJPY), not a match.
-- **7 no-source** — including `METUSD`, which is Metronome at \$0.54 against E8's Micro
-  Ether at \$1,871. Re-probed each run by `scripts/verify-fmp-matches.ts`.
+- **9 contract-size variants** (QM, MES, FDXM, MGCUSD, QG, MNQ, XC, XK, MYM) — the
+  same underlying as a market already visible under its full-size name.
+- **7 no-source** — including `METUSD`, which is Metronome at \$0.54 against E8's
+  Micro Ether at \$1,871. Re-probed each run.
 
 ---
 
@@ -193,46 +200,61 @@ classes · **1p** TP1 never tick-aligned for futures (98.9% off-grid — fold in
 
 Done: 1a, 1d, 1k, 1n, 1s.
 
-### 1.5 — The basis layer — **before the sweep, and it fixes a live defect**
-Amendment 32. Markets priced off a proxy series need their basis handled as a
-declared property, not as a per-symbol special case.
+### 1.5 — Unmatched markets go dormant (amendment 32) — **spec'd, ready to run**
+Owner ruling: *"If we do not have an actual match on FMP, it needs to be on the
+dormant list and excluded for the user of Levelflow. Data integrity is critical to
+maintain."* Universal — every broker, every account type.
 
-**This corrects my own earlier account of it.** I reported the six currency
-futures as blocked by the 6C/6S inversion. That was wrong, or at best a third of
-the reason: the F9 sighting measured **17 pips of carry on 6E**, which is one of
-the four that does *not* invert. Carry blocks all six. Inversion is an additional
-transform that two of them also need.
+**A future written on X is not X.** The cash index and the future on it are two
+different instruments; the gap between them is not a venue offset to be measured
+off, it *is* the difference between the instruments. So these were never matched,
+amendment 31's coverage floor never applied to them, and removing them is not a
+coverage reversal.
 
-**And four markets are shipping the defect right now.** EMD (`^MID`), FDAX
-(`^GDAXI`), FESX (`^STOXX50E`) and NKD (`^N225`) are served-and-visible on cash
-index series with their futures basis unmodeled — confidently wrong levels by an
-unstated, changing amount, with FDXM behind FDAX as a variant. The withheld six
-are a coverage gap; these four are an honesty defect, and the honesty defect is
-the more urgent half.
+*This supersedes a design I proposed earlier in the same session* — a carry model
+computing the basis from rate differential and days to expiry, so these markets
+could keep being served. Wrong answer to a right observation: manufacturing a
+series we do not have is not the same as having one. The correct fix is removal,
+which is also far simpler.
 
-*Design — one mechanism, three independent declarations:*
-- `basis: none` — the series *is* the market. Almost everything.
-- `basis: static` — a measured constant with its frames. XAGUSD, WTI, BRENT.
-  Amendment 30, unchanged.
-- `basis: carry` — computed per decision from rate differential and days to
-  expiry. The four index futures and all six currency futures.
-- `inverted: true` — composes with any of the above. 6C, 6S.
+**The audit is done. Thirteen rows, four of them currently served.**
 
-*Two things that will bite whoever builds it:*
-- **Inverting OHLC is not `1/x` four times.** The high of the reciprocal is the
-  reciprocal of the **low**. Map high→high and you get a negative range, a
-  nonsense ATR, and a stop on the wrong side of entry. Assert `high ≥ low` on the
-  transform's output and test against a known inverted pair before any market
-  ships on it.
-- **A constant offset mostly cancels in geometry** — ATR and level distances are
-  differences — but a *decaying* basis does not. It is a drift term, and it
-  reaches the sweep's returns. That is why this precedes item 5 rather than
-  following it.
+| Rows | State today | Action |
+| --- | --- | --- |
+| `EMD`→`^MID`, `FDAX`→`^GDAXI`, `FESX`→`^STOXX50E`, `NKD`→`^N225` | served-and-visible | remove from view, scan and analysis |
+| `FDXM`→`^GDAXI` | variant behind FDAX | remove with it |
+| `6E 6A 6B 6N 6C 6S` → spot pairs | mapped-not-yet-onboarded | reclassify `excluded-no-fmp-source` |
+| `6J`→`USDJPY`, `6M`→`USDMXN` | offered-but-unsizeable | reclassify `excluded-no-fmp-source` |
 
-*Why here:* it is independent of the evaluator repair, so it can run in parallel
-with items 2–3, but it must land before item 5's sweep. Calibrating a market on a
-proxy series with an unmodeled basis calibrates the wrong instrument, and doing it
-afterwards means sweeping those ten markets twice.
+Set `levelflowSymbol: null` and `fmpSymbol: null` on all thirteen, matching how
+the existing seven no-source rows (`FGBL`, `FGBM`, `FGBS`, `FGBX`, `UB`, `TN`,
+`ZW`) are already shaped. **Futures 31 → 27.** Every count pin moves with it.
+
+**Files: 14.** `symbolMap.ts`, `masterList.ts`, `instruments.ts`,
+`contractVariants.ts`, `sizing.ts`, the analyzer's `symbols.ts`,
+`market-data/index.ts`, `calibration.ts`'s `ASSET_TYPE_BY_SYMBOL`, and the pins in
+`brokerMasterList`, `brokerReference`, `brokerVisibility`, `contractVariants`,
+`e8RosterConformance`, `feedSource`, `marketScanFilters`.
+
+**What must NOT be touched, and the contrast is the point.** The six cash index
+CFDs — ASX, DAX, DOW, NIKKEI, NSDQ, SP — are *cash* products on cash series and
+stay. The same `^GDAXI` series is a correct match for the DAX cash CFD and an
+incorrect one for the `FDAX` future. Also unaffected: `ARWUSD`→`ARUSD` and
+`TRUMPUSD`→`OTRUMPUSD`, which are spelling, not proxying.
+
+**One open owner decision, do not decide it yourself: BRENT→`BZUSD` and
+WTI→`CLUSD`.** Oil CFDs mapped to oil futures. Broker oil CFDs are conventionally
+written on the front month, which would make them real matches — and amendment 30
+ruled on them that way earlier the same day. But WTI's +0.24 is ~30bp
+(spread-shaped) while BRENT's +1.67 is ~196bp (contract-month-shaped). One frame
+settles it: compare E8's live BRENT and WTI against FMP's front-month *and*
+next-month. Recommendation is to keep both serving until that frame exists.
+
+**Why this is item 1.5 and not an emergency.** It was briefly ranked as a live
+honesty defect. It is not, while the desk is parked — no user can see any of these
+markets with the gate up. Fix it before the desk reopens and before 4c sweeps,
+because sweeping a market on the wrong instrument calibrates the wrong instrument;
+there is no reason to rush it tonight.
 
 ### 2 — Repair the evaluator, as ONE change set, then re-sweep once
 **2a** look-ahead — admit a daily bar only once its own day closed ·
@@ -501,11 +523,15 @@ Then item 1, the live product defects — nothing in it depends on the calibrati
 right, and the release changed its urgency: defects that were harmless while markets
 were withheld are live now that nothing is. Fold 1p into 1b.
 
-Item 1.5 is the basis layer, and it can run in parallel with 2 and 3 but must land
-before 4c. Four index futures are SERVED TODAY on cash series with an unmodeled,
-time-varying basis — that is a live honesty defect, not a coverage gap, and it is the
-more urgent half of that item. Six currency futures are withheld for the same missing
-mechanism. Read amendment 32 before designing it; inverting OHLC is not 1/x four times.
+Item 1.5 is amendment 32 — unmatched markets go dormant. A derivative is not its
+underlying: four index futures are served today on CASH index series, which was never a
+match, and eight currency futures are mapped to spot pairs. Thirteen rows go dormant,
+futures 31 -> 27, and the audit and file list are already in the handoff so it is
+execution rather than investigation. Do NOT touch the six cash index CFDs — cash on cash
+is a real match, and the same ^GDAXI series is right for DAX and wrong for FDAX. Bring
+me the BRENT/WTI question rather than deciding it; the handoff says what settles it.
+Land this before 4c, because sweeping a market on the wrong instrument calibrates the
+wrong instrument.
 
 Then item 2, the evaluator, AS ONE CHANGE SET — 2l must land with 2a or the re-sweep
 measures the wrong committee. Then item 3, the acceptance procedure.
