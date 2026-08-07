@@ -1827,17 +1827,16 @@ judgment calls, not the source gate.
 
 ## Amendment 32 — a derivative is not its underlying (owner ruling, 2026-08-07)
 
-> "If we have index futures from E8 with no index futures from FMP matched, they
-> need to be on the dormant list as unmatched. I know the data is identical for
-> cash indices, but the measurements are different and that is where the offset
-> is coming from. No matches, no inclusion, but we need to be able to revisit
-> that later as product offerings change."
+An E8 index future with no corresponding FMP **futures** series is unmatched and
+belongs on the dormant list. Cash index data may look identical, but it is a
+different measurement — and that difference is precisely where the observed offset
+originates. No match, no inclusion. Dormancy remains revisitable as product
+offerings change.
 
-**Universal, every broker and every account type** (owner, same ruling): *"If we
-do not have an actual match on FMP, it needs to be on the dormant list and
-excluded for the user of Levelflow. Data integrity is critical to maintain."*
-This is not a futures rule or an E8 rule. It is the identity rule for every
-market Levelflow will ever serve.
+**Universal, every broker and every account type.** Any market without a genuine
+FMP match is dormant and excluded from the user's view. Data integrity outranks
+coverage. This is not a futures rule or an E8 rule — it is the identity rule for
+every market Levelflow will ever serve.
 
 **A future written on X is not X.** The cash index and the future on it are two
 different instruments with two different measurements, and the gap between them
@@ -1912,41 +1911,39 @@ Until that frame exists, neither is asserted as settled.
 
 ## Amendment 33 — the calibration mandate (owner ruling, 2026-08-07)
 
-The standing goal, in the owner's own framing, for everything between here and
-the hedge mind:
+**The standard.** Everything between here and the resumption of hedge-mind work
+exists to bring the engine to one state: it identifies money-positive setups at a
+high rate, can account for how each was derived, and presents figures the operator
+can rely on and defend to someone else. Find, justify, defend — three obligations,
+and the second is the one most often dropped. A calibration that lifts expectancy
+while remaining unable to explain itself fails this as completely as one that lifts
+nothing. This is the purpose of the retrofit and of the hedge-mind programme
+entire, not a stage inside either, and it should be read as the bar every item
+below is measured against.
 
-> Levelflow operating like a finely tuned, highly sophisticated tool which can
-> identify an overwhelmingly high number of money-positive trade setups, can
-> justify how it did it, and can present reliable, defensible information to the
-> user.
+**Per market, never per class.** Every broadly applied standard tested so far has
+been measured wrong somewhere. Indices ran `tp1RiskShare` at 1.2 where every other
+class ran 0.4–0.8. Oats starved at its class's six-hour window. Livestock was
+unmeasurable until its window tripled. Execution cost was understated by
+1.79–2.69× on copper and gas. In each case a class value had been imposed on a
+market it did not fit. The next derivation is per market, and a class value
+survives only where that market's own data supports it.
 
-Three obligations, and the middle one is the one that usually gets dropped:
-**find the setups**, **justify the method**, **defend the presentation**. A
-calibration that improves expectancy but cannot explain itself fails this ruling
-as surely as one that does not improve expectancy.
+**To each market's true data limit, discovered rather than assumed.** History
+depth varies by market and by timeframe. A sweep run on an assumed common span
+silently truncates the markets that have more and manufactures confidence about
+the markets that have less. Spans are measured first — per market, per timeframe —
+and recorded before anything consumes them.
 
-**Per market, not per class.** Broadly applied standards have been repeatedly
-measured wrong — indices' `tp1RiskShare` at 1.2 where every other class ran
-0.4–0.8, oats starved at its class's 6-hour window, livestock unmeasurable until
-its window tripled, execution cost off by 1.79–2.69× on copper and gas. Every one
-of those was a class value applied to a market it did not fit. The next
-derivation is per market, and a class value survives only where a market's own
-data says it should.
+**Total scope, the model included.** Stops, TP1 and runner, entries, review
+windows and timing thresholds, confidence bands or whatever replaces them, tick
+and pip thresholds, starvation accounting, session gating, regime conditioning.
+Preceding all of it, an honest assessment of whether the geometry model is the
+right shape at all: tuning parameters inside a wrong model is the most expensive
+way to learn nothing, and round 28 is the cheap demonstration of that failure.
 
-**To the true limit of each market's data, discovered rather than assumed.**
-History depth varies per market and per timeframe, and a sweep that assumes a
-common span silently truncates the markets with more and fabricates confidence
-about the markets with less. The span is measured first, per market, per
-timeframe, and recorded.
-
-**Everything is in scope, including the model itself.** Stops, TP1 and runner,
-entries, review windows and timing thresholds, confidence bands or whatever
-replaces them, tick and pip thresholds, starvation accounting, session gating,
-regime conditioning. And before tuning any of it: an honest review of whether the
-geometry *model* is the right shape at all. Tuning parameters inside a wrong
-model is the most expensive way to learn nothing, and round 28 is the cheap
-version of that lesson.
-
-**Iterate until the returns diminish, then stop and say so.** This does not
-license change for its own sake — the stopping rule stands. Rounds continue while
-they yield, and the diminished-returns point is declared out loud when reached.
+**Iterate while it yields, then stop and say so.** Rounds continue while they
+produce results. When a round returns only nulls and validations, the
+diminished-returns point is declared rather than another round manufactured. The
+existing stopping rule governs, and this mandate does not license change for its
+own sake.
