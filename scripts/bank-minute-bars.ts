@@ -58,6 +58,14 @@ const ENDPOINT = "historical-chart/1min";
 // weekend plus a late revision with room to spare.
 const RECENT_KEYS_KEPT = 8_000;
 
+// launchd catches this job up on wake, which is the property that makes a
+// three-day window survivable — and is also why a run can start before the
+// machine's network does. On 2026-08-08 that cost all 100 symbols in six
+// seconds. Five attempts from a 2s base spans 30 seconds of backoff, longer
+// than a wake takes to bring an interface up, and costs a doomed run only time.
+const RETRY_ATTEMPTS = 5;
+const RETRY_BASE_DELAY_MS = 2_000;
+
 type RawBar = {
   date?: string;
   open?: number;
@@ -175,6 +183,48 @@ async function readSidecar(
   }
 }
 
+/**
+ * A failure is worth retrying unless the provider gave a settled answer.
+ *
+ * `fetchMinuteBars` throws `HTTP nnn` when something answered and undici throws
+ * `fetch failed` when nothing did. A 4xx other than 429 is settled — a rejected
+ * key is still rejected on the fourth ask, and asking costs 100 symbols' worth
+ * of a metered quota. Everything else is the network, the provider's weather,
+ * or an error page where JSON was expected, and all three pass on their own.
+ */
+export function isRetryable(error: unknown): boolean {
+  const status = /^HTTP (\d{3})$/.exec(
+    error instanceof Error ? error.message : "",
+  )?.[1];
+  if (!status) {
+    return true;
+  }
+  return Number(status) === 429 || Number(status) >= 500;
+}
+
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: {
+    attempts: number;
+    baseDelayMs: number;
+    sleep: (ms: number) => Promise<void>;
+  },
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt >= options.attempts || !isRetryable(error)) {
+        throw error;
+      }
+      await options.sleep(options.baseDelayMs * 2 ** (attempt - 1));
+    }
+  }
+}
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 async function fetchMinuteBars(fmpSymbol: string): Promise<RawBar[]> {
   const url = new URL(`${BASE}/${ENDPOINT}`);
   url.searchParams.set("symbol", fmpSymbol);
@@ -199,7 +249,11 @@ async function bankOne(
   const state = await readSidecar(dir, fmpSymbol, markets);
   let raw: RawBar[];
   try {
-    raw = await fetchMinuteBars(fmpSymbol);
+    raw = await withRetry(() => fetchMinuteBars(fmpSymbol), {
+      attempts: RETRY_ATTEMPTS,
+      baseDelayMs: RETRY_BASE_DELAY_MS,
+      sleep,
+    });
   } catch (error) {
     const note = error instanceof Error ? error.message : "fetch failed";
     state.runs = [...state.runs.slice(-29), { at, fetched: 0, appended: 0, note }];

@@ -101,5 +101,17 @@ A locked keychain logs a skip and exits zero. That is a deferral, not a failure,
 because the window is three days wide — but a run of consecutive skips is the
 job silently doing nothing, so the log says it out loud.
 
+Catching up on wake is what makes the window survivable, and it is also why a run
+can start before the network does. On 2026-08-08 the 07:20 job fired at wake and
+all 100 symbols failed in six seconds with `fetch failed`; nothing was lost only
+because a human ran it by hand that afternoon. Each fetch now retries five times
+from a 2s base, doubling — 30 seconds of backoff, longer than an interface takes
+to come up.
+
+Retries are classified, not blanket. A 4xx other than 429 is a settled answer: a
+rejected key is still rejected on the fourth ask, and asking costs a hundred
+symbols against a metered quota. Everything else — no response at all, a 429, a
+5xx, an error page where JSON belonged — is retried.
+
 A separate daily watchdog reads the log and the sidecars and escalates if the
 newest `highWaterMark` falls more than two days behind.
