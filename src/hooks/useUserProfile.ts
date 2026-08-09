@@ -101,68 +101,81 @@ export function useUserProfile(
 
     const fallback = buildDefaultProfile(userId, email);
 
-    try {
-      if (!supabase) {
-        applyProfile(fallback);
-        return;
-      }
+    // `retried` marks the one re-read allowed after a successful token
+    // refresh; a second 401 on a fresh token is a real death, not a race.
+    const attempt = async (retried: boolean): Promise<void> => {
+      try {
+        if (!supabase) {
+          applyProfile(fallback);
+          return;
+        }
 
-      // Both reads or neither (§19 retrofit): a profile applied beside an
-      // accounts list whose own read failed would show a Broker row that came
-      // from nowhere, so either query throwing lands in the one catch below.
-      const [
-        { data, error, status },
-        { data: accountRows, error: accountsError, status: accountsStatus },
-      ] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select(
-            "id, email, display_name, default_timezone, default_timeframe, theme_preference, preferred_session, broker_id, broker_program_line, broker_account_size, broker_stage, broker_risk_percent, broker_drawdown_tier, active_broker_account_id",
-          )
-          .eq("id", userId)
-          .maybeSingle(),
-        supabase.from("broker_accounts").select("*").eq("user_id", userId),
-      ]);
+        // Both reads or neither (§19 retrofit): a profile applied beside an
+        // accounts list whose own read failed would show a Broker row that came
+        // from nowhere, so either query throwing lands in the one catch below.
+        const [
+          { data, error, status },
+          { data: accountRows, error: accountsError, status: accountsStatus },
+        ] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select(
+              "id, email, display_name, default_timezone, default_timeframe, theme_preference, preferred_session, broker_id, broker_program_line, broker_account_size, broker_stage, broker_risk_percent, broker_drawdown_tier, active_broker_account_id",
+            )
+            .eq("id", userId)
+            .maybeSingle(),
+          supabase.from("broker_accounts").select("*").eq("user_id", userId),
+        ]);
 
-      // 1r: a 401 on either RLS read means the session is dead server-side
-      // while auth-js still holds its local object — the shell would render
-      // fully authed around an empty account. Re-auth is the only remedy, so
-      // end the visit instead of rendering a blank. Local scope: the server
-      // already refuses this token, so there is nothing left to revoke.
-      if (
-        isDeadSessionError(error, status) ||
-        isDeadSessionError(accountsError, accountsStatus)
-      ) {
-        console.error("[profile] session rejected; signing out", error ?? accountsError);
-        await supabase.auth.signOut({ scope: "local" });
-        return;
-      }
-      if (error) {
-        throw error;
-      }
-      if (accountsError) {
-        throw accountsError;
-      }
+        // 1r: a 401 on either RLS read kills the TOKEN, not necessarily the
+        // session — on a fresh page load a read can race the refresh timer and
+        // carry a just-expired JWT (#273's deploy: 22 signed-in E2E
+        // navigations failed when the first 401 signed the reader out). So the
+        // verdict is two-step: ask GoTrue to renew and re-read once; only a
+        // refused refresh, or a 401 on a fresh token, ends the visit. Local
+        // scope: a server that refuses the refresh leaves nothing to revoke.
+        if (
+          isDeadSessionError(error, status) ||
+          isDeadSessionError(accountsError, accountsStatus)
+        ) {
+          if (!retried) {
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError) {
+              return attempt(true);
+            }
+          }
+          console.error("[profile] session rejected; signing out", error ?? accountsError);
+          await supabase.auth.signOut({ scope: "local" });
+          return;
+        }
+        if (error) {
+          throw error;
+        }
+        if (accountsError) {
+          throw accountsError;
+        }
 
-      const brokerAccounts = rowsToBrokerAccounts(
-        (accountRows ?? []) as BrokerAccountRow[],
-      );
+        const brokerAccounts = rowsToBrokerAccounts(
+          (accountRows ?? []) as BrokerAccountRow[],
+        );
 
-      applyProfile(
-        data
-          ? rowToProfile(data as ProfileRow, fallback, brokerAccounts)
-          : fallback,
-      );
-      setLoadFailed(false);
-    } catch (error) {
-      // The useTradeSetups law, applied to the profile: a failed read keeps
-      // whatever was last read successfully rather than replacing it with an
-      // empty account. This used to apply the blank fallback here — wiping a
-      // loaded profile's broker accounts and flipping the reader's theme to
-      // the default, all on a transient failure.
-      console.error("[profile] load failed; keeping last-known profile", error);
-      setLoadFailed(true);
-    }
+        applyProfile(
+          data
+            ? rowToProfile(data as ProfileRow, fallback, brokerAccounts)
+            : fallback,
+        );
+        setLoadFailed(false);
+      } catch (error) {
+        // The useTradeSetups law, applied to the profile: a failed read keeps
+        // whatever was last read successfully rather than replacing it with an
+        // empty account. This used to apply the blank fallback here — wiping a
+        // loaded profile's broker accounts and flipping the reader's theme to
+        // the default, all on a transient failure.
+        console.error("[profile] load failed; keeping last-known profile", error);
+        setLoadFailed(true);
+      }
+    };
+    await attempt(false);
   }, [applyProfile, email, userId]);
 
   useEffect(() => {

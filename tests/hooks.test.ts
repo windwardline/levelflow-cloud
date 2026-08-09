@@ -66,24 +66,29 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     assert.doesNotMatch(source, /\berror,\s*\n\s*loading,/);
   });
 
-  it("ends a dead session instead of keeping a shell open over a blank account (1r)", () => {
-    // A 401 on an RLS read means the token is dead server-side while auth-js
-    // still holds its local object — the shell renders fully authed with an
-    // empty account inside it, and no surface says re-auth is the remedy.
-    // The ledger reads carry the auth verdict out of the boundary
-    // (LedgerReadError.authFailure), and the catch ends the visit locally:
-    // the server already refuses this token, so there is nothing to revoke.
+  it("refreshes before it ever signs out — one 401 kills a token, not a session (1r)", () => {
+    // #273's deploy taught this the hard way: 22 signed-in E2E navigations
+    // failed because the first 401 signed the reader out. On a fresh page
+    // load a read can race the refresh timer and carry a just-expired JWT —
+    // PostgREST answers 401 PGRST301 for a session GoTrue can still renew.
+    // So the verdict is two-step: ask GoTrue for a new access token, retry
+    // the read once, and only a REFUSED refresh (or a 401 after a fresh
+    // token) proves the session dead.
     assert.match(
       source,
       /requestError instanceof LedgerReadError && requestError\.authFailure/,
     );
-    assert.match(source, /signOut\(\{ scope: "local" \}\)/);
+    assert.match(source, /retriedAfterRefresh/);
+    assert.match(
+      source,
+      /authFailure[\s\S]{0,400}refreshSession\(\)[\s\S]{0,600}signOut\(\{ scope: "local" \}\)/,
+    );
     // The sign-out branch returns before the generic failure word — a dead
     // session is not a retryable load failure, and "Try again shortly."
     // would be the wrong sentence for it.
     assert.match(
       source,
-      /authFailure[\s\S]{0,400}return;[\s\S]{0,600}setLoadFailed\(true\);/,
+      /authFailure[\s\S]{0,700}return;[\s\S]{0,600}setLoadFailed\(true\);/,
     );
   });
 
@@ -167,7 +172,7 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
 
   it("logs the real cause and leaves the last good rows in place", () => {
     const catchBlock =
-      source.match(/\} catch \(requestError\) \{[\s\S]*?\n {4}\} finally \{/)?.[0] ?? "";
+      source.match(/\} catch \(requestError\) \{[\s\S]*?\n {6}\} finally \{/)?.[0] ?? "";
     assert.ok(catchBlock.length > 0, "expected the request catch block");
     assert.match(catchBlock, /console\.warn\(/);
     assert.match(catchBlock, /setLoadFailed\(true\)/);
@@ -566,17 +571,23 @@ describe("useUserProfile state and theme paths (source-pinned — see header)", 
     assert.doesNotMatch(refresh, /catch \(error\) \{[\s\S]{0,300}applyProfile\(/);
     assert.match(refresh, /setLoadFailed\(true\);/);
     assert.match(refresh, /setLoadFailed\(false\);/);
-    // A 401 means the session is dead server-side while auth-js still holds
-    // its local object. Both reads carry their response status into the
-    // predicate, and a dead session ends the visit — locally, because the
-    // server already refuses this token — instead of rendering a blank
-    // account behind a live shell.
+    // A 401 kills the token, not necessarily the session (#273's deploy: a
+    // read racing the refresh timer on a fresh page load carries a
+    // just-expired JWT). Both reads carry their response status into the
+    // predicate; the verdict is refresh-then-decide: GoTrue renews → retry
+    // the read once; GoTrue refuses → the visit ends locally, because the
+    // server already refuses everything this session holds.
     assert.equal(
       (refresh.match(/isDeadSessionError\(/g) ?? []).length >= 2,
       true,
       refresh,
     );
-    assert.match(refresh, /signOut\(\{ scope: "local" \}\)/);
+    assert.match(refresh, /refreshSession\(\)/);
+    assert.match(refresh, /attempt\(true\)/);
+    assert.match(
+      refresh,
+      /refreshSession\(\)[\s\S]{0,700}signOut\(\{ scope: "local" \}\)/,
+    );
   });
 });
 
