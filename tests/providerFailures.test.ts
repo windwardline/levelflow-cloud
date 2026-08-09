@@ -132,3 +132,35 @@ describe("a provider failure is recorded, never swallowed", () => {
     );
   });
 });
+
+// 1m, server half: one blocked sentence covered two different facts. The
+// loader's two failure arms — a thrown fetch and genuinely thin history — both
+// collapsed into "FMP did not return enough bars for this instrument.", a
+// durable claim about the instrument that a network blip is no evidence for.
+// The reader concluded the market was uncovered and stopped trying, when a
+// retry would have worked.
+describe("a transient fetch is not a coverage verdict", () => {
+  const INDEX = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+
+  it("tags which failure arm the loader actually took", () => {
+    const loader = body(MARKET_LOADER, "export async function fetchFirstAvailableMarketContext");
+    // The thrown-fetch arm records that a fetch failed; the thin-history arm
+    // does not — the two facts stay distinguishable past the boundary.
+    assert.match(loader, /let sawFetchFailure = false;/);
+    assert.match(loader, /catch \(error\) \{\s*sawFetchFailure = true;/);
+    // Every return carries the tag, so no caller can read the field off one
+    // path and undefined off another.
+    const returns = loader.match(/fetchFailed: sawFetchFailure,/g) ?? [];
+    assert.equal(returns.length, 2, loader);
+  });
+
+  it("blocks with the retry sentence on a failed fetch, the coverage sentence only on thin history", () => {
+    assert.match(
+      INDEX,
+      /reason: fetchFailed\s*\? "Market data did not load\. Try again shortly\."\s*: "FMP did not return enough bars for this instrument\.",/,
+    );
+  });
+});

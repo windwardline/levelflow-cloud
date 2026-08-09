@@ -745,6 +745,7 @@ export default function App() {
           ) : null}
           {activeTab === "profile" ? (
             <ProfilePanel
+              loadFailed={profileState.loadFailed}
               memberSince={session.user.created_at}
               onActivateAccount={handleActivateAccount}
               onRemoveAccount={(id) => {

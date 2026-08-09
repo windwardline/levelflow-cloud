@@ -4,6 +4,7 @@ import {
   fetchLifetimeSetups,
   fetchSetupsByIds,
   fetchTradeSetups,
+  LedgerReadError,
   type LifetimeSetupRow,
   refreshTradeOutcomes,
   type TradeSetupRow,
@@ -159,6 +160,17 @@ export function useTradeSetups() {
         hydratedActives.length > 0 ? windowRows.concat(hydratedActives) : windowRows,
       );
     } catch (requestError) {
+      // 1r: a 401 on an RLS read means the session is dead server-side while
+      // auth-js still holds its local object — the shell would render fully
+      // authed with an empty account inside it. Re-auth is the only remedy,
+      // so end the visit rather than printing a retry sentence that cannot
+      // help. Local scope: the server already refuses this token, so there
+      // is nothing left to revoke.
+      if (requestError instanceof LedgerReadError && requestError.authFailure) {
+        console.warn("[history] session rejected; signing out", requestError);
+        void supabase?.auth.signOut({ scope: "local" });
+        return;
+      }
       // Loud where it is useful, quiet where it is not: the operator gets the
       // real cause, the reader gets one sentence. The rows are deliberately left
       // untouched here — a failed read keeps whatever was last read successfully

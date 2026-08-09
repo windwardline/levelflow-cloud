@@ -135,10 +135,11 @@ The landing PR's own deploy run was the watched green run.
 
 ### RUNNING — bank 1-minute bars
 Started 2026-08-06. Daily at 07:02. Not scheduled work; work to not break.
-*Still owed:* the task fires only while the app is open. The provider window is three
-days, so a four-day gap is unrecoverable. A launchd agent closes it — an owner call,
-because it is a persistent local job. The bank also has no backup, the same gap the
-6.0 GB corpus has.
+*Corrected 2026-08-09:* the launchd agents exist and are loaded —
+`com.windwardline.levelflow-minute-bank` and `levelflow-cache-topup`, last exit 0,
+bank verified healthy 2026-08-09 (39k bars/100 symbols, recovered from the
+2026-08-08 outage). *Still owed:* the bank has no backup, the same gap the 6.0 GB
+corpus has.
 
 ### 0.5 — Close the write surface on the learning corpus — **DONE, verified against production 2026-08-07**
 
@@ -168,18 +169,44 @@ changed: every market is now live, so the defects that were harmless-while-withh
 live too.** 1b, 1c and 1e were preconditions for release; the release happened.
 
 Outstanding: **1b** futures tick alignment (a missing contract spec must refuse, not
-skip) · **1c** sizing coverage (a lookup miss must fail the build) · **1e** per-symbol
-session calendars enforced server-side — `marketHours.ts` lives only in `src/lib`, so
-the analyzer applies no session check · **1f** indices display honesty ·
-**1g** Record row keyed to its own population · **1h** delete the false curation claim ·
-**1i** Guide §3 gains the losing path · **1j** no replay figure without its bound ·
-**1l** an expired setup loses its copy affordances · **1m** a transient feed failure
-stops claiming the market is uncovered · **1o** `stopLogic` is false for seven of eight
-classes · **1p** TP1 never tick-aligned for futures (98.9% off-grid — fold into 1b) ·
-**1q** printed payoff not derivable from printed prices (80.1% differ by >10%) ·
-**1r** a dead session renders as an empty account.
+skip — measured 2026-08-09: 19 of 31 futures ship every price off-grid; 10 have no
+spec, 9 are agriculture/livestock the futures-only gate never reaches; the fix set
+skips EMD/NKD/FESX/FDAX, which item 1.5 makes dormant) · **1c** sizing coverage (a
+lookup miss must fail the build — worse than recorded: `FUTURES_MAPPINGS` has 12
+entries against 40 Futures-classified symbols, so 28 markets E8 demonstrably offers
+render "Not offered"; amendment 22 constrains the fix to build/test failure, never
+runtime withholding) · **1e** session calendars — corrected 2026-08-09: the analyzer
+HAS its own gate (`sessions.ts`); the defect is TWO disagreeing calendars with no
+parity test (metals break, Friday close 16:30 vs 17:00, forex reopen 17:00 vs 17:05,
+agriculture/livestock falling through to FX hours) — reconcile + a weekly-close-parity-
+style test; folds in 1f-c (indices on the CME clock by a stale premise) ·
+**1f** indices display honesty (pre-round-28 record presented as current; held bar
+rendered as derived) · **1g** Record row keyed to its own population (hand-written
+two-class exclusion; 12 markets newer than the measured population inherit its record;
+same keying bug in ConfidenceUnit's class-table lookup) · **1h** delete the false
+curation claim (ScopeMenu's "All markets" no-count rationale; replayReliability's
+"measured-edge curation"; trade-model.md:255) · **1i** Guide §3 — the built Guide HAS
+the losing path since #248; the spec deck it claims to render verbatim was never
+amended, and no §3 pin exists · **1j** no replay figure without its bound (the Record
+sentence carries N but no interval — indices' 51% on 952 is ±3.2pp, indistinguishable
+from a coin flip; the Insights record band prints 100% off one resolved row) ·
+**1l** an expired setup loses its copy affordances (nothing in the render path
+compares expiry to the clock; stored setups reopened from Insights have no window at
+all — derive it client-side from `reviewWindowHoursForSymbol`) · **1q** printed payoff
+not derivable from printed prices (root cause found: the printed figure is post-cost,
+the prices are pre-cost, and the cost that closes the arithmetic is on the wire but
+never rendered; the effective ratio also double-counts cost — numerator and
+denominator) · plus 1o's residue: `targetLogic` is the same defect one field over
+(unconditional constant), and `runnerProvenance`/`tp1Provenance`/`entryProvenance`
+are computed and dropped, which blocks 4d's TP1 and runner phases.
 
-Done: 1a, 1d, 1k, 1n, 1s.
+Done: 1a, 1d, 1k, 1n, 1s · **1m + 1r 2026-08-09** (dead session ends the visit via
+local sign-out on 401/PGRST301; profile keeps last-known on failed reads with a
+loadFailed line in ProfilePanel; chart overlay stays silent on failure while the
+notice speaks; analyzer splits thrown-fetch from thin-history in the blocked reason;
+`hasVerifiedMarketDataSource` answers from the roster instead of vacuously true) ·
+**1p fixed by #251** (2026-08-06, spec-present path — the only survivor is 1b's skip) ·
+**1o's `stopLogic` fixed by #248** (2026-08-06, provenance-derived copy).
 
 ### 1.5 — Unmatched markets go dormant (amendment 32) — **spec'd, ready to run**
 Owner ruling: any market without a genuine FMP match is dormant and excluded from

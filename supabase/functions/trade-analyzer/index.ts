@@ -669,7 +669,7 @@ async function reviewCurrentMarket(
     };
   }
 
-  const { fmpSymbol, marketContext, providerFailures } =
+  const { fetchFailed, fmpSymbol, marketContext, providerFailures } =
     await fetchFirstAvailableMarketContext(
       providerSymbols,
       recordAnalyzerEvent,
@@ -702,7 +702,13 @@ async function reviewCurrentMarket(
     return {
       blocked: true,
       providerWarnings: providerFailures,
-      reason: "FMP did not return enough bars for this instrument.",
+      // 1m: two different facts wore one sentence. Thin history is a durable
+      // statement about the instrument; a thrown fetch is a transient the
+      // reader should retry — telling them the instrument lacks bars taught
+      // them to stop trying when a retry would have worked.
+      reason: fetchFailed
+        ? "Market data did not load. Try again shortly."
+        : "FMP did not return enough bars for this instrument.",
       symbol: normalizedSymbol,
     };
   }

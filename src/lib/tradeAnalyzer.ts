@@ -6,6 +6,7 @@ import {
   SCAN_REQUEST_CONCURRENCY,
 } from "./scanBatching";
 import type { SupportedSymbol } from "./symbolMap";
+import { isDeadSessionError } from "./authErrors";
 import { supabase } from "./supabase";
 
 export type AnalyzerSetup = {
@@ -409,6 +410,29 @@ export function normalizeEmbeddedOutcome<Outcome>(
   return Array.isArray(embedded) ? embedded : [embedded];
 }
 
+/**
+ * 1r: the ledger boundary used to throw new Error(error.message), discarding
+ * the PostgrestError's code and the response status — so no caller could tell
+ * a dead session from a timeout, and a 401 rendered as "Try again shortly."
+ * when re-auth was the only remedy. This carries the one verdict the hooks
+ * branch on; everything else about the failure stays a message.
+ */
+export class LedgerReadError extends Error {
+  readonly authFailure: boolean;
+
+  constructor(
+    message: string,
+    cause: { code: string | null; status: number | null },
+  ) {
+    super(message);
+    this.name = "LedgerReadError";
+    this.authFailure = isDeadSessionError(
+      { code: cause.code ?? undefined },
+      cause.status ?? undefined,
+    );
+  }
+}
+
 export async function fetchTradeSetups(): Promise<TradeSetupRow[]> {
   if (!supabase) {
     throw new Error("Supabase is not configured.");
@@ -420,10 +444,10 @@ export async function fetchTradeSetups(): Promise<TradeSetupRow[]> {
     .order("created_at", { ascending: false })
     .limit(LEDGER_WINDOW_ROWS);
 
-  const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
+  const { data, error, status } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
 
   if (error) {
-    throw new Error(error.message);
+    throw new LedgerReadError(error.message, { code: error.code, status });
   }
 
   return normalizeEmbeddedOutcomes(
@@ -460,10 +484,10 @@ export async function fetchSetupsByIds(
     .select(LEDGER_SELECT)
     .in("id", [...ids]);
 
-  const { data, error } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
+  const { data, error, status } = await withTimeout(query, HISTORY_TIMEOUT_MS, "History timed out.");
 
   if (error) {
-    throw new Error(error.message);
+    throw new LedgerReadError(error.message, { code: error.code, status });
   }
 
   return normalizeEmbeddedOutcomes(
@@ -501,7 +525,7 @@ export async function fetchLifetimeSetups(): Promise<LifetimeSetupRow[]> {
   const deadline = Date.now() + HISTORY_TIMEOUT_MS;
 
   return paginateLifetimeSetups(async (from, to) => {
-    const { data, error } = await withTimeout(
+    const { data, error, status } = await withTimeout(
       client
         .from("trade_setups")
         .select(LIFETIME_SELECT)
@@ -517,7 +541,7 @@ export async function fetchLifetimeSetups(): Promise<LifetimeSetupRow[]> {
     );
 
     if (error) {
-      throw new Error(error.message);
+      throw new LedgerReadError(error.message, { code: error.code, status });
     }
 
     return (data ?? []) as unknown as FetchedLifetimeSetupRow[];

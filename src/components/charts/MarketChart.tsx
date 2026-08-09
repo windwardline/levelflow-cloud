@@ -30,6 +30,14 @@ type MarketChartProps = {
    * heights below.
    */
   fill?: boolean;
+  /**
+   * 1m: empty data cannot tell a failed fetch from an empty answer, and the
+   * overlay's "yet" is a coverage verdict this component has no evidence
+   * for. When the load failed the stage's notice beside the chart already
+   * says so (closed / retry / uncovered), so the overlay stays silent
+   * rather than contradicting it (§17f).
+   */
+  loadFailed?: boolean;
   loading?: boolean;
   /**
    * Supplied by the Desk stage only: renders the "Expand chart" control in the
@@ -126,6 +134,7 @@ export function MarketChart(
   {
     data,
     fill = false,
+    loadFailed = false,
     loading = false,
     onExpand,
     setup = null,
@@ -432,7 +441,7 @@ export function MarketChart(
           : "w-full max-lg:h-[168px] lg:h-[500px] xl:h-[560px]"}
       />
       {loading && <div className="absolute inset-0 grid place-items-center bg-sheet text-sm font-semibold text-ink">Loading market data</div>}
-      {!loading && data.length === 0 && (
+      {!loading && data.length === 0 && !loadFailed && (
         <div className="absolute inset-0 grid place-items-center bg-sheet px-6 text-center text-sm font-semibold text-ink-muted">No chart data available yet</div>
       )}
     </div>

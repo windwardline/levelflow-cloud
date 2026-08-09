@@ -784,5 +784,17 @@ function splitBaseQuote(value: string) {
 // claim about what the product serves; a timeout is not evidence for it, and
 // saying it anyway tells an operator to stop trying when a retry would work.
 export function hasVerifiedMarketDataSource(symbol: string): boolean {
-  return Boolean(getSecurityOption(symbol).fmpSymbol);
+  // Deliberately not getSecurityOption: its unknown-symbol fallback
+  // manufactures a non-empty fmpSymbol from the input, which made this
+  // predicate vacuously true for every string — so the uncovered branch it
+  // guards was unreachable, and the coverage sentence could never render
+  // even where it was the honest one. Roster membership is the fact; a
+  // roster row without an fmpSymbol (a dormant market) is still uncovered.
+  const normalized = normalizeSymbol(symbol);
+  const option = SECURITY_OPTIONS.find(
+    (candidate) =>
+      candidate.symbol === normalized ||
+      normalizeSymbol(candidate.fmpSymbol) === normalized,
+  );
+  return Boolean(option?.fmpSymbol);
 }

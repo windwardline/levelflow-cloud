@@ -152,6 +152,13 @@ export function AdvisorWorkspace(
   const timeframe = pickedTimeframe ?? profile.defaultTimeframe;
   const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
+  // 1m: the chart's empty overlay cannot tell a failed fetch from an empty
+  // answer, and its "No chart data available yet" is a coverage verdict a
+  // transient failure is no evidence for — printed beside a notice saying the
+  // opposite. This bit is what lets the overlay stay silent while the notice
+  // speaks; cleared when a load starts so a stale flag from the previous
+  // symbol cannot silence a healthy chart.
+  const [marketLoadFailed, setMarketLoadFailed] = useState(false);
   const [marketNotice, setMarketNotice] = useState("Loading market context.");
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [analysisState, setAnalysisState] = useState<AnalysisState | null>(
@@ -431,6 +438,7 @@ export function AdvisorWorkspace(
 
     async function loadMarketData() {
       setMarketLoading(true);
+      setMarketLoadFailed(false);
       setMarketNotice("Loading market context.");
 
       try {
@@ -450,6 +458,7 @@ export function AdvisorWorkspace(
       } catch {
         if (!cancelled) {
           setMarketData(null);
+          setMarketLoadFailed(true);
           // I4/spec §10b: a closed market's own quiet reopen notice replaces
           // the generic chart error — `symbol` (not the outer `selectedAsset`)
           // is read directly here since it's already an effect dependency,
@@ -645,6 +654,7 @@ export function AdvisorWorkspace(
         <MarketChart
           data={marketData?.points ?? []}
           fill
+          loadFailed={marketLoadFailed}
           loading={marketLoading}
           setup={setup}
           viewKey={`${symbol}:${timeframe}`}
@@ -758,6 +768,7 @@ export function AdvisorWorkspace(
             <div className="mt-1.5">
               <MarketChart
                 data={marketData?.points ?? []}
+                loadFailed={marketLoadFailed}
                 loading={marketLoading}
                 onExpand={() => setChartExpanded(true)}
                 setup={setup}
@@ -937,6 +948,7 @@ export function AdvisorWorkspace(
             <MarketChart
               data={marketData?.points ?? []}
               fill
+              loadFailed={marketLoadFailed}
               loading={marketLoading}
               onExpand={() => setChartExpanded(true)}
               setup={setup}
