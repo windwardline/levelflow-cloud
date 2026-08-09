@@ -104,84 +104,97 @@ export function useTradeSetups() {
     }
     setLoadFailed(false);
 
-    try {
-      // There was a getUser() pre-flight here that emptied all three row states
-      // and returned when it saw no user. It broke the law the catch below
-      // states — "a failed read keeps whatever was last read successfully rather
-      // than replacing it with an empty account" — because auth-js's _getUser
-      // swallows EVERY AuthError and answers `{user: null}`, including a plain
-      // network failure reaching /auth/v1/user. One blip therefore rendered the
-      // rail as "No current trades." with positions open at the broker, and
-      // Insights as "No setups have been logged yet.", both with loadFailed
-      // false. On the surface whose entire purpose is knowing what is open, that
-      // is the most expensive thing this app could say.
-      //
-      // Nothing replaces it. RLS scopes every read to the caller already, so the
-      // call bought no safety and only added a failure mode; a genuinely dead
-      // session makes the PostgREST read itself 401, which lands in the catch
-      // below and reports honestly.
-      const shouldRefreshOutcomes =
-        options?.forceOutcomeRefresh === true || (options?.refreshOutcomes === true && Date.now() - lastOutcomeRefreshAt > OUTCOME_REFRESH_INTERVAL_MS);
-      if (shouldRefreshOutcomes) {
-        try {
-          await refreshTradeOutcomes();
-          // M6: stamped on success only. The stamp used to sit in a `finally`,
-          // so a refresh that threw bought itself a full 60-second blackout —
-          // the outcome that most needs a prompt retry got the longest wait.
-          lastOutcomeRefreshAt = Date.now();
-        } catch (error) {
-          console.warn("[history] outcome refresh failed; history may lag", error);
+    // `retriedAfterRefresh` marks the one re-read allowed after a
+    // successful token refresh; a second 401 on a fresh token is a real
+    // death, not a race.
+    const attempt = async (retriedAfterRefresh: boolean): Promise<void> => {
+      try {
+        // There was a getUser() pre-flight here that emptied all three row states
+        // and returned when it saw no user. It broke the law the catch below
+        // states — "a failed read keeps whatever was last read successfully rather
+        // than replacing it with an empty account" — because auth-js's _getUser
+        // swallows EVERY AuthError and answers `{user: null}`, including a plain
+        // network failure reaching /auth/v1/user. One blip therefore rendered the
+        // rail as "No current trades." with positions open at the broker, and
+        // Insights as "No setups have been logged yet.", both with loadFailed
+        // false. On the surface whose entire purpose is knowing what is open, that
+        // is the most expensive thing this app could say.
+        //
+        // Nothing replaces it. RLS scopes every read to the caller already, so the
+        // call bought no safety and only added a failure mode; a genuinely dead
+        // session makes the PostgREST read itself 401, which lands in the catch
+        // below and reports honestly.
+        const shouldRefreshOutcomes =
+          options?.forceOutcomeRefresh === true || (options?.refreshOutcomes === true && Date.now() - lastOutcomeRefreshAt > OUTCOME_REFRESH_INTERVAL_MS);
+        if (shouldRefreshOutcomes) {
+          try {
+            await refreshTradeOutcomes();
+            // M6: stamped on success only. The stamp used to sit in a `finally`,
+            // so a refresh that threw bought itself a full 60-second blackout —
+            // the outcome that most needs a prompt retry got the longest wait.
+            lastOutcomeRefreshAt = Date.now();
+          } catch (error) {
+            console.warn("[history] outcome refresh failed; history may lag", error);
+          }
+        }
+        // Both reads or neither: a lifetime aggregate computed while the window
+        // read failed — or a window rendered beside a stale lifetime header — is
+        // two accounts on one surface. Either failure lands in the one catch
+        // below, which is also why there is no second failure word to write.
+        const [windowRows, lifetimeRows] = await Promise.all([
+          fetchTradeSetups(),
+          fetchLifetimeSetups(),
+        ]);
+        // The actives the window missed, classified here — client-side, with
+        // the rail's own predicate — and fetched by id alone. The length guard
+        // is the steady state's whole cost: every active inside the window
+        // means no request at all. A hydration failure lands in the same catch
+        // as the reads above, because a rail silently missing its
+        // beyond-window actives is the exact lie this read exists to end.
+        const windowIds = new Set(windowRows.map((row) => row.id));
+        const missingActiveIds = lifetimeRows
+          .filter((row) => isActiveSetup(row) && !windowIds.has(row.id))
+          .map((row) => row.id);
+        const hydratedActives = missingActiveIds.length > 0
+          ? await fetchSetupsByIds(missingActiveIds)
+          : [];
+        setSetups(windowRows);
+        setLifetimeSetups(lifetimeRows);
+        setRailSetups(
+          hydratedActives.length > 0 ? windowRows.concat(hydratedActives) : windowRows,
+        );
+      } catch (requestError) {
+        // 1r: a 401 on an RLS read kills the TOKEN, not necessarily the
+        // session — on a fresh page load a read can race the refresh timer and
+        // carry a just-expired JWT (#273's deploy: 22 signed-in E2E
+        // navigations failed when the first 401 signed the reader out). Ask
+        // GoTrue to renew and re-read once; only a refused refresh, or a 401
+        // on a fresh token, ends the visit. Local scope: a server that
+        // refuses the refresh leaves nothing to revoke.
+        if (requestError instanceof LedgerReadError && requestError.authFailure) {
+          if (!retriedAfterRefresh && supabase) {
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError) {
+              return attempt(true);
+            }
+          }
+          console.warn("[history] session rejected; signing out", requestError);
+          void supabase?.auth.signOut({ scope: "local" });
+          return;
+        }
+        // Loud where it is useful, quiet where it is not: the operator gets the
+        // real cause, the reader gets one sentence. The rows are deliberately left
+        // untouched here — a failed read keeps whatever was last read successfully
+        // rather than replacing it with an empty account.
+        console.warn("[history] trade setups could not be loaded", requestError);
+        setLoadFailed(true);
+      } finally {
+        if (!options?.silent) {
+          setLoading(false);
         }
       }
-      // Both reads or neither: a lifetime aggregate computed while the window
-      // read failed — or a window rendered beside a stale lifetime header — is
-      // two accounts on one surface. Either failure lands in the one catch
-      // below, which is also why there is no second failure word to write.
-      const [windowRows, lifetimeRows] = await Promise.all([
-        fetchTradeSetups(),
-        fetchLifetimeSetups(),
-      ]);
-      // The actives the window missed, classified here — client-side, with
-      // the rail's own predicate — and fetched by id alone. The length guard
-      // is the steady state's whole cost: every active inside the window
-      // means no request at all. A hydration failure lands in the same catch
-      // as the reads above, because a rail silently missing its
-      // beyond-window actives is the exact lie this read exists to end.
-      const windowIds = new Set(windowRows.map((row) => row.id));
-      const missingActiveIds = lifetimeRows
-        .filter((row) => isActiveSetup(row) && !windowIds.has(row.id))
-        .map((row) => row.id);
-      const hydratedActives = missingActiveIds.length > 0
-        ? await fetchSetupsByIds(missingActiveIds)
-        : [];
-      setSetups(windowRows);
-      setLifetimeSetups(lifetimeRows);
-      setRailSetups(
-        hydratedActives.length > 0 ? windowRows.concat(hydratedActives) : windowRows,
-      );
-    } catch (requestError) {
-      // 1r: a 401 on an RLS read means the session is dead server-side while
-      // auth-js still holds its local object — the shell would render fully
-      // authed with an empty account inside it. Re-auth is the only remedy,
-      // so end the visit rather than printing a retry sentence that cannot
-      // help. Local scope: the server already refuses this token, so there
-      // is nothing left to revoke.
-      if (requestError instanceof LedgerReadError && requestError.authFailure) {
-        console.warn("[history] session rejected; signing out", requestError);
-        void supabase?.auth.signOut({ scope: "local" });
-        return;
-      }
-      // Loud where it is useful, quiet where it is not: the operator gets the
-      // real cause, the reader gets one sentence. The rows are deliberately left
-      // untouched here — a failed read keeps whatever was last read successfully
-      // rather than replacing it with an empty account.
-      console.warn("[history] trade setups could not be loaded", requestError);
-      setLoadFailed(true);
-    } finally {
-      if (!options?.silent) {
-        setLoading(false);
-      }
-    }
+    };
+    await attempt(false);
   }, []);
 
   // The rows, and only the rows. App owns the outcome refresh and gates it to
