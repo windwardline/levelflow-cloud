@@ -254,6 +254,33 @@ describe("security hardening", () => {
     assert.match(workflow, /cross-origin-opener-policy/);
   });
 
+  it("never severs a deploy mid-flight", () => {
+    const deploy = readFileSync(".github/workflows/deploy.yml", "utf8");
+
+    // Three deploys in one night were cancelled mid-run by successor merges,
+    // and the cancel can land between `db push` and `functions deploy` —
+    // database migrated, functions on old code, nothing raising an alarm.
+    // A deploy that has started finishes. A literal, not an alternation,
+    // same discipline as the parking-gate pin.
+    assert.match(deploy, /cancel-in-progress: false/);
+    assert.equal(deploy.includes("cancel-in-progress: true"), false);
+
+    // The speed the cancel was buying comes back as a skip: a run whose
+    // commit is no longer the branch tip exits before touching anything
+    // live. Skip, not fail — a superseded deploy is not an error — and the
+    // deploy job must actually consume the verdict or the check decorates.
+    assert.match(deploy, /git\/ref\/heads/);
+    assert.match(deploy, /needs\.preflight\.outputs\.superseded != 'true'/);
+
+    // The cheap cancels stay where they belong: a superseded lint run
+    // should die early, a superseded deploy must not. Pin the asymmetry in
+    // both directions so a blanket edit in either cannot pass silently.
+    for (const name of ["ci.yml", "security.yml", "claude-review.yml"]) {
+      const workflow = readFileSync(`.github/workflows/${name}`, "utf8");
+      assert.match(workflow, /cancel-in-progress: true/, name);
+    }
+  });
+
   it("documents the Cloudflare header contract", () => {
     const hardeningDoc = readFileSync("docs/security-hardening.md", "utf8");
 

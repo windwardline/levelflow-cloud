@@ -121,36 +121,17 @@ harness precedes everything that consumes it**, because four independent defects
 the same numbers the same way and re-running the sweep after each would be wasted
 compute.
 
-### 0 — CI verification integrity — **FIRST, and it is half an hour of work**
-`cancel-in-progress: true` on the deploy concurrency group severed four deploys
-across two nights. Three of those were on 2026-08-06 alone, and the cost was not
-theoretical: a real test fix went unverified through two cycles because each
-successor merge killed the run that would have proven it.
-
-It gets worse under load, and the calibration program below **is** load — many PRs,
-many merges, every one of them wanting a trustworthy deploy. A verification
-pipeline you cannot trust corrupts everything measured through it, which is the
-same argument items 2 and 3 make about the evaluator, applied one level out.
-
-The latent risk is worse than the wasted time: the cancel can land *between*
-`Apply Supabase migrations` and `Deploy Supabase functions`, leaving the database
-migrated and the functions on old code, with nothing raising an alarm.
-
-*Fix, three parts:*
-- `cancel-in-progress: false` on the deploy group. A deploy is never severed
-  mid-flight. **Not** on the other workflows — cancelling a superseded lint run is
-  correct and cheap; cancelling a superseded *deploy* is neither.
-- A superseded-check at job start: compare `github.sha` against the ref's current
-  tip and exit 0 early if it is no longer tip. That recovers the speed
-  `cancel-in-progress` was buying — N rapid merges do one real deploy, not N —
-  without ever killing a run that is already writing to production. Skip, do not
-  fail: a superseded deploy is not an error.
-- A test asserting `cancel-in-progress: false` for deploy.yml, so this cannot
-  regress silently. Same discipline as the parking-gate pin: a literal, not an
-  alternation.
-
-*Do not do this while the desk is parked and unattended if it means an unverified
-deploy config.* Land it, watch one full green run, then continue.
+### 0 — CI verification integrity — **DONE, landed 2026-08-09**
+`cancel-in-progress: false` on the deploy group; the other workflows keep `true`
+deliberately (a superseded lint run should die, a superseded deploy must not). A
+`preflight` job compares the run's commit to the branch tip and the deploy job
+skips when a later commit owns the deploy — N rapid merges do one real deploy,
+nothing started is ever severed, and a re-run of a stale deploy skips instead of
+overwriting production with old functions. Fail-open with a visible warning if
+the tip cannot be read. `tests/securityHardening.test.ts` pins the literal in
+both directions; `docs/ci-recovery.md` carries the diagnosis notes (`cancelled`
+= replaced while queued, `skipped` = superseded before touching anything live).
+The landing PR's own deploy run was the watched green run.
 
 ### RUNNING — bank 1-minute bars
 Started 2026-08-06. Daily at 07:02. Not scheduled work; work to not break.
@@ -388,12 +369,8 @@ the spec and nowhere in code. 33% of simulated runs breach the 40% Best Day cap.
 ### 6 — Operations
 Global learning's 414 at ~200 setups blocks item 8's cohort work · `outcome-sync`'s
 non-atomic write and its 300/run starvation · `init.sql` applied by hand and unscanned ·
-no Edge Function rollback, and functions deploy *before* E2E · `cancel-in-progress: true`
-severed a live deploy on 2026-08-06 — **and did so three more times that night**,
-cancelling #258's, #259's and #261's deploy runs as each successor merged. Harmless
-each time and provably so, but it meant a real test fix went unverified through two
-cycles, and the cancel can land *between* migrate and functions-deploy.
-`cancel-in-progress: false` on deploy specifically · the Supabase CLI that migrates production is unpinned and scanned by
+no Edge Function rollback, and functions deploy *before* E2E · ~~cancel-in-progress
+on deploy~~ fixed 2026-08-09, see item 0 · the Supabase CLI that migrates production is unpinned and scanned by
 nothing · `engines.node: ">=24"` lets Vercel build on a Node major CI never ran ·
 CSP `connect-src` trusts every Supabase tenant on the internet · CI verifies an artifact
 Vercel does not build · the CSP style hash is hand-copied with nothing binding it to the
