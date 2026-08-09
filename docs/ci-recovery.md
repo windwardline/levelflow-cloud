@@ -58,6 +58,26 @@ serves third-party apps.
 **`gh run cancel` on a stuck suite.** During the outage this answered *"Cannot cancel a
 workflow run that is completed"* for a run the API simultaneously reported as `queued`.
 
+## Deploy runs: severed never, skipped when superseded
+
+Since 2026-08-09 the deploy concurrency group runs `cancel-in-progress: false` — a
+deploy that has started finishes, because the cancel could land between `db push` and
+`functions deploy`, leaving the database migrated and the functions on old code. Two
+consequences for diagnosis:
+
+- A deploy run that shows `cancelled` was replaced **while still queued** — GitHub keeps
+  at most one pending run per group and never started it. Nothing was severed; the
+  newest queued run deploys the tip.
+- A deploy run that shows `skipped` was superseded **before it touched anything live**:
+  a preflight job compares the run's commit to the branch tip and skips when a later
+  commit owns the deploy. Skip, not fail — a superseded deploy is not an error.
+
+The preflight also makes `gh run rerun` on an old deploy safe: it skips instead of
+overwriting production with stale functions. To genuinely redeploy after an infra
+failure, re-run the **latest** run or `gh workflow run deploy.yml --ref main` — a
+dispatch runs on the tip, so preflight passes. `tests/securityHardening.test.ts` pins
+`cancel-in-progress: false` here and `true` on the cheap workflows, in both directions.
+
 ## The pending-suite trap
 
 A `queued` check suite with zero check runs blocks the merge even when every required
