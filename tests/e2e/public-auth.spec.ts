@@ -643,9 +643,17 @@ test("a browser session that never signed in does not inherit a stored session",
 
   await expect(page.getByRole("button", { name: "Send magic link" }))
     .toBeVisible();
-  expect(await tokenPresent(page), "a stale token outlived its browser").toBe(
-    false,
-  );
+  // Eventually, not instantly: with a real session the drop is a network
+  // round-trip (logout scope=local), and the trace from run 31342412832
+  // showed it still in flight when an instant read asserted. The fabricated
+  // token this test grew up on failed fast enough to hide the race. The
+  // claim being tested is that the token does not OUTLIVE the browser — a
+  // stable end-state, which is what a poll asserts.
+  await expect
+    .poll(() => tokenPresent(page), {
+      message: "a stale token outlived its browser",
+    })
+    .toBe(false);
 });
 
 // The satellite pages' own Donate link, followed by a reader who is signed in.
