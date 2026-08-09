@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { expect, type Page, test } from "@playwright/test";
 import { DONATION_SUPPORT_COPY } from "../../src/lib/donationCopy";
 import { legalDocument, type LegalSlug } from "../../src/lib/legalDocuments";
@@ -6,18 +7,13 @@ import { legalDocument, type LegalSlug } from "../../src/lib/legalDocuments";
 // a legal page from the app, come back with the page's own link — and the app was
 // the login screen again, in every tab, with a refresh and a Forward no help.
 //
-// It lives in this spec, beside the signed-out surface, for one reason: it needs
-// a session but no CREDENTIALS. @supabase/auth-js returns a stored session whose
-// expires_at is still in the future straight from storage
-// (GoTrueClient.__loadSession) without a network call, so a shaped session in
-// localStorage is a signed-in browser as far as the app is concerned. That keeps
-// it out of authenticated-workspace.spec.ts, whose project budget is counted in
-// analyzer requests per minute (playwright.config.ts), and it runs against the
-// built artifact too — where this bug shipped from.
-//
-// The one live request it can make is a rejected one: when the defect is present
-// the app calls signOut() with this invented token, GoTrue answers 401, and
-// auth-js drops the local copy. No real account is identified by it.
+// It lives in this spec, beside the signed-out surface, because its subject is
+// NAVIGATION — what a signed-in browser keeps through legal pages, tabs and
+// reloads — not the workspace, whose project budget is counted in analyzer
+// requests per minute (playwright.config.ts). It runs against the built
+// artifact too — where this bug shipped from. The sessions are real sign-ins
+// (see freshSession below): the credential-free fabricated session this spec
+// was born with turned out to be the 1r defect state itself, and died with it.
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const sessionsConfigured = Boolean(
   supabaseUrl && process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -26,23 +22,47 @@ const storageKey = supabaseUrl
   ? `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`
   : "";
 
-function storedSession() {
-  return JSON.stringify({
-    access_token: "levelflow.e2e.navigation.token",
-    token_type: "bearer",
-    expires_in: 3600,
-    expires_at: Math.floor(Date.now() / 1000) + 3600,
-    refresh_token: "levelflow-e2e-navigation-refresh",
-    user: {
-      id: "00000000-0000-4000-8000-000000000001",
-      aud: "authenticated",
-      role: "authenticated",
-      email: "navigation@levelflow.test",
-      created_at: "2026-01-01T00:00:00.000Z",
-      app_metadata: {},
-      user_metadata: {},
-    },
+// A REAL session for the E2E account, one per seeding. This used to be a
+// fabricated session (invented tokens, a v4-zero user id) — "No real account
+// is identified by it" — which worked only because the app trusted any local
+// session blindly. That blind trust WAS defect 1r: the server refused every
+// read (profiles 401, functions 401, refresh 400 "not found") and the shell
+// rendered an authed frame around an empty account. When #273 made the app
+// honest about a server-refused session, every test built on the fabricated
+// one collapsed — correctly. The navigation-persistence claims these tests
+// exist for ("a token this app decides to drop does not come back") survive
+// unchanged on a session the server honors; what died was the fixture's
+// premise, not the coverage.
+//
+// One fresh sign-in per seeding, not a shared capture: GoTrue rotates
+// refresh tokens on use, so two contexts holding COPIES of one session race
+// each other's rotation and the loser's refresh is refused as already-used.
+// A session per test is its own chain and can never lose that race.
+const testEmail = process.env.LEVELFLOW_E2E_EMAIL;
+const testPassword = process.env.LEVELFLOW_E2E_PASSWORD;
+const signedInFlowsConfigured = sessionsConfigured &&
+  Boolean(testEmail && testPassword);
+const SIGNED_IN_SKIP =
+  "Set VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, LEVELFLOW_E2E_EMAIL and LEVELFLOW_E2E_PASSWORD to run the signed-in navigation tests.";
+
+async function freshSession() {
+  const client = createClient(
+    supabaseUrl!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+  const { data, error } = await client.auth.signInWithPassword({
+    email: testEmail!,
+    password: testPassword!,
   });
+  if (error || !data.session) {
+    throw new Error(
+      `Unable to authenticate Levelflow E2E user: ${
+        error?.message ?? "No session returned"
+      }`,
+    );
+  }
+  return data.session;
 }
 
 // A stored session, for the whole browser, seeded once — a browser that has
@@ -65,6 +85,7 @@ function storedSession() {
 // presence is the only honest answer to "did THIS browser start a sign-in" — and
 // the fixture models a browser that genuinely did.
 async function seedStoredSession(page: Page) {
+  const session = await freshSession();
   await page.addInitScript(({ key, value, verifierKey }) => {
     if (!window.localStorage.getItem(key)) {
       window.localStorage.setItem(key, value);
@@ -74,7 +95,7 @@ async function seedStoredSession(page: Page) {
     }
   }, {
     key: storageKey,
-    value: storedSession(),
+    value: JSON.stringify(session),
     verifierKey: `${storageKey}-code-verifier`,
   });
 }
@@ -569,8 +590,8 @@ for (const width of [375, 1280]) {
     page,
   }) => {
     test.skip(
-      !sessionsConfigured,
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+      !signedInFlowsConfigured,
+      SIGNED_IN_SKIP,
     );
     await page.setViewportSize({ width, height: 812 });
     await seedStoredSession(page);
@@ -609,8 +630,8 @@ test("a browser session that never signed in does not inherit a stored session",
   page,
 }) => {
   test.skip(
-    !sessionsConfigured,
-    "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    !signedInFlowsConfigured,
+    SIGNED_IN_SKIP,
   );
   // The other half of the fix, and the reason it is not simply "keep the token":
   // a stored session with no live browser session behind it is the next person at
@@ -639,8 +660,8 @@ for (const width of [375, 1280]) {
     page,
   }) => {
     test.skip(
-      !sessionsConfigured,
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+      !signedInFlowsConfigured,
+      SIGNED_IN_SKIP,
     );
     const mobile = width < 1024;
     await page.setViewportSize({ width, height: 812 });
@@ -732,8 +753,8 @@ for (const width of [375, 1280]) {
     page,
   }) => {
     test.skip(
-      !sessionsConfigured,
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+      !signedInFlowsConfigured,
+      SIGNED_IN_SKIP,
     );
     await page.setViewportSize({ width, height: 812 });
     await seedStoredSession(page);
@@ -779,8 +800,8 @@ for (const width of [375, 1280]) {
     page,
   }) => {
     test.skip(
-      !sessionsConfigured,
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+      !signedInFlowsConfigured,
+      SIGNED_IN_SKIP,
     );
     await page.setViewportSize({ width, height: 812 });
     await seedStoredSession(page);
@@ -827,8 +848,8 @@ for (const width of [375, 1280]) {
     page,
   }) => {
     test.skip(
-      !sessionsConfigured,
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+      !signedInFlowsConfigured,
+      SIGNED_IN_SKIP,
     );
     await page.setViewportSize({ width, height: 812 });
     await seedStoredSession(page);
@@ -923,8 +944,8 @@ test("§17o tier 2 — a document survives a refresh by returning the reader hom
   page,
 }) => {
   test.skip(
-    !sessionsConfigured,
-    "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    !signedInFlowsConfigured,
+    SIGNED_IN_SKIP,
   );
   // The state model's honest consequence, pinned rather than left to be discovered:
   // surfaces have no addresses (§17o tier 1), so a reload mid-document cannot
@@ -948,8 +969,8 @@ test("§17o tier 3 — the externals still leave, and they are the only ones tha
   page,
 }) => {
   test.skip(
-    !sessionsConfigured,
-    "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to run the session-navigation tests.",
+    !signedInFlowsConfigured,
+    SIGNED_IN_SKIP,
   );
   // Rendered, not read from source: tests/linkDoctrine.test.ts pins the allowlist
   // across the tree, and this is the same claim in a browser — every anchor the
