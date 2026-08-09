@@ -44,6 +44,10 @@ type FetchWithTimeout = (
 ) => Promise<Response>;
 
 export type ProviderContextResult = {
+  /** 1m: true when any provider attempt threw (network, timeout, non-2xx) —
+   * as opposed to answering with thin history. The blocked reason keys on
+   * this so a transient failure never reads as a coverage verdict. */
+  fetchFailed: boolean;
   fmpSymbol: string | null;
   marketContext: MarketContext | null;
   providerFailures: string[];
@@ -55,6 +59,11 @@ export async function fetchFirstAvailableMarketContext(
   fetchWithTimeout: FetchWithTimeout,
 ): Promise<ProviderContextResult> {
   const providerFailures: string[] = [];
+  // 1m: the two failure arms below are different facts — a thrown fetch is a
+  // transient the reader should retry, thin history is a durable statement
+  // about the instrument — and the blocked reason downstream must not
+  // collapse them into the durable one.
+  let sawFetchFailure = false;
 
   for (const [index, providerSymbol] of providerSymbols.entries()) {
     try {
@@ -72,6 +81,7 @@ export async function fetchFirstAvailableMarketContext(
           );
         }
         return {
+          fetchFailed: sawFetchFailure,
           fmpSymbol: providerSymbol,
           marketContext,
           providerFailures,
@@ -82,6 +92,7 @@ export async function fetchFirstAvailableMarketContext(
         `${providerSymbol}: insufficient daily history (${marketContext.daily.length} bars)`,
       );
     } catch (error) {
+      sawFetchFailure = true;
       providerFailures.push(
         `${providerSymbol}: ${
           error instanceof Error ? error.message : "FMP request failed"
@@ -91,6 +102,7 @@ export async function fetchFirstAvailableMarketContext(
   }
 
   return {
+    fetchFailed: sawFetchFailure,
     fmpSymbol: null,
     marketContext: null,
     providerFailures,

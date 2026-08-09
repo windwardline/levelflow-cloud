@@ -448,6 +448,15 @@ describe("coverage absence is a fact, not a symptom", () => {
     }
   });
 
+  it("answers false off the roster — the uncovered branch must be reachable", () => {
+    // getSecurityOption's fallback manufactures a non-empty fmpSymbol for any
+    // unknown input, which made this predicate vacuously true for every
+    // string — so the "not available for this market yet" branch it guards
+    // was dead code, and the coverage sentence could never render even where
+    // it was the honest one.
+    assert.equal(hasVerifiedMarketDataSource("ZZZNOTAROSTERSYMBOL"), false);
+  });
+
   it("agrees with the roster for every scannable market", () => {
     // The predicate cannot be more pessimistic than the scan: a market the scan
     // offers and this calls uncovered would put the wrong sentence on screen

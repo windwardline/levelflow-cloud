@@ -62,6 +62,13 @@ import { ThemeToggle } from "./ThemeToggle";
 // and the sheet is three: the footer is in the frame on every surface, so a
 // Support row here was a second home for links already on screen.
 type ProfilePanelProps = {
+  /**
+   * 1r: true when the profile read failed and the values below are the last
+   * ones loaded (or the defaults, if none ever were). The §17c third state —
+   * *nothing known* is not a synonym for *nothing there* — rendered in the
+   * same register as the history surfaces' load-failed line.
+   */
+  loadFailed: boolean;
   memberSince: string;
   onActivateAccount: (id: string) => void;
   onRemoveAccount: (id: string) => void;
@@ -84,6 +91,7 @@ type ProfilePanelProps = {
 };
 
 export function ProfilePanel({
+  loadFailed,
   memberSince,
   onActivateAccount,
   onRemoveAccount,
@@ -146,6 +154,16 @@ export function ProfilePanel({
 
   const rows = (
     <>
+      {/* The history surfaces' register — name what did not happen, say what
+          to do, stop — for the panel whose content the failed read owns. The
+          rows below keep the last loaded values rather than blanking (1r). */}
+      {loadFailed
+        ? (
+          <p className="pt-3.5 text-sm font-semibold text-sell">
+            Profile could not load. Try again shortly.
+          </p>
+        )
+        : null}
       <ProfileRow
         description="Sign-in and membership."
         title="Account"

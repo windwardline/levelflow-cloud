@@ -66,6 +66,27 @@ describe("useTradeSetups failure handling (source-pinned — see header)", () =>
     assert.doesNotMatch(source, /\berror,\s*\n\s*loading,/);
   });
 
+  it("ends a dead session instead of keeping a shell open over a blank account (1r)", () => {
+    // A 401 on an RLS read means the token is dead server-side while auth-js
+    // still holds its local object — the shell renders fully authed with an
+    // empty account inside it, and no surface says re-auth is the remedy.
+    // The ledger reads carry the auth verdict out of the boundary
+    // (LedgerReadError.authFailure), and the catch ends the visit locally:
+    // the server already refuses this token, so there is nothing to revoke.
+    assert.match(
+      source,
+      /requestError instanceof LedgerReadError && requestError\.authFailure/,
+    );
+    assert.match(source, /signOut\(\{ scope: "local" \}\)/);
+    // The sign-out branch returns before the generic failure word — a dead
+    // session is not a retryable load failure, and "Try again shortly."
+    // would be the wrong sentence for it.
+    assert.match(
+      source,
+      /authFailure[\s\S]{0,400}return;[\s\S]{0,600}setLoadFailed\(true\);/,
+    );
+  });
+
   it("reads the display window and the lifetime record together, under one failure (spec §18)", () => {
     // Amendment 2's data path. Two reads — plus the rail's hydration read
     // when the lifetime record holds an active row the window missed — one
@@ -494,34 +515,34 @@ describe("useUserProfile state and theme paths (source-pinned — see header)", 
     // Q2-I9: setStatus fired three times per save, re-rendering the whole App
     // tree for a value App.tsx never destructured — and tests/mobileNav.test.ts
     // already pins that ProfilePanel "no longer" takes a saveStatus prop. The
-    // same was true of `loading` and of the returned refreshProfile.
+    // same was true of `loading` and of the returned refreshProfile. (The
+    // original pin here banned the bare word "status"; 1r's dead-session
+    // check reads the PostgREST response status, which is a value with a
+    // reader, so the pin now names the dead state machine exactly.)
     assert.doesNotMatch(source, /setStatus/);
-    assert.doesNotMatch(source, /\bstatus\b/);
     assert.doesNotMatch(source, /setLoading/);
     // §19 retrofit: the return grew three real mutators — saveBrokerAccount,
     // removeBrokerAccount, activateBrokerAccount — the multi-account read/write
-    // seam this wave's later tasks consume. Unlike the dead state above, each
-    // is part of the plan's own interface, not a value with no reader.
+    // seam this wave's later tasks consume. 1r adds loadFailed, which
+    // ProfilePanel reads the way the history surfaces read useTradeSetups'.
     assert.match(
       source,
-      /return \{\s*activateBrokerAccount,\s*profile,\s*removeBrokerAccount,\s*renameBrokerAccount,\s*saveBrokerAccount,\s*saveProfile,\s*\};/,
+      /return \{\s*activateBrokerAccount,\s*loadFailed,\s*profile,\s*removeBrokerAccount,\s*renameBrokerAccount,\s*saveBrokerAccount,\s*saveProfile,\s*\};/,
     );
   });
 
   it("applies the loaded profile's theme on every path that sets a profile (Q2-M5)", () => {
-    // Three paths set a profile: the unconfigured-client early return, the
-    // success path, and the catch. Only the middle one called onThemeChange, so a
-    // reader whose profile load failed — or who ran without a configured client —
-    // kept whatever theme the previous render had, silently disagreeing with the
-    // profile the surface was showing.
+    // Two paths set a real profile — the unconfigured-client early return and
+    // the success path — and both go through applyProfile, which pairs the
+    // profile with its theme. The catch no longer sets one at all (1r below),
+    // because the blank-account-with-default-theme it used to apply was the
+    // defect: a failed read replaced a loaded profile with an empty one and
+    // flipped the reader's theme to prove it.
     const refresh = source.match(
       /const refreshProfile = useCallback[\s\S]*?\n {2}\}, \[/,
     )?.[0] ?? "";
     assert.ok(refresh.length > 0, "expected refreshProfile");
-    // Three paths set a real profile, and all three go through applyProfile,
-    // which is the pair. The one bare setProfile left is setProfile(null) on the
-    // no-user path, which has no theme to apply.
-    assert.equal((refresh.match(/applyProfile\(/g) ?? []).length, 3, refresh);
+    assert.equal((refresh.match(/applyProfile\(/g) ?? []).length, 2, refresh);
     assert.deepEqual(refresh.match(/setProfile\([^)]*\)/g), ["setProfile(null)"]);
     assert.match(
       source,
@@ -531,7 +552,31 @@ describe("useUserProfile state and theme paths (source-pinned — see header)", 
       refresh,
       /if \(!supabase\) \{\s*applyProfile\(fallback\);\s*return;/,
     );
-    assert.match(refresh, /\} catch \(error\) \{[\s\S]{0,200}applyProfile\(fallback\);/);
+  });
+
+  it("keeps the last-loaded profile when a read fails, and ends a dead session (1r)", () => {
+    const refresh = source.match(
+      /const refreshProfile = useCallback[\s\S]*?\n {2}\}, \[/,
+    )?.[0] ?? "";
+    assert.ok(refresh.length > 0, "expected refreshProfile");
+    // The useTradeSetups law, applied to the profile: a failed read keeps
+    // whatever was last read successfully rather than replacing it with an
+    // empty account — no applyProfile(fallback) in the catch, a loadFailed
+    // flag instead, cleared on the next successful load.
+    assert.doesNotMatch(refresh, /catch \(error\) \{[\s\S]{0,300}applyProfile\(/);
+    assert.match(refresh, /setLoadFailed\(true\);/);
+    assert.match(refresh, /setLoadFailed\(false\);/);
+    // A 401 means the session is dead server-side while auth-js still holds
+    // its local object. Both reads carry their response status into the
+    // predicate, and a dead session ends the visit — locally, because the
+    // server already refuses this token — instead of rendering a blank
+    // account behind a live shell.
+    assert.equal(
+      (refresh.match(/isDeadSessionError\(/g) ?? []).length >= 2,
+      true,
+      refresh,
+    );
+    assert.match(refresh, /signOut\(\{ scope: "local" \}\)/);
   });
 });
 

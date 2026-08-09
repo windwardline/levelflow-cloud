@@ -16,6 +16,7 @@ import {
   type ThemeMode,
   type UserProfile,
 } from "../lib/profile";
+import { isDeadSessionError } from "../lib/authErrors";
 import { supabase } from "../lib/supabase";
 
 type ProfileRow = {
@@ -73,6 +74,10 @@ export function useUserProfile(
   const [profile, setProfile] = useState<UserProfile | null>(
     () => (userId ? buildDefaultProfile(userId, email) : null),
   );
+  // 1r: the profile sibling of useTradeSetups' flag — a failed read keeps
+  // whatever was last read successfully and says so, rather than replacing a
+  // loaded profile with an empty account.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Q2-M5: a profile and its theme are one fact, so they are applied together.
   // onThemeChange used to fire on the success path alone, while the two fallback
@@ -90,6 +95,7 @@ export function useUserProfile(
   const refreshProfile = useCallback(async () => {
     if (!userId) {
       setProfile(null);
+      setLoadFailed(false);
       return;
     }
 
@@ -104,18 +110,33 @@ export function useUserProfile(
       // Both reads or neither (§19 retrofit): a profile applied beside an
       // accounts list whose own read failed would show a Broker row that came
       // from nowhere, so either query throwing lands in the one catch below.
-      const [{ data, error }, { data: accountRows, error: accountsError }] =
-        await Promise.all([
-          supabase
-            .from("profiles")
-            .select(
-              "id, email, display_name, default_timezone, default_timeframe, theme_preference, preferred_session, broker_id, broker_program_line, broker_account_size, broker_stage, broker_risk_percent, broker_drawdown_tier, active_broker_account_id",
-            )
-            .eq("id", userId)
-            .maybeSingle(),
-          supabase.from("broker_accounts").select("*").eq("user_id", userId),
-        ]);
+      const [
+        { data, error, status },
+        { data: accountRows, error: accountsError, status: accountsStatus },
+      ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id, email, display_name, default_timezone, default_timeframe, theme_preference, preferred_session, broker_id, broker_program_line, broker_account_size, broker_stage, broker_risk_percent, broker_drawdown_tier, active_broker_account_id",
+          )
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase.from("broker_accounts").select("*").eq("user_id", userId),
+      ]);
 
+      // 1r: a 401 on either RLS read means the session is dead server-side
+      // while auth-js still holds its local object — the shell would render
+      // fully authed around an empty account. Re-auth is the only remedy, so
+      // end the visit instead of rendering a blank. Local scope: the server
+      // already refuses this token, so there is nothing left to revoke.
+      if (
+        isDeadSessionError(error, status) ||
+        isDeadSessionError(accountsError, accountsStatus)
+      ) {
+        console.error("[profile] session rejected; signing out", error ?? accountsError);
+        await supabase.auth.signOut({ scope: "local" });
+        return;
+      }
       if (error) {
         throw error;
       }
@@ -132,9 +153,15 @@ export function useUserProfile(
           ? rowToProfile(data as ProfileRow, fallback, brokerAccounts)
           : fallback,
       );
+      setLoadFailed(false);
     } catch (error) {
-      console.error("[profile] load failed; showing defaults", error);
-      applyProfile(fallback);
+      // The useTradeSetups law, applied to the profile: a failed read keeps
+      // whatever was last read successfully rather than replacing it with an
+      // empty account. This used to apply the blank fallback here — wiping a
+      // loaded profile's broker accounts and flipping the reader's theme to
+      // the default, all on a transient failure.
+      console.error("[profile] load failed; keeping last-known profile", error);
+      setLoadFailed(true);
     }
   }, [applyProfile, email, userId]);
 
@@ -353,6 +380,7 @@ export function useUserProfile(
   // either.
   return {
     activateBrokerAccount,
+    loadFailed,
     profile,
     removeBrokerAccount,
     renameBrokerAccount,

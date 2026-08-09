@@ -64,8 +64,15 @@ describe("ProfilePanel theme-save failure notice (fix round 1, item 4)", () => {
     );
   });
 
-  it("the notice is the only sell-toned element in the file (no second, drifting copy of it)", () => {
-    assert.equal((PANEL_SOURCE.match(/text-sell/g) ?? []).length, 1);
+  it("each failure notice is sell-toned exactly once (no drifting copies)", () => {
+    // Two notices, two different facts: the theme-save failure and 1r's
+    // profile-load failure. Same §17c register, one occurrence each — a
+    // third sell-toned element would be one of them drifting.
+    assert.equal((PANEL_SOURCE.match(/text-sell/g) ?? []).length, 2);
+    const collapsedSource = PANEL_SOURCE.replace(/\s+/g, " ");
+    assert.ok(
+      collapsedSource.includes("Profile could not load. Try again shortly."),
+    );
   });
 });
 

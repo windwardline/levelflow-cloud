@@ -294,7 +294,7 @@ describe("Desk stage composition — the mock's elements are present (a-desk-v3.
       /<div className="min-h-0 shrink-0 grow-0 basis-\[30%\]">\s*<MarketChart/,
     );
     // …which only works because the chart takes its height from that wrapper.
-    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n\s*loading=\{marketLoading\}\n\s*onExpand=/);
+    assert.match(stage, /<MarketChart\n\s*data=\{marketData\?\.points \?\? \[\]\}\n\s*fill\n\s*loadFailed=\{marketLoadFailed\}\n\s*loading=\{marketLoading\}\n\s*onExpand=/);
     // The fixed ≥lg chart height that used to be most of a 1280x800 region is
     // gone from the stage: MarketChart keeps it only for a caller that owns no
     // height, and the stage is no longer one.
@@ -1569,5 +1569,35 @@ describe("§19d — the kill list: nothing else grows a size", () => {
     for (const box of ["rounded", "border-", "bg-", "shadow"]) {
       assert.ok(!sizeRow.includes(box), `${box} must not reach the Size row`);
     }
+  });
+});
+
+// 1m: a failed load never renders as a coverage claim. The notice beside the
+// chart already distinguishes closed / failed / uncovered; the chart's own
+// empty overlay used to say "No chart data available yet" whenever data was
+// empty — including on a transient FMP failure, where "yet" is a coverage
+// verdict the surface has no evidence for, printed beside a notice saying the
+// opposite. The overlay cannot tell a failed fetch from an empty answer, so
+// the stage tells it.
+describe("chart failure honesty (1m)", () => {
+  it("threads the failure bit from the stage to every chart instance", () => {
+    const stage = readFileSync(STAGE, "utf8");
+    // Set on the catch, cleared when a load starts — a stale failure flag
+    // from the previous symbol would silence the overlay on a healthy chart.
+    assert.match(stage, /setMarketLoadFailed\(true\);/);
+    assert.match(stage, /setMarketLoadFailed\(false\);/);
+    // All three MarketChart instances (inline, ≥lg fill, expanded overlay)
+    // read the same bit; a fourth instance without it would resurrect the
+    // lie on one surface only.
+    const threaded = stage.match(/loadFailed=\{marketLoadFailed\}/g) ?? [];
+    const instances = stage.match(/<MarketChart\b/g) ?? [];
+    assert.equal(threaded.length, instances.length, "every instance carries it");
+    assert.equal(instances.length >= 3, true);
+  });
+
+  it("keeps the overlay silent when the load failed — the notice speaks", () => {
+    const chart = readFileSync("src/components/charts/MarketChart.tsx", "utf8");
+    assert.match(chart, /loadFailed\?: boolean/);
+    assert.match(chart, /\{!loading && data\.length === 0 && !loadFailed &&/);
   });
 });
