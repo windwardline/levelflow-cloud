@@ -54,12 +54,20 @@ export type GateCell = SweepStats & { dayR: Map<number, number> };
 // symbol -> variant -> split -> cell
 export type GridCube = Map<string, Map<string, Map<string, GateCell>>>;
 
-export function readGridCube(rows: SweepEmitRow[]): GridCube {
+export function readGridCube(
+  rows: SweepEmitRow[],
+  options: { includeHoldout?: boolean } = {},
+): GridCube {
   const cube: GridCube = new Map();
   for (const row of rows) {
     // capture-all corpora include rejected records for calibration reads;
     // the gate grades the stream production would actually take.
     if (row.accepted === false) {
+      continue;
+    }
+    // 3e: holdout markets exist for the one confirmation read and are
+    // excluded from every tuning aggregate by default.
+    if (row.holdout === true && !options.includeHoldout) {
       continue;
     }
     const variant = typeof row.variant === "string" ? row.variant : "baseline";
@@ -87,16 +95,26 @@ export function readGridCube(rows: SweepEmitRow[]): GridCube {
 
 export type VariantVerdict = {
   accepted: boolean;
+  // The confirm fold is read ONCE, for accepted variants only — reported,
+  // never part of selection (3d). Null when the corpus has no confirm
+  // fold or the variant was not accepted.
+  confirmTotalDelta: number | null;
+  fitTotalDelta: number;
   permutationP: number;
-  testExpectancyDelta: number;
-  testFilled: number;
-  testSigma: number;
-  testTotalDelta: number;
+  selectExpectancyDelta: number;
+  selectFilled: number;
+  selectSigma: number;
+  selectTotalDelta: number;
   thin: boolean;
-  trainTotalDelta: number;
 };
 
-type GateOptions = { permutations?: number; seed?: number };
+export type FoldNames = { confirm?: string; fit: string; select: string };
+
+type GateOptions = {
+  foldNames?: FoldNames;
+  permutations?: number;
+  seed?: number;
+};
 
 // Deterministic PRNG (mulberry32): permutation p-values must reproduce
 // run to run, or two readers of one corpus argue about the same number.
@@ -167,6 +185,7 @@ export function classVerdicts(
   options: GateOptions = {},
 ): Map<string, Map<string, VariantVerdict>> {
   const permutations = options.permutations ?? 1_000;
+  const foldNames = options.foldNames ?? { fit: "fit", select: "select" };
   const random = mulberry32(options.seed ?? 7);
   const verdicts = new Map<string, Map<string, VariantVerdict>>();
 
@@ -194,48 +213,60 @@ export function classVerdicts(
         continue;
       }
       const aggregate = {
-        base: { test: emptyStats(), train: emptyStats() },
-        variant: { test: emptyStats(), train: emptyStats() },
+        base: {
+          confirm: emptyStats(),
+          fit: emptyStats(),
+          select: emptyStats(),
+        },
+        variant: {
+          confirm: emptyStats(),
+          fit: emptyStats(),
+          select: emptyStats(),
+        },
       };
       for (const symbol of symbols) {
-        for (const split of ["test", "train"] as const) {
+        for (const fold of ["confirm", "fit", "select"] as const) {
+          const splitName = fold === "confirm"
+            ? foldNames.confirm
+            : foldNames[fold];
+          if (!splitName) continue;
           mergeInto(
-            aggregate.base[split],
-            cube.get(symbol)?.get("baseline")?.get(split),
+            aggregate.base[fold],
+            cube.get(symbol)?.get("baseline")?.get(splitName),
           );
           mergeInto(
-            aggregate.variant[split],
-            cube.get(symbol)?.get(variant)?.get(split),
+            aggregate.variant[fold],
+            cube.get(symbol)?.get(variant)?.get(splitName),
           );
         }
       }
-      const testTotalDelta = totalOf(aggregate.variant.test) -
-        totalOf(aggregate.base.test);
-      const trainTotalDelta = totalOf(aggregate.variant.train) -
-        totalOf(aggregate.base.train);
+      const selectTotalDelta = totalOf(aggregate.variant.select) -
+        totalOf(aggregate.base.select);
+      const fitTotalDelta = totalOf(aggregate.variant.fit) -
+        totalOf(aggregate.base.fit);
       const sigma = Math.sqrt(
-        totalVarianceOf(aggregate.variant.test) +
-          totalVarianceOf(aggregate.base.test),
+        totalVarianceOf(aggregate.variant.select) +
+          totalVarianceOf(aggregate.base.select),
       );
-      const testSigma = sigma > 0 ? testTotalDelta / sigma : 0;
-      const baseExpectancy = expectancy(aggregate.base.test) ?? 0;
-      const variantExpectancy = expectancy(aggregate.variant.test) ?? 0;
-      const testExpectancyDelta = variantExpectancy - baseExpectancy;
-      const thin = aggregate.variant.test.filled <
-        aggregate.base.test.filled * 0.5;
+      const selectSigma = sigma > 0 ? selectTotalDelta / sigma : 0;
+      const baseExpectancy = expectancy(aggregate.base.select) ?? 0;
+      const variantExpectancy = expectancy(aggregate.variant.select) ?? 0;
+      const selectExpectancyDelta = variantExpectancy - baseExpectancy;
+      const thin = aggregate.variant.select.filled <
+        aggregate.base.select.filled * 0.5;
 
       const baselineBlocks: number[] = [];
       const variantBlocks: number[] = [];
       for (const symbol of symbols) {
         for (
-          const value of cube.get(symbol)?.get("baseline")?.get("test")
-            ?.dayR.values() ?? []
+          const value of cube.get(symbol)?.get("baseline")
+            ?.get(foldNames.select)?.dayR.values() ?? []
         ) {
           baselineBlocks.push(value);
         }
         for (
-          const value of cube.get(symbol)?.get(variant)?.get("test")
-            ?.dayR.values() ?? []
+          const value of cube.get(symbol)?.get(variant)
+            ?.get(foldNames.select)?.dayR.values() ?? []
         ) {
           variantBlocks.push(value);
         }
@@ -243,21 +274,26 @@ export function classVerdicts(
       const permutationP = permutationPValue(
         baselineBlocks,
         variantBlocks,
-        testTotalDelta,
+        selectTotalDelta,
         permutations,
         random,
       );
 
+      const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
+        selectSigma >= 1 && selectExpectancyDelta >= 0;
       classMap.set(variant, {
-        accepted: !thin && trainTotalDelta > 0 && testTotalDelta > 0 &&
-          testSigma >= 1 && testExpectancyDelta >= 0,
+        accepted,
+        confirmTotalDelta: accepted && foldNames.confirm
+          ? totalOf(aggregate.variant.confirm) -
+            totalOf(aggregate.base.confirm)
+          : null,
+        fitTotalDelta,
         permutationP,
-        testExpectancyDelta,
-        testFilled: aggregate.variant.test.filled,
-        testSigma,
-        testTotalDelta,
+        selectExpectancyDelta,
+        selectFilled: aggregate.variant.select.filled,
+        selectSigma,
+        selectTotalDelta,
         thin,
-        trainTotalDelta,
       });
     }
   }
@@ -279,15 +315,26 @@ function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
 
 export function gradeCorpus(
   emitPath: string,
-  options: GateOptions = {},
+  options: GateOptions & { includeHoldout?: boolean } = {},
 ): {
+  foldNames: FoldNames;
   manifest: SweepManifest;
   verdicts: Map<string, Map<string, VariantVerdict>>;
 } {
   const { manifest, rows } = assertManifestedCorpus(emitPath);
+  // A folded corpus names its own partition; a legacy two-split corpus
+  // maps train->fit, test->select and has no confirm fold to read.
+  const foldNames: FoldNames = options.foldNames ??
+    (manifest.folds
+      ? { confirm: "confirm", fit: "fit", select: "select" }
+      : { fit: "train", select: "test" });
   return {
+    foldNames,
     manifest,
-    verdicts: classVerdicts(readGridCube(rows), options),
+    verdicts: classVerdicts(
+      readGridCube(rows, { includeHoldout: options.includeHoldout }),
+      { ...options, foldNames },
+    ),
   };
 }
 
@@ -304,30 +351,39 @@ function main(): void {
     );
     process.exit(1);
   }
-  const { manifest, verdicts } = gradeCorpus(paths[0], {
+  const { foldNames, manifest, verdicts } = gradeCorpus(paths[0], {
+    includeHoldout: args.includes("--include-holdout"),
     permutations: flag("permutations", 1_000),
     seed: flag("seed", 7),
   });
+  console.log(
+    `folds: fit=${foldNames.fit} select=${foldNames.select}` +
+      `${foldNames.confirm ? ` confirm=${foldNames.confirm} (read once, accepted variants only)` : " (legacy two-split corpus)"}` +
+      `${manifest.holdoutSymbols?.length ? ` · holdout ${manifest.holdoutSymbols.length} markets excluded` : ""}`,
+  );
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · anchor ${manifest.anchor}`,
   );
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(
-      `${"variant".padEnd(28)}${"ΔR train".padStart(10)}${"ΔR test".padStart(9)}${"σ".padStart(7)}${"ΔE test".padStart(9)}${"p".padStart(8)}  verdict`,
+      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"σ".padStart(7)}${"ΔE sel".padStart(9)}${"p".padStart(8)}  verdict`,
     );
     for (const [variant, verdict] of classMap) {
       const label = verdict.thin
-        ? `THIN (${verdict.testFilled} filled) — refuse`
+        ? `THIN (${verdict.selectFilled} filled) — refuse`
         : verdict.accepted
-        ? "ACCEPT — both splits, ≥1σ, expectancy holds"
+        ? "ACCEPT — fit+select, ≥1σ, expectancy holds"
         : "fails";
+      const confirmNote = verdict.confirmTotalDelta === null
+        ? ""
+        : ` · confirm ΔR ${verdict.confirmTotalDelta.toFixed(1)}`;
       console.log(
-        `${variant.padEnd(28)}${verdict.trainTotalDelta.toFixed(1).padStart(10)}${
-          verdict.testTotalDelta.toFixed(1).padStart(9)
-        }${verdict.testSigma.toFixed(2).padStart(7)}${
-          verdict.testExpectancyDelta.toFixed(3).padStart(9)
-        }${verdict.permutationP.toFixed(3).padStart(8)}  ${label}`,
+        `${variant.padEnd(28)}${verdict.fitTotalDelta.toFixed(1).padStart(10)}${
+          verdict.selectTotalDelta.toFixed(1).padStart(9)
+        }${verdict.selectSigma.toFixed(2).padStart(7)}${
+          verdict.selectExpectancyDelta.toFixed(3).padStart(9)
+        }${verdict.permutationP.toFixed(3).padStart(8)}  ${label}${confirmNote}`,
       );
     }
   }

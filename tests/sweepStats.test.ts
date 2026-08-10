@@ -138,6 +138,10 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     assert.match(source, /assertManifestedCorpus\(/);
   });
 
+  it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {
+    assert.match(source, /raw\.holdout === true/);
+  });
+
   it("keeps no private stats arithmetic to drift", () => {
     assert.doesNotMatch(source, /function add\(/);
     assert.doesNotMatch(source, /type Stats = \{/);

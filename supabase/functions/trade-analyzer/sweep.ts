@@ -272,6 +272,11 @@ export function simulateSymbol(input: {
   // safe: only reports published before the decision bar are ever visible.
   cotReports?: CotReportRow[];
   dailyBars: Bar[];
+  // 3c's engine half: decisions stop at this instant while resolution
+  // keeps reading later bars — how a calendar fold's embargo guarantees
+  // every setup it decides resolves inside its own fold instead of
+  // truncating at the boundary or consuming the next fold's price action.
+  decisionEndMs?: number;
   // Real 5min bars for the full replay window (2l). Optional so synthetic
   // fixtures can exercise the four-frame shape, but the sweep driver always
   // fetches and passes it — replay without it votes over a committee
@@ -330,6 +335,11 @@ export function simulateSymbol(input: {
   ) {
     const history = input.primaryBars.slice(0, index + 1);
     const latest = history.at(-1)!;
+    if (
+      input.decisionEndMs !== undefined && latest.time >= input.decisionEndMs
+    ) {
+      break;
+    }
     while (
       dailyVisible < dailySeries.length &&
       dailySeries[dailyVisible].completeAtMs <= latest.time

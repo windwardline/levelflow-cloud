@@ -130,16 +130,19 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
 
   it("accepts a variant that improves both splits beyond noise, with a small permutation p", () => {
     const verdicts = classVerdicts(readGridCube(better()), {
+      foldNames: { fit: "train", select: "test" },
       permutations: 400,
       seed: 11,
     });
     const verdict = verdicts.get("forex")!.get("tp1=0.9")!;
     assert.equal(verdict.accepted, true);
-    assert.ok(verdict.testSigma > 1, `test sigma ${verdict.testSigma}`);
+    assert.ok(verdict.selectSigma > 1, `select sigma ${verdict.selectSigma}`);
     assert.ok(
       verdict.permutationP < 0.05,
       `permutation p ${verdict.permutationP}`,
     );
+    // A legacy two-split corpus has no confirm fold to read.
+    assert.equal(verdict.confirmTotalDelta, null);
   });
 
   it("rejects an identical variant and prices it as noise", () => {
@@ -152,6 +155,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       rows.push(outcomeRow("same", day, swing));
     }
     const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
       permutations: 200,
       seed: 3,
     }).get("forex")!.get("same")!;
@@ -170,6 +174,7 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       }
     }
     const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
       permutations: 100,
       seed: 5,
     }).get("forex")!.get("tight")!;
@@ -190,25 +195,103 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       }
     }
     const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
       permutations: 100,
       seed: 9,
     }).get("forex")!.get("volume")!;
-    assert.ok(verdict.testTotalDelta > 0);
-    assert.ok(verdict.testExpectancyDelta < 0);
+    assert.ok(verdict.selectTotalDelta > 0);
+    assert.ok(verdict.selectExpectancyDelta < 0);
     assert.equal(verdict.accepted, false);
   });
 
   it("is deterministic under a seed", () => {
     const rows = better();
+    const legacy = { fit: "train", select: "test" };
     const first = classVerdicts(readGridCube(rows), {
+      foldNames: legacy,
       permutations: 150,
       seed: 21,
     }).get("forex")!.get("tp1=0.9")!;
     const second = classVerdicts(readGridCube(rows), {
+      foldNames: legacy,
       permutations: 150,
       seed: 21,
     }).get("forex")!.get("tp1=0.9")!;
     assert.equal(first.permutationP, second.permutationP);
+  });
+});
+
+describe("holdout — excluded from tuning, present for the one confirmation read (3e)", () => {
+  it("keeps holdout rows out of the cube unless explicitly included", () => {
+    const rows = [
+      outcomeRow("baseline", 0, 0.5),
+      { ...outcomeRow("baseline", 1, -5, "stop_loss", "GBPUSD"), holdout: true },
+    ];
+    const excluded = readGridCube(rows);
+    assert.equal(excluded.has("GBPUSD"), false);
+    const included = readGridCube(rows, { includeHoldout: true });
+    assert.equal(included.has("GBPUSD"), true);
+  });
+});
+
+describe("a folded corpus names its own partition (3c/3d)", () => {
+  it("derives fit/select/confirm from the manifest and reads confirm once, for accepted variants only", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 24; day += 1) {
+      const swing = day % 2 === 0 ? 0.5 : -0.1;
+      for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
+        rows.push({
+          ...outcomeRow("baseline", day + offset, swing),
+          split,
+        });
+        rows.push({
+          ...outcomeRow("wide", day + offset, swing + 1),
+          split,
+        });
+      }
+    }
+    const dir = mkdtempSync(join(tmpdir(), "gate-folds-"));
+    const emitPath = join(dir, "folded.jsonl");
+    writeFileSync(
+      emitPath,
+      rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+    );
+    const manifest = buildSweepManifest({
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-10",
+      barRejections: {},
+      days: 365,
+      folds: [
+        { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
+        { decisionEndMs: 8, endMs: 9, name: "select", startMs: 5 },
+        { decisionEndMs: 12, endMs: 13, name: "confirm", startMs: 9 },
+      ],
+      generatedAt: "2026-08-10T06:00:00.000Z",
+      grid: [{}, { wide: true }],
+      holdoutSymbols: [],
+      stepBars: 16,
+      symbols: [{
+        calibration: {},
+        providerSymbol: "EURUSD",
+        series: { "15min": [{ time: 0 }] },
+        symbol: "EURUSD",
+      }],
+      trainShare: 0.6,
+      warmupBars: 240,
+    });
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    const graded = gradeCorpus(emitPath, { permutations: 100, seed: 4 });
+    assert.deepEqual(graded.foldNames, {
+      confirm: "confirm",
+      fit: "fit",
+      select: "select",
+    });
+    const verdict = graded.verdicts.get("forex")!.get("wide")!;
+    assert.equal(verdict.accepted, true);
+    assert.equal(Number(verdict.confirmTotalDelta!.toFixed(1)), 24);
   });
 });
 

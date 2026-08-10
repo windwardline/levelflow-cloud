@@ -147,6 +147,9 @@ async function main(): Promise<void> {
     const { rows } = assertManifestedCorpus(file);
     for (const raw of rows) {
       const row = raw as unknown as Row;
+      // 3e: holdout markets are excluded from every tuning-adjacent read;
+      // this report informs inclusion decisions, so it is one of them.
+      if (raw.holdout === true) continue;
       if (row.variant && row.variant !== "baseline") continue;
       if (!passesOtherGates(row)) {
         gated += 1;

@@ -78,8 +78,19 @@ export type SweepManifest = {
   anchor: string;
   barRejections: Record<string, number>;
   days: number;
+  // 3c/3d: the calendar folds this corpus was decided under — absent on
+  // legacy two-split corpora, whose readers map train/test instead.
+  folds?: Array<{
+    decisionEndMs: number;
+    endMs: number;
+    name: string;
+    startMs: number;
+  }>;
   generatedAt: string;
   grid: unknown[];
+  // 3e: markets whose rows exist for the one confirmation read and are
+  // excluded from every tuning aggregate — a property of the corpus.
+  holdoutSymbols?: string[];
   manifestHash: string;
   stepBars: number;
   symbols: Array<{
@@ -98,8 +109,10 @@ export function buildSweepManifest(input: {
   anchor: string;
   barRejections: Record<string, number>;
   days: number;
+  folds?: SweepManifest["folds"];
   generatedAt: string;
   grid: unknown[];
+  holdoutSymbols?: string[];
   stepBars: number;
   symbols: Array<{
     calibration: Record<string, unknown>;
@@ -131,7 +144,9 @@ export function buildSweepManifest(input: {
     anchor: input.anchor,
     barRejections: input.barRejections,
     days: input.days,
+    ...(input.folds && { folds: input.folds }),
     grid: input.grid,
+    ...(input.holdoutSymbols && { holdoutSymbols: input.holdoutSymbols }),
     stepBars: input.stepBars,
     symbols,
     trainShare: input.trainShare,
