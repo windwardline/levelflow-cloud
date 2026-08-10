@@ -346,45 +346,33 @@ because sweeping a market on the wrong instrument calibrates the wrong instrumen
 there is no reason to rush it tonight.
 
 ### 2 — Repair the evaluator, as ONE change set, then re-sweep once
-**BUILT 2026-08-09 — all fourteen letters landed on `item2/evaluator-repair`
-as one change set** (seven commits: cluster A provider boundary, cluster D
-decision context, cluster B path evaluator, cluster C accountant, 2m/2n
-abstention, 2j tick floors + spread banking, 2i manifest + the
-`2026.08.09.evaluator-repair` version bump). The narrative of what each
-slice changed and why is in `docs/trade-model.md` § "Evaluator repair";
-the original file:line blueprint remains
-`docs/research/evaluator-repair-map-2026-08-09.md` (item 3's surfaces
-mapped in the same document). Empirical grounds added while building:
-FMP daily bars are settlement-day aggregates (ES Friday opens at the
-bank's Thursday 18:00 print exactly, corn at Thursday 20:00, FX Mondays
-at Sunday-evening opens, BTC rolls at UTC midnight to the cent); FX
-persists Sunday partial rows that double-count Sunday evening inside the
-following Monday bar (dropped at the gate); FMP intraday anchors to the
-NY wall clock (hourly :00, 4hour 00/04/08/12/16/20 NY). **What remains of
-item 2 is the one re-sweep** — run it only from this engine, and note the
-first 5min corpus fetch is the heavy one (three series now cache per
-symbol). Headline finds preserved from the mapping session: total R in
-rounds 25–28 was read as expectancy-over-filled × setups-including-
-unfilled (`grid-totalr.ts:25` — 3b's territory); the runner's expiry R
-was captured and never read (fixed by legs).
+**COMPLETE 2026-08-10.** The engine change set shipped and deploy-verified
+(#288 + CPU fixes #289/#290 — two 546 postmortems, both Intl-construction
+costs, regression-pinned); cohort `2026.08.09.evaluator-repair` live. The
+one re-sweep ran to completion on the third attempt (attempt 1 OOM'd on
+the driver holding every symbol's bars for the manifest — fixed #296;
+attempt 2 crashed on fold slicing giving mid-fold-starting symbols zero
+warm-up — fixed #298): **corpus `3b108f43d4c2`, 1,017,734 records,
+1.2GB, manifested, folded (fit 2009–2018 / select 2018–2022 / confirm
+2022–2026), 18 holdout markets, evidence-enriched** (legs, excursions,
+exit clock, risk unit per record — #292/#293). Reports:
+`docs/research/baseline-2026-08-10/`. **The corpus door reads at corpus
+scale** (#299 — Node's max string length forced a chunked reader).
 
-**2a** look-ahead — admit a daily bar only once its own day closed ·
-**2b** timestamps normalised at the provider boundary, timezone probed not assumed ·
-**2c** no favourable level credited on the fill bar; the evaluator consumes a *path* ·
-**2d** cost charged per leg, carried on the outcome record — and the display
-ratio's double-count resolved with it (1q found `effectiveRewardRisk` subtracts
-cost from reward AND adds it to risk; one leg-accounted model replaces both) ·
-**2e** `ambiguous` scored −1 by default ·
-**2f** every leg resolves to a price, gap-aware ·
-**2g** one R accountant ·
-**2h** bad-tick sanitisation (MGCUSD 135,533% single-bar move) ·
-**2i** corpus manifest with the calibration hash ·
-**2j** per-symbol spreads (class constants are 16× wrong for NQ) ·
-**2k** bar continuity ·
-**2l** committee parity — four timeframes in replay, five in production; score changes
-on 63.9% of decisions, side flips on 1.6%. **Must land with 2a** ·
-**2m** `ema()` seeds on a raw first value and never abstains ·
-**2n** RSI returns 100 on a frozen series.
+**THE MEASURED RESULT (read before anything else):** on the honest
+instrument the accepted stream is NEGATIVE in every class — forex
+−0.057 ±0.009 clustered, crypto −0.122, metals −0.225, futures −0.279,
+agriculture −0.367, livestock −0.161. The pre-repair +.89/.90/.83
+resting-state record was measurement error, not edge. The decomposition
+(4b evidence): TP1 banking genuinely positive everywhere; the runner
+half loses it back; cost ≈ half of banked R in the best class; 44% of
+forex fills touch TP1 (+0.92R median MFE) then scratch at breakeven; the
+stop cap binds on ~100% of setups; gap tails run 13–32% beyond −1.1R;
+confidence ρ ≤ 0.06 (does not rank); the review window censors nothing
+(p50 exit 0.5h) and only sizes geometry. NOT an incident: the desk is
+parked, no live reader sees these numbers, and no roster action follows
+(the per-market 2σ exclusions are symptoms of the systemic model failure
+— amendment 31 stands).
 
 ### 3 — Repair the acceptance procedure, then re-derive
 **COMPLETE 2026-08-10 on `item3/acceptance-procedure`** (six commits, 3a–3g
@@ -408,6 +396,16 @@ corpus reads fine. Re-derivation (the "then re-derive" half) is item 4's
 program, which now has its instrument.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
+**4a COMPLETE 2026-08-10** — per-market, per-timeframe measured limits in
+`docs/research/baseline-2026-08-10/4a-data-limits.md` (from the manifest:
+spans, first/last, counts, largest gaps; grains 1,050d, XAUUSD 4,774d
+with a 33.9d hole flagged; holdout 18 listed). **4b MEASURED, DECISION
+SHEET AWAITS THE OWNER** — `docs/research/4b-geometry-model-review-2026-08-10.md`
+carries the five questions answered from the corpus and a recommended
+verdict per line (runner-protection axis, real stop-cap axis, retire the
+threshold gate for 4c, split the window's two hats, no regime axis,
+cost-aware acceptance). **4c runs only after the owner rules.**
+
 **This is the point of the whole retrofit, and it is not one item.** Everything
 above exists so this can be done once, honestly.
 

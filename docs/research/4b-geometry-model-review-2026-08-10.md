@@ -15,10 +15,23 @@ project's history whose clock, fills, legs, costs and abstentions are all
 honest. Numbers from any earlier corpus are not comparable and are not
 cited.
 
-Status: **mechanics documented; measurements pending the baseline sweep's
-completion tonight.** Each question carries its as-built mechanism
-(file:line), the adversarial lenses, and the exact measurement that
-answers it; results fill in below each once the corpus lands.
+Status: **MEASURED — corpus `3b108f43d4c2`, 1,017,734 records (764,936
+non-holdout baseline), folds fit 2009–2018 / select 2018–2022 / confirm
+2022–2026, 18 holdout markets.** Full tables:
+`docs/research/baseline-2026-08-10/`. The headline, stated before the
+questions because every question's answer descends from it:
+
+**On the honest instrument, the accepted stream loses money in every
+class** — forex E −0.057 ±0.009 (clustered), crypto −0.122 ±0.009,
+metals −0.225 ±0.020, futures −0.279 ±0.033, agriculture −0.367 ±0.017,
+livestock −0.161 ±0.014. The pre-repair +.89/+.90/+.83 record was the
+measurement error (fill-bar phantom wins, free ambiguity, zero cost,
+same-day daily leak), not the edge. Nearly every market individually
+clears amendment 24's 2σ-negative bar — which is precisely why the
+per-market exclusion rule is the WRONG tool here: when 90+ of 96 markets
+"exclude", the finding is systemic, the model is what fails, and
+amendment 31's coverage default stands. The desk being parked is what
+makes this a measurement, not an incident.
 
 ---
 
@@ -47,7 +60,19 @@ half rides; after TP1 the stop moves to breakeven
 breakeven-exit count and their forgone runner R (max favorable move vs
 target from feedback), single-target counterfactual total R.
 
-**Result:** _pending corpus._
+**Result (Q1 table, baseline-2026-08-10):** The ladder's halves point in
+opposite directions in every class: the TP1 half banks POSITIVE gross R
+everywhere (forex +62,646R over 323,631 fills) while the runner half
+loses it back (forex −51,696R) and cost takes 29,855R more — the runner
+half plus cost swamp the banked half in all six classes. 44% of forex
+fills (142,680) exit at breakeven AFTER touching TP1 with a median MFE
+of 0.92R — the trade was up nearly a full risk unit and surrendered the
+runner half back. The single-target counterfactual is WORSE than the
+ladder in forex (−24,897 vs −18,905) and roughly equal elsewhere: the
+ladder SHAPE is defensible; what fails is the runner leg's economics and
+the cost weight per trade. Verdict input: keep two-leg banking, but the
+runner's placement/protection is a 4c axis, and cost-per-trade dominates
+everything (see Q2/Q4).
 
 ## Q2 — Is the stop right as static-at-entry?
 
@@ -74,7 +99,19 @@ time.
 **Measurement:** realized-R histograms by stopProvenance; gap-exit
 tail (realized < −1.1R) frequency per class; winner-MAE distribution.
 
-**Result:** _pending corpus._
+**Result (Q2 table):** The cap binds on effectively EVERY setup — metals
+is the only class where pivot (1,233) or the volatility floor (259) ever
+places the stop; everywhere else provenance is 100% "cap" (r14's finding,
+now corpus-wide). Gap tails are severe under honest exit pricing:
+records at R < −1.1 are 32% of agriculture fills, ~30% of crypto and
+futures, 13% of forex — stops gap through far beyond their nominal −1R.
+Winners barely draw down (MAE/R p50 ≈ 0.21–0.28, p90 ≈ 0.6–0.78): the
+stop's width is never what saves a winner, and its placement is what the
+gap tail bleeds through. Verdict input: static-at-entry is not
+structurally condemned by this, but the CAP-always-binds fact means the
+'structural stop' story has been fiction — stops are pure ATR multiples
+in practice, and their width is a live 4c axis alongside gap-aware
+classes' session-open avoidance.
 
 ## Q3 — Does confidence rank outcomes on a repaired sample?
 
@@ -99,7 +136,16 @@ the gate.
 **Measurement:** decile table of realized R and fill rate per class;
 Spearman rank correlation score→R per class with clustered SEs.
 
-**Result:** _pending corpus._
+**Result (Q3 table):** The composite score does not rank honest
+outcomes: ρ = 0.014 (agriculture), 0.058 (crypto), 0.035 (forex), and
+deciles are flat — forex decile 10 reads −0.023 vs decile 1's −0.085, a
+whisper of ordering with no level a threshold gate can stand on; crypto's
+top decile is its LARGEST (33,441 rows) and still −0.148. The
+corpus-independent observation held: the weights were fitted against
+phantom outcomes and never measured rank on honest ones. Verdict input:
+the per-class threshold apparatus (20–85) gates nothing real; Q3's
+replacements (payoff+regime-only gate, or a 4d per-class refit against
+honest outcomes) are the live options.
 
 ## Q4 — Is a fixed review window right?
 
@@ -124,7 +170,16 @@ knob wearing two hats.
 **Measurement:** per class — expiry-share, in-profit-expiry share,
 time-to-exit quantiles vs window, split by regime.
 
-**Result:** _pending corpus._
+**Result (Q4 table):** The window censors nothing: median time-to-exit
+is 0.5 HOURS against 6–12 hour windows (p90 ≤ 4.3h except livestock's
+20h), expiry shares are 0.3–5.2%. Resolution happens in the first hour —
+touch TP1, retreat to breakeven, done (Q1's tax operates fast). So the
+window's ONLY operative role is the sizing hat (expectedWindowMove =
+dailyATR × √(hours/24) shapes every ladder), and tuning 'the window' in
+4d moves geometry, not patience. Verdict input: split the two hats
+explicitly (a sizing-hours knob and a patience-hours knob) so 4c can
+move them independently; the fixed patience window is empirically
+irrelevant at current geometry.
 
 ## Q5 — Are there regime-conditional structures we lack?
 
@@ -146,7 +201,14 @@ itself.
 **Measurement:** regime × class R table with clustered SEs; sessionLabel
 cuts for the two largest classes.
 
-**Result:** _pending corpus._
+**Result (Q5 table):** Flat. Within every class the three tradable
+regimes sit within ~0.05R of each other (forex: compression −0.060,
+range −0.055, trend −0.061; clustered SEs 0.008–0.016) — under THIS
+geometry no regime-conditional structure differentiates outcomes, and
+livestock's compression +0.018 ±0.216 is 139 rows of noise. Verdict
+input: no evidence for a regime-conditional ladder as a 4c axis now; the
+question re-opens only if a geometry that is positive somewhere shows
+regime spread.
 
 ---
 

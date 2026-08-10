@@ -168,6 +168,20 @@ deploy. The one re-sweep that follows this change set is the first
 measurement the repaired instrument produces, and item 3's acceptance
 procedure reads only manifested corpora from then on.
 
+**The first repaired baseline (2026-08-10, corpus `3b108f43d4c2`)
+measured the accepted stream NEGATIVE in every class** — forex −0.057
+±0.009 (market-clustered), crypto −0.122, metals −0.225, futures −0.279,
+agriculture −0.367, livestock −0.161 over 764,936 non-holdout baseline
+records at full discovered depth. The measured-record table above is
+therefore the PRE-repair instrument's output, kept as history; the
+repaired record of record lives in
+`docs/research/baseline-2026-08-10/` with the 4b geometry review
+(`4b-geometry-model-review-2026-08-10.md`) explaining WHERE the loss
+lives (runner leg + cost + breakeven tax; banking itself is positive)
+and what item 4c will vary. The UI's replay-record rows still mirror the
+pre-repair record while the desk is parked; they are re-derived when 4d
+lands a geometry that survives item 3's gate.
+
 Operational loop, running without operator attention: hourly
 outcome-sync (cron :23) resolves pending setups; hourly news-calendar
 ingestion (cron :07) with a watchdog (cron :41); a launchd agent tops up
