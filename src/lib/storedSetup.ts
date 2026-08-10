@@ -1,3 +1,4 @@
+import { reviewWindowHoursForSymbol } from "./advisorReview";
 import { getSecurityOption, type SupportedSymbol } from "./symbolMap";
 import type { MarketScanCandidate, TradeSetupRow } from "./tradeAnalyzer";
 
@@ -21,7 +22,11 @@ import type { MarketScanCandidate, TradeSetupRow } from "./tradeAnalyzer";
  *
  * 1. **No "valid until" half on the stagehead's stamp.** trade_setups has no
  *    expires_at column at all, so there is no stored window to print. The half
- *    is absent rather than computed after the fact (§17f).
+ *    is absent rather than computed after the fact (§17f). The COPY GATE is
+ *    the deliberate exception since 2026-08-09: `copyWindowEndsAt` below is
+ *    derived from created_at + the symbol's own review window, consulted by
+ *    the ladder's affordance gate and printed nowhere — §17f governs claims,
+ *    §17c governs controls, and the two rules are compatible exactly here.
  * 2. **No dataProvider and no fmpSymbol.** Both are wire-only fields on
  *    AnalyzerSetup that no reader in src touches, so their absence is invisible.
  * 3. **The Size row degrades for a bridged pair.** collectBrokerQuotes (§19c)
@@ -52,6 +57,18 @@ export function storedSetupAsCandidate(
   // here would print the literal "NaN" on the ladder beside the "—" the rail
   // drew for the same column.
   const breakevenTriggerPrice = asPrice(setup.breakeven_trigger_price);
+  // The copy gate's window: created_at + the symbol's own review window,
+  // through the same calibration mirror the stamp and the meter already
+  // read. Null when created_at is unparseable — the gate then leaves the
+  // affordances live, exactly as a scan row without an expiry does.
+  const reviewedAtMs = storedSetupReviewedAt(setup);
+  const copyWindowEndsAt = reviewedAtMs === null ? null : new Date(
+    reviewedAtMs +
+      reviewWindowHoursForSymbol(
+        setup.symbol,
+        getSecurityOption(setup.symbol).assetType,
+      ) * 60 * 60 * 1000,
+  ).toISOString();
   const entryPrice = asPrice(setup.limit_entry);
   const stopLoss = asPrice(setup.stop_loss);
   const takeProfit = asPrice(setup.take_profit);
@@ -86,6 +103,7 @@ export function storedSetupAsCandidate(
       ? {
         setup: {
           breakevenTriggerPrice,
+          ...(copyWindowEndsAt === null ? {} : { copyWindowEndsAt }),
           confidenceScore: Number(setup.confidence_score),
           // The receipt ("Why this setup") renders entirely from these two jsonb
           // columns, and the analyzer persists both verbatim

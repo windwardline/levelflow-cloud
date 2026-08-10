@@ -163,9 +163,16 @@ describe("expired setups lose their copy affordances; the payoff names its basis
 
   it("gates every copy affordance on the review window (§17c: absent, never inert)", () => {
     assert.match(SOURCE, /now: Date;/);
+    // Widened 2026-08-09 (the owner's simple-rules directive): stored
+    // reopens gate through copyWindowEndsAt, derived for the gate and
+    // printed nowhere — §17f keeps the stamp, §17c gets the control.
     assert.match(
       SOURCE,
-      /const copyExpired = typeof setup\.expiresAt === "string" &&\s*\n\s*new Date\(setup\.expiresAt\)\.getTime\(\) <= now\.getTime\(\);/,
+      /const copyWindowEnd = setup\.expiresAt \?\? setup\.copyWindowEndsAt;/,
+    );
+    assert.match(
+      SOURCE,
+      /const copyExpired = typeof copyWindowEnd === "string" &&\s*\n\s*new Date\(copyWindowEnd\)\.getTime\(\) <= now\.getTime\(\);/,
     );
     // All five rows — four prices and Size — consult the same bit; a sixth
     // copyable row added without the gate fails the count.

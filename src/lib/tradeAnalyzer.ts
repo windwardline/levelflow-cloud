@@ -17,6 +17,15 @@ export type AnalyzerSetup = {
   dataProvider?: string;
   entryPrice: number;
   expiresAt?: string;
+  /**
+   * 1l (2026-08-09, the owner's simple-rules directive): the copy-affordance
+   * window for a STORED reopen, derived client-side from created_at plus the
+   * symbol's own review window. A separate field from expiresAt on purpose —
+   * the stagehead's stamp reads expiresAt only, so the recorded §17f decision
+   * ("no printed after-the-fact 'valid until'") stays intact while §17c's
+   * inert-control law gets the gate it demands. Never printed, only consulted.
+   */
+  copyWindowEndsAt?: string;
   fmpSymbol?: string;
   orderType: "limit";
   riskModel: Record<string, unknown>;

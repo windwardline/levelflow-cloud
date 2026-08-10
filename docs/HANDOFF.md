@@ -210,11 +210,11 @@ record sentence's derived ±SE; 1j-b gates the Insights band's rate at the
 attribution threshold and prints the denominator — "67% of 3", "Learning" below) ·
 **1l — done for the live window, 2026-08-09** (all five copy affordances — four
 prices and Size — gate on `expiresAt` against the stage's ticking clock; absent,
-never inert, the Size-row precedent). *Residual for the owner:* stored reopens
-carry NO window by a recorded §17f decision ("absent rather than computed after
-the fact", storedSetup.ts's gap 1) — deriving one client-side for affordance
-gating would serve 1l's spirit but revisits that ruling; not overridden
-unilaterally · **1q — display half done 2026-08-09** (the eyebrow reads "payoff after costs",
+never inert, the Size-row precedent). *Residual resolved 2026-08-09 under the
+owner's simple-rules directive:* the two rules were compatible — §17f governs
+printed claims, §17c governs controls — so stored reopens now gate their copy
+affordances through a derived `copyWindowEndsAt` that is consulted by the gate
+and printed nowhere; the stamp still reads expiresAt alone, pinned both ways · **1q — display half done 2026-08-09** (the eyebrow reads "payoff after costs",
 naming the basis; the Costs row prints the estimated round trip "already inside
 the payoff figure" — the arithmetic closes on screen). *The formula half is
 item 2's:* `effectiveRewardRisk` charges cost in the numerator AND the

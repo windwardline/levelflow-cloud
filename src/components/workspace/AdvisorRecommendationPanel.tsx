@@ -156,11 +156,13 @@ export function RecommendationPanel({
     );
     // 1l: expired means the review window has closed — copying these prices
     // into a platform now would place levels the engine no longer stands
-    // behind. Scan-adopted setups carry expiresAt; stored reopens do not
-    // (their absent window is a recorded §17f decision), so they keep their
-    // affordances until that ruling is revisited.
-    const copyExpired = typeof setup.expiresAt === "string" &&
-      new Date(setup.expiresAt).getTime() <= now.getTime();
+    // behind. Scan-adopted setups carry expiresAt; stored reopens carry
+    // copyWindowEndsAt, derived for THIS GATE and printed nowhere (the
+    // recorded §17f no-printed-stamp decision stands; §17c's inert-control
+    // law gets its gate — the owner's simple-rules directive, 2026-08-09).
+    const copyWindowEnd = setup.expiresAt ?? setup.copyWindowEndsAt;
+    const copyExpired = typeof copyWindowEnd === "string" &&
+      new Date(copyWindowEnd).getTime() <= now.getTime();
     const basisLine = formatBasisLine(setup.symbol, setup.entryPrice);
 
     return (

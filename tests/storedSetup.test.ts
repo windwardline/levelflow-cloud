@@ -5,6 +5,8 @@ import {
   storedSetupAsCandidate,
   storedSetupReviewedAt,
 } from "../src/lib/storedSetup";
+import { reviewWindowHoursForSymbol } from "../src/lib/advisorReview";
+import { getSecurityOption } from "../src/lib/symbolMap";
 import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 
 // Same builder shape as tests/tradeState.test.ts and
@@ -172,7 +174,10 @@ describe("storedSetupAsCandidate — the stored row as the stage's one input", (
     // playwright.config.ts is untouched by either new entry point.
     const source = readFileSync("src/lib/storedSetup.ts", "utf8");
     const imports = (source.match(/^import [\s\S]*?;$/gm) ?? []).join("\n");
+    // ./advisorReview joined 2026-08-09 for the copy gate's window — a pure
+    // calibration mirror, no request machinery of its own.
     assert.deepEqual(imports.match(/from "([^"]+)"/g), [
+      'from "./advisorReview"',
       'from "./symbolMap"',
       'from "./tradeAnalyzer"',
     ]);
@@ -203,5 +208,37 @@ describe("storedSetupReviewedAt", () => {
       storedSetupReviewedAt(buildSetup({ created_at: "not-a-date" })),
       null,
     );
+  });
+});
+
+// The copy gate's window (1l, 2026-08-09): derived, gate-only, never printed.
+describe("copyWindowEndsAt — the gate's window, not the stamp's", () => {
+  it("derives created_at + the symbol's own review window", () => {
+    const candidate = storedSetupAsCandidate(buildSetup());
+    assert.ok(candidate.setup);
+    const created = new Date(buildSetup().created_at).getTime();
+    const hours = reviewWindowHoursForSymbol(
+      buildSetup().symbol,
+      getSecurityOption(buildSetup().symbol).assetType,
+    );
+    assert.equal(
+      candidate.setup!.copyWindowEndsAt,
+      new Date(created + hours * 60 * 60 * 1000).toISOString(),
+    );
+  });
+
+  it("never reaches the stamp — the §17f decision stands", () => {
+    // The stagehead's meta reads expiresAt alone; a restored setup still
+    // prints no "valid until", and the gate field is consulted nowhere else.
+    const unit = readFileSync(
+      "src/components/workspace/ConfidenceUnit.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(unit, /copyWindowEndsAt/);
+    const stage = readFileSync(
+      "src/components/workspace/AdvisorWorkspace.tsx",
+      "utf8",
+    );
+    assert.doesNotMatch(stage, /copyWindowEndsAt/);
   });
 });
