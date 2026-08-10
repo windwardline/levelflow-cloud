@@ -387,22 +387,25 @@ on 63.9% of decisions, side flips on 1.6%. **Must land with 2a** ·
 **2n** RSI returns 100 on a frozen series.
 
 ### 3 — Repair the acceptance procedure, then re-derive
-**IN PROGRESS 2026-08-10 on `item3/acceptance-procedure`** (two commits):
-`scripts/sweepStats.ts` is the one stats vocabulary all readers adopt
-(engine definitions, the rSumSq dispersion term 3a needs, and
-`assertManifestedCorpus` — 2i's hash door); `scripts/grid-totalr.ts` is
-rebuilt emit-driven with **3b** (deterministic day-block permutation
-null), **3f** (deltas stated in standard errors, test split ≥ 1σ) and
-**3g** (total R AND per-trade expectancy must both improve; THIN refusal
-kept on filled counts) — the e×n unit mismatch is dead with the table
-format. REMAINING: **3a** lift the SE-clustered report into
-account-type-report via sweepStats (measure rSd from the corpus, drop
-`--r-sd 0.8`) · **3c/3d/3e** the calendar-fold generator in
-replay-sweep (fit/select/confirm over calendar timestamps, embargo ≥
-warmup + review window, `--holdout` written into emit + manifest; the
-gate's split names parameterize with it). The running baseline re-sweep
-uses the old two-split shape deliberately — it is item 2's corpus and 4a's
-data-limit measurement; folds govern every sweep after it.
+**COMPLETE 2026-08-10 on `item3/acceptance-procedure`** (six commits, 3a–3g
+all landed). `scripts/sweepStats.ts` is the one vocabulary every reader
+uses (engine definitions; rSumSq so deviation is measured, never assumed;
+`assertManifestedCorpus` — no unverified corpus aggregates).
+`scripts/grid-totalr.ts` is the acceptance gate: emit-driven (the e×n
+table mismatch is dead), **3f** deltas in standard errors with select ≥1σ,
+**3g** total R AND per-trade expectancy jointly, **3b** a seeded
+day-block permutation null pricing every claim. **3a**
+account-type-report measures per-market SEs from the corpus and clusters
+the rollup SE by market (the ±0.005 prose constant and `--r-sd 0.8` are
+gone). **3c/3d/3e** `scripts/sweepFolds.ts`: common-origin calendar folds
+fit/select/confirm (50/25/25) over the corpus's measured span, decisions
+embargoed 5d before each fold closes (simulateSymbol gained
+`decisionEndMs` — decisions stop, resolution keeps reading), and a
+deterministic market holdout (sha256 mod 5) written into emit + manifest,
+excluded from every tuning aggregate. Legacy two-split corpora map
+train→fit/test→select from their own manifest — the item-2 baseline
+corpus reads fine. Re-derivation (the "then re-derive" half) is item 4's
+program, which now has its instrument.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
 **This is the point of the whole retrofit, and it is not one item.** Everything
