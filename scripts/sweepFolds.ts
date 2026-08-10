@@ -75,3 +75,49 @@ export function isHoldoutSymbol(symbol: string): boolean {
   const digest = createHash("sha256").update(symbol).digest();
   return digest[0] % 5 === 0;
 }
+
+export type FoldSplit = {
+  bars: Array<{ time: number }>;
+  decisionEndMs: number;
+  name: FoldName;
+  warmupBars: number;
+};
+
+/**
+ * Slice one symbol's primary bars into per-fold simulation inputs. Each
+ * fold's bars run from WARMUP_BARS before the fold boundary (known history
+ * at decision time — never leakage) to the fold close; decisions begin
+ * after the warm-up AND never before `warmupBars` bars of whatever data
+ * the slice actually has — a symbol whose history starts mid-fold warms
+ * up inside the fold instead of deciding on a one-bar market (the
+ * committee reads bars.at(-2); warmup 0 crashed the first baseline
+ * relaunch on exactly this). Folds too thin to hold a single decision
+ * past their warm-up are dropped.
+ */
+export function foldSplits<T extends { time: number }>(
+  primaryBars: T[],
+  folds: CalendarFold[],
+  warmupBars: number,
+): Array<{ bars: T[]; decisionEndMs: number; name: FoldName; warmupBars: number }> {
+  const firstIndexAtOrAfter = (targetMs: number) => {
+    let low = 0;
+    let high = primaryBars.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (primaryBars[mid].time < targetMs) low = mid + 1;
+      else high = mid;
+    }
+    return low;
+  };
+  return folds.map((fold) => {
+    const startIndex = firstIndexAtOrAfter(fold.startMs);
+    const endIndex = firstIndexAtOrAfter(fold.endMs);
+    const sliceStart = Math.max(0, startIndex - warmupBars);
+    return {
+      bars: primaryBars.slice(sliceStart, endIndex),
+      decisionEndMs: fold.decisionEndMs,
+      name: fold.name,
+      warmupBars: Math.max(startIndex - sliceStart, warmupBars),
+    };
+  }).filter((split) => split.bars.length > split.warmupBars + 1);
+}
