@@ -122,8 +122,8 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
     // analyzed market per underlying per account type is its own owner ruling
     // (contractVariants.ts). It keeps its sizing identity and loses its scan
     // slot — that is not a data-source withholding.
-    "BZUSD", "CLUSD", "EMD", "ESUSD", "FDAX", "FESX", "GCUSD", "GFUSX",
-    "HEUSX", "HGUSD", "HOUSD", "LEUSX", "NGUSD", "NKD", "NQUSD", "PAUSD",
+    "BZUSD", "CLUSD", "ESUSD", "GCUSD", "GFUSX",
+    "HEUSX", "HGUSD", "HOUSD", "LEUSX", "NGUSD", "NQUSD", "PAUSD",
     "PLUSD", "RBUSD", "RTYUSD", "SIUSD", "YMUSD", "ZBUSD", "ZCUSX", "ZFUSD",
     "ZLUSX", "ZMUSD", "ZNUSD", "ZOUSX", "ZRUSD", "ZSUSX", "ZTUSD",
   ].sort();
@@ -144,14 +144,18 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
     assert.equal(PINNED_CRYPTO.length, 33);
   });
 
-  it("futures: exactly 31 symbols — every futures market with an FMP source", () => {
+  it("futures: exactly 27 symbols — every futures market with an FMP source", () => {
+    // 31 -> 27 (amendment 32, 2026-08-09): EMD, FDAX, FESX and NKD were
+    // served on their underlyings' CASH index series, which was never a
+    // match. Dormant, not deleted — masterList carries them with the ruling.
     assert.deepEqual([...visibleAssetSymbols(FUTURES_ACCOUNT)].sort(), PINNED_FUTURES);
-    assert.equal(PINNED_FUTURES.length, 31);
+    assert.equal(PINNED_FUTURES.length, 27);
   });
 
-  it("null (no active account): the union of all three, 102 symbols, pinned", () => {
+  it("null (no active account): the union of all three, 98 symbols, pinned", () => {
+    // 102 -> 98 with amendment 32's four departures.
     assert.deepEqual([...visibleAssetSymbols(null)].sort(), PINNED_NULL);
-    assert.equal(PINNED_NULL.length, 102);
+    assert.equal(PINNED_NULL.length, 98);
   });
 
   it("scannableSymbolsFor agrees with visibleAssetSymbols for every classification", () => {
@@ -345,15 +349,14 @@ describe("no-FMP-source rows and NOT_SCANNABLE rows never appear in any account 
     assert.ok(!scannableSymbolsFor("futures").includes("BNBUSD"));
   });
 
-  it("the seven no-FMP-source futures orphans never appear — they carry no Levelflow symbol to appear as", () => {
+  it("the twenty no-FMP-source rows never appear — they carry no Levelflow symbol to appear as", () => {
     const orphanBrokerNames = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "excluded-no-fmp-source")
       .map((entry) => entry.brokerName);
-    // Was twelve until 2026-08-05, when FDAX/FDXM/FESX/NKD/EMD were matched to
-    // owner-accepted cash-index proxies. They are still absent from every
-    // account type's resolved set — being mapped is not being onboarded — but
-    // they are no longer counted here.
-    assert.equal(orphanBrokerNames.length, 7);
+    // 7 -> 20 (amendment 32, 2026-08-09): the original seven, plus the five
+    // index futures whose cash-proxy matches the ruling unwound, plus the
+    // eight CME currency futures whose spot mates were proxies all along.
+    assert.equal(orphanBrokerNames.length, 20);
     for (const classification of ["forex", "crypto", "futures"] as const) {
       const resolved = new Set(scannableSymbolsFor(classification));
       for (const brokerName of orphanBrokerNames) {
@@ -410,16 +413,18 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     }
   });
 
-  it("excludes only the seven rows with no FMP mate at all — nothing the new exclusion register names", () => {
+  it("excludes only the twenty no-FMP rows and the eight variants — nothing else", () => {
     const sweptCount = sweepUniverse().length;
     const noFmpCount = MASTER_LIST_ROWS.filter((entry) => entry.fmpSymbol === null).length;
-    assert.equal(noFmpCount, 7);
+    // 7 -> 20 (amendment 32): the dormant families joined the null-mate set.
+    assert.equal(noFmpCount, 20);
     // Two reasons a row leaves the sweep, and only two: no series to sweep, or
-    // it IS another row's market at a different contract size.
+    // it IS another row's market at a different contract size. 9 -> 8:
+    // FDXM's variant slot left with its parent.
     const variantCount = MASTER_LIST_ROWS.filter((entry) =>
       entry.levelflowSymbol !== null && isContractSizeVariant(entry.levelflowSymbol)
     ).length;
-    assert.equal(variantCount, 9);
+    assert.equal(variantCount, 8);
     assert.equal(sweptCount, MASTER_LIST_ROWS.length - noFmpCount - variantCount);
   });
 });

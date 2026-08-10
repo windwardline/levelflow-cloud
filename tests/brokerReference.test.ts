@@ -227,7 +227,10 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
     // ZR, XC and XK joined as watchlist-only rows, live-priced on the same
     // frames with NOTHING published. All seven follow ZB/ZN's law: OFFERED
     // by amendment 19, unsizeable under amendment 22's published clause.
-    for (const symbol of ["GF", "XC", "XK", "ZF", "ZO", "ZR", "ZT"]) {
+    // BZ joined 2026-08-09: the owner's simple-rules directive applied
+    // amendment 19 to the F9 Energies sighting (BZV6 84.05 live), closing
+    // the last no-route market — offered, unsizeable, the ZB/ZN pattern.
+    for (const symbol of ["BZ", "GF", "XC", "XK", "ZF", "ZO", "ZR", "ZT"]) {
       const spec = E8_FUTURES_SPECS[symbol];
       assert.equal(spec.canonical, false, symbol);
       assert.equal(spec.tradability, "confirmed", symbol);
@@ -238,7 +241,7 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
     const marginOnly = Object.values(E8_FUTURES_SPECS).filter((s) => !s.canonical);
     assert.deepEqual(
       marginOnly.map((s) => s.symbol).sort(),
-      ["GF", "XC", "XK", "ZB", "ZF", "ZN", "ZO", "ZR", "ZT"],
+      ["BZ", "GF", "XC", "XK", "ZB", "ZF", "ZN", "ZO", "ZR", "ZT"],
     );
   });
 
@@ -643,6 +646,9 @@ describe("§19a — the row and its states", () => {
       ),
     );
     assert.equal(keys.size, BROKER_INSTRUMENTS.length);
+    // 111 -> 106 per line (amendment 32, 2026-08-09): the five index futures
+    // left ALL_MAPPED_SYMBOLS with their symbolMap rows; their dormancy lives
+    // on the master list, not in the sizing registry.
     // 111 code-present markets on each of the ten shipped lines: the 50
     // scannable ones plus the 53 that stay in the symbol map and the replay
     // universe. 59/9/590 until 2026-08-05, then 78/28/780 with nineteen E8
@@ -654,11 +660,13 @@ describe("§19a — the row and its states", () => {
     // data source — so every symbol that was mapped-but-withheld became mapped
     // AND available in one step. ALL_MAPPED_SYMBOLS is unchanged, because
     // nothing was added: rows moved category.
-    assert.equal(ALL_MAPPED_SYMBOLS.length, 111);
-    assert.equal(SCANNABLE.size, 111);
+    // 111 -> 106 (amendment 32, 2026-08-09): the five index futures left
+    // the mapped universe; their dormancy lives on the master list.
+    assert.equal(ALL_MAPPED_SYMBOLS.length, 106);
+    assert.equal(SCANNABLE.size, 106);
     assert.equal(ADDENDUM.length, 0);
-    assert.equal(BROKER_INSTRUMENTS.length, 1110);
-    assert.equal(scannableRowsFor("one").length, 111);
+    assert.equal(BROKER_INSTRUMENTS.length, 1060);
+    assert.equal(scannableRowsFor("one").length, 106);
   });
 
   it("never keys a row on the FMP symbol — WTI/CLUSD and BRENT/BZUSD prove it cannot", () => {
@@ -752,10 +760,14 @@ describe("§19a — the row and its states", () => {
         // this, every one of them fell into nonFutures and had to be
         // not_offered for the test to pass, which is exactly the false claim
         // 1c existed to remove.
+        // Amendment 32 (2026-08-09) removed EMD/FDAX/FDXM/FESX/NKD from the
+        // mapped universe entirely, so the literal shrinks to the 35 futures
+        // rows that remain — every one of them confirmed now that BZ joined
+        // under amendment 19.
         ![
-          "BZUSD", "CLUSD", "EMD", "ESUSD", "FDAX", "FDXM", "FESX", "GCUSD",
+          "BZUSD", "CLUSD", "ESUSD", "GCUSD",
           "GFUSX", "HEUSX", "HGUSD", "HOUSD", "LEUSX", "MES", "MGCUSD", "MNQ",
-          "MYM", "NGUSD", "NKD", "NQUSD", "PAUSD", "PLUSD", "QG", "QM",
+          "MYM", "NGUSD", "NQUSD", "PAUSD", "PLUSD", "QG", "QM",
           "RBUSD", "RTYUSD", "SIUSD", "XC", "XK", "YMUSD", "ZBUSD", "ZCUSX",
           "ZFUSD", "ZLUSX", "ZMUSD", "ZNUSD", "ZOUSX", "ZRUSD", "ZSUSX",
           "ZTUSD",
@@ -775,14 +787,20 @@ describe("§19a — the row and its states", () => {
       // published specs, two watchlist-sighted) all read `confirmed` — the
       // F9 frames show every one of them live, and the old "Not offered"
       // was a claim verified only for BZUSD.
-      assert.equal(tally.confirmed, 34, `${line} confirmed`);
+      // 34 -> 35: BZUSD joins confirmed under amendment 19 (BZV6 84.05
+      // live on the F9 Energies watchlist) — the last no-route market
+      // closed, offered and unsizeable exactly as ZB/ZN are.
+      assert.equal(tally.confirmed, 35, `${line} confirmed`);
       // 0 -> 5: EMD, FDAX, FDXM, FESX, NKD sit in the absence register as
       // `unconfirmed` pending amendment 32's dormancy (item 1.5) — served on
       // cash index series, so no honest futures sizing row can be built.
-      assert.equal(tally.unconfirmed, 5, `${line} unconfirmed`);
+      // 5 -> 0: the amendment-32 register rows no longer generate — their
+      // symbols left the mapped universe, and the dormancy lives on the
+      // master list rather than in a sizing row.
+      assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
       // 99 -> 72: the false "Not offered" rows and the five register rows
       // left the tally where they never belonged.
-      assert.equal(tally.not_offered, 72, `${line} not offered`);
+      assert.equal(tally.not_offered, 71, `${line} not offered`);
       assert.equal(tally.not_published, 0, `${line} not published`);
 
       const confirmed = scannableRowsFor(line)
@@ -792,13 +810,16 @@ describe("§19a — the row and its states", () => {
       assert.deepEqual(
         confirmed,
         [
-          "CL", "ES", "GC", "GF", "HE", "HG", "HO", "LE", "MES", "MGC",
-          "MNQ", "MYM", "NG", "NQ", "PA", "PL", "QG", "QM", "RB", "RTY",
-          "SI", "XC", "XK", "YM", "ZB", "ZC", "ZF", "ZL", "ZM", "ZN", "ZO",
-          "ZR", "ZS", "ZT",
+          "BZ", "CL", "ES", "GC", "GF", "HE", "HG", "HO", "LE", "MES",
+          "MGC", "MNQ", "MYM", "NG", "NQ", "PA", "PL", "QG", "QM", "RB",
+          "RTY", "SI", "XC", "XK", "YM", "ZB", "ZC", "ZF", "ZL", "ZM", "ZN",
+          "ZO", "ZR", "ZS", "ZT",
         ],
       );
-      assert.equal(findBrokerInstrument(line, "BZUSD")!.tradability, "not_offered");
+      // not_offered -> confirmed (amendment 19 applied 2026-08-09): BZV6
+      // printed live on the F9 Energies watchlist, and the sighting beats
+      // the older three-listing cross-check. Offered, never sizeable.
+      assert.equal(findBrokerInstrument(line, "BZUSD")!.tradability, "confirmed");
       assert.equal(findBrokerInstrument(line, "ZBUSD")!.tradability, "confirmed");
       assert.equal(findBrokerInstrument(line, "ZNUSD")!.tradability, "confirmed");
       assert.ok(
@@ -829,9 +850,10 @@ describe("§19a — the row and its states", () => {
       // The twelve Levelflow Futures rows (eleven until FDXM joined 2026-08-06
       // as FDAX's size variant): E8's futures roster lives exclusively on the
       // futures program lines, and E8 publishes that scope.
-      // 19 -> 40: every Levelflow Futures row, and E8's futures roster lives
-      // exclusively on the futures program lines.
-      assert.equal(tally.not_offered, 40, `${line} not offered`);
+      // 40 -> 35 (amendment 32, 2026-08-09): the five index futures left
+      // the mapped universe. Every remaining Levelflow Futures row — E8's
+      // futures roster lives exclusively on the futures program lines.
+      assert.equal(tally.not_offered, 35, `${line} not offered`);
       // 0 -> 25. The Crypto account's other 25 markets are served and visible
       // now, and E8 publishes NO contract size for any crypto instrument — so
       // their SIZE is honestly not_published (owner, 2026-08-07: "crypto sizing
@@ -848,9 +870,10 @@ describe("§19a — the row and its states", () => {
       "signature_crypto",
     ] as ProgramLine[]) {
       const tally = tallyFor(line);
-      // 5514977, verbatim: "Crypto only". 51 -> 78 with the release, since
-      // every newly-available non-crypto row is still not offered here.
-      assert.equal(tally.not_offered, 78, `${line} not offered`);
+      // 5514977, verbatim: "Crypto only". 51 -> 78 with the release, then
+      // 78 -> 73 with amendment 32 (2026-08-09): the five index futures left
+      // the mapped universe entirely.
+      assert.equal(tally.not_offered, 73, `${line} not offered`);
       // 7 -> 33: the Crypto account's whole book is served now, and E8
       // publishes NO contract size for any crypto instrument — so every one is
       // honestly not_published for SIZE while being fully visible and
@@ -880,37 +903,24 @@ describe("§19a — the row and its states", () => {
     }
   });
 
-  it("keeps BZUSD unconfirmed on every program line — the one true no-route market left (amendment 19 closes two more)", () => {
-    // Crossmap §3.5's finding of record named eight. Appendix A batch 2
-    // (corroborated by F6) gave BRENT, ADAUSD, BCHUSD, LTCUSD and XRPUSD a
-    // confirmed CFD route on the Forex-classification lines, so five of the
-    // eight left. Amendment 19 (owner ruling, 2026-08-05, the F9
-    // futures-account sighting) gives ZBUSD and ZNUSD's E8 futures
-    // instruments a confirmed route too -- OFFERED, not sizeable (amendment
-    // 22; see `findBrokerInstrument`/`SIZEABLE_MARKETS_BY_LINE` above). BZUSD
-    // alone has no E8 route on any program at all and stays UNCONFIRMED
-    // everywhere. §20c is what renders the fact — §19 does not, because on
-    // one program line the honest word is the same either way — so this pins
-    // the property the row must have, not a derivation of the list.
+  it("gives BZUSD its futures route under amendment 19 — the last no-route market closed (2026-08-09)", () => {
+    // Crossmap §3.5 named eight no-route markets; Appendix A closed five,
+    // amendment 19 closed ZBUSD/ZNUSD, and BZUSD stood alone — its futures
+    // route resting on a three-listing cross-check that predates amendment
+    // 19. The F9 Energies watchlist prints BZV6 84.05 LIVE, and the owner's
+    // simple-rules directive (2026-08-09) applies the sighting: OFFERED on
+    // the futures lines, unsizeable (amendment 22, nothing published), the
+    // ZB/ZN pattern exactly. On CFD lines it stays not_offered — a CFD
+    // account does not trade the futures roster.
     const symbol = "BZUSD";
     assert.ok(AVAILABLE_ASSET_SYMBOLS.includes(symbol), symbol);
-    for (const program of PROGRAM_LINES) {
-      assert.notEqual(
-        findBrokerInstrument(program.line, symbol)!.tradability,
-        "confirmed",
-        `${program.line}:${symbol}`,
-      );
+    for (const line of ["signature_futures", "zero_futures_starter", "zero_futures_max"] as ProgramLine[]) {
+      const row = findBrokerInstrument(line, symbol)!;
+      assert.equal(row.tradability, "confirmed", line);
+      assert.equal(row.brokerSymbol, "BZ", line);
+      assert.ok(!SIZEABLE_MARKETS_BY_LINE[line].includes(symbol), `${line}: offered, never sizeable`);
     }
-    // The two that left: both now confirmed on every futures line.
-    for (const program of PROGRAM_LINES.filter((p) => p.family === "futures")) {
-      for (const departed of ["ZBUSD", "ZNUSD"]) {
-        assert.equal(
-          findBrokerInstrument(program.line, departed)!.tradability,
-          "confirmed",
-          `${program.line}:${departed}`,
-        );
-      }
-    }
+    assert.equal(findBrokerInstrument("one", symbol)!.tradability, "not_offered");
   });
 
   it("caps gold's ticket at 20 lots and everything else at 50", () => {

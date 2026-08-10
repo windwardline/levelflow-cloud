@@ -47,7 +47,9 @@ export const CONTRACT_SIZE_VARIANTS: Readonly<Record<string, string>> = {
   // futures-account sighting (FDXMU6 26154.0 alongside FDAXU6 26151.0) and both
   // read the SAME ^GDAXI series — so the price action is not merely similar, it
   // is identical. Nothing to analyze twice; everything to size differently.
-  FDXM: "FDAX",
+  // FDXM left this table with amendment 32 (2026-08-09): its parent FDAX
+  // is dormant, and a variant may never outlive the market it sizes
+  // against. Its masterList row carries the dormancy.
   // Group A, wired 2026-08-06. Every one is a live, priced row on the F9
   // futures-account sighting whose contract differs from its parent only in
   // notional — CME's micro E-minis, NYMEX's e-mini energies, CBOT's mini

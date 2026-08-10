@@ -179,10 +179,7 @@ describe("feed source lock (§20i ruling 8)", () => {
       // wired the wrong series while looking perfectly correct.
       ARWUSD: "ARUSD",
       TRUMPUSD: "OTRUMPUSD",
-      EMD: "^MID",
-      FDAX: "^GDAXI",
-      FDXM: "^GDAXI",
-      // Group A's seven size variants, wired 2026-08-06. Each reads its
+            // Group A's seven size variants, wired 2026-08-06. Each reads its
       // PARENT's series by construction — that is what makes it the same market
       // at a different notional rather than a market of its own — so the
       // divergence is the whole point, not a feed change to re-verify.
@@ -193,9 +190,7 @@ describe("feed source lock (§20i ruling 8)", () => {
       QG: "NGUSD",
       XK: "ZSUSX",
       XC: "ZCUSX",
-      FESX: "^STOXX50E",
-      NKD: "^N225",
-    };
+        };
 
     const observedDivergences: Record<string, string> = {};
     for (const group of SECURITY_GROUPS) {

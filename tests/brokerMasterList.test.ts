@@ -43,6 +43,9 @@ describe("row counts — total, per classification, per status", () => {
       // 49 -> 55: the six CME FX majors, added 2026-08-06. Mapped to their
       // spot mates and withheld from the scan pending a basis-aware level
       // transform, so knowable grows while scannable and swept do not.
+      // 55 stays 55 (amendment 32): thirteen rows changed STATUS, none was
+      // deleted — the register is where dormant rows live, and the reentry
+      // machinery re-probes them every run.
       futures: 55,
       crypto: 33,
     });
@@ -51,7 +54,11 @@ describe("row counts — total, per classification, per status", () => {
   it("pins the six-way status breakdown", () => {
     assert.deepEqual(rowCountsByStatus(), {
       // MGCUSD became a contract-size variant on 2026-08-05 (owner ruling, contractVariants.ts): micro gold sizes against GCUSD and holds no scan slot, so it moved from served-and-visible to served-but-not-scannable.
-      "served-and-visible": 100,
+      // 100 -> 96 (amendment 32, 2026-08-09): FESX, FDAX, EMD and NKD leave
+      // the served set — each was served on its underlying's CASH index
+      // series, which was never a match. Their rows move to
+      // excluded-no-fmp-source below; nothing is deleted.
+      "served-and-visible": 96,
             // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
@@ -67,7 +74,9 @@ describe("row counts — total, per classification, per status", () => {
       // line, so nothing derives the status any more.
       //
       // land here, analyzed and withheld, exactly as the nineteen futures did.
-      "served-but-not-scannable": 9,
+      // 9 -> 8: FDXM leaves with its parent FDAX (a variant may never
+      // outlive the market it sizes against).
+      "served-but-not-scannable": 8,
       // 2026-08-05: five futures moved from excluded to mapped once the
       // authoritative `commodities-list` endpoint replaced the empty
       // `commodity-list` the first sweep queried. Total stays 98 — rows
@@ -81,9 +90,24 @@ describe("row counts — total, per classification, per status", () => {
       // CME FX majors were matched to their spot mates in the crossmap and had
       // no row on this list to occupy. The status was empty because rows were
       // missing, not because the work was done.
-      "mapped-not-yet-onboarded": 6,
-      "excluded-no-fmp-source": 7,
-      "offered-but-unsizeable": 4,
+      // 6 -> 0 (amendment 32, 2026-08-09): the six CME FX majors' spot
+      // "mates" were proxies, not matches — a currency future is not its
+      // spot pair — so the mapped state itself was the overclaim. Emptied by
+      // ruling, not by silence: all six sit in excluded-no-fmp-source with
+      // their identity notes preserved in the grounds, and this key stays
+      // because the status is still derivable for a genuinely matched,
+      // not-yet-wired row.
+      "mapped-not-yet-onboarded": 0,
+      // 7 -> 20 (amendment 32, 2026-08-09): the original seven no-source
+      // rows + the five index futures (EMD FDAX FDXM FESX NKD, formerly
+      // served on cash series) + the eight CME currency futures (6E 6A 6B
+      // 6N 6C 6S from mapped-not-yet-onboarded, 6J 6M from
+      // offered-but-unsizeable). One status, one meaning: no actual FMP
+      // series exists; re-probed each run.
+      "excluded-no-fmp-source": 20,
+      // 4 -> 2: 6J and 6M reclassified — offered they remain (the F9
+      // sightings stand), MATCHED they never were.
+      "offered-but-unsizeable": 2,
       // Zero holders, and the key stays: the status is still derivable, so a
       // row earning it again must still be excluded on every account type that
       // would otherwise reach it (tests/brokerVisibility.test.ts asserts that
@@ -106,13 +130,18 @@ describe("agreement with the live master/visible sets (no re-derivation)", () =>
     // not withheld ones. The equality is the assertion; the count is the record
     // of where it stands.
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(servedSymbols().length, 111);
+    // 111 -> 106 (amendment 32, 2026-08-09): the five index futures leave
+    // the served identity — futures 31 -> 27 visible, and FDXM's sizing-only
+    // slot goes with its parent. The equality above is still the assertion;
+    // this count is the record of where it stands.
+    assert.equal(servedSymbols().length, 106);
   });
 
   it("the registry's visible set equals visibleAssetSymbols(null) (the 102) exactly", () => {
     assert.deepEqual(visibleSymbols().sort(), [...visibleAssetSymbols(null)].sort());
     // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
-    assert.equal(visibleSymbols().length, 102);
+    // 102 -> 98 (amendment 32): FESX, FDAX, EMD, NKD out of view.
+    assert.equal(visibleSymbols().length, 98);
   });
 
   it("every currently-served symbol appears in the registry with a served-compatible status", () => {
@@ -172,29 +201,29 @@ describe("BRENT — display-excluded yet standing in the sweep universe", () => 
   });
 });
 
-describe("the six CME FX majors — mapped-not-yet-onboarded (2026-08-06)", () => {
+describe("the six CME FX majors — dormant under amendment 32 (2026-08-09)", () => {
   /**
-   * E8's futures account shows thirteen CME FX contracts. 6J and 6M were
-   * already recorded; these six were on no row at all, and every one prints
-   * live on the F9 sighting — so their absence was a gap against the standing
-   * order that every visible, tradable E8 market appears on the master list.
-   *
-   * The pins below are the two facts that make them unshippable rather than
-   * merely unshipped: the mate is a SPOT series (FMP publishes no
-   * currency-futures series for these), and two of the six quote the foreign
-   * currency as base, so a spot ladder would reverse the trade direction.
+   * These six were mapped-not-yet-onboarded to their SPOT pairs from
+   * 2026-08-06. Amendment 32 ruled the mapping itself the overclaim: a
+   * currency future is not its spot pair, FMP publishes no currency-futures
+   * series for any of them, and a proxy identity recorded in the match field
+   * reads as a match. The match field is null now; the identity work —
+   * direction, scale, the 17 pips of measured carry on 6E — is preserved in
+   * the grounds, because it is exactly what a real onboarding needs and
+   * exactly what a match field must not claim.
    */
-  const DIRECT = { "6E": "EURUSD", "6A": "AUDUSD", "6B": "GBPUSD", "6N": "NZDUSD" };
-  const INVERTED = { "6C": "USDCAD", "6S": "USDCHF" };
+  const DIRECT = ["6A", "6B", "6E", "6N"];
+  const INVERTED = ["6C", "6S"];
 
-  it("maps each to its spot mate with no Levelflow symbol of its own", () => {
-    for (const [broker, mate] of Object.entries({ ...DIRECT, ...INVERTED })) {
+  it("carries no FMP match and no Levelflow symbol — dormant, with the identity in the ground", () => {
+    for (const broker of [...DIRECT, ...INVERTED]) {
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, broker);
-      assert.equal(entry!.fmpSymbol, mate, broker);
+      assert.equal(entry!.fmpSymbol, null, broker);
       assert.equal(entry!.levelflowSymbol, null, broker);
-      assert.equal(entry!.status, "mapped-not-yet-onboarded", broker);
+      assert.equal(entry!.status, "excluded-no-fmp-source", broker);
       assert.equal(entry!.classification, "futures", broker);
+      assert.match(entry!.ground, /Amendment 32/, broker);
     }
   });
 
@@ -202,7 +231,7 @@ describe("the six CME FX majors — mapped-not-yet-onboarded (2026-08-06)", () =
     // A row with no Levelflow symbol cannot be served, and the scan must not
     // reach it: spot-derived levels are 17 pips from the contract on 6E and
     // outright inverted on 6C/6S.
-    for (const broker of Object.keys({ ...DIRECT, ...INVERTED })) {
+    for (const broker of [...DIRECT, ...INVERTED]) {
       const entry = findMasterListRowByBrokerName(broker)!;
       assert.equal(isServedToday(entry), false, broker);
       assert.equal(isVisibleToday(entry), false, broker);
@@ -212,28 +241,31 @@ describe("the six CME FX majors — mapped-not-yet-onboarded (2026-08-06)", () =
   it("states the direction reversal on the two foreign-currency-base contracts", () => {
     // The ground text is the only place this hazard is written down for a
     // future onboarding, so it is pinned rather than left to prose drift.
-    for (const broker of Object.keys(INVERTED)) {
+    for (const broker of INVERTED) {
       const entry = findMasterListRowByBrokerName(broker)!;
       assert.match(entry.ground, /long 6[CS] is short USD(CAD|CHF)/);
     }
-    for (const broker of Object.keys(DIRECT)) {
+    for (const broker of DIRECT) {
       const entry = findMasterListRowByBrokerName(broker)!;
       assert.doesNotMatch(entry.ground, /is short USD/);
     }
   });
 
-  it("is exactly these six rows carrying the status, no more and no fewer", () => {
+  it("leaves mapped-not-yet-onboarded empty — by ruling, not by silence", () => {
+    // Amendment 31 pinned this register so it could not GROW in silence; it
+    // emptied the other way, by amendment 32's ruling. The key survives for
+    // a genuinely matched, not-yet-wired row.
     const held = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "mapped-not-yet-onboarded")
       .map((entry) => entry.brokerName)
       .sort();
-    assert.deepEqual(held, ["6A", "6B", "6C", "6E", "6N", "6S"]);
+    assert.deepEqual(held, []);
   });
 
   it("leaves every one a reentry candidate", () => {
     // Amendment 23: a row that is real but not yet serveable stays on the
     // books and is re-examined at every sweep.
-    for (const broker of Object.keys({ ...DIRECT, ...INVERTED })) {
+    for (const broker of [...DIRECT, ...INVERTED]) {
       assert.equal(findMasterListRowByBrokerName(broker)!.reentryCandidate, true, broker);
     }
   });
@@ -250,29 +282,29 @@ describe("the four amendment-22 unsizeable rows — offered-but-unsizeable", () 
     }
   });
 
-  it("marks 6J and 6M unsizeable with no Levelflow symbol and an inverted FMP mate", () => {
-    const sixJ = findMasterListRowByBrokerName("6J");
-    const sixM = findMasterListRowByBrokerName("6M");
-    assert.ok(sixJ);
-    assert.ok(sixM);
-    assert.equal(sixJ!.levelflowSymbol, null);
-    assert.equal(sixJ!.fmpSymbol, "USDJPY");
-    assert.equal(sixM!.levelflowSymbol, null);
-    assert.equal(sixM!.fmpSymbol, "USDMXN");
-    assert.equal(sixJ!.status, "offered-but-unsizeable");
-    assert.equal(sixM!.status, "offered-but-unsizeable");
+  it("6J and 6M left this status with amendment 32 — offered still, matched never", () => {
+    // The F9 sightings stand (offered); the inverted spot mates were
+    // proxies, and a proxy in the match field is what amendment 32 ended.
+    // Both now sit in excluded-no-fmp-source with the identities preserved
+    // in their grounds.
+    for (const broker of ["6J", "6M"]) {
+      const entry = findMasterListRowByBrokerName(broker)!;
+      assert.equal(entry.fmpSymbol, null, broker);
+      assert.equal(entry.status, "excluded-no-fmp-source", broker);
+      assert.match(entry.ground, /amendment 19/i, broker);
+    }
   });
 
-  it("is exactly these four rows, no more and no fewer", () => {
+  it("is exactly these two rows, no more and no fewer", () => {
     const unsizeable = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "offered-but-unsizeable")
       .map((entry) => entry.brokerName)
       .sort();
-    assert.deepEqual(unsizeable, ["6J", "6M", "ZBUSD", "ZNUSD"]);
+    assert.deepEqual(unsizeable, ["ZBUSD", "ZNUSD"]);
   });
 });
 
-describe("the seven futures with no usable FMP source", () => {
+describe("the twenty futures with no usable FMP source", () => {
   // Was twelve. Five left on 2026-08-05 — FDAX, FDXM, FESX, NKD, EMD — once
   // the earlier verdict was re-tested rather than inherited: it had queried
   // `commodity-list`, which returns zero entries, instead of
@@ -302,16 +334,36 @@ describe("the seven futures with no usable FMP source", () => {
     "ZW",
   ];
 
-  it("is exactly these seven broker names, no more and no fewer", () => {
+  // Amendment 32 (2026-08-09) grew this status from seven to twenty, in
+  // three named families — one status, one meaning: no actual FMP series.
+  const AMENDMENT_32_INDEX_FUTURES = ["EMD", "FDAX", "FDXM", "FESX", "NKD"];
+  const AMENDMENT_32_CURRENCY_FUTURES = [
+    "6A", "6B", "6C", "6E", "6J", "6M", "6N", "6S",
+  ];
+
+  it("is exactly these twenty broker names, in three named families", () => {
     const orphans = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "excluded-no-fmp-source")
       .map((entry) => entry.brokerName)
       .sort();
-    assert.deepEqual(orphans, [...ORPHANS].sort());
+    assert.deepEqual(
+      orphans,
+      [
+        ...ORPHANS,
+        ...AMENDMENT_32_INDEX_FUTURES,
+        ...AMENDMENT_32_CURRENCY_FUTURES,
+      ].sort(),
+    );
   });
 
   it("every orphan carries no FMP symbol and a non-empty ground", () => {
-    for (const broker of ORPHANS) {
+    for (
+      const broker of [
+        ...ORPHANS,
+        ...AMENDMENT_32_INDEX_FUTURES,
+        ...AMENDMENT_32_CURRENCY_FUTURES,
+      ]
+    ) {
       const entry = findMasterListRowByBrokerName(broker);
       assert.ok(entry, broker);
       assert.equal(entry!.fmpSymbol, null, `${broker} must carry no FMP mate`);
@@ -323,64 +375,70 @@ describe("the seven futures with no usable FMP source", () => {
 
   it("excludes every orphan from the sweep universe (nothing to sweep against)", () => {
     const sweptBrokerNames = new Set(sweepUniverse().map((entry) => entry.brokerName));
-    for (const broker of ORPHANS) {
+    for (
+      const broker of [
+        ...ORPHANS,
+        ...AMENDMENT_32_INDEX_FUTURES,
+        ...AMENDMENT_32_CURRENCY_FUTURES,
+      ]
+    ) {
       assert.ok(!sweptBrokerNames.has(broker), `${broker} must not appear in sweepUniverse()`);
     }
   });
 });
 
-describe("the five recovered cash-proxy futures, all onboarded", () => {
-  // Recovered 2026-08-05 once the authoritative `commodities-list` endpoint
-  // replaced the empty `commodity-list` the first sweep queried. All five are
-  // served rows now: FESX, FDAX, EMD and NKD as analyzed markets withheld
-  // pending their sweep, and FDXM as FDAX's contract-size variant — same
-  // ^GDAXI series, different notional (contractVariants.ts).
-  const ONBOARDED: ReadonlyArray<[string, string]> = [
-    ["FESX", "^STOXX50E"],
-    ["EMD", "^MID"],
-    ["FDAX", "^GDAXI"],
-    ["NKD", "^N225"],
-    ["FDXM", "^GDAXI"],
-  ];
+describe("the five index futures — dormant under amendment 32 (2026-08-09)", () => {
+  // Their arc, kept because each turn was a real decision: recovered from
+  // the no-source list 2026-08-05 (the first sweep had queried the wrong
+  // endpoint), onboarded as cash-proxy rows the same day, served 2026-08-07
+  // with the release — and then amendment 32 ruled the proxy itself the
+  // defect: a future written on X is not X, and the futures-vs-cash gap is
+  // carry, not an offset. All five are register rows now, matches emptied,
+  // grounds carrying the ruling and the re-probe path.
+  const DORMANT = ["EMD", "FDAX", "FDXM", "FESX", "NKD"];
 
-  it("maps all five to their series, with E8's root as the Levelflow symbol", () => {
-    for (const [broker, fmp] of ONBOARDED) {
+  it("carries all five dormant with no match and no Levelflow symbol", () => {
+    for (const broker of DORMANT) {
       const entry = findMasterListRowByBrokerName(broker);
-      assert.ok(entry, `${broker} must have a row`);
-      assert.equal(entry!.fmpSymbol, fmp, `${broker} must read ${fmp}`);
-      assert.equal(entry!.levelflowSymbol, broker);
-      assert.equal(entry!.classification, "futures");
-      // served-but-not-scannable -> served-and-visible on 2026-08-07 for the
-      // four analyzed markets: they were onboarded WITHHELD pending a sweep,
-      // and the owner's ruling makes an FMP match the only test. They have one.
-      //
-      // FDXM is the exception and not an exception to the ruling: it is FDAX's
-      // contract-size variant on the same ^GDAXI series, so it is one market at
-      // two notionals rather than a market with no source. It keeps its sizing
-      // identity and stays out of the scan (contractVariants.ts).
+      assert.ok(entry, `${broker} must keep a row — dormant, never deleted`);
+      assert.equal(entry!.fmpSymbol, null, broker);
+      assert.equal(entry!.levelflowSymbol, null, broker);
+      assert.equal(entry!.status, "excluded-no-fmp-source", broker);
+      assert.match(entry!.ground, /Amendment 32/, broker);
+    }
+  });
+
+  it("sweeps none of them — there is nothing true to sweep against", () => {
+    const swept = new Set(sweepUniverse().map((entry) => entry.brokerName));
+    for (const broker of DORMANT) {
+      assert.ok(!swept.has(broker), `${broker} must not be swept`);
+    }
+  });
+
+  it("keeps the six cash index CFDs serving — cash on cash is a real match", () => {
+    // The contrast that makes the rule coherent: the SAME ^GDAXI series is
+    // right for the DAX cash CFD and was wrong for the FDAX future. Removing
+    // the futures must not touch the CFDs.
+    for (const symbol of ["ASX", "DAX", "DOW", "NIKKEI", "NSDQ", "SP"]) {
+      const entry = findMasterListRow(symbol);
+      assert.ok(entry, symbol);
+      assert.equal(entry!.status, "served-and-visible", symbol);
+    }
+    assert.equal(findMasterListRow("DAX")!.fmpSymbol, "^GDAXI");
+    assert.equal(findMasterListRow("NIKKEI")!.fmpSymbol, "^N225");
+  });
+
+  it("leaves every one a reentry candidate — dormant is not a verdict", () => {
+    for (const broker of DORMANT) {
       assert.equal(
-        entry!.status,
-        broker === "FDXM" ? "served-but-not-scannable" : "served-and-visible",
+        findMasterListRowByBrokerName(broker)!.reentryCandidate,
+        true,
+        broker,
       );
     }
   });
-
-  it("sweeps the four analyzed markets and not the size variant", () => {
-    const swept = new Set(sweepUniverse().map((entry) => entry.levelflowSymbol));
-    for (const broker of ["FESX", "EMD", "FDAX", "NKD"]) {
-      assert.ok(swept.has(broker), `${broker} must be swept`);
-    }
-    assert.ok(!swept.has("FDXM"), "FDXM is FDAX's market — sweeping it twice teaches nothing");
-  });
-
-  it("lets a futures row share a series with an already-served CFD row", () => {
-    // FDAX/^GDAXI and NKD/^N225 duplicate the series Levelflow's DAX and NIKKEI
-    // rows read. Amendment 24 makes the futures account a distinct product with
-    // its own verdict, so this duplication is required, not accidental.
-    assert.equal(findMasterListRowByBrokerName("FDAX")!.fmpSymbol, "^GDAXI");
-    assert.equal(findMasterListRowByBrokerName("NKD")!.fmpSymbol, "^N225");
-  });
 });
+
 describe("the 26 crypto mates by symbol pair (docs/research/e8-crypto-source-resolution-2026-08-05.md §4)", () => {
   // The doc's own 26-row table, literal. BNBUSD is the one row already
   // served (its own row is generated from symbolMap.ts, not hand-authored
@@ -502,7 +560,12 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     // carry, and contract-size variants. Every one is still re-examined at
     // every sweep, and amendment 26's rule that no exclusion is permanent is
     // what this list mechanises.
-    assert.equal(reentryList().length, 26);
+    // 26 -> 30 (amendment 32, 2026-08-09): the four index futures that had
+    // been served-and-visible rejoined the reentry population as dormant
+    // register rows — the list working again, in the other direction.
+    // (FDXM, 6E/6A/6B/6N/6C/6S and 6J/6M were already in it under their
+    // previous non-happy states, so only the four served rows add.)
+    assert.equal(reentryList().length, 30);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 
@@ -611,20 +674,18 @@ describe("amendment 31 — matched coverage cannot shrink quietly", () => {
   });
 
   it("pins the not-yet-onboarded register so it cannot grow in silence", () => {
-    // The only state that is a TODO. Six CME currency futures, each mapping to a
-    // spot pair already visible on forex accounts. They are NOT served because
-    // two of them invert: 6C is a CAD-base contract against Levelflow's USD-base
-    // USDCAD, and long 6C is SHORT USDCAD — serving it unconverted would hand a
-    // futures user a backwards direction on a correct-looking setup. That is the
-    // work, and it is owed under amendment 31 rather than excused by it.
-    //
-    // A NEW entry here means a matched market was parked instead of served, and
-    // that is a decision someone has to make in a test diff.
+    // Empty since amendment 32 (2026-08-09), and empty for the right reason
+    // this time: the six currency futures that occupied it were mapped to
+    // spot PROXIES, not matches, and the ruling moved them to
+    // excluded-no-fmp-source with the identity work preserved in their
+    // grounds. The pin stays because the state is still derivable — a NEW
+    // entry here means a genuinely matched market was parked instead of
+    // served, and that stays a decision someone must make in a test diff.
     const pending = MASTER_LIST_ROWS
       .filter((row) => row.status === "mapped-not-yet-onboarded")
       .map((row) => row.levelflowSymbol ?? row.brokerName)
       .sort();
-    assert.deepEqual(pending, ["6A", "6B", "6C", "6E", "6N", "6S"]);
+    assert.deepEqual(pending, []);
   });
 
   it("keeps every contract-size variant pointing at a market that IS visible", () => {
@@ -656,7 +717,10 @@ describe("amendment 31 — matched coverage cannot shrink quietly", () => {
       checked += 1;
     }
     // The loop must actually run. A status rename would otherwise turn this
-    // into a test that passes by checking nothing.
-    assert.equal(checked, 9);
+    // into a test that passes by checking nothing. 9 -> 8: FDXM left with
+    // its parent FDAX under amendment 32 — exactly the sibling-goes-dark
+    // case this test was written to catch, resolved by the variant leaving
+    // WITH the market instead of outliving it.
+    assert.equal(checked, 8);
   });
 });

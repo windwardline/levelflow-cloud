@@ -39,7 +39,7 @@ step leaves every signed-in operator working behind a closed door.
 
 | | |
 | --- | --- |
-| Markets | **111** — forex 46, crypto 33, futures 31, each account showing exactly its own E8 offering |
+| Markets | **107** — forex 46, crypto 33, futures 27, each account showing exactly its own E8 offering (amendment 32 executed 2026-08-09: five index futures and eight currency futures dormant — a derivative is not its underlying) |
 | Engine | Round 28 calibration, Edge Functions deployed and verified in the deploy log |
 | Public face | The parking page |
 | Tests | 1,907 passing; check · lint · check:migrations · test · build · check:bundle all green |
@@ -261,7 +261,28 @@ series carry finer-than-exchange-grid prices — ZCUSX shows 0.01 deltas on a
 0.25-tick contract, ZF/ZT decimalize to ~1e-5 — so minute bars are not raw
 trades. Bears on 2h's bad-tick sanitisation and any intrabar path model.
 
-### 1.5 — Unmatched markets go dormant (amendment 32) — **spec'd, ready to run**
+### 1.5 — Unmatched markets go dormant (amendment 32) — **DONE, executed 2026-08-09**
+
+Thirteen rows dormant exactly as audited: EMD/FDAX/FESX/NKD left the served
+roster (futures 31 → 27, knowable 111 → 106, visible 102 → 98), FDXM left with
+its parent (a variant may never outlive its market), and the eight CME currency
+futures' spot mates were emptied from the match field with the identity work
+preserved in the grounds. masterList's excluded-no-fmp-source register holds
+all twenty no-source rows in three named families; mapped-not-yet-onboarded is
+empty BY RULING and its pin survives; every dormant row is a reentry candidate
+re-probed each run. The six cash index CFDs verified untouched — the contrast
+is pinned ("the same ^GDAXI is right for DAX and was wrong for FDAX").
+
+**BZ decided under the owner's simple-rules directive (2026-08-09):** amendment
+19 applied to the F9 Energies sighting (BZV6 84.05 live) — BZUSD is OFFERED on
+the futures lines, unsizeable (amendment 22), the ZB/ZN pattern; the last
+no-route market closed. BRENT/WTI remains the ONE open owner item: one E8
+screenshot with the platform clock settles it.
+
+No ANALYZER_VERSION bump: roster membership changed, scoring did not — the
+per-symbol learning cohorts of surviving markets are unaffected.
+
+*The original spec, for the record:*
 Owner ruling: any market without a genuine FMP match is dormant and excluded from
 the user's view. Data integrity outranks coverage. Universal — every broker, every
 account type.

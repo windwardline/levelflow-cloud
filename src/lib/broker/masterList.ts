@@ -344,6 +344,48 @@ const NO_FMP_SOURCE_FUTURES_ROWS: MasterListRow[] = NO_FMP_SOURCE_FUTURES.map(
 );
 
 // ---------------------------------------------------------------------------
+// Amendment 32 (owner ruling, 2026-08-07; executed 2026-08-09): the five
+// index futures leave the served roster. A derivative is not its underlying —
+// each was served on its underlying's CASH index series, and the gap between
+// a future and its cash index is the difference between two instruments, not
+// a venue offset. Amendment 31's coverage floor never applied to an unmatched
+// market, so this removes nothing it protected. The six cash index CFDs stay:
+// cash on cash is a real match — the same ^GDAXI is right for DAX and was
+// wrong for FDAX, and that contrast is the rule. verify-fmp-matches.ts
+// re-probes each run; a real futures series appearing re-admits any of them.
+// ---------------------------------------------------------------------------
+
+const AMENDMENT_32_SOURCE =
+  "docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md (amendment 32)";
+
+const AMENDMENT_32_INDEX_FUTURES: ReadonlyArray<{
+  broker: string;
+  cashSeries: string;
+  product: string;
+}> = [
+  { broker: "EMD", cashSeries: "^MID", product: "E-mini S&P MidCap 400" },
+  { broker: "FDAX", cashSeries: "^GDAXI", product: "DAX Futures" },
+  { broker: "FDXM", cashSeries: "^GDAXI", product: "Mini-DAX Futures" },
+  { broker: "FESX", cashSeries: "^STOXX50E", product: "Euro Stoxx 50 Futures" },
+  { broker: "NKD", cashSeries: "^N225", product: "Nikkei 225 Futures" },
+];
+
+const AMENDMENT_32_INDEX_FUTURES_ROWS: MasterListRow[] =
+  AMENDMENT_32_INDEX_FUTURES.map(({ broker, cashSeries, product }) =>
+    row({
+      levelflowSymbol: null,
+      classification: "futures",
+      securityType: "Futures",
+      brokerName: broker,
+      fmpSymbol: null,
+      status: "excluded-no-fmp-source",
+      ground:
+        `Amendment 32 (2026-08-09): ${product}, served 2026-08-05..09 on ${cashSeries} — the underlying CASH index, which was never a match. A future written on X is not X; the futures-vs-cash gap is carry, time-varying and decaying to expiry, not a recordable offset. Dormant with the FMP identity emptied; the cash series remains correctly matched to its own CFD row where one exists. Re-probed each run (${AMENDMENT_32_SOURCE}).`,
+      source: AMENDMENT_32_SOURCE,
+    })
+  );
+
+// ---------------------------------------------------------------------------
 // Futures contracts recovered from the no-FMP-source list on 2026-08-05.
 // The earlier sweep's negative rested on a wrong endpoint name — it queried
 // `commodity-list` (zero entries) rather than `commodities-list` (40) — so
@@ -398,20 +440,20 @@ const F12_SOURCE = "docs/research/e8-feed-verification-2026-08-02.md (F12)";
 
 const UNSIZEABLE_BACKEND_FUTURES: ReadonlyArray<{
   broker: string;
-  fmp: string;
+  fmp: string | null;
   ground: string;
 }> = [
   {
     broker: "6J",
-    fmp: "USDJPY",
+    fmp: null,
     ground:
-      `Inverted spot mate (1/USDJPY) — no FMP currency-futures symbol exists for this CME contract (${F12_SOURCE}). E8's own tick table cannot reconcile 6J's published tick and value against its 6E/6S siblings, so Size stays withheld (amendment 22); OFFERED per the 2026-08-03 F9 futures-account sighting (amendment 19). No Levelflow symbol maps to 6J today.`,
+      `Amendment 32 (2026-08-09): a currency future is not its spot pair. The earlier row recorded USDJPY (inverted) as the mate; that identity is a proxy, not a match — no FMP currency-futures series exists for this CME contract (${F12_SOURCE}) — so the match field empties and the spot relationship lives here in the ground only. Still OFFERED per the 2026-08-03 F9 sighting (amendment 19), still unsizeable on E8's own unreconciled tick axis (amendment 22). Re-probed each run; a real 6J series appearing is what re-admits it.`,
   },
   {
     broker: "6M",
-    fmp: "USDMXN",
+    fmp: null,
     ground:
-      `Inverted spot mate (1/USDMXN) — no FMP currency-futures symbol exists for this CME contract (${F12_SOURCE}). Carries the same tick-axis defect as 6J relative to its own siblings, so Size stays withheld (amendment 22); OFFERED per the 2026-08-03 F9 futures-account sighting (amendment 19). No Levelflow symbol maps to 6M today.`,
+      `Amendment 32 (2026-08-09): a currency future is not its spot pair. The earlier row recorded USDMXN (inverted) as the mate; the identity is a proxy, not a match (${F12_SOURCE}), so the match field empties and the spot relationship lives here only. Same tick-axis defect as 6J (amendment 22); OFFERED per the F9 sighting (amendment 19). Re-probed each run.`,
   },
 ];
 
@@ -423,7 +465,9 @@ const UNSIZEABLE_BACKEND_ROWS: MasterListRow[] = UNSIZEABLE_BACKEND_FUTURES.map(
       securityType: "Futures",
       brokerName: broker,
       fmpSymbol: fmp,
-      status: "offered-but-unsizeable",
+      // Amendment 32 (2026-08-09): reclassified from offered-but-unsizeable.
+      // Offered they remain (the sightings stand); MATCHED they never were.
+      status: "excluded-no-fmp-source",
       ground,
       source: F12_SOURCE,
     }),
@@ -497,11 +541,16 @@ const CME_FX_MAJOR_ROWS: MasterListRow[] = CME_FX_MAJORS.map(
       classification: "futures",
       securityType: "Futures",
       brokerName: broker,
-      fmpSymbol: fmp,
-      status: "mapped-not-yet-onboarded",
+      // Amendment 32 (2026-08-09): the spot pair was the recorded MATE; a
+      // currency future is not its spot pair, so the match field empties.
+      // The identity work is preserved in the ground — direction, scale and
+      // the measured carry — because it is exactly what a real onboarding
+      // would need; it is a description, never a match.
+      fmpSymbol: null,
+      status: "excluded-no-fmp-source",
       ground: inverted
-        ? `E8 "${product}", a ${fmp.slice(3)}-base contract against Levelflow's USD-base ${fmp} — long ${broker} is short ${fmp}, and ${broker} quotes near 1/${fmp} (${CROSSMAP_SOURCE}). FMP publishes no currency-futures series for it, so ${fmp} is the mate and its verdict already covers this series. OFFERED and live-priced per the F9 futures-account sighting (amendment 19); withheld from the scan until a transform inverts and rescales the ladder, because spot levels would reverse the trade direction.`
-        : `E8 "${product}", quoted USD-per-unit and so directionally identical to ${fmp} (${CROSSMAP_SOURCE}). FMP publishes no currency-futures series for it, so ${fmp} is the mate and its verdict already covers this series. OFFERED and live-priced per the F9 futures-account sighting (amendment 19); withheld from the scan until a basis-aware transform exists — the sighting measured 17 pips of carry on 6E, which a spot-derived ladder would place every level away from.`,
+        ? `Amendment 32 (2026-08-09): no FMP currency-futures series exists for this CME contract, so it is dormant — a future is not its underlying, and the earlier mapped-not-yet-onboarded state recorded ${fmp} as a mate it never was. Identity notes preserved: E8 "${product}" is a ${fmp.slice(3)}-base contract against USD-base ${fmp} — long ${broker} is short ${fmp}, quoting near 1/${fmp} (${CROSSMAP_SOURCE}). OFFERED and live-priced per the F9 sighting (amendment 19). Re-probed each run; a real series re-admits it.`
+        : `Amendment 32 (2026-08-09): no FMP currency-futures series exists for this CME contract, so it is dormant — a future is not its underlying, and the earlier mapped-not-yet-onboarded state recorded ${fmp} as a mate it never was. Identity notes preserved: E8 "${product}" quotes USD-per-unit, directionally aligned with ${fmp}; the F9 sighting measured 17 pips of carry on 6E (${CROSSMAP_SOURCE}). OFFERED and live-priced per the sighting (amendment 19). Re-probed each run; a real series re-admits it.`,
       source: `${CROSSMAP_SOURCE}; ${F9_SOURCE}`,
     }),
 );
@@ -513,6 +562,7 @@ const CME_FX_MAJOR_ROWS: MasterListRow[] = CME_FX_MAJORS.map(
 export const MASTER_LIST_ROWS: readonly MasterListRow[] = [
   ...SERVED_ROWS,
   ...NO_FMP_SOURCE_FUTURES_ROWS,
+  ...AMENDMENT_32_INDEX_FUTURES_ROWS,
   ...UNSIZEABLE_BACKEND_ROWS,
   ...CME_FX_MAJOR_ROWS,
 ];

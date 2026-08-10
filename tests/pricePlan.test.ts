@@ -383,17 +383,19 @@ describe("1b: futures-shaped classes align or refuse — nothing ships off-grid"
     }
   });
 
-  it("refuses the plan when a futures-shaped symbol has no spec (the belt)", () => {
-    // FESX is futures-classified and deliberately spec-less (amendment 32).
-    // Even if a future call path skips the analysis door, no plan ships.
-    const plan = buildPricePlan(
-      "buy",
-      "FESX",
-      syntheticMarket(),
-      regime,
-      getCategoryCalibration("FESX"),
+  it("keeps the belt: a spec-less futures-shaped symbol cannot ship a plan", () => {
+    // Amendment 32 emptied the population this used to exercise with FESX —
+    // every futures-shaped symbol left on the roster now HAS a verified
+    // spec, which is 1b's completion, not a gap. The belt stays for the day
+    // a new futures market onboards ahead of its spec, so it is pinned as
+    // source: the gate consults the same predicate the door does, and a
+    // null tick plan on a grid-needing symbol refuses the whole plan.
+    const PLAN_SOURCE = readFileSync(
+      "supabase/functions/trade-analyzer/pricePlan.ts",
+      "utf8",
     );
-    assert.equal(plan, null);
+    assert.match(PLAN_SOURCE, /const needsTickGrid = needsFuturesTickGrid\(symbol\);/);
+    assert.match(PLAN_SOURCE, /if \(needsTickGrid && !futuresTickPlan\) \{\s*\n\s*return null;/);
   });
 
   it("refuses at the analysis door, with the missing spec named — not a price-validation excuse", () => {
