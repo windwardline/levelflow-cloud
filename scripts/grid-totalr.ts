@@ -1,63 +1,338 @@
 /**
- * Reads a grid by TOTAL R across both splits, per class and per market.
+ * The acceptance gate over a manifested grid corpus (3b + 3f + 3g).
  *
- * Total R = expectancy x setups. Amendment 25's companion lesson: our older bar
- * — "expectancy must improve on both splits" — optimizes per-trade quality, and
- * rejects a change that doubles the trade count to protect a hundredth of an R
- * per trade. That is the wrong quantity whenever a parameter gates VOLUME, which
- * every geometry ceiling and every threshold does. It rejected agriculture's
- * runner change, which was worth two thirds of the class's return.
+ * Reads a grid by TOTAL R across both splits, per class — but from the
+ * EMIT, never from a printed table. The table form this replaces read
+ * total R as expectancy-over-filled x setups-including-unfilled (the
+ * e x n unit mismatch behind rounds 25-28's totals), gated on bare `>`
+ * inequalities, and deliberately ignored per-trade expectancy while
+ * sweep-analysis deliberately ignored volume. Here:
  *
- * Thin variants are refused outright rather than ranked: a variant that "wins"
- * on 34 setups against a baseline's 271 is an artifact of its own tightness.
+ * - Total R is a SUM of realized R over filled, accepted outcomes
+ *   (sweepStats — the engine's vocabulary).
+ * - 3f: improvement is stated in standard errors. The SE of a total is
+ *   rSd x sqrt(filled); a delta's sigma adds the two in quadrature. The
+ *   gate wants both splits positive and the test split at least one
+ *   sigma above zero.
+ * - 3g: total R AND per-trade expectancy must both improve on test —
+ *   amendment 25 cut the other way (volume matters), and both lessons
+ *   hold: volume bought by degrading every trade is rejected, quality
+ *   bought by refusing most of the volume is refused as THIN.
+ * - 3b: a day-block permutation null prices the improvement. Within each
+ *   symbol and split, whole DAYS of outcomes swap variant labels —
+ *   blocks, not rows, because outcomes inside a day share their market —
+ *   and the p-value is how often shuffled labels match the observed test
+ *   delta. Multiplicity across a crossed grid is priced here rather than
+ *   ignored.
+ *
+ * Usage:
+ *   npx tsx scripts/grid-totalr.ts <emit.jsonl> [--permutations 1000] [--seed 7]
+ *
+ * The emit must carry its manifest beside it (2i): an undescribed corpus
+ * is refused at the door.
  */
-import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  addOutcome,
+  assertManifestedCorpus,
+  emptyStats,
+  expectancy,
+  rStdDev,
+  type SweepEmitRow,
+  type SweepStats,
+} from "./sweepStats.ts";
+import type { SweepManifest } from "./sweepManifest.ts";
 
-type Cell = { e: number; n: number; planRej: number };
-const rows = new Map<string, Map<string, Map<string, Cell>>>();
+const DAY_MS = 86_400_000;
 
-for (const path of process.argv.slice(2).filter((a) => !a.startsWith("--"))) {
-  for (const line of readFileSync(path, "utf8").split("\n")) {
-    const f = line.trim().split(/\s+/);
-    if (f.length < 16 || f[0] === "symbol" || !/^[A-Z^]/.test(f[0])) continue;
-    const [sym, variant, split] = f;
-    const e = Number(f[15]), n = Number(f[11]), pr = Number(f[8]);
-    if (!Number.isFinite(e)) continue;
-    if (!rows.has(sym)) rows.set(sym, new Map());
-    const bySym = rows.get(sym)!;
-    if (!bySym.has(variant)) bySym.set(variant, new Map());
-    bySym.get(variant)!.set(split, { e, n, planRej: pr });
+// A cube cell is the shared stats vocabulary plus the day-block ledger the
+// permutation null permutes — whole days, because outcomes inside a day
+// share their market.
+export type GateCell = SweepStats & { dayR: Map<number, number> };
+
+// symbol -> variant -> split -> cell
+export type GridCube = Map<string, Map<string, Map<string, GateCell>>>;
+
+export function readGridCube(rows: SweepEmitRow[]): GridCube {
+  const cube: GridCube = new Map();
+  for (const row of rows) {
+    // capture-all corpora include rejected records for calibration reads;
+    // the gate grades the stream production would actually take.
+    if (row.accepted === false) {
+      continue;
+    }
+    const variant = typeof row.variant === "string" ? row.variant : "baseline";
+    const split = typeof row.split === "string" ? row.split : "all";
+    if (!cube.has(row.symbol)) {
+      cube.set(row.symbol, new Map());
+    }
+    const byVariant = cube.get(row.symbol)!;
+    if (!byVariant.has(variant)) {
+      byVariant.set(variant, new Map());
+    }
+    const bySplit = byVariant.get(variant)!;
+    if (!bySplit.has(split)) {
+      bySplit.set(split, { ...emptyStats(), dayR: new Map() });
+    }
+    const cell = bySplit.get(split)!;
+    addOutcome(cell, row);
+    if (row.outcome !== "unfilled") {
+      const day = Math.floor(Number(row.time ?? 0) / DAY_MS);
+      cell.dayR.set(day, (cell.dayR.get(day) ?? 0) + (Number(row.realizedR) || 0));
+    }
+  }
+  return cube;
+}
+
+export type VariantVerdict = {
+  accepted: boolean;
+  permutationP: number;
+  testExpectancyDelta: number;
+  testFilled: number;
+  testSigma: number;
+  testTotalDelta: number;
+  thin: boolean;
+  trainTotalDelta: number;
+};
+
+type GateOptions = { permutations?: number; seed?: number };
+
+// Deterministic PRNG (mulberry32): permutation p-values must reproduce
+// run to run, or two readers of one corpus argue about the same number.
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let mixed = state;
+    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+function totalOf(stats: SweepStats | undefined): number {
+  return stats?.rSum ?? 0;
+}
+
+function totalVarianceOf(stats: SweepStats | undefined): number {
+  if (!stats) {
+    return 0;
+  }
+  const deviation = rStdDev(stats);
+  return deviation === null ? 0 : deviation * deviation * stats.filled;
+}
+
+/**
+ * Day-block permutation (3b): the class's baseline and variant day-blocks
+ * pool together, and whole days shuffle sides, preserving each side's day
+ * count. Returns the p-value of the observed total-R delta under that
+ * label-exchangeable null.
+ */
+function permutationPValue(
+  baselineBlocks: number[],
+  variantBlocks: number[],
+  observedDelta: number,
+  permutations: number,
+  random: () => number,
+): number {
+  const blocks = [...baselineBlocks, ...variantBlocks];
+  const baselineCount = baselineBlocks.length;
+  if (blocks.length < 2 || baselineCount === 0 ||
+      baselineCount === blocks.length) {
+    return 1;
+  }
+  const totalSum = blocks.reduce((sum, value) => sum + value, 0);
+  let atLeastAsExtreme = 0;
+  for (let iteration = 0; iteration < permutations; iteration += 1) {
+    // Partial Fisher-Yates: choose baselineCount blocks for the baseline.
+    const indices = blocks.map((_, index) => index);
+    let baselineSum = 0;
+    for (let pick = 0; pick < baselineCount; pick += 1) {
+      const chosen = pick +
+        Math.floor(random() * (indices.length - pick));
+      [indices[pick], indices[chosen]] = [indices[chosen], indices[pick]];
+      baselineSum += blocks[indices[pick]];
+    }
+    const shuffledDelta = totalSum - baselineSum - baselineSum;
+    if (shuffledDelta >= observedDelta) {
+      atLeastAsExtreme += 1;
+    }
+  }
+  return (1 + atLeastAsExtreme) / (permutations + 1);
+}
+
+export function classVerdicts(
+  cube: GridCube,
+  options: GateOptions = {},
+): Map<string, Map<string, VariantVerdict>> {
+  const permutations = options.permutations ?? 1_000;
+  const random = mulberry32(options.seed ?? 7);
+  const verdicts = new Map<string, Map<string, VariantVerdict>>();
+
+  const symbolsByClass = new Map<string, string[]>();
+  for (const symbol of cube.keys()) {
+    const assetClass = getAssetType(symbol);
+    if (!symbolsByClass.has(assetClass)) {
+      symbolsByClass.set(assetClass, []);
+    }
+    symbolsByClass.get(assetClass)!.push(symbol);
+  }
+
+  const variants = new Set<string>();
+  for (const byVariant of cube.values()) {
+    for (const variant of byVariant.keys()) {
+      variants.add(variant);
+    }
+  }
+
+  for (const [assetClass, symbols] of symbolsByClass) {
+    const classMap = new Map<string, VariantVerdict>();
+    verdicts.set(assetClass, classMap);
+    for (const variant of variants) {
+      if (variant === "baseline") {
+        continue;
+      }
+      const aggregate = {
+        base: { test: emptyStats(), train: emptyStats() },
+        variant: { test: emptyStats(), train: emptyStats() },
+      };
+      for (const symbol of symbols) {
+        for (const split of ["test", "train"] as const) {
+          mergeInto(
+            aggregate.base[split],
+            cube.get(symbol)?.get("baseline")?.get(split),
+          );
+          mergeInto(
+            aggregate.variant[split],
+            cube.get(symbol)?.get(variant)?.get(split),
+          );
+        }
+      }
+      const testTotalDelta = totalOf(aggregate.variant.test) -
+        totalOf(aggregate.base.test);
+      const trainTotalDelta = totalOf(aggregate.variant.train) -
+        totalOf(aggregate.base.train);
+      const sigma = Math.sqrt(
+        totalVarianceOf(aggregate.variant.test) +
+          totalVarianceOf(aggregate.base.test),
+      );
+      const testSigma = sigma > 0 ? testTotalDelta / sigma : 0;
+      const baseExpectancy = expectancy(aggregate.base.test) ?? 0;
+      const variantExpectancy = expectancy(aggregate.variant.test) ?? 0;
+      const testExpectancyDelta = variantExpectancy - baseExpectancy;
+      const thin = aggregate.variant.test.filled <
+        aggregate.base.test.filled * 0.5;
+
+      const baselineBlocks: number[] = [];
+      const variantBlocks: number[] = [];
+      for (const symbol of symbols) {
+        for (
+          const value of cube.get(symbol)?.get("baseline")?.get("test")
+            ?.dayR.values() ?? []
+        ) {
+          baselineBlocks.push(value);
+        }
+        for (
+          const value of cube.get(symbol)?.get(variant)?.get("test")
+            ?.dayR.values() ?? []
+        ) {
+          variantBlocks.push(value);
+        }
+      }
+      const permutationP = permutationPValue(
+        baselineBlocks,
+        variantBlocks,
+        testTotalDelta,
+        permutations,
+        random,
+      );
+
+      classMap.set(variant, {
+        accepted: !thin && trainTotalDelta > 0 && testTotalDelta > 0 &&
+          testSigma >= 1 && testExpectancyDelta >= 0,
+        permutationP,
+        testExpectancyDelta,
+        testFilled: aggregate.variant.test.filled,
+        testSigma,
+        testTotalDelta,
+        thin,
+        trainTotalDelta,
+      });
+    }
+  }
+  return verdicts;
+}
+
+function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
+  if (!source) {
+    return;
+  }
+  target.ambiguous += source.ambiguous;
+  target.filled += source.filled;
+  target.n += source.n;
+  target.rSum += source.rSum;
+  target.rSumSq += source.rSumSq;
+  target.stops += source.stops;
+  target.wins += source.wins;
+}
+
+export function gradeCorpus(
+  emitPath: string,
+  options: GateOptions = {},
+): {
+  manifest: SweepManifest;
+  verdicts: Map<string, Map<string, VariantVerdict>>;
+} {
+  const { manifest, rows } = assertManifestedCorpus(emitPath);
+  return {
+    manifest,
+    verdicts: classVerdicts(readGridCube(rows), options),
+  };
+}
+
+function main(): void {
+  const args = process.argv.slice(2);
+  const paths = args.filter((arg) => !arg.startsWith("--"));
+  const flag = (name: string, fallback: number) => {
+    const index = args.indexOf(`--${name}`);
+    return index >= 0 ? Number(args[index + 1]) : fallback;
+  };
+  if (paths.length !== 1) {
+    console.error(
+      "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [--permutations 1000] [--seed 7]",
+    );
+    process.exit(1);
+  }
+  const { manifest, verdicts } = gradeCorpus(paths[0], {
+    permutations: flag("permutations", 1_000),
+    seed: flag("seed", 7),
+  });
+  console.log(
+    `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · anchor ${manifest.anchor}`,
+  );
+  for (const [assetClass, classMap] of verdicts) {
+    console.log(`\n=== ${assetClass.toUpperCase()} ===`);
+    console.log(
+      `${"variant".padEnd(28)}${"ΔR train".padStart(10)}${"ΔR test".padStart(9)}${"σ".padStart(7)}${"ΔE test".padStart(9)}${"p".padStart(8)}  verdict`,
+    );
+    for (const [variant, verdict] of classMap) {
+      const label = verdict.thin
+        ? `THIN (${verdict.testFilled} filled) — refuse`
+        : verdict.accepted
+        ? "ACCEPT — both splits, ≥1σ, expectancy holds"
+        : "fails";
+      console.log(
+        `${variant.padEnd(28)}${verdict.trainTotalDelta.toFixed(1).padStart(10)}${
+          verdict.testTotalDelta.toFixed(1).padStart(9)
+        }${verdict.testSigma.toFixed(2).padStart(7)}${
+          verdict.testExpectancyDelta.toFixed(3).padStart(9)
+        }${verdict.permutationP.toFixed(3).padStart(8)}  ${label}`,
+      );
+    }
   }
 }
 
-const variants = [...new Set([...rows.values()].flatMap((m) => [...m.keys()]))]
-  .sort((a, b) => (a === "baseline" ? -1 : b === "baseline" ? 1 : a.localeCompare(b)));
-const classes = [...new Set([...rows.keys()].map((s) => getAssetType(s)))].sort();
-
-for (const cls of classes) {
-  const syms = [...rows.keys()].filter((s) => getAssetType(s) === cls);
-  console.log(`\n=== ${cls.toUpperCase()} (${syms.length} markets) ===`);
-  console.log(`${"variant".padEnd(30)}${"train R".padStart(9)}${"test R".padStart(8)}${"train n".padStart(9)}${"test n".padStart(8)}  verdict`);
-  let base = { tr: 0, te: 0, n: 0 };
-  for (const v of variants) {
-    const t = { train: [0, 0], test: [0, 0] };
-    for (const sym of syms) {
-      for (const split of ["train", "test"] as const) {
-        const c = rows.get(sym)!.get(v)?.get(split);
-        if (c) { t[split][0] += c.e * c.n; t[split][1] += c.n; }
-      }
-    }
-    if (v === "baseline") base = { tr: t.train[0], te: t.test[0], n: t.test[1] };
-    let verdict = "";
-    if (v !== "baseline") {
-      if (t.test[1] < base.n * 0.5) verdict = `THIN (${t.test[1]} vs ${base.n}) — refuse`;
-      else if (t.train[0] > base.tr && t.test[0] > base.te) verdict = "IMPROVES TOTAL R BOTH";
-      else verdict = "fails";
-    }
-    console.log(
-      `${v.padEnd(30)}${t.train[0].toFixed(1).padStart(9)}${t.test[0].toFixed(1).padStart(8)}` +
-      `${String(t.train[1]).padStart(9)}${String(t.test[1]).padStart(8)}  ${verdict}`,
-    );
-  }
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
 }
