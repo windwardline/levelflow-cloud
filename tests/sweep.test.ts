@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  realizedRFromLegs,
   resampleBars,
   simulateSymbol,
   summarizeSweepOutcomes,
   type SweepOutcomeRecord,
 } from "../supabase/functions/trade-analyzer/sweep.ts";
+import type { ResolutionLeg } from "../supabase/functions/trade-analyzer/replay.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 // summarizeSweepOutcomes only reads .outcome and .realizedR (sweep.ts:373-395),
@@ -120,6 +123,7 @@ describe("replay sweep", () => {
     assert.equal(
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
+        result.rejections.notWarm +
         result.rejections.planRejected + result.rejections.belowThreshold +
         result.rejections.regimeBlocked + result.rejections.sessionBlocked +
         result.rejections.newsBlocked,
@@ -151,9 +155,15 @@ describe("replay sweep", () => {
   it("records stop provenance on every setup and reports cap binding", () => {
     // Geometry pinned like the resolution test; capture-all so gate policy
     // cannot hide records. A generous cap cannot bind, so provenance must be
-    // structural (pivot or the 1.25-ATR volatility floor).
+    // structural (pivot or the 1.25-ATR volatility floor). The review window
+    // is widened with the cap: an uncapped structural stop on this fixture
+    // is ~4.4 units of required runner against a 3.7-unit 8-hour window, so
+    // the ladder's feasibility filter would (correctly) reject every plan —
+    // 2k's real clock buckets landed consensus on wider structure than the
+    // old count-groups did, and the filter is the law here, not the subject.
     const uncapped = simulateSymbol({
       calibrationOverride: {
+        defaultReviewHours: 72,
         maxStopAtrMultiplier: 50,
         runnerWindowShare: 1,
         tp1RiskShare: 0.8,
@@ -241,8 +251,11 @@ describe("replay sweep", () => {
   });
 
   it("resamples 15min bars into higher-timeframe bars", () => {
+    // triangleBars start on an hour boundary (00:00 UTC = 20:00 New York),
+    // so the wall-clock buckets coincide with the old count-of-four groups
+    // here; tests/sweepDecisionContext.test.ts covers where they diverge.
     const bars = triangleBars(8);
-    const hourly = resampleBars(bars, 4);
+    const hourly = resampleBars(bars, 60);
 
     assert.equal(hourly.length, 2);
     assert.equal(hourly[0].open, bars[0].open);
@@ -265,10 +278,99 @@ describe("replay sweep", () => {
     assert.equal(
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
+        result.rejections.notWarm +
         result.rejections.planRejected + result.rejections.belowThreshold +
         result.rejections.regimeBlocked + result.rejections.sessionBlocked +
         result.rejections.newsBlocked,
     );
+  });
+
+  it("accounts realized R from the legs that actually executed (2g), cost charged once (2d)", () => {
+    // The ten R implementations this replaces reconstructed exits from the
+    // plan's NOMINAL levels — every stop exactly at the stop, every fill at
+    // the limit, cost nowhere. One accountant now reads the resolver's legs:
+    // planned risk is the unit, actual prints are the numerator, and one
+    // round trip of cost (2 x perLegCost: full entry plus half-exits or one
+    // full exit) is charged in R space.
+    const leg = (
+      legName: ResolutionLeg["leg"],
+      price: number,
+      kind?: ResolutionLeg["kind"],
+    ): ResolutionLeg => ({ leg: legName, price, time: 0, ...(kind && { kind }) });
+    const account = (legs: ResolutionLeg[], side: "buy" | "sell" = "buy") =>
+      realizedRFromLegs({ legs, perLegCost: 0.05, riskDistance: 2, side });
+
+    // Ladder to the runner: 0.5x(101-100)/2 + 0.5x(105-100)/2 - 0.05.
+    assert.equal(
+      account([
+        leg("entry", 100),
+        leg("tp1", 101),
+        leg("exit", 105, "take_profit"),
+      ]),
+      1.45,
+    );
+    // Full stop: -1R and the round trip on top.
+    assert.equal(
+      account([leg("entry", 100), leg("exit", 98, "stop_loss")]),
+      -1.05,
+    );
+    // A gap through the stop realizes the open's worse print.
+    assert.equal(
+      account([leg("entry", 100), leg("exit", 97.4, "stop_loss")]),
+      -1.35,
+    );
+    // A gap-improved fill earns its improvement.
+    assert.equal(
+      account([leg("entry", 99.5), leg("exit", 105, "take_profit")]),
+      2.7,
+    );
+    // Breakeven runner after TP1 keeps only the banked half.
+    assert.equal(
+      account([
+        leg("entry", 100),
+        leg("tp1", 101),
+        leg("exit", 100, "breakeven_stop"),
+      ]),
+      0.2,
+    );
+    // 2e: ambiguity is priced at the stop side by the resolver, so the
+    // explicit -1 (and its cost) emerges from plain arithmetic.
+    assert.equal(
+      account([leg("entry", 100), leg("exit", 98, "ambiguous")]),
+      -1.05,
+    );
+    // Expiry closes at the last print.
+    assert.equal(
+      account([leg("entry", 100), leg("exit", 100.7, "expiry")]),
+      0.3,
+    );
+    // Sell mirror.
+    assert.equal(
+      account([leg("entry", 100), leg("exit", 102, "stop_loss")], "sell"),
+      -1.05,
+    );
+    // No fill, no position, no cost.
+    assert.equal(account([]), 0);
+    // Degenerate risk cannot mint R.
+    assert.equal(
+      realizedRFromLegs({
+        legs: [leg("entry", 100), leg("exit", 105, "take_profit")],
+        perLegCost: 0.05,
+        riskDistance: 0,
+        side: "buy",
+      }),
+      0,
+    );
+  });
+
+  it("wires the accountant into the simulator and retires the nominal-level reconstruction", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/sweep.ts",
+      "utf8",
+    );
+    assert.match(source, /realizedR: realizedRFromLegs\(/);
+    assert.match(source, /legs: evaluation\.legs/);
+    assert.doesNotMatch(source, /function realizedRFor\(/);
   });
 
   it("summarizes expectancy in R across outcome types", () => {

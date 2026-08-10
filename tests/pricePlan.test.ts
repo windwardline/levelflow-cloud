@@ -426,10 +426,20 @@ describe("1b: futures-shaped classes align or refuse — nothing ships off-grid"
   });
 
   it("bumps ANALYZER_VERSION — behavior-changing analyzer work always scopes the cohort", () => {
-    // futures-grid landed 1b's alignment; sessions-reconciled followed the
-    // same day with 1e's calendar work. The pin tracks the CURRENT version;
+    // futures-grid landed 1b's alignment; sessions-reconciled followed with
+    // 1e's calendar work; evaluator-repair is item 2's change set. The pin
+    // tracks the CURRENT version at its canonical home (calibration.ts,
+    // Deno-free so the sweep manifest shares it);
     // calibrationState.test.ts carries the change log.
-    assert.match(INDEX_SOURCE, /const ANALYZER_VERSION = "2026\.08\.09\.sessions-reconciled";/);
+    const calibrationSource = readFileSync(
+      "supabase/functions/trade-analyzer/calibration.ts",
+      "utf8",
+    );
+    assert.match(
+      calibrationSource,
+      /export const ANALYZER_VERSION = "2026\.08\.09\.evaluator-repair";/,
+    );
+    assert.match(INDEX_SOURCE, /ANALYZER_VERSION,\n/);
   });
 });
 

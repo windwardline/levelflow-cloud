@@ -91,12 +91,20 @@ export function scoreConsensus(votes: StrategyVote[], regime: Regime) {
   };
 }
 
-export function classifyRegime(market: MarketContext): Regime {
+// 2n (2026-08-09): null when the daily series cannot warm the slow EMA — a
+// regime "classified" from an abstaining input is a guess wearing a label.
+// The sweep counts these refusals in their own notWarm bucket; the live
+// loader's >=80-bar sufficiency makes them unreachable in production, and
+// the shared engine still refuses honestly if that ever changes.
+export function classifyRegime(market: MarketContext): Regime | null {
   const bars = market.daily;
-  const latest = bars.at(-1)!;
+  const latest = bars.at(-1);
   const closes = bars.map((bar) => bar.close);
   const ema20 = ema(closes, 20);
   const ema50 = ema(closes, 50);
+  if (!latest || ema20 === null || ema50 === null) {
+    return null;
+  }
   const atr = averageTrueRange(bars, 14);
   const atrHistory = rollingAtr(bars, 14).slice(-80);
   const volatilityPercentile = percentileRank(atrHistory, atr);
@@ -240,10 +248,13 @@ function voteTrendPullback(
   const ema20 = ema(closes, 20);
   const ema50 = ema(closes, 50);
   const atr = averageTrueRange(bars, 14);
-  const nearValue = Math.abs(latest.close - ema20) <= atr * 0.75 ||
-    Math.abs(latest.close - ema50) <= atr * 0.9;
-  const upTrend = latest.close > ema50 && ema20 > ema50;
-  const downTrend = latest.close < ema50 && ema20 < ema50;
+  // Unwarm EMAs abstain (2m): no value zone can be measured, so no vote.
+  const warm = ema20 !== null && ema50 !== null;
+  const nearValue = warm &&
+    (Math.abs(latest.close - ema20) <= atr * 0.75 ||
+      Math.abs(latest.close - ema50) <= atr * 0.9);
+  const upTrend = warm && latest.close > ema50 && ema20 > ema50;
+  const downTrend = warm && latest.close < ema50 && ema20 < ema50;
   const direction: Direction = regime.name === "trend" && nearValue && upTrend
     ? "buy"
     : regime.name === "trend" && nearValue && downTrend
@@ -308,9 +319,12 @@ function voteRangeMeanReversion(
     0.00001,
   );
   const location = (latest.close - range.nextLiquidityLow) / width;
+  // A frozen or thin series has no oscillator reading (2m) — no edge vote.
   const rsi = relativeStrengthIndex(bars, 14);
-  const buy = regime.name === "range" && location < 0.22 && rsi < 42;
-  const sell = regime.name === "range" && location > 0.78 && rsi > 58;
+  const buy = regime.name === "range" && location < 0.22 && rsi !== null &&
+    rsi < 42;
+  const sell = regime.name === "range" && location > 0.78 && rsi !== null &&
+    rsi > 58;
   const direction: Direction = buy ? "buy" : sell ? "sell" : "neutral";
 
   return {
@@ -332,13 +346,19 @@ function voteMomentumDivergence(market: MarketContext): StrategyVote {
   const latest = recent.at(-1)!;
   const rsi = relativeStrengthIndex(bars, 14);
   const closes = bars.map((bar) => bar.close);
-  const macdSlope = ema(closes, 12) - ema(closes, 26);
+  const ema12 = ema(closes, 12);
+  const ema26 = ema(closes, 26);
+  // Both oscillator legs may abstain (2m): a null RSI on a frozen series
+  // used to read as 100 here and fire a buy against range-reversion's
+  // simultaneous overbought sell — one degenerate input, two opposite votes.
+  const macdSlope = ema12 !== null && ema26 !== null ? ema12 - ema26 : null;
   const priceBias: Direction = latest.close >= first.close ? "buy" : "sell";
-  const oscillatorBias: Direction = rsi > 55 || macdSlope > 0
-    ? "buy"
-    : rsi < 45 || macdSlope < 0
-    ? "sell"
-    : "neutral";
+  const oscillatorBias: Direction =
+    (rsi !== null && rsi > 55) || (macdSlope !== null && macdSlope > 0)
+      ? "buy"
+      : (rsi !== null && rsi < 45) || (macdSlope !== null && macdSlope < 0)
+      ? "sell"
+      : "neutral";
   const divergence = priceBias !== oscillatorBias &&
     oscillatorBias !== "neutral";
   const direction = oscillatorBias;

@@ -1,13 +1,19 @@
 import type { Bar, Direction } from "./types.ts";
 
 export function directionalBias(bars: Bar[]): Direction {
-  if (bars.length < 30) {
+  const latest = bars.at(-1);
+  if (!latest) {
     return "neutral";
   }
-  const latest = bars.at(-1)!;
   const closes = bars.map((bar) => bar.close);
   const ema20 = ema(closes, 20);
   const ema50 = ema(closes, 50);
+  // 2m: an unwarm EMA abstains (null), and an abstaining input yields no
+  // bias — the old <30 guard let a 30-49 bar series wear a "bias" computed
+  // from a slow EMA that had never seen its own period.
+  if (ema20 === null || ema50 === null) {
+    return "neutral";
+  }
   if (latest.close > ema20 && ema20 >= ema50) {
     return "buy";
   }
@@ -131,8 +137,19 @@ export function rollingAtr(bars: Bar[], period: number) {
   return values;
 }
 
-export function relativeStrengthIndex(bars: Bar[], period: number) {
+// 2m (2026-08-09): null is abstention. The old `losses === 0` early return
+// caught gains === 0 too, so a FROZEN series read as RSI 100 — maximally
+// overbought — and fired opposite-direction votes from range-reversion and
+// momentum on the same degenerate input. A series too short for its period
+// likewise abstains instead of measuring a partial window.
+export function relativeStrengthIndex(
+  bars: Bar[],
+  period: number,
+): number | null {
   const closes = bars.slice(-period - 1).map((bar) => bar.close);
+  if (closes.length < period + 1) {
+    return null;
+  }
   let gains = 0;
   let losses = 0;
 
@@ -142,6 +159,9 @@ export function relativeStrengthIndex(bars: Bar[], period: number) {
     losses += Math.max(-delta, 0);
   }
 
+  if (gains === 0 && losses === 0) {
+    return null;
+  }
   if (losses === 0) {
     return 100;
   }
@@ -150,15 +170,22 @@ export function relativeStrengthIndex(bars: Bar[], period: number) {
   return 100 - 100 / (1 + relativeStrength);
 }
 
-export function ema(values: number[], period: number) {
-  if (values.length === 0) {
-    return 0;
+// 2m (2026-08-09): seeded on the simple average of the first period —
+// the standard construction — and null below it. The old form seeded on
+// sample[0] (one arbitrary close biasing every value after it) and
+// returned 0 for empty input: a PRICE, not a sentinel, and one that made
+// every close read as "above the EMA".
+export function ema(values: number[], period: number): number | null {
+  if (period < 1 || values.length < period) {
+    return null;
   }
-  const smoothing = 2 / (period + 1);
   const sample = values.slice(-period * 3);
-  return sample.slice(1).reduce(
+  const seed = sample.slice(0, period).reduce((sum, value) => sum + value, 0) /
+    period;
+  const smoothing = 2 / (period + 1);
+  return sample.slice(period).reduce(
     (currentEma, value) => value * smoothing + currentEma * (1 - smoothing),
-    sample[0],
+    seed,
   );
 }
 

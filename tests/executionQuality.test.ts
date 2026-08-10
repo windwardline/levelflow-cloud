@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
 import { calculateLearningWeight } from "../supabase/functions/trade-analyzer/learning.ts";
@@ -24,6 +25,136 @@ describe("execution quality model", () => {
     assert.equal(quality.confidencePenalty <= 2, true);
     assert.equal(quality.effectiveRewardRisk < quality.grossRewardRisk, true);
     assert.equal(quality.effectiveRewardRisk > 2.2, true);
+  });
+
+  it("charges execution cost once — against the payoff, never also into the risk (2d)", () => {
+    // The old form was (reward - cost) / (risk + cost): the same round trip
+    // billed to both sides of the ratio. One trade pays its cost once, and
+    // the realized-R accountant (realizedRFromLegs) charges the same single
+    // round trip — so the gate's metric and the measured corpus agree on
+    // what a unit of cost is.
+    const quality = estimateExecutionQuality({
+      assetType: "forex",
+      atr: 0.0012,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.006,
+      entryPrice: 1.156,
+      latestClose: 1.158,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 1.153,
+      symbol: "EURUSD",
+      takeProfit: 1.164,
+    });
+
+    const rewardDistance = 1.164 - 1.156;
+    const riskDistance = 1.156 - 1.153;
+    assert.equal(
+      quality.effectiveRewardRisk,
+      Number(
+        (
+          Math.max(0, rewardDistance - quality.estimatedRoundTripCost) /
+          Math.max(riskDistance, 0.00001)
+        ).toFixed(5),
+      ),
+    );
+  });
+
+  it("floors a tick-gridded contract's modeled spread at its own tick, not its family's mean (2j)", () => {
+    // E8 publishes NO spread for futures — cost is exchange-native tick
+    // pricing plus itemized fees (e8-futures-dossier §5.4, finding 9). The
+    // family-mean bps model billed the E-mini Nasdaq ~13 ticks of spread
+    // (1.4bps of ~23,000 = 3.2 points against a 0.25 tick) and billed the
+    // 2-year note BELOW one tick — both directions wrong, from one lossy
+    // mean. A symbol with a known tick pays its own floor.
+    const nasdaq = estimateExecutionQuality({
+      assetType: "futures",
+      atr: 8,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 180,
+      entryPrice: 23_000,
+      latestClose: 23_010,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 22_960,
+      symbol: "NQUSD",
+      takeProfit: 23_090,
+      tickSize: 0.25,
+    });
+    assert.equal(nasdaq.modeledSpread, 0.25);
+    assert.equal(nasdaq.estimatedSpread, 0.25);
+
+    const twoYear = estimateExecutionQuality({
+      assetType: "futures",
+      atr: 0.05,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.3,
+      entryPrice: 103,
+      latestClose: 103.02,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 102.8,
+      symbol: "ZTUSD",
+      takeProfit: 103.4,
+      tickSize: 0.015625,
+    });
+    assert.equal(twoYear.modeledSpread, 0.01563);
+  });
+
+  it("keeps the volatility-widening term above the tick floor (2j)", () => {
+    const stressed = estimateExecutionQuality({
+      assetType: "futures",
+      atr: 30,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 300,
+      entryPrice: 23_000,
+      latestClose: 23_010,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 22_900,
+      symbol: "NQUSD",
+      takeProfit: 23_200,
+      tickSize: 0.25,
+    });
+    assert.equal(stressed.modeledSpread, 0.36);
+  });
+
+  it("leaves classes without a tick grid on their measured class model (2j)", () => {
+    const forex = estimateExecutionQuality({
+      assetType: "forex",
+      atr: 0.0012,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.006,
+      entryPrice: 1.156,
+      latestClose: 1.158,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 1.153,
+      symbol: "EURUSD",
+      takeProfit: 1.164,
+    });
+    assert.equal(forex.modeledSpread, 0.00004);
+  });
+
+  it("threads the contract tick from the plan and banks live quoted spreads (2j)", () => {
+    const pricePlan = readFileSync(
+      "supabase/functions/trade-analyzer/pricePlan.ts",
+      "utf8",
+    );
+    assert.match(
+      pricePlan,
+      /tickSize: futuresTickPlan\?\.contractSpec\.tickSize \?\? null/,
+    );
+    // START BANKING (2j): production sees real bid/ask spreads on every
+    // quote fetch and used to drop them on the floor. Each success now
+    // lands an append-only analyzer_events row so 4a can measure per-symbol
+    // spreads from evidence instead of modeling them forever.
+    const loader = readFileSync(
+      "supabase/functions/trade-analyzer/marketLoader.ts",
+      "utf8",
+    );
+    assert.match(loader, /action: "quote_fetch",\s*\n\s*durationMs,\s*\n\s*metadata: \{\s*\n\s*ask: quote\.ask,\s*\n\s*bid: quote\.bid,\s*\n\s*spread: quote\.spread,/);
+    assert.match(loader, /status: "success",/);
   });
 
   it("penalizes setups where execution cost consumes too much risk", () => {

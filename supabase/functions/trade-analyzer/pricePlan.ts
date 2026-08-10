@@ -291,6 +291,7 @@ export function buildPricePlan(
     stopLoss,
     symbol,
     takeProfit,
+    tickSize: futuresTickPlan?.contractSpec.tickSize ?? null,
   });
 
   return {

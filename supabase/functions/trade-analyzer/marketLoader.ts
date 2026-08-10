@@ -30,7 +30,7 @@ type MarketDataEventPayload = {
   message?: string | null;
   metadata?: Record<string, unknown>;
   providerSymbol?: string | null;
-  status: "cache_hit" | "error" | "slow_provider";
+  status: "cache_hit" | "error" | "slow_provider" | "success";
 };
 
 type MarketDataEventRecorder = (
@@ -57,6 +57,13 @@ export async function fetchFirstAvailableMarketContext(
   providerSymbols: string[],
   recordEvent: MarketDataEventRecorder,
   fetchWithTimeout: FetchWithTimeout,
+  // 2a (2026-08-09): the daily completion gate, built by the caller around
+  // the ROSTER symbol (provider fallbacks may not classify) — drops the
+  // genuinely-partial current row and weekend transients before any
+  // indicator reads the series. Required, not defaulted: an ungated path
+  // would silently fork what live indicators see from what the replay
+  // corpus admits (dailyCompletion.ts holds the shared rule and evidence).
+  completeDaily: (bars: Bar[]) => Bar[],
 ): Promise<ProviderContextResult> {
   const providerFailures: string[] = [];
   // 1m: the two failure arms below are different facts — a thrown fetch is a
@@ -71,6 +78,7 @@ export async function fetchFirstAvailableMarketContext(
         providerSymbol,
         recordEvent,
         fetchWithTimeout,
+        completeDaily,
       );
       if (marketContext.daily.length >= 80) {
         if (index > 0) {
@@ -113,12 +121,19 @@ async function fetchMarketContext(
   fmpSymbol: string,
   recordEvent: MarketDataEventRecorder,
   fetchWithTimeout: FetchWithTimeout,
+  completeDaily: (bars: Bar[]) => Bar[],
 ): Promise<MarketContext> {
   const providerWarnings: string[] = [];
-  const [daily, quote] = await Promise.all([
+  const [fetchedDaily, quote] = await Promise.all([
     fetchFmpBars(fmpSymbol, "1day", recordEvent, fetchWithTimeout),
     fetchFmpQuoteSnapshot(fmpSymbol, recordEvent, fetchWithTimeout),
   ]);
+  // Gate before anything reads the series: sufficiency (the >=80 check
+  // upstream), timeframes["1day"], and the latest-bar fallback must all see
+  // completed days only. The chart feed (market-data) deliberately stays
+  // ungated — a forming candle on screen is truth; in an indicator it is a
+  // leak.
+  const daily = completeDaily(fetchedDaily);
   const timeframes: Partial<Record<Timeframe, Bar[]>> = { "1day": daily };
 
   await Promise.all(
@@ -202,6 +217,23 @@ async function fetchFmpQuoteSnapshot(
     if (!quote) {
       return null;
     }
+
+    // 2j: START BANKING. Production is the only place real bid/ask spreads
+    // exist, and it used to drop them after one gate check. Every success
+    // lands an append-only analyzer_events row so per-symbol spread models
+    // can be MEASURED from evidence (calibration 4a) instead of modeled
+    // from class means forever.
+    await recordEvent({
+      action: "quote_fetch",
+      durationMs,
+      metadata: {
+        ask: quote.ask,
+        bid: quote.bid,
+        spread: quote.spread,
+      },
+      providerSymbol: fmpSymbol,
+      status: "success",
+    });
 
     if (durationMs >= SLOW_PROVIDER_CALL_MS) {
       await recordEvent({

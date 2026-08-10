@@ -260,6 +260,21 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // penalty, and the client calendar now mirrors every hard closure,
     // pinned by tests/sessionCalendarParity.test.ts). Blocking windows
     // changed, so the learning cohort scopes again.
-    assert.match(src, /ANALYZER_VERSION = "2026\.08\.09\.sessions-reconciled"/);
+    // evaluator-repair (same day): item 2's change set — NY-clock bar
+    // decode with spike rejection, the daily completion gate on both
+    // sides, real 5min in the committee, fill-bar knowability, gap-aware
+    // legs, one net-of-cost R accountant, indicator abstention with the
+    // notWarm bucket, per-symbol tick spread floors. The constant moved to
+    // calibration.ts so the sweep manifest imports the same value the
+    // Edge function stamps.
+    const calibrationSrc = readFileSync(
+      "supabase/functions/trade-analyzer/calibration.ts",
+      "utf8",
+    );
+    assert.match(
+      calibrationSrc,
+      /ANALYZER_VERSION = "2026\.08\.09\.evaluator-repair"/,
+    );
+    assert.match(src, /ANALYZER_VERSION,\n/);
   });
 });

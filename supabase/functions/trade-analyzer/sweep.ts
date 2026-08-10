@@ -1,11 +1,14 @@
+import { newYorkClockParts, newYorkWallClockToUtcMs } from "./bars.ts";
 import {
   type CategoryCalibration,
   getCategoryCalibration,
 } from "./calibration.ts";
+import { completedDailySeries } from "./dailyCompletion.ts";
 import { buildPricePlan } from "./pricePlan.ts";
 import {
   evaluateSetupOutcome,
   type ReplayBar,
+  type ResolutionLeg,
   type ResolvedOutcome,
 } from "./replay.ts";
 import {
@@ -28,7 +31,12 @@ import {
   runStrategyCommittee,
   scoreConsensus,
 } from "./strategies.ts";
-import type { Bar, MarketContext } from "./types.ts";
+import {
+  type Bar,
+  intradayTimeframes,
+  type MarketContext,
+  type Timeframe,
+} from "./types.ts";
 
 // Scheduled macro event for the replay news join (medium/high impact only,
 // currency uppercased), sorted by time ascending.
@@ -91,6 +99,11 @@ export type SweepResult = {
     belowThreshold: number;
     newsBlocked: number;
     noConsensus: number;
+    // 2n: decisions refused because the regime could not form — the daily
+    // series was past the 40-bar context floor but under the slow EMA's
+    // warmth. Its own bucket, so decision arithmetic closes and a thin
+    // corpus cannot hide inside noConsensus.
+    notWarm: number;
     planRejected: number;
     regimeBlocked: number;
     regimeGated: number;
@@ -99,20 +112,150 @@ export type SweepResult = {
   summary: SweepSummary;
 };
 
-export function resampleBars(bars: Bar[], groupSize: number): Bar[] {
+// 2g (2026-08-09): the one R accountant. Ten implementations used to
+// reconstruct R from the plan's NOMINAL levels — every stop exiting exactly
+// at the stop, every fill at the limit, cost nowhere, "ambiguous" scored as
+// a free 0. This reads the resolver's gap-aware legs instead: planned risk
+// is the unit (position size was computed on it), actual prints are the
+// numerator, and 2d charges exactly one round trip of cost in R space —
+// full-size entry plus either two half-size exits (ladder) or one full exit,
+// two cost units either way, matching estimateExecutionQuality's
+// estimatedRoundTripCost = spread + 2 x slippage at perLegCost =
+// spread/2 + slippage. The resolver prices ambiguity at the stop side, so
+// 2e's explicit -1 emerges from the same arithmetic as every other outcome.
+export function realizedRFromLegs(input: {
+  legs: ResolutionLeg[];
+  perLegCost: number;
+  riskDistance: number;
+  side: "buy" | "sell";
+}): number {
+  const entry = input.legs.find((leg) => leg.leg === "entry");
+  const exit = input.legs.find((leg) => leg.leg === "exit");
+  if (!entry || !exit || input.riskDistance <= 0) {
+    return 0;
+  }
+  const sign = input.side === "buy" ? 1 : -1;
+  const tp1 = input.legs.find((leg) => leg.leg === "tp1");
+  const exitFraction = tp1 ? 0.5 : 1;
+  const bankedR = tp1
+    ? (0.5 * sign * (tp1.price - entry.price)) / input.riskDistance
+    : 0;
+  const exitR = (exitFraction * sign * (exit.price - entry.price)) /
+    input.riskDistance;
+  const costR = (2 * input.perLegCost) / input.riskDistance;
+  return Number((bankedR + exitR - costR).toFixed(4));
+}
+
+// Bucket starts memoized per (width, bar time): the sweep resamples heavily
+// overlapping history windows at every decision point, so the same bar's
+// bucket is asked for thousands of times, and the two Intl reads behind it
+// are the expensive part. Bar times sit on a shared 15min grid, so the map's
+// growth is bounded by the corpus's unique timestamps, not by decisions.
+const bucketStartCache = new Map<string, number>();
+
+function newYorkBucketStartMs(timeMs: number, minutesPerBucket: number): number {
+  const key = `${minutesPerBucket}:${timeMs}`;
+  const cached = bucketStartCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const parts = newYorkClockParts(timeMs);
+  const bucketMinute =
+    Math.floor((parts.hour * 60 + parts.minute) / minutesPerBucket) *
+    minutesPerBucket;
+  const start = newYorkWallClockToUtcMs(
+    parts.year,
+    parts.month,
+    parts.day,
+    Math.floor(bucketMinute / 60),
+    bucketMinute % 60,
+    0,
+  );
+  bucketStartCache.set(key, start);
+  return start;
+}
+
+// 2k (2026-08-09): time-aware resampling on the provider's own grid. FMP
+// intraday bars anchor to the New York wall clock — hourly at :00, 4hour at
+// 00/04/08/12/16/20 NY (probed on EURUSD and ESUSD; in EST that anchor is
+// NOT a UTC floor). The count-grouping this replaces had no clock at all:
+// bucket boundaries shifted with the slice offset, so the same hour
+// resampled differently at different decision points, and session gaps were
+// silently spanned into invented bars. Buckets are keyed on each bar's own
+// wall-clock reading, so a gap simply has no bucket, a fall-back repeated
+// hour merges under its one wall-clock label, and a trailing partial bucket
+// survives — exactly the shape a live fetch of the higher timeframe has.
+export function resampleBars(bars: Bar[], minutesPerBucket: number): Bar[] {
   const resampled: Bar[] = [];
-  for (let index = 0; index + groupSize <= bars.length; index += groupSize) {
-    const group = bars.slice(index, index + groupSize);
-    resampled.push({
-      close: group.at(-1)!.close,
-      high: Math.max(...group.map((bar) => bar.high)),
-      low: Math.min(...group.map((bar) => bar.low)),
-      open: group[0].open,
-      time: group[0].time,
-      volume: group.reduce((sum, bar) => sum + bar.volume, 0),
-    });
+  let currentStart = Number.NaN;
+  for (const bar of bars) {
+    const start = newYorkBucketStartMs(bar.time, minutesPerBucket);
+    const last = resampled.at(-1);
+    if (last && start === currentStart) {
+      last.close = bar.close;
+      if (bar.high > last.high) {
+        last.high = bar.high;
+      }
+      if (bar.low < last.low) {
+        last.low = bar.low;
+      }
+      last.volume += bar.volume;
+    } else {
+      currentStart = start;
+      resampled.push({
+        close: bar.close,
+        high: bar.high,
+        low: bar.low,
+        open: bar.open,
+        time: start,
+        volume: bar.volume,
+      });
+    }
   }
   return resampled;
+}
+
+// 2l (2026-08-09): the one place a replay decision's MarketContext is
+// assembled, so what the committee sees is a stated fact rather than an
+// inline shape. Production's committee votes over five timeframes (1min is
+// filtered from the vote, strategies.ts); replay voting over four moved
+// scores on 63.9% of decisions — the agreement denominator — and flipped
+// sides where 5min broke a 2-2 tie. The 5min series here is a REAL fetched
+// series, never a resample: admitted at the same 40-bar floor
+// marketLoader.ts applies live, absent below it, exactly like a thin live
+// fetch. `latest` stays the 15min decision bar — the loop's clock — whose
+// close a coherent feed shares with the 5min bar ending the same instant.
+export function buildDecisionMarketContext(input: {
+  daily: Bar[];
+  fiveMin?: Bar[];
+  history: Bar[];
+}): MarketContext {
+  const primary = input.history.slice(-240);
+  const hourly = resampleBars(input.history.slice(-960), 60).slice(-240);
+  const fourHour = resampleBars(input.history.slice(-3840), 240).slice(-240);
+  const timeframes: Partial<Record<Timeframe, Bar[]>> = {
+    "15min": primary,
+    "1day": input.daily,
+    "1hour": hourly,
+    "4hour": fourHour,
+  };
+  if ((input.fiveMin?.length ?? 0) >= 40) {
+    timeframes["5min"] = input.fiveMin!.slice(-240);
+  }
+  // Same construction order as the live loader's availableTimeframes.
+  const availableTimeframes = (["1day", ...intradayTimeframes] as Timeframe[])
+    .filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
+  return {
+    availableTimeframes,
+    daily: input.daily,
+    latest: input.history.at(-1)!,
+    latestTimeframe: "15min",
+    primary,
+    primaryTimeframe: "15min",
+    providerWarnings: [],
+    quote: null,
+    timeframes,
+  };
 }
 
 export function simulateSymbol(input: {
@@ -129,6 +272,11 @@ export function simulateSymbol(input: {
   // safe: only reports published before the decision bar are ever visible.
   cotReports?: CotReportRow[];
   dailyBars: Bar[];
+  // Real 5min bars for the full replay window (2l). Optional so synthetic
+  // fixtures can exercise the four-frame shape, but the sweep driver always
+  // fetches and passes it — replay without it votes over a committee
+  // production never runs.
+  fiveMinuteBars?: Bar[];
   // Scheduled macro events, sorted by time ascending. Blocking and penalty
   // rules mirror the live analyzer; schedules are known in advance, so the
   // join is honest at decision time.
@@ -153,6 +301,7 @@ export function simulateSymbol(input: {
     belowThreshold: 0,
     newsBlocked: 0,
     noConsensus: 0,
+    notWarm: 0,
     planRejected: 0,
     regimeBlocked: 0,
     regimeGated: 0,
@@ -162,6 +311,17 @@ export function simulateSymbol(input: {
   // Decision points advance chronologically, so a moving pointer keeps the
   // relevant-event window scan linear across the whole simulation.
   let newsStartIndex = 0;
+  // 2a: what a decision may read from the daily series is bounded by each
+  // bar's COMPLETION instant, not its stamp. The old time<=now filter
+  // admitted the decision day's own completed OHLC at 00:00 — ATR, EMAs,
+  // regime, the volatility percentile and the expected-window move all read
+  // the future for the entire trading day. Completions are precomputed once
+  // (Intl reads are costly) and consumed by a moving pointer like the news
+  // join; weekend duplicates are already gone from the series.
+  const dailySeries = completedDailySeries(input.symbol, input.dailyBars);
+  let dailyVisible = 0;
+  const fiveMinuteBars = input.fiveMinuteBars;
+  let fiveMinVisible = 0;
 
   for (
     let index = input.warmupBars;
@@ -170,32 +330,36 @@ export function simulateSymbol(input: {
   ) {
     const history = input.primaryBars.slice(0, index + 1);
     const latest = history.at(-1)!;
-    const daily = input.dailyBars.filter((bar) => bar.time <= latest.time);
-    if (daily.length < 40) {
+    while (
+      dailyVisible < dailySeries.length &&
+      dailySeries[dailyVisible].completeAtMs <= latest.time
+    ) {
+      dailyVisible += 1;
+    }
+    if (dailyVisible < 40) {
       continue;
     }
+    const daily = dailySeries.slice(0, dailyVisible).map((entry) => entry.bar);
     decisionPoints += 1;
 
-    const primary = history.slice(-240);
-    // Mirror the live analyzer's timeframe coverage by resampling 15min bars.
-    const hourly = resampleBars(history.slice(-960), 4).slice(-240);
-    const fourHour = resampleBars(history.slice(-3840), 16).slice(-240);
-    const market: MarketContext = {
-      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+    if (fiveMinuteBars) {
+      while (
+        fiveMinVisible < fiveMinuteBars.length &&
+        fiveMinuteBars[fiveMinVisible].time <= latest.time
+      ) {
+        fiveMinVisible += 1;
+      }
+    }
+    const market = buildDecisionMarketContext({
       daily,
-      latest,
-      latestTimeframe: "15min",
-      primary,
-      primaryTimeframe: "15min",
-      providerWarnings: [],
-      quote: null,
-      timeframes: {
-        "15min": primary,
-        "1day": daily,
-        "1hour": hourly,
-        "4hour": fourHour,
-      },
-    };
+      // The builder only reads the tail; slicing here keeps the per-point
+      // copy at 240 elements instead of the whole series.
+      fiveMin: fiveMinuteBars?.slice(
+        Math.max(0, fiveMinVisible - 240),
+        fiveMinVisible,
+      ),
+      history,
+    });
     // Session context is evaluated at the bar's own time, mirroring the
     // live analyzer. Session blocks (weekends, rollover, maintenance) are
     // hard closures and apply in every mode.
@@ -251,6 +415,10 @@ export function simulateSymbol(input: {
     );
 
     const regime = classifyRegime(market);
+    if (!regime) {
+      rejections.notWarm += 1;
+      continue;
+    }
     if (
       !input.captureAll && calibration.blockedRegimes?.includes(regime.name)
     ) {
@@ -349,7 +517,14 @@ export function simulateSymbol(input: {
       cotStance: cotContext.stance,
       newsPenalty: newsPenaltyUnits,
       outcome: evaluation.outcome,
-      realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
+      realizedR: realizedRFromLegs({
+        legs: evaluation.legs,
+        // Half the round trip per full-size execution unit: two units run
+        // per resolution (entry + exits), reproducing spread + 2 x slippage.
+        perLegCost: plan.executionQuality.estimatedRoundTripCost / 2,
+        riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
+        side: consensus.side,
+      }),
       regime: regime.name,
       rewardRisk: plan.rewardRisk,
       sessionLabel: sessionContext.label,
@@ -405,36 +580,6 @@ export function summarizeSweepOutcomes(
     tp1HitRate: filled > 0 ? roundStat(tp1Hits / filled) : 0,
     unfilled: total - filled,
   };
-}
-
-function realizedRFor(
-  outcome: Exclude<ResolvedOutcome, "pending">,
-  feedback: Record<string, unknown>,
-  plan: { entryPrice: number; stopLoss: number; takeProfit: number; takeProfit1: number },
-) {
-  const risk = Math.abs(plan.entryPrice - plan.stopLoss);
-  if (risk <= 0) {
-    return 0;
-  }
-  const runnerR = Math.abs(plan.takeProfit - plan.entryPrice) / risk;
-  const tp1R = Math.abs(plan.takeProfit1 - plan.entryPrice) / risk;
-
-  // Ladder accounting: half the position banks at TP1, half rides the runner.
-  switch (outcome) {
-    case "take_profit":
-      return roundStat(0.5 * tp1R + 0.5 * runnerR);
-    case "tp1_partial":
-      return roundStat(0.5 * tp1R);
-    case "stop_loss":
-      return -1;
-    case "expired_in_profit":
-    case "expired_at_loss": {
-      const realized = Number(feedback.realizedR);
-      return Number.isFinite(realized) ? realized : 0;
-    }
-    default:
-      return 0;
-  }
 }
 
 function roundStat(value: number) {

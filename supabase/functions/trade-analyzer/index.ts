@@ -1,4 +1,8 @@
-import { getAssetType, getCategoryCalibration } from "./calibration.ts";
+import {
+  ANALYZER_VERSION,
+  getAssetType,
+  getCategoryCalibration,
+} from "./calibration.ts";
 import { getFuturesContractSpec, needsFuturesTickGrid } from "./futures.ts";
 import { averageTrueRange } from "./indicators.ts";
 import {
@@ -48,6 +52,7 @@ import {
   persistScannedOpportunities,
   type ScanWriteOutcome,
 } from "./scanPersistence.ts";
+import { completedDailyBars } from "./dailyCompletion.ts";
 import {
   fetchFirstAvailableMarketContext,
   fetchFmpBars,
@@ -76,7 +81,6 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.08.09.sessions-reconciled";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -699,6 +703,10 @@ async function reviewCurrentMarket(
       providerSymbols,
       recordAnalyzerEvent,
       fetchWithTimeout,
+      // 2a: indicators read completed daily bars only — the roster symbol
+      // classifies the session close; the forming current row and weekend
+      // transients drop out here exactly as they do in the replay corpus.
+      (bars) => completedDailyBars(normalizedSymbol, bars, Date.now()),
     );
   await recordMarketDataHealth(
     normalizedSymbol,
@@ -1074,6 +1082,25 @@ async function findStrongerActiveCorrelatedSetup(
 function analyzeMarket(symbol: SupportedSymbol, market: MarketContext) {
   const calibration = getCategoryCalibration(symbol);
   const regime = classifyRegime(market);
+  if (!regime) {
+    // 2n: the regime abstained — daily history too thin for the slow EMA.
+    // Unreachable behind the loader's >=80-bar sufficiency, but the shared
+    // engine refuses honestly rather than classifying on a degenerate seed;
+    // a null-side consensus flows through the same no-setup channel every
+    // other refusal uses.
+    return {
+      calibration,
+      consensus: {
+        blockScore: 0,
+        buyScore: 0,
+        score: 0,
+        sellScore: 0,
+        side: null as Side | null,
+      },
+      regime,
+      votes: [],
+    };
+  }
   const votes = runStrategyCommittee(symbol, market, regime);
   return { calibration, consensus: scoreConsensus(votes, regime), regime, votes };
 }
@@ -1093,6 +1120,12 @@ async function analyzeSetup(
   analysis: MarketAnalysis,
 ) {
   const { calibration, consensus, regime, votes } = analysis;
+  if (!regime) {
+    // 2n: the regime abstained (thin daily history) — no setup can be
+    // built on an unclassified market. Unreachable behind the loader's
+    // sufficiency floor.
+    return null;
+  }
   if (calibration.blockedRegimes?.includes(regime.name)) {
     return null;
   }
@@ -1292,6 +1325,15 @@ async function explainNoSetup(
 ) {
   const { calibration, consensus, regime, votes } = analysis;
   const diagnostics: string[] = [];
+
+  if (!regime) {
+    // 2n mirror of analyzeSetup's guard: one stated reason, no committee
+    // diagnostics to report because none could run.
+    diagnostics.push(
+      "This market's daily history is too thin to classify conditions.",
+    );
+    return diagnostics;
+  }
 
   if (calibration.blockedRegimes?.includes(regime.name)) {
     diagnostics.push(

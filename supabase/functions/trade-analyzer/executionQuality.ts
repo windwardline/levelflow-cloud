@@ -13,6 +13,11 @@ export type ExecutionQualityInput = {
   stopLoss: number;
   symbol: string;
   takeProfit: number;
+  // 2j: the contract's own tick, for tick-gridded symbols (futures.ts).
+  // Present, it replaces the family-mean bps term with the symbol's one-tick
+  // floor — E8 publishes no futures spread; cost is exchange-native tick
+  // pricing (e8-futures-dossier §5.4, finding 9).
+  tickSize?: number | null;
 };
 
 export type ExecutionQuality = {
@@ -159,12 +164,25 @@ export function estimateExecutionQuality(
   const dailyAtr = Math.max(Math.abs(input.dailyAtr), atr);
   const riskDistance = Math.abs(input.entryPrice - input.stopLoss);
   const rewardDistance = Math.abs(input.takeProfit - input.entryPrice);
+  // 2j: a symbol with a known tick pays its OWN floor, not its family's
+  // mean. The family bps terms were derived as mean(one tick / price) per
+  // class, and a lossy mean overcharges the big-price liquid contracts
+  // (the E-mini Nasdaq wore ~13 ticks) while undercharging below one tick
+  // at the cheap end (the 2-year note). The ATR term stays as the
+  // volatility-widening model on both paths; quoted spreads, when the
+  // provider supplies one, still outrank the whole modeled branch.
+  const tickFloor = typeof input.tickSize === "number" &&
+      Number.isFinite(input.tickSize) && input.tickSize > 0
+    ? input.tickSize
+    : null;
   const modeledSpread = roundPrice(
-    Math.max(
-      latestClose * (profile.spreadBps / 10_000),
-      atr * profile.atrSpreadFactor,
-      COST_EPSILON,
-    ),
+    tickFloor !== null
+      ? Math.max(tickFloor, atr * profile.atrSpreadFactor, COST_EPSILON)
+      : Math.max(
+        latestClose * (profile.spreadBps / 10_000),
+        atr * profile.atrSpreadFactor,
+        COST_EPSILON,
+      ),
   );
   const quotedSpread = normalizeQuotedSpread(input.quotedSpread);
   const estimatedSpread = quotedSpread === null
@@ -182,10 +200,15 @@ export function estimateExecutionQuality(
     estimatedSpread + estimatedSlippage * 2,
   );
   const grossRewardRisk = rewardDistance / Math.max(riskDistance, 0.00001);
+  // 2d (2026-08-09): one round trip, charged once — against the payoff. The
+  // old form divided (reward - cost) by (risk + cost), billing the same
+  // round trip to both sides of the ratio; realizedRFromLegs charges exactly
+  // one round trip in R space, and the gate's forward-looking metric must
+  // mean the same thing the measured corpus means.
   const effectiveRewardRisk = Math.max(
     0,
     rewardDistance - estimatedRoundTripCost,
-  ) / Math.max(riskDistance + estimatedRoundTripCost, 0.00001);
+  ) / Math.max(riskDistance, 0.00001);
   const costToRisk = estimatedRoundTripCost / Math.max(riskDistance, 0.00001);
   const entryCushion = Math.abs(input.latestClose - input.entryPrice);
   const notes: string[] = [];

@@ -52,6 +52,7 @@
     "supabase/functions/trade-analyzer/calibration.ts",
     "supabase/functions/trade-analyzer/concurrency.ts",
     "supabase/functions/trade-analyzer/cotContext.ts",
+    "supabase/functions/trade-analyzer/dailyCompletion.ts",
     "supabase/functions/trade-analyzer/executionQuality.ts",
     "supabase/functions/trade-analyzer/futures.ts",
     "supabase/functions/trade-analyzer/indicators.ts",

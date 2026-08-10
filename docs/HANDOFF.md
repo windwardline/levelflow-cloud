@@ -346,15 +346,27 @@ because sweeping a market on the wrong instrument calibrates the wrong instrumen
 there is no reason to rush it tonight.
 
 ### 2 — Repair the evaluator, as ONE change set, then re-sweep once
-**Mapped 2026-08-09 — the full file:line blueprint is
-`docs/research/evaluator-repair-map-2026-08-09.md`** (four clusters, the
-ten-R-implementation inventory, the shared-surface matrix, and the ordering
-constraints; item 3's surfaces mapped in the same document). Headline finds
-beyond the letters: FMP bars are New-York-stamped and read as UTC everywhere
-(2b is load-bearing for every session gate and news join in the corpus);
-total R in rounds 25–28 was read as expectancy-over-filled × setups-including-
-unfilled (`grid-totalr.ts:25`); the runner's expiry R is already captured and
-simply never read (2f); no corpus records which calibration produced it (2i).
+**BUILT 2026-08-09 — all fourteen letters landed on `item2/evaluator-repair`
+as one change set** (seven commits: cluster A provider boundary, cluster D
+decision context, cluster B path evaluator, cluster C accountant, 2m/2n
+abstention, 2j tick floors + spread banking, 2i manifest + the
+`2026.08.09.evaluator-repair` version bump). The narrative of what each
+slice changed and why is in `docs/trade-model.md` § "Evaluator repair";
+the original file:line blueprint remains
+`docs/research/evaluator-repair-map-2026-08-09.md` (item 3's surfaces
+mapped in the same document). Empirical grounds added while building:
+FMP daily bars are settlement-day aggregates (ES Friday opens at the
+bank's Thursday 18:00 print exactly, corn at Thursday 20:00, FX Mondays
+at Sunday-evening opens, BTC rolls at UTC midnight to the cent); FX
+persists Sunday partial rows that double-count Sunday evening inside the
+following Monday bar (dropped at the gate); FMP intraday anchors to the
+NY wall clock (hourly :00, 4hour 00/04/08/12/16/20 NY). **What remains of
+item 2 is the one re-sweep** — run it only from this engine, and note the
+first 5min corpus fetch is the heavy one (three series now cache per
+symbol). Headline finds preserved from the mapping session: total R in
+rounds 25–28 was read as expectancy-over-filled × setups-including-
+unfilled (`grid-totalr.ts:25` — 3b's territory); the runner's expiry R
+was captured and never read (fixed by legs).
 
 **2a** look-ahead — admit a daily bar only once its own day closed ·
 **2b** timestamps normalised at the provider boundary, timezone probed not assumed ·

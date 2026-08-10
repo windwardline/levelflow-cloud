@@ -224,7 +224,14 @@ describe("trade analyzer replay harness", () => {
     );
   });
 
-  it("flags same-bar target and stop touches as needing review", () => {
+  it("resolves a fill-bar stop-and-target bar as stop_loss — the stop is certain, the target is not (2c)", () => {
+    // On the FILL bar of a buy limit, price provably crossed down through
+    // the entry (that crossing IS the fill), and any path to the stop below
+    // passes entry first — so a stop-reach is certain. The high may have
+    // printed before the fill ever happened, so a target-reach is
+    // unknowable. The old resolver called this "ambiguous" and the
+    // accountant scored it 0R — phantom neutrality on bars that were
+    // knowably losses.
     const setup = buildSetup({
       entry: 100,
       side: "buy",
@@ -238,11 +245,82 @@ describe("trade analyzer replay harness", () => {
     assert.equal(result.state, "resolved");
     assert.equal(
       result.state === "resolved" ? result.outcome : null,
+      "stop_loss",
+    );
+  });
+
+  it("keeps ambiguity for post-fill bars, where extreme order is genuinely unknowable", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 104,
+    });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.6, 99.8, 100.2),
+      buildBar(30, 104.5, 97.5, 101.2),
+    ]);
+
+    assert.equal(result.state, "resolved");
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
       "ambiguous",
     );
     assert.equal(
       result.state === "resolved" ? result.feedback.ambiguousSameBar : null,
       true,
+    );
+  });
+
+  it("never credits a target touched on the fill bar itself (2c)", () => {
+    // The fill bar's high clears the runner target; the next bar hits the
+    // stop. A resolver that reads the fill bar's high as post-fill would
+    // print take_profit on a trade that was knowably never in profit.
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+    });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 105.5, 99.9, 100.5),
+      buildBar(30, 100.8, 97.9, 98.2),
+    ]);
+
+    assert.equal(result.state, "resolved");
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "stop_loss",
+    );
+  });
+
+  it("never banks a TP1 touched on the fill bar, and starts favorable excursion after it (2c)", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+      tp1: 101,
+    });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 103.5, 99.9, 100.4),
+      buildBar(30, 100.8, 97.9, 98.2),
+    ]);
+
+    assert.equal(result.state, "resolved");
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "stop_loss",
+    );
+    assert.equal(
+      result.state === "resolved" ? result.feedback.tp1Hit : null,
+      false,
+    );
+    // maxFavorableMove reads 0.8 (bar two's high over entry), never the fill
+    // bar's 3.5 — the excursion statistic obeys the same knowability rule.
+    assert.equal(
+      result.state === "resolved" ? result.feedback.maxFavorableMove : null,
+      0.8,
     );
   });
 
@@ -287,6 +365,239 @@ describe("trade analyzer replay harness", () => {
   });
 });
 
+// 2f (2026-08-09): a resolution is a sequence of executions, not a label.
+// The sweep's accountant used to reconstruct R from the plan's NOMINAL
+// levels — every stop exits exactly at the stop, every fill exactly at the
+// limit — which no gapped market honors. The resolver now records the legs
+// it actually concluded: {leg, price, time}, gap-aware. A bar that OPENS
+// beyond a level executes at its open — worse than the stop on a gap
+// through it, better than a limit on a gap past it — because the open is
+// the first print an order could meet.
+describe("resolution legs — what actually executed, at what price (2f)", () => {
+  const legsOf = (result: ReturnType<typeof evaluateSetupOutcome>) =>
+    result.state === "resolved" ? result.legs : null;
+
+  it("records entry and target legs at their levels when no gap intervenes", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 101, 99.8, 100.5),
+        buildBar(30, 105.4, 100.2, 104.8),
+      ],
+    );
+    assert.deepEqual(legsOf(result), [
+      { leg: "entry", price: 100, time: createdAt + 15 * 60_000 },
+      {
+        kind: "take_profit",
+        leg: "exit",
+        price: 105,
+        time: createdAt + 30 * 60_000,
+      },
+    ]);
+  });
+
+  it("records the banked TP1 leg between entry and runner exit", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 }),
+      [
+        buildBar(15, 100.4, 99.8, 100.2),
+        buildBar(30, 101.3, 100.1, 100.9),
+        buildBar(45, 105.2, 100.9, 104.9),
+      ],
+    );
+    assert.deepEqual(legsOf(result), [
+      { leg: "entry", price: 100, time: createdAt + 15 * 60_000 },
+      { leg: "tp1", price: 101, time: createdAt + 30 * 60_000 },
+      {
+        kind: "take_profit",
+        leg: "exit",
+        price: 105,
+        time: createdAt + 45 * 60_000,
+      },
+    ]);
+  });
+
+  it("fills a limit at the open when the bar gaps through it — price improvement is real", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 100.2, 99.3, 99.8, 99.5),
+        buildBar(30, 105.4, 100.2, 104.8),
+      ],
+    );
+    const legs = legsOf(result);
+    assert.equal(legs?.[0].price, 99.5);
+  });
+
+  it("exits at the open when a bar gaps through the stop — the stop's price is a hope, the open is a print", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 100.6, 99.9, 100.2),
+        buildBar(30, 97.9, 97.1, 97.6, 97.4),
+      ],
+    );
+    assert.equal(result.state === "resolved" ? result.outcome : null, "stop_loss");
+    assert.deepEqual(legsOf(result)?.at(-1), {
+      kind: "stop_loss",
+      leg: "exit",
+      price: 97.4,
+      time: createdAt + 30 * 60_000,
+    });
+  });
+
+  it("mirrors the gap rule for a sell — an open above the stop is the exit print", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "sell", stop: 102, target: 95 }),
+      [
+        buildBar(15, 100.4, 99.7, 100.1),
+        buildBar(30, 103.1, 102.2, 102.8, 102.6),
+      ],
+    );
+    assert.deepEqual(legsOf(result)?.at(-1), {
+      kind: "stop_loss",
+      leg: "exit",
+      price: 102.6,
+      time: createdAt + 30 * 60_000,
+    });
+  });
+
+  it("banks a runner that gaps beyond the target at the open's better price", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 100.6, 99.9, 100.2),
+        buildBar(30, 106.2, 105.1, 105.8, 105.6),
+      ],
+    );
+    assert.deepEqual(legsOf(result)?.at(-1), {
+      kind: "take_profit",
+      leg: "exit",
+      price: 105.6,
+      time: createdAt + 30 * 60_000,
+    });
+  });
+
+  it("records the breakeven exit as its own kind at its own print", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 }),
+      [
+        buildBar(15, 100.4, 99.8, 100.2),
+        buildBar(30, 101.3, 100.1, 101.1),
+        buildBar(45, 100.4, 99.6, 99.9, 99.95),
+      ],
+    );
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "tp1_partial",
+    );
+    assert.deepEqual(legsOf(result)?.at(-1), {
+      kind: "breakeven_stop",
+      leg: "exit",
+      price: 99.95,
+      time: createdAt + 45 * 60_000,
+    });
+  });
+
+  it("prices an ambiguous exit at the stop side — unknowable order resolves against the trade (2e's ground)", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 104 }),
+      [
+        buildBar(15, 100.6, 99.8, 100.2),
+        buildBar(30, 104.5, 97.5, 101.2),
+      ],
+    );
+    assert.equal(result.state === "resolved" ? result.outcome : null, "ambiguous");
+    assert.deepEqual(legsOf(result)?.at(-1), {
+      kind: "ambiguous",
+      leg: "exit",
+      price: 98,
+      time: createdAt + 30 * 60_000,
+    });
+  });
+
+  it("closes an expiry at the last close it saw", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 100.4, 99.7, 100.1),
+        buildBar(30, 100.9, 100.0, 100.7),
+      ],
+      getSetupExpiryTime("EURUSD", createdAt) + 1,
+    );
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "expired_in_profit",
+    );
+    assert.deepEqual(legsOf(result)?.at(-1), {
+      kind: "expiry",
+      leg: "exit",
+      price: 100.7,
+      time: createdAt + 30 * 60_000,
+    });
+  });
+
+  it("measures an expiry's realized R from the actual fill price, not the nominal limit", () => {
+    // Gap-improved entry at 99.5; last close 100.7; risk stays the planned
+    // |100-98|=2, so realized R = (100.7-99.5)/2 = 0.6.
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 100.2, 99.3, 99.8, 99.5),
+        buildBar(30, 100.9, 100.0, 100.7),
+      ],
+      getSetupExpiryTime("EURUSD", createdAt) + 1,
+    );
+    assert.equal(
+      result.state === "resolved" ? result.feedback.realizedR : null,
+      0.6,
+    );
+  });
+
+  it("resolves a fill bar that opens beyond the stop as an immediate scratch at the open", () => {
+    // A resting buy limit meets a gap open below the stop: it fills at the
+    // open, and the stop closes it at the same print — both legs at 97.4.
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [buildBar(15, 98.0, 97.0, 97.7, 97.4)],
+    );
+    assert.equal(result.state === "resolved" ? result.outcome : null, "stop_loss");
+    assert.deepEqual(legsOf(result), [
+      { leg: "entry", price: 97.4, time: createdAt + 15 * 60_000 },
+      {
+        kind: "stop_loss",
+        leg: "exit",
+        price: 97.4,
+        time: createdAt + 15 * 60_000,
+      },
+    ]);
+  });
+
+  it("reports an unfilled resolution with no legs", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 90, side: "buy", stop: 88, target: 95 }),
+      [buildBar(15, 100.4, 99.7, 100.1)],
+      getSetupExpiryTime("EURUSD", createdAt) + 1,
+    );
+    assert.equal(result.state === "resolved" ? result.outcome : null, "unfilled");
+    assert.deepEqual(legsOf(result), []);
+  });
+
+  it("carries the legs into feedback, where outcome-sync persists them for the learning tables", () => {
+    const result = evaluateSetupOutcome(
+      buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 }),
+      [
+        buildBar(15, 101, 99.8, 100.5),
+        buildBar(30, 105.4, 100.2, 104.8),
+      ],
+    );
+    assert.equal(result.state, "resolved");
+    if (result.state === "resolved") {
+      assert.deepEqual(result.feedback.legs, result.legs);
+    }
+  });
+});
+
 function buildSetup({
   entry,
   side,
@@ -316,12 +627,13 @@ function buildBar(
   high: number,
   low: number,
   close: number,
+  open = close,
 ): ReplayBar {
   return {
     close,
     high,
     low,
-    open: close,
+    open,
     time: createdAt + minutesAfterCreated * 60 * 1000,
     volume: 1000,
   };

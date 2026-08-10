@@ -71,10 +71,16 @@ function marketFixture(seed: number): MarketContext {
   };
 }
 
-// index.ts's analyzeMarket, which is what both readers now share.
+// index.ts's analyzeMarket, which is what both readers now share. These
+// fixtures carry 1,000 daily bars, so the 2n not-warm branch (regime null,
+// empty committee) never fires here; the non-null assertion keeps the
+// mirror honest about that assumption.
 function analyzeMarket(symbol: string, market: MarketContext) {
   const calibration = getCategoryCalibration(symbol);
   const regime = classifyRegime(market);
+  if (!regime) {
+    throw new Error(`${symbol}: fixture unexpectedly not warm`);
+  }
   const votes = runStrategyCommittee(symbol, market, regime);
   return {
     calibration,

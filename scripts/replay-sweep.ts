@@ -16,7 +16,12 @@
 //                          the run date) instead of a fixed lookback
 //     [--discover]         report discovered depth per symbol and exit
 
-import type { CategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  ANALYZER_VERSION,
+  type CategoryCalibration,
+  getCategoryCalibration,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+import { buildSweepManifest } from "./sweepManifest.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
@@ -30,6 +35,10 @@ import {
 import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
+  type FmpBar,
+  normalizeFmpBars,
+} from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -66,6 +75,7 @@ async function main() {
     "decisions",
     "sessionBlk",
     "newsBlk",
+    "notWarm",
     "regimeBlk",
     "noConsensus",
     "planRejected",
@@ -79,6 +89,14 @@ async function main() {
   ]];
 
   const emitLines: string[] = [];
+  // 2i: everything the manifest records per symbol, collected as the loop
+  // loads it — resolved base calibration and the three series' facts.
+  const manifestSymbols: Array<{
+    calibration: Record<string, unknown>;
+    providerSymbol: string;
+    series: Record<string, Array<{ time: number }>>;
+    symbol: string;
+  }> = [];
   const newsEvents = args.discover
     ? []
     : await loadEconomicCalendar(args.cacheDir);
@@ -92,7 +110,7 @@ async function main() {
     // relative to now, so a later day's run refetches the rolled-forward
     // window while same-day runs stay pinned for drift-free A/B.
     const anchor = isoDate(new Date());
-    const [primaryBars, dailyBars] = await Promise.all([
+    const [primaryBars, dailyBars, fiveMinuteBars] = await Promise.all([
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
@@ -111,6 +129,21 @@ async function main() {
           fetchDailyBars(providerSymbol, args.days + 240, sinceMs),
         key: `${providerSymbol}-daily-${args.days}`,
         legacyPrefix: `${providerSymbol}-daily-${args.days}-`,
+        timeOf: (bar) => bar.time,
+      }),
+      // 2l: the committee's real 5min series. FMP's 5min depth is shallower
+      // than 15min for most symbols; early decision points simply fall below
+      // the 40-bar floor and vote four-frame, the same degradation a thin
+      // live fetch produces. The corpus manifest records the measured depth.
+      loadRollingSeries<Bar>({
+        anchor,
+        cacheDir: args.cacheDir!,
+        fetchFull: () =>
+          fetchIntradayBars(providerSymbol, args.days, undefined, "5min"),
+        fetchSince: (sinceMs) =>
+          fetchIntradayBars(providerSymbol, args.days, sinceMs, "5min"),
+        key: `${providerSymbol}-5min-${args.days}`,
+        legacyPrefix: `${providerSymbol}-5min-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
     ]);
@@ -136,6 +169,19 @@ async function main() {
     }
 
     const cotReports = await loadCotReports(args.cacheDir, symbol);
+
+    manifestSymbols.push({
+      calibration: {
+        ...getCategoryCalibration(symbol),
+      } as unknown as Record<string, unknown>,
+      providerSymbol,
+      series: {
+        "15min": primaryBars,
+        "1day": dailyBars,
+        "5min": fiveMinuteBars,
+      },
+      symbol,
+    });
 
     // --warm-only: the daily top-up path. Caches are now loaded (and
     // therefore topped up and pinned for today) — no simulation.
@@ -163,6 +209,7 @@ async function main() {
           ignoreLowEdge: args.ignoreLowEdge,
           cotReports,
           dailyBars,
+          fiveMinuteBars,
           newsEvents,
           primaryBars: split.bars,
           stepBars: args.step,
@@ -186,6 +233,7 @@ async function main() {
           String(result.decisionPoints),
           String(result.rejections.sessionBlocked),
           String(result.rejections.newsBlocked),
+          String(result.rejections.notWarm),
           String(result.rejections.regimeBlocked + result.rejections.regimeGated),
           String(result.rejections.noConsensus),
           String(result.rejections.planRejected),
@@ -205,7 +253,28 @@ async function main() {
   if (args.emit) {
     const { writeFile } = await import("node:fs/promises");
     await writeFile(args.emit, emitLines.join("\n") + "\n");
-    console.log(`Emitted ${emitLines.length} setup records to ${args.emit}`);
+    // 2i: the corpus describes itself, or item 3's readers refuse it.
+    const manifest = buildSweepManifest({
+      analyzerVersion: ANALYZER_VERSION,
+      anchor: isoDate(new Date()),
+      barRejections: barRejectionTally,
+      days: args.days,
+      generatedAt: new Date().toISOString(),
+      grid: args.grid,
+      stepBars: args.step,
+      symbols: manifestSymbols,
+      trainShare: TRAIN_SHARE,
+      warmupBars: WARMUP_BARS,
+    });
+    await writeFile(
+      `${args.emit}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    console.log(
+      `Emitted ${emitLines.length} setup records to ${args.emit} (manifest ${
+        manifest.manifestHash.slice(0, 12)
+      })`,
+    );
   }
 }
 
@@ -483,11 +552,14 @@ const MAX_DEPTH_DAYS = 7_000;
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
-// run date. Depth is discovered per symbol, never hardcoded.
+// run date. Depth is discovered per symbol, never hardcoded. The timeframe
+// parameter exists for 2l: the committee's 5min series must be a real
+// provider series, fetched the same chunked way as the 15min primary.
 async function fetchIntradayBars(
   providerSymbol: string,
   days: number,
   sinceMs?: number,
+  timeframe: "15min" | "5min" = "15min",
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
   const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
@@ -506,7 +578,9 @@ async function fetchIntradayBars(
     if (sinceMs !== undefined && to.getTime() < sinceMs) {
       break;
     }
-    const endpoint = new URL(`${FMP_API_BASE_URL}/historical-chart/15min`);
+    const endpoint = new URL(
+      `${FMP_API_BASE_URL}/historical-chart/${timeframe}`,
+    );
     endpoint.searchParams.set("symbol", providerSymbol);
     endpoint.searchParams.set("from", isoDate(from));
     endpoint.searchParams.set("to", isoDate(to));
@@ -553,31 +627,25 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
     : Array.isArray((payload as { historical?: unknown[] }).historical)
     ? (payload as { historical: unknown[] }).historical
     : [];
-  return (rows as Array<Record<string, unknown>>)
-    .filter((row) =>
-      typeof row.date === "string" && typeof row.open === "number" &&
-      typeof row.high === "number" && typeof row.low === "number" &&
-      typeof row.close === "number"
-    )
-    .map((row) => ({
-      close: row.close as number,
-      high: row.high as number,
-      low: row.low as number,
-      open: row.open as number,
-      time: toTimestamp(row.date as string),
-      volume: typeof row.volume === "number" ? row.volume : 0,
-    }));
+  // 2b + 2h (2026-08-09): this file's own duplicated parse and bare typeof
+  // filter are gone — the corpus now enters through the SAME boundary the
+  // live analyzer uses (bars.ts: New-York-aware stamps, coherence and spike
+  // rejection), and every rejection lands in the tally the manifest carries.
+  // A corpus with silent holes was how a 135,533% bar got cemented into the
+  // calibration cache with nothing ever refetching it.
+  return normalizeFmpBars(
+    rows as FmpBar[],
+    Number.MAX_SAFE_INTEGER,
+    (rejection) => {
+      barRejectionTally[rejection.reason] =
+        (barRejectionTally[rejection.reason] ?? 0) + 1;
+    },
+  );
 }
 
-function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value.includes("T")
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  const timestamp = new Date(normalized).getTime();
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
-}
+/** 2h: every boundary rejection this run, by reason — printed at the end of
+ * the run and carried into the corpus manifest (2i). */
+export const barRejectionTally: Record<string, number> = {};
 
 function dedupeSort(bars: Bar[]): Bar[] {
   const byTime = new Map<number, Bar>();

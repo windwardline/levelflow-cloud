@@ -29,6 +29,27 @@ export type ResolvedOutcome =
   | "tp1_partial"
   | "unfilled";
 
+// 2f (2026-08-09): a resolution is a sequence of executions. Legs carry the
+// prices that could actually print — a bar that OPENS beyond a level
+// executes at its open (worse than a stop gapped through, better than a
+// limit gapped past), because the open is the first print an order could
+// meet. The sweep's R accountant reads these instead of reconstructing
+// exits from the plan's nominal levels, and outcome-sync persists them
+// inside feedback for the learning tables.
+export type ResolutionLegKind =
+  | "ambiguous"
+  | "breakeven_stop"
+  | "expiry"
+  | "stop_loss"
+  | "take_profit";
+
+export type ResolutionLeg = {
+  kind?: ResolutionLegKind;
+  leg: "entry" | "exit" | "tp1";
+  price: number;
+  time: number;
+};
+
 export type ReplayOutcome =
   | {
     state: "pending";
@@ -42,6 +63,7 @@ export type ReplayOutcome =
     exitAt: string;
     feedback: Record<string, unknown>;
     filledAt?: string;
+    legs: ResolutionLeg[];
     outcome: Exclude<ResolvedOutcome, "pending">;
     state: "resolved";
   };
@@ -78,10 +100,12 @@ export function evaluateSetupOutcome(
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
           expiresAt: new Date(expiresAt).toISOString(),
+          legs: [],
           reason:
             "No post-recommendation bars were available before the setup review window expired.",
           source: "price_path_review",
         },
+        legs: [],
         outcome: "unfilled",
         state: "resolved",
       };
@@ -105,10 +129,12 @@ export function evaluateSetupOutcome(
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
           expiresAt: new Date(expiresAt).toISOString(),
+          legs: [],
           reason:
             "Limit entry did not fill before the setup review window expired.",
           source: "price_path_review",
         },
+        legs: [],
         outcome: "unfilled",
         state: "resolved",
       };
@@ -116,25 +142,54 @@ export function evaluateSetupOutcome(
     return { state: "pending" };
   }
 
-  const filledAt = new Date(createdBars[fillIndex].time).toISOString();
+  const fillBar = createdBars[fillIndex];
+  const filledAt = new Date(fillBar.time).toISOString();
   const tp1Raw = Number(setup.take_profit_1);
   const takeProfit1 = Number.isFinite(tp1Raw) && tp1Raw > 0 ? tp1Raw : null;
+  // The R unit stays the PLANNED risk — position size was computed on the
+  // nominal entry-to-stop distance. Executions vary from the plan (legs
+  // below); the yardstick does not.
   const riskDistance = Math.abs(entry - stopLoss);
   const isBuy = setup.side === "buy";
   const reachedFavorable = (level: number, bar: ReplayBar) =>
     isBuy ? bar.high >= level : bar.low <= level;
   const reachedAdverse = (level: number, bar: ReplayBar) =>
     isBuy ? bar.low <= level : bar.high >= level;
+  // Gap-aware execution prints: a level order fills at the bar's open when
+  // the bar opens beyond the level — worse for stops, better for limits.
+  const adverseExitPrice = (level: number, bar: ReplayBar) =>
+    isBuy ? Math.min(bar.open, level) : Math.max(bar.open, level);
+  const favorableFillPrice = (level: number, bar: ReplayBar) =>
+    isBuy ? Math.max(bar.open, level) : Math.min(bar.open, level);
+  // The entry is itself a limit: a fill bar opening through it is a
+  // price-improved fill at the open.
+  const fillPrice = isBuy
+    ? Math.min(fillBar.open, entry)
+    : Math.max(fillBar.open, entry);
+  const legs: ResolutionLeg[] = [
+    { leg: "entry", price: roundPrice(fillPrice), time: fillBar.time },
+  ];
   let maxFavorableMove = 0;
   let maxAdverseMove = 0;
   let tp1Hit = false;
   let lastClose = entry;
 
-  for (const bar of createdBars.slice(fillIndex)) {
-    maxFavorableMove = Math.max(
-      maxFavorableMove,
-      isBuy ? bar.high - entry : entry - bar.low,
-    );
+  for (let index = fillIndex; index < createdBars.length; index += 1) {
+    const bar = createdBars[index];
+    // 2c: on the fill bar, only ADVERSE facts are knowable. The fill is the
+    // downward (buy) crossing of the entry, and any path to the stop passes
+    // the entry first — so a stop-reach is certain. The bar's favorable
+    // extreme may have printed before the fill ever happened, so target and
+    // TP1 touches — and the favorable excursion statistic — begin on the
+    // next bar. The old resolver credited fill-bar highs as post-fill,
+    // printing take_profits on trades that were knowably never in profit.
+    const isFillBar = index === fillIndex;
+    if (!isFillBar) {
+      maxFavorableMove = Math.max(
+        maxFavorableMove,
+        isBuy ? bar.high - entry : entry - bar.low,
+      );
+    }
     maxAdverseMove = Math.max(
       maxAdverseMove,
       isBuy ? entry - bar.low : bar.high - entry,
@@ -144,8 +199,8 @@ export function evaluateSetupOutcome(
     // Once TP1 is banked, the remaining runner is protected at breakeven.
     const effectiveStop = tp1Hit ? entry : stopLoss;
     const stopHit = reachedAdverse(effectiveStop, bar);
-    const targetHit = reachedFavorable(takeProfit, bar);
-    const tp1Touched = !tp1Hit && takeProfit1 !== null &&
+    const targetHit = !isFillBar && reachedFavorable(takeProfit, bar);
+    const tp1Touched = !isFillBar && !tp1Hit && takeProfit1 !== null &&
       reachedFavorable(takeProfit1, bar);
 
     if (stopHit || targetHit) {
@@ -159,35 +214,89 @@ export function evaluateSetupOutcome(
           : tp1Touched
           ? "ambiguous"
           : "stop_loss";
+      if (outcome === "take_profit") {
+        // A path to the runner target crossed TP1 first (it sits between
+        // entry and target), so the partial banked en route — certain even
+        // inside one bar.
+        if (tp1Touched && takeProfit1 !== null) {
+          legs.push({
+            leg: "tp1",
+            price: roundPrice(favorableFillPrice(takeProfit1, bar)),
+            time: bar.time,
+          });
+        }
+        legs.push({
+          kind: "take_profit",
+          leg: "exit",
+          price: roundPrice(favorableFillPrice(takeProfit, bar)),
+          time: bar.time,
+        });
+      } else if (outcome === "ambiguous") {
+        // Unknowable order resolves against the trade (2e): the exit is
+        // priced at the stop side — the true stop before TP1, breakeven
+        // after — and no TP1 leg is granted by a bar that might have
+        // stopped first.
+        legs.push({
+          kind: "ambiguous",
+          leg: "exit",
+          price: roundPrice(adverseExitPrice(effectiveStop, bar)),
+          time: bar.time,
+        });
+      } else {
+        legs.push({
+          kind: tp1Hit ? "breakeven_stop" : "stop_loss",
+          leg: "exit",
+          price: roundPrice(adverseExitPrice(effectiveStop, bar)),
+          time: bar.time,
+        });
+      }
       return {
         exitAt: new Date(bar.time).toISOString(),
         feedback: {
           ambiguousSameBar: stopHit && (targetHit || tp1Touched),
+          legs,
           maxAdverseMove: roundPrice(maxAdverseMove),
           maxFavorableMove: roundPrice(maxFavorableMove),
           source: "price_path_review",
-          tp1Hit: tp1Hit || tp1Touched,
+          tp1Hit: tp1Hit || (tp1Touched && outcome === "take_profit"),
         },
         filledAt,
+        legs,
         outcome,
         state: "resolved",
       };
     }
 
-    if (tp1Touched) {
+    if (tp1Touched && takeProfit1 !== null) {
       tp1Hit = true;
+      legs.push({
+        leg: "tp1",
+        price: roundPrice(favorableFillPrice(takeProfit1, bar)),
+        time: bar.time,
+      });
     }
   }
 
   if (now > expiresAt) {
+    // Realized from the ACTUAL fill print — a gap-improved entry earns its
+    // improvement — against the planned risk unit.
     const realizedR = riskDistance > 0
       ? Number(
-        (((isBuy ? 1 : -1) * (lastClose - entry)) / riskDistance).toFixed(4),
+        (((isBuy ? 1 : -1) * (lastClose - fillPrice)) / riskDistance).toFixed(
+          4,
+        ),
       )
       : 0;
+    legs.push({
+      kind: "expiry",
+      leg: "exit",
+      price: roundPrice(lastClose),
+      time: createdBars.at(-1)!.time,
+    });
     return {
       exitAt: new Date(expiresAt).toISOString(),
       feedback: {
+        legs,
         maxAdverseMove: roundPrice(maxAdverseMove),
         maxFavorableMove: roundPrice(maxFavorableMove),
         realizedR,
@@ -198,6 +307,7 @@ export function evaluateSetupOutcome(
         tp1Hit,
       },
       filledAt,
+      legs,
       outcome: tp1Hit
         ? "tp1_partial"
         : realizedR > 0
@@ -209,6 +319,7 @@ export function evaluateSetupOutcome(
 
   return {
     feedback: {
+      legs,
       maxAdverseMove: roundPrice(maxAdverseMove),
       maxFavorableMove: roundPrice(maxFavorableMove),
       source: "price_path_review",
