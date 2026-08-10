@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   calendarFolds,
@@ -212,5 +213,14 @@ describe("parseGridSpec — the crossed axes, strings validated like keys (4c)",
 
   it("keeps refusing unknown keys", () => {
     assert.throws(() => parseGridSpec("tp1Sharee=0.5"), /not a/);
+  });
+});
+
+describe("the driver pins a shard fleet's fold span (3c across shards)", () => {
+  it("accepts --fold-start/--fold-end and skips the span pre-pass", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(script, /fold-start/);
+    assert.match(script, /fold-end/);
+    assert.match(script, /folds pinned:/);
   });
 });
