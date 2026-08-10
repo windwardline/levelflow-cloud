@@ -30,6 +30,10 @@ import {
 import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
+  type FmpBar,
+  normalizeFmpBars,
+} from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -553,31 +557,25 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
     : Array.isArray((payload as { historical?: unknown[] }).historical)
     ? (payload as { historical: unknown[] }).historical
     : [];
-  return (rows as Array<Record<string, unknown>>)
-    .filter((row) =>
-      typeof row.date === "string" && typeof row.open === "number" &&
-      typeof row.high === "number" && typeof row.low === "number" &&
-      typeof row.close === "number"
-    )
-    .map((row) => ({
-      close: row.close as number,
-      high: row.high as number,
-      low: row.low as number,
-      open: row.open as number,
-      time: toTimestamp(row.date as string),
-      volume: typeof row.volume === "number" ? row.volume : 0,
-    }));
+  // 2b + 2h (2026-08-09): this file's own duplicated parse and bare typeof
+  // filter are gone — the corpus now enters through the SAME boundary the
+  // live analyzer uses (bars.ts: New-York-aware stamps, coherence and spike
+  // rejection), and every rejection lands in the tally the manifest carries.
+  // A corpus with silent holes was how a 135,533% bar got cemented into the
+  // calibration cache with nothing ever refetching it.
+  return normalizeFmpBars(
+    rows as FmpBar[],
+    Number.MAX_SAFE_INTEGER,
+    (rejection) => {
+      barRejectionTally[rejection.reason] =
+        (barRejectionTally[rejection.reason] ?? 0) + 1;
+    },
+  );
 }
 
-function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value.includes("T")
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  const timestamp = new Date(normalized).getTime();
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
-}
+/** 2h: every boundary rejection this run, by reason — printed at the end of
+ * the run and carried into the corpus manifest (2i). */
+export const barRejectionTally: Record<string, number> = {};
 
 function dedupeSort(bars: Bar[]): Bar[] {
   const byTime = new Map<number, Bar>();

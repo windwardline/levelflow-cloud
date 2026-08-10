@@ -26,7 +26,21 @@ export type FmpBar = {
   volume?: number;
 };
 
-export function normalizeFmpBars(payload: FmpBar[], maxBars: number): Bar[] {
+/**
+ * 2h: a rejection at the boundary, counted, never silent. The reasons are the
+ * validator's whole vocabulary: a malformed row, an unparseable stamp, an
+ * impossible candle, a reverting bad tick.
+ */
+export type BarRejection = {
+  date?: string;
+  reason: "shape" | "timestamp" | "incoherent_ohlc" | "spike";
+};
+
+export function normalizeFmpBars(
+  payload: FmpBar[],
+  maxBars: number,
+  onReject?: (rejection: BarRejection) => void,
+): Bar[] {
   const bars: Bar[] = [];
   for (const point of payload) {
     if (
@@ -34,6 +48,25 @@ export function normalizeFmpBars(payload: FmpBar[], maxBars: number): Bar[] {
       typeof point.high !== "number" || typeof point.low !== "number" ||
       typeof point.close !== "number"
     ) {
+      onReject?.({ date: point.date, reason: "shape" });
+      continue;
+    }
+    const time = toTimestamp(point.date);
+    if (Number.isNaN(time)) {
+      onReject?.({ date: point.date, reason: "timestamp" });
+      continue;
+    }
+    // 2h: an impossible candle never enters. high >= low, both extremes
+    // containing open and close, every price positive — violations were
+    // previously accepted verbatim and cemented into the corpus by the
+    // calibration cache, where nothing ever refetches them.
+    if (
+      point.high < point.low ||
+      point.high < Math.max(point.open, point.close) ||
+      point.low > Math.min(point.open, point.close) ||
+      point.low <= 0
+    ) {
+      onReject?.({ date: point.date, reason: "incoherent_ohlc" });
       continue;
     }
     bars.push({
@@ -41,20 +74,126 @@ export function normalizeFmpBars(payload: FmpBar[], maxBars: number): Bar[] {
       high: point.high,
       low: point.low,
       open: point.open,
-      time: toTimestamp(point.date),
+      time,
       volume: point.volume ?? 0,
     });
   }
   bars.sort((first, second) => first.time - second.time);
-  return bars.length > maxBars ? bars.slice(-maxBars) : bars;
+  // 2h's second pass: the reverting bad tick. MGCUSD once printed a single
+  // bar 135,533% above its neighbors and the evaluator resolved every open
+  // buy on it as take_profit. The guard is deliberately narrow: it arms only
+  // when both neighbors' closes agree within 25% (a REAL crash has
+  // follow-through, so its neighbors disagree and the guard stands down),
+  // and it fires only past 5x that consensus in either direction — no real
+  // instrument travels 400% intrabar and closes back inside a agreeing
+  // bracket. Rejections are counted like every other kind.
+  const spiked = new Set<number>();
+  for (let index = 1; index < bars.length - 1; index += 1) {
+    const previous = bars[index - 1].close;
+    const next = bars[index + 1].close;
+    const agree = Math.abs(previous - next) <= 0.25 * Math.max(previous, next);
+    if (!agree) {
+      continue;
+    }
+    const consensus = (previous + next) / 2;
+    const bar = bars[index];
+    if (bar.high > consensus * 5 || bar.low < consensus / 5) {
+      spiked.add(index);
+      onReject?.({ reason: "spike" });
+    }
+  }
+  const clean = spiked.size === 0
+    ? bars
+    : bars.filter((_, index) => !spiked.has(index));
+  return clean.length > maxBars ? clean.slice(-maxBars) : clean;
 }
 
-export function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value.includes("T")
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  const timestamp = new Date(normalized).getTime();
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
+/**
+ * 2b: the provider clock, measured rather than assumed. FMP stamps BARS in
+ * America/New_York wall time — proof: the banked S&P cash session reads
+ * 09:30-15:45 in July AND January (true UTC would move it an hour between
+ * them); banked EURUSD dies at Friday 17:00 wall and reopens Sunday 17:05;
+ * banked ES is missing exactly the 17:00-18:00 wall maintenance hour. The
+ * ECONOMIC CALENDAR is true UTC (NFP Jul-2026 stamps 12:30:00 = 08:30 ET) —
+ * one provider, two conventions, and this function owns only the bar side.
+ * A date-only stamp is the trading day's label and lands at New York
+ * midnight of that day, so every bar in the system shares one clock.
+ *
+ * NaN for garbage — the old fallback stamped unparseable input as
+ * Date.now(), turning corrupt payloads into bars at the present moment.
+ */
+export function toTimestamp(value: string): number {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
+  );
+  if (!match) {
+    return Number.NaN;
+  }
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  return newYorkWallClockToUtcMs(
+    Number(year),
+    Number(month),
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+  );
+}
+
+// The DST-safe guess-correct conversion replay.ts and marketHours.ts already
+// use: guess the UTC instant with the wanted digits, read the guess back in
+// New York, correct by the difference.
+function newYorkWallClockToUtcMs(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+): number {
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "2-digit",
+    second: "2-digit",
+    timeZone: "America/New_York",
+    year: "numeric",
+  }).formatToParts(new Date(utcGuess));
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const guessHour = Number(lookup.hour ?? "0");
+  const guessReadAsUtc = Date.UTC(
+    Number(lookup.year ?? year),
+    Number(lookup.month ?? month) - 1,
+    Number(lookup.day ?? day),
+    guessHour === 24 ? 0 : guessHour,
+    Number(lookup.minute ?? minute),
+    Number(lookup.second ?? second),
+  );
+  const corrected = utcGuess - (guessReadAsUtc - utcGuess);
+  // Second pass: when the first guess lands on the far side of a DST
+  // boundary from the target wall time, one correction lands an hour off
+  // (the spring-forward morning is the pinned case). Re-reading the
+  // corrected instant converges; wall times inside the nonexistent
+  // spring-forward hour resolve to their post-jump reading.
+  const verify = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    hour12: false,
+    hourCycle: "h23",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  }).formatToParts(new Date(corrected));
+  const verifyLookup = Object.fromEntries(
+    verify.map((part) => [part.type, part.value]),
+  );
+  const verifyHour = Number(verifyLookup.hour ?? "0");
+  const wantedMinutes = hour * 60 + minute;
+  const readMinutes = (verifyHour === 24 ? 0 : verifyHour) * 60 +
+    Number(verifyLookup.minute ?? "0");
+  const drift = ((readMinutes - wantedMinutes) + 1440) % 1440;
+  const driftSigned = drift > 720 ? drift - 1440 : drift;
+  return corrected - driftSigned * 60_000;
 }

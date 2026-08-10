@@ -522,14 +522,54 @@ function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function toTimestamp(value: string) {
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value.includes("T")
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  const timestamp = new Date(normalized).getTime();
-  return Number.isFinite(timestamp) ? timestamp : Date.now();
+// 2b (2026-08-09): FMP stamps bars in America/New_York wall time, and this
+// function used to read them as UTC — every chart timestamp the client drew
+// was 4-5 DST-variable hours off. Duplicated from trade-analyzer/bars.ts
+// rather than imported (Edge Functions are self-contained modules); the two
+// copies are pinned to each other by tests/barDecode.test.ts across the
+// boundary, the same discipline every duplicated fact here follows. NaN for
+// garbage — the Date.now() fallback stamped corrupt input as the present.
+function toTimestamp(value: string): number {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
+  );
+  if (!match) {
+    return Number.NaN;
+  }
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  const utcGuess = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+  );
+  const read = (instant: number) => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+      hourCycle: "h23",
+      minute: "2-digit",
+      month: "2-digit",
+      second: "2-digit",
+      timeZone: "America/New_York",
+      year: "numeric",
+    }).formatToParts(new Date(instant));
+    const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    const readHour = Number(lookup.hour ?? "0");
+    return Date.UTC(
+      Number(lookup.year ?? year),
+      Number(lookup.month ?? month) - 1,
+      Number(lookup.day ?? day),
+      readHour === 24 ? 0 : readHour,
+      Number(lookup.minute ?? minute),
+      Number(lookup.second ?? second),
+    );
+  };
+  const corrected = utcGuess - (read(utcGuess) - utcGuess);
+  return corrected - (read(corrected) - utcGuess);
 }
 
 function sortableTime(value: string | number) {
