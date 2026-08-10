@@ -339,6 +339,16 @@ because sweeping a market on the wrong instrument calibrates the wrong instrumen
 there is no reason to rush it tonight.
 
 ### 2 — Repair the evaluator, as ONE change set, then re-sweep once
+**Mapped 2026-08-09 — the full file:line blueprint is
+`docs/research/evaluator-repair-map-2026-08-09.md`** (four clusters, the
+ten-R-implementation inventory, the shared-surface matrix, and the ordering
+constraints; item 3's surfaces mapped in the same document). Headline finds
+beyond the letters: FMP bars are New-York-stamped and read as UTC everywhere
+(2b is load-bearing for every session gate and news join in the corpus);
+total R in rounds 25–28 was read as expectancy-over-filled × setups-including-
+unfilled (`grid-totalr.ts:25`); the runner's expiry R is already captured and
+simply never read (2f); no corpus records which calibration produced it (2i).
+
 **2a** look-ahead — admit a daily bar only once its own day closed ·
 **2b** timestamps normalised at the provider boundary, timezone probed not assumed ·
 **2c** no favourable level credited on the fill bar; the evaluator consumes a *path* ·
