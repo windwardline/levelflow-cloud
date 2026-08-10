@@ -151,9 +151,15 @@ describe("replay sweep", () => {
   it("records stop provenance on every setup and reports cap binding", () => {
     // Geometry pinned like the resolution test; capture-all so gate policy
     // cannot hide records. A generous cap cannot bind, so provenance must be
-    // structural (pivot or the 1.25-ATR volatility floor).
+    // structural (pivot or the 1.25-ATR volatility floor). The review window
+    // is widened with the cap: an uncapped structural stop on this fixture
+    // is ~4.4 units of required runner against a 3.7-unit 8-hour window, so
+    // the ladder's feasibility filter would (correctly) reject every plan —
+    // 2k's real clock buckets landed consensus on wider structure than the
+    // old count-groups did, and the filter is the law here, not the subject.
     const uncapped = simulateSymbol({
       calibrationOverride: {
+        defaultReviewHours: 72,
         maxStopAtrMultiplier: 50,
         runnerWindowShare: 1,
         tp1RiskShare: 0.8,
@@ -241,8 +247,11 @@ describe("replay sweep", () => {
   });
 
   it("resamples 15min bars into higher-timeframe bars", () => {
+    // triangleBars start on an hour boundary (00:00 UTC = 20:00 New York),
+    // so the wall-clock buckets coincide with the old count-of-four groups
+    // here; tests/sweepDecisionContext.test.ts covers where they diverge.
     const bars = triangleBars(8);
-    const hourly = resampleBars(bars, 4);
+    const hourly = resampleBars(bars, 60);
 
     assert.equal(hourly.length, 2);
     assert.equal(hourly[0].open, bars[0].open);

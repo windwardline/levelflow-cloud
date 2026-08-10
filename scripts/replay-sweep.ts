@@ -96,7 +96,7 @@ async function main() {
     // relative to now, so a later day's run refetches the rolled-forward
     // window while same-day runs stay pinned for drift-free A/B.
     const anchor = isoDate(new Date());
-    const [primaryBars, dailyBars] = await Promise.all([
+    const [primaryBars, dailyBars, fiveMinuteBars] = await Promise.all([
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
@@ -115,6 +115,21 @@ async function main() {
           fetchDailyBars(providerSymbol, args.days + 240, sinceMs),
         key: `${providerSymbol}-daily-${args.days}`,
         legacyPrefix: `${providerSymbol}-daily-${args.days}-`,
+        timeOf: (bar) => bar.time,
+      }),
+      // 2l: the committee's real 5min series. FMP's 5min depth is shallower
+      // than 15min for most symbols; early decision points simply fall below
+      // the 40-bar floor and vote four-frame, the same degradation a thin
+      // live fetch produces. The corpus manifest records the measured depth.
+      loadRollingSeries<Bar>({
+        anchor,
+        cacheDir: args.cacheDir!,
+        fetchFull: () =>
+          fetchIntradayBars(providerSymbol, args.days, undefined, "5min"),
+        fetchSince: (sinceMs) =>
+          fetchIntradayBars(providerSymbol, args.days, sinceMs, "5min"),
+        key: `${providerSymbol}-5min-${args.days}`,
+        legacyPrefix: `${providerSymbol}-5min-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
     ]);
@@ -167,6 +182,7 @@ async function main() {
           ignoreLowEdge: args.ignoreLowEdge,
           cotReports,
           dailyBars,
+          fiveMinuteBars,
           newsEvents,
           primaryBars: split.bars,
           stepBars: args.step,
@@ -487,11 +503,14 @@ const MAX_DEPTH_DAYS = 7_000;
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
-// run date. Depth is discovered per symbol, never hardcoded.
+// run date. Depth is discovered per symbol, never hardcoded. The timeframe
+// parameter exists for 2l: the committee's 5min series must be a real
+// provider series, fetched the same chunked way as the 15min primary.
 async function fetchIntradayBars(
   providerSymbol: string,
   days: number,
   sinceMs?: number,
+  timeframe: "15min" | "5min" = "15min",
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
   const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
@@ -510,7 +529,9 @@ async function fetchIntradayBars(
     if (sinceMs !== undefined && to.getTime() < sinceMs) {
       break;
     }
-    const endpoint = new URL(`${FMP_API_BASE_URL}/historical-chart/15min`);
+    const endpoint = new URL(
+      `${FMP_API_BASE_URL}/historical-chart/${timeframe}`,
+    );
     endpoint.searchParams.set("symbol", providerSymbol);
     endpoint.searchParams.set("from", isoDate(from));
     endpoint.searchParams.set("to", isoDate(to));

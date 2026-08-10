@@ -48,6 +48,7 @@ import {
   persistScannedOpportunities,
   type ScanWriteOutcome,
 } from "./scanPersistence.ts";
+import { completedDailyBars } from "./dailyCompletion.ts";
 import {
   fetchFirstAvailableMarketContext,
   fetchFmpBars,
@@ -699,6 +700,10 @@ async function reviewCurrentMarket(
       providerSymbols,
       recordAnalyzerEvent,
       fetchWithTimeout,
+      // 2a: indicators read completed daily bars only — the roster symbol
+      // classifies the session close; the forming current row and weekend
+      // transients drop out here exactly as they do in the replay corpus.
+      (bars) => completedDailyBars(normalizedSymbol, bars, Date.now()),
     );
   await recordMarketDataHealth(
     normalizedSymbol,

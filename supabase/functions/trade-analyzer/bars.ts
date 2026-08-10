@@ -140,10 +140,65 @@ export function toTimestamp(value: string): number {
   );
 }
 
+// One hoisted formatter: Intl.DateTimeFormat construction dominates the
+// cost of a parts read, and the sweep reads parts for every unique bar time.
+const NEW_YORK_CLOCK_FORMAT = new Intl.DateTimeFormat("en-US", {
+  day: "2-digit",
+  hour: "2-digit",
+  hour12: false,
+  hourCycle: "h23",
+  minute: "2-digit",
+  month: "2-digit",
+  timeZone: "America/New_York",
+  weekday: "short",
+  year: "numeric",
+});
+
+const WEEKDAY_NUMBER: Record<string, number> = {
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+  Sun: 7,
+};
+
+/**
+ * The New York wall-clock reading of a UTC instant — the shared other half
+ * of toTimestamp's conversion, for callers that need to reason about the
+ * stamp date a bar carries (the daily completion gate) or the wall-clock
+ * bucket an intraday bar belongs to (the sweep's resampler). Weekday is
+ * ISO-numbered, Monday 1 through Sunday 7.
+ */
+export function newYorkClockParts(utcMs: number): {
+  day: number;
+  hour: number;
+  minute: number;
+  month: number;
+  weekday: number;
+  year: number;
+} {
+  const lookup = Object.fromEntries(
+    NEW_YORK_CLOCK_FORMAT.formatToParts(new Date(utcMs))
+      .map((part) => [part.type, part.value]),
+  );
+  const hour = Number(lookup.hour ?? "0");
+  return {
+    day: Number(lookup.day ?? "1"),
+    hour: hour === 24 ? 0 : hour,
+    minute: Number(lookup.minute ?? "0"),
+    month: Number(lookup.month ?? "1"),
+    weekday: WEEKDAY_NUMBER[lookup.weekday ?? ""] ?? 0,
+    year: Number(lookup.year ?? "1970"),
+  };
+}
+
 // The DST-safe guess-correct conversion replay.ts and marketHours.ts already
 // use: guess the UTC instant with the wanted digits, read the guess back in
-// New York, correct by the difference.
-function newYorkWallClockToUtcMs(
+// New York, correct by the difference. Exported for the daily completion
+// gate and the resampler, which both need "this wall-clock moment, in UTC".
+export function newYorkWallClockToUtcMs(
   year: number,
   month: number,
   day: number,
