@@ -2110,7 +2110,11 @@ test("the record band and Attribution publish figures the ledger's page could no
   // here beside a live account's own week.
   const bandValue = (label: string) =>
     page.getByText(label, { exact: true }).locator("..").locator("p").first();
-  await expect(bandValue("Money-positive")).toHaveText("100%");
+  // 1j (2026-08-09): the rate ships with what it stands on — the same
+  // RESOLVED_ROWS the stub built, derived here rather than restated, which is
+  // the rule this boundary exists to teach (a deploy died on the bare-100%
+  // literal the unit gates could not see).
+  await expect(bandValue("Money-positive")).toHaveText(`100% of ${RESOLVED_ROWS}`);
   await expect(bandValue("Net R")).toHaveText(`+${RESOLVED_ROWS}.0R`);
   await expect(bandValue("Best market")).toHaveText("XAUUSD");
   await expect(bandValue("Setups this week")).toHaveText("0");
