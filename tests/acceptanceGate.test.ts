@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { buildSweepManifest } from "../scripts/sweepManifest.ts";
+import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
 import {
   classVerdicts,
   gradeCorpus,
@@ -74,7 +74,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     symbols: [{
       calibration: {},
       providerSymbol: "EURUSD",
-      series: { "15min": [{ time: 0 }] },
+      series: { "15min": seriesFacts([{ time: 0 }]) },
       symbol: "EURUSD",
     }],
     trainShare: 0.6,
@@ -273,7 +273,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       symbols: [{
         calibration: {},
         providerSymbol: "EURUSD",
-        series: { "15min": [{ time: 0 }] },
+        series: { "15min": seriesFacts([{ time: 0 }]) },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,

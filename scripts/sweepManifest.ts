@@ -114,10 +114,14 @@ export function buildSweepManifest(input: {
   grid: unknown[];
   holdoutSymbols?: string[];
   stepBars: number;
+  // Precomputed per-series FACTS, not raw bars: the driver computes
+  // seriesFacts per symbol as it loads and releases the arrays — holding
+  // every symbol's full series until the end of the run for the manifest
+  // is what OOM'd the first baseline attempt at the 4GB default heap.
   symbols: Array<{
     calibration: Record<string, unknown>;
     providerSymbol: string;
-    series: Record<string, Array<{ time: number }>>;
+    series: Record<string, SeriesFacts>;
     symbol: string;
   }>;
   trainShare: number;
@@ -127,12 +131,7 @@ export function buildSweepManifest(input: {
     calibration: entry.calibration,
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
     providerSymbol: entry.providerSymbol,
-    series: Object.fromEntries(
-      Object.entries(entry.series).map(([timeframe, bars]) => [
-        timeframe,
-        seriesFacts(bars),
-      ]),
-    ),
+    series: entry.series,
     symbol: entry.symbol,
   }));
   // The hash covers everything that DEFINES the measurement. The write

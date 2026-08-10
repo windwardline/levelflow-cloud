@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { buildSweepManifest } from "../scripts/sweepManifest.ts";
+import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
@@ -192,7 +192,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       symbols: [{
         calibration: { tp1RiskShare: 0.8 },
         providerSymbol: "EURUSD",
-        series: { "15min": [{ time: 0 }] },
+        series: { "15min": seriesFacts([{ time: 0 }]) },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
