@@ -25,8 +25,8 @@ describe("trade analyzer indicators", () => {
     assert.equal(ema(values, 3), 10);
   });
 
-  it("returns zero for empty EMA input", () => {
-    assert.equal(ema([], 20), 0);
+  it("abstains on empty EMA input — 0 was a price, not a sentinel (2m)", () => {
+    assert.equal(ema([], 20), null);
   });
 });
 

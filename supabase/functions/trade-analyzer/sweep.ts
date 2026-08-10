@@ -99,6 +99,11 @@ export type SweepResult = {
     belowThreshold: number;
     newsBlocked: number;
     noConsensus: number;
+    // 2n: decisions refused because the regime could not form — the daily
+    // series was past the 40-bar context floor but under the slow EMA's
+    // warmth. Its own bucket, so decision arithmetic closes and a thin
+    // corpus cannot hide inside noConsensus.
+    notWarm: number;
     planRejected: number;
     regimeBlocked: number;
     regimeGated: number;
@@ -296,6 +301,7 @@ export function simulateSymbol(input: {
     belowThreshold: 0,
     newsBlocked: 0,
     noConsensus: 0,
+    notWarm: 0,
     planRejected: 0,
     regimeBlocked: 0,
     regimeGated: 0,
@@ -409,6 +415,10 @@ export function simulateSymbol(input: {
     );
 
     const regime = classifyRegime(market);
+    if (!regime) {
+      rejections.notWarm += 1;
+      continue;
+    }
     if (
       !input.captureAll && calibration.blockedRegimes?.includes(regime.name)
     ) {

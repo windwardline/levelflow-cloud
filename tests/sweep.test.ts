@@ -123,6 +123,7 @@ describe("replay sweep", () => {
     assert.equal(
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
+        result.rejections.notWarm +
         result.rejections.planRejected + result.rejections.belowThreshold +
         result.rejections.regimeBlocked + result.rejections.sessionBlocked +
         result.rejections.newsBlocked,
@@ -277,6 +278,7 @@ describe("replay sweep", () => {
     assert.equal(
       result.decisionPoints,
       result.outcomes.length + result.rejections.noConsensus +
+        result.rejections.notWarm +
         result.rejections.planRejected + result.rejections.belowThreshold +
         result.rejections.regimeBlocked + result.rejections.sessionBlocked +
         result.rejections.newsBlocked,

@@ -1079,6 +1079,25 @@ async function findStrongerActiveCorrelatedSetup(
 function analyzeMarket(symbol: SupportedSymbol, market: MarketContext) {
   const calibration = getCategoryCalibration(symbol);
   const regime = classifyRegime(market);
+  if (!regime) {
+    // 2n: the regime abstained — daily history too thin for the slow EMA.
+    // Unreachable behind the loader's >=80-bar sufficiency, but the shared
+    // engine refuses honestly rather than classifying on a degenerate seed;
+    // a null-side consensus flows through the same no-setup channel every
+    // other refusal uses.
+    return {
+      calibration,
+      consensus: {
+        blockScore: 0,
+        buyScore: 0,
+        score: 0,
+        sellScore: 0,
+        side: null as Side | null,
+      },
+      regime,
+      votes: [],
+    };
+  }
   const votes = runStrategyCommittee(symbol, market, regime);
   return { calibration, consensus: scoreConsensus(votes, regime), regime, votes };
 }
@@ -1098,6 +1117,12 @@ async function analyzeSetup(
   analysis: MarketAnalysis,
 ) {
   const { calibration, consensus, regime, votes } = analysis;
+  if (!regime) {
+    // 2n: the regime abstained (thin daily history) — no setup can be
+    // built on an unclassified market. Unreachable behind the loader's
+    // sufficiency floor.
+    return null;
+  }
   if (calibration.blockedRegimes?.includes(regime.name)) {
     return null;
   }
@@ -1297,6 +1322,15 @@ async function explainNoSetup(
 ) {
   const { calibration, consensus, regime, votes } = analysis;
   const diagnostics: string[] = [];
+
+  if (!regime) {
+    // 2n mirror of analyzeSetup's guard: one stated reason, no committee
+    // diagnostics to report because none could run.
+    diagnostics.push(
+      "This market's daily history is too thin to classify conditions.",
+    );
+    return diagnostics;
+  }
 
   if (calibration.blockedRegimes?.includes(regime.name)) {
     diagnostics.push(
