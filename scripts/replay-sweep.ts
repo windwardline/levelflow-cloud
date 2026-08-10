@@ -58,6 +58,12 @@ const FOLD_EMBARGO_MS = 5 * 86_400_000;
 
 type SweepArgs = {
   cacheDir: string | undefined;
+  // 3c across SHARDS: every shard of one measurement must fold on the SAME
+  // calendar span, or per-shard corpus ends (crypto pinned at different
+  // top-up minutes) shift the boundaries by hours and the gate rightly
+  // refuses the shards as different measurements. Pinned in ms.
+  foldEndMs: number | undefined;
+  foldStartMs: number | undefined;
   captureAll: boolean;
   ignoreLowEdge: boolean;
   warmOnly: boolean;
@@ -122,7 +128,23 @@ async function main() {
   // hits after first load), so its cost is one warm pass.
   let folds: ReturnType<typeof calendarFolds> = [];
   const holdoutSymbols: string[] = [];
-  if (!args.discover && !args.warmOnly) {
+  if (
+    !args.discover && !args.warmOnly &&
+    Number.isFinite(args.foldStartMs) && Number.isFinite(args.foldEndMs)
+  ) {
+    folds = calendarFolds({
+      corpusEndMs: args.foldEndMs!,
+      corpusStartMs: args.foldStartMs!,
+      embargoMs: FOLD_EMBARGO_MS,
+    });
+    console.log(
+      "folds pinned: " + folds.map((fold) =>
+        `${fold.name}: ${isoDate(new Date(fold.startMs))} .. ${
+          isoDate(new Date(fold.endMs))
+        }`
+      ).join(" · "),
+    );
+  } else if (!args.discover && !args.warmOnly) {
     let spanStart = Number.POSITIVE_INFINITY;
     let spanEnd = Number.NEGATIVE_INFINITY;
     const anchor = isoDate(new Date());
@@ -531,8 +553,12 @@ function parseArgs(argv: string[]): SweepArgs {
     // axes, and the baseline is added once at the end.
     grid.push(...parseGridSpec(gridSpec));
   }
+  const foldStartRaw = get("fold-start");
+  const foldEndRaw = get("fold-end");
   return {
     cacheDir: get("cache-dir"),
+    foldEndMs: foldEndRaw !== undefined ? Number(foldEndRaw) : undefined,
+    foldStartMs: foldStartRaw !== undefined ? Number(foldStartRaw) : undefined,
     captureAll: argv.includes("--capture-all"),
     ignoreLowEdge: argv.includes("--ignore-low-edge"),
     warmOnly: argv.includes("--warm-only"),
