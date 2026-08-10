@@ -182,8 +182,8 @@ agriculture/livestock falling through to FX hours) — reconcile + a weekly-clos
 style test; folds in 1f-c (indices on the CME clock by a stale premise) ·
 **1f** indices display honesty — *1f-a done 2026-08-09* (the Indices row carries
 `superseded: true` and its sentence says "under a configuration the engine has since
-moved past"; re-measuring stays item 4's first act); *1f-b outstanding* (held bar
-rendered as derived — folds into the Guide-deck amendment with 1i) ·
+moved past"; re-measuring stays item 4's first act); *1f-b done 2026-08-09* (§5 in
+both homes admits the held third state — a held bar never reads as derived) ·
 **1g — done 2026-08-09** (the record gates on `MEASURED_POPULATION_BY_ASSET_TYPE`,
 the rosters extracted from the replay commit `d947245` itself, so markets the
 measurement predates render no record; ConfidenceUnit resolves symbol-first through
@@ -191,9 +191,9 @@ measurement predates render no record; ConfidenceUnit resolves symbol-first thro
 not Futures' 68) · **1h** delete the false curation claim — *1h-b done 2026-08-09*
 (the "measured-edge curation" run-condition claim deleted from replayReliability's
 docblock with its reasoning); *1h-a and 1h-c outstanding* (ScopeMenu's "All
-markets" no-count rationale; trade-model.md:255) · **1i** Guide §3 — the built Guide HAS
-the losing path since #248; the spec deck it claims to render verbatim was never
-amended, and no §3 pin exists · **1j** no replay figure without its bound (the Record
+markets" no-count rationale; trade-model.md:255) · **1i — done 2026-08-09** (deck §3 amended
+to the shipped four moments with §7's note form; guideAnchors pins both homes to
+each other) · **1j** no replay figure without its bound (the Record
 sentence carries N but no interval — indices' 51% on 952 is ±3.2pp, indistinguishable
 from a coin flip; the Insights record band prints 100% off one resolved row) ·
 **1l** an expired setup loses its copy affordances (nothing in the render path
