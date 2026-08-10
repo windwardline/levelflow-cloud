@@ -104,7 +104,8 @@ describe("asset catalog", () => {
     const energies = AVAILABLE_ASSET_GROUPS.find(
       (group) => group.label === "Energies",
     )?.options.map((option) => option.symbol);
-    assert.deepEqual(energies, ["BRENT", "WTI"]);
+    assert.deepEqual(energies, // BRENT left 2026-08-09 (amendment 32, the owner's frame).
+      ["WTI"]);
 
     // Indices is a rendered group again, and SP, NGUSD, HGUSD and ASX are all
     // available — every one has an FMP match, which is the only test the

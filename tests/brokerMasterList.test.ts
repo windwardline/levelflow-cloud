@@ -58,7 +58,9 @@ describe("row counts — total, per classification, per status", () => {
       // the served set — each was served on its underlying's CASH index
       // series, which was never a match. Their rows move to
       // excluded-no-fmp-source below; nothing is deleted.
-      "served-and-visible": 96,
+      // 96 -> 95: BRENT dormant 2026-08-09, decided on the owner's live
+      // frame — the time-varying gap that amendment 32 names.
+      "served-and-visible": 95,
             // 9 -> 28: the nineteen futures onboarded 2026-08-05 land here, not in
       // served-and-visible, because the directive makes visibility conditional
       // on an analyzed and acceptable match and they have no sweep evidence yet.
@@ -104,7 +106,9 @@ describe("row counts — total, per classification, per status", () => {
       // 6N 6C 6S from mapped-not-yet-onboarded, 6J 6M from
       // offered-but-unsizeable). One status, one meaning: no actual FMP
       // series exists; re-probed each run.
-      "excluded-no-fmp-source": 20,
+      // 20 -> 21: BRENT joins the register — the CFD was written on a month
+      // BZUSD does not serve, so the identity was never a match.
+      "excluded-no-fmp-source": 21,
       // 4 -> 2: 6J and 6M reclassified — offered they remain (the F9
       // sightings stand), MATCHED they never were.
       "offered-but-unsizeable": 2,
@@ -134,14 +138,15 @@ describe("agreement with the live master/visible sets (no re-derivation)", () =>
     // the served identity — futures 31 -> 27 visible, and FDXM's sizing-only
     // slot goes with its parent. The equality above is still the assertion;
     // this count is the record of where it stands.
-    assert.equal(servedSymbols().length, 106);
+    // 106 -> 105: BRENT out (amendment 32, the owner's 2026-08-09 frame).
+    assert.equal(servedSymbols().length, 105);
   });
 
   it("the registry's visible set equals visibleAssetSymbols(null) (the 102) exactly", () => {
     assert.deepEqual(visibleSymbols().sort(), [...visibleAssetSymbols(null)].sort());
     // MGCUSD left the scannable set on 2026-08-05: it is micro gold, a contract-size variant of GCUSD, and the owner ruled one analyzed market per underlying per account type (contractVariants.ts). It keeps its sizing identity and loses its scan slot.
     // 102 -> 98 (amendment 32): FESX, FDAX, EMD, NKD out of view.
-    assert.equal(visibleSymbols().length, 98);
+    assert.equal(visibleSymbols().length, 97);
   });
 
   it("every currently-served symbol appears in the registry with a served-compatible status", () => {
@@ -175,29 +180,35 @@ describe("agreement with the live master/visible sets (no re-derivation)", () =>
   });
 });
 
-describe("BRENT — display-excluded yet standing in the sweep universe", () => {
-  it("is served and visible, with its basis line rather than a hide (amendment 30)", () => {
-    // Amendment 23 excluded it at ~196bp as "past the significance bar for
-    // display". Amendment 30 retires that bar: a real match with a measurable
-    // offset is SHOWN with the line that states it — "E8 quotes ~+1.67 above
-    // this feed — entry there ~= 85.72". XAGUSD (+0.17) and WTI (+0.24) were
-    // already served that way, and a larger offset is a reason to state it more
-    // plainly, not to hide a market the account offers and the data supports.
-    const brent = findMasterListRow("BRENT");
+describe("BRENT — dormant on the owner's frame (amendment 32, 2026-08-09)", () => {
+  // The arc, kept because every turn was a decision: amendment 23 hid it on
+  // the size of its basis; amendment 30 released it with the basis line on
+  // the stability premise; the 2026-08-09 frame killed the premise — +1.10
+  // against +1.61/+1.675 a week earlier, nine spreads wide, mid-month and
+  // post-roll. A basis that moves half a dollar in a week is a contract-
+  // month spread, and a CFD on another month is not matched to BZUSD.
+  it("is a register row with no match and the evidence chain in its ground", () => {
+    const brent = findMasterListRowByBrokerName("BRENT");
     assert.ok(brent);
-    assert.equal(brent!.status, "served-and-visible");
-    assert.equal(brent!.fmpSymbol, "BZUSD");
-    assert.equal(isServedToday(brent!), true);
-    assert.equal(isVisibleToday(brent!), true);
+    assert.equal(brent!.status, "excluded-no-fmp-source");
+    assert.equal(brent!.fmpSymbol, null);
+    assert.equal(brent!.levelflowSymbol, null);
+    assert.match(brent!.ground, /\+1\.10/);
+    assert.match(brent!.ground, /\+1\.61/);
+    assert.equal(brent!.reentryCandidate, true);
   });
 
-  it("stays inside sweepUniverse() despite being withheld from display", () => {
-    assert.ok(sweepUniverse().some((entry) => entry.levelflowSymbol === "BRENT"));
+  it("leaves WTI serving — +0.10 in the same frame, inside its own spread", () => {
+    const wti = findMasterListRow("WTI");
+    assert.ok(wti);
+    assert.equal(wti!.status, "served-and-visible");
+    assert.equal(wti!.fmpSymbol, "CLUSD");
   });
 
-  it("is present in both servedSymbols() and visibleSymbols()", () => {
-    assert.ok(servedSymbols().includes("BRENT"));
-    assert.ok(visibleSymbols().includes("BRENT"));
+  it("leaves the futures-line BZUSD row untouched — its identity is sound", () => {
+    const bz = findMasterListRow("BZUSD");
+    assert.ok(bz);
+    assert.equal(bz!.fmpSymbol, "BZUSD");
   });
 });
 
@@ -341,7 +352,7 @@ describe("the twenty futures with no usable FMP source", () => {
     "6A", "6B", "6C", "6E", "6J", "6M", "6N", "6S",
   ];
 
-  it("is exactly these twenty broker names, in three named families", () => {
+  it("is exactly these twenty-one broker names, in four named families", () => {
     const orphans = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "excluded-no-fmp-source")
       .map((entry) => entry.brokerName)
@@ -352,6 +363,7 @@ describe("the twenty futures with no usable FMP source", () => {
         ...ORPHANS,
         ...AMENDMENT_32_INDEX_FUTURES,
         ...AMENDMENT_32_CURRENCY_FUTURES,
+        "BRENT",
       ].sort(),
     );
   });
@@ -565,7 +577,8 @@ describe("reentry candidates — no exclusion or limitation is permanent", () =>
     // register rows — the list working again, in the other direction.
     // (FDXM, 6E/6A/6B/6N/6C/6S and 6J/6M were already in it under their
     // previous non-happy states, so only the four served rows add.)
-    assert.equal(reentryList().length, 30);
+    // 30 -> 31: BRENT rejoins the reentry population as a dormant row.
+    assert.equal(reentryList().length, 31);
     assert.ok(reentryList().every((entry: MasterListRow) => entry.reentryCandidate));
   });
 

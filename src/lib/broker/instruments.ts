@@ -564,7 +564,8 @@ const CFD_RELATED_EXPOSURE: Record<string, string> = {
   YMUSD: "US30",
   GCUSD: "XAUUSD",
   MGCUSD: "XAUUSD",
-  BZUSD: "BRENT",
+  // BZUSD -> BRENT related-exposure link removed 2026-08-09: BRENT is
+  // dormant (amendment 32) and a link to a market with no row is stale.
 };
 
 /** The E8 futures instrument that reaches a spot row's exposure (crossmap §2.2). */

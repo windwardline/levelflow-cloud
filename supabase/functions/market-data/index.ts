@@ -70,7 +70,7 @@ const symbolMap: Record<string, string> = {
   // per-barrel number, so no fallback stands in here. When CLUSD has no
   // bars, the honest behavior is the existing no-data path.
   WTI: "CLUSD",
-  BRENT: "BZUSD",
+  // BRENT left 2026-08-09 (amendment 32) — no chart series to serve.
   XRPUSD: "XRPUSD",
   SOLUSD: "SOLUSD",
   LTCUSD: "LTCUSD",

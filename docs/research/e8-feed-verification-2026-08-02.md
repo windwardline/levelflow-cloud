@@ -764,3 +764,29 @@ close independently; only the owner's own live ticket closes the second.
    2026-08-02, before F10 existed; that file is unchanged by this
    resolution (out of this task's scope, same as Task 16b's precedent) and
    remains stale on that point.
+
+### F13 — 2026-08-09 21:44:53 / 21:45:00 EDT · The post-roll oil frame (owner capture, DEMO login)
+
+The frame the BRENT/WTI question was waiting for: mid-month, post-roll,
+both oil CFDs on the Energies.c watchlist with the platform clock visible.
+DEMO login — the demo mirrors the live price feed; recorded as such.
+
+| Instrument | E8 bid / ask (mid) | FMP exact-minute bar | Offset | Verdict |
+| --- | --- | --- | --- | --- |
+| WTI.C @21:44:53 | 79.092 / 79.212 (79.152) | CLUSD 21:44 O79.06 H79.07 L79.02 C79.02 | **+0.10 (~13bp)** — inside E8's own 0.120 spread | **MATCH confirmed** |
+| BRENT.C @21:45:00 | 85.762 / 85.879 (85.8205) | BZUSD 21:43 O84.73 H84.73 L84.70 C84.72 | **+1.10 (~130bp)** — nine spreads | **NOT the same series** |
+
+Against F4/F6's +1.61/+1.675 a week earlier: BRENT's gap moved ~0.55 in
+seven days, mid-month, no roll boundary anywhere near. A basis that moves
+half a dollar in a week is a contract-month spread decaying, not a venue
+offset — E8's BRENT.C prices a month BZUSD does not serve, and the
+"stable across three frames" premise that amendment 30's basis line
+rested on is dead. Amendment 32's third state applies: BRENT dormant,
+WTI stays. Decided under the owner's simple-rules directive (2026-08-09);
+the owner supplied the frame and the arithmetic is above.
+
+Also measured: WTI's offset read +0.10 against its recorded +0.24
+constant. Identity-safe (inside spread), but the printed basis-line
+number deserves a multi-session re-measurement pass before it moves —
+one Sunday-night frame does not re-derive a constant. Flagged in
+HANDOFF; the F-series protocol is the instrument for it.

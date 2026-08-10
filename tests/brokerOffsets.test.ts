@@ -19,11 +19,10 @@ import {
 const STATE = {
   XAGUSD: { basis: 0.17, displayExcluded: false },
   WTI: { basis: 0.24, displayExcluded: false },
-  BRENT: { basis: 1.67, displayExcluded: false },
 } as const;
 
 describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () => {
-  it("pins the three recorded offsets exactly", () => {
+  it("pins the two recorded offsets exactly", () => {
     for (const [symbol, expected] of Object.entries(STATE)) {
       const offset = getBrokerOffset(symbol);
       assert.ok(offset, `expected a recorded offset for ${symbol}`);
@@ -32,10 +31,10 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
     }
   });
 
-  it("records exactly these three symbols, no more and no fewer", () => {
+  it("records exactly these two symbols — BRENT's row left with its market (2026-08-09)", () => {
     assert.deepEqual(
       BROKER_OFFSETS.map((offset) => offset.levelflowSymbol).sort(),
-      ["BRENT", "WTI", "XAGUSD"],
+      ["WTI", "XAGUSD"],
     );
   });
 
@@ -75,7 +74,9 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
     assert.equal(isBasisDisplayed("WTI"), true);
     // The whole point of amendment 30: BRENT now SHOWS its basis, like the
     // other two recorded offsets.
-    assert.equal(isBasisDisplayed("BRENT"), true);
+    // BRENT: no offset row exists any more — the market is dormant and a
+    // time-varying gap has no honest number for a line to state.
+    assert.equal(isBasisDisplayed("BRENT"), false);
     assert.equal(isBasisDisplayed("EURUSD"), false);
   });
 
@@ -91,9 +92,10 @@ describe("broker offsets (amendment 23's offset ruling, owner 2026-08-05)", () =
     });
 
     it("adds BRENT's basis too, now that it is shown rather than hidden", () => {
-      // 85.00 + 1.67 = 86.67. The operator sees E8's own number instead of a
-      // silent 1.67 discrepancy between the ladder and their platform.
-      assert.equal(adjustedEntryFor("BRENT", 85.00), 86.67);
+      // BRENT's +1.67 example died with its row (2026-08-09): the constant
+      // it restated measured +1.10 a week later, which is why the market is
+      // dormant and no adjusted entry may print for it.
+      assert.equal(adjustedEntryFor("BRENT", 85.00), null);
     });
 
     it("returns null for a symbol with no recorded offset", () => {

@@ -479,13 +479,15 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "WTI - WTI Crude Oil",
         symbol: "WTI",
       },
-      {
-        assetType: "Energies",
-        description: "Brent Crude Oil",
-        fmpSymbol: "BZUSD",
-        label: "BRENT - Brent Crude Oil",
-        symbol: "BRENT",
-      },
+      // BRENT left the roster 2026-08-09 (amendment 32, decided on the
+      // owner's live frame): E8's BRENT.C sat +1.10 above BZUSD's
+      // exact-minute bar at 21:45 ET — nine spreads wide — after measuring
+      // +1.61/+1.675 on 2026-08-02. A gap that moves half a dollar in a
+      // week is a contract-month basis, not a venue offset, and a future's
+      // month is not FMP's front-month series. WTI measured +0.10 in the
+      // same frame — inside its own spread — and stays. The masterList row
+      // carries the dormancy and the evidence chain; the futures-line
+      // BZUSD row is untouched (its BZUSD-to-BZUSD identity is sound).
     ],
   },
   {
@@ -583,8 +585,8 @@ export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
   crypto_momentum: ["ADAUSD", "BNBUSD", "SOLUSD"],
   crypto_payment: ["BCHUSD", "LTCUSD", "XRPUSD"],
   crude_oil: [
+    // BRENT left the group with its dormancy (2026-08-09).
     "WTI",
-    "BRENT",
     "BZUSD",
     "CLUSD",
   ],

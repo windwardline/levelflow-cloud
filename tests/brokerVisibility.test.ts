@@ -98,7 +98,7 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
     "XRPUSD",
     // 2 metals, 2 energies. BRENT joins WTI under amendment 30: a real match
     // with a measurable offset is shown WITH its basis line, never hidden.
-    "XAGUSD", "XAUUSD", "WTI", "BRENT",
+    "XAGUSD", "XAUUSD", "WTI",
     // 6 indices. ASX un-hidden — F2 measured ^AXJO against E8's AUS200 book at
     // -5.7 (0.06%) in Sydney's cash session, the same "TRACKS (cash hours)"
     // verdict NIKKEI and DAX carry, so the hide's own condition was met.
@@ -134,9 +134,9 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
     ...new Set([...PINNED_FOREX, ...PINNED_CRYPTO, ...PINNED_FUTURES]),
   ].sort();
 
-  it("forex: exactly 46 symbols — E8's whole forex offering", () => {
+  it("forex: exactly 45 symbols — BRENT dormant on the owner's 2026-08-09 frame", () => {
     assert.deepEqual([...visibleAssetSymbols(FOREX_ACCOUNT)].sort(), PINNED_FOREX);
-    assert.equal(PINNED_FOREX.length, 46);
+    assert.equal(PINNED_FOREX.length, 45);
   });
 
   it("crypto: exactly 33 symbols — E8's whole crypto offering", () => {
@@ -152,10 +152,10 @@ describe("scannableSymbolsFor / visibleAssetSymbols — per-account-type sets, p
     assert.equal(PINNED_FUTURES.length, 27);
   });
 
-  it("null (no active account): the union of all three, 98 symbols, pinned", () => {
+  it("null (no active account): the union of all three, 97 symbols, pinned", () => {
     // 102 -> 98 with amendment 32's four departures.
     assert.deepEqual([...visibleAssetSymbols(null)].sort(), PINNED_NULL);
-    assert.equal(PINNED_NULL.length, 98);
+    assert.equal(PINNED_NULL.length, 97);
   });
 
   it("scannableSymbolsFor agrees with visibleAssetSymbols for every classification", () => {
@@ -349,14 +349,15 @@ describe("no-FMP-source rows and NOT_SCANNABLE rows never appear in any account 
     assert.ok(!scannableSymbolsFor("futures").includes("BNBUSD"));
   });
 
-  it("the twenty no-FMP-source rows never appear — they carry no Levelflow symbol to appear as", () => {
+  it("the twenty-one no-FMP-source rows never appear — they carry no Levelflow symbol to appear as", () => {
     const orphanBrokerNames = MASTER_LIST_ROWS
       .filter((entry) => entry.status === "excluded-no-fmp-source")
       .map((entry) => entry.brokerName);
     // 7 -> 20 (amendment 32, 2026-08-09): the original seven, plus the five
     // index futures whose cash-proxy matches the ruling unwound, plus the
     // eight CME currency futures whose spot mates were proxies all along.
-    assert.equal(orphanBrokerNames.length, 20);
+    // 20 -> 21: BRENT joined the register (2026-08-09).
+    assert.equal(orphanBrokerNames.length, 21);
     for (const classification of ["forex", "crypto", "futures"] as const) {
       const resolved = new Set(scannableSymbolsFor(classification));
       for (const brokerName of orphanBrokerNames) {
@@ -371,9 +372,15 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     assert.equal(sweepUniverse.length, 0);
   });
 
-  it("still includes BRENT, despite BRENT's forex-scoped visibility exclusion", () => {
+  it("no longer sweeps BRENT — dormant is out of the sweep, not merely out of view (2026-08-09)", () => {
+    // This pin used to hold BRENT IN the sweep through its display-scoped
+    // exclusion — correct while the match was believed real. The 2026-08-09
+    // frame showed the CFD pricing a month BZUSD does not serve, so there
+    // is no true series to sweep it against; sweeping it would calibrate
+    // the wrong instrument, which is exactly what item 1.5's sequencing
+    // note warned about.
     const symbols = sweepUniverse().map((entry) => entry.levelflowSymbol);
-    assert.ok(symbols.includes("BRENT"));
+    assert.ok(!symbols.includes("BRENT"));
   });
 
   it("still includes every served-but-not-scannable row — these carry an FMP mate and are matched, whatever their scannable-today status", () => {
@@ -413,11 +420,11 @@ describe("the sweep universe stays whole — unaffected by account type or the n
     }
   });
 
-  it("excludes only the twenty no-FMP rows and the eight variants — nothing else", () => {
+  it("excludes only the twenty-one no-FMP rows and the eight variants — nothing else", () => {
     const sweptCount = sweepUniverse().length;
     const noFmpCount = MASTER_LIST_ROWS.filter((entry) => entry.fmpSymbol === null).length;
     // 7 -> 20 (amendment 32): the dormant families joined the null-mate set.
-    assert.equal(noFmpCount, 20);
+    assert.equal(noFmpCount, 21);
     // Two reasons a row leaves the sweep, and only two: no series to sweep, or
     // it IS another row's market at a different contract size. 9 -> 8:
     // FDXM's variant slot left with its parent.

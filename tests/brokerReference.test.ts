@@ -662,19 +662,22 @@ describe("§19a — the row and its states", () => {
     // nothing was added: rows moved category.
     // 111 -> 106 (amendment 32, 2026-08-09): the five index futures left
     // the mapped universe; their dormancy lives on the master list.
-    assert.equal(ALL_MAPPED_SYMBOLS.length, 106);
-    assert.equal(SCANNABLE.size, 106);
+    // 106 -> 105: BRENT dormant (2026-08-09).
+    assert.equal(ALL_MAPPED_SYMBOLS.length, 105);
+    assert.equal(SCANNABLE.size, 105);
     assert.equal(ADDENDUM.length, 0);
-    assert.equal(BROKER_INSTRUMENTS.length, 1060);
-    assert.equal(scannableRowsFor("one").length, 106);
+    assert.equal(BROKER_INSTRUMENTS.length, 1050);
+    assert.equal(scannableRowsFor("one").length, 105);
   });
 
-  it("never keys a row on the FMP symbol — WTI/CLUSD and BRENT/BZUSD prove it cannot", () => {
+  it("never keys a row on the FMP symbol — WTI/CLUSD proves it cannot", () => {
+    // BRENT/BZUSD was the second proof pair until BRENT went dormant
+    // (2026-08-09); WTI sharing CLUSD with the futures row still carries
+    // the argument alone.
     const fmpByLevelflow = new Map(
       SECURITY_OPTIONS.map((option) => [option.symbol, option.fmpSymbol]),
     );
     assert.equal(fmpByLevelflow.get("WTI"), fmpByLevelflow.get("CLUSD"));
-    assert.equal(fmpByLevelflow.get("BRENT"), fmpByLevelflow.get("BZUSD"));
     // Same FMP symbol, different rows, different states on a CFD line.
     assert.notEqual(
       findBrokerInstrument("one", "WTI")!.tradability,
@@ -776,7 +779,8 @@ describe("§19a — the row and its states", () => {
       // Every non-futures row on a futures line: 28 forex, 2 metals, 2
       // energies, all 33 crypto, and the 6 cash index CFDs. None is offered
       // here, which is the assertion below.
-      assert.equal(nonFutures.length, 71);
+      // 71 -> 70: BRENT's CFD row left the universe.
+      assert.equal(nonFutures.length, 70);
       assert.ok(nonFutures.every((row) => row.tradability === "not_offered"), line);
 
       const tally = tallyFor(line);
@@ -800,7 +804,7 @@ describe("§19a — the row and its states", () => {
       assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
       // 99 -> 72: the false "Not offered" rows and the five register rows
       // left the tally where they never belonged.
-      assert.equal(tally.not_offered, 71, `${line} not offered`);
+      assert.equal(tally.not_offered, 70, `${line} not offered`);
       assert.equal(tally.not_published, 0, `${line} not published`);
 
       const confirmed = scannableRowsFor(line)
@@ -846,7 +850,9 @@ describe("§19a — the row and its states", () => {
       // 39 -> 46: BRENT joins under amendment 30 (shown with its basis line),
       // ASX joins now that its feed check is satisfied, and the five cash
       // indices join with the release. That is E8's whole forex offering.
-      assert.equal(tally.confirmed, 46, `${line} confirmed`);
+      // 46 -> 45: BRENT dormant (amendment 32, the owner's 2026-08-09
+      // frame — a time-varying contract-month gap is not a match).
+      assert.equal(tally.confirmed, 45, `${line} confirmed`);
       // The twelve Levelflow Futures rows (eleven until FDXM joined 2026-08-06
       // as FDAX's size variant): E8's futures roster lives exclusively on the
       // futures program lines, and E8 publishes that scope.
@@ -873,7 +879,7 @@ describe("§19a — the row and its states", () => {
       // 5514977, verbatim: "Crypto only". 51 -> 78 with the release, then
       // 78 -> 73 with amendment 32 (2026-08-09): the five index futures left
       // the mapped universe entirely.
-      assert.equal(tally.not_offered, 73, `${line} not offered`);
+      assert.equal(tally.not_offered, 72, `${line} not offered`);
       // 7 -> 33: the Crypto account's whole book is served now, and E8
       // publishes NO contract size for any crypto instrument — so every one is
       // honestly not_published for SIZE while being fully visible and
@@ -1000,7 +1006,6 @@ describe("§19a — the row and its states", () => {
     const APPENDIX_A_SIZEABLE = [
       "ADAUSD",
       "BCHUSD",
-      "BRENT",
       "BTCUSD",
       "ETHUSD",
       "LTCUSD",
@@ -1012,7 +1017,8 @@ describe("§19a — the row and its states", () => {
     for (const line of ["one", "pro_forex", "signature_forex"] as ProgramLine[]) {
       // 39 -> 46: BRENT (amendment 30), ASX, and the five cash indices are all
       // sizeable on a CFD line once served.
-      assert.equal(SIZEABLE_MARKETS_BY_LINE[line].length, 46, line);
+      // 46 -> 45: BRENT left with its dormancy.
+      assert.equal(SIZEABLE_MARKETS_BY_LINE[line].length, 45, line);
       for (const symbol of APPENDIX_A_SIZEABLE) {
         assert.ok(SIZEABLE_MARKETS_BY_LINE[line].includes(symbol), `${line} misses ${symbol}`);
       }
@@ -1024,7 +1030,7 @@ describe("§19a — the row and its states", () => {
     // on the other three Forex-classification lines.
     assert.equal(SIZEABLE_MARKETS_BY_LINE.zero.length, 44);
     for (const symbol of APPENDIX_A_SIZEABLE) {
-      const stillUnsized = symbol === "WTI" || symbol === "BRENT";
+      const stillUnsized = symbol === "WTI";
       assert.equal(
         SIZEABLE_MARKETS_BY_LINE.zero.includes(symbol),
         !stillUnsized,
@@ -1440,7 +1446,6 @@ describe("Appendix A — the 46 observations, on the Forex classification (amend
     ADAUSD: 100_000,
     BCHUSD: 200,
     BNBUSD: 200,
-    BRENT: 1_000,
     BTCUSD: 2,
     ETHUSD: 20,
     LTCUSD: 500,
@@ -1500,11 +1505,14 @@ describe("Appendix A — the 46 observations, on the Forex classification (amend
     assert.equal(findBrokerInstrument("pro_forex", "SP")!.brokerSymbolAlt, "SP.C");
   });
 
-  // BRENT's correction: the cross-map's "no E8 route on any program" verdict is
-  // wrong by direct observation (batch 2, corroborated by F6's order ticket).
-  it("gives BRENT an E8 route and leaves BZUSD pointing at it", () => {
-    assert.equal(findBrokerInstrument("pro_forex", "BRENT")!.tradability, "confirmed");
-    assert.equal(findBrokerInstrument("pro_forex", "BZUSD")!.relatedExposure, "BRENT");
+  // BRENT's arc, both directions held: the E8 ROUTE was real by direct
+  // observation (F6's order ticket) and is unquestioned; what died on
+  // 2026-08-09 was the FMP MATCH — the CFD prices a month BZUSD does not
+  // serve — so the market is dormant and generates no registry row. A
+  // dormant market with a real venue route is exactly what the reentry
+  // machinery exists for.
+  it("builds no BRENT row while it is dormant — the route survives in the master list's ground", () => {
+    assert.equal(findBrokerInstrument("pro_forex", "BRENT"), null);
   });
 
   // The Crypto and Futures classifications are untouched until their own

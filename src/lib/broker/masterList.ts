@@ -370,6 +370,33 @@ const AMENDMENT_32_INDEX_FUTURES: ReadonlyArray<{
   { broker: "NKD", cashSeries: "^N225", product: "Nikkei 225 Futures" },
 ];
 
+/**
+ * BRENT, dormant 2026-08-09 — the frame the handoff said would settle it,
+ * settled it. The owner's live platform frame (Energies.c, 21:44:53-21:45:00
+ * ET, DEMO login mirroring the live feed): WTI.C mid 79.152 vs CLUSD's
+ * exact-minute bar 79.02-79.07 — +0.10, inside E8's own 0.120 spread, a
+ * real match. BRENT.C mid 85.8205 vs BZUSD's exact-minute bar ~84.72 —
+ * +1.10, nine spreads wide, against +1.61/+1.675 measured twice on
+ * 2026-08-02. Mid-month, post-roll: a gap that moves half a dollar in a
+ * week is a contract-month basis decaying, not a venue offset — E8's
+ * BRENT.C is not written on the series BZUSD serves, and amendment 30's
+ * basis line cannot honestly state a number that was false within days of
+ * being measured. Amendment 32's third state applies. The futures-line
+ * BZUSD row is untouched; verify-fmp-matches re-probes each run.
+ */
+const BRENT_DORMANT_ROW: MasterListRow = row({
+  levelflowSymbol: null,
+  classification: "forex",
+  securityType: "Energies",
+  brokerName: "BRENT",
+  fmpSymbol: null,
+  status: "excluded-no-fmp-source",
+  ground:
+    "Amendment 32 (2026-08-09, decided on the owner's live frame): E8's BRENT CFD priced +1.10 above BZUSD's exact-minute bar at 21:45 ET after measuring +1.61/+1.675 on 2026-08-02 — a time-varying, contract-month-shaped gap, nine spreads wide, mid-month and post-roll. A basis that moves half a dollar in a week is not a stateable offset, and a CFD written on another month is not matched to the front-month series. WTI measured +0.10 in the same frame, inside its own spread, and stays. Re-probed each run; a BRENT-identified series matching E8's book re-admits it.",
+  source:
+    "Owner platform frame 2026-08-09 21:44-45 ET + FMP BZUSD/CLUSD exact-minute bars; docs/research/e8-feed-verification-2026-08-02.md F4/F6 for the 2026-08-02 measurements",
+});
+
 const AMENDMENT_32_INDEX_FUTURES_ROWS: MasterListRow[] =
   AMENDMENT_32_INDEX_FUTURES.map(({ broker, cashSeries, product }) =>
     row({
@@ -562,6 +589,7 @@ const CME_FX_MAJOR_ROWS: MasterListRow[] = CME_FX_MAJORS.map(
 export const MASTER_LIST_ROWS: readonly MasterListRow[] = [
   ...SERVED_ROWS,
   ...NO_FMP_SOURCE_FUTURES_ROWS,
+  BRENT_DORMANT_ROW,
   ...AMENDMENT_32_INDEX_FUTURES_ROWS,
   ...UNSIZEABLE_BACKEND_ROWS,
   ...CME_FX_MAJOR_ROWS,

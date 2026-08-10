@@ -169,7 +169,8 @@ describe("amendment 13 — market availability follows the account classificatio
       ),
     })).filter((group) => group.options.length > 0);
     assert.deepEqual(visibleAssetGroups(null), withoutBrent);
-    assert.ok(visibleAssetSymbols(null).includes("BRENT"));
+    assert.ok(!visibleAssetSymbols(null).includes("BRENT"), "dormant since 2026-08-09");
+    assert.ok(visibleAssetSymbols(null).includes("WTI"));
     assert.deepEqual(
       visibleAssetSymbols(null),
       AVAILABLE_ASSET_SYMBOLS.filter((symbol) =>
@@ -178,15 +179,18 @@ describe("amendment 13 — market availability follows the account classificatio
     );
   });
 
-  it("hides Futures on a Forex account and keeps Energies, BRENT included", () => {
+  it("hides Futures on a Forex account and keeps Energies — WTI now, BRENT dormant (2026-08-09)", () => {
     const labels = visibleAssetGroups(FOREX_ACCOUNT).map((group) => group.label);
     assert.ok(!labels.includes("Futures"), "E8 Forex accounts cannot trade futures");
     assert.ok(labels.includes("Energies"), "Energies remain on Forex accounts");
     const symbols = visibleAssetSymbols(FOREX_ACCOUNT);
     assert.ok(symbols.includes("WTI"), "WTI stays visible with its basis line");
+    // BRENT left the visible universe with its dormancy: the 2026-08-09
+    // frame measured its "stable" basis at +1.10 against the recorded
+    // +1.67 — a contract-month spread, not an offset a line could state.
     assert.ok(
-      symbols.includes("BRENT"),
-      "BRENT is served alongside WTI — amendment 30 shows a measured offset rather than hiding it",
+      !symbols.includes("BRENT"),
+      "BRENT is dormant — amendment 32's time-varying-gap verdict",
     );
     for (const futures of ["ESUSD", "NQUSD", "YMUSD", "RTYUSD", "GCUSD", "SIUSD", "CLUSD", "BZUSD", "ZBUSD", "ZNUSD"]) {
       assert.ok(!symbols.includes(futures), `${futures} must not be visible`);
@@ -226,7 +230,8 @@ describe("amendment 13 — market availability follows the account classificatio
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
     // 111 -> 106 (amendment 32, 2026-08-09): the five index futures left
     // the knowable universe; masterList carries their dormancy.
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 106);
+    // 106 -> 105: BRENT dormant (2026-08-09).
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 105);
   });
 
   // Amendment 23's offset ruling (owner, 2026-08-05): the same "nothing
@@ -240,21 +245,26 @@ describe("amendment 13 — market availability follows the account classificatio
   // notionals, never a market withheld. BRENT left this gap on 2026-08-07:
   // amendment 30 shows a measured offset with its basis line rather than
   // hiding the market.
-  it("splits the master identity into knowable (106) vs visible (98) on the size variants' grounds alone", () => {
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 106, "the knowable master list");
+  it("splits the master identity into knowable (105) vs visible (97) on the size variants' grounds alone", () => {
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 105, "the knowable master list");
+    // BRENT's "match stays for replay sweeps" claim died with the match
+    // itself (2026-08-09): a CFD pricing another month has no true series
+    // to sweep, and keeping it would calibrate the wrong instrument.
     assert.ok(
-      AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
-      "BRENT's FMP match stays in the master list for replay sweeps",
+      !AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
+      "BRENT is dormant, out of the knowable roster",
     );
     const visible = visibleAssetSymbols(null);
     assert.equal(
       visible.length,
-      98,
+      97,
       "the visible universe drops only the contract-size variants",
     );
+    // Amendment 30's release rested on a stable basis; amendment 32's
+    // dormancy rests on the measured instability that replaced it.
     assert.ok(
-      visible.includes("BRENT"),
-      "BRENT is visible — amendment 30 retired amendment 23's significance bar",
+      !visible.includes("BRENT"),
+      "BRENT is dormant (2026-08-09)",
     );
     assert.ok(
       !visible.includes("MGCUSD"),
