@@ -235,7 +235,7 @@ describe("holdout — excluded from tuning, present for the one confirmation rea
 });
 
 describe("a folded corpus names its own partition (3c/3d)", () => {
-  it("derives fit/select/confirm from the manifest and reads confirm once, for accepted variants only", () => {
+  it("derives fit/select/confirm from the manifest and reads confirm once, for accepted variants only", async () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 24; day += 1) {
       const swing = day % 2 === 0 ? 0.5 : -0.1;
@@ -283,7 +283,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       `${emitPath}.manifest.json`,
       JSON.stringify(manifest, null, 2) + "\n",
     );
-    const graded = gradeCorpus(emitPath, { permutations: 100, seed: 4 });
+    const graded = await gradeCorpus(emitPath, { permutations: 100, seed: 4 });
     assert.deepEqual(graded.foldNames, {
       confirm: "confirm",
       fit: "fit",
@@ -340,8 +340,8 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     return rows;
   };
 
-  it("concatenates shards whose conditions match", () => {
-    const graded = gradeCorpus(
+  it("concatenates shards whose conditions match", async () => {
+    const graded = await gradeCorpus(
       [shardWith(shardRows("EURUSD")), shardWith(shardRows("GBPUSD"))],
       { permutations: 50, seed: 6 },
     );
@@ -350,13 +350,12 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     assert.equal(verdict.selectFilled, 24);
   });
 
-  it("refuses shards measured under different conditions", () => {
-    assert.throws(
-      () =>
-        gradeCorpus([
-          shardWith(shardRows("EURUSD")),
-          shardWith(shardRows("GBPUSD"), [{}, { different: true }]),
-        ]),
+  it("refuses shards measured under different conditions", async () => {
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD")),
+        shardWith(shardRows("GBPUSD"), [{}, { different: true }]),
+      ]),
       /shards of one measurement/,
     );
   });
@@ -384,7 +383,7 @@ describe("the baseline is a named cell (4c's retired-gate grids)", () => {
 });
 
 describe("gradeCorpus — the emit door end to end", () => {
-  it("reads only a manifested corpus and grades it", () => {
+  it("reads only a manifested corpus and grades it", async () => {
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 12; day += 1) {
       rows.push(trainRow("baseline", day, 0.3));
@@ -392,7 +391,7 @@ describe("gradeCorpus — the emit door end to end", () => {
       rows.push(outcomeRow("baseline", day, 0.3));
       rows.push(outcomeRow("wide", day, 0.5));
     }
-    const graded = gradeCorpus(corpusWith(rows), {
+    const graded = await gradeCorpus(corpusWith(rows), {
       permutations: 50,
       seed: 2,
     });
