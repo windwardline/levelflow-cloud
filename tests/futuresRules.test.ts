@@ -4,6 +4,10 @@ import {
   applyFuturesTickRules,
   getFuturesContractSpec,
 } from "../supabase/functions/trade-analyzer/futures.ts";
+import {
+  E8_FUTURES_SPECS,
+  FUTURES_MAPPINGS,
+} from "../src/lib/broker/instruments";
 
 describe("futures tick rules", () => {
   it("rounds ES buy limits to valid ticks and preserves order direction", () => {
@@ -182,5 +186,83 @@ describe("every level the tick rules return is on the contract's grid", () => {
     });
     assert.ok(plan);
     assert.ok(onGrid(plan!.takeProfit1!, plan!.contractSpec.tickSize));
+  });
+});
+
+// 1b: 19 of 31 live futures markets shipped every price off-grid, because the
+// spec table held 13 symbols while the futures class held 31 — and agriculture
+// and livestock, which trade on the same exchange grids, never reached the
+// alignment at all. The table now covers every market whose grid is verified,
+// from two sources with one boundary between them:
+//
+//  - E8's own published tick table (13004287), already transcribed in
+//    src/lib/broker/instruments.ts CANONICAL_ROWS — the same source the
+//    existing 13 used.
+//  - The exchange's contract specification where E8 publishes no tick — the
+//    precedent ZBUSD (1/32) and ZNUSD (1/64) already set, because an
+//    exchange-traded contract's grid is the exchange's property, not the
+//    broker's. §20i ruling 5 still bars exchange values from the SIZING
+//    table; alignment is a price-grid fact, not a money fact.
+//
+// The five CME-sourced ticks are each grounded in evidence beyond memory:
+// ZOUSX 0.25 and ZRUSD 0.005 measured as the exact price-delta gcd of the
+// banked minute series (234 and 458 bars); ZFUSD/ZTUSD 0.0078125 confirmed by
+// the futures-account dossier's own conversion (ZFU6 106'070 = 106.21875 =
+// exactly 13,596 quarter-32nds); GFUSX 0.025 consistent with the live
+// watchlist print (GFQ6 348.300) and its LE/HE siblings' published tick.
+describe("1b: every verified-grid market has a spec; the unverifiable refuse", () => {
+  const expectedTicks: Record<string, number> = {
+    // E8-published (tick table 13004287, via instruments.ts):
+    HEUSX: 0.025,
+    HOUSD: 0.0001,
+    LEUSX: 0.025,
+    PAUSD: 0.1,
+    PLUSD: 0.1,
+    RBUSD: 0.0001,
+    ZCUSX: 0.25,
+    ZLUSX: 0.01,
+    ZMUSD: 0.1,
+    ZSUSX: 0.25,
+    // CME contract specifications (the ZB/ZN precedent):
+    GFUSX: 0.025,
+    ZFUSD: 0.0078125,
+    ZOUSX: 0.25,
+    ZRUSD: 0.005,
+    ZTUSD: 0.0078125,
+  };
+
+  it("carries the fifteen new specs at their verified ticks", () => {
+    for (const [symbol, tick] of Object.entries(expectedTicks)) {
+      const spec = getFuturesContractSpec(symbol);
+      assert.ok(spec, `${symbol} must have a contract spec`);
+      assert.equal(spec.tickSize, tick, symbol);
+    }
+  });
+
+  it("agrees with E8's published tick wherever E8 published one", () => {
+    // The Deno boundary: futures.ts cannot import instruments.ts, so the two
+    // declarations are pinned to each other here (the contractVariants
+    // pattern). Every sizing-side mapped symbol with a published tick must
+    // match the analyzer's grid exactly — one fact, two homes, zero drift.
+    for (const [levelflowSymbol, e8Symbol] of Object.entries(FUTURES_MAPPINGS)) {
+      const published = E8_FUTURES_SPECS[e8Symbol]?.tickSize.value;
+      if (published === null || published === undefined) {
+        continue;
+      }
+      const spec = getFuturesContractSpec(levelflowSymbol);
+      assert.ok(spec, `${levelflowSymbol} is mapped but has no analyzer spec`);
+      assert.equal(spec.tickSize, published, levelflowSymbol);
+    }
+  });
+
+  it("refuses a spec to the four index futures served on cash series (amendment 32)", () => {
+    // A derivative is not its underlying. EMD/FDAX/FESX/NKD are served today
+    // on CASH index series, so no honest grid exists for what is actually
+    // served — E8's futures ticks describe contracts these series are not.
+    // They refuse under 1b until item 1.5 makes them dormant; adding their
+    // specs would align the wrong instrument.
+    for (const symbol of ["EMD", "FDAX", "FESX", "NKD", "FDXM"]) {
+      assert.equal(getFuturesContractSpec(symbol), null, symbol);
+    }
   });
 });

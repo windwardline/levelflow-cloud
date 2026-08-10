@@ -222,8 +222,24 @@ describe("§19f — E8's futures specs, pinned to the articles that publish them
         `${symbol} must stay unsizeable under amendment 22`,
       );
     }
+    // 1c (2026-08-09): ZT, ZF and GF joined the margin-only family — same F9
+    // sighting, same published margin, same unpublished tick/value — and ZO,
+    // ZR, XC and XK joined as watchlist-only rows, live-priced on the same
+    // frames with NOTHING published. All seven follow ZB/ZN's law: OFFERED
+    // by amendment 19, unsizeable under amendment 22's published clause.
+    for (const symbol of ["GF", "XC", "XK", "ZF", "ZO", "ZR", "ZT"]) {
+      const spec = E8_FUTURES_SPECS[symbol];
+      assert.equal(spec.canonical, false, symbol);
+      assert.equal(spec.tradability, "confirmed", symbol);
+      assert.ok(spec.tradabilitySource.observation, `${symbol} carries an observation`);
+      assert.equal(spec.tickSize.value, null, symbol);
+      assert.equal(spec.valuePerTick.value, null, symbol);
+    }
     const marginOnly = Object.values(E8_FUTURES_SPECS).filter((s) => !s.canonical);
-    assert.deepEqual(marginOnly.map((s) => s.symbol).sort(), ["ZB", "ZN"]);
+    assert.deepEqual(
+      marginOnly.map((s) => s.symbol).sort(),
+      ["GF", "XC", "XK", "ZB", "ZF", "ZN", "ZO", "ZR", "ZT"],
+    );
   });
 
   it("records both observed spellings where E8 disagrees with itself", () => {
@@ -730,46 +746,57 @@ describe("§19a — the row and its states", () => {
     ] as ProgramLine[]) {
       const rows = scannableRowsFor(line);
       const nonFutures = rows.filter(
-        (row) => // HGUSD and NGUSD joined this list on 2026-08-07. Both are genuine
-        // futures with E8 specs, and both were invisible here only because they
-        // were withheld — the release surfaced them as `confirmed` on a futures
-        // line, which is correct, and the omission was in this literal.
-        !["BZUSD", "CLUSD", "ESUSD", "FDXM", "GCUSD", "HGUSD", "MES", "MGCUSD", "MNQ", "MYM", "NGUSD", "NQUSD", "QG", "QM", "RTYUSD", "SIUSD", "XC", "XK", "YMUSD", "ZBUSD", "ZNUSD"].includes(row.levelflowSymbol),
+        (row) => // 1c (2026-08-09): the fifteen futures the mapping table was missing
+        // — grains, livestock, refined energies, PGMs, short Treasuries —
+        // plus the four amendment-32 index futures join this literal. Before
+        // this, every one of them fell into nonFutures and had to be
+        // not_offered for the test to pass, which is exactly the false claim
+        // 1c existed to remove.
+        ![
+          "BZUSD", "CLUSD", "EMD", "ESUSD", "FDAX", "FDXM", "FESX", "GCUSD",
+          "GFUSX", "HEUSX", "HGUSD", "HOUSD", "LEUSX", "MES", "MGCUSD", "MNQ",
+          "MYM", "NGUSD", "NKD", "NQUSD", "PAUSD", "PLUSD", "QG", "QM",
+          "RBUSD", "RTYUSD", "SIUSD", "XC", "XK", "YMUSD", "ZBUSD", "ZCUSX",
+          "ZFUSD", "ZLUSX", "ZMUSD", "ZNUSD", "ZOUSX", "ZRUSD", "ZSUSX",
+          "ZTUSD",
+        ].includes(row.levelflowSymbol),
       );
       // Every non-futures row on a futures line: 28 forex, 2 metals, 2
-      // energies and all 33 crypto now that the Crypto account's full book is
-      // served. None is offered here, which is the assertion below.
-      assert.equal(nonFutures.length, 90);
+      // energies, all 33 crypto, and the 6 cash index CFDs. None is offered
+      // here, which is the assertion below.
+      assert.equal(nonFutures.length, 71);
       assert.ok(nonFutures.every((row) => row.tradability === "not_offered"), line);
 
       const tally = tallyFor(line);
-      // ZBUSD and ZNUSD moved from unconfirmed to confirmed here (owner
-      // ruling, 2026-08-05, the F9 futures-account sighting) -- OFFERED per
-      // amendment 19. They are still unsizeable (amendment 22): SIZEABLE_MARKETS_BY_LINE
-      // below is unchanged by this move, because their tick/value stay null.
-      // 10 -> 12: MGCUSD and FDXM entered the scannable set with the release,
-      // and both carry E8 futures specs. They remain contract-size variants
-      // held out of the SCAN by contractVariants.ts — a different question from
-      // whether E8 offers and sizes them, which it does.
-      assert.equal(tally.confirmed, 12, `${line} confirmed`);
-      assert.equal(tally.unconfirmed, 0, `${line} unconfirmed`);
-      // 48 -> 99: every CFD row the release made available is still not offered
-      // on a futures line. A futures account trades futures.
-      assert.equal(tally.not_offered, 99, `${line} not offered`);
+      // 12 -> 34 (1c, 2026-08-09): ten markets with full E8-published specs
+      // (ZC ZS ZM ZL LE HE HO RB PL PA), three margin-only-with-sighting
+      // (ZF ZT GF), two watchlist-only-with-sighting (ZO ZR) and seven
+      // contract-size variants (MES MNQ MYM QG QM XC XK — five with full
+      // published specs, two watchlist-sighted) all read `confirmed` — the
+      // F9 frames show every one of them live, and the old "Not offered"
+      // was a claim verified only for BZUSD.
+      assert.equal(tally.confirmed, 34, `${line} confirmed`);
+      // 0 -> 5: EMD, FDAX, FDXM, FESX, NKD sit in the absence register as
+      // `unconfirmed` pending amendment 32's dormancy (item 1.5) — served on
+      // cash index series, so no honest futures sizing row can be built.
+      assert.equal(tally.unconfirmed, 5, `${line} unconfirmed`);
+      // 99 -> 72: the false "Not offered" rows and the five register rows
+      // left the tally where they never belonged.
+      assert.equal(tally.not_offered, 72, `${line} not offered`);
       assert.equal(tally.not_published, 0, `${line} not published`);
 
       const confirmed = scannableRowsFor(line)
         .filter((row) => row.tradability === "confirmed")
         .map((row) => row.brokerSymbol)
         .sort();
-      // HG and NG join on 2026-08-07 — both are genuine E8 futures with
-      // published specs, invisible here only while they were withheld. FDXM is
-      // absent because it is excluded from the scannable set as FDAX's
-      // contract-size variant, which is a scan question rather than an offering
-      // one.
       assert.deepEqual(
         confirmed,
-        ["CL", "ES", "GC", "HG", "MGC", "NG", "NQ", "RTY", "SI", "YM", "ZB", "ZN"],
+        [
+          "CL", "ES", "GC", "GF", "HE", "HG", "HO", "LE", "MES", "MGC",
+          "MNQ", "MYM", "NG", "NQ", "PA", "PL", "QG", "QM", "RB", "RTY",
+          "SI", "XC", "XK", "YM", "ZB", "ZC", "ZF", "ZL", "ZM", "ZN", "ZO",
+          "ZR", "ZS", "ZT",
+        ],
       );
       assert.equal(findBrokerInstrument(line, "BZUSD")!.tradability, "not_offered");
       assert.equal(findBrokerInstrument(line, "ZBUSD")!.tradability, "confirmed");
@@ -957,7 +984,7 @@ describe("§19a — the row and its states", () => {
     assert.deepEqual(ADDENDUM.sort(), []);
   });
 
-  it("counts what is sizeable: 46 on three CFD lines, 44 on Zero, 10 on a futures line, 0 on a crypto line", () => {
+  it("counts what is sizeable: 46 on three CFD lines, 44 on Zero, 24 on a futures line, 0 on a crypto line", () => {
     // Appendix A's fold (amendment 12): the 28 forex pairs and XAUUSD (29,
     // unchanged) plus XAGUSD, WTI, BRENT and seven scannable crypto rows (10).
     const APPENDIX_A_SIZEABLE = [
@@ -1001,21 +1028,38 @@ describe("§19a — the row and its states", () => {
         "zero_futures_max",
       ] as ProgramLine[]
     ) {
-      // HGUSD and NGUSD join on 2026-08-07: both carry E8 tick and value data
-      // and were sizeable all along — they were simply not in the roster while
-      // withheld. ZBUSD and ZNUSD stay out, offered but unsizeable (amendment
-      // 22), because E8 publishes no tick value for them.
+      // 10 -> 24 (1c, 2026-08-09): nine markets whose full specs E8 always
+      // published (ZC ZS ZM ZL LE HE HO RB PL) and five contract-size
+      // variants with published specs (MES MNQ MYM QG QM) size the moment
+      // the mapping table stops dropping them. PAUSD stays out — E8's own
+      // margin table omits palladium, amendment 22's published clause.
+      // ZBUSD/ZNUSD/ZFUSD/ZTUSD/GFUSX/ZOUSX/ZRUSD stay out the same way:
+      // offered, tick or value never published.
       assert.deepEqual(SIZEABLE_MARKETS_BY_LINE[line].sort(), [
         "CLUSD",
         "ESUSD",
         "GCUSD",
+        "HEUSX",
         "HGUSD",
+        "HOUSD",
+        "LEUSX",
+        "MES",
         "MGCUSD",
+        "MNQ",
+        "MYM",
         "NGUSD",
         "NQUSD",
+        "PLUSD",
+        "QG",
+        "QM",
+        "RBUSD",
         "RTYUSD",
         "SIUSD",
         "YMUSD",
+        "ZCUSX",
+        "ZLUSX",
+        "ZMUSD",
+        "ZSUSX",
       ]);
     }
     for (const line of ["one_crypto", "pro_crypto", "signature_crypto"] as ProgramLine[]) {

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   buildLadderTargets,
@@ -186,58 +187,59 @@ describe("ladder targets", () => {
   });
 });
 
-describe("price plan integration", () => {
-  // Triangle wave oscillating 98..102 so pivot highs sit near 102.3 and pivot
-  // lows near 97.7, with one early spike low to 90 that must NOT anchor the stop.
-  function syntheticMarket(): MarketContext {
-    const primary: Bar[] = [];
-    for (let index = 0; index < 120; index += 1) {
-      const position = index % 20;
-      const value = position < 10
-        ? 98 + 0.4 * position
-        : 102 - 0.4 * (position - 10);
-      const spike = index === 60;
-      primary.push({
-        close: value,
-        high: value + 0.3,
-        low: spike ? 90 : value - 0.3,
-        open: value,
-        time: index * 900_000,
-        volume: 1_000,
-      });
-    }
-    // Daily range is ~10x the 15-minute ATR, matching real intraday-to-daily
-    // volatility ratios, so window-feasibility math behaves like production.
-    const daily: Bar[] = Array.from({ length: 80 }, (_, index) => ({
-      close: 100 + (index % 2 === 0 ? 0.5 : -0.5),
-      high: 103.2,
-      low: 96.8,
-      open: 100,
-      time: index * 86_400_000,
-      volume: 10_000,
-    }));
-    const latest = primary.at(-1)!;
-
-    return {
-      availableTimeframes: ["1day", "1hour", "15min"],
-      daily,
-      latest,
-      latestTimeframe: "15min",
-      primary,
-      primaryTimeframe: "15min",
-      providerWarnings: [],
-      quote: null,
-      timeframes: { "15min": primary, "1day": daily },
-    };
+// Triangle wave oscillating 98..102 so pivot highs sit near 102.3 and pivot
+// lows near 97.7, with one early spike low to 90 that must NOT anchor the stop.
+function syntheticMarket(): MarketContext {
+  const primary: Bar[] = [];
+  for (let index = 0; index < 120; index += 1) {
+    const position = index % 20;
+    const value = position < 10
+      ? 98 + 0.4 * position
+      : 102 - 0.4 * (position - 10);
+    const spike = index === 60;
+    primary.push({
+      close: value,
+      high: value + 0.3,
+      low: spike ? 90 : value - 0.3,
+      open: value,
+      time: index * 900_000,
+      volume: 1_000,
+    });
   }
+  // Daily range is ~10x the 15-minute ATR, matching real intraday-to-daily
+  // volatility ratios, so window-feasibility math behaves like production.
+  const daily: Bar[] = Array.from({ length: 80 }, (_, index) => ({
+    close: 100 + (index % 2 === 0 ? 0.5 : -0.5),
+    high: 103.2,
+    low: 96.8,
+    open: 100,
+    time: index * 86_400_000,
+    volume: 10_000,
+  }));
+  const latest = primary.at(-1)!;
 
-  const regime: Regime = {
-    bias: "neutral",
-    name: "range",
-    rationale: "test",
-    trendStrength: 0.5,
-    volatilityPercentile: 0.5,
+  return {
+    availableTimeframes: ["1day", "1hour", "15min"],
+    daily,
+    latest,
+    latestTimeframe: "15min",
+    primary,
+    primaryTimeframe: "15min",
+    providerWarnings: [],
+    quote: null,
+    timeframes: { "15min": primary, "1day": daily },
   };
+}
+
+const regime: Regime = {
+  bias: "neutral",
+  name: "range",
+  rationale: "test",
+  trendStrength: 0.5,
+  volatilityPercentile: 0.5,
+};
+
+describe("price plan integration", () => {
 
   it("emits a ladder with TP1 between entry and the runner target", () => {
     const plan = buildPricePlan(
@@ -343,3 +345,125 @@ describe("stopLogic describes what actually set the stop", () => {
 });
 });
 
+
+// 1b: the two fail-open gates. Gate 1 asked `assetType === "futures"`, so
+// agriculture and livestock — exchange futures on real tick grids — never
+// reached alignment; gate 2 silently kept an unaligned plan when the spec
+// lookup missed. A missing contract spec now refuses, and the refusal
+// happens at the analysis door with its own reason, not inside the plan.
+describe("1b: futures-shaped classes align or refuse — nothing ships off-grid", () => {
+  const INDEX_SOURCE = readFileSync(
+    "supabase/functions/trade-analyzer/index.ts",
+    "utf8",
+  );
+
+  it("aligns livestock to its grid — the class gate covers all three futures-shaped classes", () => {
+    const plan = buildPricePlan(
+      "buy",
+      "LEUSX",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("LEUSX"),
+    );
+
+    assert.ok(plan, "livestock must build a plan once its spec exists");
+    for (
+      const [name, level] of [
+        ["entryPrice", plan.entryPrice],
+        ["stopLoss", plan.stopLoss],
+        ["takeProfit", plan.takeProfit],
+        ["takeProfit1", plan.takeProfit1],
+      ] as const
+    ) {
+      const ticks = level / 0.025;
+      assert.ok(
+        Math.abs(ticks - Math.round(ticks)) < 1e-6,
+        `${name} ${level} must sit on LE's 0.025 grid`,
+      );
+    }
+  });
+
+  it("refuses the plan when a futures-shaped symbol has no spec (the belt)", () => {
+    // FESX is futures-classified and deliberately spec-less (amendment 32).
+    // Even if a future call path skips the analysis door, no plan ships.
+    const plan = buildPricePlan(
+      "buy",
+      "FESX",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("FESX"),
+    );
+    assert.equal(plan, null);
+  });
+
+  it("refuses at the analysis door, with the missing spec named — not a price-validation excuse", () => {
+    // The door check runs before direction and scoring, so the reader sees
+    // the true ground. Without it, the spec-less refusal would wear "A valid
+    // limit entry was not available." — replacing one lie with another.
+    assert.match(
+      INDEX_SOURCE,
+      /needsFuturesTickGrid\(normalizedSymbol\) &&\s*!getFuturesContractSpec\(normalizedSymbol\)/,
+    );
+    assert.match(
+      INDEX_SOURCE,
+      /reason:\s*"This market's price increments are not yet verified, so no setup is shown\.",/,
+    );
+  });
+
+  it("emits all four provenances into the risk model — the corpus can audit what it stores", () => {
+    // runnerProvenance, tp1Provenance and entryProvenance were computed and
+    // dropped on the floor, which blocked calibration 4d's TP1 and runner
+    // phases: nothing could ask which anchor actually placed a level.
+    for (const field of ["stopProvenance", "runnerProvenance", "tp1Provenance", "entryProvenance"]) {
+      assert.match(
+        INDEX_SOURCE,
+        new RegExp(`${field}: pricePlan\\.${field},`),
+        field,
+      );
+    }
+  });
+
+  it("bumps ANALYZER_VERSION — alignment on nineteen markets changes what the engine emits", () => {
+    assert.match(INDEX_SOURCE, /const ANALYZER_VERSION = "2026\.08\.09\.futures-grid";/);
+  });
+});
+
+// 1o's residue: stopLogic was repaired to derive from provenance (#248), and
+// targetLogic — one field over in the same return — kept asserting "the
+// runner is the nearest structural level" unconditionally, while
+// runnerProvenance two lines above recorded window_ceiling for most of the
+// corpus, and TP1's own provenance recorded that the "risk-scaled partial"
+// is frequently the ATR floor or the window cap instead.
+describe("targetLogic derives from what actually happened (1o residue)", () => {
+  const PLAN_SOURCE = readFileSync(
+    "supabase/functions/trade-analyzer/pricePlan.ts",
+    "utf8",
+  );
+
+  it("keeps no unconditional target sentence", () => {
+    assert.doesNotMatch(
+      PLAN_SOURCE,
+      /targetLogic:\s*\n?\s*"TP1 banks a risk-scaled partial; the runner is the nearest structural level/,
+    );
+    assert.match(PLAN_SOURCE, /TP1_LOGIC_BY_PROVENANCE/);
+    assert.match(PLAN_SOURCE, /RUNNER_LOGIC_BY_PROVENANCE/);
+    assert.match(
+      PLAN_SOURCE,
+      /targetLogic: `\$\{TP1_LOGIC_BY_PROVENANCE\[ladder\.tp1Provenance\]\} \$\{\s*RUNNER_LOGIC_BY_PROVENANCE\[ladder\.runnerProvenance\]\s*\}`,/,
+    );
+  });
+
+  it("describes the ceiling as the ceiling when no structural level qualified", () => {
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: ladderCalibration,
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [],
+      riskDistance: 2,
+      side: "buy",
+    });
+    assert.ok(ladder);
+    assert.equal(ladder.runnerProvenance, "window_ceiling");
+  });
+});

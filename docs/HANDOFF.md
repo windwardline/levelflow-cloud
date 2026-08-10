@@ -210,9 +210,39 @@ Done: 1a, 1d, 1k, 1n, 1s · **1m + 1r 2026-08-09** (dead session ends the visit 
 local sign-out on 401/PGRST301; profile keeps last-known on failed reads with a
 loadFailed line in ProfilePanel; chart overlay stays silent on failure while the
 notice speaks; analyzer splits thrown-fetch from thin-history in the blocked reason;
-`hasVerifiedMarketDataSource` answers from the roster instead of vacuously true) ·
-**1p fixed by #251** (2026-08-06, spec-present path — the only survivor is 1b's skip) ·
-**1o's `stopLogic` fixed by #248** (2026-08-06, provenance-derived copy).
+`hasVerifiedMarketDataSource` answers from the roster instead of vacuously true —
+hardened twice post-deploy: refresh-before-sign-out because one 401 kills a token
+not a session, and the public-auth E2E fixtures now seed REAL sessions, because the
+fabricated session they were built on was itself the 1r defect state) ·
+**1p fixed by #251** (2026-08-06, spec-present path) ·
+**1o's `stopLogic` fixed by #248** (2026-08-06) ·
+**1b + 1c + 1o-residue 2026-08-09**: fifteen new contract specs (ten from E8's
+tick table, five CME-official under the ZB/ZN precedent — ZO/ZR grids confirmed
+empirically as the price-delta gcd of the banked minute series, ZF/ZT by the
+dossier's own 1/128 conversions); the alignment gate covers agriculture and
+livestock; a spec-less futures-shaped market refuses at the analysis door with its
+own reason (EMD/FDAX/FESX/NKD/FDXM refuse pending 1.5's dormancy — no specs were
+added for markets leaving the view); `targetLogic` derives from tp1/runner
+provenance and all four provenances now persist into `risk_model` (unblocks 4d's
+TP1/runner phases); FUTURES_MAPPINGS 12→27 with a throwing absence register, so
+28 markets E8 demonstrably trades stopped rendering "Not offered" — futures-line
+tallies now 34 confirmed / 5 unconfirmed / 72 not-offered, sizeable 10→24
+(PA/ZF/ZT/GF/ZO/ZR correctly withheld, amendment 22). ANALYZER_VERSION
+`2026.08.09.futures-grid`.
+
+**Two flags from the 1b/1c work, for the owner alongside the BRENT/WTI question:**
+- The F9 futures-account frames show a live BZ row on the Energies watchlist —
+  amendment 19 would call Brent OFFERED on the futures line, contradicting the
+  three-listing cross-check the current `not_offered` rests on. Left as-is,
+  recorded in the absence register's ground; decide with BRENT/WTI.
+- ZO and ZR carry CME-official alignment ticks (0.25 / 0.005) — a provenance
+  choice: exchange contract specs where E8 publishes none, the precedent ZB/ZN
+  set. §20i ruling 5 untouched: nothing exchange-sourced entered the SIZING table.
+
+**Measured while grounding the ticks, for item 2's file:** several FMP minute
+series carry finer-than-exchange-grid prices — ZCUSX shows 0.01 deltas on a
+0.25-tick contract, ZF/ZT decimalize to ~1e-5 — so minute bars are not raw
+trades. Bears on 2h's bad-tick sanitisation and any intrabar path model.
 
 ### 1.5 — Unmatched markets go dormant (amendment 32) — **spec'd, ready to run**
 Owner ruling: any market without a genuine FMP match is dormant and excluded from

@@ -1,4 +1,20 @@
+import { getAssetType } from "./calibration.ts";
+
 export type FuturesSide = "buy" | "sell";
+
+/**
+ * 1b: which symbols must carry a tick grid before a plan may ship. The old
+ * gate asked `assetType === "futures"`, so agriculture and livestock —
+ * exchange futures on the same grids — never reached alignment at all: 19 of
+ * 31 live futures markets shipped every price off-grid, with a copy button
+ * beside each. A futures-shaped symbol without a spec refuses at the
+ * analysis door; this predicate is what both the door and the plan consult.
+ */
+export function needsFuturesTickGrid(symbol: string): boolean {
+  const assetType = getAssetType(symbol);
+  return assetType === "futures" || assetType === "agriculture" ||
+    assetType === "livestock";
+}
 
 export type FuturesContractSpec = {
   contractLabel: string;
@@ -105,6 +121,145 @@ const FUTURES_CONTRACT_SPECS: Record<string, FuturesContractSpec> = {
     minStopTicks: 4,
     minTargetTicks: 8,
     tickSize: 0.015625,
+  },
+  // --- Added 2026-08-09 (1b). Ticks from E8's published tick table
+  // (13004287), the same source as the rows above — transcribed in
+  // src/lib/broker/instruments.ts CANONICAL_ROWS and pinned to this table by
+  // tests/futuresRules.test.ts across the Deno boundary. Min-distance ticks
+  // are provisional class-sibling values pending calibration item 4d.
+  HEUSX: {
+    contractLabel: "Lean hog futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.025,
+  },
+  HOUSD: {
+    contractLabel: "Heating oil futures",
+    minStopTicks: 12,
+    minTargetTicks: 24,
+    tickSize: 0.0001,
+  },
+  LEUSX: {
+    contractLabel: "Live cattle futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.025,
+  },
+  PAUSD: {
+    contractLabel: "Palladium futures",
+    minStopTicks: 6,
+    minTargetTicks: 12,
+    tickSize: 0.1,
+  },
+  PLUSD: {
+    contractLabel: "Platinum futures",
+    minStopTicks: 6,
+    minTargetTicks: 12,
+    tickSize: 0.1,
+  },
+  RBUSD: {
+    contractLabel: "RBOB gasoline futures",
+    minStopTicks: 12,
+    minTargetTicks: 24,
+    tickSize: 0.0001,
+  },
+  ZCUSX: {
+    contractLabel: "Corn futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.25,
+  },
+  ZLUSX: {
+    contractLabel: "Soybean oil futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.01,
+  },
+  ZMUSD: {
+    contractLabel: "Soybean meal futures",
+    minStopTicks: 6,
+    minTargetTicks: 12,
+    tickSize: 0.1,
+  },
+  ZSUSX: {
+    contractLabel: "Soybean futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.25,
+  },
+  // Contract-size variants (scan-excluded, §19h): specs exist so a variant
+  // that ever becomes scannable aligns on day one, and so the sizing-side
+  // mapping table and this grid can be pinned to each other without holes.
+  // Ticks are E8-published; min distances mirror each full-size parent.
+  MES: {
+    contractLabel: "Micro E-mini S&P 500 futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.25,
+  },
+  MNQ: {
+    contractLabel: "Micro E-mini Nasdaq 100 futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.25,
+  },
+  MYM: {
+    contractLabel: "Micro E-mini Dow futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 1,
+  },
+  QG: {
+    contractLabel: "E-mini natural gas futures",
+    minStopTicks: 12,
+    minTargetTicks: 24,
+    tickSize: 0.005,
+  },
+  QM: {
+    contractLabel: "E-mini crude oil futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.025,
+  },
+  // --- CME contract specifications, where E8 publishes no tick — the
+  // precedent ZBUSD (1/32) and ZNUSD (1/64) above already set: the grid of an
+  // exchange-traded contract is the exchange's property. §20i ruling 5 still
+  // bars exchange values from the SIZING table; alignment is a price-grid
+  // fact, not a money fact. Each of these five is grounded beyond memory:
+  // ZOUSX/ZRUSD measured as the exact price-delta gcd of the banked minute
+  // series; ZFUSD/ZTUSD confirmed by the futures dossier's own conversion
+  // (ZFU6 106'070 = 106.21875 = exactly 13,596 quarter-32nds); GFUSX
+  // consistent with the live watchlist print (GFQ6 348.300) and its LE/HE
+  // siblings' published 0.025.
+  GFUSX: {
+    contractLabel: "Feeder cattle futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.025,
+  },
+  ZFUSD: {
+    contractLabel: "5-year Treasury note futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.0078125,
+  },
+  ZOUSX: {
+    contractLabel: "Oat futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.25,
+  },
+  ZRUSD: {
+    contractLabel: "Rough rice futures",
+    minStopTicks: 8,
+    minTargetTicks: 16,
+    tickSize: 0.005,
+  },
+  ZTUSD: {
+    contractLabel: "2-year Treasury note futures",
+    minStopTicks: 4,
+    minTargetTicks: 8,
+    tickSize: 0.0078125,
   },
 };
 
