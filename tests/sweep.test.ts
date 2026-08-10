@@ -32,6 +32,7 @@ function outcomeRecord(
     newsPenalty: 0,
     outcome,
     realizedR,
+    riskDistance: 1,
     regime: "trend",
     rewardRisk: 0,
     sessionLabel: "",
@@ -279,6 +280,7 @@ describe("replay sweep", () => {
         assert.ok(Number.isFinite(record.filledAtMs));
         assert.ok(Number.isFinite(record.maxAdverseMove));
         assert.ok(Number.isFinite(record.maxFavorableMove));
+        assert.ok(record.riskDistance > 0);
       }
     }
   });

@@ -67,6 +67,9 @@ export type SweepOutcomeRecord = {
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
   regime: string;
+  // The planned risk unit in PRICE terms — with the legs, every half of a
+  // resolution reconstructs exactly (rewardRisk alone is a ratio).
+  riskDistance: number;
   rewardRisk: number;
   sessionLabel: string;
   sessionPenalty: number;
@@ -549,6 +552,7 @@ export function simulateSymbol(input: {
       maxFavorableMove: feedbackNumber("maxFavorableMove"),
       newsPenalty: newsPenaltyUnits,
       outcome: evaluation.outcome,
+      riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
         // Half the round trip per full-size execution unit: two units run
