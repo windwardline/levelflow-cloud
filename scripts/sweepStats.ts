@@ -17,7 +17,8 @@
 //   an emit whose conditions were edited, or that never recorded them, is
 //   refused instead of averaged.
 
-import { readFileSync } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
+import { createInterface } from "node:readline";
 import {
   sha256Hex,
   stableStringify,
@@ -129,10 +130,40 @@ export function clusteredStandardError(
  * Throws on a missing manifest, a hash mismatch, or an unparseable row —
  * a hole in the corpus is a refused corpus, not a smaller one.
  */
-export function assertManifestedCorpus(emitPath: string): {
-  manifest: SweepManifest;
-  rows: SweepEmitRow[];
-} {
+/**
+ * The streaming form of the same door, for corpora too large to hold
+ * (the 2026-08-05 run emitted 505MB): the manifest hash verifies BEFORE
+ * a single row is read, rows stream one at a time, and an unparseable
+ * line still refuses the whole corpus.
+ */
+export async function assertManifestedCorpusStreaming(
+  emitPath: string,
+  onRow: (row: SweepEmitRow) => void,
+): Promise<SweepManifest> {
+  const manifest = verifyManifest(emitPath);
+  const reader = createInterface({
+    crlfDelay: Number.POSITIVE_INFINITY,
+    input: createReadStream(emitPath),
+  });
+  let lineNumber = 0;
+  for await (const line of reader) {
+    lineNumber += 1;
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    try {
+      onRow(JSON.parse(trimmed) as SweepEmitRow);
+    } catch {
+      throw new Error(
+        `${emitPath}: line ${lineNumber} failed to parse — a holed corpus is refused, not shrunk`,
+      );
+    }
+  }
+  return manifest;
+}
+
+function verifyManifest(emitPath: string): SweepManifest {
   let manifestText: string;
   try {
     manifestText = readFileSync(`${emitPath}.manifest.json`, "utf8");
@@ -150,6 +181,14 @@ export function assertManifestedCorpus(emitPath: string): {
       `${emitPath}: manifest hash mismatch — recorded ${manifestHash}, recomputed ${recomputed}; the corpus's stated conditions cannot be trusted`,
     );
   }
+  return manifest;
+}
+
+export function assertManifestedCorpus(emitPath: string): {
+  manifest: SweepManifest;
+  rows: SweepEmitRow[];
+} {
+  const manifest = verifyManifest(emitPath);
 
   const rows: SweepEmitRow[] = [];
   const lines = readFileSync(emitPath, "utf8").split("\n");

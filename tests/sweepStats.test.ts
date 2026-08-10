@@ -148,6 +148,25 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
   });
 });
 
+describe("sweep-analysis adopts the shared vocabulary too", () => {
+  const source = readFileSync("scripts/sweep-analysis.ts", "utf8");
+
+  it("keeps no private stats arithmetic and enters through the streaming door", () => {
+    assert.doesNotMatch(source, /function emptyStats\(/);
+    assert.match(source, /assertManifestedCorpusStreaming\(/);
+    assert.match(source, /from "\.\/sweepStats\.ts"/);
+  });
+
+  it("derives its threshold banner from calibration at runtime — the hardcoded copy is gone", () => {
+    assert.doesNotMatch(source, /LIVE_THRESHOLDS/);
+    assert.match(source, /getCategoryCalibration\(/);
+  });
+
+  it("excludes holdout markets from tuning tables (3e)", () => {
+    assert.match(source, /parsed\.holdout === true/);
+  });
+});
+
 describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's door)", () => {
   const writeCorpus = (
     tamper?: (manifest: Record<string, unknown>) => void,
