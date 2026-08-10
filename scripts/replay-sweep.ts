@@ -22,7 +22,7 @@ import {
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
-import { calendarFolds, isHoldoutSymbol } from "./sweepFolds.ts";
+import { calendarFolds, foldSplits, isHoldoutSymbol } from "./sweepFolds.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
@@ -257,33 +257,9 @@ async function main() {
 
     const holdout = isHoldoutSymbol(symbol);
     if (holdout) holdoutSymbols.push(symbol);
-    const firstIndexAtOrAfter = (targetMs: number) => {
-      let low = 0;
-      let high = primaryBars.length;
-      while (low < high) {
-        const mid = (low + high) >> 1;
-        if (primaryBars[mid].time < targetMs) low = mid + 1;
-        else high = mid;
-      }
-      return low;
-    };
-    // Each fold's bars start WARMUP_BARS before the fold (known history at
-    // decision time, never leakage) and END at the fold close, so a
-    // fold's setups resolve from its own bars; decisions stop at the
-    // embargoed decisionEndMs inside simulateSymbol. A symbol whose
-    // history begins mid-fold simply has fewer decisions there — folds
-    // are calendar facts, not per-symbol fractions.
-    const splits = folds.map((fold) => {
-      const startIndex = firstIndexAtOrAfter(fold.startMs);
-      const endIndex = firstIndexAtOrAfter(fold.endMs);
-      const sliceStart = Math.max(0, startIndex - WARMUP_BARS);
-      return {
-        bars: primaryBars.slice(sliceStart, endIndex),
-        decisionEndMs: fold.decisionEndMs,
-        name: fold.name,
-        warmupBars: startIndex - sliceStart,
-      };
-    }).filter((split) => split.bars.length > split.warmupBars + 1);
+    // Shared fold slicing (sweepFolds.foldSplits): warm-up floors inside
+    // the fold when history starts mid-fold, thin folds dropped.
+    const splits = foldSplits(primaryBars, folds, WARMUP_BARS);
 
     for (const override of args.grid) {
       const variant = describeOverride(override);

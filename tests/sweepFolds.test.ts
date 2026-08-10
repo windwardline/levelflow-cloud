@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   calendarFolds,
+  foldSplits,
   isHoldoutSymbol,
 } from "../scripts/sweepFolds.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
@@ -61,6 +62,45 @@ describe("calendarFolds — common-origin, three folds, embargoed decisions", ()
         }),
       /embargo/i,
     );
+  });
+});
+
+describe("foldSplits — warm-up floors inside the fold (the relaunch crash)", () => {
+  const start = Date.UTC(2022, 0, 1);
+  const end = start + 400 * DAY;
+  const folds = calendarFolds({
+    corpusEndMs: end,
+    corpusStartMs: start,
+    embargoMs: 5 * DAY,
+  });
+  const bar = (time: number) => ({ time });
+  const barsFrom = (fromMs: number, count: number) =>
+    Array.from({ length: count }, (_, index) => bar(fromMs + index * 900_000));
+
+  it("gives a mid-fold-starting symbol a full warm-up instead of deciding on a one-bar market", () => {
+    // History begins INSIDE the fit fold: startIndex is 0, so the old
+    // inline math produced warmupBars 0 — the committee then read
+    // bars.at(-2) on a one-bar market and crashed the baseline relaunch.
+    const splits = foldSplits(barsFrom(start + 30 * DAY, 5_000), folds, 240);
+    const fit = splits.find((split) => split.name === "fit")!;
+    assert.equal(fit.warmupBars, 240);
+  });
+
+  it("keeps exactly the warm-up overlap for folds with earlier history", () => {
+    const splits = foldSplits(barsFrom(start, 30_000), folds, 240);
+    const select = splits.find((split) => split.name === "select")!;
+    assert.equal(select.warmupBars, 240);
+    // The slice begins 240 bars before the fold boundary.
+    const boundary = folds.find((fold) => fold.name === "select")!.startMs;
+    assert.equal(
+      select.bars.filter((entry) => entry.time < boundary).length,
+      240,
+    );
+  });
+
+  it("drops a fold too thin to hold one decision past its warm-up", () => {
+    const splits = foldSplits(barsFrom(start, 100), folds, 240);
+    assert.equal(splits.length, 0);
   });
 });
 
