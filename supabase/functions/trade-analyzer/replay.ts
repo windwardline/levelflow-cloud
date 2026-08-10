@@ -36,12 +36,15 @@ export type ResolvedOutcome =
 // meet. The sweep's R accountant reads these instead of reconstructing
 // exits from the plan's nominal levels, and outcome-sync persists them
 // inside feedback for the learning tables.
+export type RunnerProtection = "breakeven" | "hold" | "trail_tp1";
+
 export type ResolutionLegKind =
   | "ambiguous"
   | "breakeven_stop"
   | "expiry"
   | "stop_loss"
-  | "take_profit";
+  | "take_profit"
+  | "tp1_lock";
 
 export type ResolutionLeg = {
   kind?: ResolutionLegKind;
@@ -72,7 +75,7 @@ export function evaluateSetupOutcome(
   setup: ReplaySetup,
   bars: ReplayBar[],
   now = Date.now(),
-  options?: { reviewHours?: number },
+  options?: { reviewHours?: number; runnerProtection?: RunnerProtection },
 ): ReplayOutcome {
   const entry = Number(setup.limit_entry);
   const stopLoss = Number(setup.stop_loss);
@@ -196,8 +199,17 @@ export function evaluateSetupOutcome(
     );
     lastClose = bar.close;
 
-    // Once TP1 is banked, the remaining runner is protected at breakeven.
-    const effectiveStop = tp1Hit ? entry : stopLoss;
+    // Once TP1 is banked, the runner's protection is a MODE (4c axis):
+    // breakeven jumps the stop to entry (the shipped default), hold leaves
+    // the original stop, trail_tp1 locks the stop at TP1's own level.
+    const protection = options?.runnerProtection ?? "breakeven";
+    const effectiveStop = !tp1Hit
+      ? stopLoss
+      : protection === "hold"
+      ? stopLoss
+      : protection === "trail_tp1"
+      ? takeProfit1!
+      : entry;
     const stopHit = reachedAdverse(effectiveStop, bar);
     const targetHit = !isFillBar && reachedFavorable(takeProfit, bar);
     const tp1Touched = !isFillBar && !tp1Hit && takeProfit1 !== null &&
@@ -244,7 +256,13 @@ export function evaluateSetupOutcome(
         });
       } else {
         legs.push({
-          kind: tp1Hit ? "breakeven_stop" : "stop_loss",
+          kind: !tp1Hit
+            ? "stop_loss"
+            : protection === "hold"
+            ? "stop_loss"
+            : protection === "trail_tp1"
+            ? "tp1_lock"
+            : "breakeven_stop",
           leg: "exit",
           price: roundPrice(adverseExitPrice(effectiveStop, bar)),
           time: bar.time,

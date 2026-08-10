@@ -42,7 +42,7 @@ import {
   type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
-import type { SweepManifest } from "./sweepManifest.ts";
+import { stableStringify, type SweepManifest } from "./sweepManifest.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -111,6 +111,11 @@ export type VariantVerdict = {
 export type FoldNames = { confirm?: string; fit: string; select: string };
 
 type GateOptions = {
+  // The variant every other cell compares against. Defaults to the bare
+  // "baseline" label; a 4c measurement grid that retires the confidence
+  // gate names its threshold-0 current-geometry cell here instead, so
+  // comparisons isolate one axis change at a time.
+  baselineVariant?: string;
   foldNames?: FoldNames;
   permutations?: number;
   seed?: number;
@@ -185,6 +190,7 @@ export function classVerdicts(
   options: GateOptions = {},
 ): Map<string, Map<string, VariantVerdict>> {
   const permutations = options.permutations ?? 1_000;
+  const baselineVariant = options.baselineVariant ?? "baseline";
   const foldNames = options.foldNames ?? { fit: "fit", select: "select" };
   const random = mulberry32(options.seed ?? 7);
   const verdicts = new Map<string, Map<string, VariantVerdict>>();
@@ -209,7 +215,7 @@ export function classVerdicts(
     const classMap = new Map<string, VariantVerdict>();
     verdicts.set(assetClass, classMap);
     for (const variant of variants) {
-      if (variant === "baseline") {
+      if (variant === baselineVariant) {
         continue;
       }
       const aggregate = {
@@ -232,7 +238,7 @@ export function classVerdicts(
           if (!splitName) continue;
           mergeInto(
             aggregate.base[fold],
-            cube.get(symbol)?.get("baseline")?.get(splitName),
+            cube.get(symbol)?.get(baselineVariant)?.get(splitName),
           );
           mergeInto(
             aggregate.variant[fold],
@@ -259,7 +265,7 @@ export function classVerdicts(
       const variantBlocks: number[] = [];
       for (const symbol of symbols) {
         for (
-          const value of cube.get(symbol)?.get("baseline")
+          const value of cube.get(symbol)?.get(baselineVariant)
             ?.get(foldNames.select)?.dayR.values() ?? []
         ) {
           baselineBlocks.push(value);
@@ -313,15 +319,43 @@ function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
   target.wins += source.wins;
 }
 
+/**
+ * Grade one corpus, or several SHARDS of one measurement: every shard's
+ * manifest must state identical engine, grid, folds and holdout —
+ * per-symbol sections differ by construction — or the read refuses.
+ */
 export function gradeCorpus(
-  emitPath: string,
+  emitPathOrPaths: string | string[],
   options: GateOptions & { includeHoldout?: boolean } = {},
 ): {
   foldNames: FoldNames;
   manifest: SweepManifest;
   verdicts: Map<string, Map<string, VariantVerdict>>;
 } {
-  const { manifest, rows } = assertManifestedCorpus(emitPath);
+  const paths = Array.isArray(emitPathOrPaths)
+    ? emitPathOrPaths
+    : [emitPathOrPaths];
+  const first = assertManifestedCorpus(paths[0]);
+  const manifest = first.manifest;
+  const rows = [...first.rows];
+  const conditionsOf = (candidate: SweepManifest) =>
+    stableStringify({
+      analyzerVersion: candidate.analyzerVersion,
+      folds: candidate.folds ?? null,
+      grid: candidate.grid,
+      stepBars: candidate.stepBars,
+      warmupBars: candidate.warmupBars,
+    });
+  const firstConditions = conditionsOf(manifest);
+  for (const path of paths.slice(1)) {
+    const shard = assertManifestedCorpus(path);
+    if (conditionsOf(shard.manifest) !== firstConditions) {
+      throw new Error(
+        `${path}: shard conditions differ from ${paths[0]} — engine, grid, folds, step or warmup do not match; these are not shards of one measurement`,
+      );
+    }
+    rows.push(...shard.rows);
+  }
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
   const foldNames: FoldNames = options.foldNames ??
@@ -340,18 +374,27 @@ export function gradeCorpus(
 
 function main(): void {
   const args = process.argv.slice(2);
-  const paths = args.filter((arg) => !arg.startsWith("--"));
+  const flagValueIndexes = new Set<number>();
+  for (const name of ["baseline", "permutations", "seed"]) {
+    const index = args.indexOf(`--${name}`);
+    if (index >= 0) flagValueIndexes.add(index + 1);
+  }
+  const paths = args.filter((arg, index) =>
+    !arg.startsWith("--") && !flagValueIndexes.has(index)
+  );
   const flag = (name: string, fallback: number) => {
     const index = args.indexOf(`--${name}`);
     return index >= 0 ? Number(args[index + 1]) : fallback;
   };
-  if (paths.length !== 1) {
+  if (paths.length === 0) {
     console.error(
-      "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [--permutations 1000] [--seed 7]",
+      "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] [--baseline <variant>] [--permutations 1000] [--seed 7]",
     );
     process.exit(1);
   }
-  const { foldNames, manifest, verdicts } = gradeCorpus(paths[0], {
+  const baselineIndex = args.indexOf("--baseline");
+  const { foldNames, manifest, verdicts } = gradeCorpus(paths, {
+    baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
     includeHoldout: args.includes("--include-holdout"),
     permutations: flag("permutations", 1_000),
     seed: flag("seed", 7),

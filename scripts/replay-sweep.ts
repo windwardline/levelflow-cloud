@@ -23,6 +23,7 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import { calendarFolds, foldSplits, isHoldoutSymbol } from "./sweepFolds.ts";
+import { parseGridSpec } from "./sweepGrid.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
@@ -491,39 +492,9 @@ async function fetchCotContract(
 }
 
 
-// The keys a --grid override is allowed to touch: every numeric field of
-// CategoryCalibration. `satisfies` makes a renamed or removed field here a
-// compile error (this file is on the typecheck graph — tsconfig.tests.json),
-// so the list can't silently drift from the type it mirrors the way the
-// runtime check below used to drift from it silently at the value level.
-const GRID_OVERRIDE_KEYS = [
-  "confidenceThreshold",
-  "cotScoreAdjustment",
-  "dailyTargetAtrMultiplier",
-  "dailyStopAtrMultiplier",
-  "defaultReviewHours",
-  "entryOffsetDefault",
-  "entryOffsetTrend",
-  "maxNewsPenalty",
-  "maxProviderPenalty",
-  "maxStopAtrMultiplier",
-  "minimumTargetRewardRisk",
-  "minRewardRisk",
-  "newsPenaltyPerEvent",
-  "providerWarningPenalty",
-  "runnerWindowShare",
-  "stopAtrMultiplier",
-  "timeframePenalty",
-  "tp1AtrMultiplier",
-  "tp1RiskShare",
-  "volatilityTargetAtrMultiplier",
-] as const satisfies readonly (keyof CategoryCalibration)[];
-
-function isGridOverrideKey(
-  key: string,
-): key is (typeof GRID_OVERRIDE_KEYS)[number] {
-  return (GRID_OVERRIDE_KEYS as readonly string[]).includes(key);
-}
+// Grid parsing lives in scripts/sweepGrid.ts (4c: numeric axes plus the
+// validated runnerProtection string axis), importable without running
+// this script's main.
 
 function parseArgs(argv: string[]): SweepArgs {
   const get = (flag: string) => {
@@ -558,34 +529,7 @@ function parseArgs(argv: string[]): SweepArgs {
     // three-axis spec would emit single- and double-axis "variants" alongside the
     // real ones. Every combination here is a full assignment across the named
     // axes, and the baseline is added once at the end.
-    let combos: Array<Partial<CategoryCalibration>> = [{}];
-    for (const axis of gridSpec.split(";")) {
-      if (!axis.trim()) continue;
-      const [rawKey, values] = axis.split("=");
-      const key = rawKey.trim();
-      // A typo'd key used to pass silently — the untyped cast below accepted
-      // any string, so a misspelled field produced a "variant" that overrode
-      // nothing and reported the baseline's numbers back as if it had.
-      if (!isGridOverrideKey(key)) {
-        throw new Error(
-          `--grid key "${key}" is not a numeric CategoryCalibration field. ` +
-            `Valid keys: ${GRID_OVERRIDE_KEYS.join(", ")}`,
-        );
-      }
-      const numerics = (values ?? "")
-        .split(",")
-        .map((value) => Number(value))
-        .filter((numeric) => Number.isFinite(numeric));
-      if (numerics.length === 0) continue;
-      const crossed: Array<Partial<CategoryCalibration>> = [];
-      for (const existing of combos) {
-        for (const numeric of numerics) {
-          crossed.push({ ...existing, [key]: numeric });
-        }
-      }
-      combos = crossed;
-    }
-    grid.push(...combos);
+    grid.push(...parseGridSpec(gridSpec));
   }
   return {
     cacheDir: get("cache-dir"),

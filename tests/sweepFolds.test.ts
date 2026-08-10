@@ -5,6 +5,7 @@ import {
   foldSplits,
   isHoldoutSymbol,
 } from "../scripts/sweepFolds.ts";
+import { parseGridSpec } from "../scripts/sweepGrid.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
@@ -183,5 +184,33 @@ describe("simulateSymbol honours a decision end — the embargo's engine half", 
     for (const record of capped.outcomes) {
       assert.ok(record.time < decisionEndMs);
     }
+  });
+});
+
+describe("parseGridSpec — the crossed axes, strings validated like keys (4c)", () => {
+  it("crosses numeric and string axes into the full product", () => {
+    const grid = parseGridSpec(
+      "maxStopAtrMultiplier=1,2.5;runnerProtection=breakeven,hold",
+    );
+    assert.equal(grid.length, 4);
+    assert.deepEqual(grid[0], {
+      maxStopAtrMultiplier: 1,
+      runnerProtection: "breakeven",
+    });
+    assert.deepEqual(grid[3], {
+      maxStopAtrMultiplier: 2.5,
+      runnerProtection: "hold",
+    });
+  });
+
+  it("refuses a typo'd protection value the way it refuses a typo'd key", () => {
+    assert.throws(
+      () => parseGridSpec("runnerProtection=breakevn"),
+      /runnerProtection/,
+    );
+  });
+
+  it("keeps refusing unknown keys", () => {
+    assert.throws(() => parseGridSpec("tp1Sharee=0.5"), /not a/);
   });
 });

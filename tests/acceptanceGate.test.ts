@@ -295,6 +295,94 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
   });
 });
 
+describe("shards of one measurement (4c) — matched conditions or refusal", () => {
+  const shardWith = (
+    rows: SweepEmitRow[],
+    gridOverride?: unknown[],
+  ): string => {
+    const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
+    const emitPath = join(dir, "shard.jsonl");
+    writeFileSync(
+      emitPath,
+      rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+    );
+    const manifest = buildSweepManifest({
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-10",
+      barRejections: {},
+      days: 365,
+      generatedAt: "2026-08-10T07:00:00.000Z",
+      grid: gridOverride ?? [{}, { wide: true }],
+      stepBars: 16,
+      symbols: [{
+        calibration: {},
+        providerSymbol: rows[0]?.symbol ?? "EURUSD",
+        series: { "15min": seriesFacts([{ time: 0 }]) },
+        symbol: rows[0]?.symbol ?? "EURUSD",
+      }],
+      trainShare: 0.6,
+      warmupBars: 240,
+    });
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    return emitPath;
+  };
+  const shardRows = (symbol: string) => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 12; day += 1) {
+      rows.push({ ...trainRow("baseline", day, 0.3), symbol });
+      rows.push({ ...trainRow("wide", day, 0.6), symbol });
+      rows.push({ ...outcomeRow("baseline", day, 0.3), symbol });
+      rows.push({ ...outcomeRow("wide", day, 0.6), symbol });
+    }
+    return rows;
+  };
+
+  it("concatenates shards whose conditions match", () => {
+    const graded = gradeCorpus(
+      [shardWith(shardRows("EURUSD")), shardWith(shardRows("GBPUSD"))],
+      { permutations: 50, seed: 6 },
+    );
+    const verdict = graded.verdicts.get("forex")!.get("wide")!;
+    // Both shards' rows aggregate: 24 filled on the select fold.
+    assert.equal(verdict.selectFilled, 24);
+  });
+
+  it("refuses shards measured under different conditions", () => {
+    assert.throws(
+      () =>
+        gradeCorpus([
+          shardWith(shardRows("EURUSD")),
+          shardWith(shardRows("GBPUSD"), [{}, { different: true }]),
+        ]),
+      /shards of one measurement/,
+    );
+  });
+});
+
+describe("the baseline is a named cell (4c's retired-gate grids)", () => {
+  it("compares every variant against the configured baseline cell", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 12; day += 1) {
+      rows.push(trainRow("confidenceThreshold=0", day, 0.3));
+      rows.push(outcomeRow("confidenceThreshold=0", day, 0.3));
+      rows.push(trainRow("confidenceThreshold=0,hold", day, 0.9));
+      rows.push(outcomeRow("confidenceThreshold=0,hold", day, 0.9));
+    }
+    const verdicts = classVerdicts(readGridCube(rows), {
+      baselineVariant: "confidenceThreshold=0",
+      foldNames: { fit: "train", select: "test" },
+      permutations: 50,
+      seed: 8,
+    });
+    const classMap = verdicts.get("forex")!;
+    assert.equal(classMap.has("confidenceThreshold=0"), false);
+    assert.ok(classMap.get("confidenceThreshold=0,hold")!.selectTotalDelta > 0);
+  });
+});
+
 describe("gradeCorpus — the emit door end to end", () => {
   it("reads only a manifested corpus and grades it", () => {
     const rows: SweepEmitRow[] = [];
