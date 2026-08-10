@@ -153,3 +153,43 @@ describe("the basis line never reaches the chart (owner ruling item 1, second pr
     });
   }
 });
+
+// 1l + 1q (2026-08-09): the ladder's honesty at the edges of its validity.
+describe("expired setups lose their copy affordances; the payoff names its basis", () => {
+  const SOURCE = readFileSync(
+    "src/components/workspace/AdvisorRecommendationPanel.tsx",
+    "utf8",
+  );
+
+  it("gates every copy affordance on the review window (§17c: absent, never inert)", () => {
+    assert.match(SOURCE, /now: Date;/);
+    assert.match(
+      SOURCE,
+      /const copyExpired = typeof setup\.expiresAt === "string" &&\s*\n\s*new Date\(setup\.expiresAt\)\.getTime\(\) <= now\.getTime\(\);/,
+    );
+    // All five rows — four prices and Size — consult the same bit; a sixth
+    // copyable row added without the gate fails the count.
+    const gated = SOURCE.match(/onCopy=\{copyExpired \? undefined :/g) ?? [];
+    assert.equal(gated.length, 5);
+    // The stage feeds the ticking clock at both mounts.
+    const stage = readFileSync(
+      "src/components/workspace/AdvisorWorkspace.tsx",
+      "utf8",
+    );
+    const mounts = stage.match(/<RecommendationPanel\b[\s\S]{0,400}?\/>/g) ?? [];
+    assert.equal(mounts.length, 2);
+    for (const mount of mounts) {
+      assert.match(mount, /now=\{clockNow\}/, mount);
+    }
+  });
+
+  it("names the payoff's basis in the eyebrow, and the receipt carries the reconciling number", () => {
+    assert.match(SOURCE, /The setup · payoff after costs\{" "\}/);
+    const receipt = readFileSync(
+      "src/components/workspace/SetupQualityReceipt.tsx",
+      "utf8",
+    );
+    assert.match(receipt, /estimatedRoundTripCost/);
+    assert.match(receipt, /already inside the payoff figure\./);
+  });
+});

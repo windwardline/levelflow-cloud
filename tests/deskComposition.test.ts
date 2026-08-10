@@ -1405,7 +1405,7 @@ describe("§19d — the Size row is present, and it is the ladder's last row", (
     // from it — only SizeRow knows its own value, so only it can key the
     // confirmation to that value rather than to the field name.
     assert.match(sizeRow, /const payload = formatCopyValue\(size\.units\);/);
-    assert.match(sizeRow, /onCopy=\{\(\) => onCopy\(payload\)\}/);
+    assert.match(sizeRow, /onCopy=\{onCopy === undefined \? undefined : \(\) => onCopy\(payload\)\}/);
   });
 
   it("puts the unit in the label and the bare number in the value", () => {
