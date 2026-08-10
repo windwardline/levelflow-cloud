@@ -387,11 +387,25 @@ on 63.9% of decisions, side flips on 1.6%. **Must land with 2a** ·
 **2n** RSI returns 100 on a frozen series.
 
 ### 3 — Repair the acceptance procedure, then re-derive
-**3a** delete the ±0.005 constant; print standard errors clustered by market ·
-**3b** permutation null over the grid · **3c** common-origin rolling validation with
-embargo · **3d** fit/select/confirm split · **3e** market holdout outside all tuning ·
-**3f** a release gate stated in standard errors · **3g** accept on total R *and*
-per-trade expectancy delta.
+**COMPLETE 2026-08-10 on `item3/acceptance-procedure`** (six commits, 3a–3g
+all landed). `scripts/sweepStats.ts` is the one vocabulary every reader
+uses (engine definitions; rSumSq so deviation is measured, never assumed;
+`assertManifestedCorpus` — no unverified corpus aggregates).
+`scripts/grid-totalr.ts` is the acceptance gate: emit-driven (the e×n
+table mismatch is dead), **3f** deltas in standard errors with select ≥1σ,
+**3g** total R AND per-trade expectancy jointly, **3b** a seeded
+day-block permutation null pricing every claim. **3a**
+account-type-report measures per-market SEs from the corpus and clusters
+the rollup SE by market (the ±0.005 prose constant and `--r-sd 0.8` are
+gone). **3c/3d/3e** `scripts/sweepFolds.ts`: common-origin calendar folds
+fit/select/confirm (50/25/25) over the corpus's measured span, decisions
+embargoed 5d before each fold closes (simulateSymbol gained
+`decisionEndMs` — decisions stop, resolution keeps reading), and a
+deterministic market holdout (sha256 mod 5) written into emit + manifest,
+excluded from every tuning aggregate. Legacy two-split corpora map
+train→fit/test→select from their own manifest — the item-2 baseline
+corpus reads fine. Re-derivation (the "then re-derive" half) is item 4's
+program, which now has its instrument.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
 **This is the point of the whole retrofit, and it is not one item.** Everything

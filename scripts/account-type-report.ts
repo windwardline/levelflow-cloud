@@ -10,18 +10,21 @@
  * classification, performance broken out by market category, plus the
  * exclusion candidates and the ground for each.
  *
- * Metrics mirror summarizeSweepOutcomes: filled = outcome is not "unfilled";
- * a win is take_profit OR tp1_partial; expectancy is mean realizedR over
- * FILLED setups. Standard error assumes a per-trade R deviation supplied by
- * --r-sd (default 0.8, the TP1/stop ladder's rough spread) — it exists to
- * stop a thin sample from being read as a finding, which is exactly how the
- * six-index blanket exclusion got asserted.
+ * Metrics come from scripts/sweepStats.ts — the engine's vocabulary, once
+ * (3a): filled = outcome is not "unfilled"; a win is take_profit OR
+ * tp1_partial; expectancy is mean realizedR over FILLED setups. Standard
+ * errors are MEASURED from the corpus (rSumSq travels with every cell),
+ * never assumed from a flag: per-market SE is that market's own sample
+ * deviation over sqrt(filled) — the guard that stops a thin sample being
+ * read as a finding, which is exactly how the six-index blanket exclusion
+ * got asserted — and the category rollup's SE is clustered by market,
+ * because outcomes inside one market share regime, session and
+ * calibration. Corpora enter through assertManifestedCorpus (2i): an emit
+ * that cannot prove its conditions is refused, not averaged.
  *
  *   npx tsx scripts/account-type-report.ts <emit.jsonl> [more.jsonl ...]
- *     [--r-sd 0.8] [--min-filled 300]
+ *     [--min-filled 300]
  */
-import { createReadStream } from "node:fs";
-import { createInterface } from "node:readline";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -37,6 +40,15 @@ import {
   accountTypesOffering,
 } from "../src/lib/broker/visibility.ts";
 import type { BrokerClassification } from "../src/lib/profile.ts";
+import {
+  addOutcome,
+  assertManifestedCorpus,
+  clusteredStandardError,
+  emptyStats,
+  expectancy,
+  rStandardError,
+  type SweepStats,
+} from "./sweepStats.ts";
 
 const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
 
@@ -50,27 +62,6 @@ type Row = {
   split: string;
   variant?: string;
 };
-
-type Stats = { n: number; filled: number; wins: number; stops: number; rSum: number };
-
-function emptyStats(): Stats {
-  return { n: 0, filled: 0, wins: 0, stops: 0, rSum: 0 };
-}
-
-function add(stats: Stats, row: Row): void {
-  stats.n += 1;
-  if (row.outcome === "unfilled") return;
-  stats.filled += 1;
-  stats.rSum += typeof row.realizedR === "number" && Number.isFinite(row.realizedR)
-    ? row.realizedR
-    : 0;
-  if (row.outcome === "take_profit" || row.outcome === "tp1_partial") stats.wins += 1;
-  if (row.outcome === "stop_loss") stats.stops += 1;
-}
-
-function expectancy(stats: Stats): number | null {
-  return stats.filled === 0 ? null : stats.rSum / stats.filled;
-}
 
 function passesOtherGates(row: Row): boolean {
   const calibration = getCategoryCalibration(row.symbol);
@@ -145,27 +136,20 @@ async function main(): Promise<void> {
     console.error("usage: account-type-report.ts <emit.jsonl> [more.jsonl ...]");
     process.exit(1);
   }
-  const rSd = num("--r-sd", 0.8);
   const minFilled = num("--min-filled", 300);
 
   /** symbol -> stats, accumulated once; account views are projections of it. */
-  const bySymbol = new Map<string, Stats>();
+  const bySymbol = new Map<string, SweepStats>();
   let gated = 0;
   let kept = 0;
 
   for (const file of files) {
-    const stream = createInterface({
-      crlfDelay: Number.POSITIVE_INFINITY,
-      input: createReadStream(file),
-    });
-    for await (const line of stream) {
-      if (!line) continue;
-      let row: Row;
-      try {
-        row = JSON.parse(line) as Row;
-      } catch {
-        continue;
-      }
+    const { rows } = assertManifestedCorpus(file);
+    for (const raw of rows) {
+      const row = raw as unknown as Row;
+      // 3e: holdout markets are excluded from every tuning-adjacent read;
+      // this report informs inclusion decisions, so it is one of them.
+      if (raw.holdout === true) continue;
       if (row.variant && row.variant !== "baseline") continue;
       if (!passesOtherGates(row)) {
         gated += 1;
@@ -177,12 +161,19 @@ async function main(): Promise<void> {
         stats = emptyStats();
         bySymbol.set(row.symbol, stats);
       }
-      add(stats, row);
+      addOutcome(stats, {
+        outcome: row.outcome,
+        realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
+        symbol: row.symbol,
+      });
     }
   }
 
   console.log(`corpus: ${kept} rows clearing payoff+regime (${gated} gated out)`);
-  console.log(`precision: 1 s.e. = ${rSd}/sqrt(filled); thin = under ${minFilled} filled\n`);
+  console.log(
+    `precision: per-market s.e. measured from that market's own R deviation; ` +
+      `rollup s.e. clustered by market; thin = under ${minFilled} filled\n`,
+  );
 
   const views = symbolsByClassification();
   const verdicts: string[] = [];
@@ -206,6 +197,7 @@ async function main(): Promise<void> {
     for (const category of [...byCategory.keys()].sort()) {
       const members = byCategory.get(category)!;
       const rollup = emptyStats();
+      const memberStats: SweepStats[] = [];
       const lines: string[] = [];
       let missing = 0;
       for (const member of members) {
@@ -215,16 +207,21 @@ async function main(): Promise<void> {
           lines.push(`      ${member.brokerName.padEnd(10)} — NOT IN CORPUS (never swept)`);
           continue;
         }
+        memberStats.push(stats);
         rollup.n += stats.n;
         rollup.filled += stats.filled;
         rollup.wins += stats.wins;
         rollup.stops += stats.stops;
         rollup.rSum += stats.rSum;
+        rollup.rSumSq += stats.rSumSq;
         const value = expectancy(stats)!;
-        const se = rSd / Math.sqrt(stats.filled);
-        const sigma = Math.abs(value) / se;
+        // Measured, never assumed (3a): this market's own R deviation over
+        // sqrt(filled). Below two filled outcomes no deviation exists, so no
+        // sigma claim — and therefore no exclusion — can be made from it.
+        const se = rStandardError(stats);
+        const sigma = se !== null && se > 0 ? Math.abs(value) / se : null;
         const thin = stats.filled < minFilled ? " THIN" : "";
-        const flag = value < 0 && sigma >= 2
+        const flag = value < 0 && sigma !== null && sigma >= 2
           ? " <- EXCLUDE (negative, 2+ s.e.)"
           : value < 0
             ? " <- negative but within noise"
@@ -232,19 +229,21 @@ async function main(): Promise<void> {
         lines.push(
           `      ${member.brokerName.padEnd(10)} ${String(stats.filled).padStart(6)} ` +
             `${pct(stats.wins, stats.filled).padStart(4)} ${pct(stats.stops, stats.filled).padStart(5)} ` +
-            `${value.toFixed(3).padStart(7)} ±${se.toFixed(3)}${thin}${flag}`,
+            `${value.toFixed(3).padStart(7)} ±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
         );
-        if (value < 0 && sigma >= 2) {
+        if (value < 0 && sigma !== null && sigma >= 2) {
           verdicts.push(
             `${classification}/${member.brokerName}: E=${value.toFixed(3)} ` +
-              `±${se.toFixed(3)} over ${stats.filled} filled — exclude`,
+              `±${se!.toFixed(3)} over ${stats.filled} filled — exclude`,
           );
         }
       }
       const rollupValue = expectancy(rollup);
+      const rollupSe = clusteredStandardError(memberStats);
       console.log(
         `\n  ${category}  (${members.length} markets, ${rollup.filled} filled, ` +
-          `E=${rollupValue === null ? "—" : rollupValue.toFixed(3)})`,
+          `E=${rollupValue === null ? "—" : rollupValue.toFixed(3)}` +
+          `${rollupSe === null ? "" : ` ±${rollupSe.toFixed(3)} clustered`})`,
       );
       console.log(
         `      ${"market".padEnd(10)} ${"filled".padStart(6)} ${"win".padStart(4)} ` +

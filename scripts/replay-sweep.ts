@@ -22,6 +22,7 @@ import {
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { buildSweepManifest } from "./sweepManifest.ts";
+import { calendarFolds, isHoldoutSymbol } from "./sweepFolds.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
@@ -44,7 +45,15 @@ import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 const API_KEY = process.env.FMP_API_KEY;
 const WARMUP_BARS = 240;
+// Legacy two-split share, retired by the calendar folds below; still
+// recorded in the manifest so legacy-corpus readers can state what they
+// read.
 const TRAIN_SHARE = 0.6;
+// 3c: every fold's decisions end this long before the fold closes, so
+// every setup a fold decides resolves inside it. Sized at indicator
+// warm-up (240 x 15min = 2.5 days) + the longest review window (24h,
+// ZOUSX) + weekend slack.
+const FOLD_EMBARGO_MS = 5 * 86_400_000;
 
 type SweepArgs = {
   cacheDir: string | undefined;
@@ -100,6 +109,54 @@ async function main() {
   const newsEvents = args.discover
     ? []
     : await loadEconomicCalendar(args.cacheDir);
+
+  // 3c/3d: folds are COMMON-ORIGIN calendar windows over the corpus's own
+  // measured span — every symbol shares the same three boundaries, so
+  // "select R" is one calendar period, never a sum across disjoint years.
+  // The pre-pass reads the same rolling caches the main loop reads (disk
+  // hits after first load), so its cost is one warm pass.
+  let folds: ReturnType<typeof calendarFolds> = [];
+  const holdoutSymbols: string[] = [];
+  if (!args.discover && !args.warmOnly) {
+    let spanStart = Number.POSITIVE_INFINITY;
+    let spanEnd = Number.NEGATIVE_INFINITY;
+    const anchor = isoDate(new Date());
+    for (const symbol of args.symbols) {
+      const providerSymbol = resolveProviderSymbols(symbol)[0];
+      if (!providerSymbol) continue;
+      const bars = await loadRollingSeries<Bar>({
+        anchor,
+        cacheDir: args.cacheDir!,
+        fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
+        fetchSince: (sinceMs) =>
+          fetchIntradayBars(providerSymbol, args.days, sinceMs),
+        key: `${providerSymbol}-15min-${args.days}`,
+        legacyPrefix: `${providerSymbol}-15min-${args.days}-`,
+        timeOf: (bar) => bar.time,
+      });
+      if (bars.length > 0) {
+        spanStart = Math.min(spanStart, bars[0].time);
+        spanEnd = Math.max(spanEnd, bars.at(-1)!.time);
+      }
+    }
+    if (!Number.isFinite(spanStart) || !Number.isFinite(spanEnd)) {
+      console.error("No bars in any symbol's cache — nothing to fold.");
+      process.exit(1);
+    }
+    folds = calendarFolds({
+      corpusEndMs: spanEnd,
+      corpusStartMs: spanStart,
+      embargoMs: FOLD_EMBARGO_MS,
+    });
+    console.log(
+      folds.map((fold) =>
+        `${fold.name}: ${isoDate(new Date(fold.startMs))} .. ${
+          isoDate(new Date(fold.endMs))
+        } (decisions to ${isoDate(new Date(fold.decisionEndMs))})`
+      ).join("\n"),
+    );
+  }
+
   for (const symbol of args.symbols) {
     const providerSymbol = resolveProviderSymbols(symbol)[0];
     if (!providerSymbol) {
@@ -194,11 +251,35 @@ async function main() {
       continue;
     }
 
-    const splitIndex = Math.floor(primaryBars.length * TRAIN_SHARE);
-    const splits = [
-      { bars: primaryBars.slice(0, splitIndex), name: "train" },
-      { bars: primaryBars.slice(splitIndex - WARMUP_BARS), name: "test" },
-    ];
+    const holdout = isHoldoutSymbol(symbol);
+    if (holdout) holdoutSymbols.push(symbol);
+    const firstIndexAtOrAfter = (targetMs: number) => {
+      let low = 0;
+      let high = primaryBars.length;
+      while (low < high) {
+        const mid = (low + high) >> 1;
+        if (primaryBars[mid].time < targetMs) low = mid + 1;
+        else high = mid;
+      }
+      return low;
+    };
+    // Each fold's bars start WARMUP_BARS before the fold (known history at
+    // decision time, never leakage) and END at the fold close, so a
+    // fold's setups resolve from its own bars; decisions stop at the
+    // embargoed decisionEndMs inside simulateSymbol. A symbol whose
+    // history begins mid-fold simply has fewer decisions there — folds
+    // are calendar facts, not per-symbol fractions.
+    const splits = folds.map((fold) => {
+      const startIndex = firstIndexAtOrAfter(fold.startMs);
+      const endIndex = firstIndexAtOrAfter(fold.endMs);
+      const sliceStart = Math.max(0, startIndex - WARMUP_BARS);
+      return {
+        bars: primaryBars.slice(sliceStart, endIndex),
+        decisionEndMs: fold.decisionEndMs,
+        name: fold.name,
+        warmupBars: startIndex - sliceStart,
+      };
+    }).filter((split) => split.bars.length > split.warmupBars + 1);
 
     for (const override of args.grid) {
       const variant = describeOverride(override);
@@ -209,16 +290,18 @@ async function main() {
           ignoreLowEdge: args.ignoreLowEdge,
           cotReports,
           dailyBars,
+          decisionEndMs: split.decisionEndMs,
           fiveMinuteBars,
           newsEvents,
           primaryBars: split.bars,
           stepBars: args.step,
           symbol,
-          warmupBars: WARMUP_BARS,
+          warmupBars: split.warmupBars,
         });
         if (args.emit) {
           for (const record of result.outcomes) {
             emitLines.push(JSON.stringify({
+              holdout,
               split: split.name,
               symbol,
               variant,
@@ -259,8 +342,10 @@ async function main() {
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
       days: args.days,
+      folds,
       generatedAt: new Date().toISOString(),
       grid: args.grid,
+      holdoutSymbols: [...holdoutSymbols].sort(),
       stepBars: args.step,
       symbols: manifestSymbols,
       trainShare: TRAIN_SHARE,
