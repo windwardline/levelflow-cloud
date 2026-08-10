@@ -194,6 +194,32 @@ export function newYorkClockParts(utcMs: number): {
   };
 }
 
+// Hoisted like NEW_YORK_CLOCK_FORMAT above, and for the same production
+// reason: Intl.DateTimeFormat CONSTRUCTION is ~50µs while a formatToParts
+// read is a few µs, and this converter runs per decoded bar and per gated
+// daily row. Built per call, the two formatters below cost ~595ms per
+// 11-symbol scan chunk — which is how #288's deploy died 546 inside the
+// 2s Edge CPU budget.
+const NEW_YORK_GUESS_FORMAT = new Intl.DateTimeFormat("en-US", {
+  day: "2-digit",
+  hour: "2-digit",
+  hour12: false,
+  hourCycle: "h23",
+  minute: "2-digit",
+  month: "2-digit",
+  second: "2-digit",
+  timeZone: "America/New_York",
+  year: "numeric",
+});
+
+const NEW_YORK_VERIFY_FORMAT = new Intl.DateTimeFormat("en-US", {
+  hour: "2-digit",
+  hour12: false,
+  hourCycle: "h23",
+  minute: "2-digit",
+  timeZone: "America/New_York",
+});
+
 // The DST-safe guess-correct conversion replay.ts and marketHours.ts already
 // use: guess the UTC instant with the wanted digits, read the guess back in
 // New York, correct by the difference. Exported for the daily completion
@@ -207,17 +233,7 @@ export function newYorkWallClockToUtcMs(
   second: number,
 ): number {
   const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-    hourCycle: "h23",
-    minute: "2-digit",
-    month: "2-digit",
-    second: "2-digit",
-    timeZone: "America/New_York",
-    year: "numeric",
-  }).formatToParts(new Date(utcGuess));
+  const parts = NEW_YORK_GUESS_FORMAT.formatToParts(new Date(utcGuess));
   const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   const guessHour = Number(lookup.hour ?? "0");
   const guessReadAsUtc = Date.UTC(
@@ -234,13 +250,7 @@ export function newYorkWallClockToUtcMs(
   // (the spring-forward morning is the pinned case). Re-reading the
   // corrected instant converges; wall times inside the nonexistent
   // spring-forward hour resolve to their post-jump reading.
-  const verify = new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    hour12: false,
-    hourCycle: "h23",
-    minute: "2-digit",
-    timeZone: "America/New_York",
-  }).formatToParts(new Date(corrected));
+  const verify = NEW_YORK_VERIFY_FORMAT.formatToParts(new Date(corrected));
   const verifyLookup = Object.fromEntries(
     verify.map((part) => [part.type, part.value]),
   );

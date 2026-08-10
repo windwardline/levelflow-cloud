@@ -30,6 +30,24 @@ import type { Bar } from "./types.ts";
 
 export type CompletedDailyBar = { bar: Bar; completeAtMs: number };
 
+// Completion depends only on (close rule, stamp) — and daily stamps are
+// the SAME New York midnights for every symbol, so on a warm instance the
+// whole roster shares ~1,500 unique entries per rule. Without this memo
+// the gate cost ~595ms per 11-symbol scan chunk (two Intl reads per bar),
+// which is how #288's deploy died 546 inside the 2s Edge CPU budget;
+// tests/sweepDecisionContext.test.ts pins the ceiling.
+type CompletionRule = "agriculture" | "complex" | "crypto";
+const completionCache = new Map<string, number | null>();
+
+function completionRule(symbol: string): CompletionRule {
+  const assetType = getAssetType(symbol);
+  return assetType === "crypto"
+    ? "crypto"
+    : assetType === "agriculture"
+    ? "agriculture"
+    : "complex";
+}
+
 /**
  * The instant a daily bar stamped at `barTimeMs` (New York midnight of its
  * stamp date, per toTimestamp) stops changing — or null for the
@@ -39,8 +57,23 @@ export function dailyBarCompletionMs(
   symbol: string,
   barTimeMs: number,
 ): number | null {
+  const rule = completionRule(symbol);
+  const key = `${rule}:${barTimeMs}`;
+  const cached = completionCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const completion = computeCompletionMs(rule, barTimeMs);
+  completionCache.set(key, completion);
+  return completion;
+}
+
+function computeCompletionMs(
+  rule: CompletionRule,
+  barTimeMs: number,
+): number | null {
   const stamp = newYorkClockParts(barTimeMs);
-  if (getAssetType(symbol) === "crypto") {
+  if (rule === "crypto") {
     // UTC midnight after the stamp date. The stamp's NY date and UTC date
     // agree for a NY-midnight stamp, so this is Date.UTC of D plus one day.
     return Date.UTC(stamp.year, stamp.month - 1, stamp.day) + 86_400_000;
@@ -48,7 +81,7 @@ export function dailyBarCompletionMs(
   if (stamp.weekday >= 6) {
     return null;
   }
-  if (getAssetType(symbol) === "agriculture") {
+  if (rule === "agriculture") {
     return newYorkWallClockToUtcMs(
       stamp.year,
       stamp.month,
