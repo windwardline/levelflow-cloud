@@ -59,21 +59,28 @@ Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
 blocks reviews; penalties per the caps above (r23 validated them as
 calibrated).
 
-Tradable menu: **111 markets, nothing withheld.** Every market E8 offers
-on an account type, for which FMP carries a verified series, is visible
-and scannable on that account type (owner ruling, 2026-08-07):
+Tradable menu: **106 markets** — full matched coverage under amendment
+32 (2026-08-09): every market E8 offers for which FMP carries a verified
+IDENTITY-MATCHED series is visible and scannable; a derivative is not its
+underlying, and a time-varying gap is not a match.
 
 | Account | Markets | Composition |
 | --- | --- | --- |
-| Forex | 46 | 28 forex · 8 crypto · 6 indices · 2 metals · 2 energies |
+| Forex | 45 | 28 forex · 8 crypto · 6 indices · 2 metals · 1 energy |
 | Crypto | 33 | 33 crypto |
-| Futures | 31 | 31 futures |
+| Futures | 27 | 27 futures |
 
-Forex and crypto match E8's published offering exactly. Futures is 31 of
-45: the remaining fourteen have no FMP series at all, or — for `METUSD`,
-Metronome USD at \$0.54 against E8's Micro Ether — a series that is worse
-than absent. Those fourteen are dormant candidates, re-probed each run by
-`scripts/verify-fmp-matches.ts`, not permanent exclusions.
+Crypto matches E8's published offering exactly. The dormant rows are
+evidence-graded, not withheld: thirteen futures-classified rows fell to
+amendment 32 (fourteen no-series candidates plus the six cash-index CFDs
+and five index futures whose FMP series is the underlying index, not the
+contract), and `BRENT` went dormant on the owner's F13 frame — its offset
+to FMP's `BZUSD` moved with the contract month (+1.61 → +1.10 in a week),
+a spread in motion, while WTI's +0.10 sat inside E8's own quoted spread
+and stays served. Grounds and re-probe paths live in
+`src/lib/broker/masterList.ts`; `scripts/verify-fmp-matches.ts` re-probes
+candidates each run. Nothing here is a coverage verdict — amendment 31's
+default stands, and only calibration verdicts remove served markets.
 
 `noTradeSymbols` is empty by derivation: every symbol it held turned out
 to have a match. The mechanism stays, and still refuses anything added to
@@ -93,6 +100,73 @@ energies .60/474 · indices .51/952. The indices row predates round 28 and
 is the pre-fix record; it is left as measured rather than restated, and
 re-measuring it is the first item when the sweeps resume. The UI's
 replay-record rows mirror these exactly (`src/lib/replayReliability.ts`).
+**Read the whole record against the evaluator-repair note below**: these
+numbers were produced by the pre-repair instrument, every corpus behind
+them is invalidated by design, and the first post-repair sweep re-measures
+all of them before any is treated as current again.
+
+## Evaluator repair (2026-08-09, item 2 — `2026.08.09.evaluator-repair`)
+
+Fourteen defects in the measuring instrument itself, mapped in
+`docs/research/evaluator-repair-map-2026-08-09.md` and landed as one
+change set. What changed, in the order the data flows:
+
+- **The provider boundary tells the truth (2b, 2h).** FMP stamps bars on
+  the New York wall clock; three duplicated parsers read them as UTC, so
+  every session gate, low-edge hour, news join and expiry in the corpus
+  sat 4–5 DST-variable hours off. One normalizer (`bars.ts`) now parses
+  NY-aware with a DST-safe two-pass conversion, validates OHLC coherence,
+  rejects spike ticks against neighbor consensus, and counts every
+  rejection — nothing is silently repaired.
+- **A decision sees only what existed (2a, 2k, 2l).** Daily bars gate on
+  COMPLETION, not stamp — probed empirically: FMP dailies are
+  settlement-day aggregates (ES opens on Thursday 18:00's print exactly;
+  corn on Thursday 20:00; FX Mondays open at Sunday-evening opens; BTC
+  rolls at UTC midnight to the cent), so the old stamp-time admission
+  leaked the decision day's completed OHLC into ATR, EMAs, regime and the
+  expected-window move all day. The same shared gate
+  (`dailyCompletion.ts`) drops the live loader's forming current row and
+  the weekend-stamped transients. Resampling buckets on the NY wall clock
+  FMP anchors to (hourly :00, 4hour 00/04/08/12/16/20 NY), and replay
+  carries a real fetched 5min series so the committee votes over the five
+  timeframes production votes over.
+- **The path evaluator stops inventing prints (2c, 2f, 2e).** On a fill
+  bar only adverse facts are knowable — the fill IS the crossing, and any
+  path to the stop passes entry first — so fill-bar target and TP1
+  touches no longer resolve. Resolutions carry gap-aware legs
+  ({leg, price, time}: a bar opening beyond a level executes at its open),
+  and ambiguity is priced at the stop side, so the pessimistic −1 is
+  arithmetic, not a special case.
+- **One R accountant, cost charged once (2g, 2d).** `realizedRFromLegs`
+  replaces the ten nominal-level reconstructions: planned risk is the
+  unit, actual leg prints the numerator, one round trip of cost charged in
+  R space. `effectiveRewardRisk` drops its double-charged denominator so
+  the payoff gate's forward metric means what the measured corpus means.
+- **Indicators abstain (2m, 2n).** EMA seeds on a real SMA and is null
+  below its period; RSI is null on a frozen series instead of reading 100
+  overbought; a regime that cannot warm refuses the decision into a new
+  `notWarm` bucket so decision arithmetic still closes.
+- **Costs are per-symbol where the tick is known (2j).** Tick-gridded
+  contracts pay their own one-tick floor instead of a family-mean bps
+  (the E-mini Nasdaq wore ~13 ticks; the 2-year note paid under one), per
+  the dossier's finding that E8 applies no futures spread over
+  exchange-native pricing. Production now BANKS every quoted spread it
+  sees (append-only `analyzer_events` rows) so 4a can measure instead of
+  model.
+- **The corpus describes itself (2i).** Every sweep emit writes
+  `<emit>.manifest.json`: analyzer version, hashed per-symbol
+  calibration, grid, warmup/split, anchor, per-(symbol, timeframe) bar
+  facts including the largest gap, and the rejection tally. Item 3's
+  readers assert the hash before aggregating anything.
+
+Consequences: the accepted-setup count moves by design (fill-bar phantom
+wins are gone, expectancy is net of execution, abstention re-routes
+tallies), so **no pre-repair corpus is comparable to a post-repair one**
+— which is exactly what the manifest hash now makes impossible to do by
+accident. The learning cohort scopes to `2026.08.09.evaluator-repair` on
+deploy. The one re-sweep that follows this change set is the first
+measurement the repaired instrument produces, and item 3's acceptance
+procedure reads only manifested corpora from then on.
 
 Operational loop, running without operator attention: hourly
 outcome-sync (cron :23) resolves pending setups; hourly news-calendar
@@ -265,8 +339,9 @@ walk-forward). Durable character groups emerged:
   seven non-BNB cryptos to the default universe, and §17m.1 deleted the
   direct review path, so nothing is "reviewable directly" any more. Then
   amendment 31 (2026-08-07) retired scan curation entirely: full matched
-  coverage is the resting state — 111 markets, every FMP-matched E8 market
-  live per account type — and the only path out of the offering is a
+  coverage is the resting state — every identity-matched E8 market live
+  per account type (106 after amendment 32 tightened "matched" to
+  identity, 2026-08-09) — and the only path out of the offering is a
   calibration verdict under item 4d. No curation mechanism exists in the
   scan path today, and no sentence anywhere should claim one. See the menu
   under "Current engine state" for the state of record.
