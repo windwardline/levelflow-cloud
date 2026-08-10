@@ -190,12 +190,14 @@ measurement predates render no record; ConfidenceUnit resolves symbol-first thro
 `confidenceThresholdForAssetOrSymbol`, so corn's meter ticks at agriculture's 30,
 not Futures' 68) · **1h** delete the false curation claim — *1h-b done 2026-08-09*
 (the "measured-edge curation" run-condition claim deleted from replayReliability's
-docblock with its reasoning); *1h-a and 1h-c outstanding* (ScopeMenu's "All
-markets" no-count rationale; trade-model.md:255) · **1i — done 2026-08-09** (deck §3 amended
+docblock with its reasoning); *1h-a + 1h-c done 2026-08-09* ("All
+markets" carries its earned Scan N — the curated-universe rationale was dead both
+halves; trade-model.md's curation note now records amendment 31's second
+supersession) · **1i — done 2026-08-09** (deck §3 amended
 to the shipped four moments with §7's note form; guideAnchors pins both homes to
-each other) · **1j** no replay figure without its bound (the Record
-sentence carries N but no interval — indices' 51% on 952 is ±3.2pp, indistinguishable
-from a coin flip; the Insights record band prints 100% off one resolved row) ·
+each other) · **1j — done 2026-08-09** (1j-a landed with the
+record sentence's derived ±SE; 1j-b gates the Insights band's rate at the
+attribution threshold and prints the denominator — "67% of 3", "Learning" below) ·
 **1l** an expired setup loses its copy affordances (nothing in the render path
 compares expiry to the clock; stored setups reopened from Insights have no window at
 all — derive it client-side from `reviewWindowHoursForSymbol`) · **1q** printed payoff

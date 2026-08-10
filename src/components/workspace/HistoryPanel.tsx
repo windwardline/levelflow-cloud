@@ -174,7 +174,7 @@ export function HistoryPanel({
           label="Money-positive"
           value={recordBand.moneyPositivePercent === null
             ? "Learning"
-            : `${recordBand.moneyPositivePercent}%`}
+            : `${recordBand.moneyPositivePercent}% of ${recordBand.resolved}`}
         />
         <StatBlock
           label="Net R"

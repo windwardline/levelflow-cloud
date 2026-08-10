@@ -54,13 +54,18 @@ export function buildScopeMenuRows(
     {
       // Crypto's calendar never closes (marketHours.ts's CRYPTO_CALENDAR),
       // so at least one group is always open - "All markets" never shows a
-      // reopen affordance and is never inert. No count: scanning "all"
-      // sends the server no symbol list, and it applies its own curated
-      // default universe rather than every listed market (see
-      // AdvisorWorkspace.tsx's scanMarkets) - a client-computed total here
-      // could overstate what a scan actually covers, which is exactly the
-      // kind of unreconciled count spec §5 replaces.
+      // reopen affordance and is never inert.
+      //
+      // 1h: the count is EARNED now. The old rationale for withholding it —
+      // "all" sends the server no symbol list, and the server applies its
+      // own curated default universe — stopped being true when the
+      // empty-list scan form was refused outright: getMarketScanSymbolsForScope
+      // resolves "all" to an explicit, visibility-intersected list, and
+      // scanBatching chunks exactly that list. The row that scans the most
+      // was the one row reading nothing, on a stale claim about a curation
+      // that no longer exists.
       availability: { open: true },
+      count: groups.reduce((total, group) => total + group.options.length, 0),
       interactive: true,
       key: "all",
       label: "All markets",
@@ -177,13 +182,13 @@ function isSameScope(a: ScanScope, b: ScanScope): boolean {
 }
 
 // Spec §4: a group row carries its scan count, a closed row carries its reopen
-// line, an open market row carries nothing (the row itself is the affordance),
-// and "All markets" carries nothing at all — it never shows a count (see
-// buildScopeMenuRows) and its calendar never closes.
+// line, an open market row carries nothing (the row itself is the affordance).
+// "All markets" carries its own Scan N since 1h (2026-08-09) — the count is
+// exactly computable now that "all" resolves to an explicit symbol list — and
+// its calendar never closes, so it never shows a reopen line.
 export function showsAffordance(row: ScopeMenuRow): boolean {
-  if (row.scope.kind === "all") {
-    return false;
-  }
+  // 1h: "all" carries its Scan N like every other group row — the old
+  // false-branch here rested on the curated-universe claim deleted above.
   if (!row.availability.open) {
     return true;
   }
