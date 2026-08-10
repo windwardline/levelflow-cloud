@@ -17,6 +17,19 @@ export type AssetType =
 export type RegimeName = "compression" | "range" | "trend" | "volatile_chop";
 
 export type CategoryCalibration = {
+  // 4c axes (owner-approved 2026-08-10). Defaults preserve shipped
+  // behavior exactly; the crossed grid varies them offline and 4d derives
+  // per-market values behind item 3's gate before anything ships.
+  //
+  // How the runner half is protected once TP1 banks: "breakeven" is the
+  // shipped jump-to-entry; "hold" leaves the original stop; "trail_tp1"
+  // locks the stop at TP1's level.
+  runnerProtection?: "breakeven" | "hold" | "trail_tp1";
+  // Q4's split: multiplies ONLY the geometry-sizing hours
+  // (expectedWindowMove) — patience/expiry keeps reading
+  // defaultReviewHours untouched, because the baseline measured the
+  // window censoring nothing (median exit 0.5h).
+  sizingHoursFactor?: number;
   // Regimes in which no new setup may be initiated, regardless of score.
   // Entering elevated-volatility chop is a losing proposition across
   // classes; structure and signals both degrade.

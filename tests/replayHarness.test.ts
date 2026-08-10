@@ -365,6 +365,99 @@ describe("trade analyzer replay harness", () => {
   });
 });
 
+// 4c axis (owner-approved 2026-08-10): runner protection is a parameter,
+// not a hardcoded jump. The baseline measured the breakeven jump as a tax
+// — 44% of forex fills touched TP1 at +0.92R median MFE and scratched at
+// breakeven — so the resolver now takes the protection mode: "breakeven"
+// (the shipped default, unchanged), "hold" (the stop never moves), and
+// "trail_tp1" (the stop locks to TP1's level once banked).
+describe("runner protection — the post-TP1 stop is a mode (4c)", () => {
+  const ladder = () =>
+    buildSetup({ entry: 100, side: "buy", stop: 98, target: 105, tp1: 101 });
+  const bars = (thirdBar: ReplayBar) => [
+    buildBar(15, 100.4, 99.8, 100.2),
+    buildBar(30, 101.3, 100.1, 101.1),
+    thirdBar,
+  ];
+
+  it("holds the original stop when protection is hold — a breakeven touch is not an exit", () => {
+    const result = evaluateSetupOutcome(
+      ladder(),
+      bars(buildBar(45, 100.6, 99.6, 100.2)),
+      // Inside the review window: the question is the stop, not expiry.
+      Date.parse("2026-06-15T15:30:00.000Z"),
+      { runnerProtection: "hold" },
+    );
+    // Under breakeven protection this bar (low 99.6 <= entry 100) exits;
+    // under hold the runner stays open and the window expires later.
+    assert.equal(result.state, "placed");
+  });
+
+  it("exits at the ORIGINAL stop under hold, pricing the full loss on the runner half", () => {
+    const result = evaluateSetupOutcome(
+      ladder(),
+      bars(buildBar(45, 100.4, 97.9, 98.2)),
+      undefined,
+      { runnerProtection: "hold" },
+    );
+    assert.equal(result.state, "resolved");
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "tp1_partial",
+    );
+    if (result.state === "resolved") {
+      assert.deepEqual(result.legs.at(-1), {
+        kind: "stop_loss",
+        leg: "exit",
+        price: 98,
+        time: Date.parse("2026-06-15T14:45:00.000Z"),
+      });
+    }
+  });
+
+  it("locks the runner at TP1's level under trail_tp1", () => {
+    const result = evaluateSetupOutcome(
+      ladder(),
+      // Opens ABOVE the lock so the exit is the level, not a gap print —
+      // the gap rule (2f) still applies to a locked stop like any other.
+      bars(buildBar(45, 101.4, 100.7, 100.8, 101.2)),
+      undefined,
+      { runnerProtection: "trail_tp1" },
+    );
+    assert.equal(result.state, "resolved");
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "tp1_partial",
+    );
+    if (result.state === "resolved") {
+      assert.deepEqual(result.legs.at(-1), {
+        kind: "tp1_lock",
+        leg: "exit",
+        price: 101,
+        time: Date.parse("2026-06-15T14:45:00.000Z"),
+      });
+    }
+  });
+
+  it("defaults to breakeven — the shipped behavior is byte-identical without the option", () => {
+    const explicit = evaluateSetupOutcome(
+      ladder(),
+      bars(buildBar(45, 101.2, 99.9, 100.0)),
+      undefined,
+      { runnerProtection: "breakeven" },
+    );
+    const implicit = evaluateSetupOutcome(
+      ladder(),
+      bars(buildBar(45, 101.2, 99.9, 100.0)),
+    );
+    assert.deepEqual(explicit, implicit);
+    assert.equal(
+      implicit.state === "resolved" ? implicit.legs.at(-1)?.kind : null,
+      "breakeven_stop",
+    );
+  });
+});
+
 // 2f (2026-08-09): a resolution is a sequence of executions, not a label.
 // The sweep's accountant used to reconstruct R from the plan's NOMINAL
 // levels — every stop exits exactly at the stop, every fill exactly at the

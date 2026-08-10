@@ -40,6 +40,26 @@ describe("ladder targets", () => {
     assert.equal(ladder.expectedWindowMove, 5);
   });
 
+  it("scales the sizing window by sizingHoursFactor without touching patience (4c, Q4's split)", () => {
+    // The baseline proved the review window censors nothing (median exit
+    // 0.5h) — its only operative role is sizing the geometry. The factor
+    // moves ONLY expectedWindowMove: 10 * sqrt((6h * 4) / 24h) = 10.
+    const ladder = buildLadderTargets({
+      atr: 2,
+      calibration: { ...ladderCalibration, sizingHoursFactor: 4 },
+      dailyAtr: 10,
+      entryPrice: 100,
+      pivotLevels: [98, 104, 108],
+      riskDistance: 2,
+      side: "buy",
+    });
+    assert.ok(ladder);
+    assert.equal(ladder.expectedWindowMove, 10);
+    // Patience (expiry) still reads defaultReviewHours alone — the resolver
+    // takes reviewHours from calibration untouched by the factor; pinned at
+    // the sweep threading below rather than re-tested here.
+  });
+
   it("caps TP1 at the expected move the review window can deliver", () => {
     // Raw ATR distance 0.8 * 6 = 4.8 exceeds 0.6 * expectedWindowMove 5 = 3.
     const ladder = buildLadderTargets({

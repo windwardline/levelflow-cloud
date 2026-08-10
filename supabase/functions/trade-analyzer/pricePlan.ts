@@ -332,6 +332,7 @@ function clampBetween(value: number, boundA: number, boundB: number) {
 
 export type LadderCalibration = {
   defaultReviewHours: number;
+  sizingHoursFactor?: number;
   minimumTargetRewardRisk: number;
   runnerWindowShare: number;
   tp1AtrMultiplier: number;
@@ -358,8 +359,14 @@ export function buildLadderTargets(input: {
   side: Side;
 }): LadderTargets | null {
   const { atr, calibration, dailyAtr, entryPrice, riskDistance, side } = input;
+  // Q4's split (4c): the factor scales ONLY the sizing hat — patience and
+  // expiry keep reading defaultReviewHours, which the baseline measured as
+  // censoring nothing (median exit 0.5h against 6-12h windows).
   const expectedWindowMove = dailyAtr *
-    Math.sqrt(calibration.defaultReviewHours / 24);
+    Math.sqrt(
+      (calibration.defaultReviewHours * (calibration.sizingHoursFactor ?? 1)) /
+        24,
+    );
   // TP1 must be meaningful in R terms, not a fixed ATR crumb: the partial
   // is a share of risk, floored by the ATR multiplier, capped by what the
   // window can deliver.
