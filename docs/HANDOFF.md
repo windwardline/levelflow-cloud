@@ -198,13 +198,18 @@ to the shipped four moments with §7's note form; guideAnchors pins both homes t
 each other) · **1j — done 2026-08-09** (1j-a landed with the
 record sentence's derived ±SE; 1j-b gates the Insights band's rate at the
 attribution threshold and prints the denominator — "67% of 3", "Learning" below) ·
-**1l** an expired setup loses its copy affordances (nothing in the render path
-compares expiry to the clock; stored setups reopened from Insights have no window at
-all — derive it client-side from `reviewWindowHoursForSymbol`) · **1q** printed payoff
-not derivable from printed prices (root cause found: the printed figure is post-cost,
-the prices are pre-cost, and the cost that closes the arithmetic is on the wire but
-never rendered; the effective ratio also double-counts cost — numerator and
-denominator) · plus 1o's residue: `targetLogic` is the same defect one field over
+**1l — done for the live window, 2026-08-09** (all five copy affordances — four
+prices and Size — gate on `expiresAt` against the stage's ticking clock; absent,
+never inert, the Size-row precedent). *Residual for the owner:* stored reopens
+carry NO window by a recorded §17f decision ("absent rather than computed after
+the fact", storedSetup.ts's gap 1) — deriving one client-side for affordance
+gating would serve 1l's spirit but revisits that ruling; not overridden
+unilaterally · **1q — display half done 2026-08-09** (the eyebrow reads "payoff after costs",
+naming the basis; the Costs row prints the estimated round trip "already inside
+the payoff figure" — the arithmetic closes on screen). *The formula half is
+item 2's:* `effectiveRewardRisk` charges cost in the numerator AND the
+denominator, a double penalty ≈2×cost/risk — filed under 2d, where cost
+accounting is re-derived whole · plus 1o's residue: `targetLogic` is the same defect one field over
 (unconditional constant), and `runnerProvenance`/`tp1Provenance`/`entryProvenance`
 are computed and dropped, which blocks 4d's TP1 and runner phases.
 
@@ -306,7 +311,9 @@ there is no reason to rush it tonight.
 **2a** look-ahead — admit a daily bar only once its own day closed ·
 **2b** timestamps normalised at the provider boundary, timezone probed not assumed ·
 **2c** no favourable level credited on the fill bar; the evaluator consumes a *path* ·
-**2d** cost charged per leg, carried on the outcome record ·
+**2d** cost charged per leg, carried on the outcome record — and the display
+ratio's double-count resolved with it (1q found `effectiveRewardRisk` subtracts
+cost from reward AND adds it to risk; one leg-accounted model replaces both) ·
 **2e** `ambiguous` scored −1 by default ·
 **2f** every leg resolves to a price, gap-aware ·
 **2g** one R accountant ·

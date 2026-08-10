@@ -186,6 +186,12 @@ function buildQualityReceipt(
   const headlineNewsEvents = asNumber(newsContext.headlineEvents) ?? 0;
   const costRating = asText(executionQuality.label);
   const costPenalty = asNumber(executionQuality.confidencePenalty) ?? 0;
+  // 1q: the number that closes the payoff arithmetic. The printed payoff is
+  // the AFTER-COSTS ratio while the printed prices are pre-cost, so 80.1% of
+  // setups showed a figure not derivable from the levels beside it — and the
+  // cost that reconciles them was on the wire, rendered nowhere. formatNumber
+  // keeps the instrument's own precision.
+  const roundTripCost = asNumber(executionQuality.estimatedRoundTripCost);
   const record = describeReplayRecord(
     setup.symbol,
     getSecurityOption(setup.symbol).assetType,
@@ -217,7 +223,11 @@ function buildQualityReceipt(
       anchor: "cost-ratings",
       label: "Costs",
       sentence: costRating
-        ? `${costRating} — ${describeExecutionLabel(costRating)}`
+        ? `${costRating} — ${describeExecutionLabel(costRating)}${
+          roundTripCost !== null && roundTripCost > 0
+            ? ` Estimated round trip: ${formatNumber(roundTripCost)}, already inside the payoff figure.`
+            : ""
+        }`
         : ABSENT,
       tone: costRating
         ? costPenalty > 0 ? "negative" : "positive"

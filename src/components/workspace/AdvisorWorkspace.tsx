@@ -789,6 +789,7 @@ export function AdvisorWorkspace(
             data-testid="mobile-scan-scroll"
           >
             <RecommendationPanel
+              now={clockNow}
               profile={profile}
               quotes={brokerQuotes}
               result={activeResult}
@@ -973,6 +974,7 @@ export function AdvisorWorkspace(
               other scroll region in the app uses. */}
           <div className="scrolly min-w-0 border border-hairline border-t-0 bg-sheet lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <RecommendationPanel
+              now={clockNow}
               profile={profile}
               quotes={brokerQuotes}
               result={activeResult}

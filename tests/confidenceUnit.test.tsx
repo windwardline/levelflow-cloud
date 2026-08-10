@@ -416,19 +416,19 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("entry", "Limit entry", formatCopyValue\(setup\.entryPrice\)\)\}/,
+      /onCopy=\{copyExpired \? undefined : \(\) => handleCopy\("entry", "Limit entry", formatCopyValue\(setup\.entryPrice\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("stop", "Stop loss", formatCopyValue\(setup\.stopLoss\)\)\}/,
+      /onCopy=\{copyExpired \? undefined : \(\) => handleCopy\("stop", "Stop loss", formatCopyValue\(setup\.stopLoss\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("target1", "Target 1", formatCopyValue\(setup\.takeProfit1!\)\)\}/,
+      /onCopy=\{copyExpired \? undefined : \(\) => handleCopy\("target1", "Target 1", formatCopyValue\(setup\.takeProfit1!\)\)\}/,
     );
     assert.match(
       source,
-      /onCopy=\{\(\) => handleCopy\("target2", hasLadder \? "Target 2" : "Target", formatCopyValue\(setup\.takeProfit\)\)\}/,
+      /onCopy=\{copyExpired \? undefined : \(\) => handleCopy\("target2", hasLadder \? "Target 2" : "Target", formatCopyValue\(setup\.takeProfit\)\)\}/,
     );
     // Belt and suspenders: no handleCopy(...) call anywhere reaches for
     // formatNumber, the locale-dependent display formatter, by name.
@@ -439,7 +439,7 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     const displayFormatNumberCalls =
       source.match(/value=\{formatNumber\(/g) ?? [];
     assert.equal(displayFormatNumberCalls.length, 5);
-    assert.match(source, /const payload = formatCopyValue\(size\.units\);[\s\S]*?onCopy=\{\(\) => onCopy\(payload\)\}/);
+    assert.match(source, /const payload = formatCopyValue\(size\.units\);[\s\S]*?onCopy=\{onCopy === undefined \? undefined : \(\) => onCopy\(payload\)\}/);
   });
 
   it("flips each copy affordance to a checkmark for a bounded window, keyed per row", () => {

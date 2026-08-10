@@ -51,12 +51,21 @@ function formatBasisLine(symbol: string, entryPrice: number): string | null {
 // the stagehead (AdvisorWorkspace + ConfidenceUnit) — this panel starts at the
 // ladder.
 export function RecommendationPanel({
+  now,
   profile,
   quotes,
   result,
   setup,
   symbol,
 }: {
+  /**
+   * 1l: the stage's ticking clock (AdvisorWorkspace's clockNow), so a setup
+   * whose review window elapses ON SCREEN loses its copy affordances at the
+   * moment it expires — §17c's inert-control law, the same
+   * absent-not-disabled remedy the Size row and both reopen affordances
+   * already apply. The prices stay printed; they are historical fact.
+   */
+  now: Date;
   profile: UserProfile;
   /** Levelflow's own in-roster quotes the client already holds (§19c). */
   quotes: Readonly<Record<string, number>>;
@@ -145,6 +154,13 @@ export function RecommendationPanel({
     const rewardRisk = Number(
       (setup.confluence as Record<string, unknown>)?.rewardRisk ?? 0,
     );
+    // 1l: expired means the review window has closed — copying these prices
+    // into a platform now would place levels the engine no longer stands
+    // behind. Scan-adopted setups carry expiresAt; stored reopens do not
+    // (their absent window is a recorded §17f decision), so they keep their
+    // affordances until that ruling is revisited.
+    const copyExpired = typeof setup.expiresAt === "string" &&
+      new Date(setup.expiresAt).getTime() <= now.getTime();
     const basisLine = formatBasisLine(setup.symbol, setup.entryPrice);
 
     return (
@@ -168,8 +184,13 @@ export function RecommendationPanel({
           {/* Payoff was its own metric box before spec §16; the mock folds it
               into the ladder's eyebrow (a-desk-v3.html:198). Costs kept their
               own row inside "Why this setup" all along. */}
+          {/* 1q: 'after costs', because the figure IS the after-costs ratio
+              — the printed prices are pre-cost, so without the qualifier the
+              number is underivable from the levels below it and reads as
+              wrong. The Costs row in the receipt carries the reconciling
+              number. */}
           <p className="eyebrow mb-1.5 lg:mb-1">
-            The setup · payoff{" "}
+            The setup · payoff after costs{" "}
             <span className="font-mono tabular-nums">
               {rewardRisk > 0 ? `${rewardRisk.toFixed(2)}x` : "Pending"}
             </span>
@@ -182,7 +203,7 @@ export function RecommendationPanel({
               copied={copiedToken === tokenFor("entry", formatCopyValue(setup.entryPrice))}
               failed={failedToken === tokenFor("entry", formatCopyValue(setup.entryPrice))}
               label="Limit entry"
-              onCopy={() => handleCopy("entry", "Limit entry", formatCopyValue(setup.entryPrice))}
+              onCopy={copyExpired ? undefined : () => handleCopy("entry", "Limit entry", formatCopyValue(setup.entryPrice))}
               value={formatNumber(setup.entryPrice)}
               valueClassName={isBuy ? "text-buy" : "text-sell"}
             />
@@ -190,7 +211,7 @@ export function RecommendationPanel({
               copied={copiedToken === tokenFor("stop", formatCopyValue(setup.stopLoss))}
               failed={failedToken === tokenFor("stop", formatCopyValue(setup.stopLoss))}
               label="Stop loss"
-              onCopy={() => handleCopy("stop", "Stop loss", formatCopyValue(setup.stopLoss))}
+              onCopy={copyExpired ? undefined : () => handleCopy("stop", "Stop loss", formatCopyValue(setup.stopLoss))}
               value={formatNumber(setup.stopLoss)}
               valueClassName="text-sell"
             />
@@ -200,7 +221,7 @@ export function RecommendationPanel({
                   copied={copiedToken === tokenFor("target1", formatCopyValue(setup.takeProfit1!))}
               failed={failedToken === tokenFor("target1", formatCopyValue(setup.takeProfit1!))}
                   label="Target 1 · bank half"
-                  onCopy={() => handleCopy("target1", "Target 1", formatCopyValue(setup.takeProfit1!))}
+                  onCopy={copyExpired ? undefined : () => handleCopy("target1", "Target 1", formatCopyValue(setup.takeProfit1!))}
                   value={formatNumber(setup.takeProfit1!)}
                   valueClassName="text-buy"
                 />
@@ -210,7 +231,7 @@ export function RecommendationPanel({
               copied={copiedToken === tokenFor("target2", formatCopyValue(setup.takeProfit))}
               failed={failedToken === tokenFor("target2", formatCopyValue(setup.takeProfit))}
               label={hasLadder ? "Target 2 · take-profit" : "Target"}
-              onCopy={() => handleCopy("target2", hasLadder ? "Target 2" : "Target", formatCopyValue(setup.takeProfit))}
+              onCopy={copyExpired ? undefined : () => handleCopy("target2", hasLadder ? "Target 2" : "Target", formatCopyValue(setup.takeProfit))}
               value={formatNumber(setup.takeProfit)}
               valueClassName="text-buy"
             />
@@ -224,7 +245,7 @@ export function RecommendationPanel({
             <SizeRow
               copiedToken={copiedToken}
               failedToken={failedToken}
-              onCopy={(payload) => handleCopy("size", "Size", payload)}
+              onCopy={copyExpired ? undefined : (payload) => handleCopy("size", "Size", payload)}
               tokenFor={tokenFor}
               profile={profile}
               quotes={quotes}
@@ -415,7 +436,7 @@ function SizeRow({
 }: {
   copiedToken: string | null;
   failedToken: string | null;
-  onCopy: (payload: string) => void;
+  onCopy?: (payload: string) => void;
   profile: UserProfile;
   quotes: Readonly<Record<string, number>>;
   setup: AnalyzerSetup;
@@ -449,7 +470,7 @@ function SizeRow({
       copied={copiedToken === tokenFor("size", payload)}
       failed={failedToken === tokenFor("size", payload)}
       label={label}
-      onCopy={() => onCopy(payload)}
+      onCopy={onCopy === undefined ? undefined : () => onCopy(payload)}
       value={formatNumber(size.units)}
     />
   );
