@@ -211,8 +211,10 @@ describe("the gate must be cheap — it runs inside the scan's 2s CPU budget", (
     // series that is ~1.2s of CPU before any analysis. Bar stamps repeat
     // across every symbol on the same timeframe grid, so the conversion
     // memoizes per wall-clock stamp: the first series pays the Intl reads,
-    // the other ten hit the map. Ceiling sized ~10x the memoized cost and
-    // ~4x under the unmemoized regression.
+    // the other ten hit the map. Ceiling sized for CI hardware: memoized
+    // measures ~117ms on the slowest runner (~30ms locally), the
+    // unmemoized regression ~183ms locally and 2-4x that on CI — 250ms
+    // sits about 2x above the one and safely under the other.
     const payload = Array.from({ length: 3_000 }, (_, index) => {
       const day = 1 + Math.floor(index / 96) % 28;
       const minuteOfDay = (index % 96) * 15;
@@ -233,7 +235,7 @@ describe("the gate must be cheap — it runs inside the scan's 2s CPU budget", (
     }
     const elapsed = performance.now() - started;
     assert.ok(
-      elapsed < 100,
+      elapsed < 250,
       `11 series x 3,000 bars decoded in ${elapsed.toFixed(0)}ms`,
     );
   });
