@@ -215,13 +215,16 @@ describe("ConfidenceUnit component shape (source-pinned — see header comment)"
   });
 
   it("resolves its qualifying threshold from the live calibration mirror, not a literal", () => {
+    // 1g tightened the same intent this pin always held: the mirror is the
+    // symbol-first resolver now, because the class table alone showed corn
+    // a Futures bar the engine never applied to it.
     assert.match(
       CONFIDENCE_UNIT_SOURCE,
-      /import\s*\{\s*CONFIDENCE_THRESHOLD_BY_ASSET_TYPE\s*\}\s*from\s*"\.\.\/\.\.\/lib\/advisorReview"/,
+      /import\s*\{\s*confidenceThresholdForAssetOrSymbol\s*\}\s*from\s*"\.\.\/\.\.\/lib\/advisorReview"/,
     );
     assert.match(
       CONFIDENCE_UNIT_SOURCE,
-      /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE\[assetType\]/,
+      /confidenceThresholdForAssetOrSymbol\(symbol, assetType\)/,
     );
   });
 
@@ -483,5 +486,37 @@ describe("AdvisorRecommendationPanel wiring (source-pinned — see header commen
     // The only non-visual channel: one polite region for the whole panel, so
     // sequential copies read in order instead of racing one name change.
     assert.match(source, /aria-live="polite" className="sr-only" role="status"/);
+  });
+});
+
+// 1g's second instance: the meter's tick and the ≥lg note drew the threshold
+// from the DISPLAY-type table, while the engine gated the same setup through
+// the symbol-first resolver — so a corn setup drew its tick at Futures' 68
+// and read "Futures setups must score 68 to qualify" while the engine
+// accepted it at agriculture's 30. historyUtils already routes symbol-first
+// (its :138); the stage's own meter now does the same.
+describe("the meter's threshold is the engine's, resolved symbol-first", () => {
+  it("resolves through confidenceThresholdForAssetOrSymbol, never the class table directly", () => {
+    assert.match(
+      CONFIDENCE_UNIT_SOURCE,
+      /confidenceThresholdForAssetOrSymbol\(symbol, assetType\)/,
+    );
+    assert.doesNotMatch(
+      CONFIDENCE_UNIT_SOURCE,
+      /CONFIDENCE_THRESHOLD_BY_ASSET_TYPE\[assetType\]/,
+    );
+    assert.match(CONFIDENCE_UNIT_SOURCE, /symbol: string;/);
+  });
+
+  it("is fed the symbol at both stage mounts", () => {
+    const stage = readFileSync(
+      "src/components/workspace/AdvisorWorkspace.tsx",
+      "utf8",
+    );
+    const mounts = stage.match(/<ConfidenceUnit\b[\s\S]{0,300}?\/>/g) ?? [];
+    assert.equal(mounts.length, 2);
+    for (const mount of mounts) {
+      assert.match(mount, /symbol=\{selectedAsset\.symbol\}/, mount);
+    }
   });
 });

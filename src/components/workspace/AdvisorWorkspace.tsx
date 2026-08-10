@@ -748,6 +748,7 @@ export function AdvisorWorkspace(
                 ? (
                   <ConfidenceUnit
                     assetType={selectedAsset.assetType}
+                    symbol={selectedAsset.symbol}
                     compact
                     score={setup.confidenceScore}
                   />
@@ -917,6 +918,7 @@ export function AdvisorWorkspace(
                 ? (
                   <ConfidenceUnit
                     assetType={selectedAsset.assetType}
+                    symbol={selectedAsset.symbol}
                     reviewedAt={reviewedAt}
                     score={setup.confidenceScore}
                     validUntil={setup.expiresAt ?? null}
