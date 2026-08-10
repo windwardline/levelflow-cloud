@@ -58,20 +58,19 @@ export const BROKER_OFFSETS: readonly BrokerOffset[] = [
     displayExcluded: false,
     measuredAt: ["F4", "F6", "F10"],
   },
-  {
-    levelflowSymbol: "BRENT",
-    basis: 1.67,
-    // Was display-excluded on the size of its basis. That is inconsistent with
-    // how XAGUSD (+0.17) and WTI (+0.24) are handled — both carry a measured,
-    // stable offset and both are SHOWN with the basis line that states it. A
-    // bigger number is a reason to state it more prominently, not to hide a
-    // market E8 offers and FMP matches (owner ruling 2026-08-07).
-    //
-    // The basis is stable across three frames, which is what makes the line
-    // honest: "E8 quotes ~+1.67 above this feed — entry there ~= {adjusted}".
-    displayExcluded: false,
-    measuredAt: ["F4", "F6", "F10"],
-  },
+  // BRENT's row left with its market (2026-08-09). The sentence above it
+  // used to end "The basis is stable across three frames, which is what
+  // makes the line honest" — and the stability premise is what died: the
+  // owner's 2026-08-09 frame measured +1.10 where three frames of
+  // 2026-08-02..04 measured +1.61/+1.675. A basis that moves half a dollar
+  // in a week is a contract-month spread, not a venue offset, so there is
+  // no honest number for a line to state and no matched market to state it
+  // on (amendment 32; the masterList row carries the full evidence chain).
+  //
+  // WTI measured +0.10 in the same frame against its recorded +0.24 —
+  // identity-safe (inside its own spread) but the CONSTANT deserves a
+  // re-measurement pass across several sessions before the printed line
+  // moves; flagged in HANDOFF rather than churned off one Sunday frame.
 ];
 
 /**

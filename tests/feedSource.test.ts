@@ -158,8 +158,7 @@ describe("feed source lock (§20i ruling 8)", () => {
     // side-channel at all — divergence is fmpSymbol-vs-symbol only now.
     const recordedDivergences: Record<string, string> = {
       ASX: "^AXJO",
-      BRENT: "BZUSD",
-      DAX: "^GDAXI",
+        DAX: "^GDAXI",
       DOW: "^DJI",
       NIKKEI: "^N225",
       NSDQ: "^NDX",

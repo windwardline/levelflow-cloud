@@ -62,7 +62,8 @@ const symbolMap: Record<string, string> = {
   // per-barrel number, so no fallback stands in here. When CLUSD has no
   // bars, the honest behavior is the existing no-data path.
   WTI: "CLUSD",
-  BRENT: "BZUSD",
+  // BRENT left 2026-08-09 (amendment 32, the owner's frame): the CFD
+  // prices a month BZUSD does not serve. The masterList row carries it.
   XRPUSD: "XRPUSD",
   SOLUSD: "SOLUSD",
   LTCUSD: "LTCUSD",
@@ -143,7 +144,6 @@ const equityCalendarSensitiveSymbols = new Set([
 
 const headlineNewsSymbols: Record<string, string[]> = {
   ASX: ["EWA", "^AXJO"],
-  BRENT: ["BNO", "BZUSD"],
   BZUSD: ["BNO", "BZUSD"],
   CLUSD: ["USO", "CLUSD"],
   DAX: ["EWG", "^GDAXI"],
@@ -218,7 +218,6 @@ const symbolCurrencies: Record<SupportedSymbol, string[]> = {
   DAX: ["EUR"],
   ASX: ["AUD"],
   WTI: ["USD"],
-  BRENT: ["USD"],
   XRPUSD: ["USD"],
   SOLUSD: ["USD"],
   LTCUSD: ["USD"],
@@ -246,8 +245,8 @@ const correlationGroups: Record<string, string[]> = {
   crypto_momentum: ["ADAUSD", "BNBUSD", "SOLUSD"],
   crypto_payment: ["BCHUSD", "LTCUSD", "XRPUSD"],
   crude_oil: [
+    // BRENT left the group with its dormancy (2026-08-09).
     "WTI",
-    "BRENT",
     "BZUSD",
     "CLUSD",
   ],

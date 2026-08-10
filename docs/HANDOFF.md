@@ -39,7 +39,7 @@ step leaves every signed-in operator working behind a closed door.
 
 | | |
 | --- | --- |
-| Markets | **107** — forex 46, crypto 33, futures 27, each account showing exactly its own E8 offering (amendment 32 executed 2026-08-09: five index futures and eight currency futures dormant — a derivative is not its underlying) |
+| Markets | **106** — forex 45, crypto 33, futures 27 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
 | Engine | Round 28 calibration, Edge Functions deployed and verified in the deploy log |
 | Public face | The parking page |
 | Tests | 1,907 passing; check · lint · check:migrations · test · build · check:bundle all green |
@@ -102,8 +102,15 @@ DOW, NIKKEI, NSDQ, SP — are *cash* products on cash series and are real matche
 `^GDAXI` is correct for the DAX cash CFD and incorrect for the FDAX future. The
 rule is about instrument identity, not about ticker strings.
 
-**Open owner decision:** BRENT→`BZUSD` and WTI→`CLUSD`, oil CFDs on oil futures.
-See item 1.5 — one frame against front-month and next-month settles it.
+**BRENT/WTI: SETTLED 2026-08-09 on the owner's F13 frame** (docs/research/
+e8-feed-verification-2026-08-02.md §F13). WTI +0.10, inside its own spread —
+match confirmed, stays served. BRENT +1.10 against +1.61/+1.675 a week
+earlier, mid-month post-roll — a time-varying contract-month gap, dormant
+under amendment 32. Decided under the owner's simple-rules directive; the
+frame, the exact-minute bars and the arithmetic are all in F13. *Follow-up
+flagged:* WTI's printed +0.24 basis constant also measured +0.10 in F13 —
+identity-safe, but the constant wants a multi-session re-measurement before
+the line's number moves.
 
 Everything else invisible is justified and asserted as such:
 
