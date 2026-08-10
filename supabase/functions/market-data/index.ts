@@ -94,11 +94,9 @@ const symbolMap: Record<string, string> = {
   LEUSX: "LEUSX",
   GFUSX: "GFUSX",
   HEUSX: "HEUSX",
-  FESX: "^STOXX50E",
-  FDAX: "^GDAXI",
-  EMD: "^MID",
-  NKD: "^N225",
-  FDXM: "^GDAXI",
+  // Amendment 32 (2026-08-09): FESX/FDAX/EMD/NKD/FDXM left this map — each
+  // was served on its underlying's CASH index series, which was never a
+  // match. Their masterList rows carry the dormancy and the re-probe path.
   AAVEUSD: "AAVEUSD",
   ALGOUSD: "ALGOUSD",
   ARWUSD: "ARUSD",

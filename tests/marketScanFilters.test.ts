@@ -224,7 +224,9 @@ describe("amendment 13 — market availability follows the account classificatio
     const source = readFileSync("src/lib/broker/visibility.ts", "utf8");
     assert.doesNotMatch(source, /NO_TRADE_SYMBOLS|TEMPORARILY_HIDDEN/);
     // FDXM joined 2026-08-06 as FDAX's contract-size variant: in the symbol map because that is what earns a BROKER_INSTRUMENTS sizing row, out of every scan because it reads FDAX's own ^GDAXI series (contractVariants.ts). AVAILABLE means knowable-and-sizeable; scannableSymbolsFor decides what is scanned and sweepUniverse what is swept — three lists, three questions.
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 111);
+    // 111 -> 106 (amendment 32, 2026-08-09): the five index futures left
+    // the knowable universe; masterList carries their dormancy.
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 106);
   });
 
   // Amendment 23's offset ruling (owner, 2026-08-05): the same "nothing
@@ -238,8 +240,8 @@ describe("amendment 13 — market availability follows the account classificatio
   // notionals, never a market withheld. BRENT left this gap on 2026-08-07:
   // amendment 30 shows a measured offset with its basis line rather than
   // hiding the market.
-  it("splits the master identity into knowable (111) vs visible (102) on the size variants' grounds alone", () => {
-    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 111, "the knowable master list");
+  it("splits the master identity into knowable (106) vs visible (98) on the size variants' grounds alone", () => {
+    assert.equal(AVAILABLE_ASSET_SYMBOLS.length, 106, "the knowable master list");
     assert.ok(
       AVAILABLE_ASSET_SYMBOLS.includes("BRENT"),
       "BRENT's FMP match stays in the master list for replay sweeps",
@@ -247,7 +249,7 @@ describe("amendment 13 — market availability follows the account classificatio
     const visible = visibleAssetSymbols(null);
     assert.equal(
       visible.length,
-      102,
+      98,
       "the visible universe drops only the contract-size variants",
     );
     assert.ok(

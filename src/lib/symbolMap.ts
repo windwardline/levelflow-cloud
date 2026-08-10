@@ -409,41 +409,15 @@ const UNSORTED_SECURITY_GROUPS: SecurityGroup[] = [
         label: "HE - Lean Hogs Futures",
         symbol: "HEUSX",
       },
-      {
-        assetType: "Futures",
-        description: "Euro Stoxx 50 Futures",
-        fmpSymbol: "^STOXX50E",
-        label: "FESX - Euro Stoxx 50 Futures",
-        symbol: "FESX",
-      },
-      {
-        assetType: "Futures",
-        description: "DAX Futures",
-        fmpSymbol: "^GDAXI",
-        label: "FDAX - DAX Futures",
-        symbol: "FDAX",
-      },
-      {
-        assetType: "Futures",
-        description: "E-Mini S&P MidCap 400 Futures",
-        fmpSymbol: "^MID",
-        label: "EMD - E-Mini S&P MidCap 400 Futures",
-        symbol: "EMD",
-      },
-      {
-        assetType: "Futures",
-        description: "Nikkei 225 Futures",
-        fmpSymbol: "^N225",
-        label: "NKD - Nikkei 225 Futures",
-        symbol: "NKD",
-      },
-      {
-        assetType: "Futures",
-        description: "Mini-DAX Futures",
-        fmpSymbol: "^GDAXI",
-        label: "FDXM - Mini-DAX Futures",
-        symbol: "FDXM",
-      },
+      // Amendment 32 (2026-08-09): the five index futures leave the roster —
+      // FESX (^STOXX50E), FDAX and its FDXM mini (^GDAXI), EMD (^MID) and
+      // NKD (^N225) were all served on CASH index series, and a future
+      // written on X is not X. Their masterList rows carry the dormancy as
+      // `excluded-no-fmp-source` with the ruling; verify-fmp-matches.ts
+      // re-probes each run, and a real futures series appearing is what
+      // re-admits any of them. The six cash index CFDs above stay: cash on
+      // cash is a real match — the same ^GDAXI is right for DAX and was
+      // wrong for FDAX. That contrast is the rule.
       {
         assetType: "Futures",
         description: "Micro E-Mini S&P 500 Futures",

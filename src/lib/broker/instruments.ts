@@ -166,6 +166,7 @@ const MARGIN_ONLY_ROWS: SpecRow[] = [
 // no margin row. Every spec field is null, so sizing withholds with the
 // honest word while the market stays analyzed and offered (amendment 22).
 const WATCHLIST_ONLY_ROWS: SpecRow[] = [
+  ["BZ", "Brent Crude Oil", null, null, null, null],
   ["XC", "Mini Corn", null, null, null, null],
   ["XK", "Mini Soybeans", null, null, null, null],
   ["ZO", "Oats", null, null, null, null],
@@ -236,6 +237,7 @@ function signatureFuturesSighting(note: string): Provenance {
 const FUTURES_ACCOUNT_SIGHTINGS: Record<string, string> = {
   "6J": "6JU6 0.0063985 live on the Currencies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   "6M": "6MQ6 0.057600 live on the Currencies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  BZ: "BZV6 84.05 live on the Energies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   GF: "GFQ6 348.300 live on the Meats watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   XC: "XCU6 450'3 live on the Grains watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   XK: "XKQ6 1181'3 live on the Grains watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
@@ -596,6 +598,7 @@ const FUTURES_RELATED_EXPOSURE: Record<string, string> = {
  * with a stated ground, or row generation throws.
  */
 export const FUTURES_MAPPINGS: Record<string, string> = {
+  BZUSD: "BZ",
   CLUSD: "CL",
   ESUSD: "ES",
   GCUSD: "GC",
@@ -644,46 +647,17 @@ const FUTURES_SIBLING: Record<string, string> = {
  * nor FUTURES_MAPPINGS throws at row generation, so the next unaccounted
  * instrument is a build failure rather than a silent "Not offered".
  */
+// 2026-08-09, twice: the five amendment-32 index futures left this register
+// with their SECURITY_OPTIONS rows (no row generated, nothing to ground), and
+// BZUSD left it the other way — the owner's simple-rules directive applied
+// amendment 19 to the F9 Energies sighting (BZV6 84.05 live), which beats the
+// older three-listing cross-check the not_offered rested on. BZ now sits in
+// WATCHLIST_ONLY_ROWS below: OFFERED, unsizeable (amendment 22), the ZB/ZN
+// pattern exactly.
 const FUTURES_ABSENCE_REGISTER: Record<
   string,
   { ground: string; source: Provenance; tradability: Tradability }
 > = {
-  BZUSD: {
-    ground:
-      "Brent is absent from the 45-instrument canonical roster; E8's crude is WTI only — cross-checked against three listings. A live BZ row printed on the F9 Energies watchlist 2026-08-03, which contradicts the three listings under amendment 19; flagged to the owner with the BRENT/WTI identity question rather than flipped here.",
-    source: CANONICAL_LIST,
-    tradability: "not_offered",
-  },
-  EMD: {
-    ground:
-      "Amendment 32: served on ^MID, the CASH index — a future written on X is not X, so no valid FMP match exists and the market goes dormant in item 1.5. No sizing row is built for a market leaving the view.",
-    source: CANONICAL_LIST,
-    tradability: "unconfirmed",
-  },
-  FDAX: {
-    ground:
-      "Amendment 32: served on ^GDAXI, the CASH index — the same series is a correct match for the DAX cash CFD and an incorrect one for this future. Dormant in item 1.5.",
-    source: INSTRUMENT_ROSTER,
-    tradability: "unconfirmed",
-  },
-  FDXM: {
-    ground:
-      "Amendment 32: the contract-size variant behind FDAX, served on the same ^GDAXI cash series. Dormant in item 1.5 with it.",
-    source: INSTRUMENT_ROSTER,
-    tradability: "unconfirmed",
-  },
-  FESX: {
-    ground:
-      "Amendment 32: served on ^STOXX50E, the CASH index. Dormant in item 1.5.",
-    source: INSTRUMENT_ROSTER,
-    tradability: "unconfirmed",
-  },
-  NKD: {
-    ground:
-      "Amendment 32: served on ^N225, the CASH index. Dormant in item 1.5. (NKD has a canonical E8 spec row; it is deliberately not mapped, because building sizing for a market leaving the view would be work item 1.5 deletes.)",
-    source: CANONICAL_LIST,
-    tradability: "unconfirmed",
-  },
 };
 
 // ---------------------------------------------------------------------------

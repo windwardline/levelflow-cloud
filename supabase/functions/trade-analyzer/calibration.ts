@@ -150,11 +150,7 @@ const ASSET_TYPE_BY_SYMBOL: Record<AssetType, string[]> = {
     "RBUSD",
     "PLUSD",
     "PAUSD",
-    "FESX",
-    "FDAX",
-    "EMD",
-    "NKD",
-    "FDXM",
+    // FESX/FDAX/EMD/NKD/FDXM: dormant under amendment 32 (2026-08-09).
     "MES",
     "MNQ",
     "MYM",
