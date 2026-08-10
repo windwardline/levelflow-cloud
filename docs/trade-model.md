@@ -187,9 +187,14 @@ and near-zero take-profit hits in production).
   must fit inside it.
 - **Entry**: limit order offset from the latest close by a per-class ATR
   fraction (indices sit near the market; deep offsets never filled).
-- **Stop**: beyond the nearest confirmed swing pivot with a volatility
-  buffer, hard-capped at `maxStopAtrMultiplier × ATR(15m)`. Structure may
-  tighten the stop, never widen it past the cap.
+- **Stop**: the structural candidate — nearest confirmed swing pivot with a
+  volatility buffer, floored at 1.25 ATR — clipped by the class cap
+  `maxStopAtrMultiplier × ATR(15m)`. Because the floor exceeds the cap in
+  seven of eight classes, the cap binds unconditionally there and
+  `stopProvenance` records `cap` (see item 8a: both other levers are dead
+  until the floor/cap geometry is re-derived). The prose here used to state
+  the pivot case as the rule; the emitted `stopLogic` now derives from the
+  provenance instead, and so does this sentence.
 - **TP1**: `max(tp1RiskShare × risk, tp1AtrMultiplier × ATR)`, capped at 60%
   of the expected window move. Banks half the position; the stop moves to
   entry.

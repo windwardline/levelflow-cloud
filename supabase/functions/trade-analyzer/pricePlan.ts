@@ -4,7 +4,11 @@ import {
   estimateExecutionQuality,
   type ExecutionQuality,
 } from "./executionQuality.ts";
-import { applyFuturesTickRules, type FuturesContractSpec } from "./futures.ts";
+import {
+  applyFuturesTickRules,
+  type FuturesContractSpec,
+  needsFuturesTickGrid,
+} from "./futures.ts";
 import {
   averageTrueRange,
   findSwingPivots,
@@ -65,6 +69,29 @@ const STOP_LOGIC_BY_PROVENANCE: Record<StopProvenance, string> = {
     "Invalidation beyond the nearest confirmed swing pivot, with a volatility buffer.",
   volatility_floor:
     "Invalidation at the minimum volatility width, no confirmed swing pivot sitting nearer.",
+};
+
+// 1o's residue, repaired the way stopLogic was: targetLogic asserted "the
+// runner is the nearest structural level" unconditionally while
+// runnerProvenance two lines away recorded window_ceiling for most of the
+// corpus, and called TP1 "a risk-scaled partial" on setups where the ATR
+// floor or the window cap is what actually placed it. Two halves, one
+// sentence each per provenance, joined at the return — the description
+// cannot outlive the mechanism.
+const TP1_LOGIC_BY_PROVENANCE: Record<Tp1Provenance, string> = {
+  atr_floor:
+    "TP1 banks at the minimum volatility width — the risk-scaled partial sat nearer than one volatility unit.",
+  risk_share:
+    "TP1 banks a risk-scaled partial.",
+  window_cap:
+    "TP1 is pulled back to what the review window can statistically reach.",
+};
+
+const RUNNER_LOGIC_BY_PROVENANCE: Record<RunnerProvenance, string> = {
+  structural_level:
+    "The runner sits on a confirmed structural level inside the window's reach.",
+  window_ceiling:
+    "The runner sits at the window's statistical ceiling — no structural level qualified nearer.",
 };
 
 export function buildPricePlan(
@@ -193,7 +220,11 @@ export function buildPricePlan(
   let takeProfit1 = ladder.takeProfit1;
 
   const assetType = getAssetType(symbol);
-  const futuresTickPlan = assetType === "futures"
+  // 1b: every futures-shaped class, not `=== "futures"` alone — agriculture
+  // and livestock trade on the same exchange grids, and the narrower gate
+  // meant alignment was never even attempted for them.
+  const needsTickGrid = needsFuturesTickGrid(symbol);
+  const futuresTickPlan = needsTickGrid
     ? applyFuturesTickRules({
       entryPrice,
       side,
@@ -203,6 +234,13 @@ export function buildPricePlan(
       takeProfit1,
     })
     : null;
+
+  // 1b's belt: the analysis door refuses a spec-less futures-shaped market
+  // with its own reason before any of this runs; if a future call path skips
+  // the door, no off-grid plan ships from here either.
+  if (needsTickGrid && !futuresTickPlan) {
+    return null;
+  }
 
   if (futuresTickPlan) {
     entryPrice = futuresTickPlan.entryPrice;
@@ -277,8 +315,9 @@ export function buildPricePlan(
     runnerProvenance: ladder.runnerProvenance,
     tp1Provenance: ladder.tp1Provenance,
     entryProvenance,
-    targetLogic:
-      "TP1 banks a risk-scaled partial; the runner is the nearest structural level the review window can statistically reach.",
+    targetLogic: `${TP1_LOGIC_BY_PROVENANCE[ladder.tp1Provenance]} ${
+      RUNNER_LOGIC_BY_PROVENANCE[ladder.runnerProvenance]
+    }`,
     takeProfit,
     takeProfit1,
   };

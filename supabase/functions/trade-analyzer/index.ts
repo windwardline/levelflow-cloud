@@ -1,4 +1,5 @@
 import { getAssetType, getCategoryCalibration } from "./calibration.ts";
+import { getFuturesContractSpec, needsFuturesTickGrid } from "./futures.ts";
 import { averageTrueRange } from "./indicators.ts";
 import {
   classifyRegime,
@@ -75,7 +76,7 @@ import {
 } from "./supabaseRest.ts";
 
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
-const ANALYZER_VERSION = "2026.08.06.geometry-derived";
+const ANALYZER_VERSION = "2026.08.09.futures-grid";
 // Global learning aggregates up to 2,500 outcome rows; once per warm
 // instance per interval is enough — it is auxiliary to every request.
 const LEARNING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -647,6 +648,30 @@ async function reviewCurrentMarket(
     return {
       blocked: true,
       reason: sessionContext.reason ?? "The market session is not open.",
+      symbol: normalizedSymbol,
+    };
+  }
+
+  // 1b: a futures-shaped market without a verified contract spec refuses
+  // HERE, with its own ground, before any data or scoring work — not inside
+  // buildPricePlan, where the null would wear "A valid limit entry was not
+  // available", replacing one lie with another. The spec table covers every
+  // market whose grid is verified; what remains is exactly the population
+  // whose prices could not honestly be aligned.
+  if (
+    needsFuturesTickGrid(normalizedSymbol) &&
+    !getFuturesContractSpec(normalizedSymbol)
+  ) {
+    await recordAnalyzerEvent({
+      action,
+      message: "No verified contract spec",
+      status: eventStatus,
+      symbol: normalizedSymbol,
+      userId,
+    });
+    return {
+      blocked: true,
+      reason: "This market's price increments are not yet verified, so no setup is shown.",
       symbol: normalizedSymbol,
     };
   }
@@ -1244,6 +1269,13 @@ async function analyzeSetup(
       reviewWindowExpiresAt: expiresAt,
       stopLogic: pricePlan.stopLogic,
       stopProvenance: pricePlan.stopProvenance,
+      // 1o's residue: these three were computed in the plan and dropped
+      // here, so the corpus could not audit which anchor placed TP1, the
+      // runner, or the entry — exactly what calibration 4d's per-market
+      // derivation needs to read back.
+      runnerProvenance: pricePlan.runnerProvenance,
+      tp1Provenance: pricePlan.tp1Provenance,
+      entryProvenance: pricePlan.entryProvenance,
       targetLogic: pricePlan.targetLogic,
     },
   };

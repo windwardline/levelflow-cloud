@@ -137,19 +137,39 @@ const CANONICAL_ROWS: SpecRow[] = [
   ["PA", "Palladium", 0.1, 10, null, null],
 ];
 
-// The two margin-table-only symbols Levelflow already serves, as `ZBUSD` and
-// `ZNUSD`. Absent from the fee table, the tick table, the canonical
-// 45-instrument list and the live symbol browser: margin published, tick size
-// and value NOT PUBLISHED — still true, and still why sizing stays withheld
-// (amendment 22). Tradability is a different question: both printed live on
-// the owner's F9 futures-account watchlist sighting (amendment 19; see
-// FUTURES_ACCOUNT_SIGHTINGS below), which OFFERS them the same way a canonical-
-// list listing would. The other nine margin-table-only symbols (ZT, ZF, UB, TN,
-// ZQ, GF, MNG, MHG and the blank-symbol "Micro Silver" row) have no Levelflow
-// counterpart and are out of scope for §19 (§19h).
+// The margin-table-only symbols Levelflow serves. Absent from the fee table,
+// the tick table, the canonical 45-instrument list and the live symbol
+// browser: margin published, tick size and value NOT PUBLISHED — still true,
+// and still why sizing stays withheld (amendment 22). Tradability is a
+// different question: every one of these printed live on the owner's F9
+// futures-account watchlist sighting (amendment 19; see
+// FUTURES_ACCOUNT_SIGHTINGS below), which OFFERS them the same way a
+// canonical-list listing would.
+//
+// 1c (2026-08-09): ZT, ZF and GF joined ZB/ZN here — the old note called
+// them "no Levelflow counterpart", which stopped being true when the
+// nineteen onboarded on 2026-08-05 brought ZFUSD, ZTUSD and GFUSX into the
+// roster; their rows then fell through the unmapped branch and rendered
+// "Not offered" for contracts the same F9 frames show live. The remaining
+// margin-table-only symbols (UB, TN, ZQ, MNG, MHG, blank "Micro Silver")
+// still have no Levelflow counterpart and stay out of scope (§19h).
 const MARGIN_ONLY_ROWS: SpecRow[] = [
+  ["GF", "Feeder Cattle", null, null, 10_000, null],
   ["ZB", "30-Year Bond", null, null, 10_000, null],
+  ["ZF", "5-Year Note", null, null, 10_000, null],
   ["ZN", "10-Year Note", null, null, 10_000, null],
+  ["ZT", "2-Year Note", null, null, 10_000, null],
+];
+
+// Watchlist-only rows: live-priced on the same F9 frames (amendment 19 —
+// offered), while E8 publishes NOTHING about them — no fee row, no tick row,
+// no margin row. Every spec field is null, so sizing withholds with the
+// honest word while the market stays analyzed and offered (amendment 22).
+const WATCHLIST_ONLY_ROWS: SpecRow[] = [
+  ["XC", "Mini Corn", null, null, null, null],
+  ["XK", "Mini Soybeans", null, null, null, null],
+  ["ZO", "Oats", null, null, null, null],
+  ["ZR", "Rough Rice", null, null, null, null],
 ];
 
 /**
@@ -216,8 +236,15 @@ function signatureFuturesSighting(note: string): Provenance {
 const FUTURES_ACCOUNT_SIGHTINGS: Record<string, string> = {
   "6J": "6JU6 0.0063985 live on the Currencies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   "6M": "6MQ6 0.057600 live on the Currencies watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  GF: "GFQ6 348.300 live on the Meats watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  XC: "XCU6 450'3 live on the Grains watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  XK: "XKQ6 1181'3 live on the Grains watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   ZB: "ZBU6 109'02 (109.0625) live on the Financials watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  ZF: "ZFU6 106'070 (106.21875) live on the Financials watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
   ZN: "ZNU6 108'125 (108.390625) live on the Financials watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  ZO: "ZOU6 316'3 live on the Grains watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
+  ZR: "ZRU6 14.205 live on the Grains watchlist, 2026-08-03 15:08:59-15:09:49 EDT (matches FMP ZRUSD within 21 bp)",
+  ZT: "ZTU6 102'278 live on the Financials watchlist, 2026-08-03 15:08:59-15:09:49 EDT",
 };
 
 function toSpec(row: SpecRow, canonical: boolean): E8FuturesSpec {
@@ -244,6 +271,7 @@ export const E8_FUTURES_SPECS: Record<string, E8FuturesSpec> = Object.fromEntrie
   [
     ...CANONICAL_ROWS.map((row) => toSpec(row, true)),
     ...MARGIN_ONLY_ROWS.map((row) => toSpec(row, false)),
+    ...WATCHLIST_ONLY_ROWS.map((row) => toSpec(row, false)),
   ].map((spec) => [spec.symbol, spec]),
 );
 
@@ -557,26 +585,105 @@ const FUTURES_RELATED_EXPOSURE: Record<string, string> = {
   NIKKEI: "NKD",
 };
 
-/** Levelflow's Futures rows to E8's futures instruments. */
-const FUTURES_MAPPINGS: Record<string, string> = {
+/**
+ * Levelflow's Futures rows to E8's futures instruments.
+ *
+ * 1c (2026-08-09): this held 12 entries against 40 Futures-classified
+ * symbols, so 28 markets E8 demonstrably trades fell into the unmapped
+ * branch below and rendered "Not offered" — a firm claim verified only for
+ * BZUSD. Every symbol E8's own tables or the F9 watchlist sighting cover is
+ * now mapped; what remains unmapped must sit in FUTURES_ABSENCE_REGISTER
+ * with a stated ground, or row generation throws.
+ */
+export const FUTURES_MAPPINGS: Record<string, string> = {
   CLUSD: "CL",
   ESUSD: "ES",
   GCUSD: "GC",
+  GFUSX: "GF",
+  HEUSX: "HE",
   HGUSD: "HG",
+  HOUSD: "HO",
+  LEUSX: "LE",
+  MES: "MES",
   MGCUSD: "MGC",
+  MNQ: "MNQ",
+  MYM: "MYM",
   NGUSD: "NG",
   NQUSD: "NQ",
+  PAUSD: "PA",
+  PLUSD: "PL",
+  QG: "QG",
+  QM: "QM",
+  RBUSD: "RB",
+  XC: "XC",
+  XK: "XK",
   RTYUSD: "RTY",
   SIUSD: "SI",
   YMUSD: "YM",
   ZBUSD: "ZB",
+  ZCUSX: "ZC",
+  ZFUSD: "ZF",
+  ZLUSX: "ZL",
+  ZMUSD: "ZM",
   ZNUSD: "ZN",
+  ZOUSX: "ZO",
+  ZRUSD: "ZR",
+  ZSUSX: "ZS",
+  ZTUSD: "ZT",
 };
 
 /** GCUSD and MGCUSD are one exposure through two instruments on one line. */
 const FUTURES_SIBLING: Record<string, string> = {
   GCUSD: "MGC",
   MGCUSD: "GC",
+};
+
+/**
+ * Every Futures-classified symbol with no E8 mapping, and the ground. An
+ * entry here is a decision someone made; a symbol in neither this register
+ * nor FUTURES_MAPPINGS throws at row generation, so the next unaccounted
+ * instrument is a build failure rather than a silent "Not offered".
+ */
+const FUTURES_ABSENCE_REGISTER: Record<
+  string,
+  { ground: string; source: Provenance; tradability: Tradability }
+> = {
+  BZUSD: {
+    ground:
+      "Brent is absent from the 45-instrument canonical roster; E8's crude is WTI only — cross-checked against three listings. A live BZ row printed on the F9 Energies watchlist 2026-08-03, which contradicts the three listings under amendment 19; flagged to the owner with the BRENT/WTI identity question rather than flipped here.",
+    source: CANONICAL_LIST,
+    tradability: "not_offered",
+  },
+  EMD: {
+    ground:
+      "Amendment 32: served on ^MID, the CASH index — a future written on X is not X, so no valid FMP match exists and the market goes dormant in item 1.5. No sizing row is built for a market leaving the view.",
+    source: CANONICAL_LIST,
+    tradability: "unconfirmed",
+  },
+  FDAX: {
+    ground:
+      "Amendment 32: served on ^GDAXI, the CASH index — the same series is a correct match for the DAX cash CFD and an incorrect one for this future. Dormant in item 1.5.",
+    source: INSTRUMENT_ROSTER,
+    tradability: "unconfirmed",
+  },
+  FDXM: {
+    ground:
+      "Amendment 32: the contract-size variant behind FDAX, served on the same ^GDAXI cash series. Dormant in item 1.5 with it.",
+    source: INSTRUMENT_ROSTER,
+    tradability: "unconfirmed",
+  },
+  FESX: {
+    ground:
+      "Amendment 32: served on ^STOXX50E, the CASH index. Dormant in item 1.5.",
+    source: INSTRUMENT_ROSTER,
+    tradability: "unconfirmed",
+  },
+  NKD: {
+    ground:
+      "Amendment 32: served on ^N225, the CASH index. Dormant in item 1.5. (NKD has a canonical E8 spec row; it is deliberately not mapped, because building sizing for a market leaving the view would be work item 1.5 deletes.)",
+    source: CANONICAL_LIST,
+    tradability: "unconfirmed",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -628,9 +735,23 @@ function futuresLineRow(symbol: string, assetType: SecurityType): Omit<
 
   const e8Symbol = FUTURES_MAPPINGS[symbol];
   if (!e8Symbol) {
-    // BZUSD. Brent is absent from the 45-instrument canonical roster; E8's crude
-    // is WTI only. A firm NOT OFFERED, cross-checked against three listings.
-    return { ...notOffered, tradabilitySource: CANONICAL_LIST };
+    // 1c: an unmapped Futures row must name its ground or fail the build.
+    // The old branch returned a firm "Not offered" with a BZUSD-specific
+    // comment for EVERY unmapped symbol — 28 markets E8 demonstrably trades
+    // wore a claim verified only for Brent. The throw is the point: a
+    // Futures-classified symbol nobody has looked at is exactly what this
+    // register exists to make impossible (the e8RosterConformance idiom).
+    const absence = FUTURES_ABSENCE_REGISTER[symbol];
+    if (!absence) {
+      throw new Error(
+        `${symbol}: Futures-classified with no E8 mapping and no registered ground`,
+      );
+    }
+    return {
+      ...notOffered,
+      tradability: absence.tradability,
+      tradabilitySource: absence.source,
+    };
   }
 
   const spec = E8_FUTURES_SPECS[e8Symbol];

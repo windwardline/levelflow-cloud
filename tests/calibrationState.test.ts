@@ -252,6 +252,11 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
       new URL("../supabase/functions/trade-analyzer/index.ts", import.meta.url),
       "utf8",
     );
-    assert.match(src, /ANALYZER_VERSION = "2026\.08\.06\.geometry-derived"/);
+    // 2026-08-09: futures-grid — 1b's alignment now reaches all three
+    // futures-shaped classes (15 new contract specs), spec-less markets
+    // refuse at the analysis door, and the risk model emits all four
+    // provenances. Emitted prices changed on 19 markets, so the learning
+    // cohort scopes to a new version.
+    assert.match(src, /ANALYZER_VERSION = "2026\.08\.09\.futures-grid"/);
   });
 });
