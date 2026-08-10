@@ -256,9 +256,14 @@ walk-forward). Durable character groups emerged:
   alts, and cash indices are excluded). Every symbol remains reviewable
   directly, and explicit group scans cover the full group. Curation is
   data-driven and should be revisited as the live cohort accumulates.
-  **Superseded** — later rounds returned all 28 forex pairs and all seven
-  non-BNB cryptos to the default universe, and §17m.1 deleted the direct
-  review path, so nothing is "reviewable directly" any more. See the menu
+  **Superseded twice** — later rounds returned all 28 forex pairs and all
+  seven non-BNB cryptos to the default universe, and §17m.1 deleted the
+  direct review path, so nothing is "reviewable directly" any more. Then
+  amendment 31 (2026-08-07) retired scan curation entirely: full matched
+  coverage is the resting state — 111 markets, every FMP-matched E8 market
+  live per account type — and the only path out of the offering is a
+  calibration verdict under item 4d. No curation mechanism exists in the
+  scan path today, and no sentence anywhere should claim one. See the menu
   under "Current engine state" for the state of record.
 
 ## Round-3b calibration (2026-07-28, 150-day instrumented replay)

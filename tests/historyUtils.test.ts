@@ -690,3 +690,48 @@ describe("compareSetupsByConfidence — one comparator, two surfaces", () => {
     );
   });
 });
+
+// 1j: the band's rate obeys the same threshold every other published figure
+// obeys, and carries its denominator. One resolved row used to print "100%"
+// eight rows above Attribution reading "Learning" for the same account.
+describe("the record band's rate is gated and denominated", () => {
+  it("reads Learning below the attribution gate, with the count still shipped", () => {
+    const band = buildRecordBand(
+      [
+        buildSetup({
+          id: "solo-win",
+          status: "filled",
+          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+        }),
+      ],
+      NOW,
+    );
+    assert.equal(band.moneyPositivePercent, null, "one row must not print 100%");
+    assert.equal(band.resolved, 1);
+  });
+
+  it("ships the denominator beside the gated rate", () => {
+    const band = buildRecordBand(
+      [
+        buildSetup({
+          id: "w1",
+          status: "filled",
+          trade_outcomes: [buildOutcome({ outcome: "take_profit" })],
+        }),
+        buildSetup({
+          id: "w2",
+          status: "filled",
+          trade_outcomes: [buildOutcome({ outcome: "tp1_partial" })],
+        }),
+        buildSetup({
+          id: "l1",
+          status: "filled",
+          trade_outcomes: [buildOutcome({ outcome: "stop_loss" })],
+        }),
+      ],
+      NOW,
+    );
+    assert.equal(band.resolved, 3);
+    assert.equal(band.moneyPositivePercent, 67);
+  });
+});

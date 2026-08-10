@@ -124,11 +124,22 @@ describe("buildScopeMenuRows", () => {
 });
 
 describe("showsAffordance", () => {
-  it("never shows anything on 'All markets', open or closed: scanning it defers to the server's own curated universe, not a client-counted total", () => {
-    const [allRow] = buildScopeMenuRows(WEDNESDAY_2PM_ET);
+  it("gives 'All markets' its earned Scan N — the curated-universe rationale is dead (1h)", () => {
+    // The old title here stated the false rationale as fact: "scanning it
+    // defers to the server's own curated universe". It does not — the
+    // empty-list scan form is refused, getMarketScanSymbolsForScope resolves
+    // "all" to an explicit visibility-intersected list, and the count is the
+    // sum of the group rows the same menu already shows.
+    const rows = buildScopeMenuRows(WEDNESDAY_2PM_ET);
+    const [allRow] = rows;
     assert.ok(allRow);
     assert.equal(allRow.scope.kind, "all");
-    assert.equal(showsAffordance(allRow), false);
+    assert.equal(showsAffordance(allRow), true);
+    const groupTotal = rows
+      .filter((row) => row.scope.kind === "group")
+      .reduce((total, row) => total + (row.count ?? 0), 0);
+    assert.equal(allRow.count, groupTotal);
+    assert.ok((allRow.count ?? 0) > 0);
   });
 
   it("shows 'Scan N' on an open group, nothing on an open market, in the full menu", () => {

@@ -487,6 +487,8 @@ export type RecordBand = {
   bestMarket: string | null;
   moneyPositivePercent: number | null;
   netR: number | null;
+  /** 1j: what the percentage stands on — rendered beside it, never implied. */
+  resolved: number;
   setupsThisWeek: number;
 };
 
@@ -553,8 +555,13 @@ export function buildRecordBand(
     }
   }
 
+  // 1j: the rate obeys the same threshold every other published figure here
+  // obeys — one resolved row used to print "100%". Below the gate the band
+  // reads "Learning", exactly as Attribution does eight rows down for the
+  // same reason, and the denominator ships alongside so the reader can
+  // weigh what the percentage stands on.
   const resolved = wins + losses;
-  const moneyPositivePercent = resolved > 0
+  const moneyPositivePercent = resolved >= ATTRIBUTION_LEARNING_MIN_RESOLVED
     ? Math.round((wins / resolved) * 100)
     : null;
 
@@ -585,6 +592,7 @@ export function buildRecordBand(
     bestMarket,
     moneyPositivePercent,
     netR: netRPresent ? netRSum : null,
+    resolved,
     setupsThisWeek,
   };
 }
