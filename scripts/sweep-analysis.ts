@@ -7,17 +7,28 @@
 // Usage:
 //   npx tsx scripts/sweep-analysis.ts --emit path/setups.jsonl [--min-n 30]
 //
-// The bands are the live thresholds of record (supabase/functions/
-// trade-analyzer/calibration.ts): crypto 82 · energies 69 · forex 40 ·
-// futures 68 · indices 68 · metals 90. Every curve below is printed against
-// them so a proposed change is a delta from the resting state, never a number
-// arriving from nowhere.
-import { createReadStream } from "node:fs";
-import { createInterface } from "node:readline";
-import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+// The bands are the live thresholds of record, DERIVED at runtime from
+// calibration.ts — a hardcoded copy of them sat here through three
+// generations of threshold changes, presenting a retired resting state as
+// current. Every curve below is printed against the live values so a
+// proposed change is a delta from the actual resting state, never a number
+// arriving from nowhere. Stats arithmetic is scripts/sweepStats.ts — the
+// one vocabulary (item 3) — and the emit enters through the streaming
+// manifest door (2i): hash verified before a single row is read.
+import {
+  getAssetType,
+  getCategoryCalibration,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  addOutcome,
+  assertManifestedCorpusStreaming,
+  emptyStats,
+  type SweepStats,
+} from "./sweepStats.ts";
 
 type Row = {
   accepted: boolean;
+  holdout?: boolean;
   confidenceScore: number;
   cotStance: string | null;
   newsPenalty: number;
@@ -35,14 +46,26 @@ type Row = {
   variant: string;
 };
 
-const LIVE_THRESHOLDS: Record<string, number> = {
-  crypto: 82,
-  energies: 69,
-  forex: 40,
-  futures: 68,
-  indices: 68,
-  metals: 90,
+// One representative roster symbol per class — only a key into
+// getCategoryCalibration, never a source of numbers. The thresholds
+// printed are whatever calibration.ts holds the moment this runs.
+const CLASS_REPRESENTATIVE: Record<string, string> = {
+  agriculture: "ZCUSX",
+  crypto: "BTCUSD",
+  energies: "WTI",
+  forex: "EURUSD",
+  futures: "ESUSD",
+  indices: "SP",
+  livestock: "LEUSX",
+  metals: "XAUUSD",
 };
+
+function liveThreshold(className: string): number | null {
+  const representative = CLASS_REPRESENTATIVE[className];
+  return representative
+    ? getCategoryCalibration(representative).confidenceThreshold
+    : null;
+}
 
 // The ten markets Phase 5 made sizeable for the first time (29 -> 39 on the
 // three full forex lines). Their curves have never existed before this run,
@@ -68,56 +91,28 @@ function classOf(symbol: string): string {
   return getAssetType(symbol);
 }
 
-type Stats = {
-  n: number;
-  filled: number;
-  tp1: number;
-  stopped: number;
-  ambiguous: number;
-  rSum: number;
-};
+// The stats arithmetic lives in scripts/sweepStats.ts now — this file's
+// own private copy is where the drift this comment used to record actually
+// happened (regex-classified wins, all-rows denominators), and item 3's
+// unification exists so it cannot happen a second time. `ambiguous` stays
+// its own column because a run the simulator could not resolve is neither
+// a win nor a loss, and hiding it inside a denominator is the same class
+// of error the regex was.
+type Stats = SweepStats;
 
-function emptyStats(): Stats {
-  return { ambiguous: 0, filled: 0, n: 0, rSum: 0, stopped: 0, tp1: 0 };
-}
-
-// Mirrors summarizeSweepOutcomes (supabase/functions/trade-analyzer/sweep.ts)
-// field for field, deliberately: an analysis that computes its own rates can
-// drift from the engine's, and this one did — a first cut classified wins by
-// regex (/tp1|target/), which silently dropped every `take_profit` (the
-// biggest wins) and divided by all rows instead of filled ones, understating
-// every hit rate and diluting expectancy with the unfilled rows' realizedR of
-// 0. The engine's vocabulary is the authority: filled = outcome !== unfilled;
-// a win is take_profit OR tp1_partial; a stop is stop_loss; expectancy is the
-// mean realizedR OVER FILLED. `ambiguous` is reported in its own column
-// rather than folded anywhere, because a run the simulator could not resolve
-// is neither a win nor a loss and hiding it inside a denominator would be the
-// same class of error.
 function add(stats: Stats, row: Row): void {
-  stats.n += 1;
-  if (row.outcome === "unfilled") {
-    return;
-  }
-  stats.filled += 1;
-  stats.rSum += typeof row.realizedR === "number" && Number.isFinite(row.realizedR)
-    ? row.realizedR
-    : 0;
-  if (row.outcome === "take_profit" || row.outcome === "tp1_partial") {
-    stats.tp1 += 1;
-  }
-  if (row.outcome === "stop_loss") {
-    stats.stopped += 1;
-  }
-  if (row.outcome === "ambiguous") {
-    stats.ambiguous += 1;
-  }
+  addOutcome(stats, {
+    outcome: row.outcome,
+    realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
+    symbol: row.symbol,
+  });
 }
 
 function rate(part: number, whole: number): string {
   return whole === 0 ? "—" : `${((part / whole) * 100).toFixed(1)}%`;
 }
 
-function expectancy(stats: Stats): string {
+function expectancyLabel(stats: Stats): string {
   return stats.filled === 0 ? "—" : (stats.rSum / stats.filled).toFixed(3);
 }
 
@@ -145,20 +140,19 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Streamed, and narrowed to the fields the tables use: the 2026-08-05 run
-  // emitted 672,739 records (505 MB), where a readFileSync + split would hold
-  // the whole file, an array of every line, AND every parsed object at once.
-  // One pass, compact records, no ceiling worth worrying about.
+  // Streamed through the manifest door (2i), and narrowed to the fields the
+  // tables use: the 2026-08-05 run emitted 672,739 records (505 MB), where a
+  // readFileSync + split would hold the whole file, an array of every line,
+  // AND every parsed object at once. The hash verifies before the first row;
+  // holdout markets (3e) never enter a tuning table.
   const rows: Row[] = [];
-  const reader = createInterface({
-    crlfDelay: Infinity,
-    input: createReadStream(emitPath),
-  });
-  for await (const line of reader) {
-    if (line.trim().length === 0) {
-      continue;
+  let holdoutSkipped = 0;
+  await assertManifestedCorpusStreaming(emitPath, (raw) => {
+    const parsed = raw as unknown as Row;
+    if (parsed.holdout === true) {
+      holdoutSkipped += 1;
+      return;
     }
-    const parsed = JSON.parse(line) as Row;
     rows.push({
       accepted: parsed.accepted,
       confidenceScore: parsed.confidenceScore,
@@ -177,6 +171,9 @@ async function main(): Promise<void> {
       time: parsed.time,
       variant: parsed.variant,
     });
+  });
+  if (holdoutSkipped > 0) {
+    console.log(`(holdout markets excluded: ${holdoutSkipped} rows)`);
   }
 
   console.log(`# Sweep analysis — ${rows.length} evaluated setups`);
@@ -205,14 +202,14 @@ async function main(): Promise<void> {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, cell]) => [
         name,
-        String(LIVE_THRESHOLDS[name] ?? "—"),
+        String(liveThreshold(name) ?? "—"),
         String(cell.accepted.n),
-        rate(cell.accepted.tp1, cell.accepted.filled),
-        rate(cell.accepted.stopped, cell.accepted.filled),
-        expectancy(cell.accepted),
+        rate(cell.accepted.wins, cell.accepted.filled),
+        rate(cell.accepted.stops, cell.accepted.filled),
+        expectancyLabel(cell.accepted),
         String(cell.all.n),
-        rate(cell.all.tp1, cell.all.filled),
-        expectancy(cell.all),
+        rate(cell.all.wins, cell.all.filled),
+        expectancyLabel(cell.all),
       ]),
   );
 
@@ -230,7 +227,7 @@ async function main(): Promise<void> {
       }
       add(buckets.get(bucket)!, row);
     }
-    const live = LIVE_THRESHOLDS[className] ?? 0;
+    const live = liveThreshold(className) ?? 0;
     table(
       `${className} — confidence reliability (5-point buckets; * marks the live threshold's bucket, ! marks n < ${minN})`,
       ["band", "n", "tp1", "stop", "unfilled", "expR", "flag"],
@@ -239,10 +236,10 @@ async function main(): Promise<void> {
         .map(([bucket, stats]) => [
           `${bucket}-${bucket + 4}`,
           String(stats.n),
-          rate(stats.tp1, stats.filled),
-          rate(stats.stopped, stats.filled),
+          rate(stats.wins, stats.filled),
+          rate(stats.stops, stats.filled),
           rate(stats.n - stats.filled, stats.n),
-          expectancy(stats),
+          expectancyLabel(stats),
           `${bucket <= live && live <= bucket + 4 ? "*" : ""}${stats.n < minN ? "!" : ""}`,
         ]),
     );
@@ -266,13 +263,13 @@ async function main(): Promise<void> {
             add(stats, row);
           }
         }
-        const live = LIVE_THRESHOLDS[className] ?? 0;
+        const live = liveThreshold(className) ?? 0;
         return [
           String(threshold),
           String(stats.n),
-          rate(stats.tp1, stats.filled),
-          rate(stats.stopped, stats.filled),
-          expectancy(stats),
+          rate(stats.wins, stats.filled),
+          rate(stats.stops, stats.filled),
+          expectancyLabel(stats),
           `${threshold === live ? "* live" : ""}${stats.n < minN ? " !" : ""}`,
         ];
       }),
@@ -300,10 +297,10 @@ async function main(): Promise<void> {
         symbol,
         classOf(symbol),
         String(cell.accepted.n),
-        rate(cell.accepted.tp1, cell.accepted.filled),
-        expectancy(cell.accepted),
+        rate(cell.accepted.wins, cell.accepted.filled),
+        expectancyLabel(cell.accepted),
         String(cell.all.n),
-        expectancy(cell.all),
+        expectancyLabel(cell.all),
         `${NEWLY_SIZEABLE.has(symbol) ? "NEW " : ""}${cell.accepted.n < minN ? "!" : ""}`,
       ]),
   );
@@ -335,9 +332,9 @@ async function main(): Promise<void> {
         .map(([key, stats]) => [
           key,
           String(stats.n),
-          rate(stats.tp1, stats.filled),
-          rate(stats.stopped, stats.filled),
-          expectancy(stats),
+          rate(stats.wins, stats.filled),
+          rate(stats.stops, stats.filled),
+          expectancyLabel(stats),
           stats.n < minN ? "!" : "",
         ]),
     );
@@ -368,8 +365,8 @@ async function main(): Promise<void> {
         className,
         split,
         String(stats.n),
-        rate(stats.tp1, stats.filled),
-        expectancy(stats),
+        rate(stats.wins, stats.filled),
+        expectancyLabel(stats),
         stats.n < minN ? "!" : "",
       ]);
     }
