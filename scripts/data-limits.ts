@@ -14,7 +14,7 @@
  */
 import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
-import { assertManifestedCorpus } from "./sweepStats.ts";
+import { assertManifest } from "./sweepStats.ts";
 
 function iso(ms: number | null): string {
   return ms === null ? "—" : new Date(ms).toISOString().slice(0, 10);
@@ -30,7 +30,7 @@ function main(): void {
     console.error("usage: data-limits.ts <emit.jsonl>");
     process.exit(1);
   }
-  const { manifest } = assertManifestedCorpus(paths[0]);
+  const manifest = assertManifest(paths[0]);
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · anchor ${manifest.anchor}`,
   );

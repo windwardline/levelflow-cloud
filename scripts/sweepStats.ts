@@ -17,7 +17,7 @@
 //   an emit whose conditions were edited, or that never recorded them, is
 //   refused instead of averaged.
 
-import { createReadStream, readFileSync } from "node:fs";
+import { closeSync, createReadStream, openSync, readFileSync, readSync } from "node:fs";
 import { createInterface } from "node:readline";
 import {
   sha256Hex,
@@ -163,6 +163,50 @@ export async function assertManifestedCorpusStreaming(
   return manifest;
 }
 
+/**
+ * The manifest half of the door alone — for readers (4a's data-limits)
+ * that need the corpus's verified conditions but not a single row.
+ */
+export function assertManifest(emitPath: string): SweepManifest {
+  return verifyManifest(emitPath);
+}
+
+/**
+ * Synchronous chunked line reader: the 2026-08-10 baseline emit is 1.2GB,
+ * past Node's maximum string length — readFileSync-as-one-string can never
+ * read a full-depth corpus. 64KB reads, lines split as they complete.
+ */
+function readLinesSync(
+  path: string,
+  onLine: (line: string, lineNumber: number) => void,
+): void {
+  const fd = openSync(path, "r");
+  try {
+    const chunk = Buffer.alloc(65_536);
+    let carry = "";
+    let lineNumber = 0;
+    for (;;) {
+      const bytes = readSync(fd, chunk, 0, chunk.length, null);
+      if (bytes === 0) {
+        break;
+      }
+      carry += chunk.toString("utf8", 0, bytes);
+      let newlineIndex = carry.indexOf("\n");
+      while (newlineIndex !== -1) {
+        lineNumber += 1;
+        onLine(carry.slice(0, newlineIndex), lineNumber);
+        carry = carry.slice(newlineIndex + 1);
+        newlineIndex = carry.indexOf("\n");
+      }
+    }
+    if (carry.trim()) {
+      onLine(carry, lineNumber + 1);
+    }
+  } finally {
+    closeSync(fd);
+  }
+}
+
 function verifyManifest(emitPath: string): SweepManifest {
   let manifestText: string;
   try {
@@ -191,19 +235,18 @@ export function assertManifestedCorpus(emitPath: string): {
   const manifest = verifyManifest(emitPath);
 
   const rows: SweepEmitRow[] = [];
-  const lines = readFileSync(emitPath, "utf8").split("\n");
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index].trim();
-    if (!line) {
-      continue;
+  readLinesSync(emitPath, (line, lineNumber) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      return;
     }
     try {
-      rows.push(JSON.parse(line) as SweepEmitRow);
+      rows.push(JSON.parse(trimmed) as SweepEmitRow);
     } catch {
       throw new Error(
-        `${emitPath}: line ${index + 1} failed to parse — a holed corpus is refused, not shrunk`,
+        `${emitPath}: line ${lineNumber} failed to parse — a holed corpus is refused, not shrunk`,
       );
     }
-  }
+  });
   return { manifest, rows };
 }
