@@ -175,13 +175,16 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
 
   it("pins the measured replay record the UI shows", () => {
     // Literals on purpose — independent of the module's own constants,
-    // so a transcription slip in either place fails here.
+    // so a transcription slip in either place fails here. Indices carries
+    // `superseded: true` (1f, 2026-08-09): round 28 moved the class's
+    // shipped geometry after the row was measured, and the flag is what
+    // makes the sentence say so. It leaves only with item 4's re-measure.
     assert.deepEqual(REPLAY_RECORD_BY_ASSET_TYPE, {
       Crypto: { moneyPositiveRate: 0.87, sampleSize: 6106 },
       Energies: { moneyPositiveRate: 0.6, sampleSize: 474 },
       Forex: { moneyPositiveRate: 0.89, sampleSize: 123254 },
       Futures: { moneyPositiveRate: 0.83, sampleSize: 2368 },
-      Indices: { moneyPositiveRate: 0.51, sampleSize: 952 },
+      Indices: { moneyPositiveRate: 0.51, sampleSize: 952, superseded: true },
       Metals: { moneyPositiveRate: 0.9, sampleSize: 453 },
     });
   });

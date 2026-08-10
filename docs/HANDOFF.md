@@ -180,12 +180,18 @@ HAS its own gate (`sessions.ts`); the defect is TWO disagreeing calendars with n
 parity test (metals break, Friday close 16:30 vs 17:00, forex reopen 17:00 vs 17:05,
 agriculture/livestock falling through to FX hours) — reconcile + a weekly-close-parity-
 style test; folds in 1f-c (indices on the CME clock by a stale premise) ·
-**1f** indices display honesty (pre-round-28 record presented as current; held bar
-rendered as derived) · **1g** Record row keyed to its own population (hand-written
-two-class exclusion; 12 markets newer than the measured population inherit its record;
-same keying bug in ConfidenceUnit's class-table lookup) · **1h** delete the false
-curation claim (ScopeMenu's "All markets" no-count rationale; replayReliability's
-"measured-edge curation"; trade-model.md:255) · **1i** Guide §3 — the built Guide HAS
+**1f** indices display honesty — *1f-a done 2026-08-09* (the Indices row carries
+`superseded: true` and its sentence says "under a configuration the engine has since
+moved past"; re-measuring stays item 4's first act); *1f-b outstanding* (held bar
+rendered as derived — folds into the Guide-deck amendment with 1i) ·
+**1g — done 2026-08-09** (the record gates on `MEASURED_POPULATION_BY_ASSET_TYPE`,
+the rosters extracted from the replay commit `d947245` itself, so markets the
+measurement predates render no record; ConfidenceUnit resolves symbol-first through
+`confidenceThresholdForAssetOrSymbol`, so corn's meter ticks at agriculture's 30,
+not Futures' 68) · **1h** delete the false curation claim — *1h-b done 2026-08-09*
+(the "measured-edge curation" run-condition claim deleted from replayReliability's
+docblock with its reasoning); *1h-a and 1h-c outstanding* (ScopeMenu's "All
+markets" no-count rationale; trade-model.md:255) · **1i** Guide §3 — the built Guide HAS
 the losing path since #248; the spec deck it claims to render verbatim was never
 amended, and no §3 pin exists · **1j** no replay figure without its bound (the Record
 sentence carries N but no interval — indices' 51% on 952 is ±3.2pp, indistinguishable

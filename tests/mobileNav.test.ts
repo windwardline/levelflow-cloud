@@ -1234,7 +1234,7 @@ describe("the merged mobile Scan surface's interior (m-scan-v3.html, wave 5)", (
     // rather than removed for that reason — is ≥lg-only now.
     assert.match(surface, /<\/h2>/);
     assert.match(surface, /\{setup\.side === "buy" \? "Buy" : "Sell"\} limit/);
-    assert.match(surface, /<ConfidenceUnit\s+assetType=\{selectedAsset\.assetType\}\s+compact/);
+    assert.match(surface, /<ConfidenceUnit\s+assetType=\{selectedAsset\.assetType\}\s+symbol=\{selectedAsset\.symbol\}\s+compact/);
     // The stamp comes from the same builder the ≥lg unit uses, so the two
     // grammars cannot drift (spec §17).
     assert.match(

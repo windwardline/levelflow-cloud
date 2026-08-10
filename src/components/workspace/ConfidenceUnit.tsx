@@ -1,4 +1,4 @@
-import { CONFIDENCE_THRESHOLD_BY_ASSET_TYPE } from "../../lib/advisorReview";
+import { confidenceThresholdForAssetOrSymbol } from "../../lib/advisorReview";
 import { formatCompactDateTime } from "../../lib/marketHours";
 import type { SecurityType } from "../../lib/symbolMap";
 import { HowThisWorksLink } from "./HowThisWorksLink";
@@ -92,8 +92,16 @@ export function buildConfidenceMeta(
 // killed VALID UNTIL card's datum rides along on the meta line below the
 // note (buildConfidenceMeta above).
 export function ConfidenceUnit(
-  { assetType, compact = false, reviewedAt = null, score, validUntil = null }: {
+  { assetType, compact = false, reviewedAt = null, score, symbol, validUntil = null }: {
     assetType: SecurityType;
+    /**
+     * 1g: the engine's gate is symbol-first (per-symbol overrides, and the
+     * calibration class behind a display type is not the display type — corn
+     * gates at agriculture's 30 while displaying as Futures). The meter's
+     * tick must be the gate the setup actually cleared, so the resolution
+     * here is the same one historyUtils uses, never the class table alone.
+     */
+    symbol: string;
     // The merged mobile Scan surface's head cluster (spec §17e,
     // m-scan-v3.html:22-27): the score and the same threshold-ticked meter,
     // right-aligned beside the market name, with no note and no stamp of its
@@ -108,7 +116,7 @@ export function ConfidenceUnit(
     validUntil?: string | null;
   },
 ) {
-  const threshold = CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[assetType];
+  const threshold = confidenceThresholdForAssetOrSymbol(symbol, assetType);
   const fillPercent = clampConfidencePercent(score);
   const tickPercent = clampConfidencePercent(threshold);
   const meta = buildConfidenceMeta(reviewedAt, validUntil);
