@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -7,6 +7,7 @@ import { buildSweepManifest } from "../scripts/sweepManifest.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
+  clusteredStandardError,
   emptyStats,
   expectancy,
   rStandardError,
@@ -66,6 +67,80 @@ describe("sweepStats — the engine's vocabulary, once", () => {
     addOutcome(thin, row("take_profit", 1));
     assert.equal(rStdDev(thin), null);
     assert.equal(rStandardError(thin), null);
+  });
+});
+
+describe("clusteredStandardError — 3a's dispersion, clustered by market", () => {
+  const cluster = (rows: Array<[string, number]>) => {
+    const stats = emptyStats();
+    for (const [outcome, realizedR] of rows) {
+      addOutcome(stats, row(outcome, realizedR));
+    }
+    return stats;
+  };
+
+  it("measures the pooled mean's error from between-market spread", () => {
+    // Two markets, four filled each: means +0.5 and -0.1, pooled mean 0.2.
+    // Cluster residuals: 4x(0.5-0.2)=1.2 and 4x(-0.1-0.2)=-1.2;
+    // SE = sqrt(1.44+1.44)/8 = 0.2121...
+    const clusters = [
+      cluster([["take_profit", 0.5], ["take_profit", 0.5], [
+        "take_profit",
+        0.5,
+      ], ["take_profit", 0.5]]),
+      cluster([["stop_loss", -0.1], ["stop_loss", -0.1], ["stop_loss", -0.1], [
+        "stop_loss",
+        -0.1,
+      ]]),
+    ];
+    assert.equal(
+      Number(clusteredStandardError(clusters)!.toFixed(4)),
+      0.2121,
+    );
+  });
+
+  it("reads identical markets as zero between-cluster error", () => {
+    const clusters = [
+      cluster([["take_profit", 0.3], ["stop_loss", -0.3]]),
+      cluster([["take_profit", 0.3], ["stop_loss", -0.3]]),
+    ];
+    assert.equal(clusteredStandardError(clusters), 0);
+  });
+
+  it("refuses to state an error from fewer than two filled clusters", () => {
+    assert.equal(clusteredStandardError([]), null);
+    assert.equal(
+      clusteredStandardError([cluster([["take_profit", 1]])]),
+      null,
+    );
+    assert.equal(
+      clusteredStandardError([
+        cluster([["take_profit", 1]]),
+        cluster([["unfilled", 0]]),
+      ]),
+      null,
+    );
+  });
+});
+
+describe("account-type-report adopts the shared vocabulary (3a)", () => {
+  const source = readFileSync("scripts/account-type-report.ts", "utf8");
+
+  it("measures deviation from the corpus instead of assuming --r-sd", () => {
+    assert.doesNotMatch(source, /--r-sd/);
+    assert.doesNotMatch(source, /rSd = num\(/);
+    assert.match(source, /from "\.\/sweepStats\.ts"/);
+    assert.match(source, /rStandardError\(/);
+    assert.match(source, /clusteredStandardError\(/);
+  });
+
+  it("reads only manifested corpora — the 2i door applies to reports too", () => {
+    assert.match(source, /assertManifestedCorpus\(/);
+  });
+
+  it("keeps no private stats arithmetic to drift", () => {
+    assert.doesNotMatch(source, /function add\(/);
+    assert.doesNotMatch(source, /type Stats = \{/);
   });
 });
 

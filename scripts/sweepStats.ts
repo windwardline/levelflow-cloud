@@ -94,6 +94,37 @@ export function rStandardError(stats: SweepStats): number | null {
 }
 
 /**
+ * 3a: the pooled mean's standard error CLUSTERED BY MARKET. Outcomes
+ * inside one market share regime, session and calibration, so treating
+ * them as independent understates the error of a class rollup — the
+ * exact overconfidence the ±0.005 prose constant hid. Cluster-robust
+ * form: SE² = Σ_market (rSum_m − filled_m × pooledMean)² / filledTotal².
+ * Null below two filled clusters — one market cannot price its own
+ * between-market spread.
+ */
+export function clusteredStandardError(
+  clusters: SweepStats[],
+): number | null {
+  const filledClusters = clusters.filter((cluster) => cluster.filled > 0);
+  if (filledClusters.length < 2) {
+    return null;
+  }
+  const filledTotal = filledClusters.reduce(
+    (sum, cluster) => sum + cluster.filled,
+    0,
+  );
+  const pooledMean = filledClusters.reduce(
+    (sum, cluster) => sum + cluster.rSum,
+    0,
+  ) / filledTotal;
+  const residualSquares = filledClusters.reduce((sum, cluster) => {
+    const residual = cluster.rSum - cluster.filled * pooledMean;
+    return sum + residual * residual;
+  }, 0);
+  return Math.sqrt(residualSquares) / filledTotal;
+}
+
+/**
  * The one door to a corpus: rows plus a manifest whose hash verifies.
  * Throws on a missing manifest, a hash mismatch, or an unparseable row —
  * a hole in the corpus is a refused corpus, not a smaller one.
