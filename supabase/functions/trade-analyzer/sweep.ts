@@ -53,6 +53,16 @@ export type SweepOutcomeRecord = {
   confidenceScore: number;
   cotPercentile: number | null;
   cotStance: string;
+  // The resolver's evidence, carried whole (4b's input — the map's
+  // "captured and simply never read"): the gap-aware execution legs, the
+  // exit and fill instants, both excursion statistics against the nominal
+  // entry, and whether TP1 banked. Geometry review reads these from the
+  // corpus instead of re-simulating.
+  exitAtMs: number;
+  filledAtMs: number | null;
+  legs: ResolutionLeg[];
+  maxAdverseMove: number | null;
+  maxFavorableMove: number | null;
   newsPenalty: number;
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
@@ -73,6 +83,7 @@ export type SweepOutcomeRecord = {
   tp1Provenance: string;
   entryProvenance: string;
   time: number;
+  tp1Hit: boolean;
   // Per-method committee votes (r16 weight audit): compact
   // {n: name, d: direction, s: weighted score} per strategy.
   votes: Array<{ n: string; d: string; s: number }>;
@@ -520,11 +531,22 @@ export function simulateSymbol(input: {
       continue;
     }
 
+    const feedbackNumber = (key: string) => {
+      const value = Number(
+        (evaluation.feedback as Record<string, unknown>)[key],
+      );
+      return Number.isFinite(value) ? value : null;
+    };
     outcomes.push({
       accepted,
       confidenceScore: scoreBreakdown.confidenceScore,
       cotPercentile: cotContext.percentile,
       cotStance: cotContext.stance,
+      exitAtMs: Date.parse(evaluation.exitAt),
+      filledAtMs: evaluation.filledAt ? Date.parse(evaluation.filledAt) : null,
+      legs: evaluation.legs,
+      maxAdverseMove: feedbackNumber("maxAdverseMove"),
+      maxFavorableMove: feedbackNumber("maxFavorableMove"),
       newsPenalty: newsPenaltyUnits,
       outcome: evaluation.outcome,
       realizedR: realizedRFromLegs({
@@ -545,6 +567,7 @@ export function simulateSymbol(input: {
       tp1Provenance: plan.tp1Provenance,
       entryProvenance: plan.entryProvenance,
       time: latest.time,
+      tp1Hit: evaluation.feedback.tp1Hit === true,
       votes: votes.map((vote) => ({
         n: vote.name,
         d: vote.direction,
