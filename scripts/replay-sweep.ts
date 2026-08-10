@@ -21,7 +21,7 @@ import {
   type CategoryCalibration,
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
-import { buildSweepManifest } from "./sweepManifest.ts";
+import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import { calendarFolds, isHoldoutSymbol } from "./sweepFolds.ts";
 import {
   DEFAULT_CACHE_DIR,
@@ -97,13 +97,17 @@ async function main() {
     "expectancyR",
   ]];
 
-  const emitLines: string[] = [];
-  // 2i: everything the manifest records per symbol, collected as the loop
-  // loads it — resolved base calibration and the three series' facts.
+  // Emit rows stream to disk as they are produced, and the manifest holds
+  // FACTS per series, never the bars: the first baseline attempt kept every
+  // symbol's full arrays (and every emit line) alive to the end of the run
+  // and died at the 4GB default heap ~48 minutes in.
+  const { createWriteStream } = await import("node:fs");
+  const emitStream = args.emit ? createWriteStream(args.emit) : null;
+  let emittedRecords = 0;
   const manifestSymbols: Array<{
     calibration: Record<string, unknown>;
     providerSymbol: string;
-    series: Record<string, Array<{ time: number }>>;
+    series: Record<string, SeriesFacts>;
     symbol: string;
   }> = [];
   const newsEvents = args.discover
@@ -233,9 +237,9 @@ async function main() {
       } as unknown as Record<string, unknown>,
       providerSymbol,
       series: {
-        "15min": primaryBars,
-        "1day": dailyBars,
-        "5min": fiveMinuteBars,
+        "15min": seriesFacts(primaryBars),
+        "1day": seriesFacts(dailyBars),
+        "5min": seriesFacts(fiveMinuteBars),
       },
       symbol,
     });
@@ -298,15 +302,16 @@ async function main() {
           symbol,
           warmupBars: split.warmupBars,
         });
-        if (args.emit) {
+        if (emitStream) {
           for (const record of result.outcomes) {
-            emitLines.push(JSON.stringify({
+            emitStream.write(JSON.stringify({
               holdout,
               split: split.name,
               symbol,
               variant,
               ...record,
-            }));
+            }) + "\n");
+            emittedRecords += 1;
           }
         }
         rows.push([
@@ -333,9 +338,11 @@ async function main() {
   }
 
   printTable(rows);
-  if (args.emit) {
+  if (args.emit && emitStream) {
+    await new Promise<void>((resolve, reject) => {
+      emitStream.end((error: unknown) => error ? reject(error) : resolve());
+    });
     const { writeFile } = await import("node:fs/promises");
-    await writeFile(args.emit, emitLines.join("\n") + "\n");
     // 2i: the corpus describes itself, or item 3's readers refuse it.
     const manifest = buildSweepManifest({
       analyzerVersion: ANALYZER_VERSION,
@@ -356,7 +363,7 @@ async function main() {
       JSON.stringify(manifest, null, 2) + "\n",
     );
     console.log(
-      `Emitted ${emitLines.length} setup records to ${args.emit} (manifest ${
+      `Emitted ${emittedRecords} setup records to ${args.emit} (manifest ${
         manifest.manifestHash.slice(0, 12)
       })`,
     );

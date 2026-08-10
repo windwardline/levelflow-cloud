@@ -72,9 +72,9 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     calibration,
     providerSymbol: "ESUSD",
     series: {
-      "15min": [{ time: 0 }, { time: 900_000 }],
-      "1day": [{ time: 0 }],
-      "5min": [],
+      "15min": seriesFacts([{ time: 0 }, { time: 900_000 }]),
+      "1day": seriesFacts([{ time: 0 }]),
+      "5min": seriesFacts([]),
     },
     symbol: "ESUSD",
   });
