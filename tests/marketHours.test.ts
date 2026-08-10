@@ -22,7 +22,7 @@ const TUESDAY_6PM_ET = new Date("2026-06-09T22:00:00.000Z");
 const FRIDAY_BEFORE_CLOSE_ET = new Date("2026-06-12T20:59:00.000Z");
 const FRIDAY_AT_CLOSE_ET = new Date("2026-06-12T21:00:00.000Z");
 const SUNDAY_BEFORE_FOREX_OPEN_ET = new Date("2026-06-14T20:59:00.000Z");
-const SUNDAY_AT_FOREX_OPEN_ET = new Date("2026-06-14T21:00:00.000Z");
+const SUNDAY_AT_FOREX_OPEN_ET = new Date("2026-06-14T21:05:00.000Z");
 const SUNDAY_530PM_ET = new Date("2026-06-14T21:30:00.000Z");
 const SUNDAY_BEFORE_CME_OPEN_ET = new Date("2026-06-14T21:59:00.000Z");
 const SUNDAY_AT_CME_OPEN_ET = new Date("2026-06-14T22:00:00.000Z");
@@ -44,7 +44,7 @@ describe("market availability calendar", () => {
     );
   });
 
-  it("closes forex over the weekend, reopening Sunday 17:00 ET", () => {
+  it("closes forex over the weekend, reopening Sunday 17:05 ET", () => {
     assert.deepEqual(marketAvailability("Forex", "EURUSD", SATURDAY_NOON_ET), {
       open: false,
       opensAt: SUNDAY_AT_FOREX_OPEN_ET,
@@ -68,7 +68,7 @@ describe("market availability calendar", () => {
     });
   });
 
-  it("reopens forex exactly at Sunday 17:00 ET, not a minute before", () => {
+  it("reopens forex exactly at Sunday 17:05 ET, the rollover minute, not before", () => {
     assert.deepEqual(
       marketAvailability("Forex", "EURUSD", SUNDAY_BEFORE_FOREX_OPEN_ET),
       { open: false, opensAt: SUNDAY_AT_FOREX_OPEN_ET },
@@ -79,13 +79,18 @@ describe("market availability calendar", () => {
     );
   });
 
-  it("does not apply the CME daily maintenance break to spot metals", () => {
-    // 5:30pm ET on a Tuesday sits inside the CME complex's daily break, but
-    // metals follow forex's continuous model (spec #10b: "Metals spot
-    // follows forex 17:00").
-    assert.deepEqual(marketAvailability("Metals", "XAUUSD", TUESDAY_530PM_ET), {
-      open: true,
-    });
+  it("applies the CME daily maintenance break to spot metals (1e, inverted 2026-08-09)", () => {
+    // This pin used to assert the ABSENCE of the break, citing #10b's
+    // "Metals spot follows forex 17:00". The analyzer has always routed
+    // metals through the complex branch and blocked this hour
+    // (trade-analyzer/sessions.ts), and spot metals liquidity does halt
+    // with the futures complex — so the old pin was holding the client to
+    // a claim the engine refused every weekday night. Parity across the
+    // boundary is the law now (tests/sessionCalendarParity.test.ts).
+    assert.deepEqual(
+      marketAvailability("Metals", "XAUUSD", TUESDAY_530PM_ET),
+      { open: false, opensAt: new Date("2026-06-09T22:00:00.000Z") },
+    );
   });
 
   it("closes the CME complex for its daily maintenance break", () => {

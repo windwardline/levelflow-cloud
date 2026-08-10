@@ -1,3 +1,4 @@
+import { AGRICULTURE_SYMBOLS, LIVESTOCK_SYMBOLS } from "./advisorReview";
 import type { SecurityType } from "./symbolMap";
 
 export type MarketAvailability =
@@ -30,13 +31,18 @@ const FRIDAY = 5;
 // #10b so a future holiday calendar can reuse it untouched.
 const WEEKDAY_LABEL_HORIZON_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Forex and spot Metals trade continuously from the Sunday New York open
-// through the Friday New York close - no daily break in this model (spec
-// 2026-07-30-levelflow-desk-design.md #10b).
+// Forex: Sunday 17:05 ET open through the Friday 17:00 ET close, with the
+// nightly 16:59-17:05 rollover pause Monday-Thursday (1e, 2026-08-09).
+// These are the analyzer's own boundaries (trade-analyzer/sessions.ts) —
+// this calendar used to show a plain 17:00/17:00 week while the engine
+// blocked the rollover minutes and opened five minutes later on Sunday, so
+// a row could read open while every review was refused. Parity is pinned
+// across the Deno boundary by tests/sessionCalendarParity.test.ts.
 const FOREX_LIKE_CALENDAR: ClassCalendar = {
   alwaysOpen: false,
   closeMinuteOfDay: 17 * 60,
-  openMinuteOfDay: 17 * 60,
+  dailyBreak: { endMinuteOfDay: 17 * 60 + 5, startMinuteOfDay: 16 * 60 + 59 },
+  openMinuteOfDay: 17 * 60 + 5,
 };
 
 // Futures, Energies, and cash Indices follow the CME complex: Sunday 6pm ET
@@ -47,6 +53,21 @@ const CME_COMPLEX_CALENDAR: ClassCalendar = {
   closeMinuteOfDay: 17 * 60,
   dailyBreak: { endMinuteOfDay: 18 * 60, startMinuteOfDay: 17 * 60 },
   openMinuteOfDay: 18 * 60,
+};
+
+// Grains (the agriculture class): E8's own hours table publishes the CBOT
+// commodity session as 19:00-13:20 CT — 20:00 ET open to a 14:20 ET close —
+// its own overnight session, not the equity complex's
+// (docs/research/e8-futures-dossier.md §5.2, row for row). Expressed in this
+// model as a Sunday 20:00 weekly open, Friday 14:20 weekly close, and a
+// Monday-Thursday 14:20-20:00 daily closure. ZO and ZR carry no published
+// hours row (watchlist-only instruments) and adopt the group calendar their
+// grain siblings publish.
+const GRAINS_CALENDAR: ClassCalendar = {
+  alwaysOpen: false,
+  closeMinuteOfDay: 14 * 60 + 20,
+  dailyBreak: { endMinuteOfDay: 20 * 60, startMinuteOfDay: 14 * 60 + 20 },
+  openMinuteOfDay: 20 * 60,
 };
 
 const CRYPTO_CALENDAR: ClassCalendar = {
@@ -60,22 +81,48 @@ const CALENDAR_BY_ASSET_TYPE: Record<SecurityType, ClassCalendar> = {
   Energies: CME_COMPLEX_CALENDAR,
   Forex: FOREX_LIKE_CALENDAR,
   Futures: CME_COMPLEX_CALENDAR,
-  // Indices are no-trade in the product today, but the calendar map stays
-  // total over SecurityType; they share the CME complex's hours (spec
-  // #10b: "treat as Futures").
+  // 1f-c (2026-08-09): the premise here used to be "Indices are no-trade in
+  // the product today" — stale since amendment 31 made all six cash index
+  // CFDs live. The CALENDAR stays the complex's, on its merits: E8's index
+  // CFDs price and trade on the futures session, not each exchange's local
+  // cash hours.
   Indices: CME_COMPLEX_CALENDAR,
-  Metals: FOREX_LIKE_CALENDAR,
+  // 1e (2026-08-09): metals moved from forex-like to the CME complex. The
+  // analyzer has always put spot metals inside the 17:00-18:00 ET
+  // maintenance closure (trade-analyzer/sessions.ts routes metals through
+  // the complex branch), and spot XAU/XAG liquidity does halt with the
+  // futures complex — the old no-break display disagreed with the engine
+  // for one hour every weekday night. tests/marketHours.test.ts's old pin
+  // asserting the absence of the break inverted with this, reasons inline.
+  Metals: CME_COMPLEX_CALENDAR,
 };
 
-// `_symbol` is intentionally unused today - the signature carries it so a
-// later per-symbol calendar (holidays, early closes) can slot in without
-// changing every call site.
+/**
+ * 1e: the per-symbol slot the signature always carried, now live. The
+ * engine's calibration class is not the display SecurityType — agriculture
+ * and livestock both display as Futures while trading different sessions —
+ * so the calendar resolves symbol-first exactly the way the confidence and
+ * review-window mirrors do (advisorReview.ts). Livestock keeps the complex
+ * calendar E8's own hours table publishes for it (17:00-16:00 CT, LE/HE
+ * rows); grains get their published overnight session.
+ */
+function calendarFor(assetType: SecurityType, symbol: string): ClassCalendar {
+  const normalized = symbol.toUpperCase().trim();
+  if (AGRICULTURE_SYMBOLS.has(normalized)) {
+    return GRAINS_CALENDAR;
+  }
+  if (LIVESTOCK_SYMBOLS.has(normalized)) {
+    return CME_COMPLEX_CALENDAR;
+  }
+  return CALENDAR_BY_ASSET_TYPE[assetType];
+}
+
 export function marketAvailability(
   assetType: SecurityType,
-  _symbol: string,
+  symbol: string,
   now: Date,
 ): MarketAvailability {
-  const calendar = CALENDAR_BY_ASSET_TYPE[assetType];
+  const calendar = calendarFor(assetType, symbol);
   if (calendar.alwaysOpen) {
     return { open: true };
   }

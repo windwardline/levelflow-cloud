@@ -252,11 +252,14 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
       new URL("../supabase/functions/trade-analyzer/index.ts", import.meta.url),
       "utf8",
     );
-    // 2026-08-09: futures-grid — 1b's alignment now reaches all three
-    // futures-shaped classes (15 new contract specs), spec-less markets
-    // refuse at the analysis door, and the risk model emits all four
-    // provenances. Emitted prices changed on 19 markets, so the learning
-    // cohort scopes to a new version.
-    assert.match(src, /ANALYZER_VERSION = "2026\.08\.09\.futures-grid"/);
+    // 2026-08-09, twice in one day: futures-grid (1b/1c/1o-residue — 15
+    // new contract specs, door refusals, provenance emission), then
+    // sessions-reconciled (1e — agriculture gains its published grain
+    // session, livestock joins the complex branch, the Friday hard close
+    // moves 16:30 -> 17:00 per E8's own table with the half hour kept as a
+    // penalty, and the client calendar now mirrors every hard closure,
+    // pinned by tests/sessionCalendarParity.test.ts). Blocking windows
+    // changed, so the learning cohort scopes again.
+    assert.match(src, /ANALYZER_VERSION = "2026\.08\.09\.sessions-reconciled"/);
   });
 });

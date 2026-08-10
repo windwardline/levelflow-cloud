@@ -168,18 +168,28 @@ Nothing here depends on the calibration being right. **The precondition logic ha
 changed: every market is now live, so the defects that were harmless-while-withheld are
 live too.** 1b, 1c and 1e were preconditions for release; the release happened.
 
-Outstanding: **1b** futures tick alignment (a missing contract spec must refuse, not
+**ITEM 1 IS CLOSED — all thirteen letters, 2026-08-09.** The per-letter record:
+
+Outstanding: *(none)* · the ledger below records how each closed. **1b** futures tick alignment (a missing contract spec must refuse, not
 skip — measured 2026-08-09: 19 of 31 futures ship every price off-grid; 10 have no
 spec, 9 are agriculture/livestock the futures-only gate never reaches; the fix set
 skips EMD/NKD/FESX/FDAX, which item 1.5 makes dormant) · **1c** sizing coverage (a
 lookup miss must fail the build — worse than recorded: `FUTURES_MAPPINGS` has 12
 entries against 40 Futures-classified symbols, so 28 markets E8 demonstrably offers
 render "Not offered"; amendment 22 constrains the fix to build/test failure, never
-runtime withholding) · **1e** session calendars — corrected 2026-08-09: the analyzer
-HAS its own gate (`sessions.ts`); the defect is TWO disagreeing calendars with no
-parity test (metals break, Friday close 16:30 vs 17:00, forex reopen 17:00 vs 17:05,
-agriculture/livestock falling through to FX hours) — reconcile + a weekly-close-parity-
-style test; folds in 1f-c (indices on the CME clock by a stale premise) ·
+runtime withholding) · **1e — done 2026-08-09** (the two calendars reconciled on E8's own published
+hours: agriculture gains its 19:00–13:20 CT grain session both sides — a corn
+setup can no longer open into a venue that closed at 14:20 ET; livestock joins
+the complex branch instead of FX fall-through; metals carry the maintenance
+break on the client too; forex mirrors the 17:05 open and nightly rollover
+pause; the complex's Friday hard close moves 16:30 → 17:00 per E8's table,
+with the half hour kept as a NON-blocking thin-liquidity penalty — note: this
+OPENS thirty Friday minutes the analyzer previously refused, flagged for 4d's
+measurement rather than assumed good. `tests/sessionCalendarParity.test.ts`
+pins every hard closure across the Deno boundary for every roster symbol;
+low-edge gates stay the deliberate, stated asymmetry. 1f-c folds in: the
+indices calendar comment's stale no-trade premise corrected, the complex
+hours kept on their merits. ANALYZER_VERSION `2026.08.09.sessions-reconciled`) ·
 **1f** indices display honesty — *1f-a done 2026-08-09* (the Indices row carries
 `superseded: true` and its sentence says "under a configuration the engine has since
 moved past"; re-measuring stays item 4's first act); *1f-b done 2026-08-09* (§5 in

@@ -77,10 +77,12 @@ export function filterMarketScanCandidatesByScope(
 }
 
 // I5: the scan must never ask the server to attempt a market that's
-// currently closed - the engine has no calendar awareness of its own on
-// this path (marketHours.ts is a client-only module), so skipping closed
-// markets is entirely this filter's job, applied uniformly to every scope
-// including "all". "All" used to send an empty symbol list and let the
+// currently closed. (1e corrected this header's old premise: the engine
+// DOES have calendar awareness of its own — trade-analyzer/sessions.ts
+// gates every review — so this filter is the request-saving half, not the
+// only guard, and tests/sessionCalendarParity.test.ts pins the two
+// calendars to each other so what this skips and what the server refuses
+// are one fact.) Applied uniformly to every scope including "all". "All" used to send an empty symbol list and let the
 // server fall back to its own curated default universe
 // (supabase/functions/trade-analyzer/symbols.ts's defaultScanSymbols) -
 // that curation already excludes the same no-trade/temporarily-unavailable
