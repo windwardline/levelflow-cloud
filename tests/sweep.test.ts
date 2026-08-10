@@ -24,6 +24,11 @@ function outcomeRecord(
     confidenceScore: 0,
     cotPercentile: null,
     cotStance: "neutral",
+    exitAtMs: 0,
+    filledAtMs: null,
+    legs: [],
+    maxAdverseMove: null,
+    maxFavorableMove: null,
     newsPenalty: 0,
     outcome,
     realizedR,
@@ -37,6 +42,7 @@ function outcomeRecord(
     tp1Provenance: "",
     entryProvenance: "",
     time: 0,
+    tp1Hit: false,
     votes: [],
   };
 }
@@ -248,6 +254,33 @@ describe("replay sweep", () => {
       result.rejections.belowConfidence + result.rejections.belowPayoff +
         result.rejections.regimeGated,
     );
+  });
+
+  it("carries the resolver's evidence on every record — legs, excursions, exit clock (4b's input)", () => {
+    // The resolver computes gap-aware legs, both excursion statistics and the
+    // exit instant, and the emit used to drop all of them — the map's
+    // "captured and simply never read". 4b's lenses (breakeven tax,
+    // winner-MAE, time-to-resolution) read them from the corpus directly.
+    const result = simulateSymbol({
+      calibrationOverride: { blockedRegimes: [], runnerWindowShare: 1, tp1RiskShare: 0.8 },
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(result.outcomes.length > 0);
+    for (const record of result.outcomes) {
+      assert.ok(Array.isArray(record.legs));
+      assert.ok(Number.isFinite(record.exitAtMs));
+      assert.equal(typeof record.tp1Hit, "boolean");
+      if (record.outcome !== "unfilled") {
+        assert.equal(record.legs[0]?.leg, "entry");
+        assert.ok(Number.isFinite(record.filledAtMs));
+        assert.ok(Number.isFinite(record.maxAdverseMove));
+        assert.ok(Number.isFinite(record.maxFavorableMove));
+      }
+    }
   });
 
   it("resamples 15min bars into higher-timeframe bars", () => {
