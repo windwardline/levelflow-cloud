@@ -16,7 +16,12 @@
 //                          the run date) instead of a fixed lookback
 //     [--discover]         report discovered depth per symbol and exit
 
-import type { CategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  ANALYZER_VERSION,
+  type CategoryCalibration,
+  getCategoryCalibration,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
+import { buildSweepManifest } from "./sweepManifest.ts";
 import {
   DEFAULT_CACHE_DIR,
   loadRollingSeries,
@@ -84,6 +89,14 @@ async function main() {
   ]];
 
   const emitLines: string[] = [];
+  // 2i: everything the manifest records per symbol, collected as the loop
+  // loads it — resolved base calibration and the three series' facts.
+  const manifestSymbols: Array<{
+    calibration: Record<string, unknown>;
+    providerSymbol: string;
+    series: Record<string, Array<{ time: number }>>;
+    symbol: string;
+  }> = [];
   const newsEvents = args.discover
     ? []
     : await loadEconomicCalendar(args.cacheDir);
@@ -157,6 +170,19 @@ async function main() {
 
     const cotReports = await loadCotReports(args.cacheDir, symbol);
 
+    manifestSymbols.push({
+      calibration: {
+        ...getCategoryCalibration(symbol),
+      } as unknown as Record<string, unknown>,
+      providerSymbol,
+      series: {
+        "15min": primaryBars,
+        "1day": dailyBars,
+        "5min": fiveMinuteBars,
+      },
+      symbol,
+    });
+
     // --warm-only: the daily top-up path. Caches are now loaded (and
     // therefore topped up and pinned for today) — no simulation.
     if (args.warmOnly) {
@@ -227,7 +253,28 @@ async function main() {
   if (args.emit) {
     const { writeFile } = await import("node:fs/promises");
     await writeFile(args.emit, emitLines.join("\n") + "\n");
-    console.log(`Emitted ${emitLines.length} setup records to ${args.emit}`);
+    // 2i: the corpus describes itself, or item 3's readers refuse it.
+    const manifest = buildSweepManifest({
+      analyzerVersion: ANALYZER_VERSION,
+      anchor: isoDate(new Date()),
+      barRejections: barRejectionTally,
+      days: args.days,
+      generatedAt: new Date().toISOString(),
+      grid: args.grid,
+      stepBars: args.step,
+      symbols: manifestSymbols,
+      trainShare: TRAIN_SHARE,
+      warmupBars: WARMUP_BARS,
+    });
+    await writeFile(
+      `${args.emit}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    console.log(
+      `Emitted ${emitLines.length} setup records to ${args.emit} (manifest ${
+        manifest.manifestHash.slice(0, 12)
+      })`,
+    );
   }
 }
 

@@ -1,3 +1,10 @@
+// Scopes every learning cohort and every corpus emit: bumped in every
+// behavior-changing analyzer change set (roster membership alone does not
+// bump). Lives here — the one Deno-free module both the Edge function and
+// the sweep driver's manifest can import — so a corpus can never be
+// aggregated without knowing which engine produced it.
+export const ANALYZER_VERSION = "2026.08.09.evaluator-repair";
+
 export type AssetType =
   | "agriculture"
   | "livestock"

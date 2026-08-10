@@ -1,0 +1,145 @@
+// 2i (2026-08-09): the corpus describes itself. A sweep emit used to leave
+// no record of the conditions that produced it — variant:"baseline" is
+// byte-identical across engine edits, the exact aliasing hazard
+// calibration.ts documents for NGUSD — so two corpora measured under
+// different engines could be aggregated as one. The manifest written
+// beside every emit carries the analyzer version, the resolved per-symbol
+// calibration (hashed), the grid, warmup/split parameters, the cache
+// anchor, per-(symbol, timeframe) bar facts including the largest gap, and
+// the provider-boundary rejection tally. Item 3's aggregation readers
+// assert manifestHash before touching a single row.
+
+import { createHash } from "node:crypto";
+
+export type SeriesFacts = {
+  count: number;
+  firstTime: number | null;
+  largestGapMs: number;
+  lastTime: number | null;
+  spanDays: number;
+};
+
+/**
+ * Deterministic JSON: object keys sorted at every depth, array order
+ * preserved. Hashes over this cannot move with insertion order.
+ */
+export function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([key, entryValue]) =>
+        `${JSON.stringify(key)}:${stableStringify(entryValue)}`
+      );
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+export function sha256Hex(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+/** Continuity as a recorded fact: ends, count, largest inter-bar gap. */
+export function seriesFacts(bars: Array<{ time: number }>): SeriesFacts {
+  if (bars.length === 0) {
+    return {
+      count: 0,
+      firstTime: null,
+      largestGapMs: 0,
+      lastTime: null,
+      spanDays: 0,
+    };
+  }
+  const times = bars.map((bar) => bar.time).sort((a, b) => a - b);
+  let largestGapMs = 0;
+  for (let index = 1; index < times.length; index += 1) {
+    const gap = times[index] - times[index - 1];
+    if (gap > largestGapMs) {
+      largestGapMs = gap;
+    }
+  }
+  const first = times[0];
+  const last = times[times.length - 1];
+  return {
+    count: bars.length,
+    firstTime: first,
+    largestGapMs,
+    lastTime: last,
+    spanDays: Number(((last - first) / 86_400_000).toFixed(2)),
+  };
+}
+
+export type SweepManifest = {
+  analyzerVersion: string;
+  anchor: string;
+  barRejections: Record<string, number>;
+  days: number;
+  generatedAt: string;
+  grid: unknown[];
+  manifestHash: string;
+  stepBars: number;
+  symbols: Array<{
+    calibration: Record<string, unknown>;
+    calibrationHash: string;
+    providerSymbol: string;
+    series: Record<string, SeriesFacts>;
+    symbol: string;
+  }>;
+  trainShare: number;
+  warmupBars: number;
+};
+
+export function buildSweepManifest(input: {
+  analyzerVersion: string;
+  anchor: string;
+  barRejections: Record<string, number>;
+  days: number;
+  generatedAt: string;
+  grid: unknown[];
+  stepBars: number;
+  symbols: Array<{
+    calibration: Record<string, unknown>;
+    providerSymbol: string;
+    series: Record<string, Array<{ time: number }>>;
+    symbol: string;
+  }>;
+  trainShare: number;
+  warmupBars: number;
+}): SweepManifest {
+  const symbols = input.symbols.map((entry) => ({
+    calibration: entry.calibration,
+    calibrationHash: sha256Hex(stableStringify(entry.calibration)),
+    providerSymbol: entry.providerSymbol,
+    series: Object.fromEntries(
+      Object.entries(entry.series).map(([timeframe, bars]) => [
+        timeframe,
+        seriesFacts(bars),
+      ]),
+    ),
+    symbol: entry.symbol,
+  }));
+  // The hash covers everything that DEFINES the measurement. The write
+  // timestamp deliberately sits outside it: two runs under identical
+  // conditions produce one hash, and a reader asserting the hash is
+  // asserting conditions, not wall-clock provenance.
+  const hashedPayload = {
+    analyzerVersion: input.analyzerVersion,
+    anchor: input.anchor,
+    barRejections: input.barRejections,
+    days: input.days,
+    grid: input.grid,
+    stepBars: input.stepBars,
+    symbols,
+    trainShare: input.trainShare,
+    warmupBars: input.warmupBars,
+  };
+  return {
+    ...hashedPayload,
+    generatedAt: input.generatedAt,
+    manifestHash: sha256Hex(stableStringify(hashedPayload)),
+  };
+}
