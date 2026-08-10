@@ -42,19 +42,59 @@ export function getSessionContext(
     };
   }
 
+  // 1e (2026-08-09): agriculture — the grains — trades its OWN session, and
+  // E8's hours table publishes it per row: 19:00-13:20 CT (20:00 ET open,
+  // 14:20 ET close) for ZC/ZW/ZS/ZM/ZL, docs/research/e8-futures-dossier.md
+  // §5.2. Before this branch existed, agriculture and livestock fell through
+  // to the FX branch below and wore forex weekend hours — a corn setup could
+  // open at 16:00 ET into a venue that closed at 14:20. ZO/ZR carry no
+  // published row (watchlist-only) and adopt their grain siblings' session.
+  if (assetType === "agriculture") {
+    const eastern = getZonedParts(now, "America/New_York");
+    const minutes = eastern.hour * 60 + eastern.minute;
+    const open = 20 * 60;
+    const close = 14 * 60 + 20;
+    const closed = eastern.weekday === 6 ||
+      (eastern.weekday === 5 && minutes >= close) ||
+      (eastern.weekday === 7 && minutes < open) ||
+      (eastern.weekday >= 1 && eastern.weekday <= 5 && minutes >= close &&
+        minutes < open);
+    if (closed) {
+      return {
+        block: true,
+        label: "Grain session closure",
+        marketKind: "agriculture",
+        penalty: 100,
+        reason: "This market is outside its published grain session.",
+      };
+    }
+    return {
+      block: false,
+      label: "Grain session",
+      marketKind: "agriculture",
+      penalty: 0,
+    };
+  }
+
   if (
     assetType === "futures" || assetType === "metals" ||
-    assetType === "energies" || assetType === "indices"
+    assetType === "energies" || assetType === "indices" ||
+    assetType === "livestock"
   ) {
     const isMetals = assetType === "metals";
     const isEnergies = assetType === "energies";
     const isIndices = assetType === "indices";
+    // 1e: livestock joins the complex branch E8's own hours table puts it on
+    // (LE/HE rows, 17:00-16:00 CT) instead of falling through to FX hours.
+    const isLivestock = assetType === "livestock";
     const marketKind = isMetals
       ? "metals"
       : isEnergies
       ? "energies"
       : isIndices
       ? "indices"
+      : isLivestock
+      ? "livestock"
       : "futures";
     const sessionLabel = isMetals
       ? "Spot metals session"
@@ -62,6 +102,8 @@ export function getSessionContext(
       ? "Energy session"
       : isIndices
       ? "Index session"
+      : isLivestock
+      ? "Livestock session"
       : "Primary futures session";
     const maintenanceLabel = isMetals
       ? "Spot metals maintenance window"
@@ -69,6 +111,8 @@ export function getSessionContext(
       ? "Energy maintenance window"
       : isIndices
       ? "Index maintenance window"
+      : isLivestock
+      ? "Livestock maintenance window"
       : "Futures maintenance window";
     const weekendLabel = isMetals
       ? "Spot metals weekend closure"
@@ -76,12 +120,21 @@ export function getSessionContext(
       ? "Energy weekend closure"
       : isIndices
       ? "Index weekend closure"
+      : isLivestock
+      ? "Livestock weekend closure"
       : "Futures weekend closure";
     const eastern = getZonedParts(now, "America/New_York");
     const minutes = eastern.hour * 60 + eastern.minute;
     const maintenanceBreak = eastern.weekday >= 1 && eastern.weekday <= 4 &&
       minutes >= 17 * 60 && minutes < 18 * 60;
-    const fridayClose = eastern.weekday === 5 && minutes >= 16 * 60 + 30;
+    // 1e (2026-08-09): the hard close moved from 16:30 to 17:00 ET. E8's own
+    // hours table closes the complex at 16:00 CT — 17:00 ET — and the 16:30
+    // literal carried no recorded measurement; a half hour the venue trades
+    // was being refused as if closed. The half hour keeps the thin-liquidity
+    // PENALTY the FX branch's own late-Friday window earned, non-blocking.
+    const fridayClose = eastern.weekday === 5 && minutes >= 17 * 60;
+    const fridayThin = eastern.weekday === 5 && minutes >= 16 * 60 + 30 &&
+      minutes < 17 * 60;
     const sundayPreopen = eastern.weekday === 7 && minutes < 18 * 60;
 
     if (maintenanceBreak) {
@@ -139,6 +192,16 @@ export function getSessionContext(
         penalty: 100,
         reason:
           `Measured results for ${marketKind === "futures" ? "futures" : "index"} setups opened between 12:00 and 18:00 UTC are the weakest stretch of the day across the full replay history, so Levelflow does not open new setups here in this window.`,
+      };
+    }
+
+    if (fridayThin) {
+      return {
+        block: false,
+        label: `Late Friday ${sessionLabel.toLowerCase()}`,
+        marketKind,
+        penalty: 10,
+        reason: "Late Friday liquidity conditions reduce setup quality.",
       };
     }
 

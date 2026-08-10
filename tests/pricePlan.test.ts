@@ -423,8 +423,11 @@ describe("1b: futures-shaped classes align or refuse — nothing ships off-grid"
     }
   });
 
-  it("bumps ANALYZER_VERSION — alignment on nineteen markets changes what the engine emits", () => {
-    assert.match(INDEX_SOURCE, /const ANALYZER_VERSION = "2026\.08\.09\.futures-grid";/);
+  it("bumps ANALYZER_VERSION — behavior-changing analyzer work always scopes the cohort", () => {
+    // futures-grid landed 1b's alignment; sessions-reconciled followed the
+    // same day with 1e's calendar work. The pin tracks the CURRENT version;
+    // calibrationState.test.ts carries the change log.
+    assert.match(INDEX_SOURCE, /const ANALYZER_VERSION = "2026\.08\.09\.sessions-reconciled";/);
   });
 });
 
