@@ -182,10 +182,15 @@ export function estimateExecutionQuality(
     estimatedSpread + estimatedSlippage * 2,
   );
   const grossRewardRisk = rewardDistance / Math.max(riskDistance, 0.00001);
+  // 2d (2026-08-09): one round trip, charged once — against the payoff. The
+  // old form divided (reward - cost) by (risk + cost), billing the same
+  // round trip to both sides of the ratio; realizedRFromLegs charges exactly
+  // one round trip in R space, and the gate's forward-looking metric must
+  // mean the same thing the measured corpus means.
   const effectiveRewardRisk = Math.max(
     0,
     rewardDistance - estimatedRoundTripCost,
-  ) / Math.max(riskDistance + estimatedRoundTripCost, 0.00001);
+  ) / Math.max(riskDistance, 0.00001);
   const costToRisk = estimatedRoundTripCost / Math.max(riskDistance, 0.00001);
   const entryCushion = Math.abs(input.latestClose - input.entryPrice);
   const notes: string[] = [];

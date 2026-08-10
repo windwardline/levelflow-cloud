@@ -26,6 +26,39 @@ describe("execution quality model", () => {
     assert.equal(quality.effectiveRewardRisk > 2.2, true);
   });
 
+  it("charges execution cost once — against the payoff, never also into the risk (2d)", () => {
+    // The old form was (reward - cost) / (risk + cost): the same round trip
+    // billed to both sides of the ratio. One trade pays its cost once, and
+    // the realized-R accountant (realizedRFromLegs) charges the same single
+    // round trip — so the gate's metric and the measured corpus agree on
+    // what a unit of cost is.
+    const quality = estimateExecutionQuality({
+      assetType: "forex",
+      atr: 0.0012,
+      availableTimeframes: ["1day", "4hour", "1hour", "15min"],
+      dailyAtr: 0.006,
+      entryPrice: 1.156,
+      latestClose: 1.158,
+      providerWarnings: [],
+      side: "buy",
+      stopLoss: 1.153,
+      symbol: "EURUSD",
+      takeProfit: 1.164,
+    });
+
+    const rewardDistance = 1.164 - 1.156;
+    const riskDistance = 1.156 - 1.153;
+    assert.equal(
+      quality.effectiveRewardRisk,
+      Number(
+        (
+          Math.max(0, rewardDistance - quality.estimatedRoundTripCost) /
+          Math.max(riskDistance, 0.00001)
+        ).toFixed(5),
+      ),
+    );
+  });
+
   it("penalizes setups where execution cost consumes too much risk", () => {
     const quality = estimateExecutionQuality({
       assetType: "crypto",

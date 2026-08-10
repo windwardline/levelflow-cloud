@@ -8,6 +8,7 @@ import { buildPricePlan } from "./pricePlan.ts";
 import {
   evaluateSetupOutcome,
   type ReplayBar,
+  type ResolutionLeg,
   type ResolvedOutcome,
 } from "./replay.ts";
 import {
@@ -105,6 +106,40 @@ export type SweepResult = {
   };
   summary: SweepSummary;
 };
+
+// 2g (2026-08-09): the one R accountant. Ten implementations used to
+// reconstruct R from the plan's NOMINAL levels — every stop exiting exactly
+// at the stop, every fill at the limit, cost nowhere, "ambiguous" scored as
+// a free 0. This reads the resolver's gap-aware legs instead: planned risk
+// is the unit (position size was computed on it), actual prints are the
+// numerator, and 2d charges exactly one round trip of cost in R space —
+// full-size entry plus either two half-size exits (ladder) or one full exit,
+// two cost units either way, matching estimateExecutionQuality's
+// estimatedRoundTripCost = spread + 2 x slippage at perLegCost =
+// spread/2 + slippage. The resolver prices ambiguity at the stop side, so
+// 2e's explicit -1 emerges from the same arithmetic as every other outcome.
+export function realizedRFromLegs(input: {
+  legs: ResolutionLeg[];
+  perLegCost: number;
+  riskDistance: number;
+  side: "buy" | "sell";
+}): number {
+  const entry = input.legs.find((leg) => leg.leg === "entry");
+  const exit = input.legs.find((leg) => leg.leg === "exit");
+  if (!entry || !exit || input.riskDistance <= 0) {
+    return 0;
+  }
+  const sign = input.side === "buy" ? 1 : -1;
+  const tp1 = input.legs.find((leg) => leg.leg === "tp1");
+  const exitFraction = tp1 ? 0.5 : 1;
+  const bankedR = tp1
+    ? (0.5 * sign * (tp1.price - entry.price)) / input.riskDistance
+    : 0;
+  const exitR = (exitFraction * sign * (exit.price - entry.price)) /
+    input.riskDistance;
+  const costR = (2 * input.perLegCost) / input.riskDistance;
+  return Number((bankedR + exitR - costR).toFixed(4));
+}
 
 // Bucket starts memoized per (width, bar time): the sweep resamples heavily
 // overlapping history windows at every decision point, so the same bar's
@@ -472,7 +507,14 @@ export function simulateSymbol(input: {
       cotStance: cotContext.stance,
       newsPenalty: newsPenaltyUnits,
       outcome: evaluation.outcome,
-      realizedR: realizedRFor(evaluation.outcome, evaluation.feedback, plan),
+      realizedR: realizedRFromLegs({
+        legs: evaluation.legs,
+        // Half the round trip per full-size execution unit: two units run
+        // per resolution (entry + exits), reproducing spread + 2 x slippage.
+        perLegCost: plan.executionQuality.estimatedRoundTripCost / 2,
+        riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
+        side: consensus.side,
+      }),
       regime: regime.name,
       rewardRisk: plan.rewardRisk,
       sessionLabel: sessionContext.label,
@@ -528,36 +570,6 @@ export function summarizeSweepOutcomes(
     tp1HitRate: filled > 0 ? roundStat(tp1Hits / filled) : 0,
     unfilled: total - filled,
   };
-}
-
-function realizedRFor(
-  outcome: Exclude<ResolvedOutcome, "pending">,
-  feedback: Record<string, unknown>,
-  plan: { entryPrice: number; stopLoss: number; takeProfit: number; takeProfit1: number },
-) {
-  const risk = Math.abs(plan.entryPrice - plan.stopLoss);
-  if (risk <= 0) {
-    return 0;
-  }
-  const runnerR = Math.abs(plan.takeProfit - plan.entryPrice) / risk;
-  const tp1R = Math.abs(plan.takeProfit1 - plan.entryPrice) / risk;
-
-  // Ladder accounting: half the position banks at TP1, half rides the runner.
-  switch (outcome) {
-    case "take_profit":
-      return roundStat(0.5 * tp1R + 0.5 * runnerR);
-    case "tp1_partial":
-      return roundStat(0.5 * tp1R);
-    case "stop_loss":
-      return -1;
-    case "expired_in_profit":
-    case "expired_at_loss": {
-      const realized = Number(feedback.realizedR);
-      return Number.isFinite(realized) ? realized : 0;
-    }
-    default:
-      return 0;
-  }
 }
 
 function roundStat(value: number) {
