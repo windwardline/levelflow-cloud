@@ -224,6 +224,13 @@ const NEW_YORK_VERIFY_FORMAT = new Intl.DateTimeFormat("en-US", {
 // use: guess the UTC instant with the wanted digits, read the guess back in
 // New York, correct by the difference. Exported for the daily completion
 // gate and the resampler, which both need "this wall-clock moment, in UTC".
+// Memoized per wall-clock stamp: the same stamps recur across every symbol
+// on a timeframe grid (11 scan-chunk symbols share one 15min clock), and
+// the two Intl reads below at ~19ms per 3,000-bar series were the second
+// half of the 546 CPU deaths (#289) — a cold chunk decodes ~66 series.
+// Growth is bounded by unique stamps an instance ever sees.
+const wallClockCache = new Map<number, number>();
+
 export function newYorkWallClockToUtcMs(
   year: number,
   month: number,
@@ -233,6 +240,32 @@ export function newYorkWallClockToUtcMs(
   second: number,
 ): number {
   const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second);
+  const cached = wallClockCache.get(utcGuess);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const converted = convertNewYorkWallClock(
+    utcGuess,
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+  );
+  wallClockCache.set(utcGuess, converted);
+  return converted;
+}
+
+function convertNewYorkWallClock(
+  utcGuess: number,
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+): number {
   const parts = NEW_YORK_GUESS_FORMAT.formatToParts(new Date(utcGuess));
   const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   const guessHour = Number(lookup.hour ?? "0");
