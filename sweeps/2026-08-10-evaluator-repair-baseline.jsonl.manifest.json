@@ -1,0 +1,5213 @@
+{
+  "analyzerVersion": "2026.08.09.evaluator-repair",
+  "anchor": "2026-08-10",
+  "barRejections": {
+    "spike": 8,
+    "incoherent_ohlc": 459
+  },
+  "days": 7000,
+  "folds": [
+    {
+      "decisionEndMs": 1519672050000,
+      "endMs": 1520104050000,
+      "name": "fit",
+      "startMs": 1253822400000
+    },
+    {
+      "decisionEndMs": 1652812875000,
+      "endMs": 1653244875000,
+      "name": "select",
+      "startMs": 1520104050000
+    },
+    {
+      "decisionEndMs": 1785953700000,
+      "endMs": 1786385700000,
+      "name": "confirm",
+      "startMs": 1653244875000
+    }
+  ],
+  "grid": [
+    {}
+  ],
+  "holdoutSymbols": [
+    "AUDCHF",
+    "AUDJPY",
+    "AUDUSD",
+    "BCHUSD",
+    "BNBUSD",
+    "CADJPY",
+    "EURCHF",
+    "EURGBP",
+    "EURUSD",
+    "FILUSD",
+    "GBPCHF",
+    "GBPJPY",
+    "NEARUSD",
+    "NGUSD",
+    "NQUSD",
+    "XLMUSD",
+    "ZOUSX",
+    "^N225"
+  ],
+  "stepBars": 16,
+  "symbols": [
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "AAVEUSD",
+      "series": {
+        "15min": {
+          "count": 197073,
+          "firstTime": 1604659500000,
+          "largestGapMs": 3392100000,
+          "lastTime": 1786333500000,
+          "spanDays": 2102.71
+        },
+        "1day": {
+          "count": 2138,
+          "firstTime": 1601611200000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2137
+        },
+        "5min": {
+          "count": 197496,
+          "firstTime": 1604659500000,
+          "largestGapMs": 4644900000,
+          "lastTime": 1786333500000,
+          "spanDays": 2102.71
+        }
+      },
+      "symbol": "AAVEUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "ADAUSD",
+      "series": {
+        "15min": {
+          "count": 282683,
+          "firstTime": 1519651800000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786333500000,
+          "spanDays": 3086.59
+        },
+        "1day": {
+          "count": 3200,
+          "firstTime": 1510185600000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786248000000,
+          "spanDays": 3195.17
+        },
+        "5min": {
+          "count": 271761,
+          "firstTime": 1521174000000,
+          "largestGapMs": 1772700000,
+          "lastTime": 1786333500000,
+          "spanDays": 3068.98
+        }
+      },
+      "symbol": "ADAUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "ALGOUSD",
+      "series": {
+        "15min": {
+          "count": 239523,
+          "firstTime": 1565884800000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786333500000,
+          "spanDays": 2551.49
+        },
+        "1day": {
+          "count": 2608,
+          "firstTime": 1561003200000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2607
+        },
+        "5min": {
+          "count": 231487,
+          "firstTime": 1565884800000,
+          "largestGapMs": 1797900000,
+          "lastTime": 1786333500000,
+          "spanDays": 2551.49
+        }
+      },
+      "symbol": "ALGOUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "ARUSD",
+      "series": {
+        "15min": {
+          "count": 99250,
+          "firstTime": 1696158000000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786333500000,
+          "spanDays": 1043.7
+        },
+        "1day": {
+          "count": 2266,
+          "firstTime": 1590552000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2265
+        },
+        "5min": {
+          "count": 98977,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1731900000,
+          "lastTime": 1786333500000,
+          "spanDays": 1028.99
+        }
+      },
+      "symbol": "ARUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "ATOMUSD",
+      "series": {
+        "15min": {
+          "count": 228434,
+          "firstTime": 1579025700000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786333500000,
+          "spanDays": 2399.4
+        },
+        "1day": {
+          "count": 2706,
+          "firstTime": 1552536000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2705
+        },
+        "5min": {
+          "count": 227211,
+          "firstTime": 1579025700000,
+          "largestGapMs": 1794600000,
+          "lastTime": 1786333500000,
+          "spanDays": 2399.4
+        }
+      },
+      "symbol": "ATOMUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "AVAXUSD",
+      "series": {
+        "15min": {
+          "count": 164946,
+          "firstTime": 1636502400000,
+          "largestGapMs": 102600000,
+          "lastTime": 1786333500000,
+          "spanDays": 1734.16
+        },
+        "1day": {
+          "count": 2150,
+          "firstTime": 1594612800000,
+          "largestGapMs": 6048000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2218
+        },
+        "5min": {
+          "count": 166420,
+          "firstTime": 1637816400000,
+          "largestGapMs": 1795800000,
+          "lastTime": 1786333500000,
+          "spanDays": 1718.95
+        }
+      },
+      "symbol": "AVAXUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "BCHUSD",
+      "series": {
+        "15min": {
+          "count": 302400,
+          "firstTime": 1512381600000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786333500000,
+          "spanDays": 3170.74
+        },
+        "1day": {
+          "count": 3310,
+          "firstTime": 1500681600000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786248000000,
+          "spanDays": 3305.17
+        },
+        "5min": {
+          "count": 303866,
+          "firstTime": 1513400400000,
+          "largestGapMs": 1777800000,
+          "lastTime": 1786333500000,
+          "spanDays": 3158.95
+        }
+      },
+      "symbol": "BCHUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "BNBUSD",
+      "series": {
+        "15min": {
+          "count": 99139,
+          "firstTime": 1696213800000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786333500000,
+          "spanDays": 1043.05
+        },
+        "1day": {
+          "count": 3200,
+          "firstTime": 1510185600000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786248000000,
+          "spanDays": 3195.17
+        },
+        "5min": {
+          "count": 99607,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1809000000,
+          "lastTime": 1786333800000,
+          "spanDays": 1028.99
+        }
+      },
+      "symbol": "BNBUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "BTCUSD",
+      "series": {
+        "15min": {
+          "count": 383227,
+          "firstTime": 1383505200000,
+          "largestGapMs": 207000000,
+          "lastTime": 1786333500000,
+          "spanDays": 4662.36
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1352764800000,
+          "largestGapMs": 604800000,
+          "lastTime": 1786248000000,
+          "spanDays": 5017.17
+        },
+        "5min": {
+          "count": 366844,
+          "firstTime": 1383810000000,
+          "largestGapMs": 1866600000,
+          "lastTime": 1786333800000,
+          "spanDays": 4658.84
+        }
+      },
+      "symbol": "BTCUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "CAKEUSD",
+      "series": {
+        "15min": {
+          "count": 98937,
+          "firstTime": 1696247100000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786333500000,
+          "spanDays": 1042.67
+        },
+        "1day": {
+          "count": 2141,
+          "firstTime": 1601352000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2140
+        },
+        "5min": {
+          "count": 98088,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1789800000,
+          "lastTime": 1786333800000,
+          "spanDays": 1028.99
+        }
+      },
+      "symbol": "CAKEUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "DASHUSD",
+      "series": {
+        "15min": {
+          "count": 322393,
+          "firstTime": 1492017300000,
+          "largestGapMs": 76500000,
+          "lastTime": 1786333500000,
+          "spanDays": 3406.44
+        },
+        "1day": {
+          "count": 3407,
+          "firstTime": 1491883200000,
+          "largestGapMs": 172800000,
+          "lastTime": 1786248000000,
+          "spanDays": 3407
+        },
+        "5min": {
+          "count": 305325,
+          "firstTime": 1492664100000,
+          "largestGapMs": 1768200000,
+          "lastTime": 1786333800000,
+          "spanDays": 3398.95
+        }
+      },
+      "symbol": "DASHUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "DOGEUSD",
+      "series": {
+        "15min": {
+          "count": 315825,
+          "firstTime": 1496347200000,
+          "largestGapMs": 84600000,
+          "lastTime": 1786333500000,
+          "spanDays": 3356.32
+        },
+        "1day": {
+          "count": 3357,
+          "firstTime": 1496203200000,
+          "largestGapMs": 172800000,
+          "lastTime": 1786248000000,
+          "spanDays": 3357
+        },
+        "5min": {
+          "count": 303524,
+          "firstTime": 1497844800000,
+          "largestGapMs": 1798500000,
+          "lastTime": 1786334100000,
+          "spanDays": 3339
+        }
+      },
+      "symbol": "DOGEUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "DOTUSD",
+      "series": {
+        "15min": {
+          "count": 205663,
+          "firstTime": 1597784400000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786333500000,
+          "spanDays": 2182.28
+        },
+        "1day": {
+          "count": 1882,
+          "firstTime": 1623729600000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 1881
+        },
+        "5min": {
+          "count": 204013,
+          "firstTime": 1598932800000,
+          "largestGapMs": 1788900000,
+          "lastTime": 1786334100000,
+          "spanDays": 2169
+        }
+      },
+      "symbol": "DOTUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "DYDXUSD",
+      "series": {
+        "15min": {
+          "count": 123515,
+          "firstTime": 1631633400000,
+          "largestGapMs": 42300000,
+          "lastTime": 1786333500000,
+          "spanDays": 1790.51
+        },
+        "1day": {
+          "count": 1797,
+          "firstTime": 1631073600000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 1796
+        },
+        "5min": {
+          "count": 89730,
+          "firstTime": 1632629100000,
+          "largestGapMs": 1744500000,
+          "lastTime": 1786334100000,
+          "spanDays": 1778.99
+        }
+      },
+      "symbol": "DYDXUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "EGLDUSD",
+      "series": {
+        "15min": {
+          "count": 163757,
+          "firstTime": 1636588800000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786333500000,
+          "spanDays": 1733.16
+        },
+        "1day": {
+          "count": 2167,
+          "firstTime": 1599192000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 2166
+        },
+        "5min": {
+          "count": 147203,
+          "firstTime": 1637816400000,
+          "largestGapMs": 1791000000,
+          "lastTime": 1786334100000,
+          "spanDays": 1718.95
+        }
+      },
+      "symbol": "EGLDUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "ETCUSD",
+      "series": {
+        "15min": {
+          "count": 341166,
+          "firstTime": 1469608200000,
+          "largestGapMs": 80100000,
+          "lastTime": 1786333500000,
+          "spanDays": 3665.8
+        },
+        "1day": {
+          "count": 3671,
+          "firstTime": 1469246400000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 3670
+        },
+        "5min": {
+          "count": 331440,
+          "firstTime": 1469608500000,
+          "largestGapMs": 1741800000,
+          "lastTime": 1786334100000,
+          "spanDays": 3665.81
+        }
+      },
+      "symbol": "ETCUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "ETHUSD",
+      "series": {
+        "15min": {
+          "count": 362731,
+          "firstTime": 1438941600000,
+          "largestGapMs": 186300000,
+          "lastTime": 1786334400000,
+          "spanDays": 4020.75
+        },
+        "1day": {
+          "count": 4021,
+          "firstTime": 1438905600000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 4021.17
+        },
+        "5min": {
+          "count": 352643,
+          "firstTime": 1438956000000,
+          "largestGapMs": 1789500000,
+          "lastTime": 1786334100000,
+          "spanDays": 4020.58
+        }
+      },
+      "symbol": "ETHUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "FILUSD",
+      "series": {
+        "15min": {
+          "count": 201161,
+          "firstTime": 1602786600000,
+          "largestGapMs": 88200000,
+          "lastTime": 1786334400000,
+          "spanDays": 2124.4
+        },
+        "1day": {
+          "count": 3164,
+          "firstTime": 1513054800000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 3162.96
+        },
+        "5min": {
+          "count": 197504,
+          "firstTime": 1604116800000,
+          "largestGapMs": 1774800000,
+          "lastTime": 1786334400000,
+          "spanDays": 2109
+        }
+      },
+      "symbol": "FILUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "GRTUSD",
+      "series": {
+        "15min": {
+          "count": 196242,
+          "firstTime": 1608227100000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786334400000,
+          "spanDays": 2061.43
+        },
+        "1day": {
+          "count": 2243,
+          "firstTime": 1592539200000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2242
+        },
+        "5min": {
+          "count": 195234,
+          "firstTime": 1609304400000,
+          "largestGapMs": 1797000000,
+          "lastTime": 1786334400000,
+          "spanDays": 2048.96
+        }
+      },
+      "symbol": "GRTUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "HBARUSD",
+      "series": {
+        "15min": {
+          "count": 131126,
+          "firstTime": 1665676800000,
+          "largestGapMs": 85500000,
+          "lastTime": 1786334400000,
+          "spanDays": 1396.5
+        },
+        "1day": {
+          "count": 2519,
+          "firstTime": 1568692800000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 2518
+        },
+        "5min": {
+          "count": 130915,
+          "firstTime": 1666324800000,
+          "largestGapMs": 1797600000,
+          "lastTime": 1786334400000,
+          "spanDays": 1389
+        }
+      },
+      "symbol": "HBARUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "IMXUSD",
+      "series": {
+        "15min": {
+          "count": 149614,
+          "firstTime": 1646438400000,
+          "largestGapMs": 3024900000,
+          "lastTime": 1786334400000,
+          "spanDays": 1619.17
+        },
+        "1day": {
+          "count": 1926,
+          "firstTime": 1620014400000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 1925
+        },
+        "5min": {
+          "count": 147909,
+          "firstTime": 1646438400000,
+          "largestGapMs": 4316700000,
+          "lastTime": 1786334400000,
+          "spanDays": 1619.17
+        }
+      },
+      "symbol": "IMXUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "LINKUSD",
+      "series": {
+        "15min": {
+          "count": 246820,
+          "firstTime": 1561653000000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786334400000,
+          "spanDays": 2600.48
+        },
+        "1day": {
+          "count": 3247,
+          "firstTime": 1505793600000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786248000000,
+          "spanDays": 3246
+        },
+        "5min": {
+          "count": 246402,
+          "firstTime": 1562644800000,
+          "largestGapMs": 1798200000,
+          "lastTime": 1786334400000,
+          "spanDays": 2589
+        }
+      },
+      "symbol": "LINKUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "LTCUSD",
+      "series": {
+        "15min": {
+          "count": 344210,
+          "firstTime": 1383571800000,
+          "largestGapMs": 1413900000,
+          "lastTime": 1786334400000,
+          "spanDays": 4661.6
+        },
+        "1day": {
+          "count": 4615,
+          "firstTime": 1383523200000,
+          "largestGapMs": 604800000,
+          "lastTime": 1786334400000,
+          "spanDays": 4662.17
+        },
+        "5min": {
+          "count": 336856,
+          "firstTime": 1383852300000,
+          "largestGapMs": 2574000000,
+          "lastTime": 1786334700000,
+          "spanDays": 4658.36
+        }
+      },
+      "symbol": "LTCUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "NEARUSD",
+      "series": {
+        "15min": {
+          "count": 158409,
+          "firstTime": 1641168000000,
+          "largestGapMs": 80100000,
+          "lastTime": 1786334400000,
+          "spanDays": 1680.17
+        },
+        "1day": {
+          "count": 2127,
+          "firstTime": 1602648000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 2126
+        },
+        "5min": {
+          "count": 157594,
+          "firstTime": 1641168000000,
+          "largestGapMs": 1772100000,
+          "lastTime": 1786334700000,
+          "spanDays": 1680.17
+        }
+      },
+      "symbol": "NEARUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "SOLUSD",
+      "series": {
+        "15min": {
+          "count": 191131,
+          "firstTime": 1614227400000,
+          "largestGapMs": 13500000,
+          "lastTime": 1786334400000,
+          "spanDays": 1991.98
+        },
+        "1day": {
+          "count": 2318,
+          "firstTime": 1586476800000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786334400000,
+          "spanDays": 2313.17
+        },
+        "5min": {
+          "count": 190723,
+          "firstTime": 1614488400000,
+          "largestGapMs": 1731900000,
+          "lastTime": 1786334700000,
+          "spanDays": 1988.96
+        }
+      },
+      "symbol": "SOLUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "THETAUSD",
+      "series": {
+        "15min": {
+          "count": 98458,
+          "firstTime": 1696041900000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786334400000,
+          "spanDays": 1045.05
+        },
+        "1day": {
+          "count": 3128,
+          "firstTime": 1516165200000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 3126.96
+        },
+        "5min": {
+          "count": 91851,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1732800000,
+          "lastTime": 1786334700000,
+          "spanDays": 1029
+        }
+      },
+      "symbol": "THETAUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "OTRUMPUSD",
+      "series": {
+        "15min": {
+          "count": 53893,
+          "firstTime": 1737275400000,
+          "largestGapMs": 538200000,
+          "lastTime": 1786334400000,
+          "spanDays": 567.81
+        },
+        "1day": {
+          "count": 569,
+          "firstTime": 1737262800000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 567.96
+        },
+        "5min": {
+          "count": 54371,
+          "firstTime": 1738904400000,
+          "largestGapMs": 1731900000,
+          "lastTime": 1786334700000,
+          "spanDays": 548.96
+        }
+      },
+      "symbol": "OTRUMPUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "TRXUSD",
+      "series": {
+        "15min": {
+          "count": 302949,
+          "firstTime": 1507387500000,
+          "largestGapMs": 103500000,
+          "lastTime": 1786334400000,
+          "spanDays": 3228.55
+        },
+        "1day": {
+          "count": 3254,
+          "firstTime": 1505188800000,
+          "largestGapMs": 172800000,
+          "lastTime": 1786334400000,
+          "spanDays": 3254
+        },
+        "5min": {
+          "count": 292851,
+          "firstTime": 1508216100000,
+          "largestGapMs": 1799100000,
+          "lastTime": 1786334700000,
+          "spanDays": 3218.97
+        }
+      },
+      "symbol": "TRXUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "UNIUSD",
+      "series": {
+        "15min": {
+          "count": 203655,
+          "firstTime": 1600369200000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786334400000,
+          "spanDays": 2152.38
+        },
+        "1day": {
+          "count": 2155,
+          "firstTime": 1600228800000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 2154
+        },
+        "5min": {
+          "count": 202901,
+          "firstTime": 1601524800000,
+          "largestGapMs": 1797900000,
+          "lastTime": 1786335000000,
+          "spanDays": 2139.01
+        }
+      },
+      "symbol": "UNIUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "XLMUSD",
+      "series": {
+        "15min": {
+          "count": 293767,
+          "firstTime": 1518823800000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786334400000,
+          "spanDays": 3096.19
+        },
+        "1day": {
+          "count": 4390,
+          "firstTime": 1407124800000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 4389
+        },
+        "5min": {
+          "count": 289209,
+          "firstTime": 1518824400000,
+          "largestGapMs": 1765500000,
+          "lastTime": 1786335000000,
+          "spanDays": 3096.19
+        }
+      },
+      "symbol": "XLMUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "XMRUSD",
+      "series": {
+        "15min": {
+          "count": 332088,
+          "firstTime": 1483232400000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786334400000,
+          "spanDays": 3508.13
+        },
+        "1day": {
+          "count": 4465,
+          "firstTime": 1400558400000,
+          "largestGapMs": 172800000,
+          "lastTime": 1786334400000,
+          "spanDays": 4465
+        },
+        "5min": {
+          "count": 321856,
+          "firstTime": 1484888400000,
+          "largestGapMs": 1801200000,
+          "lastTime": 1786335000000,
+          "spanDays": 3488.97
+        }
+      },
+      "symbol": "XMRUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "XRPUSD",
+      "series": {
+        "15min": {
+          "count": 328504,
+          "firstTime": 1483425900000,
+          "largestGapMs": 694800000,
+          "lastTime": 1786334400000,
+          "spanDays": 3505.89
+        },
+        "1day": {
+          "count": 3502,
+          "firstTime": 1483315200000,
+          "largestGapMs": 604800000,
+          "lastTime": 1786334400000,
+          "spanDays": 3507.17
+        },
+        "5min": {
+          "count": 325768,
+          "firstTime": 1484897100000,
+          "largestGapMs": 1781100000,
+          "lastTime": 1786335000000,
+          "spanDays": 3488.86
+        }
+      },
+      "symbol": "XRPUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8
+      },
+      "calibrationHash": "1ab522c2a3bc017ed814176ec31ea2c1b3b3dbab1933c00cf8d9a2d8ae676e48",
+      "providerSymbol": "XTZUSD",
+      "series": {
+        "15min": {
+          "count": 316602,
+          "firstTime": 1499080500000,
+          "largestGapMs": 83700000,
+          "lastTime": 1786335300000,
+          "spanDays": 3324.71
+        },
+        "1day": {
+          "count": 3327,
+          "firstTime": 1498968000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 3326
+        },
+        "5min": {
+          "count": 310900,
+          "firstTime": 1500437400000,
+          "largestGapMs": 1793700000,
+          "lastTime": 1786335300000,
+          "spanDays": 3309
+        }
+      },
+      "symbol": "XTZUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.8,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.6,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "9a63f1490b42ef5bd8a9fdf2376db81ad64b525feae61fb113b6c4322342db6f",
+      "providerSymbol": "CLUSD",
+      "series": {
+        "15min": {
+          "count": 66119,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786335300000,
+          "spanDays": 1043.43
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1165276800000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786334400000,
+          "spanDays": 7188.17
+        },
+        "5min": {
+          "count": 63543,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786335300000,
+          "spanDays": 1029.01
+        }
+      },
+      "symbol": "CLUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "AUDCAD",
+      "series": {
+        "15min": {
+          "count": 412036,
+          "firstTime": 1253822400000,
+          "largestGapMs": 288900000,
+          "lastTime": 1786335300000,
+          "spanDays": 6163.34
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1189036800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6913.17
+        },
+        "5min": {
+          "count": 414418,
+          "firstTime": 1254196800000,
+          "largestGapMs": 2005500000,
+          "lastTime": 1786335300000,
+          "spanDays": 6159.01
+        }
+      },
+      "symbol": "AUDCAD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "AUDCHF",
+      "series": {
+        "15min": {
+          "count": 412244,
+          "firstTime": 1253822400000,
+          "largestGapMs": 288900000,
+          "lastTime": 1786335300000,
+          "spanDays": 6163.34
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188518400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6919.17
+        },
+        "5min": {
+          "count": 414558,
+          "firstTime": 1254196800000,
+          "largestGapMs": 2005500000,
+          "lastTime": 1786335300000,
+          "spanDays": 6159.01
+        }
+      },
+      "symbol": "AUDCHF"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "AUDJPY",
+      "series": {
+        "15min": {
+          "count": 411482,
+          "firstTime": 1253822400000,
+          "largestGapMs": 288900000,
+          "lastTime": 1786335300000,
+          "spanDays": 6163.34
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1188777600000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6916.17
+        },
+        "5min": {
+          "count": 413167,
+          "firstTime": 1254196800000,
+          "largestGapMs": 2005500000,
+          "lastTime": 1786335600000,
+          "spanDays": 6159.01
+        }
+      },
+      "symbol": "AUDJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "AUDNZD",
+      "series": {
+        "15min": {
+          "count": 408057,
+          "firstTime": 1253822400000,
+          "largestGapMs": 4408200000,
+          "lastTime": 1786335300000,
+          "spanDays": 6163.34
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1189036800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6913.17
+        },
+        "5min": {
+          "count": 411487,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4727400000,
+          "lastTime": 1786335900000,
+          "spanDays": 6159.02
+        }
+      },
+      "symbol": "AUDNZD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "AUDUSD",
+      "series": {
+        "15min": {
+          "count": 410684,
+          "firstTime": 1253822400000,
+          "largestGapMs": 288900000,
+          "lastTime": 1786335300000,
+          "spanDays": 6163.34
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188864000000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6915.17
+        },
+        "5min": {
+          "count": 413735,
+          "firstTime": 1254196800000,
+          "largestGapMs": 2005500000,
+          "lastTime": 1786335900000,
+          "spanDays": 6159.02
+        }
+      },
+      "symbol": "AUDUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "CADCHF",
+      "series": {
+        "15min": {
+          "count": 407713,
+          "firstTime": 1253822400000,
+          "largestGapMs": 4408200000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1193788800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6858.17
+        },
+        "5min": {
+          "count": 409790,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4727400000,
+          "lastTime": 1786336200000,
+          "spanDays": 6159.02
+        }
+      },
+      "symbol": "CADCHF"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "CADJPY",
+      "series": {
+        "15min": {
+          "count": 411487,
+          "firstTime": 1253822400000,
+          "largestGapMs": 311400000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1188950400000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6914.17
+        },
+        "5min": {
+          "count": 413946,
+          "firstTime": 1254196800000,
+          "largestGapMs": 2008200000,
+          "lastTime": 1786338600000,
+          "spanDays": 6159.05
+        }
+      },
+      "symbol": "CADJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "CHFJPY",
+      "series": {
+        "15min": {
+          "count": 410253,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1031400000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5016,
+          "firstTime": 1193702400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6859.17
+        },
+        "5min": {
+          "count": 410954,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4449600000,
+          "lastTime": 1786338900000,
+          "spanDays": 6159.05
+        }
+      },
+      "symbol": "CHFJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURAUD",
+      "series": {
+        "15min": {
+          "count": 409935,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1193875200000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6857.17
+        },
+        "5min": {
+          "count": 411148,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4449600000,
+          "lastTime": 1786338900000,
+          "spanDays": 6159.05
+        }
+      },
+      "symbol": "EURAUD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURCAD",
+      "series": {
+        "15min": {
+          "count": 410713,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1189036800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6913.17
+        },
+        "5min": {
+          "count": 412148,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786338900000,
+          "spanDays": 6159.05
+        }
+      },
+      "symbol": "EURCAD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURCHF",
+      "series": {
+        "15min": {
+          "count": 405510,
+          "firstTime": 1253822400000,
+          "largestGapMs": 3544200000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5016,
+          "firstTime": 1188864000000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6915.17
+        },
+        "5min": {
+          "count": 405632,
+          "firstTime": 1254196800000,
+          "largestGapMs": 5199900000,
+          "lastTime": 1786339200000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "EURCHF"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURGBP",
+      "series": {
+        "15min": {
+          "count": 410279,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5016,
+          "firstTime": 1192752000000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786334400000,
+          "spanDays": 6870.17
+        },
+        "5min": {
+          "count": 412347,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786339200000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "EURGBP"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURJPY",
+      "series": {
+        "15min": {
+          "count": 410898,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5016,
+          "firstTime": 1188950400000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6914.17
+        },
+        "5min": {
+          "count": 412339,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786339500000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "EURJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURNZD",
+      "series": {
+        "15min": {
+          "count": 409567,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1193961600000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6856.17
+        },
+        "5min": {
+          "count": 411657,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4590300000,
+          "lastTime": 1786339500000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "EURNZD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "EURUSD",
+      "series": {
+        "15min": {
+          "count": 410488,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1185494400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6954.17
+        },
+        "5min": {
+          "count": 412163,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786339800000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "EURUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "GBPAUD",
+      "series": {
+        "15min": {
+          "count": 410689,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188518400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6919.17
+        },
+        "5min": {
+          "count": 412613,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786339800000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "GBPAUD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "GBPCAD",
+      "series": {
+        "15min": {
+          "count": 410367,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188950400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6914.17
+        },
+        "5min": {
+          "count": 411400,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786339800000,
+          "spanDays": 6159.06
+        }
+      },
+      "symbol": "GBPCAD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "GBPCHF",
+      "series": {
+        "15min": {
+          "count": 409305,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1193788800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6858.17
+        },
+        "5min": {
+          "count": 411198,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786340100000,
+          "spanDays": 6159.07
+        }
+      },
+      "symbol": "GBPCHF"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "GBPJPY",
+      "series": {
+        "15min": {
+          "count": 410043,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1188950400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6914.17
+        },
+        "5min": {
+          "count": 412569,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786340100000,
+          "spanDays": 6159.07
+        }
+      },
+      "symbol": "GBPJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "GBPNZD",
+      "series": {
+        "15min": {
+          "count": 409681,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1189036800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6913.17
+        },
+        "5min": {
+          "count": 411189,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4449600000,
+          "lastTime": 1786340400000,
+          "spanDays": 6159.07
+        }
+      },
+      "symbol": "GBPNZD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "GBPUSD",
+      "series": {
+        "15min": {
+          "count": 408862,
+          "firstTime": 1253822400000,
+          "largestGapMs": 1989000000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188950400000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6914.17
+        },
+        "5min": {
+          "count": 411070,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786340400000,
+          "spanDays": 6159.07
+        }
+      },
+      "symbol": "GBPUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "NZDCAD",
+      "series": {
+        "15min": {
+          "count": 406319,
+          "firstTime": 1253822400000,
+          "largestGapMs": 6222600000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188864000000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6915.17
+        },
+        "5min": {
+          "count": 409953,
+          "firstTime": 1254196800000,
+          "largestGapMs": 7434600000,
+          "lastTime": 1786340700000,
+          "spanDays": 6159.07
+        }
+      },
+      "symbol": "NZDCAD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "NZDCHF",
+      "series": {
+        "15min": {
+          "count": 405778,
+          "firstTime": 1253822400000,
+          "largestGapMs": 6222600000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1189036800000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6913.17
+        },
+        "5min": {
+          "count": 408705,
+          "firstTime": 1254196800000,
+          "largestGapMs": 7434600000,
+          "lastTime": 1786340700000,
+          "spanDays": 6159.07
+        }
+      },
+      "symbol": "NZDCHF"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "NZDJPY",
+      "series": {
+        "15min": {
+          "count": 406140,
+          "firstTime": 1253822400000,
+          "largestGapMs": 6222600000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1188777600000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6916.17
+        },
+        "5min": {
+          "count": 409738,
+          "firstTime": 1254196800000,
+          "largestGapMs": 7434600000,
+          "lastTime": 1786341000000,
+          "spanDays": 6159.08
+        }
+      },
+      "symbol": "NZDJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "NZDUSD",
+      "series": {
+        "15min": {
+          "count": 405149,
+          "firstTime": 1253822400000,
+          "largestGapMs": 6237900000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188950400000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6914.17
+        },
+        "5min": {
+          "count": 407675,
+          "firstTime": 1254196800000,
+          "largestGapMs": 7450500000,
+          "lastTime": 1786341000000,
+          "spanDays": 6159.08
+        }
+      },
+      "symbol": "NZDUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "USDCAD",
+      "series": {
+        "15min": {
+          "count": 407046,
+          "firstTime": 1253822400000,
+          "largestGapMs": 2928600000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1250467200000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786334400000,
+          "spanDays": 6202.17
+        },
+        "5min": {
+          "count": 410335,
+          "firstTime": 1254249300000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786341000000,
+          "spanDays": 6158.47
+        }
+      },
+      "symbol": "USDCAD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "USDCHF",
+      "series": {
+        "15min": {
+          "count": 404975,
+          "firstTime": 1253822400000,
+          "largestGapMs": 3585600000,
+          "lastTime": 1786336200000,
+          "spanDays": 6163.35
+        },
+        "1day": {
+          "count": 5016,
+          "firstTime": 1193875200000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 6857.17
+        },
+        "5min": {
+          "count": 407464,
+          "firstTime": 1254196800000,
+          "largestGapMs": 6948000000,
+          "lastTime": 1786341300000,
+          "spanDays": 6159.08
+        }
+      },
+      "symbol": "USDCHF"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "USDJPY",
+      "series": {
+        "15min": {
+          "count": 407337,
+          "firstTime": 1254071700000,
+          "largestGapMs": 2928600000,
+          "lastTime": 1786336200000,
+          "spanDays": 6160.47
+        },
+        "1day": {
+          "count": 5015,
+          "firstTime": 1189987200000,
+          "largestGapMs": 259200000,
+          "lastTime": 1786334400000,
+          "spanDays": 6902.17
+        },
+        "5min": {
+          "count": 411005,
+          "firstTime": 1254196800000,
+          "largestGapMs": 4435500000,
+          "lastTime": 1786341300000,
+          "spanDays": 6159.08
+        }
+      },
+      "symbol": "USDJPY"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.8,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.6,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "9a63f1490b42ef5bd8a9fdf2376db81ad64b525feae61fb113b6c4322342db6f",
+      "providerSymbol": "BZUSD",
+      "series": {
+        "15min": {
+          "count": 64033,
+          "firstTime": 1695578400000,
+          "largestGapMs": 392400000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1177977600000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7041.17
+        },
+        "5min": {
+          "count": 61706,
+          "firstTime": 1695592800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1050.33
+        }
+      },
+      "symbol": "BZUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "ESUSD",
+      "series": {
+        "15min": {
+          "count": 66760,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1179964800000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7018.17
+        },
+        "5min": {
+          "count": 66804,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341000000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "ESUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "GCUSD",
+      "series": {
+        "15min": {
+          "count": 67133,
+          "firstTime": 1695578400000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786335300000,
+          "spanDays": 1050.43
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1178236800000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7038.17
+        },
+        "5min": {
+          "count": 67322,
+          "firstTime": 1695592800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341000000,
+          "spanDays": 1050.33
+        }
+      },
+      "symbol": "GCUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 40,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 24,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.6,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "4c2008f423723f98fc3340bf2960b688349e0d98678ef0e362adecc7c28123b9",
+      "providerSymbol": "GFUSX",
+      "series": {
+        "15min": {
+          "count": 13523,
+          "firstTime": 1696253400000,
+          "largestGapMs": 329400000,
+          "lastTime": 1786125600000,
+          "spanDays": 1040.19
+        },
+        "1day": {
+          "count": 4971,
+          "firstTime": 1174276800000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786075200000,
+          "spanDays": 7081
+        },
+        "5min": {
+          "count": 13184,
+          "firstTime": 1697463000000,
+          "largestGapMs": 2143800000,
+          "lastTime": 1786125600000,
+          "spanDays": 1026.19
+        }
+      },
+      "symbol": "GFUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 40,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 24,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.6,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "4c2008f423723f98fc3340bf2960b688349e0d98678ef0e362adecc7c28123b9",
+      "providerSymbol": "HEUSX",
+      "series": {
+        "15min": {
+          "count": 13552,
+          "firstTime": 1696253400000,
+          "largestGapMs": 333000000,
+          "lastTime": 1786125600000,
+          "spanDays": 1040.19
+        },
+        "1day": {
+          "count": 4995,
+          "firstTime": 1160971200000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786075200000,
+          "spanDays": 7235
+        },
+        "5min": {
+          "count": 13300,
+          "firstTime": 1697463000000,
+          "largestGapMs": 2143800000,
+          "lastTime": 1786125900000,
+          "spanDays": 1026.19
+        }
+      },
+      "symbol": "HEUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "HGUSD",
+      "series": {
+        "15min": {
+          "count": 67283,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1178496000000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7035.17
+        },
+        "5min": {
+          "count": 67592,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "HGUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "HOUSD",
+      "series": {
+        "15min": {
+          "count": 61598,
+          "firstTime": 1696197600000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.27
+        },
+        "1day": {
+          "count": 4998,
+          "firstTime": 1181793600000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786334400000,
+          "spanDays": 6997
+        },
+        "5min": {
+          "count": 59676,
+          "firstTime": 1697429100000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "HOUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 40,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 24,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.6,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "4c2008f423723f98fc3340bf2960b688349e0d98678ef0e362adecc7c28123b9",
+      "providerSymbol": "LEUSX",
+      "series": {
+        "15min": {
+          "count": 13653,
+          "firstTime": 1695648600000,
+          "largestGapMs": 329400000,
+          "lastTime": 1786125600000,
+          "spanDays": 1047.19
+        },
+        "1day": {
+          "count": 4977,
+          "firstTime": 1174017600000,
+          "largestGapMs": 349200000,
+          "lastTime": 1786075200000,
+          "spanDays": 7084
+        },
+        "5min": {
+          "count": 13483,
+          "firstTime": 1695648600000,
+          "largestGapMs": 2143800000,
+          "lastTime": 1786125900000,
+          "spanDays": 1047.19
+        }
+      },
+      "symbol": "LEUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "NGUSD",
+      "series": {
+        "15min": {
+          "count": 65897,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1181001600000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7006.17
+        },
+        "5min": {
+          "count": 66748,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "NGUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "NQUSD",
+      "series": {
+        "15min": {
+          "count": 66768,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1166659200000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786334400000,
+          "spanDays": 7172.17
+        },
+        "5min": {
+          "count": 67082,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341000000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "NQUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "PAUSD",
+      "series": {
+        "15min": {
+          "count": 64616,
+          "firstTime": 1696197600000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.27
+        },
+        "1day": {
+          "count": 4999,
+          "firstTime": 1178769600000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7032
+        },
+        "5min": {
+          "count": 59386,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "PAUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "PLUSD",
+      "series": {
+        "15min": {
+          "count": 66991,
+          "firstTime": 1696197600000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.27
+        },
+        "1day": {
+          "count": 4999,
+          "firstTime": 1178596800000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7034
+        },
+        "5min": {
+          "count": 67096,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "PLUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "RBUSD",
+      "series": {
+        "15min": {
+          "count": 60584,
+          "firstTime": 1695592800000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.27
+        },
+        "1day": {
+          "count": 5000,
+          "firstTime": 1178769600000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7032
+        },
+        "5min": {
+          "count": 57851,
+          "firstTime": 1695592800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341600000,
+          "spanDays": 1050.33
+        }
+      },
+      "symbol": "RBUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "RTYUSD",
+      "series": {
+        "15min": {
+          "count": 67394,
+          "firstTime": 1695578400000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.44
+        },
+        "1day": {
+          "count": 2393,
+          "firstTime": 1499644800000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 3318.17
+        },
+        "5min": {
+          "count": 67592,
+          "firstTime": 1695592800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341300000,
+          "spanDays": 1050.33
+        }
+      },
+      "symbol": "RTYUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "SIUSD",
+      "series": {
+        "15min": {
+          "count": 66334,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1178236800000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7038.17
+        },
+        "5min": {
+          "count": 66239,
+          "firstTime": 1697475600000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341300000,
+          "spanDays": 1028.54
+        }
+      },
+      "symbol": "SIUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "YMUSD",
+      "series": {
+        "15min": {
+          "count": 67164,
+          "firstTime": 1695578400000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1166659200000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786334400000,
+          "spanDays": 7172.17
+        },
+        "5min": {
+          "count": 67337,
+          "firstTime": 1695592800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341300000,
+          "spanDays": 1050.33
+        }
+      },
+      "symbol": "YMUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "ZBUSD",
+      "series": {
+        "15min": {
+          "count": 66571,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1177891200000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7042.17
+        },
+        "5min": {
+          "count": 66108,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341300000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "ZBUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1.4,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "c2ed469daa582d5af70b3182a87d9e7bbbe5a14775b01afd2b44069ba92bafbc",
+      "providerSymbol": "ZCUSX",
+      "series": {
+        "15min": {
+          "count": 50620,
+          "firstTime": 1695600000000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.19
+        },
+        "1day": {
+          "count": 4999,
+          "firstTime": 1167886800000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7157.96
+        },
+        "5min": {
+          "count": 49832,
+          "firstTime": 1695600000000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786341600000,
+          "spanDays": 1050.25
+        }
+      },
+      "symbol": "ZCUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "ZFUSD",
+      "series": {
+        "15min": {
+          "count": 66951,
+          "firstTime": 1696197600000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786335300000,
+          "spanDays": 1043.26
+        },
+        "1day": {
+          "count": 4963,
+          "firstTime": 1167714000000,
+          "largestGapMs": 518400000,
+          "lastTime": 1786334400000,
+          "spanDays": 7159.96
+        },
+        "5min": {
+          "count": 67176,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341000000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "ZFUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1.4,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "c2ed469daa582d5af70b3182a87d9e7bbbe5a14775b01afd2b44069ba92bafbc",
+      "providerSymbol": "ZLUSX",
+      "series": {
+        "15min": {
+          "count": 50001,
+          "firstTime": 1695600000000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.19
+        },
+        "1day": {
+          "count": 4848,
+          "firstTime": 1164862800000,
+          "largestGapMs": 691200000,
+          "lastTime": 1786334400000,
+          "spanDays": 7192.96
+        },
+        "5min": {
+          "count": 50393,
+          "firstTime": 1695600000000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786341900000,
+          "spanDays": 1050.25
+        }
+      },
+      "symbol": "ZLUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1.4,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "c2ed469daa582d5af70b3182a87d9e7bbbe5a14775b01afd2b44069ba92bafbc",
+      "providerSymbol": "ZMUSD",
+      "series": {
+        "15min": {
+          "count": 50560,
+          "firstTime": 1696204800000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.19
+        },
+        "1day": {
+          "count": 4999,
+          "firstTime": 1165208400000,
+          "largestGapMs": 518400000,
+          "lastTime": 1786334400000,
+          "spanDays": 7188.96
+        },
+        "5min": {
+          "count": 49836,
+          "firstTime": 1697428800000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786341900000,
+          "spanDays": 1029.09
+        }
+      },
+      "symbol": "ZMUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "ZNUSD",
+      "series": {
+        "15min": {
+          "count": 66855,
+          "firstTime": 1696183200000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.44
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1165363200000,
+          "largestGapMs": 1036800000,
+          "lastTime": 1786334400000,
+          "spanDays": 7187.17
+        },
+        "5min": {
+          "count": 67013,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341300000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "ZNUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 24,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1.4,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "bcf2d7d4f0a594ba582128fae95916230975dd594e55c5d3b551e809ff0228ab",
+      "providerSymbol": "ZOUSX",
+      "series": {
+        "15min": {
+          "count": 23616,
+          "firstTime": 1695600000000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786334400000,
+          "spanDays": 1050.17
+        },
+        "1day": {
+          "count": 4830,
+          "firstTime": 1165813200000,
+          "largestGapMs": 864000000,
+          "lastTime": 1786334400000,
+          "spanDays": 7181.96
+        },
+        "5min": {
+          "count": 14303,
+          "firstTime": 1695600000000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786337100000,
+          "spanDays": 1050.2
+        }
+      },
+      "symbol": "ZOUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1.4,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "c2ed469daa582d5af70b3182a87d9e7bbbe5a14775b01afd2b44069ba92bafbc",
+      "providerSymbol": "ZRUSD",
+      "series": {
+        "15min": {
+          "count": 16990,
+          "firstTime": 1695600000000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786320000000,
+          "spanDays": 1050
+        },
+        "1day": {
+          "count": 5000,
+          "firstTime": 1162530000000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786248000000,
+          "spanDays": 7218.96
+        },
+        "5min": {
+          "count": 13674,
+          "firstTime": 1695600000000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786320300000,
+          "spanDays": 1050
+        }
+      },
+      "symbol": "ZRUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1.4,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "c2ed469daa582d5af70b3182a87d9e7bbbe5a14775b01afd2b44069ba92bafbc",
+      "providerSymbol": "ZSUSX",
+      "series": {
+        "15min": {
+          "count": 50364,
+          "firstTime": 1696204800000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.19
+        },
+        "1day": {
+          "count": 4999,
+          "firstTime": 1167973200000,
+          "largestGapMs": 345600000,
+          "lastTime": 1786334400000,
+          "spanDays": 7156.96
+        },
+        "5min": {
+          "count": 50425,
+          "firstTime": 1697429400000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786341300000,
+          "spanDays": 1029.07
+        }
+      },
+      "symbol": "ZSUSX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 25,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4
+      },
+      "calibrationHash": "5c23217d6e0826d3e642e36fce610d170ed7a3e2912e5690053bccab6f424e13",
+      "providerSymbol": "ZTUSD",
+      "series": {
+        "15min": {
+          "count": 66253,
+          "firstTime": 1696197600000,
+          "largestGapMs": 263700000,
+          "lastTime": 1786336200000,
+          "spanDays": 1043.27
+        },
+        "1day": {
+          "count": 4961,
+          "firstTime": 1167714000000,
+          "largestGapMs": 518400000,
+          "lastTime": 1786334400000,
+          "spanDays": 7159.96
+        },
+        "5min": {
+          "count": 65478,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1994700000,
+          "lastTime": 1786341300000,
+          "spanDays": 1029.08
+        }
+      },
+      "symbol": "ZTUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "^AXJO",
+      "series": {
+        "15min": {
+          "count": 17308,
+          "firstTime": 1696255200000,
+          "largestGapMs": 417600000,
+          "lastTime": 1786385700000,
+          "spanDays": 1043.18
+        },
+        "1day": {
+          "count": 4999,
+          "firstTime": 1169614800000,
+          "largestGapMs": 518400000,
+          "lastTime": 1786334400000,
+          "spanDays": 7137.96
+        },
+        "5min": {
+          "count": 17928,
+          "firstTime": 1697464800000,
+          "largestGapMs": 2138400000,
+          "lastTime": 1786391100000,
+          "spanDays": 1029.24
+        }
+      },
+      "symbol": "^AXJO"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "^GDAXI",
+      "series": {
+        "15min": {
+          "count": 24835,
+          "firstTime": 1696237200000,
+          "largestGapMs": 488700000,
+          "lastTime": 1786137300000,
+          "spanDays": 1040.51
+        },
+        "1day": {
+          "count": 5011,
+          "firstTime": 1163030400000,
+          "largestGapMs": 518400000,
+          "lastTime": 1786075200000,
+          "spanDays": 7211.17
+        },
+        "5min": {
+          "count": 25337,
+          "firstTime": 1697461200000,
+          "largestGapMs": 2129400000,
+          "lastTime": 1786138200000,
+          "spanDays": 1026.35
+        }
+      },
+      "symbol": "^GDAXI"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "^DJI",
+      "series": {
+        "15min": {
+          "count": 18743,
+          "firstTime": 1696239000000,
+          "largestGapMs": 333900000,
+          "lastTime": 1786131900000,
+          "spanDays": 1040.43
+        },
+        "1day": {
+          "count": 4996,
+          "firstTime": 1159833600000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786075200000,
+          "spanDays": 7248.17
+        },
+        "5min": {
+          "count": 18752,
+          "firstTime": 1697463000000,
+          "largestGapMs": 2136900000,
+          "lastTime": 1786132500000,
+          "spanDays": 1026.27
+        }
+      },
+      "symbol": "^DJI"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "^N225",
+      "series": {
+        "15min": {
+          "count": 15813,
+          "firstTime": 1696237200000,
+          "largestGapMs": 582300000,
+          "lastTime": 1786383000000,
+          "spanDays": 1043.35
+        },
+        "1day": {
+          "count": 4859,
+          "firstTime": 1159833600000,
+          "largestGapMs": 950400000,
+          "lastTime": 1786334400000,
+          "spanDays": 7251.17
+        },
+        "5min": {
+          "count": 15312,
+          "firstTime": 1697461200000,
+          "largestGapMs": 2309400000,
+          "lastTime": 1786387800000,
+          "spanDays": 1029.24
+        }
+      },
+      "symbol": "^N225"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "^NDX",
+      "series": {
+        "15min": {
+          "count": 38874,
+          "firstTime": 1597397400000,
+          "largestGapMs": 333900000,
+          "lastTime": 1786131900000,
+          "spanDays": 2184.43
+        },
+        "1day": {
+          "count": 4996,
+          "firstTime": 1159833600000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786075200000,
+          "spanDays": 7248.17
+        },
+        "5min": {
+          "count": 38877,
+          "firstTime": 1598967000000,
+          "largestGapMs": 2136900000,
+          "lastTime": 1786132500000,
+          "spanDays": 2166.27
+        }
+      },
+      "symbol": "^NDX"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 20,
+        "sideScoreAdjustments": {
+          "buy": -6
+        },
+        "dailyStopAtrMultiplier": 0.12,
+        "dailyTargetAtrMultiplier": 0.35,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.55,
+        "entryOffsetTrend": 0.55,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 6,
+        "maxStopAtrMultiplier": 1,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.2,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 2,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.2,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.2
+      },
+      "calibrationHash": "a1fdd0ab7dc41606f56e715f2e746ade14dafba686bdec24be19a7fc8ab8b21f",
+      "providerSymbol": "^GSPC",
+      "series": {
+        "15min": {
+          "count": 42334,
+          "firstTime": 1582536600000,
+          "largestGapMs": 333900000,
+          "lastTime": 1786131900000,
+          "spanDays": 2356.43
+        },
+        "1day": {
+          "count": 4996,
+          "firstTime": 1159833600000,
+          "largestGapMs": 432000000,
+          "lastTime": 1786075200000,
+          "spanDays": 7248.17
+        },
+        "5min": {
+          "count": 42149,
+          "firstTime": 1583418600000,
+          "largestGapMs": 2136900000,
+          "lastTime": 1786132500000,
+          "spanDays": 2346.23
+        }
+      },
+      "symbol": "^GSPC"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.4,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.75,
+        "entryOffsetTrend": 0.78,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1.6,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.8,
+        "stopAtrMultiplier": 1.32,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.5
+      },
+      "calibrationHash": "090363b163064319b2aedcf6d4fd60537af5bda4bfd940427ca85e726a222133",
+      "providerSymbol": "XAGUSD",
+      "series": {
+        "15min": {
+          "count": 68842,
+          "firstTime": 1693353600000,
+          "largestGapMs": 820800000,
+          "lastTime": 1786336200000,
+          "spanDays": 1076.19
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188864000000,
+          "largestGapMs": 1036800000,
+          "lastTime": 1786334400000,
+          "spanDays": 6915.17
+        },
+        "5min": {
+          "count": 69432,
+          "firstTime": 1694988000000,
+          "largestGapMs": 1995600000,
+          "lastTime": 1786342200000,
+          "spanDays": 1057.34
+        }
+      },
+      "symbol": "XAGUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 30,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.4,
+        "defaultReviewHours": 8,
+        "entryOffsetDefault": 0.75,
+        "entryOffsetTrend": 0.78,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 1.6,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 0.8,
+        "stopAtrMultiplier": 1.32,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.5
+      },
+      "calibrationHash": "090363b163064319b2aedcf6d4fd60537af5bda4bfd940427ca85e726a222133",
+      "providerSymbol": "XAUUSD",
+      "series": {
+        "15min": {
+          "count": 299652,
+          "firstTime": 1373824800000,
+          "largestGapMs": 2931300000,
+          "lastTime": 1786337100000,
+          "spanDays": 4774.45
+        },
+        "1day": {
+          "count": 5014,
+          "firstTime": 1188432000000,
+          "largestGapMs": 1036800000,
+          "lastTime": 1786334400000,
+          "spanDays": 6920.17
+        },
+        "5min": {
+          "count": 300473,
+          "firstTime": 1373839200000,
+          "largestGapMs": 4436100000,
+          "lastTime": 1786342200000,
+          "spanDays": 4774.34
+        }
+      },
+      "symbol": "XAUUSD"
+    }
+  ],
+  "trainShare": 0.6,
+  "warmupBars": 240,
+  "generatedAt": "2026-08-10T06:15:23.626Z",
+  "manifestHash": "3b108f43d4c2447a08f16a1ca343bb8d6318b84f109af87bf9aed791a226eafe"
+}
