@@ -176,6 +176,34 @@ describe("completedDailyBars — the leak this exists to close (2a)", () => {
   });
 });
 
+describe("the gate must be cheap — it runs inside the scan's 2s CPU budget", () => {
+  it("completes 22,000 gate reads in well under the chunk budget", () => {
+    // #288's deploy failure: the completion gate cost ~595ms per 11-symbol
+    // scan chunk because the wall-clock converter constructed two
+    // Intl.DateTimeFormat objects PER CALL, and chunks were already sized
+    // near the 2s Edge CPU ceiling — chunk two died 546 and the client
+    // aborted the scan (2 of 10 requests). Hoisted formatters plus a
+    // completion memo keyed on (rule, bar time) — daily stamps are shared
+    // across every symbol on a warm instance — put the same work near
+    // zero. The ceiling here is ~80x the memoized cost so CI runners
+    // cannot flake it, while the unmemoized regression (~1,200ms) can
+    // never pass it.
+    const bars = Array.from({ length: 1_000 }, (_, index) =>
+      bar(Date.UTC(2022, 0, 3, 5) + index * 86_400_000, 100));
+    const started = performance.now();
+    for (let pass = 0; pass < 2; pass += 1) {
+      for (let symbolIndex = 0; symbolIndex < 11; symbolIndex += 1) {
+        completedDailyBars("ESUSD", bars, Date.UTC(2026, 7, 9));
+      }
+    }
+    const elapsed = performance.now() - started;
+    assert.ok(
+      elapsed < 400,
+      `22 gate passes over 1,000 bars took ${elapsed.toFixed(0)}ms`,
+    );
+  });
+});
+
 describe("resampleBars — New York wall-clock buckets (2k)", () => {
   const nyBar = (
     month: number,
