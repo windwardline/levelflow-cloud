@@ -173,8 +173,11 @@ outcome-sync (cron :23) resolves pending setups; hourly news-calendar
 ingestion (cron :07) with a watchdog (cron :41); a launchd agent tops up
 the local replay cache daily at 07:00 so the replay basis stays current
 for the day the work resumes. Global learning accrues inside the
-`2026.08.01.one-door-guarded` cohort — every origin, since Scan is the only
-door (§17m). Production is open (the parking gate is off, §17l).
+`2026.08.09.evaluator-repair` cohort — every origin, since Scan is the
+only door (§17m); the cohort scoped fresh when item 2's engine deployed.
+**The desk is parked** (§17p, re-parked 2026-08-07): the gate turns
+arrivals away and every session was ended; reopening is one flag plus its
+tests, recorded in HANDOFF §1.
 
 ## Resumption protocol (for the operator)
 
