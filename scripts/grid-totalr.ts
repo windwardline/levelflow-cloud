@@ -35,7 +35,7 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   addOutcome,
-  assertManifestedCorpus,
+  assertManifestedCorpusStreaming,
   emptyStats,
   expectancy,
   rStdDev,
@@ -60,15 +60,27 @@ export function readGridCube(
 ): GridCube {
   const cube: GridCube = new Map();
   for (const row of rows) {
+    addRowToCube(cube, row, options);
+  }
+  return cube;
+}
+
+/** One row into the cube — shared by the array and streaming readers. */
+function addRowToCube(
+  cube: GridCube,
+  row: SweepEmitRow,
+  options: { includeHoldout?: boolean },
+): void {
+  {
     // capture-all corpora include rejected records for calibration reads;
     // the gate grades the stream production would actually take.
     if (row.accepted === false) {
-      continue;
+      return;
     }
     // 3e: holdout markets exist for the one confirmation read and are
     // excluded from every tuning aggregate by default.
     if (row.holdout === true && !options.includeHoldout) {
-      continue;
+      return;
     }
     const variant = typeof row.variant === "string" ? row.variant : "baseline";
     const split = typeof row.split === "string" ? row.split : "all";
@@ -90,7 +102,6 @@ export function readGridCube(
       cell.dayR.set(day, (cell.dayR.get(day) ?? 0) + (Number(row.realizedR) || 0));
     }
   }
-  return cube;
 }
 
 export type VariantVerdict = {
@@ -324,20 +335,22 @@ function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
  * manifest must state identical engine, grid, folds and holdout —
  * per-symbol sections differ by construction — or the read refuses.
  */
-export function gradeCorpus(
+export async function gradeCorpus(
   emitPathOrPaths: string | string[],
   options: GateOptions & { includeHoldout?: boolean } = {},
-): {
+): Promise<{
   foldNames: FoldNames;
   manifest: SweepManifest;
   verdicts: Map<string, Map<string, VariantVerdict>>;
-} {
+}> {
   const paths = Array.isArray(emitPathOrPaths)
     ? emitPathOrPaths
     : [emitPathOrPaths];
-  const first = assertManifestedCorpus(paths[0]);
-  const manifest = first.manifest;
-  const rows = [...first.rows];
+  // STREAMED: a full 4c grid is tens of millions of rows across shards —
+  // far past what a rows array can hold. The cube aggregates row by row
+  // (it is small: cells x day ledgers), and each shard's manifest hash
+  // verifies before its first row, same door as ever.
+  const cube: GridCube = new Map();
   const conditionsOf = (candidate: SweepManifest) =>
     stableStringify({
       analyzerVersion: candidate.analyzerVersion,
@@ -346,15 +359,27 @@ export function gradeCorpus(
       stepBars: candidate.stepBars,
       warmupBars: candidate.warmupBars,
     });
-  const firstConditions = conditionsOf(manifest);
-  for (const path of paths.slice(1)) {
-    const shard = assertManifestedCorpus(path);
-    if (conditionsOf(shard.manifest) !== firstConditions) {
+  let manifest: SweepManifest | null = null;
+  let firstConditions = "";
+  for (const path of paths) {
+    const shardManifest = await assertManifestedCorpusStreaming(
+      path,
+      (row) =>
+        addRowToCube(cube, row, {
+          includeHoldout: options.includeHoldout,
+        }),
+    );
+    if (manifest === null) {
+      manifest = shardManifest;
+      firstConditions = conditionsOf(shardManifest);
+    } else if (conditionsOf(shardManifest) !== firstConditions) {
       throw new Error(
         `${path}: shard conditions differ from ${paths[0]} — engine, grid, folds, step or warmup do not match; these are not shards of one measurement`,
       );
     }
-    rows.push(...shard.rows);
+  }
+  if (manifest === null) {
+    throw new Error("gradeCorpus: no corpus paths given");
   }
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
@@ -365,14 +390,11 @@ export function gradeCorpus(
   return {
     foldNames,
     manifest,
-    verdicts: classVerdicts(
-      readGridCube(rows, { includeHoldout: options.includeHoldout }),
-      { ...options, foldNames },
-    ),
+    verdicts: classVerdicts(cube, { ...options, foldNames }),
   };
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const flagValueIndexes = new Set<number>();
   for (const name of ["baseline", "permutations", "seed"]) {
@@ -393,7 +415,7 @@ function main(): void {
     process.exit(1);
   }
   const baselineIndex = args.indexOf("--baseline");
-  const { foldNames, manifest, verdicts } = gradeCorpus(paths, {
+  const { foldNames, manifest, verdicts } = await gradeCorpus(paths, {
     baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
     includeHoldout: args.includes("--include-holdout"),
     permutations: flag("permutations", 1_000),
@@ -433,5 +455,8 @@ function main(): void {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main();
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
