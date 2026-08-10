@@ -360,3 +360,55 @@ describe("the Guide's chart-view list matches the chart-view control (§8)", () 
     }
   });
 });
+
+// 1i: the built Guide gained §3's fourth moment and two corrections in #248,
+// and the deck the Guide claims to render verbatim was never amended with
+// them — §7 was amended in the same commit, §3 was missed. These pin the
+// losing path in the BUILT surface and the parity of both homes, so a
+// rebuild-from-deck can never silently delete the moment a reader most
+// needs to have been told about.
+describe("§3 carries the losing path, in both homes (amended 2026-08-09)", () => {
+  const deckSource = readFileSync(
+    "docs/superpowers/specs/2026-07-30-levelflow-guide-content.md",
+    "utf8",
+  );
+
+  it("renders four moments, the fourth being the stop", () => {
+    assert.ok(collapsedIncludes(guideSource, `In platform terms, that is four moments:`));
+    // Two needles, because the moment's name and its body sit in different
+    // JSX nodes ("<strong>The stop hits first.</strong> The trade...").
+    assert.ok(collapsedIncludes(guideSource, `The stop hits first.`));
+    assert.ok(
+      collapsedIncludes(
+        guideSource,
+        `The trade closes for a full loss of what you risked. This is
+         the common case the payoff is built to outweigh, not a
+         failure of the setup.`,
+      ),
+    );
+    // The two #248 corrections stay corrected: the breakeven runner still
+    // risks the spread, and "profit either way" belongs to the second half
+    // alone.
+    assert.ok(collapsedIncludes(guideSource, `the rest risks only the spread`));
+    assert.ok(collapsedIncludes(guideSource, `Profit either way on the second half`));
+    assert.doesNotMatch(guideSource, /can no longer cost you anything/);
+  });
+
+  it("the deck says the same four moments — the divergence was the defect", () => {
+    assert.ok(collapsedIncludes(deckSource, `In platform terms, that is four moments:`));
+    assert.ok(collapsedIncludes(deckSource, `The stop hits first.`));
+    assert.ok(collapsedIncludes(deckSource, `the rest risks only the spread`));
+    assert.ok(collapsedIncludes(deckSource, `Profit either way on the second half`));
+    assert.doesNotMatch(deckSource, /that is three moments/);
+    assert.doesNotMatch(deckSource, /can no longer cost you anything/);
+  });
+
+  it("§5 admits the held third state, in both homes (1f-b)", () => {
+    // The two-regime story was exhaustive while the engine held indices' bar
+    // under amendment 25 — a held number reading as a derived one.
+    const heldSentence = `the bar simply holds where it stands until the
+       evidence arrives`;
+    assert.ok(collapsedIncludes(guideSource, heldSentence));
+    assert.ok(collapsedIncludes(deckSource, heldSentence));
+  });
+});
