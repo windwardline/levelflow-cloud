@@ -387,11 +387,22 @@ on 63.9% of decisions, side flips on 1.6%. **Must land with 2a** ·
 **2n** RSI returns 100 on a frozen series.
 
 ### 3 — Repair the acceptance procedure, then re-derive
-**3a** delete the ±0.005 constant; print standard errors clustered by market ·
-**3b** permutation null over the grid · **3c** common-origin rolling validation with
-embargo · **3d** fit/select/confirm split · **3e** market holdout outside all tuning ·
-**3f** a release gate stated in standard errors · **3g** accept on total R *and*
-per-trade expectancy delta.
+**IN PROGRESS 2026-08-10 on `item3/acceptance-procedure`** (two commits):
+`scripts/sweepStats.ts` is the one stats vocabulary all readers adopt
+(engine definitions, the rSumSq dispersion term 3a needs, and
+`assertManifestedCorpus` — 2i's hash door); `scripts/grid-totalr.ts` is
+rebuilt emit-driven with **3b** (deterministic day-block permutation
+null), **3f** (deltas stated in standard errors, test split ≥ 1σ) and
+**3g** (total R AND per-trade expectancy must both improve; THIN refusal
+kept on filled counts) — the e×n unit mismatch is dead with the table
+format. REMAINING: **3a** lift the SE-clustered report into
+account-type-report via sweepStats (measure rSd from the corpus, drop
+`--r-sd 0.8`) · **3c/3d/3e** the calendar-fold generator in
+replay-sweep (fit/select/confirm over calendar timestamps, embargo ≥
+warmup + review window, `--holdout` written into emit + manifest; the
+gate's split names parameterize with it). The running baseline re-sweep
+uses the old two-split shape deliberately — it is item 2's corpus and 4a's
+data-limit measurement; folds govern every sweep after it.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
 **This is the point of the whole retrofit, and it is not one item.** Everything
