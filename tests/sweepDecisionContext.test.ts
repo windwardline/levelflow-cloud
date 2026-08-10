@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { normalizeFmpBars } from "../supabase/functions/trade-analyzer/bars.ts";
 import {
   completedDailyBars,
   completedDailySeries,
@@ -200,6 +201,42 @@ describe("the gate must be cheap — it runs inside the scan's 2s CPU budget", (
     assert.ok(
       elapsed < 400,
       `22 gate passes over 1,000 bars took ${elapsed.toFixed(0)}ms`,
+    );
+  });
+
+  it("decodes a cold scan chunk's bar volume inside the budget too", () => {
+    // #289's deploy still died 546 after the gate fix: the DECODE was the
+    // other half. toTimestamp pays the wall-clock conversion per bar, and a
+    // cold 11-symbol chunk decodes ~66 series — at ~19ms per 3,000-bar
+    // series that is ~1.2s of CPU before any analysis. Bar stamps repeat
+    // across every symbol on the same timeframe grid, so the conversion
+    // memoizes per wall-clock stamp: the first series pays the Intl reads,
+    // the other ten hit the map. Ceiling sized for CI hardware: memoized
+    // measures ~117ms on the slowest runner (~30ms locally), the
+    // unmemoized regression ~183ms locally and 2-4x that on CI — 250ms
+    // sits about 2x above the one and safely under the other.
+    const payload = Array.from({ length: 3_000 }, (_, index) => {
+      const day = 1 + Math.floor(index / 96) % 28;
+      const minuteOfDay = (index % 96) * 15;
+      const hour = String(Math.floor(minuteOfDay / 60)).padStart(2, "0");
+      const minute = String(minuteOfDay % 60).padStart(2, "0");
+      return {
+        close: 100,
+        date: `2026-07-${String(day).padStart(2, "0")} ${hour}:${minute}:00`,
+        high: 101,
+        low: 99,
+        open: 100,
+        volume: 1,
+      };
+    });
+    const started = performance.now();
+    for (let symbolIndex = 0; symbolIndex < 11; symbolIndex += 1) {
+      normalizeFmpBars(payload, 3_000);
+    }
+    const elapsed = performance.now() - started;
+    assert.ok(
+      elapsed < 250,
+      `11 series x 3,000 bars decoded in ${elapsed.toFixed(0)}ms`,
     );
   });
 });
