@@ -30,7 +30,7 @@ type MarketDataEventPayload = {
   message?: string | null;
   metadata?: Record<string, unknown>;
   providerSymbol?: string | null;
-  status: "cache_hit" | "error" | "slow_provider";
+  status: "cache_hit" | "error" | "slow_provider" | "success";
 };
 
 type MarketDataEventRecorder = (
@@ -217,6 +217,23 @@ async function fetchFmpQuoteSnapshot(
     if (!quote) {
       return null;
     }
+
+    // 2j: START BANKING. Production is the only place real bid/ask spreads
+    // exist, and it used to drop them after one gate check. Every success
+    // lands an append-only analyzer_events row so per-symbol spread models
+    // can be MEASURED from evidence (calibration 4a) instead of modeled
+    // from class means forever.
+    await recordEvent({
+      action: "quote_fetch",
+      durationMs,
+      metadata: {
+        ask: quote.ask,
+        bid: quote.bid,
+        spread: quote.spread,
+      },
+      providerSymbol: fmpSymbol,
+      status: "success",
+    });
 
     if (durationMs >= SLOW_PROVIDER_CALL_MS) {
       await recordEvent({
