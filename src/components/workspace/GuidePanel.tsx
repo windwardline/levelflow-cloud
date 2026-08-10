@@ -386,8 +386,10 @@ function GuideDeck() {
           setups from weak ones, the bar is high and the number means
           more; where history shows setups succeed at similar rates
           across scores, the bar is set to let the record speak instead.
-          The meter under the score shows the bar, so you always know
-          how much room a setup cleared it by.
+          And where a market&apos;s sample is still too thin to prove
+          either, the bar simply holds where it stands until the
+          evidence arrives. The meter under the score shows the bar, so
+          you always know how much room a setup cleared it by.
         </p>
       </GuideSection>
 

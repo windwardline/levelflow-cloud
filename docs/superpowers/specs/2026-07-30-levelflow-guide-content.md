@@ -84,17 +84,28 @@ matching field on your platform.
 > close half and move your stop to your entry — profit locked either
 > way.**
 
-In platform terms, that is three moments:
+In platform terms, that is four moments:
 
 1. **Place the trade.** Open a buy or sell limit at the Entry price. Set
    the stop loss and set the take-profit at Target 2. Until price
    reaches your entry, the order shows as **pending** — nothing to do.
 2. **Target 1 hits.** Close half the position (a partial close), and
    modify the stop loss to your entry price. Half your profit is real
-   money now, and the rest of the trade can no longer cost you anything.
+   money now, and the rest risks only the spread.
 3. **The finish.** The remaining half either reaches Target 2 — your
    take-profit closes it — or comes back to your entry and closes flat.
-   Profit either way. That is the whole design.
+   Profit either way on the second half.
+4. **The stop hits first.** The trade closes for a full loss of what you
+   risked. This is the common case the payoff is built to outweigh, not
+   a failure of the setup.
+
+*Amended 2026-08-09.* The built Guide gained the fourth moment and two
+corrections in #248 (2026-08-06) — the breakeven line had overclaimed past
+the spread, and the profit promise had overclaimed past the losing path —
+and this deck, which the Guide renders verbatim, was not amended with it.
+§7 was amended in the same commit; §3 was missed. The divergence, not the
+copy, was the defect: a deck the surface no longer matches stops being an
+authority.
 
 Your platform will not do step 2 for you. Levelflow keeps the levels on
 screen in Current trades so the two moves take seconds.
@@ -117,9 +128,17 @@ own qualifying bar before a setup is shown at all. The bar differs by
 market because the evidence differs by market: where history proves the
 score separates strong setups from weak ones, the bar is high and the
 number means more; where history shows setups succeed at similar rates
-across scores, the bar is set to let the record speak instead. The meter
-under the score shows the bar, so you always know how much room a setup
-cleared it by.
+across scores, the bar is set to let the record speak instead. And where
+a market's sample is still too thin to prove either, the bar simply
+holds where it stands until the evidence arrives. The meter under the
+score shows the bar, so you always know how much room a setup cleared
+it by.
+
+*Amended 2026-08-09.* The two-regime sentence was exhaustive and the
+engine has a third state it did not admit: indices' bar is HELD at 68
+under amendment 25 — its sample is starved, so the calibration refuses a
+verdict either way — and a reader taught only the two derived regimes
+was being told a held number was a derived one.
 
 ## 6. Costs
 
