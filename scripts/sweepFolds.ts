@@ -121,3 +121,30 @@ export function foldSplits<T extends { time: number }>(
     };
   }).filter((split) => split.bars.length > split.warmupBars + 1);
 }
+
+export type ClassFoldSpec = Record<string, { endMs: number; startMs: number }>;
+
+/**
+ * Folds serve CLASS aggregation — the gate's verdicts, the thresholds, the
+ * reports all cut per class — so each class folds on its own union span.
+ * One 17-year global calendar starved every 2023-era market (the futures,
+ * agriculture and livestock complexes) of fit and select entirely: their
+ * whole history sat inside the confirm fold and the grid measured zeros.
+ * Per-class spans keep the common origin exactly where aggregation needs
+ * it and give every class its maximal honest walk-forward. 3c's ban on
+ * per-symbol fractions stands untouched.
+ */
+export function foldsByClass(
+  spec: ClassFoldSpec,
+  embargoMs: number,
+): Record<string, CalendarFold[]> {
+  const result: Record<string, CalendarFold[]> = {};
+  for (const [className, span] of Object.entries(spec)) {
+    result[className] = calendarFolds({
+      corpusEndMs: span.endMs,
+      corpusStartMs: span.startMs,
+      embargoMs,
+    });
+  }
+  return result;
+}

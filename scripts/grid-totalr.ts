@@ -355,6 +355,7 @@ export async function gradeCorpus(
     stableStringify({
       analyzerVersion: candidate.analyzerVersion,
       folds: candidate.folds ?? null,
+      foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
       stepBars: candidate.stepBars,
       warmupBars: candidate.warmupBars,
@@ -384,7 +385,7 @@ export async function gradeCorpus(
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
   const foldNames: FoldNames = options.foldNames ??
-    (manifest.folds
+    (manifest.folds || manifest.foldsByClass
       ? { confirm: "confirm", fit: "fit", select: "select" }
       : { fit: "train", select: "test" });
   return {

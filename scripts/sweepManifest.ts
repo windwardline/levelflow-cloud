@@ -86,6 +86,17 @@ export type SweepManifest = {
     name: string;
     startMs: number;
   }>;
+  // Per-class fold sets (each class walks forward on its own union span);
+  // present on fleet corpora built with --fold-spec, replacing `folds`.
+  foldsByClass?: Record<
+    string,
+    Array<{
+      decisionEndMs: number;
+      endMs: number;
+      name: string;
+      startMs: number;
+    }>
+  >;
   generatedAt: string;
   grid: unknown[];
   // 3e: markets whose rows exist for the one confirmation read and are
@@ -110,6 +121,7 @@ export function buildSweepManifest(input: {
   barRejections: Record<string, number>;
   days: number;
   folds?: SweepManifest["folds"];
+  foldsByClass?: SweepManifest["foldsByClass"];
   generatedAt: string;
   grid: unknown[];
   holdoutSymbols?: string[];
@@ -144,6 +156,7 @@ export function buildSweepManifest(input: {
     barRejections: input.barRejections,
     days: input.days,
     ...(input.folds && { folds: input.folds }),
+    ...(input.foldsByClass && { foldsByClass: input.foldsByClass }),
     grid: input.grid,
     ...(input.holdoutSymbols && { holdoutSymbols: input.holdoutSymbols }),
     stepBars: input.stepBars,
