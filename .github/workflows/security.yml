@@ -49,6 +49,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # A step, not a job: the gate rides an already-required check, so no
+      # ruleset change. Pinned by SHA like every other action — the gate that
+      # enforces pinning is itself pinned; Dependabot carries version bumps.
+      - uses: windwardline/windwardline/actions/verify-action-pins@a7df3fb364021d34f501cd1aa3a481f39135c034 # v1.0.0
+
   dependency-scan:
     name: Dependency scan
     if: ${{ github.event_name != 'schedule' || github.event.schedule == '17 9 * * 1' }}
