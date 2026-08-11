@@ -445,12 +445,19 @@ intervention); the sizing-hours hat is inert; livestock accepts
 NOTHING and stays measure-only (the gate refusing thin evidence is the
 system working); energies' accepted cells carry a stated 42-43% expiry
 share for 4d to re-examine.
-(v) **4d** per-market derivation of (runnerProtection, cap) under gate
-v2 + survival tables + sizing feasibility (RM-1: an unsizeable stop is
-not a real cell), starved late-listed markets measure-only; confirm
-reads strip pre-holdout per-symbol overrides (CV-11/LA-8); the confirm
-fold's ONE authorized read goes to the final candidate set.
-(vi) **4e** iterate to diminished returns. Parallel lanes before any reopen: **Batch 4
+(v) **4d DERIVATION COMPLETE 2026-08-11** — every market graded on its
+own rows (marketVerdicts: singleton groups, same statistics, 30-filled
+floor), RM-1 feasibility joined from published venue arithmetic only,
+choice FROZEN, then the confirm fold's first and only read (burned
+log): **41 picks frozen, 39 CONFIRMED POSITIVE on never-touched data,
+2 reverted (HOUSD/RBUSD — the fold doing its job)**; 11 capacity-gated
+(treasuries, PA, ZO/ZR, six sub-dollar coins — RM-1's exact class), 7
+measure-only incl. livestock, 18 starved, ~20 held out as the next
+cycle's unseen validation. Record:
+`baseline-2026-08-10/4d-derivation-2026-08-11.md` + four JSON
+artifacts. NEXT: the 39 pairs enter per-market calibration with a
+version bump (the shipping change set), then (vi) **4e** iterate to
+diminished returns. Parallel lanes before any reopen: **Batch 4
 COMPLETE 2026-08-11** — #313 (ambiguous counts against the trade in
 learning/classify/attribution; all six Record rows state supersession),
 #314 (live outcome-sync replays each row's stored decision-time costs —

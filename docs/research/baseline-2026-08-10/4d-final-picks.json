@@ -1,0 +1,456 @@
+{
+  "analyzerVersion": "2026.08.11.engine-v2",
+  "capacityGated": [
+    "ALGOUSD",
+    "DOGEUSD",
+    "ETCUSD",
+    "LINKUSD",
+    "PAUSD",
+    "TRXUSD",
+    "XTZUSD",
+    "ZBUSD",
+    "ZNUSD",
+    "ZOUSX",
+    "ZRUSD"
+  ],
+  "finalPicks": {
+    "ADAUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.4026165417343394,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AUDCAD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2633454495981498,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AUDJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2627789414694899,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AUDUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.26736698548306637,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "BCHUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.5604824516547695,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "BTCUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.39671311092316947,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "CADCHF": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.32070914086147073,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "CADJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2864425056181742,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "CHFJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.25834084262667184,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "CLUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.3845766982910659,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "ESUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.3769712569993197,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ETHUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.3942429647766624,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURAUD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2956788074650285,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURCAD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.3047598434084214,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURCHF": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.3191758339103454,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURGBP": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.31919556910264824,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2658083597058303,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURNZD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2703076228623778,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPAUD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2338701456152147,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPCHF": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2694069801704013,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.27103079288713183,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPNZD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.279817987750857,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.32763635348317743,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GCUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.3172330673758865,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "HGUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.3278980796586061,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "HOUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.2720817779743477,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "LTCUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.5001020035903238,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NQUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.24811870643540299,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "NZDCAD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.29141237551683036,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NZDUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2568889103945163,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "RBUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.24717780174016507,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1"
+    },
+    "SIUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.2602636262626262,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "SP": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.25152148040638606,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "USDCAD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.3112581740279205,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "USDCHF": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.31568504931482955,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "USDJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.31245958783641653,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "WTI": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex"
+      ],
+      "selectExpectancyDelta": 0.44240179200940055,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "XAUUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.36887354011665174,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "XRPUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.3687777819138935,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZCUSX": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.4291334389400927,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZLUSX": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.22823646822975646,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    }
+  },
+  "frozenAt": "2026-08-11T16:42:57.940Z"
+}

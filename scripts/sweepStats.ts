@@ -176,7 +176,7 @@ export function assertManifest(emitPath: string): SweepManifest {
  * past Node's maximum string length — readFileSync-as-one-string can never
  * read a full-depth corpus. 64KB reads, lines split as they complete.
  */
-function readLinesSync(
+export function readLinesSync(
   path: string,
   onLine: (line: string, lineNumber: number) => void,
 ): void {
