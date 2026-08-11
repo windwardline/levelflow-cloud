@@ -289,14 +289,24 @@ function isLowEdgeUtcWindow(now: Date) {
 // the split agreement, not shape.
 const ENERGIES_LOW_EDGE_UTC_HOURS = new Set([3, 4, 12, 15, 19, 21]);
 
+// OP-8: hoisted per zone — construction is ~50us and this runs per scan
+// decision. Minute-level output makes value caching pointless; the
+// formatter itself is the cost.
+const zonedPartsFormatters = new Map<string, Intl.DateTimeFormat>();
+
 function getZonedParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    timeZone,
-    weekday: "short",
-  }).formatToParts(date);
+  let formatter = zonedPartsFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      hour12: false,
+      minute: "2-digit",
+      timeZone,
+      weekday: "short",
+    });
+    zonedPartsFormatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   const lookup = Object.fromEntries(
     parts.map((part) => [part.type, part.value]),
   );

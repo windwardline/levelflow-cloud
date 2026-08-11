@@ -341,6 +341,12 @@ export function simulateSymbol(input: {
   let dailyVisible = 0;
   const fiveMinuteBars = input.fiveMinuteBars;
   let fiveMinVisible = 0;
+  // FR-5: resolution runs on the 5min series where it exists — 3x finer
+  // event ordering shrinks the ambiguous bucket honestly instead of by
+  // assumption. The pointer advances monotonically with decision time;
+  // the slice's end is bounded by the review window so per-decision copies
+  // stay proportional to the window, not the corpus.
+  let fiveMinResolveStart = 0;
 
   for (
     let index = input.warmupBars;
@@ -512,7 +518,35 @@ export function simulateSymbol(input: {
       continue;
     }
 
-    const futureBars: ReplayBar[] = input.primaryBars.slice(index + 1);
+    // FR-5: the decision bar is 15min; anything stamped inside it is
+    // decision-time information, so the 5min resolution stream begins at
+    // the bar AFTER the decision bar completes.
+    let resolutionBars: ReplayBar[];
+    let resolutionIntervalMs = 15 * 60 * 1000;
+    if (fiveMinuteBars && fiveMinuteBars.length > 0) {
+      const resolveFromMs = latest.time + 15 * 60 * 1000;
+      while (
+        fiveMinResolveStart < fiveMinuteBars.length &&
+        fiveMinuteBars[fiveMinResolveStart].time < resolveFromMs
+      ) {
+        fiveMinResolveStart += 1;
+      }
+      // The review window plus a day of margin bounds the slice; the
+      // resolver's own expiry filter is the exact authority.
+      const horizonMs = latest.time +
+        (calibration.defaultReviewHours + 24) * 60 * 60 * 1000;
+      let resolveEnd = fiveMinResolveStart;
+      while (
+        resolveEnd < fiveMinuteBars.length &&
+        fiveMinuteBars[resolveEnd].time <= horizonMs
+      ) {
+        resolveEnd += 1;
+      }
+      resolutionBars = fiveMinuteBars.slice(fiveMinResolveStart, resolveEnd);
+      resolutionIntervalMs = 5 * 60 * 1000;
+    } else {
+      resolutionBars = input.primaryBars.slice(index + 1);
+    }
     const evaluation = evaluateSetupOutcome(
       {
         created_at: new Date(latest.time).toISOString(),
@@ -523,11 +557,20 @@ export function simulateSymbol(input: {
         take_profit: plan.takeProfit,
         take_profit_1: plan.takeProfit1,
       },
-      futureBars,
+      resolutionBars,
       resolutionTime,
       {
+        // Engine v2 (round-8 FR-1/3/5/7/8, LA-2): the venue's fills. The
+        // spread lives in the TRIGGERS and the expiry print, gap slippage
+        // in gapped exits — so the leg accountant charges only what the
+        // prints cannot carry: the commission.
+        barIntervalMs: resolutionIntervalMs,
+        gapExitSlippage: plan.executionQuality.estimatedSlippage,
+        halfSpread: plan.executionQuality.estimatedSpread / 2,
         reviewHours: calibration.defaultReviewHours,
+        roundTripCost: plan.executionQuality.estimatedCommission,
         runnerProtection: calibration.runnerProtection,
+        sameBarProtectionArming: true,
       },
     );
     if (evaluation.state !== "resolved") {
@@ -558,9 +601,11 @@ export function simulateSymbol(input: {
       riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
-        // Half the round trip per full-size execution unit: two units run
-        // per resolution (entry + exits), reproducing spread + 2 x slippage.
-        perLegCost: plan.executionQuality.estimatedRoundTripCost / 2,
+        // v2: spread and slippage are IN the leg prints (bid/ask triggers,
+        // gapped opens, the expiry bid) — charging them again here would
+        // double-bill the trip. The commission is the one cost no print
+        // can carry, and half of it rides on each full-size unit.
+        perLegCost: plan.executionQuality.estimatedCommission / 2,
         riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
         side: consensus.side,
       }),

@@ -1,4 +1,8 @@
 import type { AssetType } from "./calibration.ts";
+import {
+  cryptoSpreadFloorPrice,
+  venueCommissionRoundTripPrice,
+} from "./venueCosts.ts";
 
 export type ExecutionQualityInput = {
   assetType: AssetType;
@@ -23,6 +27,10 @@ export type ExecutionQualityInput = {
 export type ExecutionQuality = {
   confidencePenalty: number;
   effectiveRewardRisk: number;
+  // Round-8 CO-1/3/4: the venue's published commission for one round
+  // trip, as price distance. Zero when the venue tables cannot bill the
+  // symbol — stated in the field, never silently folded away.
+  estimatedCommission: number;
   estimatedRoundTripCost: number;
   estimatedSlippage: number;
   estimatedSpread: number;
@@ -175,12 +183,20 @@ export function estimateExecutionQuality(
       Number.isFinite(input.tickSize) && input.tickSize > 0
     ? input.tickSize
     : null;
+  // CO-2: the crypto book's sampled per-symbol widths join the model as
+  // FLOORS — the class's 3.5bps understated the venue book's median by
+  // 2-3x, and one class number cannot span a book running 0.35bp (BTC)
+  // to 275bp (FIL). Quoted spreads, when banked, still outrank all of it.
+  const sampledFloor = input.assetType === "crypto"
+    ? cryptoSpreadFloorPrice(input.symbol, latestClose) ?? 0
+    : 0;
   const modeledSpread = roundPrice(
     tickFloor !== null
       ? Math.max(tickFloor, atr * profile.atrSpreadFactor, COST_EPSILON)
       : Math.max(
         latestClose * (profile.spreadBps / 10_000),
         atr * profile.atrSpreadFactor,
+        sampledFloor,
         COST_EPSILON,
       ),
   );
@@ -196,8 +212,11 @@ export function estimateExecutionQuality(
       COST_EPSILON,
     ),
   );
+  const estimatedCommission = roundPrice(
+    venueCommissionRoundTripPrice(input.symbol, latestClose) ?? 0,
+  );
   const estimatedRoundTripCost = roundPrice(
-    estimatedSpread + estimatedSlippage * 2,
+    estimatedSpread + estimatedSlippage * 2 + estimatedCommission,
   );
   const grossRewardRisk = rewardDistance / Math.max(riskDistance, 0.00001);
   // 2d (2026-08-09): one round trip, charged once — against the payoff. The
@@ -254,6 +273,7 @@ export function estimateExecutionQuality(
   return {
     confidencePenalty,
     effectiveRewardRisk: roundPrice(effectiveRewardRisk),
+    estimatedCommission,
     estimatedRoundTripCost,
     estimatedSlippage,
     estimatedSpread,

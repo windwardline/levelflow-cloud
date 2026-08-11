@@ -6,7 +6,11 @@ import { calculateLearningWeight } from "../supabase/functions/trade-analyzer/le
 import { parseFmpQuoteSnapshot } from "../supabase/functions/trade-analyzer/quotes.ts";
 
 describe("execution quality model", () => {
-  it("keeps clean forex execution inside the payoff budget", () => {
+  it("charges forex the venue's commission — the bill CO-3 found missing", () => {
+    // Pre-repair this fixture graded "Clean" on spread+slippage alone
+    // (RT 0.00008). The venue's published $5/lot RT adds 0.00006 — 75% of
+    // the modeled figure, the exact understatement round-8 CO-3 measured
+    // — and an honest 4.7% cost-to-risk reads "Thin", not "Clean".
     const quality = estimateExecutionQuality({
       assetType: "forex",
       atr: 0.0012,
@@ -21,8 +25,9 @@ describe("execution quality model", () => {
       takeProfit: 1.164,
     });
 
-    assert.equal(quality.label, "Clean");
-    assert.equal(quality.confidencePenalty <= 2, true);
+    assert.equal(quality.estimatedCommission, 0.00006);
+    assert.equal(quality.label, "Thin");
+    assert.equal(quality.confidencePenalty, 4);
     assert.equal(quality.effectiveRewardRisk < quality.grossRewardRisk, true);
     assert.equal(quality.effectiveRewardRisk > 2.2, true);
   });
@@ -318,9 +323,11 @@ describe("execution quality model", () => {
       );
     });
 
-    it("is a no-op where the floor never bound — the E-mini is unchanged", () => {
+    it("is a no-op where the floor never bound — the E-mini's spread is unchanged", () => {
       // Regression guard for the fix's blast radius: every instrument whose
       // bps or ATR term already outranked 0.01 must price exactly as before.
+      // The round trip additionally carries ES's three-fee venue bill
+      // (0.1152 — round-8 CO-1); spread and slippage stay untouched.
       const risk = 7.27 * 1.4;
       const quality = estimateExecutionQuality({
         assetType: "futures",
@@ -337,7 +344,8 @@ describe("execution quality model", () => {
       });
       assert.equal(quality.estimatedSpread, 1.08528);
       assert.equal(quality.estimatedSlippage, 0.62016);
-      assert.equal(quality.estimatedRoundTripCost, 2.3256);
+      assert.equal(quality.estimatedCommission, 0.1152);
+      assert.equal(quality.estimatedRoundTripCost, 2.4408);
     });
 
     it("leaves a genuine 2:1 setup tradable on a cheap contract", () => {
@@ -427,5 +435,84 @@ describe("global learning weights", () => {
 
     assert.equal(weight.sampleWeight, 0);
     assert.equal(weight.confidenceAdjustment, 0);
+  });
+});
+
+describe("the venue's commission joins the round trip (round-8 CO-1/3/4)", () => {
+  const base = {
+    atr: 12,
+    availableTimeframes: ["15min", "1hour", "4hour"],
+    dailyAtr: 60,
+    entryPrice: 5500,
+    latestClose: 5500,
+    providerWarnings: [],
+    side: "buy" as const,
+    stopLoss: 5488,
+    takeProfit: 5530,
+  };
+
+  it("charges ES the three-fee bill on top of spread and slippage", () => {
+    const withCommission = estimateExecutionQuality({
+      ...base,
+      assetType: "futures",
+      symbol: "ESUSD",
+      tickSize: 0.25,
+    });
+    assert.equal(withCommission.estimatedCommission, 0.1152);
+    assert.equal(
+      withCommission.estimatedRoundTripCost,
+      Number(
+        (withCommission.estimatedSpread +
+          withCommission.estimatedSlippage * 2 + 0.1152).toFixed(5),
+      ),
+    );
+  });
+
+  it("a symbol the venue tables cannot bill carries zero commission, stated", () => {
+    const unknown = estimateExecutionQuality({
+      ...base,
+      assetType: "indices",
+      symbol: "FESX",
+    });
+    assert.equal(unknown.estimatedCommission, 0);
+  });
+
+  it("floors ADA's modeled spread at its sampled book width (CO-2)", () => {
+    const ada = estimateExecutionQuality({
+      ...base,
+      assetType: "crypto",
+      atr: 0.001,
+      dailyAtr: 0.004,
+      entryPrice: 0.1941,
+      latestClose: 0.1941,
+      stopLoss: 0.1921,
+      takeProfit: 0.1981,
+      symbol: "ADAUSD",
+    });
+    assert.ok(
+      ada.modeledSpread >= 0.1941 * 11.3e-4 - 1e-9,
+      `ADA modeled spread ${ada.modeledSpread} sits under its book floor`,
+    );
+    assert.equal(
+      ada.estimatedCommission,
+      Number((0.1941 * 7e-4).toFixed(5)),
+    );
+  });
+
+  it("a quoted spread still outranks the floored model", () => {
+    const quoted = estimateExecutionQuality({
+      ...base,
+      assetType: "crypto",
+      atr: 0.001,
+      dailyAtr: 0.004,
+      entryPrice: 0.1941,
+      latestClose: 0.1941,
+      stopLoss: 0.1921,
+      takeProfit: 0.1981,
+      symbol: "ADAUSD",
+      quotedSpread: 0.00009,
+    });
+    assert.equal(quoted.spreadSource, "quoted");
+    assert.equal(quoted.estimatedSpread, 0.00009);
   });
 });

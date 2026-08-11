@@ -193,6 +193,57 @@ only door (§17m); the cohort scoped fresh when item 2's engine deployed.
 arrivals away and every session was ended; reopening is one flag plus its
 tests, recorded in HANDOFF §1.
 
+## Engine v2 (2026-08-11, round-8 batch 3 — `2026.08.11.engine-v2`)
+
+CONVERGE round 8's cost and fill-realism lenses found that the repaired
+evaluator still measured a venue that does not exist: no commission
+anywhere in the cost model, and every event triggered on MID while the
+venue executes on bid/ask. Engine v2 is the venue's bill and the venue's
+fills, in one version:
+
+- **The commission exists** (`venueCosts.ts`, CO-1/3/4). E8's published
+  bill per line, converted to price distance: the futures program's three
+  itemized per-contract fees over tick value (primary), forex's $5/lot RT
+  as 0.5bp of price (primary), the index $6/$12 split over published
+  $/point multipliers, metals/energies per lot, crypto's conflicted
+  published units resolved conservatively at 0.035% per side. Symbols E8
+  publishes no row for carry a NAMED conservative sibling proxy. The
+  measurement paths refuse non-roster symbols outright — a null, never a
+  guess — and `estimateExecutionQuality` now reports
+  `estimatedCommission` inside the round trip. On the flagship forex
+  fixture the commission is 75% of the whole pre-repair modeled round
+  trip: the exact understatement CO-3 measured.
+- **The crypto book floors the model** (CO-2). The sampled per-symbol
+  bid/ask widths from the crypto account observation (0.35bp BTC to
+  275bp FIL) join the modeled spread as floors under max(); one class
+  number cannot span that book. Quoted spreads still outrank everything.
+- **Triggers live in bid/ask space** (FR-1). For a long: the entry needs
+  the ask down at the limit, the stop fires when the BID touches it
+  (half a spread EARLIER than mid showed), the targets need the bid up
+  at their level (half a spread LATER). Gap prints land on the
+  executable side of the open, with reopen slippage on top where the bar
+  truly gapped (FR-7); the expiry close crosses the book once. In the
+  sweep the leg accountant now charges commission only — spread and
+  slippage live in the prints, and charging them again would double-bill
+  the trip.
+- **Resolution runs on the 5min series where it exists** (FR-5) — 3x
+  finer event ordering shrinks the ambiguous bucket honestly. A bar
+  whose span straddles expiry resolves nothing (LA-2). The expired
+  in-profit/at-loss split reads NET of the round trip (FR-8). Banking
+  TP1 arms the runner's protection within the same bar's close (FR-3,
+  2c's own knowability principle applied forward). TP1 manual haircut,
+  one-bar entry latency and touch-fill penetration exist as parameters
+  for 4d sensitivity work (FR-4/6, LA-13), defaulted off.
+- **Named boundary:** live outcome-sync still resolves v1-style —
+  the stored setup rows carry no decision-time spread to replay. The
+  columns land with the pre-reopen product-truth batch; until then the
+  desk is parked, so no real setup can generate under the v2 version and
+  the cohort stays coherent by construction.
+
+Every v2 behavior is opt-in through `ReplayFillOptions`; with no options
+the resolver reproduces v1 exactly, which is what keeps the live path
+and 2,100+ existing pins honest while the corpus side moves ahead.
+
 ## Resumption protocol (for the operator)
 
 The arc resumes when genuinely new data exists — not on a calendar
@@ -217,7 +268,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.09.evaluator-repair'
+   where o.analyzer_version = '2026.08.11.engine-v2'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;

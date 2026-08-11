@@ -273,7 +273,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.09\.evaluator-repair"/,
+      /ANALYZER_VERSION = "2026\.08\.11\.engine-v2"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
   });
