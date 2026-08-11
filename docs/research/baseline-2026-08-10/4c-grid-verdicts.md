@@ -1,3 +1,9 @@
+> **INVALID — the corpus beneath this document resolved every setup 4–5
+> hours out of register with its own decision bar (the clock defect,
+> 2026-08-11). Its expectancy figures, fill rates and verdicts are
+> artifacts. Read `docs/research/remediation-program-2026-08-11.md`
+> first. Kept as the record of what was measured and how it failed.**
+
 > **SUPERSEDED (2026-08-11):** the verdicts of record are
 > `4c-grid-verdicts-v2-2026-08-11.md`, graded by gate v2 on the engine-v2
 > roster-name corpus. This file stays as the record of the demoted

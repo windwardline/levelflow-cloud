@@ -1,2917 +1,2918 @@
 {
-  "minFilled": 30,
-  "report": {
-    "AAVEUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.12235659050966617,
-          "confirmFilled": 569,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.12235659050966617,
-          "confirmFilled": 569,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.12235659050966617,
-          "confirmFilled": 569,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.12235659050966617,
-          "confirmFilled": 569,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.12235659050966617,
-          "confirmFilled": 569,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.12235659050966617,
-          "confirmFilled": 569,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.12157442680776026,
-          "confirmFilled": 567,
-          "selectE": -0.06635525525525524,
-          "selectFilled": 333,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.1261402504472273,
-          "confirmFilled": 559,
-          "selectE": -0.06794879518072287,
-          "selectFilled": 332,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.12733196261682253,
-          "confirmFilled": 535,
-          "selectE": -0.07872803738317757,
-          "selectFilled": 321,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.14187090909090924,
-          "confirmFilled": 495,
-          "selectE": -0.06345306122448979,
-          "selectFilled": 294,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.14470547045951868,
-          "confirmFilled": 457,
-          "selectE": -0.08320973782771535,
-          "selectFilled": 267,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.15270756097560975,
-          "confirmFilled": 410,
-          "selectE": -0.08295769230769229,
-          "selectFilled": 234,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.1598743093922652,
-          "confirmFilled": 362,
-          "selectE": -0.08943999999999999,
-          "selectFilled": 210,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.13561967741935485,
-          "confirmFilled": 310,
-          "selectE": -0.059371428571428575,
-          "selectFilled": 168,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.11329960937499998,
-          "confirmFilled": 256,
-          "selectE": -0.14570396825396825,
-          "selectFilled": 126,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.11132344497607644,
-          "confirmFilled": 209,
-          "selectE": -0.11605806451612903,
-          "selectFilled": 93,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.1184558823529411,
-          "confirmFilled": 170,
-          "selectE": -0.11189076923076924,
-          "selectFilled": 65,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.11493161764705882,
-          "confirmFilled": 136,
-          "selectE": -0.046533333333333315,
-          "selectFilled": 42,
-          "threshold": 85
-        },
-        {
-          "confirmE": -0.12519420289855074,
-          "confirmFilled": 69,
-          "selectE": null,
-          "selectFilled": 24,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 11,
-          "selectE": null,
-          "selectFilled": 6,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+ "INVALID": "Computed from the 2026-08-10/11 corpus, which resolved every setup 4-5 hours out of register with its own decision bar (the clock defect). See docs/research/remediation-program-2026-08-11.md. Do not use these numbers to withdraw, defend, or ship a market.",
+ "minFilled": 30,
+ "report": {
+  "AAVEUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.12235659050966617,
+     "confirmFilled": 569,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 0
     },
-    "ZCUSX": {
-      "candidates": [
-        {
-          "confirmE": -0.19130176991150435,
-          "confirmFilled": 113,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.19130176991150435,
-          "confirmFilled": 113,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.19130176991150435,
-          "confirmFilled": 113,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.19130176991150435,
-          "confirmFilled": 113,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.18350982142857145,
-          "confirmFilled": 112,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.18350982142857145,
-          "confirmFilled": 112,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.18772363636363637,
-          "confirmFilled": 110,
-          "selectE": -0.2513620967741935,
-          "selectFilled": 124,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.18653577981651376,
-          "confirmFilled": 109,
-          "selectE": -0.23910661157024793,
-          "selectFilled": 121,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.21130666666666656,
-          "confirmFilled": 105,
-          "selectE": -0.2366310924369747,
-          "selectFilled": 119,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.20869514563106792,
-          "confirmFilled": 103,
-          "selectE": -0.22109074074074067,
-          "selectFilled": 108,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.223268085106383,
-          "confirmFilled": 94,
-          "selectE": -0.19149285714285708,
-          "selectFilled": 98,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.20689036144578318,
-          "confirmFilled": 83,
-          "selectE": -0.15896395348837206,
-          "selectFilled": 86,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.1954697368421053,
-          "confirmFilled": 76,
-          "selectE": -0.19563287671232876,
-          "selectFilled": 73,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.21937031249999994,
-          "confirmFilled": 64,
-          "selectE": -0.10177499999999998,
-          "selectFilled": 52,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.2327672727272727,
-          "confirmFilled": 55,
-          "selectE": -0.24707857142857148,
-          "selectFilled": 42,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.17218636363636358,
-          "confirmFilled": 44,
-          "selectE": -0.27020285714285713,
-          "selectFilled": 35,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.10326944444444444,
-          "confirmFilled": 36,
-          "selectE": null,
-          "selectFilled": 24,
-          "threshold": 80
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 29,
-          "selectE": null,
-          "selectFilled": 16,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 11,
-          "selectE": null,
-          "selectFilled": 7,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12235659050966617,
+     "confirmFilled": 569,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 5
     },
-    "CAKEUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.20981984732824444,
-          "confirmFilled": 262,
-          "selectE": -0.08646468531468533,
-          "selectFilled": 286,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.20981984732824444,
-          "confirmFilled": 262,
-          "selectE": -0.08646468531468533,
-          "selectFilled": 286,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.20981984732824444,
-          "confirmFilled": 262,
-          "selectE": -0.08646468531468533,
-          "selectFilled": 286,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.20981984732824444,
-          "confirmFilled": 262,
-          "selectE": -0.08646468531468533,
-          "selectFilled": 286,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.20981984732824444,
-          "confirmFilled": 262,
-          "selectE": -0.08646468531468533,
-          "selectFilled": 286,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.20981984732824444,
-          "confirmFilled": 262,
-          "selectE": -0.08646468531468533,
-          "selectFilled": 286,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.21475307692307705,
-          "confirmFilled": 260,
-          "selectE": -0.09167253521126766,
-          "selectFilled": 284,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.21093147410358576,
-          "confirmFilled": 251,
-          "selectE": -0.08808798586572442,
-          "selectFilled": 283,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.21224166666666677,
-          "confirmFilled": 240,
-          "selectE": -0.09884222222222226,
-          "selectFilled": 270,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.2078563063063063,
-          "confirmFilled": 222,
-          "selectE": -0.07476972111553787,
-          "selectFilled": 251,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.1876297435897436,
-          "confirmFilled": 195,
-          "selectE": -0.049719911504424806,
-          "selectFilled": 226,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.1888398843930636,
-          "confirmFilled": 173,
-          "selectE": -0.04802350000000002,
-          "selectFilled": 200,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.17082258064516131,
-          "confirmFilled": 155,
-          "selectE": -0.06899438202247193,
-          "selectFilled": 178,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.15317857142857141,
-          "confirmFilled": 126,
-          "selectE": -0.008129197080292078,
-          "selectFilled": 137,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.1529467889908256,
-          "confirmFilled": 109,
-          "selectE": 0.03382203389830508,
-          "selectFilled": 118,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.12021212121212119,
-          "confirmFilled": 99,
-          "selectE": 0.04596899999999997,
-          "selectFilled": 100,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.17251791044776113,
-          "confirmFilled": 67,
-          "selectE": 0.10974605263157888,
-          "selectFilled": 76,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.3005294117647058,
-          "confirmFilled": 51,
-          "selectE": 0.0773777777777777,
-          "selectFilled": 54,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 8,
-          "selectE": null,
-          "selectFilled": 17,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 1,
-          "selectE": null,
-          "selectFilled": 1,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12235659050966617,
+     "confirmFilled": 569,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 10
     },
-    "PAUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.1489748299319728,
-          "confirmFilled": 147,
-          "selectE": -0.12208257575757578,
-          "selectFilled": 132,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.1489748299319728,
-          "confirmFilled": 147,
-          "selectE": -0.12208257575757578,
-          "selectFilled": 132,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.1489748299319728,
-          "confirmFilled": 147,
-          "selectE": -0.12208257575757578,
-          "selectFilled": 132,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.1489748299319728,
-          "confirmFilled": 147,
-          "selectE": -0.12208257575757578,
-          "selectFilled": 132,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.1489748299319728,
-          "confirmFilled": 147,
-          "selectE": -0.12208257575757578,
-          "selectFilled": 132,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.15707534246575344,
-          "confirmFilled": 146,
-          "selectE": -0.12208257575757578,
-          "selectFilled": 132,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.16011103448275862,
-          "confirmFilled": 145,
-          "selectE": -0.11757938931297708,
-          "selectFilled": 131,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.14790437956204378,
-          "confirmFilled": 137,
-          "selectE": -0.13871562500000004,
-          "selectFilled": 128,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.16288931297709927,
-          "confirmFilled": 131,
-          "selectE": -0.1271288,
-          "selectFilled": 125,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.14086083333333335,
-          "confirmFilled": 120,
-          "selectE": -0.148591743119266,
-          "selectFilled": 109,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.15166923076923078,
-          "confirmFilled": 104,
-          "selectE": -0.15695744680851068,
-          "selectFilled": 94,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.11607023809523812,
-          "confirmFilled": 84,
-          "selectE": -0.20891772151898735,
-          "selectFilled": 79,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.08716578947368427,
-          "confirmFilled": 76,
-          "selectE": -0.20535142857142857,
-          "selectFilled": 70,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.006945312499999992,
-          "confirmFilled": 64,
-          "selectE": -0.12656326530612244,
-          "selectFilled": 49,
-          "threshold": 65
-        },
-        {
-          "confirmE": 0.02788333333333332,
-          "confirmFilled": 54,
-          "selectE": -0.15298536585365854,
-          "selectFilled": 41,
-          "threshold": 70
-        },
-        {
-          "confirmE": 0.05828499999999996,
-          "confirmFilled": 40,
-          "selectE": null,
-          "selectFilled": 29,
-          "threshold": 75
-        },
-        {
-          "confirmE": 0.10605333333333332,
-          "confirmFilled": 30,
-          "selectE": null,
-          "selectFilled": 24,
-          "threshold": 80
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 17,
-          "selectE": null,
-          "selectFilled": 9,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 7,
-          "selectE": null,
-          "selectFilled": 3,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 1,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12235659050966617,
+     "confirmFilled": 569,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 15
     },
-    "DASHUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.1174939743589744,
-          "confirmFilled": 780,
-          "selectE": -0.06703134684147796,
-          "selectFilled": 839,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.1174939743589744,
-          "confirmFilled": 780,
-          "selectE": -0.06703134684147796,
-          "selectFilled": 839,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.1174939743589744,
-          "confirmFilled": 780,
-          "selectE": -0.06703134684147796,
-          "selectFilled": 839,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.1174939743589744,
-          "confirmFilled": 780,
-          "selectE": -0.06703134684147796,
-          "selectFilled": 839,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.1174939743589744,
-          "confirmFilled": 780,
-          "selectE": -0.06703134684147796,
-          "selectFilled": 839,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.1174939743589744,
-          "confirmFilled": 780,
-          "selectE": -0.06703134684147796,
-          "selectFilled": 839,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.11996752577319594,
-          "confirmFilled": 776,
-          "selectE": -0.0707689448441247,
-          "selectFilled": 834,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.11875734908136487,
-          "confirmFilled": 762,
-          "selectE": -0.07212359413202933,
-          "selectFilled": 818,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.11888902439024392,
-          "confirmFilled": 738,
-          "selectE": -0.07771289910600257,
-          "selectFilled": 783,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.11597716763005775,
-          "confirmFilled": 692,
-          "selectE": -0.08074016282225242,
-          "selectFilled": 737,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.13000187793427226,
-          "confirmFilled": 639,
-          "selectE": -0.08155214814814814,
-          "selectFilled": 675,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.12848409893992954,
-          "confirmFilled": 566,
-          "selectE": -0.05890290598290602,
-          "selectFilled": 585,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.1342497942386832,
-          "confirmFilled": 486,
-          "selectE": -0.0660704500978474,
-          "selectFilled": 511,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.12611534526854215,
-          "confirmFilled": 391,
-          "selectE": -0.06791275626423693,
-          "selectFilled": 439,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.13678730650154808,
-          "confirmFilled": 323,
-          "selectE": -0.05926757493188014,
-          "selectFilled": 367,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.12616511627906984,
-          "confirmFilled": 258,
-          "selectE": -0.06924478114478125,
-          "selectFilled": 297,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.11653387096774188,
-          "confirmFilled": 186,
-          "selectE": -0.027267391304347834,
-          "selectFilled": 230,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.0746458015267176,
-          "confirmFilled": 131,
-          "selectE": 0.005114792899408295,
-          "selectFilled": 169,
-          "threshold": 85
-        },
-        {
-          "confirmE": 0.11098870967741935,
-          "confirmFilled": 62,
-          "selectE": -0.013219718309859126,
-          "selectFilled": 71,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 17,
-          "selectE": null,
-          "selectFilled": 14,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12235659050966617,
+     "confirmFilled": 569,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 20
     },
-    "GRTUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.08199048414023376,
-          "confirmFilled": 599,
-          "selectE": -0.17103874458874468,
-          "selectFilled": 462,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.08199048414023376,
-          "confirmFilled": 599,
-          "selectE": -0.17103874458874468,
-          "selectFilled": 462,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.08199048414023376,
-          "confirmFilled": 599,
-          "selectE": -0.17103874458874468,
-          "selectFilled": 462,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.08199048414023376,
-          "confirmFilled": 599,
-          "selectE": -0.17103874458874468,
-          "selectFilled": 462,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.08199048414023376,
-          "confirmFilled": 599,
-          "selectE": -0.17103874458874468,
-          "selectFilled": 462,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.08199048414023376,
-          "confirmFilled": 599,
-          "selectE": -0.17103874458874468,
-          "selectFilled": 462,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.08419312080536916,
-          "confirmFilled": 596,
-          "selectE": -0.17122440087145982,
-          "selectFilled": 459,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.08803310580204786,
-          "confirmFilled": 586,
-          "selectE": -0.1704735229759301,
-          "selectFilled": 457,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.09100160142348755,
-          "confirmFilled": 562,
-          "selectE": -0.17825590909090921,
-          "selectFilled": 440,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.07758238636363636,
-          "confirmFilled": 528,
-          "selectE": -0.1763545454545456,
-          "selectFilled": 407,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.08123006134969324,
-          "confirmFilled": 489,
-          "selectE": -0.1665747967479675,
-          "selectFilled": 369,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.08410630841121493,
-          "confirmFilled": 428,
-          "selectE": -0.17497165109034266,
-          "selectFilled": 321,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.1172579787234042,
-          "confirmFilled": 376,
-          "selectE": -0.17141423487544485,
-          "selectFilled": 281,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.11922987421383642,
-          "confirmFilled": 318,
-          "selectE": -0.14908122270742352,
-          "selectFilled": 229,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.06638805970149259,
-          "confirmFilled": 268,
-          "selectE": -0.14366030927835044,
-          "selectFilled": 194,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.07785252100840344,
-          "confirmFilled": 238,
-          "selectE": -0.14586385542168667,
-          "selectFilled": 166,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.028424858757062157,
-          "confirmFilled": 177,
-          "selectE": -0.15423257575757562,
-          "selectFilled": 132,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.05335333333333334,
-          "confirmFilled": 150,
-          "selectE": -0.166701923076923,
-          "selectFilled": 104,
-          "threshold": 85
-        },
-        {
-          "confirmE": 0.008608333333333343,
-          "confirmFilled": 48,
-          "selectE": -0.10647333333333335,
-          "selectFilled": 60,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 5,
-          "selectE": null,
-          "selectFilled": 9,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12235659050966617,
+     "confirmFilled": 569,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 25
     },
-    "ZLUSX": {
-      "candidates": [
-        {
-          "confirmE": 0.00012820512820511267,
-          "confirmFilled": 156,
-          "selectE": -0.05631677852348993,
-          "selectFilled": 149,
-          "threshold": 0
-        },
-        {
-          "confirmE": 0.00012820512820511267,
-          "confirmFilled": 156,
-          "selectE": -0.05631677852348993,
-          "selectFilled": 149,
-          "threshold": 5
-        },
-        {
-          "confirmE": 0.00012820512820511267,
-          "confirmFilled": 156,
-          "selectE": -0.05631677852348993,
-          "selectFilled": 149,
-          "threshold": 10
-        },
-        {
-          "confirmE": 0.00012820512820511267,
-          "confirmFilled": 156,
-          "selectE": -0.05631677852348993,
-          "selectFilled": 149,
-          "threshold": 15
-        },
-        {
-          "confirmE": 0.00012820512820511267,
-          "confirmFilled": 156,
-          "selectE": -0.05631677852348993,
-          "selectFilled": 149,
-          "threshold": 20
-        },
-        {
-          "confirmE": 0.00012820512820511267,
-          "confirmFilled": 156,
-          "selectE": -0.06028243243243243,
-          "selectFilled": 148,
-          "threshold": 25
-        },
-        {
-          "confirmE": 0.006600662251655617,
-          "confirmFilled": 151,
-          "selectE": -0.06028243243243243,
-          "selectFilled": 148,
-          "threshold": 30
-        },
-        {
-          "confirmE": 0.007110958904109577,
-          "confirmFilled": 146,
-          "selectE": -0.05345986394557824,
-          "selectFilled": 147,
-          "threshold": 35
-        },
-        {
-          "confirmE": 0.011914583333333319,
-          "confirmFilled": 144,
-          "selectE": -0.06146760563380283,
-          "selectFilled": 142,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.010916541353383461,
-          "confirmFilled": 133,
-          "selectE": -0.04914274809160307,
-          "selectFilled": 131,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.014162500000000017,
-          "confirmFilled": 120,
-          "selectE": -0.05843697478991598,
-          "selectFilled": 119,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.014191743119266027,
-          "confirmFilled": 109,
-          "selectE": -0.03610808080808083,
-          "selectFilled": 99,
-          "threshold": 55
-        },
-        {
-          "confirmE": 0.00607878787878788,
-          "confirmFilled": 99,
-          "selectE": -0.01594831460674158,
-          "selectFilled": 89,
-          "threshold": 60
-        },
-        {
-          "confirmE": 0.05716419753086416,
-          "confirmFilled": 81,
-          "selectE": -0.06192428571428574,
-          "selectFilled": 70,
-          "threshold": 65
-        },
-        {
-          "confirmE": 0.06416029411764702,
-          "confirmFilled": 68,
-          "selectE": -0.07360156250000004,
-          "selectFilled": 64,
-          "threshold": 70
-        },
-        {
-          "confirmE": 0.017258490566037735,
-          "confirmFilled": 53,
-          "selectE": -0.0705903846153846,
-          "selectFilled": 52,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.033927272727272736,
-          "confirmFilled": 44,
-          "selectE": -0.0854421052631579,
-          "selectFilled": 38,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.10013333333333334,
-          "confirmFilled": 30,
-          "selectE": null,
-          "selectFilled": 25,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 11,
-          "selectE": null,
-          "selectFilled": 13,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12157442680776026,
+     "confirmFilled": 567,
+     "selectE": -0.06635525525525524,
+     "selectFilled": 333,
+     "threshold": 30
     },
-    "DOGEUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.15948476658476668,
-          "confirmFilled": 814,
-          "selectE": -0.06142039072039073,
-          "selectFilled": 819,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.15948476658476668,
-          "confirmFilled": 814,
-          "selectE": -0.06142039072039073,
-          "selectFilled": 819,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.15948476658476668,
-          "confirmFilled": 814,
-          "selectE": -0.06142039072039073,
-          "selectFilled": 819,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.15948476658476668,
-          "confirmFilled": 814,
-          "selectE": -0.06142039072039073,
-          "selectFilled": 819,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.15948476658476668,
-          "confirmFilled": 814,
-          "selectE": -0.06142039072039073,
-          "selectFilled": 819,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.15948476658476668,
-          "confirmFilled": 814,
-          "selectE": -0.06142039072039073,
-          "selectFilled": 819,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.15977543424317636,
-          "confirmFilled": 806,
-          "selectE": -0.05947058823529412,
-          "selectFilled": 816,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.1574413265306125,
-          "confirmFilled": 784,
-          "selectE": -0.059868803945745994,
-          "selectFilled": 811,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.1476562584118439,
-          "confirmFilled": 743,
-          "selectE": -0.06242634961439589,
-          "selectFilled": 778,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.15164675324675336,
-          "confirmFilled": 693,
-          "selectE": -0.05599078212290504,
-          "selectFilled": 716,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.1441529225908374,
-          "confirmFilled": 633,
-          "selectE": -0.057006811145510816,
-          "selectFilled": 646,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.14442293577981669,
-          "confirmFilled": 545,
-          "selectE": -0.04160105078809105,
-          "selectFilled": 571,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.13195761316872434,
-          "confirmFilled": 486,
-          "selectE": -0.05831673151750973,
-          "selectFilled": 514,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.12670776699029135,
-          "confirmFilled": 412,
-          "selectE": -0.0714683698296837,
-          "selectFilled": 411,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.13348632478632488,
-          "confirmFilled": 351,
-          "selectE": -0.07393447204968945,
-          "selectFilled": 322,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.14110696864111505,
-          "confirmFilled": 287,
-          "selectE": -0.05044107883817428,
-          "selectFilled": 241,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.17158963730569943,
-          "confirmFilled": 193,
-          "selectE": -0.038460606060606056,
-          "selectFilled": 165,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.20566535947712417,
-          "confirmFilled": 153,
-          "selectE": -0.06276725663716816,
-          "selectFilled": 113,
-          "threshold": 85
-        },
-        {
-          "confirmE": -0.24737708333333333,
-          "confirmFilled": 48,
-          "selectE": null,
-          "selectFilled": 27,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 5,
-          "selectE": null,
-          "selectFilled": 5,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.1261402504472273,
+     "confirmFilled": 559,
+     "selectE": -0.06794879518072287,
+     "selectFilled": 332,
+     "threshold": 35
     },
-    "HBARUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.16100153452685426,
-          "confirmFilled": 391,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.16100153452685426,
-          "confirmFilled": 391,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.16100153452685426,
-          "confirmFilled": 391,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.16100153452685426,
-          "confirmFilled": 391,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.16100153452685426,
-          "confirmFilled": 391,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.1586364102564103,
-          "confirmFilled": 390,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.16217700258397938,
-          "confirmFilled": 387,
-          "selectE": -0.091421270718232,
-          "selectFilled": 362,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.1574319480519481,
-          "confirmFilled": 385,
-          "selectE": -0.08587310924369747,
-          "selectFilled": 357,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.15971962365591402,
-          "confirmFilled": 372,
-          "selectE": -0.08640898550724635,
-          "selectFilled": 345,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.14478922155688628,
-          "confirmFilled": 334,
-          "selectE": -0.0780066037735849,
-          "selectFilled": 318,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.14872880794701993,
-          "confirmFilled": 302,
-          "selectE": -0.07631946308724831,
-          "selectFilled": 298,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.16059153846153848,
-          "confirmFilled": 260,
-          "selectE": -0.0782033088235294,
-          "selectFilled": 272,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.16520432900432902,
-          "confirmFilled": 231,
-          "selectE": -0.08034518828451878,
-          "selectFilled": 239,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.14512795698924733,
-          "confirmFilled": 186,
-          "selectE": -0.08861039603960393,
-          "selectFilled": 202,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.1313850931677019,
-          "confirmFilled": 161,
-          "selectE": -0.09189036144578311,
-          "selectFilled": 166,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.12091901408450707,
-          "confirmFilled": 142,
-          "selectE": -0.08298702290076335,
-          "selectFilled": 131,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.09219519230769231,
-          "confirmFilled": 104,
-          "selectE": -0.08726464646464649,
-          "selectFilled": 99,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.007970238095238094,
-          "confirmFilled": 84,
-          "selectE": -0.02264074074074073,
-          "selectFilled": 81,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 17,
-          "selectE": 0.05618085106382979,
-          "selectFilled": 47,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 3,
-          "selectE": null,
-          "selectFilled": 19,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12733196261682253,
+     "confirmFilled": 535,
+     "selectE": -0.07872803738317757,
+     "selectFilled": 321,
+     "threshold": 40
     },
-    "ZMUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.060702797202797205,
-          "confirmFilled": 143,
-          "selectE": 0.047328571428571456,
-          "selectFilled": 154,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.04731285714285714,
-          "confirmFilled": 140,
-          "selectE": 0.051984105960264884,
-          "selectFilled": 151,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.0762206106870229,
-          "confirmFilled": 131,
-          "selectE": 0.05139865771812082,
-          "selectFilled": 149,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.06608360655737702,
-          "confirmFilled": 122,
-          "selectE": 0.06526666666666671,
-          "selectFilled": 141,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.06174150943396227,
-          "confirmFilled": 106,
-          "selectE": 0.07276015625000003,
-          "selectFilled": 128,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.07824270833333333,
-          "confirmFilled": 96,
-          "selectE": 0.04375929203539826,
-          "selectFilled": 113,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.06234111111111114,
-          "confirmFilled": 90,
-          "selectE": -0.03410000000000001,
-          "selectFilled": 96,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.038817241379310356,
-          "confirmFilled": 58,
-          "selectE": 0.030944736842105303,
-          "selectFilled": 76,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.056635555555555585,
-          "confirmFilled": 45,
-          "selectE": 0.021351470588235336,
-          "selectFilled": 68,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.08121875,
-          "confirmFilled": 32,
-          "selectE": -0.17161090909090906,
-          "selectFilled": 55,
-          "threshold": 75
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 24,
-          "selectE": -0.19815128205128205,
-          "selectFilled": 39,
-          "threshold": 80
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 19,
-          "selectE": null,
-          "selectFilled": 24,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 7,
-          "selectE": null,
-          "selectFilled": 9,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.14187090909090924,
+     "confirmFilled": 495,
+     "selectE": -0.06345306122448979,
+     "selectFilled": 294,
+     "threshold": 45
     },
-    "IMXUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.10784305835010062,
-          "confirmFilled": 497,
-          "selectE": -0.10323994708994724,
-          "selectFilled": 378,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.10784305835010062,
-          "confirmFilled": 497,
-          "selectE": -0.10323994708994724,
-          "selectFilled": 378,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.10784305835010062,
-          "confirmFilled": 497,
-          "selectE": -0.10323994708994724,
-          "selectFilled": 378,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.10784305835010062,
-          "confirmFilled": 497,
-          "selectE": -0.10323994708994724,
-          "selectFilled": 378,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.10784305835010062,
-          "confirmFilled": 497,
-          "selectE": -0.10323994708994724,
-          "selectFilled": 378,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.10784305835010062,
-          "confirmFilled": 497,
-          "selectE": -0.10323994708994724,
-          "selectFilled": 378,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.11055618661257607,
-          "confirmFilled": 493,
-          "selectE": -0.10061600000000015,
-          "selectFilled": 375,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.09699834024896266,
-          "confirmFilled": 482,
-          "selectE": -0.10382255434782629,
-          "selectFilled": 368,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.08008125000000002,
-          "confirmFilled": 464,
-          "selectE": -0.11936235955056189,
-          "selectFilled": 356,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.07113842592592598,
-          "confirmFilled": 432,
-          "selectE": -0.11301415929203565,
-          "selectFilled": 339,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.060555958549222806,
-          "confirmFilled": 386,
-          "selectE": -0.12610964630225102,
-          "selectFilled": 311,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.06644441176470586,
-          "confirmFilled": 340,
-          "selectE": -0.13145671641791068,
-          "selectFilled": 268,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.09182635135135134,
-          "confirmFilled": 296,
-          "selectE": -0.1664738738738741,
-          "selectFilled": 222,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.08783520000000003,
-          "confirmFilled": 250,
-          "selectE": -0.19120979381443323,
-          "selectFilled": 194,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.08557945205479453,
-          "confirmFilled": 219,
-          "selectE": -0.18326766467065872,
-          "selectFilled": 167,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.04653516483516484,
-          "confirmFilled": 182,
-          "selectE": -0.20825281690140848,
-          "selectFilled": 142,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.03222868852459019,
-          "confirmFilled": 122,
-          "selectE": -0.2079611650485437,
-          "selectFilled": 103,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.055720253164556977,
-          "confirmFilled": 79,
-          "selectE": -0.26799599999999996,
-          "selectFilled": 75,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 28,
-          "selectE": -0.320025641025641,
-          "selectFilled": 39,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 2,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.14470547045951868,
+     "confirmFilled": 457,
+     "selectE": -0.08320973782771535,
+     "selectFilled": 267,
+     "threshold": 50
     },
-    "UNIUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.09795323129251703,
-          "confirmFilled": 588,
-          "selectE": -0.050483229813664564,
-          "selectFilled": 483,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.09795323129251703,
-          "confirmFilled": 588,
-          "selectE": -0.050483229813664564,
-          "selectFilled": 483,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.09795323129251703,
-          "confirmFilled": 588,
-          "selectE": -0.050483229813664564,
-          "selectFilled": 483,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.09795323129251703,
-          "confirmFilled": 588,
-          "selectE": -0.050483229813664564,
-          "selectFilled": 483,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.09795323129251703,
-          "confirmFilled": 588,
-          "selectE": -0.050483229813664564,
-          "selectFilled": 483,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.09795323129251703,
-          "confirmFilled": 588,
-          "selectE": -0.050483229813664564,
-          "selectFilled": 483,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.09848921232876717,
-          "confirmFilled": 584,
-          "selectE": -0.05361858037578285,
-          "selectFilled": 479,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.10157084805653713,
-          "confirmFilled": 566,
-          "selectE": -0.05311869747899156,
-          "selectFilled": 476,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.10149019963702363,
-          "confirmFilled": 551,
-          "selectE": -0.05081140350877191,
-          "selectFilled": 456,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.09218129921259839,
-          "confirmFilled": 508,
-          "selectE": -0.056233806146572085,
-          "selectFilled": 423,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.10594806866952788,
-          "confirmFilled": 466,
-          "selectE": -0.060957069408740336,
-          "selectFilled": 389,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.10670677966101696,
-          "confirmFilled": 413,
-          "selectE": -0.06293230337078654,
-          "selectFilled": 356,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.10641626016260165,
-          "confirmFilled": 369,
-          "selectE": -0.047281350482315146,
-          "selectFilled": 311,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.08611189710610934,
-          "confirmFilled": 311,
-          "selectE": -0.06970778210116729,
-          "selectFilled": 257,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.08058609022556393,
-          "confirmFilled": 266,
-          "selectE": -0.06877416267942585,
-          "selectFilled": 209,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.07285000000000001,
-          "confirmFilled": 218,
-          "selectE": -0.08377401129943503,
-          "selectFilled": 177,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.0785815028901734,
-          "confirmFilled": 173,
-          "selectE": -0.14903906249999993,
-          "selectFilled": 128,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.10236382978723405,
-          "confirmFilled": 141,
-          "selectE": -0.1712802197802198,
-          "selectFilled": 91,
-          "threshold": 85
-        },
-        {
-          "confirmE": -0.12692653061224488,
-          "confirmFilled": 49,
-          "selectE": -0.18214117647058825,
-          "selectFilled": 34,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 6,
-          "selectE": null,
-          "selectFilled": 6,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.15270756097560975,
+     "confirmFilled": 410,
+     "selectE": -0.08295769230769229,
+     "selectFilled": 234,
+     "threshold": 55
     },
-    "LINKUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.025805305039787802,
-          "confirmFilled": 754,
-          "selectE": -0.0629269607843137,
-          "selectFilled": 612,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.025805305039787802,
-          "confirmFilled": 754,
-          "selectE": -0.0629269607843137,
-          "selectFilled": 612,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.025805305039787802,
-          "confirmFilled": 754,
-          "selectE": -0.0629269607843137,
-          "selectFilled": 612,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.025805305039787802,
-          "confirmFilled": 754,
-          "selectE": -0.0629269607843137,
-          "selectFilled": 612,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.025805305039787802,
-          "confirmFilled": 754,
-          "selectE": -0.0629269607843137,
-          "selectFilled": 612,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.025805305039787802,
-          "confirmFilled": 754,
-          "selectE": -0.0629269607843137,
-          "selectFilled": 612,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.022373733333333354,
-          "confirmFilled": 750,
-          "selectE": -0.05983776683087023,
-          "selectFilled": 609,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.019276261937244202,
-          "confirmFilled": 733,
-          "selectE": -0.06324407345575957,
-          "selectFilled": 599,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.01936875000000001,
-          "confirmFilled": 704,
-          "selectE": -0.058450796460176986,
-          "selectFilled": 565,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.021569637462235655,
-          "confirmFilled": 662,
-          "selectE": -0.05447702702702705,
-          "selectFilled": 518,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.017386991869918714,
-          "confirmFilled": 615,
-          "selectE": -0.06691225806451617,
-          "selectFilled": 465,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.032164895635673596,
-          "confirmFilled": 527,
-          "selectE": -0.08175225653206655,
-          "selectFilled": 421,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.02215434782608697,
-          "confirmFilled": 460,
-          "selectE": -0.09615292553191487,
-          "selectFilled": 376,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.01985649867374003,
-          "confirmFilled": 377,
-          "selectE": -0.07806534653465347,
-          "selectFilled": 303,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.02257339449541284,
-          "confirmFilled": 327,
-          "selectE": -0.12180491803278684,
-          "selectFilled": 244,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.02827928571428572,
-          "confirmFilled": 280,
-          "selectE": -0.1440445652173912,
-          "selectFilled": 184,
-          "threshold": 75
-        },
-        {
-          "confirmE": 0.001464251207729479,
-          "confirmFilled": 207,
-          "selectE": -0.15855037593984966,
-          "selectFilled": 133,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.024850292397660827,
-          "confirmFilled": 171,
-          "selectE": -0.20697326732673274,
-          "selectFilled": 101,
-          "threshold": 85
-        },
-        {
-          "confirmE": 0.017102777777777776,
-          "confirmFilled": 72,
-          "selectE": null,
-          "selectFilled": 28,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 12,
-          "selectE": null,
-          "selectFilled": 6,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.1598743093922652,
+     "confirmFilled": 362,
+     "selectE": -0.08943999999999999,
+     "selectFilled": 210,
+     "threshold": 60
     },
-    "XLMUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.10800584795321642,
-          "confirmFilled": 855,
-          "selectE": -0.009837857142857127,
-          "selectFilled": 700,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.10800584795321642,
-          "confirmFilled": 855,
-          "selectE": -0.009837857142857127,
-          "selectFilled": 700,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.10800584795321642,
-          "confirmFilled": 855,
-          "selectE": -0.009837857142857127,
-          "selectFilled": 700,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.10800584795321642,
-          "confirmFilled": 855,
-          "selectE": -0.009837857142857127,
-          "selectFilled": 700,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.10800584795321642,
-          "confirmFilled": 855,
-          "selectE": -0.009837857142857127,
-          "selectFilled": 700,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.10800584795321642,
-          "confirmFilled": 855,
-          "selectE": -0.009837857142857127,
-          "selectFilled": 700,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.10930869565217399,
-          "confirmFilled": 851,
-          "selectE": -0.009743919885550763,
-          "selectFilled": 699,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.11308762019230774,
-          "confirmFilled": 832,
-          "selectE": -0.012909261939218512,
-          "selectFilled": 691,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.11122276119402993,
-          "confirmFilled": 804,
-          "selectE": -0.020585648854961794,
-          "selectFilled": 655,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.1151822341857336,
-          "confirmFilled": 743,
-          "selectE": -0.0311314144736842,
-          "selectFilled": 608,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.12181748148148151,
-          "confirmFilled": 675,
-          "selectE": -0.03943956442831216,
-          "selectFilled": 551,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.12559142857142863,
-          "confirmFilled": 595,
-          "selectE": -0.043802286902286935,
-          "selectFilled": 481,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.12646278625954196,
-          "confirmFilled": 524,
-          "selectE": -0.032478240740740745,
-          "selectFilled": 432,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.12010324825986088,
-          "confirmFilled": 431,
-          "selectE": -0.020141359773371118,
-          "selectFilled": 353,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.12251965811965818,
-          "confirmFilled": 351,
-          "selectE": -0.05442642857142864,
-          "selectFilled": 280,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.11987322033898305,
-          "confirmFilled": 295,
-          "selectE": -0.08681777777777785,
-          "selectFilled": 225,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.10139282051282042,
-          "confirmFilled": 195,
-          "selectE": -0.00890120481927713,
-          "selectFilled": 166,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.11443382352941167,
-          "confirmFilled": 136,
-          "selectE": -0.028379338842975152,
-          "selectFilled": 121,
-          "threshold": 85
-        },
-        {
-          "confirmE": -0.044259523809523776,
-          "confirmFilled": 42,
-          "selectE": null,
-          "selectFilled": 27,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 5,
-          "selectE": null,
-          "selectFilled": 4,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.13561967741935485,
+     "confirmFilled": 310,
+     "selectE": -0.059371428571428575,
+     "selectFilled": 168,
+     "threshold": 65
     },
-    "ZOUSX": {
-      "candidates": [
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.1699204081632653,
-          "confirmFilled": 49,
-          "selectE": -0.19636777777777767,
-          "selectFilled": 90,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.1942104166666666,
-          "confirmFilled": 48,
-          "selectE": -0.20261529411764703,
-          "selectFilled": 85,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.17694255319148933,
-          "confirmFilled": 47,
-          "selectE": -0.20612048192771082,
-          "selectFilled": 83,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.118125,
-          "confirmFilled": 44,
-          "selectE": -0.18740125000000002,
-          "selectFilled": 80,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.1091925,
-          "confirmFilled": 40,
-          "selectE": -0.21035066666666663,
-          "selectFilled": 75,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.06592647058823528,
-          "confirmFilled": 34,
-          "selectE": -0.15579402985074628,
-          "selectFilled": 67,
-          "threshold": 55
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 27,
-          "selectE": -0.1347676923076923,
-          "selectFilled": 65,
-          "threshold": 60
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 19,
-          "selectE": -0.09858275862068958,
-          "selectFilled": 58,
-          "threshold": 65
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 14,
-          "selectE": -0.055618000000000035,
-          "selectFilled": 50,
-          "threshold": 70
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 12,
-          "selectE": -0.09112682926829264,
-          "selectFilled": 41,
-          "threshold": 75
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 8,
-          "selectE": null,
-          "selectFilled": 26,
-          "threshold": 80
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 5,
-          "selectE": null,
-          "selectFilled": 20,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 3,
-          "selectE": null,
-          "selectFilled": 12,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.11329960937499998,
+     "confirmFilled": 256,
+     "selectE": -0.14570396825396825,
+     "selectFilled": 126,
+     "threshold": 70
     },
-    "NSDQ": {
-      "candidates": [
-        {
-          "confirmE": -0.0035722222222222093,
-          "confirmFilled": 54,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.0035722222222222093,
-          "confirmFilled": 54,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.0035722222222222093,
-          "confirmFilled": 54,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.0035722222222222093,
-          "confirmFilled": 54,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.0035722222222222093,
-          "confirmFilled": 54,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.0035722222222222093,
-          "confirmFilled": 54,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.010920754716981122,
-          "confirmFilled": 53,
-          "selectE": 0.2504522727272727,
-          "selectFilled": 44,
-          "threshold": 30
-        },
-        {
-          "confirmE": 0.0008940000000000103,
-          "confirmFilled": 50,
-          "selectE": 0.23423333333333332,
-          "selectFilled": 39,
-          "threshold": 35
-        },
-        {
-          "confirmE": 0.0161936170212766,
-          "confirmFilled": 47,
-          "selectE": 0.22507105263157895,
-          "selectFilled": 38,
-          "threshold": 40
-        },
-        {
-          "confirmE": 0.021773333333333342,
-          "confirmFilled": 45,
-          "selectE": 0.19295142857142852,
-          "selectFilled": 35,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.01797380952380952,
-          "confirmFilled": 42,
-          "selectE": 0.13833225806451616,
-          "selectFilled": 31,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.031235000000000002,
-          "confirmFilled": 40,
-          "selectE": null,
-          "selectFilled": 27,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.042741176470588255,
-          "confirmFilled": 34,
-          "selectE": null,
-          "selectFilled": 24,
-          "threshold": 60
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 27,
-          "selectE": null,
-          "selectFilled": 22,
-          "threshold": 65
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 25,
-          "selectE": null,
-          "selectFilled": 20,
-          "threshold": 70
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 25,
-          "selectE": null,
-          "selectFilled": 18,
-          "threshold": 75
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 17,
-          "selectE": null,
-          "selectFilled": 16,
-          "threshold": 80
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 14,
-          "selectE": null,
-          "selectFilled": 12,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 7,
-          "selectE": null,
-          "selectFilled": 6,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 1,
-          "selectE": null,
-          "selectFilled": 1,
-          "threshold": 95
-        }
-      ],
-      "rescue": {
-        "confirmE": 0.0008940000000000103,
-        "confirmFilled": 50,
-        "selectE": 0.23423333333333332,
-        "selectFilled": 39,
-        "threshold": 35
-      }
+    {
+     "confirmE": -0.11132344497607644,
+     "confirmFilled": 209,
+     "selectE": -0.11605806451612903,
+     "selectFilled": 93,
+     "threshold": 75
     },
-    "EGLDUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.3300644444444444,
-          "confirmFilled": 450,
-          "selectE": -0.27012938005390846,
-          "selectFilled": 371,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.3300644444444444,
-          "confirmFilled": 450,
-          "selectE": -0.27012938005390846,
-          "selectFilled": 371,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.3300644444444444,
-          "confirmFilled": 450,
-          "selectE": -0.27012938005390846,
-          "selectFilled": 371,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.3300644444444444,
-          "confirmFilled": 450,
-          "selectE": -0.27012938005390846,
-          "selectFilled": 371,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.3300644444444444,
-          "confirmFilled": 450,
-          "selectE": -0.27012938005390846,
-          "selectFilled": 371,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.3300644444444444,
-          "confirmFilled": 450,
-          "selectE": -0.27012938005390846,
-          "selectFilled": 371,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.3287760722347629,
-          "confirmFilled": 443,
-          "selectE": -0.27546820652173926,
-          "selectFilled": 368,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.32915841121495326,
-          "confirmFilled": 428,
-          "selectE": -0.27344765840220386,
-          "selectFilled": 363,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.3184794621026895,
-          "confirmFilled": 409,
-          "selectE": -0.28362492836676223,
-          "selectFilled": 349,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.30351333333333347,
-          "confirmFilled": 375,
-          "selectE": -0.27186934984520134,
-          "selectFilled": 323,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.3063352583586627,
-          "confirmFilled": 329,
-          "selectE": -0.2889856164383562,
-          "selectFilled": 292,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.3169699633699634,
-          "confirmFilled": 273,
-          "selectE": -0.292470472440945,
-          "selectFilled": 254,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.3291369477911648,
-          "confirmFilled": 249,
-          "selectE": -0.28964778761061954,
-          "selectFilled": 226,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.3033570093457944,
-          "confirmFilled": 214,
-          "selectE": -0.27751058201058204,
-          "selectFilled": 189,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.30081807909604513,
-          "confirmFilled": 177,
-          "selectE": -0.3050952662721893,
-          "selectFilled": 169,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.3382797385620915,
-          "confirmFilled": 153,
-          "selectE": -0.2997496402877698,
-          "selectFilled": 139,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.3297701923076922,
-          "confirmFilled": 104,
-          "selectE": -0.2827663157894737,
-          "selectFilled": 95,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.3764616279069768,
-          "confirmFilled": 86,
-          "selectE": -0.22985180722891557,
-          "selectFilled": 83,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 1,
-          "selectE": null,
-          "selectFilled": 1,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.1184558823529411,
+     "confirmFilled": 170,
+     "selectE": -0.11189076923076924,
+     "selectFilled": 65,
+     "threshold": 80
     },
-    "LTCUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.009144050343249442,
-          "confirmFilled": 874,
-          "selectE": 0.04468473581213307,
-          "selectFilled": 1022,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.009144050343249442,
-          "confirmFilled": 874,
-          "selectE": 0.04468473581213307,
-          "selectFilled": 1022,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.009144050343249442,
-          "confirmFilled": 874,
-          "selectE": 0.04468473581213307,
-          "selectFilled": 1022,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.009144050343249442,
-          "confirmFilled": 874,
-          "selectE": 0.04468473581213307,
-          "selectFilled": 1022,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.009144050343249442,
-          "confirmFilled": 874,
-          "selectE": 0.04468473581213307,
-          "selectFilled": 1022,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.009144050343249442,
-          "confirmFilled": 874,
-          "selectE": 0.0440892156862745,
-          "selectFilled": 1020,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.00880792192881747,
-          "confirmFilled": 871,
-          "selectE": 0.042925024630541854,
-          "selectFilled": 1015,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.007893286219081279,
-          "confirmFilled": 849,
-          "selectE": 0.04297215568862274,
-          "selectFilled": 1002,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.013609924623115579,
-          "confirmFilled": 796,
-          "selectE": 0.0475342582710779,
-          "selectFilled": 937,
-          "threshold": 40
-        },
-        {
-          "confirmE": 0.00012143845089904869,
-          "confirmFilled": 723,
-          "selectE": 0.06348062283737028,
-          "selectFilled": 867,
-          "threshold": 45
-        },
-        {
-          "confirmE": 0.014923244929797224,
-          "confirmFilled": 641,
-          "selectE": 0.057294897959183695,
-          "selectFilled": 784,
-          "threshold": 50
-        },
-        {
-          "confirmE": 0.014576,
-          "confirmFilled": 575,
-          "selectE": 0.05761805359661495,
-          "selectFilled": 709,
-          "threshold": 55
-        },
-        {
-          "confirmE": 0.02208206106870228,
-          "confirmFilled": 524,
-          "selectE": 0.04968509615384612,
-          "selectFilled": 624,
-          "threshold": 60
-        },
-        {
-          "confirmE": 0.01269905660377359,
-          "confirmFilled": 424,
-          "selectE": 0.036077525773195854,
-          "selectFilled": 485,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.029779999999999994,
-          "confirmFilled": 335,
-          "selectE": 0.019987594936708836,
-          "selectFilled": 395,
-          "threshold": 70
-        },
-        {
-          "confirmE": 0.006446240601503787,
-          "confirmFilled": 266,
-          "selectE": 0.08534814814814816,
-          "selectFilled": 297,
-          "threshold": 75
-        },
-        {
-          "confirmE": 0.030166145833333314,
-          "confirmFilled": 192,
-          "selectE": 0.0756074626865672,
-          "selectFilled": 201,
-          "threshold": 80
-        },
-        {
-          "confirmE": 0.013286419753086424,
-          "confirmFilled": 162,
-          "selectE": 0.09366358024691362,
-          "selectFilled": 162,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 1,
-          "selectE": null,
-          "selectFilled": 10,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 0,
-          "threshold": 95
-        }
-      ],
-      "rescue": {
-        "confirmE": 0.00012143845089904869,
-        "confirmFilled": 723,
-        "selectE": 0.06348062283737028,
-        "selectFilled": 867,
-        "threshold": 45
-      }
+    {
+     "confirmE": -0.11493161764705882,
+     "confirmFilled": 136,
+     "selectE": -0.046533333333333315,
+     "selectFilled": 42,
+     "threshold": 85
     },
-    "XMRUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.09642728395061724,
-          "confirmFilled": 810,
-          "selectE": -0.11738125741399758,
-          "selectFilled": 843,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.09642728395061724,
-          "confirmFilled": 810,
-          "selectE": -0.11738125741399758,
-          "selectFilled": 843,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.09642728395061724,
-          "confirmFilled": 810,
-          "selectE": -0.11738125741399758,
-          "selectFilled": 843,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.09642728395061724,
-          "confirmFilled": 810,
-          "selectE": -0.11738125741399758,
-          "selectFilled": 843,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.09642728395061724,
-          "confirmFilled": 810,
-          "selectE": -0.11738125741399758,
-          "selectFilled": 843,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.09642728395061724,
-          "confirmFilled": 810,
-          "selectE": -0.11738125741399758,
-          "selectFilled": 843,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.09793965303593552,
-          "confirmFilled": 807,
-          "selectE": -0.115895947556615,
-          "selectFilled": 839,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.09718617683686175,
-          "confirmFilled": 803,
-          "selectE": -0.11649399759903963,
-          "selectFilled": 833,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.10057715019255449,
-          "confirmFilled": 779,
-          "selectE": -0.12791351010101004,
-          "selectFilled": 792,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.09574367176634209,
-          "confirmFilled": 719,
-          "selectE": -0.1258304,
-          "selectFilled": 750,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.09637796874999993,
-          "confirmFilled": 640,
-          "selectE": -0.12030816023738887,
-          "selectFilled": 674,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.09641507092198574,
-          "confirmFilled": 564,
-          "selectE": -0.13377525423728825,
-          "selectFilled": 590,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.09678349705304508,
-          "confirmFilled": 509,
-          "selectE": -0.13916602687140123,
-          "selectFilled": 521,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.10562916666666665,
-          "confirmFilled": 408,
-          "selectE": -0.16156771844660195,
-          "selectFilled": 412,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.14678237082066867,
-          "confirmFilled": 329,
-          "selectE": -0.161247385620915,
-          "selectFilled": 306,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.1916356589147286,
-          "confirmFilled": 258,
-          "selectE": -0.1950536796536796,
-          "selectFilled": 231,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.12140847457627114,
-          "confirmFilled": 177,
-          "selectE": -0.2085642384105961,
-          "selectFilled": 151,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.1167814516129032,
-          "confirmFilled": 124,
-          "selectE": -0.25289909090909096,
-          "selectFilled": 110,
-          "threshold": 85
-        },
-        {
-          "confirmE": -0.1381560975609756,
-          "confirmFilled": 41,
-          "selectE": -0.244197619047619,
-          "selectFilled": 42,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 8,
-          "selectE": null,
-          "selectFilled": 5,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": -0.12519420289855074,
+     "confirmFilled": 69,
+     "selectE": null,
+     "selectFilled": 24,
+     "threshold": 90
     },
-    "ETCUSD": {
-      "candidates": [
-        {
-          "confirmE": -0.16287038724373587,
-          "confirmFilled": 878,
-          "selectE": -0.03222319391634986,
-          "selectFilled": 789,
-          "threshold": 0
-        },
-        {
-          "confirmE": -0.16287038724373587,
-          "confirmFilled": 878,
-          "selectE": -0.03222319391634986,
-          "selectFilled": 789,
-          "threshold": 5
-        },
-        {
-          "confirmE": -0.16287038724373587,
-          "confirmFilled": 878,
-          "selectE": -0.03222319391634986,
-          "selectFilled": 789,
-          "threshold": 10
-        },
-        {
-          "confirmE": -0.16287038724373587,
-          "confirmFilled": 878,
-          "selectE": -0.03222319391634986,
-          "selectFilled": 789,
-          "threshold": 15
-        },
-        {
-          "confirmE": -0.16287038724373587,
-          "confirmFilled": 878,
-          "selectE": -0.03222319391634986,
-          "selectFilled": 789,
-          "threshold": 20
-        },
-        {
-          "confirmE": -0.16287038724373587,
-          "confirmFilled": 878,
-          "selectE": -0.030936548223350298,
-          "selectFilled": 788,
-          "threshold": 25
-        },
-        {
-          "confirmE": -0.1628646720368241,
-          "confirmFilled": 869,
-          "selectE": -0.03086901408450707,
-          "selectFilled": 781,
-          "threshold": 30
-        },
-        {
-          "confirmE": -0.15939658421672562,
-          "confirmFilled": 849,
-          "selectE": -0.028987843137254943,
-          "selectFilled": 765,
-          "threshold": 35
-        },
-        {
-          "confirmE": -0.1575384806973848,
-          "confirmFilled": 803,
-          "selectE": -0.03117589041095894,
-          "selectFilled": 730,
-          "threshold": 40
-        },
-        {
-          "confirmE": -0.15144861294583892,
-          "confirmFilled": 757,
-          "selectE": -0.03604932330827075,
-          "selectFilled": 665,
-          "threshold": 45
-        },
-        {
-          "confirmE": -0.1584130177514793,
-          "confirmFilled": 676,
-          "selectE": -0.029042269736842163,
-          "selectFilled": 608,
-          "threshold": 50
-        },
-        {
-          "confirmE": -0.15033127147766337,
-          "confirmFilled": 582,
-          "selectE": -0.03211541284403675,
-          "selectFilled": 545,
-          "threshold": 55
-        },
-        {
-          "confirmE": -0.1472043737574552,
-          "confirmFilled": 503,
-          "selectE": -0.04216729166666671,
-          "selectFilled": 480,
-          "threshold": 60
-        },
-        {
-          "confirmE": -0.16263229665071766,
-          "confirmFilled": 418,
-          "selectE": -0.04244559585492228,
-          "selectFilled": 386,
-          "threshold": 65
-        },
-        {
-          "confirmE": -0.18307048710601717,
-          "confirmFilled": 349,
-          "selectE": -0.05338333333333331,
-          "selectFilled": 318,
-          "threshold": 70
-        },
-        {
-          "confirmE": -0.192020618556701,
-          "confirmFilled": 291,
-          "selectE": -0.04853639846743296,
-          "selectFilled": 261,
-          "threshold": 75
-        },
-        {
-          "confirmE": -0.186179104477612,
-          "confirmFilled": 201,
-          "selectE": -0.06407540106951876,
-          "selectFilled": 187,
-          "threshold": 80
-        },
-        {
-          "confirmE": -0.17904807692307698,
-          "confirmFilled": 156,
-          "selectE": -0.06155813953488374,
-          "selectFilled": 129,
-          "threshold": 85
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 16,
-          "selectE": 0.006425806451612894,
-          "selectFilled": 31,
-          "threshold": 90
-        },
-        {
-          "confirmE": null,
-          "confirmFilled": 0,
-          "selectE": null,
-          "selectFilled": 1,
-          "threshold": 95
-        }
-      ],
-      "rescue": null
+    {
+     "confirmE": null,
+     "confirmFilled": 11,
+     "selectE": null,
+     "selectFilled": 6,
+     "threshold": 95
     }
+   ],
+   "rescue": null
+  },
+  "ZCUSX": {
+   "candidates": [
+    {
+     "confirmE": -0.19130176991150435,
+     "confirmFilled": 113,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.19130176991150435,
+     "confirmFilled": 113,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.19130176991150435,
+     "confirmFilled": 113,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.19130176991150435,
+     "confirmFilled": 113,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.18350982142857145,
+     "confirmFilled": 112,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.18350982142857145,
+     "confirmFilled": 112,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.18772363636363637,
+     "confirmFilled": 110,
+     "selectE": -0.2513620967741935,
+     "selectFilled": 124,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.18653577981651376,
+     "confirmFilled": 109,
+     "selectE": -0.23910661157024793,
+     "selectFilled": 121,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.21130666666666656,
+     "confirmFilled": 105,
+     "selectE": -0.2366310924369747,
+     "selectFilled": 119,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.20869514563106792,
+     "confirmFilled": 103,
+     "selectE": -0.22109074074074067,
+     "selectFilled": 108,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.223268085106383,
+     "confirmFilled": 94,
+     "selectE": -0.19149285714285708,
+     "selectFilled": 98,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.20689036144578318,
+     "confirmFilled": 83,
+     "selectE": -0.15896395348837206,
+     "selectFilled": 86,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.1954697368421053,
+     "confirmFilled": 76,
+     "selectE": -0.19563287671232876,
+     "selectFilled": 73,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.21937031249999994,
+     "confirmFilled": 64,
+     "selectE": -0.10177499999999998,
+     "selectFilled": 52,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.2327672727272727,
+     "confirmFilled": 55,
+     "selectE": -0.24707857142857148,
+     "selectFilled": 42,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.17218636363636358,
+     "confirmFilled": 44,
+     "selectE": -0.27020285714285713,
+     "selectFilled": 35,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.10326944444444444,
+     "confirmFilled": 36,
+     "selectE": null,
+     "selectFilled": 24,
+     "threshold": 80
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 29,
+     "selectE": null,
+     "selectFilled": 16,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 11,
+     "selectE": null,
+     "selectFilled": 7,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "CAKEUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.20981984732824444,
+     "confirmFilled": 262,
+     "selectE": -0.08646468531468533,
+     "selectFilled": 286,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.20981984732824444,
+     "confirmFilled": 262,
+     "selectE": -0.08646468531468533,
+     "selectFilled": 286,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.20981984732824444,
+     "confirmFilled": 262,
+     "selectE": -0.08646468531468533,
+     "selectFilled": 286,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.20981984732824444,
+     "confirmFilled": 262,
+     "selectE": -0.08646468531468533,
+     "selectFilled": 286,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.20981984732824444,
+     "confirmFilled": 262,
+     "selectE": -0.08646468531468533,
+     "selectFilled": 286,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.20981984732824444,
+     "confirmFilled": 262,
+     "selectE": -0.08646468531468533,
+     "selectFilled": 286,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.21475307692307705,
+     "confirmFilled": 260,
+     "selectE": -0.09167253521126766,
+     "selectFilled": 284,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.21093147410358576,
+     "confirmFilled": 251,
+     "selectE": -0.08808798586572442,
+     "selectFilled": 283,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.21224166666666677,
+     "confirmFilled": 240,
+     "selectE": -0.09884222222222226,
+     "selectFilled": 270,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.2078563063063063,
+     "confirmFilled": 222,
+     "selectE": -0.07476972111553787,
+     "selectFilled": 251,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.1876297435897436,
+     "confirmFilled": 195,
+     "selectE": -0.049719911504424806,
+     "selectFilled": 226,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.1888398843930636,
+     "confirmFilled": 173,
+     "selectE": -0.04802350000000002,
+     "selectFilled": 200,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.17082258064516131,
+     "confirmFilled": 155,
+     "selectE": -0.06899438202247193,
+     "selectFilled": 178,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.15317857142857141,
+     "confirmFilled": 126,
+     "selectE": -0.008129197080292078,
+     "selectFilled": 137,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.1529467889908256,
+     "confirmFilled": 109,
+     "selectE": 0.03382203389830508,
+     "selectFilled": 118,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.12021212121212119,
+     "confirmFilled": 99,
+     "selectE": 0.04596899999999997,
+     "selectFilled": 100,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.17251791044776113,
+     "confirmFilled": 67,
+     "selectE": 0.10974605263157888,
+     "selectFilled": 76,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.3005294117647058,
+     "confirmFilled": 51,
+     "selectE": 0.0773777777777777,
+     "selectFilled": 54,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 8,
+     "selectE": null,
+     "selectFilled": 17,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 1,
+     "selectE": null,
+     "selectFilled": 1,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "PAUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.1489748299319728,
+     "confirmFilled": 147,
+     "selectE": -0.12208257575757578,
+     "selectFilled": 132,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.1489748299319728,
+     "confirmFilled": 147,
+     "selectE": -0.12208257575757578,
+     "selectFilled": 132,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.1489748299319728,
+     "confirmFilled": 147,
+     "selectE": -0.12208257575757578,
+     "selectFilled": 132,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.1489748299319728,
+     "confirmFilled": 147,
+     "selectE": -0.12208257575757578,
+     "selectFilled": 132,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.1489748299319728,
+     "confirmFilled": 147,
+     "selectE": -0.12208257575757578,
+     "selectFilled": 132,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.15707534246575344,
+     "confirmFilled": 146,
+     "selectE": -0.12208257575757578,
+     "selectFilled": 132,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.16011103448275862,
+     "confirmFilled": 145,
+     "selectE": -0.11757938931297708,
+     "selectFilled": 131,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.14790437956204378,
+     "confirmFilled": 137,
+     "selectE": -0.13871562500000004,
+     "selectFilled": 128,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.16288931297709927,
+     "confirmFilled": 131,
+     "selectE": -0.1271288,
+     "selectFilled": 125,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.14086083333333335,
+     "confirmFilled": 120,
+     "selectE": -0.148591743119266,
+     "selectFilled": 109,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.15166923076923078,
+     "confirmFilled": 104,
+     "selectE": -0.15695744680851068,
+     "selectFilled": 94,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.11607023809523812,
+     "confirmFilled": 84,
+     "selectE": -0.20891772151898735,
+     "selectFilled": 79,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.08716578947368427,
+     "confirmFilled": 76,
+     "selectE": -0.20535142857142857,
+     "selectFilled": 70,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.006945312499999992,
+     "confirmFilled": 64,
+     "selectE": -0.12656326530612244,
+     "selectFilled": 49,
+     "threshold": 65
+    },
+    {
+     "confirmE": 0.02788333333333332,
+     "confirmFilled": 54,
+     "selectE": -0.15298536585365854,
+     "selectFilled": 41,
+     "threshold": 70
+    },
+    {
+     "confirmE": 0.05828499999999996,
+     "confirmFilled": 40,
+     "selectE": null,
+     "selectFilled": 29,
+     "threshold": 75
+    },
+    {
+     "confirmE": 0.10605333333333332,
+     "confirmFilled": 30,
+     "selectE": null,
+     "selectFilled": 24,
+     "threshold": 80
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 17,
+     "selectE": null,
+     "selectFilled": 9,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 7,
+     "selectE": null,
+     "selectFilled": 3,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 1,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "DASHUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.1174939743589744,
+     "confirmFilled": 780,
+     "selectE": -0.06703134684147796,
+     "selectFilled": 839,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.1174939743589744,
+     "confirmFilled": 780,
+     "selectE": -0.06703134684147796,
+     "selectFilled": 839,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.1174939743589744,
+     "confirmFilled": 780,
+     "selectE": -0.06703134684147796,
+     "selectFilled": 839,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.1174939743589744,
+     "confirmFilled": 780,
+     "selectE": -0.06703134684147796,
+     "selectFilled": 839,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.1174939743589744,
+     "confirmFilled": 780,
+     "selectE": -0.06703134684147796,
+     "selectFilled": 839,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.1174939743589744,
+     "confirmFilled": 780,
+     "selectE": -0.06703134684147796,
+     "selectFilled": 839,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.11996752577319594,
+     "confirmFilled": 776,
+     "selectE": -0.0707689448441247,
+     "selectFilled": 834,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.11875734908136487,
+     "confirmFilled": 762,
+     "selectE": -0.07212359413202933,
+     "selectFilled": 818,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.11888902439024392,
+     "confirmFilled": 738,
+     "selectE": -0.07771289910600257,
+     "selectFilled": 783,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.11597716763005775,
+     "confirmFilled": 692,
+     "selectE": -0.08074016282225242,
+     "selectFilled": 737,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.13000187793427226,
+     "confirmFilled": 639,
+     "selectE": -0.08155214814814814,
+     "selectFilled": 675,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.12848409893992954,
+     "confirmFilled": 566,
+     "selectE": -0.05890290598290602,
+     "selectFilled": 585,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.1342497942386832,
+     "confirmFilled": 486,
+     "selectE": -0.0660704500978474,
+     "selectFilled": 511,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.12611534526854215,
+     "confirmFilled": 391,
+     "selectE": -0.06791275626423693,
+     "selectFilled": 439,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.13678730650154808,
+     "confirmFilled": 323,
+     "selectE": -0.05926757493188014,
+     "selectFilled": 367,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.12616511627906984,
+     "confirmFilled": 258,
+     "selectE": -0.06924478114478125,
+     "selectFilled": 297,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.11653387096774188,
+     "confirmFilled": 186,
+     "selectE": -0.027267391304347834,
+     "selectFilled": 230,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.0746458015267176,
+     "confirmFilled": 131,
+     "selectE": 0.005114792899408295,
+     "selectFilled": 169,
+     "threshold": 85
+    },
+    {
+     "confirmE": 0.11098870967741935,
+     "confirmFilled": 62,
+     "selectE": -0.013219718309859126,
+     "selectFilled": 71,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 17,
+     "selectE": null,
+     "selectFilled": 14,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "GRTUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.08199048414023376,
+     "confirmFilled": 599,
+     "selectE": -0.17103874458874468,
+     "selectFilled": 462,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.08199048414023376,
+     "confirmFilled": 599,
+     "selectE": -0.17103874458874468,
+     "selectFilled": 462,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.08199048414023376,
+     "confirmFilled": 599,
+     "selectE": -0.17103874458874468,
+     "selectFilled": 462,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.08199048414023376,
+     "confirmFilled": 599,
+     "selectE": -0.17103874458874468,
+     "selectFilled": 462,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.08199048414023376,
+     "confirmFilled": 599,
+     "selectE": -0.17103874458874468,
+     "selectFilled": 462,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.08199048414023376,
+     "confirmFilled": 599,
+     "selectE": -0.17103874458874468,
+     "selectFilled": 462,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.08419312080536916,
+     "confirmFilled": 596,
+     "selectE": -0.17122440087145982,
+     "selectFilled": 459,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.08803310580204786,
+     "confirmFilled": 586,
+     "selectE": -0.1704735229759301,
+     "selectFilled": 457,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.09100160142348755,
+     "confirmFilled": 562,
+     "selectE": -0.17825590909090921,
+     "selectFilled": 440,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.07758238636363636,
+     "confirmFilled": 528,
+     "selectE": -0.1763545454545456,
+     "selectFilled": 407,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.08123006134969324,
+     "confirmFilled": 489,
+     "selectE": -0.1665747967479675,
+     "selectFilled": 369,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.08410630841121493,
+     "confirmFilled": 428,
+     "selectE": -0.17497165109034266,
+     "selectFilled": 321,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.1172579787234042,
+     "confirmFilled": 376,
+     "selectE": -0.17141423487544485,
+     "selectFilled": 281,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.11922987421383642,
+     "confirmFilled": 318,
+     "selectE": -0.14908122270742352,
+     "selectFilled": 229,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.06638805970149259,
+     "confirmFilled": 268,
+     "selectE": -0.14366030927835044,
+     "selectFilled": 194,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.07785252100840344,
+     "confirmFilled": 238,
+     "selectE": -0.14586385542168667,
+     "selectFilled": 166,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.028424858757062157,
+     "confirmFilled": 177,
+     "selectE": -0.15423257575757562,
+     "selectFilled": 132,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.05335333333333334,
+     "confirmFilled": 150,
+     "selectE": -0.166701923076923,
+     "selectFilled": 104,
+     "threshold": 85
+    },
+    {
+     "confirmE": 0.008608333333333343,
+     "confirmFilled": 48,
+     "selectE": -0.10647333333333335,
+     "selectFilled": 60,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 5,
+     "selectE": null,
+     "selectFilled": 9,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "ZLUSX": {
+   "candidates": [
+    {
+     "confirmE": 0.00012820512820511267,
+     "confirmFilled": 156,
+     "selectE": -0.05631677852348993,
+     "selectFilled": 149,
+     "threshold": 0
+    },
+    {
+     "confirmE": 0.00012820512820511267,
+     "confirmFilled": 156,
+     "selectE": -0.05631677852348993,
+     "selectFilled": 149,
+     "threshold": 5
+    },
+    {
+     "confirmE": 0.00012820512820511267,
+     "confirmFilled": 156,
+     "selectE": -0.05631677852348993,
+     "selectFilled": 149,
+     "threshold": 10
+    },
+    {
+     "confirmE": 0.00012820512820511267,
+     "confirmFilled": 156,
+     "selectE": -0.05631677852348993,
+     "selectFilled": 149,
+     "threshold": 15
+    },
+    {
+     "confirmE": 0.00012820512820511267,
+     "confirmFilled": 156,
+     "selectE": -0.05631677852348993,
+     "selectFilled": 149,
+     "threshold": 20
+    },
+    {
+     "confirmE": 0.00012820512820511267,
+     "confirmFilled": 156,
+     "selectE": -0.06028243243243243,
+     "selectFilled": 148,
+     "threshold": 25
+    },
+    {
+     "confirmE": 0.006600662251655617,
+     "confirmFilled": 151,
+     "selectE": -0.06028243243243243,
+     "selectFilled": 148,
+     "threshold": 30
+    },
+    {
+     "confirmE": 0.007110958904109577,
+     "confirmFilled": 146,
+     "selectE": -0.05345986394557824,
+     "selectFilled": 147,
+     "threshold": 35
+    },
+    {
+     "confirmE": 0.011914583333333319,
+     "confirmFilled": 144,
+     "selectE": -0.06146760563380283,
+     "selectFilled": 142,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.010916541353383461,
+     "confirmFilled": 133,
+     "selectE": -0.04914274809160307,
+     "selectFilled": 131,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.014162500000000017,
+     "confirmFilled": 120,
+     "selectE": -0.05843697478991598,
+     "selectFilled": 119,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.014191743119266027,
+     "confirmFilled": 109,
+     "selectE": -0.03610808080808083,
+     "selectFilled": 99,
+     "threshold": 55
+    },
+    {
+     "confirmE": 0.00607878787878788,
+     "confirmFilled": 99,
+     "selectE": -0.01594831460674158,
+     "selectFilled": 89,
+     "threshold": 60
+    },
+    {
+     "confirmE": 0.05716419753086416,
+     "confirmFilled": 81,
+     "selectE": -0.06192428571428574,
+     "selectFilled": 70,
+     "threshold": 65
+    },
+    {
+     "confirmE": 0.06416029411764702,
+     "confirmFilled": 68,
+     "selectE": -0.07360156250000004,
+     "selectFilled": 64,
+     "threshold": 70
+    },
+    {
+     "confirmE": 0.017258490566037735,
+     "confirmFilled": 53,
+     "selectE": -0.0705903846153846,
+     "selectFilled": 52,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.033927272727272736,
+     "confirmFilled": 44,
+     "selectE": -0.0854421052631579,
+     "selectFilled": 38,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.10013333333333334,
+     "confirmFilled": 30,
+     "selectE": null,
+     "selectFilled": 25,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 11,
+     "selectE": null,
+     "selectFilled": 13,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "DOGEUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.15948476658476668,
+     "confirmFilled": 814,
+     "selectE": -0.06142039072039073,
+     "selectFilled": 819,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.15948476658476668,
+     "confirmFilled": 814,
+     "selectE": -0.06142039072039073,
+     "selectFilled": 819,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.15948476658476668,
+     "confirmFilled": 814,
+     "selectE": -0.06142039072039073,
+     "selectFilled": 819,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.15948476658476668,
+     "confirmFilled": 814,
+     "selectE": -0.06142039072039073,
+     "selectFilled": 819,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.15948476658476668,
+     "confirmFilled": 814,
+     "selectE": -0.06142039072039073,
+     "selectFilled": 819,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.15948476658476668,
+     "confirmFilled": 814,
+     "selectE": -0.06142039072039073,
+     "selectFilled": 819,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.15977543424317636,
+     "confirmFilled": 806,
+     "selectE": -0.05947058823529412,
+     "selectFilled": 816,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.1574413265306125,
+     "confirmFilled": 784,
+     "selectE": -0.059868803945745994,
+     "selectFilled": 811,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.1476562584118439,
+     "confirmFilled": 743,
+     "selectE": -0.06242634961439589,
+     "selectFilled": 778,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.15164675324675336,
+     "confirmFilled": 693,
+     "selectE": -0.05599078212290504,
+     "selectFilled": 716,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.1441529225908374,
+     "confirmFilled": 633,
+     "selectE": -0.057006811145510816,
+     "selectFilled": 646,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.14442293577981669,
+     "confirmFilled": 545,
+     "selectE": -0.04160105078809105,
+     "selectFilled": 571,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.13195761316872434,
+     "confirmFilled": 486,
+     "selectE": -0.05831673151750973,
+     "selectFilled": 514,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.12670776699029135,
+     "confirmFilled": 412,
+     "selectE": -0.0714683698296837,
+     "selectFilled": 411,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.13348632478632488,
+     "confirmFilled": 351,
+     "selectE": -0.07393447204968945,
+     "selectFilled": 322,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.14110696864111505,
+     "confirmFilled": 287,
+     "selectE": -0.05044107883817428,
+     "selectFilled": 241,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.17158963730569943,
+     "confirmFilled": 193,
+     "selectE": -0.038460606060606056,
+     "selectFilled": 165,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.20566535947712417,
+     "confirmFilled": 153,
+     "selectE": -0.06276725663716816,
+     "selectFilled": 113,
+     "threshold": 85
+    },
+    {
+     "confirmE": -0.24737708333333333,
+     "confirmFilled": 48,
+     "selectE": null,
+     "selectFilled": 27,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 5,
+     "selectE": null,
+     "selectFilled": 5,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "HBARUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.16100153452685426,
+     "confirmFilled": 391,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.16100153452685426,
+     "confirmFilled": 391,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.16100153452685426,
+     "confirmFilled": 391,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.16100153452685426,
+     "confirmFilled": 391,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.16100153452685426,
+     "confirmFilled": 391,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.1586364102564103,
+     "confirmFilled": 390,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.16217700258397938,
+     "confirmFilled": 387,
+     "selectE": -0.091421270718232,
+     "selectFilled": 362,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.1574319480519481,
+     "confirmFilled": 385,
+     "selectE": -0.08587310924369747,
+     "selectFilled": 357,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.15971962365591402,
+     "confirmFilled": 372,
+     "selectE": -0.08640898550724635,
+     "selectFilled": 345,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.14478922155688628,
+     "confirmFilled": 334,
+     "selectE": -0.0780066037735849,
+     "selectFilled": 318,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.14872880794701993,
+     "confirmFilled": 302,
+     "selectE": -0.07631946308724831,
+     "selectFilled": 298,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.16059153846153848,
+     "confirmFilled": 260,
+     "selectE": -0.0782033088235294,
+     "selectFilled": 272,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.16520432900432902,
+     "confirmFilled": 231,
+     "selectE": -0.08034518828451878,
+     "selectFilled": 239,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.14512795698924733,
+     "confirmFilled": 186,
+     "selectE": -0.08861039603960393,
+     "selectFilled": 202,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.1313850931677019,
+     "confirmFilled": 161,
+     "selectE": -0.09189036144578311,
+     "selectFilled": 166,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.12091901408450707,
+     "confirmFilled": 142,
+     "selectE": -0.08298702290076335,
+     "selectFilled": 131,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.09219519230769231,
+     "confirmFilled": 104,
+     "selectE": -0.08726464646464649,
+     "selectFilled": 99,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.007970238095238094,
+     "confirmFilled": 84,
+     "selectE": -0.02264074074074073,
+     "selectFilled": 81,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 17,
+     "selectE": 0.05618085106382979,
+     "selectFilled": 47,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 3,
+     "selectE": null,
+     "selectFilled": 19,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "ZMUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.060702797202797205,
+     "confirmFilled": 143,
+     "selectE": 0.047328571428571456,
+     "selectFilled": 154,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.04731285714285714,
+     "confirmFilled": 140,
+     "selectE": 0.051984105960264884,
+     "selectFilled": 151,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.0762206106870229,
+     "confirmFilled": 131,
+     "selectE": 0.05139865771812082,
+     "selectFilled": 149,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.06608360655737702,
+     "confirmFilled": 122,
+     "selectE": 0.06526666666666671,
+     "selectFilled": 141,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.06174150943396227,
+     "confirmFilled": 106,
+     "selectE": 0.07276015625000003,
+     "selectFilled": 128,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.07824270833333333,
+     "confirmFilled": 96,
+     "selectE": 0.04375929203539826,
+     "selectFilled": 113,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.06234111111111114,
+     "confirmFilled": 90,
+     "selectE": -0.03410000000000001,
+     "selectFilled": 96,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.038817241379310356,
+     "confirmFilled": 58,
+     "selectE": 0.030944736842105303,
+     "selectFilled": 76,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.056635555555555585,
+     "confirmFilled": 45,
+     "selectE": 0.021351470588235336,
+     "selectFilled": 68,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.08121875,
+     "confirmFilled": 32,
+     "selectE": -0.17161090909090906,
+     "selectFilled": 55,
+     "threshold": 75
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 24,
+     "selectE": -0.19815128205128205,
+     "selectFilled": 39,
+     "threshold": 80
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 19,
+     "selectE": null,
+     "selectFilled": 24,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 7,
+     "selectE": null,
+     "selectFilled": 9,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "IMXUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.10784305835010062,
+     "confirmFilled": 497,
+     "selectE": -0.10323994708994724,
+     "selectFilled": 378,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.10784305835010062,
+     "confirmFilled": 497,
+     "selectE": -0.10323994708994724,
+     "selectFilled": 378,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.10784305835010062,
+     "confirmFilled": 497,
+     "selectE": -0.10323994708994724,
+     "selectFilled": 378,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.10784305835010062,
+     "confirmFilled": 497,
+     "selectE": -0.10323994708994724,
+     "selectFilled": 378,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.10784305835010062,
+     "confirmFilled": 497,
+     "selectE": -0.10323994708994724,
+     "selectFilled": 378,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.10784305835010062,
+     "confirmFilled": 497,
+     "selectE": -0.10323994708994724,
+     "selectFilled": 378,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.11055618661257607,
+     "confirmFilled": 493,
+     "selectE": -0.10061600000000015,
+     "selectFilled": 375,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.09699834024896266,
+     "confirmFilled": 482,
+     "selectE": -0.10382255434782629,
+     "selectFilled": 368,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.08008125000000002,
+     "confirmFilled": 464,
+     "selectE": -0.11936235955056189,
+     "selectFilled": 356,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.07113842592592598,
+     "confirmFilled": 432,
+     "selectE": -0.11301415929203565,
+     "selectFilled": 339,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.060555958549222806,
+     "confirmFilled": 386,
+     "selectE": -0.12610964630225102,
+     "selectFilled": 311,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.06644441176470586,
+     "confirmFilled": 340,
+     "selectE": -0.13145671641791068,
+     "selectFilled": 268,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.09182635135135134,
+     "confirmFilled": 296,
+     "selectE": -0.1664738738738741,
+     "selectFilled": 222,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.08783520000000003,
+     "confirmFilled": 250,
+     "selectE": -0.19120979381443323,
+     "selectFilled": 194,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.08557945205479453,
+     "confirmFilled": 219,
+     "selectE": -0.18326766467065872,
+     "selectFilled": 167,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.04653516483516484,
+     "confirmFilled": 182,
+     "selectE": -0.20825281690140848,
+     "selectFilled": 142,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.03222868852459019,
+     "confirmFilled": 122,
+     "selectE": -0.2079611650485437,
+     "selectFilled": 103,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.055720253164556977,
+     "confirmFilled": 79,
+     "selectE": -0.26799599999999996,
+     "selectFilled": 75,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 28,
+     "selectE": -0.320025641025641,
+     "selectFilled": 39,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 2,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "UNIUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.09795323129251703,
+     "confirmFilled": 588,
+     "selectE": -0.050483229813664564,
+     "selectFilled": 483,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.09795323129251703,
+     "confirmFilled": 588,
+     "selectE": -0.050483229813664564,
+     "selectFilled": 483,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.09795323129251703,
+     "confirmFilled": 588,
+     "selectE": -0.050483229813664564,
+     "selectFilled": 483,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.09795323129251703,
+     "confirmFilled": 588,
+     "selectE": -0.050483229813664564,
+     "selectFilled": 483,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.09795323129251703,
+     "confirmFilled": 588,
+     "selectE": -0.050483229813664564,
+     "selectFilled": 483,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.09795323129251703,
+     "confirmFilled": 588,
+     "selectE": -0.050483229813664564,
+     "selectFilled": 483,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.09848921232876717,
+     "confirmFilled": 584,
+     "selectE": -0.05361858037578285,
+     "selectFilled": 479,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.10157084805653713,
+     "confirmFilled": 566,
+     "selectE": -0.05311869747899156,
+     "selectFilled": 476,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.10149019963702363,
+     "confirmFilled": 551,
+     "selectE": -0.05081140350877191,
+     "selectFilled": 456,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.09218129921259839,
+     "confirmFilled": 508,
+     "selectE": -0.056233806146572085,
+     "selectFilled": 423,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.10594806866952788,
+     "confirmFilled": 466,
+     "selectE": -0.060957069408740336,
+     "selectFilled": 389,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.10670677966101696,
+     "confirmFilled": 413,
+     "selectE": -0.06293230337078654,
+     "selectFilled": 356,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.10641626016260165,
+     "confirmFilled": 369,
+     "selectE": -0.047281350482315146,
+     "selectFilled": 311,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.08611189710610934,
+     "confirmFilled": 311,
+     "selectE": -0.06970778210116729,
+     "selectFilled": 257,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.08058609022556393,
+     "confirmFilled": 266,
+     "selectE": -0.06877416267942585,
+     "selectFilled": 209,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.07285000000000001,
+     "confirmFilled": 218,
+     "selectE": -0.08377401129943503,
+     "selectFilled": 177,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.0785815028901734,
+     "confirmFilled": 173,
+     "selectE": -0.14903906249999993,
+     "selectFilled": 128,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.10236382978723405,
+     "confirmFilled": 141,
+     "selectE": -0.1712802197802198,
+     "selectFilled": 91,
+     "threshold": 85
+    },
+    {
+     "confirmE": -0.12692653061224488,
+     "confirmFilled": 49,
+     "selectE": -0.18214117647058825,
+     "selectFilled": 34,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 6,
+     "selectE": null,
+     "selectFilled": 6,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "LINKUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.025805305039787802,
+     "confirmFilled": 754,
+     "selectE": -0.0629269607843137,
+     "selectFilled": 612,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.025805305039787802,
+     "confirmFilled": 754,
+     "selectE": -0.0629269607843137,
+     "selectFilled": 612,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.025805305039787802,
+     "confirmFilled": 754,
+     "selectE": -0.0629269607843137,
+     "selectFilled": 612,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.025805305039787802,
+     "confirmFilled": 754,
+     "selectE": -0.0629269607843137,
+     "selectFilled": 612,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.025805305039787802,
+     "confirmFilled": 754,
+     "selectE": -0.0629269607843137,
+     "selectFilled": 612,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.025805305039787802,
+     "confirmFilled": 754,
+     "selectE": -0.0629269607843137,
+     "selectFilled": 612,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.022373733333333354,
+     "confirmFilled": 750,
+     "selectE": -0.05983776683087023,
+     "selectFilled": 609,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.019276261937244202,
+     "confirmFilled": 733,
+     "selectE": -0.06324407345575957,
+     "selectFilled": 599,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.01936875000000001,
+     "confirmFilled": 704,
+     "selectE": -0.058450796460176986,
+     "selectFilled": 565,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.021569637462235655,
+     "confirmFilled": 662,
+     "selectE": -0.05447702702702705,
+     "selectFilled": 518,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.017386991869918714,
+     "confirmFilled": 615,
+     "selectE": -0.06691225806451617,
+     "selectFilled": 465,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.032164895635673596,
+     "confirmFilled": 527,
+     "selectE": -0.08175225653206655,
+     "selectFilled": 421,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.02215434782608697,
+     "confirmFilled": 460,
+     "selectE": -0.09615292553191487,
+     "selectFilled": 376,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.01985649867374003,
+     "confirmFilled": 377,
+     "selectE": -0.07806534653465347,
+     "selectFilled": 303,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.02257339449541284,
+     "confirmFilled": 327,
+     "selectE": -0.12180491803278684,
+     "selectFilled": 244,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.02827928571428572,
+     "confirmFilled": 280,
+     "selectE": -0.1440445652173912,
+     "selectFilled": 184,
+     "threshold": 75
+    },
+    {
+     "confirmE": 0.001464251207729479,
+     "confirmFilled": 207,
+     "selectE": -0.15855037593984966,
+     "selectFilled": 133,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.024850292397660827,
+     "confirmFilled": 171,
+     "selectE": -0.20697326732673274,
+     "selectFilled": 101,
+     "threshold": 85
+    },
+    {
+     "confirmE": 0.017102777777777776,
+     "confirmFilled": 72,
+     "selectE": null,
+     "selectFilled": 28,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 12,
+     "selectE": null,
+     "selectFilled": 6,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "XLMUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.10800584795321642,
+     "confirmFilled": 855,
+     "selectE": -0.009837857142857127,
+     "selectFilled": 700,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.10800584795321642,
+     "confirmFilled": 855,
+     "selectE": -0.009837857142857127,
+     "selectFilled": 700,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.10800584795321642,
+     "confirmFilled": 855,
+     "selectE": -0.009837857142857127,
+     "selectFilled": 700,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.10800584795321642,
+     "confirmFilled": 855,
+     "selectE": -0.009837857142857127,
+     "selectFilled": 700,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.10800584795321642,
+     "confirmFilled": 855,
+     "selectE": -0.009837857142857127,
+     "selectFilled": 700,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.10800584795321642,
+     "confirmFilled": 855,
+     "selectE": -0.009837857142857127,
+     "selectFilled": 700,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.10930869565217399,
+     "confirmFilled": 851,
+     "selectE": -0.009743919885550763,
+     "selectFilled": 699,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.11308762019230774,
+     "confirmFilled": 832,
+     "selectE": -0.012909261939218512,
+     "selectFilled": 691,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.11122276119402993,
+     "confirmFilled": 804,
+     "selectE": -0.020585648854961794,
+     "selectFilled": 655,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.1151822341857336,
+     "confirmFilled": 743,
+     "selectE": -0.0311314144736842,
+     "selectFilled": 608,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.12181748148148151,
+     "confirmFilled": 675,
+     "selectE": -0.03943956442831216,
+     "selectFilled": 551,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.12559142857142863,
+     "confirmFilled": 595,
+     "selectE": -0.043802286902286935,
+     "selectFilled": 481,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.12646278625954196,
+     "confirmFilled": 524,
+     "selectE": -0.032478240740740745,
+     "selectFilled": 432,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.12010324825986088,
+     "confirmFilled": 431,
+     "selectE": -0.020141359773371118,
+     "selectFilled": 353,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.12251965811965818,
+     "confirmFilled": 351,
+     "selectE": -0.05442642857142864,
+     "selectFilled": 280,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.11987322033898305,
+     "confirmFilled": 295,
+     "selectE": -0.08681777777777785,
+     "selectFilled": 225,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.10139282051282042,
+     "confirmFilled": 195,
+     "selectE": -0.00890120481927713,
+     "selectFilled": 166,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.11443382352941167,
+     "confirmFilled": 136,
+     "selectE": -0.028379338842975152,
+     "selectFilled": 121,
+     "threshold": 85
+    },
+    {
+     "confirmE": -0.044259523809523776,
+     "confirmFilled": 42,
+     "selectE": null,
+     "selectFilled": 27,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 5,
+     "selectE": null,
+     "selectFilled": 4,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "ZOUSX": {
+   "candidates": [
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.1699204081632653,
+     "confirmFilled": 49,
+     "selectE": -0.19636777777777767,
+     "selectFilled": 90,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.1942104166666666,
+     "confirmFilled": 48,
+     "selectE": -0.20261529411764703,
+     "selectFilled": 85,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.17694255319148933,
+     "confirmFilled": 47,
+     "selectE": -0.20612048192771082,
+     "selectFilled": 83,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.118125,
+     "confirmFilled": 44,
+     "selectE": -0.18740125000000002,
+     "selectFilled": 80,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.1091925,
+     "confirmFilled": 40,
+     "selectE": -0.21035066666666663,
+     "selectFilled": 75,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.06592647058823528,
+     "confirmFilled": 34,
+     "selectE": -0.15579402985074628,
+     "selectFilled": 67,
+     "threshold": 55
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 27,
+     "selectE": -0.1347676923076923,
+     "selectFilled": 65,
+     "threshold": 60
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 19,
+     "selectE": -0.09858275862068958,
+     "selectFilled": 58,
+     "threshold": 65
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 14,
+     "selectE": -0.055618000000000035,
+     "selectFilled": 50,
+     "threshold": 70
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 12,
+     "selectE": -0.09112682926829264,
+     "selectFilled": 41,
+     "threshold": 75
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 8,
+     "selectE": null,
+     "selectFilled": 26,
+     "threshold": 80
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 5,
+     "selectE": null,
+     "selectFilled": 20,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 3,
+     "selectE": null,
+     "selectFilled": 12,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "NSDQ": {
+   "candidates": [
+    {
+     "confirmE": -0.0035722222222222093,
+     "confirmFilled": 54,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.0035722222222222093,
+     "confirmFilled": 54,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.0035722222222222093,
+     "confirmFilled": 54,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.0035722222222222093,
+     "confirmFilled": 54,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.0035722222222222093,
+     "confirmFilled": 54,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.0035722222222222093,
+     "confirmFilled": 54,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.010920754716981122,
+     "confirmFilled": 53,
+     "selectE": 0.2504522727272727,
+     "selectFilled": 44,
+     "threshold": 30
+    },
+    {
+     "confirmE": 0.0008940000000000103,
+     "confirmFilled": 50,
+     "selectE": 0.23423333333333332,
+     "selectFilled": 39,
+     "threshold": 35
+    },
+    {
+     "confirmE": 0.0161936170212766,
+     "confirmFilled": 47,
+     "selectE": 0.22507105263157895,
+     "selectFilled": 38,
+     "threshold": 40
+    },
+    {
+     "confirmE": 0.021773333333333342,
+     "confirmFilled": 45,
+     "selectE": 0.19295142857142852,
+     "selectFilled": 35,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.01797380952380952,
+     "confirmFilled": 42,
+     "selectE": 0.13833225806451616,
+     "selectFilled": 31,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.031235000000000002,
+     "confirmFilled": 40,
+     "selectE": null,
+     "selectFilled": 27,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.042741176470588255,
+     "confirmFilled": 34,
+     "selectE": null,
+     "selectFilled": 24,
+     "threshold": 60
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 27,
+     "selectE": null,
+     "selectFilled": 22,
+     "threshold": 65
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 25,
+     "selectE": null,
+     "selectFilled": 20,
+     "threshold": 70
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 25,
+     "selectE": null,
+     "selectFilled": 18,
+     "threshold": 75
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 17,
+     "selectE": null,
+     "selectFilled": 16,
+     "threshold": 80
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 14,
+     "selectE": null,
+     "selectFilled": 12,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 7,
+     "selectE": null,
+     "selectFilled": 6,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 1,
+     "selectE": null,
+     "selectFilled": 1,
+     "threshold": 95
+    }
+   ],
+   "rescue": {
+    "confirmE": 0.0008940000000000103,
+    "confirmFilled": 50,
+    "selectE": 0.23423333333333332,
+    "selectFilled": 39,
+    "threshold": 35
+   }
+  },
+  "EGLDUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.3300644444444444,
+     "confirmFilled": 450,
+     "selectE": -0.27012938005390846,
+     "selectFilled": 371,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.3300644444444444,
+     "confirmFilled": 450,
+     "selectE": -0.27012938005390846,
+     "selectFilled": 371,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.3300644444444444,
+     "confirmFilled": 450,
+     "selectE": -0.27012938005390846,
+     "selectFilled": 371,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.3300644444444444,
+     "confirmFilled": 450,
+     "selectE": -0.27012938005390846,
+     "selectFilled": 371,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.3300644444444444,
+     "confirmFilled": 450,
+     "selectE": -0.27012938005390846,
+     "selectFilled": 371,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.3300644444444444,
+     "confirmFilled": 450,
+     "selectE": -0.27012938005390846,
+     "selectFilled": 371,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.3287760722347629,
+     "confirmFilled": 443,
+     "selectE": -0.27546820652173926,
+     "selectFilled": 368,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.32915841121495326,
+     "confirmFilled": 428,
+     "selectE": -0.27344765840220386,
+     "selectFilled": 363,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.3184794621026895,
+     "confirmFilled": 409,
+     "selectE": -0.28362492836676223,
+     "selectFilled": 349,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.30351333333333347,
+     "confirmFilled": 375,
+     "selectE": -0.27186934984520134,
+     "selectFilled": 323,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.3063352583586627,
+     "confirmFilled": 329,
+     "selectE": -0.2889856164383562,
+     "selectFilled": 292,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.3169699633699634,
+     "confirmFilled": 273,
+     "selectE": -0.292470472440945,
+     "selectFilled": 254,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.3291369477911648,
+     "confirmFilled": 249,
+     "selectE": -0.28964778761061954,
+     "selectFilled": 226,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.3033570093457944,
+     "confirmFilled": 214,
+     "selectE": -0.27751058201058204,
+     "selectFilled": 189,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.30081807909604513,
+     "confirmFilled": 177,
+     "selectE": -0.3050952662721893,
+     "selectFilled": 169,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.3382797385620915,
+     "confirmFilled": 153,
+     "selectE": -0.2997496402877698,
+     "selectFilled": 139,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.3297701923076922,
+     "confirmFilled": 104,
+     "selectE": -0.2827663157894737,
+     "selectFilled": 95,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.3764616279069768,
+     "confirmFilled": 86,
+     "selectE": -0.22985180722891557,
+     "selectFilled": 83,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 1,
+     "selectE": null,
+     "selectFilled": 1,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "LTCUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.009144050343249442,
+     "confirmFilled": 874,
+     "selectE": 0.04468473581213307,
+     "selectFilled": 1022,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.009144050343249442,
+     "confirmFilled": 874,
+     "selectE": 0.04468473581213307,
+     "selectFilled": 1022,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.009144050343249442,
+     "confirmFilled": 874,
+     "selectE": 0.04468473581213307,
+     "selectFilled": 1022,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.009144050343249442,
+     "confirmFilled": 874,
+     "selectE": 0.04468473581213307,
+     "selectFilled": 1022,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.009144050343249442,
+     "confirmFilled": 874,
+     "selectE": 0.04468473581213307,
+     "selectFilled": 1022,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.009144050343249442,
+     "confirmFilled": 874,
+     "selectE": 0.0440892156862745,
+     "selectFilled": 1020,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.00880792192881747,
+     "confirmFilled": 871,
+     "selectE": 0.042925024630541854,
+     "selectFilled": 1015,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.007893286219081279,
+     "confirmFilled": 849,
+     "selectE": 0.04297215568862274,
+     "selectFilled": 1002,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.013609924623115579,
+     "confirmFilled": 796,
+     "selectE": 0.0475342582710779,
+     "selectFilled": 937,
+     "threshold": 40
+    },
+    {
+     "confirmE": 0.00012143845089904869,
+     "confirmFilled": 723,
+     "selectE": 0.06348062283737028,
+     "selectFilled": 867,
+     "threshold": 45
+    },
+    {
+     "confirmE": 0.014923244929797224,
+     "confirmFilled": 641,
+     "selectE": 0.057294897959183695,
+     "selectFilled": 784,
+     "threshold": 50
+    },
+    {
+     "confirmE": 0.014576,
+     "confirmFilled": 575,
+     "selectE": 0.05761805359661495,
+     "selectFilled": 709,
+     "threshold": 55
+    },
+    {
+     "confirmE": 0.02208206106870228,
+     "confirmFilled": 524,
+     "selectE": 0.04968509615384612,
+     "selectFilled": 624,
+     "threshold": 60
+    },
+    {
+     "confirmE": 0.01269905660377359,
+     "confirmFilled": 424,
+     "selectE": 0.036077525773195854,
+     "selectFilled": 485,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.029779999999999994,
+     "confirmFilled": 335,
+     "selectE": 0.019987594936708836,
+     "selectFilled": 395,
+     "threshold": 70
+    },
+    {
+     "confirmE": 0.006446240601503787,
+     "confirmFilled": 266,
+     "selectE": 0.08534814814814816,
+     "selectFilled": 297,
+     "threshold": 75
+    },
+    {
+     "confirmE": 0.030166145833333314,
+     "confirmFilled": 192,
+     "selectE": 0.0756074626865672,
+     "selectFilled": 201,
+     "threshold": 80
+    },
+    {
+     "confirmE": 0.013286419753086424,
+     "confirmFilled": 162,
+     "selectE": 0.09366358024691362,
+     "selectFilled": 162,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 1,
+     "selectE": null,
+     "selectFilled": 10,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 0,
+     "threshold": 95
+    }
+   ],
+   "rescue": {
+    "confirmE": 0.00012143845089904869,
+    "confirmFilled": 723,
+    "selectE": 0.06348062283737028,
+    "selectFilled": 867,
+    "threshold": 45
+   }
+  },
+  "XMRUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.09642728395061724,
+     "confirmFilled": 810,
+     "selectE": -0.11738125741399758,
+     "selectFilled": 843,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.09642728395061724,
+     "confirmFilled": 810,
+     "selectE": -0.11738125741399758,
+     "selectFilled": 843,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.09642728395061724,
+     "confirmFilled": 810,
+     "selectE": -0.11738125741399758,
+     "selectFilled": 843,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.09642728395061724,
+     "confirmFilled": 810,
+     "selectE": -0.11738125741399758,
+     "selectFilled": 843,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.09642728395061724,
+     "confirmFilled": 810,
+     "selectE": -0.11738125741399758,
+     "selectFilled": 843,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.09642728395061724,
+     "confirmFilled": 810,
+     "selectE": -0.11738125741399758,
+     "selectFilled": 843,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.09793965303593552,
+     "confirmFilled": 807,
+     "selectE": -0.115895947556615,
+     "selectFilled": 839,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.09718617683686175,
+     "confirmFilled": 803,
+     "selectE": -0.11649399759903963,
+     "selectFilled": 833,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.10057715019255449,
+     "confirmFilled": 779,
+     "selectE": -0.12791351010101004,
+     "selectFilled": 792,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.09574367176634209,
+     "confirmFilled": 719,
+     "selectE": -0.1258304,
+     "selectFilled": 750,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.09637796874999993,
+     "confirmFilled": 640,
+     "selectE": -0.12030816023738887,
+     "selectFilled": 674,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.09641507092198574,
+     "confirmFilled": 564,
+     "selectE": -0.13377525423728825,
+     "selectFilled": 590,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.09678349705304508,
+     "confirmFilled": 509,
+     "selectE": -0.13916602687140123,
+     "selectFilled": 521,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.10562916666666665,
+     "confirmFilled": 408,
+     "selectE": -0.16156771844660195,
+     "selectFilled": 412,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.14678237082066867,
+     "confirmFilled": 329,
+     "selectE": -0.161247385620915,
+     "selectFilled": 306,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.1916356589147286,
+     "confirmFilled": 258,
+     "selectE": -0.1950536796536796,
+     "selectFilled": 231,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.12140847457627114,
+     "confirmFilled": 177,
+     "selectE": -0.2085642384105961,
+     "selectFilled": 151,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.1167814516129032,
+     "confirmFilled": 124,
+     "selectE": -0.25289909090909096,
+     "selectFilled": 110,
+     "threshold": 85
+    },
+    {
+     "confirmE": -0.1381560975609756,
+     "confirmFilled": 41,
+     "selectE": -0.244197619047619,
+     "selectFilled": 42,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 8,
+     "selectE": null,
+     "selectFilled": 5,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
+  },
+  "ETCUSD": {
+   "candidates": [
+    {
+     "confirmE": -0.16287038724373587,
+     "confirmFilled": 878,
+     "selectE": -0.03222319391634986,
+     "selectFilled": 789,
+     "threshold": 0
+    },
+    {
+     "confirmE": -0.16287038724373587,
+     "confirmFilled": 878,
+     "selectE": -0.03222319391634986,
+     "selectFilled": 789,
+     "threshold": 5
+    },
+    {
+     "confirmE": -0.16287038724373587,
+     "confirmFilled": 878,
+     "selectE": -0.03222319391634986,
+     "selectFilled": 789,
+     "threshold": 10
+    },
+    {
+     "confirmE": -0.16287038724373587,
+     "confirmFilled": 878,
+     "selectE": -0.03222319391634986,
+     "selectFilled": 789,
+     "threshold": 15
+    },
+    {
+     "confirmE": -0.16287038724373587,
+     "confirmFilled": 878,
+     "selectE": -0.03222319391634986,
+     "selectFilled": 789,
+     "threshold": 20
+    },
+    {
+     "confirmE": -0.16287038724373587,
+     "confirmFilled": 878,
+     "selectE": -0.030936548223350298,
+     "selectFilled": 788,
+     "threshold": 25
+    },
+    {
+     "confirmE": -0.1628646720368241,
+     "confirmFilled": 869,
+     "selectE": -0.03086901408450707,
+     "selectFilled": 781,
+     "threshold": 30
+    },
+    {
+     "confirmE": -0.15939658421672562,
+     "confirmFilled": 849,
+     "selectE": -0.028987843137254943,
+     "selectFilled": 765,
+     "threshold": 35
+    },
+    {
+     "confirmE": -0.1575384806973848,
+     "confirmFilled": 803,
+     "selectE": -0.03117589041095894,
+     "selectFilled": 730,
+     "threshold": 40
+    },
+    {
+     "confirmE": -0.15144861294583892,
+     "confirmFilled": 757,
+     "selectE": -0.03604932330827075,
+     "selectFilled": 665,
+     "threshold": 45
+    },
+    {
+     "confirmE": -0.1584130177514793,
+     "confirmFilled": 676,
+     "selectE": -0.029042269736842163,
+     "selectFilled": 608,
+     "threshold": 50
+    },
+    {
+     "confirmE": -0.15033127147766337,
+     "confirmFilled": 582,
+     "selectE": -0.03211541284403675,
+     "selectFilled": 545,
+     "threshold": 55
+    },
+    {
+     "confirmE": -0.1472043737574552,
+     "confirmFilled": 503,
+     "selectE": -0.04216729166666671,
+     "selectFilled": 480,
+     "threshold": 60
+    },
+    {
+     "confirmE": -0.16263229665071766,
+     "confirmFilled": 418,
+     "selectE": -0.04244559585492228,
+     "selectFilled": 386,
+     "threshold": 65
+    },
+    {
+     "confirmE": -0.18307048710601717,
+     "confirmFilled": 349,
+     "selectE": -0.05338333333333331,
+     "selectFilled": 318,
+     "threshold": 70
+    },
+    {
+     "confirmE": -0.192020618556701,
+     "confirmFilled": 291,
+     "selectE": -0.04853639846743296,
+     "selectFilled": 261,
+     "threshold": 75
+    },
+    {
+     "confirmE": -0.186179104477612,
+     "confirmFilled": 201,
+     "selectE": -0.06407540106951876,
+     "selectFilled": 187,
+     "threshold": 80
+    },
+    {
+     "confirmE": -0.17904807692307698,
+     "confirmFilled": 156,
+     "selectE": -0.06155813953488374,
+     "selectFilled": 129,
+     "threshold": 85
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 16,
+     "selectE": 0.006425806451612894,
+     "selectFilled": 31,
+     "threshold": 90
+    },
+    {
+     "confirmE": null,
+     "confirmFilled": 0,
+     "selectE": null,
+     "selectFilled": 1,
+     "threshold": 95
+    }
+   ],
+   "rescue": null
   }
+ }
 }

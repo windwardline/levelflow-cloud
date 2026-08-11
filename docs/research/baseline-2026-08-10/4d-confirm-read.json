@@ -1,172 +1,173 @@
 {
-  "confirmReport": {
-    "ADAUSD": {
-      "confirmTotalDelta": 607.7141000000009,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "AUDCAD": {
-      "confirmTotalDelta": 399.9914999999996,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "AUDJPY": {
-      "confirmTotalDelta": 438.04269999999974,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "AUDUSD": {
-      "confirmTotalDelta": 358.7192999999989,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "BCHUSD": {
-      "confirmTotalDelta": 183.03329999999994,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "BTCUSD": {
-      "confirmTotalDelta": 463.77000000000055,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "CADCHF": {
-      "confirmTotalDelta": 369.44140000000016,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "CADJPY": {
-      "confirmTotalDelta": 445.9655999999999,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "CHFJPY": {
-      "confirmTotalDelta": 465.99529999999993,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "CLUSD": {
-      "confirmTotalDelta": 26.629499999999986,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
-    },
-    "ESUSD": {
-      "confirmTotalDelta": 62.0684,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "ETHUSD": {
-      "confirmTotalDelta": 534.7090000000002,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "EURAUD": {
-      "confirmTotalDelta": 413.5518,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "EURCAD": {
-      "confirmTotalDelta": 450.1587000000007,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "EURCHF": {
-      "confirmTotalDelta": 467.49169999999975,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "EURGBP": {
-      "confirmTotalDelta": 418.25360000000035,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "EURJPY": {
-      "confirmTotalDelta": 449.9517999999998,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "EURNZD": {
-      "confirmTotalDelta": 386.42240000000027,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "GBPAUD": {
-      "confirmTotalDelta": 335.0696999999997,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "GBPCHF": {
-      "confirmTotalDelta": 469.239200000001,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "GBPJPY": {
-      "confirmTotalDelta": 411.35839999999985,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "GBPNZD": {
-      "confirmTotalDelta": 369.6318999999999,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "GBPUSD": {
-      "confirmTotalDelta": 497.8919,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "GCUSD": {
-      "confirmTotalDelta": 36.918800000000026,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "HGUSD": {
-      "confirmTotalDelta": 67.96279999999999,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "HOUSD": {
-      "confirmTotalDelta": -4.2809000000000035,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "LTCUSD": {
-      "confirmTotalDelta": 88.27819999999994,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "NQUSD": {
-      "confirmTotalDelta": 45.22589999999999,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
-    },
-    "NZDCAD": {
-      "confirmTotalDelta": 318.38620000000014,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "NZDUSD": {
-      "confirmTotalDelta": 350.2587999999997,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "RBUSD": {
-      "confirmTotalDelta": -7.363000000000001,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1"
-    },
-    "SIUSD": {
-      "confirmTotalDelta": 46.710500000000025,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "SP": {
-      "confirmTotalDelta": 10.509700000000002,
-      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "USDCAD": {
-      "confirmTotalDelta": 467.2287999999994,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
-    },
-    "USDCHF": {
-      "confirmTotalDelta": 490.1151000000001,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "USDJPY": {
-      "confirmTotalDelta": 561.0988000000003,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "WTI": {
-      "confirmTotalDelta": 37.1933,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
-    },
-    "XAUUSD": {
-      "confirmTotalDelta": 438.36070000000035,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "XRPUSD": {
-      "confirmTotalDelta": 540.8106999999992,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "ZCUSX": {
-      "confirmTotalDelta": 6.613099999999953,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
-    },
-    "ZLUSX": {
-      "confirmTotalDelta": 15.919800000000004,
-      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
-    }
+ "INVALID": "Computed from the 2026-08-10/11 corpus, which resolved every setup 4-5 hours out of register with its own decision bar (the clock defect). See docs/research/remediation-program-2026-08-11.md. Do not use these numbers to withdraw, defend, or ship a market.",
+ "confirmReport": {
+  "ADAUSD": {
+   "confirmTotalDelta": 607.7141000000009,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
   },
-  "confirmedNegative": 2,
-  "confirmedPositive": 39,
-  "readAt": "2026-08-11T16:44:30.892Z",
-  "unreadable": 0
+  "AUDCAD": {
+   "confirmTotalDelta": 399.9914999999996,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "AUDJPY": {
+   "confirmTotalDelta": 438.04269999999974,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "AUDUSD": {
+   "confirmTotalDelta": 358.7192999999989,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "BCHUSD": {
+   "confirmTotalDelta": 183.03329999999994,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "BTCUSD": {
+   "confirmTotalDelta": 463.77000000000055,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "CADCHF": {
+   "confirmTotalDelta": 369.44140000000016,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "CADJPY": {
+   "confirmTotalDelta": 445.9655999999999,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "CHFJPY": {
+   "confirmTotalDelta": 465.99529999999993,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "CLUSD": {
+   "confirmTotalDelta": 26.629499999999986,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+  },
+  "ESUSD": {
+   "confirmTotalDelta": 62.0684,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "ETHUSD": {
+   "confirmTotalDelta": 534.7090000000002,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "EURAUD": {
+   "confirmTotalDelta": 413.5518,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "EURCAD": {
+   "confirmTotalDelta": 450.1587000000007,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "EURCHF": {
+   "confirmTotalDelta": 467.49169999999975,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "EURGBP": {
+   "confirmTotalDelta": 418.25360000000035,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "EURJPY": {
+   "confirmTotalDelta": 449.9517999999998,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "EURNZD": {
+   "confirmTotalDelta": 386.42240000000027,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "GBPAUD": {
+   "confirmTotalDelta": 335.0696999999997,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "GBPCHF": {
+   "confirmTotalDelta": 469.239200000001,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "GBPJPY": {
+   "confirmTotalDelta": 411.35839999999985,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "GBPNZD": {
+   "confirmTotalDelta": 369.6318999999999,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "GBPUSD": {
+   "confirmTotalDelta": 497.8919,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "GCUSD": {
+   "confirmTotalDelta": 36.918800000000026,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "HGUSD": {
+   "confirmTotalDelta": 67.96279999999999,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "HOUSD": {
+   "confirmTotalDelta": -4.2809000000000035,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "LTCUSD": {
+   "confirmTotalDelta": 88.27819999999994,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "NQUSD": {
+   "confirmTotalDelta": 45.22589999999999,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+  },
+  "NZDCAD": {
+   "confirmTotalDelta": 318.38620000000014,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "NZDUSD": {
+   "confirmTotalDelta": 350.2587999999997,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "RBUSD": {
+   "confirmTotalDelta": -7.363000000000001,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1"
+  },
+  "SIUSD": {
+   "confirmTotalDelta": 46.710500000000025,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "SP": {
+   "confirmTotalDelta": 10.509700000000002,
+   "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "USDCAD": {
+   "confirmTotalDelta": 467.2287999999994,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+  },
+  "USDCHF": {
+   "confirmTotalDelta": 490.1151000000001,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "USDJPY": {
+   "confirmTotalDelta": 561.0988000000003,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "WTI": {
+   "confirmTotalDelta": 37.1933,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+  },
+  "XAUUSD": {
+   "confirmTotalDelta": 438.36070000000035,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "XRPUSD": {
+   "confirmTotalDelta": 540.8106999999992,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "ZCUSX": {
+   "confirmTotalDelta": 6.613099999999953,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+  },
+  "ZLUSX": {
+   "confirmTotalDelta": 15.919800000000004,
+   "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+  }
+ },
+ "confirmedNegative": 2,
+ "confirmedPositive": 39,
+ "readAt": "2026-08-11T16:44:30.892Z",
+ "unreadable": 0
 }
