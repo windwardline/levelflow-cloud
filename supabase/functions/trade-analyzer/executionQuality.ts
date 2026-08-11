@@ -215,8 +215,19 @@ export function estimateExecutionQuality(
   const estimatedCommission = roundPrice(
     venueCommissionRoundTripPrice(input.symbol, latestClose) ?? 0,
   );
+  // MEASUREMENT-ONLY sensitivity (owner standard, 2026-08-11: a market
+  // may not be withdrawn on a flawed parameter of our own making). The
+  // round trip has two kinds of cost: E8's PUBLISHED commission, which
+  // is the venue's own number, and our MODELED spread + slippage —
+  // which for crypto rests on a single Monday-afternoon book sample the
+  // venueCosts module itself warns "is not a cost model". Scaling the
+  // modeled half to zero isolates the verdict the published bill alone
+  // supports. Defaults to 1 (full model); the live analyzer never sets
+  // it — pinned in tests/executionQuality.test.ts.
+  const modeledCostScale = modeledCostScaleFromEnv();
   const estimatedRoundTripCost = roundPrice(
-    estimatedSpread + estimatedSlippage * 2 + estimatedCommission,
+    (estimatedSpread + estimatedSlippage * 2) * modeledCostScale +
+      estimatedCommission,
   );
   const grossRewardRisk = rewardDistance / Math.max(riskDistance, 0.00001);
   // 2d (2026-08-09): one round trip, charged once — against the payoff. The
@@ -285,6 +296,20 @@ export function estimateExecutionQuality(
     score,
     spreadSource,
   };
+}
+
+/**
+ * Measurement-only, and deliberately env-driven rather than threaded
+ * through every call site: a sweep sets it once for a whole run, and no
+ * production path can pass it by accident. Anything outside [0,1] is
+ * refused back to 1 — a scale above 1 would be inventing cost.
+ */
+function modeledCostScaleFromEnv(): number {
+  const raw = typeof globalThis.process?.env?.LEVELFLOW_MODELED_COST_SCALE ===
+      "string"
+    ? Number(globalThis.process.env.LEVELFLOW_MODELED_COST_SCALE)
+    : 1;
+  return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 1;
 }
 
 function clampInteger(value: number, min: number, max: number) {
