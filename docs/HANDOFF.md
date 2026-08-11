@@ -431,15 +431,25 @@ resolution, expiry-boundary clip, net-of-cost expired labels, same-bar
 protection arming, latency/haircut/touch parameters, Intl hoists.
 Named boundary: live outcome-sync stays v1 until the spread columns
 land (batch 4, pre-reopen) — desk parked, so the cohort stays coherent.
-(iv) **The fleet collapse** — the roster wave-1 workers jetsammed
-silently mid-run on the engine batch 3 superseded; rather than rebuild
-a corpus the next PR obsoletes, the v2 WARM re-simulate (same 25-cell
-grid, same 8-class fold spec, same span pins) is BOTH the 4c
-directional read and 4d's corpus, graded once by gate v2 with NO
---confirm-final (confirm stays sealed for 4d's one authorized read).
-(v) **4d** per-market derivation under gate v2 + survival + sizing
-feasibility constraints, starved late-listed markets measure-only;
-confirm reads strip pre-holdout per-symbol overrides (CV-11/LA-8).
+(iv) **4c COMPLETE 2026-08-11** — the v2 fleet ran to 8/8 manifests
+(corpus 3c47e2036e1b, ~21M records, 8-class fold calendars) and gate v2
+graded it with confirm SEALED. Verdicts of record:
+`baseline-2026-08-10/4c-grid-verdicts-v2-2026-08-11.md` (raw gate
+output beside it). The synthesis: the stop cap is THE axis — the
+shipped 1.0×ATR fails its own baseline in every class, ΔE(select)
+rises monotonically to cap 4 (forex +0.286R/decision, metals +0.369,
+energies +0.442, all p=0.001 family-wise) and worst-day totals SHRINK
+as the cap loosens; runner protection ranks trail_tp1 > hold >
+breakeven everywhere that accepts (the 44% breakeven tax, confirmed by
+intervention); the sizing-hours hat is inert; livestock accepts
+NOTHING and stays measure-only (the gate refusing thin evidence is the
+system working); energies' accepted cells carry a stated 42-43% expiry
+share for 4d to re-examine.
+(v) **4d** per-market derivation of (runnerProtection, cap) under gate
+v2 + survival tables + sizing feasibility (RM-1: an unsizeable stop is
+not a real cell), starved late-listed markets measure-only; confirm
+reads strip pre-holdout per-symbol overrides (CV-11/LA-8); the confirm
+fold's ONE authorized read goes to the final candidate set.
 (vi) **4e** iterate to diminished returns. Parallel lanes before any reopen: **Batch 4
 COMPLETE 2026-08-11** — #313 (ambiguous counts against the trade in
 learning/classify/attribution; all six Record rows state supersession),
