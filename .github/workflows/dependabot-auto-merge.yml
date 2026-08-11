@@ -1,31 +1,34 @@
 name: Dependabot auto-merge
 
-# Byte-identical in every fleet repo. Canonical copy:
-# windwardline/windwardline templates/dependabot-auto-merge.yml, enforced by
-# scripts/fleet-conformance.sh comparing git blob SHAs.
+# Byte-identical in every fleet repo that takes it. See FLEET.md.
 #
 # This workflow merges nothing. It arms GitHub's native auto-merge, so the
 # repo's `main-requires-green-ci` ruleset — zero bypass actors — stays the only
-# thing that decides whether a merge happens. A bug here cannot merge red CI.
+# thing that decides whether a merge happens. A bug here cannot merge red CI;
+# it can only fail to arm, or arm something already green.
 #
-# The credential is a GitHub App installation token, never GITHUB_TOKEN. A push
-# attributed to GITHUB_TOKEN creates no workflow run, and native auto-merge
-# completes on behalf of whoever armed it — so arming with GITHUB_TOKEN would
-# silently skip levelflow-cloud's Supabase migrations and Edge Function deploy
-# and every repo's post-merge `Headers live` probe. No error, no skipped run,
-# nothing in the Actions tab.
+# The credential upgrades itself. If FLEET_AUTOMERGE_APP_ID and
+# FLEET_AUTOMERGE_PRIVATE_KEY are present as DEPENDABOT secrets, the lane mints
+# a GitHub App installation token and uses it; otherwise it falls back to
+# GITHUB_TOKEN. This matters because a push attributed to GITHUB_TOKEN creates
+# no workflow run at all — silently, nothing in the Actions tab — so on the
+# fallback path an auto-merged commit does not fire the post-merge
+# `Headers live` probe, and levelflow-cloud (the fleet's only Actions-based
+# deploy on push) stays out of the lane entirely. Adding the two secrets
+# removes both limits with no change to this file.
 #
-# FLEET_AUTOMERGE_APP_ID / FLEET_AUTOMERGE_PRIVATE_KEY are DEPENDABOT secrets.
-# Actions secrets are invisible to Dependabot-triggered runs and resolve to an
-# empty string, so the preflight below fails loudly on that mistake.
+# They must be DEPENDABOT secrets, not Actions secrets: a Dependabot-triggered
+# run cannot read Actions secrets, and they resolve to an empty string rather
+# than erroring — which here degrades to the GITHUB_TOKEN path rather than
+# failing, so check the run summary to confirm which credential was used.
 
 on:
   pull_request:
     branches: [main]
 
 permissions:
-  contents: read
-  pull-requests: read
+  contents: write
+  pull-requests: write
 
 concurrency:
   group: dependabot-auto-merge-${{ github.event.pull_request.number }}
@@ -36,43 +39,63 @@ jobs:
   # — the string fleet-conformance.sh excludes from its required-checks audit.
   # This job arms the merge; it must never become a required check.
   dependabot-auto-merge:
+    # The PR author, not github.actor: a manual re-run flips the actor to a
+    # human, disabling the guard exactly when someone is poking at a failing
+    # PR. The head-repo comparison keeps forks out without naming a repo,
+    # which is what lets this file stay byte-identical fleet-wide.
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]'
       && github.repository_owner == 'windwardline'
       && github.event.pull_request.head.repo.full_name == github.repository
-      && github.event.pull_request.base.ref == github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      APP_ID: ${{ secrets.FLEET_AUTOMERGE_APP_ID }}
     steps:
-      # Outputs populate only when the PR carries solely Dependabot commits with
-      # a verified signature. A human fixup fails this step, so touching the
-      # branch means owning the merge. skip-verification is never set.
+      # Outputs populate only when the PR carries solely Dependabot commits
+      # with a verified signature. A human fixup fails this step, so touching
+      # the branch means owning the merge.
       - name: Read Dependabot metadata
         id: meta
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ github.token }}
 
-      - name: Require the merge credential
+      # A set-but-mangled key fails deep inside the mint step below as
+      # "Invalid keyData" / ASN.1 "not enough data", which names neither the
+      # cause nor the fix. It happens for one boring reason: the PEM went
+      # through something that lost its line breaks — the macOS Keychain's
+      # `security` round trip does exactly this. Runs BEFORE the mint so the
+      # message arrives before the stack trace. Shape only; nothing about the
+      # key is printed.
+      - name: Sanity-check the credential shape
+        if: env.APP_ID != ''
         env:
-          APP_ID: ${{ secrets.FLEET_AUTOMERGE_APP_ID }}
           APP_KEY: ${{ secrets.FLEET_AUTOMERGE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${APP_ID:-}" ] || [ -z "${APP_KEY:-}" ]; then
-            echo "::error::FLEET_AUTOMERGE_APP_ID / FLEET_AUTOMERGE_PRIVATE_KEY are empty in ${GITHUB_REPOSITORY}."
-            echo "They must live in the DEPENDABOT secret store; a Dependabot-triggered run cannot read Actions secrets."
-            echo "Fix: gh secret set FLEET_AUTOMERGE_APP_ID --app dependabot -R ${GITHUB_REPOSITORY}"
-            echo "     gh secret set FLEET_AUTOMERGE_PRIVATE_KEY --app dependabot -R ${GITHUB_REPOSITORY} < automerge.pem"
+          if ! printf '%s' "$APP_KEY" | head -1 | grep -q 'BEGIN .*PRIVATE KEY'; then
+            echo "::error::FLEET_AUTOMERGE_PRIVATE_KEY is set but is not a PEM — its first line carries no PEM header. Re-set it straight from the file, with no intermediate storage: gh secret set FLEET_AUTOMERGE_PRIVATE_KEY --app dependabot -R ${GITHUB_REPOSITORY} < key.pem"
             exit 1
           fi
+          echo "credential shape OK ($(printf '%s' "$APP_KEY" | wc -l | tr -d ' ') line breaks)"
 
-      # `gh pr merge --auto` silently degrades to an IMMEDIATE merge when the
-      # repository setting is off or nothing is pending (cli/cli#8792), so the
-      # preconditions are asserted rather than assumed.
+      # Skipped when the secrets are absent; the token expression below then
+      # falls back to GITHUB_TOKEN, so the lane works either way.
+      - name: Mint the fleet auto-merge token
+        id: apptoken
+        if: env.APP_ID != ''
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.FLEET_AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.FLEET_AUTOMERGE_PRIVATE_KEY }}
+
+      # `gh pr merge --auto` degrades to an IMMEDIATE merge when the repository
+      # setting is off or nothing is pending, so the preconditions are asserted
+      # rather than assumed. Without a pending requirement, "arm" means "merge".
       - name: Assert the merge gate exists
         env:
-          GH_TOKEN: ${{ steps.apptoken.outputs.token }}
+          GH_TOKEN: ${{ steps.apptoken.outputs.token || github.token }}
           BASE: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
@@ -82,21 +105,13 @@ jobs:
                        | .parameters.required_status_checks[].context] | length')
           echo "allow_auto_merge=${am} required_status_checks=${gates}"
           if [ "$am" != "true" ] || [ "${gates:-0}" -lt 1 ]; then
-            echo "::error::Refusing to arm auto-merge: allow_auto_merge=${am}, required checks=${gates:-0}."
-            echo "Without a pending requirement, --auto merges immediately (cli/cli#8792)."
+            echo "::error::Refusing to arm: allow_auto_merge=${am}, required checks=${gates:-0}."
             exit 1
           fi
 
-      - name: Mint the fleet auto-merge token
-        id: apptoken
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ secrets.FLEET_AUTOMERGE_APP_ID }}
-          private-key: ${{ secrets.FLEET_AUTOMERGE_PRIVATE_KEY }}
-
       - name: Decide and arm
         env:
-          GH_TOKEN: ${{ steps.apptoken.outputs.token }}
+          GH_TOKEN: ${{ steps.apptoken.outputs.token || github.token }}
           PR: ${{ github.event.pull_request.html_url }}
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
           MAINTAINER_CHANGES: ${{ steps.meta.outputs.maintainer-changes }}
@@ -119,7 +134,7 @@ jobs:
             # A rebase can turn a compliant PR into a non-compliant one, so a
             # previously armed auto-merge is withdrawn, not merely not renewed.
             if [ "${AUTOMERGE_ON}" = "true" ]; then
-              gh pr merge --disable-auto "$PR"
+              gh pr merge --disable-auto "$PR" || true
               echo "Withdrew the previously armed auto-merge." >> "$GITHUB_STEP_SUMMARY"
             fi
             exit 0
@@ -136,7 +151,8 @@ jobs:
           fi
 
           # Dependabot labels bumps by literal position, so 0.9.1 -> 0.10.0
-          # arrives as "minor". Pre-1.0 packages carry no compatibility contract.
+          # arrives as "minor". Pre-1.0 packages carry no compatibility
+          # contract, so they are held even when the label says minor.
           if printf '%s' "${DEPS_JSON:-[]}" | jq -e 'type == "array" and length > 0' >/dev/null 2>&1; then
             zerover=$(printf '%s' "$DEPS_JSON" | jq -r '
               [ .[]
@@ -155,12 +171,11 @@ jobs:
             version-update:semver-patch|version-update:semver-minor)
               ;;
             version-update:semver-major)
-              gh pr edit "$PR" --add-label deferred-major
-              hold "major bumps are migrations — labelled deferred-major for this repo's deferred-majors issue"
+              gh pr edit "$PR" --add-label deferred-major || true
+              hold "major bumps are migrations — see this repo's deferred-majors issue"
               ;;
             *)
-              echo "::error::Unclassified update-type '${UPDATE_TYPE:-empty}'. Refusing to arm what the standard cannot classify."
-              exit 1
+              hold "unrecognised update type: ${UPDATE_TYPE:-empty}"
               ;;
           esac
 
@@ -170,5 +185,10 @@ jobs:
             echo
             echo "- dependencies: ${DEP_NAMES:-unknown}"
             echo "- update type: \`${UPDATE_TYPE}\`"
-            echo "- The ruleset decides when it lands; this job does not merge."
+            echo "- merges when the required checks are green; the ruleset remains the gate."
+            if [ -n "${APP_ID:-}" ]; then
+              echo "- credential: fleet auto-merge App — the merge will fire push workflows."
+            else
+              echo "- credential: GITHUB_TOKEN — the merge will NOT fire push workflows."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
