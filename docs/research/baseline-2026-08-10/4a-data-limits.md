@@ -1,3 +1,9 @@
+> **INVALID — the corpus beneath this document resolved every setup 4–5
+> hours out of register with its own decision bar (the clock defect,
+> 2026-08-11). Its expectancy figures, fill rates and verdicts are
+> artifacts. Read `docs/research/remediation-program-2026-08-11.md`
+> first. Kept as the record of what was measured and how it failed.**
+
 > **Identity annotation (round 8 CV-1/FR-2, added 2026-08-11):** this document
 > reads the 2026-08-10 baseline corpus, whose universe carried provider
 > spellings (six ^-prefixed indices, ARUSD, OTRUMPUSD, WTI's provider name);

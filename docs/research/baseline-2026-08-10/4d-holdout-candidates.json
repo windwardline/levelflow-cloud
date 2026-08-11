@@ -1,2059 +1,2060 @@
 {
-  "analyzerVersion": "2026.08.11.engine-v2",
-  "baselineVariant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-  "corpusNote": "confirm fold NEVER read by this script; its one authorized read belongs to the final candidate set (burned-log, grid-totalr).",
-  "derivedAt": "2026-08-11T17:19:18.351Z",
-  "markets": {
-    "AAVEUSD": {
-      "accepted": [],
-      "measureOnly": true,
-      "starved": true
+ "INVALID": "Computed from the 2026-08-10/11 corpus, which resolved every setup 4-5 hours out of register with its own decision bar (the clock defect). See docs/research/remediation-program-2026-08-11.md. Do not use these numbers to withdraw, defend, or ship a market.",
+ "analyzerVersion": "2026.08.11.engine-v2",
+ "baselineVariant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+ "corpusNote": "confirm fold NEVER read by this script; its one authorized read belongs to the final candidate set (burned-log, grid-totalr).",
+ "derivedAt": "2026-08-11T17:19:18.351Z",
+ "markets": {
+  "AAVEUSD": {
+   "accepted": [],
+   "measureOnly": true,
+   "starved": true
+  },
+  "ARWUSD": {
+   "accepted": [],
+   "measureOnly": true,
+   "starved": true
+  },
+  "AUDCHF": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.2595262490949605,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1563,
+     "selectExpiryShare": 0.0313,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -3.3536
     },
-    "ARWUSD": {
-      "accepted": [],
-      "measureOnly": true,
-      "starved": true
+    {
+     "selectExpectancyDelta": 0.23781911227708732,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1269,
+     "selectExpiryShare": 0.026,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.3536
     },
-    "AUDCHF": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.2595262490949605,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1563,
-          "selectExpiryShare": 0.0313,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -3.3536
-        },
-        {
-          "selectExpectancyDelta": 0.23781911227708732,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1269,
-          "selectExpiryShare": 0.026,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.3536
-        },
-        {
-          "selectExpectancyDelta": 0.22069662657416708,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1563,
-          "selectExpiryShare": 0.0313,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.0536
-        },
-        {
-          "selectExpectancyDelta": 0.21568026144438407,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1582,
-          "selectExpiryShare": 0.0177,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -3.3536
-        },
-        {
-          "selectExpectancyDelta": 0.19683495152058625,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1269,
-          "selectExpiryShare": 0.026,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -4.0536
-        },
-        {
-          "selectExpectancyDelta": 0.1908953349066018,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1335,
-          "selectExpiryShare": 0.0105,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -3.3536
-        },
-        {
-          "selectExpectancyDelta": 0.178681778511388,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1582,
-          "selectExpiryShare": 0.0177,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.0536
-        },
-        {
-          "selectExpectancyDelta": 0.17143693367589483,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1563,
-          "selectExpiryShare": 0.0313,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -3.5536000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.15607687429442377,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1269,
-          "selectExpiryShare": 0.026,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.5536000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.15285540981296894,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1335,
-          "selectExpiryShare": 0.0105,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.0536
-        },
-        {
-          "selectExpectancyDelta": 0.135774371624723,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1605,
-          "selectExpiryShare": 0.0056,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.3326
-        },
-        {
-          "selectExpectancyDelta": 0.1299069997503261,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1582,
-          "selectExpiryShare": 0.0177,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -3.5536000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.11338770495805633,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1605,
-          "selectExpiryShare": 0.0056,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.0326
-        },
-        {
-          "selectExpectancyDelta": 0.11292245101147089,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1335,
-          "selectExpiryShare": 0.0105,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -3.5536000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.10879388072504521,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1396,
-          "selectExpiryShare": 0.0057,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.3326
-        },
-        {
-          "selectExpectancyDelta": 0.08822690364768136,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1396,
-          "selectExpiryShare": 0.0057,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.0326
-        },
-        {
-          "selectExpectancyDelta": 0.058175755911148985,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1607,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -2.9795
-        },
-        {
-          "selectExpectancyDelta": 0.05816932489575102,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1605,
-          "selectExpiryShare": 0.0056,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.5326
-        },
-        {
-          "selectExpectancyDelta": 0.057930282131661515,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1595,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -2.9795
-        },
-        {
-          "selectExpectancyDelta": 0.05348570532915373,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1595,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.7295
-        },
-        {
-          "selectExpectancyDelta": 0.05217451135607748,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1607,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.7295
-        },
-        {
-          "selectExpectancyDelta": 0.04263958273077588,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1396,
-          "selectExpiryShare": 0.0057,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.5326
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.22069662657416708,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1563,
+     "selectExpiryShare": 0.0313,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.0536
     },
-    "AUDNZD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.2793786406489901,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1372,
-          "selectExpiryShare": 0.0357,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.6786000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.24437936951196385,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1372,
-          "selectExpiryShare": 0.0357,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.9471999999999996
-        },
-        {
-          "selectExpectancyDelta": 0.2414787340279565,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1380,
-          "selectExpiryShare": 0.0145,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.9979000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.23934630305689789,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 981,
-          "selectExpiryShare": 0.0336,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.6786000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.21041496591201414,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1380,
-          "selectExpiryShare": 0.0145,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.8575999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.20911195035557253,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 981,
-          "selectExpiryShare": 0.0336,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.9471999999999996
-        },
-        {
-          "selectExpectancyDelta": 0.2044156218412475,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1042,
-          "selectExpiryShare": 0.0144,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.9979000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.1831290779667742,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1372,
-          "selectExpiryShare": 0.0357,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.6786000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.17639182145737003,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1042,
-          "selectExpiryShare": 0.0144,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.8575999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.16884769581613301,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1442,
-          "selectExpiryShare": 0.0049,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.3285000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.1599896261965509,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 981,
-          "selectExpiryShare": 0.0336,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.6786000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.15041468610739536,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1442,
-          "selectExpiryShare": 0.0049,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.6265000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.14806605286853589,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1380,
-          "selectExpiryShare": 0.0145,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -3.1978999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.12962003642857933,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1042,
-          "selectExpiryShare": 0.0144,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -3.1978999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.09575471092672506,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1064,
-          "selectExpiryShare": 0.0028,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.3285000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.08694067243375347,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1472,
-          "selectExpiryShare": 0.0034,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -5.5299
-        },
-        {
-          "selectExpectancyDelta": 0.08545969212973263,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1064,
-          "selectExpiryShare": 0.0028,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.6265000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.08393438097563377,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1442,
-          "selectExpiryShare": 0.0049,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.5285
-        },
-        {
-          "selectExpectancyDelta": 0.0701129437869822,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1352,
-          "selectExpiryShare": 0.003,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -5.5299
-        },
-        {
-          "selectExpectancyDelta": 0.06473347134679687,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1472,
-          "selectExpiryShare": 0.0034,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -5.5299
-        },
-        {
-          "selectExpectancyDelta": 0.054111760355029445,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1352,
-          "selectExpiryShare": 0.003,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -5.5299
-        },
-        {
-          "selectExpectancyDelta": 0.035515331227476965,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 1064,
-          "selectExpiryShare": 0.0028,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.5285
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.21568026144438407,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1582,
+     "selectExpiryShare": 0.0177,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -3.3536
     },
-    "BNBUSD": {
-      "accepted": [],
-      "measureOnly": true,
-      "starved": true
+    {
+     "selectExpectancyDelta": 0.19683495152058625,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1269,
+     "selectExpiryShare": 0.026,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -4.0536
     },
-    "BZUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.283470931601993,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 179,
-          "selectExpiryShare": 0.2123,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3141
-        },
-        {
-          "selectExpectancyDelta": 0.26775361316623886,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 179,
-          "selectExpiryShare": 0.2123,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3141
-        },
-        {
-          "selectExpectancyDelta": 0.26302537714184765,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 153,
-          "selectExpiryShare": 0.2026,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.3141
-        },
-        {
-          "selectExpectancyDelta": 0.252020801978449,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 153,
-          "selectExpiryShare": 0.2026,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.3141
-        },
-        {
-          "selectExpectancyDelta": 0.2490368533897025,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 179,
-          "selectExpiryShare": 0.2123,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3141
-        },
-        {
-          "selectExpectancyDelta": 0.2289456385797562,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 153,
-          "selectExpiryShare": 0.2026,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.3141
-        },
-        {
-          "selectExpectancyDelta": 0.15859179737114165,
-          "pairedP": 0.011988011988011988,
-          "selectFilled": 183,
-          "selectExpiryShare": 0.0929,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.1212
-        },
-        {
-          "selectExpectancyDelta": 0.15489815958815956,
-          "pairedP": 0.02197802197802198,
-          "selectFilled": 168,
-          "selectExpiryShare": 0.0833,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.1212
-        },
-        {
-          "selectExpectancyDelta": 0.15258360064983012,
-          "pairedP": 0.011988011988011988,
-          "selectFilled": 183,
-          "selectExpiryShare": 0.0929,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.1212
-        },
-        {
-          "selectExpectancyDelta": 0.1484678024453024,
-          "pairedP": 0.01898101898101898,
-          "selectFilled": 168,
-          "selectExpiryShare": 0.0833,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.1212
-        },
-        {
-          "selectExpectancyDelta": 0.14440164551291634,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 181,
-          "selectExpiryShare": 0.0331,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -1.7359999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.14171621621621627,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 185,
-          "selectExpiryShare": 0.0324,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -1.7359999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.13715413170076152,
-          "pairedP": 0.006993006993006993,
-          "selectFilled": 181,
-          "selectExpiryShare": 0.0331,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -1.6434000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.1345064864864865,
-          "pairedP": 0.00999000999000999,
-          "selectFilled": 185,
-          "selectExpiryShare": 0.0324,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -1.6434000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.11445468418694943,
-          "pairedP": 0.017982017982017984,
-          "selectFilled": 181,
-          "selectExpiryShare": 0.0331,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -1.6434000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.11229783783783787,
-          "pairedP": 0.02197802197802198,
-          "selectFilled": 185,
-          "selectExpiryShare": 0.0324,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -1.6434000000000002
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.1908953349066018,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1335,
+     "selectExpiryShare": 0.0105,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -3.3536
     },
-    "DASHUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.13845189860247908,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1164,
-          "selectExpiryShare": 0.0421,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.0912999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.1379705903171523,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1097,
-          "selectExpiryShare": 0.0292,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -4.0912999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.12212629561387423,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1171,
-          "selectExpiryShare": 0.0231,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.2377
-        },
-        {
-          "selectExpectancyDelta": 0.12150584143339366,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1138,
-          "selectExpiryShare": 0.0167,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.2377
-        },
-        {
-          "selectExpectancyDelta": 0.11160504792882053,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1097,
-          "selectExpiryShare": 0.0292,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -4.0912999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.11115499138598428,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1164,
-          "selectExpiryShare": 0.0421,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.146500000000001
-        },
-        {
-          "selectExpectancyDelta": 0.11014854808701516,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 1164,
-          "selectExpiryShare": 0.0421,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.0912999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.09134907517680324,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1138,
-          "selectExpiryShare": 0.0167,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.2377
-        },
-        {
-          "selectExpectancyDelta": 0.08998120594692292,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 1171,
-          "selectExpiryShare": 0.0231,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.2377
-        },
-        {
-          "selectExpectancyDelta": 0.08986293096827214,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1171,
-          "selectExpiryShare": 0.0068,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.9437999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.08730702882260574,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1161,
-          "selectExpiryShare": 0.006,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.9437999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.08072192227697886,
-          "pairedP": 0.017982017982017984,
-          "selectFilled": 1138,
-          "selectExpiryShare": 0.0167,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.2377
-        },
-        {
-          "selectExpectancyDelta": 0.08014568075477932,
-          "pairedP": 0.028971028971028972,
-          "selectFilled": 1171,
-          "selectExpiryShare": 0.0231,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.2377
-        },
-        {
-          "selectExpectancyDelta": 0.07243218801353249,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 1171,
-          "selectExpiryShare": 0.0068,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.9437999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.02923085691288263,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 1124,
-          "selectExpiryShare": 0.0053,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -4.4764
-        },
-        {
-          "selectExpectancyDelta": 0.02865894924309878,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 1123,
-          "selectExpiryShare": 0.0053,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -4.4764
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.178681778511388,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1582,
+     "selectExpiryShare": 0.0177,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.0536
     },
-    "EURUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.30557008090587473,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1609,
-          "selectExpiryShare": 0.064,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.0088999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.29257848988093493,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1468,
-          "selectExpiryShare": 0.0538,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.0088999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.2721110380220958,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1609,
-          "selectExpiryShare": 0.064,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.7085
-        },
-        {
-          "selectExpectancyDelta": 0.2580177269381554,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1468,
-          "selectExpiryShare": 0.0538,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.9508
-        },
-        {
-          "selectExpectancyDelta": 0.23855689168864483,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1627,
-          "selectExpiryShare": 0.0227,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.9721
-        },
-        {
-          "selectExpectancyDelta": 0.23596713414275883,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1565,
-          "selectExpiryShare": 0.023,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.9721
-        },
-        {
-          "selectExpectancyDelta": 0.23475883168275435,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1609,
-          "selectExpiryShare": 0.064,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3788
-        },
-        {
-          "selectExpectancyDelta": 0.22028918470382297,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1468,
-          "selectExpiryShare": 0.0538,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.2982
-        },
-        {
-          "selectExpectancyDelta": 0.2091910650137832,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1627,
-          "selectExpiryShare": 0.0227,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -3.6721
-        },
-        {
-          "selectExpectancyDelta": 0.2058171660916407,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1565,
-          "selectExpiryShare": 0.023,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -3.6721
-        },
-        {
-          "selectExpectancyDelta": 0.17116297650732964,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1627,
-          "selectExpiryShare": 0.0227,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -3.1721
-        },
-        {
-          "selectExpectancyDelta": 0.16723096800857362,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1565,
-          "selectExpiryShare": 0.023,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -3.1721
-        },
-        {
-          "selectExpectancyDelta": 0.11565257068498609,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1612,
-          "selectExpiryShare": 0.0093,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.6285
-        },
-        {
-          "selectExpectancyDelta": 0.11554621239191289,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1622,
-          "selectExpiryShare": 0.0099,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.6285
-        },
-        {
-          "selectExpectancyDelta": 0.10116956820359652,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1612,
-          "selectExpiryShare": 0.0093,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.9136
-        },
-        {
-          "selectExpectancyDelta": 0.10106908538821374,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1622,
-          "selectExpiryShare": 0.0099,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.9136
-        },
-        {
-          "selectExpectancyDelta": 0.06905626171373774,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1622,
-          "selectExpiryShare": 0.0099,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.8285
-        },
-        {
-          "selectExpectancyDelta": 0.06893104463039548,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1612,
-          "selectExpiryShare": 0.0093,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.8285
-        },
-        {
-          "selectExpectancyDelta": 0.03235231452124274,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1577,
-          "selectExpiryShare": 0.0051,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -4.540500000000001
-        },
-        {
-          "selectExpectancyDelta": 0.03235231452124274,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1577,
-          "selectExpiryShare": 0.0051,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -4.540500000000001
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.17143693367589483,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1563,
+     "selectExpiryShare": 0.0313,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -3.5536000000000003
     },
-    "GBPCAD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.2848974689818005,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1440,
-          "selectExpiryShare": 0.0486,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.1232999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.27605337241419986,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1273,
-          "selectExpiryShare": 0.0408,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.1232999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.24742531620402214,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1440,
-          "selectExpiryShare": 0.0486,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.5212
-        },
-        {
-          "selectExpectancyDelta": 0.23978636534428588,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1273,
-          "selectExpiryShare": 0.0408,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.0541
-        },
-        {
-          "selectExpectancyDelta": 0.23616406810660973,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1460,
-          "selectExpiryShare": 0.0158,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -1.9804000000000004
-        },
-        {
-          "selectExpectancyDelta": 0.23441740211893336,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1345,
-          "selectExpiryShare": 0.0134,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.122
-        },
-        {
-          "selectExpectancyDelta": 0.20730323287068886,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1440,
-          "selectExpiryShare": 0.0486,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3232999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.19718256125729466,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1460,
-          "selectExpiryShare": 0.0158,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.5212
-        },
-        {
-          "selectExpectancyDelta": 0.19691323101592761,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1273,
-          "selectExpiryShare": 0.0408,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.3232999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.1937484058364055,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1345,
-          "selectExpiryShare": 0.0134,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.1672000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.1560637256408563,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1460,
-          "selectExpiryShare": 0.0158,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.1804000000000006
-        },
-        {
-          "selectExpectancyDelta": 0.1527790378066658,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1345,
-          "selectExpiryShare": 0.0134,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.1804000000000006
-        },
-        {
-          "selectExpectancyDelta": 0.1417365974374088,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1463,
-          "selectExpiryShare": 0.0055,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -2.4647
-        },
-        {
-          "selectExpectancyDelta": 0.1406099393586455,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1430,
-          "selectExpiryShare": 0.0042,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -2.4647
-        },
-        {
-          "selectExpectancyDelta": 0.1201506780935948,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1463,
-          "selectExpiryShare": 0.0055,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -2.8928
-        },
-        {
-          "selectExpectancyDelta": 0.1175575617362679,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1430,
-          "selectExpiryShare": 0.0042,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -2.8928
-        },
-        {
-          "selectExpectancyDelta": 0.0751341367402113,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1463,
-          "selectExpiryShare": 0.0055,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -2.4647
-        },
-        {
-          "selectExpectancyDelta": 0.0735215477502539,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1430,
-          "selectExpiryShare": 0.0042,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -2.4647
-        },
-        {
-          "selectExpectancyDelta": 0.05661938011006969,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1457,
-          "selectExpiryShare": 0.0027,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.788
-        },
-        {
-          "selectExpectancyDelta": 0.0564231245698554,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1453,
-          "selectExpiryShare": 0.0021,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.788
-        },
-        {
-          "selectExpectancyDelta": 0.027524776324845207,
-          "pairedP": 0.01998001998001998,
-          "selectFilled": 1453,
-          "selectExpiryShare": 0.0021,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.788
-        },
-        {
-          "selectExpectancyDelta": 0.027307918202039594,
-          "pairedP": 0.02097902097902098,
-          "selectFilled": 1457,
-          "selectExpiryShare": 0.0027,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.788
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.15607687429442377,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1269,
+     "selectExpiryShare": 0.026,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.5536000000000003
     },
-    "HEUSX": {
-      "accepted": [],
-      "measureOnly": true,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.15285540981296894,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1335,
+     "selectExpiryShare": 0.0105,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.0536
     },
-    "NGUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.2662000576061447,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 215,
-          "selectExpiryShare": 0.1395,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.2302999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.24765598084925047,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 183,
-          "selectExpiryShare": 0.1475,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.2302999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.21359680179219118,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 215,
-          "selectExpiryShare": 0.1395,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.2302999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.2087636311224746,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 183,
-          "selectExpiryShare": 0.1475,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.2302999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.19273819714102847,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 215,
-          "selectExpiryShare": 0.1395,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.2302999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.17884833057602653,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 183,
-          "selectExpiryShare": 0.1475,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.2302999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.16064266055045873,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 218,
-          "selectExpiryShare": 0.0459,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.4596999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.1523301852851232,
-          "pairedP": 0.008991008991008992,
-          "selectFilled": 204,
-          "selectExpiryShare": 0.049,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.4596999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.11940469508904472,
-          "pairedP": 0.04895104895104895,
-          "selectFilled": 204,
-          "selectExpiryShare": 0.049,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.4596999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.11851238532110084,
-          "pairedP": 0.04095904095904096,
-          "selectFilled": 218,
-          "selectExpiryShare": 0.0459,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.4596999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.1071756880733945,
-          "pairedP": 0.04095904095904096,
-          "selectFilled": 218,
-          "selectExpiryShare": 0.0459,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.4596999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.07086284403669724,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 218,
-          "selectExpiryShare": 0,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -1.5821
-        },
-        {
-          "selectExpectancyDelta": 0.07086284403669724,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 218,
-          "selectExpiryShare": 0,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -1.5821
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.135774371624723,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1605,
+     "selectExpiryShare": 0.0056,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.3326
     },
-    "NSDQ": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.2817941244239632,
-          "pairedP": 0.026973026973026972,
-          "selectFilled": 56,
-          "selectExpiryShare": 0.1429,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -1.0266
-        },
-        {
-          "selectExpectancyDelta": 0.049716129032258055,
-          "pairedP": 0.04295704295704296,
-          "selectFilled": 62,
-          "selectExpiryShare": 0,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -1.044
-        },
-        {
-          "selectExpectancyDelta": 0.049716129032258055,
-          "pairedP": 0.04295704295704296,
-          "selectFilled": 62,
-          "selectExpiryShare": 0,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -1.044
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.1299069997503261,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1582,
+     "selectExpiryShare": 0.0177,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -3.5536000000000003
     },
-    "NZDCHF": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.25702373893948216,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1560,
-          "selectExpiryShare": 0.0346,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.2044
-        },
-        {
-          "selectExpectancyDelta": 0.23200603950928284,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1296,
-          "selectExpiryShare": 0.0324,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.2044
-        },
-        {
-          "selectExpectancyDelta": 0.22945341842666164,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1560,
-          "selectExpiryShare": 0.0346,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -3.0728999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.21350549718124018,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1575,
-          "selectExpiryShare": 0.0171,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.2879000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.20899184197841827,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1296,
-          "selectExpiryShare": 0.0324,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.0728999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.18878105273679582,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1575,
-          "selectExpiryShare": 0.0171,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.2879000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.18747015373412676,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1356,
-          "selectExpiryShare": 0.0147,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.2879000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.1687129265954839,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1356,
-          "selectExpiryShare": 0.0147,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.2879000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.16390027740102067,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1560,
-          "selectExpiryShare": 0.0346,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.5321999999999996
-        },
-        {
-          "selectExpectancyDelta": 0.14360796852162855,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1296,
-          "selectExpiryShare": 0.0324,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.5321999999999996
-        },
-        {
-          "selectExpectancyDelta": 0.1334857850965313,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1601,
-          "selectExpiryShare": 0.0062,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.3475
-        },
-        {
-          "selectExpectancyDelta": 0.12306244956219271,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1575,
-          "selectExpiryShare": 0.0171,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.2879000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.10847216860683728,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1601,
-          "selectExpiryShare": 0.0062,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.0386
-        },
-        {
-          "selectExpectancyDelta": 0.10367428352763723,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1356,
-          "selectExpiryShare": 0.0147,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.2879000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.10051606488163002,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1405,
-          "selectExpiryShare": 0.0064,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.3475
-        },
-        {
-          "selectExpectancyDelta": 0.08196524637629198,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1405,
-          "selectExpiryShare": 0.0064,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.0386
-        },
-        {
-          "selectExpectancyDelta": 0.06339798488664994,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1588,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.6956
-        },
-        {
-          "selectExpectancyDelta": 0.061469306111296126,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1604,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.6956
-        },
-        {
-          "selectExpectancyDelta": 0.05604581008091609,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1601,
-          "selectExpiryShare": 0.0062,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -3.5385999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.04577304785894211,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1588,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.8293
-        },
-        {
-          "selectExpectancyDelta": 0.04229262281952555,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1604,
-          "selectExpiryShare": 0.0031,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.8293
-        },
-        {
-          "selectExpectancyDelta": 0.03363058445458376,
-          "pairedP": 0.022977022977022976,
-          "selectFilled": 1405,
-          "selectExpiryShare": 0.0064,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -3.5385999999999997
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.11338770495805633,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1605,
+     "selectExpiryShare": 0.0056,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.0326
     },
-    "NZDJPY": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.23662670152091272,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1560,
-          "selectExpiryShare": 0.0417,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -3.7697000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.23534816209438947,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1395,
-          "selectExpiryShare": 0.0337,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.3621
-        },
-        {
-          "selectExpectancyDelta": 0.21495618870039948,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1560,
-          "selectExpiryShare": 0.0417,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -3.8472999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.21402543808005212,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1395,
-          "selectExpiryShare": 0.0337,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.8472999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.19546621694680122,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1491,
-          "selectExpiryShare": 0.0174,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.1644
-        },
-        {
-          "selectExpectancyDelta": 0.18995405769688553,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1576,
-          "selectExpiryShare": 0.019,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.1644
-        },
-        {
-          "selectExpectancyDelta": 0.17397822231232762,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1491,
-          "selectExpiryShare": 0.0174,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.145899999999999
-        },
-        {
-          "selectExpectancyDelta": 0.16931256023495644,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1576,
-          "selectExpiryShare": 0.019,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.145899999999999
-        },
-        {
-          "selectExpectancyDelta": 0.1640861245978355,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1560,
-          "selectExpiryShare": 0.0417,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -3.7697000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.16102651334886936,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1395,
-          "selectExpiryShare": 0.0337,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.5621
-        },
-        {
-          "selectExpectancyDelta": 0.12232161600783406,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1491,
-          "selectExpiryShare": 0.0174,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.3644
-        },
-        {
-          "selectExpectancyDelta": 0.11766909576795137,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1576,
-          "selectExpiryShare": 0.019,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.3644
-        },
-        {
-          "selectExpectancyDelta": 0.11539602712228705,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1552,
-          "selectExpiryShare": 0.0077,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.0549
-        },
-        {
-          "selectExpectancyDelta": 0.11411029292897668,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1579,
-          "selectExpiryShare": 0.0076,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.0549
-        },
-        {
-          "selectExpectancyDelta": 0.09589016372022541,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1552,
-          "selectExpiryShare": 0.0077,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.019299999999999
-        },
-        {
-          "selectExpectancyDelta": 0.09402935562688691,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1579,
-          "selectExpiryShare": 0.0076,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.019299999999999
-        },
-        {
-          "selectExpectancyDelta": 0.06135433897795725,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1552,
-          "selectExpiryShare": 0.0077,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.254899999999999
-        },
-        {
-          "selectExpectancyDelta": 0.06031789267565186,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1579,
-          "selectExpiryShare": 0.0076,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.254899999999999
-        },
-        {
-          "selectExpectancyDelta": 0.035197183365962184,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 1579,
-          "selectExpiryShare": 0.0038,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.3813999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.034525918884664164,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 1578,
-          "selectExpiryShare": 0.0038,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.3813999999999997
-        },
-        {
-          "selectExpectancyDelta": 0.03124024859712112,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1579,
-          "selectExpiryShare": 0.0038,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -3.1630000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.030935804816223066,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1578,
-          "selectExpiryShare": 0.0038,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -3.1630000000000003
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.11292245101147089,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1335,
+     "selectExpiryShare": 0.0105,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -3.5536000000000003
     },
-    "RTYUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.34933209494324047,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 190,
-          "selectExpiryShare": 0.1105,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.33558642011259954,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 202,
-          "selectExpiryShare": 0.1089,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.2936099896800825,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 190,
-          "selectExpiryShare": 0.1105,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.29046472652218785,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 190,
-          "selectExpiryShare": 0.1105,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.27496958842943114,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 202,
-          "selectExpiryShare": 0.1089,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.274261667637352,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 202,
-          "selectExpiryShare": 0.1089,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.21263909440064693,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 194,
-          "selectExpiryShare": 0.0309,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.20316122379986476,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 203,
-          "selectExpiryShare": 0.0345,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.1558272387305438,
-          "pairedP": 0.006993006993006993,
-          "selectFilled": 194,
-          "selectExpiryShare": 0.0309,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.14278486912006183,
-          "pairedP": 0.006993006993006993,
-          "selectFilled": 203,
-          "selectExpiryShare": 0.0345,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.13836538306044066,
-          "pairedP": 0.014985014985014986,
-          "selectFilled": 194,
-          "selectExpiryShare": 0.0309,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.12922033710035735,
-          "pairedP": 0.014985014985014986,
-          "selectFilled": 203,
-          "selectExpiryShare": 0.0345,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -1.8545
-        },
-        {
-          "selectExpectancyDelta": 0.10725498326159744,
-          "pairedP": 0.014985014985014986,
-          "selectFilled": 205,
-          "selectExpiryShare": 0.0146,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -2.6068
-        },
-        {
-          "selectExpectancyDelta": 0.10457753877670478,
-          "pairedP": 0.022977022977022976,
-          "selectFilled": 201,
-          "selectExpiryShare": 0.0149,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -2.6068
-        },
-        {
-          "selectExpectancyDelta": 0.043615196078431354,
-          "pairedP": 0.00999000999000999,
-          "selectFilled": 204,
-          "selectExpiryShare": 0,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -2.3694
-        },
-        {
-          "selectExpectancyDelta": 0.043615196078431354,
-          "pairedP": 0.00999000999000999,
-          "selectFilled": 204,
-          "selectExpiryShare": 0,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -2.3694
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.10879388072504521,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1396,
+     "selectExpiryShare": 0.0057,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.3326
     },
-    "THETAUSD": {
-      "accepted": [],
-      "measureOnly": true,
-      "starved": true
+    {
+     "selectExpectancyDelta": 0.08822690364768136,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1396,
+     "selectExpiryShare": 0.0057,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.0326
     },
-    "XLMUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.14054447734392927,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1138,
-          "selectExpiryShare": 0.0562,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.174200000000001
-        },
-        {
-          "selectExpectancyDelta": 0.13937059196046692,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1047,
-          "selectExpiryShare": 0.0458,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -3.1464000000000003
-        },
-        {
-          "selectExpectancyDelta": 0.13245281174516926,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1152,
-          "selectExpiryShare": 0.0304,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.1997
-        },
-        {
-          "selectExpectancyDelta": 0.12532045400499403,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1097,
-          "selectExpiryShare": 0.0246,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.1997
-        },
-        {
-          "selectExpectancyDelta": 0.11175700985866688,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1129,
-          "selectExpiryShare": 0.0106,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.2442
-        },
-        {
-          "selectExpectancyDelta": 0.10980219748105145,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1153,
-          "selectExpiryShare": 0.0113,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.2442
-        },
-        {
-          "selectExpectancyDelta": 0.10319586730072498,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 1152,
-          "selectExpiryShare": 0.0304,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.1997
-        },
-        {
-          "selectExpectancyDelta": 0.10279553182547592,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1138,
-          "selectExpiryShare": 0.0562,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.174200000000001
-        },
-        {
-          "selectExpectancyDelta": 0.10267769351264647,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 1138,
-          "selectExpiryShare": 0.0562,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.174200000000001
-        },
-        {
-          "selectExpectancyDelta": 0.09844269648448371,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 1097,
-          "selectExpiryShare": 0.0246,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -4.1997
-        },
-        {
-          "selectExpectancyDelta": 0.08887008605072484,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 1152,
-          "selectExpiryShare": 0.0304,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -4.1997
-        },
-        {
-          "selectExpectancyDelta": 0.08815709843262626,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 1129,
-          "selectExpiryShare": 0.0106,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -4.2442
-        },
-        {
-          "selectExpectancyDelta": 0.08283515498321983,
-          "pairedP": 0.007992007992007992,
-          "selectFilled": 1153,
-          "selectExpiryShare": 0.0113,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -4.2442
-        },
-        {
-          "selectExpectancyDelta": 0.04388189675377968,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1113,
-          "selectExpiryShare": 0.0027,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -4.3908000000000005
-        },
-        {
-          "selectExpectancyDelta": 0.042471014492753784,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1104,
-          "selectExpiryShare": 0.0027,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -4.3908000000000005
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.058175755911148985,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1607,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -2.9795
     },
-    "XMRUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.17137123452157615,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1066,
-          "selectExpiryShare": 0.0544,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.181100000000001
-        },
-        {
-          "selectExpectancyDelta": 0.16008097383324982,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1073,
-          "selectExpiryShare": 0.0298,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -3.3971999999999998
-        },
-        {
-          "selectExpectancyDelta": 0.1369631669793623,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1066,
-          "selectExpiryShare": 0.0544,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -4.8811
-        },
-        {
-          "selectExpectancyDelta": 0.10425952975883193,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1043,
-          "selectExpiryShare": 0.0173,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -5.0521
-        },
-        {
-          "selectExpectancyDelta": 0.10417867583985968,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 1051,
-          "selectExpiryShare": 0.0181,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -5.0521
-        },
-        {
-          "selectExpectancyDelta": 0.03667926392708398,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 979,
-          "selectExpiryShare": 0.0072,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -4.7798
-        },
-        {
-          "selectExpectancyDelta": 0.035045230769230606,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 975,
-          "selectExpiryShare": 0.0072,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -4.7798
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.05816932489575102,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1605,
+     "selectExpiryShare": 0.0056,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.5326
     },
-    "YMUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.37648750000000003,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.1793,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -0.8501000000000001
-        },
-        {
-          "selectExpectancyDelta": 0.3595732558139536,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 172,
-          "selectExpiryShare": 0.1802,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -0.8501000000000001
-        },
-        {
-          "selectExpectancyDelta": 0.34796250000000006,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.1793,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -1.0326000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.3249273255813954,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 172,
-          "selectExpiryShare": 0.1802,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -1.0326000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.31423913043478263,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.1793,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -0.8498000000000001
-        },
-        {
-          "selectExpectancyDelta": 0.2977843023255813,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 172,
-          "selectExpiryShare": 0.1802,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -0.8498000000000001
-        },
-        {
-          "selectExpectancyDelta": 0.28581657303370794,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 178,
-          "selectExpiryShare": 0.0337,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -1.6878000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.2770918478260871,
-          "pairedP": 0.000999000999000999,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.0326,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -1.6878000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.26342612359550555,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 178,
-          "selectExpiryShare": 0.0337,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.2830000000000004
-        },
-        {
-          "selectExpectancyDelta": 0.2572163043478261,
-          "pairedP": 0.001998001998001998,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.0326,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.2830000000000004
-        },
-        {
-          "selectExpectancyDelta": 0.21279353932584266,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 178,
-          "selectExpiryShare": 0.0337,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -1.6878000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.2053630434782608,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.0326,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -1.6878000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.10056141304347824,
-          "pairedP": 0.012987012987012988,
-          "selectFilled": 184,
-          "selectExpiryShare": 0.0109,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
-          "worstDayR": -2.426
-        },
-        {
-          "selectExpectancyDelta": 0.09586620879120876,
-          "pairedP": 0.01898101898101898,
-          "selectFilled": 182,
-          "selectExpiryShare": 0.011,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
-          "worstDayR": -2.426
-        },
-        {
-          "selectExpectancyDelta": 0.03760284090909091,
-          "pairedP": 0.012987012987012988,
-          "selectFilled": 176,
-          "selectExpiryShare": 0.0114,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-          "worstDayR": -2.2297000000000002
-        },
-        {
-          "selectExpectancyDelta": 0.03760284090909091,
-          "pairedP": 0.012987012987012988,
-          "selectFilled": 176,
-          "selectExpiryShare": 0.0114,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
-          "worstDayR": -2.2297000000000002
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.057930282131661515,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1595,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -2.9795
     },
-    "ZMUSD": {
-      "accepted": [
-        {
-          "selectExpectancyDelta": 0.31771607142857133,
-          "pairedP": 0.02197802197802198,
-          "selectFilled": 154,
-          "selectExpiryShare": 0.1623,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.3146621987951806,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 166,
-          "selectExpiryShare": 0.1928,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.3135597891566264,
-          "pairedP": 0.02197802197802198,
-          "selectFilled": 166,
-          "selectExpiryShare": 0.1807,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.31301701807228904,
-          "pairedP": 0.003996003996003996,
-          "selectFilled": 166,
-          "selectExpiryShare": 0.1928,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.29942126623376614,
-          "pairedP": 0.04695304695304695,
-          "selectFilled": 154,
-          "selectExpiryShare": 0.1623,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.2961814759036144,
-          "pairedP": 0.04695304695304695,
-          "selectFilled": 166,
-          "selectExpiryShare": 0.1807,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.29235075301204816,
-          "pairedP": 0.03596403596403597,
-          "selectFilled": 166,
-          "selectExpiryShare": 0.1928,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-          "worstDayR": -6.0969999999999995
-        },
-        {
-          "selectExpectancyDelta": 0.29173547297297286,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 148,
-          "selectExpiryShare": 0.1689,
-          "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.2895760135135134,
-          "pairedP": 0.002997002997002997,
-          "selectFilled": 148,
-          "selectExpiryShare": 0.1689,
-          "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -2.3407
-        },
-        {
-          "selectExpectancyDelta": 0.26759425675675663,
-          "pairedP": 0.029970029970029972,
-          "selectFilled": 148,
-          "selectExpiryShare": 0.1689,
-          "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-          "worstDayR": -6.0969999999999995
-        }
-      ],
-      "measureOnly": false,
-      "starved": false
+    {
+     "selectExpectancyDelta": 0.05348570532915373,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1595,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.7295
+    },
+    {
+     "selectExpectancyDelta": 0.05217451135607748,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1607,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.7295
+    },
+    {
+     "selectExpectancyDelta": 0.04263958273077588,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1396,
+     "selectExpiryShare": 0.0057,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.5326
     }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "AUDNZD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.2793786406489901,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1372,
+     "selectExpiryShare": 0.0357,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.6786000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.24437936951196385,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1372,
+     "selectExpiryShare": 0.0357,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.9471999999999996
+    },
+    {
+     "selectExpectancyDelta": 0.2414787340279565,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1380,
+     "selectExpiryShare": 0.0145,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.9979000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.23934630305689789,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 981,
+     "selectExpiryShare": 0.0336,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.6786000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.21041496591201414,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1380,
+     "selectExpiryShare": 0.0145,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.8575999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.20911195035557253,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 981,
+     "selectExpiryShare": 0.0336,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.9471999999999996
+    },
+    {
+     "selectExpectancyDelta": 0.2044156218412475,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1042,
+     "selectExpiryShare": 0.0144,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.9979000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.1831290779667742,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1372,
+     "selectExpiryShare": 0.0357,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.6786000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.17639182145737003,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1042,
+     "selectExpiryShare": 0.0144,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.8575999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.16884769581613301,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1442,
+     "selectExpiryShare": 0.0049,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.3285000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.1599896261965509,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 981,
+     "selectExpiryShare": 0.0336,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.6786000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.15041468610739536,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1442,
+     "selectExpiryShare": 0.0049,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.6265000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.14806605286853589,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1380,
+     "selectExpiryShare": 0.0145,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -3.1978999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.12962003642857933,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1042,
+     "selectExpiryShare": 0.0144,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -3.1978999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.09575471092672506,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1064,
+     "selectExpiryShare": 0.0028,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.3285000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.08694067243375347,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1472,
+     "selectExpiryShare": 0.0034,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -5.5299
+    },
+    {
+     "selectExpectancyDelta": 0.08545969212973263,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1064,
+     "selectExpiryShare": 0.0028,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.6265000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.08393438097563377,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1442,
+     "selectExpiryShare": 0.0049,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.5285
+    },
+    {
+     "selectExpectancyDelta": 0.0701129437869822,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1352,
+     "selectExpiryShare": 0.003,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -5.5299
+    },
+    {
+     "selectExpectancyDelta": 0.06473347134679687,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1472,
+     "selectExpiryShare": 0.0034,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -5.5299
+    },
+    {
+     "selectExpectancyDelta": 0.054111760355029445,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1352,
+     "selectExpiryShare": 0.003,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -5.5299
+    },
+    {
+     "selectExpectancyDelta": 0.035515331227476965,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 1064,
+     "selectExpiryShare": 0.0028,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.5285
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "BNBUSD": {
+   "accepted": [],
+   "measureOnly": true,
+   "starved": true
+  },
+  "BZUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.283470931601993,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 179,
+     "selectExpiryShare": 0.2123,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3141
+    },
+    {
+     "selectExpectancyDelta": 0.26775361316623886,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 179,
+     "selectExpiryShare": 0.2123,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3141
+    },
+    {
+     "selectExpectancyDelta": 0.26302537714184765,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 153,
+     "selectExpiryShare": 0.2026,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.3141
+    },
+    {
+     "selectExpectancyDelta": 0.252020801978449,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 153,
+     "selectExpiryShare": 0.2026,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.3141
+    },
+    {
+     "selectExpectancyDelta": 0.2490368533897025,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 179,
+     "selectExpiryShare": 0.2123,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3141
+    },
+    {
+     "selectExpectancyDelta": 0.2289456385797562,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 153,
+     "selectExpiryShare": 0.2026,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.3141
+    },
+    {
+     "selectExpectancyDelta": 0.15859179737114165,
+     "pairedP": 0.011988011988011988,
+     "selectFilled": 183,
+     "selectExpiryShare": 0.0929,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.1212
+    },
+    {
+     "selectExpectancyDelta": 0.15489815958815956,
+     "pairedP": 0.02197802197802198,
+     "selectFilled": 168,
+     "selectExpiryShare": 0.0833,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.1212
+    },
+    {
+     "selectExpectancyDelta": 0.15258360064983012,
+     "pairedP": 0.011988011988011988,
+     "selectFilled": 183,
+     "selectExpiryShare": 0.0929,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.1212
+    },
+    {
+     "selectExpectancyDelta": 0.1484678024453024,
+     "pairedP": 0.01898101898101898,
+     "selectFilled": 168,
+     "selectExpiryShare": 0.0833,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.1212
+    },
+    {
+     "selectExpectancyDelta": 0.14440164551291634,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 181,
+     "selectExpiryShare": 0.0331,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -1.7359999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.14171621621621627,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 185,
+     "selectExpiryShare": 0.0324,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -1.7359999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.13715413170076152,
+     "pairedP": 0.006993006993006993,
+     "selectFilled": 181,
+     "selectExpiryShare": 0.0331,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -1.6434000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.1345064864864865,
+     "pairedP": 0.00999000999000999,
+     "selectFilled": 185,
+     "selectExpiryShare": 0.0324,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -1.6434000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.11445468418694943,
+     "pairedP": 0.017982017982017984,
+     "selectFilled": 181,
+     "selectExpiryShare": 0.0331,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -1.6434000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.11229783783783787,
+     "pairedP": 0.02197802197802198,
+     "selectFilled": 185,
+     "selectExpiryShare": 0.0324,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -1.6434000000000002
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "DASHUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.13845189860247908,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1164,
+     "selectExpiryShare": 0.0421,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.0912999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.1379705903171523,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1097,
+     "selectExpiryShare": 0.0292,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -4.0912999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.12212629561387423,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1171,
+     "selectExpiryShare": 0.0231,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.2377
+    },
+    {
+     "selectExpectancyDelta": 0.12150584143339366,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1138,
+     "selectExpiryShare": 0.0167,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.2377
+    },
+    {
+     "selectExpectancyDelta": 0.11160504792882053,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1097,
+     "selectExpiryShare": 0.0292,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -4.0912999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.11115499138598428,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1164,
+     "selectExpiryShare": 0.0421,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.146500000000001
+    },
+    {
+     "selectExpectancyDelta": 0.11014854808701516,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 1164,
+     "selectExpiryShare": 0.0421,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.0912999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.09134907517680324,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1138,
+     "selectExpiryShare": 0.0167,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.2377
+    },
+    {
+     "selectExpectancyDelta": 0.08998120594692292,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 1171,
+     "selectExpiryShare": 0.0231,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.2377
+    },
+    {
+     "selectExpectancyDelta": 0.08986293096827214,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1171,
+     "selectExpiryShare": 0.0068,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.9437999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.08730702882260574,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1161,
+     "selectExpiryShare": 0.006,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.9437999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.08072192227697886,
+     "pairedP": 0.017982017982017984,
+     "selectFilled": 1138,
+     "selectExpiryShare": 0.0167,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.2377
+    },
+    {
+     "selectExpectancyDelta": 0.08014568075477932,
+     "pairedP": 0.028971028971028972,
+     "selectFilled": 1171,
+     "selectExpiryShare": 0.0231,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.2377
+    },
+    {
+     "selectExpectancyDelta": 0.07243218801353249,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 1171,
+     "selectExpiryShare": 0.0068,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.9437999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.02923085691288263,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 1124,
+     "selectExpiryShare": 0.0053,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -4.4764
+    },
+    {
+     "selectExpectancyDelta": 0.02865894924309878,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 1123,
+     "selectExpiryShare": 0.0053,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -4.4764
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "EURUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.30557008090587473,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1609,
+     "selectExpiryShare": 0.064,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.0088999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.29257848988093493,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1468,
+     "selectExpiryShare": 0.0538,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.0088999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.2721110380220958,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1609,
+     "selectExpiryShare": 0.064,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.7085
+    },
+    {
+     "selectExpectancyDelta": 0.2580177269381554,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1468,
+     "selectExpiryShare": 0.0538,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.9508
+    },
+    {
+     "selectExpectancyDelta": 0.23855689168864483,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1627,
+     "selectExpiryShare": 0.0227,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.9721
+    },
+    {
+     "selectExpectancyDelta": 0.23596713414275883,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1565,
+     "selectExpiryShare": 0.023,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.9721
+    },
+    {
+     "selectExpectancyDelta": 0.23475883168275435,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1609,
+     "selectExpiryShare": 0.064,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3788
+    },
+    {
+     "selectExpectancyDelta": 0.22028918470382297,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1468,
+     "selectExpiryShare": 0.0538,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.2982
+    },
+    {
+     "selectExpectancyDelta": 0.2091910650137832,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1627,
+     "selectExpiryShare": 0.0227,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -3.6721
+    },
+    {
+     "selectExpectancyDelta": 0.2058171660916407,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1565,
+     "selectExpiryShare": 0.023,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -3.6721
+    },
+    {
+     "selectExpectancyDelta": 0.17116297650732964,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1627,
+     "selectExpiryShare": 0.0227,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -3.1721
+    },
+    {
+     "selectExpectancyDelta": 0.16723096800857362,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1565,
+     "selectExpiryShare": 0.023,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -3.1721
+    },
+    {
+     "selectExpectancyDelta": 0.11565257068498609,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1612,
+     "selectExpiryShare": 0.0093,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.6285
+    },
+    {
+     "selectExpectancyDelta": 0.11554621239191289,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1622,
+     "selectExpiryShare": 0.0099,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.6285
+    },
+    {
+     "selectExpectancyDelta": 0.10116956820359652,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1612,
+     "selectExpiryShare": 0.0093,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.9136
+    },
+    {
+     "selectExpectancyDelta": 0.10106908538821374,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1622,
+     "selectExpiryShare": 0.0099,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.9136
+    },
+    {
+     "selectExpectancyDelta": 0.06905626171373774,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1622,
+     "selectExpiryShare": 0.0099,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.8285
+    },
+    {
+     "selectExpectancyDelta": 0.06893104463039548,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1612,
+     "selectExpiryShare": 0.0093,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.8285
+    },
+    {
+     "selectExpectancyDelta": 0.03235231452124274,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1577,
+     "selectExpiryShare": 0.0051,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -4.540500000000001
+    },
+    {
+     "selectExpectancyDelta": 0.03235231452124274,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1577,
+     "selectExpiryShare": 0.0051,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -4.540500000000001
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "GBPCAD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.2848974689818005,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1440,
+     "selectExpiryShare": 0.0486,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.1232999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.27605337241419986,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1273,
+     "selectExpiryShare": 0.0408,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.1232999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.24742531620402214,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1440,
+     "selectExpiryShare": 0.0486,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.5212
+    },
+    {
+     "selectExpectancyDelta": 0.23978636534428588,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1273,
+     "selectExpiryShare": 0.0408,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.0541
+    },
+    {
+     "selectExpectancyDelta": 0.23616406810660973,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1460,
+     "selectExpiryShare": 0.0158,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -1.9804000000000004
+    },
+    {
+     "selectExpectancyDelta": 0.23441740211893336,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1345,
+     "selectExpiryShare": 0.0134,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.122
+    },
+    {
+     "selectExpectancyDelta": 0.20730323287068886,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1440,
+     "selectExpiryShare": 0.0486,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3232999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.19718256125729466,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1460,
+     "selectExpiryShare": 0.0158,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.5212
+    },
+    {
+     "selectExpectancyDelta": 0.19691323101592761,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1273,
+     "selectExpiryShare": 0.0408,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.3232999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.1937484058364055,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1345,
+     "selectExpiryShare": 0.0134,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.1672000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.1560637256408563,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1460,
+     "selectExpiryShare": 0.0158,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.1804000000000006
+    },
+    {
+     "selectExpectancyDelta": 0.1527790378066658,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1345,
+     "selectExpiryShare": 0.0134,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.1804000000000006
+    },
+    {
+     "selectExpectancyDelta": 0.1417365974374088,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1463,
+     "selectExpiryShare": 0.0055,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -2.4647
+    },
+    {
+     "selectExpectancyDelta": 0.1406099393586455,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1430,
+     "selectExpiryShare": 0.0042,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -2.4647
+    },
+    {
+     "selectExpectancyDelta": 0.1201506780935948,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1463,
+     "selectExpiryShare": 0.0055,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -2.8928
+    },
+    {
+     "selectExpectancyDelta": 0.1175575617362679,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1430,
+     "selectExpiryShare": 0.0042,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -2.8928
+    },
+    {
+     "selectExpectancyDelta": 0.0751341367402113,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1463,
+     "selectExpiryShare": 0.0055,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -2.4647
+    },
+    {
+     "selectExpectancyDelta": 0.0735215477502539,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1430,
+     "selectExpiryShare": 0.0042,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -2.4647
+    },
+    {
+     "selectExpectancyDelta": 0.05661938011006969,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1457,
+     "selectExpiryShare": 0.0027,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.788
+    },
+    {
+     "selectExpectancyDelta": 0.0564231245698554,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1453,
+     "selectExpiryShare": 0.0021,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.788
+    },
+    {
+     "selectExpectancyDelta": 0.027524776324845207,
+     "pairedP": 0.01998001998001998,
+     "selectFilled": 1453,
+     "selectExpiryShare": 0.0021,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.788
+    },
+    {
+     "selectExpectancyDelta": 0.027307918202039594,
+     "pairedP": 0.02097902097902098,
+     "selectFilled": 1457,
+     "selectExpiryShare": 0.0027,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.788
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "HEUSX": {
+   "accepted": [],
+   "measureOnly": true,
+   "starved": false
+  },
+  "NGUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.2662000576061447,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 215,
+     "selectExpiryShare": 0.1395,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.2302999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.24765598084925047,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 183,
+     "selectExpiryShare": 0.1475,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.2302999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.21359680179219118,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 215,
+     "selectExpiryShare": 0.1395,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.2302999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.2087636311224746,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 183,
+     "selectExpiryShare": 0.1475,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.2302999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.19273819714102847,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 215,
+     "selectExpiryShare": 0.1395,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.2302999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.17884833057602653,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 183,
+     "selectExpiryShare": 0.1475,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.2302999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.16064266055045873,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 218,
+     "selectExpiryShare": 0.0459,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.4596999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.1523301852851232,
+     "pairedP": 0.008991008991008992,
+     "selectFilled": 204,
+     "selectExpiryShare": 0.049,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.4596999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.11940469508904472,
+     "pairedP": 0.04895104895104895,
+     "selectFilled": 204,
+     "selectExpiryShare": 0.049,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.4596999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.11851238532110084,
+     "pairedP": 0.04095904095904096,
+     "selectFilled": 218,
+     "selectExpiryShare": 0.0459,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.4596999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.1071756880733945,
+     "pairedP": 0.04095904095904096,
+     "selectFilled": 218,
+     "selectExpiryShare": 0.0459,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.4596999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.07086284403669724,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 218,
+     "selectExpiryShare": 0,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -1.5821
+    },
+    {
+     "selectExpectancyDelta": 0.07086284403669724,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 218,
+     "selectExpiryShare": 0,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -1.5821
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "NSDQ": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.2817941244239632,
+     "pairedP": 0.026973026973026972,
+     "selectFilled": 56,
+     "selectExpiryShare": 0.1429,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -1.0266
+    },
+    {
+     "selectExpectancyDelta": 0.049716129032258055,
+     "pairedP": 0.04295704295704296,
+     "selectFilled": 62,
+     "selectExpiryShare": 0,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -1.044
+    },
+    {
+     "selectExpectancyDelta": 0.049716129032258055,
+     "pairedP": 0.04295704295704296,
+     "selectFilled": 62,
+     "selectExpiryShare": 0,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -1.044
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "NZDCHF": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.25702373893948216,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1560,
+     "selectExpiryShare": 0.0346,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.2044
+    },
+    {
+     "selectExpectancyDelta": 0.23200603950928284,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1296,
+     "selectExpiryShare": 0.0324,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.2044
+    },
+    {
+     "selectExpectancyDelta": 0.22945341842666164,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1560,
+     "selectExpiryShare": 0.0346,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -3.0728999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.21350549718124018,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1575,
+     "selectExpiryShare": 0.0171,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.2879000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.20899184197841827,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1296,
+     "selectExpiryShare": 0.0324,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.0728999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.18878105273679582,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1575,
+     "selectExpiryShare": 0.0171,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.2879000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.18747015373412676,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1356,
+     "selectExpiryShare": 0.0147,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.2879000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.1687129265954839,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1356,
+     "selectExpiryShare": 0.0147,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.2879000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.16390027740102067,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1560,
+     "selectExpiryShare": 0.0346,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.5321999999999996
+    },
+    {
+     "selectExpectancyDelta": 0.14360796852162855,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1296,
+     "selectExpiryShare": 0.0324,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.5321999999999996
+    },
+    {
+     "selectExpectancyDelta": 0.1334857850965313,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1601,
+     "selectExpiryShare": 0.0062,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.3475
+    },
+    {
+     "selectExpectancyDelta": 0.12306244956219271,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1575,
+     "selectExpiryShare": 0.0171,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.2879000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.10847216860683728,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1601,
+     "selectExpiryShare": 0.0062,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.0386
+    },
+    {
+     "selectExpectancyDelta": 0.10367428352763723,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1356,
+     "selectExpiryShare": 0.0147,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.2879000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.10051606488163002,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1405,
+     "selectExpiryShare": 0.0064,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.3475
+    },
+    {
+     "selectExpectancyDelta": 0.08196524637629198,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1405,
+     "selectExpiryShare": 0.0064,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.0386
+    },
+    {
+     "selectExpectancyDelta": 0.06339798488664994,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1588,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.6956
+    },
+    {
+     "selectExpectancyDelta": 0.061469306111296126,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1604,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.6956
+    },
+    {
+     "selectExpectancyDelta": 0.05604581008091609,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1601,
+     "selectExpiryShare": 0.0062,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -3.5385999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.04577304785894211,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1588,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.8293
+    },
+    {
+     "selectExpectancyDelta": 0.04229262281952555,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1604,
+     "selectExpiryShare": 0.0031,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.8293
+    },
+    {
+     "selectExpectancyDelta": 0.03363058445458376,
+     "pairedP": 0.022977022977022976,
+     "selectFilled": 1405,
+     "selectExpiryShare": 0.0064,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -3.5385999999999997
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "NZDJPY": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.23662670152091272,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1560,
+     "selectExpiryShare": 0.0417,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -3.7697000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.23534816209438947,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1395,
+     "selectExpiryShare": 0.0337,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.3621
+    },
+    {
+     "selectExpectancyDelta": 0.21495618870039948,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1560,
+     "selectExpiryShare": 0.0417,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -3.8472999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.21402543808005212,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1395,
+     "selectExpiryShare": 0.0337,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.8472999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.19546621694680122,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1491,
+     "selectExpiryShare": 0.0174,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.1644
+    },
+    {
+     "selectExpectancyDelta": 0.18995405769688553,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1576,
+     "selectExpiryShare": 0.019,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.1644
+    },
+    {
+     "selectExpectancyDelta": 0.17397822231232762,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1491,
+     "selectExpiryShare": 0.0174,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.145899999999999
+    },
+    {
+     "selectExpectancyDelta": 0.16931256023495644,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1576,
+     "selectExpiryShare": 0.019,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.145899999999999
+    },
+    {
+     "selectExpectancyDelta": 0.1640861245978355,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1560,
+     "selectExpiryShare": 0.0417,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -3.7697000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.16102651334886936,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1395,
+     "selectExpiryShare": 0.0337,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.5621
+    },
+    {
+     "selectExpectancyDelta": 0.12232161600783406,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1491,
+     "selectExpiryShare": 0.0174,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.3644
+    },
+    {
+     "selectExpectancyDelta": 0.11766909576795137,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1576,
+     "selectExpiryShare": 0.019,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.3644
+    },
+    {
+     "selectExpectancyDelta": 0.11539602712228705,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1552,
+     "selectExpiryShare": 0.0077,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.0549
+    },
+    {
+     "selectExpectancyDelta": 0.11411029292897668,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1579,
+     "selectExpiryShare": 0.0076,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.0549
+    },
+    {
+     "selectExpectancyDelta": 0.09589016372022541,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1552,
+     "selectExpiryShare": 0.0077,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.019299999999999
+    },
+    {
+     "selectExpectancyDelta": 0.09402935562688691,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1579,
+     "selectExpiryShare": 0.0076,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.019299999999999
+    },
+    {
+     "selectExpectancyDelta": 0.06135433897795725,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1552,
+     "selectExpiryShare": 0.0077,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.254899999999999
+    },
+    {
+     "selectExpectancyDelta": 0.06031789267565186,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1579,
+     "selectExpiryShare": 0.0076,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.254899999999999
+    },
+    {
+     "selectExpectancyDelta": 0.035197183365962184,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 1579,
+     "selectExpiryShare": 0.0038,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.3813999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.034525918884664164,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 1578,
+     "selectExpiryShare": 0.0038,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.3813999999999997
+    },
+    {
+     "selectExpectancyDelta": 0.03124024859712112,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1579,
+     "selectExpiryShare": 0.0038,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -3.1630000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.030935804816223066,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1578,
+     "selectExpiryShare": 0.0038,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -3.1630000000000003
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "RTYUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.34933209494324047,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 190,
+     "selectExpiryShare": 0.1105,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.33558642011259954,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 202,
+     "selectExpiryShare": 0.1089,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.2936099896800825,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 190,
+     "selectExpiryShare": 0.1105,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.29046472652218785,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 190,
+     "selectExpiryShare": 0.1105,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.27496958842943114,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 202,
+     "selectExpiryShare": 0.1089,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.274261667637352,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 202,
+     "selectExpiryShare": 0.1089,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.21263909440064693,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 194,
+     "selectExpiryShare": 0.0309,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.20316122379986476,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 203,
+     "selectExpiryShare": 0.0345,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.1558272387305438,
+     "pairedP": 0.006993006993006993,
+     "selectFilled": 194,
+     "selectExpiryShare": 0.0309,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.14278486912006183,
+     "pairedP": 0.006993006993006993,
+     "selectFilled": 203,
+     "selectExpiryShare": 0.0345,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.13836538306044066,
+     "pairedP": 0.014985014985014986,
+     "selectFilled": 194,
+     "selectExpiryShare": 0.0309,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.12922033710035735,
+     "pairedP": 0.014985014985014986,
+     "selectFilled": 203,
+     "selectExpiryShare": 0.0345,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -1.8545
+    },
+    {
+     "selectExpectancyDelta": 0.10725498326159744,
+     "pairedP": 0.014985014985014986,
+     "selectFilled": 205,
+     "selectExpiryShare": 0.0146,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -2.6068
+    },
+    {
+     "selectExpectancyDelta": 0.10457753877670478,
+     "pairedP": 0.022977022977022976,
+     "selectFilled": 201,
+     "selectExpiryShare": 0.0149,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -2.6068
+    },
+    {
+     "selectExpectancyDelta": 0.043615196078431354,
+     "pairedP": 0.00999000999000999,
+     "selectFilled": 204,
+     "selectExpiryShare": 0,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -2.3694
+    },
+    {
+     "selectExpectancyDelta": 0.043615196078431354,
+     "pairedP": 0.00999000999000999,
+     "selectFilled": 204,
+     "selectExpiryShare": 0,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -2.3694
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "THETAUSD": {
+   "accepted": [],
+   "measureOnly": true,
+   "starved": true
+  },
+  "XLMUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.14054447734392927,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1138,
+     "selectExpiryShare": 0.0562,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.174200000000001
+    },
+    {
+     "selectExpectancyDelta": 0.13937059196046692,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1047,
+     "selectExpiryShare": 0.0458,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -3.1464000000000003
+    },
+    {
+     "selectExpectancyDelta": 0.13245281174516926,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1152,
+     "selectExpiryShare": 0.0304,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.1997
+    },
+    {
+     "selectExpectancyDelta": 0.12532045400499403,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1097,
+     "selectExpiryShare": 0.0246,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.1997
+    },
+    {
+     "selectExpectancyDelta": 0.11175700985866688,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1129,
+     "selectExpiryShare": 0.0106,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.2442
+    },
+    {
+     "selectExpectancyDelta": 0.10980219748105145,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1153,
+     "selectExpiryShare": 0.0113,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.2442
+    },
+    {
+     "selectExpectancyDelta": 0.10319586730072498,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 1152,
+     "selectExpiryShare": 0.0304,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.1997
+    },
+    {
+     "selectExpectancyDelta": 0.10279553182547592,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1138,
+     "selectExpiryShare": 0.0562,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.174200000000001
+    },
+    {
+     "selectExpectancyDelta": 0.10267769351264647,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 1138,
+     "selectExpiryShare": 0.0562,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.174200000000001
+    },
+    {
+     "selectExpectancyDelta": 0.09844269648448371,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 1097,
+     "selectExpiryShare": 0.0246,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -4.1997
+    },
+    {
+     "selectExpectancyDelta": 0.08887008605072484,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 1152,
+     "selectExpiryShare": 0.0304,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -4.1997
+    },
+    {
+     "selectExpectancyDelta": 0.08815709843262626,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 1129,
+     "selectExpiryShare": 0.0106,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -4.2442
+    },
+    {
+     "selectExpectancyDelta": 0.08283515498321983,
+     "pairedP": 0.007992007992007992,
+     "selectFilled": 1153,
+     "selectExpiryShare": 0.0113,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -4.2442
+    },
+    {
+     "selectExpectancyDelta": 0.04388189675377968,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1113,
+     "selectExpiryShare": 0.0027,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -4.3908000000000005
+    },
+    {
+     "selectExpectancyDelta": 0.042471014492753784,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1104,
+     "selectExpiryShare": 0.0027,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -4.3908000000000005
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "XMRUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.17137123452157615,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1066,
+     "selectExpiryShare": 0.0544,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.181100000000001
+    },
+    {
+     "selectExpectancyDelta": 0.16008097383324982,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1073,
+     "selectExpiryShare": 0.0298,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -3.3971999999999998
+    },
+    {
+     "selectExpectancyDelta": 0.1369631669793623,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1066,
+     "selectExpiryShare": 0.0544,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -4.8811
+    },
+    {
+     "selectExpectancyDelta": 0.10425952975883193,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1043,
+     "selectExpiryShare": 0.0173,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -5.0521
+    },
+    {
+     "selectExpectancyDelta": 0.10417867583985968,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 1051,
+     "selectExpiryShare": 0.0181,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -5.0521
+    },
+    {
+     "selectExpectancyDelta": 0.03667926392708398,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 979,
+     "selectExpiryShare": 0.0072,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -4.7798
+    },
+    {
+     "selectExpectancyDelta": 0.035045230769230606,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 975,
+     "selectExpiryShare": 0.0072,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -4.7798
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "YMUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.37648750000000003,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.1793,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -0.8501000000000001
+    },
+    {
+     "selectExpectancyDelta": 0.3595732558139536,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 172,
+     "selectExpiryShare": 0.1802,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -0.8501000000000001
+    },
+    {
+     "selectExpectancyDelta": 0.34796250000000006,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.1793,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -1.0326000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.3249273255813954,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 172,
+     "selectExpiryShare": 0.1802,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -1.0326000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.31423913043478263,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.1793,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -0.8498000000000001
+    },
+    {
+     "selectExpectancyDelta": 0.2977843023255813,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 172,
+     "selectExpiryShare": 0.1802,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -0.8498000000000001
+    },
+    {
+     "selectExpectancyDelta": 0.28581657303370794,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 178,
+     "selectExpiryShare": 0.0337,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -1.6878000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.2770918478260871,
+     "pairedP": 0.000999000999000999,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.0326,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -1.6878000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.26342612359550555,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 178,
+     "selectExpiryShare": 0.0337,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.2830000000000004
+    },
+    {
+     "selectExpectancyDelta": 0.2572163043478261,
+     "pairedP": 0.001998001998001998,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.0326,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.2830000000000004
+    },
+    {
+     "selectExpectancyDelta": 0.21279353932584266,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 178,
+     "selectExpiryShare": 0.0337,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -1.6878000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.2053630434782608,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.0326,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -1.6878000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.10056141304347824,
+     "pairedP": 0.012987012987012988,
+     "selectFilled": 184,
+     "selectExpiryShare": 0.0109,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=3",
+     "worstDayR": -2.426
+    },
+    {
+     "selectExpectancyDelta": 0.09586620879120876,
+     "pairedP": 0.01898101898101898,
+     "selectFilled": 182,
+     "selectExpiryShare": 0.011,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1.6,sizingHoursFactor=1",
+     "worstDayR": -2.426
+    },
+    {
+     "selectExpectancyDelta": 0.03760284090909091,
+     "pairedP": 0.012987012987012988,
+     "selectFilled": 176,
+     "selectExpiryShare": 0.0114,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+     "worstDayR": -2.2297000000000002
+    },
+    {
+     "selectExpectancyDelta": 0.03760284090909091,
+     "pairedP": 0.012987012987012988,
+     "selectFilled": 176,
+     "selectExpiryShare": 0.0114,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=3",
+     "worstDayR": -2.2297000000000002
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
+  },
+  "ZMUSD": {
+   "accepted": [
+    {
+     "selectExpectancyDelta": 0.31771607142857133,
+     "pairedP": 0.02197802197802198,
+     "selectFilled": 154,
+     "selectExpiryShare": 0.1623,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.3146621987951806,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 166,
+     "selectExpiryShare": 0.1928,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.3135597891566264,
+     "pairedP": 0.02197802197802198,
+     "selectFilled": 166,
+     "selectExpiryShare": 0.1807,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.31301701807228904,
+     "pairedP": 0.003996003996003996,
+     "selectFilled": 166,
+     "selectExpiryShare": 0.1928,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.29942126623376614,
+     "pairedP": 0.04695304695304695,
+     "selectFilled": 154,
+     "selectExpiryShare": 0.1623,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.2961814759036144,
+     "pairedP": 0.04695304695304695,
+     "selectFilled": 166,
+     "selectExpiryShare": 0.1807,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.29235075301204816,
+     "pairedP": 0.03596403596403597,
+     "selectFilled": 166,
+     "selectExpiryShare": 0.1928,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+     "worstDayR": -6.0969999999999995
+    },
+    {
+     "selectExpectancyDelta": 0.29173547297297286,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 148,
+     "selectExpiryShare": 0.1689,
+     "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.2895760135135134,
+     "pairedP": 0.002997002997002997,
+     "selectFilled": 148,
+     "selectExpiryShare": 0.1689,
+     "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -2.3407
+    },
+    {
+     "selectExpectancyDelta": 0.26759425675675663,
+     "pairedP": 0.029970029970029972,
+     "selectFilled": 148,
+     "selectExpiryShare": 0.1689,
+     "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+     "worstDayR": -6.0969999999999995
+    }
+   ],
+   "measureOnly": false,
+   "starved": false
   }
+ }
 }

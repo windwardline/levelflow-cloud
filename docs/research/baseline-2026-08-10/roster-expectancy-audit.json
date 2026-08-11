@@ -1,1660 +1,1661 @@
 {
-  "report": {
-    "AAVEUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.06563675609212806,
-        "expectancy": -0.12048879159369538,
-        "n": 571,
-        "se": 0.027985732398758838
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.007972177417788814,
-        "expectancy": -0.06400563798219584,
-        "n": 337,
-        "se": 0.0367233752040738
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "ADAUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.20640054779579906,
-        "expectancy": 0.17101958456973296,
-        "n": 1011,
-        "se": 0.01805151185003372
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.25765039891638924,
-        "expectancy": 0.2243405291005288,
-        "n": 945,
-        "se": 0.016994831538704312
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "ALGOUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.5302721520653106,
-        "expectancy": -0.5948352727272728,
-        "n": 550,
-        "se": 0.03294036768467457
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.6017932520775222,
-        "expectancy": -0.666921367521367,
-        "n": 468,
-        "se": 0.033228630328492215
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "ARWUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.38431146822972595,
-        "expectancy": -0.4922660714285713,
-        "n": 336,
-        "se": 0.055078879183084364
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.3206101994104629,
-        "expectancy": -0.41254694835680766,
-        "n": 426,
-        "se": 0.046906504564461604
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "ASX": {
-      "confidenceThreshold": 68,
-      "confirm": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 8,
-        "se": null
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 4,
-        "se": null
-      },
-      "verdict": "UNMEASURABLE — under the fill floor at its shipped settings"
-    },
-    "ATOMUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 28,
-        "se": null
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 20,
-        "se": null
-      },
-      "verdict": "UNMEASURABLE — under the fill floor at its shipped settings"
-    },
-    "AUDCAD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2759937658931865,
-        "expectancy": 0.25185980132450303,
-        "n": 1510,
-        "se": 0.01231324722892015
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2435472800859372,
-        "expectancy": 0.21717546362339515,
-        "n": 1402,
-        "se": 0.013455008399256153
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "AUDCHF": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.27857248099379833,
-        "expectancy": 0.2537192021636242,
-        "n": 1479,
-        "se": 0.012680244301109258
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.26276864858204907,
-        "expectancy": 0.23823960332693536,
-        "n": 1563,
-        "se": 0.01251481900771109
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "AUDJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.22770583204157493,
-        "expectancy": 0.20114148606811133,
-        "n": 1615,
-        "se": 0.013553237741563062
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2351306544547258,
-        "expectancy": 0.2093800000000004,
-        "n": 1585,
-        "se": 0.013138089007512963
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "AUDNZD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.24975281445670014,
-        "expectancy": 0.2238670168067227,
-        "n": 1428,
-        "se": 0.013207039617335437
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2649418188485363,
-        "expectancy": 0.23830889212828008,
-        "n": 1372,
-        "se": 0.013588227918498083
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "AUDUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.24339168391970334,
-        "expectancy": 0.21848601440576165,
-        "n": 1666,
-        "se": 0.012706974241806978
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.26367549942868307,
-        "expectancy": 0.2379010013351139,
-        "n": 1498,
-        "se": 0.013150254129372024
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "AVAXUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.6161363829364271,
-        "expectancy": -0.7040751515151511,
-        "n": 330,
-        "se": 0.04486671866261424
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.5138633146806397,
-        "expectancy": -0.5821526748971187,
-        "n": 486,
-        "se": 0.034841510314530144
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "BCHUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.055943406642762004,
-        "expectancy": 0.008945352112676065,
-        "n": 710,
-        "se": 0.023978599250043846
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.129534139607629,
-        "expectancy": 0.0846295252225519,
-        "n": 674,
-        "se": 0.022910517543406683
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "BNBUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.09620425566942717,
-        "expectancy": 0.024107462686567153,
-        "n": 335,
-        "se": 0.036784078052479595
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.18712170688873167,
-        "expectancy": 0.10665263157894736,
-        "n": 380,
-        "se": 0.0410556506682573
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "BTCUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.22036749103191633,
-        "expectancy": 0.19201363978899816,
-        "n": 1327,
-        "se": 0.014466250634141932
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.27424202456302255,
-        "expectancy": 0.24820978029766155,
-        "n": 1411,
-        "se": 0.0132817572782454
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "BZUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.3376972774544639,
-        "expectancy": 0.2499494382022471,
-        "n": 178,
-        "se": 0.04476930574092692
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.38421466182161246,
-        "expectancy": 0.2927703910614525,
-        "n": 179,
-        "se": 0.04665524018375508
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "CADCHF": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2813777717346554,
-        "expectancy": 0.2570704515272244,
-        "n": 1506,
-        "se": 0.01240169398338316
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2514205913534021,
-        "expectancy": 0.22557628935030127,
-        "n": 1493,
-        "se": 0.013185868368928988
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "CADJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.21256366683915498,
-        "expectancy": 0.18580989010988994,
-        "n": 1638,
-        "se": 0.013649886086359721
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.24983029895525755,
-        "expectancy": 0.22504724116552957,
-        "n": 1613,
-        "se": 0.01264441723965713
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "CAKEUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.10335176601764538,
-        "expectancy": -0.20981984732824444,
-        "n": 262,
-        "se": 0.054320449648264824
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.019641116246196563,
-        "expectancy": -0.08646468531468533,
-        "n": 286,
-        "se": 0.054135613041266274
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "CHFJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.23968363111904334,
-        "expectancy": 0.21413845679012333,
-        "n": 1620,
-        "se": 0.013033252208632651
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2178288688582133,
-        "expectancy": 0.1913480544747079,
-        "n": 1542,
-        "se": 0.01351061958342112
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "CLUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.40367524924743636,
-        "expectancy": 0.29559406779661007,
-        "n": 118,
-        "se": 0.05514345992389095
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.36404776410571166,
-        "expectancy": 0.27878950617283943,
-        "n": 162,
-        "se": 0.04349911119024093
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "DASHUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.07504474311129566,
-        "expectancy": -0.12359849812265344,
-        "n": 799,
-        "se": 0.024772323985386625
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.011365017568859714,
-        "expectancy": -0.05802423887587822,
-        "n": 854,
-        "se": 0.023805725156642095
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "DAX": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 28,
-        "se": null
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.40145241854543534,
-        "expectancy": 0.18631714285714282,
-        "n": 35,
-        "se": 0.10976289575933293
-      },
-      "verdict": "UNMEASURABLE — under the fill floor at its shipped settings"
-    },
-    "DOGEUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.1120942727585692,
-        "expectancy": -0.15948476658476668,
-        "n": 814,
-        "se": 0.024178823380712994
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.013136121218568303,
-        "expectancy": -0.05689157641395908,
-        "n": 831,
-        "se": 0.022324211834383052
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "DOTUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.9165592673312292,
-        "expectancy": -0.9819426470588236,
-        "n": 272,
-        "se": 0.03335886720795634
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.7774982940469957,
-        "expectancy": -0.8785363636363642,
-        "n": 198,
-        "se": 0.05155003550477985
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "DOW": {
-      "confidenceThreshold": 68,
-      "confirm": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 26,
-        "se": null
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 26,
-        "se": null
-      },
-      "verdict": "UNMEASURABLE — under the fill floor at its shipped settings"
-    },
-    "DYDXUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -1.5320726605827013,
-        "expectancy": -1.7016231884057968,
-        "n": 138,
-        "se": 0.0865053713383141
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -1.29642378884236,
-        "expectancy": -1.4440117647058823,
-        "n": 68,
-        "se": 0.07529998768547061
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "EGLDUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.2625534307602877,
-        "expectancy": -0.3300644444444444,
-        "n": 450,
-        "se": 0.03444439473681465
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.19433649781945891,
-        "expectancy": -0.27012938005390846,
-        "n": 371,
-        "se": 0.03866983787471916
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "ESUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.3880375900354789,
-        "expectancy": 0.3191810650887574,
-        "n": 169,
-        "se": 0.03513088007485791
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.4207678483933893,
-        "expectancy": 0.3526253807106599,
-        "n": 197,
-        "se": 0.0347665651442497
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "ETCUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.11549812337334792,
-        "expectancy": -0.16311613636363648,
-        "n": 880,
-        "se": 0.02429490458688192
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.01802332918273367,
-        "expectancy": -0.026136658354114755,
-        "n": 802,
-        "se": 0.022530605886147154
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "ETHUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.25283287944010757,
-        "expectancy": 0.2222838908450704,
-        "n": 1136,
-        "se": 0.015586218670937351
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.28847862958918596,
-        "expectancy": 0.259503996366939,
-        "n": 1101,
-        "se": 0.014782976133799464
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURAUD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2220380173725591,
-        "expectancy": 0.19769168131224374,
-        "n": 1707,
-        "se": 0.012421600030773146
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2377618337907102,
-        "expectancy": 0.2123140259740257,
-        "n": 1540,
-        "se": 0.012983575416675764
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURCAD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2551154431119954,
-        "expectancy": 0.2297884435537746,
-        "n": 1497,
-        "se": 0.012921938550112672
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2595508275837802,
-        "expectancy": 0.235098137059215,
-        "n": 1503,
-        "se": 0.01247586251253326
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURCHF": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.25543116315446013,
-        "expectancy": 0.2303536650975117,
-        "n": 1487,
-        "se": 0.012794641865789998
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.22095681460790964,
-        "expectancy": 0.19433807803468223,
-        "n": 1384,
-        "se": 0.013580988047565008
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURGBP": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.21427388065804653,
-        "expectancy": 0.18874583059750522,
-        "n": 1523,
-        "se": 0.01302451533701088
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2760774422843735,
-        "expectancy": 0.2488071161048689,
-        "n": 1335,
-        "se": 0.01391343172423703
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2380962567827834,
-        "expectancy": 0.21183842239185743,
-        "n": 1572,
-        "se": 0.01339685428108467
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.22179895697900226,
-        "expectancy": 0.1969988204456096,
-        "n": 1526,
-        "se": 0.01265313088438402
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURNZD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.26403653736496063,
-        "expectancy": 0.23989248262792184,
-        "n": 1583,
-        "se": 0.012318395273999385
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.24358511277281836,
-        "expectancy": 0.2184771963824288,
-        "n": 1548,
-        "se": 0.012810161423668137
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "EURUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.23650638197260407,
-        "expectancy": 0.21129679802955675,
-        "n": 1624,
-        "se": 0.012862032624003735
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.21353718376830155,
-        "expectancy": 0.18810882535736506,
-        "n": 1609,
-        "se": 0.012973652250477806
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "FILUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 16,
-        "se": null
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 0,
-        "se": null
-      },
-      "verdict": "UNMEASURABLE — under the fill floor at its shipped settings"
-    },
-    "GBPAUD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.18787758959062426,
-        "expectancy": 0.16037012078830246,
-        "n": 1573,
-        "se": 0.01403442285832745
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.19628407615458143,
-        "expectancy": 0.16865793871866308,
-        "n": 1436,
-        "se": 0.014094968079550187
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GBPCAD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.23754120649683413,
-        "expectancy": 0.2108026648900731,
-        "n": 1501,
-        "se": 0.013642113064674
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2481876517974137,
-        "expectancy": 0.22116326388888932,
-        "n": 1440,
-        "se": 0.013787953014553255
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GBPCHF": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.23830661911624626,
-        "expectancy": 0.21193743589743647,
-        "n": 1560,
-        "se": 0.01345366490755602
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2485550872155159,
-        "expectancy": 0.2228430894308942,
-        "n": 1476,
-        "se": 0.013118366216643711
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GBPJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.20383383274884334,
-        "expectancy": 0.17723404392764858,
-        "n": 1548,
-        "se": 0.013571320827140184
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2420105286629296,
-        "expectancy": 0.2161396341463415,
-        "n": 1476,
-        "se": 0.013199435977851073
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GBPNZD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.25839231624806824,
-        "expectancy": 0.23270816326530602,
-        "n": 1470,
-        "se": 0.013104159685082767
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2511595456660194,
-        "expectancy": 0.22509565508021412,
-        "n": 1496,
-        "se": 0.013297903360104741
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GBPUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2440623714291739,
-        "expectancy": 0.2191768703241896,
-        "n": 1604,
-        "se": 0.012696684237236886
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2496515682301662,
-        "expectancy": 0.22355850202429145,
-        "n": 1482,
-        "se": 0.013312788880548343
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GCUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.3719957816815011,
-        "expectancy": 0.29354861878453054,
-        "n": 181,
-        "se": 0.040024062702536
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.4058511293889696,
-        "expectancy": 0.34908723404255326,
-        "n": 235,
-        "se": 0.028961171095110372
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "GFUSX": {
-      "confidenceThreshold": 40,
-      "confirm": {
-        "ci95Upper": 0.018961102278119785,
-        "expectancy": -0.21470799999999998,
-        "n": 50,
-        "se": 0.11921892973373457
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": 0.17361558230140595,
-        "expectancy": -0.039558333333333355,
-        "n": 72,
-        "se": 0.10876220185445883
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "GRTUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.02097864779236435,
-        "expectancy": -0.077247602739726,
-        "n": 584,
-        "se": 0.02870865048334778
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.1095872452431452,
-        "expectancy": -0.17404528301886807,
-        "n": 477,
-        "se": 0.03288675396720555
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "HBARUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.08899875934982425,
-        "expectancy": -0.16100153452685426,
-        "n": 391,
-        "se": 0.036736109784198986
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.016533646926655793,
-        "expectancy": -0.08795702247191009,
-        "n": 356,
-        "se": 0.03644049772717056
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "HEUSX": {
-      "confidenceThreshold": 40,
-      "confirm": {
-        "ci95Upper": -0.1610539895666448,
-        "expectancy": -0.3523609756097561,
-        "n": 82,
-        "se": 0.09760560512403638
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": 0.059901520096074495,
-        "expectancy": -0.16816153846153845,
-        "n": 52,
-        "se": 0.11635870334572089
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "HGUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.37804939904809093,
-        "expectancy": 0.3054059782608695,
-        "n": 184,
-        "se": 0.037062969789398686
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.32486078987389844,
-        "expectancy": 0.23837702702702712,
-        "n": 148,
-        "se": 0.04412436879942414
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "HOUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": 0.10545790547933823,
-        "expectancy": -0.0075944881889763545,
-        "n": 254,
-        "se": 0.05767979268791561
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.2636898322567233,
-        "expectancy": -0.3548554621848737,
-        "n": 238,
-        "se": 0.04651307649395426
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "IMXUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.031262590634866555,
-        "expectancy": -0.10784305835010062,
-        "n": 497,
-        "se": 0.039071667201650034
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": -0.01976344558538512,
-        "expectancy": -0.10271283422459912,
-        "n": 374,
-        "se": 0.0423211166526602
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "LEUSX": {
-      "confidenceThreshold": 40,
-      "confirm": {
-        "ci95Upper": 0.008349606536585369,
-        "expectancy": -0.16556551724137938,
-        "n": 58,
-        "se": 0.08873220600916569
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": 0.38844974661904125,
-        "expectancy": 0.05778461538461537,
-        "n": 52,
-        "se": 0.16870669960940096
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "LINKUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.033269803113237725,
-        "expectancy": -0.025805305039787802,
-        "n": 754,
-        "se": 0.030140361302564048
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.0033607148327788883,
-        "expectancy": -0.0629269607843137,
-        "n": 612,
-        "se": 0.033820242661781935
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "LTCUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.03196637915847828,
-        "expectancy": -0.009144050343249442,
-        "n": 874,
-        "se": 0.020974708929452923
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.08686479465723189,
-        "expectancy": 0.050332737535277554,
-        "n": 1063,
-        "se": 0.018638804654058334
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "NEARUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.4761257258180634,
-        "expectancy": -0.5817261904761907,
-        "n": 252,
-        "se": 0.053877788090881264
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.6144255020220442,
-        "expectancy": -0.6932954838709681,
-        "n": 310,
-        "se": 0.04023978665761426
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "NGUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.35128602357598987,
-        "expectancy": 0.2769801242236026,
-        "n": 161,
-        "se": 0.0379111731389731
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2970216522924747,
-        "expectancy": 0.22480418604651164,
-        "n": 215,
-        "se": 0.03684564604385868
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "NIKKEI": {
-      "confidenceThreshold": 68,
-      "confirm": {
-        "ci95Upper": 0.3033997063694523,
-        "expectancy": 0.07715555555555557,
-        "n": 36,
-        "se": 0.11543068919076363
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.013829807736794014,
-        "expectancy": -0.12997599999999995,
-        "n": 50,
-        "se": 0.05925826135877854
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "NQUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.3873757360500467,
-        "expectancy": 0.30566106870229,
-        "n": 131,
-        "se": 0.041691156810079975
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.36097506811898067,
-        "expectancy": 0.2811709677419356,
-        "n": 186,
-        "se": 0.04071637774339033
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "NSDQ": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.12541960842494312,
-        "expectancy": -0.0035722222222222093,
-        "n": 54,
-        "se": 0.06581215849345169
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.41534142337903346,
-        "expectancy": 0.2504522727272727,
-        "n": 44,
-        "se": 0.08412711767946976
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "NZDCAD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2695069122038949,
-        "expectancy": 0.2443198883461272,
-        "n": 1433,
-        "se": 0.012850522376412097
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2695045164477706,
-        "expectancy": 0.24452078431372554,
-        "n": 1530,
-        "se": 0.012746802109206683
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "NZDCHF": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2682630441586167,
-        "expectancy": 0.24370119363395176,
-        "n": 1508,
-        "se": 0.012531556390135177
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.25283665783680365,
-        "expectancy": 0.22788205128205138,
-        "n": 1560,
-        "se": 0.012731942119771548
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "NZDJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.22720272695681,
-        "expectancy": 0.18291279212792103,
-        "n": 1626,
-        "se": 0.022596905524943364
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.23556515937373684,
-        "expectancy": 0.20947416666666685,
-        "n": 1560,
-        "se": 0.013311730972994896
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "NZDUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.22867754975429802,
-        "expectancy": 0.20279210199004954,
-        "n": 1608,
-        "se": 0.013206861104208406
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.24352425992547105,
-        "expectancy": 0.21785152300712893,
-        "n": 1543,
-        "se": 0.013098335162419452
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "PAUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.008193843000064732,
-        "expectancy": -0.1489748299319728,
-        "n": 147,
-        "se": 0.0718270341489327
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.03545756206434006,
-        "expectancy": -0.12208257575757578,
-        "n": 132,
-        "se": 0.08037762133771216
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "PLUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": 0.08474903702854104,
-        "expectancy": -0.013562580645161306,
-        "n": 310,
-        "se": 0.05015898860903181
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": 0.010514552231688068,
-        "expectancy": -0.07875344827586214,
-        "n": 348,
-        "se": 0.04554489821813786
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "RBUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": 0.31704486386643355,
-        "expectancy": 0.17520157480314943,
-        "n": 254,
-        "se": 0.07236902503228781
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": 0.015289465202144484,
-        "expectancy": -0.1192042735042735,
-        "n": 234,
-        "se": 0.06861925444205
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "RTYUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.37119050569357853,
-        "expectancy": 0.29204852941176473,
-        "n": 136,
-        "se": 0.04037855932745602
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.3801526996756267,
-        "expectancy": 0.3109605263157895,
-        "n": 190,
-        "se": 0.035302129265223046
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "SIUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.3335629227687531,
-        "expectancy": 0.26824256410256425,
-        "n": 195,
-        "se": 0.0333267136051984
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.3346367311799561,
-        "expectancy": 0.27110318181818177,
-        "n": 220,
-        "se": 0.03241507620498691
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "SOLUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2447887005982195,
-        "expectancy": 0.1932614785992218,
-        "n": 514,
-        "se": 0.026289398979080454
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.2987625066069323,
-        "expectancy": 0.25742864321608067,
-        "n": 597,
-        "se": 0.021088705811658996
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "SP": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2636306144359456,
-        "expectancy": 0.0867127272727273,
-        "n": 55,
-        "se": 0.09026422814449914
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.30091963862559096,
-        "expectancy": 0.10488301886792452,
-        "n": 53,
-        "se": 0.1000186835498298
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "THETAUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -1.4926717185890768,
-        "expectancy": -1.6691210526315785,
-        "n": 38,
-        "se": 0.09002517042984785
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -1.4413434096808442,
-        "expectancy": -1.6220777777777773,
-        "n": 36,
-        "se": 0.09221141229435369
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "TRUMPUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.1632437604360662,
-        "expectancy": -0.25674800000000014,
-        "n": 350,
-        "se": 0.0477062446754765
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.1698594790359702,
-        "expectancy": -0.2713437956204379,
-        "n": 274,
-        "se": 0.05177771254309577
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "TRXUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -1.5152526661180885,
-        "expectancy": -1.642669230769231,
-        "n": 234,
-        "se": 0.06500845135262374
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.9265031465047294,
-        "expectancy": -1.0254444444444446,
-        "n": 198,
-        "se": 0.05048025405087511
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "UNIUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.04382409191268809,
-        "expectancy": -0.09795323129251703,
-        "n": 588,
-        "se": 0.027616907846851498
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.0029030731110838634,
-        "expectancy": -0.055398611111111065,
-        "n": 504,
-        "se": 0.029745757256221902
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "USDCAD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2061490492917863,
-        "expectancy": 0.17901031976744142,
-        "n": 1376,
-        "se": 0.013846290573645339
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.20655053103410775,
-        "expectancy": 0.1800320082248115,
-        "n": 1459,
-        "se": 0.013529858576171564
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "USDCHF": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.2638224090619343,
-        "expectancy": 0.23957874707259963,
-        "n": 1708,
-        "se": 0.012369215300680983
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.23827167782021386,
-        "expectancy": 0.21131549707602365,
-        "n": 1368,
-        "se": 0.013753153440913369
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "USDJPY": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.25913571002419494,
-        "expectancy": 0.23419736211031197,
-        "n": 1668,
-        "se": 0.012723646894838247
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.21674566136476306,
-        "expectancy": 0.19190624609618984,
-        "n": 1601,
-        "se": 0.012673171055394497
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "WTI": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.37424852981601914,
-        "expectancy": 0.25209819819819823,
-        "n": 111,
-        "se": 0.062321597764194346
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.15194086723629624,
-        "expectancy": 0.05389527027027027,
-        "n": 148,
-        "se": 0.05002326375817652
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "XAGUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.3526876725982936,
-        "expectancy": 0.29208937007874,
-        "n": 254,
-        "se": 0.03091750128548654
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.3086506441009788,
-        "expectancy": 0.24488162544169598,
-        "n": 283,
-        "se": 0.03253521360167492
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "XAUUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.27141911470354313,
-        "expectancy": 0.2422374687760202,
-        "n": 1201,
-        "se": 0.014888594860981095
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2721822945705951,
-        "expectancy": 0.24107664504170526,
-        "n": 1079,
-        "se": 0.015870229351474408
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "XLMUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.05098761345845069,
-        "expectancy": -0.10800584795321642,
-        "n": 855,
-        "se": 0.02909093596671721
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.05116052993923285,
-        "expectancy": -0.009837857142857127,
-        "n": 700,
-        "se": 0.031121626062290804
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "XMRUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.04763265766011225,
-        "expectancy": -0.09477780548628421,
-        "n": 802,
-        "se": 0.024053646850087738
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.07382462648414317,
-        "expectancy": -0.11873877790834307,
-        "n": 851,
-        "se": 0.02291538337969383
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "XRPUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.26980971502497986,
-        "expectancy": 0.23700515873015873,
-        "n": 1008,
-        "se": 0.016737018517765875
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2685276465175667,
-        "expectancy": 0.23585978835978846,
-        "n": 945,
-        "se": 0.016667274570295022
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "XTZUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -1.60965742198886,
-        "expectancy": -1.8329060000000001,
-        "n": 100,
-        "se": 0.11390233571996948
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.9952223171686294,
-        "expectancy": -1.139845238095238,
-        "n": 84,
-        "se": 0.07378720455439212
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "YMUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.37729087631939073,
-        "expectancy": 0.30140063291139246,
-        "n": 158,
-        "se": 0.03871951194285627
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.3848298626280195,
-        "expectancy": 0.3130125,
-        "n": 184,
-        "se": 0.036641511544907884
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "ZBUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.262479852924978,
-        "expectancy": 0.17541456953642387,
-        "n": 151,
-        "se": 0.04442106295334394
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.2586928256875458,
-        "expectancy": 0.17970634920634915,
-        "n": 189,
-        "se": 0.0402992226944881
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "ZCUSX": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": -0.05906110301993145,
-        "expectancy": -0.19130176991150435,
-        "n": 113,
-        "se": 0.06746972800590455
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.10229923336218966,
-        "expectancy": -0.2513620967741935,
-        "n": 124,
-        "se": 0.07605248133265503
-      },
-      "verdict": "DECLINED — the engine already refuses this market"
-    },
-    "ZFUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": -0.30974901529584975,
-        "expectancy": -0.5226000000000001,
-        "n": 30,
-        "se": 0.10859744117558688
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.11384290361271121,
-        "expectancy": -0.36204583333333334,
-        "n": 48,
-        "se": 0.12663414781664395
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "ZLUSX": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.1029893656472998,
-        "expectancy": 0.00012820512820511267,
-        "n": 156,
-        "se": 0.052480183938313614
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.04745320227819751,
-        "expectancy": -0.05631677852348993,
-        "n": 149,
-        "se": 0.05294386775596298
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "ZMUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.07479902425359244,
-        "expectancy": -0.060702797202797205,
-        "n": 143,
-        "se": 0.069133582375709
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
-      "select": {
-        "ci95Upper": 0.28079674230636875,
-        "expectancy": 0.047328571428571456,
-        "n": 154,
-        "se": 0.1191164137131619
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "ZNUSD": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.24982762295757643,
-        "expectancy": 0.1708427536231884,
-        "n": 138,
-        "se": 0.04029840272162655
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": 0.37701113952962334,
-        "expectancy": 0.29528581081081084,
-        "n": 148,
-        "se": 0.04169659628510841
-      },
-      "verdict": "MEASURABLY POSITIVE"
-    },
-    "ZOUSX": {
-      "confidenceThreshold": 0,
-      "confirm": {
-        "ci95Upper": 0.07956958130057404,
-        "expectancy": -0.1699204081632653,
-        "n": 49,
-        "se": 0.12729081095093844
-      },
-      "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
-      "select": {
-        "ci95Upper": -0.03375665395027491,
-        "expectancy": -0.19636777777777767,
-        "n": 90,
-        "se": 0.08296485909566467
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "ZRUSD": {
-      "confidenceThreshold": 30,
-      "confirm": {
-        "ci95Upper": -0.1916869369654759,
-        "expectancy": -0.3714805555555555,
-        "n": 72,
-        "se": 0.09173143805616306
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.014218530712968525,
-        "expectancy": -0.16542894736842106,
-        "n": 76,
-        "se": 0.077148171762986
-      },
-      "verdict": "MEASURABLY NEGATIVE — loses beyond its own error, and the engine still trades it"
-    },
-    "ZSUSX": {
-      "confidenceThreshold": 30,
-      "confirm": {
-        "ci95Upper": 0.011718819591329921,
-        "expectancy": -0.1242533333333333,
-        "n": 180,
-        "se": 0.06937354741054245
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": -0.14802781030112863,
-        "expectancy": -0.28137530864197524,
-        "n": 162,
-        "se": 0.06803443792900338
-      },
-      "verdict": "ZERO-SPANNING — no measured edge, no measured loss"
-    },
-    "ZTUSD": {
-      "confidenceThreshold": 25,
-      "confirm": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 0,
-        "se": null
-      },
-      "configuration": "class calibration (no derived cell)",
-      "select": {
-        "ci95Upper": null,
-        "expectancy": null,
-        "n": 6,
-        "se": null
-      },
-      "verdict": "UNMEASURABLE — under the fill floor at its shipped settings"
-    }
+ "INVALID": "Computed from the 2026-08-10/11 corpus, which resolved every setup 4-5 hours out of register with its own decision bar (the clock defect). See docs/research/remediation-program-2026-08-11.md. Do not use these numbers to withdraw, defend, or ship a market.",
+ "report": {
+  "AAVEUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.06563675609212806,
+    "expectancy": -0.12048879159369538,
+    "n": 571,
+    "se": 0.027985732398758838
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.007972177417788814,
+    "expectancy": -0.06400563798219584,
+    "n": 337,
+    "se": 0.0367233752040738
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
   },
-  "tally": {
-    "declined": 15,
-    "measurablyNegative": 13,
-    "measurablyPositive": 49,
-    "unmeasurable": 6,
-    "zeroSpanning": 14
+  "ADAUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.20640054779579906,
+    "expectancy": 0.17101958456973296,
+    "n": 1011,
+    "se": 0.01805151185003372
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.25765039891638924,
+    "expectancy": 0.2243405291005288,
+    "n": 945,
+    "se": 0.016994831538704312
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "ALGOUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.5302721520653106,
+    "expectancy": -0.5948352727272728,
+    "n": 550,
+    "se": 0.03294036768467457
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.6017932520775222,
+    "expectancy": -0.666921367521367,
+    "n": 468,
+    "se": 0.033228630328492215
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "ARWUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.38431146822972595,
+    "expectancy": -0.4922660714285713,
+    "n": 336,
+    "se": 0.055078879183084364
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.3206101994104629,
+    "expectancy": -0.41254694835680766,
+    "n": 426,
+    "se": 0.046906504564461604
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "ASX": {
+   "confidenceThreshold": 68,
+   "confirm": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 8,
+    "se": null
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 4,
+    "se": null
+   },
+   "verdict": "UNMEASURABLE \u2014 under the fill floor at its shipped settings"
+  },
+  "ATOMUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 28,
+    "se": null
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 20,
+    "se": null
+   },
+   "verdict": "UNMEASURABLE \u2014 under the fill floor at its shipped settings"
+  },
+  "AUDCAD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2759937658931865,
+    "expectancy": 0.25185980132450303,
+    "n": 1510,
+    "se": 0.01231324722892015
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2435472800859372,
+    "expectancy": 0.21717546362339515,
+    "n": 1402,
+    "se": 0.013455008399256153
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "AUDCHF": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.27857248099379833,
+    "expectancy": 0.2537192021636242,
+    "n": 1479,
+    "se": 0.012680244301109258
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.26276864858204907,
+    "expectancy": 0.23823960332693536,
+    "n": 1563,
+    "se": 0.01251481900771109
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "AUDJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.22770583204157493,
+    "expectancy": 0.20114148606811133,
+    "n": 1615,
+    "se": 0.013553237741563062
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2351306544547258,
+    "expectancy": 0.2093800000000004,
+    "n": 1585,
+    "se": 0.013138089007512963
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "AUDNZD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.24975281445670014,
+    "expectancy": 0.2238670168067227,
+    "n": 1428,
+    "se": 0.013207039617335437
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2649418188485363,
+    "expectancy": 0.23830889212828008,
+    "n": 1372,
+    "se": 0.013588227918498083
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "AUDUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.24339168391970334,
+    "expectancy": 0.21848601440576165,
+    "n": 1666,
+    "se": 0.012706974241806978
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.26367549942868307,
+    "expectancy": 0.2379010013351139,
+    "n": 1498,
+    "se": 0.013150254129372024
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "AVAXUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.6161363829364271,
+    "expectancy": -0.7040751515151511,
+    "n": 330,
+    "se": 0.04486671866261424
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.5138633146806397,
+    "expectancy": -0.5821526748971187,
+    "n": 486,
+    "se": 0.034841510314530144
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "BCHUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.055943406642762004,
+    "expectancy": 0.008945352112676065,
+    "n": 710,
+    "se": 0.023978599250043846
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.129534139607629,
+    "expectancy": 0.0846295252225519,
+    "n": 674,
+    "se": 0.022910517543406683
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "BNBUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.09620425566942717,
+    "expectancy": 0.024107462686567153,
+    "n": 335,
+    "se": 0.036784078052479595
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.18712170688873167,
+    "expectancy": 0.10665263157894736,
+    "n": 380,
+    "se": 0.0410556506682573
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "BTCUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.22036749103191633,
+    "expectancy": 0.19201363978899816,
+    "n": 1327,
+    "se": 0.014466250634141932
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.27424202456302255,
+    "expectancy": 0.24820978029766155,
+    "n": 1411,
+    "se": 0.0132817572782454
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "BZUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.3376972774544639,
+    "expectancy": 0.2499494382022471,
+    "n": 178,
+    "se": 0.04476930574092692
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.38421466182161246,
+    "expectancy": 0.2927703910614525,
+    "n": 179,
+    "se": 0.04665524018375508
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "CADCHF": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2813777717346554,
+    "expectancy": 0.2570704515272244,
+    "n": 1506,
+    "se": 0.01240169398338316
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2514205913534021,
+    "expectancy": 0.22557628935030127,
+    "n": 1493,
+    "se": 0.013185868368928988
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "CADJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.21256366683915498,
+    "expectancy": 0.18580989010988994,
+    "n": 1638,
+    "se": 0.013649886086359721
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.24983029895525755,
+    "expectancy": 0.22504724116552957,
+    "n": 1613,
+    "se": 0.01264441723965713
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "CAKEUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.10335176601764538,
+    "expectancy": -0.20981984732824444,
+    "n": 262,
+    "se": 0.054320449648264824
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.019641116246196563,
+    "expectancy": -0.08646468531468533,
+    "n": 286,
+    "se": 0.054135613041266274
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "CHFJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.23968363111904334,
+    "expectancy": 0.21413845679012333,
+    "n": 1620,
+    "se": 0.013033252208632651
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2178288688582133,
+    "expectancy": 0.1913480544747079,
+    "n": 1542,
+    "se": 0.01351061958342112
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "CLUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.40367524924743636,
+    "expectancy": 0.29559406779661007,
+    "n": 118,
+    "se": 0.05514345992389095
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.36404776410571166,
+    "expectancy": 0.27878950617283943,
+    "n": 162,
+    "se": 0.04349911119024093
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "DASHUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.07504474311129566,
+    "expectancy": -0.12359849812265344,
+    "n": 799,
+    "se": 0.024772323985386625
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.011365017568859714,
+    "expectancy": -0.05802423887587822,
+    "n": 854,
+    "se": 0.023805725156642095
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "DAX": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 28,
+    "se": null
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.40145241854543534,
+    "expectancy": 0.18631714285714282,
+    "n": 35,
+    "se": 0.10976289575933293
+   },
+   "verdict": "UNMEASURABLE \u2014 under the fill floor at its shipped settings"
+  },
+  "DOGEUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.1120942727585692,
+    "expectancy": -0.15948476658476668,
+    "n": 814,
+    "se": 0.024178823380712994
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.013136121218568303,
+    "expectancy": -0.05689157641395908,
+    "n": 831,
+    "se": 0.022324211834383052
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "DOTUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.9165592673312292,
+    "expectancy": -0.9819426470588236,
+    "n": 272,
+    "se": 0.03335886720795634
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.7774982940469957,
+    "expectancy": -0.8785363636363642,
+    "n": 198,
+    "se": 0.05155003550477985
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "DOW": {
+   "confidenceThreshold": 68,
+   "confirm": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 26,
+    "se": null
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 26,
+    "se": null
+   },
+   "verdict": "UNMEASURABLE \u2014 under the fill floor at its shipped settings"
+  },
+  "DYDXUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -1.5320726605827013,
+    "expectancy": -1.7016231884057968,
+    "n": 138,
+    "se": 0.0865053713383141
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -1.29642378884236,
+    "expectancy": -1.4440117647058823,
+    "n": 68,
+    "se": 0.07529998768547061
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "EGLDUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.2625534307602877,
+    "expectancy": -0.3300644444444444,
+    "n": 450,
+    "se": 0.03444439473681465
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.19433649781945891,
+    "expectancy": -0.27012938005390846,
+    "n": 371,
+    "se": 0.03866983787471916
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "ESUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.3880375900354789,
+    "expectancy": 0.3191810650887574,
+    "n": 169,
+    "se": 0.03513088007485791
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.4207678483933893,
+    "expectancy": 0.3526253807106599,
+    "n": 197,
+    "se": 0.0347665651442497
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "ETCUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.11549812337334792,
+    "expectancy": -0.16311613636363648,
+    "n": 880,
+    "se": 0.02429490458688192
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.01802332918273367,
+    "expectancy": -0.026136658354114755,
+    "n": 802,
+    "se": 0.022530605886147154
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "ETHUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.25283287944010757,
+    "expectancy": 0.2222838908450704,
+    "n": 1136,
+    "se": 0.015586218670937351
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.28847862958918596,
+    "expectancy": 0.259503996366939,
+    "n": 1101,
+    "se": 0.014782976133799464
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURAUD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2220380173725591,
+    "expectancy": 0.19769168131224374,
+    "n": 1707,
+    "se": 0.012421600030773146
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2377618337907102,
+    "expectancy": 0.2123140259740257,
+    "n": 1540,
+    "se": 0.012983575416675764
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURCAD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2551154431119954,
+    "expectancy": 0.2297884435537746,
+    "n": 1497,
+    "se": 0.012921938550112672
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2595508275837802,
+    "expectancy": 0.235098137059215,
+    "n": 1503,
+    "se": 0.01247586251253326
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURCHF": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.25543116315446013,
+    "expectancy": 0.2303536650975117,
+    "n": 1487,
+    "se": 0.012794641865789998
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.22095681460790964,
+    "expectancy": 0.19433807803468223,
+    "n": 1384,
+    "se": 0.013580988047565008
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURGBP": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.21427388065804653,
+    "expectancy": 0.18874583059750522,
+    "n": 1523,
+    "se": 0.01302451533701088
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2760774422843735,
+    "expectancy": 0.2488071161048689,
+    "n": 1335,
+    "se": 0.01391343172423703
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2380962567827834,
+    "expectancy": 0.21183842239185743,
+    "n": 1572,
+    "se": 0.01339685428108467
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.22179895697900226,
+    "expectancy": 0.1969988204456096,
+    "n": 1526,
+    "se": 0.01265313088438402
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURNZD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.26403653736496063,
+    "expectancy": 0.23989248262792184,
+    "n": 1583,
+    "se": 0.012318395273999385
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.24358511277281836,
+    "expectancy": 0.2184771963824288,
+    "n": 1548,
+    "se": 0.012810161423668137
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "EURUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.23650638197260407,
+    "expectancy": 0.21129679802955675,
+    "n": 1624,
+    "se": 0.012862032624003735
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.21353718376830155,
+    "expectancy": 0.18810882535736506,
+    "n": 1609,
+    "se": 0.012973652250477806
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "FILUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 16,
+    "se": null
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 0,
+    "se": null
+   },
+   "verdict": "UNMEASURABLE \u2014 under the fill floor at its shipped settings"
+  },
+  "GBPAUD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.18787758959062426,
+    "expectancy": 0.16037012078830246,
+    "n": 1573,
+    "se": 0.01403442285832745
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.19628407615458143,
+    "expectancy": 0.16865793871866308,
+    "n": 1436,
+    "se": 0.014094968079550187
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GBPCAD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.23754120649683413,
+    "expectancy": 0.2108026648900731,
+    "n": 1501,
+    "se": 0.013642113064674
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2481876517974137,
+    "expectancy": 0.22116326388888932,
+    "n": 1440,
+    "se": 0.013787953014553255
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GBPCHF": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.23830661911624626,
+    "expectancy": 0.21193743589743647,
+    "n": 1560,
+    "se": 0.01345366490755602
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2485550872155159,
+    "expectancy": 0.2228430894308942,
+    "n": 1476,
+    "se": 0.013118366216643711
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GBPJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.20383383274884334,
+    "expectancy": 0.17723404392764858,
+    "n": 1548,
+    "se": 0.013571320827140184
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2420105286629296,
+    "expectancy": 0.2161396341463415,
+    "n": 1476,
+    "se": 0.013199435977851073
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GBPNZD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.25839231624806824,
+    "expectancy": 0.23270816326530602,
+    "n": 1470,
+    "se": 0.013104159685082767
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2511595456660194,
+    "expectancy": 0.22509565508021412,
+    "n": 1496,
+    "se": 0.013297903360104741
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GBPUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2440623714291739,
+    "expectancy": 0.2191768703241896,
+    "n": 1604,
+    "se": 0.012696684237236886
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2496515682301662,
+    "expectancy": 0.22355850202429145,
+    "n": 1482,
+    "se": 0.013312788880548343
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GCUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.3719957816815011,
+    "expectancy": 0.29354861878453054,
+    "n": 181,
+    "se": 0.040024062702536
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.4058511293889696,
+    "expectancy": 0.34908723404255326,
+    "n": 235,
+    "se": 0.028961171095110372
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "GFUSX": {
+   "confidenceThreshold": 40,
+   "confirm": {
+    "ci95Upper": 0.018961102278119785,
+    "expectancy": -0.21470799999999998,
+    "n": 50,
+    "se": 0.11921892973373457
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": 0.17361558230140595,
+    "expectancy": -0.039558333333333355,
+    "n": 72,
+    "se": 0.10876220185445883
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "GRTUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.02097864779236435,
+    "expectancy": -0.077247602739726,
+    "n": 584,
+    "se": 0.02870865048334778
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.1095872452431452,
+    "expectancy": -0.17404528301886807,
+    "n": 477,
+    "se": 0.03288675396720555
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "HBARUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.08899875934982425,
+    "expectancy": -0.16100153452685426,
+    "n": 391,
+    "se": 0.036736109784198986
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.016533646926655793,
+    "expectancy": -0.08795702247191009,
+    "n": 356,
+    "se": 0.03644049772717056
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "HEUSX": {
+   "confidenceThreshold": 40,
+   "confirm": {
+    "ci95Upper": -0.1610539895666448,
+    "expectancy": -0.3523609756097561,
+    "n": 82,
+    "se": 0.09760560512403638
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": 0.059901520096074495,
+    "expectancy": -0.16816153846153845,
+    "n": 52,
+    "se": 0.11635870334572089
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "HGUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.37804939904809093,
+    "expectancy": 0.3054059782608695,
+    "n": 184,
+    "se": 0.037062969789398686
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.32486078987389844,
+    "expectancy": 0.23837702702702712,
+    "n": 148,
+    "se": 0.04412436879942414
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "HOUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": 0.10545790547933823,
+    "expectancy": -0.0075944881889763545,
+    "n": 254,
+    "se": 0.05767979268791561
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.2636898322567233,
+    "expectancy": -0.3548554621848737,
+    "n": 238,
+    "se": 0.04651307649395426
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "IMXUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.031262590634866555,
+    "expectancy": -0.10784305835010062,
+    "n": 497,
+    "se": 0.039071667201650034
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": -0.01976344558538512,
+    "expectancy": -0.10271283422459912,
+    "n": 374,
+    "se": 0.0423211166526602
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "LEUSX": {
+   "confidenceThreshold": 40,
+   "confirm": {
+    "ci95Upper": 0.008349606536585369,
+    "expectancy": -0.16556551724137938,
+    "n": 58,
+    "se": 0.08873220600916569
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": 0.38844974661904125,
+    "expectancy": 0.05778461538461537,
+    "n": 52,
+    "se": 0.16870669960940096
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "LINKUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.033269803113237725,
+    "expectancy": -0.025805305039787802,
+    "n": 754,
+    "se": 0.030140361302564048
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.0033607148327788883,
+    "expectancy": -0.0629269607843137,
+    "n": 612,
+    "se": 0.033820242661781935
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "LTCUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.03196637915847828,
+    "expectancy": -0.009144050343249442,
+    "n": 874,
+    "se": 0.020974708929452923
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.08686479465723189,
+    "expectancy": 0.050332737535277554,
+    "n": 1063,
+    "se": 0.018638804654058334
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "NEARUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.4761257258180634,
+    "expectancy": -0.5817261904761907,
+    "n": 252,
+    "se": 0.053877788090881264
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.6144255020220442,
+    "expectancy": -0.6932954838709681,
+    "n": 310,
+    "se": 0.04023978665761426
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "NGUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.35128602357598987,
+    "expectancy": 0.2769801242236026,
+    "n": 161,
+    "se": 0.0379111731389731
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2970216522924747,
+    "expectancy": 0.22480418604651164,
+    "n": 215,
+    "se": 0.03684564604385868
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "NIKKEI": {
+   "confidenceThreshold": 68,
+   "confirm": {
+    "ci95Upper": 0.3033997063694523,
+    "expectancy": 0.07715555555555557,
+    "n": 36,
+    "se": 0.11543068919076363
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.013829807736794014,
+    "expectancy": -0.12997599999999995,
+    "n": 50,
+    "se": 0.05925826135877854
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "NQUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.3873757360500467,
+    "expectancy": 0.30566106870229,
+    "n": 131,
+    "se": 0.041691156810079975
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.36097506811898067,
+    "expectancy": 0.2811709677419356,
+    "n": 186,
+    "se": 0.04071637774339033
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "NSDQ": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.12541960842494312,
+    "expectancy": -0.0035722222222222093,
+    "n": 54,
+    "se": 0.06581215849345169
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.41534142337903346,
+    "expectancy": 0.2504522727272727,
+    "n": 44,
+    "se": 0.08412711767946976
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "NZDCAD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2695069122038949,
+    "expectancy": 0.2443198883461272,
+    "n": 1433,
+    "se": 0.012850522376412097
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2695045164477706,
+    "expectancy": 0.24452078431372554,
+    "n": 1530,
+    "se": 0.012746802109206683
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "NZDCHF": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2682630441586167,
+    "expectancy": 0.24370119363395176,
+    "n": 1508,
+    "se": 0.012531556390135177
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.25283665783680365,
+    "expectancy": 0.22788205128205138,
+    "n": 1560,
+    "se": 0.012731942119771548
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "NZDJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.22720272695681,
+    "expectancy": 0.18291279212792103,
+    "n": 1626,
+    "se": 0.022596905524943364
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.23556515937373684,
+    "expectancy": 0.20947416666666685,
+    "n": 1560,
+    "se": 0.013311730972994896
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "NZDUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.22867754975429802,
+    "expectancy": 0.20279210199004954,
+    "n": 1608,
+    "se": 0.013206861104208406
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.24352425992547105,
+    "expectancy": 0.21785152300712893,
+    "n": 1543,
+    "se": 0.013098335162419452
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "PAUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.008193843000064732,
+    "expectancy": -0.1489748299319728,
+    "n": 147,
+    "se": 0.0718270341489327
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.03545756206434006,
+    "expectancy": -0.12208257575757578,
+    "n": 132,
+    "se": 0.08037762133771216
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "PLUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": 0.08474903702854104,
+    "expectancy": -0.013562580645161306,
+    "n": 310,
+    "se": 0.05015898860903181
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": 0.010514552231688068,
+    "expectancy": -0.07875344827586214,
+    "n": 348,
+    "se": 0.04554489821813786
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "RBUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": 0.31704486386643355,
+    "expectancy": 0.17520157480314943,
+    "n": 254,
+    "se": 0.07236902503228781
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": 0.015289465202144484,
+    "expectancy": -0.1192042735042735,
+    "n": 234,
+    "se": 0.06861925444205
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "RTYUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.37119050569357853,
+    "expectancy": 0.29204852941176473,
+    "n": 136,
+    "se": 0.04037855932745602
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.3801526996756267,
+    "expectancy": 0.3109605263157895,
+    "n": 190,
+    "se": 0.035302129265223046
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "SIUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.3335629227687531,
+    "expectancy": 0.26824256410256425,
+    "n": 195,
+    "se": 0.0333267136051984
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.3346367311799561,
+    "expectancy": 0.27110318181818177,
+    "n": 220,
+    "se": 0.03241507620498691
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "SOLUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2447887005982195,
+    "expectancy": 0.1932614785992218,
+    "n": 514,
+    "se": 0.026289398979080454
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.2987625066069323,
+    "expectancy": 0.25742864321608067,
+    "n": 597,
+    "se": 0.021088705811658996
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "SP": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2636306144359456,
+    "expectancy": 0.0867127272727273,
+    "n": 55,
+    "se": 0.09026422814449914
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.30091963862559096,
+    "expectancy": 0.10488301886792452,
+    "n": 53,
+    "se": 0.1000186835498298
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "THETAUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -1.4926717185890768,
+    "expectancy": -1.6691210526315785,
+    "n": 38,
+    "se": 0.09002517042984785
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -1.4413434096808442,
+    "expectancy": -1.6220777777777773,
+    "n": 36,
+    "se": 0.09221141229435369
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "TRUMPUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.1632437604360662,
+    "expectancy": -0.25674800000000014,
+    "n": 350,
+    "se": 0.0477062446754765
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.1698594790359702,
+    "expectancy": -0.2713437956204379,
+    "n": 274,
+    "se": 0.05177771254309577
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "TRXUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -1.5152526661180885,
+    "expectancy": -1.642669230769231,
+    "n": 234,
+    "se": 0.06500845135262374
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.9265031465047294,
+    "expectancy": -1.0254444444444446,
+    "n": 198,
+    "se": 0.05048025405087511
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "UNIUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.04382409191268809,
+    "expectancy": -0.09795323129251703,
+    "n": 588,
+    "se": 0.027616907846851498
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.0029030731110838634,
+    "expectancy": -0.055398611111111065,
+    "n": 504,
+    "se": 0.029745757256221902
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "USDCAD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2061490492917863,
+    "expectancy": 0.17901031976744142,
+    "n": 1376,
+    "se": 0.013846290573645339
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.20655053103410775,
+    "expectancy": 0.1800320082248115,
+    "n": 1459,
+    "se": 0.013529858576171564
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "USDCHF": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.2638224090619343,
+    "expectancy": 0.23957874707259963,
+    "n": 1708,
+    "se": 0.012369215300680983
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.23827167782021386,
+    "expectancy": 0.21131549707602365,
+    "n": 1368,
+    "se": 0.013753153440913369
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "USDJPY": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.25913571002419494,
+    "expectancy": 0.23419736211031197,
+    "n": 1668,
+    "se": 0.012723646894838247
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.21674566136476306,
+    "expectancy": 0.19190624609618984,
+    "n": 1601,
+    "se": 0.012673171055394497
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "WTI": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.37424852981601914,
+    "expectancy": 0.25209819819819823,
+    "n": 111,
+    "se": 0.062321597764194346
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.15194086723629624,
+    "expectancy": 0.05389527027027027,
+    "n": 148,
+    "se": 0.05002326375817652
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "XAGUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.3526876725982936,
+    "expectancy": 0.29208937007874,
+    "n": 254,
+    "se": 0.03091750128548654
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.3086506441009788,
+    "expectancy": 0.24488162544169598,
+    "n": 283,
+    "se": 0.03253521360167492
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "XAUUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.27141911470354313,
+    "expectancy": 0.2422374687760202,
+    "n": 1201,
+    "se": 0.014888594860981095
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2721822945705951,
+    "expectancy": 0.24107664504170526,
+    "n": 1079,
+    "se": 0.015870229351474408
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "XLMUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.05098761345845069,
+    "expectancy": -0.10800584795321642,
+    "n": 855,
+    "se": 0.02909093596671721
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.05116052993923285,
+    "expectancy": -0.009837857142857127,
+    "n": 700,
+    "se": 0.031121626062290804
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "XMRUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.04763265766011225,
+    "expectancy": -0.09477780548628421,
+    "n": 802,
+    "se": 0.024053646850087738
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.07382462648414317,
+    "expectancy": -0.11873877790834307,
+    "n": 851,
+    "se": 0.02291538337969383
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "XRPUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.26980971502497986,
+    "expectancy": 0.23700515873015873,
+    "n": 1008,
+    "se": 0.016737018517765875
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2685276465175667,
+    "expectancy": 0.23585978835978846,
+    "n": 945,
+    "se": 0.016667274570295022
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "XTZUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -1.60965742198886,
+    "expectancy": -1.8329060000000001,
+    "n": 100,
+    "se": 0.11390233571996948
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.9952223171686294,
+    "expectancy": -1.139845238095238,
+    "n": 84,
+    "se": 0.07378720455439212
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "YMUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.37729087631939073,
+    "expectancy": 0.30140063291139246,
+    "n": 158,
+    "se": 0.03871951194285627
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.3848298626280195,
+    "expectancy": 0.3130125,
+    "n": 184,
+    "se": 0.036641511544907884
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "ZBUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.262479852924978,
+    "expectancy": 0.17541456953642387,
+    "n": 151,
+    "se": 0.04442106295334394
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.2586928256875458,
+    "expectancy": 0.17970634920634915,
+    "n": 189,
+    "se": 0.0402992226944881
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "ZCUSX": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": -0.05906110301993145,
+    "expectancy": -0.19130176991150435,
+    "n": 113,
+    "se": 0.06746972800590455
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.10229923336218966,
+    "expectancy": -0.2513620967741935,
+    "n": 124,
+    "se": 0.07605248133265503
+   },
+   "verdict": "DECLINED \u2014 the engine already refuses this market"
+  },
+  "ZFUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": -0.30974901529584975,
+    "expectancy": -0.5226000000000001,
+    "n": 30,
+    "se": 0.10859744117558688
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.11384290361271121,
+    "expectancy": -0.36204583333333334,
+    "n": 48,
+    "se": 0.12663414781664395
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "ZLUSX": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.1029893656472998,
+    "expectancy": 0.00012820512820511267,
+    "n": 156,
+    "se": 0.052480183938313614
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.04745320227819751,
+    "expectancy": -0.05631677852348993,
+    "n": 149,
+    "se": 0.05294386775596298
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "ZMUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.07479902425359244,
+    "expectancy": -0.060702797202797205,
+    "n": 143,
+    "se": 0.069133582375709
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1",
+   "select": {
+    "ci95Upper": 0.28079674230636875,
+    "expectancy": 0.047328571428571456,
+    "n": 154,
+    "se": 0.1191164137131619
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "ZNUSD": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.24982762295757643,
+    "expectancy": 0.1708427536231884,
+    "n": 138,
+    "se": 0.04029840272162655
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": 0.37701113952962334,
+    "expectancy": 0.29528581081081084,
+    "n": 148,
+    "se": 0.04169659628510841
+   },
+   "verdict": "MEASURABLY POSITIVE"
+  },
+  "ZOUSX": {
+   "confidenceThreshold": 0,
+   "confirm": {
+    "ci95Upper": 0.07956958130057404,
+    "expectancy": -0.1699204081632653,
+    "n": 49,
+    "se": 0.12729081095093844
+   },
+   "configuration": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3",
+   "select": {
+    "ci95Upper": -0.03375665395027491,
+    "expectancy": -0.19636777777777767,
+    "n": 90,
+    "se": 0.08296485909566467
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "ZRUSD": {
+   "confidenceThreshold": 30,
+   "confirm": {
+    "ci95Upper": -0.1916869369654759,
+    "expectancy": -0.3714805555555555,
+    "n": 72,
+    "se": 0.09173143805616306
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.014218530712968525,
+    "expectancy": -0.16542894736842106,
+    "n": 76,
+    "se": 0.077148171762986
+   },
+   "verdict": "MEASURABLY NEGATIVE \u2014 loses beyond its own error, and the engine still trades it"
+  },
+  "ZSUSX": {
+   "confidenceThreshold": 30,
+   "confirm": {
+    "ci95Upper": 0.011718819591329921,
+    "expectancy": -0.1242533333333333,
+    "n": 180,
+    "se": 0.06937354741054245
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": -0.14802781030112863,
+    "expectancy": -0.28137530864197524,
+    "n": 162,
+    "se": 0.06803443792900338
+   },
+   "verdict": "ZERO-SPANNING \u2014 no measured edge, no measured loss"
+  },
+  "ZTUSD": {
+   "confidenceThreshold": 25,
+   "confirm": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 0,
+    "se": null
+   },
+   "configuration": "class calibration (no derived cell)",
+   "select": {
+    "ci95Upper": null,
+    "expectancy": null,
+    "n": 6,
+    "se": null
+   },
+   "verdict": "UNMEASURABLE \u2014 under the fill floor at its shipped settings"
   }
+ },
+ "tally": {
+  "declined": 15,
+  "measurablyNegative": 13,
+  "measurablyPositive": 49,
+  "unmeasurable": 6,
+  "zeroSpanning": 14
+ }
 }

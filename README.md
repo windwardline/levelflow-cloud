@@ -12,7 +12,7 @@ Levelflow Cloud is a Windward Line production: a React/Vite and Supabase platfor
 - **Fail-closed, and tested for it.** The analyzer refuses ambiguity rather than reinterpreting it: missing auth 401, unrecognized action 400, over-budget 429 with an audit row. Rate-limit tables and the claim function are revoked from every user role, and [tests/securityHardening.test.ts](/tests/securityHardening.test.ts) asserts each grant line — a privilege regression is a red build.
 - **Auditable to the exact build.** Append-only `analyzer_events` records actor, action, outcome, latency, and the bundle stamp of the code that served the request; rows age out after a stated 60-day retention window, pruned in bounded, counted batches (never silently).
 - **No plausible numbers.** A financial figure enters by exactly three routes — the broker publishes it, Levelflow derives it by a published method, or the owner observes it live and records it dated and attributed. Where the routes run out, the interface renders a word instead of a number, and that refusal is the feature working.
-- **A design system defended by CI.** Roughly 1,300 automated tests include every text pair's WCAG contrast ratio in both themes ([tests/contrast.test.ts](/tests/contrast.test.ts)), the design-token contract, a motion-law census, and a language guard that pins rendered strings bidirectionally to the spec.
+- **A design system defended by CI.** Roughly 2,200 automated tests include every text pair's WCAG contrast ratio in both themes ([tests/contrast.test.ts](/tests/contrast.test.ts)), the design-token contract, a motion-law census, and a language guard that pins rendered strings bidirectionally to the spec.
 
 ## Architecture
 
@@ -81,7 +81,7 @@ records in `analyzer_events`. See [docs/deployment.md](/docs/deployment.md).
 
 Market-data and economic-calendar keys must be used from a server runtime or edge function, not from browser JavaScript. Levelflow does not place trades; trade execution is outside the active product scope.
 
-See [docs/trade-model.md](/docs/trade-model.md) for the current engine state of record — per-class calibration derived across a completed 23-round arc at full available history under a walk-forward both-splits gate, the measured per-class records the UI mirrors, and the resumption protocol for when live cohort data warrants reopening the work.
+See [docs/trade-model.md](/docs/trade-model.md) for the engine state of record, and **[docs/research/remediation-program-2026-08-11.md](/docs/research/remediation-program-2026-08-11.md) before trusting any calibration figure** — an audit on 2026-08-11 found the replay corpus behind the current per-market cells resolved every setup 4–5 hours out of register with its own decision bar, so its expectancy figures are artifacts and the calibration is being rebuilt from the clock up. The desk is parked while that work runs.
 See [docs/design/contrast.md](/docs/design/contrast.md) for every text pair's measured WCAG ratio in both themes, enforced by `tests/contrast.test.ts`.
 See [docs/security-hardening.md](/docs/security-hardening.md) for the Cloudflare response-header policy and authenticated E2E test-user setup.
 See [docs/gap-analysis.md](/docs/gap-analysis.md) for the current improvement backlog across trade logic, frontend, backend, security, and reliability.
