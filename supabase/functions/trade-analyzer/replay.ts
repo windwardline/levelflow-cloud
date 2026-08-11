@@ -107,6 +107,43 @@ export type ReplayFillOptions = {
   touchFillPenetration?: number;
 };
 
+/**
+ * The live resolver's bridge to engine v2 (round-8 batch 4): a stored
+ * setup row carries its decision-time execution quality inside
+ * risk_model, and those numbers — not a re-model at sync time — are what
+ * the venue-fill options replay. A row without them (or with malformed
+ * ones) resolves v1-style: an empty object, never an invented number.
+ */
+export function fillOptionsFromRiskModel(
+  riskModel: unknown,
+): ReplayFillOptions {
+  if (typeof riskModel !== "object" || riskModel === null) {
+    return {};
+  }
+  const quality = (riskModel as Record<string, unknown>).executionQuality;
+  if (typeof quality !== "object" || quality === null) {
+    return {};
+  }
+  const record = quality as Record<string, unknown>;
+  const spread = Number(record.estimatedSpread);
+  const slippage = Number(record.estimatedSlippage);
+  const commission = Number(record.estimatedCommission);
+  if (
+    !Number.isFinite(spread) || spread < 0 ||
+    !Number.isFinite(slippage) || slippage < 0 ||
+    !Number.isFinite(commission) || commission < 0
+  ) {
+    return {};
+  }
+  return {
+    barIntervalMs: 15 * 60 * 1000,
+    gapExitSlippage: slippage,
+    halfSpread: spread / 2,
+    roundTripCost: commission,
+    sameBarProtectionArming: true,
+  };
+}
+
 export function evaluateSetupOutcome(
   setup: ReplaySetup,
   bars: ReplayBar[],
