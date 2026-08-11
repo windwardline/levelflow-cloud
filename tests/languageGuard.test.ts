@@ -216,7 +216,7 @@ describe("§17c — the record never frames a result as a claim about the user",
 // pins banned words, so a future copy edit that reworks the sentence (even
 // with equivalent meaning) fails loudly instead of drifting silently.
 const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
 
 describe("canonical ladder instruction (spec §7)", () => {
   it("renders the exact two-target sentence in AdvisorRecommendationPanel, verbatim", () => {

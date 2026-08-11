@@ -14,7 +14,7 @@ import { formatCopyValue, formatNumber } from "./advisorFormat";
 // signed off on. Render it as-is everywhere the ladder values appear —
 // never paraphrase it, even to shorten a line.
 const LADDER_TARGET_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
 
 // The basis line (owner ruling, amendment 23's offset extension, 2026-08-05,
 // docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md). XAGUSD and

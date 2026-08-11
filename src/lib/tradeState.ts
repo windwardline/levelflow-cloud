@@ -21,7 +21,7 @@ export type TradeState = {
 // "open, pre-Target-1" trade state reuses it exactly rather than a second,
 // driftable paraphrase of the same rule.
 const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
 
 // setup_status enum values (supabase/init.sql) once a setup is no longer
 // live: the position closed one way or another (filled + resolved, or

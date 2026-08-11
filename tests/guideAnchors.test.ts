@@ -234,7 +234,7 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
       ["Unfilled", "Window closed, never triggered."],
       [
         "Banked half",
-        "First target hit, half banked, window ended before Target 2.",
+        "First target hit and half banked; the rest closed at your moved stop or when the window ended, without reaching Target 2.",
       ],
       ["Banked full", "Target 2 reached."],
       ["Stopped · −R", "Stop hit."],
@@ -314,7 +314,7 @@ describe("the Guide renders the deck verbatim (Task 9)", () => {
 
   it("renders the canonical two-target instruction as the §3 callout, verbatim", () => {
     const CANONICAL_LADDER_INSTRUCTION =
-      "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+      "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
     assert.ok(guideSource.includes(CANONICAL_LADDER_INSTRUCTION));
     // It has to actually be the accent callout, not merely present
     // somewhere on the page — pin it inside a <blockquote>.
@@ -386,29 +386,45 @@ describe("§3 carries the losing path, in both homes (amended 2026-08-09)", () =
          failure of the setup.`,
       ),
     );
-    // The two #248 corrections stay corrected: the breakeven runner still
-    // risks the spread, and "profit either way" belongs to the second half
-    // alone.
-    assert.ok(collapsedIncludes(guideSource, `the rest risks only the spread`));
-    assert.ok(collapsedIncludes(guideSource, `Profit either way on the second half`));
+    // The 2026-08-11 rulings supersede #248's phrasing: the runner risks
+    // the whole round trip (spread AND commission), and the breakeven
+    // close pays the trip rather than closing "flat" — the measured 44%
+    // breakeven tax is why the promise clause is gone.
+    assert.ok(
+      collapsedIncludes(guideSource, `what remains risks only the round-trip cost`),
+    );
+    assert.ok(
+      collapsedIncludes(guideSource, `The banked half keeps the trade ahead.`),
+    );
     assert.doesNotMatch(guideSource, /can no longer cost you anything/);
+    assert.doesNotMatch(guideSource, /closes flat/);
+    assert.doesNotMatch(guideSource, /risks only the spread/);
   });
 
   it("the deck says the same four moments — the divergence was the defect", () => {
     assert.ok(collapsedIncludes(deckSource, `In platform terms, that is four moments:`));
     assert.ok(collapsedIncludes(deckSource, `The stop hits first.`));
-    assert.ok(collapsedIncludes(deckSource, `the rest risks only the spread`));
-    assert.ok(collapsedIncludes(deckSource, `Profit either way on the second half`));
+    assert.ok(
+      collapsedIncludes(deckSource, `what remains risks only the round-trip cost`),
+    );
+    assert.ok(
+      collapsedIncludes(deckSource, `The banked half keeps the trade ahead.`),
+    );
     assert.doesNotMatch(deckSource, /that is three moments/);
     assert.doesNotMatch(deckSource, /can no longer cost you anything/);
+    assert.doesNotMatch(deckSource, /risks only the spread/);
   });
 
   it("§5 admits the held third state, in both homes (1f-b)", () => {
     // The two-regime story was exhaustive while the engine held indices' bar
-    // under amendment 25 — a held number reading as a derived one.
-    const heldSentence = `the bar simply holds where it stands until the
-       evidence arrives`;
+    // under amendment 25 — a held number reading as a derived one. The
+    // 2026-08-11 rewrite keeps the held state and drops the unearned
+    // separation claim (measured rank correlation ≤ 0.06 everywhere).
+    const heldSentence =
+      `the bar holds until the evidence arrives`;
     assert.ok(collapsedIncludes(guideSource, heldSentence));
     assert.ok(collapsedIncludes(deckSource, heldSentence));
+    assert.doesNotMatch(guideSource, /score separates strong/);
+    assert.doesNotMatch(deckSource, /score separates strong/);
   });
 });
