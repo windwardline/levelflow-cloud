@@ -448,9 +448,12 @@ the engine-v2 named boundary closed), #315 (the correlation gate
 screens the whole complex: symbol-union query, jpy/alts/products union
 groups, curve/grains/livestock/PGM primaries), PH-9 (the payoff refusal
 names its cause: cost-driven vs geometry), PH-6/PH-11 moot-by-wipe per
-the ledger. **Batch 5** ops
-hygiene (analyzer_events retention, outcome-sync budget + Intl, FMP 429
-retry both sides, disk lifecycle, topup roster-derived), **Batch 6**
+the ledger. **Batch 5
+COMPLETE 2026-08-11** (one PR: 429 retry module behind the driver's
+three fetch sites + pacing knob, outcome-sync 12s budget under the 15s
+invoker + 60-day counted analyzer_events retention with README amended,
+top-up roster-derived, cache lifecycle script — 2.8GB legacy era
+reclaimed on first --apply; OP-2 unlocatable post-compaction, recorded), **Batch 6**
 owner-gated Guide copy review — **DOC READY, AWAITS THE OWNER'S ONE
 PASS**: `docs/research/guide-copy-review-2026-08-11.md` (six rulings:
 the score-separation story, the stop story, the dead replay

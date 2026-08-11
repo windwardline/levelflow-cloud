@@ -114,7 +114,26 @@ IDs so nothing is silently dropped):**
   stored rows labeled (PH-11); correlation-group completion — quote-
   currency groups, 25 crypto, new futures (RM-5) — plus concurrent-
   exposure surfacing (RM-5/6).
-- **Batch 5 — ops hygiene.** analyzer_events retention migration + prune
+- **Batch 5 — ops hygiene. COMPLETE 2026-08-11 except OP-2, disclosed
+  below.** OP-6: one retry module (scripts/fmpRetry.ts) behind all three
+  of the sweep driver's fetch sites with an env pacing knob
+  (FMP_PACE_MS); the minute bank's own retry already covered 429/5xx and
+  was verified, not duplicated. OP-4: outcome-sync runs under a 12s
+  budget — the cron invoker abandons calls at 15s, so a run that kept
+  working past it reported as a timeout it never was; what the budget
+  skips is stated and picked up next run. OP-1: analyzer_events ages out
+  at a stated 60 days, pruned in bounded counted batches inside the same
+  cron, README's append-only claim amended in the same change set.
+  OP-9: the daily top-up derives its list from defaultScanSymbols
+  (--symbols roster) — the 57-name snapshot had silently lost 40+
+  onboarded markets and kept dormant BRENT. OP-5:
+  scripts/ops/cache-lifecycle.sh (dry-run default) retires the legacy
+  date-keyed cache era and ages out stale sweep emits; the minute bank
+  is explicitly out of its reach. **OP-2 (scan progress numerals): the
+  finding's detail was lost at a session-compaction boundary and no
+  numeral violation is findable on the scan surface today — recorded as
+  unlocatable rather than inventing a change; it reopens if the lens
+  re-finds it.** analyzer_events retention migration + prune
   cron split by action lifecycle (OP-1/3's awaited-insert demotion);
   outcome-sync time budget + pagination + its Intl fix (OP-4/8); FMP 429
   retry with backoff in BOTH fetchers + fleet pacing flag (OP-6);

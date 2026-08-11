@@ -23,6 +23,7 @@ import {
   getCategoryCalibration,
   hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { fetchFmpWithRetry } from "./fmpRetry.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
@@ -589,9 +590,15 @@ function parseArgs(argv: string[]): SweepArgs {
     const index = argv.indexOf(`--${flag}`);
     return index >= 0 ? argv[index + 1] : undefined;
   };
-  const symbols = (get("symbols") ?? "EURUSD").split(",").map((value) =>
-    value.trim().toUpperCase()
-  ).filter(Boolean);
+  // OP-9: "--symbols roster" derives the list from the engine's own scan
+  // roster instead of a hand-kept copy — the ops top-up ran a 57-name
+  // snapshot that had silently lost 40+ onboarded markets (and kept
+  // dormant BRENT). One source, no drift.
+  const symbolsArg = get("symbols") ?? "EURUSD";
+  const symbols = (symbolsArg.trim().toLowerCase() === "roster"
+    ? defaultScanSymbols
+    : symbolsArg.split(",").map((value) => value.trim().toUpperCase()))
+    .filter(Boolean);
   const daysArg = get("days") ?? "60";
   // "max" discovers each symbol's full available history from the run date.
   const days = daysArg === "max" ? MAX_DEPTH_DAYS : Number(daysArg);
