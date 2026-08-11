@@ -21,6 +21,7 @@ import {
 } from "./types.ts";
 import {
   evaluateSetupOutcome,
+  fillOptionsFromRiskModel,
   getSetupExpiryTime,
   type ResolvedOutcome,
 } from "./replay.ts";
@@ -1720,7 +1721,19 @@ async function refreshUserOutcomes(
         );
       }
       const bars = await barsByProviderSymbol.get(providerSymbol)!;
-      const evaluation = evaluateSetupOutcome(setup, bars);
+      // ONE resolver, one physics. This in-request refresh graded with
+      // the cost-free v1 touch-fill model while outcome-sync graded the
+      // same rows with the venue's fills — so whether a setup was judged
+      // honestly depended on whether its owner opened the app before the
+      // hourly cron reached it, and whichever ran first owned the row
+      // permanently. Batch 4 wired the options at one call site and
+      // missed this one.
+      const evaluation = evaluateSetupOutcome(
+        setup,
+        bars,
+        Date.now(),
+        fillOptionsFromRiskModel(setup.risk_model),
+      );
       if (evaluation.state === "pending") {
         summary.pending += 1;
         continue;

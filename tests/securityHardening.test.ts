@@ -584,3 +584,34 @@ describe("the engine tables hold nothing for anon (item 0.5's residual, 2026-08-
     );
   });
 });
+
+describe("one resolver, one physics (the 2026-08-11 correctness fork)", () => {
+  it("every evaluateSetupOutcome call site passes the row's own fill options", () => {
+    // Two live resolvers graded the same setups with different physics:
+    // the in-request refresh ran the cost-free v1 touch-fill model while
+    // outcome-sync ran the venue's fills, and whichever reached a row
+    // first owned its verdict permanently. A bare two-argument call is
+    // the shape of that bug.
+    for (
+      const file of [
+        "supabase/functions/trade-analyzer/index.ts",
+        "supabase/functions/outcome-sync/index.ts",
+      ]
+    ) {
+      const source = readFileSync(file, "utf8");
+      const bare = source.match(/evaluateSetupOutcome\(\s*setup,\s*bars\s*\)/g);
+      assert.equal(
+        bare,
+        null,
+        `${file} calls evaluateSetupOutcome without fill options — the two-resolver fork`,
+      );
+      if (source.includes("evaluateSetupOutcome(")) {
+        assert.match(
+          source,
+          /fillOptionsFromRiskModel\(setup\.risk_model\)/,
+          `${file} must grade with the row's own stored costs`,
+        );
+      }
+    }
+  });
+});

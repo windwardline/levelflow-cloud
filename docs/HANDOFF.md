@@ -639,6 +639,35 @@ A six-domain adversarial audit of this file's own claims ran after item
    tables are revoked and pinned (they were inert behind RLS, which is
    why it was worth closing before a future policy made them live).
 
+### ⛔ STOP — THE CORPUS IS INVALID (2026-08-11, evening)
+
+**Read `docs/research/remediation-program-2026-08-11.md` before touching
+calibration.** It supersedes the "next steps" of every 2026-08-10/11
+document below, including item 4's own closure.
+
+The 4c/4d corpus resolved every setup against a price stream 4–5 hours
+out of register with the bar that decided it — the cached 15-minute and
+daily series carry naive New-York stamps read as UTC while the 5-minute
+series carries true UTC. Roughly half of each review window therefore
+lies BEFORE its own decision. Re-stamped and re-run, the three flagship
+"measurably positive" markets go +0.213R → −0.008 (EURUSD), +0.198 →
+−0.082 (BTCUSD), +0.247 → −0.031 (XAUUSD). **The measured edge is an
+artifact.** Two further defects compound it: the 5-minute series holds a
+third of its bars (64.7% of confirm-fold decisions are phantoms), and
+the cost-sensitivity switch that authorized the 15 declines never
+reached the resolver.
+
+**Do not trust**: the 49 positive verdicts, any fill/unfilled/TP1 rate,
+the declines' stated justification, or any "N confirmed cells" claim.
+**Still sound**: engine v2's published cost tables, the identity work,
+the product-truth fixes, gate v2's statistical machinery (its criterion
+is wrong, not its statistics).
+
+The program is Phase 0 (one clock) → 1 (one engine) → 2 (repair the
+instrument) → 3 (re-sweep once) → 4 (the per-market program, item 5) →
+5 (the never-analyzed populations) → 6 (reader claims). The order is
+load-bearing.
+
 ### Items 5–10: the ranking is the next converge's question (amendment 37)
 
 The owner ruled 2026-08-11 that items 5 through 10 are an **explicit part
