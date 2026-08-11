@@ -148,3 +148,38 @@ export function foldsByClass(
   }
   return result;
 }
+
+/**
+ * Read-time stratified holdout (round-8 batch 1, CV-4/CV-5): the sha256
+ * ranking runs WITHIN each class, taking ~20% with a floor of one for
+ * classes of three or more markets; a one-or-two-market class holds
+ * nothing out — by stated policy it keeps its markets for tuning and has
+ * no unseen-market confirmation read. Deterministic in the symbol set,
+ * independent of order and of which corpus stamped what: the gate
+ * recomputes this at read time, so holdout policy changes never require
+ * a resweep.
+ */
+export function stratifiedHoldout(
+  symbols: string[],
+  classOf: (symbol: string) => string,
+): Set<string> {
+  const byClass = new Map<string, string[]>();
+  for (const symbol of new Set(symbols)) {
+    const className = classOf(symbol);
+    if (!byClass.has(className)) byClass.set(className, []);
+    byClass.get(className)!.push(symbol);
+  }
+  const held = new Set<string>();
+  for (const classSymbols of byClass.values()) {
+    if (classSymbols.length < 3) continue;
+    const ranked = classSymbols
+      .map((symbol) => ({
+        rank: createHash("sha256").update(symbol).digest("hex"),
+        symbol,
+      }))
+      .sort((a, b) => (a.rank < b.rank ? -1 : 1));
+    const take = Math.max(1, Math.round(classSymbols.length * 0.2));
+    for (const entry of ranked.slice(0, take)) held.add(entry.symbol);
+  }
+  return held;
+}

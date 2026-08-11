@@ -6,6 +6,7 @@ import {
   foldsByClass,
   foldSplits,
   isHoldoutSymbol,
+  stratifiedHoldout,
 } from "../scripts/sweepFolds.ts";
 import { parseGridSpec } from "../scripts/sweepGrid.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
@@ -247,5 +248,33 @@ describe("foldsByClass — every class walks forward on its own span (4c repair)
     assert.match(script, /fold-spec/);
     assert.match(script, /foldsByClass/);
     assert.match(script, /classFolds\[getAssetType\(symbol\)\]/);
+  });
+});
+
+describe("stratifiedHoldout — read-time, per class, never zero where a class can afford one (CV-4)", () => {
+  it("holds ~20% per class with a floor of one for classes of three or more", () => {
+    const classOf = (symbol: string) =>
+      symbol.startsWith("F") ? "forex" : symbol.startsWith("M") ? "metals" : "crypto";
+    const symbols = [
+      "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10",
+      "M1", "M2",
+      "C1", "C2", "C3", "C4", "C5",
+    ];
+    const held = stratifiedHoldout(symbols, classOf);
+    const byClass = { crypto: 0, forex: 0, metals: 0 };
+    for (const symbol of held) byClass[classOf(symbol) as keyof typeof byClass] += 1;
+    assert.equal(byClass.forex, 2);
+    assert.equal(byClass.crypto, 1);
+    // A two-market class holds nothing out — by policy, stated, so the
+    // class keeps both markets for tuning and has no unseen-market read.
+    assert.equal(byClass.metals, 0);
+  });
+
+  it("is deterministic and order-independent", () => {
+    const classOf = () => "forex";
+    const symbols = ["A", "B", "C", "D", "E"];
+    const first = [...stratifiedHoldout(symbols, classOf)].sort();
+    const second = [...stratifiedHoldout([...symbols].reverse(), classOf)].sort();
+    assert.deepEqual(first, second);
   });
 });
