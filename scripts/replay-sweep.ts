@@ -19,10 +19,17 @@
 import {
   ANALYZER_VERSION,
   type CategoryCalibration,
+  getAssetType,
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
-import { calendarFolds, foldSplits, isHoldoutSymbol } from "./sweepFolds.ts";
+import {
+  calendarFolds,
+  type ClassFoldSpec,
+  foldsByClass,
+  foldSplits,
+  isHoldoutSymbol,
+} from "./sweepFolds.ts";
 import { parseGridSpec } from "./sweepGrid.ts";
 import {
   DEFAULT_CACHE_DIR,
@@ -63,6 +70,10 @@ type SweepArgs = {
   // top-up minutes) shift the boundaries by hours and the gate rightly
   // refuses the shards as different measurements. Pinned in ms.
   foldEndMs: number | undefined;
+  // Folds serve class aggregation, so a fleet folds PER CLASS on spans
+  // derived once globally (scripts/derive-fold-spec.ts) — a global span
+  // starved every 2023-era class of fit and select entirely.
+  foldSpecPath: string | undefined;
   foldStartMs: number | undefined;
   captureAll: boolean;
   ignoreLowEdge: boolean;
@@ -127,8 +138,26 @@ async function main() {
   // The pre-pass reads the same rolling caches the main loop reads (disk
   // hits after first load), so its cost is one warm pass.
   let folds: ReturnType<typeof calendarFolds> = [];
+  let classFolds: Record<string, ReturnType<typeof calendarFolds>> | null =
+    null;
+  let foldSpec: ClassFoldSpec | null = null;
   const holdoutSymbols: string[] = [];
-  if (
+  if (!args.discover && !args.warmOnly && args.foldSpecPath) {
+    const { readFileSync } = await import("node:fs");
+    foldSpec = JSON.parse(
+      readFileSync(args.foldSpecPath, "utf8"),
+    ) as ClassFoldSpec;
+    classFolds = foldsByClass(foldSpec, FOLD_EMBARGO_MS);
+    for (const [className, classFoldSet] of Object.entries(classFolds)) {
+      console.log(
+        `${className} folds: ` + classFoldSet.map((fold) =>
+          `${fold.name} ${isoDate(new Date(fold.startMs))}..${
+            isoDate(new Date(fold.endMs))
+          }`
+        ).join(" · "),
+      );
+    }
+  } else if (
     !args.discover && !args.warmOnly &&
     Number.isFinite(args.foldStartMs) && Number.isFinite(args.foldEndMs)
   ) {
@@ -281,8 +310,12 @@ async function main() {
     const holdout = isHoldoutSymbol(symbol);
     if (holdout) holdoutSymbols.push(symbol);
     // Shared fold slicing (sweepFolds.foldSplits): warm-up floors inside
-    // the fold when history starts mid-fold, thin folds dropped.
-    const splits = foldSplits(primaryBars, folds, WARMUP_BARS);
+    // the fold when history starts mid-fold, thin folds dropped. Under a
+    // fold spec, the symbol folds on ITS CLASS's calendar.
+    const symbolFolds = classFolds
+      ? classFolds[getAssetType(symbol)] ?? []
+      : folds;
+    const splits = foldSplits(primaryBars, symbolFolds, WARMUP_BARS);
 
     for (const override of args.grid) {
       const variant = describeOverride(override);
@@ -348,7 +381,15 @@ async function main() {
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
       days: args.days,
-      folds,
+      folds: classFolds ? undefined : folds,
+      ...(classFolds && {
+        foldsByClass: Object.fromEntries(
+          Object.entries(classFolds).map(([className, classFoldSet]) => [
+            className,
+            classFoldSet,
+          ]),
+        ),
+      }),
       generatedAt: new Date().toISOString(),
       grid: args.grid,
       holdoutSymbols: [...holdoutSymbols].sort(),
@@ -558,6 +599,7 @@ function parseArgs(argv: string[]): SweepArgs {
   return {
     cacheDir: get("cache-dir"),
     foldEndMs: foldEndRaw !== undefined ? Number(foldEndRaw) : undefined,
+    foldSpecPath: get("fold-spec"),
     foldStartMs: foldStartRaw !== undefined ? Number(foldStartRaw) : undefined,
     captureAll: argv.includes("--capture-all"),
     ignoreLowEdge: argv.includes("--ignore-low-edge"),

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   calendarFolds,
+  foldsByClass,
   foldSplits,
   isHoldoutSymbol,
 } from "../scripts/sweepFolds.ts";
@@ -222,5 +223,29 @@ describe("the driver pins a shard fleet's fold span (3c across shards)", () => {
     assert.match(script, /fold-start/);
     assert.match(script, /fold-end/);
     assert.match(script, /folds pinned:/);
+  });
+});
+
+describe("foldsByClass — every class walks forward on its own span (4c repair)", () => {
+  it("folds each class independently on its stated span", () => {
+    const spec = {
+      forex: { endMs: Date.UTC(2026, 7, 10), startMs: Date.UTC(2009, 8, 24) },
+      futures: { endMs: Date.UTC(2026, 7, 10), startMs: Date.UTC(2023, 8, 25) },
+    };
+    const byClass = foldsByClass(spec, 5 * DAY);
+    assert.equal(byClass.forex.length, 3);
+    assert.equal(byClass.futures.length, 3);
+    assert.equal(byClass.forex[0].startMs, spec.forex.startMs);
+    assert.equal(byClass.futures[0].startMs, spec.futures.startMs);
+    // The futures select fold begins mid-2025 — inside its own history,
+    // not inside a decade it never traded.
+    assert.ok(byClass.futures[1].startMs > Date.UTC(2025, 0, 1));
+  });
+
+  it("threads through the driver and manifest as the fleet's calendar", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(script, /fold-spec/);
+    assert.match(script, /foldsByClass/);
+    assert.match(script, /classFolds\[getAssetType\(symbol\)\]/);
   });
 });
