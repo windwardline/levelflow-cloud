@@ -67,8 +67,9 @@ A setup is four prices, named the way your platform names them:
   current price; a sell limit waits above it. Levelflow only ever
   suggests limit orders — never market or stop entries.
 - **Stop loss** — the price that says the setup was wrong. Levelflow
-  places it past the surrounding price structure with a volatility
-  buffer, never at a round number.
+  starts from the surrounding price structure and caps the distance
+  against the market's own volatility, so risk stays on the setup's
+  timescale.
 - **Target 1 · bank half** — the first profit level. When price reaches
   it, you act (see §3).
 - **Target 2 · take-profit** — the level your take-profit order sits at.
@@ -81,8 +82,8 @@ matching field on your platform.
 ## 3. Taking and managing the trade
 
 > **Set your take-profit at Target 2. When price reaches Target 1,
-> close half and move your stop to your entry — profit locked either
-> way.**
+> close half and move your stop to your entry — the banked half is
+> yours either way.**
 
 In platform terms, that is four moments:
 
@@ -90,11 +91,11 @@ In platform terms, that is four moments:
    the stop loss and set the take-profit at Target 2. Until price
    reaches your entry, the order shows as **pending** — nothing to do.
 2. **Target 1 hits.** Close half the position (a partial close), and
-   modify the stop loss to your entry price. Half your profit is real
-   money now, and the rest risks only the spread.
+   modify the stop loss to your entry price. Half the profit is real
+   money now; what remains risks only the round-trip cost.
 3. **The finish.** The remaining half either reaches Target 2 — your
-   take-profit closes it — or comes back to your entry and closes flat.
-   Profit either way on the second half.
+   take-profit closes it — or returns to your entry and closes for the
+   cost of the trip. The banked half keeps the trade ahead.
 4. **The stop hits first.** The trade closes for a full loss of what you
    risked. This is the common case the payoff is built to outweigh, not
    a failure of the setup.
@@ -122,17 +123,15 @@ promises.
 
 ## 5. Confidence
 
-Every setup carries a score out of 100. It is not a mood — it is the
-engine's estimate of setup strength, and each market type must clear its
-own qualifying bar before a setup is shown at all. The bar differs by
-market because the evidence differs by market: where history proves the
-score separates strong setups from weak ones, the bar is high and the
-number means more; where history shows setups succeed at similar rates
-across scores, the bar is set to let the record speak instead. And where
-a market's sample is still too thin to prove either, the bar simply
-holds where it stands until the evidence arrives. The meter under the
-score shows the bar, so you always know how much room a setup cleared
-it by.
+Every setup carries a score out of 100 — the engine's weighing of the
+evidence it checked: direction agreement, location, volatility, session,
+news, positioning. Each market type must clear its own qualifying bar
+before a setup is shown at all. What the score has earned is measured,
+not assumed: where the record shows setups succeed at similar rates
+across scores, the bar is set low so the record speaks; where a
+market's sample is thin, the bar holds until the evidence arrives. The
+meter under the score shows the bar, so you always know how much room a
+setup cleared it by.
 
 *Amended 2026-08-09.* The two-regime sentence was exhaustive and the
 engine has a third state it did not admit: indices' bar is HELD at 68
@@ -142,9 +141,9 @@ was being told a held number was a derived one.
 
 ## 6. Costs
 
-Spread is the gap between buying and selling price on your platform, and
-it is paid out of your profit. Levelflow sizes it against the setup
-before showing anything:
+Two costs come out of every trade: the spread — the gap between buying
+and selling price on your platform — and your platform's commission.
+Levelflow sizes both against the setup before showing anything:
 
 - **Clean** — costs are small next to the distance between entry and
   stop. The payoff survives intact.
@@ -162,9 +161,11 @@ for the major currency pairs, more than a decade — and counting setups
 the way a trade actually pays: take-profit reached, half banked at
 Target 1, or a finish that closed in profit. Any finish that ended in
 profit counts as **money-positive**; every other finish counts against
-the record. The replay fills an order whenever price touches the level
-and deducts no spread, so every figure is **before costs** — a ceiling,
-not a forecast.
+the record. The replay fills orders the way a venue fills them — a
+limit needs the far side of the book at its level, a stop triggers when
+the near side touches it, and a gap fills at the open, not at the level
+— and every figure is net of spread, slippage, and commission. What you
+see is what the trade would have paid, not a ceiling.
 
 A market's record does not gate the scan. Read it and size accordingly.
 
@@ -222,3 +223,14 @@ checked.
 - **R** — profit or loss measured against what you risked. +1R means
   you made exactly what you were risking; −1R means the stop loss did
   its job.
+
+*Amended 2026-08-11 (owner-approved, one pass).* Six rulings from
+`docs/research/guide-copy-review-2026-08-11.md` landed together: the §5
+score story dropped its unearned separation claim (measured rank
+correlation ≤ 0.06 everywhere on the repaired corpus); §2's stop line
+now says what the cap does; §7's replay description caught up with the
+venue-fill engine (`2026.08.11.engine-v2`) — the old sentence disclaimed
+exactly the rigor the engine now has; §3's steps 2–3 and the canonical
+instruction stopped promising a free breakeven (the measured 44%
+breakeven tax); §6 names the commission beside the spread; §10's
+"Banked half" teaches both of its paths.

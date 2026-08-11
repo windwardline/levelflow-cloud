@@ -143,10 +143,13 @@ export function describeReplayRecord(symbol: string, assetType: SecurityType) {
     ) * 100
   ).toFixed(1);
   // "before costs" is the whole of the cost bound, and it is not decoration.
-  // The replay fills an order whenever price touches the level and subtracts
-  // no spread, commission or financing anywhere — grep sweep.ts and replay.ts
-  // for a cost term and there is none. So this is a ceiling, not a forecast,
-  // and a reader who takes it for a net figure has been misled by omission.
+  // These stored rows were measured by the RETIRED touch-fill engine, which
+  // charged no spread, commission or financing — so for THESE figures,
+  // before-costs is the truth and must keep being said. The live engine
+  // (2026.08.11.engine-v2) now charges the full venue round trip; when the
+  // v2 corpus re-measures the record, the rows and this sentence are
+  // replaced together (round-8 batch 4, with the superseded flags). Until
+  // then a net-of-costs claim here would be false for the data rendered.
   const provenance = record.superseded
     ? " under a configuration the engine has since moved past"
     : "";

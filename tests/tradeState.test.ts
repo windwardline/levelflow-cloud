@@ -10,7 +10,7 @@ import type { TradeSetupRow } from "../src/lib/tradeAnalyzer";
 // AdvisorRecommendationPanel.tsx. The "open, pre-Target-1" trade state
 // reuses this exact wording rather than a paraphrase.
 const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
 
 const NOW = new Date("2026-07-30T12:00:00.000Z");
 

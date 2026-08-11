@@ -21,10 +21,12 @@ tokens to zero, accounts untouched at 13. Verified after: **zero sessions belong
 any real user**; the only sessions that exist are the E2E account's, recreated by the
 deploy pipeline itself.
 
-Trade history was deliberately **not** wiped: **167 setups and 139 outcomes across
-three real accounts**, unchanged. (Count totals with care — the E2E account's rows
-appear and are swept on every deploy, so a raw `count(*)` reads differently depending
-on when you take it. Group by user.)
+Trade history was preserved at the re-park, then **wiped on the owner's
+clean-model order 2026-08-11** (amendment 35): setups, outcomes, sessions and
+refresh tokens all to zero, verified; thirteen accounts untouched. The first
+live cohort under `2026.08.11.engine-v2` accrues from an empty table. (The
+E2E account's rows reappear on every deploy — pipeline debris, not history;
+group by user before trusting a raw `count(*)`.)
 
 **Reopening is one flag plus its tests.** Flip `PARKING_GATE` to `false`, invert the two
 gate tests in `tests/e2e/public-auth.spec.ts`, return the four sign-in tests from
@@ -68,6 +70,14 @@ step leaves every signed-in operator working behind a closed door.
   no inclusion — dormant instead, every broker and every account type. Data
   integrity over coverage. Reconciles with 31: an unmatched market was never
   covered, so removing it is not a coverage reversal.
+- **Amendment 34** — **the Guide tells the measured truth.** The six
+  guide-copy rulings approved and landed 2026-08-11; reader-facing engine
+  claims carry only what the current instrument has measured, and copy moves
+  in the same change set as the engine or the divergence is a defect.
+- **Amendment 35** — **the clean model, and where the docs duty reaches.**
+  All users logged out and all trade history wiped 2026-08-11 (verified
+  zeros, 13 accounts kept); docs-ride-along explicitly covers legal/risk/
+  privacy pages, the Guide, Profile surfaces, READMEs and this file.
 - **Amendment 33** — **the calibration mandate.** Per market, never per class; to
   each market's own discovered data limit; the geometry model reviewed before it
   is tuned. The standard: identify money-positive setups at a high rate, account

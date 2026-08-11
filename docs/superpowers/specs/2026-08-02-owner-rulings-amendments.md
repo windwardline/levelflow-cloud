@@ -1947,3 +1947,44 @@ produce results. When a round returns only nulls and validations, the
 diminished-returns point is declared rather than another round manufactured. The
 existing stopping rule governs, and this mandate does not license change for its
 own sake.
+
+## Amendment 34 — the Guide tells the measured truth (owner ruling, 2026-08-11)
+
+The six copy rulings drafted in `docs/research/guide-copy-review-2026-08-11.md`
+are approved as recommended and land as one change set: the §5 score story
+drops its unearned separation claim (measured rank correlation ≤ 0.06 in every
+class); §2's stop line says what the cap does rather than what the algorithm
+intends; §7's replay description matches the venue-fill engine — net of
+spread, slippage and commission, not "before costs"; §3 and the canonical
+instruction stop promising a free breakeven (the runner risks the round trip;
+"the banked half is yours either way" replaces "profit locked either way" in
+every pinned surface); §6 names the commission beside the spread; §10's
+"Banked half" teaches both of its closing paths.
+
+The general rule under the ruling: reader-facing copy about the engine
+carries only claims the current instrument has measured. When the engine
+moves, the copy moves in the same change set or the divergence is a defect —
+the same law the deck already applies to itself, now explicitly owed to
+every reader surface.
+
+One deliberate exception recorded: the Record rows' "before costs" sentence
+(`replayReliability.ts`) stays until batch 4, because the stored rows it
+renders were measured by the retired cost-free engine — for that data,
+before-costs IS the truth, and the rows and sentence are replaced together.
+
+## Amendment 35 — the clean model, and where the docs duty reaches (owner ruling, 2026-08-11)
+
+Executed on the ruling: every user logged out (sessions and refresh tokens
+to zero; outstanding JWTs die within their ≤60-minute TTL behind the parked
+gate) and all trade history cleared for all users — setups and outcomes to
+zero, accounts untouched at thirteen. The engine's first live cohort under
+`2026.08.11.engine-v2` therefore accrues from an empty table: a clean model,
+with no pre-repair rows to contaminate learning or the record. The parking
+page stays up; deploys recreate the E2E infrastructure account's rows by
+design and those are disclosed pipeline debris, not history.
+
+The standing duty, stated in full: whenever work shifts the context of any
+project doc, user-facing legal, risk or privacy page, the Guide, the Profile
+surfaces, any README, or the HANDOFF — the update lands in the same change
+set as the shift. This is amendment 17's docs-ride-along law with its reach
+now enumerated so no surface class can be argued out of it.

@@ -114,7 +114,7 @@ hardcode.
 - **Canonical instruction, verbatim, everywhere the values appear**
   (desk ladder, mobile review, guide): "Set your take-profit at Target 2.
   When price reaches Target 1, close half and move your stop to your
-  entry — profit locked either way."
+  entry — the banked half is yours either way."
 
 ## 8. Current trades (right rail / Trades tab)
 

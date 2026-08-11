@@ -118,7 +118,8 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
     term: "Unfilled",
   },
   {
-    body: "First target hit, half banked, window ended before Target 2.",
+    body:
+      "First target hit and half banked; the rest closed at your moved stop or when the window ended, without reaching Target 2.",
     term: "Banked half",
   },
   {
@@ -166,7 +167,7 @@ const VOCABULARY: Array<{ body: string; term: string }> = [
 // direct source-text `.includes()` check never has to fight JSX's
 // line-wrapping whitespace collapse.
 const CANONICAL_LADDER_INSTRUCTION =
-  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — profit locked either way.";
+  "Set your take-profit at Target 2. When price reaches Target 1, close half and move your stop to your entry — the banked half is yours either way.";
 
 type GuidePanelProps = {
   // A How this works link elsewhere in the app asked for one section of the
@@ -301,9 +302,10 @@ function GuideDeck() {
           </li>
           <li>
             <strong className="text-ink">Stop loss</strong> — the price
-            that says the setup was wrong. Levelflow places it past the
-            surrounding price structure with a volatility buffer, never
-            at a round number.
+            that says the setup was wrong. Levelflow starts from the
+            surrounding price structure and caps the distance against
+            the market&apos;s own volatility, so risk stays on the
+            setup&apos;s timescale.
           </li>
           <li>
             <strong className="text-ink">Target 1 · bank half</strong> —
@@ -339,14 +341,14 @@ function GuideDeck() {
           <li>
             <strong className="text-ink">Target 1 hits.</strong> Close
             half the position (a partial close), and modify the stop
-            loss to your entry price. Half your profit is real money
-            now, and the rest risks only the spread.
+            loss to your entry price. Half the profit is real money
+            now; what remains risks only the round-trip cost.
           </li>
           <li>
             <strong className="text-ink">The finish.</strong> The
             remaining half either reaches Target 2 — your take-profit
-            closes it — or comes back to your entry and closes flat.
-            Profit either way on the second half.
+            closes it — or returns to your entry and closes for the
+            cost of the trip. The banked half keeps the trade ahead.
           </li>
           <li>
             <strong className="text-ink">The stop hits first.</strong>{" "}
@@ -378,26 +380,25 @@ function GuideDeck() {
 
       <GuideSection id="confidence-tiers">
         <p>
-          Every setup carries a score out of 100. It is not a mood — it
-          is the engine's estimate of setup strength, and each market
+          Every setup carries a score out of 100 — the engine&apos;s
+          weighing of the evidence it checked: direction agreement,
+          location, volatility, session, news, positioning. Each market
           type must clear its own qualifying bar before a setup is shown
-          at all. The bar differs by market because the evidence differs
-          by market: where history proves the score separates strong
-          setups from weak ones, the bar is high and the number means
-          more; where history shows setups succeed at similar rates
-          across scores, the bar is set to let the record speak instead.
-          And where a market&apos;s sample is still too thin to prove
-          either, the bar simply holds where it stands until the
-          evidence arrives. The meter under the score shows the bar, so
-          you always know how much room a setup cleared it by.
+          at all. What the score has earned is measured, not assumed:
+          where the record shows setups succeed at similar rates across
+          scores, the bar is set low so the record speaks; where a
+          market&apos;s sample is thin, the bar holds until the evidence
+          arrives. The meter under the score shows the bar, so you
+          always know how much room a setup cleared it by.
         </p>
       </GuideSection>
 
       <GuideSection id="cost-ratings">
         <p>
-          Spread is the gap between buying and selling price on your
-          platform, and it is paid out of your profit. Levelflow sizes
-          it against the setup before showing anything:
+          Two costs come out of every trade: the spread — the gap
+          between buying and selling price on your platform — and your
+          platform&apos;s commission. Levelflow sizes both against the
+          setup before showing anything:
         </p>
         <ul className="grid list-disc gap-2 ps-5">
           <li>
@@ -429,9 +430,12 @@ function GuideDeck() {
           take-profit reached, half banked at Target 1, or a finish that
           closed in profit. Any finish that ended in profit counts as
           {" "}<strong className="text-ink">money-positive</strong>; every
-          other finish counts against the record. The replay fills an
-          order whenever price touches the level and deducts no spread,
-          so every figure is before costs — a ceiling, not a forecast.
+          other finish counts against the record. The replay fills
+          orders the way a venue fills them — a limit needs the far side
+          of the book at its level, a stop triggers when the near side
+          touches it, and a gap fills at the open, not at the level —
+          and every figure is net of spread, slippage, and commission.
+          What you see is what the trade would have paid, not a ceiling.
         </p>
         <p>
           A market's record does not gate the scan. Read it and size
