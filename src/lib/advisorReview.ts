@@ -94,10 +94,60 @@ export function confidenceThresholdForAssetOrSymbol(
   symbol: string,
   assetType: SecurityType,
 ): number {
+  const derived = DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL[symbol];
+  if (derived !== undefined) return derived;
   if (AGRICULTURE_SYMBOLS.has(symbol)) return CONFIDENCE_THRESHOLD_BY_CLASS.agriculture;
   if (LIVESTOCK_SYMBOLS.has(symbol)) return CONFIDENCE_THRESHOLD_BY_CLASS.livestock;
   return CONFIDENCE_THRESHOLD_BY_ASSET_TYPE[assetType];
 }
+
+// The 4d derived layer's floors (2026-08-11): thirty-nine markets whose
+// confirmed cell retires the class gate — the record speaks and the bar
+// is zero, exactly what the Guide's §5 teaches. Mirrored, not imported,
+// for the same bundle reasoning as every table in this file; the
+// calibrationState parity sweep holds every symbol to the engine's own
+// resolver, so this list can never drift silently.
+export const DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL: Record<string, number> = {
+  ADAUSD: 0,
+  AUDCAD: 0,
+  AUDJPY: 0,
+  AUDUSD: 0,
+  BCHUSD: 0,
+  BTCUSD: 0,
+  CADCHF: 0,
+  CADJPY: 0,
+  CHFJPY: 0,
+  CLUSD: 0,
+  ESUSD: 0,
+  ETHUSD: 0,
+  EURAUD: 0,
+  EURCAD: 0,
+  EURCHF: 0,
+  EURGBP: 0,
+  EURJPY: 0,
+  EURNZD: 0,
+  GBPAUD: 0,
+  GBPCHF: 0,
+  GBPJPY: 0,
+  GBPNZD: 0,
+  GBPUSD: 0,
+  GCUSD: 0,
+  HGUSD: 0,
+  LTCUSD: 0,
+  NQUSD: 0,
+  NZDCAD: 0,
+  NZDUSD: 0,
+  SIUSD: 0,
+  SP: 0,
+  USDCAD: 0,
+  USDCHF: 0,
+  USDJPY: 0,
+  WTI: 0,
+  XAUUSD: 0,
+  XRPUSD: 0,
+  ZCUSX: 0,
+  ZLUSX: 0,
+};
 
 export const REVIEW_WINDOW_HOURS_BY_ASSET_TYPE: Record<SecurityType, number> = {
   Crypto: 12,

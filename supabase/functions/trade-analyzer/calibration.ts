@@ -4,7 +4,7 @@
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
 import { isKnownSymbol } from "./symbols.ts";
-export const ANALYZER_VERSION = "2026.08.11.engine-v2";
+export const ANALYZER_VERSION = "2026.08.11.derived-4d";
 
 export type AssetType =
   | "agriculture"
@@ -648,8 +648,9 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // 70 was set against a suppressed sample and the class floor governs now.
   // Oil trends: earlier TP1 banking fails the test split for both oil
   // futures (r10), matching cash energies' rejection of 0.6 in r8.
+  // BZUSD keeps its measured-active legacy fields only: dormant under
+  // amendment 32 through the 4d cycle, so no derived cell exists for it.
   BZUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
-  CLUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
   // Oats, derived 2026-08-06 from an 81-variant joint grid (round 28). It was
   // the one market of four re-gridded holdouts that a geometry change rescued:
   // at the agriculture class values it refused 56% of decisions reaching the
@@ -669,6 +670,253 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
     defaultReviewHours: 24,
     maxStopAtrMultiplier: 1.4,
     runnerWindowShare: 1.0,
+  },
+  // ---- The 4d derived layer (2026-08-11). Thirty-nine markets, each
+  // cell EXACTLY the variant that was frozen before the confirm fold's
+  // one authorized read and confirmed positive on it (39 of 41; HOUSD
+  // and RBUSD failed confirm and ship nothing). Derivation record:
+  // docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md; the
+  // artifact pins in tests/calibrationState.test.ts hold this table to
+  // the JSON record in both directions. CLUSD's cell merges OVER its
+  // measured-active legacy fields (tp1RiskShare/runnerWindowShare were
+  // live in every corpus cell, so the confirmed delta sits on top of
+  // them); capacity-gated, measure-only, starved and held-out markets
+  // deliberately have no entry here.
+  ADAUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  AUDCAD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  AUDJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  AUDUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  BCHUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  BTCUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  CADCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  CADJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  CHFJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  CLUSD: {
+    tp1RiskShare: 0.6,
+    runnerWindowShare: 0.8,
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  ESUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ETHUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURAUD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURCAD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURGBP: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURNZD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPAUD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPNZD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GCUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  HGUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  LTCUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NQUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  NZDCAD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NZDUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  SIUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  SP: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "hold",
+    sizingHoursFactor: 3,
+  },
+  USDCAD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  USDCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  USDJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  WTI: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  XAUUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  XRPUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ZCUSX: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ZLUSX: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
   },
 };
 
@@ -711,6 +959,15 @@ export function getAssetType(symbol: string): AssetType {
     return "futures";
   }
   return "forex";
+}
+
+/**
+ * The CLASS row alone, before any per-symbol layer — what the frozen
+ * class-state pins assert, independent of which members carry derived
+ * cells (4d, 2026-08-11).
+ */
+export function getClassCalibration(assetType: AssetType): CategoryCalibration {
+  return CALIBRATION[assetType];
 }
 
 export function getCategoryCalibration(symbol: string): CategoryCalibration {
