@@ -440,9 +440,15 @@ directional read and 4d's corpus, graded once by gate v2 with NO
 (v) **4d** per-market derivation under gate v2 + survival + sizing
 feasibility constraints, starved late-listed markets measure-only;
 confirm reads strip pre-holdout per-symbol overrides (CV-11/LA-8).
-(vi) **4e** iterate to diminished returns. Parallel lanes before any reopen: **Batch 4**
-product truth (superseded flags, ambiguous-as-loss coherence incl.
-learning.ts, correlation-group completion per RM-5), **Batch 5** ops
+(vi) **4e** iterate to diminished returns. Parallel lanes before any reopen: **Batch 4
+COMPLETE 2026-08-11** — #313 (ambiguous counts against the trade in
+learning/classify/attribution; all six Record rows state supersession),
+#314 (live outcome-sync replays each row's stored decision-time costs —
+the engine-v2 named boundary closed), #315 (the correlation gate
+screens the whole complex: symbol-union query, jpy/alts/products union
+groups, curve/grains/livestock/PGM primaries), PH-9 (the payoff refusal
+names its cause: cost-driven vs geometry), PH-6/PH-11 moot-by-wipe per
+the ledger. **Batch 5** ops
 hygiene (analyzer_events retention, outcome-sync budget + Intl, FMP 429
 retry both sides, disk lifecycle, topup roster-derived), **Batch 6**
 owner-gated Guide copy review — **DOC READY, AWAITS THE OWNER'S ONE

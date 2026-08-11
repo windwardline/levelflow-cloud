@@ -1412,16 +1412,32 @@ async function explainNoSetup(
         "Limit entry failed price validation, so no limit setup was shown.",
       );
     } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
-      diagnostics.push(
-        `Payoff was ${
-          pricePlan.rewardRisk.toFixed(2)
-        }x; Levelflow requires at least ${
-          calibration.minRewardRisk.toFixed(2)
-        }x for this market.`,
-      );
+      // PH-9: the refusal names its cause. A payoff that cleared the bar
+      // gross and lost it to the round trip is a COST story, not a
+      // geometry story — and under the venue's real bill they are very
+      // different instructions to the operator.
+      if (pricePlan.grossRewardRisk >= calibration.minRewardRisk) {
+        diagnostics.push(
+          `Trading costs took the payoff from ${
+            pricePlan.grossRewardRisk.toFixed(2)
+          }x to ${
+            pricePlan.rewardRisk.toFixed(2)
+          }x; Levelflow requires at least ${
+            calibration.minRewardRisk.toFixed(2)
+          }x for this market.`,
+        );
+      } else {
+        diagnostics.push(
+          `Payoff was ${
+            pricePlan.rewardRisk.toFixed(2)
+          }x; Levelflow requires at least ${
+            calibration.minRewardRisk.toFixed(2)
+          }x for this market.`,
+        );
+      }
     } else if (pricePlan.executionQuality.confidencePenalty > 0) {
       diagnostics.push(
-        `Estimated spread and slippage reduced the setup score by ${pricePlan.executionQuality.confidencePenalty}.`,
+        `Estimated trading costs reduced the setup score by ${pricePlan.executionQuality.confidencePenalty}.`,
       );
     }
     if (macroRateAdjustment.adjustment < 0) {
