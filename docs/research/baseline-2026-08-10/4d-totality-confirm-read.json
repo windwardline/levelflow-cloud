@@ -1,0 +1,116 @@
+{
+  "confirmReport": {
+    "AAVEUSD": {
+      "confirmTotalDelta": 95.92419999999981,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "ALGOUSD": {
+      "confirmTotalDelta": -43.259100000000075,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ARWUSD": {
+      "confirmTotalDelta": -4.1621999999999275,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AVAXUSD": {
+      "confirmTotalDelta": -22.970299999999952,
+      "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "BNBUSD": {
+      "confirmTotalDelta": 78.14150000000002,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "BZUSD": {
+      "confirmTotalDelta": 46.744199999999985,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "CAKEUSD": {
+      "confirmTotalDelta": 55.79599999999997,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "DASHUSD": {
+      "confirmTotalDelta": 120.2914,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "DAX": {
+      "confirmTotalDelta": 0.5629000000000004,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "DOGEUSD": {
+      "confirmTotalDelta": 61.84599999999975,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "EGLDUSD": {
+      "confirmTotalDelta": 29.728700000000032,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ETCUSD": {
+      "confirmTotalDelta": 106.75759999999974,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "GRTUSD": {
+      "confirmTotalDelta": 95.6750000000001,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "HBARUSD": {
+      "confirmTotalDelta": 41.17800000000007,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "IMXUSD": {
+      "confirmTotalDelta": 119.6819999999999,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "LINKUSD": {
+      "confirmTotalDelta": 104.39039999999987,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "NEARUSD": {
+      "confirmTotalDelta": -3.16940000000001,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1"
+    },
+    "PAUSD": {
+      "confirmTotalDelta": 7.9057999999999815,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1"
+    },
+    "SOLUSD": {
+      "confirmTotalDelta": 189.50740000000002,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "UNIUSD": {
+      "confirmTotalDelta": 36.92610000000001,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "XAGUSD": {
+      "confirmTotalDelta": 69.08879999999995,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "XLMUSD": {
+      "confirmTotalDelta": 115.32059999999969,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "XMRUSD": {
+      "confirmTotalDelta": 126.61620000000016,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZBUSD": {
+      "confirmTotalDelta": 50.281900000000036,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZNUSD": {
+      "confirmTotalDelta": 58.74700000000006,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZOUSX": {
+      "confirmTotalDelta": 4.890399999999998,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZRUSD": {
+      "confirmTotalDelta": -0.6266000000000016,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1"
+    }
+  },
+  "confirmedNegative": 5,
+  "confirmedPositive": 22,
+  "readAt": "2026-08-11T18:12:13.793Z",
+  "unreadable": 0
+}

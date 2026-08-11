@@ -42,7 +42,10 @@ async function main() {
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      if (argv[index] !== "--holdout-cycle") index += 1;
+      if (
+        argv[index] !== "--holdout-cycle" &&
+        argv[index] !== "--per-market-folds"
+      ) index += 1;
       continue;
     }
     paths.push(argv[index]);
@@ -82,9 +85,21 @@ async function main() {
     );
   }
 
+  // Totality mode: explicit target list + per-market re-cut folds; the
+  // targets ride the surgical filter and holdout members are included
+  // (their rows are the whole point).
+  const perMarketFolds = argv.includes("--per-market-folds");
+  const targetsFlag = flagValue("targets");
+  if (targetsFlag) {
+    symbolFilter = new Set(
+      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+    );
+    console.log(`targets: ${symbolFilter.size} markets`);
+  }
   const { manifest, verdicts } = await gradeCorpus(paths, {
     baselineVariant,
-    includeHoldout: holdoutCycle,
+    includeHoldout: holdoutCycle || targetsFlag !== undefined,
+    perMarketFolds,
     permutations: Number(flagValue("permutations") ?? 1_000),
     seed: Number(flagValue("seed") ?? 7),
     symbolFilter,

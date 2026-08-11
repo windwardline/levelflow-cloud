@@ -108,6 +108,30 @@ export function confidenceThresholdForAssetOrSymbol(
 // calibrationState parity sweep holds every symbol to the engine's own
 // resolver, so this list can never drift silently.
 export const DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL: Record<string, number> = {
+  // The totality tranche (2026-08-11): twenty-two more on per-market
+  // full-span folds, same parity sweep.
+  AAVEUSD: 0,
+  BNBUSD: 0,
+  BZUSD: 0,
+  CAKEUSD: 0,
+  DASHUSD: 0,
+  DAX: 0,
+  DOGEUSD: 0,
+  EGLDUSD: 0,
+  ETCUSD: 0,
+  GRTUSD: 0,
+  HBARUSD: 0,
+  IMXUSD: 0,
+  LINKUSD: 0,
+  PAUSD: 0,
+  SOLUSD: 0,
+  UNIUSD: 0,
+  XAGUSD: 0,
+  XLMUSD: 0,
+  XMRUSD: 0,
+  ZBUSD: 0,
+  ZNUSD: 0,
+  ZOUSX: 0,
   // The holdout tranche (2026-08-11): eleven more, same parity sweep.
   AUDCHF: 0,
   AUDNZD: 0,

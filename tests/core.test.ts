@@ -1006,15 +1006,15 @@ describe("history workspace logic", () => {
       makeHistorySetup({ confidence: 22, outcome: "take_profit" }),
       makeHistorySetup({ confidence: 70, outcome: "stop_loss" }),
       makeHistorySetup({ confidence: 80, outcome: "take_profit" }),
-      // LINKUSD qualifies at the crypto class bar 25 (capacity-gated, so
+      // XTZUSD qualifies at the crypto class bar 25 (measure-only on its full span, so
       // no 4d floor): the same 22 cleared nothing there, so it lands in
       // no band — class-relative in both directions — but it is counted,
       // never dropped. (BTCUSD would qualify at its derived floor of 0
-      // now, which is exactly why the fixture names LINK.)
+      // now, which is exactly why the fixture names XTZ.)
       makeHistorySetup({
         confidence: 22,
         outcome: "take_profit",
-        symbol: "LINKUSD",
+        symbol: "XTZUSD",
       }),
     ];
 
@@ -1218,7 +1218,7 @@ describe("correlation completion — the whole complex, both sides of every pair
 
   it("every altcoin shares one exposure group — one alt setup at a time", () => {
     const related = getCorrelatedSymbols("DOGEUSD");
-    for (const alt of ["SOLUSD", "AVAXUSD", "XMRUSD", "TRUMPUSD", "LINKUSD"]) {
+    for (const alt of ["SOLUSD", "AVAXUSD", "XMRUSD", "TRUMPUSD", "XTZUSD"]) {
       assert.ok(related.includes(alt), `DOGEUSD must correlate with ${alt}`);
     }
     assert.ok(!related.includes("BTCUSD"), "majors keep their own group");

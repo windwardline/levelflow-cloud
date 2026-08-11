@@ -30,7 +30,9 @@ async function main() {
     if (argv[index].startsWith("--")) {
       if (
         argv[index] !== "--acknowledge-prior-reads" &&
-        argv[index] !== "--holdout-cycle"
+        argv[index] !== "--holdout-cycle" &&
+        argv[index] !== "--per-market-folds" &&
+        argv[index] !== "--feasibility-disclosure-only"
       ) index += 1;
       continue;
     }
@@ -43,7 +45,10 @@ async function main() {
   const baselineVariant = flagValue("baseline") ?? "baseline";
   const dir = "docs/research/baseline-2026-08-10";
   const holdoutCycle = argv.includes("--holdout-cycle");
-  const prefix = holdoutCycle ? "4d-holdout" : "4d";
+  const perMarketFolds = argv.includes("--per-market-folds");
+  const targetsFlag = flagValue("targets");
+  const prefix = flagValue("prefix") ??
+    (holdoutCycle ? "4d-holdout" : "4d");
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
   ) as {
@@ -82,10 +87,15 @@ async function main() {
     if (market.accepted.length === 0) continue;
     const top = market.accepted[0];
     let chosen: { candidate: Candidate; lines: string[] } | null = null;
+    // Totality mode (owner mandate): capacity is DISCLOSURE, not a veto —
+    // the §19 governor already refuses per account at runtime, which is
+    // the product's honest surface for sizing. The per-line feasibility
+    // still rides the artifact for every pick.
+    const disclosureOnly = argv.includes("--feasibility-disclosure-only");
     for (const candidate of market.accepted) {
       const entry = feasibility.feasibility[symbol]?.[candidate.variant];
       const lines = entry?.feasibleLines ?? [];
-      if (lines.length > 0) {
+      if (disclosureOnly || lines.length > 0) {
         chosen = { candidate, lines };
         break;
       }
@@ -136,11 +146,17 @@ async function main() {
       (symbol) => getAssetType(symbol),
     );
   }
+  if (targetsFlag) {
+    symbolFilter = new Set(
+      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+    );
+  }
   const { verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: argv.includes("--acknowledge-prior-reads"),
     baselineVariant,
     confirmFinal: true,
-    includeHoldout: holdoutCycle,
+    includeHoldout: holdoutCycle || targetsFlag !== undefined,
+    perMarketFolds,
     permutations: Number(flagValue("permutations") ?? 1_000),
     seed: Number(flagValue("seed") ?? 7),
     symbolFilter,
