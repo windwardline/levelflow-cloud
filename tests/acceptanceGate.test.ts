@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
 import {
   classVerdicts,
+  marketVerdicts,
   gradeCorpus,
   readGridCube,
 } from "../scripts/grid-totalr.ts";
@@ -612,5 +613,102 @@ describe("gradeCorpus — the emit door end to end", () => {
     });
     assert.equal(graded.manifest.analyzerVersion, "2026.08.09.test");
     assert.ok(graded.verdicts.get("forex")!.has("wide"));
+  });
+});
+
+describe("marketVerdicts — the 4d unit is one market, same statistics (amendment 33)", () => {
+  const twoMarketRows = (): SweepEmitRow[] => {
+    const rows: SweepEmitRow[] = [];
+    // 40 days: comfortably past the per-market 30-filled floor, so the
+    // verdicts test the statistics rather than the sample gate.
+    for (let day = 0; day < 40; day += 1) {
+      // EURUSD: the variant beats its baseline steadily.
+      rows.push({ ...trainRow("baseline", day, 0.1), symbol: "EURUSD" });
+      rows.push({ ...outcomeRow("baseline", day, 0.1), symbol: "EURUSD" });
+      rows.push({ ...trainRow("wide", day, 0.18), symbol: "EURUSD" });
+      rows.push({ ...outcomeRow("wide", day, 0.18), symbol: "EURUSD" });
+      // USDJPY: the variant LOSES steadily — a class rollup would hide it.
+      rows.push({ ...trainRow("baseline", day, 0.1), symbol: "USDJPY" });
+      rows.push({ ...outcomeRow("baseline", day, 0.1), symbol: "USDJPY" });
+      rows.push({ ...trainRow("wide", day, 0.04), symbol: "USDJPY" });
+      rows.push({ ...outcomeRow("wide", day, 0.04), symbol: "USDJPY" });
+    }
+    return rows;
+  };
+
+  it("grades each market on its own rows — one accepts, its class-mate refuses", () => {
+    const verdicts = marketVerdicts(readGridCube(twoMarketRows()), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 7,
+    });
+    const eur = verdicts.get("EURUSD")?.get("wide");
+    const jpy = verdicts.get("USDJPY")?.get("wide");
+    assert.ok(eur?.accepted, "EURUSD's steady gain must accept");
+    assert.equal(jpy?.accepted, false, "USDJPY's steady loss must refuse");
+  });
+
+  it("refuses a market whose sample is thin, by name", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 3; day += 1) {
+      rows.push({ ...trainRow("baseline", day, 0.1), symbol: "EURUSD" });
+      rows.push({ ...outcomeRow("baseline", day, 0.1), symbol: "EURUSD" });
+      rows.push({ ...trainRow("wide", day, 0.3), symbol: "EURUSD" });
+      rows.push({ ...outcomeRow("wide", day, 0.3), symbol: "EURUSD" });
+    }
+    const verdicts = marketVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 7,
+    });
+    const eur = verdicts.get("EURUSD")?.get("wide");
+    assert.equal(eur?.accepted, false);
+    assert.match(eur?.reason ?? "", /THIN/i);
+  });
+
+  it("agrees with classVerdicts when the class IS one market (above the floor)", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(trainRow("baseline", day, 0.1));
+      rows.push(outcomeRow("baseline", day, 0.1));
+      rows.push(trainRow("steady", day, 0.15));
+      rows.push(outcomeRow("steady", day, 0.15));
+    }
+    const byClass = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 7,
+    });
+    const byMarket = marketVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 7,
+    });
+    const classCell = [...byClass.values()][0]?.get("steady");
+    const marketCell = [...byMarket.values()][0]?.get("steady");
+    assert.equal(classCell?.accepted, marketCell?.accepted);
+    assert.equal(classCell?.pairedP, marketCell?.pairedP);
+  });
+});
+
+describe("gradeCorpus — the market unit rides the same door (4d)", () => {
+  it("grades per market when asked, same manifest discipline", async () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      rows.push(trainRow("baseline", day, 0.1));
+      rows.push(outcomeRow("baseline", day, 0.1));
+      rows.push(trainRow("wide", day, 0.2));
+      rows.push(outcomeRow("wide", day, 0.2));
+    }
+    const emitPath = corpusWith(rows);
+    const { verdicts } = await gradeCorpus(emitPath, {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 7,
+      verdictUnit: "market",
+    });
+    const eur = verdicts.get("EURUSD")?.get("wide");
+    assert.ok(eur?.accepted, "the market unit must grade EURUSD's own rows");
+    assert.equal(eur?.fitFilled, 40);
   });
 });

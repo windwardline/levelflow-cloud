@@ -108,6 +108,10 @@ function addRowToCube(
 }
 
 export type VariantVerdict = {
+  // One word for the row's disposition, with THIN carrying its count —
+  // stated on the verdict rather than reconstructed by every printer.
+  reason?: string;
+  fitFilled?: number;
   accepted: boolean;
   // Days the variant traded that the baseline never did — reported apart
   // from the paired test (LA-4c): "trades more days" is composition, not
@@ -291,12 +295,6 @@ export function classVerdicts(
   cube: GridCube,
   options: GateOptions = {},
 ): Map<string, Map<string, VariantVerdict>> {
-  const permutations = options.permutations ?? 1_000;
-  const baselineVariant = options.baselineVariant ?? "baseline";
-  const foldNames = options.foldNames ?? { fit: "fit", select: "select" };
-  const random = mulberry32(options.seed ?? 7);
-  const verdicts = new Map<string, Map<string, VariantVerdict>>();
-
   const symbolsByClass = new Map<string, string[]>();
   for (const symbol of cube.keys()) {
     const assetClass = getAssetType(symbol);
@@ -305,6 +303,38 @@ export function classVerdicts(
     }
     symbolsByClass.get(assetClass)!.push(symbol);
   }
+  return groupVerdicts(cube, symbolsByClass, options);
+}
+
+/**
+ * 4d: the derivation unit is ONE market (amendment 33 — per market,
+ * never per class). Same statistics, singleton groups, plus an absolute
+ * sample floor: a market with fewer than 30 filled select-fold decisions
+ * cannot carry a verdict whatever its ratios (the sweep's own min-n).
+ */
+export function marketVerdicts(
+  cube: GridCube,
+  options: GateOptions = {},
+): Map<string, Map<string, VariantVerdict>> {
+  const singletons = new Map<string, string[]>();
+  for (const symbol of cube.keys()) {
+    singletons.set(symbol, [symbol]);
+  }
+  return groupVerdicts(cube, singletons, { ...options, minFilled: 30 });
+}
+
+function groupVerdicts(
+  cube: GridCube,
+  groups: Map<string, string[]>,
+  options: GateOptions & { minFilled?: number } = {},
+): Map<string, Map<string, VariantVerdict>> {
+  const permutations = options.permutations ?? 1_000;
+  const baselineVariant = options.baselineVariant ?? "baseline";
+  const foldNames = options.foldNames ?? { fit: "fit", select: "select" };
+  const random = mulberry32(options.seed ?? 7);
+  const minFilled = options.minFilled ?? 0;
+  const verdicts = new Map<string, Map<string, VariantVerdict>>();
+  const symbolsByClass = groups;
 
   const variants = new Set<string>();
   for (const byVariant of cube.values()) {
@@ -399,7 +429,8 @@ export function classVerdicts(
       const variantExpectancy = expectancy(aggregate.variant.select) ?? 0;
       const selectExpectancyDelta = variantExpectancy - baseExpectancy;
       const thin = aggregate.variant.select.filled <
-        aggregate.base.select.filled * 0.5;
+          aggregate.base.select.filled * 0.5 ||
+        aggregate.variant.select.filled < minFilled;
 
       const baselineBlocks: number[] = [];
       const variantBlocks: number[] = [];
@@ -443,6 +474,11 @@ export function classVerdicts(
       }
       classMap.set(variant, {
         accepted,
+        reason: thin
+          ? `THIN (${selectStats.filled} filled)`
+          : accepted
+          ? "accept"
+          : "fails",
         compositionR: compositionByVariant.get(variant) ?? null,
         confirmTotalDelta: accepted && foldNames.confirm
           ? totalOf(aggregate.variant.confirm) -
@@ -458,6 +494,7 @@ export function classVerdicts(
         selectExpiryShare: selectStats.filled > 0
           ? Number((expiries / selectStats.filled).toFixed(4))
           : null,
+        fitFilled: aggregate.variant.fit.filled,
         selectFilled: selectStats.filled,
         selectSigma,
         selectTotalDelta,
@@ -490,7 +527,12 @@ function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
  */
 export async function gradeCorpus(
   emitPathOrPaths: string | string[],
-  options: GateOptions & { includeHoldout?: boolean } = {},
+  options: GateOptions & {
+    includeHoldout?: boolean;
+    // 4d: "market" grades every symbol on its own rows (singleton
+    // groups, absolute sample floor); default stays the 4c class unit.
+    verdictUnit?: "class" | "market";
+  } = {},
 ): Promise<{
   foldNames: FoldNames;
   manifest: SweepManifest;
@@ -586,7 +628,10 @@ export async function gradeCorpus(
   return {
     foldNames,
     manifest,
-    verdicts: classVerdicts(cube, { ...options, foldNames }),
+    verdicts: (options.verdictUnit === "market" ? marketVerdicts : classVerdicts)(
+      cube,
+      { ...options, foldNames },
+    ),
   };
 }
 
