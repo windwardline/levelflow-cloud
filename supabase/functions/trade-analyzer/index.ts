@@ -93,14 +93,14 @@ const RATE_LIMITS = {
   refresh_outcomes: 12,
   // A scan is a fan-out of chunked requests since the 2026-08-02 CPU failures
   // (src/lib/scanBatching.ts). 40 -> 60 on 2026-08-07: the release took the
-  // universe from 50 markets to 111, so a full scan is 12 chunks rather than 6,
+  // universe from 50 markets to the full roster (105 today), so a full scan is 11 chunks rather than 6,
   // and the old budget would have rate-limited a scan against its own second
   // half. tests/scanBatching.test.ts pins the relation (chunks x 5 <= limit) so
   // this can never fall back under the real spend.
   //
   // The honest arithmetic, because the old note's version no longer holds. The
-  // binding constraint is not this limiter, it is FMP: a 111-market scan costs
-  // roughly 111 x 7 = 780 provider calls, so five full scans in a minute is
+  // binding constraint is not this limiter, it is FMP: a 105-market scan costs
+  // roughly 105 x 7 = 735 provider calls, so five full scans in a minute is
   // ~3,900 against FMP Ultimate's 3,000. Chunk size cannot help — a scan's
   // provider cost is markets x 7 however the markets are grouped — so raising
   // SCAN_SYMBOLS_PER_REQUEST would move requests around without moving calls.

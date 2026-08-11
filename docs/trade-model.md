@@ -59,7 +59,7 @@ Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
 blocks reviews; penalties per the caps above (r23 validated them as
 calibrated).
 
-Tradable menu: **106 markets** — full matched coverage under amendment
+Tradable menu: **105 markets** — full matched coverage under amendment
 32 (2026-08-09): every market E8 offers for which FMP carries a verified
 IDENTITY-MATCHED series is visible and scannable; a derivative is not its
 underlying, and a time-varying gap is not a match.
@@ -215,7 +215,9 @@ whim. Two triggers, whichever comes first:
           count(*) as resolved_filled
    from trade_outcomes o
    join trade_setups ts on ts.id = o.setup_id
-   where o.analyzer_version = '2026.08.05.cost-scale-free'
+   -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
+   -- version here counts zero accrual forever (round-8 PH-13).
+   where o.analyzer_version = '2026.08.09.evaluator-repair'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
@@ -357,8 +359,10 @@ walk-forward). Durable character groups emerged:
   direct review path, so nothing is "reviewable directly" any more. Then
   amendment 31 (2026-08-07) retired scan curation entirely: full matched
   coverage is the resting state — every identity-matched E8 market live
-  per account type (106 after amendment 32 tightened "matched" to
-  identity, 2026-08-09) — and the only path out of the offering is a
+  per account type (105 today: amendment 32 tightened "matched" to
+  identity leaving 106, and BRENT's dormancy the same day debited one
+  more — a stale 106 that never absorbed BRENT stood here until round
+  8's coverage lens, CV-9) — and the only path out of the offering is a
   calibration verdict under item 4d. No curation mechanism exists in the
   scan path today, and no sentence anywhere should claim one. See the menu
   under "Current engine state" for the state of record.

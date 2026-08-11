@@ -1,3 +1,13 @@
+> **Identity annotation (round 8 CV-1/FR-2, added 2026-08-11):** this document
+> reads the 2026-08-10 baseline corpus, whose universe carried provider
+> spellings (six ^-prefixed indices, ARUSD, OTRUMPUSD, WTI's provider name);
+> getAssetType's silent forex fallback ran all nine under forex calibration,
+> sessions, costs and completion conventions — ARUSD/OTRUMPUSD additionally
+> took a 2-3h daily-completion look-ahead. "Forex" rows are inflated with
+> non-FX symbols and indices/energies rows are absent or misplaced. The
+> roster-name refleet (sweeps/4c, per-class fold spec) supersedes these
+> numbers. Kept unrewritten by design: annotated evidence, not history-edit.
+
 corpus 3b108f43d4c2 · engine 2026.08.09.evaluator-repair · anchor 2026-08-10
 fit: 2009-09-24..2018-03-03 · select: 2018-03-03..2022-05-22 · confirm: 2022-05-22..2026-08-10
 
