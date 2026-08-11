@@ -201,3 +201,48 @@ defensible readings, and the choice is the owner's alone:
 
 Option 2 is only honest if the product SAYS it; today no surface does.
 Nothing ships on this question without the owner's ruling.
+
+## The decline verdict (owner rulings, 2026-08-11)
+
+Two rulings governed this, and both changed the answer.
+
+**Ruling one — "follow the existing rules"** sent me back to the roster
+law of 2026-08-07, which had already settled what a losing market means:
+*"Expectancy is not a ground [for hiding]. A thin or negative market is
+one the ENGINE declines to produce a setup for, and one per-market
+geometry has to earn; it is not a market the product hides."* So the
+mechanism is **engine-declines, not menu-removal**. A declined market
+stays visible, stays scannable, stays in every coverage count under
+amendment 31, and a scan of it returns a stated refusal naming its own
+measured record. Nothing vanishes.
+
+**Ruling two — "not based on a flawed parameter of our own making"
+(amendment 36)** demanded the test. A gross re-sweep of all 20 negative
+markets charged **only E8's published commission**
+(`LEVELFLOW_MODELED_COST_SCALE=0`), separating a market that loses from
+a market our modeled spread convicts. It also, honestly, changes
+selection: cheaper cost admits more marginal setups, which is why some
+markets read WORSE gross than net (LTCUSD −0.009 → −0.115) and some
+better (ZOUSX −0.170 → −0.145).
+
+**A third bar was added on inspection.** The first pass returned 19
+declinable, including NSDQ at −0.004R on 54 fills — which is not a
+measured loss but a measurement of nothing. Declining on it would be
+amendment 36's overreach pointed the other way, so a decline now
+requires the loss to clear its own 95% interval.
+
+### The result: 15 decline, 5 stay
+
+| population | n | disposition |
+|---|---|---|
+| **Declined** | **15** | EGLDUSD −0.368R, CAKEUSD −0.218, ZCUSX −0.208, ETCUSD −0.163, HBARUSD −0.161, DOGEUSD −0.161, PAUSD −0.149, DASHUSD −0.124, AAVEUSD −0.120, LTCUSD −0.115, XLMUSD −0.108, IMXUSD −0.108, UNIUSD −0.098, XMRUSD −0.095, GRTUSD −0.077 — every one negative beyond its own 95% interval at the published bill alone |
+| CI spans zero | 4 | ZOUSX, ZMUSD, LINKUSD, NSDQ — negative point estimate, not a measured loss. No decline, and no claim of edge either. |
+| Cost-dependent | 1 | ZLUSX turns positive (+0.006) at the published bill — convicted by our modeled spread, so it stays under amendment 36. |
+
+The engine now carries **57 markets it will trade and 15 it will not**,
+out of 97 offered. Every decline is re-derived each calibration round;
+accrued data that turns one positive returns it, on the same footing as
+any E8-tradable / FMP-analyzable match.
+
+Artifacts: `4d-cost-sensitivity.json` (per market, both corpora, SE and
+CI), `4d-threshold-rescue.json`, and the gross corpus manifests.

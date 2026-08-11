@@ -309,7 +309,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.11.totality'
+   where o.analyzer_version = '2026.08.11.declines'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;

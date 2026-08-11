@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  ENGINE_DECLINED_MARKETS,
   getCategoryCalibration,
   getClassCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
@@ -294,7 +295,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.11\.totality"/,
+      /ANALYZER_VERSION = "2026\.08\.11\.declines"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
   });
@@ -430,5 +431,78 @@ describe("the roster arithmetic states the offering, not a sum of views (audit 2
         `${doc} must not headline 105 as the offering`,
       );
     }
+  });
+});
+
+describe("engine-declined markets — the roster law's own mechanism (amendment 36)", () => {
+  it("declares the refusal per market with its measured reason and reprobe", () => {
+    // The 2026-08-07 roster ruling: "Expectancy is not a ground [for
+    // hiding]. A thin or negative market is one the ENGINE declines to
+    // produce a setup for ... it is not a market the product hides."
+    // So a money-losing market stays visible and scannable, and the
+    // engine refuses to build a setup on it, with the reason stated.
+    for (const [symbol, entry] of Object.entries(ENGINE_DECLINED_MARKETS)) {
+      assert.ok(
+        entry.measuredExpectancyR < 0,
+        `${symbol}: only a measured-negative market may be declined`,
+      );
+      assert.match(
+        entry.reason,
+        /publish|commission|measured/i,
+        `${symbol}: the reason must name the measurement, not a mood`,
+      );
+      assert.ok(
+        entry.reprobe.length > 0,
+        `${symbol}: amendment 36 — a decline is never permanent`,
+      );
+    }
+  });
+
+  it("a declined market is still VISIBLE and still scanned — hiding is a different question", () => {
+    for (const symbol of Object.keys(ENGINE_DECLINED_MARKETS)) {
+      assert.ok(
+        defaultScanSymbols.includes(symbol),
+        `${symbol}: amendment 31 keeps a declined market in the offering`,
+      );
+      assert.equal(
+        noTradeSymbols.has(symbol),
+        false,
+        `${symbol}: expectancy is not a ground for hiding (roster law)`,
+      );
+    }
+  });
+
+  it("the analyzer consults the register and says so", () => {
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    // The gate itself, and the sentence it gives the reader.
+    assert.match(analyzer, /if \(engineDeclines\(symbol\)\) \{/);
+    assert.match(
+      analyzer,
+      /Levelflow does not produce setups for this market/,
+      "a declined market must SAY so, not fail silently",
+    );
+  });
+
+  it("the register IS the artifact — every entry traces to the cost-sensitivity verdict", () => {
+    const verdicts = JSON.parse(
+      readFileSync(
+        "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json",
+        "utf8",
+      ),
+    ) as {
+      verdicts: Record<string, { grossConfirmE: number | null; verdict: string }>;
+    };
+    const dataNegative = Object.entries(verdicts.verdicts)
+      .filter(([, row]) => row.verdict.startsWith("DATA-NEGATIVE"))
+      .map(([symbol]) => symbol)
+      .sort();
+    assert.deepEqual(
+      Object.keys(ENGINE_DECLINED_MARKETS).sort(),
+      dataNegative,
+      "the declined register must equal the data-negative population exactly",
+    );
   });
 });

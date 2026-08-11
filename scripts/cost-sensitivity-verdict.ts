@@ -15,52 +15,57 @@
 //                            published bill the market loses.
 //   gross confirm E  > 0  -> the negative rests on OUR modeled cost.
 //                            DO NOT withdraw; disclose the sensitivity.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { readLinesSync } from "./sweepStats.ts";
 
-type Fold = { fitEnd: number; selectEnd: number };
-
-function foldsFor(times: number[]): Fold {
-  const first = Math.min(...times);
-  const last = Math.max(...times);
-  return {
-    fitEnd: first + (last - first) * 0.5,
-    selectEnd: first + (last - first) * 0.75,
-  };
-}
-
-function expectancyByFold(
-  rows: Array<{ time: number; r: number; exit: number | null }>,
-): { select: number | null; confirm: number | null; selectN: number; confirmN: number } {
-  if (rows.length === 0) {
-    return { confirm: null, confirmN: 0, select: null, selectN: 0 };
-  }
-  const { fitEnd, selectEnd } = foldsFor(rows.map((row) => row.time));
-  let selectSum = 0, selectN = 0, confirmSum = 0, confirmN = 0;
-  for (const row of rows) {
-    // Exact containment, the same rule the graded folds use.
-    if (row.time >= fitEnd && row.time < selectEnd) {
-      if (row.exit !== null && row.exit > selectEnd) continue;
-      selectSum += row.r;
-      selectN += 1;
-    } else if (row.time >= selectEnd) {
-      confirmSum += row.r;
-      confirmN += 1;
+function spansFrom(paths: string[]): Map<string, { first: number; last: number }> {
+  const spans = new Map<string, { first: number; last: number }>();
+  for (const path of paths) {
+    const manifest = JSON.parse(
+      readFileSync(`${path}.manifest.json`, "utf8"),
+    ) as {
+      symbols: Array<
+        {
+          symbol: string;
+          series?: Record<string, { firstTime?: number; lastTime?: number }>;
+        }
+      >;
+    };
+    for (const entry of manifest.symbols) {
+      const series = entry.series?.["15min"];
+      if (
+        !Number.isFinite(series?.firstTime) || !Number.isFinite(series?.lastTime)
+      ) continue;
+      const current = spans.get(entry.symbol);
+      spans.set(entry.symbol, {
+        first: Math.min(current?.first ?? Infinity, series!.firstTime!),
+        last: Math.max(current?.last ?? -Infinity, series!.lastTime!),
+      });
     }
   }
-  return {
-    confirm: confirmN >= 30 ? confirmSum / confirmN : null,
-    confirmN,
-    select: selectN >= 30 ? selectSum / selectN : null,
-    selectN,
-  };
+  return spans;
 }
 
-function collect(paths: string[], cells: Map<string, string>) {
-  const byMarket = new Map<
-    string,
-    Array<{ time: number; r: number; exit: number | null }>
-  >();
+type Acc = {
+  confirmN: number;
+  confirmSum: number;
+  confirmSumSq: number;
+  selectN: number;
+  selectSum: number;
+};
+
+/**
+ * Single streaming pass, scalars only — the corpora are tens of GB and
+ * an array of rows per market is what OOMed the first attempt. Fold
+ * boundaries come from the manifests' own measured spans, which is where
+ * gradeCorpus reads them too, so the two agree by construction.
+ */
+function collect(
+  paths: string[],
+  cells: Map<string, string>,
+  spans: Map<string, { first: number; last: number }>,
+): Map<string, Acc> {
+  const acc = new Map<string, Acc>();
   for (const path of paths) {
     readLinesSync(path, (line) => {
       if (!line) return;
@@ -76,18 +81,74 @@ function collect(paths: string[], cells: Map<string, string>) {
       const symbol = row.symbol;
       if (!symbol || cells.get(symbol) !== (row.variant ?? "baseline")) return;
       if (row.accepted !== true || row.outcome === "unfilled") return;
+      const span = spans.get(symbol);
       const time = Number(row.time);
       const r = Number(row.realizedR);
-      if (!Number.isFinite(time) || !Number.isFinite(r)) return;
-      if (!byMarket.has(symbol)) byMarket.set(symbol, []);
-      byMarket.get(symbol)!.push({
-        exit: Number.isFinite(Number(row.exitAtMs)) ? Number(row.exitAtMs) : null,
-        r,
-        time,
-      });
+      if (!span || !Number.isFinite(time) || !Number.isFinite(r)) return;
+      const fitEnd = span.first + (span.last - span.first) * 0.5;
+      const selectEnd = span.first + (span.last - span.first) * 0.75;
+      if (!acc.has(symbol)) {
+        acc.set(symbol, {
+          confirmN: 0,
+          confirmSum: 0,
+          confirmSumSq: 0,
+          selectN: 0,
+          selectSum: 0,
+        });
+      }
+      const cell = acc.get(symbol)!;
+      const exit = Number(row.exitAtMs);
+      if (time >= fitEnd && time < selectEnd) {
+        // Exact containment, the same rule the graded folds use.
+        if (Number.isFinite(exit) && exit > selectEnd) return;
+        cell.selectSum += r;
+        cell.selectN += 1;
+      } else if (time >= selectEnd) {
+        cell.confirmSum += r;
+        cell.confirmSumSq += r * r;
+        cell.confirmN += 1;
+      }
     });
   }
-  return byMarket;
+  return acc;
+}
+
+function read(acc: Acc | undefined) {
+  if (!acc) {
+    return {
+      confirm: null,
+      confirmCiUpper: null,
+      confirmN: 0,
+      confirmSe: null,
+      select: null,
+      selectN: 0,
+    };
+  }
+  const confirm = acc.confirmN >= 30 ? acc.confirmSum / acc.confirmN : null;
+  // Declining a market is as consequential as accepting one and earns
+  // the same evidentiary bar: the loss must be distinguishable from
+  // zero. A market at -0.004R on 54 fills is not a measured loss, it is
+  // a measurement of nothing, and amendment 36 forbids acting on that in
+  // EITHER direction.
+  let confirmSe: number | null = null;
+  let confirmCiUpper: number | null = null;
+  if (confirm !== null && acc.confirmN > 1) {
+    const variance = Math.max(
+      0,
+      (acc.confirmSumSq - acc.confirmSum * acc.confirmSum / acc.confirmN) /
+        (acc.confirmN - 1),
+    );
+    confirmSe = Math.sqrt(variance / acc.confirmN);
+    confirmCiUpper = confirm + 1.96 * confirmSe;
+  }
+  return {
+    confirm,
+    confirmCiUpper,
+    confirmN: acc.confirmN,
+    confirmSe,
+    select: acc.selectN >= 30 ? acc.selectSum / acc.selectN : null,
+    selectN: acc.selectN,
+  };
 }
 
 async function main() {
@@ -106,14 +167,16 @@ async function main() {
   const outPath = flag("out") ??
     "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json";
 
-  const net = collect(netPaths, cells);
-  const gross = collect(grossPaths, cells);
+  // Spans from each corpus's OWN manifests; the same symbols were swept
+  // both times, so the folds land identically.
+  const net = collect(netPaths, cells, spansFrom(netPaths));
+  const gross = collect(grossPaths, cells, spansFrom(grossPaths));
 
   const verdicts: Record<string, unknown> = {};
-  let withdrawable = 0, costDependent = 0, unreadable = 0;
+  let withdrawable = 0, costDependent = 0, unreadable = 0, indistinguishable = 0;
   for (const symbol of [...cells.keys()].sort()) {
-    const n = expectancyByFold(net.get(symbol) ?? []);
-    const g = expectancyByFold(gross.get(symbol) ?? []);
+    const n = read(net.get(symbol));
+    const g = read(gross.get(symbol));
     let verdict: string;
     if (g.confirm === null) {
       verdict = "unreadable — the gross run has no confirm sample";
@@ -121,14 +184,23 @@ async function main() {
     } else if (g.confirm > 0) {
       verdict = "COST-DEPENDENT — positive at the published bill alone; DO NOT withdraw";
       costDependent += 1;
+    } else if (g.confirmCiUpper === null || g.confirmCiUpper >= 0) {
+      // Negative in point estimate, but its 95% interval still contains
+      // zero: not a measured loss. Amendment 36 refuses this in both
+      // directions — no decline, and no claim of edge either.
+      verdict =
+        "INDISTINGUISHABLE FROM ZERO — negative point estimate, CI spans zero; no decline, no claim";
+      indistinguishable += 1;
     } else {
-      verdict = "DATA-NEGATIVE — negative even at the published bill; withdrawal defensible";
+      verdict = "DATA-NEGATIVE — negative even at the published bill, beyond its own error; withdrawal defensible";
       withdrawable += 1;
     }
     verdicts[symbol] = {
       cell: cells.get(symbol),
+      grossConfirmCiUpper: g.confirmCiUpper,
       grossConfirmE: g.confirm,
       grossConfirmN: g.confirmN,
+      grossConfirmSe: g.confirmSe,
       grossSelectE: g.select,
       netConfirmE: n.confirm,
       netConfirmN: n.confirmN,
@@ -144,7 +216,7 @@ async function main() {
         note:
           "gross = LEVELFLOW_MODELED_COST_SCALE=0 (E8's published commission only). " +
           "Per-market folds, exact containment, 30-fill floor, both corpora.",
-        summary: { costDependent, unreadable, withdrawable },
+        summary: { costDependent, indistinguishable, unreadable, withdrawable },
         verdicts,
       },
       null,
@@ -152,8 +224,9 @@ async function main() {
     ) + "\n",
   );
   console.log(
-    `cost sensitivity: ${withdrawable} data-negative (withdrawal defensible), ` +
-      `${costDependent} cost-dependent (keep), ${unreadable} unreadable -> ${outPath}`,
+    `cost sensitivity: ${withdrawable} data-negative beyond error (decline), ` +
+      `${costDependent} cost-dependent (keep), ${indistinguishable} indistinguishable from zero (keep), ` +
+      `${unreadable} unreadable -> ${outPath}`,
   );
 }
 
