@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import {
   addOutcome,
+  assertManifest,
   assertManifestedCorpusStreaming,
   emptyStats,
   expectancy,
@@ -43,6 +44,8 @@ import {
   type SweepStats,
 } from "./sweepStats.ts";
 import { stableStringify, type SweepManifest } from "./sweepManifest.ts";
+import { stratifiedHoldout } from "./sweepFolds.ts";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 
 const DAY_MS = 86_400_000;
 
@@ -106,27 +109,47 @@ function addRowToCube(
 
 export type VariantVerdict = {
   accepted: boolean;
-  // The confirm fold is read ONCE, for accepted variants only — reported,
-  // never part of selection (3d). Null when the corpus has no confirm
-  // fold or the variant was not accepted.
+  // Days the variant traded that the baseline never did — reported apart
+  // from the paired test (LA-4c): "trades more days" is composition, not
+  // improvement on shared days.
+  compositionR: number | null;
+  // The confirm fold is read ONLY under confirmFinal, appended to the
+  // burned-log — discipline by mechanism, not promise (LA-6).
   confirmTotalDelta: number | null;
   fitTotalDelta: number;
+  // The ENFORCED statistic (LA-3/LA-4): family-wise max-T sign-flip
+  // permutation over shared-day deltas, one flip pattern per iteration
+  // across the whole class family.
+  pairedP: number;
+  // Retired from the rule, kept descriptive (LA-5): the pooled-permutation
+  // p and the iid sigma both mismodel paired, serially-dependent data.
   permutationP: number;
+  breachDayShare: number | null;
   selectExpectancyDelta: number;
+  // Censoring readout (LA-10): expiries / filled on the select fold, so a
+  // sizing-factor cell carries its own license.
+  selectExpiryShare: number | null;
   selectFilled: number;
   selectSigma: number;
   selectTotalDelta: number;
+  sharedDays: number;
   thin: boolean;
+  // Survival readout (RM-3/8): the variant's own worst select-fold day in
+  // R, and the share of its days at or beyond -4R.
+  worstDayR: number | null;
 };
 
 export type FoldNames = { confirm?: string; fit: string; select: string };
 
 type GateOptions = {
+  acknowledgePriorReads?: boolean;
   // The variant every other cell compares against. Defaults to the bare
   // "baseline" label; a 4c measurement grid that retires the confidence
   // gate names its threshold-0 current-geometry cell here instead, so
   // comparisons isolate one axis change at a time.
   baselineVariant?: string;
+  confirmFinal?: boolean;
+  confirmLogPath?: string;
   foldNames?: FoldNames;
   permutations?: number;
   seed?: number;
@@ -143,6 +166,74 @@ function mulberry32(seed: number): () => number {
     mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
     return ((mixed ^ (mixed >>> 14)) >>> 0) / 4_294_967_296;
   };
+}
+
+function seedFrom(base: number, text: string): number {
+  let hash = base >>> 0;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (Math.imul(hash, 31) + text.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+/**
+ * Family-wise paired sign-flip permutation (LA-3/LA-4): each variant's
+ * statistic is its normalized shared-day delta sum; each iteration flips
+ * ONE sign per day, applied consistently to every variant in the class
+ * family, and the null distribution is the maximum statistic across the
+ * family — strong family-wise control over the crossed grid.
+ */
+function familyPairedP(
+  deltasByVariant: Map<string, Map<number, number>>,
+  permutations: number,
+  random: () => number,
+): Map<string, number> {
+  const variants = [...deltasByVariant.keys()];
+  const allDays = [...new Set(
+    variants.flatMap((variant) => [...deltasByVariant.get(variant)!.keys()]),
+  )].sort((a, b) => a - b);
+  const observed = new Map<string, number>();
+  const scale = new Map<string, number>();
+  for (const variant of variants) {
+    const deltas = deltasByVariant.get(variant)!;
+    let sum = 0;
+    let sumSq = 0;
+    for (const delta of deltas.values()) {
+      sum += delta;
+      sumSq += delta * delta;
+    }
+    const norm = Math.sqrt(sumSq);
+    scale.set(variant, norm);
+    observed.set(variant, norm > 0 ? sum / norm : 0);
+  }
+  const exceed = new Map<string, number>(variants.map((v) => [v, 0]));
+  for (let iteration = 0; iteration < permutations; iteration += 1) {
+    const signs = new Map<number, number>();
+    for (const day of allDays) {
+      signs.set(day, random() < 0.5 ? -1 : 1);
+    }
+    let maxT = Number.NEGATIVE_INFINITY;
+    for (const variant of variants) {
+      const deltas = deltasByVariant.get(variant)!;
+      const norm = scale.get(variant)!;
+      if (norm === 0) continue;
+      let sum = 0;
+      for (const [day, delta] of deltas) {
+        sum += signs.get(day)! * delta;
+      }
+      const statistic = sum / norm;
+      if (statistic > maxT) maxT = statistic;
+    }
+    for (const variant of variants) {
+      if (maxT >= observed.get(variant)!) {
+        exceed.set(variant, exceed.get(variant)! + 1);
+      }
+    }
+  }
+  return new Map(variants.map((variant) => [
+    variant,
+    (1 + exceed.get(variant)!) / (permutations + 1),
+  ]));
 }
 
 function totalOf(stats: SweepStats | undefined): number {
@@ -225,6 +316,44 @@ export function classVerdicts(
   for (const [assetClass, symbols] of symbolsByClass) {
     const classMap = new Map<string, VariantVerdict>();
     verdicts.set(assetClass, classMap);
+    // Class-level select-fold day totals per variant, for the paired test
+    // and the survival readout.
+    const dayTotals = (variant: string): Map<number, number> => {
+      const totals = new Map<number, number>();
+      for (const symbol of symbols) {
+        const cell = cube.get(symbol)?.get(variant)?.get(foldNames.select);
+        if (!cell) continue;
+        for (const [day, value] of cell.dayR) {
+          totals.set(day, (totals.get(day) ?? 0) + value);
+        }
+      }
+      return totals;
+    };
+    const baselineDays = dayTotals(baselineVariant);
+    const deltasByVariant = new Map<string, Map<number, number>>();
+    const compositionByVariant = new Map<string, number>();
+    const variantDayCache = new Map<string, Map<number, number>>();
+    for (const variant of variants) {
+      if (variant === baselineVariant) continue;
+      const variantDays = dayTotals(variant);
+      variantDayCache.set(variant, variantDays);
+      const deltas = new Map<number, number>();
+      let composition = 0;
+      for (const [day, value] of variantDays) {
+        if (baselineDays.has(day)) {
+          deltas.set(day, value - baselineDays.get(day)!);
+        } else {
+          composition += value;
+        }
+      }
+      deltasByVariant.set(variant, deltas);
+      compositionByVariant.set(variant, composition);
+    }
+    const pairedPs = familyPairedP(
+      deltasByVariant,
+      permutations,
+      mulberry32(seedFrom(options.seed ?? 7, assetClass)),
+    );
     for (const variant of variants) {
       if (variant === baselineVariant) {
         continue;
@@ -296,21 +425,45 @@ export function classVerdicts(
         random,
       );
 
+      const pairedP = pairedPs.get(variant) ?? 1;
+      // The rule (round-8 batch 1): both folds positive, the PAIRED
+      // family-wise p enforced at 0.05, expectancy holds, not thin.
+      // Sigma and the pooled p remain printed, descriptive only.
       const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
-        selectSigma >= 1 && selectExpectancyDelta >= 0;
+        pairedP <= 0.05 && selectExpectancyDelta >= 0;
+      const selectStats = aggregate.variant.select;
+      const expiries = selectStats.filled - selectStats.wins -
+        selectStats.stops - selectStats.ambiguous;
+      const variantDays = variantDayCache.get(variant) ?? new Map();
+      let worstDayR: number | null = null;
+      let breachDays = 0;
+      for (const value of variantDays.values()) {
+        if (worstDayR === null || value < worstDayR) worstDayR = value;
+        if (value <= -4) breachDays += 1;
+      }
       classMap.set(variant, {
         accepted,
+        compositionR: compositionByVariant.get(variant) ?? null,
         confirmTotalDelta: accepted && foldNames.confirm
           ? totalOf(aggregate.variant.confirm) -
             totalOf(aggregate.base.confirm)
           : null,
         fitTotalDelta,
+        pairedP,
         permutationP,
+        breachDayShare: variantDays.size > 0
+          ? breachDays / variantDays.size
+          : null,
         selectExpectancyDelta,
-        selectFilled: aggregate.variant.select.filled,
+        selectExpiryShare: selectStats.filled > 0
+          ? Number((expiries / selectStats.filled).toFixed(4))
+          : null,
+        selectFilled: selectStats.filled,
         selectSigma,
         selectTotalDelta,
+        sharedDays: deltasByVariant.get(variant)?.size ?? 0,
         thin,
+        worstDayR,
       });
     }
   }
@@ -350,6 +503,12 @@ export async function gradeCorpus(
   // far past what a rows array can hold. The cube aggregates row by row
   // (it is small: cells x day ledgers), and each shard's manifest hash
   // verifies before its first row, same door as ever.
+  //
+  // Holdout is recomputed at READ time, stratified per class over the
+  // union of every shard's symbols (round-8 batch 1, CV-4/CV-5): the
+  // stamped per-row field stays as provenance, and holdout policy changes
+  // never require a resweep. Rows for held-out markets never enter the
+  // tuning cube.
   const cube: GridCube = new Map();
   const conditionsOf = (candidate: SweepManifest) =>
     stableStringify({
@@ -360,34 +519,70 @@ export async function gradeCorpus(
       stepBars: candidate.stepBars,
       warmupBars: candidate.warmupBars,
     });
-  let manifest: SweepManifest | null = null;
-  let firstConditions = "";
+  const unionSymbols = new Set<string>();
+  const shardManifests: SweepManifest[] = [];
   for (const path of paths) {
-    const shardManifest = await assertManifestedCorpusStreaming(
-      path,
-      (row) =>
-        addRowToCube(cube, row, {
-          includeHoldout: options.includeHoldout,
-        }),
-    );
-    if (manifest === null) {
-      manifest = shardManifest;
-      firstConditions = conditionsOf(shardManifest);
-    } else if (conditionsOf(shardManifest) !== firstConditions) {
+    const shardManifest = assertManifest(path);
+    shardManifests.push(shardManifest);
+    for (const entry of shardManifest.symbols) unionSymbols.add(entry.symbol);
+  }
+  const manifest = shardManifests[0];
+  if (!manifest) {
+    throw new Error("gradeCorpus: no corpus paths given");
+  }
+  const firstConditions = conditionsOf(manifest);
+  for (let index = 1; index < shardManifests.length; index += 1) {
+    if (conditionsOf(shardManifests[index]) !== firstConditions) {
       throw new Error(
-        `${path}: shard conditions differ from ${paths[0]} — engine, grid, folds, step or warmup do not match; these are not shards of one measurement`,
+        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, grid, folds, step or warmup do not match; these are not shards of one measurement`,
       );
     }
   }
-  if (manifest === null) {
-    throw new Error("gradeCorpus: no corpus paths given");
+  const held = options.includeHoldout
+    ? new Set<string>()
+    : stratifiedHoldout([...unionSymbols], (symbol) => getAssetType(symbol));
+  for (const path of paths) {
+    await assertManifestedCorpusStreaming(path, (row) => {
+      if (held.has(row.symbol)) return;
+      addRowToCube(cube, row, { includeHoldout: true });
+    });
+  }
+
+  // Confirm-fold discipline by mechanism (LA-6): without confirmFinal the
+  // confirm fold is never computed; with it, the read is appended to a
+  // burned-log keyed by the corpus's manifest hash, and a corpus whose
+  // log already holds a read refuses without explicit acknowledgement.
+  const confirmLogPath = options.confirmLogPath ??
+    `${paths[0]}.confirm-log.jsonl`;
+  if (options.confirmFinal) {
+    if (existsSync(confirmLogPath)) {
+      const prior = readFileSync(confirmLogPath, "utf8").trim().split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as { corpusHash: string })
+        .filter((entry) => entry.corpusHash === manifest.manifestHash);
+      if (prior.length > 0 && !options.acknowledgePriorReads) {
+        throw new Error(
+          `confirm fold for corpus ${manifest.manifestHash.slice(0, 12)} has already been read ${prior.length} time(s) — pass acknowledgePriorReads to read again; every read is logged`,
+        );
+      }
+    }
+    appendFileSync(
+      confirmLogPath,
+      JSON.stringify({
+        corpusHash: manifest.manifestHash,
+        readAt: new Date().toISOString(),
+      }) + "\n",
+    );
   }
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
-  const foldNames: FoldNames = options.foldNames ??
+  const derived: FoldNames = options.foldNames ??
     (manifest.folds || manifest.foldsByClass
       ? { confirm: "confirm", fit: "fit", select: "select" }
       : { fit: "train", select: "test" });
+  const foldNames: FoldNames = options.confirmFinal
+    ? derived
+    : { fit: derived.fit, select: derived.select };
   return {
     foldNames,
     manifest,
@@ -417,7 +612,9 @@ async function main(): Promise<void> {
   }
   const baselineIndex = args.indexOf("--baseline");
   const { foldNames, manifest, verdicts } = await gradeCorpus(paths, {
+    acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
+    confirmFinal: args.includes("--confirm-final"),
     includeHoldout: args.includes("--include-holdout"),
     permutations: flag("permutations", 1_000),
     seed: flag("seed", 7),
@@ -433,13 +630,13 @@ async function main(): Promise<void> {
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(
-      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"σ".padStart(7)}${"ΔE sel".padStart(9)}${"p".padStart(8)}  verdict`,
+      `${"variant".padEnd(28)}${"ΔR fit".padStart(10)}${"ΔR sel".padStart(9)}${"pairedP".padStart(9)}${"ΔE sel".padStart(9)}${"comp".padStart(7)}${"expry".padStart(7)}${"worstDay".padStart(10)}  verdict`,
     );
     for (const [variant, verdict] of classMap) {
       const label = verdict.thin
         ? `THIN (${verdict.selectFilled} filled) — refuse`
         : verdict.accepted
-        ? "ACCEPT — fit+select, ≥1σ, expectancy holds"
+        ? "ACCEPT — fit+select, paired p, expectancy holds"
         : "fails";
       const confirmNote = verdict.confirmTotalDelta === null
         ? ""
@@ -447,9 +644,11 @@ async function main(): Promise<void> {
       console.log(
         `${variant.padEnd(28)}${verdict.fitTotalDelta.toFixed(1).padStart(10)}${
           verdict.selectTotalDelta.toFixed(1).padStart(9)
-        }${verdict.selectSigma.toFixed(2).padStart(7)}${
+        }${verdict.pairedP.toFixed(3).padStart(9)}${
           verdict.selectExpectancyDelta.toFixed(3).padStart(9)
-        }${verdict.permutationP.toFixed(3).padStart(8)}  ${label}${confirmNote}`,
+        }${(verdict.compositionR ?? 0).toFixed(1).padStart(7)}${
+          (verdict.selectExpiryShare ?? 0).toFixed(2).padStart(7)
+        }${(verdict.worstDayR ?? 0).toFixed(1).padStart(10)}  ${label}${confirmNote}`,
       );
     }
   }

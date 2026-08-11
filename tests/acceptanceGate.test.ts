@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -284,14 +284,12 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       JSON.stringify(manifest, null, 2) + "\n",
     );
     const graded = await gradeCorpus(emitPath, { permutations: 100, seed: 4 });
-    assert.deepEqual(graded.foldNames, {
-      confirm: "confirm",
-      fit: "fit",
-      select: "select",
-    });
+    // v2 (LA-6): without confirmFinal the confirm fold is never derived,
+    // let alone computed — the discipline test below covers the read.
+    assert.deepEqual(graded.foldNames, { fit: "fit", select: "select" });
     const verdict = graded.verdicts.get("forex")!.get("wide")!;
     assert.equal(verdict.accepted, true);
-    assert.equal(Number(verdict.confirmTotalDelta!.toFixed(1)), 24);
+    assert.equal(verdict.confirmTotalDelta, null);
   });
 });
 
@@ -379,6 +377,223 @@ describe("the baseline is a named cell (4c's retired-gate grids)", () => {
     const classMap = verdicts.get("forex")!;
     assert.equal(classMap.has("confidenceThreshold=0"), false);
     assert.ok(classMap.get("confidenceThreshold=0,hold")!.selectTotalDelta > 0);
+  });
+});
+
+describe("gate v2 — the statistics become the rule (round-8 batch 1)", () => {
+  const pairedRows = (
+    variant: string,
+    deltasByDay: number[],
+    base = 0.1,
+  ): SweepEmitRow[] => {
+    const rows: SweepEmitRow[] = [];
+    deltasByDay.forEach((delta, day) => {
+      rows.push(trainRow("baseline", day, base));
+      rows.push(trainRow(variant, day, base + delta));
+      rows.push(outcomeRow("baseline", day, base));
+      rows.push(outcomeRow(variant, day, base + delta));
+    });
+    return rows;
+  };
+
+  const pairedFamily = (
+    deltasByVariant: Record<string, number[]>,
+    base = 0.1,
+  ): SweepEmitRow[] => {
+    const rows: SweepEmitRow[] = [];
+    const days = Math.max(
+      ...Object.values(deltasByVariant).map((deltas) => deltas.length),
+    );
+    for (let day = 0; day < days; day += 1) {
+      rows.push(trainRow("baseline", day, base));
+      rows.push(outcomeRow("baseline", day, base));
+      for (const [variant, deltas] of Object.entries(deltasByVariant)) {
+        if (day < deltas.length) {
+          rows.push(trainRow(variant, day, base + deltas[day]));
+          rows.push(outcomeRow(variant, day, base + deltas[day]));
+        }
+      }
+    }
+    return rows;
+  };
+
+  it("enforces the paired permutation p in acceptance — a one-day fluke with a big sum is refused (LA-3/LA-4)", () => {
+    // Variant X: +0.05 on every one of 20 shared days — consistent,
+    // paired-significant. Variant Y: one +2.0 day, zeros elsewhere — the
+    // sum and sigma are large but sign-flipping one day reproduces it
+    // half the time; p is high and v2 refuses what v1's sigma accepted.
+    const verdicts = classVerdicts(readGridCube(pairedFamily({
+      fluke: [2, ...Array(19).fill(0)],
+      steady: Array(20).fill(0.05),
+    })), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 400,
+      seed: 5,
+    });
+    const classMap = verdicts.get("forex")!;
+    assert.equal(classMap.get("steady")!.accepted, true);
+    assert.ok(classMap.get("steady")!.pairedP <= 0.05);
+    assert.equal(classMap.get("fluke")!.accepted, false);
+    assert.ok(classMap.get("fluke")!.pairedP > 0.05);
+    assert.ok(classMap.get("fluke")!.selectTotalDelta > 0);
+  });
+
+  it("controls the family — a null variant beside a strong one is not carried in (max-T)", () => {
+    const verdicts = classVerdicts(readGridCube(pairedFamily({
+      noise: Array(24).fill(0).map((_, index) =>
+        index % 2 === 0 ? 0.04 : -0.04
+      ),
+      strong: Array(24).fill(0.08),
+    })), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 400,
+      seed: 9,
+    });
+    assert.equal(verdicts.get("forex")!.get("strong")!.accepted, true);
+    assert.equal(verdicts.get("forex")!.get("noise")!.accepted, false);
+  });
+
+  it("reports composition separately from the paired test", () => {
+    // Variant trades 6 extra days the baseline never traded: those days'
+    // R is composition, not paired improvement.
+    const rows = pairedRows("wide", Array(12).fill(0.05));
+    for (let day = 20; day < 26; day += 1) {
+      rows.push(outcomeRow("wide", day, 0.5));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 3,
+    }).get("forex")!.get("wide")!;
+    assert.equal(Number(verdict.compositionR!.toFixed(1)), 3);
+    assert.equal(verdict.sharedDays, 12);
+  });
+
+  it("carries the censoring readout — expiry share per cell (LA-10)", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 10; day += 1) {
+      rows.push(trainRow("baseline", day, 0.2));
+      rows.push(trainRow("exp", day, 0.25));
+      rows.push(outcomeRow("baseline", day, 0.2));
+      rows.push({
+        ...outcomeRow("exp", day, 0.25),
+        outcome: day < 4 ? "expired_in_profit" : "take_profit",
+      });
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 100,
+      seed: 2,
+    }).get("forex")!.get("exp")!;
+    assert.equal(verdict.selectExpiryShare, 0.4);
+  });
+
+  it("computes the worst-day survival readout from the variant's own days (RM-3/8)", () => {
+    const rows = pairedRows("surv", Array(19).fill(0.05));
+    rows.push(outcomeRow("surv", 19, -4.5));
+    rows.push(outcomeRow("baseline", 19, 0.1));
+    rows.push(trainRow("surv", 19, 0.05));
+    rows.push(trainRow("baseline", 19, 0.1));
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 100,
+      seed: 7,
+    }).get("forex")!.get("surv")!;
+    assert.equal(verdict.worstDayR, -4.5);
+    assert.ok(verdict.breachDayShare! > 0);
+  });
+});
+
+describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
+  const foldedCorpus = (): string => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 16; day += 1) {
+      for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
+        rows.push({ ...outcomeRow("baseline", day + offset, 0.1), split });
+        rows.push({ ...outcomeRow("good", day + offset, 0.4), split });
+      }
+    }
+    const dir = mkdtempSync(join(tmpdir(), "gate-v2-"));
+    const emitPath = join(dir, "folded.jsonl");
+    writeFileSync(
+      emitPath,
+      rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+    );
+    const manifest = buildSweepManifest({
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-11",
+      barRejections: {},
+      days: 365,
+      folds: [
+        { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
+        { decisionEndMs: 8, endMs: 9, name: "select", startMs: 5 },
+        { decisionEndMs: 12, endMs: 13, name: "confirm", startMs: 9 },
+      ],
+      generatedAt: "2026-08-11T05:00:00.000Z",
+      grid: [{}, { good: true }],
+      stepBars: 16,
+      symbols: [{
+        calibration: {},
+        providerSymbol: "EURUSD",
+        series: { "15min": seriesFacts([{ time: 0 }]) },
+        symbol: "EURUSD",
+      }],
+      trainShare: 0.6,
+      warmupBars: 240,
+    });
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    return emitPath;
+  };
+
+  it("never reads confirm without the explicit flag", async () => {
+    const graded = await gradeCorpus(foldedCorpus(), {
+      permutations: 100,
+      seed: 4,
+    });
+    const verdict = graded.verdicts.get("forex")!.get("good")!;
+    assert.equal(verdict.accepted, true);
+    assert.equal(verdict.confirmTotalDelta, null);
+  });
+
+  it("logs the read and refuses a re-read without acknowledgement", async () => {
+    const emitPath = foldedCorpus();
+    const logPath = `${emitPath}.confirm-log.jsonl`;
+    const first = await gradeCorpus(emitPath, {
+      confirmFinal: true,
+      confirmLogPath: logPath,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.notEqual(
+      first.verdicts.get("forex")!.get("good")!.confirmTotalDelta,
+      null,
+    );
+    const logged = readFileSync(logPath, "utf8").trim().split("\n");
+    assert.equal(logged.length, 1);
+    await assert.rejects(
+      gradeCorpus(emitPath, {
+        confirmFinal: true,
+        confirmLogPath: logPath,
+        permutations: 100,
+        seed: 4,
+      }),
+      /already been read/,
+    );
+    const again = await gradeCorpus(emitPath, {
+      acknowledgePriorReads: true,
+      confirmFinal: true,
+      confirmLogPath: logPath,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.notEqual(
+      again.verdicts.get("forex")!.get("good")!.confirmTotalDelta,
+      null,
+    );
+    assert.equal(readFileSync(logPath, "utf8").trim().split("\n").length, 2);
   });
 });
 
