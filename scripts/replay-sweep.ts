@@ -23,6 +23,7 @@ import {
   getCategoryCalibration,
   hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { fetchFmpWithRetry } from "./fmpRetry.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
   calendarFolds,
@@ -52,6 +53,10 @@ import {
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
+// OP-6: optional inter-request pacing for fleet runs — one env knob,
+// applied through the shared retry module so all three fetch sites pace
+// against the same clock.
+const FMP_PACE_MS = Number(process.env.FMP_PACE_MS ?? 0) || 0;
 const API_KEY = process.env.FMP_API_KEY;
 const WARMUP_BARS = 240;
 // Legacy two-split share, retired by the calendar folds below; still
@@ -458,7 +463,9 @@ async function fetchCalendarEvents(
       isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
     );
     endpoint.searchParams.set("apikey", API_KEY!);
-    const response = await fetch(endpoint);
+    const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+      paceMs: FMP_PACE_MS,
+    });
     if (!response.ok) {
       // I3: this used to warn and `continue`. loadRollingSeries then merged the
       // holed result and pinned it as the anchor day's truth, and because later
@@ -545,7 +552,9 @@ async function fetchCotContract(
   endpoint.searchParams.set("from", "2009-01-01");
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  const response = await fetch(endpoint);
+  const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+    paceMs: FMP_PACE_MS,
+  });
   if (!response.ok) {
     console.warn(`COT fetch failed for ${contract}: ${response.status}`);
     return [];
@@ -711,7 +720,9 @@ async function fetchDailyBars(
 }
 
 async function fetchBars(endpoint: URL): Promise<Bar[]> {
-  const response = await fetch(endpoint);
+  const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+    paceMs: FMP_PACE_MS,
+  });
   if (!response.ok) {
     throw new Error(
       `FMP request failed (${response.status}) for ${endpoint.pathname}`,
