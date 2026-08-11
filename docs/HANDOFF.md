@@ -396,6 +396,39 @@ corpus reads fine. Re-derivation (the "then re-derive" half) is item 4's
 program, which now has its instrument.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
+**CONVERGE ROUND 8 RAN 2026-08-10 23:20 (owner-invoked)** — seven
+adversarial lenses, 73 findings, ledger + dispositions of record:
+`docs/research/converge-round-8-2026-08-10.md`. Synthesis: the corpus is
+honest; the verdict layer, cost model, identity seam and product story
+are not. The 4c grid's ACCEPTs are demoted to DIRECTIONAL evidence (the
+permutation p was printed but not enforced — one committed ACCEPT at
+p=0.146; the confirm fold was burned by unconditional printing; the 4b
+axis choice consumed pooled folds). The batches below are ranked INTO
+this item's remaining path — the gate becomes a gate before anything is
+accepted, the venue's real bill enters the engine before 4d derives.
+
+**Ranked path from here:** (i) roster-identity 4c fleet completes
+(running — eight classes on their own calendars, relaunched 23:36 after
+the identity catch); (ii) **Batch 1**: gate v2 — paired day-delta
+sign-flip permutation with family-wise max-T, p ENFORCED, confirm-fold
+discipline by mechanism (burned-log), read-time stratified holdout,
+censoring + survival readouts per cell (all read-time; grades the fleet
+corpus honestly); (iii) **Batch 2**: strict sweep classifier + 105
+arithmetic + stale cohort SQL; (iv) **Batch 3**: engine v2 — venue
+commissions per line, bid/ask event bias, 5min resolution, boundary
+clip, latency/touch options, reopen slippage, Intl hoists — version
+bump, ONE warm re-simulate = 4d's corpus; (v) **4d** per-market
+derivation under gate v2 + survival + sizing feasibility constraints,
+starved late-listed markets measure-only; (vi) **4e** iterate to
+diminished returns. Parallel lanes before any reopen: **Batch 4**
+product truth (superseded flags, ambiguous-as-loss coherence incl.
+learning.ts, correlation-group completion per RM-5), **Batch 5** ops
+hygiene (analyzer_events retention, outcome-sync budget + Intl, FMP 429
+retry both sides, disk lifecycle, topup roster-derived), **Batch 6**
+owner-gated Guide copy review (one doc, one pass). Named boundaries
+disclosed in the ledger (pre-holdout constants, single-instrument
+completion probes, COT timing, 4b's pooled read).
+
 **4a COMPLETE 2026-08-10** — per-market, per-timeframe measured limits in
 `docs/research/baseline-2026-08-10/4a-data-limits.md` (from the manifest:
 spans, first/last, counts, largest gaps; grains 1,050d, XAUUSD 4,774d
