@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   evaluateSetupOutcome,
+  fillOptionsFromRiskModel,
   getSetupExpiryTime,
   type ReplayBar,
   type ReplaySetup,
@@ -1009,6 +1011,43 @@ describe("FR-1 — the expiry close crosses the book too", () => {
       result.state === "resolved" ? result.feedback.realizedR : null,
       0.075,
     );
+  });
+});
+
+describe("fillOptionsFromRiskModel — live outcome-sync adopts the venue's fills (batch 4)", () => {
+  it("builds v2 options from the stored decision-time execution quality", () => {
+    const options = fillOptionsFromRiskModel({
+      executionQuality: {
+        estimatedCommission: 0.00006,
+        estimatedSlippage: 0.00004,
+        estimatedSpread: 0.0001,
+      },
+    });
+    assert.equal(options.halfSpread, 0.00005);
+    assert.equal(options.gapExitSlippage, 0.00004);
+    assert.equal(options.roundTripCost, 0.00006);
+    assert.equal(options.barIntervalMs, 15 * 60 * 1000);
+    assert.equal(options.sameBarProtectionArming, true);
+  });
+
+  it("a row without stored quality resolves v1-style — no invented numbers", () => {
+    assert.deepEqual(fillOptionsFromRiskModel(null), {});
+    assert.deepEqual(fillOptionsFromRiskModel({}), {});
+    assert.deepEqual(
+      fillOptionsFromRiskModel({ executionQuality: { estimatedSpread: "x" } }),
+      {},
+    );
+  });
+});
+
+describe("outcome-sync wires the stored costs into the live resolver (source pin)", () => {
+  it("selects risk_model and passes the built options through", () => {
+    const source = readFileSync(
+      "supabase/functions/outcome-sync/index.ts",
+      "utf8",
+    );
+    assert.match(source, /take_profit_1,risk_model,/);
+    assert.match(source, /fillOptionsFromRiskModel\(setup\.risk_model\)/);
   });
 });
 

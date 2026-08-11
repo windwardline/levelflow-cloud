@@ -7,6 +7,7 @@
 // accumulating at full fidelity whether or not anyone visits.
 import {
   evaluateSetupOutcome,
+  fillOptionsFromRiskModel,
   type ResolvedOutcome,
 } from "../trade-analyzer/replay.ts";
 import { fetchFmpBars } from "../trade-analyzer/marketLoader.ts";
@@ -47,6 +48,10 @@ type PendingSetup = {
   id: string;
   limit_entry: number | string;
   provider_symbol: string | null;
+  // The stored decision-time plan; its executionQuality drives the
+  // venue-fill replay options (batch 4). Unknown-typed on purpose — the
+  // options builder owns the validation.
+  risk_model: unknown;
   side: "buy" | "sell";
   status: string;
   stop_loss: number | string;
@@ -72,7 +77,7 @@ Deno.serve(async (req) => {
 
     const setups = await adminFetchRows<PendingSetup>(
       "trade_setups?select=id,user_id,symbol,provider_symbol,side," +
-        "limit_entry,stop_loss,take_profit,take_profit_1," +
+        "limit_entry,stop_loss,take_profit,take_profit_1,risk_model," +
         "breakeven_trigger_price,confidence_score,analyzer_version,status," +
         `created_at&status=in.(generated,placed)&order=created_at.asc&limit=${MAX_SETUPS_PER_RUN}`,
     );
@@ -113,7 +118,14 @@ Deno.serve(async (req) => {
           );
         }
         const bars = await barsByProviderSymbol.get(providerSymbol)!;
-        const evaluation = evaluateSetupOutcome(setup, bars);
+        // Batch 4: the row's own decision-time costs drive the venue-fill
+        // replay; a row without them resolves v1-style (empty options).
+        const evaluation = evaluateSetupOutcome(
+          setup,
+          bars,
+          Date.now(),
+          fillOptionsFromRiskModel(setup.risk_model),
+        );
 
         if (evaluation.state === "pending") {
           summary.pending += 1;

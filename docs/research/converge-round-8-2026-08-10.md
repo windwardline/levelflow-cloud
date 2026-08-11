@@ -101,7 +101,13 @@ IDs so nothing is silently dropped):**
   Intl hoists in replay.ts/sessions.ts (OP-8); expired-label vs net-R
   coherence (FR-8). ANALYZER_VERSION bump; one warm re-simulate becomes
   4d's corpus.
-- **Batch 4 — live-product truth (parked, pre-reopen bar).** superseded
+- **Batch 4 — live-product truth (parked, pre-reopen bar). COMPLETE
+  2026-08-11 (#313 PH-1+PH-7, #314 live venue fills, #315 RM-5, PH-9 in
+  the closing set). PH-6 and PH-11 adjudicated MOOT-BY-WIPE: both
+  concerned stored pre-repair rows, and the owner's clean-model order
+  zeroed every one — there is no stale stored payoff to label and no
+  per-broker record row to overclaim. Re-evaluate both only if legacy
+  data ever re-imports.** superseded
   flags on all six Record rows (PH-1); ambiguous-as-loss coherence in
   classifyWinLoss + learning.ts (PH-7); payoff-refusal reason split
   (PH-9); per-broker record claims (PH-6); stale pre-repair payoff on
