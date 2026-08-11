@@ -34,6 +34,7 @@ import { scoreSetupConfidence } from "./scoring.ts";
 import { getSessionContext, type SessionContext } from "./sessions.ts";
 import {
   defaultScanSymbols,
+  getCorrelatedSymbols,
   getCorrelationGroup,
   getRelatedSymbols,
   isCurrencyRelevantForSymbol,
@@ -1052,19 +1053,28 @@ function buildScanRationale(
 async function findStrongerActiveCorrelatedSetup(
   token: string,
   userId: string,
-  group: string,
+  _group: string,
   symbol: SupportedSymbol,
   confidenceScore: number,
 ) {
+  // RM-5: screen against the SYMBOL union across every group this market
+  // belongs to, not one stored group name — a cross's stored group is its
+  // primary only, and the group-equality query missed the second
+  // membership every pair has (CADJPY under cad_crosses was invisible to
+  // an AUDJPY candidate's yen exposure).
+  const correlated = getCorrelatedSymbols(symbol);
+  if (correlated.length === 0) {
+    return null;
+  }
   const rows = await fetchRows<
     { id: string; symbol: string; confidence_score: number }
   >(
     token,
     `trade_setups?select=id,symbol,confidence_score&user_id=eq.${
       encodeURIComponent(userId)
-    }&correlation_group=eq.${
-      encodeURIComponent(group)
-    }&status=in.(generated,placed)&created_at=gte.${
+    }&symbol=in.(${
+      correlated.map((member) => encodeURIComponent(member)).join(",")
+    })&status=in.(generated,placed)&created_at=gte.${
       encodeURIComponent(
         new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
       )

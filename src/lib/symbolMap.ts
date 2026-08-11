@@ -618,7 +618,10 @@ export const CORRELATION_GROUPS: Record<string, SupportedSymbol[]> = {
     "NZDCAD",
   ],
   silver: ["XAGUSD", "SIUSD"],
-  treasury_futures: ["ZBUSD", "ZNUSD"],
+  treasury_futures: ["ZBUSD", "ZNUSD", "ZFUSD", "ZTUSD"],
+  grains: ["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"],
+  livestock_complex: ["LEUSX", "GFUSX", "HEUSX"],
+  platinum_group: ["PLUSD", "PAUSD"],
   us_equity_indices: ["SP", "NSDQ", "DOW", "ESUSD", "NQUSD", "RTYUSD", "YMUSD"],
 };
 
