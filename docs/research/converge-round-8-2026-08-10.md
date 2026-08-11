@@ -82,7 +82,14 @@ IDs so nothing is silently dropped):**
   roster numbers corrected to 105 everywhere (CV-9/OP-10/PH-13's SQL
   cohort too); the misclassified baseline evidence docs annotated, not
   rewritten (FR-2).
-- **Batch 3 — engine v2: the venue's bill and the venue's fills.**
+- **Batch 3 — engine v2: the venue's bill and the venue's fills.
+  SHIPPED 2026-08-11 (with CO-2's crypto-book spread floors, which the
+  first draft of these batches had silently dropped — caught and joined
+  here per this file's own no-silent-drops rule). Named boundary shipped
+  with it: live outcome-sync stays v1 until the stored rows carry the
+  decision-time spread (columns land with batch 4, pre-reopen); the desk
+  is parked, so no real setup can generate under the v2 version and the
+  cohort stays coherent by construction.**
   Commissions per line (forex $5/lot RT, indices $6/$12, crypto per the
   dossier's conflicted units resolved conservatively, futures' three fees
   — CO-1/3/4, FR-11); bid/ask event adjustment (±spread/2 on trigger
@@ -122,6 +129,16 @@ IDs so nothing is silently dropped):**
   directions, and engine-v2's fresh fit/select adjudication under the
   repaired gate is what earns acceptance, with tonight's grid demoted to
   directional evidence.
+
+**Fleet disposition (2026-08-11, during batch 3):** the roster-name
+wave-1 workers died silently mid-run — the jetsam pattern, no crash
+reports, logs ending mid-stream — while full test suites ran beside them
+on the same 16GB. Rather than rebuild a corpus on the engine batch 3 had
+just superseded, the remnants were killed and the sequence collapsed one
+step: the v2 warm re-simulate (same 25-cell grid, same per-class fold
+spec, same span pins) is BOTH the 4c directional read and 4d's corpus,
+graded once by gate v2. That honors item 2's own law — one re-sweep
+after the instrument changes, never one per fix.
 
 **Clean after adversarial inspection (for the record):** the 2c fill-bar
 geometry (three lenses independently), the 2g leg accountant's arithmetic,

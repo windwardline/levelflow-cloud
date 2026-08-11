@@ -407,20 +407,30 @@ axis choice consumed pooled folds). The batches below are ranked INTO
 this item's remaining path — the gate becomes a gate before anything is
 accepted, the venue's real bill enters the engine before 4d derives.
 
-**Ranked path from here:** (i) roster-identity 4c fleet completes
-(running — eight classes on their own calendars, relaunched 23:36 after
-the identity catch); (ii) **Batch 1**: gate v2 — paired day-delta
-sign-flip permutation with family-wise max-T, p ENFORCED, confirm-fold
-discipline by mechanism (burned-log), read-time stratified holdout,
-censoring + survival readouts per cell (all read-time; grades the fleet
-corpus honestly); (iii) **Batch 2**: strict sweep classifier + 105
-arithmetic + stale cohort SQL; (iv) **Batch 3**: engine v2 — venue
-commissions per line, bid/ask event bias, 5min resolution, boundary
-clip, latency/touch options, reopen slippage, Intl hoists — version
-bump, ONE warm re-simulate = 4d's corpus; (v) **4d** per-market
-derivation under gate v2 + survival + sizing feasibility constraints,
-starved late-listed markets measure-only; (vi) **4e** iterate to
-diminished returns. Parallel lanes before any reopen: **Batch 4**
+**Ranked path from here (updated 2026-08-11):** (i) **Batch 1 SHIPPED**
+(#308): gate v2 — paired day-delta sign-flip permutation with
+family-wise max-T, p ENFORCED, confirm-fold discipline by mechanism
+(burned-log), read-time stratified holdout, censoring + survival
+readouts. (ii) **Batch 2 SHIPPED** (#309): strict roster-only
+classifier in both measurement paths, 105 arithmetic, live-cohort SQL,
+identity annotations on all five baseline evidence docs. (iii) **Batch
+3 SHIPPED** (engine v2, `2026.08.11.engine-v2`): venue commissions per
+line + crypto-book spread floors (CO-2 joined per the no-silent-drops
+rule), bid/ask trigger space with gap prints and reopen slippage, 5min
+resolution, expiry-boundary clip, net-of-cost expired labels, same-bar
+protection arming, latency/haircut/touch parameters, Intl hoists.
+Named boundary: live outcome-sync stays v1 until the spread columns
+land (batch 4, pre-reopen) — desk parked, so the cohort stays coherent.
+(iv) **The fleet collapse** — the roster wave-1 workers jetsammed
+silently mid-run on the engine batch 3 superseded; rather than rebuild
+a corpus the next PR obsoletes, the v2 WARM re-simulate (same 25-cell
+grid, same 8-class fold spec, same span pins) is BOTH the 4c
+directional read and 4d's corpus, graded once by gate v2 with NO
+--confirm-final (confirm stays sealed for 4d's one authorized read).
+(v) **4d** per-market derivation under gate v2 + survival + sizing
+feasibility constraints, starved late-listed markets measure-only;
+confirm reads strip pre-holdout per-symbol overrides (CV-11/LA-8).
+(vi) **4e** iterate to diminished returns. Parallel lanes before any reopen: **Batch 4**
 product truth (superseded flags, ambiguous-as-loss coherence incl.
 learning.ts, correlation-group completion per RM-5), **Batch 5** ops
 hygiene (analyzer_events retention, outcome-sync budget + Intl, FMP 429
