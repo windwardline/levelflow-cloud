@@ -13,6 +13,7 @@ import { deriveTradeState } from "../src/lib/tradeState";
 import {
   getAssetType,
   getCategoryCalibration,
+  getClassCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { getCorrelatedSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
@@ -835,29 +836,33 @@ describe("profile preferences", () => {
   });
 
   it("keeps the confidence-threshold mirror aligned with live calibration for every asset class", () => {
+    // The CLASS rows (4d, 2026-08-11): the old per-symbol probes now land
+    // on markets carrying derived floor-0 cells; the class mirror pins
+    // the class table, and the per-symbol derived mirror is swept
+    // exhaustively in tests/calibrationState.test.ts.
     assert.equal(
       CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Crypto,
-      getCategoryCalibration("BTCUSD").confidenceThreshold,
+      getClassCalibration("crypto").confidenceThreshold,
     );
     assert.equal(
       CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Energies,
-      getCategoryCalibration("WTI").confidenceThreshold,
+      getClassCalibration("energies").confidenceThreshold,
     );
     assert.equal(
       CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Forex,
-      getCategoryCalibration("EURUSD").confidenceThreshold,
+      getClassCalibration("forex").confidenceThreshold,
     );
     assert.equal(
       CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Futures,
-      getCategoryCalibration("ESUSD").confidenceThreshold,
+      getClassCalibration("futures").confidenceThreshold,
     );
     assert.equal(
       CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Indices,
-      getCategoryCalibration("SP").confidenceThreshold,
+      getClassCalibration("indices").confidenceThreshold,
     );
     assert.equal(
       CONFIDENCE_THRESHOLD_BY_ASSET_TYPE.Metals,
-      getCategoryCalibration("XAUUSD").confidenceThreshold,
+      getClassCalibration("metals").confidenceThreshold,
     );
   });
 
@@ -1001,14 +1006,15 @@ describe("history workspace logic", () => {
       makeHistorySetup({ confidence: 22, outcome: "take_profit" }),
       makeHistorySetup({ confidence: 70, outcome: "stop_loss" }),
       makeHistorySetup({ confidence: 80, outcome: "take_profit" }),
-      // BTCUSD qualifies at 25 (…Crypto): the same 22 cleared nothing there,
-      // so it lands in no band — class-relative in both directions — but it
-      // is counted, never dropped. The pair was 52-against-40-and-82 before
-      // the 2026-08-06 re-derivation closed that gap to 20-and-25.
+      // LINKUSD qualifies at the crypto class bar 25 (capacity-gated, so
+      // no 4d floor): the same 22 cleared nothing there, so it lands in
+      // no band — class-relative in both directions — but it is counted,
+      // never dropped. (BTCUSD would qualify at its derived floor of 0
+      // now, which is exactly why the fixture names LINK.)
       makeHistorySetup({
         confidence: 22,
         outcome: "take_profit",
-        symbol: "BTCUSD",
+        symbol: "LINKUSD",
       }),
     ];
 

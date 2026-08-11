@@ -612,15 +612,16 @@ describe("buildAttribution — the confidence slice reuses buildConfidenceBands"
 
   it("keeps a row that cleared no bar out of every band — class-relative in both directions", () => {
     // The same 22 that lands in Qualified for Forex (bar 20) belongs to no
-    // band for Crypto (bar 25). Only legacy rows can sit here — the engine
-    // refuses generation below the bar — and they are counted by the builder
-    // (tests/core.test.ts pins the exhaustiveness invariant), just never
-    // labeled with a word they did not earn. The straddling score was 52 while
-    // the bars were 40 and 82; the 2026-08-06 re-derivation closed the gap.
+    // band for a class-floored crypto (bar 25). LINKUSD, deliberately:
+    // BTCUSD carries a 4d derived floor of 0 now (the record speaks), so
+    // the fixture needs a coin still on the class bar — LINK is
+    // capacity-gated and keeps it. Only legacy rows can sit below a bar —
+    // the engine refuses generation there — and they are counted by the
+    // builder, just never labeled with a word they did not earn.
     const setups = [
-      won({ confidence_score: 22, id: "a", symbol: "BTCUSD" }),
-      won({ confidence_score: 22, id: "b", symbol: "BTCUSD" }),
-      won({ confidence_score: 22, id: "c", symbol: "BTCUSD" }),
+      won({ confidence_score: 22, id: "a", symbol: "LINKUSD" }),
+      won({ confidence_score: 22, id: "b", symbol: "LINKUSD" }),
+      won({ confidence_score: 22, id: "c", symbol: "LINKUSD" }),
     ];
 
     assert.equal(row(setups, "class", "Crypto").resolved, 3);

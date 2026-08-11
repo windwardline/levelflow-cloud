@@ -245,6 +245,35 @@ Every v2 behavior is opt-in through `ReplayFillOptions`; with no options
 the resolver reproduces v1 exactly, which is what keeps the live path
 and 2,100+ existing pins honest while the corpus side moves ahead.
 
+## The derived per-market layer (2026-08-11, item 4d — `2026.08.11.derived-4d`)
+
+The first per-market calibration derived entirely behind the repaired
+instrument: engine v2's venue bill and fills, gate v2's enforced
+statistics, one confirm read burned into the corpus log.
+
+**Thirty-nine markets carry a derived cell** — exactly the variant that
+was frozen before the confirm fold was opened and confirmed positive on
+it. The cell is (confidenceThreshold 0 · runnerProtection ·
+maxStopAtrMultiplier · sizingHoursFactor), dominated by trail_tp1 at
+cap 4 but derived per market (SP confirmed hold; two forex crosses took
+cap 2.5). The zero threshold is the record-speaks model the Guide's §5
+teaches: the gate that ranked nothing (measured ρ ≤ 0.06) no longer
+pretends to, and the payoff and regime gates still stand.
+
+**Everything else keeps its class values, in a NAMED state**: 2
+confirm-reverted (HOUSD, RBUSD — accepted on select, failed the sealed
+fold), 11 capacity-gated (RM-1: one step of the instrument at the
+widened stop exceeds the published 3% daily tier at the line's smallest
+account — treasuries, PA, ZO/ZR, six sub-dollar coins), 7 measure-only
+including all three livestock, 18 starved late-listed, and ~20 held-out
+markets that no tuning step ever saw — the next cycle's unseen
+validation. Record and artifacts:
+`docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md`.
+
+The UI mirrors the derived floors
+(`DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL`) under the same exhaustive
+parity sweep that holds every other mirror to the engine's resolver.
+
 ## Resumption protocol (for the operator)
 
 The arc resumes when genuinely new data exists — not on a calendar
@@ -269,7 +298,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.11.engine-v2'
+   where o.analyzer_version = '2026.08.11.derived-4d'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;

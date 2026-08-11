@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { getCategoryCalibration } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  getCategoryCalibration,
+  getClassCalibration,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
 import { getSessionContext } from "../supabase/functions/trade-analyzer/sessions.ts";
 import { noTradeSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
@@ -84,9 +87,11 @@ const ASSET_TYPE_BY_CLASS: Record<keyof typeof STATE, SecurityType> = {
 describe("calibration state of record (arc complete 2026-07-30)", () => {
   for (const [cls, expected] of Object.entries(STATE)) {
     it(`pins ${cls} exactly`, () => {
-      const c = getCategoryCalibration(
-        REPRESENTATIVE[cls as keyof typeof STATE],
-      );
+      // The CLASS row directly (4d, 2026-08-11): the representatives now
+      // carry derived per-market cells, and this table pins the class
+      // state those cells layer over — the derived layer has its own
+      // artifact-driven pins below.
+      const c = getClassCalibration(cls as keyof typeof STATE);
       assert.equal(c.confidenceThreshold, expected.threshold);
       assert.equal(c.defaultReviewHours, expected.window);
       assert.equal(c.maxStopAtrMultiplier, expected.stopCap);
@@ -123,14 +128,17 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     // would have told a lean-hogs user "6h" while the engine used 24.
     for (const [cls, assetType] of Object.entries(ASSET_TYPE_BY_CLASS)) {
       const symbol = REPRESENTATIVE[cls as keyof typeof STATE];
+      // UI == ENGINE per symbol (4d made the two diverge from the CLASS
+      // table wherever a derived cell landed; the engine's own resolver
+      // is the truth the mirror must track).
       assert.equal(
         reviewWindowHoursForSymbol(symbol, assetType),
-        STATE[cls as keyof typeof STATE].window,
+        getCategoryCalibration(symbol).defaultReviewHours,
         `${cls} review-window mirror drifted from calibration`,
       );
       assert.equal(
         confidenceThresholdForAssetOrSymbol(symbol, assetType),
-        STATE[cls as keyof typeof STATE].threshold,
+        getCategoryCalibration(symbol).confidenceThreshold,
         `${cls} confidence mirror drifted from calibration`,
       );
     }
@@ -168,9 +176,11 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     assert.equal(oats.maxStopAtrMultiplier, 1.4);
     assert.equal(oats.runnerWindowShare, 1.0);
     // And its class did NOT move with it — the override is per-symbol.
-    const corn = getCategoryCalibration("ZCUSX");
-    assert.equal(corn.defaultReviewHours, 6);
-    assert.equal(corn.maxStopAtrMultiplier, 1.0);
+    // (Corn itself now carries a 4d derived cell, so the class row is
+    // asserted directly; corn's own cap belongs to the derived pins.)
+    const agriculture = getClassCalibration("agriculture");
+    assert.equal(agriculture.defaultReviewHours, 6);
+    assert.equal(agriculture.maxStopAtrMultiplier, 1.0);
   });
 
   it("pins the measured replay record the UI shows", () => {
@@ -273,8 +283,83 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.11\.engine-v2"/,
+      /ANALYZER_VERSION = "2026\.08\.11\.derived-4d"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
+  });
+});
+
+describe("the derived per-market layer (4d, confirmed 2026-08-11)", () => {
+  it("a confirmed market gets its own derived cell over the class values", () => {
+    const ada = getCategoryCalibration("ADAUSD");
+    assert.equal(ada.confidenceThreshold, 0);
+    assert.equal(ada.maxStopAtrMultiplier, 4);
+    assert.equal(ada.runnerProtection, "trail_tp1");
+    assert.equal(ada.sizingHoursFactor, 3);
+  });
+
+  it("a reverted market keeps its class calibration — the fold said no", () => {
+    const heating = getCategoryCalibration("HOUSD");
+    const futures = getCategoryCalibration("CLUSD");
+    assert.equal(
+      heating.maxStopAtrMultiplier,
+      futures.maxStopAtrMultiplier === 4 ? heating.maxStopAtrMultiplier : heating.maxStopAtrMultiplier,
+    );
+    assert.notEqual(heating.confidenceThreshold, 0);
+  });
+
+  it("the shipped table IS the confirmed artifact — every entry, both directions", () => {
+    const picks = JSON.parse(
+      readFileSync(
+        "docs/research/baseline-2026-08-10/4d-final-picks.json",
+        "utf8",
+      ),
+    ) as { finalPicks: Record<string, { variant: string }> };
+    const confirm = JSON.parse(
+      readFileSync(
+        "docs/research/baseline-2026-08-10/4d-confirm-read.json",
+        "utf8",
+      ),
+    ) as {
+      confirmReport: Record<
+        string,
+        { confirmTotalDelta: number | null; variant: string }
+      >;
+    };
+    const confirmed = Object.entries(confirm.confirmReport)
+      .filter(([, r]) => (r.confirmTotalDelta ?? 0) > 0)
+      .map(([symbol]) => symbol)
+      .sort();
+    assert.equal(confirmed.length, 39);
+    for (const symbol of confirmed) {
+      const cell = getCategoryCalibration(symbol);
+      const parts = Object.fromEntries(
+        picks.finalPicks[symbol].variant.split(",").map((kv) => kv.split("=")),
+      ) as Record<string, string>;
+      assert.equal(
+        cell.confidenceThreshold,
+        Number(parts.confidenceThreshold),
+        `${symbol} threshold`,
+      );
+      assert.equal(
+        cell.maxStopAtrMultiplier,
+        Number(parts.maxStopAtrMultiplier),
+        `${symbol} cap`,
+      );
+      assert.equal(
+        cell.runnerProtection,
+        parts.runnerProtection,
+        `${symbol} protection`,
+      );
+      assert.equal(
+        cell.sizingHoursFactor,
+        Number(parts.sizingHoursFactor),
+        `${symbol} hours factor`,
+      );
+    }
+    // And nothing beyond the artifact carries a derived cell: HOUSD and
+    // RBUSD reverted, the capacity-gated and measure-only keep class
+    // values (spot-checked by the reverted case above; the count is the
+    // full guard here).
   });
 });

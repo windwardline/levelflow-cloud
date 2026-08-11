@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   getAssetType,
   getCategoryCalibration,
+  getClassCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { estimateExecutionQuality } from "../supabase/functions/trade-analyzer/executionQuality.ts";
 
@@ -43,11 +44,12 @@ describe("agriculture is its own calibration class (derived 2026-08-06)", () => 
   it("pins the derived confidence floor at 30, distinct from futures' 25", () => {
     // Monotone survival on 6922 filled setups: test expectancy positive at 30
     // and in every judgeable bucket above, 108 test fills at that floor.
-    assert.equal(getCategoryCalibration("ZCUSX").confidenceThreshold, 30);
-    // futures 68 -> 25 on 2026-08-06 from the final sweep. What this assertion
-    // is for is that agriculture carries its OWN floor rather than inheriting
-    // futures', and it still does — 30 against 25.
-    assert.equal(getCategoryCalibration("ESUSD").confidenceThreshold, 25);
+    // Asserted on the CLASS row: corn and the E-mini both carry 4d derived
+    // cells now (floor 0, the record speaks), and what this assertion is
+    // for is that agriculture's CLASS floor is its own rather than
+    // futures' — 30 against 25, still.
+    assert.equal(getClassCalibration("agriculture").confidenceThreshold, 30);
+    assert.equal(getClassCalibration("futures").confidenceThreshold, 25);
   });
 
   it("charges agricultural execution cost about 3x the futures profile", () => {

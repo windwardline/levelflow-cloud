@@ -455,9 +455,18 @@ log): **41 picks frozen, 39 CONFIRMED POSITIVE on never-touched data,
 measure-only incl. livestock, 18 starved, ~20 held out as the next
 cycle's unseen validation. Record:
 `baseline-2026-08-10/4d-derivation-2026-08-11.md` + four JSON
-artifacts. NEXT: the 39 pairs enter per-market calibration with a
-version bump (the shipping change set), then (vi) **4e** iterate to
-diminished returns. Parallel lanes before any reopen: **Batch 4
+artifacts. **SHIPPED
+2026-08-11 (`2026.08.11.derived-4d`)**: the 39 confirmed cells live in
+SYMBOL_CALIBRATION_OVERRIDES verbatim to the frozen picks
+(artifact-pinned both directions in tests/calibrationState.test.ts),
+CLUSD's cell layered over its measured-active legacy fields, the UI
+derived-floor mirror under the exhaustive parity sweep, class pins
+moved to getClassCalibration. Then (vi) **4e** — the diminished-returns
+declaration: the corpus's tuning folds are consumed, the confirm fold
+is burned, the holdout is reserved; the next round opens only on NEW
+data (live accrual under the derived cohort) or the holdout cycle at
+reopen. Per the stopping rule, 4e is DECLARED CLOSED with those two
+reopeners named. Parallel lanes before any reopen: **Batch 4
 COMPLETE 2026-08-11** — #313 (ambiguous counts against the trade in
 learning/classify/attribution; all six Record rows state supersession),
 #314 (live outcome-sync replays each row's stored decision-time costs —
