@@ -2,6 +2,7 @@ export function cleanReviewMessage(value: string) {
   return value
     .replace(/No clear direction passed review: buy \d+(?:\.\d+)?, sell \d+(?:\.\d+)?, block \d+(?:\.\d+)?\./i, "The chart did not show a clear enough direction.")
     .replace(/The current (buy|sell) setup scored (\d+); Levelflow requires (\d+) or higher for this market\./i, (_match, side: string, score: string, threshold: string) => `The ${side.toLowerCase()} case reached ${score}/100. This market needs ${threshold}/100 or higher.`)
+    .replace(/Levelflow does not produce setups for this market: its own measured record is (-?[0-9.]+)R per setup after the venue's published costs\. (.+?)(?=\s{2}|$)/i, (_match, expectancy: string, reprobe: string) => `Levelflow does not trade this market. Its measured record here is ${expectancy}R per setup after costs — a loss. ${reprobe}`)
     .replace(/Payoff was ([0-9.]+)x; Levelflow requires at least ([0-9.]+)x for this market\./i, (_match, payoff: string, required: string) => `The target was not far enough from the entry to justify the risk (${payoff}x payoff; ${required}x required).`)
     .replace(/Trading costs took the payoff from ([0-9.]+)x to ([0-9.]+)x; Levelflow requires at least ([0-9.]+)x for this market\./i, (_match, gross: string, net: string, required: string) => `Trading costs took the payoff from ${gross}x to ${net}x (${required}x required).`)
     .replace(/Limit entry failed price validation, so no limit(?:-order)? setup was shown\./i, "A valid limit entry was not available at the current price.")

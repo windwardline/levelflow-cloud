@@ -1,5 +1,6 @@
 import {
   ANALYZER_VERSION,
+  engineDeclines,
   getAssetType,
   getCategoryCalibration,
 } from "./calibration.ts";
@@ -1130,6 +1131,12 @@ async function analyzeSetup(
   analysis: MarketAnalysis,
 ) {
   const { calibration, consensus, regime, votes } = analysis;
+  // Amendment 36 / the roster law: a market measured to lose money is
+  // one the engine declines to build a setup for — visible, scanned,
+  // and answered honestly rather than hidden.
+  if (engineDeclines(symbol)) {
+    return null;
+  }
   if (!regime) {
     // 2n: the regime abstained (thin daily history) — no setup can be
     // built on an unclassified market. Unreachable behind the loader's
@@ -1404,6 +1411,16 @@ async function explainNoSetup(
     });
     const confidenceScore = scoreBreakdown.confidenceScore;
 
+    const declined = engineDeclines(symbol);
+    if (declined) {
+      // The honest sentence for a market the engine will not trade: the
+      // measurement, not a mood, and the door back in.
+      diagnostics.push(
+        `Levelflow does not produce setups for this market: its own measured record is ${
+          declined.measuredExpectancyR.toFixed(3)
+        }R per setup after the venue's published costs. ${declined.reprobe}`,
+      );
+    }
     diagnostics.push(
       `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
     );

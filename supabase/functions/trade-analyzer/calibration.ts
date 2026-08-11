@@ -4,7 +4,7 @@
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
 import { isKnownSymbol } from "./symbols.ts";
-export const ANALYZER_VERSION = "2026.08.11.totality";
+export const ANALYZER_VERSION = "2026.08.11.declines";
 
 export type AssetType =
   | "agriculture"
@@ -1182,6 +1182,147 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
     sizingHoursFactor: 1,
   },
 };
+
+/**
+ * Markets the ENGINE declines to build a setup for (amendment 36, the
+ * roster law's own mechanism).
+ *
+ * The 2026-08-07 roster ruling settles what a losing market means:
+ * "Expectancy is not a ground [for hiding]. A thin or negative market is
+ * one the ENGINE declines to produce a setup for, and one per-market
+ * geometry has to earn; it is not a market the product hides." So these
+ * markets stay in the menu, stay scannable, and stay in every coverage
+ * count under amendment 31 — the scan simply returns no setup, with the
+ * measured reason, instead of offering one the engine's own corpus says
+ * loses money.
+ *
+ * Entry requires BOTH: a negative expectancy on the held-back fold at
+ * the market's own derived cell, AND that the negative survives charging
+ * only E8's PUBLISHED commission (amendment 36 — never a withdrawal on a
+ * parameter of our own making). The register is generated from
+ * 4d-cost-sensitivity.json and pinned against it in both directions.
+ *
+ * Every entry is a standing reentry candidate: accrued data that turns
+ * the measurement positive returns the market, exactly as the dormant
+ * register is re-probed each run.
+ */
+export type EngineDecline = {
+  measuredExpectancyR: number;
+  reason: string;
+  reprobe: string;
+};
+
+export const ENGINE_DECLINED_MARKETS: Record<string, EngineDecline> = {
+  AAVEUSD: {
+    measuredExpectancyR: -0.120,
+    reason:
+      "measured -0.120R per setup (±0.028, n=571) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  CAKEUSD: {
+    measuredExpectancyR: -0.218,
+    reason:
+      "measured -0.218R per setup (±0.054, n=264) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  DASHUSD: {
+    measuredExpectancyR: -0.124,
+    reason:
+      "measured -0.124R per setup (±0.025, n=799) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  DOGEUSD: {
+    measuredExpectancyR: -0.161,
+    reason:
+      "measured -0.161R per setup (±0.024, n=815) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  EGLDUSD: {
+    measuredExpectancyR: -0.368,
+    reason:
+      "measured -0.368R per setup (±0.033, n=491) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  ETCUSD: {
+    measuredExpectancyR: -0.163,
+    reason:
+      "measured -0.163R per setup (±0.024, n=880) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  GRTUSD: {
+    measuredExpectancyR: -0.077,
+    reason:
+      "measured -0.077R per setup (±0.029, n=584) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  HBARUSD: {
+    measuredExpectancyR: -0.161,
+    reason:
+      "measured -0.161R per setup (±0.037, n=391) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  IMXUSD: {
+    measuredExpectancyR: -0.108,
+    reason:
+      "measured -0.108R per setup (±0.039, n=497) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  LTCUSD: {
+    measuredExpectancyR: -0.115,
+    reason:
+      "measured -0.115R per setup (±0.017, n=1388) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  PAUSD: {
+    measuredExpectancyR: -0.149,
+    reason:
+      "measured -0.149R per setup (±0.072, n=147) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  UNIUSD: {
+    measuredExpectancyR: -0.098,
+    reason:
+      "measured -0.098R per setup (±0.028, n=588) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  XLMUSD: {
+    measuredExpectancyR: -0.108,
+    reason:
+      "measured -0.108R per setup (±0.029, n=855) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  XMRUSD: {
+    measuredExpectancyR: -0.095,
+    reason:
+      "measured -0.095R per setup (±0.024, n=803) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+  ZCUSX: {
+    measuredExpectancyR: -0.208,
+    reason:
+      "measured -0.208R per setup (±0.065, n=127) on data held back from every tuning step, charging only E8's published commission — the loss is the market's, not our cost model's",
+    reprobe:
+      "Re-derived every calibration round; accrued data that turns this positive returns the market.",
+  },
+};
+
+export function engineDeclines(symbol: string): EngineDecline | null {
+  return ENGINE_DECLINED_MARKETS[symbol.toUpperCase()] ?? null;
+}
 
 /**
  * True when the symbol is a Levelflow roster name — the measurement paths
