@@ -1,3 +1,8 @@
+> **SUPERSEDED (2026-08-11):** the verdicts of record are
+> `4c-grid-verdicts-v2-2026-08-11.md`, graded by gate v2 on the engine-v2
+> roster-name corpus. This file stays as the record of the demoted
+> directional read and of why the redo happened.
+>
 > **Identity annotation (round 8 CV-1/FR-2, added 2026-08-11):** this document
 > reads the 2026-08-10 baseline corpus, whose universe carried provider
 > spellings (six ^-prefixed indices, ARUSD, OTRUMPUSD, WTI's provider name);
