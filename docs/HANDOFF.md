@@ -435,7 +435,12 @@ product truth (superseded flags, ambiguous-as-loss coherence incl.
 learning.ts, correlation-group completion per RM-5), **Batch 5** ops
 hygiene (analyzer_events retention, outcome-sync budget + Intl, FMP 429
 retry both sides, disk lifecycle, topup roster-derived), **Batch 6**
-owner-gated Guide copy review (one doc, one pass). Named boundaries
+owner-gated Guide copy review — **DOC READY, AWAITS THE OWNER'S ONE
+PASS**: `docs/research/guide-copy-review-2026-08-11.md` (six rulings:
+the score-separation story, the stop story, the dead replay
+description, the breakeven promise incl. the languageGuard-pinned law
+sentence, the missing commission in §6, the Banked-half glossary line;
+plus the checked-and-stands list). Named boundaries
 disclosed in the ledger (pre-holdout constants, single-instrument
 completion probes, COT timing, 4b's pooled read).
 
