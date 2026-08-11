@@ -234,11 +234,12 @@ fills, in one version:
   2c's own knowability principle applied forward). TP1 manual haircut,
   one-bar entry latency and touch-fill penetration exist as parameters
   for 4d sensitivity work (FR-4/6, LA-13), defaulted off.
-- **Named boundary:** live outcome-sync still resolves v1-style —
-  the stored setup rows carry no decision-time spread to replay. The
-  columns land with the pre-reopen product-truth batch; until then the
-  desk is parked, so no real setup can generate under the v2 version and
-  the cohort stays coherent by construction.
+- **Named boundary — CLOSED 2026-08-11 (#314):** live outcome-sync now
+  replays each row's own stored decision-time costs (risk_model carries
+  the full executionQuality, so no migration was ever needed): bid/ask
+  triggers, gap slippage, net expired labels, same-bar arming — the
+  measured semantics and the live semantics are one engine. A row
+  without stored quality resolves v1-style, stated, never invented.
 
 Every v2 behavior is opt-in through `ReplayFillOptions`; with no options
 the resolver reproduces v1 exactly, which is what keeps the live path
