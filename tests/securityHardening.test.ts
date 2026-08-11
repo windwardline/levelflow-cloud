@@ -556,3 +556,31 @@ describe("the learning corpus is engine-written only", () => {
     }
   });
 });
+
+describe("the engine tables hold nothing for anon (item 0.5's residual, 2026-08-11)", () => {
+  it("revokes every anon grant on the engine-owned tables", () => {
+    const migration = readFileSync(
+      "supabase/migrations/20260811190000_revoke_anon_on_engine_tables.sql",
+      "utf8",
+    );
+    for (const table of ["trade_setups", "trade_outcomes"]) {
+      assert.match(
+        migration,
+        new RegExp(`revoke insert, update, delete on public\\.${table} from anon`),
+        `${table} must revoke anon's write grants`,
+      );
+      assert.match(
+        migration,
+        new RegExp(`revoke select on public\\.${table} from anon`),
+        `${table} must revoke anon's read grant`,
+      );
+    }
+    // The law it enforces, so a future grant cannot quietly reopen it.
+    const initSql = readFileSync("supabase/init.sql", "utf8");
+    assert.doesNotMatch(
+      initSql,
+      /grant[^;]*\bon\b[^;]*public\.trade_(setups|outcomes)[^;]*\bto\b[^;]*\banon\b/,
+      "init.sql must never grant anon anything on the engine tables",
+    );
+  });
+});
