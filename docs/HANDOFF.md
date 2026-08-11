@@ -44,7 +44,7 @@ step leaves every signed-in operator working behind a closed door.
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
 | Engine | `2026.08.11.totality` — 72 derived per-market cells across three confirmed tranches; Edge Functions deployed and verified in the deploy log |
 | Public face | The parking page |
-| Tests | 2,166 passing; check · lint · check:migrations · test · build · check:bundle all green |
+| Tests | 2,175 passing; check · lint · check:migrations · test · build · check:bundle all green |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
 
 ### Merged 2026-08-06 → 07
@@ -641,6 +641,12 @@ A six-domain adversarial audit of this file's own claims ran after item
 
 ### ⛔ STOP — THE CORPUS IS INVALID (2026-08-11, evening)
 
+*Session state at handoff: main clean, one branch, zero open PRs, deploy
+green, 2,175 tests, 81 GB free. The 36 GB of invalid emit corpus was
+deleted; its manifests, logs and symbol lists are kept as the evidence
+of what was measured and how it failed. The desk is parked. Work resumes
+Sunday in a fresh session — the kickoff prompt is §6a.*
+
 **Read `docs/research/remediation-program-2026-08-11.md` before touching
 calibration.** It supersedes the "next steps" of every 2026-08-10/11
 document below, including item 4's own closure.
@@ -783,116 +789,79 @@ Kept here so they cannot drift from the state they describe. Update together.
 
 ### 6a. The kickoff prompt — opens a fresh session
 
+**Recommended model and effort for the Sunday lift: Fable 5 at max
+effort, with workflow orchestration (ultracode) ON.** The reasoning is
+in §6c below; it is a recommendation, not a measurement.
+
 ```
-Continue Levelflow. Read docs/HANDOFF.md first — it is tracked in the repo now, not in
-a worktree. It is the total state of record: what is live, what is parked and how to
-unpark it, the approvals already given, the reasoning behind decisions declined or
-reversed, the measured evidence, and the full ordered sequence. Do not re-derive what it
-records. Do not re-ask decisions A-F, amendments 26 and 29-33, or any item in sections 2
-and 4 — all approved. Section 5 records findings VERIFIED as non-problems; do not
-re-investigate those.
+Continue Levelflow. THE CALIBRATION CORPUS IS INVALID — read
+docs/research/remediation-program-2026-08-11.md BEFORE docs/HANDOFF.md,
+and before you trust any calibration figure anywhere in this repo. An
+audit on 2026-08-11 found the cached 15-minute and daily series carry
+naive New-York stamps read as UTC while the 5-minute series carries true
+UTC, so every setup in the 4c/4d corpus was resolved 4-5 hours out of
+register with its own decision bar. Half of each review window lies
+BEFORE the decision. Re-stamped and re-run, the flagship "measurably
+positive" markets collapse: EURUSD +0.213R to -0.008, BTCUSD +0.198 to
+-0.082, XAUUSD +0.247 to -0.031. The measured edge is an artifact.
 
-THE DESK IS PARKED. I closed it on 2026-08-07: PARKING_GATE is true, every session
-invalidated, trade history deliberately intact. Section 1 has the exact reopening
-procedure — one flag and its tests. Do not reopen it without my word, and tell me if
-anything you are about to ship would be wrong to ship while it is closed.
+Then read docs/HANDOFF.md — the total state of record. Do not re-derive
+what it records. Do not re-ask decisions A-F or amendments 26 and 29-37;
+all approved. Section 5 records findings VERIFIED as non-problems.
 
-Coverage is settled and is not open for reconsideration. Amendment 31: all 111
-FMP-matched E8 markets are live, per account type, and that is the resting state. The
-only path to removing a market is a calibration verdict from item 4d — never caution,
-never a hunch about a feed.
+THE DESK IS PARKED and stays parked through this work. PARKING_GATE is
+true; section 1 has the exact reopening procedure. Do not reopen without
+my word, and tell me if anything you are about to ship would be wrong to
+ship while it is closed.
 
-Work the sequence in order.
+THE WORK, in the order the program gives — the order is load-bearing:
+Phase 0 one clock (rebuild .calibration-cache under a single
+normalization; nothing downstream of a mixed-clock cache is worth
+computing) -> Phase 1 one engine (close every sweep-vs-live divergence:
+E1 resolution anchor, E2 the 5-minute sawtooth and its phantom
+unfilleds, E3 market.latest, E6 the score terms, E4 correlation
+collapse, D2 realized R recorded only on expiries) -> Phase 2 repair the
+instrument (D4 the gate has NO absolute-expectancy term, M3 the confirm
+read decides on a bare delta with no error bar, M1 the audit
+double-counts, M5 make the cost scale actually reach the resolver, D1
+learning from a win rate) -> Phase 3 re-sweep ONCE (item 2's law: one
+re-simulate after the instrument changes, never one per fix) -> Phase 4
+the per-market program -> Phase 5 the never-analyzed populations ->
+Phase 6 the reader-facing claims.
 
-Item 0 first: CI verification integrity. Half an hour, and it protects every
-verification after it. Three deploys were severed mid-flight in one night by
-cancel-in-progress, and one real test fix went unverified through two cycles as a
-result. The calibration program is many merges; do not run it through a pipeline that
-kills its own evidence.
+PHASE 4 IS THE MANDATE, in my words: every single tradable market E8
+offers across all three account types that we have an FMP match for,
+reviewed thoroughly and INDIVIDUALLY — the positive ones, the negative
+ones, and the so-far-unmeasurable ones. Not by class. I am not satisfied
+with piecemeal answers; they have repeatedly left money on the table and
+contributed to losses. Each market gets its own verdict, graded against
+ITS OWN shipped configuration rather than a grid reference cell, with
+ABSOLUTE expectancy as the criterion rather than a delta, and every
+calibration field either derived for that market or carrying a stated
+reason for inheriting.
 
-Then item 1, the live product defects — nothing in it depends on the calibration being
-right, and the release changed its urgency: defects that were harmless while markets
-were withheld are live now that nothing is. Fold 1p into 1b.
+THE DISCIPLINE THAT CAUGHT EVERYTHING: on 2026-08-11 every claim that
+changed a decision survived only because something independent tried to
+KILL it. The cost-scale no-op, the clock artifact, and the
+improvement-versus-positivity conflation were all caught by adversarial
+refutation, never by the work that produced them. Use adversarial agents
+throughout — several, one lens each, each asked what is WRONG rather
+than what to improve, followed by a refutation pass whose brief is to
+overturn. Verify load-bearing claims yourself rather than relaying them.
 
-Item 1.5 is amendment 32 — unmatched markets go dormant. A derivative is not its
-underlying: four index futures are served today on CASH index series, which was never a
-match, and eight currency futures are mapped to spot pairs. Thirteen rows go dormant,
-futures 31 -> 27, and the audit and file list are already in the handoff so it is
-execution rather than investigation. Do NOT touch the six cash index CFDs — cash on cash
-is a real match, and the same ^GDAXI series is right for DAX and wrong for FDAX. Bring
-me the BRENT/WTI question rather than deciding it; the handoff says what settles it.
-Land this before 4c, because sweeping a market on the wrong instrument calibrates the
-wrong instrument.
+Protocols: branch off main, never commit to main, Conventional Commits,
+typecheck + lint + tests green before anything is called done, docs ride
+along in the same change set, `gh pr merge --squash --auto
+--delete-branch`, verify production after deploy, clean up branches.
+Report failures honestly with the output. Run to completion; do not stop
+at turn boundaries to ask whether to continue. npm test does NOT run
+Playwright — derive across that boundary. NEVER run the full test suite
+while a sweep fleet is running; it jetsams the workers on this 16GB
+machine.
 
-Then item 2, the evaluator, AS ONE CHANGE SET — 2l must land with 2a or the re-sweep
-measures the wrong committee. Then item 3, the acceptance procedure.
-
-THEN ITEM 4, THE CALIBRATION PROGRAM. This is the point of the whole retrofit and it is
-five phases; do not collapse them. 4a discovers each market's true data limit per
-timeframe — measure it, never assume it, it varies. 4b reviews the geometry MODEL before
-tuning it, and is the highest-value phase if it finds anything: is TP1+runner the right
-shape, is the stop right as static-at-entry, does confidence rank outcomes at all on a
-repaired sample or should it be replaced, is a fixed review window right, are there
-regime-conditional structures we do not have. Adversarial, several lenses, evidence not
-opinion, and I decide before the sweep runs. 4c sweeps all 111 markets to their own
-discovered limits with crossed axes. 4d derives PER MARKET, not per class — stops, TP1,
-runner, entries, windows and timing, confidence bands or their replacement, tick and pip
-thresholds, starvation accounting — each gated by item 3's acceptance bar. 4e iterates
-until the returns diminish, then says so out loud.
-
-The standard for done is amendment 33: the engine identifies money-positive setups at a
-high rate, can account for how each one was derived, and presents figures I can rely on
-and defend to someone else. Find, justify, defend — all three, and the second is the one
-that gets dropped.
-
-Round 28 is the standing warning: a 96-variant grid over four axes moved indices'
-survival by one point and declared the status quo optimal, because the axis that
-mattered was held fixed. A lever downstream of risk cannot be derived at another lever's
-old setting. Use replay-sweep's crossed axes (--grid a=1,2;b=3,4).
-
-BEFORE any hedge-mind work advances, and repeatedly as the work proceeds, run the
-CONVERGE cycle below. When I type CONVERGE — on its own or in a sentence — that is what
-I am asking for, in full, without further explanation from me. Treat it as a standing
-command for the rest of this rebuild.
-
-CONVERGE means: (1) record the prior round's recommendations as approved; (2) run a genuinely
-new fresh-eyes review for remaining gaps, probing areas not yet swept rather than
-re-listing known ones; (3) design durable fixes, not patches; (4) place each at its
-correct rank in the sequence, never appended, with an explicit pointer to where it
-belongs; (5) test whether the sequence now reaches best-possible positioning for the
-data and constraints available, and if not keep hunting until it does or until the
-remaining limits are input boundaries you can name; (6) update docs/HANDOFF.md; (7)
-report to me in chat with the full sequence visible. Use adversarial agents for the
-review — several, one lens each (look-ahead and statistical validity, fill realism,
-cost, coverage, risk management and prop-firm survival, product honesty, operations),
-each asked what is wrong or missing rather than what to improve. Round 8 should probe
-what the round-6 and round-7 fixes THEMSELVES assume, and must include one lens nothing
-has yet owned: the product at 111 markets rather than 50 — render cost, scan latency,
-correlation coverage, session handling, all measured on a universe less than half this
-size.
-
-CONVERGE runs until the sequence reaches best-possible positioning for the data and
-constraints we have, or until every remaining limit is an input boundary you can name.
-That is the bar for closing this part of the rebuild and moving to the hedge mind — not
-a number of rounds, and not my patience. If a round yields only nulls and validations,
-say the diminished-returns point is reached rather than manufacturing another.
-
-You have full autonomy and my authorization to use agents freely and in parallel.
-Approve your own tool use. Make routine judgment calls yourself; bring me only decisions
-that genuinely change the work, with a recommendation and its justification.
-
-Follow our protocols: branch off main, never commit to main, Conventional Commits,
-typecheck + lint + tests green before anything is called done, docs ride along in the
-same change set, `gh pr merge --squash --auto --delete-branch`, verify production after
-deploy, clean up branches and orphans. Note that `npm test` does NOT run Playwright — a
-constant duplicated into an e2e spec is invisible to every local gate, which is how a
-broken rate-limit test shipped on 2026-08-06. Derive across that boundary; never restate.
-Report failures honestly with the output; never claim green when it is not.
-
-Run to completion. Do not stop at turn boundaries to check in, do not narrate options
-you will not take, and do not end a turn with work you could still advance — if compute
-is running, monitor it and keep working. Keep docs/HANDOFF.md the truth as state
-changes, and tell me when a stopping point is genuinely reached.
+CONVERGE is a standing command for the rest of this rebuild — section 6b
+defines it. Items 5-10 of the sequence are an explicit part of the next
+one (amendment 37).
 ```
 
 ### 6b. CONVERGE — the one-word trigger, and its long form
@@ -914,3 +883,37 @@ input boundary that stops you. Then update docs/HANDOFF.md and report to me in c
 the full sequence visible. Do not stop at turn boundaries. Never claim green when it is
 not.
 ```
+
+
+### 6c. Model and effort — the recommendation for the rebuild
+
+**Fable 5 at max effort, with workflow orchestration (ultracode) on.**
+
+The reasoning, which matters more than the answer because the answer may
+age: the failures of 2026-08-11 were not failures of raw depth on a hard
+problem. They were failures of *verification* — reading eleven
+bit-identical rows as agreement rather than as proof a switch did
+nothing; treating a gate's improvement delta as a level; asserting a
+corpus was sound without checking that its series shared a clock. Every
+one was caught by an independent agent whose only job was to overturn
+the claim.
+
+That argues for spending capability on **two things at once**: a driver
+strong enough not to make the subtle call wrongly in the first place,
+and enough parallel adversarial refutation that when it does, something
+catches it. Those are not alternatives — workflow orchestration is a
+mode, available whichever model drives.
+
+If a token budget forces a choice between them, **spend it on the
+adversarial fan-out rather than on maximum single-turn effort.**
+Refutation is what actually caught every error; depth of first-pass
+reasoning is what produced several of them.
+
+Phase-by-phase: Phases 0-2 (clock, divergences, instrument) are subtle,
+low-volume, and correctness-critical — a wrong call there propagates
+into everything downstream, so this is where driver capability earns
+most. Phase 3 is compute-bound and model-irrelevant. Phases 4-5 are
+breadth over 105 markets, where the number of independent checks matters
+more than the depth of any single one.
+
+This is a judgment about the shape of the work, not a benchmark.
