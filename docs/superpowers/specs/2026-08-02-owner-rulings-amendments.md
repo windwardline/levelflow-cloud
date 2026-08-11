@@ -1988,3 +1988,36 @@ project doc, user-facing legal, risk or privacy page, the Guide, the Profile
 surfaces, any README, or the HANDOFF — the update lands in the same change
 set as the shift. This is amendment 17's docs-ride-along law with its reach
 now enumerated so no surface class can be argued out of it.
+
+## Amendment 36 — the withdrawal standard (owner ruling, 2026-08-11)
+
+A market may leave the offering only on evidence that is **genuinely
+data-derived**, and never on a flawed parameter of our own making. The
+distinction is the ruling: if a market measures negative because the
+market is negative, withdrawal is defensible under amendment 31's 4d
+exit; if it measures negative because of a number WE chose — a window,
+a cap, a modeled spread, a sampled cost — then the parameter is the
+defect and the market is not.
+
+This is amendment 25's starvation lesson made general. Livestock looked
+unmeasurable and was being refused by a six-hour window; twenty-two
+markets looked starved and were being cut by a per-class fold calendar.
+The pattern repeats often enough that it is now a precondition: before
+any withdrawal, the negative must be shown to survive the removal of our
+own modelling choices. `LEVELFLOW_MODELED_COST_SCALE` exists for exactly
+this test — it charges E8's published bill alone and asks whether the
+verdict holds.
+
+**Withdrawal is never permanent.** A withdrawn market remains a standing
+reentry candidate and returns whenever the data supports it. This is the
+standard for **any** match between an E8-tradable asset and an
+FMP-analyzable data source — the same rule that governs the amendment-32
+dormant register, which is re-probed every run.
+
+## Amendment 37 — the ranking is a converge question (owner ruling, 2026-08-11)
+
+Sequence items 5 through 10 are an **explicit part of the next CONVERGE**,
+which runs after the current work closes. Their ordering against item 11
+(the hedge mind) is re-decided there rather than assumed from the
+document's existing numbering. Until that converge runs, no item between
+5 and 10 is treated as either a blocker or a skip.

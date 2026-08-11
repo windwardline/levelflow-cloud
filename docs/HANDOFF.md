@@ -622,10 +622,15 @@ A six-domain adversarial audit of this file's own claims ran after item
    shipped cells are money-positive on the held-back fold; **20 are
    not** — they lose less than the baseline, which is what "confirmed"
    meant. A threshold rescue across every threshold their own scores
-   admit FAILED. **This is an open owner decision under amendment 31's
-   4d exit** (withdraw the 20, or keep them and say so on the surface).
-   Full record and evidence: `docs/research/baseline-2026-08-10/
-   4d-derivation-2026-08-11.md`, "Absolute-expectancy addendum".
+   admit FAILED. **RULED 2026-08-11 (amendment 36):** they may be
+   withdrawn, but only on evidence that survives the removal of our own
+   modelling choices, and they stay reentry candidates forever. The
+   test is running now — a gross re-sweep charging E8's PUBLISHED
+   commission alone (`LEVELFLOW_MODELED_COST_SCALE=0`) separates a
+   market that loses from a market our modeled spread convicts. Only
+   the first population is withdrawable. Full record:
+   `docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md`,
+   "Absolute-expectancy addendum".
 2. **The roster headline was a sum of account views, not the offering.**
    97 distinct markets; 45/33/27 per account type sum to 105 only by
    double-counting eight dual-listed crypto CFDs. Corrected here and in
@@ -633,6 +638,15 @@ A six-domain adversarial audit of this file's own claims ran after item
 3. **Item 0.5's residual is closed** — `anon`'s grants on the engine
    tables are revoked and pinned (they were inert behind RLS, which is
    why it was worth closing before a future policy made them live).
+
+### Items 5–10: the ranking is the next converge's question (amendment 37)
+
+The owner ruled 2026-08-11 that items 5 through 10 are an **explicit part
+of the next CONVERGE**, which runs after the current work closes. Their
+order against item 11 is re-decided there, not read off this numbering.
+Item 5 in particular is largely §20's governor by another name, so the
+two may merge. Until that converge runs, nothing below is treated as
+either a blocker or a skip.
 
 ### 5 — Prop-firm survival
 Median 9 open positions, p90 25, max 43 — 4.5% / 12.5% / 21.5% of the account at the

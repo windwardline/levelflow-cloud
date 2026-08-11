@@ -546,3 +546,69 @@ describe("ambiguous resolves AGAINST the trade in learning (2e, round-8 PH-7)", 
     );
   });
 });
+
+describe("the modeled-cost sensitivity is measurement-only (owner standard 2026-08-11)", () => {
+  const fixture = {
+    assetType: "crypto" as const,
+    atr: 0.001,
+    availableTimeframes: ["15min", "1hour", "4hour"],
+    dailyAtr: 0.004,
+    entryPrice: 0.1941,
+    latestClose: 0.1941,
+    providerWarnings: [],
+    side: "buy" as const,
+    stopLoss: 0.1921,
+    symbol: "ADAUSD",
+    takeProfit: 0.1981,
+  };
+
+  it("defaults to the full model when nothing sets it", () => {
+    delete process.env.LEVELFLOW_MODELED_COST_SCALE;
+    const full = estimateExecutionQuality(fixture);
+    assert.equal(
+      full.estimatedRoundTripCost,
+      Number(
+        (full.estimatedSpread + full.estimatedSlippage * 2 +
+          full.estimatedCommission).toFixed(5),
+      ),
+    );
+  });
+
+  it("at zero, only the venue's PUBLISHED commission remains", () => {
+    process.env.LEVELFLOW_MODELED_COST_SCALE = "0";
+    try {
+      const gross = estimateExecutionQuality(fixture);
+      assert.equal(gross.estimatedRoundTripCost, gross.estimatedCommission);
+      assert.ok(gross.estimatedCommission > 0, "the published bill stays");
+    } finally {
+      delete process.env.LEVELFLOW_MODELED_COST_SCALE;
+    }
+  });
+
+  it("refuses a scale that would INVENT cost, or a malformed one", () => {
+    for (const bad of ["2", "-1", "nonsense"]) {
+      process.env.LEVELFLOW_MODELED_COST_SCALE = bad;
+      try {
+        const cell = estimateExecutionQuality(fixture);
+        assert.equal(
+          cell.estimatedRoundTripCost,
+          Number(
+            (cell.estimatedSpread + cell.estimatedSlippage * 2 +
+              cell.estimatedCommission).toFixed(5),
+          ),
+          `${bad} must fall back to the full model`,
+        );
+      } finally {
+        delete process.env.LEVELFLOW_MODELED_COST_SCALE;
+      }
+    }
+  });
+
+  it("no production path sets it — only the sweep driver may", () => {
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    assert.doesNotMatch(analyzer, /LEVELFLOW_MODELED_COST_SCALE/);
+  });
+});
