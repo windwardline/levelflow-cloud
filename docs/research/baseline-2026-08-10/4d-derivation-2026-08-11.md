@@ -84,6 +84,13 @@ Census of the twenty: 11 confirmed and shipped
 1 measure-only (BNBUSD), 4 starved. Artifacts:
 `4d-holdout-{candidates,feasibility,final-picks,confirm-read}.json`.
 
+**Superseded in part by the totality addendum below**: those nine
+non-confirmed members were re-derived on their own full spans hours
+later. Six earned confirmed cells there (AAVEUSD, BNBUSD, BZUSD,
+DASHUSD, XLMUSD, XMRUSD), ARWUSD was confirm-refused, and HEUSX and
+THETAUSD hold full-span measure-only verdicts. This census stands as
+the record of what the CLASS-calendar frame could see.
+
 The NEXT unseen-validation reserve is live accrual itself: every market
 now runs the derived engine in production, and the live cohort is data
 nothing in this corpus ever touched.

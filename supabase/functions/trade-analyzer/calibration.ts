@@ -869,10 +869,16 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // frozen, then their confirm rows' first consultation (the corpus
   // log's acknowledged second read). Eleven of eleven frozen picks
   // confirmed positive — a perfect out-of-sample sweep on markets no
-  // tuning step ever saw, EURUSD among them. BZUSD/DASH/XLM/XMR are
-  // capacity-gated; BNBUSD measure-only; four starved. Record:
-  // 4d-derivation-2026-08-11.md's holdout addendum + the
-  // 4d-holdout-*.json artifacts.
+  // tuning step ever saw, EURUSD among them. The other nine were, AT
+  // THIS TRANCHE, capacity-gated (BZUSD/DASH/XLM/XMR), measure-only
+  // (BNBUSD) or starved (AAVEUSD/ARWUSD/HEUSX/THETAUSD). The totality
+  // tranche above re-derived all nine on their own full spans: SIX
+  // earned confirmed cells there (AAVEUSD, BNBUSD, BZUSD, DASHUSD,
+  // XLMUSD, XMRUSD — BNB's is the r16 owner gate, answered by
+  // measurement at last), ARWUSD was confirm-refused, and HEUSX and
+  // THETAUSD hold full-span measure-only verdicts. Record:
+  // 4d-derivation-2026-08-11.md's holdout + totality addenda and the
+  // 4d-holdout-*.json / 4d-totality-*.json artifacts.
   AUDCHF: {
     confidenceThreshold: 0,
     maxStopAtrMultiplier: 4,
