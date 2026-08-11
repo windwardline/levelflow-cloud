@@ -6,7 +6,10 @@ import {
   getClassCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { getSessionContext } from "../supabase/functions/trade-analyzer/sessions.ts";
-import { noTradeSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
+  defaultScanSymbols,
+  noTradeSymbols,
+} from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   confidenceThresholdForAssetOrSymbol,
   reviewWindowHoursForSymbol,
@@ -397,5 +400,35 @@ describe("the derived per-market layer (4d, confirmed 2026-08-11)", () => {
     // RBUSD reverted, the capacity-gated and measure-only keep class
     // values (spot-checked by the reverted case above; the count is the
     // full guard here).
+  });
+});
+
+describe("the roster arithmetic states the offering, not a sum of views (audit 2026-08-11)", () => {
+  it("97 distinct markets; the 45/33/27 account views sum to 105 by double-count", () => {
+    // Three successive corrections landed here (106 -> 105 -> 97), each
+    // because a number was reasoned about rather than measured. This
+    // pins the measurement AND the relationship, so neither can drift.
+    assert.equal(defaultScanSymbols.length, 97, "the roster is 97 markets");
+    assert.equal(
+      SECURITY_OPTIONS.length,
+      105,
+      "the menu carries 105 entries — 97 markets plus 8 contract-size variants",
+    );
+    assert.equal(
+      SECURITY_OPTIONS.length - defaultScanSymbols.length,
+      8,
+      "the gap between menu and roster is exactly the contract-size variants",
+    );
+    // And the docs may not print 105 as if it were the offering.
+    for (
+      const doc of ["docs/HANDOFF.md", "docs/trade-model.md"]
+    ) {
+      const text = readFileSync(doc, "utf8");
+      assert.doesNotMatch(
+        text,
+        /\*\*105 markets\*\*|\*\*105\*\* — forex/,
+        `${doc} must not headline 105 as the offering`,
+      );
+    }
   });
 });

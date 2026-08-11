@@ -41,11 +41,11 @@ step leaves every signed-in operator working behind a closed door.
 
 | | |
 | --- | --- |
-| Markets | **105** — forex 45, crypto 33, futures 27; the count is the composition's own sum (a stale 106 stood here until round 8's coverage lens, CV-9) (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | Round 28 calibration, Edge Functions deployed and verified in the deploy log |
+| Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
+| Engine | `2026.08.11.totality` — 72 derived per-market cells across three confirmed tranches; Edge Functions deployed and verified in the deploy log |
 | Public face | The parking page |
-| Tests | 1,907 passing; check · lint · check:migrations · test · build · check:bundle all green |
-| Repo | `main` only. No open PRs, no worktrees, no stray branches, nothing uncommitted |
+| Tests | 2,166 passing; check · lint · check:migrations · test · build · check:bundle all green |
+| Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
 
 ### Merged 2026-08-06 → 07
 
@@ -612,6 +612,27 @@ for its own sake.
 
 **Amendment 31's only exit lives in 4d.** If a market leaves the offering, it
 leaves on this evidence. Nothing else removes one.
+
+### 4.5 — What the 2026-08-11 audit found (read before item 5)
+
+A six-domain adversarial audit of this file's own claims ran after item
+4 closed. Three of its overturns are load-bearing:
+
+1. **The gate measured improvement, not positivity.** 50 of the 72
+   shipped cells are money-positive on the held-back fold; **20 are
+   not** — they lose less than the baseline, which is what "confirmed"
+   meant. A threshold rescue across every threshold their own scores
+   admit FAILED. **This is an open owner decision under amendment 31's
+   4d exit** (withdraw the 20, or keep them and say so on the surface).
+   Full record and evidence: `docs/research/baseline-2026-08-10/
+   4d-derivation-2026-08-11.md`, "Absolute-expectancy addendum".
+2. **The roster headline was a sum of account views, not the offering.**
+   97 distinct markets; 45/33/27 per account type sum to 105 only by
+   double-counting eight dual-listed crypto CFDs. Corrected here and in
+   trade-model, pinned in `tests/calibrationState.test.ts`.
+3. **Item 0.5's residual is closed** — `anon`'s grants on the engine
+   tables are revoked and pinned (they were inert behind RLS, which is
+   why it was worth closing before a future policy made them live).
 
 ### 5 — Prop-firm survival
 Median 9 open positions, p90 25, max 43 — 4.5% / 12.5% / 21.5% of the account at the

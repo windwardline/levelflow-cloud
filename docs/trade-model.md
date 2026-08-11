@@ -59,7 +59,7 @@ Forex/futures carry the buy-side tilt (r5). High-impact scheduled news
 blocks reviews; penalties per the caps above (r23 validated them as
 calibrated).
 
-Tradable menu: **105 markets** — full matched coverage under amendment
+Tradable menu: **97 distinct markets** (forex 45 · crypto 33 · futures 27 per account type — those sum to 105 only because eight crypto CFDs appear on two account types) — full matched coverage under amendment
 32 (2026-08-09): every market E8 offers for which FMP carries a verified
 IDENTITY-MATCHED series is visible and scannable; a derivative is not its
 underlying, and a time-varying gap is not a match.
@@ -245,7 +245,7 @@ Every v2 behavior is opt-in through `ReplayFillOptions`; with no options
 the resolver reproduces v1 exactly, which is what keeps the live path
 and 2,100+ existing pins honest while the corpus side moves ahead.
 
-## The derived per-market layer (2026-08-11, item 4d — `2026.08.11.derived-4d`)
+## The derived per-market layer (2026-08-11, item 4d — `2026.08.11.totality`)
 
 The first per-market calibration derived entirely behind the repaired
 instrument: engine v2's venue bill and fills, gate v2's enforced
@@ -273,6 +273,17 @@ validation. Record and artifacts:
 The UI mirrors the derived floors
 (`DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL`) under the same exhaustive
 parity sweep that holds every other mirror to the engine's resolver.
+
+**Three tranches, 72 cells, and one unflattering number.** The holdout
+cycle (11/11 confirmed) and the totality cycle (22 more on per-market
+full-span folds) followed the same day; the engine carries 72 derived
+cells under `2026.08.11.totality`. But the gate measures IMPROVEMENT
+against a negative baseline, so **50 of those 72 markets are
+money-positive on the held-back fold and 20 are not** — they lose less,
+not nothing. A per-market threshold rescue was attempted across every
+threshold their own scores admit and FAILED. That is an open owner
+decision under amendment 31's 4d exit, recorded in full in
+`docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md`.
 
 ## Resumption protocol (for the operator)
 
@@ -440,10 +451,12 @@ walk-forward). Durable character groups emerged:
   direct review path, so nothing is "reviewable directly" any more. Then
   amendment 31 (2026-08-07) retired scan curation entirely: full matched
   coverage is the resting state — every identity-matched E8 market live
-  per account type (105 today: amendment 32 tightened "matched" to
-  identity leaving 106, and BRENT's dormancy the same day debited one
-  more — a stale 106 that never absorbed BRENT stood here until round
-  8's coverage lens, CV-9) — and the only path out of the offering is a
+  per account type (97 distinct today; the per-account views are 45/33/27
+  and sum to 105 only by double-counting the eight dual-listed crypto
+  CFDs. Amendment 32 tightened "matched" to identity and BRENT's
+  dormancy debited one more; the 106 → 105 → 97 sequence is three
+  successive arithmetic corrections, the last by the 2026-08-11 audit)
+  — and the only path out of the offering is a
   calibration verdict under item 4d. No curation mechanism exists in the
   scan path today, and no sentence anywhere should claim one. See the menu
   under "Current engine state" for the state of record.

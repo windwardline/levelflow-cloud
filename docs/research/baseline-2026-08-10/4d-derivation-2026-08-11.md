@@ -132,3 +132,65 @@ Every row above is a measurement, not a judgment call. The engine now
 carries **72 derived cells**; the 25 markets without one hold either a
 confirm refusal or a full-span measure-only verdict, and exactly one
 (ZTUSD) carries a named parameter suspicion with its named next probe.
+
+## Absolute-expectancy addendum (audit 2026-08-11) — THE OWNER DECISION
+
+An adversarial audit of this document's own claims overturned the one
+that mattered most, and it is recorded here in full because the
+correction is unflattering.
+
+**The gate measures IMPROVEMENT, not positivity.** Every "confirmed"
+verdict in this file means: the cell beat its baseline on the held-back
+fold, at p ≤ 0.05, family-wise. The baseline it beat was measured
+NEGATIVE in every class. So a confirmed cell can be — and in twenty
+cases is — a market that loses less money, not one that makes any.
+
+Measured from the corpus's own per-market expectancy rows, for each
+shipped cell on the confirm (held-back) fold:
+
+- **50 of 72 shipped cells are positive on BOTH the select and confirm
+  folds.** Those are money-positive markets under the derived engine.
+- **20 of 72 are negative on the confirm fold** despite a confirmed
+  improvement — EGLDUSD −0.304R per decision, CAKEUSD −0.224, ZCUSX
+  −0.191, ZOUSX −0.170, PAUSD −0.149, DOGEUSD −0.147, ETCUSD −0.137,
+  DASHUSD −0.114, GRTUSD/HBARUSD −0.113, XMRUSD −0.112, IMXUSD −0.101,
+  AAVEUSD −0.088, UNIUSD −0.074, XLMUSD −0.065, ZMUSD −0.061, LINKUSD
+  −0.047, LTCUSD −0.009, NSDQ −0.004, ZLUSX ±0.000.
+- 2 of the 72 have no per-market log row to read (BNBUSD, XAGUSD) —
+  disclosed, not assumed either way.
+
+**The rescue was attempted and failed, on the data.**
+`scripts/threshold-rescue.ts` walks each negative market's OWN
+confidence-score distribution across thresholds 0–95 (the corpus was
+swept `--capture-all`, so every rejected decision is present with its
+score — this is a READ, not a new assumption) and looks for a threshold
+positive on BOTH folds with ≥30 fills. Result: **two "rescues," both
+worthless** — NSDQ at +0.001R and LTCUSD at +0.000R on confirm, which
+are zero. Five markets show a positive confirm-fold expectancy at a high
+threshold (PAUSD +0.106, DASHUSD +0.111, ZLUSX +0.064, LINKUSD +0.017,
+GRTUSD +0.009) but only where their SELECT fold refuses — choosing those
+would be fitting to the held-back data, which is the one thing this
+whole apparatus exists to prevent. Artifact:
+`4d-threshold-rescue.json`.
+
+**So the owner's standard is met in both directions**: a positive
+outcome was reached where one was reachable (50 markets), and where it
+was not, the refusal now carries measured backing across every
+threshold the market's own scores admit.
+
+### The decision this hands the owner
+
+Amendment 31 says full matched coverage is the resting state and **its
+only exit lives in 4d — "if a market leaves the offering, it leaves on
+this evidence."** This is that evidence, for the first time. Two
+defensible readings, and the choice is the owner's alone:
+
+1. **Withdraw the 20** from the offering under amendment 31's 4d exit.
+   The engine would stop presenting setups on markets it measures as
+   losing. Coverage falls 97 → 77.
+2. **Keep them and state it.** They stay live with their confirmed
+   improvement, and the record (and any surface that claims a market's
+   record) says plainly that the measured expectancy is negative.
+
+Option 2 is only honest if the product SAYS it; today no surface does.
+Nothing ships on this question without the owner's ruling.
