@@ -222,12 +222,13 @@ describe("buildAttribution — slice math", () => {
     assert.equal(row(setups, "side", "Buy").moneyPositivePercent, 67);
   });
 
-  it("counts only resolved rows — a pending, unfilled, or unclear row is neither", () => {
+  it("counts resolved rows — pending and unfilled are neither; unclear resolves against the record (2e/PH-7)", () => {
     const setups = [
       won({ id: "a" }),
       won({ id: "b" }),
       won({ id: "c" }),
-      // classifyWinLoss "neither", all three of them.
+      // pending and unfilled stay neutral; the unclear row now counts as
+      // the loss the engine priced it as.
       buildSetup({ id: "pending" }),
       buildSetup({
         id: "unfilled",
@@ -242,8 +243,8 @@ describe("buildAttribution — slice math", () => {
     ];
 
     const buy = row(setups, "side", "Buy");
-    assert.equal(buy.resolved, 3);
-    assert.equal(buy.moneyPositivePercent, 100);
+    assert.equal(buy.resolved, 4);
+    assert.equal(buy.moneyPositivePercent, 75);
   });
 });
 

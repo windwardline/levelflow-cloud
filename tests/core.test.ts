@@ -973,6 +973,10 @@ describe("history workspace logic", () => {
       makeHistorySetup({ confidence: 92 }),
     ]);
 
+    // PH-7 (2e): the ambiguous row at 90 is a RESOLVED LOSS now — the
+    // engine priced its exit at the stop side, and the band may not
+    // resurrect it as a non-event. Only the truly pending row at 92
+    // stays unresolved.
     assert.deepEqual(
       bands.map((band) => ({
         count: band.count,
@@ -983,7 +987,7 @@ describe("history workspace logic", () => {
       [
         { count: 1, label: "Qualified", resolved: 1, winRate: 100 },
         { count: 1, label: "Strong", resolved: 1, winRate: 0 },
-        { count: 2, label: "Best", resolved: 0, winRate: null },
+        { count: 2, label: "Best", resolved: 1, winRate: 0 },
       ],
     );
   });

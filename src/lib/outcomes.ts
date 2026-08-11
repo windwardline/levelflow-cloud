@@ -173,9 +173,13 @@ export type WinLossClass = "loss" | "neither" | "win";
 // historyUtils.ts's buildRecordBand, which could silently drift apart on a
 // future outcome-taxonomy change. A win is any money-positive resolution
 // (full target, banked TP1, or a profitable expiry); a loss is any
-// money-negative one. Every other outcome affects neither side of a win/loss
-// ratio: unresolved, entry not filled, an unclear path, and a manual close —
-// which records where a position ended but not which level it was heading for.
+// money-negative one — INCLUDING an unclear path: the engine resolves an
+// unknowable stop-or-target order against the trade and prices the exit at
+// the stop side (2e; round-8 PH-7), so the ratio a reader sees must count
+// it the same way the accountant did. Neutral is only what truly decided
+// nothing: unresolved rows, entries that never filled, and manual closes —
+// which record where a position ended but not which level it was heading
+// for.
 export function classifyWinLoss(outcome: SetupOutcome): WinLossClass {
   if (
     outcome === "target_reached" || outcome === "partial_target" ||
@@ -183,7 +187,10 @@ export function classifyWinLoss(outcome: SetupOutcome): WinLossClass {
   ) {
     return "win";
   }
-  if (outcome === "stopped_out" || outcome === "expired_in_loss") {
+  if (
+    outcome === "stopped_out" || outcome === "expired_in_loss" ||
+    outcome === "unclear_path"
+  ) {
     return "loss";
   }
   return "neither";
