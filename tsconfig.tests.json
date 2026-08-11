@@ -70,6 +70,7 @@
     "supabase/functions/trade-analyzer/sweep.ts",
     "supabase/functions/trade-analyzer/symbols.ts",
     "supabase/functions/trade-analyzer/types.ts",
+    "supabase/functions/trade-analyzer/venueCosts.ts",
     "supabase/functions/news-calendar/eventRows.ts"
   ]
 }

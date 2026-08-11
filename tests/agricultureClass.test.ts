@@ -72,9 +72,16 @@ describe("agriculture is its own calibration class (derived 2026-08-06)", () => 
     };
     const asAg = estimateExecutionQuality({ ...shared, assetType: "agriculture" });
     const asFutures = estimateExecutionQuality({ ...shared, assetType: "futures" });
+    // The venue commission (round-8 CO-1) is priced per CONTRACT, so it is
+    // identical on both sides of this comparison — the 3x claim is about
+    // the class's spread+slippage model, so the common term stays out.
+    const agModel = asAg.estimatedRoundTripCost - asAg.estimatedCommission;
+    const futuresModel = asFutures.estimatedRoundTripCost -
+      asFutures.estimatedCommission;
+    assert.equal(asAg.estimatedCommission, asFutures.estimatedCommission);
     assert.ok(
-      asAg.estimatedRoundTripCost > asFutures.estimatedRoundTripCost * 2.5,
-      `agriculture must charge materially more: ${asAg.estimatedRoundTripCost} vs ${asFutures.estimatedRoundTripCost}`,
+      agModel > futuresModel * 2.5,
+      `agriculture must charge materially more: ${agModel} vs ${futuresModel}`,
     );
     // And it must still leave a genuine 2:1 setup tradable — a cost model that
     // disqualifies everything is the copper defect wearing different clothes.

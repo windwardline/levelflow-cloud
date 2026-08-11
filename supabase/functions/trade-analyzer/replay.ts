@@ -71,11 +71,47 @@ export type ReplayOutcome =
     state: "resolved";
   };
 
+// Engine v2 fill options (round-8 FR-1/3/4/6/7/8, LA-2/13). Every default
+// preserves v1 behavior exactly; the sweep and outcome-sync opt into the
+// venue's fills explicitly, and the ANALYZER_VERSION bump scopes the
+// corpora either side of that choice.
+export type ReplayFillOptions = {
+  // LA-2: bars are OHLC over [time, time + barIntervalMs); one whose span
+  // crosses expiry can carry post-expiry price, so it may resolve nothing.
+  barIntervalMs?: number;
+  // FR-6: the operator does not place the order on the decision bar's
+  // first print — the entry scan starts this many bars after creation.
+  entryLatencyBars?: number;
+  // FR-7: extra slippage on adverse exits that print at a gapped open —
+  // a market order at a reopen does not fill at the exact first print.
+  gapExitSlippage?: number;
+  // FR-1: events trigger on the venue's bid/ask, not on mid. For a buy:
+  // the entry needs the ASK down at the limit (mid ≤ entry − h), the stop
+  // triggers when the BID touches it (mid ≤ stop + h), and the targets
+  // need the BID up at their level (mid ≥ target + h). Sells mirror.
+  halfSpread?: number;
+  reviewHours?: number;
+  runnerProtection?: RunnerProtection;
+  // FR-3: once TP1 banks, the protective stop exists on the SAME bar —
+  // if that bar CLOSES back through the armed level, the runner exits on
+  // it rather than surviving to the next bar. The close is used, not the
+  // low: the bar's extremes predate the TP1 crossing (2c's principle).
+  sameBarProtectionArming?: boolean;
+  // FR-8: the expired-in-profit/at-loss split reads NET of this round
+  // trip, so a label can never contradict the accountant's sign.
+  roundTripCost?: number;
+  // FR-4: a manual TP1 partial fills this much worse than its level.
+  tp1FillHaircut?: number;
+  // LA-13: a limit "touch" is not a fill — demand this much penetration
+  // beyond the level before crediting one.
+  touchFillPenetration?: number;
+};
+
 export function evaluateSetupOutcome(
   setup: ReplaySetup,
   bars: ReplayBar[],
   now = Date.now(),
-  options?: { reviewHours?: number; runnerProtection?: RunnerProtection },
+  options?: ReplayFillOptions,
 ): ReplayOutcome {
   const entry = Number(setup.limit_entry);
   const stopLoss = Number(setup.stop_loss);
@@ -86,8 +122,14 @@ export function evaluateSetupOutcome(
     createdAt,
     options?.reviewHours,
   );
+  const barIntervalMs = options?.barIntervalMs ?? 15 * 60 * 1000;
+  const halfSpread = options?.halfSpread ?? 0;
+  const gapExitSlippage = options?.gapExitSlippage ?? 0;
+  const touchFillPenetration = options?.touchFillPenetration ?? 0;
+  const tp1FillHaircut = options?.tp1FillHaircut ?? 0;
+  const entryLatencyBars = options?.entryLatencyBars ?? 0;
   const createdBars = bars.filter((bar) =>
-    bar.time >= createdAt && bar.time <= expiresAt
+    bar.time >= createdAt && bar.time + barIntervalMs <= expiresAt
   );
 
   if (
@@ -116,10 +158,18 @@ export function evaluateSetupOutcome(
     return { state: "pending" };
   }
 
+  // FR-1/LA-13/FR-6: the entry limit fills when the venue's far side of
+  // the book reaches it (ask for buys, bid for sells), with any demanded
+  // penetration on top, and no earlier than the latency allows.
+  const entryFillLevel = setup.side === "buy"
+    ? entry - halfSpread - touchFillPenetration
+    : entry + halfSpread + touchFillPenetration;
   let fillIndex = -1;
-  for (let index = 0; index < createdBars.length; index += 1) {
+  for (let index = entryLatencyBars; index < createdBars.length; index += 1) {
     const bar = createdBars[index];
-    const filled = setup.side === "buy" ? bar.low <= entry : bar.high >= entry;
+    const filled = setup.side === "buy"
+      ? bar.low <= entryFillLevel
+      : bar.high >= entryFillLevel;
     if (filled) {
       fillIndex = index;
       break;
@@ -154,21 +204,39 @@ export function evaluateSetupOutcome(
   // below); the yardstick does not.
   const riskDistance = Math.abs(entry - stopLoss);
   const isBuy = setup.side === "buy";
+  // FR-1: triggers live in bid/ask space. Favorable exits (targets — sell
+  // limits for a long) need the BID at the level: mid must clear it by
+  // half a spread. The adverse stop triggers when the BID touches it: mid
+  // within half a spread suffices — stops fire EARLIER than mid shows,
+  // targets LATER, which is exactly the bias the mid model hid.
   const reachedFavorable = (level: number, bar: ReplayBar) =>
-    isBuy ? bar.high >= level : bar.low <= level;
+    isBuy ? bar.high >= level + halfSpread : bar.low <= level - halfSpread;
   const reachedAdverse = (level: number, bar: ReplayBar) =>
-    isBuy ? bar.low <= level : bar.high >= level;
-  // Gap-aware execution prints: a level order fills at the bar's open when
-  // the bar opens beyond the level — worse for stops, better for limits.
-  const adverseExitPrice = (level: number, bar: ReplayBar) =>
-    isBuy ? Math.min(bar.open, level) : Math.max(bar.open, level);
+    isBuy ? bar.low <= level + halfSpread : bar.high >= level - halfSpread;
+  // Gap-aware execution prints, on the executable side of the book: a
+  // stop that gaps prints at the open's BID (buy side) — open ∓ half a
+  // spread — with FR-7's reopen slippage on top when it truly gapped; a
+  // limit that gaps prints at the open's bid/ask, never better than its
+  // own level.
+  const adverseExitPrice = (level: number, bar: ReplayBar) => {
+    const gapPrint = isBuy ? bar.open - halfSpread : bar.open + halfSpread;
+    const gapped = isBuy ? gapPrint < level : gapPrint > level;
+    if (!gapped) {
+      return level;
+    }
+    return isBuy ? gapPrint - gapExitSlippage : gapPrint + gapExitSlippage;
+  };
+  const tp1Print = (price: number) =>
+    isBuy ? price - tp1FillHaircut : price + tp1FillHaircut;
   const favorableFillPrice = (level: number, bar: ReplayBar) =>
-    isBuy ? Math.max(bar.open, level) : Math.min(bar.open, level);
+    isBuy
+      ? Math.max(bar.open - halfSpread, level)
+      : Math.min(bar.open + halfSpread, level);
   // The entry is itself a limit: a fill bar opening through it is a
-  // price-improved fill at the open.
+  // price-improved fill at the ASK side of the open.
   const fillPrice = isBuy
-    ? Math.min(fillBar.open, entry)
-    : Math.max(fillBar.open, entry);
+    ? Math.min(fillBar.open + halfSpread, entry)
+    : Math.max(fillBar.open - halfSpread, entry);
   const legs: ResolutionLeg[] = [
     { leg: "entry", price: roundPrice(fillPrice), time: fillBar.time },
   ];
@@ -233,7 +301,7 @@ export function evaluateSetupOutcome(
         if (tp1Touched && takeProfit1 !== null) {
           legs.push({
             leg: "tp1",
-            price: roundPrice(favorableFillPrice(takeProfit1, bar)),
+            price: roundPrice(tp1Print(favorableFillPrice(takeProfit1, bar))),
             time: bar.time,
           });
         }
@@ -289,26 +357,68 @@ export function evaluateSetupOutcome(
       tp1Hit = true;
       legs.push({
         leg: "tp1",
-        price: roundPrice(favorableFillPrice(takeProfit1, bar)),
+        price: roundPrice(tp1Print(favorableFillPrice(takeProfit1, bar))),
         time: bar.time,
       });
+      // FR-3: the protective stop exists the moment the partial banks. If
+      // this bar CLOSED back through the armed level, the runner exits on
+      // this bar — the close, not the low, because the bar's extremes
+      // predate the TP1 crossing (2c's own principle, applied forward).
+      if (options?.sameBarProtectionArming && protection !== "hold") {
+        const armedStop = protection === "trail_tp1" ? takeProfit1 : entry;
+        const closedThrough = isBuy
+          ? bar.close <= armedStop + halfSpread
+          : bar.close >= armedStop - halfSpread;
+        if (closedThrough) {
+          legs.push({
+            kind: protection === "trail_tp1" ? "tp1_lock" : "breakeven_stop",
+            leg: "exit",
+            price: roundPrice(armedStop),
+            time: bar.time,
+          });
+          return {
+            exitAt: new Date(bar.time).toISOString(),
+            feedback: {
+              legs,
+              maxAdverseMove: roundPrice(maxAdverseMove),
+              maxFavorableMove: roundPrice(maxFavorableMove),
+              sameBarArming: true,
+              source: "price_path_review",
+              tp1Hit: true,
+            },
+            filledAt,
+            legs,
+            outcome: "tp1_partial",
+            state: "resolved",
+          };
+        }
+      }
     }
   }
 
   if (now > expiresAt) {
     // Realized from the ACTUAL fill print — a gap-improved entry earns its
-    // improvement — against the planned risk unit.
+    // improvement — against the planned risk unit. FR-1: closing at review
+    // end is a market order that crosses the book once, so the exit prints
+    // at the BID side of the last close, not at mid.
+    const expiryPrint = isBuy ? lastClose - halfSpread : lastClose + halfSpread;
     const realizedR = riskDistance > 0
       ? Number(
-        (((isBuy ? 1 : -1) * (lastClose - fillPrice)) / riskDistance).toFixed(
-          4,
-        ),
+        (((isBuy ? 1 : -1) * (expiryPrint - fillPrice)) / riskDistance)
+          .toFixed(4),
       )
       : 0;
+    // FR-8: the in-profit/at-loss split is a NET claim. Price drift that
+    // does not clear the round trip is a loss, and the label may never
+    // contradict the accountant's sign.
+    const costR = riskDistance > 0
+      ? (options?.roundTripCost ?? 0) / riskDistance
+      : 0;
+    const netRealizedR = Number((realizedR - costR).toFixed(4));
     legs.push({
       kind: "expiry",
       leg: "exit",
-      price: roundPrice(lastClose),
+      price: roundPrice(expiryPrint),
       time: createdBars.at(-1)!.time,
     });
     return {
@@ -317,6 +427,7 @@ export function evaluateSetupOutcome(
         legs,
         maxAdverseMove: roundPrice(maxAdverseMove),
         maxFavorableMove: roundPrice(maxFavorableMove),
+        netRealizedR,
         realizedR,
         reason: tp1Hit
           ? "TP1 was reached, but the runner target was not hit before the review window ended."
@@ -328,7 +439,7 @@ export function evaluateSetupOutcome(
       legs,
       outcome: tp1Hit
         ? "tp1_partial"
-        : realizedR > 0
+        : netRealizedR > 0
         ? "expired_in_profit"
         : "expired_at_loss",
       state: "resolved",
@@ -436,15 +547,37 @@ function getZonedTargetUtc(
   return naiveUtc - offset;
 }
 
+// OP-8: Intl.DateTimeFormat construction costs ~50us — the same CPU class
+// the completion gate paid before #289. Formatters hoist per zone, and the
+// derived parts cache per day (both lookups are day-granular by
+// construction: the callers pass a fixed-noon or fixed-close instant).
+const zonedDateFormatters = new Map<string, Intl.DateTimeFormat>();
+const zonedDatePartsCache = new Map<
+  string,
+  { day: number; month: number; weekday: number; year: number }
+>();
+const zoneOffsetFormatters = new Map<string, Intl.DateTimeFormat>();
+const zoneOffsetCache = new Map<string, number>();
+
 function getZonedDateParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    hour12: false,
-    month: "2-digit",
-    timeZone,
-    weekday: "short",
-    year: "numeric",
-  }).formatToParts(date);
+  const cacheKey = `${timeZone}:${Math.floor(date.getTime() / 3_600_000)}`;
+  const cached = zonedDatePartsCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  let formatter = zonedDateFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      hour12: false,
+      month: "2-digit",
+      timeZone,
+      weekday: "short",
+      year: "numeric",
+    });
+    zonedDateFormatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   const lookup = Object.fromEntries(
     parts.map((part) => [part.type, part.value]),
   );
@@ -457,25 +590,39 @@ function getZonedDateParts(date: Date, timeZone: string) {
     Tue: 2,
     Wed: 3,
   };
-  return {
+  const result = {
     day: Number(lookup.day ?? 1),
     month: Number(lookup.month ?? 1),
     weekday: weekdayMap[lookup.weekday ?? "Mon"] ?? 1,
     year: Number(lookup.year ?? 1970),
   };
+  zonedDatePartsCache.set(cacheKey, result);
+  return result;
 }
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    month: "2-digit",
-    second: "2-digit",
-    timeZone,
-    year: "numeric",
-  }).formatToParts(date);
+  // Hour-granular cache: DST transitions land on hour boundaries, so an
+  // hour bucket can never straddle two offsets.
+  const cacheKey = `${timeZone}:${Math.floor(date.getTime() / 3_600_000)}`;
+  const cached = zoneOffsetCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+  let formatter = zoneOffsetFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+      minute: "2-digit",
+      month: "2-digit",
+      second: "2-digit",
+      timeZone,
+      year: "numeric",
+    });
+    zoneOffsetFormatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   const lookup = Object.fromEntries(
     parts.map((part) => [part.type, part.value]),
   );
@@ -487,7 +634,9 @@ function getTimeZoneOffsetMs(date: Date, timeZone: string) {
     Number(lookup.minute ?? 0),
     Number(lookup.second ?? 0),
   );
-  return asUtc - date.getTime();
+  const offset = asUtc - date.getTime();
+  zoneOffsetCache.set(cacheKey, offset);
+  return offset;
 }
 
 function roundPrice(value: number) {

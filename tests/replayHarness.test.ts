@@ -731,3 +731,283 @@ function buildBar(
     volume: 1000,
   };
 }
+
+describe("engine v2 — the venue's fills (round-8 FR-1/3/4/6/7/8, LA-2/13)", () => {
+  const farNow = createdAt + 365 * 24 * 60 * 60 * 1000;
+
+  it("FR-1: a buy limit needs the ASK at its level — mid a hair above is no fill", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [buildBar(15, 101, 99.97, 100.5)];
+    const withoutSpread = evaluateSetupOutcome(setup, bars, farNow);
+    const withSpread = evaluateSetupOutcome(setup, bars, farNow, {
+      halfSpread: 0.05,
+    });
+    assert.equal(
+      withoutSpread.state === "resolved" ? withoutSpread.outcome : null,
+      "expired_in_profit",
+    );
+    assert.equal(
+      withSpread.state === "resolved" ? withSpread.outcome : null,
+      "unfilled",
+    );
+  });
+
+  it("FR-1: the BID reaches the stop half a spread before mid does", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 100.5, 98.03, 100.4, 100.1),
+    ];
+    const withoutSpread = evaluateSetupOutcome(setup, bars, farNow);
+    assert.notEqual(
+      withoutSpread.state === "resolved" ? withoutSpread.outcome : null,
+      "stop_loss",
+    );
+    const withSpread = evaluateSetupOutcome(setup, bars, farNow, {
+      halfSpread: 0.05,
+    });
+    assert.equal(
+      withSpread.state === "resolved" ? withSpread.outcome : null,
+      "stop_loss",
+    );
+    const exit = withSpread.state === "resolved"
+      ? withSpread.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.price, 98);
+  });
+
+  it("FR-1: the target needs the BID at its level — mid touching is not a fill", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 105.03, 100.1, 104.9),
+    ];
+    const withoutSpread = evaluateSetupOutcome(setup, bars, farNow);
+    assert.equal(
+      withoutSpread.state === "resolved" ? withoutSpread.outcome : null,
+      "take_profit",
+    );
+    const withSpread = evaluateSetupOutcome(setup, bars, farNow, {
+      halfSpread: 0.05,
+    });
+    assert.equal(
+      withSpread.state === "resolved" ? withSpread.outcome : null,
+      "expired_in_profit",
+    );
+  });
+
+  it("FR-1: a gapped stop prints at the BID side of the open", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 97.4, 96.8, 97.1, 97),
+    ];
+    const result = evaluateSetupOutcome(setup, bars, farNow, {
+      halfSpread: 0.05,
+    });
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.price, 96.95);
+  });
+
+  it("FR-7: a gapped exit can carry reopen slippage on top of the bid print", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 97.4, 96.8, 97.1, 97),
+    ];
+    const result = evaluateSetupOutcome(setup, bars, farNow, {
+      gapExitSlippage: 0.05,
+      halfSpread: 0.05,
+    });
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.price, 96.9);
+    const clean = evaluateSetupOutcome(setup, [
+      bars[0],
+      buildBar(30, 100.5, 97.9, 100.2, 100.1),
+    ], farNow, { gapExitSlippage: 0.05 });
+    const cleanExit = clean.state === "resolved"
+      ? clean.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(cleanExit?.price, 98);
+  });
+
+  it("LA-2: a bar straddling expiry cannot resolve anything", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+    const straddleStart = expiresAt - 60 * 1000;
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.3),
+      {
+        close: 105.5,
+        high: 105.6,
+        low: 100.1,
+        open: 100.2,
+        time: straddleStart,
+        volume: 1000,
+      },
+    ];
+    const result = evaluateSetupOutcome(setup, bars, farNow);
+    assert.equal(
+      result.state === "resolved" ? result.outcome : null,
+      "expired_in_profit",
+    );
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.price, 100.3);
+  });
+
+  it("FR-8: the expired label reads NET of the round trip, not price drift", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 100.3, 99.9, 100.2),
+    ];
+    const gross = evaluateSetupOutcome(setup, bars, farNow);
+    assert.equal(
+      gross.state === "resolved" ? gross.outcome : null,
+      "expired_in_profit",
+    );
+    const net = evaluateSetupOutcome(setup, bars, farNow, {
+      roundTripCost: 0.5,
+    });
+    assert.equal(
+      net.state === "resolved" ? net.outcome : null,
+      "expired_at_loss",
+    );
+  });
+
+  it("FR-3: banking TP1 arms the breakeven stop within the SAME bar's close", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+      tp1: 101,
+    });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 101.4, 99.95, 99.9, 100.1),
+      buildBar(45, 100.6, 99.2, 100.5),
+    ];
+    const deferred = evaluateSetupOutcome(setup, bars, farNow);
+    const sameBar = evaluateSetupOutcome(setup, bars, farNow, {
+      sameBarProtectionArming: true,
+    });
+    assert.equal(
+      sameBar.state === "resolved" ? sameBar.outcome : null,
+      "tp1_partial",
+    );
+    const exit = sameBar.state === "resolved"
+      ? sameBar.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.kind, "breakeven_stop");
+    assert.equal(exit?.price, 100);
+    assert.equal(exit?.time, createdAt + 30 * 60 * 1000);
+    const deferredExit = deferred.state === "resolved"
+      ? deferred.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(deferredExit?.time, createdAt + 45 * 60 * 1000);
+  });
+
+  it("FR-4: a manual TP1 exit can carry its haircut", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+      tp1: 101,
+    });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 101.4, 100.05, 101.2, 100.1),
+    ];
+    const result = evaluateSetupOutcome(setup, bars, farNow, {
+      tp1FillHaircut: 0.02,
+    });
+    const tp1Leg = result.state === "resolved" || result.state === "placed"
+      ? (result.feedback.legs as Array<{ leg: string; price: number }>).find(
+        (leg) => leg.leg === "tp1",
+      )
+      : null;
+    assert.equal(tp1Leg?.price, 100.98);
+  });
+
+  it("FR-6: one bar of placement latency skips the creation bar's fill", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [buildBar(15, 100.2, 99.5, 100.1)];
+    const immediate = evaluateSetupOutcome(setup, bars, farNow);
+    assert.notEqual(
+      immediate.state === "resolved" ? immediate.outcome : null,
+      "unfilled",
+    );
+    const delayed = evaluateSetupOutcome(setup, bars, farNow, {
+      entryLatencyBars: 1,
+    });
+    assert.equal(
+      delayed.state === "resolved" ? delayed.outcome : null,
+      "unfilled",
+    );
+  });
+
+  it("LA-13: touch-fill penetration demands price beyond the limit", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [buildBar(15, 100.4, 99.99, 100.2)];
+    const touched = evaluateSetupOutcome(setup, bars, farNow);
+    assert.equal(
+      touched.state === "resolved" ? touched.outcome : null,
+      "expired_in_profit",
+    );
+    const strict = evaluateSetupOutcome(setup, bars, farNow, {
+      touchFillPenetration: 0.02,
+    });
+    assert.equal(
+      strict.state === "resolved" ? strict.outcome : null,
+      "unfilled",
+    );
+  });
+});
+
+describe("OP-8 — the expiry path cannot pay Intl construction per call", () => {
+  it("computes 2,000 expiry times inside the CI budget", () => {
+    const start = performance.now();
+    for (let index = 0; index < 2000; index += 1) {
+      getSetupExpiryTime("EURUSD", createdAt + index * 60_000);
+    }
+    const elapsed = performance.now() - start;
+    assert.ok(
+      elapsed < 250,
+      `2,000 expiry computations took ${elapsed.toFixed(0)}ms — the ` +
+        "per-call Intl construction class is back (round-8 OP-8)",
+    );
+  });
+});
+
+describe("FR-1 — the expiry close crosses the book too", () => {
+  it("prints the expiry exit at the bid side of the last close", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const bars = [
+      buildBar(15, 100.4, 99.9, 100.2),
+      buildBar(30, 100.4, 99.9, 100.2),
+    ];
+    const result = evaluateSetupOutcome(
+      setup,
+      bars,
+      createdAt + 365 * 24 * 60 * 60 * 1000,
+      { halfSpread: 0.05 },
+    );
+    const exit = result.state === "resolved"
+      ? result.legs.find((leg) => leg.leg === "exit")
+      : null;
+    assert.equal(exit?.kind, "expiry");
+    assert.equal(exit?.price, 100.15);
+    assert.equal(
+      result.state === "resolved" ? result.feedback.realizedR : null,
+      0.075,
+    );
+  });
+});
