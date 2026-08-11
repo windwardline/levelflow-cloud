@@ -65,3 +65,25 @@ with an ANALYZER_VERSION bump; every other market keeps its shipped
 values with its state named (capacity-gated / measure-only / starved /
 holdout). The reopen decision remains the owner's, separate from this
 derivation.
+
+## Holdout-cycle addendum (2026-08-11, owner word)
+
+The reserve was spent the day it was built, on the owner's instruction:
+the twenty held-out markets ran the SAME pipeline on their own untouched
+rows — derive on fit+select, feasibility from published arithmetic,
+picks frozen, then their confirm rows' first consultation (the corpus
+log's acknowledged second read, recorded).
+
+**Eleven of eleven frozen picks confirmed positive** — a perfect
+out-of-sample sweep on markets no tuning step ever saw, EURUSD among
+them (its cell: trail_tp1 · cap 4). The procedure generalizes: 50 of 52
+frozen picks across both cycles confirmed on held-back data.
+
+Census of the twenty: 11 confirmed and shipped
+(`2026.08.11.holdout-cycle`), 4 capacity-gated (BZUSD, DASH, XLM, XMR),
+1 measure-only (BNBUSD), 4 starved. Artifacts:
+`4d-holdout-{candidates,feasibility,final-picks,confirm-read}.json`.
+
+The NEXT unseen-validation reserve is live accrual itself: every market
+now runs the derived engine in production, and the live cohort is data
+nothing in this corpus ever touched.

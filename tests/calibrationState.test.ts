@@ -283,7 +283,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.11\.derived-4d"/,
+      /ANALYZER_VERSION = "2026\.08\.11\.holdout-cycle"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
   });
@@ -315,26 +315,38 @@ describe("the derived per-market layer (4d, confirmed 2026-08-11)", () => {
         "utf8",
       ),
     ) as { finalPicks: Record<string, { variant: string }> };
-    const confirm = JSON.parse(
+    const holdoutPicks = JSON.parse(
       readFileSync(
-        "docs/research/baseline-2026-08-10/4d-confirm-read.json",
+        "docs/research/baseline-2026-08-10/4d-holdout-final-picks.json",
         "utf8",
       ),
-    ) as {
-      confirmReport: Record<
-        string,
-        { confirmTotalDelta: number | null; variant: string }
-      >;
-    };
-    const confirmed = Object.entries(confirm.confirmReport)
-      .filter(([, r]) => (r.confirmTotalDelta ?? 0) > 0)
-      .map(([symbol]) => symbol)
-      .sort();
-    assert.equal(confirmed.length, 39);
+    ) as { finalPicks: Record<string, { variant: string }> };
+    const allPicks = { ...picks.finalPicks, ...holdoutPicks.finalPicks };
+    const confirmed: string[] = [];
+    for (const artifact of ["4d-confirm-read", "4d-holdout-confirm-read"]) {
+      const confirm = JSON.parse(
+        readFileSync(
+          `docs/research/baseline-2026-08-10/${artifact}.json`,
+          "utf8",
+        ),
+      ) as {
+        confirmReport: Record<
+          string,
+          { confirmTotalDelta: number | null; variant: string }
+        >;
+      };
+      for (const [symbol, r] of Object.entries(confirm.confirmReport)) {
+        if ((r.confirmTotalDelta ?? 0) > 0) confirmed.push(symbol);
+      }
+    }
+    confirmed.sort();
+    // 39 from the tuning population + 11 from the holdout cycle's
+    // perfect sweep = 50 derived cells, no more, no fewer.
+    assert.equal(confirmed.length, 50);
     for (const symbol of confirmed) {
       const cell = getCategoryCalibration(symbol);
       const parts = Object.fromEntries(
-        picks.finalPicks[symbol].variant.split(",").map((kv) => kv.split("=")),
+        allPicks[symbol].variant.split(",").map((kv) => kv.split("=")),
       ) as Record<string, string>;
       assert.equal(
         cell.confidenceThreshold,

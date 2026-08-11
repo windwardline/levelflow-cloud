@@ -108,6 +108,18 @@ export function confidenceThresholdForAssetOrSymbol(
 // calibrationState parity sweep holds every symbol to the engine's own
 // resolver, so this list can never drift silently.
 export const DERIVED_CONFIDENCE_FLOOR_BY_SYMBOL: Record<string, number> = {
+  // The holdout tranche (2026-08-11): eleven more, same parity sweep.
+  AUDCHF: 0,
+  AUDNZD: 0,
+  EURUSD: 0,
+  GBPCAD: 0,
+  NGUSD: 0,
+  NSDQ: 0,
+  NZDCHF: 0,
+  NZDJPY: 0,
+  RTYUSD: 0,
+  YMUSD: 0,
+  ZMUSD: 0,
   ADAUSD: 0,
   AUDCAD: 0,
   AUDJPY: 0,

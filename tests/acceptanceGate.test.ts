@@ -712,3 +712,28 @@ describe("gradeCorpus — the market unit rides the same door (4d)", () => {
     assert.equal(eur?.fitFilled, 40);
   });
 });
+
+describe("gradeCorpus — the holdout cycle's surgical read (symbolFilter)", () => {
+  it("grades ONLY the named symbols, holdout included, others never enter the cube", async () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      for (const symbol of ["EURUSD", "USDJPY"]) {
+        rows.push({ ...trainRow("baseline", day, 0.1), symbol });
+        rows.push({ ...outcomeRow("baseline", day, 0.1), symbol });
+        rows.push({ ...trainRow("wide", day, 0.2), symbol });
+        rows.push({ ...outcomeRow("wide", day, 0.2), symbol });
+      }
+    }
+    const emitPath = corpusWith(rows);
+    const { verdicts } = await gradeCorpus(emitPath, {
+      foldNames: { fit: "train", select: "test" },
+      includeHoldout: true,
+      permutations: 200,
+      seed: 7,
+      symbolFilter: new Set(["USDJPY"]),
+      verdictUnit: "market",
+    });
+    assert.equal(verdicts.has("EURUSD"), false, "filtered symbols never enter");
+    assert.ok(verdicts.get("USDJPY")?.get("wide")?.accepted);
+  });
+});

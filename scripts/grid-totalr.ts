@@ -529,6 +529,10 @@ export async function gradeCorpus(
   emitPathOrPaths: string | string[],
   options: GateOptions & {
     includeHoldout?: boolean;
+    // The holdout cycle's surgical read: only these symbols enter the
+    // cube at all, so a confirm-final run consults exactly the named
+    // markets' held-back rows and nothing else's.
+    symbolFilter?: Set<string>;
     // 4d: "market" grades every symbol on its own rows (singleton
     // groups, absolute sample floor); default stays the 4c class unit.
     verdictUnit?: "class" | "market";
@@ -586,6 +590,9 @@ export async function gradeCorpus(
   for (const path of paths) {
     await assertManifestedCorpusStreaming(path, (row) => {
       if (held.has(row.symbol)) return;
+      if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
+        return;
+      }
       addRowToCube(cube, row, { includeHoldout: true });
     });
   }

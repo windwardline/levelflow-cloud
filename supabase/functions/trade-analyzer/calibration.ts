@@ -4,7 +4,7 @@
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
 import { isKnownSymbol } from "./symbols.ts";
-export const ANALYZER_VERSION = "2026.08.11.derived-4d";
+export const ANALYZER_VERSION = "2026.08.11.holdout-cycle";
 
 export type AssetType =
   | "agriculture"
@@ -682,6 +682,84 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // live in every corpus cell, so the confirmed delta sits on top of
   // them); capacity-gated, measure-only, starved and held-out markets
   // deliberately have no entry here.
+  //
+  // ---- The holdout tranche (2026-08-11, owner word): the twenty
+  // markets the read-time stratification kept out of every 4c/4d tuning
+  // aggregate ran the SAME pipeline on their own untouched rows — derive
+  // on fit+select, feasibility from published venue arithmetic, picks
+  // frozen, then their confirm rows' first consultation (the corpus
+  // log's acknowledged second read). Eleven of eleven frozen picks
+  // confirmed positive — a perfect out-of-sample sweep on markets no
+  // tuning step ever saw, EURUSD among them. BZUSD/DASH/XLM/XMR are
+  // capacity-gated; BNBUSD measure-only; four starved. Record:
+  // 4d-derivation-2026-08-11.md's holdout addendum + the
+  // 4d-holdout-*.json artifacts.
+  AUDCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  AUDNZD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPCAD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NGUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NSDQ: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NZDCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NZDJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  RTYUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  YMUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ZMUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
   ADAUSD: {
     confidenceThreshold: 0,
     maxStopAtrMultiplier: 4,
