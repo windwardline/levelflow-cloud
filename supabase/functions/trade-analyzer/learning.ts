@@ -13,15 +13,22 @@ export type LearningWeight = {
 };
 
 export function calculateLearningWeight(stats: LearningStats): LearningWeight {
-  const resolved = Math.max(stats.wins + stats.losses, 0);
-  const total = Math.max(stats.total, resolved + Math.max(stats.ambiguous, 0));
+  // 2e / round-8 PH-7: an ambiguous path resolved AGAINST the trade — the
+  // engine prices its exit at the stop side — so the learning layer counts
+  // it as a loss in the win rate rather than quietly dropping it from the
+  // denominator. The ambiguity penalty below stays as a separate DATA
+  // QUALITY discount on sample weight; the double effect is deliberate and
+  // conservative, which is the direction 2e demands.
+  const ambiguous = Math.max(stats.ambiguous, 0);
+  const resolved = Math.max(stats.wins + stats.losses, 0) + ambiguous;
+  const total = Math.max(stats.total, resolved);
   const winRate = stats.wins / Math.max(resolved, 1);
   const baseSampleWeight = resolved >= 20
     ? 1
     : resolved >= 8
     ? resolved / 20
     : 0;
-  const ambiguityShare = total > 0 ? Math.max(stats.ambiguous, 0) / total : 0;
+  const ambiguityShare = total > 0 ? ambiguous / total : 0;
   const ambiguityPenalty = Math.min(0.45, ambiguityShare * 0.75);
   const sampleWeight = roundWeight(baseSampleWeight * (1 - ambiguityPenalty));
   const confidenceAdjustment = roundWeight(

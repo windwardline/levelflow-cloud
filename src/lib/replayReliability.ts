@@ -31,13 +31,21 @@ export type ReplayRecord = {
   superseded?: true;
 };
 
+// Round-8 PH-1 (2026-08-11): ALL SIX rows are superseded, not just
+// indices. Every figure below was measured by the retired pre-repair
+// evaluator — the instrument items 2 and 3 replaced — and the first
+// repaired baseline measured the accepted stream NEGATIVE in every class.
+// The file's own flag existed for exactly this state and five rows were
+// printing the invalidated record without it. The engine-v2 corpus
+// re-measures all six; that re-sweep replaces these rows, never a
+// restatement.
 export const REPLAY_RECORD_BY_ASSET_TYPE: Record<SecurityType, ReplayRecord> = {
-  Crypto: { moneyPositiveRate: 0.87, sampleSize: 6106 },
-  Energies: { moneyPositiveRate: 0.6, sampleSize: 474 },
-  Forex: { moneyPositiveRate: 0.89, sampleSize: 123254 },
-  Futures: { moneyPositiveRate: 0.83, sampleSize: 2368 },
+  Crypto: { moneyPositiveRate: 0.87, sampleSize: 6106, superseded: true },
+  Energies: { moneyPositiveRate: 0.6, sampleSize: 474, superseded: true },
+  Forex: { moneyPositiveRate: 0.89, sampleSize: 123254, superseded: true },
+  Futures: { moneyPositiveRate: 0.83, sampleSize: 2368, superseded: true },
   Indices: { moneyPositiveRate: 0.51, sampleSize: 952, superseded: true },
-  Metals: { moneyPositiveRate: 0.9, sampleSize: 453 },
+  Metals: { moneyPositiveRate: 0.9, sampleSize: 453, superseded: true },
 };
 
 // A record belongs to the population it was measured on, and to no other.

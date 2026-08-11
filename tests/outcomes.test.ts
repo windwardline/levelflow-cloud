@@ -52,10 +52,17 @@ describe("classifyWinLoss — single source of truth for the ladder's win/loss s
     "partial_target",
     "expired_in_profit",
   ];
-  const losses: SetupOutcome[] = ["stopped_out", "expired_in_loss"];
+  // unclear_path sits with the losses since PH-7 (2e): the engine resolves
+  // an unknowable stop-or-target order against the trade and prices the
+  // exit at the stop side, so the ratio counts it the way the accountant
+  // did.
+  const losses: SetupOutcome[] = [
+    "stopped_out",
+    "expired_in_loss",
+    "unclear_path",
+  ];
   const neither: SetupOutcome[] = [
     "still_tracking",
-    "unclear_path",
     "entry_not_filled",
     // A manual close records where the position ended but not which level it
     // was heading for, so it belongs on neither side of a win/loss ratio.
@@ -623,8 +630,14 @@ describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)",
     ]) {
       const outcome = normalizeSetupOutcome({ ...base, ...filled });
       assert.equal(outcome, "unclear_path", JSON.stringify(filled));
-      // And the record cannot score it as a win or a loss on no evidence.
-      assert.equal(classifyWinLoss(outcome), "neither");
+      // The class scores against the record (PH-7): its population is the
+      // engine's ambiguous rows, which 2e prices at the stop side. A legacy
+      // bare-expired filled row shares the class and the conservative
+      // direction — and its population is zero since the 2026-08-11 wipe
+      // (the engine's own union omits bare "expired"), so no evidence-free
+      // row exists to miscount. If legacy data ever re-imports, split the
+      // taxonomy before counting it.
+      assert.equal(classifyWinLoss(outcome), "loss");
     }
   });
 
@@ -633,5 +646,15 @@ describe("a bare legacy \"expired\" outcome is routed by fill evidence (Q2-M3)",
       normalizeSetupOutcome({ ...base, status: "expired", trade_outcomes: [] }),
       "entry_not_filled",
     );
+  });
+});
+
+describe("classifyWinLoss — ambiguous is a loss (2e, round-8 PH-7)", () => {
+  it("scores an unclear path against the record, matching the engine's own pricing", () => {
+    assert.equal(classifyWinLoss("unclear_path"), "loss");
+  });
+  it("keeps manual closes and unfilled entries neutral", () => {
+    assert.equal(classifyWinLoss("closed_manually"), "neither");
+    assert.equal(classifyWinLoss("entry_not_filled"), "neither");
   });
 });

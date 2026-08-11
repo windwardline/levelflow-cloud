@@ -32,7 +32,8 @@ describe("replay record copy", () => {
 
     assert.equal(
       record!.detail,
-      `Across ${sampleSize} past Crypto setups reserved for honest testing, ` +
+      `Across ${sampleSize} past Crypto setups reserved for honest testing` +
+        ` under a configuration the engine has since moved past, ` +
         `filled setups ended money-positive ${rate}% (±${se}pp) of the time before costs.`,
     );
   });
@@ -131,16 +132,29 @@ describe("the record gates on the measured population, not a class subtraction",
     }
   });
 
-  it("marks the one superseded row as superseded, in the sentence itself", () => {
-    // Round 28 (2026-08-06) moved indices' shipped geometry — review window
-    // 5 -> 8h, stop cap 3.0 -> 1.0 — so the 952 setups were produced by an
-    // engine the shipped one no longer is. The sentence says so; re-measuring
-    // is calibration item 4's first act, and this clause is what it deletes.
-    const indices = describeReplayRecord("SP", "Indices");
-    assert.ok(indices);
-    assert.match(indices!.detail, /configuration the engine has since moved past/);
-    const forex = describeReplayRecord("EURUSD", "Forex");
-    assert.ok(forex);
-    assert.doesNotMatch(forex!.detail, /moved past/);
+  it("marks EVERY row as superseded, in the sentence itself (round-8 PH-1)", () => {
+    // All six figures were measured by the retired pre-repair evaluator,
+    // and the first repaired baseline measured the accepted stream negative
+    // in every class. Five rows were printing the invalidated record
+    // without the file's own flag. The engine-v2 corpus re-measures all
+    // six; that re-sweep deletes these clauses by replacing the rows.
+    for (const [symbol, assetType] of [
+      ["SP", "Indices"],
+      ["EURUSD", "Forex"],
+      ["BTCUSD", "Crypto"],
+      ["ESUSD", "Futures"],
+      ["XAUUSD", "Metals"],
+      ["WTI", "Energies"],
+    ] as const) {
+      const record = describeReplayRecord(symbol, assetType);
+      if (record === null) {
+        continue;
+      }
+      assert.match(
+        record.detail,
+        /configuration the engine has since moved past/,
+        `${assetType} must state its supersession`,
+      );
+    }
   });
 });

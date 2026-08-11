@@ -516,3 +516,33 @@ describe("the venue's commission joins the round trip (round-8 CO-1/3/4)", () =>
     assert.equal(quoted.estimatedSpread, 0.00009);
   });
 });
+
+describe("ambiguous resolves AGAINST the trade in learning (2e, round-8 PH-7)", () => {
+  it("counts ambiguous rows in the win-rate denominator", () => {
+    // 10 wins, 5 stops, 5 ambiguous. Under 2e an unknowable path is a
+    // loss for every scoring purpose — the engine already prices its
+    // exit at the stop side, and the learning layer may not quietly
+    // resurrect it as a non-event. Win rate is 10/20, not 10/15.
+    const weight = calculateLearningWeight({
+      ambiguous: 5,
+      losses: 5,
+      total: 20,
+      wins: 10,
+    });
+    assert.equal(weight.winRate, 0.5);
+    assert.equal(weight.confidenceAdjustment, 0);
+  });
+
+  it("a market that is half ambiguous cannot show a positive adjustment", () => {
+    const weight = calculateLearningWeight({
+      ambiguous: 10,
+      losses: 2,
+      total: 20,
+      wins: 8,
+    });
+    assert.ok(
+      weight.confidenceAdjustment <= 0,
+      `8W/2L/10A must not read as a winner: ${weight.confidenceAdjustment}`,
+    );
+  });
+});
