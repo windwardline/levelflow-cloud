@@ -14,6 +14,7 @@ import { fetchFmpBars } from "../trade-analyzer/marketLoader.ts";
 import { resolveProviderSymbols } from "../trade-analyzer/symbols.ts";
 import { recordAnalyzerEvent } from "../trade-analyzer/telemetry.ts";
 import {
+  adminDeleteRows,
   adminFetchRows,
   adminUpdateRows,
   adminUpsertRows,
@@ -26,6 +27,18 @@ const NEWS_SYNC_TOKEN = Deno.env.get("NEWS_SYNC_TOKEN");
 const FMP_API_KEY = Deno.env.get("FMP_API_KEY");
 // Bounded per run; the hourly cadence clears any realistic backlog.
 const MAX_SETUPS_PER_RUN = 300;
+// OP-4: the cron invoker abandons its call at 15 seconds, so a run that
+// keeps working past that reports as a timeout it never was — hourly
+// false alarms at full roster. The budget keeps the RESPONSE under the
+// invoker's ceiling; whatever the loop did not reach is stated in the
+// summary and picked up by the next run in created_at order.
+const RUN_BUDGET_MS = 12_000;
+// OP-1: analyzer_events retention. Sixty days holds every operational
+// investigation this repo has ever needed (the longest reached back
+// eleven days); the prune is capped per run so it can never own the
+// budget, and the count removed is reported, never silent.
+const EVENT_RETENTION_DAYS = 60;
+const EVENT_PRUNE_LIMIT = 5_000;
 
 type PendingSetup = {
   analyzer_version: string | null;
@@ -75,10 +88,16 @@ Deno.serve(async (req) => {
       placed: 0,
       resolved: 0,
       reviewed: 0,
+      skippedForBudget: 0,
     };
+    const startedAtMs = Date.now();
     const barsByProviderSymbol = new Map<string, Promise<Bar[]>>();
 
     for (const setup of setups) {
+      if (Date.now() - startedAtMs > RUN_BUDGET_MS) {
+        summary.skippedForBudget = setups.length - summary.reviewed;
+        break;
+      }
       summary.reviewed += 1;
       try {
         const providerSymbol = setup.provider_symbol ||
@@ -150,13 +169,34 @@ Deno.serve(async (req) => {
     // Saturation is stated rather than left to be inferred from
     // `reviewed === 300`: a run that hit its own ceiling has a backlog behind
     // it, and the next hourly run may not clear it either.
-    const saturated = setups.length >= MAX_SETUPS_PER_RUN;
+    // OP-1: age out events beyond retention, bounded per run, count
+    // reported. Runs after the budget broke the loop still prune — the
+    // prune is one bounded request, not another loop.
+    let prunedEvents = 0;
+    let pruneFailed = false;
+    try {
+      const cutoff = new Date(
+        Date.now() - EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const pruned = await adminDeleteRows<{ id: string }>(
+        `analyzer_events?created_at=lt.${
+          encodeURIComponent(cutoff)
+        }&order=created_at.asc&limit=${EVENT_PRUNE_LIMIT}`,
+      );
+      prunedEvents = pruned.length;
+    } catch (error) {
+      pruneFailed = true;
+      console.error("analyzer_events prune failed", error);
+    }
+
+    const saturated = setups.length >= MAX_SETUPS_PER_RUN ||
+      summary.skippedForBudget > 0;
     await recordAnalyzerEvent({
       action: "outcome_sync",
       message: summary.failed > 0
         ? `${summary.failed} of ${summary.reviewed} setups could not be resolved.`
         : null,
-      metadata: { ...summary, saturated },
+      metadata: { ...summary, pruneFailed, prunedEvents, saturated },
       status: summary.failed > 0 ? "error" : "success",
     });
 

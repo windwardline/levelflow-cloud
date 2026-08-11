@@ -15,8 +15,10 @@ if [ -z "$FMP_API_KEY" ]; then
 fi
 export FMP_API_KEY
 
-SYMBOLS="AUDCAD,AUDCHF,AUDJPY,AUDNZD,AUDUSD,CADCHF,CADJPY,CHFJPY,EURAUD,EURCAD,EURCHF,EURGBP,EURJPY,EURNZD,EURUSD,GBPAUD,GBPCAD,GBPCHF,GBPJPY,GBPNZD,GBPUSD,NZDCAD,NZDCHF,NZDJPY,NZDUSD,USDCAD,USDCHF,USDJPY,BZUSD,CLUSD,ESUSD,GCUSD,HGUSD,MGCUSD,NGUSD,NQUSD,RTYUSD,SIUSD,YMUSD,ZBUSD,ZNUSD,XAUUSD,XAGUSD,WTI,BRENT,ADAUSD,BCHUSD,BNBUSD,BTCUSD,ETHUSD,LTCUSD,SOLUSD,XRPUSD,SP,NSDQ,DOW,NIKKEI,DAX"
-
+# OP-9: the roster IS the list — the driver derives it from the engine's
+# defaultScanSymbols, so onboarded markets join the top-up the day they
+# join the scan and dormant rows leave with their dormancy. The 57-name
+# snapshot that used to sit here had silently lost 40+ markets.
 echo "$(date -u +%FT%TZ) top-up starting"
-npx tsx scripts/replay-sweep.ts --symbols "$SYMBOLS" --days max --warm-only
+npx tsx scripts/replay-sweep.ts --symbols roster --days max --warm-only
 echo "$(date -u +%FT%TZ) top-up complete"

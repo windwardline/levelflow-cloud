@@ -23,6 +23,8 @@ import {
   getCategoryCalibration,
   hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
+import { fetchFmpWithRetry } from "./fmpRetry.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
   calendarFolds,
@@ -52,6 +54,10 @@ import {
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
+// OP-6: optional inter-request pacing for fleet runs — one env knob,
+// applied through the shared retry module so all three fetch sites pace
+// against the same clock.
+const FMP_PACE_MS = Number(process.env.FMP_PACE_MS ?? 0) || 0;
 const API_KEY = process.env.FMP_API_KEY;
 const WARMUP_BARS = 240;
 // Legacy two-split share, retired by the calendar folds below; still
@@ -458,7 +464,9 @@ async function fetchCalendarEvents(
       isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
     );
     endpoint.searchParams.set("apikey", API_KEY!);
-    const response = await fetch(endpoint);
+    const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+      paceMs: FMP_PACE_MS,
+    });
     if (!response.ok) {
       // I3: this used to warn and `continue`. loadRollingSeries then merged the
       // holed result and pinned it as the anchor day's truth, and because later
@@ -545,7 +553,9 @@ async function fetchCotContract(
   endpoint.searchParams.set("from", "2009-01-01");
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  const response = await fetch(endpoint);
+  const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+    paceMs: FMP_PACE_MS,
+  });
   if (!response.ok) {
     console.warn(`COT fetch failed for ${contract}: ${response.status}`);
     return [];
@@ -580,9 +590,15 @@ function parseArgs(argv: string[]): SweepArgs {
     const index = argv.indexOf(`--${flag}`);
     return index >= 0 ? argv[index + 1] : undefined;
   };
-  const symbols = (get("symbols") ?? "EURUSD").split(",").map((value) =>
-    value.trim().toUpperCase()
-  ).filter(Boolean);
+  // OP-9: "--symbols roster" derives the list from the engine's own scan
+  // roster instead of a hand-kept copy — the ops top-up ran a 57-name
+  // snapshot that had silently lost 40+ onboarded markets (and kept
+  // dormant BRENT). One source, no drift.
+  const symbolsArg = get("symbols") ?? "EURUSD";
+  const symbols = (symbolsArg.trim().toLowerCase() === "roster"
+    ? defaultScanSymbols
+    : symbolsArg.split(",").map((value) => value.trim().toUpperCase()))
+    .filter(Boolean);
   const daysArg = get("days") ?? "60";
   // "max" discovers each symbol's full available history from the run date.
   const days = daysArg === "max" ? MAX_DEPTH_DAYS : Number(daysArg);
@@ -711,7 +727,9 @@ async function fetchDailyBars(
 }
 
 async function fetchBars(endpoint: URL): Promise<Bar[]> {
-  const response = await fetch(endpoint);
+  const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+    paceMs: FMP_PACE_MS,
+  });
   if (!response.ok) {
     throw new Error(
       `FMP request failed (${response.status}) for ${endpoint.pathname}`,

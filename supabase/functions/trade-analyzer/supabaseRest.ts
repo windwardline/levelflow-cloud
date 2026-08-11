@@ -169,6 +169,26 @@ export async function adminUpdateRows<T = unknown>(
   return (await response.json()) as T[];
 }
 
+/**
+ * Round-8 OP-1: the retention path. PostgREST limited deletes require an
+ * explicit order with the limit; the representation return lets callers
+ * report exactly how many rows a prune removed rather than guessing.
+ */
+export async function adminDeleteRows<T = unknown>(
+  path: string,
+): Promise<T[]> {
+  const response = await adminSupabaseFetch(path, {
+    headers: {
+      Prefer: "return=representation",
+    },
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T[];
+}
+
 export async function adminRpcRows<T>(
   functionName: string,
   payload: Record<string, unknown>,

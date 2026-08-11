@@ -1050,3 +1050,22 @@ describe("outcome-sync wires the stored costs into the live resolver (source pin
     assert.match(source, /fillOptionsFromRiskModel\(setup\.risk_model\)/);
   });
 });
+
+describe("ops hygiene — outcome-sync budget and retention (round-8 OP-1/OP-4, source pins)", () => {
+  it("keeps the response under the cron invoker's timeout and prunes with a cap", () => {
+    const source = readFileSync(
+      "supabase/functions/outcome-sync/index.ts",
+      "utf8",
+    );
+    assert.match(source, /RUN_BUDGET_MS = 12_000/);
+    assert.match(source, /EVENT_RETENTION_DAYS = 60/);
+    assert.match(source, /EVENT_PRUNE_LIMIT = 5_000/);
+    assert.match(source, /skippedForBudget/);
+    assert.match(source, /pruneFailed/);
+    assert.match(
+      source,
+      /analyzer_events\?created_at=lt\./,
+      "the prune must be age-based",
+    );
+  });
+});

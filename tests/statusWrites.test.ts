@@ -110,9 +110,9 @@ describe("status writes are compare-and-sets, not last-writer-wins (C1)", () => 
     // that hit its own ceiling has a backlog behind it.
     assert.match(
       OUTCOME_SYNC,
-      /const saturated = setups\.length >= MAX_SETUPS_PER_RUN;/,
+      /const saturated = setups\.length >= MAX_SETUPS_PER_RUN \|\|\n      summary\.skippedForBudget > 0;/,
     );
-    assert.match(OUTCOME_SYNC, /metadata: \{ \.\.\.summary, saturated \},/);
+    assert.match(OUTCOME_SYNC, /metadata: \{ \.\.\.summary, pruneFailed, prunedEvents, saturated \},/);
   });
 
   it("counts a lost race as a failure rather than losing it silently", () => {
