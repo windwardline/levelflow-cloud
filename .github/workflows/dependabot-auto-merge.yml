@@ -1,0 +1,174 @@
+name: Dependabot auto-merge
+
+# Byte-identical in every fleet repo. Canonical copy:
+# windwardline/windwardline templates/dependabot-auto-merge.yml, enforced by
+# scripts/fleet-conformance.sh comparing git blob SHAs.
+#
+# This workflow merges nothing. It arms GitHub's native auto-merge, so the
+# repo's `main-requires-green-ci` ruleset — zero bypass actors — stays the only
+# thing that decides whether a merge happens. A bug here cannot merge red CI.
+#
+# The credential is a GitHub App installation token, never GITHUB_TOKEN. A push
+# attributed to GITHUB_TOKEN creates no workflow run, and native auto-merge
+# completes on behalf of whoever armed it — so arming with GITHUB_TOKEN would
+# silently skip levelflow-cloud's Supabase migrations and Edge Function deploy
+# and every repo's post-merge `Headers live` probe. No error, no skipped run,
+# nothing in the Actions tab.
+#
+# FLEET_AUTOMERGE_APP_ID / FLEET_AUTOMERGE_PRIVATE_KEY are DEPENDABOT secrets.
+# Actions secrets are invisible to Dependabot-triggered runs and resolve to an
+# empty string, so the preflight below fails loudly on that mistake.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Job id with no `name:`, so the check renders exactly "dependabot-auto-merge"
+  # — the string fleet-conformance.sh excludes from its required-checks audit.
+  # This job arms the merge; it must never become a required check.
+  dependabot-auto-merge:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.repository_owner == 'windwardline'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.base.ref == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Outputs populate only when the PR carries solely Dependabot commits with
+      # a verified signature. A human fixup fails this step, so touching the
+      # branch means owning the merge. skip-verification is never set.
+      - name: Read Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Require the merge credential
+        env:
+          APP_ID: ${{ secrets.FLEET_AUTOMERGE_APP_ID }}
+          APP_KEY: ${{ secrets.FLEET_AUTOMERGE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_ID:-}" ] || [ -z "${APP_KEY:-}" ]; then
+            echo "::error::FLEET_AUTOMERGE_APP_ID / FLEET_AUTOMERGE_PRIVATE_KEY are empty in ${GITHUB_REPOSITORY}."
+            echo "They must live in the DEPENDABOT secret store; a Dependabot-triggered run cannot read Actions secrets."
+            echo "Fix: gh secret set FLEET_AUTOMERGE_APP_ID --app dependabot -R ${GITHUB_REPOSITORY}"
+            echo "     gh secret set FLEET_AUTOMERGE_PRIVATE_KEY --app dependabot -R ${GITHUB_REPOSITORY} < automerge.pem"
+            exit 1
+          fi
+
+      # `gh pr merge --auto` silently degrades to an IMMEDIATE merge when the
+      # repository setting is off or nothing is pending (cli/cli#8792), so the
+      # preconditions are asserted rather than assumed.
+      - name: Assert the merge gate exists
+        env:
+          GH_TOKEN: ${{ steps.apptoken.outputs.token }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          am=$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.allow_auto_merge')
+          gates=$(gh api "repos/${GITHUB_REPOSITORY}/rules/branches/${BASE}" \
+            --jq '[.[] | select(.type=="required_status_checks")
+                       | .parameters.required_status_checks[].context] | length')
+          echo "allow_auto_merge=${am} required_status_checks=${gates}"
+          if [ "$am" != "true" ] || [ "${gates:-0}" -lt 1 ]; then
+            echo "::error::Refusing to arm auto-merge: allow_auto_merge=${am}, required checks=${gates:-0}."
+            echo "Without a pending requirement, --auto merges immediately (cli/cli#8792)."
+            exit 1
+          fi
+
+      - name: Mint the fleet auto-merge token
+        id: apptoken
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.FLEET_AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.FLEET_AUTOMERGE_PRIVATE_KEY }}
+
+      - name: Decide and arm
+        env:
+          GH_TOKEN: ${{ steps.apptoken.outputs.token }}
+          PR: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          MAINTAINER_CHANGES: ${{ steps.meta.outputs.maintainer-changes }}
+          DEPS_JSON: ${{ steps.meta.outputs.updated-dependencies-json }}
+          DEP_NAMES: ${{ steps.meta.outputs.dependency-names }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          AUTOMERGE_ON: ${{ github.event.pull_request.auto_merge != null }}
+        run: |
+          set -euo pipefail
+
+          hold() {
+            echo "::notice::Held for a human — $1"
+            {
+              echo "### Dependabot auto-merge: held"
+              echo
+              echo "- dependencies: ${DEP_NAMES:-unknown}"
+              echo "- update type: \`${UPDATE_TYPE:-unknown}\`"
+              echo "- reason: $1"
+            } >> "$GITHUB_STEP_SUMMARY"
+            # A rebase can turn a compliant PR into a non-compliant one, so a
+            # previously armed auto-merge is withdrawn, not merely not renewed.
+            if [ "${AUTOMERGE_ON}" = "true" ]; then
+              gh pr merge --disable-auto "$PR"
+              echo "Withdrew the previously armed auto-merge." >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          }
+
+          case ",${LABELS}," in
+            *,no-automerge,*) hold "the no-automerge label is set" ;;
+          esac
+
+          # A new maintainer on an established package is the signature of the
+          # 2025 npm compromises. One boolean, highest signal per line here.
+          if [ "${MAINTAINER_CHANGES}" = "true" ]; then
+            hold "the release changed maintainers"
+          fi
+
+          # Dependabot labels bumps by literal position, so 0.9.1 -> 0.10.0
+          # arrives as "minor". Pre-1.0 packages carry no compatibility contract.
+          if printf '%s' "${DEPS_JSON:-[]}" | jq -e 'type == "array" and length > 0' >/dev/null 2>&1; then
+            zerover=$(printf '%s' "$DEPS_JSON" | jq -r '
+              [ .[]
+                | select((.prevVersion // "") | test("^v?0\\."))
+                | select( (((.updateType // "") | endswith("minor")))
+                       or (((.prevVersion // "") | test("^v?0\\.0\\.")) and ((.updateType // "") | endswith("patch"))) )
+                | .dependencyName ] | join(", ")')
+            [ -z "$zerover" ] || hold "pre-1.0 packages without a compatibility contract: ${zerover}"
+          else
+            hold "Dependabot metadata was empty or unverifiable"
+          fi
+
+          # fetch-metadata reports the HIGHEST semver change in the PR, so one
+          # major freezes its whole group. Deliberate.
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch|version-update:semver-minor)
+              ;;
+            version-update:semver-major)
+              gh pr edit "$PR" --add-label deferred-major
+              hold "major bumps are migrations — labelled deferred-major for this repo's deferred-majors issue"
+              ;;
+            *)
+              echo "::error::Unclassified update-type '${UPDATE_TYPE:-empty}'. Refusing to arm what the standard cannot classify."
+              exit 1
+              ;;
+          esac
+
+          gh pr merge --squash --auto --delete-branch "$PR"
+          {
+            echo "### Dependabot auto-merge: armed"
+            echo
+            echo "- dependencies: ${DEP_NAMES:-unknown}"
+            echo "- update type: \`${UPDATE_TYPE}\`"
+            echo "- The ruleset decides when it lands; this job does not merge."
+          } >> "$GITHUB_STEP_SUMMARY"
