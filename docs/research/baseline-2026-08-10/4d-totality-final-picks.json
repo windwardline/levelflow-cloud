@@ -1,0 +1,189 @@
+{
+  "analyzerVersion": "2026.08.11.engine-v2",
+  "capacityGated": [],
+  "finalPicks": {
+    "AAVEUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.1696116640705902,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "ALGOUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.43591661400024084,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ARWUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.33470171026156925,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AVAXUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.38365755812429525,
+      "variant": "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "BNBUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.4726097744360901,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "BZUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.283470931601993,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "CAKEUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.295532271207054,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "DASHUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.18673614573950648,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "DAX": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.32440398496240597,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "DOGEUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.10644120595518688,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "EGLDUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.47492503171079753,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ETCUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.18333245307042695,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "GRTUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.15757631525326987,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "HBARUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.18839037637202052,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "IMXUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.16337953634760807,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "LINKUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.14301841288116673,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "NEARUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.029508387096773947,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1"
+    },
+    "PAUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.048559090909090885,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1"
+    },
+    "SOLUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.40739191825582644,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "UNIUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.10623297884704784,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "XAGUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.32217415213208733,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "XLMUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.1690057368671262,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=2.5,sizingHoursFactor=3"
+    },
+    "XMRUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.12942691124121697,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZBUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.377745172735761,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZNUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.6323524774774776,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZOUSX": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.2636512095639941,
+      "variant": "confidenceThreshold=0,runnerProtection=hold,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZRUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [],
+      "selectExpectancyDelta": 0.05987692307692305,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=1,sizingHoursFactor=1"
+    }
+  },
+  "frozenAt": "2026-08-11T18:10:47.183Z"
+}

@@ -461,12 +461,29 @@ SYMBOL_CALIBRATION_OVERRIDES verbatim to the frozen picks
 (artifact-pinned both directions in tests/calibrationState.test.ts),
 CLUSD's cell layered over its measured-active legacy fields, the UI
 derived-floor mirror under the exhaustive parity sweep, class pins
-moved to getClassCalibration. Then (vi) **4e** — the diminished-returns
-declaration: the corpus's tuning folds are consumed, the confirm fold
-is burned, the holdout is reserved; the next round opens only on NEW
-data (live accrual under the derived cohort) or the holdout cycle at
-reopen. Per the stopping rule, 4e is DECLARED CLOSED with those two
-reopeners named. Parallel lanes before any reopen: **Batch 4
+moved to getClassCalibration. Then the **HOLDOUT CYCLE
+RAN SAME-DAY on the owner's word** (they were unclear why it should
+wait; it should not have): the twenty never-tuned markets through the
+same pipeline on their own untouched rows — **11/11 frozen picks
+confirmed, a perfect sweep, EURUSD among them** — shipped as
+`2026.08.11.holdout-cycle` (50 derived cells total, artifact-pinned);
+4 capacity-gated, 1 measure-only, 4 starved. Then the **TOTALITY
+CYCLE (owner mandate: data limits may never be ambiguous)** — the
+starvation autopsy proved the per-CLASS fold calendar was the limit for
+22 markets carrying years of real history; folds re-cut per MARKET over
+each market's own span with exact per-row leak containment; all 45
+underived markets rerun: **22 more confirmed (silver, DAX, both
+treasuries, oats, Brent, eleven coins), 5 confirm-refused, 18
+measure-only on full spans, ZERO starved** — 72 derived cells total
+under `2026.08.11.totality`, capacity now per-line DISCLOSURE (the §19
+governor refuses per account at runtime). The defense table in the 4d
+derivation doc backs every non-derived market with a measurement;
+ZTUSD's 32% ladder-refusal is the one NAMED parameter suspect (tick
+minimum), its probe requiring an engine change and its own cycle.
+(vi) **4e DECLARED CLOSED** per the stopping rule: tuning folds
+consumed, confirm burned three times (every read logged), the next
+unseen validation is live accrual itself under the derived cohort. The
+remaining reopeners: new data, or ZTUSD's named tick-minimum probe. Parallel lanes before any reopen: **Batch 4
 COMPLETE 2026-08-11** — #313 (ambiguous counts against the trade in
 learning/classify/attribution; all six Record rows state supersession),
 #314 (live outcome-sync replays each row's stored decision-time costs —

@@ -529,6 +529,17 @@ export async function gradeCorpus(
   emitPathOrPaths: string | string[],
   options: GateOptions & {
     includeHoldout?: boolean;
+    // Totality (owner mandate, 2026-08-11): folds re-cut per MARKET over
+    // each market's own row span — 50/25/25 by decision time — with
+    // containment EXACT per row: a row whose exit crosses its fold's end
+    // is dropped, stricter than the emit-time embargo it replaces.
+    // row.split is ignored in this mode; the corpus's times are the
+    // authority.
+    perMarketFolds?: boolean;
+    // The holdout cycle's surgical read: only these symbols enter the
+    // cube at all, so a confirm-final run consults exactly the named
+    // markets' held-back rows and nothing else's.
+    symbolFilter?: Set<string>;
     // 4d: "market" grades every symbol on its own rows (singleton
     // groups, absolute sample floor); default stays the 4c class unit.
     verdictUnit?: "class" | "market";
@@ -583,10 +594,57 @@ export async function gradeCorpus(
   const held = options.includeHoldout
     ? new Set<string>()
     : stratifiedHoldout([...unionSymbols], (symbol) => getAssetType(symbol));
+  // Per-market fold boundaries from the manifests' own measured series
+  // spans — no pre-pass over the corpus needed.
+  const marketSpans = new Map<string, { first: number; last: number }>();
+  if (options.perMarketFolds) {
+    for (const shardManifest of shardManifests) {
+      for (const entry of shardManifest.symbols) {
+        const series =
+          (entry as {
+            series?: Record<string, { firstTime?: number; lastTime?: number }>;
+          }).series?.["15min"];
+        if (
+          !Number.isFinite(series?.firstTime) ||
+          !Number.isFinite(series?.lastTime)
+        ) continue;
+        const current = marketSpans.get(entry.symbol);
+        marketSpans.set(entry.symbol, {
+          first: Math.min(current?.first ?? Infinity, series!.firstTime!),
+          last: Math.max(current?.last ?? -Infinity, series!.lastTime!),
+        });
+      }
+    }
+  }
+  const refold = (row: SweepEmitRow): SweepEmitRow | null => {
+    if (!options.perMarketFolds) return row;
+    const span = marketSpans.get(row.symbol);
+    const time = Number(row.time);
+    if (!span || !Number.isFinite(time)) return null;
+    const fitEnd = span.first + (span.last - span.first) * 0.5;
+    const selectEnd = span.first + (span.last - span.first) * 0.75;
+    const fold = time < fitEnd ? "fit" : time < selectEnd ? "select" : "confirm";
+    const foldEnd = fold === "fit"
+      ? fitEnd
+      : fold === "select"
+      ? selectEnd
+      : span.last + 1;
+    const exit = Number((row as { exitAtMs?: number }).exitAtMs);
+    if (Number.isFinite(exit) && exit > foldEnd) {
+      // Exact containment: this row's outcome leaked past its fold.
+      return null;
+    }
+    return { ...row, split: fold };
+  };
   for (const path of paths) {
     await assertManifestedCorpusStreaming(path, (row) => {
       if (held.has(row.symbol)) return;
-      addRowToCube(cube, row, { includeHoldout: true });
+      if (options.symbolFilter && !options.symbolFilter.has(row.symbol)) {
+        return;
+      }
+      const refolded = refold(row);
+      if (refolded === null) return;
+      addRowToCube(cube, refolded, { includeHoldout: true });
     });
   }
 
@@ -619,7 +677,7 @@ export async function gradeCorpus(
   // A folded corpus names its own partition; a legacy two-split corpus
   // maps train->fit, test->select and has no confirm fold to read.
   const derived: FoldNames = options.foldNames ??
-    (manifest.folds || manifest.foldsByClass
+    (manifest.folds || manifest.foldsByClass || options.perMarketFolds
       ? { confirm: "confirm", fit: "fit", select: "select" }
       : { fit: "train", select: "test" });
   const foldNames: FoldNames = options.confirmFinal

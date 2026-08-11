@@ -1,0 +1,129 @@
+{
+  "analyzerVersion": "2026.08.11.engine-v2",
+  "capacityGated": [
+    "BZUSD",
+    "DASHUSD",
+    "XLMUSD",
+    "XMRUSD"
+  ],
+  "finalPicks": {
+    "AUDCHF": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2595262490949605,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AUDNZD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2793786406489901,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.30557008090587473,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPCAD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2848974689818005,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NGUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.2662000576061447,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NSDQ": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.2817941244239632,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NZDCHF": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.25702373893948216,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NZDJPY": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "one",
+        "pro_forex",
+        "signature_forex",
+        "zero"
+      ],
+      "selectExpectancyDelta": 0.23662670152091272,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "RTYUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.34933209494324047,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "YMUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.37648750000000003,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZMUSD": {
+      "demotedFrom": null,
+      "feasibleLines": [
+        "signature_futures",
+        "zero_futures_starter",
+        "zero_futures_max"
+      ],
+      "selectExpectancyDelta": 0.31771607142857133,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1"
+    }
+  },
+  "frozenAt": "2026-08-11T17:20:55.502Z"
+}

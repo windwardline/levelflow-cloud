@@ -113,10 +113,14 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
   });
 
   it("pins the oil overrides and only the oil overrides on geometry", () => {
+    // Both crudes now ALSO carry derived 4d cells; the legacy banking
+    // geometry stays measured-active beneath them, which is what this
+    // pin protects.
     for (const oil of ["BZUSD", "CLUSD"]) {
       const c = getCategoryCalibration(oil);
       assert.equal(c.tp1RiskShare, 0.6, `${oil} keeps late banking`);
       assert.equal(c.runnerWindowShare, 0.8, `${oil} keeps the wider runner`);
+      assert.equal(c.confidenceThreshold, 0, `${oil} derived floor`);
     }
   });
 
@@ -170,10 +174,14 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     }
   });
 
-  it("pins the oats override that round 28 derived", () => {
+  it("pins the oats override that round 28 derived, as the 4d cell now layers it", () => {
     const oats = getCategoryCalibration("ZOUSX");
     assert.equal(oats.defaultReviewHours, 24, "oats needs the grain window");
-    assert.equal(oats.maxStopAtrMultiplier, 1.4);
+    // Round 28's cap 1.4 was measured-active through the corpus; the
+    // totality cycle derived and CONFIRMED cap 4 over oats' full span,
+    // so the derived field replaced it while the window it was derived
+    // WITH stays.
+    assert.equal(oats.maxStopAtrMultiplier, 4);
     assert.equal(oats.runnerWindowShare, 1.0);
     // And its class did NOT move with it — the override is per-symbol.
     // (Corn itself now carries a 4d derived cell, so the class row is
@@ -283,7 +291,7 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.11\.derived-4d"/,
+      /ANALYZER_VERSION = "2026\.08\.11\.totality"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
   });
@@ -315,26 +323,54 @@ describe("the derived per-market layer (4d, confirmed 2026-08-11)", () => {
         "utf8",
       ),
     ) as { finalPicks: Record<string, { variant: string }> };
-    const confirm = JSON.parse(
+    const holdoutPicks = JSON.parse(
       readFileSync(
-        "docs/research/baseline-2026-08-10/4d-confirm-read.json",
+        "docs/research/baseline-2026-08-10/4d-holdout-final-picks.json",
         "utf8",
       ),
-    ) as {
-      confirmReport: Record<
-        string,
-        { confirmTotalDelta: number | null; variant: string }
-      >;
+    ) as { finalPicks: Record<string, { variant: string }> };
+    const totalityPicks = JSON.parse(
+      readFileSync(
+        "docs/research/baseline-2026-08-10/4d-totality-final-picks.json",
+        "utf8",
+      ),
+    ) as { finalPicks: Record<string, { variant: string }> };
+    const allPicks = {
+      ...picks.finalPicks,
+      ...holdoutPicks.finalPicks,
+      ...totalityPicks.finalPicks,
     };
-    const confirmed = Object.entries(confirm.confirmReport)
-      .filter(([, r]) => (r.confirmTotalDelta ?? 0) > 0)
-      .map(([symbol]) => symbol)
-      .sort();
-    assert.equal(confirmed.length, 39);
+    const confirmed: string[] = [];
+    for (
+      const artifact of [
+        "4d-confirm-read",
+        "4d-holdout-confirm-read",
+        "4d-totality-confirm-read",
+      ]
+    ) {
+      const confirm = JSON.parse(
+        readFileSync(
+          `docs/research/baseline-2026-08-10/${artifact}.json`,
+          "utf8",
+        ),
+      ) as {
+        confirmReport: Record<
+          string,
+          { confirmTotalDelta: number | null; variant: string }
+        >;
+      };
+      for (const [symbol, r] of Object.entries(confirm.confirmReport)) {
+        if ((r.confirmTotalDelta ?? 0) > 0) confirmed.push(symbol);
+      }
+    }
+    confirmed.sort();
+    // 39 tuning + 11 holdout + 22 totality (per-market full-span folds)
+    // = 72 derived cells, no more, no fewer.
+    assert.equal(confirmed.length, 72);
     for (const symbol of confirmed) {
       const cell = getCategoryCalibration(symbol);
       const parts = Object.fromEntries(
-        picks.finalPicks[symbol].variant.split(",").map((kv) => kv.split("=")),
+        allPicks[symbol].variant.split(",").map((kv) => kv.split("=")),
       ) as Record<string, string>;
       assert.equal(
         cell.confidenceThreshold,

@@ -12,7 +12,10 @@
 // feasibility join and the one confirm-final read consume — this script
 // never touches the confirm fold.
 import { writeFileSync } from "node:fs";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
+import { assertManifest } from "./sweepStats.ts";
+import { stratifiedHoldout } from "./sweepFolds.ts";
 
 type MarketCandidates = {
   // Every accepted variant, best first by select-fold expectancy delta.
@@ -39,7 +42,10 @@ async function main() {
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      index += 1;
+      if (
+        argv[index] !== "--holdout-cycle" &&
+        argv[index] !== "--per-market-folds"
+      ) index += 1;
       continue;
     }
     paths.push(argv[index]);
@@ -55,10 +61,48 @@ async function main() {
     throw new Error("derive-4d: no corpus shards given");
   }
 
+  // The holdout cycle (owner word, 2026-08-11): grade ONLY the markets
+  // the read-time stratification held out of every tuning aggregate —
+  // recomputed here with the same determinism, then passed as the
+  // surgical filter so nothing else enters the cube.
+  const holdoutCycle = argv.includes("--holdout-cycle");
+  let symbolFilter: Set<string> | undefined;
+  if (holdoutCycle) {
+    const union = new Set<string>();
+    for (const path of paths) {
+      for (const entry of assertManifest(path).symbols) {
+        union.add(entry.symbol);
+      }
+    }
+    symbolFilter = stratifiedHoldout(
+      [...union],
+      (symbol) => getAssetType(symbol),
+    );
+    console.log(
+      `holdout cycle: ${symbolFilter.size} held-out markets -> ${
+        [...symbolFilter].sort().join(",")
+      }`,
+    );
+  }
+
+  // Totality mode: explicit target list + per-market re-cut folds; the
+  // targets ride the surgical filter and holdout members are included
+  // (their rows are the whole point).
+  const perMarketFolds = argv.includes("--per-market-folds");
+  const targetsFlag = flagValue("targets");
+  if (targetsFlag) {
+    symbolFilter = new Set(
+      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+    );
+    console.log(`targets: ${symbolFilter.size} markets`);
+  }
   const { manifest, verdicts } = await gradeCorpus(paths, {
     baselineVariant,
+    includeHoldout: holdoutCycle || targetsFlag !== undefined,
+    perMarketFolds,
     permutations: Number(flagValue("permutations") ?? 1_000),
     seed: Number(flagValue("seed") ?? 7),
+    symbolFilter,
     verdictUnit: "market",
   });
 

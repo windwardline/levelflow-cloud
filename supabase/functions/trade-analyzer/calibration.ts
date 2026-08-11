@@ -4,7 +4,7 @@
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
 import { isKnownSymbol } from "./symbols.ts";
-export const ANALYZER_VERSION = "2026.08.11.derived-4d";
+export const ANALYZER_VERSION = "2026.08.11.totality";
 
 export type AssetType =
   | "agriculture"
@@ -648,9 +648,17 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // 70 was set against a suppressed sample and the class floor governs now.
   // Oil trends: earlier TP1 banking fails the test split for both oil
   // futures (r10), matching cash energies' rejection of 0.6 in r8.
-  // BZUSD keeps its measured-active legacy fields only: dormant under
-  // amendment 32 through the 4d cycle, so no derived cell exists for it.
-  BZUSD: { tp1RiskShare: 0.6, runnerWindowShare: 0.8 },
+  // BZUSD: round-10 banking geometry stays measured-active; the totality
+  // cycle derived and confirmed the cell over it (unsizeable at smallest
+  // accounts — the §19 governor states it per account at runtime).
+  BZUSD: {
+    tp1RiskShare: 0.6,
+    runnerWindowShare: 0.8,
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
   // Oats, derived 2026-08-06 from an 81-variant joint grid (round 28). It was
   // the one market of four re-gridded holdouts that a geometry change rescued:
   // at the agriculture class values it refused 56% of decisions reaching the
@@ -666,10 +674,16 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // contract E8 lists, so a five- or six-hour window asks a slow book for a
   // move it does not make; the wider stop then only works BECAUSE the window
   // gives the runner somewhere to go. Derived jointly for that reason.
+  // ZOUSX: round 28's 24h window stays measured-active (it is what made
+  // the grain measurable); the totality cycle derived and confirmed the
+  // cell over its full span, replacing the round-28 cap.
   ZOUSX: {
     defaultReviewHours: 24,
-    maxStopAtrMultiplier: 1.4,
     runnerWindowShare: 1.0,
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "hold",
+    sizingHoursFactor: 3,
   },
   // ---- The 4d derived layer (2026-08-11). Thirty-nine markets, each
   // cell EXACTLY the variant that was frozen before the confirm fold's
@@ -682,6 +696,249 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
   // live in every corpus cell, so the confirmed delta sits on top of
   // them); capacity-gated, measure-only, starved and held-out markets
   // deliberately have no entry here.
+  //
+  // ---- The totality tranche (2026-08-11, owner mandate: data limits may
+  // not be ambiguous). Folds re-cut per MARKET over each market's own
+  // measured span with exact per-row leak containment — which un-starved
+  // all 22 calendar-starved markets and gave every remaining market a
+  // full-span verdict. 22 more cells confirmed (XAGUSD, DAX, ZB/ZN, ZOUSX
+  // and BZUSD among them; ZOUSX/BZUSD merge OVER their measured-active
+  // legacy fields); 5 refused on full-span confirm (ALGO/ARW/AVAX/NEAR/
+  // ZR); 18 measure-only on full-span data. Capacity is DISCLOSURE per
+  // line in the artifacts — the §19 governor refuses per account at
+  // runtime. Record: 4d-derivation doc's totality addendum +
+  // 4d-totality-*.json.
+  AAVEUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  BNBUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "hold",
+    sizingHoursFactor: 3,
+  },
+
+  CAKEUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "hold",
+    sizingHoursFactor: 1,
+  },
+  DASHUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  DAX: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  DOGEUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EGLDUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ETCUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  GRTUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  HBARUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  IMXUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "hold",
+    sizingHoursFactor: 1,
+  },
+  LINKUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "hold",
+    sizingHoursFactor: 3,
+  },
+  PAUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 1,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  SOLUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  UNIUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  XAGUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  XLMUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "hold",
+    sizingHoursFactor: 3,
+  },
+  XMRUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ZBUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ZNUSD: {
+    // Capacity: no line sizes this at its smallest account; the §19
+    // governor states it per account at runtime.
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+
+  // ---- The holdout tranche (2026-08-11, owner word): the twenty
+  // markets the read-time stratification kept out of every 4c/4d tuning
+  // aggregate ran the SAME pipeline on their own untouched rows — derive
+  // on fit+select, feasibility from published venue arithmetic, picks
+  // frozen, then their confirm rows' first consultation (the corpus
+  // log's acknowledged second read). Eleven of eleven frozen picks
+  // confirmed positive — a perfect out-of-sample sweep on markets no
+  // tuning step ever saw, EURUSD among them. BZUSD/DASH/XLM/XMR are
+  // capacity-gated; BNBUSD measure-only; four starved. Record:
+  // 4d-derivation-2026-08-11.md's holdout addendum + the
+  // 4d-holdout-*.json artifacts.
+  AUDCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  AUDNZD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  EURUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  GBPCAD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NGUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NSDQ: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NZDCHF: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  NZDJPY: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  RTYUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
+  YMUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 4,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 3,
+  },
+  ZMUSD: {
+    confidenceThreshold: 0,
+    maxStopAtrMultiplier: 2.5,
+    runnerProtection: "trail_tp1",
+    sizingHoursFactor: 1,
+  },
   ADAUSD: {
     confidenceThreshold: 0,
     maxStopAtrMultiplier: 4,

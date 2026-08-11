@@ -1,0 +1,52 @@
+{
+  "confirmReport": {
+    "AUDCHF": {
+      "confirmTotalDelta": 368.2971000000001,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "AUDNZD": {
+      "confirmTotalDelta": 359.1095999999999,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "EURUSD": {
+      "confirmTotalDelta": 500.8778000000003,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "GBPCAD": {
+      "confirmTotalDelta": 434.32699999999977,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NGUSD": {
+      "confirmTotalDelta": 55.41300000000002,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NSDQ": {
+      "confirmTotalDelta": 7.644000000000001,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NZDCHF": {
+      "confirmTotalDelta": 343.8375999999993,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "NZDJPY": {
+      "confirmTotalDelta": 398.2522999999996,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "RTYUSD": {
+      "confirmTotalDelta": 45.130300000000005,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=1"
+    },
+    "YMUSD": {
+      "confirmTotalDelta": 55.72600000000001,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=4,sizingHoursFactor=3"
+    },
+    "ZMUSD": {
+      "confirmTotalDelta": 15.9196,
+      "variant": "confidenceThreshold=0,runnerProtection=trail_tp1,maxStopAtrMultiplier=2.5,sizingHoursFactor=1"
+    }
+  },
+  "confirmedNegative": 0,
+  "confirmedPositive": 11,
+  "readAt": "2026-08-11T17:22:21.386Z",
+  "unreadable": 0
+}

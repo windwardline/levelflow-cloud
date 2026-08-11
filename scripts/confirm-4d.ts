@@ -9,7 +9,10 @@
 // held-back data can never influence the pick — it can only pass or fail
 // it. The confirm read runs once, per corpus hash, into the burned log.
 import { readFileSync, writeFileSync } from "node:fs";
+import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus } from "./grid-totalr.ts";
+import { stratifiedHoldout } from "./sweepFolds.ts";
+import { assertManifest } from "./sweepStats.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -25,7 +28,12 @@ async function main() {
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      if (argv[index] !== "--acknowledge-prior-reads") index += 1;
+      if (
+        argv[index] !== "--acknowledge-prior-reads" &&
+        argv[index] !== "--holdout-cycle" &&
+        argv[index] !== "--per-market-folds" &&
+        argv[index] !== "--feasibility-disclosure-only"
+      ) index += 1;
       continue;
     }
     paths.push(argv[index]);
@@ -36,8 +44,13 @@ async function main() {
   };
   const baselineVariant = flagValue("baseline") ?? "baseline";
   const dir = "docs/research/baseline-2026-08-10";
+  const holdoutCycle = argv.includes("--holdout-cycle");
+  const perMarketFolds = argv.includes("--per-market-folds");
+  const targetsFlag = flagValue("targets");
+  const prefix = flagValue("prefix") ??
+    (holdoutCycle ? "4d-holdout" : "4d");
   const candidates = JSON.parse(
-    readFileSync(`${dir}/4d-candidates.json`, "utf8"),
+    readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
   ) as {
     analyzerVersion: string;
     markets: Record<
@@ -46,7 +59,7 @@ async function main() {
     >;
   };
   const feasibility = JSON.parse(
-    readFileSync(`${dir}/4d-feasibility.json`, "utf8"),
+    readFileSync(`${dir}/${prefix}-feasibility.json`, "utf8"),
   ) as {
     feasibility: Record<
       string,
@@ -74,10 +87,15 @@ async function main() {
     if (market.accepted.length === 0) continue;
     const top = market.accepted[0];
     let chosen: { candidate: Candidate; lines: string[] } | null = null;
+    // Totality mode (owner mandate): capacity is DISCLOSURE, not a veto —
+    // the §19 governor already refuses per account at runtime, which is
+    // the product's honest surface for sizing. The per-line feasibility
+    // still rides the artifact for every pick.
+    const disclosureOnly = argv.includes("--feasibility-disclosure-only");
     for (const candidate of market.accepted) {
       const entry = feasibility.feasibility[symbol]?.[candidate.variant];
       const lines = entry?.feasibleLines ?? [];
-      if (lines.length > 0) {
+      if (disclosureOnly || lines.length > 0) {
         chosen = { candidate, lines };
         break;
       }
@@ -96,7 +114,7 @@ async function main() {
     };
   }
   writeFileSync(
-    `${dir}/4d-final-picks.json`,
+    `${dir}/${prefix}-final-picks.json`,
     JSON.stringify(
       {
         analyzerVersion: candidates.analyzerVersion,
@@ -110,17 +128,38 @@ async function main() {
   );
   console.log(
     `frozen: ${Object.keys(finalPicks).length} picks, ` +
-      `${capacityGated.length} capacity-gated -> 4d-final-picks.json`,
+      `${capacityGated.length} capacity-gated -> ${prefix}-final-picks.json`,
   );
 
   // THE ONE READ. Confirm totals come back per market per accepted
   // variant; only the frozen picks' rows are reported.
+  let symbolFilter: Set<string> | undefined;
+  if (holdoutCycle) {
+    const union = new Set<string>();
+    for (const path of paths) {
+      for (const entry of assertManifest(path).symbols) {
+        union.add(entry.symbol);
+      }
+    }
+    symbolFilter = stratifiedHoldout(
+      [...union],
+      (symbol) => getAssetType(symbol),
+    );
+  }
+  if (targetsFlag) {
+    symbolFilter = new Set(
+      targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+    );
+  }
   const { verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: argv.includes("--acknowledge-prior-reads"),
     baselineVariant,
     confirmFinal: true,
+    includeHoldout: holdoutCycle || targetsFlag !== undefined,
+    perMarketFolds,
     permutations: Number(flagValue("permutations") ?? 1_000),
     seed: Number(flagValue("seed") ?? 7),
+    symbolFilter,
     verdictUnit: "market",
   });
 
@@ -143,7 +182,7 @@ async function main() {
     else confirmedNegative += 1;
   }
   writeFileSync(
-    `${dir}/4d-confirm-read.json`,
+    `${dir}/${prefix}-confirm-read.json`,
     JSON.stringify(
       {
         confirmReport,
@@ -158,7 +197,7 @@ async function main() {
   );
   console.log(
     `confirm read: ${confirmedPositive} picks positive, ` +
-      `${confirmedNegative} negative, ${unreadable} unreadable -> 4d-confirm-read.json`,
+      `${confirmedNegative} negative, ${unreadable} unreadable -> ${prefix}-confirm-read.json`,
   );
 }
 

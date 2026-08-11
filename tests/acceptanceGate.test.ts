@@ -72,12 +72,21 @@ function corpusWith(rows: SweepEmitRow[]): string {
     generatedAt: "2026-08-10T05:00:00.000Z",
     grid: [{}, { tp1RiskShare: 0.9 }],
     stepBars: 16,
-    symbols: [{
+    // Series facts mirror the rows' own time range, the way a real shard
+    // manifest measures its bars — per-market fold re-cutting reads spans
+    // from here.
+    symbols: [...new Set(rows.map((row) => row.symbol))].map((symbol) => ({
       calibration: {},
-      providerSymbol: "EURUSD",
-      series: { "15min": seriesFacts([{ time: 0 }]) },
-      symbol: "EURUSD",
-    }],
+      providerSymbol: symbol,
+      series: {
+        "15min": seriesFacts(
+          rows
+            .filter((row) => row.symbol === symbol)
+            .map((row) => ({ time: Number(row.time) || 0 })),
+        ),
+      },
+      symbol,
+    })),
     trainShare: 0.6,
     warmupBars: 240,
   });
@@ -710,5 +719,83 @@ describe("gradeCorpus — the market unit rides the same door (4d)", () => {
     const eur = verdicts.get("EURUSD")?.get("wide");
     assert.ok(eur?.accepted, "the market unit must grade EURUSD's own rows");
     assert.equal(eur?.fitFilled, 40);
+  });
+});
+
+describe("gradeCorpus — the holdout cycle's surgical read (symbolFilter)", () => {
+  it("grades ONLY the named symbols, holdout included, others never enter the cube", async () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 40; day += 1) {
+      for (const symbol of ["EURUSD", "USDJPY"]) {
+        rows.push({ ...trainRow("baseline", day, 0.1), symbol });
+        rows.push({ ...outcomeRow("baseline", day, 0.1), symbol });
+        rows.push({ ...trainRow("wide", day, 0.2), symbol });
+        rows.push({ ...outcomeRow("wide", day, 0.2), symbol });
+      }
+    }
+    const emitPath = corpusWith(rows);
+    const { verdicts } = await gradeCorpus(emitPath, {
+      foldNames: { fit: "train", select: "test" },
+      includeHoldout: true,
+      permutations: 200,
+      seed: 7,
+      symbolFilter: new Set(["USDJPY"]),
+      verdictUnit: "market",
+    });
+    assert.equal(verdicts.has("EURUSD"), false, "filtered symbols never enter");
+    assert.ok(verdicts.get("USDJPY")?.get("wide")?.accepted);
+  });
+});
+
+describe("gradeCorpus — per-market folds cut over each market's OWN span (totality)", () => {
+  it("re-cuts fit/select/confirm from row times and drops boundary-leaking rows exactly", async () => {
+    const DAY_MS = 86_400_000;
+    const start = Date.UTC(2025, 0, 6);
+    const rows: SweepEmitRow[] = [];
+    // 200 days: the select quarter holds 50 filled rows, clear of the
+    // market unit's 30-filled floor.
+    for (let day = 0; day < 200; day += 1) {
+      for (const [variant, r] of [["baseline", 0.1], ["wide", 0.2]] as const) {
+        rows.push({
+          accepted: true,
+          exitAtMs: start + day * DAY_MS + 3_600_000,
+          outcome: "take_profit",
+          realizedR: r,
+          split: "ignored-by-refold",
+          symbol: "EURUSD",
+          time: start + day * DAY_MS,
+          variant,
+        });
+      }
+    }
+    // The leaker: decided in the select quarter (day 120), exits in
+    // confirm (day 160) — dropped by exact containment.
+    rows.push({
+      accepted: true,
+      exitAtMs: start + 160 * DAY_MS,
+      outcome: "take_profit",
+      realizedR: 50,
+      split: "ignored-by-refold",
+      symbol: "EURUSD",
+      time: start + 120 * DAY_MS + 7_200_000,
+      variant: "wide",
+    });
+    const emitPath = corpusWith(rows);
+    const { verdicts, foldNames } = await gradeCorpus(emitPath, {
+      includeHoldout: true,
+      perMarketFolds: true,
+      permutations: 200,
+      seed: 7,
+      verdictUnit: "market",
+    });
+    assert.equal(foldNames.fit, "fit");
+    const wide = verdicts.get("EURUSD")?.get("wide");
+    assert.ok(wide?.accepted, "steady gain across re-cut folds accepts");
+    // 50 select days for the variant; the +50R leaker was dropped, so
+    // the select delta stays the honest 50 x 0.1.
+    assert.ok(
+      Math.abs((wide?.selectTotalDelta ?? 0) - 5) < 1e-6,
+      `leaker must be dropped: selectTotalDelta ${wide?.selectTotalDelta}`,
+    );
   });
 });
