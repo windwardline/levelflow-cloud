@@ -21,6 +21,7 @@ import {
   type CategoryCalibration,
   getAssetType,
   getCategoryCalibration,
+  hasKnownAssetType,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
@@ -214,6 +215,21 @@ async function main() {
   }
 
   for (const symbol of args.symbols) {
+    // Round-8 CV-1/CV-10: a measurement refuses an unclassifiable symbol
+    // rather than inheriting the live fallback's forex bucket — the
+    // silent fallback mis-classed eight markets across a whole baseline.
+    if (!hasKnownAssetType(symbol)) {
+      throw new Error(
+        `${symbol}: not in any asset-class roster — sweep symbols must be ` +
+          `Levelflow roster names, never provider tickers`,
+      );
+    }
+    if (classFolds && !classFolds[getAssetType(symbol)]) {
+      throw new Error(
+        `${symbol}: class ${getAssetType(symbol)} missing from the fold ` +
+          `spec — re-derive it over the full universe`,
+      );
+    }
     const providerSymbol = resolveProviderSymbols(symbol)[0];
     if (!providerSymbol) {
       console.warn(`Skipping ${symbol}: no provider symbol.`);

@@ -3,6 +3,7 @@
 // bump). Lives here — the one Deno-free module both the Edge function and
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
+import { isKnownSymbol } from "./symbols.ts";
 export const ANALYZER_VERSION = "2026.08.11.engine-v2";
 
 export type AssetType =
@@ -670,6 +671,21 @@ const SYMBOL_CALIBRATION_OVERRIDES: Record<
     runnerWindowShare: 1.0,
   },
 };
+
+/**
+ * True when the symbol is a Levelflow roster name — the measurement paths
+ * (sweep driver, fold-spec deriver) REFUSE unknown symbols instead of
+ * inheriting getAssetType's forex fallback: that silent fallback is how
+ * six index CFDs, two coins and WTI ran a whole baseline under forex
+ * calibration, sessions and costs (round-8 CV-1/LA-11/FR-2). The class
+ * lists alone cannot answer this — forex is the fallthrough class with
+ * no explicit list — so the roster (symbolMap) is the authority and the
+ * class map only refines. The live analyzer keeps the fallback; anything
+ * that MEASURES must name its universe exactly.
+ */
+export function hasKnownAssetType(symbol: string): boolean {
+  return isKnownSymbol(symbol);
+}
 
 export function getAssetType(symbol: string): AssetType {
   const normalized = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");

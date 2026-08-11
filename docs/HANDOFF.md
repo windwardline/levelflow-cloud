@@ -39,7 +39,7 @@ step leaves every signed-in operator working behind a closed door.
 
 | | |
 | --- | --- |
-| Markets | **106** — forex 45, crypto 33, futures 27 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
+| Markets | **105** — forex 45, crypto 33, futures 27; the count is the composition's own sum (a stale 106 stood here until round 8's coverage lens, CV-9) (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
 | Engine | Round 28 calibration, Edge Functions deployed and verified in the deploy log |
 | Public face | The parking page |
 | Tests | 1,907 passing; check · lint · check:migrations · test · build · check:bundle all green |

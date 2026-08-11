@@ -9,7 +9,10 @@
  *     --out sweeps/4c/fold-spec.json
  */
 import { writeFileSync } from "node:fs";
-import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
+import {
+  getAssetType,
+  hasKnownAssetType,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import {
@@ -50,6 +53,12 @@ async function main(): Promise<void> {
       timeOf: (bar) => bar.time,
     });
     if (bars.length === 0) continue;
+    if (!hasKnownAssetType(symbol)) {
+      throw new Error(
+        `${symbol} is not in any asset-class roster — fold-spec symbols ` +
+          `must be Levelflow roster names, never provider tickers (CV-1)`,
+      );
+    }
     const className = getAssetType(symbol);
     const entry = spec[className] ?? {
       endMs: Number.NEGATIVE_INFINITY,

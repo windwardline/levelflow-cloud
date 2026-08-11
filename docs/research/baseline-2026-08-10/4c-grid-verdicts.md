@@ -1,3 +1,13 @@
+> **Identity annotation (round 8 CV-1/FR-2, added 2026-08-11):** this document
+> reads the 2026-08-10 baseline corpus, whose universe carried provider
+> spellings (six ^-prefixed indices, ARUSD, OTRUMPUSD, WTI's provider name);
+> getAssetType's silent forex fallback ran all nine under forex calibration,
+> sessions, costs and completion conventions — ARUSD/OTRUMPUSD additionally
+> took a 2-3h daily-completion look-ahead. "Forex" rows are inflated with
+> non-FX symbols and indices/energies rows are absent or misplaced. The
+> roster-name refleet (sweeps/4c, per-class fold spec) supersedes these
+> numbers. Kept unrewritten by design: annotated evidence, not history-edit.
+
 npm notice run levelflow-cloud@0.1.0 npx
 npm notice run 'tsx' scripts/grid-totalr.ts sweeps/4c/shard-0.jsonl sweeps/4c/shard-1.jsonl sweeps/4c/shard-2.jsonl sweeps/4c/shard-3.jsonl sweeps/4c/shard-4.jsonl sweeps/4c/shard-5.jsonl sweeps/4c/shard-6.jsonl sweeps/4c/shard-7.jsonl --baseline confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1 --permutations 1000 --seed 7
 folds: fit=fit select=select confirm=confirm (read once, accepted variants only) · holdout 2 markets excluded

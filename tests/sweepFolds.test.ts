@@ -9,6 +9,7 @@ import {
   stratifiedHoldout,
 } from "../scripts/sweepFolds.ts";
 import { parseGridSpec } from "../scripts/sweepGrid.ts";
+import { hasKnownAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
@@ -248,6 +249,18 @@ describe("foldsByClass — every class walks forward on its own span (4c repair)
     assert.match(script, /fold-spec/);
     assert.match(script, /foldsByClass/);
     assert.match(script, /classFolds\[getAssetType\(symbol\)\]/);
+  });
+});
+
+describe("measurement paths refuse unknown symbols (round-8 CV-1/CV-10)", () => {
+  it("exposes the strict classifier and the driver asserts with it", () => {
+    assert.equal(hasKnownAssetType("EURUSD"), true);
+    assert.equal(hasKnownAssetType("SP"), true);
+    assert.equal(hasKnownAssetType("^GSPC"), false);
+    assert.equal(hasKnownAssetType("OTRUMPUSD"), false);
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(script, /hasKnownAssetType\(symbol\)/);
+    assert.match(script, /missing from the fold/);
   });
 });
 
