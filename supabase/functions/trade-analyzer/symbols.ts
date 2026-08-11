@@ -278,7 +278,13 @@ const correlationGroups: Record<string, string[]> = {
     "NZDCAD",
   ],
   silver: ["XAGUSD", "SIUSD"],
-  treasury_futures: ["ZBUSD", "ZNUSD"],
+  // The whole curve (RM-5): 2s, 5s, 10s and the long bond move together
+  // far more than they diverge.
+  treasury_futures: ["ZBUSD", "ZNUSD", "ZFUSD", "ZTUSD"],
+  grains: ["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"],
+  livestock_complex: ["LEUSX", "GFUSX", "HEUSX"],
+  platinum_group: ["PLUSD", "PAUSD"],
+
   us_equity_indices: ["SP", "NSDQ", "DOW", "ESUSD", "NQUSD", "RTYUSD", "YMUSD"],
 };
 
@@ -410,11 +416,102 @@ export function getHeadlineNewsSymbols(symbols: SupportedSymbol[]) {
   return Array.from(candidates);
 }
 
+// Union-only RISK groups (round-8 RM-5). These are deliberately NOT in
+// correlationGroups: a symbol's primary group drives storage and the
+// client's scan batching, which packs whole primary clusters into single
+// requests (cap 10) and never crosses account classifications — a
+// 31-member alt group or a cross-account product complex can never be a
+// primary. The gate's getCorrelatedSymbols unions across BOTH structures,
+// which is where these bite.
+const riskUnionGroups: Record<string, string[]> = {
+  // The FULL funding-currency complex: a cross belongs to BOTH of its
+  // currencies' groups, and only this union makes the second membership
+  // bite — the primary map is single-membership by guarded invariant
+  // (batching needs unambiguous clusters), so the yen side lives here.
+  jpy_complex: [
+    "USDJPY",
+    "AUDJPY",
+    "CADJPY",
+    "CHFJPY",
+    "EURJPY",
+    "GBPJPY",
+    "NZDJPY",
+  ],
+  crypto_alts: [
+    "AAVEUSD",
+    "ADAUSD",
+    "ALGOUSD",
+    "ARWUSD",
+    "ATOMUSD",
+    "AVAXUSD",
+    "BCHUSD",
+    "BNBUSD",
+    "CAKEUSD",
+    "DASHUSD",
+    "DOGEUSD",
+    "DOTUSD",
+    "DYDXUSD",
+    "EGLDUSD",
+    "ETCUSD",
+    "FILUSD",
+    "GRTUSD",
+    "HBARUSD",
+    "IMXUSD",
+    "LINKUSD",
+    "LTCUSD",
+    "NEARUSD",
+    "SOLUSD",
+    "THETAUSD",
+    "TRUMPUSD",
+    "TRXUSD",
+    "UNIUSD",
+    "XLMUSD",
+    "XMRUSD",
+    "XRPUSD",
+    "XTZUSD",
+  ],
+  // The crack spread is a relationship, not independence — and WTI (the
+  // forex account's CFD) can never share a scan request with the futures
+  // account's contracts, so this complex lives here rather than in the
+  // primary map.
+  oil_products: ["WTI", "BZUSD", "CLUSD", "RBUSD", "HOUSD"],
+};
+
 export function getCorrelationGroup(symbol: string) {
   const normalized = normalizeSymbol(symbol);
   return Object.entries(correlationGroups).find(([, symbols]) =>
     symbols.includes(normalized)
   )?.[0] ?? normalized;
+}
+
+/**
+ * Every symbol sharing ANY group with this one (round-8 RM-5). The stored
+ * correlation_group is a single primary name, so a group-equality query
+ * misses the second membership every cross has — CADJPY stored under
+ * cad_crosses was invisible to an AUDJPY candidate's yen exposure. The
+ * gate screens against this union by SYMBOL, which needs no migration and
+ * cannot miss a stored row.
+ */
+export function getCorrelatedSymbols(symbol: string) {
+  const normalized = normalizeSymbol(symbol);
+  const union = new Set<string>();
+  for (
+    const symbols of [
+      ...Object.values(correlationGroups),
+      ...Object.values(riskUnionGroups),
+    ]
+  ) {
+    if (!symbols.includes(normalized)) {
+      continue;
+    }
+    for (const member of symbols) {
+      union.add(member);
+    }
+  }
+  union.delete(normalized);
+  return Array.from(union).filter((candidate) =>
+    isKnownSymbol(candidate) && !isTemporarilyUnavailableSymbol(candidate)
+  );
 }
 
 export function getRelatedSymbols(symbol: string) {

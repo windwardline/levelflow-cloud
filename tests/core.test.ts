@@ -14,6 +14,7 @@ import {
   getAssetType,
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
+import { getCorrelatedSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
   executionTimeframes,
   intradayTimeframes,
@@ -1195,3 +1196,38 @@ function buildSetup({
       : [],
   };
 }
+
+describe("correlation completion — the whole complex, both sides of every pair (round-8 RM-5)", () => {
+  it("a JPY cross correlates with the full JPY complex, not just its base family", () => {
+    const related = getCorrelatedSymbols("CADJPY");
+    for (const jpy of ["USDJPY", "AUDJPY", "CHFJPY", "EURJPY", "GBPJPY", "NZDJPY"]) {
+      assert.ok(related.includes(jpy), `CADJPY must correlate with ${jpy}`);
+    }
+    assert.ok(related.includes("USDCAD"), "the CAD side still counts too");
+  });
+
+  it("every altcoin shares one exposure group — one alt setup at a time", () => {
+    const related = getCorrelatedSymbols("DOGEUSD");
+    for (const alt of ["SOLUSD", "AVAXUSD", "XMRUSD", "TRUMPUSD", "LINKUSD"]) {
+      assert.ok(related.includes(alt), `DOGEUSD must correlate with ${alt}`);
+    }
+    assert.ok(!related.includes("BTCUSD"), "majors keep their own group");
+  });
+
+  it("the new futures carry their complexes: grains, livestock, the curve, PGMs, products", () => {
+    assert.ok(getCorrelatedSymbols("ZCUSX").includes("ZSUSX"));
+    assert.ok(getCorrelatedSymbols("LEUSX").includes("GFUSX"));
+    assert.ok(getCorrelatedSymbols("ZTUSD").includes("ZBUSD"));
+    assert.ok(getCorrelatedSymbols("PLUSD").includes("PAUSD"));
+    assert.ok(getCorrelatedSymbols("RBUSD").includes("CLUSD"));
+  });
+
+  it("the scan gate screens against the symbol union, not one stored group", () => {
+    const source = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    assert.match(source, /symbol=in\./);
+    assert.match(source, /getCorrelatedSymbols/);
+  });
+});
