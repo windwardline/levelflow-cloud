@@ -643,11 +643,16 @@ A six-domain adversarial audit of this file's own claims ran after item
    meant. A threshold rescue across every threshold their own scores
    admit FAILED. **RULED 2026-08-11 (amendment 36):** they may be
    withdrawn, but only on evidence that survives the removal of our own
-   modelling choices, and they stay reentry candidates forever. The
-   test is running now — a gross re-sweep charging E8's PUBLISHED
-   commission alone (`LEVELFLOW_MODELED_COST_SCALE=0`) separates a
-   market that loses from a market our modeled spread convicts. Only
-   the first population is withdrawable. Full record:
+   modelling choices, and they stay reentry candidates forever. **That
+   test ran, and it was a no-op.** `LEVELFLOW_MODELED_COST_SCALE=0` never
+   reached the replay resolver (defect 1c), so the "gross" arm charged
+   the same costs as the net one — 11 of 20 rows came back bit-identical,
+   which is proof the switch did nothing, not agreement. **Amendment 36's
+   standard was therefore never met for the 15 declines.** They stand
+   only on the conservative reading that the clock defect *inflates*
+   expectancy, so a market measured negative under it is very unlikely to
+   be positive under a correct measurement. Re-deciding them is Phase 4's
+   job, after M5 makes the knob real. Full record:
    `docs/research/baseline-2026-08-10/4d-derivation-2026-08-11.md`,
    "Absolute-expectancy addendum".
 2. **The roster headline was a sum of account views, not the offering.**

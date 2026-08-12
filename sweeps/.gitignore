@@ -1,4 +1,9 @@
 *
+# Descend into subdirectories, or the re-includes below can never match:
+# once `*` excludes a directory, git stops walking it and no `!pattern`
+# inside can rescue a file. This is why sweeps/4c/*.manifest.json — the
+# provenance record of the 4c/4d corpus — went untracked.
+!*/
 !.gitignore
 !*.manifest.json
 !universe.txt
