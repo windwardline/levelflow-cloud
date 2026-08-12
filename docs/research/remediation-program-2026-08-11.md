@@ -233,6 +233,14 @@ D7 (Record rows publish a frequency as a record), D8 (confidence tiers
 assert an ordering the corpus inverts). Both pre-reopen; the desk is
 parked, so no reader sees them today.
 
+- **SC-5 — DONE 2026-08-11, ahead of its phase.** The decline sentence
+  published each market's `measuredExpectancyR` to three decimals, a
+  number straight out of the invalid corpus, and it would have shipped on
+  the first scan after reopening. The magnitude is now withheld; the
+  sentence states the direction only, which is what the decline actually
+  rests on. Pinned by `tests/calibrationState.test.ts`. **Phase 4 puts a
+  number back only after re-deriving it.**
+
 ---
 
 ## 5. Ledger

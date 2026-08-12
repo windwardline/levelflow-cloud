@@ -1,3 +1,19 @@
+// ⛔ THIS SCRIPT'S MECHANISM DOES NOT WORK. Do not run it, and do not
+// treat any artifact it has written as evidence. `LEVELFLOW_MODELED_COST_SCALE`
+// scales `estimatedRoundTripCost` only, and the replay resolver never reads
+// that value — fills take `estimatedSpread`/`estimatedSlippage` directly and
+// realized R charges commission through `perLegCost`. So the "gross" corpus
+// below charges the SAME costs as the net one; setting the scale to 0 removes
+// nothing from the R accounting and only loosens the payoff gate, admitting
+// more setups. Eleven of twenty rows came back bit-identical, which is proof
+// the switch did nothing, read at the time as agreement.
+//
+// Amendment 36's standard therefore was never met for the 15 declines. The
+// repair is Phase 2 / M5 in docs/research/remediation-program-2026-08-11.md:
+// route the scale into the resolver, and assert that a bit-identical
+// gross/net row emits "COST MODEL INERT" instead of a verdict. Everything
+// below describes the INTENT, which is still correct; only the wiring failed.
+//
 // Does a market's negative verdict survive charging ONLY the venue's
 // published bill? (Owner standard 2026-08-11: no withdrawal on a flawed
 // parameter of our own making.)
@@ -214,8 +230,11 @@ async function main() {
       {
         derivedAt: new Date().toISOString(),
         note:
-          "gross = LEVELFLOW_MODELED_COST_SCALE=0 (E8's published commission only). " +
-          "Per-market folds, exact containment, 30-fill floor, both corpora.",
+          "INVALID — the 'gross' arm charged the same costs as the net arm. " +
+          "LEVELFLOW_MODELED_COST_SCALE never reaches the replay resolver " +
+          "(defect 1c, 2026-08-11), so this file measures nothing. Do not use " +
+          "these numbers to withdraw, defend, or ship a market. See " +
+          "docs/research/remediation-program-2026-08-11.md.",
         summary: { costDependent, indistinguishable, unreadable, withdrawable },
         verdicts,
       },
