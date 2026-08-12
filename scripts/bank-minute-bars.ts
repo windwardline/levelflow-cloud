@@ -41,7 +41,13 @@
  *   FMP_API_KEY=... npx tsx scripts/bank-minute-bars.ts
  *   FMP_API_KEY=... npx tsx scripts/bank-minute-bars.ts --dir .minute-bank --concurrency 4
  */
-import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  readdir,
+  writeFile,
+} from "node:fs/promises";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
@@ -149,8 +155,34 @@ export function usableBar(bar: RawBar): bar is RawBar & BankedBar {
   );
 }
 
+const SIDECAR_SUFFIX = ".state.json";
+
 function sidecarPath(dir: string, fmpSymbol: string) {
-  return `${dir}/${encodeURIComponent(fmpSymbol)}.state.json`;
+  return `${dir}/${encodeURIComponent(fmpSymbol)}${SIDECAR_SUFFIX}`;
+}
+
+/**
+ * Symbols the store still holds but the roster no longer banks.
+ *
+ * A departure is otherwise invisible. The run reports the symbols it banked,
+ * so dropping one moves a count and says nothing — amendment 32 took ^MID,
+ * ^STOXX50E and USDMXN on 2026-08-09 and the log read 100 then 97. A
+ * deliberate retirement and a mistyped `fmpSymbol` produce that same silence,
+ * and the second costs the series permanently three days later.
+ *
+ * Names, not a count, because the operator's question is which one. Reported
+ * rather than fatal: retirement is legitimate and a run that failed every day
+ * after one would be trained away within a week.
+ */
+export function orphanedSidecars(files: string[], roster: string[]): string[] {
+  const banked = new Set(roster);
+  return files
+    .filter((file) => file.endsWith(SIDECAR_SUFFIX))
+    // Sidecars are written through encodeURIComponent, so every ^-prefixed
+    // index sits on disk as %5E... — comparing raw names would orphan them all.
+    .map((file) => decodeURIComponent(file.slice(0, -SIDECAR_SUFFIX.length)))
+    .filter((symbol) => !banked.has(symbol))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 function bankPath(dir: string, fmpSymbol: string) {
@@ -310,7 +342,11 @@ async function main() {
   }
   const { dir, concurrency, limit } = parseArgs(process.argv.slice(2));
   await mkdir(dir, { recursive: true });
-  const targets = bankableSymbols().slice(0, limit);
+  // The departure check compares the store against the whole roster, never
+  // against `targets` — `--limit` is a debugging convenience, and measuring
+  // against a truncated list would report every unvisited symbol as departed.
+  const roster = bankableSymbols();
+  const targets = roster.slice(0, limit);
   const at = new Date().toISOString();
 
   let appendedTotal = 0;
@@ -335,6 +371,16 @@ async function main() {
     `Banked ${appendedTotal} new 1-minute bars across ${targets.length} symbols` +
       (failed > 0 ? `; ${failed} returned nothing` : "") + ".",
   );
+
+  const orphans = orphanedSidecars(
+    await readdir(dir),
+    roster.map((entry) => entry.fmpSymbol),
+  );
+  if (orphans.length > 0) {
+    console.log(
+      `No longer on the roster, so no longer banked: ${orphans.join(", ")}.`,
+    );
+  }
   // Two different silences, and only one is a failure. Fetching nothing at all
   // means the provider or the key is broken, and the 3-day window makes that
   // unrecoverable within a day — so it exits non-zero. Fetching bars and

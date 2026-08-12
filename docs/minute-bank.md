@@ -113,5 +113,21 @@ rejected key is still rejected on the fourth ask, and asking costs a hundred
 symbols against a metered quota. Everything else — no response at all, a 429, a
 5xx, an error page where JSON belonged — is retried.
 
+A symbol that leaves the roster stops being banked, and the count alone will not
+say so. Amendment 32 dropped `^MID`, `^STOXX50E` and `USDMXN` on 2026-08-09 and
+the log read 100, then 97. A deliberate retirement and a mistyped `fmpSymbol`
+produce the same silence there, and the second costs the series permanently three
+days later. So the run names them rather than counting them:
+
+```
+No longer on the roster, so no longer banked: ^MID, ^STOXX50E, USDMXN.
+```
+
+A report, not a failure. Retirement is legitimate, and an alarm that can never be
+cleared is one the operator learns to skip.
+
 A separate daily watchdog reads the log and the sidecars and escalates if the
-newest `highWaterMark` falls more than two days behind.
+newest `highWaterMark` falls more than two days behind, or if a sidecar's last
+run predates the last completed run. The second test exists because the first
+cannot see a symbol that stopped being attempted: its sidecar keeps a stale,
+non-zero `fetched` forever, so counting empty returns reads it as healthy.
