@@ -174,12 +174,19 @@ both directions; `docs/ci-recovery.md` carries the diagnosis notes (`cancelled`
 The landing PR's own deploy run was the watched green run.
 
 ### RUNNING — bank 1-minute bars
-Started 2026-08-06. Daily at 07:02. Not scheduled work; work to not break.
+Started 2026-08-06. Twice daily at 07:20 and 19:20 local. Not scheduled work;
+work to not break.
 *Corrected 2026-08-09:* the launchd agents exist and are loaded —
 `com.windwardline.levelflow-minute-bank` and `levelflow-cache-topup`, last exit 0,
-bank verified healthy 2026-08-09 (39k bars/100 symbols, recovered from the
-2026-08-08 outage). *Still owed:* the bank has no backup, the same gap the 6.0 GB
-corpus has.
+recovered from the 2026-08-08 outage.
+*Corrected 2026-08-12:* the roster is 97, not 100. Amendment 32 (#284) retired
+`^MID`, `^STOXX50E` and `USDMXN` on 2026-08-09; their series end 08-07, 08-07 and
+08-09 and cannot be backfilled — the amendment's correct outcome, not a loss. The
+health note above was a count of symbols returning bars, taken that same day, and
+a count cannot see a symbol that stopped being attempted: its sidecar keeps a
+non-zero `fetched` forever. The run now names departures (#342); the watchdog
+reads run recency. Store: 903,744 bars, 100 sidecars, 97 live.
+*Still owed:* the bank has no backup, the same gap the 6.0 GB corpus has.
 
 ### 0.5 — Close the write surface on the learning corpus — **DONE, verified against production 2026-08-07**
 

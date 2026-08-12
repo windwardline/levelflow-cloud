@@ -162,6 +162,22 @@ function sidecarPath(dir: string, fmpSymbol: string) {
 }
 
 /**
+ * What a run will fetch, and what it will measure the store against.
+ *
+ * These are two different lists and the difference is load-bearing. `--limit`
+ * truncates the fetch for debugging; the departure check below compares the
+ * store against the whole roster. Measuring against the truncated list instead
+ * would report every unvisited symbol as departed on any limited run, which is
+ * how an operator learns to skip the line. Exported so that split is pinned by
+ * a test rather than by a comment.
+ */
+export function planRun(argv: string[]) {
+  const { dir, concurrency, limit } = parseArgs(argv);
+  const roster = bankableSymbols();
+  return { dir, concurrency, roster, targets: roster.slice(0, limit) };
+}
+
+/**
  * Symbols the store still holds but the roster no longer banks.
  *
  * A departure is otherwise invisible. The run reports the symbols it banked,
@@ -178,11 +194,28 @@ export function orphanedSidecars(files: string[], roster: string[]): string[] {
   const banked = new Set(roster);
   return files
     .filter((file) => file.endsWith(SIDECAR_SUFFIX))
-    // Sidecars are written through encodeURIComponent, so every ^-prefixed
-    // index sits on disk as %5E... — comparing raw names would orphan them all.
-    .map((file) => decodeURIComponent(file.slice(0, -SIDECAR_SUFFIX.length)))
+    .map((file) => decodeSidecarName(file.slice(0, -SIDECAR_SUFFIX.length)))
     .filter((symbol) => !banked.has(symbol))
     .sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Sidecars are written through encodeURIComponent, so every ^-prefixed index
+ * sits on disk as %5E... and comparing raw names would orphan all of them.
+ *
+ * The directory can also hold files this script never wrote — one copied by
+ * hand, one rescued from a backup — and decodeURIComponent throws URIError on
+ * a stray percent. That throw would land in the same function as the exit-code
+ * decision and silence the escalation that says the provider window is
+ * closing. An undecodable name is reported exactly as it sits on disk: it is
+ * not on the roster either way, so the operator still sees it named.
+ */
+function decodeSidecarName(stem: string): string {
+  try {
+    return decodeURIComponent(stem);
+  } catch {
+    return stem;
+  }
 }
 
 function bankPath(dir: string, fmpSymbol: string) {
@@ -340,13 +373,8 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  const { dir, concurrency, limit } = parseArgs(process.argv.slice(2));
+  const { dir, concurrency, roster, targets } = planRun(process.argv.slice(2));
   await mkdir(dir, { recursive: true });
-  // The departure check compares the store against the whole roster, never
-  // against `targets` — `--limit` is a debugging convenience, and measuring
-  // against a truncated list would report every unvisited symbol as departed.
-  const roster = bankableSymbols();
-  const targets = roster.slice(0, limit);
   const at = new Date().toISOString();
 
   let appendedTotal = 0;
@@ -372,15 +400,6 @@ async function main() {
       (failed > 0 ? `; ${failed} returned nothing` : "") + ".",
   );
 
-  const orphans = orphanedSidecars(
-    await readdir(dir),
-    roster.map((entry) => entry.fmpSymbol),
-  );
-  if (orphans.length > 0) {
-    console.log(
-      `No longer on the roster, so no longer banked: ${orphans.join(", ")}.`,
-    );
-  }
   // Two different silences, and only one is a failure. Fetching nothing at all
   // means the provider or the key is broken, and the 3-day window makes that
   // unrecoverable within a day — so it exits non-zero. Fetching bars and
@@ -392,6 +411,20 @@ async function main() {
     process.exitCode = 1;
   } else if (appendedTotal === 0 && targets.length > 0) {
     console.log("Nothing new since the last run.");
+  }
+
+  // Last, and after the exit code is settled. This reads the directory rather
+  // than the run's own results, so it is the one part of the summary that
+  // depends on what else is on disk — it must not be able to preempt the
+  // escalation above it.
+  const orphans = orphanedSidecars(
+    await readdir(dir),
+    roster.map((entry) => entry.fmpSymbol),
+  );
+  if (orphans.length > 0) {
+    console.log(
+      `No longer on the roster, so no longer banked: ${orphans.join(", ")}.`,
+    );
   }
 }
 

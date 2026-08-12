@@ -4,6 +4,7 @@ import {
   bankableSymbols,
   isRetryable,
   orphanedSidecars,
+  planRun,
   usableBar,
   withRetry,
 } from "../scripts/bank-minute-bars.ts";
@@ -73,6 +74,46 @@ describe("minute bank — a symbol that leaves the roster", () => {
       orphanedSidecars(["EURUSD.state.json"], ["EURUSD", "GBPUSD"]),
       [],
     );
+  });
+
+  it("sorts the names, so the reported line is stable run to run", () => {
+    assert.deepEqual(
+      orphanedSidecars(
+        ["USDMXN.state.json", "%5EMID.state.json", "%5ESTOXX50E.state.json"],
+        [],
+      ),
+      ["^MID", "^STOXX50E", "USDMXN"],
+    );
+  });
+
+  it("still reports when a file it never wrote has a malformed name", () => {
+    // readdir returns whatever sits in the directory, including a file rescued
+    // from a backup or copied by hand. decodeURIComponent throws URIError on a
+    // stray percent, and this report runs in the same function as the
+    // exit-code decision — a throw here would silence the escalation that
+    // says the provider window is closing.
+    assert.deepEqual(orphanedSidecars(["EURUSD 50%.state.json"], []), [
+      "EURUSD 50%",
+    ]);
+  });
+});
+
+describe("minute bank — --limit truncates the fetch, never the roster", () => {
+  it("keeps the whole roster while limiting what a debugging run fetches", () => {
+    // The departure check measures the store against the roster. Measuring it
+    // against the fetch list instead would report every unvisited symbol as
+    // departed on any --limit run, which is how an operator learns to skip the
+    // line. Nothing about that swap is visible to a test of orphanedSidecars
+    // alone, so the split itself is pinned here.
+    const plan = planRun(["--limit", "2"]);
+    assert.equal(plan.targets.length, 2);
+    assert.equal(plan.roster.length, bankableSymbols().length);
+    assert.ok(plan.roster.length > plan.targets.length);
+  });
+
+  it("banks the whole roster when no limit is given", () => {
+    const plan = planRun([]);
+    assert.equal(plan.targets.length, plan.roster.length);
   });
 });
 
