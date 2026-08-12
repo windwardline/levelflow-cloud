@@ -173,8 +173,38 @@ function sidecarPath(dir: string, fmpSymbol: string) {
  */
 export function planRun(argv: string[]) {
   const { dir, concurrency, limit } = parseArgs(argv);
+  // Number(undefined) is NaN and slice(0, NaN) is empty, so a trailing
+  // `--limit`, or one followed by the next flag, used to fetch nothing at all
+  // and exit 0 — a run that examined nothing wearing the result of one that
+  // ran and passed. Infinity is the unflagged default and passes.
+  if (!(limit > 0)) {
+    throw new Error(
+      `--limit must be a positive number; got ${JSON.stringify(
+        argv[argv.indexOf("--limit") + 1] ?? null,
+      )}.`,
+    );
+  }
   const roster = bankableSymbols();
   return { dir, concurrency, roster, targets: roster.slice(0, limit) };
+}
+
+/**
+ * The symbols a run should report as departed, read from the store on disk.
+ *
+ * Takes the whole plan and reaches for `roster` itself. That is the point:
+ * the wiring is the trap. Handing this `targets` reports every symbol a
+ * `--limit` run did not visit as departed, and the split is invisible to any
+ * test of `orphanedSidecars` alone — `targets` is `roster.slice(...)`, so
+ * asserting the relationship between them only restates `slice`.
+ */
+export async function departedSymbols(
+  dir: string,
+  plan: { roster: Array<{ fmpSymbol: string }> },
+): Promise<string[]> {
+  return orphanedSidecars(
+    await readdir(dir),
+    plan.roster.map((entry) => entry.fmpSymbol),
+  );
 }
 
 /**
@@ -373,7 +403,8 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  const { dir, concurrency, roster, targets } = planRun(process.argv.slice(2));
+  const plan = planRun(process.argv.slice(2));
+  const { dir, concurrency, targets } = plan;
   await mkdir(dir, { recursive: true });
   const at = new Date().toISOString();
 
@@ -400,16 +431,22 @@ async function main() {
       (failed > 0 ? `; ${failed} returned nothing` : "") + ".",
   );
 
-  // Two different silences, and only one is a failure. Fetching nothing at all
-  // means the provider or the key is broken, and the 3-day window makes that
-  // unrecoverable within a day — so it exits non-zero. Fetching bars and
-  // appending none is what an immediate re-run does, and is merely worth saying.
-  if (targets.length > 0 && fetchedTotal === 0) {
+  // Three silences, and only one of them is nothing to worry about. A run with
+  // no symbols at all examined nothing and must never read as a clean pass.
+  // Fetching nothing means the provider or the key is broken, and the 3-day
+  // window makes that unrecoverable within a day. Fetching bars and appending
+  // none is what an immediate re-run does, and is merely worth saying.
+  if (targets.length === 0) {
+    console.error(
+      "No symbols to bank. Nothing was examined, so this is a failure, not a quiet day.",
+    );
+    process.exitCode = 1;
+  } else if (fetchedTotal === 0) {
     console.error(
       "Nothing was fetched from any symbol. The provider window is 3 days — investigate now.",
     );
     process.exitCode = 1;
-  } else if (appendedTotal === 0 && targets.length > 0) {
+  } else if (appendedTotal === 0) {
     console.log("Nothing new since the last run.");
   }
 
@@ -417,10 +454,7 @@ async function main() {
   // than the run's own results, so it is the one part of the summary that
   // depends on what else is on disk — it must not be able to preempt the
   // escalation above it.
-  const orphans = orphanedSidecars(
-    await readdir(dir),
-    roster.map((entry) => entry.fmpSymbol),
-  );
+  const orphans = await departedSymbols(dir, plan);
   if (orphans.length > 0) {
     console.log(
       `No longer on the roster, so no longer banked: ${orphans.join(", ")}.`,
