@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   bankableSymbols,
   isRetryable,
+  orphanedSidecars,
   usableBar,
   withRetry,
 } from "../scripts/bank-minute-bars.ts";
@@ -36,6 +37,41 @@ describe("minute bank — what gets banked", () => {
     assert.ok(
       shared.length > 0,
       "at least one FMP series is expected to serve more than one market",
+    );
+  });
+});
+
+describe("minute bank — a symbol that leaves the roster", () => {
+  // A roster change is silent by construction: the run reports the symbols it
+  // banked, and a symbol it no longer banks is simply absent from that count.
+  // Amendment 32 dropped three (^MID, ^STOXX50E, USDMXN) on 2026-08-09 and the
+  // log read 100 -> 97 with nothing said. That is survivable when the change is
+  // deliberate and unrecoverable when it is a typo, because the provider window
+  // closes in three days. So the run names them instead of counting them.
+
+  it("names a sidecar whose symbol is no longer on the roster", () => {
+    const orphans = orphanedSidecars(
+      ["%5EMID.state.json", "EURUSD.state.json"],
+      ["EURUSD"],
+    );
+    assert.deepEqual(orphans, ["^MID"]);
+  });
+
+  it("decodes the filename before comparing, so an index is not falsely orphaned", () => {
+    // Sidecars are named with encodeURIComponent, so every ^-prefixed index
+    // lands on disk as %5E.... Comparing raw filenames would report all of
+    // them as departed on the first run and teach the operator to ignore it.
+    assert.deepEqual(orphanedSidecars(["%5EGDAXI.state.json"], ["^GDAXI"]), []);
+  });
+
+  it("reads sidecars only, not the bar files beside them", () => {
+    assert.deepEqual(orphanedSidecars(["EURUSD.jsonl"], []), []);
+  });
+
+  it("returns nothing when the roster and the store agree", () => {
+    assert.deepEqual(
+      orphanedSidecars(["EURUSD.state.json"], ["EURUSD", "GBPUSD"]),
+      [],
     );
   });
 });
