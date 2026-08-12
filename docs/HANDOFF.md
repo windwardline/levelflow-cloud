@@ -63,7 +63,7 @@ step leaves every signed-in operator working behind a closed door.
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
 | Engine | `2026.08.11.declines` — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deployed and verified |
 | Public face | The parking page |
-| Tests | 2,175 passing; check · lint · check:migrations · test · build · check:bundle all green |
+| Tests | 2,178 at this writing — the count drifts every PR, so `npm test` is the authority, not this cell; check · lint · check:migrations · test · build · check:bundle all green |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
 
 ### Merged 2026-08-06 → 07
@@ -781,8 +781,13 @@ went from unusable to +12.9 test R on a symbol override its class could not expr
 ### 9 — Coverage
 The four index futures reading cash series with an unmeasured, time-varying basis —
 the test that excluded the six FX majors, never applied to the markets that most need
-it. **45 of 111 markets belong to no correlation group**, which item 5's crowding rule
-needs before it can refuse anything. Economic-calendar and news maps never extended past
+it. **5 of 97 markets have no correlation peer** — HGUSD, NGUSD, NIKKEI, DAX, ASX —
+which item 5's crowding rule needs before it can refuse anything. (The "45 of 111"
+figure this line used to carry predates both amendment 32 and the correlation
+completion; re-derive rather than quote it:
+`npx tsx -e 'import {defaultScanSymbols,getCorrelatedSymbols} from "./supabase/functions/trade-analyzer/symbols.ts"; console.log(defaultScanSymbols.filter(s=>((getCorrelatedSymbols(s)??[]).filter(p=>p!==s)).length===0))'`
+Note `getCorrelationGroup` falls back to the symbol itself, so counting by group
+membership reports zero ungrouped and means nothing.) Economic-calendar and news maps never extended past
 the original 50. Account-type rules enforced in the browser only.
 
 ### 10 — Fleet
@@ -828,7 +833,7 @@ themselves assume** — particularly 2c's adverse-first ordering and 2b's probed
 both of which are assumptions being installed as defaults, and 8a's claim that the
 minimum-width floor is the only thing making the cap bind.
 
-One further lens has never been run: **the product with 111 markets rather than 50.**
+One further lens has never been run: **the product with 97 markets rather than 50.**
 Every measurement of render cost, scan latency, correlation coverage and session
 handling predates a universe that more than doubled. That is a coverage question about
 the *product*, not the engine, and nothing in the current sequence owns it.
@@ -870,8 +875,9 @@ Then read docs/HANDOFF.md — the total state of record. Do not re-derive
 what it records. Do not re-ask any amendment recorded in
 docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md
 (29 through 38 are the live ones) or any decision section 2 lists as
-approved — all standing. Where this file references older approvals by
-letter, the amendments spec is the readable authority.
+approved — all standing. Approvals this file once carried only
+as letters (Decisions A-F, amendment 26) no longer exist anywhere; if one
+of those questions comes up, ask me rather than hunting for it.
 
 THE DESK IS PARKED and stays parked through this work. PARKING_GATE is
 true; section 1 has the exact reopening procedure. Do not reopen without
@@ -1006,7 +1012,8 @@ Ultracode buys the fan-out and the refutation that were.
 Phase shape, for reference: Phases 0–2 (clock, divergences, instrument)
 are subtle and correctness-critical, and benefit most from the refute
 pass being real rather than ceremonial. Phase 3 is compute-bound and
-model-irrelevant. Phases 4–5 are breadth across 105 markets, where the
+model-irrelevant. Phases 4–5 are breadth across 97 distinct markets (105
+only if the eight dual-listed crypto CFDs are counted twice), where the
 number of independent checks is the whole game.
 
 **Adversarial fan-out is now the standing method, not a technique for
