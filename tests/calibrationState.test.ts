@@ -486,6 +486,27 @@ describe("engine-declined markets — the roster law's own mechanism (amendment 
     );
   });
 
+  // SC-5 (readiness audit, 2026-08-11): the decline sentence published
+  // `measuredExpectancyR` to three decimals — a number derived from the
+  // corpus the clock defect invalidated. The desk is parked, so no reader
+  // has seen it, but it ships the moment the doors open. The DECLINE
+  // stands (its direction is conservative); the fabricated precision does
+  // not. Phase 4 re-derives the magnitude before any number goes back.
+  it("the decline sentence states the direction, never the invalid magnitude", () => {
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    const sentence = analyzer.slice(
+      analyzer.indexOf("Levelflow does not produce setups for this market"),
+    ).slice(0, 400);
+    assert.doesNotMatch(
+      sentence,
+      /measuredExpectancyR/,
+      "a corpus-derived expectancy must not reach the reader until Phase 4 re-derives it",
+    );
+  });
+
   it("the register IS the artifact — every entry traces to the cost-sensitivity verdict", () => {
     const verdicts = JSON.parse(
       readFileSync(

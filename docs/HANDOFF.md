@@ -101,9 +101,13 @@ step leaves every signed-in operator working behind a closed door.
   each market's own discovered data limit; the geometry model reviewed before it
   is tuned. The standard: identify money-positive setups at a high rate, account
   for how each was derived, present figures the operator can defend.
-- Decisions A–F, amendment 26, and every item in the old sections 6 and 8 remain
-  approved. Sections 5 and 8 also record findings **verified as non-problems** — do not
-  re-investigate those.
+- **Amendments 29–38** in the spec are the live standing approvals; read them
+  there rather than re-asking. Earlier approvals that this file once recorded
+  only by letter (*Decisions A–F*, *amendment 26*, *old sections 6 and 8*) are
+  **gone** — they lived in the gitignored worktree handoff that was destroyed,
+  they exist nowhere in this repository's history, and the spec's headings jump
+  from amendment 25 to 29. Do not hunt for them; if one of those questions comes
+  up again, re-ask it.
 
 ---
 
@@ -425,11 +429,22 @@ corpus reads fine. Re-derivation (the "then re-derive" half) is item 4's
 program, which now has its instrument.
 
 ### 4 — THE CALIBRATION PROGRAM (amendment 33)
+
+> ⛔ **EVERY RESULT IN THIS SECTION IS INVALID.** The corpus beneath it
+> resolved setups 4–5 hours out of register with their own decision bar.
+> No count of confirmed cells, no expectancy, no fill rate below this
+> line is evidence of anything. The section is kept as the record of
+> what was measured and how it failed. The live plan is §4's **R0–R6**
+> table; the diagnosis is
+> `docs/research/remediation-program-2026-08-11.md`.
+
 **CONVERGE ROUND 8 RAN 2026-08-10 23:20 (owner-invoked)** — seven
 adversarial lenses, 73 findings, ledger + dispositions of record:
-`docs/research/converge-round-8-2026-08-10.md`. Synthesis: the corpus is
-honest; the verdict layer, cost model, identity seam and product story
-are not. The 4c grid's ACCEPTs are demoted to DIRECTIONAL evidence (the
+`docs/research/converge-round-8-2026-08-10.md`. Synthesis **as written
+then**: the corpus is honest; the verdict layer, cost model, identity
+seam and product story are not. The first clause was **overturned on
+2026-08-11** — the corpus was not honest, and that is the whole reason
+this section is quarantined. The 4c grid's ACCEPTs are demoted to DIRECTIONAL evidence (the
 permutation p was printed but not enforced — one committed ACCEPT at
 p=0.146; the confirm fold was burned by unconditional printing; the 4b
 axis choice consumed pooled folds). The batches below are ranked INTO
@@ -714,7 +729,7 @@ the product-truth fixes, gate v2's statistical machinery (its criterion
 is wrong, not its statistics).
 
 The program is Phase 0 (one clock) → 1 (one engine) → 2 (repair the
-instrument) → 3 (re-sweep once) → 4 (the per-market program, item 5) →
+instrument) → 3 (re-sweep once) → 4 (the per-market program, = R4) →
 5 (the never-analyzed populations) → 6 (reader claims). The order is
 load-bearing.
 

@@ -1416,10 +1416,19 @@ async function explainNoSetup(
     if (declined) {
       // The honest sentence for a market the engine will not trade: the
       // measurement, not a mood, and the door back in.
+      //
+      // The MAGNITUDE is withheld deliberately (SC-5, 2026-08-11). Each
+      // register entry's `measuredExpectancyR` comes from the corpus the
+      // clock defect invalidated, so quoting it to three decimals publishes
+      // a false precision. The direction survives — the defect inflates
+      // expectancy, so a market measured negative under it is very unlikely
+      // to be positive under a correct measurement — and the direction is
+      // the whole reason for the decline. Phase 4 re-derives the number
+      // before any number goes back into this sentence.
       diagnostics.push(
-        `Levelflow does not produce setups for this market: its own measured record is ${
-          declined.measuredExpectancyR.toFixed(3)
-        }R per setup after the venue's published costs. ${declined.reprobe}`,
+        "Levelflow does not produce setups for this market: its own measured " +
+          "record is negative after the venue's published costs. " +
+          declined.reprobe,
       );
     }
     diagnostics.push(
