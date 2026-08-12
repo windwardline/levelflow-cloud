@@ -1,0 +1,593 @@
+{
+  "analyzerVersion": "2026.08.11.totality",
+  "anchor": "2026-08-11",
+  "barRejections": {},
+  "days": 7000,
+  "foldsByClass": {
+    "crypto": [
+      {
+        "decisionEndMs": 1584488250000,
+        "endMs": 1584920250000,
+        "name": "fit",
+        "startMs": 1383505200000
+      },
+      {
+        "decisionEndMs": 1685195775000,
+        "endMs": 1685627775000,
+        "name": "select",
+        "startMs": 1584920250000
+      },
+      {
+        "decisionEndMs": 1785903300000,
+        "endMs": 1786335300000,
+        "name": "confirm",
+        "startMs": 1685627775000
+      }
+    ],
+    "energies": [
+      {
+        "decisionEndMs": 1740827250000,
+        "endMs": 1741259250000,
+        "name": "fit",
+        "startMs": 1696183200000
+      },
+      {
+        "decisionEndMs": 1763365275000,
+        "endMs": 1763797275000,
+        "name": "select",
+        "startMs": 1741259250000
+      },
+      {
+        "decisionEndMs": 1785903300000,
+        "endMs": 1786335300000,
+        "name": "confirm",
+        "startMs": 1763797275000
+      }
+    ],
+    "forex": [
+      {
+        "decisionEndMs": 1519684200000,
+        "endMs": 1520116200000,
+        "name": "fit",
+        "startMs": 1253822400000
+      },
+      {
+        "decisionEndMs": 1652831100000,
+        "endMs": 1653263100000,
+        "name": "select",
+        "startMs": 1520116200000
+      },
+      {
+        "decisionEndMs": 1785978000000,
+        "endMs": 1786410000000,
+        "name": "confirm",
+        "startMs": 1653263100000
+      }
+    ],
+    "futures": [
+      {
+        "decisionEndMs": 1740563550000,
+        "endMs": 1740995550000,
+        "name": "fit",
+        "startMs": 1695578400000
+      },
+      {
+        "decisionEndMs": 1763272125000,
+        "endMs": 1763704125000,
+        "name": "select",
+        "startMs": 1740995550000
+      },
+      {
+        "decisionEndMs": 1785980700000,
+        "endMs": 1786412700000,
+        "name": "confirm",
+        "startMs": 1763704125000
+      }
+    ],
+    "livestock": [
+      {
+        "decisionEndMs": 1740584700000,
+        "endMs": 1741016700000,
+        "name": "fit",
+        "startMs": 1695648600000
+      },
+      {
+        "decisionEndMs": 1763268750000,
+        "endMs": 1763700750000,
+        "name": "select",
+        "startMs": 1741016700000
+      },
+      {
+        "decisionEndMs": 1785952800000,
+        "endMs": 1786384800000,
+        "name": "confirm",
+        "startMs": 1763700750000
+      }
+    ],
+    "agriculture": [
+      {
+        "decisionEndMs": 1740574350000,
+        "endMs": 1741006350000,
+        "name": "fit",
+        "startMs": 1695600000000
+      },
+      {
+        "decisionEndMs": 1763277525000,
+        "endMs": 1763709525000,
+        "name": "select",
+        "startMs": 1741006350000
+      },
+      {
+        "decisionEndMs": 1785980700000,
+        "endMs": 1786412700000,
+        "name": "confirm",
+        "startMs": 1763709525000
+      }
+    ],
+    "indices": [
+      {
+        "decisionEndMs": 1684031850000,
+        "endMs": 1684463850000,
+        "name": "fit",
+        "startMs": 1582536600000
+      },
+      {
+        "decisionEndMs": 1734995475000,
+        "endMs": 1735427475000,
+        "name": "select",
+        "startMs": 1684463850000
+      },
+      {
+        "decisionEndMs": 1785959100000,
+        "endMs": 1786391100000,
+        "name": "confirm",
+        "startMs": 1735427475000
+      }
+    ],
+    "metals": [
+      {
+        "decisionEndMs": 1579687200000,
+        "endMs": 1580119200000,
+        "name": "fit",
+        "startMs": 1373824800000
+      },
+      {
+        "decisionEndMs": 1682834400000,
+        "endMs": 1683266400000,
+        "name": "select",
+        "startMs": 1580119200000
+      },
+      {
+        "decisionEndMs": 1785981600000,
+        "endMs": 1786413600000,
+        "name": "confirm",
+        "startMs": 1683266400000
+      }
+    ]
+  },
+  "grid": [
+    {},
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 1,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 1,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 1.6,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 1.6,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 2.5,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 2.5,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 4,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "breakeven",
+      "maxStopAtrMultiplier": 4,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 1,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 1,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 1.6,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 1.6,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 2.5,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 2.5,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 4,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "hold",
+      "maxStopAtrMultiplier": 4,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 1,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 1,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 1.6,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 1.6,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 2.5,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 2.5,
+      "sizingHoursFactor": 3
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 4,
+      "sizingHoursFactor": 1
+    },
+    {
+      "confidenceThreshold": 0,
+      "runnerProtection": "trail_tp1",
+      "maxStopAtrMultiplier": 4,
+      "sizingHoursFactor": 3
+    }
+  ],
+  "holdoutSymbols": [],
+  "stepBars": 16,
+  "symbols": [
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 0,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 4,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8,
+        "runnerProtection": "hold",
+        "sizingHoursFactor": 1
+      },
+      "calibrationHash": "914344b05193a8daaf2ac09c99cb27e31d5115fd0bbd0686a5a51670723f020f",
+      "providerSymbol": "CAKEUSD",
+      "series": {
+        "15min": {
+          "count": 98937,
+          "firstTime": 1696247100000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786333500000,
+          "spanDays": 1042.67
+        },
+        "1day": {
+          "count": 2142,
+          "firstTime": 1601352000000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786334400000,
+          "spanDays": 2141
+        },
+        "5min": {
+          "count": 98356,
+          "firstTime": 1697428800000,
+          "largestGapMs": 1789800000,
+          "lastTime": 1786416000000,
+          "spanDays": 1029.94
+        }
+      },
+      "symbol": "CAKEUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 0,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 4,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8,
+        "runnerProtection": "trail_tp1",
+        "sizingHoursFactor": 1
+      },
+      "calibrationHash": "c71a18482f346a2cce8fe63ccbfa393a51f5620f3cf7dec323ac9dd72c4351c3",
+      "providerSymbol": "ETCUSD",
+      "series": {
+        "15min": {
+          "count": 341166,
+          "firstTime": 1469608200000,
+          "largestGapMs": 80100000,
+          "lastTime": 1786333500000,
+          "spanDays": 3665.8
+        },
+        "1day": {
+          "count": 3672,
+          "firstTime": 1469246400000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786420800000,
+          "spanDays": 3671
+        },
+        "5min": {
+          "count": 331777,
+          "firstTime": 1469608500000,
+          "largestGapMs": 1741800000,
+          "lastTime": 1786435200000,
+          "spanDays": 3666.98
+        }
+      },
+      "symbol": "ETCUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 0,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 2.5,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8,
+        "runnerProtection": "hold",
+        "sizingHoursFactor": 3
+      },
+      "calibrationHash": "cd8516666155aa2969743cfd74ef0c2104cddfaa5d4e5a6a8c7ebd2c845e8101",
+      "providerSymbol": "LINKUSD",
+      "series": {
+        "15min": {
+          "count": 246820,
+          "firstTime": 1561653000000,
+          "largestGapMs": 86400000,
+          "lastTime": 1786334400000,
+          "spanDays": 2600.48
+        },
+        "1day": {
+          "count": 3249,
+          "firstTime": 1505793600000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786420800000,
+          "spanDays": 3248
+        },
+        "5min": {
+          "count": 246739,
+          "firstTime": 1562644800000,
+          "largestGapMs": 1798200000,
+          "lastTime": 1786435500000,
+          "spanDays": 2590.17
+        }
+      },
+      "symbol": "LINKUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 0,
+        "dailyStopAtrMultiplier": 0.16,
+        "dailyTargetAtrMultiplier": 0.42,
+        "defaultReviewHours": 12,
+        "entryOffsetDefault": 0.78,
+        "entryOffsetTrend": 0.8,
+        "maxNewsPenalty": 4,
+        "maxProviderPenalty": 8,
+        "maxStopAtrMultiplier": 2.5,
+        "minimumTargetRewardRisk": 1.7,
+        "minRewardRisk": 1.3,
+        "newsPenaltyPerEvent": 1,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1,
+        "stopAtrMultiplier": 1.45,
+        "timeframePenalty": 6,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.8,
+        "runnerProtection": "trail_tp1",
+        "sizingHoursFactor": 3
+      },
+      "calibrationHash": "61254dd81bbd8c0b3f9fca0e26484ae5e371816d556466e044449423efcf3ab1",
+      "providerSymbol": "UNIUSD",
+      "series": {
+        "15min": {
+          "count": 203655,
+          "firstTime": 1600369200000,
+          "largestGapMs": 87300000,
+          "lastTime": 1786334400000,
+          "spanDays": 2152.38
+        },
+        "1day": {
+          "count": 2156,
+          "firstTime": 1600228800000,
+          "largestGapMs": 90000000,
+          "lastTime": 1786420800000,
+          "spanDays": 2155
+        },
+        "5min": {
+          "count": 203239,
+          "firstTime": 1601524800000,
+          "largestGapMs": 1797900000,
+          "lastTime": 1786436400000,
+          "spanDays": 2140.18
+        }
+      },
+      "symbol": "UNIUSD"
+    },
+    {
+      "calibration": {
+        "blockedRegimes": [
+          "volatile_chop"
+        ],
+        "confidenceThreshold": 0,
+        "dailyStopAtrMultiplier": 0.14,
+        "dailyTargetAtrMultiplier": 0.38,
+        "defaultReviewHours": 6,
+        "entryOffsetDefault": 0.58,
+        "entryOffsetTrend": 0.75,
+        "maxNewsPenalty": 8,
+        "maxProviderPenalty": 7,
+        "maxStopAtrMultiplier": 4,
+        "minimumTargetRewardRisk": 1.6,
+        "minRewardRisk": 1.25,
+        "newsPenaltyPerEvent": 3,
+        "providerWarningPenalty": 3,
+        "runnerWindowShare": 1.4,
+        "stopAtrMultiplier": 1.3,
+        "timeframePenalty": 5,
+        "tp1AtrMultiplier": 0.5,
+        "tp1RiskShare": 0.4,
+        "volatilityTargetAtrMultiplier": 3.4,
+        "runnerProtection": "trail_tp1",
+        "sizingHoursFactor": 1
+      },
+      "calibrationHash": "906c52bedb647725aabe11edb2534ff9b28d07ea27f0082c06c7e4a908ebf047",
+      "providerSymbol": "ZLUSX",
+      "series": {
+        "15min": {
+          "count": 50001,
+          "firstTime": 1695600000000,
+          "largestGapMs": 328500000,
+          "lastTime": 1786336200000,
+          "spanDays": 1050.19
+        },
+        "1day": {
+          "count": 4849,
+          "firstTime": 1164862800000,
+          "largestGapMs": 691200000,
+          "lastTime": 1786420800000,
+          "spanDays": 7193.96
+        },
+        "5min": {
+          "count": 50640,
+          "firstTime": 1695600000000,
+          "largestGapMs": 2094300000,
+          "lastTime": 1786434600000,
+          "spanDays": 1051.33
+        }
+      },
+      "symbol": "ZLUSX"
+    }
+  ],
+  "trainShare": 0.6,
+  "warmupBars": 240,
+  "generatedAt": "2026-08-11T20:14:46.380Z",
+  "manifestHash": "f89029e58c24260c03bbb13102d8a5d8ed541ee2557f6f3cd5acf1d5080e1c61"
+}

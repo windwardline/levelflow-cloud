@@ -134,6 +134,27 @@ manifest, and add a guard that refuses a corpus whose series disagree on
 the clock. Re-fetch what must be re-fetched. **Nothing downstream of a
 mixed-clock cache is worth computing.**
 
+Two operational facts Phase 0 inherits, both set 2026-08-11:
+
+- The mixed-clock store is `.calibration-cache` (3.9 GB, gitignored). It
+  carries a local `INVALID-READ-ME.txt`; because the directory is
+  ignored, that marker exists only on this machine — this paragraph is
+  the tracked record of it.
+- **The daily top-up is STOPPED.** `com.windwardline.levelflow-cache-topup`
+  (07:00, `scripts/ops/daily-cache-topup.sh`) was appending fresh bars to
+  the defective store every morning. It was booted out rather than left to
+  deepen it. **Phase 0 must restart it once the cache is rebuilt** — a
+  cache that silently stops updating is the same class of failure in the
+  other direction:
+
+  ```
+  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.windwardline.levelflow-cache-topup.plist
+  ```
+
+  `com.windwardline.levelflow-minute-bank` was deliberately left running:
+  it banks 1-minute bars for the E8 feed-identity corpus and touches
+  nothing the clock defect reaches.
+
 ### Phase 1 — one engine (close every sweep↔live divergence)
 So that what is measured is what trades:
 - **E1** production resolves on 15-minute bars, the corpus on 5-minute.

@@ -221,9 +221,23 @@ export function estimateExecutionQuality(
   // is the venue's own number, and our MODELED spread + slippage —
   // which for crypto rests on a single Monday-afternoon book sample the
   // venueCosts module itself warns "is not a cost model". Scaling the
-  // modeled half to zero isolates the verdict the published bill alone
-  // supports. Defaults to 1 (full model); the live analyzer never sets
-  // it — pinned in tests/executionQuality.test.ts.
+  // modeled half to zero was MEANT to isolate the verdict the published
+  // bill alone supports.
+  //
+  // ⛔ IT DOES NOT — the knob is INERT for measurement (defect 1c,
+  // 2026-08-11). `estimatedRoundTripCost` is the only value it touches, and
+  // the replay resolver never reads it: fills are handed `estimatedSpread`
+  // and `estimatedSlippage` directly (`sweep.ts:568-569`) and realized R
+  // charges commission through `perLegCost`. Setting the scale to 0 removes
+  // nothing from the R accounting; it only loosens the payoff gate, so a
+  // "sensitivity run" admits MORE setups rather than costing them less.
+  // Amendment 36's standard cannot be met through this path. Phase 2 (M5)
+  // must route the scale into the resolver and assert that a bit-identical
+  // gross/net row emits "COST MODEL INERT" instead of a verdict — see
+  // docs/research/remediation-program-2026-08-11.md.
+  //
+  // Defaults to 1 (full model); the live analyzer never sets it — pinned in
+  // tests/executionQuality.test.ts.
   const modeledCostScale = modeledCostScaleFromEnv();
   const estimatedRoundTripCost = roundPrice(
     (estimatedSpread + estimatedSlippage * 2) * modeledCostScale +

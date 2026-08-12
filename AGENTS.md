@@ -4,7 +4,7 @@ Operating contract for AI work in this repo; the global `~/AGENTS.md` still appl
 
 ## The law of the specs
 
-§-numbered specs are binding, amended through owner rulings: `docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md` (distilled operative text governs where prose is narrower, per its own preamble) over `2026-07-30-levelflow-desk-design.md` and `2026-08-02-broker-sizing-governor-design.md`. Most test files cite § sections — read the section before touching its tests. Engine state of record: `docs/trade-model.md`. Contrast rules: `docs/design/contrast.md`, enforced by `tests/contrast.test.ts`.
+§-numbered specs are binding, amended through owner rulings: `docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md` (distilled operative text governs where prose is narrower, per its own preamble) over `2026-07-30-levelflow-desk-design.md` and `2026-08-02-broker-sizing-governor-design.md`. Most test files cite § sections — read the section before touching its tests. Engine state of record: `docs/trade-model.md` — **but every calibration figure in it is invalid** (the 2026-08-11 clock defect); read `docs/research/remediation-program-2026-08-11.md` before trusting or citing any expectancy, fill rate, or derived cell. Contrast rules: `docs/design/contrast.md`, enforced by `tests/contrast.test.ts`.
 
 **Start here: `docs/HANDOFF.md`** — the total state of record. What is live, what is parked and how to unpark it, the approvals already given, the findings verified as non-problems, and the full ordered sequence. Read it before re-deriving anything. It is tracked in git deliberately: the previous handoff lived in a gitignored worktree and was destroyed when that worktree was removed.
 

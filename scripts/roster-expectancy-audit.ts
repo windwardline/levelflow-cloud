@@ -15,6 +15,7 @@
 // present with its score, so a threshold is a filter, not a new
 // assumption.
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   ENGINE_DECLINED_MARKETS,
   getCategoryCalibration,
@@ -50,8 +51,15 @@ function stats(acc: Acc) {
   };
 }
 
-async function main() {
-  const argv = process.argv.slice(2);
+/**
+ * Positional arguments are shard paths; `--flag value` pairs are skipped.
+ *
+ * An audit that read no shards is not an audit that found nothing. With zero
+ * paths every market falls through to "unmeasurable" and the artifact reads
+ * like a finished run — the exact silent pass the standard forbids, so this
+ * refuses rather than reports (WIF-4, 2026-08-11).
+ */
+export function shardPathsFromArgv(argv: string[]): string[] {
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
@@ -60,6 +68,18 @@ async function main() {
     }
     paths.push(argv[index]);
   }
+  if (paths.length === 0) {
+    throw new Error(
+      "roster-expectancy-audit: no shard paths given. Pass the sweep shards " +
+        "explicitly; a run over zero rows cannot report a verdict.",
+    );
+  }
+  return paths;
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  const paths = shardPathsFromArgv(argv);
   const flag = (name: string) => {
     const index = argv.indexOf(`--${name}`);
     return index >= 0 ? argv[index + 1] : undefined;
@@ -224,7 +244,12 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+// Self-execute only as the entrypoint (the grid-totalr idiom). An ESM body
+// runs on import, so a bare `main()` call here made the module untestable —
+// importing it ran the whole audit.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
