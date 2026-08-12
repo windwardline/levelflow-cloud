@@ -1,5 +1,24 @@
 # Levelflow handoff — 2026-08-07, 01:30 EDT
 
+> # ⛔ THE CALIBRATION CORPUS IS INVALID (2026-08-11)
+>
+> **Read `docs/research/remediation-program-2026-08-11.md` before this
+> file, and before trusting any calibration figure anywhere in this
+> repo.** The 4c/4d corpus resolved every setup 4–5 hours out of register
+> with its own decision bar: the cached 15-minute and daily series carry
+> naive New-York stamps read as UTC while the 5-minute series carries
+> true UTC, so roughly half of each review window lies BEFORE the
+> decision. Re-stamped and re-run, the flagship "measurably positive"
+> markets collapse — EURUSD +0.213R → −0.008, BTCUSD +0.198 → −0.082,
+> XAUUSD +0.247 → −0.031. **The measured edge is an artifact.**
+>
+> Everything below that reports a calibration RESULT — derived cells,
+> confirmed counts, per-market verdicts, expectancy, fill rates — is
+> superseded by that program. The engine's structure, the identity work
+> and the product-truth fixes stand. `.calibration-cache` itself carries
+> the defect and must be rebuilt (Phase 0) before anything is re-measured.
+
+
 **This file is the total state of record.** It lives in `docs/` and is tracked in git,
 which is a change from every previous version: the last one lived in a gitignored
 worktree, and removing that worktree deleted it. It was recovered by replaying its own
@@ -24,7 +43,7 @@ deploy pipeline itself.
 Trade history was preserved at the re-park, then **wiped on the owner's
 clean-model order 2026-08-11** (amendment 35): setups, outcomes, sessions and
 refresh tokens all to zero, verified; thirteen accounts untouched. The first
-live cohort under `2026.08.11.engine-v2` accrues from an empty table. (The
+live cohort under `2026.08.11.declines` accrues from an empty table. (The
 E2E account's rows reappear on every deploy — pipeline debris, not history;
 group by user before trusting a raw `count(*)`.)
 
@@ -42,7 +61,7 @@ step leaves every signed-in operator working behind a closed door.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.08.11.totality` — 72 derived per-market cells across three confirmed tranches; Edge Functions deployed and verified in the deploy log |
+| Engine | `2026.08.11.declines` — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deployed and verified |
 | Public face | The parking page |
 | Tests | 2,175 passing; check · lint · check:migrations · test · build · check:bundle all green |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -639,6 +658,26 @@ A six-domain adversarial audit of this file's own claims ran after item
    tables are revoked and pinned (they were inert behind RLS, which is
    why it was worth closing before a future policy made them live).
 
+### THE SEQUENCE NOW — the rebuild is items R0–R6, and it outranks everything below
+
+CONVERGE re-ranks *this* list. The old items 0–4 are CLOSED but their
+results are invalidated; items 5–10 belong to the next CONVERGE
+(amendment 37) and are sized against a superseded 111-market universe —
+the live roster is 97 distinct markets.
+
+| rank | item | state |
+|---|---|---|
+| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **NEXT** |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333) | after R0 |
+| **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
+| **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
+| **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
+| **R5** | The never-analyzed populations — 8 contract variants, dual-listed crypto per line, register gaps | after R4 |
+| **R6** | Reader-facing claims — D7 (Record rows publish a frequency as a record), D8 (tier ordering the corpus inverts) | pre-reopen |
+
+Full detail and the reasons the order is load-bearing:
+`docs/research/remediation-program-2026-08-11.md`.
+
 ### ⛔ STOP — THE CORPUS IS INVALID (2026-08-11, evening)
 
 *Session state at handoff: main clean, one branch, zero open PRs, deploy
@@ -808,15 +847,19 @@ positive" markets collapse: EURUSD +0.213R to -0.008, BTCUSD +0.198 to
 -0.082, XAUUSD +0.247 to -0.031. The measured edge is an artifact.
 
 Then read docs/HANDOFF.md — the total state of record. Do not re-derive
-what it records. Do not re-ask decisions A-F or amendments 26 and 29-37;
-all approved. Section 5 records findings VERIFIED as non-problems.
+what it records. Do not re-ask any amendment recorded in
+docs/superpowers/specs/2026-08-02-owner-rulings-amendments.md
+(29 through 38 are the live ones) or any decision section 2 lists as
+approved — all standing. Where this file references older approvals by
+letter, the amendments spec is the readable authority.
 
 THE DESK IS PARKED and stays parked through this work. PARKING_GATE is
 true; section 1 has the exact reopening procedure. Do not reopen without
 my word, and tell me if anything you are about to ship would be wrong to
 ship while it is closed.
 
-THE WORK, in the order the program gives — the order is load-bearing:
+THE WORK is HANDOFF's sequence items R0-R6, which now outrank everything
+else in that file. The order is load-bearing:
 Phase 0 one clock (rebuild .calibration-cache under a single
 normalization; nothing downstream of a mixed-clock cache is worth
 computing) -> Phase 1 one engine (close every sweep-vs-live divergence:

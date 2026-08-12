@@ -149,9 +149,10 @@ So that what is measured is what trades:
 - **E4** production collapses correlated candidates per scan and the
   sweep does not — measurable offline from the corpus (a read, not a
   re-sweep).
-- **D3** two live resolvers grade the same setups with different physics
-  (`index.ts:1723` v1 vs `outcome-sync:123` v2) — one argument's fix,
-  plus a guard that every `evaluateSetupOutcome` call site passes options.
+- ~~**D3** two live resolvers with different physics~~ — **DONE
+  2026-08-11 (#333)**: both call sites now pass
+  `fillOptionsFromRiskModel(setup.risk_model)`, guarded in
+  `tests/securityHardening.test.ts` against a bare `(setup, bars)` call.
 - **D2** production records `realizedR` only on the expiry branch, so any
   R sum is a sum over expiries alone.
 
@@ -175,7 +176,12 @@ One corpus, one clock, one engine, with the instrument repaired. Item
 2's law still governs: **one re-simulate after the instrument changes,
 never one per fix.**
 
-### Phase 4 — the per-market program (item 5, the owner's mandate)
+### Phase 4 — the per-market program (the owner's mandate)
+
+*Numbering note: this is Phase 4 of THIS program. It is tracked as task
+"Item 5: per-market review" in the session task list, which is NOT
+HANDOFF §4's sequence item 5 (Prop-firm survival). Amendment 37 puts
+that sequence's items 5-10 in the next CONVERGE.*
 Every E8-tradable, FMP-matched market reviewed **individually**:
 - graded against **its own shipped configuration**, not a grid reference
   cell — the defect that let 33 markets inherit untested levels and 13
@@ -210,9 +216,18 @@ parked, so no reader sees them today.
 
 ## 5. Ledger
 
-44 findings, 8 refuted, 27 surviving with severities corrected by an
-adversarial pass whose brief was to kill them. Full detail:
+44 findings: 8 refuted, 27 surviving with severities corrected by an
+adversarial pass whose brief was to kill them, and **9 that the refute
+pass never reached** (it batched only the `redo-required` and
+`measure-required` claims). The 9 unrefuted are `disclose-only` or
+`cosmetic` as filed and are NOT vetted — treat them as unreviewed
+candidates, not as findings. Full detail, including which is which:
 `docs/research/completeness-findings-2026-08-11.json`.
+
+**Findings not yet placed in a phase above** are in the ledger with
+their remedies; Phase 2 and Phase 6 are where most belong. A finding's
+absence from the phase list is a gap in this document, not a decision
+that it does not matter.
 
 The single most valuable procedural lesson: **every claim that changed a
 decision today survived only because something independent tried to kill

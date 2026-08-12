@@ -1,3 +1,8 @@
+> **CORPUS INVALID (2026-08-11)** — every measurement in this document
+> comes from the corpus whose clock defect gave each setup 4–5 hours of
+> look-ahead. The reasoning and the questions stand; the NUMBERS do not.
+> Read `docs/research/remediation-program-2026-08-11.md` first.
+
 # CONVERGE round 8 — 2026-08-10, seven lenses, 73 findings
 
 Owner invoked CONVERGE 23:20 EDT. Prior round's recommendations recorded as
