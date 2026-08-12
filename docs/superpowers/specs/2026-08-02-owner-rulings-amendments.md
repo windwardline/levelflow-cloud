@@ -2021,3 +2021,42 @@ which runs after the current work closes. Their ordering against item 11
 (the hedge mind) is re-decided there rather than assumed from the
 document's existing numbering. Until that converge runs, no item between
 5 and 10 is treated as either a blocker or a skip.
+
+## Amendment 38 — adversarial fan-out is the working method (owner ruling, 2026-08-11)
+
+**"If adversarial fan-out caught errors, that should be how we work
+moving forward."** It is now the default, not a technique reserved for
+hard problems or for CONVERGE rounds.
+
+The evidence it rests on: on 2026-08-11 every claim that changed a
+decision survived only because something independent tried to kill it.
+Three defects that had already shipped or were about to — a cost-scale
+switch that never reached the resolver, a corpus clock artifact that
+manufactured the entire measured edge, and a gate whose improvement
+delta was being read as a level — were each caught by refutation, never
+by the pass that produced them. Two of the finders' own claims were then
+overturned in turn, which is the same principle applied once more.
+
+The method has three parts and all three are required:
+
+1. **Find** — several agents, one lens each, each asked what is WRONG or
+   MISSING rather than what to improve. Every finding carries file:line
+   or command output, its exact affected population, and the procedural
+   mechanism that let it through.
+2. **Refute** — an independent pass whose brief is to KILL each finding.
+   A finding survives only if the refuter personally verified it.
+   Expect roughly a fifth to die, and expect some to return worse than
+   filed.
+3. **Verify yourself** — the driver re-derives every load-bearing claim
+   personally before acting or reporting, especially any claim that
+   flatters the work.
+
+Two traps are named because they have already been paid for: **a delta
+is not a level** (an improvement over a bad baseline is not a good
+result), and **identical numbers from two supposedly different runs are
+proof the knob did nothing**, not agreement.
+
+Model consequence, owner-confirmed the same day: **Opus 5 in Ultracode**
+over Fable 5 at max effort, because the capability is worth more spent
+on many independent checks than on one deeper thread. Recorded in
+HANDOFF §6c.

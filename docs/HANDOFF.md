@@ -789,9 +789,11 @@ Kept here so they cannot drift from the state they describe. Update together.
 
 ### 6a. The kickoff prompt — opens a fresh session
 
-**Recommended model and effort for the Sunday lift: Fable 5 at max
-effort, with workflow orchestration (ultracode) ON.** The reasoning is
-in §6c below; it is a recommendation, not a measurement.
+**Model and effort for the Sunday lift — CONFIRMED: Opus 5 in
+Ultracode.** Adversarial fan-out caught every error that mattered on
+2026-08-11 and first-pass depth produced several of them, so the
+capability goes to independent checks rather than to one deeper thread.
+Reasoning in §6c; the method itself is amendment 38.
 
 ```
 Continue Levelflow. THE CALIBRATION CORPUS IS INVALID — read
@@ -840,14 +842,17 @@ ABSOLUTE expectancy as the criterion rather than a delta, and every
 calibration field either derived for that market or carrying a stated
 reason for inheriting.
 
-THE DISCIPLINE THAT CAUGHT EVERYTHING: on 2026-08-11 every claim that
-changed a decision survived only because something independent tried to
-KILL it. The cost-scale no-op, the clock artifact, and the
-improvement-versus-positivity conflation were all caught by adversarial
-refutation, never by the work that produced them. Use adversarial agents
-throughout — several, one lens each, each asked what is WRONG rather
-than what to improve, followed by a refutation pass whose brief is to
-overturn. Verify load-bearing claims yourself rather than relaying them.
+THE METHOD — this is how we work now, not a technique reserved for hard
+problems (amendment 38). Every claim that changed a decision on
+2026-08-11 survived only because something independent tried to KILL it,
+and two of the finders' own claims were overturned in turn. So: FIND
+with several adversarial agents, one lens each, each asked what is WRONG
+rather than what to improve; then REFUTE with an independent pass whose
+brief is to kill each finding; then VERIFY the load-bearing claims
+YOURSELF rather than relaying an agent's word — especially any claim
+that flatters the work. Two traps already paid for: a DELTA is not a
+LEVEL, and identical numbers from two supposedly different runs are
+proof the knob did nothing, not agreement. Section 6b has the full loop.
 
 Protocols: branch off main, never commit to main, Conventional Commits,
 typecheck + lint + tests green before anything is called done, docs ride
@@ -871,49 +876,75 @@ session has read it the single word is enough. The paste below is its long form:
 use it when the agent has lost context, when a session did not open with 6a, or
 any time the full loop should be restated rather than invoked.
 
+**Revised 2026-08-11 (owner ruling): the adversarial half is now two halves.**
+The original loop asked several one-lens agents what was wrong. That found
+things — but on 2026-08-11 every claim that actually changed a decision survived
+only because a SECOND pass tried to kill it. The cost-scale no-op, the corpus
+clock artifact, and the improvement-versus-positivity conflation were all caught
+by refutation, never by the pass that produced them; and two of the finders'
+own claims were themselves overturned. Finding and refuting are different jobs
+and CONVERGE now names both.
+
 ```
 Continue. Work docs/HANDOFF.md's sequence from wherever it now stands, and fold anything
 your own work has surfaced since into its correct rank rather than appending it. When the
 current item is genuinely done — gates green, deployed, verified in production, branches
-cleaned — run another full cycle of the fresh-eyes gap analysis: several adversarial
-agents, one lens each, each asked what is wrong or missing rather than what to improve;
-durable fixes, not patches; re-rank the whole sequence rather than appending to it; test
-whether it now reaches best-possible positioning and keep hunting if not, or name the
-input boundary that stops you. Then update docs/HANDOFF.md and report to me in chat with
-the full sequence visible. Do not stop at turn boundaries. Never claim green when it is
-not.
+cleaned — run another full cycle:
+
+(1) FIND. Several adversarial agents, one lens each, each asked what is WRONG or MISSING
+rather than what to improve. Lenses are chosen for the work at hand; the standing set is
+look-ahead and statistical validity, fill realism, cost truth, coverage and population,
+risk and prop-firm survival, product honesty, operations, and engine conformance (does the
+shipped engine do what the corpus measured?). Each finding must carry file:line or command
+output, the exact population it affects, and the procedural mechanism that let it through.
+
+(2) REFUTE. A second, independent pass whose brief is to KILL each finding, not to agree
+with it — inflated severity, already-remedied, wrong population, arithmetic that does not
+hold. A finding survives only if the refuter personally verified it. Expect to kill a
+fifth of them, and expect some to come back WORSE than filed.
+
+(3) VERIFY YOURSELF. Before reporting, re-derive every load-bearing claim personally
+rather than relaying an agent's word — especially any claim you are about to act on, and
+any claim that flatters the work. Two specific traps, both paid for: a DELTA is not a
+LEVEL (an improvement over a bad baseline is not a good result), and identical numbers
+from two supposedly different runs are proof the knob did nothing, not agreement.
+
+(4) FIX durably, not with patches. (5) RE-RANK the whole sequence rather than appending.
+(6) TEST whether it now reaches best-possible positioning, and keep hunting if not, or
+name the input boundary that stops you. (7) UPDATE docs/HANDOFF.md. (8) REPORT in chat
+with the full sequence visible, and state plainly what was refuted and what you verified
+yourself.
+
+Do not stop at turn boundaries. Never claim green when it is not. If a round yields only
+nulls and validations, say the diminished-returns point is reached rather than
+manufacturing another.
 ```
 
+### 6c. Model and effort — CONFIRMED (owner, 2026-08-11)
 
-### 6c. Model and effort — the recommendation for the rebuild
+**Opus 5 in Ultracode.** The two available options are Opus 5 with
+workflow orchestration or Fable 5 at max effort; they cannot be
+combined. The choice is settled by the evidence rather than by taste.
 
-**Fable 5 at max effort, with workflow orchestration (ultracode) on.**
-
-The reasoning, which matters more than the answer because the answer may
-age: the failures of 2026-08-11 were not failures of raw depth on a hard
-problem. They were failures of *verification* — reading eleven
+Everything that went wrong on 2026-08-11 was caught by adversarial
+refutation, and nothing was caught by depth of first-pass reasoning —
+which in fact produced several of the errors. Reading eleven
 bit-identical rows as agreement rather than as proof a switch did
-nothing; treating a gate's improvement delta as a level; asserting a
-corpus was sound without checking that its series shared a clock. Every
-one was caught by an independent agent whose only job was to overturn
-the claim.
+nothing; treating a gate's improvement delta as a level; calling a
+corpus sound without checking that its series shared a clock. Each was
+found by an independent agent whose only job was to overturn the claim,
+and two of the finders' own claims were then overturned in turn.
 
-That argues for spending capability on **two things at once**: a driver
-strong enough not to make the subtle call wrongly in the first place,
-and enough parallel adversarial refutation that when it does, something
-catches it. Those are not alternatives — workflow orchestration is a
-mode, available whichever model drives.
+So the capability is worth more spent on **many independent checks than
+on one deeper thread**. Fable 5 at max effort buys a stronger single
+pass at exactly the thing that was not the bottleneck; Opus 5 in
+Ultracode buys the fan-out and the refutation that were.
 
-If a token budget forces a choice between them, **spend it on the
-adversarial fan-out rather than on maximum single-turn effort.**
-Refutation is what actually caught every error; depth of first-pass
-reasoning is what produced several of them.
+Phase shape, for reference: Phases 0–2 (clock, divergences, instrument)
+are subtle and correctness-critical, and benefit most from the refute
+pass being real rather than ceremonial. Phase 3 is compute-bound and
+model-irrelevant. Phases 4–5 are breadth across 105 markets, where the
+number of independent checks is the whole game.
 
-Phase-by-phase: Phases 0-2 (clock, divergences, instrument) are subtle,
-low-volume, and correctness-critical — a wrong call there propagates
-into everything downstream, so this is where driver capability earns
-most. Phase 3 is compute-bound and model-irrelevant. Phases 4-5 are
-breadth over 105 markets, where the number of independent checks matters
-more than the depth of any single one.
-
-This is a judgment about the shape of the work, not a benchmark.
+**Adversarial fan-out is now the standing method, not a technique for
+hard problems** — amendment 38.
