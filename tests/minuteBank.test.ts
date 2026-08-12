@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   bankableSymbols,
+  departedSymbols,
   isRetryable,
   orphanedSidecars,
   planRun,
@@ -25,6 +29,15 @@ describe("minute bank — what gets banked", () => {
       ),
     );
     assert.deepEqual([...banked].sort(), [...expected].sort());
+  });
+
+  it("banks 97 provider symbols", () => {
+    // A figure nothing checks goes stale unnoticed: docs/HANDOFF.md carried
+    // "100 symbols" for three days after amendment 32 retired ^MID, ^STOXX50E
+    // and USDMXN on 2026-08-09, and the bank's own log read 100 then 97 with
+    // nothing said. 100 -> 97 (amendment 32, #284). The next amendment fails
+    // here and updates HANDOFF in the same change set.
+    assert.equal(bankableSymbols().length, 97);
   });
 
   it("banks one entry per provider symbol, carrying every market it serves", () => {
@@ -99,21 +112,46 @@ describe("minute bank — a symbol that leaves the roster", () => {
 });
 
 describe("minute bank — --limit truncates the fetch, never the roster", () => {
-  it("keeps the whole roster while limiting what a debugging run fetches", () => {
-    // The departure check measures the store against the roster. Measuring it
-    // against the fetch list instead would report every unvisited symbol as
-    // departed on any --limit run, which is how an operator learns to skip the
-    // line. Nothing about that swap is visible to a test of orphanedSidecars
-    // alone, so the split itself is pinned here.
-    const plan = planRun(["--limit", "2"]);
-    assert.equal(plan.targets.length, 2);
-    assert.equal(plan.roster.length, bankableSymbols().length);
-    assert.ok(plan.roster.length > plan.targets.length);
-  });
-
   it("banks the whole roster when no limit is given", () => {
     const plan = planRun([]);
     assert.equal(plan.targets.length, plan.roster.length);
+  });
+
+  it("measures the store against the whole roster, not the fetch list", async () => {
+    // The swap that matters is at the call site: handing the departure check
+    // `targets` instead of `roster` reports every unvisited symbol as departed
+    // on any --limit run, which is how an operator learns to skip the line.
+    // Asserting that targets is roster.slice(0, limit) restates slice and
+    // cannot catch it. This gives a store holding the entire roster to a plan
+    // that fetches one symbol: nothing has departed, and reaching for
+    // `targets` at the call site turns that into all-but-one.
+    const dir = await mkdtemp(join(tmpdir(), "minute-bank-roster-"));
+    try {
+      const plan = planRun(["--limit", "1"]);
+      for (const entry of plan.roster) {
+        await writeFile(
+          join(dir, `${encodeURIComponent(entry.fmpSymbol)}.state.json`),
+          "{}",
+        );
+      }
+      assert.equal(plan.targets.length, 1);
+      assert.deepEqual(await departedSymbols(dir, plan), []);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a --limit it cannot read rather than banking nothing", () => {
+    // Number(undefined) is NaN and roster.slice(0, NaN) is empty, so a
+    // trailing --limit silently banked nothing and exited 0 — a run that
+    // examined nothing reporting the result of one that passed.
+    assert.throws(() => planRun(["--limit"]), /--limit/);
+    assert.throws(() => planRun(["--limit", "--dir", "/tmp/x"]), /--limit/);
+  });
+
+  it("refuses a --limit that would fetch nothing", () => {
+    assert.throws(() => planRun(["--limit", "0"]), /--limit/);
+    assert.throws(() => planRun(["--limit", "-3"]), /--limit/);
   });
 });
 
