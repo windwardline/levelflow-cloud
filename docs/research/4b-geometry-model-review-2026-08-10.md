@@ -1,3 +1,8 @@
+> **CORPUS INVALID (2026-08-11)** — every measurement in this document
+> comes from the corpus whose clock defect gave each setup 4–5 hours of
+> look-ahead. The reasoning and the questions stand; the NUMBERS do not.
+> Read `docs/research/remediation-program-2026-08-11.md` first.
+
 # 4b — the geometry-model review (owner decides before any sweep tunes)
 
 Phase 2 of the calibration program (HANDOFF §4, amendment 33). The owner's

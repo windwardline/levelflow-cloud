@@ -1,6 +1,26 @@
 # Levelflow Trade Model
 
-Model version: `2026.08.05.cost-scale-free`
+> # ⛔ THE CALIBRATION CORPUS IS INVALID (2026-08-11)
+>
+> **Read `docs/research/remediation-program-2026-08-11.md` before this
+> file, and before trusting any calibration figure anywhere in this
+> repo.** The 4c/4d corpus resolved every setup 4–5 hours out of register
+> with its own decision bar: the cached 15-minute and daily series carry
+> naive New-York stamps read as UTC while the 5-minute series carries
+> true UTC, so roughly half of each review window lies BEFORE the
+> decision. Re-stamped and re-run, the flagship "measurably positive"
+> markets collapse — EURUSD +0.213R → −0.008, BTCUSD +0.198 → −0.082,
+> XAUUSD +0.247 → −0.031. **The measured edge is an artifact.**
+>
+> Everything below that reports a calibration RESULT — derived cells,
+> confirmed counts, per-market verdicts, expectancy, fill rates — is
+> superseded by that program. The engine's structure, the identity work
+> and the product-truth fixes stand. `.calibration-cache` itself carries
+> the defect and must be rebuilt (Phase 0) before anything is re-measured.
+
+
+Model version: `2026.08.11.declines` (live). The per-market layer this
+records was derived from the invalidated corpus — see the banner above.
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
 

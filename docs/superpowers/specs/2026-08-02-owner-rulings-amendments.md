@@ -2004,9 +2004,15 @@ unmeasurable and was being refused by a six-hour window; twenty-two
 markets looked starved and were being cut by a per-class fold calendar.
 The pattern repeats often enough that it is now a precondition: before
 any withdrawal, the negative must be shown to survive the removal of our
-own modelling choices. `LEVELFLOW_MODELED_COST_SCALE` exists for exactly
-this test — it charges E8's published bill alone and asks whether the
-verdict holds.
+own modelling choices.
+
+**CORRECTION 2026-08-11:** the mechanism this amendment originally named
+did not work. `LEVELFLOW_MODELED_COST_SCALE` scaled a quantity the
+resolver never reads, so the "published bill only" run removed nothing
+from realized R and the test measured nothing. The STANDARD stands
+unchanged and is binding; the instrument that was supposed to satisfy it
+must be built before any withdrawal claims to meet it (remediation
+program Phase 2).
 
 **Withdrawal is never permanent.** A withdrawn market remains a standing
 reentry candidate and returns whenever the data supports it. This is the
