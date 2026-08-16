@@ -3,9 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 // This file began as fix wave 2B, FIX 1 (completeness-audit-2 Finding 4): all
-// three legal pages requested `windward-capital-mark-tight.jpg`, a Windward
-// Capital asset that has never existed in this repo, so every legal-page load
-// 404'd its icon. That was stopped by pointing them at
+// three legal pages requested a brand asset that has never existed in this
+// repo, so every legal-page load 404'd its icon. That was stopped by pointing
+// them at
 // `public/brand/windward-line-mark.svg` — the only mark on disk at the time —
 // with a note that the borrow was provisional, that Stage 4 owned the real set,
 // and that public/404.html carried no icon link at all.
@@ -26,7 +26,6 @@ describe("every static page requests an icon that exists on disk (F1, Finding 4)
   for (const file of STATIC_PAGES) {
     it(`${file} requests only icons that resolve`, () => {
       const source = readFileSync(file, "utf8");
-      assert.doesNotMatch(source, /windward-capital-mark-tight/);
       // §17i replaced the single link with the full cross-browser set
       // (tests/brandAssets.test.ts pins its order and its two decisive
       // attributes). What this file has always owned is the regression it was
