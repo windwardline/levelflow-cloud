@@ -56,6 +56,56 @@ Spec §17p records it.
 branch, so it turns away arrivals and does **not** end visits. A park without the logout
 step leaves every signed-in operator working behind a closed door.
 
+### FMP is dark, and the loss is permanent
+
+The account's trailing-30-day bandwidth allowance was exhausted on 2026-08-13 by
+the rebuild's **replay sweeps** — not by the minute bank, whose steady draw is
+~2.2 GB against 150 GB. Every request since has returned `HTTP 429`, on both the
+bank's key path and the MCP connector. The bank is frozen at **957,161 bars,
+high-water mark 2026-08-13 15:26**.
+
+FMP serves 1-minute bars about three days deep, so **every day dark is a day of
+unrecoverable history across 97 symbols.** The window drains by time only; the
+sweep spend ages out around **2026-09-12**. Nothing can shorten it and nothing
+can buy the bars back.
+
+**Do not re-run the bank into a 429** — a re-run cannot succeed against an
+exhausted allowance, and one whole-roster attempt burns ~485 requests. Recovery
+needs no catch-up: any single successful run re-pulls each symbol's full window
+and dedupes.
+
+**The tier is never to be reduced** (owner, 2026-08-16). Ultimate buys more data
+and faster data, not merely a bigger ceiling. Steady-state use near 2% is not
+slack and is not a downgrade signal.
+
+### The consumption governor (§21)
+
+`docs/superpowers/specs/2026-08-16-fmp-consumption-governor-design.md` is the
+design of record. Read it before proposing anything about FMP spend.
+
+The finding that decides the architecture: FMP meters **bytes**, and publishes
+**no usage endpoint**. Nothing can be told what remains, so anything that governs
+consumption has to sit in the data path and weigh responses — which is why a
+cooperative ledger was rejected and a proxy is required.
+
+**Phase 1 shipped 2026-08-16.** `replay-sweep.ts` now **requires `--byte-budget`
+and will not start without it** (#347) — see §4's 4c note. `market-data` returns
+`providerQuotaExhausted`, and the advisor-chart E2E stands down for that one
+named condition, which repaired a deploy gate that had been red since 2026-08-13
+for a non-regression. The E2E run also prints every stood-down test and its
+reason, and refuses an unexplained skip (#348).
+
+**Phases 2–3 are parked deliberately** until FMP recovers: a byte-metering proxy
+cannot be validated with no bytes flowing. Until Phase 3 completes the guarantee
+does not hold — anything still holding the real key is invisible to the ledger.
+
+**Open and named, not fixed:** 13 of 14 E2E stand-downs during the outage
+attribute it to local symptoms ("No qualifying setup right now", "No Crypto
+market qualified") — each locally true, collectively one root cause reported
+thirteen ways; fix it when FMP is live and both paths can be exercised. And
+`analyzer_events` still has no reader, which is why §21h surfaces through CI
+rather than into that table.
+
 ### Live in production
 
 | | |
