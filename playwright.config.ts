@@ -9,6 +9,14 @@ export default defineConfig({
   // Q4-I3: with no guard here, a committed test.only would silently narrow
   // the whole deploy gate to one test and still exit 0.
   forbidOnly: !!process.env.CI,
+  // Playwright's own default reporter, plus one that makes the run state what
+  // it did NOT verify. A count of skips cannot distinguish a healthy run from
+  // one where a whole class of coverage has gone dark, and for four days in
+  // August 2026 that difference went unsaid on every green.
+  reporter: [
+    [process.env.CI ? "dot" : "list"],
+    ["./tests/e2e/coverageReporter.ts"],
+  ],
   use: {
     baseURL: "http://127.0.0.1:5175",
     // m1 made the ladder's copy ✓ success-conditional on the real
