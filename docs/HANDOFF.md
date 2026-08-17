@@ -614,6 +614,15 @@ whatever model 4b settled. **Crossed axes** — `replay-sweep.ts` takes
 another lever's old setting. Corpus manifest per 2i, so no analysis can silently
 read a corpus built under different calibration.
 
+**`--byte-budget` is now required and the sweep will not start without it**
+(§21j Phase 1, after the 2026-08-13 blackout). Declare a ceiling in bytes or
+with a `gb` suffix — `--byte-budget 20gb` — and the run halts the moment its
+measured payload crosses it. FMP bills bytes over a trailing 30 days; the
+sweeps spent a 150 GB allowance in days, and every day the minute bank stayed
+dark after that was a day of permanently unrecoverable 1-minute history. Size
+the ceiling deliberately before a long sweep. Raising it is a decision; there
+is no way to turn it off.
+
 #### 4d — Derive per market, not per class
 Every parameter family, per market, gated by item 3's acceptance procedure —
 nothing ships that does not clear its own out-of-sample bar corrected for the

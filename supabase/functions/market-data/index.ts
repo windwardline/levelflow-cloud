@@ -1,4 +1,5 @@
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+import { classifyUpstreamFailure } from "./upstreamStatus.ts";
 
 const FMP_API_BASE_URL = Deno.env.get("FMP_API_BASE_URL") ??
   "https://financialmodelingprep.com/stable";
@@ -260,11 +261,19 @@ Deno.serve(async (req) => {
     }
 
     if (payload.length === 0) {
+      const providerStatus = failures.join(" | ") || "NO_DATA";
       return jsonResponse(
         req,
         {
           error: "FMP market data request failed",
-          providerStatus: failures.join(" | ") || "NO_DATA",
+          providerStatus,
+          // A machine-readable name for "the provider's 30-day allowance is
+          // spent", so callers can tell that apart from a regression without
+          // pattern-matching a vendor's prose themselves. The deploy gate
+          // reads this: it stands down for exhaustion and still fails for
+          // everything else (§21j Phase 1).
+          providerQuotaExhausted:
+            classifyUpstreamFailure(providerStatus) === "quota-exhausted",
         },
         502,
       );
