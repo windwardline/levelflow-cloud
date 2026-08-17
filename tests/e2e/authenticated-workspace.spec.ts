@@ -679,6 +679,27 @@ test("a receipt How this works link lands on the Guide's record section", async 
   ).toBeVisible();
 });
 
+// supabase-js reports a non-2xx Edge Function as a FunctionsHttpError and
+// leaves `data` null, so the body — and market-data's `providerQuotaExhausted`
+// flag with it — is only reachable through the error's `context` Response.
+//
+// Fails safe by construction: anything unexpected returns false, so a run that
+// cannot PROVE the provider is out of budget asserts normally and goes red.
+// The dangerous direction here is a false positive, which would skip a genuine
+// regression, so uncertainty resolves toward testing rather than toward
+// standing down.
+async function upstreamQuotaExhausted(error: unknown): Promise<boolean> {
+  const context = (error as { context?: { json?: () => Promise<unknown> } } | null)
+    ?.context;
+  if (!context || typeof context.json !== "function") {
+    return false;
+  }
+  const body = (await context.json().catch(() => null)) as
+    | { providerQuotaExhausted?: boolean }
+    | null;
+  return body?.providerQuotaExhausted === true;
+}
+
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   test.setTimeout(60_000);
   // Forex trades Sunday evening through Friday evening (America/New_York) —
@@ -714,6 +735,27 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     resultsCount?: number;
     timeframe?: string;
   } | null;
+  // FMP meters bytes over a trailing 30 days and refuses every request once
+  // the allowance is spent (§21a) — as it did from 2026-08-13, turning every
+  // deploy red for a reason that was not a regression. A gate that is always
+  // red cannot separate "the provider is out of budget" from "we broke the
+  // chart", so it stops being read at all.
+  //
+  // This whole test is end-to-end on live market data: the chart below must
+  // come out of its loading overlay WITH data, which it cannot do when the
+  // provider is refusing. So the test stands down — for that one named
+  // condition, surfaced explicitly, and never for a generic upstream error.
+  if (await upstreamQuotaExhausted(marketDataResponse.error)) {
+    console.warn(
+      "[market-data] FMP 30-day allowance exhausted — live chart coverage NOT verified this run.",
+    );
+    test.skip(
+      true,
+      "FMP 30-day bandwidth allowance exhausted; live chart data unavailable. " +
+        "Not a regression — see §21 and docs/minute-bank.md.",
+    );
+  }
+
   expect(marketDataResponse.error).toBeFalsy();
   expect(marketData?.error).toBeFalsy();
   expect(marketData?.timeframe).toBe("1min");

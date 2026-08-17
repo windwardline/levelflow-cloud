@@ -25,6 +25,12 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { fetchFmpWithRetry } from "./fmpRetry.ts";
+import {
+  type ByteBudget,
+  parseByteBudgetArg,
+  createByteBudget,
+  readJsonWithBudget,
+} from "./fmpByteBudget.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
   calendarFolds,
@@ -59,6 +65,23 @@ const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 // against the same clock.
 const FMP_PACE_MS = Number(process.env.FMP_PACE_MS ?? 0) || 0;
 const API_KEY = process.env.FMP_API_KEY;
+
+// §21j Phase 1. Set once in main() from a REQUIRED --byte-budget. Held at
+// module scope because the three provider reads sit in separate functions and
+// threading a budget through them would leave the next one free to skip it.
+// The accessor throws rather than defaulting: a sweep that reaches FMP without
+// a declared ceiling is the exact run that emptied the allowance on
+// 2026-08-13, and an unset budget must never read as unlimited.
+let sweepBudget: ByteBudget | undefined;
+
+function budget(): ByteBudget {
+  if (!sweepBudget) {
+    throw new Error(
+      "FMP byte budget was never declared. Pass --byte-budget before any provider read.",
+    );
+  }
+  return sweepBudget;
+}
 const WARMUP_BARS = 240;
 // Legacy two-split share, retired by the calendar folds below; still
 // recorded in the manifest so legacy-corpus readers can state what they
@@ -98,6 +121,9 @@ async function main() {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
   }
+  // Declared before anything reaches the provider, so a run without a ceiling
+  // dies at the command line rather than partway through a sweep.
+  sweepBudget = createByteBudget(parseByteBudgetArg(process.argv.slice(2)));
   const args = parseArgs(process.argv.slice(2));
   // Durable by default (r17 hardening): mornings reuse the rolling store
   // and top up incrementally instead of refetching whole windows.
@@ -482,7 +508,7 @@ async function fetchCalendarEvents(
         }..${endpoint.searchParams.get("to")}`,
       );
     }
-    const payload = await response.json();
+    const payload = await readJsonWithBudget(response, budget());
     if (Array.isArray(payload)) {
       for (const raw of payload as Array<Record<string, unknown>>) {
         const impact = String(raw.impact ?? "").toLowerCase();
@@ -560,7 +586,7 @@ async function fetchCotContract(
     console.warn(`COT fetch failed for ${contract}: ${response.status}`);
     return [];
   }
-  const payload = await response.json();
+  const payload = await readJsonWithBudget(response, budget());
   const rows: CotReportRow[] = [];
   if (Array.isArray(payload)) {
     for (const raw of payload as Array<Record<string, unknown>>) {
@@ -735,7 +761,7 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
       `FMP request failed (${response.status}) for ${endpoint.pathname}`,
     );
   }
-  const payload = await response.json();
+  const payload = await readJsonWithBudget(response, budget());
   const rows = Array.isArray(payload)
     ? payload
     : Array.isArray((payload as { historical?: unknown[] }).historical)

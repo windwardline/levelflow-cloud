@@ -31,6 +31,13 @@ FMP bills **bytes over a trailing 30-day window**. Not requests, not
 calendar months. The published ceilings are Free 500 MB, Starter 20 GB,
 Premium 50 GB, Build 100 GB, Ultimate 150 GB, Enterprise 1 TB+.
 
+**The tier is not a budget artifact and is not up for reduction** (owner,
+2026-08-16). Ultimate buys more data and faster data, not merely a larger
+ceiling; the owner would raise it before lowering it. Steady-state
+consumption near 2% of the allowance is therefore not a downgrade signal,
+and no measurement in this design should be read as an argument for one.
+The ledger exists to prevent an outage, never to justify a smaller plan.
+
 **FMP exposes no usage endpoint.** Consumption is visible only on the web
 dashboard. This single fact settles the architecture: nothing can be told
 how much allowance remains, so anything that governs consumption must
