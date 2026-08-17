@@ -31,6 +31,32 @@ echo "$(date -u +%FT%TZ) top-up starting"
 # under --days max is what spent a 150 GB allowance in days. Raising it is a
 # decision, per §21j; override for a one-off backfill without editing this file:
 #   TOPUP_BYTE_BUDGET=20gb launchctl kickstart -k gui/$(id -u)/com.windwardline.levelflow-cache-topup
-npx tsx scripts/replay-sweep.ts --symbols roster --days max --warm-only \
-  --byte-budget "${TOPUP_BYTE_BUDGET:-2gb}"
-echo "$(date -u +%FT%TZ) top-up complete"
+# Stand down for provider quota, and for nothing else. FMP has been returning
+# 429 since the 2026-08-13 blackout (§21j), so this job fails every night on a
+# condition that is neither a regression nor actionable — and a launchd agent
+# that is always red is one nobody reads, which is how the --byte-budget
+# breakage sat here unnoticed in the first place.
+#
+# Same discipline as the advisor-chart E2E stand-down (#348): the skip is
+# allowed only for one named, proven condition, and anything it cannot prove
+# goes red. Uncertainty resolves toward failing, never toward standing down —
+# a false stand-down hides a real regression, which is the expensive direction.
+set +e
+out=$(npx tsx scripts/replay-sweep.ts --symbols roster --days max --warm-only \
+  --byte-budget "${TOPUP_BYTE_BUDGET:-2gb}" 2>&1)
+rc=$?
+set -e
+printf '%s\n' "$out"
+
+if [ "$rc" -eq 0 ]; then
+  echo "$(date -u +%FT%TZ) top-up complete"
+  exit 0
+fi
+
+if printf '%s' "$out" | grep -qE '\(429\)|providerQuotaExhausted|Too Many Requests'; then
+  echo "$(date -u +%FT%TZ) STOOD DOWN: FMP provider quota exhausted (429). Cache not topped up; not a regression. See §21j."
+  exit 0
+fi
+
+echo "$(date -u +%FT%TZ) top-up FAILED (exit $rc) — no quota signal in the output, so this is a real failure"
+exit "$rc"
