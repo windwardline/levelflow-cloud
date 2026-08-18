@@ -46,8 +46,10 @@ per symbol, and was never carried by the defect. Leave it running.
 
   (Explicit `mktemp` template — a bare `mktemp` is a usage error on
   macOS, the #360 ruling recorded in `sync-function-secrets.sh`; the
-  subshell's EXIT trap removes the key file even on Ctrl-C, and
-  `--max-time 60` bounds the wait against a provider that has 429'd.)
+  subshell's EXIT trap removes the key file when the probe ends —
+  verified for bash; if your shell handles an interrupt differently,
+  `rm -f` the probe file yourself — and `--max-time 60` bounds the wait
+  against a provider that has 429'd.)
 
 - **The `to`-inclusivity and BOTH caps are SETTLED, measured 2026-08-18:**
   `historical-chart/5min?symbol=BTCUSD&from=2026-08-10&to=2026-08-15`

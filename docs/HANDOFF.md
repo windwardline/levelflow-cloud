@@ -103,7 +103,9 @@ step leaves every signed-in operator working behind a closed door.
 > Bearers, the PATCH body, AND query-string keys travel by 600-mode
 > files: a credential inside a URL is still argv (#363 round 6 — the
 > cache-rebuild runbook's probe now uses `curl -K` for exactly that
-> reason), and all three forms are pinned in the shell sweep. One
+> reason), and header, body, and URL-query forms are all pinned in
+> the shell sweep — the header pin covers any interpolated value, not
+> just the Bearer spelling. One
 > boundary stated plainly (#363 round 7): fenced commands in `.md`
 > runbooks are law-by-REVIEW, not law-by-test — the sweep reads tracked
 > `.sh` files only, and round 6's own violation lived in a runbook
