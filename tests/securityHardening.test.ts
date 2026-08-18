@@ -290,7 +290,16 @@ describe("security hardening", () => {
     );
     assert.match(sync, /keychain_read fmp-api-key/);
     assert.match(sync, /keychain_read levelflow-newssync-token/);
+    assert.match(sync, /keychain_read supabase-db-levelflow/);
     assert.match(sync, /supabase secrets set --project-ref/);
+    // The preflight resolves psql and a working database endpoint BEFORE
+    // the first write — a run that rotates the gate half and dies on the
+    // Vault half would CAUSE the split-token 401s (#361 finding 1).
+    assert.match(sync, /command -v psql/);
+    assert.ok(
+      sync.indexOf("preflight ok") < sync.indexOf("supabase secrets set"),
+      "the database preflight must precede the first write",
+    );
     // The caller half moves with the gate half, or every hourly sync 401s:
     // the cron jobs read vault.news_sync_token at call time.
     assert.match(sync, /vault\.secrets where name = 'news_sync_token'/);
@@ -303,6 +312,7 @@ describe("security hardening", () => {
     // be readable in `ps` on the studio machine.
     assert.match(sync, /chmod 600/);
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
+    assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
 
     // The conduit is recorded where operators actually read (fleet
     // re-review on #360): the deployment procedure and the README

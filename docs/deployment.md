@@ -52,11 +52,14 @@ Apply migrations before deploying Edge Functions that depend on new database obj
 
 ```bash
 npx supabase db push --linked
-# Gate credentials (FMP_API_KEY, NEWS_SYNC_TOKEN + its Vault caller copy):
-# Keychain → Supabase, the one conduit. Defaults to the studio machine and
-# the PRODUCTION project ref — override for any other target:
-REPO=. PROJECT_REF=your-project-ref scripts/ops/sync-function-secrets.sh
 npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
+# Gate credentials (FMP_API_KEY, NEWS_SYNC_TOKEN + its Vault caller copy):
+# Keychain → Supabase, the one conduit — AFTER the functions deploy, because
+# it ends by proving the token against a live news-calendar (a 404 there
+# means "deploy the functions first", and it says so). Defaults to the
+# studio machine and the PRODUCTION project ref — override for any other
+# target:
+REPO=. PROJECT_REF=your-project-ref scripts/ops/sync-function-secrets.sh
 ```
 
 **The gate credentials never travel any other way.** The fleet credential
@@ -82,8 +85,22 @@ apply the same discipline by hand from your own secret store: write
 `FMP_API_KEY=…` and `NEWS_SYNC_TOKEN=…` to a 600-mode file and
 `npx supabase secrets set --project-ref your-project-ref --env-file` it
 (never argv), then set Vault's `news_sync_token` to the same token value
-via the dashboard SQL editor (`select vault.create_secret('…',
-'news_sync_token');` on a fresh project).
+via the dashboard SQL editor with the script's own upsert form —
+`vault.secrets.name` is unique, so a bare `create_secret` errors on the
+rotation case:
+
+```sql
+do $$
+declare sid uuid;
+begin
+  select id into sid from vault.secrets where name = 'news_sync_token';
+  if sid is null then
+    perform vault.create_secret('YOUR_TOKEN', 'news_sync_token');
+  else
+    perform vault.update_secret(sid, 'YOUR_TOKEN');
+  end if;
+end $$;
+```
 
 ## Server Runtime
 
