@@ -388,6 +388,18 @@ describe("security hardening", () => {
         /(^|\s)(-d|--data(-raw|-binary|-ascii|-urlencode)?|--json|-F|--form)\s*"(?:[^"\\]|\\.)*\$/,
         `${script} must not pass an inline "$…" request body — bodies travel by --data @file`,
       );
+      // The THIRD form (#363 rounds 6-7): a credential in a URL query
+      // string is still argv — round 6 found exactly this in the
+      // cache-rebuild runbook, and the URL form is law in HANDOFF, so
+      // it gets its pin: any query parameter whose value is an
+      // interpolation. Shell && and 2>&1 cannot fire it (& must be
+      // followed by a parameter name then =$), and the repo's URLs with
+      // interpolated HOSTS but no query string do not either.
+      assert.doesNotMatch(
+        source,
+        /[?&][A-Za-z_][A-Za-z0-9_-]*=\$\{?[A-Za-z_]/,
+        `${script} must not interpolate a credential into a URL query string — use a 600-mode curl config (-K)`,
+      );
     }
     // The same law for the Resend key, BOTH hops (#363 round 1,
     // finding 1 — the first fold moved it from python's argv to curl's
