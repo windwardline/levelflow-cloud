@@ -57,17 +57,48 @@ export function storedSetupAsCandidate(
   // here would print the literal "NaN" on the ladder beside the "—" the rail
   // drew for the same column.
   const breakevenTriggerPrice = asPrice(setup.breakeven_trigger_price);
-  // The copy gate's window: created_at + the symbol's own review window,
-  // through the same calibration mirror the stamp and the meter already
-  // read. Null when created_at is unparseable — the gate then leaves the
-  // affordances live, exactly as a scan row without an expiry does.
+  // The copy gate's window: created_at + the row's OWN review window —
+  // E7's rule that decision-time facts ride the row, read with the
+  // bridge's exact validation (#362 review, finding 5). Three sources in
+  // preference order: risk_model.reviewWindowHours (E7's stamp), then
+  // confluence.categoryCalibration.reviewWindowHours (the same
+  // decision-time value, carried on rows from before E7's field — #362
+  // round 3), then the calibration mirror for rows older than both.
+  // Re-modelling from the mirror alone meant this gate and the resolver
+  // could disagree the moment the calibration moved.
+  //
+  // Two deliberate non-reads (#362 rounds 2-3, named in the divergence
+  // map's residue): risk_model.reviewWindowExpiresAt DOES carry the
+  // resolver's fully weekly-clamped instant, but upsertActiveSetup's
+  // same-side dedupe rewrites risk_model on a re-scan while created_at
+  // is preserved, so a re-scanned row's stamped instant runs AHEAD of
+  // the resolver's created_at + hours — hours-from-created_at is the
+  // read that cannot drift. The cost is the weekly-close clamp itself:
+  // a Friday-afternoon forex setup stays copyable past the cutoff the
+  // resolver expires it at, until the clamp (not the whole window) is
+  // mirrored client-side or the dedupe restamps coherently. Null when
+  // created_at is unparseable — the gate then leaves the affordances
+  // live, exactly as a scan row without an expiry does.
   const reviewedAtMs = storedSetupReviewedAt(setup);
-  const copyWindowEndsAt = reviewedAtMs === null ? null : new Date(
-    reviewedAtMs +
-      reviewWindowHoursForSymbol(
+  const rowReviewWindowHours = Number(setup.risk_model?.reviewWindowHours);
+  const stampedCalibration = setup.confluence?.categoryCalibration as
+    | Record<string, unknown>
+    | undefined;
+  const stampedReviewWindowHours = Number(
+    stampedCalibration?.reviewWindowHours,
+  );
+  const reviewWindowHours =
+    Number.isFinite(rowReviewWindowHours) && rowReviewWindowHours > 0
+      ? rowReviewWindowHours
+      : Number.isFinite(stampedReviewWindowHours) &&
+          stampedReviewWindowHours > 0
+      ? stampedReviewWindowHours
+      : reviewWindowHoursForSymbol(
         setup.symbol,
         getSecurityOption(setup.symbol).assetType,
-      ) * 60 * 60 * 1000,
+      );
+  const copyWindowEndsAt = reviewedAtMs === null ? null : new Date(
+    reviewedAtMs + reviewWindowHours * 60 * 60 * 1000,
   ).toISOString();
   const entryPrice = asPrice(setup.limit_entry);
   const stopLoss = asPrice(setup.stop_loss);

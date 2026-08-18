@@ -8,6 +8,7 @@
 import {
   evaluateSetupOutcome,
   fillOptionsFromRiskModel,
+  resolutionSeriesFor,
   type ResolvedOutcome,
 } from "../trade-analyzer/replay.ts";
 import { fetchFmpBars } from "../trade-analyzer/marketLoader.ts";
@@ -106,9 +107,22 @@ Deno.serve(async (req) => {
           summary.failed += 1;
           continue;
         }
-        if (!barsByProviderSymbol.has(providerSymbol)) {
+        // E1 (R1a slice 2): both series per symbol, resolved on the
+        // finest one that reaches the setup's creation — the sweep's own
+        // tiering (FR-5), so live grading and the corpus share one
+        // physics. A thrown 15-MINUTE fetch fails the setup for THIS run
+        // (transient — the next hourly run retries): without the
+        // resolution series there is nothing to grade on. A thrown
+        // 5-MINUTE fetch degrades to the 15-minute tier instead (#362
+        // review, finding 3) — the degradation is per-row-visible via
+        // feedback.resolutionIntervalMs, while failing would block
+        // grading the coarser series completes alone — and the CAUGHT
+        // promise is what enters the cache, so one 5-minute failure
+        // cannot poison every later setup on the symbol.
+        const fifteenKey = `${providerSymbol}:15min`;
+        if (!barsByProviderSymbol.has(fifteenKey)) {
           barsByProviderSymbol.set(
-            providerSymbol,
+            fifteenKey,
             fetchFmpBars(
               providerSymbol,
               "15min",
@@ -117,14 +131,39 @@ Deno.serve(async (req) => {
             ),
           );
         }
-        const bars = await barsByProviderSymbol.get(providerSymbol)!;
+        const fiveKey = `${providerSymbol}:5min`;
+        if (!barsByProviderSymbol.has(fiveKey)) {
+          barsByProviderSymbol.set(
+            fiveKey,
+            fetchFmpBars(
+              providerSymbol,
+              "5min",
+              recordAnalyzerEvent,
+              fetchWithTimeout,
+            ).catch(() => []),
+          );
+        }
+        const [fifteenMinute, fiveMinute] = await Promise.all([
+          barsByProviderSymbol.get(fifteenKey)!,
+          barsByProviderSymbol.get(fiveKey)!,
+        ]);
+        const resolution = resolutionSeriesFor({
+          createdAtMs: new Date(setup.created_at).getTime(),
+          fifteenMinute,
+          fiveMinute,
+        });
         // Batch 4: the row's own decision-time costs drive the venue-fill
         // replay; a row without them resolves v1-style (empty options).
+        // The interval override rides AFTER the spread so the tier chosen
+        // above governs regardless of the bridge's default.
         const evaluation = evaluateSetupOutcome(
           setup,
-          bars,
+          resolution.bars,
           Date.now(),
-          fillOptionsFromRiskModel(setup.risk_model),
+          {
+            ...fillOptionsFromRiskModel(setup.risk_model),
+            barIntervalMs: resolution.barIntervalMs,
+          },
         );
 
         if (evaluation.state === "pending") {

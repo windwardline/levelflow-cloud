@@ -18,6 +18,25 @@ describe("the payoff refusal names its cause (round-8 PH-9)", () => {
     );
   });
 
+  it("the crossed-quote refusal keeps its own ground through translation (#362 round 5, finding 1)", () => {
+    // 1b's rule: a distinct cause must not wear "no valid limit entry".
+    // The engine sentence is also the anchor-latency instrument in
+    // analyzer_events, so the operator copy must stay distinct from the
+    // geometry refusal on the client too.
+    assert.equal(
+      cleanReviewMessage(
+        "The live market has already crossed the computed limit entry, so the setup was withheld rather than shown as a resting order.",
+      ),
+      "Price moved through the planned entry before the setup could be shown, so Levelflow held it back rather than show a stale order.",
+    );
+    assert.equal(
+      cleanReviewMessage(
+        "Limit entry failed price validation, so no limit setup was shown.",
+      ),
+      "A valid limit entry was not available at the current price.",
+    );
+  });
+
   it("the cost sentence covers the whole bill, old rows included", () => {
     assert.equal(
       cleanReviewMessage("Estimated trading costs reduced the setup score by 4."),

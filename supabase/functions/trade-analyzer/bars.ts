@@ -15,7 +15,48 @@
  * candle cache holds. tests/barDecode.test.ts pins both halves of that: the
  * output equals the old pipeline's, and nothing downstream mutates a bar.
  */
-import type { Bar } from "./types.ts";
+import type { Bar, Timeframe } from "./types.ts";
+
+// E3 (R1a slice 2; #362 review, finding 1): a bar is decision-grade only
+// once its span has closed — LA-2's own principle applied at load. The
+// newest fetched intraday bar is usually still forming, and the sweep's
+// decision context contains completed bars only, so ANY reader of an
+// untrimmed series — the entry anchor, the ATR, the pivots, the strategy
+// committee — diverges from the corpus by exactly that bar. Trailing trim
+// rather than a filter: interior bars are closed by construction (their
+// successors exist), so only the tail can be forming, though under
+// provider clock skew several trailing spans may still be open and all of
+// them go. "1day" has no entry because completeDaily owns the daily gate —
+// a completed daily bar's span extends past `now` for most of the session,
+// so a span test must never run on it. Lives here rather than in
+// marketLoader so the harness can execute it (finding 2): marketLoader
+// reads Deno.env at module load and no test can import it.
+const INTRADAY_SPAN_MS: Partial<Record<Timeframe, number>> = {
+  "1min": 60_000,
+  "5min": 5 * 60_000,
+  "15min": 15 * 60_000,
+  "1hour": 60 * 60_000,
+  "4hour": 4 * 60 * 60_000,
+};
+
+export function completedIntradaySeries(
+  bars: Bar[],
+  timeframe: Timeframe,
+  nowMs: number = Date.now(),
+): Bar[] {
+  const spanMs = INTRADAY_SPAN_MS[timeframe];
+  if (spanMs === undefined) {
+    return bars;
+  }
+  let end = bars.length;
+  while (end > 0 && bars[end - 1].time + spanMs > nowMs) {
+    end -= 1;
+  }
+  // The untouched case returns the caller's array unsliced — consumers
+  // treat bar arrays as read-only (tests/barDecode.test.ts pins that), so
+  // the candle cache's copy may be shared exactly as fetchFmpBars shares it.
+  return end === bars.length ? bars : bars.slice(0, end);
+}
 
 export type FmpBar = {
   close?: number;

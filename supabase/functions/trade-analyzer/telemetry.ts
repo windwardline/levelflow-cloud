@@ -38,10 +38,22 @@ export async function recordMarketDataHealth(
       ...providerFailures,
       ...(marketContext?.providerWarnings ?? []),
     ];
+    // E3 dropped the analyzer's 1-minute fetch (#362 rounds 3-4), so
+    // the timeframe ceiling fell from six to five. For a symbol whose
+    // 1min series qualified, < 4 of six ≡ < 3 of five — status
+    // preserved; left at < 4, those symbols would have flipped
+    // "limited" with no coverage change. For a symbol that never served
+    // 1min (its 3-day lookback against the same 40-bar floor drops out
+    // exactly on thin and holiday-shortened markets), the count is
+    // unchanged and the move is deliberately LOOSER: such a symbol at
+    // 3-of-5 was "limited" only because a series the engine no longer
+    // consumes was counted as missing, and absence of decision-
+    // irrelevant data is not a coverage defect. The asymmetry is
+    // stated, not accidental (#362 round 4, finding 3).
     const status = !marketContext
       ? "unavailable"
       : providerWarnings.length > 0 ||
-          marketContext.availableTimeframes.length < 4
+          marketContext.availableTimeframes.length < 3
       ? "limited"
       : "ready";
 
@@ -57,6 +69,11 @@ export async function recordMarketDataHealth(
           0,
         ) ?? 0,
       last_checked_at: new Date().toISOString(),
+      // E3: `latest` is the completed decision anchor now, so this stamp
+      // reports the DECISION BASIS' age — up to one primary span behind
+      // the clock in the ordinary case, a daily stamp on the loader's
+      // daily fallback — not a freshness probe of the provider (that is
+      // last_checked_at's job). Named in the divergence map's residue.
       latest_bar_at: marketContext?.latest
         ? new Date(marketContext.latest.time).toISOString()
         : null,

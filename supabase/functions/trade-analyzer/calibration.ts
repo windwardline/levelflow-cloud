@@ -4,11 +4,17 @@
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
 import { isKnownSymbol } from "./symbols.ts";
-// 2026.08.18.realized-r (D2, R1a): the resolver writes realized R from
-// its legs on every filled resolution, and a TP1-banked expiry scores the
-// ladder instead of full-size arithmetic — grading numbers changed, so
-// the cohort boundary moves with them.
-export const ANALYZER_VERSION = "2026.08.18.realized-r";
+// 2026.08.18.one-physics (R1a slice 2 — E1/E3/E7/E2): live grading
+// resolves on the sweep's own tiering (5-minute when it reaches the
+// setup's creation, else 15-minute, recorded per row); the options
+// bridge carries the row's stored runner-protection mode and review
+// window instead of the resolver's "breakeven"/current-calibration
+// fallbacks; setup construction anchors on the last COMPLETED primary
+// bar instead of the freshest 1-minute print; no-bars expiries are
+// marked. Grading physics and decision inputs changed, so the cohort
+// boundary moves with them. (Prior: 2026.08.18.realized-r — D2's one R
+// accountant on every filled resolution.)
+export const ANALYZER_VERSION = "2026.08.18.one-physics";
 
 export type AssetType =
   | "agriculture"

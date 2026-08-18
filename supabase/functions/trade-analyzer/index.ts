@@ -23,6 +23,7 @@ import {
   evaluateSetupOutcome,
   fillOptionsFromRiskModel,
   getSetupExpiryTime,
+  resolutionSeriesFor,
   type ResolvedOutcome,
 } from "./replay.ts";
 import { type ExecutionQuality } from "./executionQuality.ts";
@@ -1281,6 +1282,13 @@ async function analyzeSetup(
         contractSpec: pricePlan.contractSpec,
         futuresTickAdjustments: pricePlan.futuresTickAdjustments,
         orderType: "limit",
+        // E3 aged this field (#362 round 2, finding 3): the completed
+        // decision-anchor close, no longer a ≤1-minute print. The
+        // client's §19c Size row reads it as the market's rate —
+        // staleness now bounded by the primary span (a daily close on
+        // the loader's fallback) — accepted for sizing tolerance and
+        // named in the divergence map's residue; sourcing it from
+        // market.quote is a §19 governor change, not a rider here.
         latestClose: market.latest.close,
         tickValidation: pricePlan.contractSpec
           ? `Prices rounded to the ${pricePlan.contractSpec.contractLabel} tick size.`
@@ -1302,6 +1310,17 @@ async function analyzeSetup(
       dailyAtr: averageTrueRange(market.daily, 14),
       executionQuality: pricePlan.executionQuality,
       futuresContract: pricePlan.contractSpec,
+      // E7 (R1a slice 2): the resolver's runner protection is a MODE
+      // (4c axis) and the resolution's review window is a DECISION-TIME
+      // fact — both must ride the row, because the grading bridge
+      // (fillOptionsFromRiskModel) reads decision-time facts from the
+      // row, never a re-model at sync time. Before this, the bridge had
+      // nothing to read: both live writers graded every row with the
+      // resolver's "breakeven" fallback while the calibration ships
+      // trail_tp1/hold for most categories — the corpus measured one
+      // physics and the cohort was graded under another.
+      runnerProtection: calibration.runnerProtection ?? "breakeven",
+      reviewWindowHours: calibration.defaultReviewHours,
       positionSizingStatus: "not_calculated",
       positionSizingReason:
         "Levelflow records directional market setups only; position sizing should be handled in the trader's execution platform.",
@@ -1383,12 +1402,14 @@ async function explainNoSetup(
       }&analyzer_version=eq.${encodeURIComponent(ANALYZER_VERSION)}&limit=1`,
     );
     const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
+    const planRefusal: { reason?: "quote_crossed" } = {};
     const pricePlan = buildPricePlan(
       consensus.side,
       symbol,
       market,
       regime,
       calibration,
+      planRefusal,
     );
     const macroRateAdjustment = calculateMacroRateAdjustment(
       symbol,
@@ -1435,9 +1456,24 @@ async function explainNoSetup(
       `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
     );
     if (!pricePlan) {
-      diagnostics.push(
-        "Limit entry failed price validation, so no limit setup was shown.",
-      );
+      // 1b's rule applied to the quote-admission gate (#362 round 5,
+      // finding 1): a distinct cause carries its own sentence — geometry
+      // failing to place a limit and the market having already crossed a
+      // placed one are different facts and different instructions. This
+      // sentence is also the anchor-latency instrument: analyzer_events
+      // carries analysisDiagnostics verbatim, so its frequency is the
+      // one measurable read on the through-market rate before §21's
+      // minute bank — and a run of them on one symbol is the un-de-spiked
+      // bad-quote signal the admission gate otherwise lacks.
+      if (planRefusal.reason === "quote_crossed") {
+        diagnostics.push(
+          "The live market has already crossed the computed limit entry, so the setup was withheld rather than shown as a resting order.",
+        );
+      } else {
+        diagnostics.push(
+          "Limit entry failed price validation, so no limit setup was shown.",
+        );
+      }
     } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
       // PH-9: the refusal names its cause. A payoff that cleared the bar
       // gross and lost it to the round trip is a COST story, not a
@@ -1718,9 +1754,21 @@ async function refreshUserOutcomes(
         continue;
       }
 
-      if (!barsByProviderSymbol.has(providerSymbol)) {
+      // E1 (R1a slice 2): both series per symbol, resolved on the finest
+      // one that reaches the setup's creation — the sweep's own tiering
+      // (FR-5), so live grading and the corpus share one physics. A
+      // thrown 15-MINUTE fetch fails the setup for THIS run (transient —
+      // the next refresh retries): without the resolution series there
+      // is nothing to grade on. A thrown 5-MINUTE fetch degrades to the
+      // 15-minute tier instead (#362 review, finding 3) — the
+      // degradation is per-row-visible via feedback.resolutionIntervalMs,
+      // while failing would block grading the coarser series completes
+      // alone — and the CAUGHT promise is what enters the cache, so one
+      // 5-minute failure cannot poison every later setup on the symbol.
+      const fifteenKey = `${providerSymbol}:15min`;
+      if (!barsByProviderSymbol.has(fifteenKey)) {
         barsByProviderSymbol.set(
-          providerSymbol,
+          fifteenKey,
           fetchFmpBars(
             providerSymbol,
             "15min",
@@ -1729,19 +1777,43 @@ async function refreshUserOutcomes(
           ),
         );
       }
-      const bars = await barsByProviderSymbol.get(providerSymbol)!;
+      const fiveKey = `${providerSymbol}:5min`;
+      if (!barsByProviderSymbol.has(fiveKey)) {
+        barsByProviderSymbol.set(
+          fiveKey,
+          fetchFmpBars(
+            providerSymbol,
+            "5min",
+            recordAnalyzerEvent,
+            fetchWithTimeout,
+          ).catch(() => []),
+        );
+      }
+      const [fifteenMinute, fiveMinute] = await Promise.all([
+        barsByProviderSymbol.get(fifteenKey)!,
+        barsByProviderSymbol.get(fiveKey)!,
+      ]);
+      const resolution = resolutionSeriesFor({
+        createdAtMs: new Date(setup.created_at).getTime(),
+        fifteenMinute,
+        fiveMinute,
+      });
       // ONE resolver, one physics. This in-request refresh graded with
       // the cost-free v1 touch-fill model while outcome-sync graded the
       // same rows with the venue's fills — so whether a setup was judged
       // honestly depended on whether its owner opened the app before the
       // hourly cron reached it, and whichever ran first owned the row
       // permanently. Batch 4 wired the options at one call site and
-      // missed this one.
+      // missed this one. The interval override rides AFTER the spread so
+      // the tier chosen above governs regardless of the bridge's default.
       const evaluation = evaluateSetupOutcome(
         setup,
-        bars,
+        resolution.bars,
         Date.now(),
-        fillOptionsFromRiskModel(setup.risk_model),
+        {
+          ...fillOptionsFromRiskModel(setup.risk_model),
+          barIntervalMs: resolution.barIntervalMs,
+        },
       );
       if (evaluation.state === "pending") {
         summary.pending += 1;

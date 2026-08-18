@@ -213,7 +213,7 @@ describe("storedSetupReviewedAt", () => {
 
 // The copy gate's window (1l, 2026-08-09): derived, gate-only, never printed.
 describe("copyWindowEndsAt — the gate's window, not the stamp's", () => {
-  it("derives created_at + the symbol's own review window", () => {
+  it("derives created_at + the mirror's review window for a pre-E7 row", () => {
     const candidate = storedSetupAsCandidate(buildSetup());
     assert.ok(candidate.setup);
     const created = new Date(buildSetup().created_at).getTime();
@@ -225,6 +225,71 @@ describe("copyWindowEndsAt — the gate's window, not the stamp's", () => {
       candidate.setup!.copyWindowEndsAt,
       new Date(created + hours * 60 * 60 * 1000).toISOString(),
     );
+  });
+
+  it("prefers the row's own stamped window — E7's decision-time fact rides the row (#362 review, finding 5)", () => {
+    const candidate = storedSetupAsCandidate(buildSetup({
+      risk_model: { reviewWindowHours: 9.5 },
+    }));
+    assert.ok(candidate.setup);
+    const created = new Date(buildSetup().created_at).getTime();
+    assert.equal(
+      candidate.setup!.copyWindowEndsAt,
+      new Date(created + 9.5 * 60 * 60 * 1000).toISOString(),
+    );
+    // The mirror must not produce the same number by coincidence, or this
+    // test would pass with the stamp never read.
+    assert.notEqual(
+      reviewWindowHoursForSymbol(
+        buildSetup().symbol,
+        getSecurityOption(buildSetup().symbol).assetType,
+      ),
+      9.5,
+    );
+  });
+
+  it("reads the confluence calibration stamp for rows from before E7's field (#362 round 3, finding 3)", () => {
+    // Pre-E7 rows carry the identical decision-time value under
+    // confluence.categoryCalibration — a better read than the mirror,
+    // which re-models. risk_model's own stamp still wins when present.
+    const created = new Date(buildSetup().created_at).getTime();
+    const viaConfluence = storedSetupAsCandidate(buildSetup({
+      confluence: { categoryCalibration: { reviewWindowHours: 7.5 } },
+      risk_model: { executionQuality: { label: "Clean" } },
+    }));
+    assert.equal(
+      viaConfluence.setup!.copyWindowEndsAt,
+      new Date(created + 7.5 * 60 * 60 * 1000).toISOString(),
+    );
+    const rowWins = storedSetupAsCandidate(buildSetup({
+      confluence: { categoryCalibration: { reviewWindowHours: 7.5 } },
+      risk_model: { reviewWindowHours: 9.5 },
+    }));
+    assert.equal(
+      rowWins.setup!.copyWindowEndsAt,
+      new Date(created + 9.5 * 60 * 60 * 1000).toISOString(),
+    );
+  });
+
+  it("falls back to the mirror when the stamp is missing or malformed — the bridge's own validation", () => {
+    const created = new Date(buildSetup().created_at).getTime();
+    const mirrorEnd = new Date(
+      created +
+        reviewWindowHoursForSymbol(
+          buildSetup().symbol,
+          getSecurityOption(buildSetup().symbol).assetType,
+        ) * 60 * 60 * 1000,
+    ).toISOString();
+    for (const reviewWindowHours of ["yolo", -3, 0, null]) {
+      const candidate = storedSetupAsCandidate(buildSetup({
+        risk_model: { reviewWindowHours },
+      }));
+      assert.equal(
+        candidate.setup!.copyWindowEndsAt,
+        mirrorEnd,
+        `a stamp of ${JSON.stringify(reviewWindowHours)} must fall back`,
+      );
+    }
   });
 
   it("never reaches the stamp — the §17f decision stands", () => {

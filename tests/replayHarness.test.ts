@@ -7,6 +7,7 @@ import {
   getSetupExpiryTime,
   type ReplayBar,
   type ReplaySetup,
+  resolutionSeriesFor,
 } from "../supabase/functions/trade-analyzer/replay.ts";
 
 const createdAt = Date.parse("2026-06-15T14:00:00.000Z");
@@ -1178,5 +1179,200 @@ describe("D2 (R1a) — realized R on every filled resolution", () => {
     assert.equal(result.outcome, "unfilled");
     assert.equal(result.feedback.realizedR, undefined);
     assert.equal(result.feedback.netRealizedR, undefined);
+  });
+});
+
+// R1a slice 2 — one physics (E1/E2/E7). The zero-failure run that
+// preceded these pins was itself the finding: nothing held the old
+// behavior, the same producer-never-tested pattern D2's register entry
+// named. Each divergence closure gets its pin here.
+describe("R1a slice 2 — one physics", () => {
+  const farNow = createdAt + 365 * 24 * 60 * 60 * 1000;
+
+  it("E1: the tiering rule resolves on the finest series that reaches creation", () => {
+    const fifteen = [buildBar(15, 101, 99.8, 100.5)];
+    const reaches = [buildBar(-30, 100.2, 99.9, 100.1), buildBar(5, 100.4, 99.9, 100.2)];
+    const late = [buildBar(45, 100.4, 99.9, 100.2)];
+
+    const fine = resolutionSeriesFor({
+      createdAtMs: createdAt,
+      fifteenMinute: fifteen,
+      fiveMinute: reaches,
+    });
+    assert.equal(fine.barIntervalMs, 5 * 60 * 1000);
+    assert.equal(fine.bars, reaches);
+
+    // A 5-minute series that starts AFTER creation cannot see the fill
+    // window — the setup degrades to 15-minute physics, recorded.
+    const degraded = resolutionSeriesFor({
+      createdAtMs: createdAt,
+      fifteenMinute: fifteen,
+      fiveMinute: late,
+    });
+    assert.equal(degraded.barIntervalMs, 15 * 60 * 1000);
+    assert.equal(degraded.bars, fifteen);
+
+    const noFive = resolutionSeriesFor({
+      createdAtMs: createdAt,
+      fifteenMinute: fifteen,
+      fiveMinute: [],
+    });
+    assert.equal(noFive.barIntervalMs, 15 * 60 * 1000);
+  });
+
+  it("E1: every resolution records the interval that graded it", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const fine = evaluateSetupOutcome(setup, [
+      buildBar(15, 101, 99.8, 100.5),
+      buildBar(30, 105.4, 100.2, 104.8),
+    ], farNow, { barIntervalMs: 5 * 60 * 1000 });
+    assert.equal(fine.state, "resolved");
+    assert.equal(
+      fine.state === "resolved" ? fine.feedback.resolutionIntervalMs : null,
+      5 * 60 * 1000,
+    );
+
+    const coarse = evaluateSetupOutcome(setup, [
+      buildBar(15, 101, 99.8, 100.5),
+      buildBar(30, 105.4, 100.2, 104.8),
+    ], farNow);
+    assert.equal(
+      coarse.state === "resolved" ? coarse.feedback.resolutionIntervalMs : null,
+      15 * 60 * 1000,
+    );
+  });
+
+  it("E2: data absence carries its own marker; a genuine no-fill does not", () => {
+    const setup = buildSetup({ entry: 98, side: "buy", stop: 96, target: 103 });
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+
+    const noBars = evaluateSetupOutcome(setup, [], expiresAt + 1);
+    assert.equal(noBars.state, "resolved");
+    assert.equal(
+      noBars.state === "resolved" ? noBars.feedback.noBarsInReviewWindow : null,
+      true,
+    );
+    // The tier stamp rides the unfilled branches too (#362 round 3,
+    // smaller item) — a DEGRADED no-bars row is exactly what a cohort
+    // read needs to separate, so the stamp matters most here.
+    assert.equal(
+      noBars.state === "resolved"
+        ? noBars.feedback.resolutionIntervalMs
+        : null,
+      15 * 60 * 1000,
+    );
+
+    // Bars existed, the limit never filled — a market verdict, unmarked.
+    const noFill = evaluateSetupOutcome(
+      setup,
+      [buildBar(15, 101, 99, 100)],
+      expiresAt + 1,
+    );
+    assert.equal(noFill.state, "resolved");
+    assert.equal(
+      noFill.state === "resolved"
+        ? noFill.feedback.noBarsInReviewWindow
+        : null,
+      undefined,
+    );
+    assert.equal(
+      noFill.state === "resolved"
+        ? noFill.feedback.resolutionIntervalMs
+        : null,
+      15 * 60 * 1000,
+    );
+  });
+
+  it("E7: the bridge reads the row's stored protection mode and review window", () => {
+    const base = {
+      estimatedCommission: 0.1,
+      estimatedSlippage: 0.02,
+      estimatedSpread: 0.04,
+      label: "good",
+      score: 80,
+    };
+    const options = fillOptionsFromRiskModel({
+      executionQuality: base,
+      reviewWindowHours: 12,
+      runnerProtection: "trail_tp1",
+    });
+    assert.equal(options.runnerProtection, "trail_tp1");
+    assert.equal(options.reviewHours, 12);
+
+    // An unknown mode is not an invented one, and a pre-slice-2 row
+    // (no fields) keeps today's exact behavior — the resolver's
+    // "breakeven" default and the calibration at resolution time.
+    const garbage = fillOptionsFromRiskModel({
+      executionQuality: base,
+      reviewWindowHours: -3,
+      runnerProtection: "yolo",
+    });
+    assert.equal(garbage.runnerProtection, undefined);
+    assert.equal(garbage.reviewHours, undefined);
+    const legacy = fillOptionsFromRiskModel({ executionQuality: base });
+    assert.equal(legacy.runnerProtection, undefined);
+    assert.equal(legacy.reviewHours, undefined);
+
+    // #362 round 4, finding 2: the mode and window are decision-time
+    // facts orthogonal to the cost triple — a malformed (or absent)
+    // cost stamp must not send a validly stamped row back to the
+    // breakeven fallback and resolution-time calibration. The cost
+    // fields alone die on the cost gate.
+    const badCosts = fillOptionsFromRiskModel({
+      executionQuality: { ...base, estimatedSpread: "corrupt" },
+      reviewWindowHours: 12,
+      runnerProtection: "trail_tp1",
+    });
+    assert.equal(badCosts.runnerProtection, "trail_tp1");
+    assert.equal(badCosts.reviewHours, 12);
+    assert.equal(badCosts.halfSpread, undefined);
+    assert.equal(badCosts.roundTripCost, undefined);
+    // Arming is resolver physics the corpus applies unconditionally, not
+    // a cost (#362 round 5, smaller item) — a stamped row keeps it even
+    // with a corrupt cost triple.
+    assert.equal(badCosts.sameBarProtectionArming, true);
+    const noCosts = fillOptionsFromRiskModel({
+      reviewWindowHours: 12,
+      runnerProtection: "hold",
+    });
+    assert.equal(noCosts.runnerProtection, "hold");
+    assert.equal(noCosts.reviewHours, 12);
+    assert.equal(noCosts.halfSpread, undefined);
+    assert.equal(noCosts.sameBarProtectionArming, true);
+    // An entirely unstamped row still resolves v1-style — no arming.
+    const v1 = fillOptionsFromRiskModel({});
+    assert.equal(v1.sameBarProtectionArming, undefined);
+  });
+
+  it("E7: a stored trail_tp1 row grades under trail_tp1 physics through the bridge", () => {
+    // Same price path as the direct trail_tp1 test above: TP1 banks at
+    // 101, the runner is stopped at TP1's own level, not at breakeven.
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+      tp1: 101,
+    });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 101.6, 100.4, 101.5, 100.5),
+      buildBar(45, 101.4, 100.2, 100.6, 101.2),
+    ], farNow, fillOptionsFromRiskModel({
+      executionQuality: {
+        estimatedCommission: 0,
+        estimatedSlippage: 0,
+        estimatedSpread: 0,
+      },
+      runnerProtection: "trail_tp1",
+    }));
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") {
+      return;
+    }
+    assert.equal(result.outcome, "tp1_partial");
+    const exit = result.legs.find((leg) => leg.leg === "exit");
+    assert.equal(exit?.kind, "tp1_lock");
+    assert.equal(exit?.price, 101);
   });
 });

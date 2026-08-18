@@ -56,13 +56,15 @@ function marketFixture(seed: number): MarketContext {
     "1hour": series(1_543, 3_600_000, seed + 2),
     "15min": series(3_000, 900_000, seed + 3),
     "5min": series(2_400, 300_000, seed + 4),
-    "1min": series(1_800, 60_000, seed + 5),
   };
+  // The loader no longer fetches 1min and anchors on the trimmed
+  // primary's tail (#362 round 4, smaller item) — the fixture mirrors
+  // the only shape production can produce.
   return {
     availableTimeframes: Object.keys(timeframes) as Timeframe[],
     daily: timeframes["1day"]!,
-    latest: timeframes["1min"]!.at(-1)!,
-    latestTimeframe: "1min",
+    latest: timeframes["15min"]!.at(-1)!,
+    latestTimeframe: "15min",
     primary: timeframes["15min"]!,
     primaryTimeframe: "15min",
     providerWarnings: [],

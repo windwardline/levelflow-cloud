@@ -24,7 +24,7 @@ D3 (two live resolvers with different physics) closed 2026-08-11 (#333)
 and stays closed — `tests/securityHardening.test.ts` pins both live call
 sites on `fillOptionsFromRiskModel(setup.risk_model)`.
 
-## E1 — resolution granularity: live 15-minute, corpus 5-minute
+## E1 — resolution granularity: live 15-minute, corpus 5-minute — **CLOSED (R1a slice 2)**
 
 **Live**: both writers fetch `fetchFmpBars(providerSymbol, "15min", …)`
 (index.ts:1724, outcome-sync/index.ts:112) — a single 45-day-lookback
@@ -67,7 +67,7 @@ field to the emit for symmetry. `fillOptionsFromRiskModel` grows the interval pa
 currently pin the exact one-argument shape). Byte cost is flat (2,304
 vs 3,000 rows per symbol per sync).
 
-## E2 — "no bars in the review window" is not a plan rejection
+## E2 — "no bars in the review window" is not a plan rejection — **live half CLOSED (R1a slice 2); sweep counter + door assertion remain (R1b)**
 
 **Live**: `evaluateSetupOutcome` returns `outcome: "unfilled"` when
 `createdBars.length === 0 && now > expiresAt` (replay.ts) — data absence
@@ -87,7 +87,7 @@ band (~2,386–2,784 cap: only the 15-minute series clips, ≤~14%, ratio
 in band), so the assertion must bind on absolute 5-minute rows/day, not
 only on the 5/15 ratio.
 
-## E3 — `market.latest`: 1-minute live, 15-minute decision bar in the sweep
+## E3 — `market.latest`: 1-minute live, 15-minute decision bar in the sweep — **CLOSED (R1a slice 2)**
 
 **Live**: `pickLatestTimeframe` prefers `1min` whenever present
 (marketLoader.ts:415), so `market.latest` is the last 1-minute bar and
@@ -166,7 +166,7 @@ cross-scan screen needs candidate timestamps only — also present. If
 the measured difference is material, whether the sweep should collapse
 in-line becomes a Phase 3 decision made on evidence.
 
-## E7 (discovered 2026-08-18) — the options bridge drops the runner-protection mode
+## E7 (discovered 2026-08-18) — the options bridge drops the runner-protection mode — **CLOSED (R1a slice 2)**
 
 Not on the program's list; found while mapping E1. The resolver's
 runner protection is a MODE (4c axis): `options?.runnerProtection ??
@@ -225,6 +225,168 @@ cohort-scoped (`buildRecordBand` and `netRForSlice` read all rows), so
 the Insights Net R band under-counts exactly those rows — E2E debris
 only today, per the 2026-08-11 wipe. Carried on HANDOFF's small list.
 
+## Slice 2 closure record (2026-08-18)
+
+Shipped as one PR after slice 1, under `2026.08.18.one-physics`. The
+PR's own review round (#362) found the E3 half-application and three
+policy gaps before merge; the bullets below describe the amended state,
+with the round's findings folded in rather than recorded as a separate
+layer.
+
+- **E1**: `resolutionSeriesFor` in `replay.ts` is the ONE tiering rule —
+  5-minute when it reaches the setup's creation, else 15-minute — used by
+  both live writers (each now fetches both series per symbol), and the
+  resolver stamps `feedback.resolutionIntervalMs` on every resolution so
+  degraded rows are visible. Failure policy (#362 review, finding 3): a
+  thrown 15-minute fetch fails the setup for that run — nothing to grade
+  on — while a thrown 5-MINUTE fetch degrades to the 15-minute tier,
+  visibly via the stamp; the caught promise is what the per-symbol cache
+  holds, so one 5-minute failure cannot poison the symbol's remaining
+  setups. Round 2 then found the THIRD caller: the sweep's own inline
+  admission took the 5-minute tier whenever the corpus array was
+  non-empty, never testing reach-back to the decision instant — so a
+  decision predating the 5-minute corpus graded a truncated window (or
+  resolved through the no-bars branch, E2's own defect reproduced by the
+  tiering) while live degraded honestly to 15-minute physics. The sweep
+  now decides its tier through `resolutionSeriesFor` as well — three
+  callers, one rule; its FR-5 start offset and horizon slice are
+  unchanged. Round 3 then held the closure to the PR's own thesis: the
+  sweep-side pin is EXECUTED, not source-matched — `tests/sweep.test.ts`
+  drives `simulateSymbol` with a 5-minute corpus that begins after every
+  decision (grades identically to having none) and one that reaches back
+  (governs grading), so a reformatted reintroduction of the old
+  non-empty admission fails regardless of spelling. The sweep's emit
+  symmetry — recording the tier per corpus row — still rides with R1b.
+- **E2 (live half)**: the true no-bars expiry carries
+  `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
+  not. The sweep's distinct counter and `assertManifest`'s per-symbol
+  density assertion remain R1b.
+- **E3**: the completed-bar law applies to the SERIES, not just the
+  anchor pointer (#362 review, finding 1 — moving `market.latest` alone
+  left entry math, ATR, pivots and the committee on the forming bar and
+  turned `buildPricePlan`'s viability gate into a live-only directional
+  filter): `completedIntradaySeries` (bars.ts, executed by the harness)
+  trims every intraday series to closed spans before the sufficiency
+  check, `market.latest === market.primary.at(-1)` by construction, the
+  forming-bar fallback is deleted (finding 4), and `buildPricePlan`
+  derives every price from its own series tail — the sweep's exact
+  single-anchor shape. The 1-minute-preferring picker is deleted, and
+  with it the 1-minute FETCH (#362 round 2, finding 2): nothing decided
+  on that series any more — the alignment vote filters it, the primary
+  picker never selects it — so the analyzer stops paying a provider call
+  and up to 1,800 decoded bars per symbol per scan for a display chip,
+  and `availableTimeframes` (and the "< 3" sufficiency gate reading it)
+  now counts exactly what the sweep's does. Chart feed and quote
+  snapshot untouched — `market-data` has its own timeframe list.
+- **E7**: construction writes `runnerProtection` and `reviewWindowHours`
+  into `risk_model`; the bridge reads them with strict validation, and
+  pre-slice rows keep today's exact behavior, version-scoped. The reads
+  sit ABOVE the cost gate (#362 round 4, finding 2): mode and window are
+  decision-time facts orthogonal to the cost triple, so a malformed cost
+  stamp fails only the cost fields — it no longer sends a validly
+  stamped row back to the breakeven fallback. The same
+  rule now governs the CLIENT's copy-gate window (#362 review, finding
+  5): `storedSetup.ts` prefers the row's stamped `reviewWindowHours`
+  over the calibration mirror, same validation as the bridge, mirror
+  fallback for pre-E7 rows — the one frontend touch in R1a.
+- Pins: behavioral in `tests/replayHarness.test.ts` (tiering, interval
+  stamp, no-bars marker, bridge reads, trail_tp1-through-the-bridge),
+  `tests/barDecode.test.ts` (the trim, executed), `tests/pricePlan.test.ts`
+  (single-anchor construction), `tests/storedSetup.test.ts` (row-stamped
+  copy window); source-level in `tests/securityHardening.test.ts` for
+  the Deno-side halves. The pre-pin suite ran green with zero failures
+  on the physics change — the same producer-never-tested pattern as
+  D2's register entry, now closed for these paths too (#362 finding 2
+  closed the loader instance of it).
+- **Residue, named not smuggled** (rides with R1b unless marked):
+  - The GRADING series (both writers' `fetchFmpBars` results) still
+    carries its forming tail bar. Highs and lows of a forming bar are
+    realized prices, so touch grading is honest; the divergence is the
+    expiry branch pricing its exit off a non-final close — small, real,
+    and the corpus never does it. Deliberate decision pending (trim vs.
+    wait-one-span).
+  - `confluence.orderConstruction.latestClose` — the client's §19c
+    sizing rate — aged with the anchor (#362 round 2, finding 3): a
+    completed-bar close bounded by the primary span (daily on the
+    loader's fallback) instead of a ≤1-minute print. Accepted for
+    sizing tolerance; sourcing the bridge quote from `market.quote` is
+    a §19 governor change with its own review, not an engine rider.
+  - The copy gate matches the resolver on hours but not on the weekly
+    close (#362 round 2, finding 4 — pre-existing): `getSetupExpiryTime`
+    clamps every non-crypto window to the weekly cutoff and
+    `storedSetup.ts` computes flat hours, so a Friday-afternoon forex
+    setup stays copyable past the instant the resolver expires it.
+    Round 3 corrected WHY this stands: `risk_model.reviewWindowExpiresAt`
+    already carries the fully clamped instant on every row — but
+    `upsertActiveSetup`'s same-side dedupe rewrites `risk_model` on a
+    re-scan while `created_at` is preserved, so a re-scanned row's
+    stamped instant runs AHEAD of the resolver's `created_at + hours`;
+    hours-from-created_at is the read that cannot drift. The client's
+    fallback for pre-E7 rows now reads
+    `confluence.categoryCalibration.reviewWindowHours` (the same
+    decision-time value those rows already carry) before the mirror.
+    Closing the clamp itself means mirroring the weekly-close rule
+    alone client-side, or making the dedupe restamp coherently — its
+    own considered change.
+  - `market_data_health.latest_bar_at` aged with the anchor (#362 round
+    3, finding 2): it now stamps the completed decision anchor's time —
+    the decision basis' age, up to one primary span behind the clock, a
+    daily stamp on the loader's fallback — not a provider freshness
+    probe (`last_checked_at` carries that). The "limited" status
+    threshold moved with the fallen ceiling (< 4 of six → < 3 of five),
+    status-preserving for every symbol whose 1min series qualified and
+    deliberately LOOSER for the ones it never qualified on (#362 round
+    4, finding 3): a 3-of-5 thin symbol was "limited" only because a
+    series the engine no longer consumes counted as missing, and
+    absence of decision-irrelevant data is not a coverage defect.
+  - **Anchor latency** (#362 round 4, finding 1 — the residue this
+    slice itself created): the corpus's decision instant IS its anchor
+    bar (the sweep stamps `created_at: latest.time`), so corpus anchor
+    latency is zero; live decides at wall clock against an anchor that
+    is on average half a primary span old (up to 4h on the `4hour`
+    fallback). The through-market case is CLOSED at admission —
+    `buildPricePlan` refuses a buy limit at/above the live ask and a
+    sell at/below the live bid, the out-of-population "market order in
+    a limit costume" nothing else would have caught after round 1's
+    cross-anchor gate was removed; the quote never enters a derived
+    price, and a null quote (fetch failure; every sweep context) admits
+    as before. The refusal carries its own diagnostic sentence ("The
+    live market has already crossed the computed limit entry…" — 1b's
+    rule, #362 round 5), and because `analyzer_events` carries
+    `analysisDiagnostics` verbatim, its frequency is the ONE measurable
+    read on the through-market rate that exists before the minute bank —
+    the instrument this bullet used to say nobody had; a run of them on
+    one symbol is also the bad-quote signal (quotes get none of the
+    bars' de-spiking). **Population, stated** (#362 round 6):
+    `explainNoSetup` narrates every scanned symbol whose committee
+    produced a side — including the 15 decline-layer markets and
+    blocked-regime scans, where `analyzeSetup` never builds a plan — so
+    the raw count is an UPPER BOUND on setups lost to latency, not that
+    rate. The same diagnostics array carries the decline and
+    blocked-regime sentences, so a query scopes the population by
+    excluding events that also carry those markers. One display note:
+    in the declined-plus-blocked shape the crossed-quote sentence lands
+    fourth and `NoSetupPanel`'s three-reason cap drops it from the UI —
+    the event record, which is what the instrument reads, keeps it. What REMAINS residue is the symmetric fill-rate
+    smear: the market moves both ways inside the latency window,
+    spreading the live fill distribution around the corpus's
+    zero-latency measurement — and its second half, decision→first
+    gradeable bar: `evaluateSetupOutcome` admits bars from `created_at`
+    forward, so live loses the partial bar the creation instant falls
+    inside (≤5 minutes on an admitted 5-minute row, ≤15 on a degraded
+    one — tier-dependent inside one cohort) while the corpus's decision
+    sits exactly on a bar boundary and loses nothing. Unmeasurable
+    until the minute bank matures (§21); named here so no cohort read
+    mistakes it for closed.
+  - `completedIntradaySeries` span-tests the session's FINAL `1hour`/
+    `4hour` bar too (#362 round 2, smaller item): FMP's truncated
+    session-close bars (an equity 15:30 hourly covers 30 minutes) read
+    as forming until the full span elapses, so a genuinely completed
+    bar is briefly dropped and the ≥40/≥80 counts drop with it. Error
+    is conservative-direction and bites only when `1hour`/`4hour` is
+    primary; the sweep resamples those series from 15-minute history
+    and never span-tests them.
+
 ## Sequencing — three PRs, engine first
 
 1. **R1a — one physics** (engine + writers), landing in two slices:
@@ -246,8 +408,14 @@ only today, per the 2026-08-11 wipe. Carried on HANDOFF's small list.
 3. **R1c — the E4 instrument**: the collapse reader + its report,
    doored and population-pinned like every other reader.
 
-Frontend is untouched in all three; no migration is required (feedback
-is jsonb). Live-path changes (R1a) deploy through the ordinary gate and
+Frontend is untouched in all three except R1a's two client touches
+(#362): `storedSetup.ts` prefers the row's stamped review window
+(finding 5; the stamped-confluence and mirror fallbacks cover every
+pre-E7 row, so no ordering hazard with the Edge deploy), and
+`reviewCopy.ts` translates the crossed-quote refusal sentence distinctly
+(round 5 — load-bearing for the operator half of that fix); no
+migration is required (feedback is jsonb). Live-path changes (R1a)
+deploy through the ordinary gate and
 change grading physics from that deploy forward — the cohort boundary
 is `ANALYZER_VERSION`, which R1a must bump, exactly as the learning
 read/write version predicates assume.

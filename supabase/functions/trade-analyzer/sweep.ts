@@ -9,6 +9,7 @@ import {
   evaluateSetupOutcome,
   realizedRFromLegs,
   type ReplayBar,
+  resolutionSeriesFor,
   type ResolutionLeg,
   type ResolvedOutcome,
 } from "./replay.ts";
@@ -492,14 +493,30 @@ export function simulateSymbol(input: {
 
     // FR-5: the decision bar is 15min; anything stamped inside it is
     // decision-time information, so the 5min resolution stream begins at
-    // the bar AFTER the decision bar completes.
+    // the bar AFTER the decision bar completes. The TIER is not decided
+    // here (#362 round 2, finding 1): resolutionSeriesFor is the one
+    // admission rule for all three callers — the 5-minute tier only when
+    // that series reaches back to the decision instant. The whole-corpus
+    // non-empty check that stood here admitted decisions the 5-minute
+    // corpus could not see the start of, grading a truncated window (or
+    // resolving "unfilled" through the no-bars branch — E2's own defect,
+    // reproduced by the tiering) while live graded the same shape at
+    // full-window 15-minute physics. The start offset and horizon slice
+    // below stay the sweep's own: the rule picks the series, the sweep
+    // bounds its copy.
     let resolutionBars: ReplayBar[];
     let resolutionIntervalMs = 15 * 60 * 1000;
-    if (fiveMinuteBars && fiveMinuteBars.length > 0) {
+    const resolution = resolutionSeriesFor({
+      createdAtMs: latest.time,
+      fifteenMinute: input.primaryBars,
+      fiveMinute: fiveMinuteBars ?? [],
+    });
+    if (resolution.barIntervalMs === 5 * 60 * 1000) {
+      const fiveMinute = resolution.bars;
       const resolveFromMs = latest.time + 15 * 60 * 1000;
       while (
-        fiveMinResolveStart < fiveMinuteBars.length &&
-        fiveMinuteBars[fiveMinResolveStart].time < resolveFromMs
+        fiveMinResolveStart < fiveMinute.length &&
+        fiveMinute[fiveMinResolveStart].time < resolveFromMs
       ) {
         fiveMinResolveStart += 1;
       }
@@ -509,12 +526,12 @@ export function simulateSymbol(input: {
         (calibration.defaultReviewHours + 24) * 60 * 60 * 1000;
       let resolveEnd = fiveMinResolveStart;
       while (
-        resolveEnd < fiveMinuteBars.length &&
-        fiveMinuteBars[resolveEnd].time <= horizonMs
+        resolveEnd < fiveMinute.length &&
+        fiveMinute[resolveEnd].time <= horizonMs
       ) {
         resolveEnd += 1;
       }
-      resolutionBars = fiveMinuteBars.slice(fiveMinResolveStart, resolveEnd);
+      resolutionBars = fiveMinute.slice(fiveMinResolveStart, resolveEnd);
       resolutionIntervalMs = 5 * 60 * 1000;
     } else {
       resolutionBars = input.primaryBars.slice(index + 1);

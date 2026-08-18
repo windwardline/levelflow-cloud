@@ -692,3 +692,148 @@ describe("one resolver, one physics (the 2026-08-11 correctness fork)", () => {
     }
   });
 });
+
+// R1a slice 2 — one physics, the Deno-side halves (source pins: these
+// modules carry Deno globals and cannot enter the test graph, the same
+// discipline the D3 call-site scan above uses).
+describe("R1a slice 2 — live grading and construction share the sweep's physics", () => {
+  const writers = [
+    "supabase/functions/trade-analyzer/index.ts",
+    "supabase/functions/outcome-sync/index.ts",
+  ];
+
+  it("E1: both live writers resolve through the shared tiering rule, interval override after the bridge spread", () => {
+    for (const file of writers) {
+      const source = readFileSync(file, "utf8");
+      assert.match(
+        source,
+        /resolutionSeriesFor\(\{/,
+        `${file} must pick its resolution series through the one rule`,
+      );
+      assert.match(
+        source,
+        /\.\.\.fillOptionsFromRiskModel\(setup\.risk_model\),\s*\n\s*barIntervalMs: resolution\.barIntervalMs,/,
+        `${file} must override the interval AFTER the bridge spread so the chosen tier governs`,
+      );
+      // Finding 3 (#362 review): the 5-minute fetch — and only the
+      // 5-minute fetch — degrades to the coarser tier on failure, and the
+      // CAUGHT promise is what the per-symbol cache holds, so one failure
+      // cannot poison the symbol's remaining setups this run. The
+      // 15-minute fetch stays fatal: without it there is nothing to
+      // grade on. (The old formatting-keyed doesNotMatch that stood here
+      // pinned nothing — the round-1 verdict's own minor — and these two
+      // subsume it: a single-series fetch cannot satisfy both.)
+      assert.match(
+        source,
+        /"5min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch\(\(\) => \[\]\)/,
+        `${file} must degrade a failed 5-minute fetch to the 15-minute tier`,
+      );
+      assert.doesNotMatch(
+        source,
+        /"15min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch/,
+        `${file} must keep a failed 15-minute fetch fatal for the setup`,
+      );
+      // Format-independent half of the pair (#362 round 2, smaller item):
+      // exactly ONE degrade-catch inside the dual-fetch block. With the
+      // positive match above binding it to the 5-minute fetch, a
+      // reformatted 15-minute .catch cannot hide — it would make this
+      // count two. Scoped to the block (round 3, smaller item) so an
+      // unrelated future .catch elsewhere in the file cannot fail a pin
+      // whose message points at the 5-minute fetch.
+      const fetchRegionStart = source.indexOf("const fifteenKey");
+      const fetchRegionEnd = source.indexOf("resolutionSeriesFor(");
+      assert.ok(
+        fetchRegionStart >= 0 && fetchRegionEnd > fetchRegionStart,
+        `${file} must fetch both series before deciding the tier`,
+      );
+      assert.equal(
+        (source.slice(fetchRegionStart, fetchRegionEnd)
+          .match(/\)\.catch\(\(\) => \[\]\)/g) ?? []).length,
+        1,
+        `${file} must carry exactly one degrade-catch, on the 5-minute fetch`,
+      );
+    }
+  });
+
+  it("E1: the sweep decides its tier through the same rule — three callers, one physics (#362 round 2, finding 1)", () => {
+    const sweep = readFileSync(
+      "supabase/functions/trade-analyzer/sweep.ts",
+      "utf8",
+    );
+    assert.match(
+      sweep,
+      /resolutionSeriesFor\(\{\s*\n\s*createdAtMs: latest\.time,/,
+      "the sweep's tier must come from the shared admission rule at the decision instant",
+    );
+    // The behavioral half is EXECUTED in tests/sweep.test.ts (#362 round
+    // 3, finding 1): a 5-minute corpus starting after the decision
+    // instants grades identically to having none, and an admitted one
+    // governs grading — a reformatted reintroduction of the old
+    // non-empty admission fails that test regardless of spelling, which
+    // is why no formatting-keyed doesNotMatch stands here.
+  });
+
+  it("E3: the crossed-quote refusal carries its own ground and marker (#362 round 5, finding 1)", () => {
+    // 1b's rule: a distinct cause must not wear "no valid limit entry".
+    // The distinct sentence is also the anchor-latency instrument —
+    // analyzer_events carries analysisDiagnostics verbatim, so its
+    // frequency is the one measurable through-market read before §21's
+    // minute bank. The refusal channel is behaviorally executed in
+    // tests/pricePlan.test.ts (both sides); these pins hold the
+    // narrator's wiring in the Deno-side analyzer.
+    const plan = readFileSync(
+      "supabase/functions/trade-analyzer/pricePlan.ts",
+      "utf8",
+    );
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    assert.match(plan, /refusal\.reason = "quote_crossed"/);
+    assert.match(analyzer, /planRefusal\.reason === "quote_crossed"/);
+    assert.match(analyzer, /crossed the computed limit entry/);
+  });
+
+  it("E3: setup construction anchors on the last COMPLETED primary bar, never the freshest 1-minute print", () => {
+    const loader = readFileSync(
+      "supabase/functions/trade-analyzer/marketLoader.ts",
+      "utf8",
+    );
+    // Finding 1 (#362 review): the completed-bar law applies to the
+    // SERIES, before the sufficiency check — moving only the `latest`
+    // pointer left the entry math, the ATR, the pivots and the committee
+    // on the forming bar and turned the viability gate into a live-only
+    // directional filter. The trim itself is EXECUTED in
+    // tests/barDecode.test.ts and the single-anchor consequence in
+    // tests/pricePlan.test.ts; these pins hold the loader wiring.
+    assert.match(loader, /completedIntradaySeries\(\s*await fetchFmpBars\(/);
+    assert.match(loader, /const latest = primary\.at\(-1\) \?\? daily\.at\(-1\)!/);
+    assert.match(loader, /latestTimeframe: primaryTimeframe/);
+    // The 1-minute-preferring picker is gone; the sweep's decision
+    // context (sweep.ts) anchors at 15min, and live now matches it. The
+    // forming-bar fallback (finding 4) went with it.
+    assert.doesNotMatch(loader, /pickLatestTimeframe/);
+    assert.doesNotMatch(loader, /lastCompletedBar/);
+    // #362 round 2, finding 2: the 1-minute series has no decision
+    // consumer, so the analyzer must not pay a provider call and up to
+    // 1,800 decoded bars per symbol for a display chip — and its absence
+    // aligns availableTimeframes with the sweep's, which never counted
+    // 1min. The chart's own feed (market-data) is a different function.
+    assert.match(loader, /\(timeframe\) => timeframe !== "1min"/);
+  });
+
+  it("E7: construction writes the protection mode and review window into the row the bridge reads", () => {
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    assert.match(
+      analyzer,
+      /runnerProtection: calibration\.runnerProtection \?\? "breakeven",/,
+    );
+    assert.match(
+      analyzer,
+      /reviewWindowHours: calibration\.defaultReviewHours,/,
+    );
+  });
+});

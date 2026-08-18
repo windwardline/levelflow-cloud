@@ -14,6 +14,14 @@ import type {
 // derivation needs in hand; a narrower scope may not, and where a leg is absent
 // the row renders `Rate unavailable` rather than reaching for a rate from
 // anywhere else.
+//
+// E3 (2026-08-18) aged the field itself: latestClose is now the setup's
+// completed decision-anchor close — staleness bounded by the primary span,
+// a daily close on the loader's fallback — rather than a ≤1-minute print.
+// Accepted for §19c's sizing tolerance and recorded as residue in
+// docs/research/r1-divergence-map-2026-08-18.md; sourcing the bridge quote
+// from the analyzer's live quote snapshot instead is a §19 governor change
+// with its own review, not a rider on the engine.
 
 function latestCloseOf(setup: AnalyzerSetup | null | undefined): number | null {
   if (!setup) {

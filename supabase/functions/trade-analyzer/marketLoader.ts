@@ -1,4 +1,8 @@
-import { type FmpBar, normalizeFmpBars } from "./bars.ts";
+import {
+  completedIntradaySeries,
+  type FmpBar,
+  normalizeFmpBars,
+} from "./bars.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import {
   type Bar,
@@ -136,14 +140,41 @@ async function fetchMarketContext(
   const daily = completeDaily(fetchedDaily);
   const timeframes: Partial<Record<Timeframe, Bar[]>> = { "1day": daily };
 
+  // E3 (#362 round 2, finding 2): the 1-minute series has no decision
+  // consumer left — pickPrimaryTimeframe never selects it, the alignment
+  // vote filters it out, and `latest` reads the trimmed primary — so the
+  // analyzer no longer fetches it. One provider call and up to 1,800
+  // decoded bars per symbol per scan (the load class behind the two 546
+  // CPU-budget deaths in bars.ts's docblock) bought nothing but an
+  // activeTimeframes chip claiming data was considered when it no longer
+  // was; dropping it also aligns availableTimeframes — and the "< 3"
+  // sufficiency gate reading it — with the sweep's, which never counted
+  // 1min. The chart feed (market-data) has its own timeframe list and
+  // still serves 1-minute candles; §21's minute bank is the studio-side
+  // corpus program and never read this fetch.
+  const decisionTimeframes = intradayTimeframes.filter(
+    (timeframe) => timeframe !== "1min",
+  );
   await Promise.all(
-    intradayTimeframes.map(async (timeframe) => {
+    decisionTimeframes.map(async (timeframe) => {
       try {
-        const bars = await fetchFmpBars(
-          fmpSymbol,
+        // E3 (#362 review, finding 1): the completed-bar law applies to
+        // the SERIES, not just the `latest` pointer below — an untrimmed
+        // tail would feed the forming bar to the ATR, the pivots and the
+        // committee votes even with the anchor moved. Trimmed BEFORE the
+        // sufficiency check: 40 bars of decision-grade history is the
+        // claim the check makes. Grading is a different consumer with a
+        // different clock — the outcome writers call fetchFmpBars
+        // directly and stay untrimmed (their forming-tail question is
+        // named in the divergence map, not smuggled in here).
+        const bars = completedIntradaySeries(
+          await fetchFmpBars(
+            fmpSymbol,
+            timeframe,
+            recordEvent,
+            fetchWithTimeout,
+          ),
           timeframe,
-          recordEvent,
-          fetchWithTimeout,
         );
         if (bars.length >= 40) {
           timeframes[timeframe] = bars;
@@ -164,14 +195,30 @@ async function fetchMarketContext(
     .filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
   const primaryTimeframe = pickPrimaryTimeframe(timeframes);
   const primary = timeframes[primaryTimeframe] ?? daily;
-  const latestTimeframe = pickLatestTimeframe(timeframes);
-  const latestSource = timeframes[latestTimeframe] ?? primary;
+  // E3 (R1a slice 2): ONE decision anchor. `latest` used to be the last
+  // 1-minute bar whenever one existed, while the sweep's decision
+  // context anchors on the completed primary decision bar — so live
+  // entries were placed against a price the measured corpus never saw
+  // (the corpus has no deep 1-minute history; that is §21's minute-bank
+  // program). Every intraday series above is trimmed to completed bars,
+  // so `primary.at(-1)` IS the last completed primary bar and the anchor
+  // equals the series tail — the sweep's own shape, one anchor for the
+  // entry math, the gate, and every vote. The forming-bar fallback that
+  // used to sit here is deliberately gone (#362 review, finding 4): a
+  // trimmed series either qualifies with >= 40 completed bars or its
+  // timeframe is absent, and the terminal fallback is completeDaily's
+  // last bar — completed by that gate's own rule, never forming. The
+  // chart feed (market-data) and the quote snapshot are untouched:
+  // display freshness is not decision input. When the minute bank
+  // matures into the corpus, both sides move together in one deliberate
+  // change.
+  const latest = primary.at(-1) ?? daily.at(-1)!;
 
   return {
     availableTimeframes,
     daily,
-    latest: latestSource.at(-1) ?? primary.at(-1) ?? daily.at(-1)!,
-    latestTimeframe,
+    latest,
+    latestTimeframe: primaryTimeframe,
     primary,
     primaryTimeframe,
     providerWarnings,
@@ -404,27 +451,6 @@ function pickPrimaryTimeframe(
     return "1hour";
   }
   if ((timeframes["4hour"]?.length ?? 0) >= 60) {
-    return "4hour";
-  }
-  return "1day";
-}
-
-function pickLatestTimeframe(
-  timeframes: Partial<Record<Timeframe, Bar[]>>,
-): Timeframe {
-  if ((timeframes["1min"]?.length ?? 0) > 0) {
-    return "1min";
-  }
-  if ((timeframes["5min"]?.length ?? 0) > 0) {
-    return "5min";
-  }
-  if ((timeframes["15min"]?.length ?? 0) > 0) {
-    return "15min";
-  }
-  if ((timeframes["1hour"]?.length ?? 0) > 0) {
-    return "1hour";
-  }
-  if ((timeframes["4hour"]?.length ?? 0) > 0) {
     return "4hour";
   }
   return "1day";

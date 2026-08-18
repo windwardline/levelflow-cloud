@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import {
+  completedIntradaySeries,
   type FmpBar,
   normalizeFmpBars,
   toTimestamp,
@@ -430,5 +431,79 @@ describe("market-data's converter matches the analyzer's (2b, boundary pin)", ()
       marketData,
       /Number\.isFinite\(timestamp\) \? timestamp : Date\.now\(\)/,
     );
+  });
+});
+
+// E3 (R1a slice 2; #362 review, findings 1/2): the completed-bar trim,
+// executed rather than source-pinned — this is the loader behaviour the
+// review found green-without-coverage. The trim is the reason
+// market.latest === market.primary.at(-1) holds in production; the
+// single-anchor consequence is proven in tests/pricePlan.test.ts.
+describe("completedIntradaySeries — only closed spans are decision-grade", () => {
+  const bar = (time: number): Bar => ({
+    close: 1,
+    high: 1,
+    low: 1,
+    open: 1,
+    time,
+    volume: 1,
+  });
+
+  it("drops the forming tail bar and keeps it once its span closes, at the exact boundary", () => {
+    const bars = [bar(0), bar(900_000)];
+    assert.deepEqual(
+      completedIntradaySeries(bars, "15min", 1_799_999),
+      [bar(0)],
+    );
+    assert.equal(completedIntradaySeries(bars, "15min", 1_800_000).length, 2);
+  });
+
+  it("drops EVERY open trailing span under provider clock skew, not just the newest", () => {
+    const bars = [bar(0), bar(900_000), bar(1_800_000)];
+    assert.deepEqual(
+      completedIntradaySeries(bars, "15min", 900_000),
+      [bar(0)],
+    );
+  });
+
+  it("returns the caller's array unsliced when nothing is forming — the cache-shared, read-only law", () => {
+    const bars = [bar(0), bar(900_000)];
+    assert.equal(completedIntradaySeries(bars, "15min", 3_600_000), bars);
+  });
+
+  it("never runs the span test on the daily series — completeDaily owns that gate", () => {
+    const bars = [bar(0)];
+    assert.equal(completedIntradaySeries(bars, "1day", 0), bars);
+  });
+
+  it("spans every intraday timeframe the loader fetches", () => {
+    // One bar at t=0, clock one second past each span's close: kept.
+    // Clock one second before: dropped. A timeframe missing from the span
+    // map would silently skip the trim and hand the committee a forming
+    // bar — this sweep is why "1min" and "5min" carry entries even though
+    // the primary picker never selects them.
+    const spans: Array<[Parameters<typeof completedIntradaySeries>[1], number]> = [
+      ["1min", 60_000],
+      ["5min", 300_000],
+      ["15min", 900_000],
+      ["1hour", 3_600_000],
+      ["4hour", 14_400_000],
+    ];
+    for (const [timeframe, spanMs] of spans) {
+      assert.equal(
+        completedIntradaySeries([bar(0)], timeframe, spanMs).length,
+        1,
+        `${timeframe} must keep a closed bar`,
+      );
+      assert.equal(
+        completedIntradaySeries([bar(0)], timeframe, spanMs - 1).length,
+        0,
+        `${timeframe} must drop a forming bar`,
+      );
+    }
+  });
+
+  it("holds the empty series", () => {
+    assert.deepEqual(completedIntradaySeries([], "5min", 0), []);
   });
 });

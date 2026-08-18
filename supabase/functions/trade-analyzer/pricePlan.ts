@@ -100,11 +100,25 @@ export function buildPricePlan(
   market: MarketContext,
   regime: Regime,
   calibration: CategoryCalibration,
+  // Out-channel for the one refusal whose cause is NOT geometry (#362
+  // round 5, finding 1): 1b's rule — a distinct cause must not wear "no
+  // valid limit entry" — applies to the quote-admission gate below, and
+  // the caller that narrates refusals needs the distinction to give it
+  // its own sentence.
+  refusal?: { reason?: "quote_crossed" },
 ): PricePlan | null {
   const bars = market.primary;
   const daily = market.daily;
   const latest = bars.at(-1)!;
-  const currentClose = market.latest.close;
+  // E3 (#362 review, finding 1): ONE anchor. The viability gate below
+  // used to read market.latest — a fresher print than the bar the entry
+  // offset came from — which made the gate a live-only, direction-biased
+  // filter the corpus never had: in the sweep the decision bar IS the
+  // latest bar, so the gate compares an offset against its own base and
+  // fires only on degenerate offsets. Every price here now derives from
+  // the same completed decision bar; the loader guarantees market.latest
+  // and bars.at(-1) agree, and this function no longer depends on that.
+  const currentClose = latest.close;
   const atr = averageTrueRange(bars, 14);
   const dailyAtr = averageTrueRange(daily, 14);
   const pivots = findSwingPivots(bars, 3);
@@ -187,6 +201,39 @@ export function buildPricePlan(
     roundPrice(entryPrice) <= roundPrice(currentClose + minimumLimitDistance)
   ) {
     return null;
+  }
+
+  // #362 round 4, finding 1 — the admission half of E3's clock. The
+  // anchor is deliberately a completed bar, so between its close and
+  // this instant the market kept moving. In the corpus anchor latency is
+  // zero by construction (the sweep's decision instant IS its anchor
+  // bar), so the corpus contains no plan whose limit the market had
+  // already crossed at creation; live, nothing else would refuse one —
+  // a buy limit at/above the ask (or a sell at/below the bid) is a
+  // market order wearing a limit costume, an out-of-population shape.
+  // The quote NEVER enters a derived price: construction stays
+  // single-anchor, and with no quote (fetch failure; every sweep
+  // context) admission is unchanged — the residual anchor-latency
+  // smear is named in the divergence map.
+  if (market.quote) {
+    if (
+      side === "buy" &&
+      roundPrice(entryPrice) >= roundPrice(market.quote.ask)
+    ) {
+      if (refusal) {
+        refusal.reason = "quote_crossed";
+      }
+      return null;
+    }
+    if (
+      side === "sell" &&
+      roundPrice(entryPrice) <= roundPrice(market.quote.bid)
+    ) {
+      if (refusal) {
+        refusal.reason = "quote_crossed";
+      }
+      return null;
+    }
   }
 
   if (side === "buy" && roundPrice(stopLoss) >= roundPrice(entryPrice)) {

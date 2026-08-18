@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.18.realized-r` (live — R1a slice 1, D2: realized R from legs on every filled resolution; calibration cells unchanged from `2026.08.11.declines`). The per-market layer this
+Model version: `2026.08.18.one-physics` (deploys with #362's merge — the deploy-time E2E gate re-verifies production then; the deployed-and-verified state last held for `2026.08.18.realized-r`. R1a slices 1+2: realized R from legs on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; calibration cells unchanged from `2026.08.11.declines`). The per-market layer this
 records was derived from the invalidated corpus — see the banner above.
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
@@ -336,7 +336,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.18.realized-r'
+   where o.analyzer_version = '2026.08.18.one-physics'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;
