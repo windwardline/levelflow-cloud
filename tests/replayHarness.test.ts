@@ -1327,6 +1327,10 @@ describe("R1a slice 2 — one physics", () => {
     assert.equal(badCosts.reviewHours, 12);
     assert.equal(badCosts.halfSpread, undefined);
     assert.equal(badCosts.roundTripCost, undefined);
+    // Arming is resolver physics the corpus applies unconditionally, not
+    // a cost (#362 round 5, smaller item) — a stamped row keeps it even
+    // with a corrupt cost triple.
+    assert.equal(badCosts.sameBarProtectionArming, true);
     const noCosts = fillOptionsFromRiskModel({
       reviewWindowHours: 12,
       runnerProtection: "hold",
@@ -1334,6 +1338,10 @@ describe("R1a slice 2 — one physics", () => {
     assert.equal(noCosts.runnerProtection, "hold");
     assert.equal(noCosts.reviewHours, 12);
     assert.equal(noCosts.halfSpread, undefined);
+    assert.equal(noCosts.sameBarProtectionArming, true);
+    // An entirely unstamped row still resolves v1-style — no arming.
+    const v1 = fillOptionsFromRiskModel({});
+    assert.equal(v1.sameBarProtectionArming, undefined);
   });
 
   it("E7: a stored trail_tp1 row grades under trail_tp1 physics through the bridge", () => {

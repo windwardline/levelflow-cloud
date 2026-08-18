@@ -100,6 +100,12 @@ export function buildPricePlan(
   market: MarketContext,
   regime: Regime,
   calibration: CategoryCalibration,
+  // Out-channel for the one refusal whose cause is NOT geometry (#362
+  // round 5, finding 1): 1b's rule — a distinct cause must not wear "no
+  // valid limit entry" — applies to the quote-admission gate below, and
+  // the caller that narrates refusals needs the distinction to give it
+  // its own sentence.
+  refusal?: { reason?: "quote_crossed" },
 ): PricePlan | null {
   const bars = market.primary;
   const daily = market.daily;
@@ -214,12 +220,18 @@ export function buildPricePlan(
       side === "buy" &&
       roundPrice(entryPrice) >= roundPrice(market.quote.ask)
     ) {
+      if (refusal) {
+        refusal.reason = "quote_crossed";
+      }
       return null;
     }
     if (
       side === "sell" &&
       roundPrice(entryPrice) <= roundPrice(market.quote.bid)
     ) {
+      if (refusal) {
+        refusal.reason = "quote_crossed";
+      }
       return null;
     }
   }

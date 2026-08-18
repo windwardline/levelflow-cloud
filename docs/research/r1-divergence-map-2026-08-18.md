@@ -350,11 +350,24 @@ layer.
     a limit costume" nothing else would have caught after round 1's
     cross-anchor gate was removed; the quote never enters a derived
     price, and a null quote (fetch failure; every sweep context) admits
-    as before. What REMAINS residue is the symmetric fill-rate smear:
-    the market moves both ways inside the latency window, spreading the
-    live fill distribution around the corpus's zero-latency
-    measurement. Unmeasurable until the minute bank matures (§21);
-    named here so no cohort read mistakes it for closed.
+    as before. The refusal carries its own diagnostic sentence ("The
+    live market has already crossed the computed limit entry…" — 1b's
+    rule, #362 round 5), and because `analyzer_events` carries
+    `analysisDiagnostics` verbatim, its frequency is the ONE measurable
+    read on the through-market rate that exists before the minute bank —
+    the instrument this bullet used to say nobody had; a run of them on
+    one symbol is also the bad-quote signal (quotes get none of the
+    bars' de-spiking). What REMAINS residue is the symmetric fill-rate
+    smear: the market moves both ways inside the latency window,
+    spreading the live fill distribution around the corpus's
+    zero-latency measurement — and its second half, decision→first
+    gradeable bar: `evaluateSetupOutcome` admits bars from `created_at`
+    forward, so live loses the partial bar the creation instant falls
+    inside (≤5 minutes on an admitted 5-minute row, ≤15 on a degraded
+    one — tier-dependent inside one cohort) while the corpus's decision
+    sits exactly on a bar boundary and loses nothing. Unmeasurable
+    until the minute bank matures (§21); named here so no cohort read
+    mistakes it for closed.
   - `completedIntradaySeries` span-tests the session's FINAL `1hour`/
     `4hour` bar too (#362 round 2, smaller item): FMP's truncated
     session-close bars (an equity 15:30 hourly covers 30 minutes) read

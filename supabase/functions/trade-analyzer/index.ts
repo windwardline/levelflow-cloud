@@ -1402,12 +1402,14 @@ async function explainNoSetup(
       }&analyzer_version=eq.${encodeURIComponent(ANALYZER_VERSION)}&limit=1`,
     );
     const weightAdjustment = Number(weight?.confidence_adjustment ?? 0);
+    const planRefusal: { reason?: "quote_crossed" } = {};
     const pricePlan = buildPricePlan(
       consensus.side,
       symbol,
       market,
       regime,
       calibration,
+      planRefusal,
     );
     const macroRateAdjustment = calculateMacroRateAdjustment(
       symbol,
@@ -1454,9 +1456,24 @@ async function explainNoSetup(
       `The current ${consensus.side} setup scored ${confidenceScore}; Levelflow requires ${calibration.confidenceThreshold} or higher for this market.`,
     );
     if (!pricePlan) {
-      diagnostics.push(
-        "Limit entry failed price validation, so no limit setup was shown.",
-      );
+      // 1b's rule applied to the quote-admission gate (#362 round 5,
+      // finding 1): a distinct cause carries its own sentence — geometry
+      // failing to place a limit and the market having already crossed a
+      // placed one are different facts and different instructions. This
+      // sentence is also the anchor-latency instrument: analyzer_events
+      // carries analysisDiagnostics verbatim, so its frequency is the
+      // one measurable read on the through-market rate before §21's
+      // minute bank — and a run of them on one symbol is the un-de-spiked
+      // bad-quote signal the admission gate otherwise lacks.
+      if (planRefusal.reason === "quote_crossed") {
+        diagnostics.push(
+          "The live market has already crossed the computed limit entry, so the setup was withheld rather than shown as a resting order.",
+        );
+      } else {
+        diagnostics.push(
+          "Limit entry failed price validation, so no limit setup was shown.",
+        );
+      }
     } else if (pricePlan.rewardRisk < calibration.minRewardRisk) {
       // PH-9: the refusal names its cause. A payoff that cleared the bar
       // gross and lost it to the round trip is a COST story, not a

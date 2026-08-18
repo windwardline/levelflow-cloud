@@ -773,6 +773,27 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
     // is why no formatting-keyed doesNotMatch stands here.
   });
 
+  it("E3: the crossed-quote refusal carries its own ground and marker (#362 round 5, finding 1)", () => {
+    // 1b's rule: a distinct cause must not wear "no valid limit entry".
+    // The distinct sentence is also the anchor-latency instrument —
+    // analyzer_events carries analysisDiagnostics verbatim, so its
+    // frequency is the one measurable through-market read before §21's
+    // minute bank. The refusal channel is behaviorally executed in
+    // tests/pricePlan.test.ts (both sides); these pins hold the
+    // narrator's wiring in the Deno-side analyzer.
+    const plan = readFileSync(
+      "supabase/functions/trade-analyzer/pricePlan.ts",
+      "utf8",
+    );
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    assert.match(plan, /refusal\.reason = "quote_crossed"/);
+    assert.match(analyzer, /planRefusal\.reason === "quote_crossed"/);
+    assert.match(analyzer, /crossed the computed limit entry/);
+  });
+
   it("E3: setup construction anchors on the last COMPLETED primary bar, never the freshest 1-minute print", () => {
     const loader = readFileSync(
       "supabase/functions/trade-analyzer/marketLoader.ts",

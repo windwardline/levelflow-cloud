@@ -306,7 +306,9 @@ describe("price plan integration", () => {
     // The market fell through the buy limit since the anchor closed: the
     // ask sits below the entry, so the "limit" would fill instantly at
     // the touch — a market order wearing a limit costume, a shape the
-    // zero-anchor-latency corpus contains none of. Refused at admission.
+    // zero-anchor-latency corpus contains none of. Refused at admission,
+    // and the refusal names its own ground (#362 round 5, finding 1) —
+    // 1b's rule: a distinct cause must not wear "no valid limit entry".
     const crossed = syntheticMarket();
     crossed.quote = {
       ask: baseline.entryPrice - 0.5,
@@ -315,6 +317,7 @@ describe("price plan integration", () => {
       spread: 0.1,
       source: "fmp_quote",
     };
+    const buyRefusal: { reason?: "quote_crossed" } = {};
     assert.equal(
       buildPricePlan(
         "buy",
@@ -322,12 +325,15 @@ describe("price plan integration", () => {
         crossed,
         regime,
         getCategoryCalibration("EURUSD"),
+        buyRefusal,
       ),
       null,
     );
+    assert.equal(buyRefusal.reason, "quote_crossed");
 
     // A quote that does not cross admits the plan and enters NO derived
-    // price — construction stays single-anchor.
+    // price — construction stays single-anchor, and no refusal reason is
+    // invented.
     const clear = syntheticMarket();
     clear.quote = {
       ask: baseline.entryPrice + 0.4,
@@ -336,17 +342,73 @@ describe("price plan integration", () => {
       spread: 0.1,
       source: "fmp_quote",
     };
+    const clearRefusal: { reason?: "quote_crossed" } = {};
     const admitted = buildPricePlan(
       "buy",
       "EURUSD",
       clear,
       regime,
       getCategoryCalibration("EURUSD"),
+      clearRefusal,
     );
     assert.ok(admitted);
+    assert.equal(clearRefusal.reason, undefined);
     assert.equal(admitted.entryPrice, baseline.entryPrice);
     assert.equal(admitted.stopLoss, baseline.stopLoss);
     assert.equal(admitted.takeProfit, baseline.takeProfit);
+
+    // The sell branch is a separately sign-able comparison (#362 round
+    // 5, finding 2): a transposed operator or a bid/ask swap would
+    // refuse EVERY sell — a sell limit always rests above the bid — and
+    // ship green with only the buy half executed.
+    const sellBaseline = buildPricePlan(
+      "sell",
+      "EURUSD",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(sellBaseline, "the fixture must produce a sell plan for the mirror cases");
+    const sellCrossed = syntheticMarket();
+    sellCrossed.quote = {
+      ask: sellBaseline.entryPrice + 0.6,
+      bid: sellBaseline.entryPrice + 0.5,
+      price: null,
+      spread: 0.1,
+      source: "fmp_quote",
+    };
+    const sellRefusal: { reason?: "quote_crossed" } = {};
+    assert.equal(
+      buildPricePlan(
+        "sell",
+        "EURUSD",
+        sellCrossed,
+        regime,
+        getCategoryCalibration("EURUSD"),
+        sellRefusal,
+      ),
+      null,
+    );
+    assert.equal(sellRefusal.reason, "quote_crossed");
+    const sellClear = syntheticMarket();
+    sellClear.quote = {
+      ask: sellBaseline.entryPrice - 0.3,
+      bid: sellBaseline.entryPrice - 0.4,
+      price: null,
+      spread: 0.1,
+      source: "fmp_quote",
+    };
+    const sellAdmitted = buildPricePlan(
+      "sell",
+      "EURUSD",
+      sellClear,
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(sellAdmitted);
+    assert.equal(sellAdmitted.entryPrice, sellBaseline.entryPrice);
+    assert.equal(sellAdmitted.stopLoss, sellBaseline.stopLoss);
+    assert.equal(sellAdmitted.takeProfit, sellBaseline.takeProfit);
   });
 
   it("emits a ladder with TP1 between entry and the runner target", () => {

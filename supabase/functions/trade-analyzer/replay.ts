@@ -152,6 +152,16 @@ export function fillOptionsFromRiskModel(
   if (Number.isFinite(reviewWindowHours) && reviewWindowHours > 0) {
     options.reviewHours = reviewWindowHours;
   }
+  // Same-bar protection arming is resolver PHYSICS the corpus applies
+  // unconditionally (the sweep sets it on every evaluation), not a cost
+  // (#362 round 5, smaller item): a stamped row keeps corpus arming even
+  // when its cost triple is corrupt, exactly as the mode above keeps its
+  // stamp. Unstamped rows still resolve entirely v1-style.
+  if (
+    options.runnerProtection !== undefined || options.reviewHours !== undefined
+  ) {
+    options.sameBarProtectionArming = true;
+  }
   const quality = model.executionQuality;
   if (typeof quality !== "object" || quality === null) {
     return options;
