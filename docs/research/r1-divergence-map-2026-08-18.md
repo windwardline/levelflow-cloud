@@ -357,7 +357,17 @@ layer.
     read on the through-market rate that exists before the minute bank —
     the instrument this bullet used to say nobody had; a run of them on
     one symbol is also the bad-quote signal (quotes get none of the
-    bars' de-spiking). What REMAINS residue is the symmetric fill-rate
+    bars' de-spiking). **Population, stated** (#362 round 6):
+    `explainNoSetup` narrates every scanned symbol whose committee
+    produced a side — including the 15 decline-layer markets and
+    blocked-regime scans, where `analyzeSetup` never builds a plan — so
+    the raw count is an UPPER BOUND on setups lost to latency, not that
+    rate. The same diagnostics array carries the decline and
+    blocked-regime sentences, so a query scopes the population by
+    excluding events that also carry those markers. One display note:
+    in the declined-plus-blocked shape the crossed-quote sentence lands
+    fourth and `NoSetupPanel`'s three-reason cap drops it from the UI —
+    the event record, which is what the instrument reads, keeps it. What REMAINS residue is the symmetric fill-rate
     smear: the market moves both ways inside the latency window,
     spreading the live fill distribution around the corpus's
     zero-latency measurement — and its second half, decision→first
@@ -398,11 +408,14 @@ layer.
 3. **R1c — the E4 instrument**: the collapse reader + its report,
    doored and population-pinned like every other reader.
 
-Frontend is untouched in all three except R1a's one client read
-(`storedSetup.ts` prefers the row's stamped review window — #362
-finding 5; the mirror fallback covers every pre-E7 row, so no ordering
-hazard with the Edge deploy); no migration is required (feedback is
-jsonb). Live-path changes (R1a) deploy through the ordinary gate and
+Frontend is untouched in all three except R1a's two client touches
+(#362): `storedSetup.ts` prefers the row's stamped review window
+(finding 5; the stamped-confluence and mirror fallbacks cover every
+pre-E7 row, so no ordering hazard with the Edge deploy), and
+`reviewCopy.ts` translates the crossed-quote refusal sentence distinctly
+(round 5 — load-bearing for the operator half of that fix); no
+migration is required (feedback is jsonb). Live-path changes (R1a)
+deploy through the ordinary gate and
 change grading physics from that deploy forward — the cohort boundary
 is `ANALYZER_VERSION`, which R1a must bump, exactly as the learning
 read/write version predicates assume.

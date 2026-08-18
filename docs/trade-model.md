@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.18.one-physics` (live — R1a slices 1+2: realized R from legs on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; calibration cells unchanged from `2026.08.11.declines`). The per-market layer this
+Model version: `2026.08.18.one-physics` (deploys with #362's merge — the deploy-time E2E gate re-verifies production then; the deployed-and-verified state last held for `2026.08.18.realized-r`. R1a slices 1+2: realized R from legs on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; calibration cells unchanged from `2026.08.11.declines`). The per-market layer this
 records was derived from the invalidated corpus — see the banner above.
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
