@@ -21,15 +21,29 @@ export SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN:-$(security find-generic-p
 RESEND_KEY="$(security find-generic-password -a peacock -s resend-api-key -w 2>/dev/null || true)"
 [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$RESEND_KEY" ] || { echo "missing Keychain credentials"; exit 1; }
 
+# Fleet law (#361 round 2, finding 1's class): credential values travel
+# by 600-mode files, never argv — argv is world-readable via `ps -ax`,
+# so no OTHER user or process watcher can read them (the invoking user
+# can always inspect their own processes; bash printf is a builtin, so
+# the writes below spawn nothing). That includes the PATCH BODY (#363 round 1,
+# finding 1): the payload carries the Resend key as smtp_pass, so it
+# goes to curl via --data @file, never as an inline -d argument — and
+# the key rides into python via the environment, never python's argv.
+AUTH_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-auth-brand.XXXXXXXX")"
+PAYLOAD_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-auth-brand-payload.XXXXXXXX")"
+chmod 600 "$AUTH_FILE" "$PAYLOAD_FILE"
+trap 'rm -f "$AUTH_FILE" "$PAYLOAD_FILE"' EXIT
+printf 'Authorization: Bearer %s\n' "$SUPABASE_ACCESS_TOKEN" > "$AUTH_FILE"
+
 echo "== Current values =="
-curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+curl -fsS "$API" -H @"$AUTH_FILE" \
   | python3 -c "import sys,json; c=json.load(sys.stdin); print(json.dumps({k:c.get(k) for k in ('smtp_host','smtp_user','smtp_admin_email','smtp_sender_name','smtp_max_frequency','mailer_subjects_magic_link')}, indent=1))"
 
 read -r -p "PATCH sender name + magic-link subject + body template to 'Levelflow'? [y/N] " yn
 [ "$yn" = "y" ] || { echo "aborted"; exit 0; }
 
-PAYLOAD="$(python3 - "$RESEND_KEY" <<'PY'
-import json, sys
+RESEND_KEY="$RESEND_KEY" python3 > "$PAYLOAD_FILE" <<'PY'
+import json, os
 
 # Standing Windward Line magic-link template; only the app name and the
 # brand-accent button color are Levelflow-specific (spec section 6).
@@ -54,7 +68,7 @@ print(json.dumps({
   "smtp_host": "smtp.resend.com",
   "smtp_port": "465",
   "smtp_user": "resend",
-  "smtp_pass": sys.argv[1],
+  "smtp_pass": os.environ["RESEND_KEY"],
   "smtp_admin_email": "login@windwardline.com",
   "smtp_sender_name": "Levelflow",
   "smtp_max_frequency": 60,
@@ -62,12 +76,11 @@ print(json.dumps({
   "mailer_templates_magic_link_content": template,
 }))
 PY
-)"
 
 if ! resp="$(curl -sS --fail-with-body -X PATCH "$API" \
-  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  -H @"$AUTH_FILE" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD")"; then
+  --data @"$PAYLOAD_FILE")"; then
   echo "PATCH failed:"
   printf '%s' "$resp" | python3 -c "import sys,json
 try:
@@ -85,7 +98,7 @@ echo "== Verifying =="
 # said MISMATCH, the config was correct on the next read).
 sleep 2
 verify() {
-curl -fsS "$API" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+curl -fsS "$API" -H @"$AUTH_FILE" \
   | python3 -c "
 import sys, json
 c = json.load(sys.stdin)

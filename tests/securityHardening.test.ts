@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { cleanExternalUrl } from "../src/lib/urlSafety";
@@ -309,10 +310,143 @@ describe("security hardening", () => {
     assert.match(sync, /functions\/v1\/news-calendar/);
     assert.match(sync, /VERIFY FAILED/);
     // Values travel by 600-mode temp files, never argv — they must not
-    // be readable in `ps` on the studio machine.
-    assert.match(sync, /chmod 600/);
+    // be readable by other users on the studio machine. Lifetime pinned
+    // by EXACT file list (#363 round 3, finding 1 — a bare /chmod 600/
+    // cannot tell six files from one, and the script holds FOUR
+    // cleartext credential files: env, SQL, and both auth headers):
+    // dropping any file from the mode or the trap is a red build, not a
+    // freshly rotated credential resident in $TMPDIR.
+    assert.match(
+      sync,
+      /chmod 600 "\$ENV_FILE" "\$SQL_FILE" "\$PROBE_FILE" "\$PROBE_ERR_FILE" \\\n\s+"\$MGMT_AUTH_FILE" "\$VERIFY_AUTH_FILE"/,
+    );
+    assert.match(
+      sync,
+      /trap 'rm -f "\$ENV_FILE" "\$SQL_FILE" "\$PROBE_FILE" "\$PROBE_ERR_FILE" "\$MGMT_AUTH_FILE" "\$VERIFY_AUTH_FILE"' EXIT/,
+    );
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
     assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
+    // #361 round 2, finding 1: the bearers ride 600-mode header files
+    // read with `curl -H @file` — the class pin below sweeps the WHOLE
+    // REPO's shell surface for the interpolated form
+    // (case-insensitive), so the fix cannot regress in one script and
+    // survive in a sibling, and HANDOFF's "scripts/ops is the entire
+    // shell surface" claim is self-verifying rather than asserted
+    // (#363 round 4, smaller 1): a .sh added anywhere cannot escape the
+    // walk, and an empty walk cannot pass.
+    assert.match(sync, /-H @"\$MGMT_AUTH_FILE"/);
+    assert.match(sync, /-H @"\$VERIFY_AUTH_FILE"/);
+    // The swept set is git's, not the working tree's (#363 round 5): a
+    // readdirSync walk enumerated node_modules and every gitignored
+    // scratch dir, differed between CI and the studio machine, and its
+    // prefix filters silently dropped .github (".github".startsWith(
+    // ".git") — the one directory where CI credentials flow). Tracked
+    // files are the law's exact surface, deterministically.
+    // existsSync guards the index-vs-worktree gap (#363 round 6): a
+    // tracked script deleted but not yet `git rm`'d must not crash the
+    // suite with ENOENT — while `git add` alone is enough to bring a
+    // new script under the law.
+    const shellScripts = execSync("git ls-files -z", { encoding: "utf8" })
+      .split("\0")
+      .filter((file) => file.endsWith(".sh") && existsSync(file));
+    // HANDOFF's exhaustiveness claim, pinned by PATH rather than by
+    // count: the five known scripts must be in the swept set, so a
+    // relocation cannot make the loop iterate past them and stay green.
+    for (const expected of [
+      "scripts/ops/bank-minute-bars-daily.sh",
+      "scripts/ops/cache-lifecycle.sh",
+      "scripts/ops/daily-cache-topup.sh",
+      "scripts/ops/sync-function-secrets.sh",
+      "scripts/ops/update-auth-brand.sh",
+    ]) {
+      assert.ok(
+        shellScripts.includes(expected),
+        `${expected} must be in the swept shell surface`,
+      );
+    }
+    for (const script of shellScripts) {
+      const source = readFileSync(script, "utf8");
+      assert.doesNotMatch(
+        source,
+        /authorization: bearer \$/i,
+        `${script} must not interpolate a bearer onto argv — 600-mode header files only`,
+      );
+      // The BODY family too (#363 rounds 4-5 — round 1's actual finding
+      // was a credential-bearing request body on argv): any body/form
+      // flag whose double-quoted argument contains an interpolation,
+      // ANYWHERE in the quotes — the natural inline-JSON shape
+      // -d "{\"smtp_pass\":\"$KEY\"}" is the one that matters, not just
+      // round 1's literal spelling, so the argument matcher traverses
+      // escaped quotes (#363 round 6: [^"]* stopped at the first \" and
+      // let exactly that shape through). Deliberately eager: a future
+      // `psql -d "$DBNAME"` would false-fire — and likelier still,
+      // `awk -F "$SEP"` or `grep -F "$needle"` — and for this sweep a
+      // cheap false red is the right side to err on; bodies travel by
+      // --data @file.
+      assert.doesNotMatch(
+        source,
+        /(^|\s)(-d|--data(-raw|-binary|-ascii|-urlencode)?|--json|-F|--form)\s*"(?:[^"\\]|\\.)*\$/,
+        `${script} must not pass an inline "$…" request body — bodies travel by --data @file`,
+      );
+      // The THIRD form (#363 rounds 6-8): a credential in a URL query
+      // string is still argv — round 6 found exactly this in the
+      // cache-rebuild runbook, and the URL form is law in HANDOFF, so
+      // it gets its pin: any query parameter whose value is an
+      // interpolation — $VAR, ${VAR}, "$VAR", AND $(command), because
+      // $(keychain_read …)/$(security …) is how every script here
+      // actually reads a credential (round 8). Shell && and 2>&1 cannot
+      // fire it (& must be followed by a parameter name then =$), and
+      // the repo's URLs with interpolated HOSTS but no query string do
+      // not either.
+      assert.doesNotMatch(
+        source,
+        /[?&][A-Za-z_][A-Za-z0-9_-]*=["']?\$[({A-Za-z_]/,
+        `${script} must not interpolate a credential into a URL query string — use a 600-mode curl config (-K)`,
+      );
+      // And the HEADER family generalized past "Authorization: Bearer"
+      // (#363 round 8, smaller 1): any -H/--header whose value is an
+      // interpolation — Supabase's own convention is `apikey:`, not a
+      // bearer. `-H @"$FILE"` passes (@ precedes the quote); static
+      // headers carry no $.
+      assert.doesNotMatch(
+        source,
+        /(^|\s)(-H|--header)\s*"[^"]*:\s*\$/,
+        `${script} must not interpolate a credential into a header value — 600-mode header files only`,
+      );
+    }
+    // The same law for the Resend key, BOTH hops (#363 round 1,
+    // finding 1 — the first fold moved it from python's argv to curl's
+    // via -d "$PAYLOAD", the same class one process later): into python
+    // via the environment, and into curl via --data @file — the payload
+    // carries the key as smtp_pass, so it must never be a command
+    // argument (argv is world-readable via `ps -ax`; the environment is
+    // readable only by the same user). And the credential FILE's
+    // lifetime is pinned with its transport (#363 round 2, finding 2):
+    // 600-mode at creation, removed by the trap — dropping either
+    // leaves the Resend key readable or resident in /tmp with a green
+    // build.
+    const brand = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
+    assert.match(brand, /RESEND_KEY="\$RESEND_KEY" python3 > "\$PAYLOAD_FILE"/);
+    assert.doesNotMatch(brand, /python3 - "\$RESEND_KEY"/);
+    assert.match(brand, /--data @"\$PAYLOAD_FILE"/);
+    assert.match(brand, /chmod 600 "\$AUTH_FILE" "\$PAYLOAD_FILE"/);
+    assert.match(brand, /rm -f "\$AUTH_FILE" "\$PAYLOAD_FILE"/);
+    // #361 round 2, findings 2-4 — the classification work, pinned:
+    // a transport failure at verify reports the halves synced instead of
+    // dying silently under set -e; 401/403 retries before it is
+    // believed; both pooler generations are probed; the preflight's
+    // abort echoes EVERY probe's psql stderr under host/user markers
+    // (#363 round 1, finding 3 — last-only buried an auth failure under
+    // aws-1's NXDOMAIN) so a stale password is distinguishable from an
+    // unreachable network.
+    assert.match(sync, /verify_status \|\| true/);
+    assert.match(sync, /"000" \| ""\)/);
+    assert.match(sync, /the token halves ARE synced/);
+    assert.match(sync, /while \{ \[ "\$STATUS" = "401" \]/);
+    assert.match(sync, /for prefix in aws-0 aws-1/);
+    assert.match(sync, /failed attempts' psql stderr/);
+    assert.match(sync, /2>>"\$PROBE_ERR_FILE"/);
+    assert.doesNotMatch(sync, /2>"\$PROBE_ERR_FILE"/);
 
     // The conduit is recorded where operators actually read (fleet
     // re-review on #360): the deployment procedure and the README

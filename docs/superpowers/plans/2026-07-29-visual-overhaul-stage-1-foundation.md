@@ -534,6 +534,12 @@ Run: `npm test 2>&1 | grep -A2 "full SMTP block"` — expected FAIL (file absent
 
 - [ ] **Step 2: Write the script**
 
+> **Historical record — do not paste.** The shipped
+> `scripts/ops/update-auth-brand.sh` has since been hardened (#363):
+> bearers travel by `-H @file`, the Resend key enters python via the
+> environment, and the PATCH body goes by `--data @file` — the fenced
+> draft below predates all three and would put credentials on argv.
+
 ```bash
 #!/usr/bin/env bash
 # Rename Levelflow's auth email branding (subject + SMTP sender name).

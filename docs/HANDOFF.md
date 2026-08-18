@@ -93,6 +93,36 @@ step leaves every signed-in operator working behind a closed door.
 > removed. Rotation from now on, for both credentials: rotate in the
 > Keychain, run the script, done.
 >
+> The script's failure modes after #363 (the round-2 fold-forward): no
+> credential value ever rides argv in ANY tracked shell script — the
+> pin sweeps every TRACKED `.sh` wherever it lives (`git ls-files`, so
+> `.github` cannot be silently skipped and gitignored scratch files
+> cannot join) for bearer AND request-body forms, with the five known
+> `scripts/ops` scripts (today the repo's whole shell surface) asserted
+> present by path — this stays true by test rather than by claim.
+> Bearers, the PATCH body, AND query-string keys travel by 600-mode
+> files: a credential inside a URL is still argv (#363 round 6 — the
+> cache-rebuild runbook's probe now uses `curl -K` for exactly that
+> reason), and header, body, and URL-query forms are all pinned in
+> the shell sweep — the header pin covers any interpolated value, not
+> just the Bearer spelling. One
+> boundary stated plainly (#363 round 7): fenced commands in `.md`
+> runbooks are law-by-REVIEW, not law-by-test — the sweep reads tracked
+> `.sh` files only, and round 6's own violation lived in a runbook
+> fence. The law's
+> scope is the STUDIO machine, where argv is world-readable in a
+> multi-process session — CI argv is deliberately outside it:
+> `deploy.yml` passes `--password` to the Supabase CLI on a
+> GitHub-hosted runner, which is ephemeral and single-tenant, and
+> dropping the flags to lean on the CLI's env fallback is unverifiable
+> short of a live production deploy (#363 round 2, weighed and
+> declined). Also after #363: a
+> transport failure at the verify step reports **the token halves ARE
+> synced** instead of dying silently, and a preflight abort prints
+> every probe's psql stderr under host/user markers — "password
+> authentication failed" there means the `supabase-db-levelflow`
+> Keychain item is stale, not the network.
+>
 > The paragraphs below are kept as the record of the blackout. What remains
 > true: the 1-minute bars not banked between 2026-08-13 and the bank's
 > first post-upgrade run are permanently gone (~3-day serving window);

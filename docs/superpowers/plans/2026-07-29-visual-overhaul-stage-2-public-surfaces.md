@@ -49,6 +49,12 @@ Run: `npm test 2>&1 | grep -A3 "full SMTP block"` — expected FAIL.
 
 In `scripts/ops/update-auth-brand.sh`, replace the PATCH invocation block with:
 
+> **Historical record — do not paste.** The shipped
+> `scripts/ops/update-auth-brand.sh` has since been hardened (#363):
+> bearers travel by `-H @file`, the Resend key enters python via the
+> environment, and the PATCH body goes by `--data @file` — the fenced
+> draft below predates all three and would put credentials on argv.
+
 ```bash
 if ! resp="$(curl -sS --fail-with-body -X PATCH "$API" \
   -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
