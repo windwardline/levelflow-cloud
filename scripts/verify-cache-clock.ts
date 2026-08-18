@@ -114,12 +114,29 @@ export function auditCacheClock(input: {
     string,
     { fifteen?: SlimSeries; five?: SlimSeries }
   >();
-  // Which series kinds each provider symbol has, for the daily-present
-  // and roster completeness checks. Kinds are registered only for stores
-  // that hold rows: the pipeline never writes an empty store
-  // (loadRollingSeries returns before the write when a fetch yields
-  // nothing), so an empty one satisfies no completeness gate.
+  // Three presence tiers per provider symbol (#358 round 6 + 6b),
+  // because "missing" and "condemned" and "empty" have different
+  // remedies and the runbook sends the operator here to DIAGNOSE:
+  // - present: a file exists under the key — a torn or mis-stamped
+  //   store earns its own RED and must not ALSO read as missing;
+  // - populated: readable, stamped, and holding rows — the only tier
+  //   that satisfies completeness, because the pipeline never writes an
+  //   empty store (loadRollingSeries returns before the write when a
+  //   fetch yields nothing);
+  // - condemned: present but unreadable or wrong-stamped — its own RED
+  //   already carries the verdict, so the roster gate adds nothing.
+  const presentKindsByProvider = new Map<string, Set<string>>();
   const kindsByProvider = new Map<string, Set<string>>();
+  const condemnedKindsByProvider = new Map<string, Set<string>>();
+  const registerKind = (
+    map: Map<string, Set<string>>,
+    provider: string,
+    seriesKind: string,
+  ) => {
+    const kinds = map.get(provider) ?? new Set<string>();
+    kinds.add(seriesKind);
+    map.set(provider, kinds);
+  };
   // Whether each reference symbol's session anchor actually RAN — the
   // per-store block below is conditioned on an intraday store existing,
   // so absence must be failed explicitly, not silently skipped (#358
@@ -140,6 +157,15 @@ export function auditCacheClock(input: {
       // rather than additionally reading as missing.
       calendarPresent = true;
     }
+    const keyMatch = key.match(/^(.*)-(15min|5min|daily)-(.+)$/);
+    const provider = keyMatch?.[1];
+    // Presence is a fact about the KEY, recorded before any read — the
+    // same carve-out the calendar gets above (#358 round 6b): a torn or
+    // mis-stamped store earns its own RED and must not additionally
+    // read as "missing" in the roster gate.
+    if (provider) {
+      registerKind(presentKindsByProvider, provider, keyMatch![2]);
+    }
     let store: { clock?: string; items?: StoredBar[] };
     try {
       store = JSON.parse(readFileSync(join(cacheDir, name), "utf8")) as {
@@ -150,6 +176,9 @@ export function auditCacheClock(input: {
       // A torn or corrupt store is a RED line, not a crash — the "for the
       // record" pass over the condemned archive must list every store.
       fail(`${key}: unreadable store (truncated or corrupt JSON)`);
+      if (provider) {
+        registerKind(condemnedKindsByProvider, provider, keyMatch![2]);
+      }
       continue;
     }
     const items = Array.isArray(store.items) ? store.items : [];
@@ -160,6 +189,9 @@ export function auditCacheClock(input: {
           store.clock ?? "<unstamped — pre-R0 mixed-clock era>"
         }", expected "${expected}"`,
       );
+      if (provider) {
+        registerKind(condemnedKindsByProvider, provider, keyMatch![2]);
+      }
       continue;
     }
     if (kind.kind === "calendar") {
@@ -167,12 +199,8 @@ export function auditCacheClock(input: {
       continue;
     }
 
-    const keyMatch = key.match(/^(.*)-(15min|5min|daily)-(.+)$/);
-    const provider = keyMatch?.[1];
     if (provider && items.length > 0) {
-      const kinds = kindsByProvider.get(provider) ?? new Set<string>();
-      kinds.add(keyMatch![2]);
-      kindsByProvider.set(provider, kinds);
+      registerKind(kindsByProvider, provider, keyMatch![2]);
     }
 
     const witness = seriesClockWitness(items, kind.role);
@@ -310,10 +338,19 @@ export function auditCacheClock(input: {
         `rebuild incomplete`,
     );
   }
-  for (const [provider, kinds] of kindsByProvider) {
-    if (!kinds.has("daily")) {
+  for (const [provider, present] of presentKindsByProvider) {
+    if (!present.has("15min") && !present.has("5min")) {
+      continue;
+    }
+    if (!present.has("daily")) {
       // The daily witness is the universal condemning one; a symbol
       // without its daily store has lost the strongest check silently.
+      // Presence-based on purpose (#358 round 6b): an empty or condemned
+      // intraday store still counts as "intraday present" here, so this
+      // check keeps its pre-round-6 reach; a daily store that EXISTS but
+      // is condemned earns its own RED instead of this line, and a
+      // present-but-empty daily on a roster symbol is the roster gate's
+      // empty-store RED.
       fail(`${provider}: intraday stores present but no daily store`);
     }
   }
@@ -327,12 +364,20 @@ export function auditCacheClock(input: {
     // every one of them. The roster is the spec of what a finished
     // rebuild contains, so roster mode demands the whole shape.
     for (const provider of rosterProviderSymbols) {
-      const kinds = kindsByProvider.get(provider);
-      if (!kinds) {
+      const present = presentKindsByProvider.get(provider);
+      if (!present || present.size === 0) {
         fail(`${provider}: on the scan roster but has NO stores — rebuild incomplete`);
         continue;
       }
-      const missing = ["15min", "5min", "daily"].filter((k) => !kinds.has(k));
+      const populated = kindsByProvider.get(provider);
+      const condemned = condemnedKindsByProvider.get(provider);
+      // "Missing" means NO FILE — a store that exists but is torn,
+      // mis-stamped or empty is a different diagnosis with a different
+      // remedy (#358 round 6b): condemned stores already earned their
+      // own RED, and empty ones get the explicit line below.
+      const missing = ["15min", "5min", "daily"].filter((k) =>
+        !present.has(k)
+      );
       if (missing.length > 0) {
         fail(
           `${provider}: on the scan roster but missing its ${
@@ -340,6 +385,17 @@ export function auditCacheClock(input: {
           } store(s) — a partial symbol reads green on every witness it ` +
             `never ran; rebuild incomplete`,
         );
+      }
+      for (const seriesKind of ["15min", "5min", "daily"]) {
+        if (
+          present.has(seriesKind) && !populated?.has(seriesKind) &&
+          !condemned?.has(seriesKind)
+        ) {
+          fail(
+            `${provider}: ${seriesKind} store is EMPTY (zero rows) — an ` +
+              `empty store counts as absent; rebuild incomplete`,
+          );
+        }
       }
       if (REFERENCE_SESSION_ANCHORS[provider] && !anchorWitnessed.has(provider)) {
         fail(

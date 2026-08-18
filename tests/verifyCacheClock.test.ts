@@ -405,9 +405,79 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       cacheDir: dir,
       rosterProviderSymbols: ["EURUSD"],
     });
+    // Round 6b: the file EXISTS, so the line says empty, never missing —
+    // "missing" and "empty" have different remedies at the runbook.
     assert.ok(
       audit.failures.some((line) =>
-        /missing its 15min and 5min store/.test(line)
+        /EURUSD: 15min store is EMPTY \(zero rows\)/.test(line)
+      ),
+      audit.failures.join("\n"),
+    );
+    assert.ok(
+      audit.failures.some((line) =>
+        /EURUSD: 5min store is EMPTY \(zero rows\)/.test(line)
+      ),
+      audit.failures.join("\n"),
+    );
+    assert.ok(
+      !audit.failures.some((line) => /missing its/.test(line)),
+      audit.failures.join("\n"),
+    );
+  });
+
+  it("a torn store earns its own RED and never a false 'missing' line (round 6b)", () => {
+    const dir = cacheDir();
+    writeFileSync(join(dir, "EURUSD-15min-7000.rolling.json"), '{"items":[{"ti');
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    calendarStore(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD"],
+    });
+    assert.ok(
+      audit.failures.some((line) => /unreadable store/.test(line)),
+      audit.failures.join("\n"),
+    );
+    assert.ok(
+      !audit.failures.some((line) => /missing its/.test(line)),
+      audit.failures.join("\n"),
+    );
+    assert.ok(
+      !audit.failures.some((line) => /store is EMPTY/.test(line)),
+      audit.failures.join("\n"),
+    );
+  });
+
+  it("a mis-stamped store earns its own RED and never a false 'missing' line (round 6b)", () => {
+    const dir = cacheDir();
+    store(dir, "EURUSD-15min-7000", "some-older-clock", intraday(900_000, false));
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    calendarStore(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD"],
+    });
+    assert.ok(
+      audit.failures.some((line) =>
+        /stamped "some-older-clock", expected/.test(line)
+      ),
+      audit.failures.join("\n"),
+    );
+    assert.ok(
+      !audit.failures.some((line) => /missing its/.test(line)),
+      audit.failures.join("\n"),
+    );
+  });
+
+  it("keeps the daily-presence check's pre-round-6 reach: empty intraday beside NO daily still fails without a roster (round 6b)", () => {
+    const dir = cacheDir();
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, []);
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      audit.failures.some((line) =>
+        /intraday stores present but no daily store/.test(line)
       ),
       audit.failures.join("\n"),
     );
