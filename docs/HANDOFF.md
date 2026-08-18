@@ -753,8 +753,8 @@ the live roster is 97 distinct markets.
 
 | rank | item | state |
 |---|---|---|
-| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **NEXT** |
-| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333) | after R0 |
+| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); the rebuild itself is one budgeted run gated on FMP recovery ~09-12 — `docs/cache-rebuild-r0.md` |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333); E2's fetch half (chunk sizing) landed with R0 | **NEXT** |
 | **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
@@ -763,6 +763,54 @@ the live roster is 97 distinct markets.
 
 Full detail and the reasons the order is load-bearing:
 `docs/research/remediation-program-2026-08-11.md`.
+
+#### R0's code half — landed 2026-08-18
+
+What could be done without bytes is done; what needs bytes has a runbook
+and a date.
+
+- **Every rolling store records the clock that wrote it** — `BAR_CLOCK`
+  (`ny-wall-utc-v2`) declared beside the normalizer it identifies in
+  `bars.ts`, `CALENDAR_CLOCK` for the calendar store — and
+  `loadRollingSeries` REFUSES an unstamped or mismatched store loudly
+  (`cacheClockMismatch`). The condemned 3.9 GB store cannot be read,
+  topped up, or silently refetched by anything at this commit or later;
+  the nightly top-up stands down for that one named condition, exactly
+  like its 429 branch. The r17 legacy-file migration is gone — every
+  date-keyed file predates the stamp era by definition.
+- **The corpus proves its clock instead of asserting it**
+  (`scripts/clockWitness.ts`): the daily series' NY-midnight stamp hour
+  condemns universally; the weekly-open DST shift PROVES utc but never
+  condemns (a no-DST venue is invariant in UTC too — the Nikkei pin);
+  spring-transition bar counts condemn for 24/7 markets; and 15min↔5min
+  day-extreme registration — the audit's own instrument — catches the
+  actual 2026-08-11 shape. Witnesses ride in the manifest under the hash;
+  the sweep driver refuses a condemned series corpus-globally;
+  `verifyManifest` refuses any corpus with no clock block or a condemned
+  verdict, which deliberately kills every pre-R0 corpus at every reader
+  (including the item-2 baseline's legacy-two-split affordance).
+- **The 1b fetch defect is fixed at the source**: intraday chunks sized
+  per timeframe (15min 30d — proven complete by the corpus's own crypto
+  densities; 5min 6d against the observed ~2,000-row clip), a
+  response-cap tripwire that fails the run rather than caching a holed
+  series, and the empty-window walk-back re-expressed in DAYS (90) so
+  the smaller chunk cannot amputate history behind a moderate gap. E2's
+  other half — the distinct no-bars resolution state and the density
+  assertion at the door — stays in R1.
+- **`scripts/verify-cache-clock.ts` is the acceptance instrument**,
+  exercised end-to-end against synthetic healthy / unstamped / naive /
+  shifted / sawtooth caches: every poisoned shape caught, healthy green,
+  plus the 5min/15min density floor that makes a sawtooth store fail
+  verification even with clean clocks.
+- **What remains is operational and gated on FMP recovery (~09-12):**
+  `docs/cache-rebuild-r0.md` — probe the allowance, archive the
+  condemned store, one budgeted `--warm-only` roster run (~9–12 GB
+  expected under a 30 gb ceiling), verify green, re-arm the top-up
+  agent, delete the archive. Whether the launchd top-up is currently
+  loaded is contradicted between records (the remediation doc says
+  booted out 08-11; #355's comments assume it was failing nightly on
+  08-16) — the guard makes both states safe, and the runbook re-arms it
+  regardless.
 
 ### ⛔ STOP — THE CORPUS IS INVALID (2026-08-11, evening)
 

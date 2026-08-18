@@ -3,7 +3,12 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
+import {
+  buildSweepManifest,
+  seriesFacts,
+  sha256Hex,
+  stableStringify,
+} from "../scripts/sweepManifest.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
@@ -185,6 +190,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
+      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       days: 365,
       generatedAt: "2026-08-10T04:00:00.000Z",
       grid: [{}],
@@ -233,5 +239,88 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
     const emitPath = writeCorpus();
     writeFileSync(emitPath, '{"outcome":"take_profit"\nnot json\n');
     assert.throws(() => assertManifestedCorpus(emitPath), /line 1|parse/i);
+  });
+});
+
+// R0 one clock: the door refuses a corpus that cannot state its
+// normalization, or whose own witnesses contradict it. A pre-R0 manifest
+// hashes cleanly — its conditions were honestly recorded — but it is the
+// mixed-clock population by definition, and the refusal must name that
+// rather than read it.
+describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
+  const writeWithManifest = (manifest: Record<string, unknown>) => {
+    const dir = mkdtempSync(join(tmpdir(), "sweepstats-clock-"));
+    const emitPath = join(dir, "run.jsonl");
+    writeFileSync(emitPath, JSON.stringify(row("take_profit", 1)) + "\n");
+    const { generatedAt: _generatedAt, ...hashedPayload } = manifest;
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(
+        {
+          ...manifest,
+          manifestHash: sha256Hex(stableStringify(hashedPayload)),
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    return emitPath;
+  };
+
+  const legacyManifest = () => ({
+    analyzerVersion: "2026.08.09.test",
+    anchor: "2026-08-10",
+    barRejections: {},
+    days: 365,
+    generatedAt: "2026-08-10T04:00:00.000Z",
+    grid: [{}],
+    stepBars: 16,
+    symbols: [{
+      calibration: {},
+      calibrationHash: sha256Hex(stableStringify({})),
+      providerSymbol: "EURUSD",
+      series: { "15min": seriesFacts([{ time: 0 }]) },
+      symbol: "EURUSD",
+    }],
+    trainShare: 0.6,
+    warmupBars: 240,
+  });
+
+  it("refuses a pre-R0 manifest with no clock block, even though its hash verifies", () => {
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(legacyManifest())),
+      /no clock block.*mixed-clock/s,
+    );
+  });
+
+  it("refuses a corpus whose series witnesses a naive clock", () => {
+    const manifest = legacyManifest() as ReturnType<typeof legacyManifest> & {
+      clock?: unknown;
+    };
+    manifest.clock = { calendar: "test-calendar-v1", normalizer: "test-clock-v1" };
+    manifest.symbols[0].series["15min"] = {
+      ...seriesFacts([{ time: 0 }]),
+      clock: { verdict: "naive" },
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /EURUSD 15min.*"naive" clock/s,
+    );
+  });
+
+  it("refuses a corpus whose 5min series registers at a shift against the primary", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: "test-calendar-v1", normalizer: "test-clock-v1" };
+    (manifest.symbols as Array<Record<string, unknown>>)[0].crossSeriesClock = {
+      bestShiftHours: 4,
+      matchRateAtBest: 0.8,
+      matchRateAtZero: 0,
+      sampledDays: 400,
+      verdict: "shifted",
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /registers against.*4h\s+shift.*mixed-clock signature/s,
+    );
   });
 });

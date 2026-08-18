@@ -10,8 +10,17 @@
 // assert manifestHash before touching a single row.
 
 import { createHash } from "node:crypto";
+import {
+  type CrossSeriesClock,
+  type SeriesClockWitness,
+  seriesClockWitness,
+  type SeriesRole,
+} from "./clockWitness.ts";
 
 export type SeriesFacts = {
+  // R0: the series' own clock evidence (clockWitness.ts) — recorded so a
+  // reader can see WHY the corpus was accepted, not merely that it was.
+  clock: SeriesClockWitness;
   count: number;
   firstTime: number | null;
   largestGapMs: number;
@@ -43,10 +52,19 @@ export function sha256Hex(text: string): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
-/** Continuity as a recorded fact: ends, count, largest inter-bar gap. */
-export function seriesFacts(bars: Array<{ time: number }>): SeriesFacts {
+/**
+ * Continuity as a recorded fact: ends, count, largest inter-bar gap — and
+ * since R0, the series' clock witness. The role names which witnesses
+ * apply: a daily series testifies through its stamp hour, an intraday one
+ * through weekly opens and spring transitions.
+ */
+export function seriesFacts(
+  bars: Array<{ time: number }>,
+  role: SeriesRole = "intraday",
+): SeriesFacts {
   if (bars.length === 0) {
     return {
+      clock: seriesClockWitness(bars, role),
       count: 0,
       firstTime: null,
       largestGapMs: 0,
@@ -65,6 +83,7 @@ export function seriesFacts(bars: Array<{ time: number }>): SeriesFacts {
   const first = times[0];
   const last = times[times.length - 1];
   return {
+    clock: seriesClockWitness(bars, role),
     count: bars.length,
     firstTime: first,
     largestGapMs,
@@ -77,6 +96,14 @@ export type SweepManifest = {
   analyzerVersion: string;
   anchor: string;
   barRejections: Record<string, number>;
+  // R0: the normalization every series in this corpus was stamped under —
+  // asserted by the store guard at load, witnessed per series in the
+  // facts below, and REQUIRED by every reader (sweepStats.verifyManifest
+  // refuses a manifest without it, which is every pre-R0 corpus).
+  clock: {
+    calendar: string;
+    normalizer: string;
+  };
   days: number;
   // 3c/3d: the calendar folds this corpus was decided under — absent on
   // legacy two-split corpora, whose readers map train/test instead.
@@ -107,6 +134,9 @@ export type SweepManifest = {
   symbols: Array<{
     calibration: Record<string, unknown>;
     calibrationHash: string;
+    // R0: relative registration of the 5-minute series against the
+    // 15-minute primary — the audit's own mixed-clock instrument.
+    crossSeriesClock?: CrossSeriesClock;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -119,6 +149,7 @@ export function buildSweepManifest(input: {
   analyzerVersion: string;
   anchor: string;
   barRejections: Record<string, number>;
+  clock: SweepManifest["clock"];
   days: number;
   folds?: SweepManifest["folds"];
   foldsByClass?: SweepManifest["foldsByClass"];
@@ -132,6 +163,7 @@ export function buildSweepManifest(input: {
   // is what OOM'd the first baseline attempt at the 4GB default heap.
   symbols: Array<{
     calibration: Record<string, unknown>;
+    crossSeriesClock?: CrossSeriesClock;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -142,6 +174,9 @@ export function buildSweepManifest(input: {
   const symbols = input.symbols.map((entry) => ({
     calibration: entry.calibration,
     calibrationHash: sha256Hex(stableStringify(entry.calibration)),
+    ...(entry.crossSeriesClock && {
+      crossSeriesClock: entry.crossSeriesClock,
+    }),
     providerSymbol: entry.providerSymbol,
     series: entry.series,
     symbol: entry.symbol,
@@ -154,6 +189,7 @@ export function buildSweepManifest(input: {
     analyzerVersion: input.analyzerVersion,
     anchor: input.anchor,
     barRejections: input.barRejections,
+    clock: input.clock,
     days: input.days,
     ...(input.folds && { folds: input.folds }),
     ...(input.foldsByClass && { foldsByClass: input.foldsByClass }),

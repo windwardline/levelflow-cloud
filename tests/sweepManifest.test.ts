@@ -38,6 +38,7 @@ describe("seriesFacts — continuity as a recorded fact", () => {
 
   it("reads an empty or single-bar series without inventing ends", () => {
     assert.deepEqual(seriesFacts([]), {
+      clock: { verdict: "indeterminate" },
       count: 0,
       firstTime: null,
       largestGapMs: 0,
@@ -45,12 +46,18 @@ describe("seriesFacts — continuity as a recorded fact", () => {
       spanDays: 0,
     });
     assert.deepEqual(seriesFacts([bar(5)]), {
+      clock: { verdict: "indeterminate" },
       count: 1,
       firstTime: 5,
       largestGapMs: 0,
       lastTime: 5,
       spanDays: 0,
     });
+  });
+
+  it("carries the series' clock witness (R0) — tiny fixtures stay indeterminate", () => {
+    assert.equal(seriesFacts([bar(0)], "daily").clock.verdict, "indeterminate");
+    assert.equal(seriesFacts([bar(0)], "intraday").clock.verdict, "indeterminate");
   });
 });
 
@@ -81,6 +88,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
 
   const build = (overrides: {
     calibration?: Record<string, unknown>;
+    clock?: { calendar: string; normalizer: string };
     generatedAt?: string;
     grid?: unknown[];
   } = {}) =>
@@ -88,6 +96,8 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-09",
       barRejections: { spike: 2 },
+      clock: overrides.clock ??
+        { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       days: 365,
       generatedAt: overrides.generatedAt ?? "2026-08-09T22:00:00.000Z",
       grid: overrides.grid ?? [{}],
@@ -103,6 +113,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     const manifest = build();
     assert.equal(manifest.analyzerVersion, "2026.08.09.test");
     assert.equal(manifest.anchor, "2026-08-09");
+    assert.equal(manifest.clock.normalizer, "test-clock-v1");
     assert.equal(manifest.warmupBars, 240);
     assert.equal(manifest.trainShare, 0.6);
     assert.deepEqual(manifest.barRejections, { spike: 2 });
@@ -129,6 +140,15 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     assert.notEqual(
       build().manifestHash,
       build({ grid: [{ stopAtrMultiplier: 2 }] }).manifestHash,
+    );
+  });
+
+  it("moves its hash when the clock moves — one corpus, one normalization (R0)", () => {
+    assert.notEqual(
+      build().manifestHash,
+      build({
+        clock: { calendar: "test-calendar-v1", normalizer: "other-clock" },
+      }).manifestHash,
     );
   });
 

@@ -68,6 +68,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},
+    clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
     days: 365,
     generatedAt: "2026-08-10T05:00:00.000Z",
     grid: [{}, { tp1RiskShare: 0.9 }],
@@ -270,6 +271,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
+      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       days: 365,
       folds: [
         { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
@@ -318,6 +320,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
+      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       days: 365,
       generatedAt: "2026-08-10T07:00:00.000Z",
       grid: gridOverride ?? [{}, { wide: true }],
@@ -533,6 +536,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-11",
       barRejections: {},
+      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       days: 365,
       folds: [
         { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },

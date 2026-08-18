@@ -58,5 +58,17 @@ if printf '%s' "$out" | grep -qE '\(429\)|providerQuotaExhausted|Too Many Reques
   exit 0
 fi
 
+# R0 one clock: the store guard refuses a cache stamped under a different
+# (or no) normalization — the pre-2026-08-11 mixed-clock store — rather
+# than deepening it. Like the 429 branch, this is one named, proven
+# condition: it is not a regression, and it is not actionable nightly —
+# the ONE action that clears it is the deliberate rebuild in
+# docs/cache-rebuild-r0.md, which cannot run until FMP's allowance
+# recovers. Anything else stays red.
+if printf '%s' "$out" | grep -q 'cacheClockMismatch'; then
+  echo "$(date -u +%FT%TZ) STOOD DOWN: cache predates the one-clock rebuild (R0). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
+  exit 0
+fi
+
 echo "$(date -u +%FT%TZ) top-up FAILED (exit $rc) — no quota signal in the output, so this is a real failure"
 exit "$rc"

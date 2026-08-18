@@ -155,6 +155,17 @@ Two operational facts Phase 0 inherits, both set 2026-08-11:
   it banks 1-minute bars for the E8 feed-identity corpus and touches
   nothing the clock defect reaches.
 
+**Status 2026-08-18 — Phase 0's code half is in.** Every rolling store
+now records the clock that wrote it and refuses to load under another
+(`cacheClockMismatch`); per-series witnesses and 15min↔5min registration
+ride in the manifest and are enforced at every corpus reader; the 1b
+chunk sizing is fixed with a self-verifying response-cap tripwire; and
+the nightly top-up stands down by name against the condemned store, so
+the "stopped or not" ambiguity above no longer matters. The rebuild
+itself — the bytes — waits on the allowance (~2026-09-12):
+**`docs/cache-rebuild-r0.md`** is the runbook, including the re-arm of
+this launchd agent.
+
 ### Phase 1 — one engine (close every sweep↔live divergence)
 So that what is measured is what trades:
 - **E1** production resolves on 15-minute bars, the corpus on 5-minute.

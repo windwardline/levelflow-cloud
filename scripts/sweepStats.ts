@@ -225,6 +225,38 @@ function verifyManifest(emitPath: string): SweepManifest {
       `${emitPath}: manifest hash mismatch — recorded ${manifestHash}, recomputed ${recomputed}; the corpus's stated conditions cannot be trusted`,
     );
   }
+  // R0 one clock: a corpus that does not state its normalization predates
+  // the clock stamp and is the 2026-08-11 mixed-clock population by
+  // definition — refused, not read. This deliberately kills the legacy
+  // two-split affordance below for pre-R0 corpora: the item-2 baseline was
+  // invalidated with the rest.
+  if (!manifest.clock?.normalizer || !manifest.clock?.calendar) {
+    throw new Error(
+      `${emitPath}: manifest carries no clock block — a corpus built before ` +
+        `the R0 one-clock rebuild is mixed-clock (see docs/research/` +
+        `remediation-program-2026-08-11.md) and cannot be aggregated; ` +
+        `re-sweep on the rebuilt cache`,
+    );
+  }
+  for (const entry of manifest.symbols ?? []) {
+    for (const [timeframe, facts] of Object.entries(entry.series ?? {})) {
+      const verdict = facts.clock?.verdict;
+      if (verdict === "naive" || verdict === "mixed") {
+        throw new Error(
+          `${emitPath}: ${entry.symbol} ${timeframe} series witnesses a ` +
+            `"${verdict}" clock — the corpus disagrees with its own stated ` +
+            `normalization and is refused`,
+        );
+      }
+    }
+    if (entry.crossSeriesClock?.verdict === "shifted") {
+      throw new Error(
+        `${emitPath}: ${entry.symbol} 5-minute series registers against the ` +
+          `15-minute primary at a ${entry.crossSeriesClock.bestShiftHours}h ` +
+          `shift — the mixed-clock signature; the corpus is refused`,
+      );
+    }
+  }
   return manifest;
 }
 

@@ -33,6 +33,11 @@ import {
 } from "./fmpByteBudget.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
+  CALENDAR_CLOCK,
+  type CrossSeriesClock,
+  crossSeriesClock,
+} from "./clockWitness.ts";
+import {
   calendarFolds,
   type ClassFoldSpec,
   foldsByClass,
@@ -54,6 +59,7 @@ import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
+  BAR_CLOCK,
   type FmpBar,
   normalizeFmpBars,
 } from "../supabase/functions/trade-analyzer/bars.ts";
@@ -157,6 +163,7 @@ async function main() {
   let emittedRecords = 0;
   const manifestSymbols: Array<{
     calibration: Record<string, unknown>;
+    crossSeriesClock: CrossSeriesClock;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -216,11 +223,11 @@ async function main() {
       const bars = await loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs),
         key: `${providerSymbol}-15min-${args.days}`,
-        legacyPrefix: `${providerSymbol}-15min-${args.days}-`,
         timeOf: (bar) => bar.time,
       });
       if (bars.length > 0) {
@@ -275,21 +282,21 @@ async function main() {
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs),
         key: `${providerSymbol}-15min-${args.days}`,
-        legacyPrefix: `${providerSymbol}-15min-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () => fetchDailyBars(providerSymbol, args.days + 240),
         fetchSince: (sinceMs) =>
           fetchDailyBars(providerSymbol, args.days + 240, sinceMs),
         key: `${providerSymbol}-daily-${args.days}`,
-        legacyPrefix: `${providerSymbol}-daily-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
       // 2l: the committee's real 5min series. FMP's 5min depth is shallower
@@ -299,12 +306,12 @@ async function main() {
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () =>
           fetchIntradayBars(providerSymbol, args.days, undefined, "5min"),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs, "5min"),
         key: `${providerSymbol}-5min-${args.days}`,
-        legacyPrefix: `${providerSymbol}-5min-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
     ]);
@@ -331,16 +338,45 @@ async function main() {
 
     const cotReports = await loadCotReports(args.cacheDir, symbol);
 
+    // R0 one clock: the series testify about their own stamps, and a
+    // condemned witness stops the RUN, not just the symbol — the one-clock
+    // invariant is corpus-global, and a sweep that quietly drops a
+    // poisoned market ships a corpus that looks whole. The store guard
+    // (calibrationCache) already refuses a wrong-stamp store; this is the
+    // independent check on the data itself, and it also catches the case
+    // the stamp cannot: FMP changing its own convention under a normalizer
+    // that still carries the old assumption.
+    const series = {
+      "15min": seriesFacts(primaryBars, "intraday"),
+      "1day": seriesFacts(dailyBars, "daily"),
+      "5min": seriesFacts(fiveMinuteBars, "intraday"),
+    };
+    const registration = crossSeriesClock(primaryBars, fiveMinuteBars);
+    for (const [timeframe, facts] of Object.entries(series)) {
+      if (facts.clock.verdict === "naive" || facts.clock.verdict === "mixed") {
+        throw new Error(
+          `cacheClockMismatch: ${symbol} ${timeframe} series witnesses a ` +
+            `"${facts.clock.verdict}" clock (${JSON.stringify(facts.clock)}) ` +
+            `— rebuild the cache per docs/cache-rebuild-r0.md`,
+        );
+      }
+    }
+    if (registration.verdict === "shifted") {
+      throw new Error(
+        `cacheClockMismatch: ${symbol} 5min series registers against the ` +
+          `15min primary at ${registration.bestShiftHours}h ` +
+          `(${JSON.stringify(registration)}) — the mixed-clock signature; ` +
+          `rebuild the cache per docs/cache-rebuild-r0.md`,
+      );
+    }
+
     manifestSymbols.push({
       calibration: {
         ...getCategoryCalibration(symbol),
       } as unknown as Record<string, unknown>,
+      crossSeriesClock: registration,
       providerSymbol,
-      series: {
-        "15min": seriesFacts(primaryBars),
-        "1day": seriesFacts(dailyBars),
-        "5min": seriesFacts(fiveMinuteBars),
-      },
+      series,
       symbol,
     });
 
@@ -428,6 +464,7 @@ async function main() {
       analyzerVersion: ANALYZER_VERSION,
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: args.days,
       folds: classFolds ? undefined : folds,
       ...(classFolds && {
@@ -468,10 +505,12 @@ async function loadEconomicCalendar(
   return loadRollingSeries<SweepNewsEvent>({
     anchor,
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
+    // The calendar's own clock, not BAR_CLOCK: FMP stamps calendar events
+    // in true UTC and the parse below has always read them that way.
+    clock: CALENDAR_CLOCK,
     fetchFull: () => fetchCalendarEvents(Date.parse("2013-01-01T00:00:00Z")),
     fetchSince: (sinceMs) => fetchCalendarEvents(sinceMs),
     key: "econ-calendar",
-    legacyPrefix: "econ-calendar-",
     timeOf: (event) => event.time,
   });
 }
@@ -671,15 +710,36 @@ function parseArgs(argv: string[]): SweepArgs {
   };
 }
 
-// FMP caps a single intraday response near 3,000 rows. A 30-day window stays
-// complete for every supported market (~2,040 forex bars) and cuts request
-// count ~4x versus 8-day chunks, which is what makes multi-year depth
-// practical.
-const INTRADAY_CHUNK_DAYS = 30;
-// Walking back stops after this many consecutive empty windows, which is how
-// the end of a symbol's history is detected rather than assumed. Three
-// windows (90 days) clears any plausible holiday or provider gap.
-const EMPTY_WINDOW_STREAK_LIMIT = 3;
+// FMP caps a single intraday response, and the cap is a per-timeframe FACT,
+// not one number: 15-minute chunks of 30 days came back complete for every
+// market including 24/7 crypto (2,880 rows — proven by the corpus itself:
+// crypto densities ran 98%+ with ~1-day largest gaps, 4a report), while
+// 5-minute chunks were observed clipping at ~2,000 rows (remediation 1b —
+// the 30-day sawtooth that left EURUSD 5-minute-dense on 1,408 of 5,247
+// days and made 64.7% of confirm-fold decisions phantoms). 6 days of
+// 5-minute bars is 1,728 rows for a 24/7 market — under the observed clip
+// with margin. The tripwire below makes the cap assumption self-verifying
+// instead of silent: a chunk that comes back at cap size is treated as
+// possibly truncated and fails the run.
+const INTRADAY_CHUNK_DAYS: Record<"15min" | "5min", number> = {
+  "15min": 30,
+  "5min": 6,
+};
+// A chunk at or above this row count is indistinguishable from a clipped
+// one. Complete worst cases sit below (15min: 2,880 for 24/7; 5min: 1,728),
+// so a trip means either the window is oversized for the cap or FMP
+// lowered it — both demand resizing, not a quietly holed series.
+const INTRADAY_ROW_CAP_TRIPWIRE: Record<"15min" | "5min", number> = {
+  "15min": 2_950,
+  "5min": 1_900,
+};
+// Walking back stops after this many consecutive empty DAYS, which is how
+// the end of a symbol's history is detected rather than assumed. 90 days
+// clears any plausible holiday or provider gap (largest observed: 33.9d,
+// XAUUSD). Expressed in days, not windows: when the 5-minute chunk shrank
+// to 6 days (R0), a three-WINDOW streak would have quietly become an
+// 18-day stop and amputated any history behind a moderate gap.
+const EMPTY_WINDOW_CLEARANCE_DAYS = 90;
 // Safety ceiling only — it must never be the binding constraint, so it sits
 // above every confirmed provider floor. Measured 2026-07-29 by walking back
 // until history ended: forex begins 2010-01 (~6,050 days), XAUUSD 2013-07
@@ -701,16 +761,19 @@ async function fetchIntradayBars(
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
   const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
+  const chunkDays = INTRADAY_CHUNK_DAYS[timeframe];
+  const capTripwire = INTRADAY_ROW_CAP_TRIPWIRE[timeframe];
+  const emptyStreakLimit = Math.ceil(EMPTY_WINDOW_CLEARANCE_DAYS / chunkDays);
   const now = Date.now();
   let emptyStreak = 0;
 
   for (
-    let offset = INTRADAY_CHUNK_DAYS;
-    offset <= ceiling + INTRADAY_CHUNK_DAYS;
-    offset += INTRADAY_CHUNK_DAYS
+    let offset = chunkDays;
+    offset <= ceiling + chunkDays;
+    offset += chunkDays
   ) {
     const from = new Date(now - offset * 86_400_000);
-    const to = new Date(now - (offset - INTRADAY_CHUNK_DAYS) * 86_400_000);
+    const to = new Date(now - (offset - chunkDays) * 86_400_000);
     // Top-up mode: chunks walk backward, so the first chunk that ends
     // before the floor means everything older is already stored.
     if (sinceMs !== undefined && to.getTime() < sinceMs) {
@@ -724,9 +787,23 @@ async function fetchIntradayBars(
     endpoint.searchParams.set("to", isoDate(to));
     endpoint.searchParams.set("apikey", API_KEY!);
     const chunk = await fetchBars(endpoint);
+    if (chunk.length >= capTripwire) {
+      // A clipped chunk keeps its NEWEST rows, so the hole lands silently
+      // at the old end of the window and nothing downstream can tell a
+      // thin market from a truncated fetch — that is remediation 1b. Stop
+      // the run instead of caching a holed series the top-up will never
+      // refetch.
+      throw new Error(
+        `${providerSymbol} ${timeframe} chunk ${isoDate(from)}..${
+          isoDate(to)
+        } returned ${chunk.length} rows, at the provider's response cap — ` +
+          `possibly truncated; shrink INTRADAY_CHUNK_DAYS["${timeframe}"] ` +
+          `rather than caching a holed series`,
+      );
+    }
     if (chunk.length === 0) {
       emptyStreak += 1;
-      if (emptyStreak >= EMPTY_WINDOW_STREAK_LIMIT) {
+      if (emptyStreak >= emptyStreakLimit) {
         break;
       }
     } else {
