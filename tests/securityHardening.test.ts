@@ -692,3 +692,62 @@ describe("one resolver, one physics (the 2026-08-11 correctness fork)", () => {
     }
   });
 });
+
+// R1a slice 2 — one physics, the Deno-side halves (source pins: these
+// modules carry Deno globals and cannot enter the test graph, the same
+// discipline the D3 call-site scan above uses).
+describe("R1a slice 2 — live grading and construction share the sweep's physics", () => {
+  const writers = [
+    "supabase/functions/trade-analyzer/index.ts",
+    "supabase/functions/outcome-sync/index.ts",
+  ];
+
+  it("E1: both live writers resolve through the shared tiering rule, interval override after the bridge spread", () => {
+    for (const file of writers) {
+      const source = readFileSync(file, "utf8");
+      assert.match(
+        source,
+        /resolutionSeriesFor\(\{/,
+        `${file} must pick its resolution series through the one rule`,
+      );
+      assert.match(
+        source,
+        /\.\.\.fillOptionsFromRiskModel\(setup\.risk_model\),\s*\n\s*barIntervalMs: resolution\.barIntervalMs,/,
+        `${file} must override the interval AFTER the bridge spread so the chosen tier governs`,
+      );
+      // The old single-timeframe fetch must not quietly return.
+      assert.doesNotMatch(
+        source,
+        /fetchFmpBars\(\s*providerSymbol,\s*"15min",[^)]*\)\s*,?\s*\)\s*;\s*\n\s*\}\s*\n\s*const bars =/,
+        `${file} must fetch both series, not the 15-minute one alone`,
+      );
+    }
+  });
+
+  it("E3: setup construction anchors on the last COMPLETED primary bar, never the freshest 1-minute print", () => {
+    const loader = readFileSync(
+      "supabase/functions/trade-analyzer/marketLoader.ts",
+      "utf8",
+    );
+    assert.match(loader, /lastCompletedBar\(primary, primaryTimeframe\)/);
+    assert.match(loader, /latestTimeframe: primaryTimeframe/);
+    // The 1-minute-preferring picker is gone; the sweep's decision
+    // context (sweep.ts) anchors at 15min, and live now matches it.
+    assert.doesNotMatch(loader, /pickLatestTimeframe/);
+  });
+
+  it("E7: construction writes the protection mode and review window into the row the bridge reads", () => {
+    const analyzer = readFileSync(
+      "supabase/functions/trade-analyzer/index.ts",
+      "utf8",
+    );
+    assert.match(
+      analyzer,
+      /runnerProtection: calibration\.runnerProtection \?\? "breakeven",/,
+    );
+    assert.match(
+      analyzer,
+      /reviewWindowHours: calibration\.defaultReviewHours,/,
+    );
+  });
+});

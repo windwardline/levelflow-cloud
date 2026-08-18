@@ -24,7 +24,7 @@ D3 (two live resolvers with different physics) closed 2026-08-11 (#333)
 and stays closed — `tests/securityHardening.test.ts` pins both live call
 sites on `fillOptionsFromRiskModel(setup.risk_model)`.
 
-## E1 — resolution granularity: live 15-minute, corpus 5-minute
+## E1 — resolution granularity: live 15-minute, corpus 5-minute — **CLOSED (R1a slice 2)**
 
 **Live**: both writers fetch `fetchFmpBars(providerSymbol, "15min", …)`
 (index.ts:1724, outcome-sync/index.ts:112) — a single 45-day-lookback
@@ -67,7 +67,7 @@ field to the emit for symmetry. `fillOptionsFromRiskModel` grows the interval pa
 currently pin the exact one-argument shape). Byte cost is flat (2,304
 vs 3,000 rows per symbol per sync).
 
-## E2 — "no bars in the review window" is not a plan rejection
+## E2 — "no bars in the review window" is not a plan rejection — **live half CLOSED (R1a slice 2); sweep counter + door assertion remain (R1b)**
 
 **Live**: `evaluateSetupOutcome` returns `outcome: "unfilled"` when
 `createdBars.length === 0 && now > expiresAt` (replay.ts) — data absence
@@ -87,7 +87,7 @@ band (~2,386–2,784 cap: only the 15-minute series clips, ≤~14%, ratio
 in band), so the assertion must bind on absolute 5-minute rows/day, not
 only on the 5/15 ratio.
 
-## E3 — `market.latest`: 1-minute live, 15-minute decision bar in the sweep
+## E3 — `market.latest`: 1-minute live, 15-minute decision bar in the sweep — **CLOSED (R1a slice 2)**
 
 **Live**: `pickLatestTimeframe` prefers `1min` whenever present
 (marketLoader.ts:415), so `market.latest` is the last 1-minute bar and
@@ -166,7 +166,7 @@ cross-scan screen needs candidate timestamps only — also present. If
 the measured difference is material, whether the sweep should collapse
 in-line becomes a Phase 3 decision made on evidence.
 
-## E7 (discovered 2026-08-18) — the options bridge drops the runner-protection mode
+## E7 (discovered 2026-08-18) — the options bridge drops the runner-protection mode — **CLOSED (R1a slice 2)**
 
 Not on the program's list; found while mapping E1. The resolver's
 runner protection is a MODE (4c axis): `options?.runnerProtection ??
@@ -224,6 +224,34 @@ pre-bump take-profit/stop-loss rows stay R-less and the frontend is not
 cohort-scoped (`buildRecordBand` and `netRForSlice` read all rows), so
 the Insights Net R band under-counts exactly those rows — E2E debris
 only today, per the 2026-08-11 wipe. Carried on HANDOFF's small list.
+
+## Slice 2 closure record (2026-08-18)
+
+Shipped as one PR after slice 1, under `2026.08.18.one-physics`:
+
+- **E1**: `resolutionSeriesFor` in `replay.ts` is the ONE tiering rule —
+  5-minute when it reaches the setup's creation, else 15-minute — used by
+  both live writers (each now fetches both series per symbol; a thrown
+  fetch fails the setup for that run rather than silently degrading the
+  tier), and the resolver stamps `feedback.resolutionIntervalMs` on every
+  resolution so degraded rows are visible. The sweep's emit symmetry
+  rides with R1b.
+- **E2 (live half)**: the true no-bars expiry carries
+  `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
+  not. The sweep's distinct counter and `assertManifest`'s per-symbol
+  density assertion remain R1b.
+- **E3**: `market.latest` is the last COMPLETED primary-timeframe bar
+  (`lastCompletedBar`; the 1-minute-preferring picker is deleted); chart
+  feed and quote snapshot untouched.
+- **E7**: construction writes `runnerProtection` and `reviewWindowHours`
+  into `risk_model`; the bridge reads them with strict validation, and
+  pre-slice rows keep today's exact behavior, version-scoped.
+- Pins: behavioral in `tests/replayHarness.test.ts` (tiering, interval
+  stamp, no-bars marker, bridge reads, trail_tp1-through-the-bridge),
+  source-level in `tests/securityHardening.test.ts` for the Deno-side
+  halves. The pre-pin suite ran green with zero failures on the physics
+  change — the same producer-never-tested pattern as D2's register
+  entry, now closed for these paths too.
 
 ## Sequencing — three PRs, engine first
 

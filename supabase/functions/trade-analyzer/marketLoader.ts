@@ -164,20 +164,60 @@ async function fetchMarketContext(
     .filter((timeframe) => (timeframes[timeframe]?.length ?? 0) > 0);
   const primaryTimeframe = pickPrimaryTimeframe(timeframes);
   const primary = timeframes[primaryTimeframe] ?? daily;
-  const latestTimeframe = pickLatestTimeframe(timeframes);
-  const latestSource = timeframes[latestTimeframe] ?? primary;
+  // E3 (R1a slice 2): ONE decision anchor. `latest` used to be the last
+  // 1-minute bar whenever one existed, while the sweep's decision
+  // context anchors on the completed 15-minute decision bar — so live
+  // entries were placed against a price the measured corpus never saw
+  // (the corpus has no deep 1-minute history; that is §21's minute-bank
+  // program). Setup construction now anchors on the last COMPLETED bar
+  // of the PRIMARY timeframe — the information set every measured number
+  // was derived under. The chart feed (market-data) and the quote
+  // snapshot are untouched: display freshness is not decision input.
+  // When the minute bank matures into the corpus, both sides move
+  // together in one deliberate change.
+  const latest = lastCompletedBar(primary, primaryTimeframe) ??
+    primary.at(-1) ?? daily.at(-1)!;
 
   return {
     availableTimeframes,
     daily,
-    latest: latestSource.at(-1) ?? primary.at(-1) ?? daily.at(-1)!,
-    latestTimeframe,
+    latest,
+    latestTimeframe: primaryTimeframe,
     primary,
     primaryTimeframe,
     providerWarnings,
     quote,
     timeframes,
   };
+}
+
+// A bar is decision-grade only once its span has closed (LA-2's own
+// principle applied at load): the newest fetched intraday bar is usually
+// still forming, and the sweep's decision bar is complete by
+// construction. Daily completion is completeDaily's job upstream — a
+// completed daily bar's span extends past `now` for most of the day, so
+// the span test must not run on it.
+const INTRADAY_SPAN_MS: Partial<Record<Timeframe, number>> = {
+  "15min": 15 * 60 * 1000,
+  "1hour": 60 * 60 * 1000,
+  "4hour": 4 * 60 * 60 * 1000,
+};
+
+function lastCompletedBar(
+  bars: Bar[],
+  timeframe: Timeframe,
+): Bar | undefined {
+  const spanMs = INTRADAY_SPAN_MS[timeframe];
+  if (spanMs === undefined) {
+    return bars.at(-1);
+  }
+  const now = Date.now();
+  for (let index = bars.length - 1; index >= 0; index -= 1) {
+    if (bars[index].time + spanMs <= now) {
+      return bars[index];
+    }
+  }
+  return undefined;
 }
 
 async function fetchFmpQuoteSnapshot(
@@ -404,27 +444,6 @@ function pickPrimaryTimeframe(
     return "1hour";
   }
   if ((timeframes["4hour"]?.length ?? 0) >= 60) {
-    return "4hour";
-  }
-  return "1day";
-}
-
-function pickLatestTimeframe(
-  timeframes: Partial<Record<Timeframe, Bar[]>>,
-): Timeframe {
-  if ((timeframes["1min"]?.length ?? 0) > 0) {
-    return "1min";
-  }
-  if ((timeframes["5min"]?.length ?? 0) > 0) {
-    return "5min";
-  }
-  if ((timeframes["15min"]?.length ?? 0) > 0) {
-    return "15min";
-  }
-  if ((timeframes["1hour"]?.length ?? 0) > 0) {
-    return "1hour";
-  }
-  if ((timeframes["4hour"]?.length ?? 0) > 0) {
     return "4hour";
   }
   return "1day";

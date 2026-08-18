@@ -113,6 +113,16 @@ export type ReplayFillOptions = {
  * risk_model, and those numbers — not a re-model at sync time — are what
  * the venue-fill options replay. A row without them (or with malformed
  * ones) resolves v1-style: an empty object, never an invented number.
+ *
+ * E7 (R1a slice 2): the same decision-time discipline now covers the
+ * runner-protection MODE and the review window. Both live writers used
+ * to grade every row with the resolver's "breakeven" fallback and the
+ * calibration AT RESOLUTION TIME, while the calibration ships
+ * trail_tp1/hold for most categories and the sweep grades with the
+ * decision-time values — the corpus measured one physics, the cohort
+ * was graded under another. Rows written before the field exists keep
+ * today's behavior exactly (breakeven, current calibration), scoped by
+ * the ANALYZER_VERSION boundary.
  */
 export function fillOptionsFromRiskModel(
   riskModel: unknown,
@@ -120,7 +130,8 @@ export function fillOptionsFromRiskModel(
   if (typeof riskModel !== "object" || riskModel === null) {
     return {};
   }
-  const quality = (riskModel as Record<string, unknown>).executionQuality;
+  const model = riskModel as Record<string, unknown>;
+  const quality = model.executionQuality;
   if (typeof quality !== "object" || quality === null) {
     return {};
   }
@@ -135,13 +146,25 @@ export function fillOptionsFromRiskModel(
   ) {
     return {};
   }
-  return {
+  const options: ReplayFillOptions = {
     barIntervalMs: 15 * 60 * 1000,
     gapExitSlippage: slippage,
     halfSpread: spread / 2,
     roundTripCost: commission,
     sameBarProtectionArming: true,
   };
+  if (
+    model.runnerProtection === "breakeven" ||
+    model.runnerProtection === "hold" ||
+    model.runnerProtection === "trail_tp1"
+  ) {
+    options.runnerProtection = model.runnerProtection;
+  }
+  const reviewWindowHours = Number(model.reviewWindowHours);
+  if (Number.isFinite(reviewWindowHours) && reviewWindowHours > 0) {
+    options.reviewHours = reviewWindowHours;
+  }
+  return options;
 }
 
 // 2g (2026-08-09): the one R accountant — moved here from sweep.ts with
@@ -179,6 +202,28 @@ export function realizedRFromLegs(input: {
     input.riskDistance;
   const costR = (2 * input.perLegCost) / input.riskDistance;
   return Number((bankedR + exitR - costR).toFixed(4));
+}
+
+// E1 (R1a slice 2): the ONE resolution-tiering rule, shared by both live
+// writers and mirroring the sweep's own (sweep.ts, FR-5): resolve on the
+// 5-minute series when it reaches back to the setup's creation, else on
+// the 15-minute series — with the tier recorded per row by the resolver
+// (feedback.resolutionIntervalMs), so a cohort read can tell finely
+// graded rows from degraded ones exactly as the corpus can. The 5-minute
+// fetch is shallower than the 15-minute one (single-response floor
+// measured 2026-08-18: >=2,304 rows ~ 8 days at 24/7 density), so an old
+// setup legitimately degrades to 15-minute physics rather than being
+// graded from a series that cannot see its fill window.
+export function resolutionSeriesFor(input: {
+  createdAtMs: number;
+  fifteenMinute: ReplayBar[];
+  fiveMinute: ReplayBar[];
+}): { barIntervalMs: number; bars: ReplayBar[] } {
+  const { createdAtMs, fifteenMinute, fiveMinute } = input;
+  if (fiveMinute.length > 0 && fiveMinute[0].time <= createdAtMs) {
+    return { barIntervalMs: 5 * 60 * 1000, bars: fiveMinute };
+  }
+  return { barIntervalMs: 15 * 60 * 1000, bars: fifteenMinute };
 }
 
 export function evaluateSetupOutcome(
@@ -220,8 +265,16 @@ export function evaluateSetupOutcome(
         feedback: {
           expiresAt: new Date(expiresAt).toISOString(),
           legs: [],
+          // E2 (R1a slice 2): data absence is not a market verdict. This
+          // branch means the provider had NO bars inside the review
+          // window — a different fact from "bars existed and the limit
+          // never filled" (the branch below), and one the cohort must be
+          // able to filter. The outcome stays "unfilled" for schema
+          // stability; the marker carries the distinction.
+          noBarsInReviewWindow: true,
           reason:
             "No post-recommendation bars were available before the setup review window expired.",
+          resolutionIntervalMs: barIntervalMs,
           source: "price_path_review",
         },
         legs: [],
@@ -259,6 +312,7 @@ export function evaluateSetupOutcome(
           legs: [],
           reason:
             "Limit entry did not fill before the setup review window expired.",
+          resolutionIntervalMs: barIntervalMs,
           source: "price_path_review",
         },
         legs: [],
@@ -442,6 +496,7 @@ export function evaluateSetupOutcome(
           legs,
           maxAdverseMove: roundPrice(maxAdverseMove),
           maxFavorableMove: roundPrice(maxFavorableMove),
+          resolutionIntervalMs: barIntervalMs,
           source: "price_path_review",
           tp1Hit: tp1Hit || (tp1Touched && outcome === "take_profit"),
         },
@@ -482,6 +537,7 @@ export function evaluateSetupOutcome(
               legs,
               maxAdverseMove: roundPrice(maxAdverseMove),
               maxFavorableMove: roundPrice(maxFavorableMove),
+              resolutionIntervalMs: barIntervalMs,
               sameBarArming: true,
               source: "price_path_review",
               tp1Hit: true,
@@ -526,6 +582,7 @@ export function evaluateSetupOutcome(
         reason: tp1Hit
           ? "TP1 was reached, but the runner target was not hit before the review window ended."
           : "Entry filled, but neither target nor stop was reached before the setup review window ended.",
+        resolutionIntervalMs: barIntervalMs,
         source: "price_path_review",
         tp1Hit,
       },

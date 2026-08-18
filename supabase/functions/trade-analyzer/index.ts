@@ -23,6 +23,7 @@ import {
   evaluateSetupOutcome,
   fillOptionsFromRiskModel,
   getSetupExpiryTime,
+  resolutionSeriesFor,
   type ResolvedOutcome,
 } from "./replay.ts";
 import { type ExecutionQuality } from "./executionQuality.ts";
@@ -1302,6 +1303,17 @@ async function analyzeSetup(
       dailyAtr: averageTrueRange(market.daily, 14),
       executionQuality: pricePlan.executionQuality,
       futuresContract: pricePlan.contractSpec,
+      // E7 (R1a slice 2): the resolver's runner protection is a MODE
+      // (4c axis) and the resolution's review window is a DECISION-TIME
+      // fact — both must ride the row, because the grading bridge
+      // (fillOptionsFromRiskModel) reads decision-time facts from the
+      // row, never a re-model at sync time. Before this, the bridge had
+      // nothing to read: both live writers graded every row with the
+      // resolver's "breakeven" fallback while the calibration ships
+      // trail_tp1/hold for most categories — the corpus measured one
+      // physics and the cohort was graded under another.
+      runnerProtection: calibration.runnerProtection ?? "breakeven",
+      reviewWindowHours: calibration.defaultReviewHours,
       positionSizingStatus: "not_calculated",
       positionSizingReason:
         "Levelflow records directional market setups only; position sizing should be handled in the trader's execution platform.",
@@ -1718,30 +1730,51 @@ async function refreshUserOutcomes(
         continue;
       }
 
-      if (!barsByProviderSymbol.has(providerSymbol)) {
-        barsByProviderSymbol.set(
-          providerSymbol,
-          fetchFmpBars(
-            providerSymbol,
-            "15min",
-            recordAnalyzerEvent,
-            fetchWithTimeout,
-          ),
-        );
+      // E1 (R1a slice 2): both series per symbol, resolved on the finest
+      // one that reaches the setup's creation — the sweep's own tiering
+      // (FR-5), so live grading and the corpus share one physics. A
+      // thrown fetch fails the setup for THIS run (transient — the next
+      // refresh retries with full fidelity) rather than silently
+      // degrading the tier.
+      for (const timeframe of ["15min", "5min"] as const) {
+        const cacheKey = `${providerSymbol}:${timeframe}`;
+        if (!barsByProviderSymbol.has(cacheKey)) {
+          barsByProviderSymbol.set(
+            cacheKey,
+            fetchFmpBars(
+              providerSymbol,
+              timeframe,
+              recordAnalyzerEvent,
+              fetchWithTimeout,
+            ),
+          );
+        }
       }
-      const bars = await barsByProviderSymbol.get(providerSymbol)!;
+      const [fifteenMinute, fiveMinute] = await Promise.all([
+        barsByProviderSymbol.get(`${providerSymbol}:15min`)!,
+        barsByProviderSymbol.get(`${providerSymbol}:5min`)!,
+      ]);
+      const resolution = resolutionSeriesFor({
+        createdAtMs: new Date(setup.created_at).getTime(),
+        fifteenMinute,
+        fiveMinute,
+      });
       // ONE resolver, one physics. This in-request refresh graded with
       // the cost-free v1 touch-fill model while outcome-sync graded the
       // same rows with the venue's fills — so whether a setup was judged
       // honestly depended on whether its owner opened the app before the
       // hourly cron reached it, and whichever ran first owned the row
       // permanently. Batch 4 wired the options at one call site and
-      // missed this one.
+      // missed this one. The interval override rides AFTER the spread so
+      // the tier chosen above governs regardless of the bridge's default.
       const evaluation = evaluateSetupOutcome(
         setup,
-        bars,
+        resolution.bars,
         Date.now(),
-        fillOptionsFromRiskModel(setup.risk_model),
+        {
+          ...fillOptionsFromRiskModel(setup.risk_model),
+          barIntervalMs: resolution.barIntervalMs,
+        },
       );
       if (evaluation.state === "pending") {
         summary.pending += 1;
