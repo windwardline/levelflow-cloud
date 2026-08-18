@@ -94,14 +94,16 @@ step leaves every signed-in operator working behind a closed door.
 > Keychain, run the script, done.
 >
 > The script's failure modes after #363 (the round-2 fold-forward): no
-> credential value ever rides argv in ANY `scripts/ops` script — which
-> is this repo's ENTIRE shell surface: all five `.sh` files live there,
-> and the pin sweeps every TRACKED shell script (`git ls-files`, so
+> credential value ever rides argv in ANY tracked shell script — the
+> pin sweeps every TRACKED `.sh` wherever it lives (`git ls-files`, so
 > `.github` cannot be silently skipped and gitignored scratch files
 > cannot join) for bearer AND request-body forms, with the five known
-> scripts asserted present by path — this stays true by test rather
-> than by claim (bearers and the PATCH body travel by 600-mode files).
-> The law's
+> `scripts/ops` scripts (today the repo's whole shell surface) asserted
+> present by path — this stays true by test rather than by claim.
+> Bearers, the PATCH body, AND query-string keys travel by 600-mode
+> files: a credential inside a URL is still argv (#363 round 6 — the
+> cache-rebuild runbook's probe now uses `curl -K` for exactly that
+> reason). The law's
 > scope is the STUDIO machine, where argv is world-readable in a
 > multi-process session — CI argv is deliberately outside it:
 > `deploy.yml` passes `--password` to the Supabase CLI on a

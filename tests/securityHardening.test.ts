@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { cleanExternalUrl } from "../src/lib/urlSafety";
@@ -342,9 +342,13 @@ describe("security hardening", () => {
     // prefix filters silently dropped .github (".github".startsWith(
     // ".git") — the one directory where CI credentials flow). Tracked
     // files are the law's exact surface, deterministically.
+    // existsSync guards the index-vs-worktree gap (#363 round 6): a
+    // tracked script deleted but not yet `git rm`'d must not crash the
+    // suite with ENOENT — while `git add` alone is enough to bring a
+    // new script under the law.
     const shellScripts = execSync("git ls-files -z", { encoding: "utf8" })
       .split("\0")
-      .filter((file) => file.endsWith(".sh"));
+      .filter((file) => file.endsWith(".sh") && existsSync(file));
     // HANDOFF's exhaustiveness claim, pinned by PATH rather than by
     // count: the five known scripts must be in the swept set, so a
     // relocation cannot make the loop iterate past them and stay green.
@@ -372,12 +376,16 @@ describe("security hardening", () => {
       // flag whose double-quoted argument contains an interpolation,
       // ANYWHERE in the quotes — the natural inline-JSON shape
       // -d "{\"smtp_pass\":\"$KEY\"}" is the one that matters, not just
-      // round 1's literal spelling. Deliberately eager: a future
-      // `psql -d "$DBNAME"` would false-fire, and for this sweep that
-      // is the right side to err on — bodies travel by --data @file.
+      // round 1's literal spelling, so the argument matcher traverses
+      // escaped quotes (#363 round 6: [^"]* stopped at the first \" and
+      // let exactly that shape through). Deliberately eager: a future
+      // `psql -d "$DBNAME"` would false-fire — and likelier still,
+      // `awk -F "$SEP"` or `grep -F "$needle"` — and for this sweep a
+      // cheap false red is the right side to err on; bodies travel by
+      // --data @file.
       assert.doesNotMatch(
         source,
-        /(^|\s)(-d|--data(-raw|-binary|-ascii|-urlencode)?|--json|-F|--form)\s*"[^"]*\$/,
+        /(^|\s)(-d|--data(-raw|-binary|-ascii|-urlencode)?|--json|-F|--form)\s*"(?:[^"\\]|\\.)*\$/,
         `${script} must not pass an inline "$…" request body — bodies travel by --data @file`,
       );
     }

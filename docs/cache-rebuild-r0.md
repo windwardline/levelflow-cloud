@@ -31,9 +31,16 @@ per symbol, and was never carried by the defect. Leave it running.
   **200** — no 429. If this runbook is being executed much later, re-run
   one cheap probe first:
 
+  The key rides a 600-mode curl config read with `-K`, never the URL on
+  argv — the query-string form is inside the never-argv law's scope
+  (#363 round 6; `ps -ax` on the studio machine shows argv, and a key
+  inside a URL is still a key):
+
   ```sh
-  FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w)" \
-    sh -c 'curl -s -o /dev/null -w "%{http_code}\n" "https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=2026-09-10&to=2026-09-12&apikey=$FMP_API_KEY"'
+  f="$(mktemp)" && chmod 600 "$f" && \
+    printf 'url = "https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=2026-09-10&to=2026-09-12&apikey=%s"\n' \
+      "$(security find-generic-password -a peacock -s fmp-api-key -w)" > "$f" && \
+    curl -sS -o /dev/null -w "%{http_code}\n" -K "$f"; rm -f "$f"
   ```
 
 - **The `to`-inclusivity and BOTH caps are SETTLED, measured 2026-08-18:**

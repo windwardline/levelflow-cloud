@@ -199,7 +199,12 @@ log "vault.news_sync_token synced (${DB_HOST})"
 # itself is unhealthy — the token sync stands either way, and a 200 here
 # proves the gate, not the depth of the ingestion behind it.
 verify_status() {
-  curl -s -o /dev/null -w "%{http_code}" --max-time 180 -X POST \
+  # -sS, not -s (#363 round 6): on a transport failure curl's own error
+  # line names WHICH failure — timeout vs DNS vs reset — and nothing on
+  # that line is a credential (the bearer is in a header file, not the
+  # URL). Suppressing it re-collapsed exactly the distinction the "000"
+  # arm exists to report.
+  curl -sS -o /dev/null -w "%{http_code}" --max-time 180 -X POST \
     "https://${PROJECT_REF}.supabase.co/functions/v1/news-calendar" \
     -H @"$VERIFY_AUTH_FILE" \
     -H "Content-Type: application/json" \
