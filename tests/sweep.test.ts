@@ -11,6 +11,7 @@ import {
   realizedRFromLegs,
   type ResolutionLeg,
 } from "../supabase/functions/trade-analyzer/replay.ts";
+import { treasuryVisibleAtMs } from "../supabase/functions/trade-analyzer/macroRates.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 // summarizeSweepOutcomes only reads .outcome and .realizedR (sweep.ts:373-395),
@@ -29,11 +30,13 @@ function outcomeRecord(
     exitAtMs: 0,
     filledAtMs: null,
     legs: [],
+    macroAdjustment: 0,
     maxAdverseMove: null,
     maxFavorableMove: null,
     newsPenalty: 0,
     outcome,
     realizedR,
+    resolutionIntervalMs: 900_000,
     riskDistance: 1,
     regime: "trend",
     rewardRisk: 0,
@@ -151,6 +154,14 @@ describe("replay sweep", () => {
       baseline.outcomes.some((record) => record.filledAtMs !== null),
       "fixture must fill on 15-minute physics for the pin to discriminate",
     );
+    // Emit tier symmetry (R1b): every corpus row states the tier that
+    // graded it, exactly as the live writers' feedback stamp does.
+    assert.ok(
+      baseline.outcomes.every((record) =>
+        record.resolutionIntervalMs === 900_000
+      ),
+      "15-minute physics must stamp the 15-minute tier on every row",
+    );
 
     // A 5-minute corpus that BEGINS after every decision instant. The
     // old admission (mere non-emptiness) graded every decision from an
@@ -180,6 +191,16 @@ describe("replay sweep", () => {
       reaching.outcomes.every((record) => record.filledAtMs === null),
       "an admitted 5-minute stream must govern grading",
     );
+    // These rows resolve through the resolver's no-bars branch, and the
+    // emit carries both the admitted tier and the data-absence marker —
+    // the exact columns a cohort read filters on (E2/R1b).
+    assert.ok(
+      reaching.outcomes.every((record) =>
+        record.resolutionIntervalMs === 300_000 &&
+        record.noBarsInReviewWindow === true
+      ),
+      "no-bars rows must carry the 5-minute tier and the absence marker",
+    );
 
     // The positive physics (#362 round 4, smaller item — the short
     // corpus above proves admission, not use, since the old rule would
@@ -201,10 +222,82 @@ describe("replay sweep", () => {
       covered.outcomes.some((record) => record.filledAtMs !== null),
       "a covering 5-minute stream must actually fill",
     );
+    assert.ok(
+      covered.outcomes.every((record) =>
+        record.resolutionIntervalMs === 300_000
+      ),
+      "an admitted covering stream must stamp the 5-minute tier",
+    );
     assert.notDeepStrictEqual(
       covered.outcomes,
       baseline.outcomes,
       "an admitted, covering 5-minute stream must grade differently from 15-minute physics",
+    );
+  });
+
+  it("E6 (R1b): the historical Treasury curve steers each decision's score through the live arithmetic, at decision-time visibility", () => {
+    const base = {
+      calibrationOverride: {
+        blockedRegimes: [],
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      captureAll: true,
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    };
+    const without = simulateSymbol({ ...base });
+    assert.ok(without.outcomes.length > 0);
+    assert.ok(
+      without.outcomes.every((record) => record.macroAdjustment === 0),
+      "no visible curve must score as the live outage does — adjustment 0",
+    );
+
+    // Two rows fully visible before the corpus (+10 bps: rising, >=8 —
+    // magnitude 2; EURUSD's rate-aligned side is sell), then a mid-corpus
+    // reversal (-20 bps) that becomes visible only from the New York
+    // midnight after its label date. Every row's expected adjustment is
+    // derivable from its own decision instant, which pins the visibility
+    // rule and the moving pointer end to end.
+    const flipRow = {
+      dateMs: startTime + 2 * 86_400_000,
+      tenYear: 3.9,
+      twoYear: 3.7,
+    };
+    const withCurve = simulateSymbol({
+      ...base,
+      treasuryRates: [
+        { dateMs: startTime - 10 * 86_400_000, tenYear: 4.0, twoYear: 3.8 },
+        { dateMs: startTime - 9 * 86_400_000, tenYear: 4.1, twoYear: 3.85 },
+        flipRow,
+      ],
+    });
+    const flipVisibleAt = treasuryVisibleAtMs(flipRow.dateMs);
+    assert.equal(withCurve.outcomes.length, without.outcomes.length);
+    let beforeFlip = 0;
+    let afterFlip = 0;
+    for (let index = 0; index < withCurve.outcomes.length; index += 1) {
+      const record = withCurve.outcomes[index];
+      const bare = without.outcomes[index];
+      assert.equal(record.time, bare.time);
+      const risingVisible = record.time < flipVisibleAt;
+      const expected = (record.side === "sell" ? 2 : -2) *
+        (risingVisible ? 1 : -1);
+      assert.equal(record.macroAdjustment, expected);
+      assert.equal(
+        record.confidenceScore - bare.confidenceScore,
+        expected,
+        "the adjustment must flow through the one scoring function",
+      );
+      if (risingVisible) beforeFlip += 1;
+      else afterFlip += 1;
+    }
+    assert.ok(
+      beforeFlip > 0 && afterFlip > 0,
+      "the fixture must exercise both sides of the visibility flip",
     );
   });
 

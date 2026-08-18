@@ -31,7 +31,16 @@ import {
   createByteBudget,
   readJsonWithBudget,
 } from "./fmpByteBudget.ts";
-import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
+import {
+  buildSweepManifest,
+  seriesFacts,
+  type SeriesFacts,
+  type SweepConditions,
+} from "./sweepManifest.ts";
+import {
+  type DatedTreasuryRow,
+  parseTreasuryRow,
+} from "../supabase/functions/trade-analyzer/macroRates.ts";
 import {
   CALENDAR_CLOCK,
   type CrossSeriesClock,
@@ -151,6 +160,7 @@ async function main() {
     "regimeBlk",
     "noConsensus",
     "planRejected",
+    "unresolv",
     "belowConf",
     "belowPayoff",
     "setups",
@@ -177,6 +187,20 @@ async function main() {
   const newsEvents = args.discover
     ? []
     : await loadEconomicCalendar(args.cacheDir);
+  // E6 (R1b): the historical Treasury curve, one rolling store shared by
+  // every symbol — each decision instant scores under the two most recent
+  // rows visible at that instant (macroRates.ts), the same arithmetic the
+  // live analyzer runs on its fetch's two most recent rows.
+  const treasuryRates = args.discover
+    ? []
+    : await loadTreasuryRates(args.cacheDir);
+  // The three E6 terms this corpus is measured under — hashed into the
+  // manifest so readers can refuse a corpus measured under other terms.
+  const conditions: SweepConditions = {
+    macroAdjustment: "historical-treasury-curve",
+    providerWarningCount: "zero-by-construction",
+    weightAdjustment: "raw-engine-zero",
+  };
 
   // 3c/3d: folds are COMMON-ORIGIN calendar windows over the corpus's own
   // measured span — every symbol shares the same three boundaries, so
@@ -438,6 +462,7 @@ async function main() {
           primaryBars: split.bars,
           stepBars: args.step,
           symbol,
+          treasuryRates,
           warmupBars: split.warmupBars,
         });
         if (emitStream) {
@@ -463,6 +488,7 @@ async function main() {
           String(result.rejections.regimeBlocked + result.rejections.regimeGated),
           String(result.rejections.noConsensus),
           String(result.rejections.planRejected),
+          String(result.rejections.unresolvable),
           String(result.rejections.belowConfidence),
           String(result.rejections.belowPayoff),
           String(result.summary.total),
@@ -487,6 +513,7 @@ async function main() {
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
       clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      conditions,
       days: args.days,
       folds: classFolds ? undefined : folds,
       ...(classFolds && {
@@ -590,6 +617,73 @@ async function fetchCalendarEvents(
   events.sort((first, second) => first.time - second.time);
   console.log(`Fetched ${events.length} medium/high scheduled events.`);
   return events;
+}
+
+// E6 (R1b): the daily 2Y/10Y Treasury curve for the replay macro join.
+// FMP's treasury history reaches back past the calendar's 2013 floor;
+// decision points before the first visible row score stance "unavailable",
+// the live outage semantics. Cached as a rolling store like bars and the
+// calendar — CALENDAR_CLOCK because the rows are date labels in true UTC,
+// never New-York-normalized bar stamps.
+async function loadTreasuryRates(
+  cacheDir: string | undefined,
+): Promise<DatedTreasuryRow[]> {
+  const anchor = isoDate(new Date());
+  return loadRollingSeries<DatedTreasuryRow>({
+    anchor,
+    cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
+    clock: CALENDAR_CLOCK,
+    fetchFull: () => fetchTreasuryRates(Date.parse("2013-01-01T00:00:00Z")),
+    fetchSince: (sinceMs) => fetchTreasuryRates(sinceMs),
+    key: "treasury-rates",
+    timeOf: (row) => row.dateMs,
+  });
+}
+
+async function fetchTreasuryRates(
+  startMs: number,
+): Promise<DatedTreasuryRow[]> {
+  const rows: DatedTreasuryRow[] = [];
+  // ~250 rows per year-sized chunk; the rolling store's merge dedupes the
+  // inclusive chunk-boundary dates by dateMs.
+  const chunkMs = 365 * 86_400_000;
+  for (let from = startMs; from < Date.now(); from += chunkMs) {
+    const endpoint = new URL(`${FMP_API_BASE_URL}/treasury-rates`);
+    endpoint.searchParams.set("from", isoDate(new Date(from)));
+    endpoint.searchParams.set(
+      "to",
+      isoDate(new Date(Math.min(from + chunkMs, Date.now()))),
+    );
+    endpoint.searchParams.set("apikey", API_KEY!);
+    const response = await fetchFmpWithRetry(() => fetch(endpoint), {
+      paceMs: FMP_PACE_MS,
+    });
+    if (!response.ok) {
+      // I3, verbatim from the calendar: a warned-and-continued hole would
+      // be merged and pinned as the anchor day's truth, and later top-ups
+      // never revisit it — one transient failure would permanently hole
+      // the macro join under every future measurement. A run that cannot
+      // see the whole curve stops.
+      throw new Error(
+        `Treasury-rate fetch failed (${response.status}) for ${
+          endpoint.searchParams.get("from")
+        }..${endpoint.searchParams.get("to")}`,
+      );
+    }
+    const payload = await readJsonWithBudget(response, budget());
+    if (Array.isArray(payload)) {
+      for (const raw of payload) {
+        const row = parseTreasuryRow(raw);
+        if (row) {
+          rows.push(row);
+        }
+      }
+    }
+    await sleep(150);
+  }
+  rows.sort((first, second) => first.dateMs - second.dateMs);
+  console.log(`Fetched ${rows.length} Treasury-curve rows.`);
+  return rows;
 }
 
 // Positioning history is weekly and slow-moving, so it caches by contract

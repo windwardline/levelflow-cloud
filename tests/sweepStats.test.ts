@@ -193,6 +193,11 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       anchor: "2026-08-10",
       barRejections: {},
       clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      conditions: {
+        macroAdjustment: "historical-treasury-curve",
+        providerWarningCount: "zero-by-construction",
+        weightAdjustment: "raw-engine-zero",
+      },
       days: 365,
       generatedAt: "2026-08-10T04:00:00.000Z",
       grid: [{}],
@@ -353,6 +358,150 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
       () => assertManifestedCorpus(writeWithManifest(manifest)),
       /registers against.*4h\s+shift.*mixed-clock signature/s,
     );
+  });
+});
+
+// R1b: the stated-conditions door (E6) and the per-symbol 5-minute
+// density door (E2's corpus half — the assertion that carries
+// verify-cache-clock's blind band; constants measured 2026-08-11..17,
+// provenance in sweepStats.ts).
+describe("verifyManifest — stated conditions and 5-minute density (R1b)", () => {
+  const facts = (count: number, spanDays: number) => ({
+    clock: { verdict: "indeterminate" },
+    count,
+    firstTime: 0,
+    largestGapMs: 0,
+    lastTime: spanDays * 86_400_000,
+    spanDays,
+  });
+
+  const goodConditions = {
+    macroAdjustment: "historical-treasury-curve",
+    providerWarningCount: "zero-by-construction",
+    weightAdjustment: "raw-engine-zero",
+  };
+
+  const writeCorpus = (input: {
+    conditions?: Record<string, unknown>;
+    series: Record<string, unknown>;
+    symbol: string;
+  }) => {
+    const manifest: Record<string, unknown> = {
+      analyzerVersion: "2026.08.18.test",
+      anchor: "2026-08-18",
+      barRejections: {},
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      ...(input.conditions && { conditions: input.conditions }),
+      days: 365,
+      generatedAt: "2026-08-18T04:00:00.000Z",
+      grid: [{}],
+      stepBars: 16,
+      symbols: [{
+        calibration: {},
+        calibrationHash: sha256Hex(stableStringify({})),
+        providerSymbol: input.symbol,
+        series: input.series,
+        symbol: input.symbol,
+      }],
+      trainShare: 0.6,
+      warmupBars: 240,
+    };
+    const dir = mkdtempSync(join(tmpdir(), "sweepstats-r1b-"));
+    const emitPath = join(dir, "run.jsonl");
+    writeFileSync(emitPath, JSON.stringify(row("take_profit", 1)) + "\n");
+    const { generatedAt: _generatedAt, ...hashedPayload } = manifest;
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify({
+        ...manifest,
+        manifestHash: sha256Hex(stableStringify(hashedPayload)),
+      }) + "\n",
+    );
+    return emitPath;
+  };
+
+  it("refuses a current-clock corpus with no conditions block", () => {
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          series: { "15min": facts(960, 10) },
+          symbol: "EURUSD",
+        })),
+      /no conditions block.*re-swept, not aggregated/s,
+    );
+  });
+
+  it("refuses a corpus stating terms this build's readers do not understand", () => {
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: {
+            ...goodConditions,
+            weightAdjustment: "learning-simulated",
+          },
+          series: { "15min": facts(960, 10) },
+          symbol: "EURUSD",
+        })),
+      /conditions\.weightAdjustment is "learning-simulated"/,
+    );
+  });
+
+  it("refuses a structurally dense class under its absolute 5-minute floor", () => {
+    // Crypto measured 287.9-288.0 rows/day across the class; 200/day is a
+    // clipped, holed, or wrong-symbol series, whatever the ratio says.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": facts(670, 10), "5min": facts(2_000, 10) },
+          symbol: "BTCUSD",
+        })),
+      /BTCUSD 5-minute series runs 200\.0 rows\/day.*under the crypto floor of 260/s,
+    );
+  });
+
+  it("refuses a clipped 15-minute primary through the tight ratio — the cache instrument's blind band", () => {
+    // 340/96 = 3.54: a healthy 5-minute series against a primary clipped
+    // ~15% — inside verify-cache-clock's [2.5, 3.5]-with-min-rows
+    // tolerance on arbitrary stores, outside the corpus door's band.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": facts(960, 10), "5min": facts(3_400, 10) },
+          symbol: "EURUSD",
+        })),
+      /EURUSD 5min\/15min density 3\.54.*outside \[2\.7, 3\.25\]/s,
+    );
+  });
+
+  it("admits honest shapes: dense-and-coherent, trade-sparse, absent 5-minute, sub-week span", () => {
+    // Dense and coherent: 288/96 = 3.0 at full crypto density.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": facts(960, 10), "5min": facts(2_880, 10) },
+      symbol: "BTCUSD",
+    }));
+    // Trade-sparse (XC prints ~8.6 rows/day where trades occurred): the
+    // ratio gate self-excludes it and futures carries no absolute floor.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": facts(30, 10), "5min": facts(90, 10) },
+      symbol: "XC",
+    }));
+    // Absent 5-minute series is honest degradation, not a density lie.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": facts(960, 10) },
+      symbol: "BTCUSD",
+    }));
+    // A sub-week span cannot separate holiday from hole; the door is
+    // silent rather than guessing.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": facts(192, 2), "5min": facts(400, 2) },
+      symbol: "BTCUSD",
+    }));
   });
 });
 

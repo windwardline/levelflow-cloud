@@ -1283,6 +1283,65 @@ describe("R1a slice 2 — one physics", () => {
     );
   });
 
+  it("E2 (R1b): the marker is a PRESENCE claim, not the containment set — bars overlapping an uncontainable window resolve unmarked", () => {
+    const setup = buildSetup({ entry: 98, side: "buy", stop: 96, target: 103 });
+    // A review window shorter than one bar span — the live shape is a
+    // setup created inside the final bar before the weekly close, where
+    // getSetupExpiryTime clamps the window under 15 minutes. No bar can
+    // ever be CONTAINED (complete before expiry), so #362 round 7's
+    // containment-as-presence marked every such row as a provider gap
+    // over a feed that was fully dense.
+    const shortWindow = { reviewHours: 0.1 };
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt, 0.1);
+    const farNow = expiresAt + 60 * 60 * 1000;
+
+    // Bars overlap the window — one straddling creation, one starting
+    // inside it — but neither completes before the 6-minute expiry.
+    const overlapping = evaluateSetupOutcome(
+      setup,
+      [buildBar(-10, 101, 99, 100), buildBar(0, 101, 99, 100)],
+      farNow,
+      shortWindow,
+    );
+    assert.equal(overlapping.state, "resolved");
+    assert.equal(
+      overlapping.state === "resolved" ? overlapping.outcome : null,
+      "unfilled",
+    );
+    assert.equal(
+      overlapping.state === "resolved"
+        ? overlapping.feedback.noBarsInReviewWindow
+        : null,
+      undefined,
+    );
+    // The sentence is the grading-law fact, never the data-absence claim.
+    assert.match(
+      String(
+        overlapping.state === "resolved" ? overlapping.feedback.reason : "",
+      ),
+      /none completed inside it/,
+    );
+
+    // The provider's bars sit entirely OUTSIDE the window: that is data
+    // absence even though the array is non-empty, and the marker fires.
+    const outside = evaluateSetupOutcome(
+      setup,
+      [buildBar(60, 101, 99, 100)],
+      farNow,
+      shortWindow,
+    );
+    assert.equal(
+      outside.state === "resolved"
+        ? outside.feedback.noBarsInReviewWindow
+        : null,
+      true,
+    );
+    assert.match(
+      String(outside.state === "resolved" ? outside.feedback.reason : ""),
+      /No post-recommendation bars were available/,
+    );
+  });
+
   it("E7: the bridge reads the row's stored protection mode and review window", () => {
     const base = {
       estimatedCommission: 0.1,

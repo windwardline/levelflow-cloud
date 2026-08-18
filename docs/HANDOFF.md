@@ -93,32 +93,41 @@ step leaves every signed-in operator working behind a closed door.
 > removed. Rotation from now on, for both credentials: rotate in the
 > Keychain, run the script, done.
 >
-> The script's failure modes after #363 (the round-2 fold-forward): no
-> credential value ever rides argv in ANY tracked shell script — the
-> pin sweeps every TRACKED `.sh` wherever it lives (`git ls-files`, so
-> `.github` cannot be silently skipped and gitignored scratch files
-> cannot join) for bearer AND request-body forms, with the five known
-> `scripts/ops` scripts (today the repo's whole shell surface) asserted
-> present by path — this stays true by test rather than by claim.
-> Bearers, the PATCH body, AND query-string keys travel by 600-mode
-> files: a credential inside a URL is still argv (#363 round 6 — the
-> cache-rebuild runbook's probe now uses `curl -K` for exactly that
-> reason), and header, body, and URL-query forms are all pinned in
-> the shell sweep — the header pin covers any interpolated value, not
-> just the Bearer spelling. One
-> boundary stated plainly (#363 round 7): fenced commands in `.md`
+> **The argv law and its scope** (#363, nine rounds; reflowed after the
+> post-merge round said this paragraph read as a changelog, not a law):
+> no credential value ever rides argv in ANY tracked shell script — not
+> as a bearer or generic header, not in a request body, not in a URL
+> query string (a credential inside a URL is still argv; the
+> cache-rebuild runbook's probe uses `curl -K` for exactly that reason).
+> Values travel by 600-mode temp files. The law's scope is the STUDIO
+> machine, where argv is world-readable in a multi-process session; the
+> invoking user can always inspect their own processes, so the claim is
+> "no OTHER user or watcher", never "invisible to ps".
+>
+> **The law's two stated boundaries.** Fenced commands in `.md`
 > runbooks are law-by-REVIEW, not law-by-test — the sweep reads tracked
 > `.sh` files only, and round 6's own violation lived in a runbook
-> fence. The law's
-> scope is the STUDIO machine, where argv is world-readable in a
-> multi-process session — CI argv is deliberately outside it:
-> `deploy.yml` passes `--password` to the Supabase CLI on a
-> GitHub-hosted runner, which is ephemeral and single-tenant, and
-> dropping the flags to lean on the CLI's env fallback is unverifiable
-> short of a live production deploy (#363 round 2, weighed and
-> declined). Also after #363: a
-> transport failure at the verify step reports **the token halves ARE
-> synced** instead of dying silently, and a preflight abort prints
+> fence. And CI argv is deliberately outside the scope: `deploy.yml`
+> passes `--password` to the Supabase CLI on a GitHub-hosted runner —
+> ephemeral, single-tenant — and dropping the flag to lean on the CLI's
+> env fallback is unverifiable short of a live production deploy (#363
+> round 2, weighed and declined; recorded at the step).
+>
+> **How the law stays true.** By test, not by claim: the sweep runs
+> over every TRACKED `.sh` wherever it lives (`git ls-files`, so
+> `.github` cannot be silently skipped and gitignored scratch cannot
+> join), with the five ops scripts (today the repo's whole shell
+> surface) asserted present by path, and four class regexes — bearer,
+> header family (any `-H`/`--header` whose quoted value carries an
+> interpolation anywhere, escape-traversing; round 9's post-merge
+> finding closed the begins-with-$ gap), request body, and URL query
+> (`$VAR`/`${VAR}`/`"$VAR"`/`$(…)` forms alike). `curl -u` and
+> userinfo-in-URL spellings stay with the review loop per round 2's
+> standing disposition.
+>
+> **The conduit's failure modes, operator-visible.** A transport
+> failure at the sync script's verify step reports **the token halves
+> ARE synced** instead of dying silently, and a preflight abort prints
 > every probe's psql stderr under host/user markers — "password
 > authentication failed" there means the `supabase-db-levelflow`
 > Keychain item is stale, not the network.
@@ -184,7 +193,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deploy with #362's merge — the deploy-time E2E chart gate re-verifies production under the new version then (the deployed-and-verified state last held for `2026.08.18.realized-r`) |
+| Engine | `2026.08.18.one-physics` (R1a complete: D2's one R accountant on every filled resolution; live grading on the sweep's resolution tiering with the row's stored runner-protection mode and review window; the decision anchor on the last completed primary bar; no-bars expiries marked; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Deployed and verified in production 2026-08-18: deploy run 380 (#362's merge) green end-to-end including the E2E chart gate, run 381 (#363's ops/docs merge) green after it |
 | Public face | The parking page |
 | Tests | 2,178 at this writing — the count drifts every PR, so `npm test` is the authority, not this cell; check · lint · check:migrations · test · build · check:bundle all green |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -827,7 +836,7 @@ the live roster is 97 distinct markets.
 | rank | item | state |
 |---|---|---|
 | **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST |
-| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences the PRs. **R1a DONE 2026-08-18 in two slices**: slice 1 (#360) D2 — realized R from legs on every filled resolution; slice 2 E1 (the sweep's own resolution tiering in both live writers, recorded per row), E3 (decision anchor = last completed primary bar), E7 (the bridge reads the row's stored runner-protection mode and review window), E2's live no-bars marker — engine now at `2026.08.18.one-physics`. **Remaining: R1b** (sweep E2 counter + door density assertion, E6 stated inputs, emit tier symmetry) **and R1c** (the E4 collapse instrument) | **R1b NEXT** |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences the PRs. **R1a DONE 2026-08-18 in two slices**: slice 1 (#360) D2 — realized R from legs on every filled resolution; slice 2 E1 (the sweep's own resolution tiering in both live writers, recorded per row), E3 (decision anchor = last completed primary bar), E7 (the bridge reads the row's stored runner-protection mode and review window), E2's live no-bars marker — engine now at `2026.08.18.one-physics`. **R1b DONE 2026-08-18** (the sweep tells the truth about its inputs: E2's presence-not-containment marker + `unresolvable` counter + the measured per-symbol density door; E6's macro reconstruction from the historical Treasury curve at New-York-midnight visibility, with providerWarningCount/weightAdjustment stated in the manifest's hashed `conditions` block the readers now require; emit rows carry tier, macro and marker — closure record in the map; corpora without conditions refuse at the door, and the one re-sweep stays R3's). **Remaining: R1c** (the E4 collapse instrument) | **R1c NEXT** |
 | **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |

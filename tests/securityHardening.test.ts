@@ -404,13 +404,21 @@ describe("security hardening", () => {
         `${script} must not interpolate a credential into a URL query string — use a 600-mode curl config (-K)`,
       );
       // And the HEADER family generalized past "Authorization: Bearer"
-      // (#363 round 8, smaller 1): any -H/--header whose value is an
-      // interpolation — Supabase's own convention is `apikey:`, not a
-      // bearer. `-H @"$FILE"` passes (@ precedes the quote); static
-      // headers carry no $.
+      // (#363 round 8, smaller 1): any -H/--header whose value carries an
+      // interpolation ANYWHERE — Supabase's own convention is `apikey:`,
+      // not a bearer, and round 9 (finding 1) caught the first cut
+      // reaching only a value that BEGINS with the $, leaving
+      // `Basic $B64`, `token $GH_TOKEN` and cookie values green. The
+      // argument matcher traverses escapes exactly like the body pin
+      // above, and [^"\\] cannot cross the closing quote, so the match
+      // stays confined to the header value. `-H @"$FILE"` passes (@
+      // precedes the quote); static headers carry no $. The Bearer
+      // spelling is now caught by BOTH this and the dedicated bearer
+      // sweep — deliberate overlap, since that one also reads unquoted
+      // spellings.
       assert.doesNotMatch(
         source,
-        /(^|\s)(-H|--header)\s*"[^"]*:\s*\$/,
+        /(^|\s)(-H|--header)\s*"[^"]*:(?:[^"\\]|\\.)*\$/,
         `${script} must not interpolate a credential into a header value — 600-mode header files only`,
       );
     }

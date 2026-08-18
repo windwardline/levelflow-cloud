@@ -94,6 +94,20 @@ export function seriesFacts(
   };
 }
 
+// E6 (R1b): the three score inputs the sweep used to hardwire to zero,
+// each resolved and STATED — reconstructed (macro), zero-by-construction
+// (provider warnings), or a deliberate raw-engine measurement (the
+// learning weight). The exact literals are the contract: verifyManifest
+// refuses a manifest whose conditions are absent or differ, so a corpus
+// measured under other terms can never aggregate beside these — the same
+// door mechanism as the clock block, one layer up. A future variant that
+// legitimately changes a term updates the literal and the door together.
+export type SweepConditions = {
+  macroAdjustment: "historical-treasury-curve";
+  providerWarningCount: "zero-by-construction";
+  weightAdjustment: "raw-engine-zero";
+};
+
 export type SweepManifest = {
   analyzerVersion: string;
   anchor: string;
@@ -106,6 +120,7 @@ export type SweepManifest = {
     calendar: string;
     normalizer: string;
   };
+  conditions: SweepConditions;
   days: number;
   // 3c/3d: the calendar folds this corpus was decided under — absent on
   // legacy two-split corpora, whose readers map train/test instead.
@@ -152,6 +167,7 @@ export function buildSweepManifest(input: {
   anchor: string;
   barRejections: Record<string, number>;
   clock: SweepManifest["clock"];
+  conditions: SweepConditions;
   days: number;
   folds?: SweepManifest["folds"];
   foldsByClass?: SweepManifest["foldsByClass"];
@@ -192,6 +208,7 @@ export function buildSweepManifest(input: {
     anchor: input.anchor,
     barRejections: input.barRejections,
     clock: input.clock,
+    conditions: input.conditions,
     days: input.days,
     ...(input.folds && { folds: input.folds }),
     ...(input.foldsByClass && { foldsByClass: input.foldsByClass }),

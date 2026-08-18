@@ -20,10 +20,15 @@
 import { closeSync, createReadStream, openSync, readFileSync, readSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import {
+  getAssetType,
+  hasKnownAssetType,
+} from "../supabase/functions/trade-analyzer/calibration.ts";
 import { CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
   sha256Hex,
   stableStringify,
+  type SweepConditions,
   type SweepManifest,
 } from "./sweepManifest.ts";
 
@@ -246,6 +251,7 @@ function verifyManifest(emitPath: string): SweepManifest {
   // the same "a fix cannot reach an already-persisted artifact" mechanism
   // one layer up. A deliberate historical read is an explicit act:
   //   LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1
+  let historicalRead = false;
   if (
     manifest.clock.normalizer !== BAR_CLOCK ||
     manifest.clock.calendar !== CALENDAR_CLOCK
@@ -268,6 +274,7 @@ function verifyManifest(emitPath: string): SweepManifest {
         `build is "${BAR_CLOCK}"/"${CALENDAR_CLOCK}". Figures derived from ` +
         `this corpus are historical, not current.`,
     );
+    historicalRead = true;
   }
   for (const entry of manifest.symbols ?? []) {
     for (const [timeframe, facts] of Object.entries(entry.series ?? {})) {
@@ -287,8 +294,155 @@ function verifyManifest(emitPath: string): SweepManifest {
           `shift — the mixed-clock signature; the corpus is refused`,
       );
     }
+    assertFiveMinuteDensity(emitPath, entry);
+  }
+  // E6 (R1b): the corpus states the score-input terms it was measured
+  // under, or it is refused. This check deliberately runs LAST — data
+  // poison (the witness refusals above) outranks unstated terms in the
+  // diagnosis — and deliberately has no escape hatch of its own: the one
+  // legitimate corpus without a conditions block is a pre-R1b historical
+  // corpus, which is superseded-clock by definition and already admitted
+  // only through the loud explicit override above. A CURRENT-clock corpus
+  // missing conditions can only be hand-edited or hash-forged history —
+  // refused. The literals are the contract: a corpus stating other terms
+  // was measured under a different sweep and cannot aggregate beside
+  // these.
+  if (!historicalRead) {
+    const conditions = manifest.conditions as
+      | Record<string, unknown>
+      | undefined;
+    if (!conditions) {
+      throw new Error(
+        `${emitPath}: manifest carries no conditions block — a corpus swept ` +
+          `before the R1b stated-inputs rebuild measured macroAdjustment as ` +
+          `a hardwired zero (see docs/research/r1-divergence-map-2026-08-18` +
+          `.md, E6) and is re-swept, not aggregated`,
+      );
+    }
+    const expectedConditions: SweepConditions = {
+      macroAdjustment: "historical-treasury-curve",
+      providerWarningCount: "zero-by-construction",
+      weightAdjustment: "raw-engine-zero",
+    };
+    for (const [term, expected] of Object.entries(expectedConditions)) {
+      if (conditions[term] !== expected) {
+        throw new Error(
+          `${emitPath}: conditions.${term} is ${
+            JSON.stringify(conditions[term])
+          } but this build's readers understand ${JSON.stringify(expected)} ` +
+            `— a corpus measured under other terms is refused, not aggregated`,
+        );
+      }
+    }
   }
   return manifest;
+}
+
+// E2's corpus-door half (R1b): the per-symbol 5-minute density assertion.
+// This door carries verify-cache-clock's stated blind band — its ratio
+// instrument accepts [2.5, 3.5], and a provider cap of ~2,386-2,784 rows
+// per response clips ONLY the 15-minute series (29-day chunks, worst
+// 2,884 rows; 5-minute chunks max 1,740) by <=~14%, leaving the ratio in
+// band — so the door binds ABSOLUTE 5-minute rows per calendar day, not
+// only the 5/15 ratio, and binds the ratio TIGHTER than the cache
+// instrument can afford to.
+//
+// Every constant below is measured, not assumed (FMP 5-minute probe,
+// 2026-08-11..17, rows per CALENDAR day averaged over the week —
+// weekends inside): BTCUSD 288.0 and THETAUSD 287.9 (crypto is
+// full-density across the class), EURUSD 205.6, XAUUSD 197.1,
+// ESUSD/CLUSD 197.7, PAUSD 198.7 (slot-dense despite thin volume),
+// ZCUSX 146.7, ^GDAXI 73.6, ^GSPC 55.7, ^AXJO ~52, ^N225 48.6, LEUSX
+// 40.0 — while ZRUSD ~36 prints with intra-session holes, XC ~8.6 prints
+// only where trades occurred, and QG serves no 5-minute data at all.
+// That last group is the design constraint: trade-sparse series are
+// HONEST provider data whose parent-child arithmetic legitimately
+// degenerates (a 15-minute parent holding one print yields one 5-minute
+// child), so a fixed law over every symbol would either false-refuse
+// them or be vacuous for the dense ones. The instruments therefore
+// self-select:
+// - The tight ratio judges only symbols whose PRIMARY runs >=60
+//   15-minute rows/day — the near-24h markets (weekly-average arithmetic:
+//   crypto 96, forex 68.5, metals 65.7, ES-class futures 65.9; the
+//   densest excluded symbol is ^GDAXI at 24.5). Exactly these are the
+//   markets whose 29-day chunks approach provider caps, i.e. the band's
+//   home; a clipped primary moves a true ~3.0 ratio above 3.25 at a
+//   >=7.7% clip, shrinking the band's blind residue from <=14.3% to
+//   <=7.7%, and any cap low enough to clip the 5-minute chunks drags the
+//   ratio far below 2.7.
+// - The absolute floors bind the four structurally deterministic classes
+//   (probed margin under the measured week: crypto 260, forex 150,
+//   metals 140, energies 140) plus cash indices at 34 (all four members
+//   measured 48.6-73.6; their chunks sit far from any cap, so the floor
+//   is the holed-store detector). futures, agriculture and livestock
+//   carry no absolute floor: their spread spans 8.6..197.7 rows/day, so
+//   any shared floor either condemns honest sparseness or defends
+//   nothing — their liquid members are exactly the ones the ratio gate
+//   already judges.
+const DENSITY_MIN_SPAN_DAYS = 5;
+const DENSITY_RATIO_PRIMARY_FLOOR = 60;
+const DENSITY_RATIO_MIN = 2.7;
+const DENSITY_RATIO_MAX = 3.25;
+const FIVE_MIN_CLASS_FLOORS: Partial<
+  Record<ReturnType<typeof getAssetType>, number>
+> = {
+  crypto: 260,
+  energies: 140,
+  forex: 150,
+  indices: 34,
+  metals: 140,
+};
+
+function assertFiveMinuteDensity(
+  emitPath: string,
+  entry: SweepManifest["symbols"][number],
+): void {
+  const five = entry.series?.["5min"];
+  const fifteen = entry.series?.["15min"];
+  // An ABSENT 5-minute series is honest degradation, not a density lie:
+  // the sweep grades those rows at 15-minute physics and each emit row
+  // carries its tier (resolutionIntervalMs). Sub-week spans cannot
+  // separate a holiday from a hole, so young fixtures stay silent too.
+  if (!five || five.count === 0 || !fifteen || fifteen.count === 0) {
+    return;
+  }
+  if (
+    five.spanDays < DENSITY_MIN_SPAN_DAYS ||
+    fifteen.spanDays < DENSITY_MIN_SPAN_DAYS
+  ) {
+    return;
+  }
+  const fivePerDay = five.count / five.spanDays;
+  const fifteenPerDay = fifteen.count / fifteen.spanDays;
+  // The roster is the class authority; an off-roster symbol (which only a
+  // hand-built manifest can carry — the driver refuses them) gets no
+  // class floor rather than inheriting getAssetType's forex fallback.
+  const floor = hasKnownAssetType(entry.symbol)
+    ? FIVE_MIN_CLASS_FLOORS[getAssetType(entry.symbol)]
+    : undefined;
+  if (floor !== undefined && fivePerDay < floor) {
+    throw new Error(
+      `${emitPath}: ${entry.symbol} 5-minute series runs ${
+        fivePerDay.toFixed(1)
+      } rows/day over ${five.spanDays} days — under the ${
+        getAssetType(entry.symbol)
+      } floor of ${floor} (measured 2026-08-11..17); the series is clipped, ` +
+        `holed, or not this symbol's feed, and the corpus is refused`,
+    );
+  }
+  if (fifteenPerDay >= DENSITY_RATIO_PRIMARY_FLOOR) {
+    const ratio = fivePerDay / fifteenPerDay;
+    if (ratio < DENSITY_RATIO_MIN || ratio > DENSITY_RATIO_MAX) {
+      throw new Error(
+        `${emitPath}: ${entry.symbol} 5min/15min density ${ratio.toFixed(2)} ` +
+          `(${fivePerDay.toFixed(1)}/${fifteenPerDay.toFixed(1)} rows/day) ` +
+          `outside [${DENSITY_RATIO_MIN}, ${DENSITY_RATIO_MAX}] — above ` +
+          `means a clipped 15-minute primary (the verify-cache-clock blind ` +
+          `band), below means a clipped or holed 5-minute series; the ` +
+          `corpus is refused`,
+      );
+    }
+  }
 }
 
 export function assertManifestedCorpus(emitPath: string): {

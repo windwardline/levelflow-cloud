@@ -67,7 +67,7 @@ field to the emit for symmetry. `fillOptionsFromRiskModel` grows the interval pa
 currently pin the exact one-argument shape). Byte cost is flat (2,304
 vs 3,000 rows per symbol per sync).
 
-## E2 — "no bars in the review window" is not a plan rejection — **live half CLOSED (R1a slice 2); sweep counter + door assertion remain (R1b)**
+## E2 — "no bars in the review window" is not a plan rejection — **CLOSED (live half R1a slice 2; sweep half + door R1b, 2026-08-18)**
 
 **Live**: `evaluateSetupOutcome` returns `outcome: "unfilled"` when
 `createdBars.length === 0 && now > expiresAt` (replay.ts) — data absence
@@ -110,7 +110,7 @@ feed (`market-data`) is untouched — display freshness is not decision
 input. The quote snapshot (`market.quote`) stays live-only for spread
 banking (2j) and display; nothing in scoring reads it.
 
-## E6 — three score inputs hardwired to zero in the sweep
+## E6 — three score inputs hardwired to zero in the sweep — **CLOSED (R1b, 2026-08-18)**
 
 **Live** (`analyzeSetup`, index.ts:1198): `scoreSetupConfidence` receives
 `macroAdjustment` (from `fetchMacroRateContext` — live Treasury curve),
@@ -198,6 +198,19 @@ change shape; the `ANALYZER_VERSION` bump scopes the boundary. The
 `tests/securityHardening.test.ts` call-site pins evolve with the bridge
 signature if it grows a second argument for E1's resolution timeframe.
 
+**Why the DURATION field, not the stored instant (the dedupe-restamp
+clause, folded from #362 round 3 for the record here where E7 is
+read)**: `risk_model.reviewWindowExpiresAt` already carries a fully
+weekly-clamped expiry instant on every row, and it is deliberately NOT
+the bridge's read. `upsertActiveSetup`'s same-side dedupe rewrites
+`risk_model` wholesale on a re-scan while `created_at` is preserved —
+so a deduped row's stamped instant describes the LATEST observation's
+window and runs ahead of the resolver's `created_at + hours`. Reading
+`reviewWindowHours` keeps one window law — creation plus decision-time
+duration, weekly-clamped by `getSetupExpiryTime` at grading — for fresh
+and deduped rows alike, and the client copy gate makes the same choice
+for the same reason (slice-2 closure record, copy-gate residue).
+
 ## D2 — realized R exists only on the expiry branch — **CLOSED (R1a slice 1, 2026-08-18)**
 
 **Was**: `realizedR`/`netRealizedR` were computed and written into
@@ -256,11 +269,18 @@ layer.
   decision (grades identically to having none) and one that reaches back
   (governs grading), so a reformatted reintroduction of the old
   non-empty admission fails regardless of spelling. The sweep's emit
-  symmetry — recording the tier per corpus row — still rides with R1b.
+  symmetry — recording the tier per corpus row — landed in R1b
+  (`SweepOutcomeRecord.resolutionIntervalMs`, executed in
+  `tests/sweep.test.ts`).
 - **E2 (live half)**: the true no-bars expiry carries
   `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
-  not. The sweep's distinct counter and `assertManifest`'s per-symbol
-  density assertion remain R1b.
+  not. The sweep's half and the corpus door landed in R1b (closure
+  record below), which also refined the marker itself: #362 round 7
+  caught the containment set standing in for the presence question, so
+  the marker now fires only when NO bar overlaps the review window —
+  a window clamped under one bar span (creation inside the final bar
+  before the weekly close) resolves unfilled UNMARKED with its own
+  sentence, a grading-law fact rather than a data fact.
 - **E3**: the completed-bar law applies to the SERIES, not just the
   anchor pointer (#362 review, finding 1 — moving `market.latest` alone
   left entry math, ATR, pivots and the committee on the forming bar and
@@ -387,6 +407,82 @@ layer.
     primary; the sweep resamples those series from 15-minute history
     and never span-tests them.
 
+## R1b closure record (2026-08-18) — the sweep tells the truth about its inputs
+
+- **E2, sweep half + marker refinement**: the resolver's no-bars branch
+  now answers the PRESENCE question, not the containment one —
+  `noBarsInReviewWindow` fires only when no bar OVERLAPS
+  `[createdAt, expiresAt)`; bars present but none contained (the
+  sub-bar-span clamped window) resolve unfilled unmarked with a
+  distinct sentence. In the sweep, that case emits (the resolver's
+  far-future clock resolves every no-bars window), so the corpus row
+  carries the marker and the counter question reshaped: `planRejected`
+  means only "buildPricePlan refused", and the surviving non-resolved
+  path (non-finite plan numbers — a defect, not a data fact) gets its
+  own `unresolvable` bucket. **Weighed and parked**: construction-side
+  refusal of sub-bar-span clamped windows. It is live-reachable —
+  futures-style sessions only PENALIZE the final pre-close Friday bar,
+  they do not block it — but refusing there changes live setup
+  production and deserves its own measurement and version bump; the
+  honest immediate state is the unmarked-unfilled row.
+- **E2, corpus door**: `verifyManifest` gained the per-symbol 5-minute
+  density assertion, constants MEASURED (FMP probe 2026-08-11..17,
+  rows per calendar day): tight 5/15 rows-per-day ratio [2.7, 3.25]
+  gated on the primary running ≥60 15-minute rows/day (the near-24h
+  markets — exactly the chunk shapes that approach provider caps;
+  densest excluded symbol is ^GDAXI at 24.5), plus absolute 5-minute
+  floors for the structurally deterministic classes: crypto 260
+  (BTCUSD 288.0, THETAUSD 287.9), forex 150 (EURUSD 205.6), metals 140
+  (XAUUSD 197.1), energies 140 (CLUSD 197.7), indices 34 (^N225 48.6 …
+  ^GDAXI 73.6). futures/agriculture/livestock carry NO absolute floor:
+  the probe found ZRUSD ~36 rows/day with intra-session holes, XC ~8.6
+  (prints only where trades occurred) and QG serving no 5-minute data
+  at all — trade-sparse series are honest provider data whose 3:1
+  arithmetic legitimately degenerates, so any shared floor would
+  false-condemn them or defend nothing; their liquid members (ESUSD
+  197.7, PAUSD 198.7 — slot-dense despite thin volume) are exactly the
+  ratio gate's population. The carried blind band closes to a residue:
+  a 15-minute clip ≤~7.7% (ratio 3.0→3.25) on gated symbols can still
+  pass — down from ≤14.3% — and any cap low enough to touch 5-minute
+  chunks drags the ratio out the bottom. Absent 5-minute series and
+  sub-week spans stay silent, deliberately (degradation is per-row via
+  the emit tier; a 2-day span cannot separate holiday from hole).
+- **E6, per term as designed**: `macroAdjustment` is RECONSTRUCTED —
+  `macroRates.ts` (new, Deno-free; macroContext.ts keeps fetch/cache/
+  recorder and composes the same pieces, pinned) carries the pure
+  arithmetic plus `treasuryContextFromRows` and the visibility rule
+  `treasuryVisibleAtMs`: a row is decision-time information from the
+  New York midnight AFTER its label date — conservative by a few
+  evening hours, never early, DST-pinned in tests. The driver loads
+  the curve as one rolling store (`treasury-rates`, CALENDAR_CLOCK,
+  year-sized chunks, I3's throw-on-failure), and the sweep's moving
+  pointer feeds the two most recent visible rows to
+  `calculateMacroRateAdjustment` per decision instant — executed
+  end-to-end in `tests/sweep.test.ts` across a mid-corpus visibility
+  flip. `providerWarningCount` stays 0 zero-by-construction, stated at
+  the score site. `weightAdjustment` stays 0 as the raw-engine
+  decision. All three are STATED in the manifest's hashed `conditions`
+  block, and `verifyManifest` refuses a manifest without it or with
+  other literals — no escape hatch of its own, because the only
+  legitimate condition-less corpus is pre-R1b, which is
+  superseded-clock by definition and already admitted solely through
+  that loud explicit override (whose deliberate historical reads skip
+  the conditions demand).
+- **Emit symmetry**: every corpus row carries `resolutionIntervalMs`
+  (behavioral tier pin now executed: 15-minute physics stamps 900000 on
+  every row, an admitted 5-minute stream stamps 300000), plus
+  `macroAdjustment` and, on no-bars rows, the marker.
+- Pins: behavioral in `tests/sweep.test.ts` (tier symmetry, macro
+  end-to-end, no-bars emit), `tests/replayHarness.test.ts` (presence
+  vs. containment both ways), `tests/macroRates.test.ts` (construction,
+  visibility incl. DST, provider field names, one-construction source
+  pin), `tests/sweepStats.test.ts` (conditions + density door, all
+  refusal and admission shapes), `tests/sweepManifest.test.ts`
+  (conditions hashed; driver wiring). No `ANALYZER_VERSION` bump: no
+  live scored number moves — the marker refinement is metadata, and the
+  corpus-identity boundary for the sweep changes is the conditions
+  block itself.
+
 ## Sequencing — three PRs, engine first
 
 1. **R1a — one physics** (engine + writers), landing in two slices:
@@ -399,12 +495,12 @@ layer.
    window; the E2 live-side distinct no-bars marker — these all touch
    `fillOptionsFromRiskModel`/writer options together, which D2 does
    not, so slicing there keeps each PR one concern.
-2. **R1b — the sweep tells the truth about its inputs**: E2 sweep
-   counter + `assertManifest` per-symbol density assertion; E6 macro
-   reconstruction + the two stated-zero terms in the manifest
-   conditions. (Manifest `conditions` hash changes → old corpora refuse
-   at the door exactly as designed; the re-sweep is Phase 3's one
-   re-simulate, after Phase 2.)
+2. **R1b — the sweep tells the truth about its inputs** — **SHIPPED
+   2026-08-18 (closure record above)**: E2 sweep half + `assertManifest`
+   per-symbol density assertion; E6 macro reconstruction + the two
+   stated-zero terms in the manifest conditions. (Manifest `conditions`
+   is new and hashed → old corpora refuse at the door exactly as
+   designed; the re-sweep is Phase 3's one re-simulate, after Phase 2.)
 3. **R1c — the E4 instrument**: the collapse reader + its report,
    doored and population-pinned like every other reader.
 
@@ -434,4 +530,6 @@ read/write version predicates assume.
   lookback arithmetic starts from the measured 2,304-row (8-day) floor.
 - The verify-cache-clock ceiling's blind band (~2,386–2,784) is carried
   by R1b's density assertion — that assertion must bind absolute
-  5-minute rows/day, not only the ratio.
+  5-minute rows/day, not only the ratio. **Landed (R1b closure record):
+  absolute class floors + the [2.7, 3.25] gated ratio; residue is a
+  ≤~7.7% primary clip on gated symbols.**

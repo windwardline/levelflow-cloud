@@ -278,20 +278,32 @@ export function evaluateSetupOutcome(
 
   if (createdBars.length === 0) {
     if (now > expiresAt) {
+      // E2 (R1a slice 2; marker refined R1b): data absence is not a
+      // market verdict, and CONTAINMENT-empty is not data absence. The
+      // filter above is the grading law — a bar must complete before
+      // expiry to testify — but a bar that merely overlaps the window is
+      // still present data, and #362 round 7 caught the containment set
+      // standing in for the presence question: a review window clamped
+      // below one bar span (a setup created inside the final bar before
+      // the weekly close) marked every such row as a provider gap over a
+      // feed that was fully dense. The marker now means exactly "the
+      // provider had NO bar overlapping the review window"; a
+      // present-but-uncontained window resolves unfilled UNMARKED, with
+      // its own sentence, because the limit was never testable on a
+      // complete bar — a grading-law fact, not a data fact. The outcome
+      // stays "unfilled" for schema stability either way.
+      const barsPresent = bars.some((bar) =>
+        bar.time + barIntervalMs > createdAt && bar.time < expiresAt
+      );
       return {
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
           expiresAt: new Date(expiresAt).toISOString(),
           legs: [],
-          // E2 (R1a slice 2): data absence is not a market verdict. This
-          // branch means the provider had NO bars inside the review
-          // window — a different fact from "bars existed and the limit
-          // never filled" (the branch below), and one the cohort must be
-          // able to filter. The outcome stays "unfilled" for schema
-          // stability; the marker carries the distinction.
-          noBarsInReviewWindow: true,
-          reason:
-            "No post-recommendation bars were available before the setup review window expired.",
+          ...(barsPresent ? {} : { noBarsInReviewWindow: true }),
+          reason: barsPresent
+            ? "Bars overlapped the review window, but none completed inside it before the setup expired."
+            : "No post-recommendation bars were available before the setup review window expired.",
           resolutionIntervalMs: barIntervalMs,
           source: "price_path_review",
         },

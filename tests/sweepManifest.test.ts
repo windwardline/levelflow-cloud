@@ -6,6 +6,7 @@ import {
   seriesFacts,
   sha256Hex,
   stableStringify,
+  type SweepConditions,
 } from "../scripts/sweepManifest.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
@@ -89,6 +90,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
   const build = (overrides: {
     calibration?: Record<string, unknown>;
     clock?: { calendar: string; normalizer: string };
+    conditions?: SweepConditions;
     generatedAt?: string;
     grid?: unknown[];
   } = {}) =>
@@ -98,6 +100,11 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       barRejections: { spike: 2 },
       clock: overrides.clock ??
         { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
+      conditions: overrides.conditions ?? {
+        macroAdjustment: "historical-treasury-curve",
+        providerWarningCount: "zero-by-construction",
+        weightAdjustment: "raw-engine-zero",
+      },
       days: 365,
       generatedAt: overrides.generatedAt ?? "2026-08-09T22:00:00.000Z",
       grid: overrides.grid ?? [{}],
@@ -152,6 +159,22 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     );
   });
 
+  it("hashes the E6 conditions — stated terms are part of corpus identity (R1b)", () => {
+    const baseline = build();
+    assert.equal(baseline.conditions.macroAdjustment, "historical-treasury-curve");
+    assert.notEqual(
+      baseline.manifestHash,
+      build({
+        // Only these literals typecheck today; a future variant term joins
+        // SweepConditions AND the reader door together. Casting simulates
+        // that future corpus without widening the current contract.
+        conditions: {
+          macroAdjustment: "live-fetch",
+        } as unknown as SweepConditions,
+      }).manifestHash,
+    );
+  });
+
   it("does not move its hash for the write timestamp", () => {
     assert.equal(
       build().manifestHash,
@@ -166,5 +189,33 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /buildSweepManifest\(/);
     assert.match(script, /\.manifest\.json/);
     assert.match(script, /barRejections: barRejectionTally/);
+  });
+
+  // E6 (R1b) driver wiring — replay-sweep runs main() on import, so its
+  // half of the macro reconstruction is pinned at source the way the
+  // manifest write above is; the arithmetic itself is executed in
+  // tests/sweep.test.ts and tests/macroRates.test.ts.
+  it("loads the Treasury rolling store, hands it to every simulation, and states the conditions it measured under", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    assert.match(
+      script,
+      /key: "treasury-rates",/,
+      "the curve must live in the same rolling-store discipline as bars and the calendar",
+    );
+    assert.match(script, /treasuryRates,\s*\n\s*warmupBars: split\.warmupBars,/);
+    assert.match(script, /conditions,\s*\n\s*days: args\.days,/);
+    assert.match(
+      script,
+      /macroAdjustment: "historical-treasury-curve",/,
+    );
+    // I3's lesson holds for the curve exactly as for the calendar: a
+    // warned-and-continued hole would be pinned as the anchor day's truth
+    // and never refetched.
+    assert.match(script, /Treasury-rate fetch failed \(\$\{response\.status\}\)/);
+    assert.doesNotMatch(
+      script,
+      /Treasury[\s\S]{0,200}?console\.warn[\s\S]{0,80}?continue/,
+      "a failed Treasury chunk must stop the run, never hole the join",
+    );
   });
 });
