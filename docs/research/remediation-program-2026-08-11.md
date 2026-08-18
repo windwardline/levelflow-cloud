@@ -175,7 +175,18 @@ available now — **`docs/cache-rebuild-r0.md`** is the runbook, including
 the re-arm of this launchd agent.
 
 ### Phase 1 — one engine (close every sweep↔live divergence)
-So that what is measured is what trades:
+So that what is measured is what trades.
+
+> **Map 2026-08-18:** every divergence below is pinned to code on both
+> sides, each decision drafted, and the change set sequenced (three PRs:
+> R1a one physics, R1b stated inputs + the E2 door, R1c the E4
+> instrument) in `docs/research/r1-divergence-map-2026-08-18.md`. The
+> mapping also DISCOVERED one divergence this list lacks — **E7: the
+> live options bridge drops the runner-protection mode (and review
+> window), so both live writers grade every row "breakeven" while the
+> calibration ships trail_tp1/hold for most categories** — and settled
+> E1's open depth question by measurement (the live 45-day 15-minute
+> request returns complete: 4,266 rows / 45 dates, probed 2026-08-18).
 - **E1** production resolves on 15-minute bars, the corpus on 5-minute.
   Decide the anchor deliberately — do NOT simply move production to
   5-minute, which would import 1b's sawtooth into the live path.

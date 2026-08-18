@@ -60,6 +60,19 @@ describe("the sweep driver feeds every store its clock (read as text — main() 
     assert.doesNotMatch(sweep, /chunkRowTally|chunkRowCounts/);
   });
 
+  it("witnesses every loaded series BEFORE the thin-symbol skip — a dropped market must still stop a poisoned run (round 6)", () => {
+    // The corpus-global invariant: a symbol under the depth floor is
+    // excluded from the measurement, but its stores are already stamped
+    // and cached, and a later, deeper run will read them. The witnesses
+    // return indeterminate below their own sample floors, so witnessing
+    // first cannot false-condemn a series that is merely thin.
+    assert.ok(
+      sweep.lastIndexOf("cacheClockWitnessRefused") <
+        sweep.indexOf("WARMUP_BARS * 2"),
+      "the witness refusals must precede the WARMUP_BARS * 2 depth skip",
+    );
+  });
+
   it("splits the refusal tokens: witness refusals are actionable and must not wear the stand-down's name", () => {
     // cacheClockMismatch = the pre-rebuild store stamp, the nightly
     // top-up's one named stand-down. A condemned witness on a STAMPED
