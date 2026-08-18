@@ -87,9 +87,19 @@ run_psql() { # host user file
 ENV_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-fn-secrets.XXXXXXXX")"
 SQL_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-vault-sync.XXXXXXXX")"
 PROBE_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-db-probe.XXXXXXXX")"
-chmod 600 "$ENV_FILE" "$SQL_FILE" "$PROBE_FILE"
-trap 'rm -f "$ENV_FILE" "$SQL_FILE" "$PROBE_FILE"' EXIT
+PROBE_ERR_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-db-probe-err.XXXXXXXX")"
+MGMT_AUTH_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-mgmt-auth.XXXXXXXX")"
+VERIFY_AUTH_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-verify-auth.XXXXXXXX")"
+chmod 600 "$ENV_FILE" "$SQL_FILE" "$PROBE_FILE" "$PROBE_ERR_FILE" \
+  "$MGMT_AUTH_FILE" "$VERIFY_AUTH_FILE"
+trap 'rm -f "$ENV_FILE" "$SQL_FILE" "$PROBE_FILE" "$PROBE_ERR_FILE" "$MGMT_AUTH_FILE" "$VERIFY_AUTH_FILE"' EXIT
 echo "select 1;" > "$PROBE_FILE"
+# The bearers travel by 600-mode header files read with `curl -H @file`
+# (#361 round 2, finding 1): the preamble's never-argv claim now holds
+# for every network call this script makes — bash printf is a builtin,
+# so no value ever appears on any process's argv.
+printf 'Authorization: Bearer %s\n' "$SUPABASE_ACCESS_TOKEN" > "$MGMT_AUTH_FILE"
+printf 'Authorization: Bearer %s\n' "$NEWS_SYNC_TOKEN" > "$VERIFY_AUTH_FILE"
 
 # Candidate endpoints: the direct host, then the session poolers. The
 # pooler prefix is provisioning-generation-dependent (aws-0 vs aws-1 —
@@ -98,19 +108,21 @@ echo "select 1;" > "$PROBE_FILE"
 # guard instead of aborting silently (#361 review, finding 2).
 DB_HOST=""
 DB_USER=""
-if run_psql "db.${PROJECT_REF}.supabase.co" "postgres" "$PROBE_FILE" >/dev/null 2>&1; then
+if run_psql "db.${PROJECT_REF}.supabase.co" "postgres" "$PROBE_FILE" \
+  >/dev/null 2>"$PROBE_ERR_FILE"; then
   DB_HOST="db.${PROJECT_REF}.supabase.co"
   DB_USER="postgres"
 else
   PROJECT_JSON="$(curl -fsS --max-time 30 \
-    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+    -H @"$MGMT_AUTH_FILE" \
     "https://api.supabase.com/v1/projects/${PROJECT_REF}" || true)"
   REGION="$(printf '%s' "$PROJECT_JSON" |
     sed -E 's/.*"region"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/' || true)"
   if [ -n "$REGION" ] && [ "$REGION" != "$PROJECT_JSON" ]; then
     for prefix in aws-0 aws-1; do
       if run_psql "${prefix}-${REGION}.pooler.supabase.com" \
-        "postgres.${PROJECT_REF}" "$PROBE_FILE" >/dev/null 2>&1; then
+        "postgres.${PROJECT_REF}" "$PROBE_FILE" \
+        >/dev/null 2>"$PROBE_ERR_FILE"; then
         DB_HOST="${prefix}-${REGION}.pooler.supabase.com"
         DB_USER="postgres.${PROJECT_REF}"
         break
@@ -120,6 +132,13 @@ else
 fi
 if [ -z "$DB_HOST" ]; then
   log "no reachable database endpoint (direct and pooler both failed); aborting — nothing written"
+  # #361 round 2, finding 3: the LAST failed attempt's psql stderr,
+  # verbatim — "password authentication failed" means the
+  # supabase-db-levelflow Keychain item is stale (this script's own
+  # subject), not the network. psql stderr names host and user, never
+  # the password.
+  log "last failed attempt's psql stderr:"
+  sed 's/^/  /' "$PROBE_ERR_FILE" || true
   exit 1
 fi
 log "preflight ok (database via ${DB_HOST})"
@@ -163,17 +182,24 @@ log "vault.news_sync_token synced (${DB_HOST})"
 verify_status() {
   curl -s -o /dev/null -w "%{http_code}" --max-time 180 -X POST \
     "https://${PROJECT_REF}.supabase.co/functions/v1/news-calendar" \
-    -H "Authorization: Bearer ${NEWS_SYNC_TOKEN}" \
+    -H @"$VERIFY_AUTH_FILE" \
     -H "Content-Type: application/json" \
     -d '{"source":"sync-function-secrets-verify"}'
 }
-STATUS="$(verify_status)"
+# `|| true` on every capture (#361 round 2, finding 2): a curl TRANSPORT
+# failure (the 180s deadline, DNS, a reset) exits non-zero, and under
+# `set -e` the bare assignment would abort the script with no VERIFY
+# line at all — seconds after two writes the operator cannot see — the
+# exact ambiguity finding 4's status attribution exists to prevent.
+# curl still emits "000" via -w on those failures, and the case below
+# names that arm.
+STATUS="$(verify_status || true)"
 attempt=1
 while { [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; } && [ "$attempt" -lt 3 ]; do
   log "gate refused (HTTP ${STATUS}) — waiting 10s for warm instances to recycle (attempt ${attempt}/3)"
   sleep 10
   attempt=$((attempt + 1))
-  STATUS="$(verify_status)"
+  STATUS="$(verify_status || true)"
 done
 case "$STATUS" in
   200)
@@ -185,6 +211,10 @@ case "$STATUS" in
     ;;
   404)
     log "VERIFY BLOCKED: news-calendar is not deployed (HTTP 404) — run 'npx supabase functions deploy …' then re-run this script; the secret halves ARE synced"
+    exit 1
+    ;;
+  "000" | "")
+    log "VERIFY INCONCLUSIVE: the verification call could not complete (transport failure — timeout, DNS, or reset); the token halves ARE synced — re-run this script once connectivity returns"
     exit 1
     ;;
   *)

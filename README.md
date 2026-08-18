@@ -72,10 +72,13 @@ records in `analyzer_events`. See [docs/deployment.md](/docs/deployment.md).
    [docs/deployment.md](/docs/deployment.md)):
    - `NEWS_SYNC_TOKEN` (plus Vault `news_sync_token`, which pg_cron reads)
    - `FMP_API_KEY` for the analyzer and macro news ingestion
-   - `FINNHUB_API_KEY` only if macro news ingestion is switched away from
-     FMP (dormant; would join the conduit)
-   - `FMP_API_BASE_URL` only if FMP changes the default stable REST host
-     (non-credential config; deploy.yml sets it)
+
+   Non-conduit configuration, deliberately outside that list (the
+   bullets must not sit under "set ONLY via the conduit"):
+   - `FMP_API_BASE_URL` — non-credential config; deploy.yml sets it
+     inline, and it changes only if FMP moves the stable REST host
+   - `FINNHUB_API_KEY` — dormant, no Keychain row today; it would JOIN
+     the conduit if macro news ingestion ever switched away from FMP
 7. Set hosted frontend env vars:
    - `VITE_APP_URL`
    - `VITE_SUPABASE_URL`

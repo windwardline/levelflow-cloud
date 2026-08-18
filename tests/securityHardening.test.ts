@@ -313,6 +313,41 @@ describe("security hardening", () => {
     assert.match(sync, /chmod 600/);
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
     assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
+    // #361 round 2, finding 1: the bearers ride 600-mode header files
+    // read with `curl -H @file` — the class pin below sweeps EVERY ops
+    // script for the interpolated form, so the fix cannot regress here
+    // and quietly survive in a sibling.
+    assert.match(sync, /-H @"\$MGMT_AUTH_FILE"/);
+    assert.match(sync, /-H @"\$VERIFY_AUTH_FILE"/);
+    for (const script of readdirSync("scripts/ops")) {
+      if (!script.endsWith(".sh")) {
+        continue;
+      }
+      const source = readFileSync(join("scripts/ops", script), "utf8");
+      assert.doesNotMatch(
+        source,
+        /Authorization: Bearer \$/,
+        `${script} must not interpolate a bearer onto argv — 600-mode header files only`,
+      );
+    }
+    // The same law for the Resend key: into python via the environment,
+    // never argv (`ps` shows argv of a real process; env it does not).
+    const brand = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
+    assert.match(brand, /RESEND_KEY="\$RESEND_KEY" python3/);
+    assert.doesNotMatch(brand, /python3 - "\$RESEND_KEY"/);
+    // #361 round 2, findings 2-4 — the classification work, pinned:
+    // a transport failure at verify reports the halves synced instead of
+    // dying silently under set -e; 401/403 retries before it is
+    // believed; both pooler generations are probed; the preflight's
+    // abort names the last psql stderr so a stale password is
+    // distinguishable from an unreachable network.
+    assert.match(sync, /verify_status \|\| true/);
+    assert.match(sync, /"000" \| ""\)/);
+    assert.match(sync, /the token halves ARE synced/);
+    assert.match(sync, /while \{ \[ "\$STATUS" = "401" \]/);
+    assert.match(sync, /for prefix in aws-0 aws-1/);
+    assert.match(sync, /last failed attempt's psql stderr/);
+    assert.match(sync, /PROBE_ERR_FILE/);
 
     // The conduit is recorded where operators actually read (fleet
     // re-review on #360): the deployment procedure and the README
