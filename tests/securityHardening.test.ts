@@ -255,15 +255,16 @@ describe("security hardening", () => {
     assert.match(workflow, /cross-origin-opener-policy/);
   });
 
-  it("holds no FMP key in CI — the Keychain is the secret store (fleet credential law)", () => {
-    // The 2026-08-17 fmp-api-key rotation propagated to every
-    // Keychain-reading consumer with no edit and missed the GitHub copy,
-    // which then overwrote Supabase's good value on every deploy (runs
-    // 373/374 — "Invalid API KEY"). Supabase's function secret — the one
-    // copy production physically requires — is set only by
-    // scripts/ops/sync-function-secrets.sh from the studio Keychain; CI
-    // never holds the key again, and a convenience edit re-adding it is
-    // a red build, not a quiet regression.
+  it("holds no gate credential in CI — the Keychain is the secret store (fleet credential law)", () => {
+    // The 2026-08-17 rotations (fmp-api-key AND levelflow-newssync-token)
+    // propagated to every Keychain-reading consumer with no edit and
+    // missed the GitHub copies: the stale FMP key then overwrote
+    // Supabase's good value on every deploy (runs 373/374 — "Invalid API
+    // KEY"), and the news token's gate/caller copies were left behind.
+    // Both gate credentials — and the Vault caller copy pg_cron reads —
+    // are set only by scripts/ops/sync-function-secrets.sh from the
+    // studio Keychain; CI never holds them again, and a convenience edit
+    // re-adding one is a red build, not a quiet regression.
     // Every workflow, not just deploy.yml (fleet round 3): the incident
     // was a consumer nobody had listed, and a future convenience re-add
     // would land in a NEW workflow (HANDOFF discusses automating the
@@ -273,23 +274,45 @@ describe("security hardening", () => {
         continue;
       }
       const source = readFileSync(join(".github/workflows", workflow), "utf8");
-      assert.equal(
-        source.includes("secrets.FMP_API_KEY"),
-        false,
-        `${workflow} must not hold the FMP key — CI never carries it`,
-      );
+      for (const credential of ["FMP_API_KEY", "NEWS_SYNC_TOKEN", "FINNHUB_API_KEY"]) {
+        assert.equal(
+          source.includes(`secrets.${credential}`),
+          false,
+          `${workflow} must not hold ${credential} — CI never carries gate credentials`,
+        );
+      }
     }
 
     const sync = readFileSync("scripts/ops/sync-function-secrets.sh", "utf8");
     assert.match(
       sync,
-      /security find-generic-password -a peacock -s fmp-api-key -w/,
+      /security find-generic-password -a peacock -s "\$1" -w/,
     );
+    assert.match(sync, /keychain_read fmp-api-key/);
+    assert.match(sync, /keychain_read levelflow-newssync-token/);
+    assert.match(sync, /keychain_read supabase-db-levelflow/);
     assert.match(sync, /supabase secrets set --project-ref/);
-    // The value travels by 600-mode temp env-file, never argv — it must
-    // not be readable in `ps` on the studio machine.
+    // The preflight resolves psql and a working database endpoint BEFORE
+    // the first write — a run that rotates the gate half and dies on the
+    // Vault half would CAUSE the split-token 401s (#361 finding 1).
+    assert.match(sync, /command -v psql/);
+    assert.ok(
+      sync.indexOf("preflight ok") < sync.indexOf("supabase secrets set"),
+      "the database preflight must precede the first write",
+    );
+    // The caller half moves with the gate half, or every hourly sync 401s:
+    // the cron jobs read vault.news_sync_token at call time.
+    assert.match(sync, /vault\.secrets where name = 'news_sync_token'/);
+    assert.match(sync, /vault\.update_secret|vault\.create_secret/);
+    // And the sync proves itself: one authenticated call must clear the
+    // gate before the script reports success.
+    assert.match(sync, /functions\/v1\/news-calendar/);
+    assert.match(sync, /VERIFY FAILED/);
+    // Values travel by 600-mode temp files, never argv — they must not
+    // be readable in `ps` on the studio machine.
     assert.match(sync, /chmod 600/);
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
+    assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
 
     // The conduit is recorded where operators actually read (fleet
     // re-review on #360): the deployment procedure and the README

@@ -64,14 +64,18 @@ records in `analyzer_events`. See [docs/deployment.md](/docs/deployment.md).
 3. In Supabase Auth, enable email OTP/magic links and configure Google/Apple OAuth providers.
 4. Add `https://levelflow.windwardline.com/` and any fallback/local development URLs to Supabase Auth redirect URLs.
 5. Apply the launch migrations in `supabase/migrations/`.
-6. Deploy the Supabase Edge Functions and set Supabase function secrets:
-   - `NEWS_SYNC_TOKEN`
-   - `FMP_API_KEY` for the analyzer and macro news ingestion — set ONLY via
-     `scripts/ops/sync-function-secrets.sh` (Keychain → Supabase; the deploy
-     workflow deliberately never holds or pushes this key — see
-     [docs/deployment.md](/docs/deployment.md))
-   - `FINNHUB_API_KEY` only if macro news ingestion is switched away from FMP
+6. Deploy the Supabase Edge Functions and set Supabase function secrets —
+   the gate credentials are set ONLY via
+   `scripts/ops/sync-function-secrets.sh` (Keychain → Supabase function
+   secrets AND the Vault caller copy; the deploy workflow deliberately
+   never holds or pushes them — see
+   [docs/deployment.md](/docs/deployment.md)):
+   - `NEWS_SYNC_TOKEN` (plus Vault `news_sync_token`, which pg_cron reads)
+   - `FMP_API_KEY` for the analyzer and macro news ingestion
+   - `FINNHUB_API_KEY` only if macro news ingestion is switched away from
+     FMP (dormant; would join the conduit)
    - `FMP_API_BASE_URL` only if FMP changes the default stable REST host
+     (non-credential config; deploy.yml sets it)
 7. Set hosted frontend env vars:
    - `VITE_APP_URL`
    - `VITE_SUPABASE_URL`

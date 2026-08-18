@@ -66,37 +66,32 @@ step leaves every signed-in operator working behind a closed door.
 > `docs/cache-rebuild-r0.md` §0 for the measured results, including the
 > settled `to`-inclusivity and the ≥2,304-row 5-minute cap).
 >
-> **⚠ OPEN OWNER ACTION (2026-08-18): production's FMP key is DEAD — one
-> Keychain-sync command heals it.** The fleet credential law
-> (windwardline/ops: "Keychain is the secret store"; `credentials.tsv` is
-> the governed inventory) rotated `fmp-api-key` on **2026-08-17** after
-> the prior value surfaced in an agent transcript. The rotation
-> propagated to every Keychain-reading consumer with no edit — but the
-> GitHub Actions secret `FMP_API_KEY` was a consumer the inventory never
-> listed, so it went stale, and every deploy overwrote Supabase's
-> function secret with the dead key. The FMP blackout masked it (the
-> gate stood down on quota); the moment the allowance recovered, runs
-> 373/374 went red, and #359's printed refusal named it: FMP's own
-> `"Invalid API KEY"`. Production Edge Functions are failing all FMP
-> fetches until the sync runs.
->
-> **The fix keeps the keys in one place** (the first remedy drafted here
-> — pushing the key back into GitHub — was WRONG under the fleet law and
-> was replaced): `deploy.yml` no longer holds, requires, or pushes
-> `FMP_API_KEY` at all; Supabase's function secret — the one copy
-> production physically requires — is set only by
-> `scripts/ops/sync-function-secrets.sh`, which reads the Keychain at
-> launch and holds nothing. **Owner's one step, on the studio Mac, after
-> the PR carrying that script and the deploy.yml change merges:**
-> `bash ~/Projects/levelflow-cloud/scripts/ops/sync-function-secrets.sh`
-> (pull main first). Rotation from then on: rotate in the Keychain, run
-> the script, done. The stale GitHub secret can be deleted in repo
-> Settings → Secrets (optional; it is dead value, referenced by
-> nothing). Follow-ups carried below: the inventory row gains this
-> consumer; `FINNHUB_API_KEY` exists ONLY as a GitHub secret (an
-> ungoverned remote copy, the resend-zapier failure class); the
-> Supabase-family GitHub secrets are Keychain-governed but their GitHub
-> copies are likewise not yet inventory-listed.
+> **✅ CLOSED 2026-08-18 (two acts): the 2026-08-17 key rotations had
+> stranded every non-Keychain copy.** The fleet credential law
+> (windwardline/ops: "Keychain is the secret store"; `credentials.tsv`
+> is the governed inventory) rotated `fmp-api-key` AND
+> `levelflow-newssync-token` on **2026-08-17**. Rotation propagates to
+> Keychain-reading consumers with no edit — but the GitHub Actions
+> copies were consumers the inventory never listed. **Act 1 (FMP):**
+> every deploy overwrote Supabase's function secret with the dead key;
+> the quota blackout masked it; runs 373/374 went red the moment the
+> allowance recovered, and #359's printed refusal named it ("Invalid
+> API KEY"). Fixed in #360: `deploy.yml` holds no FMP key, ever;
+> `scripts/ops/sync-function-secrets.sh` is the one Keychain→Supabase
+> conduit; the owner synced; **deploy run 378 green end-to-end** —
+> first fully green deploy-time E2E since the 08-13 blackout. The stale
+> GitHub secret is deleted; `credentials.tsv` lists the conduit (ops
+> #61). **Act 2 (news token):** the same rotation left
+> `NEWS_SYNC_TOKEN`'s gate copy (GitHub→Supabase) and caller copy
+> (Vault `news_sync_token`, which pg_cron reads at call time) behind.
+> Same remedy, same conduit: the sync script now converges BOTH halves
+> from the Keychain and proves the token with one authenticated
+> news-calendar call; `deploy.yml` no longer holds or pushes it; every
+> workflow is test-pinned against carrying any gate credential. The
+> phantom `FINNHUB_API_KEY` reference (a GitHub secret that never
+> existed, blanking Supabase's Finnhub value on every deploy) is
+> removed. Rotation from now on, for both credentials: rotate in the
+> Keychain, run the script, done.
 >
 > The paragraphs below are kept as the record of the blackout. What remains
 > true: the 1-minute bars not banked between 2026-08-13 and the bank's
@@ -1061,14 +1056,18 @@ key. Sequenced after item 6's `init.sql` work.
   R band under-counts exactly those rows — E2E debris only today, per
   the 2026-08-11 wipe. Unpark: back-derive from the stored legs with
   the same accountant, riding Phase 2's D1 recompute (one data touch).
-- **Credential-inventory gaps in the deploy pipeline** (found while
-  closing the 2026-08-18 FMP-key incident): `FINNHUB_API_KEY` exists
-  ONLY as a GitHub secret — no Keychain row, the ungoverned-remote-copy
-  class the ops README documents — and the Supabase-family GitHub
-  secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) are
-  Keychain-governed but their GitHub copies are not listed as consumers
-  in `windwardline/ops` `credentials.tsv`, so a rotation would strand
-  them exactly as it stranded FMP. Fix at the inventory, not here.
+- **Remaining credential-inventory gap in the deploy pipeline**: the
+  Supabase-family GitHub secrets (`SUPABASE_ACCESS_TOKEN`,
+  `SUPABASE_DB_PASSWORD`) are Keychain-governed but their GitHub copies
+  are not listed as consumers in `windwardline/ops` `credentials.tsv`,
+  so a rotation would strand them exactly as it stranded FMP and the
+  news token. They legitimately stay in GitHub (the pipeline's own
+  working credentials); the fix is inventory rows, not code. (Two
+  earlier siblings are CLOSED: `FINNHUB_API_KEY` turned out to be a
+  PHANTOM — the workflow referenced a GitHub secret that never existed,
+  blanking any Supabase Finnhub value on every deploy; the reference is
+  removed and pinned against return. `NEWS_SYNC_TOKEN` moved into the
+  Keychain conduit — see the incident record above.)
 
 ---
 

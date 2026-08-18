@@ -52,26 +52,55 @@ Apply migrations before deploying Edge Functions that depend on new database obj
 
 ```bash
 npx supabase db push --linked
-# FMP_API_KEY: Keychain → Supabase, the one conduit. Defaults to the studio
-# machine and the PRODUCTION project ref — override for any other target:
-REPO=. PROJECT_REF=your-project-ref scripts/ops/sync-function-secrets.sh
 npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
+# Gate credentials (FMP_API_KEY, NEWS_SYNC_TOKEN + its Vault caller copy):
+# Keychain → Supabase, the one conduit — AFTER the functions deploy, because
+# it ends by proving the token against a live news-calendar (a 404 there
+# means "deploy the functions first", and it says so). Defaults to the
+# studio machine and the PRODUCTION project ref — override for any other
+# target:
+REPO=. PROJECT_REF=your-project-ref scripts/ops/sync-function-secrets.sh
 ```
 
-**The FMP key never travels any other way.** The fleet credential law
-(`windwardline/ops`: the Keychain is the secret store; `credentials.tsv`
-is the governed inventory) makes the studio Keychain authoritative, and
-`scripts/ops/sync-function-secrets.sh` is the one conduit to the one
-copy production physically requires — Supabase's function secret, which
-persists across deploys. `deploy.yml` deliberately does not hold, require,
-or push the key (the 2026-08-17 rotation stranded exactly such an
-unlisted CI copy, and every deploy then overwrote the good value with the
-dead one — deploy runs 373/374). Rotation is: rotate in the Keychain, run
-the script, done; the deploy-time E2E chart gate is what proves the value
-authenticates. Never pass the key on argv — the script moves it by
-600-mode temp env-file so it cannot surface in `ps`, and
-`tests/securityHardening.test.ts` pins both this file and every workflow
-against regressing to the inline argv form.
+**The gate credentials never travel any other way.** The fleet credential
+law (`windwardline/ops`: the Keychain is the secret store;
+`credentials.tsv` is the governed inventory) makes the studio Keychain
+authoritative, and `scripts/ops/sync-function-secrets.sh` is the one
+conduit to the copies production physically requires: the Supabase
+function secrets (`FMP_API_KEY`, `NEWS_SYNC_TOKEN` — the gate half) and
+the Vault secret `news_sync_token` (the caller half pg_cron reads),
+which all persist across deploys. `deploy.yml` deliberately does not
+hold, require, or push either credential (the 2026-08-17 rotations
+stranded exactly such unlisted CI copies — deploy runs 373/374). Rotation
+is: rotate in the Keychain, run the script, done; the script proves the
+token end-to-end with one authenticated news-calendar call, and the
+deploy-time E2E chart gate proves the FMP key. Never pass a value on
+argv — the script moves them by 600-mode temp files so they cannot
+surface in `ps`, and `tests/securityHardening.test.ts` pins this file and
+every workflow against regressions.
+
+**Not on the studio machine?** The script's Keychain reads are the studio
+machine's (`security find-generic-password -a peacock -s …`). Elsewhere,
+apply the same discipline by hand from your own secret store: write
+`FMP_API_KEY=…` and `NEWS_SYNC_TOKEN=…` to a 600-mode file and
+`npx supabase secrets set --project-ref your-project-ref --env-file` it
+(never argv), then set Vault's `news_sync_token` to the same token value
+via the dashboard SQL editor with the script's own upsert form —
+`vault.secrets.name` is unique, so a bare `create_secret` errors on the
+rotation case:
+
+```sql
+do $$
+declare sid uuid;
+begin
+  select id into sid from vault.secrets where name = 'news_sync_token';
+  if sid is null then
+    perform vault.create_secret('YOUR_TOKEN', 'news_sync_token');
+  else
+    perform vault.update_secret(sid, 'YOUR_TOKEN');
+  end if;
+end $$;
+```
 
 ## Server Runtime
 
@@ -96,10 +125,10 @@ The production backend runs through Supabase Edge Functions. Local experiments s
 Required server-only env vars:
 
 ```bash
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-NEWS_SYNC_TOKEN=your_generated_sync_token
-FMP_API_KEY=your_financial_modeling_prep_key
-FMP_API_BASE_URL=https://financialmodelingprep.com/stable
-FINNHUB_API_KEY=your_finnhub_key
+SUPABASE_URL=https://your-project-ref.supabase.co          # platform-provided
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key            # platform-provided
+NEWS_SYNC_TOKEN=…       # via sync-function-secrets.sh, never CI (see above)
+FMP_API_KEY=…           # via sync-function-secrets.sh, never CI (see above)
+FMP_API_BASE_URL=https://financialmodelingprep.com/stable  # config, deploy.yml
+FINNHUB_API_KEY=…       # dormant — joins the conduit if Finnhub is activated
 ```
