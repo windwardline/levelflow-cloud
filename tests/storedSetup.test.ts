@@ -248,6 +248,29 @@ describe("copyWindowEndsAt — the gate's window, not the stamp's", () => {
     );
   });
 
+  it("reads the confluence calibration stamp for rows from before E7's field (#362 round 3, finding 3)", () => {
+    // Pre-E7 rows carry the identical decision-time value under
+    // confluence.categoryCalibration — a better read than the mirror,
+    // which re-models. risk_model's own stamp still wins when present.
+    const created = new Date(buildSetup().created_at).getTime();
+    const viaConfluence = storedSetupAsCandidate(buildSetup({
+      confluence: { categoryCalibration: { reviewWindowHours: 7.5 } },
+      risk_model: { executionQuality: { label: "Clean" } },
+    }));
+    assert.equal(
+      viaConfluence.setup!.copyWindowEndsAt,
+      new Date(created + 7.5 * 60 * 60 * 1000).toISOString(),
+    );
+    const rowWins = storedSetupAsCandidate(buildSetup({
+      confluence: { categoryCalibration: { reviewWindowHours: 7.5 } },
+      risk_model: { reviewWindowHours: 9.5 },
+    }));
+    assert.equal(
+      rowWins.setup!.copyWindowEndsAt,
+      new Date(created + 9.5 * 60 * 60 * 1000).toISOString(),
+    );
+  });
+
   it("falls back to the mirror when the stamp is missing or malformed — the bridge's own validation", () => {
     const created = new Date(buildSetup().created_at).getTime();
     const mirrorEnd = new Date(

@@ -38,10 +38,17 @@ export async function recordMarketDataHealth(
       ...providerFailures,
       ...(marketContext?.providerWarnings ?? []),
     ];
+    // E3 dropped the analyzer's 1-minute fetch (#362 round 3, finding
+    // 2), so the timeframe ceiling fell from six to five. "limited"
+    // keeps its meaning — more than two series missing — by moving the
+    // threshold in step: < 4 of a possible six ≡ < 3 of a possible five
+    // for every symbol that served 1min, which was every symbol that
+    // could reach the old bar. Left at < 4 it would have flipped
+    // symbols to "limited" with no change in provider coverage.
     const status = !marketContext
       ? "unavailable"
       : providerWarnings.length > 0 ||
-          marketContext.availableTimeframes.length < 4
+          marketContext.availableTimeframes.length < 3
       ? "limited"
       : "ready";
 
@@ -57,6 +64,11 @@ export async function recordMarketDataHealth(
           0,
         ) ?? 0,
       last_checked_at: new Date().toISOString(),
+      // E3: `latest` is the completed decision anchor now, so this stamp
+      // reports the DECISION BASIS' age — up to one primary span behind
+      // the clock in the ordinary case, a daily stamp on the loader's
+      // daily fallback — not a freshness probe of the provider (that is
+      // last_checked_at's job). Named in the divergence map's residue.
       latest_bar_at: marketContext?.latest
         ? new Date(marketContext.latest.time).toISOString()
         : null,

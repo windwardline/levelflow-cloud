@@ -250,9 +250,13 @@ layer.
   tiering) while live degraded honestly to 15-minute physics. The sweep
   now decides its tier through `resolutionSeriesFor` as well — three
   callers, one rule; its FR-5 start offset and horizon slice are
-  unchanged. The behavioral pin for the sweep side rides with R1b's emit
-  tier symmetry, which gives it an observable per-row field; until then
-  the wiring is source-pinned. The sweep's emit symmetry rides with R1b.
+  unchanged. Round 3 then held the closure to the PR's own thesis: the
+  sweep-side pin is EXECUTED, not source-matched — `tests/sweep.test.ts`
+  drives `simulateSymbol` with a 5-minute corpus that begins after every
+  decision (grades identically to having none) and one that reaches back
+  (governs grading), so a reformatted reintroduction of the old
+  non-empty admission fails regardless of spelling. The sweep's emit
+  symmetry — recording the tier per corpus row — still rides with R1b.
 - **E2 (live half)**: the true no-bars expiry carries
   `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
   not. The sweep's distinct counter and `assertManifest`'s per-symbol
@@ -308,8 +312,26 @@ layer.
     clamps every non-crypto window to the weekly cutoff and
     `storedSetup.ts` computes flat hours, so a Friday-afternoon forex
     setup stays copyable past the instant the resolver expires it.
-    Closing it means mirroring the NY-clock weekly-close rule
-    client-side — its own considered change.
+    Round 3 corrected WHY this stands: `risk_model.reviewWindowExpiresAt`
+    already carries the fully clamped instant on every row — but
+    `upsertActiveSetup`'s same-side dedupe rewrites `risk_model` on a
+    re-scan while `created_at` is preserved, so a re-scanned row's
+    stamped instant runs AHEAD of the resolver's `created_at + hours`;
+    hours-from-created_at is the read that cannot drift. The client's
+    fallback for pre-E7 rows now reads
+    `confluence.categoryCalibration.reviewWindowHours` (the same
+    decision-time value those rows already carry) before the mirror.
+    Closing the clamp itself means mirroring the weekly-close rule
+    alone client-side, or making the dedupe restamp coherently — its
+    own considered change.
+  - `market_data_health.latest_bar_at` aged with the anchor (#362 round
+    3, finding 2): it now stamps the completed decision anchor's time —
+    the decision basis' age, up to one primary span behind the clock, a
+    daily stamp on the loader's fallback — not a provider freshness
+    probe (`last_checked_at` carries that). The "limited" status
+    threshold moved in step with the fallen timeframe ceiling (< 4 of
+    six → < 3 of five) so no symbol flips status without a real
+    coverage change.
   - `completedIntradaySeries` span-tests the session's FINAL `1hour`/
     `4hour` bar too (#362 round 2, smaller item): FMP's truncated
     session-close bars (an equity 15:30 hourly covers 30 minutes) read

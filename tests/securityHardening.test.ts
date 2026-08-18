@@ -734,11 +734,21 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
         `${file} must keep a failed 15-minute fetch fatal for the setup`,
       );
       // Format-independent half of the pair (#362 round 2, smaller item):
-      // exactly ONE degrade-catch per writer. With the positive match
-      // above binding it to the 5-minute fetch, a reformatted 15-minute
-      // .catch cannot hide — it would make this count two.
+      // exactly ONE degrade-catch inside the dual-fetch block. With the
+      // positive match above binding it to the 5-minute fetch, a
+      // reformatted 15-minute .catch cannot hide — it would make this
+      // count two. Scoped to the block (round 3, smaller item) so an
+      // unrelated future .catch elsewhere in the file cannot fail a pin
+      // whose message points at the 5-minute fetch.
+      const fetchRegionStart = source.indexOf("const fifteenKey");
+      const fetchRegionEnd = source.indexOf("resolutionSeriesFor(");
+      assert.ok(
+        fetchRegionStart >= 0 && fetchRegionEnd > fetchRegionStart,
+        `${file} must fetch both series before deciding the tier`,
+      );
       assert.equal(
-        (source.match(/\)\.catch\(\(\) => \[\]\)/g) ?? []).length,
+        (source.slice(fetchRegionStart, fetchRegionEnd)
+          .match(/\)\.catch\(\(\) => \[\]\)/g) ?? []).length,
         1,
         `${file} must carry exactly one degrade-catch, on the 5-minute fetch`,
       );
@@ -755,16 +765,12 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
       /resolutionSeriesFor\(\{\s*\n\s*createdAtMs: latest\.time,/,
       "the sweep's tier must come from the shared admission rule at the decision instant",
     );
-    // The whole-corpus non-empty admission is the divergence round 2
-    // caught: a 5-minute corpus starting after the decision instant must
-    // degrade to 15-minute physics in the sweep exactly as live does.
-    // The behavioral half of this pin arrives with R1b's emit tier
-    // symmetry, which gives the assertion an observable per-row field.
-    assert.doesNotMatch(
-      sweep,
-      /fiveMinuteBars && fiveMinuteBars\.length > 0/,
-      "the sweep must not admit the 5-minute tier on mere non-emptiness",
-    );
+    // The behavioral half is EXECUTED in tests/sweep.test.ts (#362 round
+    // 3, finding 1): a 5-minute corpus starting after the decision
+    // instants grades identically to having none, and an admitted one
+    // governs grading — a reformatted reintroduction of the old
+    // non-empty admission fails that test regardless of spelling, which
+    // is why no formatting-keyed doesNotMatch stands here.
   });
 
   it("E3: setup construction anchors on the last COMPLETED primary bar, never the freshest 1-minute print", () => {

@@ -1252,6 +1252,15 @@ describe("R1a slice 2 — one physics", () => {
       noBars.state === "resolved" ? noBars.feedback.noBarsInReviewWindow : null,
       true,
     );
+    // The tier stamp rides the unfilled branches too (#362 round 3,
+    // smaller item) — a DEGRADED no-bars row is exactly what a cohort
+    // read needs to separate, so the stamp matters most here.
+    assert.equal(
+      noBars.state === "resolved"
+        ? noBars.feedback.resolutionIntervalMs
+        : null,
+      15 * 60 * 1000,
+    );
 
     // Bars existed, the limit never filled — a market verdict, unmarked.
     const noFill = evaluateSetupOutcome(
@@ -1265,6 +1274,12 @@ describe("R1a slice 2 — one physics", () => {
         ? noFill.feedback.noBarsInReviewWindow
         : null,
       undefined,
+    );
+    assert.equal(
+      noFill.state === "resolved"
+        ? noFill.feedback.resolutionIntervalMs
+        : null,
+      15 * 60 * 1000,
     );
   });
 

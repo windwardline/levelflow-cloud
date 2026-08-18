@@ -84,7 +84,70 @@ function dailyBars(count: number): Bar[] {
   }));
 }
 
+// A flat, self-coherent 5-minute series for the tier-admission pin: its
+// content is irrelevant to the assertions — only where it BEGINS and ENDS
+// relative to the decision instants matters.
+function flatFiveMinute(firstTime: number, count: number): Bar[] {
+  return Array.from({ length: count }, (_, index) => ({
+    close: 100,
+    high: 100.3,
+    low: 99.7,
+    open: 100,
+    time: firstTime + index * 300_000,
+    volume: 500,
+  }));
+}
+
 describe("replay sweep", () => {
+  it("takes its resolution tier from the shared admission rule — reach-back, not non-emptiness (#362 round 3, finding 1)", () => {
+    const base = {
+      calibrationOverride: {
+        blockedRegimes: [],
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    };
+    const baseline = simulateSymbol({ ...base });
+    assert.ok(
+      baseline.outcomes.some((record) => record.filledAtMs !== null),
+      "fixture must fill on 15-minute physics for the pin to discriminate",
+    );
+
+    // A 5-minute corpus that BEGINS after every decision instant. The
+    // old admission (mere non-emptiness) graded every decision from an
+    // empty slice — data absence wearing a market verdict, E2's own
+    // defect. The shared rule refuses the tier, and grading is
+    // indistinguishable from having no 5-minute series at all.
+    const lateStart = simulateSymbol({
+      ...base,
+      fiveMinuteBars: flatFiveMinute(startTime + 700 * 900_000, 40),
+    });
+    assert.deepStrictEqual(lateStart.outcomes, baseline.outcomes);
+    assert.deepStrictEqual(lateStart.rejections, baseline.rejections);
+
+    // The companion: a corpus that DOES reach back is admitted, and the
+    // 5-minute stream then governs grading — this one ends before any
+    // decision's window opens, so every accepted setup resolves through
+    // the no-bars branch and nothing fills, where the identical run on
+    // 15-minute physics fills. (Forward coverage is the corpus door's
+    // job — R1b's per-symbol density assertion; the admission rule pins
+    // reach-back.)
+    const reaching = simulateSymbol({
+      ...base,
+      fiveMinuteBars: flatFiveMinute(startTime, 10),
+    });
+    assert.ok(reaching.outcomes.length > 0);
+    assert.ok(
+      reaching.outcomes.every((record) => record.filledAtMs === null),
+      "an admitted 5-minute stream must govern grading",
+    );
+  });
+
   it("simulates a symbol across time and resolves outcomes from future bars", () => {
     // The synthetic oscillator registers as volatile chop; disable the
     // regime gate here — this test verifies outcome resolution, not policy.
