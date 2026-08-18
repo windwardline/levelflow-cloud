@@ -359,17 +359,19 @@ export function formatSignedR(value: number | null): string {
   return `${sign}${Math.abs(value).toFixed(1)}R`;
 }
 
-// trade_outcomes.feedback is the only place realizedR lives (no column —
-// spec §10). Present for tp1_partial/expired_in_profit/expired_at_loss
-// today (supabase/functions/trade-analyzer/replay.ts's expiry branch);
-// absent everywhere else including every open/placed row and every
-// take_profit/stop_loss resolution — callers must treat null as "no
-// figure yet," never as zero.
+// trade_outcomes.feedback is the only place realized R lives (no column —
+// spec §10). D2 (R1a): the resolver now writes netRealizedR and realizedR
+// on EVERY filled resolution, so a stat labelled "Net R" reads NET —
+// gross realizedR is the fallback for rows graded before the change
+// (where only the expiry branch wrote it, and net exists beside it
+// anyway on all but the oldest rows). Callers must treat null as "no
+// figure yet," never as zero — open/placed rows and unfilled resolutions
+// carry neither field.
 export function extractRealizedR(
   setup: Pick<OutcomeEvidenceRow, "trade_outcomes">,
 ): number | null {
   const feedback = asRecord(setup.trade_outcomes?.[0]?.feedback);
-  return asNumber(feedback.realizedR);
+  return asNumber(feedback.netRealizedR) ?? asNumber(feedback.realizedR);
 }
 
 // The Insights Status filter (spec §10: "All / Open / Pending / Closed") is

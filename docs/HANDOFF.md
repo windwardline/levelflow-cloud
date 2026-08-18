@@ -43,7 +43,9 @@ deploy pipeline itself.
 Trade history was preserved at the re-park, then **wiped on the owner's
 clean-model order 2026-08-11** (amendment 35): setups, outcomes, sessions and
 refresh tokens all to zero, verified; thirteen accounts untouched. The first
-live cohort under `2026.08.11.declines` accrues from an empty table. (The
+live cohort accrued (briefly, E2E debris only) under `2026.08.11.declines`;
+R1a's first slice moved the boundary to `2026.08.18.realized-r` (D2 —
+grading numbers changed, so the version moved with them). (The
 E2E account's rows reappear on every deploy — pipeline debris, not history;
 group by user before trusting a raw `count(*)`.)
 
@@ -62,8 +64,25 @@ step leaves every signed-in operator working behind a closed door.
 > allowance recovered immediately** — probed the same day (quote 200, two
 > 5-minute history windows served complete; see
 > `docs/cache-rebuild-r0.md` §0 for the measured results, including the
-> settled `to`-inclusivity and the ≥2,304-row 5-minute cap). The
-> paragraphs below are kept as the record of the blackout. What remains
+> settled `to`-inclusivity and the ≥2,304-row 5-minute cap).
+>
+> **⚠ OPEN OWNER ACTION (2026-08-18 afternoon): the FMP key in the GitHub
+> `FMP_API_KEY` secret is DEAD.** The first post-upgrade deploys (runs
+> 373/374 on main) failed their live chart gate, and once #359 taught the
+> gate to print the refusal, FMP's own words were `"Invalid API KEY"` —
+> while the studio Keychain key banked 76k one-minute bars at 13:00Z and
+> the FMP connector served the identical query minutes around both
+> failures. Production's Edge Functions hold that dead key too (the
+> deploy pushes the secret to Supabase), so live provider fetches are
+> failing account-wide until this is fixed. Remedy, owner-only: copy the
+> WORKING key (`security find-generic-password -a peacock -s fmp-api-key
+> -w` on the studio Mac, or the FMP dashboard) into the GitHub Actions
+> secret `FMP_API_KEY`, then re-run `deploy.yml` on main — the deploy
+> re-pushes it to Supabase and the gate re-verifies. The E2E quota
+> stand-down correctly did NOT swallow this: an invalid key is a
+> configuration failure and stays red.
+>
+> The paragraphs below are kept as the record of the blackout. What remains
 > true: the 1-minute bars not banked between 2026-08-13 and the bank's
 > first post-upgrade run are permanently gone (~3-day serving window);
 > everything else refetches. The minute bank resumes on its own schedule
@@ -124,7 +143,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.08.11.declines` — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deployed and verified |
+| Engine | `2026.08.18.realized-r` (R1a slice 1: D2 — realized R from legs on every filled resolution, TP1-banked expiries score the ladder; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deployed and verified |
 | Public face | The parking page |
 | Tests | 2,178 at this writing — the count drifts every PR, so `npm test` is the authority, not this cell; check · lint · check:migrations · test · build · check:bundle all green |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |

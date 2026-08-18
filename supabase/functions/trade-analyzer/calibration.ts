@@ -4,7 +4,11 @@
 // the sweep driver's manifest can import — so a corpus can never be
 // aggregated without knowing which engine produced it.
 import { isKnownSymbol } from "./symbols.ts";
-export const ANALYZER_VERSION = "2026.08.11.declines";
+// 2026.08.18.realized-r (D2, R1a): the resolver writes realized R from
+// its legs on every filled resolution, and a TP1-banked expiry scores the
+// ladder instead of full-size arithmetic — grading numbers changed, so
+// the cohort boundary moves with them.
+export const ANALYZER_VERSION = "2026.08.18.realized-r";
 
 export type AssetType =
   | "agriculture"

@@ -2,13 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
-  realizedRFromLegs,
   resampleBars,
   simulateSymbol,
   summarizeSweepOutcomes,
   type SweepOutcomeRecord,
 } from "../supabase/functions/trade-analyzer/sweep.ts";
-import type { ResolutionLeg } from "../supabase/functions/trade-analyzer/replay.ts";
+import {
+  realizedRFromLegs,
+  type ResolutionLeg,
+} from "../supabase/functions/trade-analyzer/replay.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 
 // summarizeSweepOutcomes only reads .outcome and .realizedR (sweep.ts:373-395),

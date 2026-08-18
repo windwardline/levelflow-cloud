@@ -220,12 +220,16 @@ input on every row, not one branch.
 
 ## Sequencing — three PRs, engine first
 
-1. **R1a — one physics** (engine + writers): D2 uniform realized R;
-   E1 5-minute resolution with recorded degradation; E3 decision-bar
-   `latest`; E7 the bridge carries the row's stored runner-protection
-   mode and review window; the E2 live-side distinct no-bars marker.
-   One PR because they all touch `replay.ts`/writer options and their
-   tests together.
+1. **R1a — one physics** (engine + writers), landing in two slices:
+   **slice 1 (shipped first): D2** uniform realized R from legs on every
+   filled resolution, the `extractRealizedR` net repoint, and the
+   `ANALYZER_VERSION` bump to `2026.08.18.realized-r` that moves the
+   cohort boundary with the changed numbers. **Slice 2:** E1 5-minute
+   resolution with recorded degradation; E3 decision-bar `latest`; E7
+   the bridge carries the row's stored runner-protection mode and review
+   window; the E2 live-side distinct no-bars marker — these all touch
+   `fillOptionsFromRiskModel`/writer options together, which D2 does
+   not, so slicing there keeps each PR one concern.
 2. **R1b — the sweep tells the truth about its inputs**: E2 sweep
    counter + `assertManifest` per-symbol density assertion; E6 macro
    reconstruction + the two stated-zero terms in the manifest
