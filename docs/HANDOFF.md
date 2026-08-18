@@ -847,13 +847,21 @@ Sunday condemning a healthy store run-globally).
   than a proof.
 - **The 1b fetch defect fixed at the source** (`scripts/intradayChunks.ts`,
   extracted pure and pinned by behaviour): chunks sized per timeframe —
-  5min 5d, 15min 29d — so the worst case under an INCLUSIVE `to`
-  (chunkDays+1 dates, plus the fall-back day's extra hour) still clears
-  the caps; a response-cap tripwire on the RAW payload row count (the
-  boundary's rejections must not let a clipped chunk slip under); and
-  the empty-window walk-back expressed in days (90). E2's other half —
-  the distinct no-bars resolution state and the density assertion at the
-  door — stays in R1.
+  5min 5d, 15min 29d — so the worst case under the MEASURED-INCLUSIVE
+  `to` (chunkDays+1 dates, plus the fall-back day's extra hour) fits the
+  MEASURED caps (15min ≥ 2,880 and 5min ≥ 2,304, both probed complete
+  2026-08-18); and the empty-window walk-back expressed in days (90).
+  Per-chunk clip detection was measured infeasible without run-killing
+  false positives — three candidate detectors died in review (#358
+  rounds 1/4/4b: dead row tripwire, holiday-false-positive coverage
+  check, unreadable merged tally) — so the clip guard is the measured
+  caps, the verifier's density floor AND ceiling (a clipped 15-minute
+  primary INFLATES the 5min/15min ratio), and R1's E2 density assertion
+  at the corpus door. E2's other half — the distinct no-bars resolution
+  state — stays in R1. A `BAR_CLOCK` bump now also forces the RE-SWEEP,
+  not just the cache rebuild: the corpus door refuses a superseded-clock
+  manifest, with `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` as the explicit,
+  loudly-warning historical-read act.
 - **`scripts/verify-cache-clock.ts` is the acceptance instrument**, now
   an importable audit pinned by its own test suite against synthetic
   healthy / unstamped / naive-data / shifted / sawtooth / corrupt /

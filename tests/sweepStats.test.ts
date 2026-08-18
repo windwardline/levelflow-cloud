@@ -302,12 +302,24 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
       () => assertManifestedCorpus(writeWithManifest(manifest)),
       /superseded-clock corpus is re-swept, not/,
     );
-    // A deliberate historical read is an explicit act, and only that.
+    // A deliberate historical read is an explicit act — and a LOUD one
+    // (#358 round 4b): the override must warn on every read, or a
+    // superseded-clock figure becomes indistinguishable from one that
+    // passed the door.
     process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    const warned: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (message: unknown) => {
+      warned.push(String(message));
+    };
     try {
       const { rows } = assertManifestedCorpus(writeWithManifest(manifest));
       assert.equal(rows.length, 1);
+      assert.equal(warned.length, 1);
+      assert.match(warned[0], /SUPERSEDED-CLOCK READ/);
+      assert.match(warned[0], /ny-wall-utc-v1-superseded/);
     } finally {
+      console.warn = realWarn;
       delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
     }
   });
@@ -357,6 +369,9 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
   const readerPattern =
     /createInterface\(|readLinesSync\(|split\("\\n"\)|split\(\/\\r\?\\n\/\)|split\('\\n'\)/;
   const doorPattern = /assertManifest\(|assertManifestedCorpus/;
+  // Keyed by path relative to scripts/, not basename (#358 round 4b): a
+  // future scripts/<subdir>/starvation-audit.ts must not inherit an
+  // exemption written for a different file.
   const exempt: Record<string, string> = {
     "starvation-audit.ts":
       "reads the sweep's printed stdout TABLE, not the emit — an artifact " +
@@ -378,17 +393,16 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
       if (!entry.isFile() || !/\.(ts|mjs)$/.test(name)) {
         continue;
       }
-      const source = readFileSync(
-        join(entry.parentPath, name),
-        "utf8",
-      );
+      const fullPath = join(entry.parentPath, name);
+      const relPath = fullPath.replace(/^scripts\//, "");
+      const source = readFileSync(fullPath, "utf8");
       if (!readerPattern.test(source)) {
         continue;
       }
-      if (doorPattern.test(source) || exempt[name]) {
+      if (doorPattern.test(source) || exempt[relPath]) {
         continue;
       }
-      undoored.push(name);
+      undoored.push(relPath);
     }
     assert.deepEqual(
       undoored,

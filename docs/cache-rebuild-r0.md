@@ -47,9 +47,10 @@ per symbol, and was never carried by the defect. Leave it running.
   (cap ≥ 2,880; the 15-minute cap had never been measured before). The
   sizing stays conservative (5/29 days). A future clip cannot be caught
   from inside one response without false positives — the guard is these
-  measured facts, the chunk row-count tally the sweep writes into the
-  manifest (a clip shows as a constant count below the window's physical
-  maximum), and the verifier's density floor AND ceiling.
+  measured facts and the verifier's density floor AND ceiling (a clipped
+  15-minute primary INFLATES the 5min/15min ratio, and because the two
+  timeframes' windows fill different fractions of a shared cap, a cap
+  drop cannot leave the ratio at 3).
 
 - **Run the minute bank FIRST if it has not already resumed** — this is
   the time-critical piece, not the rebuild: FMP serves 1-minute bars
@@ -121,10 +122,10 @@ FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w)" \
   crash cannot leave a torn store.
 - The chunk plan lives in `scripts/intradayChunks.ts` (5-minute: 5 days;
   15-minute: 29 — sized so the worst case under the measured-inclusive
-  `to` fits the measured caps). Every chunk's row count is tallied into
-  the emit manifest (`chunkRowCounts`); a provider clip would show there
-  as a constant count below the window's physical maximum (1,740 / 2,884)
-  — check it in step 3 alongside the verifier.
+  `to` fits the measured caps). Per-chunk clip detection is deliberately
+  absent (three candidate detectors died in review as false-positive or
+  dead — that file's header has the record); the clip guard is the
+  measured caps and step 3's density floor+ceiling.
 - Do not run sweeps or the full test suite on the machine while this
   runs.
 
@@ -150,10 +151,8 @@ clipped 15-minute PRIMARY inflates the ratio above the ceiling); the
 regimes (the absolute check — it alone catches a provider convention
 flip, which shifts every series together and is invisible to every
 relative instrument); a daily store beside every intraday pair; and
-every roster symbol present. Also eyeball the emit manifest's
-`chunkRowCounts` for any constant count below the physical maxima
-(1,740 / 2,884). Any red line: the rebuild did not take — do not sweep,
-do not delete the archive, diagnose.
+every roster symbol present. Any red line: the rebuild did not take —
+do not sweep, do not delete the archive, diagnose.
 
 For the record, the same command pointed at the condemned archive should
 fail on every store — it predates the stamp:
@@ -170,6 +169,16 @@ updating is the same failure class inverted:
 ```sh
 launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.windwardline.levelflow-cache-topup.plist
 ```
+
+Know what is and is not watching from here: the density floor+ceiling
+runs only when `verify-cache-clock` is invoked by hand — nothing
+re-checks it at top-up time, so a provider cap change landing AFTER step
+3 stays invisible until R1's E2 density assertion reaches the corpus
+door (or the next manual verify). If FMP announces plan or endpoint
+changes, re-run step 3 before the next sweep. Two related notes: a
+superseded-clock corpus read is possible only via the explicit
+`LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` override, which warns loudly on
+every read — figures produced under it are historical, never current.
 
 Next 07:00 run should log `top-up complete`. Confirm one green nightly
 log before calling Phase 0 done. (If a future nightly log ever shows the

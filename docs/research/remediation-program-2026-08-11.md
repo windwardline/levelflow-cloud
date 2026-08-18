@@ -162,7 +162,10 @@ and 15min↔5min registration ride in the manifest and are enforced at
 every emit reader the repo has (nine bare readers doored plus the
 aggregation doors — the population is pinned by a sweep-style test in
 `tests/sweepStats.test.ts`, not by an enumeration in prose); the 1b
-chunk sizing is fixed with a self-verifying response-cap tripwire; and
+chunk sizing is fixed against caps measured complete on 2026-08-18
+(per-chunk clip detection proved infeasible without false positives —
+the guard is the measured caps, the verifier's density floor+ceiling,
+and R1's E2 door assertion); and
 the nightly top-up stands down by name against the condemned store, so
 the "stopped or not" ambiguity above no longer matters. The allowance
 did NOT have to age out: the owner purchased a **100 GB plan upgrade on

@@ -23,20 +23,22 @@
 //   5min:  5 days → worst 6 dates × 288 + 12 = 1,740 rows  (cap ≥ 2,304)
 //   15min: 29 days → worst 30 dates × 96 + 4 = 2,884 rows  (cap ≥ 2,880)
 //
-// HOW A FUTURE CLIP IS CAUGHT — stated honestly, because two designs
-// died here (#358 rounds 1 and 4): a row-count tripwire above the
+// HOW A FUTURE CLIP IS CAUGHT — stated honestly, because three designs
+// died here (#358 rounds 1, 4 and 4b): a row-count tripwire above the
 // physical maximum can never fire (a complete chunk cannot reach it and
-// a clipped chunk returns fewer rows still), and an oldest-bar coverage
+// a clipped chunk returns fewer rows still); an oldest-bar coverage
 // check false-trips on sessioned markets (a holiday-cluster window can
-// legitimately open days late — a run-killing false positive). Per-chunk
-// clip detection without false positives is not achievable from inside
-// one response. The guard is therefore layered where the context is:
-// the sweep records a per-timeframe chunk row-count tally into the
-// manifest (a clip shows as a constant count below the window's physical
-// maximum, visible to any reader), verify-cache-clock bounds the
-// 5min/15min density with a floor AND a ceiling (a clipped primary
-// inflates the ratio), and R1's E2 adds the per-symbol density assertion
-// at the corpus door.
+// legitimately open days late — a run-killing false positive); and a
+// row-count tally into the manifest never materializes on the one run
+// that fetches full depth (the warm path writes no manifest) and merges
+// 97 symbols into an unreadable histogram. Per-chunk clip detection
+// without false positives is not achievable from inside one response,
+// and no consolation instrument should pretend otherwise. The guard is
+// the measured caps above, verify-cache-clock's density floor AND
+// ceiling (a clipped 15-minute primary INFLATES the 5min/15min ratio —
+// and because the two timeframes' windows fill different fractions of a
+// shared cap, a cap drop cannot leave the ratio at 3), and R1's E2
+// per-symbol density assertion at the corpus door.
 
 export type IntradayTimeframe = "15min" | "5min";
 

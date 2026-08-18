@@ -481,7 +481,6 @@ async function main() {
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
       clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
-      chunkRowCounts: chunkRowTally,
       days: args.days,
       folds: classFolds ? undefined : folds,
       ...(classFolds && {
@@ -727,10 +726,13 @@ function parseArgs(argv: string[]): SweepArgs {
   };
 }
 
-// Chunk sizing, window tiling, the response-cap tripwires and the
-// empty-window clearance live in scripts/intradayChunks.ts (R0; fleet
-// review #358 findings 1 and 5), extracted pure so the 1b sawtooth fix is
-// pinned by behaviour — this file runs main() on import and cannot be.
+// Chunk sizing, window tiling and the empty-window clearance live in
+// scripts/intradayChunks.ts (R0; #358), extracted pure so the 1b sawtooth
+// fix is pinned by behaviour — this file runs main() on import and cannot
+// be. Clip detection is NOT per-chunk (measured infeasible without false
+// positives — see that file's header): the guard is the measured caps,
+// verify-cache-clock's density floor+ceiling, and R1's E2 density
+// assertion at the corpus door.
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
@@ -762,13 +764,6 @@ async function fetchIntradayBars(
     endpoint.searchParams.set("to", isoDate(new Date(window.toMs)));
     endpoint.searchParams.set("apikey", API_KEY!);
     const chunk = await fetchBars(endpoint);
-    // A future clip cannot be caught from inside one response without
-    // false positives (intradayChunks.ts header, #358 round 4) — but it
-    // SHOWS as a constant chunk row count below the window's physical
-    // maximum, so every count is tallied into the manifest for the
-    // store-level checks and any reader to see.
-    const tally = chunkRowTally[timeframe];
-    tally[chunk.length] = (tally[chunk.length] ?? 0) + 1;
     if (chunk.length === 0) {
       emptyStreak += 1;
       if (emptyStreak >= emptyStreakLimit) {
@@ -832,11 +827,6 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
  * the run and carried into the corpus manifest (2i). */
 export const barRejectionTally: Record<string, number> = {};
 
-/** R0 (#358 round 4): chunk row counts per timeframe, into the manifest —
- * a future provider clip shows as a constant count below the window's
- * physical maximum, visible to every reader. */
-export const chunkRowTally: Record<IntradayTimeframe, Record<number, number>> =
-  { "15min": {}, "5min": {} };
 
 function dedupeSort(bars: Bar[]): Bar[] {
   const byTime = new Map<number, Bar>();

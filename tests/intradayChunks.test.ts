@@ -16,11 +16,10 @@ import {
 const DAY = 86_400_000;
 
 // The caps as MEASURED 2026-08-18 (runbook §0): one probe each, both
-// windows returned complete. A row-count tripwire was removed as
-// arithmetically dead (#358 round 4) — a complete chunk cannot reach a
-// tripwire above its physical maximum and a clipped chunk returns fewer
-// rows still — so the guard is these measured facts plus the store-level
-// density floor+ceiling and the manifest's chunk row-count tally.
+// windows returned complete. Per-chunk clip detection is deliberately
+// absent (three candidate detectors died in review as dead or
+// false-positive — intradayChunks.ts header); the guard is these
+// measured facts plus the verifier's density floor+ceiling and R1's E2.
 const MEASURED_CAP_FLOOR = { "15min": 2_880, "5min": 2_304 } as const;
 
 describe("chunk sizes are bounded against the MEASURED provider caps", () => {
@@ -37,8 +36,9 @@ describe("chunk sizes are bounded against the MEASURED provider caps", () => {
     // 15min: the floor was measured on a complete non-fall-back window,
     // so the cap is >= 2,880 and only a fall-back-week window (once a
     // year) exceeds it — by exactly the repeated hour's 4 bars. If the
-    // cap were exactly 2,880 those 4 bars would clip, visible in the
-    // manifest's chunk row-count tally.
+    // cap were exactly 2,880 those 4 bars would clip; the loss is bounded
+    // at 4 bars/year and sits under the density ceiling's sensitivity —
+    // accepted and stated rather than detected.
     assert.equal(worst15, MEASURED_CAP_FLOOR["15min"] + 4);
   });
 

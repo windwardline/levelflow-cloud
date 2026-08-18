@@ -247,16 +247,26 @@ function verifyManifest(emitPath: string): SweepManifest {
   // one layer up. A deliberate historical read is an explicit act:
   //   LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1
   if (
-    (manifest.clock.normalizer !== BAR_CLOCK ||
-      manifest.clock.calendar !== CALENDAR_CLOCK) &&
-    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK !== "1"
+    manifest.clock.normalizer !== BAR_CLOCK ||
+    manifest.clock.calendar !== CALENDAR_CLOCK
   ) {
-    throw new Error(
-      `${emitPath}: corpus swept under clock "${manifest.clock.normalizer}"/` +
-        `"${manifest.clock.calendar}" but this build is "${BAR_CLOCK}"/` +
-        `"${CALENDAR_CLOCK}" — a superseded-clock corpus is re-swept, not ` +
-        `aggregated (set LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1 only for a ` +
-        `deliberate historical read)`,
+    if (process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK !== "1") {
+      throw new Error(
+        `${emitPath}: corpus swept under clock "${manifest.clock.normalizer}"/` +
+          `"${manifest.clock.calendar}" but this build is "${BAR_CLOCK}"/` +
+          `"${CALENDAR_CLOCK}" — a superseded-clock corpus is re-swept, not ` +
+          `aggregated (set LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1 only for a ` +
+          `deliberate historical read)`,
+      );
+    }
+    // The override never passes silently (#358 round 4b): a figure read
+    // under it must be distinguishable from one that passed the door, or
+    // a superseded-clock number gets cited later as if it were clean.
+    console.warn(
+      `SUPERSEDED-CLOCK READ: ${emitPath} was swept under ` +
+        `"${manifest.clock.normalizer}"/"${manifest.clock.calendar}"; this ` +
+        `build is "${BAR_CLOCK}"/"${CALENDAR_CLOCK}". Figures derived from ` +
+        `this corpus are historical, not current.`,
     );
   }
   for (const entry of manifest.symbols ?? []) {
