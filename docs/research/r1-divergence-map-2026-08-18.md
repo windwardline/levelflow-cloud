@@ -277,10 +277,12 @@ layer.
   not. The sweep's half and the corpus door landed in R1b (closure
   record below), which also refined the marker itself: #362 round 7
   caught the containment set standing in for the presence question, so
-  the marker now fires only when NO bar overlaps the review window —
-  a window clamped under one bar span (creation inside the final bar
-  before the weekly close) resolves unfilled UNMARKED with its own
-  sentence, a grading-law fact rather than a data fact.
+  the marker now fires only when NO bar overlaps the review window
+  (scoped to the resolution stream — the R1b record below carries the
+  full statement per caller) — a window clamped under one bar span
+  (creation inside the final bar before the weekly close) resolves
+  unfilled UNMARKED with its own sentence, a grading-law fact rather
+  than a data fact.
 - **E3**: the completed-bar law applies to the SERIES, not just the
   anchor pointer (#362 review, finding 1 — moving `market.latest` alone
   left entry math, ATR, pivots and the committee on the forming bar and
@@ -412,7 +414,14 @@ layer.
 - **E2, sweep half + marker refinement**: the resolver's no-bars branch
   now answers the PRESENCE question, not the containment one —
   `noBarsInReviewWindow` fires only when no bar OVERLAPS
-  `[createdAt, expiresAt)`; bars present but none contained (the
+  `[createdAt, expiresAt)`, **scoped to the resolution stream the
+  resolver was handed** (#364 round 1 finding 2 / round 2 finding 2):
+  live hands the whole fetched series, so there the marker reads as
+  provider absence up to the fetch depth; the sweep's stream begins
+  after the decision bar completes (FR-5 — its interior is
+  decision-time information that could never grade anything), so a
+  marked corpus row claims absence of GRADEABLE bars, never absolute
+  provider absence. Bars present but none contained (the
   sub-bar-span clamped window) resolve unfilled unmarked with a
   distinct sentence. In the sweep, that case emits (the resolver's
   far-future clock resolves every no-bars window), so the corpus row
@@ -467,7 +476,21 @@ layer.
   legitimate condition-less corpus is pre-R1b, which is
   superseded-clock by definition and already admitted solely through
   that loud explicit override (whose deliberate historical reads skip
-  the conditions demand).
+  the conditions demand). **The claim carries evidence** (#364 round 2,
+  finding 1): the manifest records the curve's own facts (count, ends,
+  largest inter-row gap — hashed), the driver refuses an empty or
+  >7-day-stale curve before simulating and throws on any week-or-wider
+  chunk returning zero parseable rows (a 200-with-empty-body would
+  otherwise hole the store permanently — the visibility pointer stalls
+  inside a hole and scores months-old rows as fresh, worse than the
+  zero the claim abolished), and the door refuses missing facts,
+  interior holes over 7 days, and a curve ending more than 7 days
+  before the corpus does. The LEADING edge is deliberately unasserted:
+  the 2013 floor means early decisions score stance "unavailable" —
+  the honest live-outage semantics. The density door, by contrast,
+  binds deliberate historical reads too (round 1 finding 5, executed
+  round 2): the override accepts superseded measurement terms, never
+  poisoned data.
 - **Emit symmetry**: every corpus row carries `resolutionIntervalMs`
   (behavioral tier pin now executed: 15-minute physics stamps 900000 on
   every row, an admitted 5-minute stream stamps 300000), plus

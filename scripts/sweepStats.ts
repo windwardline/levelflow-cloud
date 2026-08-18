@@ -334,6 +334,59 @@ function verifyManifest(emitPath: string): SweepManifest {
         );
       }
     }
+    // #364 round 2, finding 1: conditions.macroAdjustment is a claim,
+    // and the door checks the EVIDENCE, not just the literal — an empty
+    // curve scores the hardwired zero E6 abolished; a holed or
+    // stale-tailed one is worse, scoring months-old rows as fresh where
+    // the visibility pointer stalls. The LEADING edge is deliberately
+    // not asserted: the curve's 2013 floor means early decisions score
+    // stance "unavailable" — the honest live-outage semantics the map
+    // records — while holes and tails score STALE, which nothing
+    // downstream can see. Seven days exceeds any real Treasury
+    // publication gap (weekend plus holiday runs are <=5).
+    const curve = manifest.treasuryCurve as
+      | { count?: number; largestGapMs?: number; lastTime?: number | null }
+      | undefined;
+    if (!curve || !Number.isFinite(curve.count) || (curve.count ?? 0) < 2) {
+      throw new Error(
+        `${emitPath}: conditions claim historical-treasury-curve but the ` +
+          `manifest carries ${
+            curve ? `${curve.count ?? 0} curve rows` : "no treasuryCurve facts"
+          } — a claim without evidence is refused; re-sweep with the curve ` +
+          `store intact`,
+      );
+    }
+    const weekMs = 7 * 86_400_000;
+    if ((curve.largestGapMs ?? 0) > weekMs) {
+      throw new Error(
+        `${emitPath}: Treasury curve has a ${
+          Math.round((curve.largestGapMs ?? 0) / 86_400_000)
+        }-day interior hole — decisions inside it scored months-stale rows ` +
+          `as fresh; delete the treasury-rates store, refetch full history, ` +
+          `and re-sweep`,
+      );
+    }
+    let corpusEndMs = Number.NEGATIVE_INFINITY;
+    for (const entry of manifest.symbols ?? []) {
+      const last = entry.series?.["15min"]?.lastTime;
+      if (typeof last === "number" && last > corpusEndMs) {
+        corpusEndMs = last;
+      }
+    }
+    if (
+      Number.isFinite(corpusEndMs) &&
+      typeof curve.lastTime === "number" &&
+      curve.lastTime < corpusEndMs - weekMs
+    ) {
+      throw new Error(
+        `${emitPath}: Treasury curve ends ${
+          new Date(curve.lastTime).toISOString().slice(0, 10)
+        } but the corpus runs to ${
+          new Date(corpusEndMs).toISOString().slice(0, 10)
+        } — every later decision scored the curve's stale tail as fresh; ` +
+          `the corpus is refused`,
+      );
+    }
   }
   return manifest;
 }

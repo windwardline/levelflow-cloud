@@ -108,6 +108,44 @@ export type SweepConditions = {
   weightAdjustment: "raw-engine-zero";
 };
 
+// #364 round 2, finding 1: conditions.macroAdjustment is a CLAIM, and a
+// claim without evidence is exactly what the manifest exists to end —
+// an empty or holed curve would score zeros (or worse, months-stale
+// rows where the visibility pointer stalls inside a hole) under a
+// manifest asserting reconstruction. So the curve carries facts the way
+// every bar series does, and verifyManifest asserts them beside the
+// conditions literals. Not seriesFacts: the clock witnesses expect
+// New-York-stamped bars, and treasury rows are UTC-midnight date labels
+// a daily witness would false-condemn.
+export type TreasuryCurveFacts = {
+  count: number;
+  firstTime: number | null;
+  largestGapMs: number;
+  lastTime: number | null;
+};
+
+export function treasuryCurveFacts(
+  rows: Array<{ dateMs: number }>,
+): TreasuryCurveFacts {
+  if (rows.length === 0) {
+    return { count: 0, firstTime: null, largestGapMs: 0, lastTime: null };
+  }
+  const times = rows.map((row) => row.dateMs).sort((a, b) => a - b);
+  let largestGapMs = 0;
+  for (let index = 1; index < times.length; index += 1) {
+    const gap = times[index] - times[index - 1];
+    if (gap > largestGapMs) {
+      largestGapMs = gap;
+    }
+  }
+  return {
+    count: rows.length,
+    firstTime: times[0],
+    largestGapMs,
+    lastTime: times[times.length - 1],
+  };
+}
+
 export type SweepManifest = {
   analyzerVersion: string;
   anchor: string;
@@ -159,6 +197,9 @@ export type SweepManifest = {
     symbol: string;
   }>;
   trainShare: number;
+  // The evidence behind conditions.macroAdjustment (#364 round 2,
+  // finding 1) — asserted by verifyManifest beside the literals.
+  treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 };
 
@@ -187,6 +228,7 @@ export function buildSweepManifest(input: {
     symbol: string;
   }>;
   trainShare: number;
+  treasuryCurve: TreasuryCurveFacts;
   warmupBars: number;
 }): SweepManifest {
   const symbols = input.symbols.map((entry) => ({
@@ -217,6 +259,7 @@ export function buildSweepManifest(input: {
     stepBars: input.stepBars,
     symbols,
     trainShare: input.trainShare,
+    treasuryCurve: input.treasuryCurve,
     warmupBars: input.warmupBars,
   };
   return {

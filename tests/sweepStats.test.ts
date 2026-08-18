@@ -209,6 +209,12 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
+      treasuryCurve: {
+        count: 3_000,
+        firstTime: Date.UTC(2013, 0, 2),
+        largestGapMs: 4 * 86_400_000,
+        lastTime: Date.UTC(2027, 0, 1),
+      },
       warmupBars: 240,
     }) as unknown as Record<string, unknown>;
     tamper?.(manifest);
@@ -382,15 +388,30 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
   };
 
   const writeCorpus = (input: {
+    clock?: { calendar: string; normalizer: string };
     conditions?: Record<string, unknown>;
     series: Record<string, unknown>;
     symbol: string;
+    treasuryCurve?: Record<string, unknown> | null;
   }) => {
+    // Default curve evidence coheres with any fixture series (facts()
+    // stamps lastTime = spanDays in epoch-adjacent ms, far below this
+    // lastTime); null drops the block to exercise the evidence door.
+    const treasuryCurve = input.treasuryCurve === null
+      ? {}
+      : {
+        treasuryCurve: input.treasuryCurve ?? {
+          count: 3_000,
+          firstTime: Date.UTC(2013, 0, 2),
+          largestGapMs: 4 * 86_400_000,
+          lastTime: Date.UTC(2027, 0, 1),
+        },
+      };
     const manifest: Record<string, unknown> = {
       analyzerVersion: "2026.08.18.test",
       anchor: "2026-08-18",
       barRejections: {},
-      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      clock: input.clock ?? { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       ...(input.conditions && { conditions: input.conditions }),
       days: 365,
       generatedAt: "2026-08-18T04:00:00.000Z",
@@ -404,6 +425,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
         symbol: input.symbol,
       }],
       trainShare: 0.6,
+      ...treasuryCurve,
       warmupBars: 240,
     };
     const dir = mkdtempSync(join(tmpdir(), "sweepstats-r1b-"));
@@ -502,6 +524,102 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       series: { "15min": facts(192, 2), "5min": facts(400, 2) },
       symbol: "BTCUSD",
     }));
+  });
+
+  it("refuses a macro claim without curve evidence, a holed curve, and a stale-tailed curve (#364 round 2, finding 1)", () => {
+    // The literal alone is not enough: conditions.macroAdjustment claims
+    // reconstruction, and the door reads the curve facts behind it.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": facts(960, 10) },
+          symbol: "EURUSD",
+          treasuryCurve: null,
+        })),
+      /no treasuryCurve facts.*claim without evidence/s,
+    );
+    // An interior hole means decisions inside it scored months-stale
+    // rows as fresh — worse than the zero the claim abolished.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": facts(960, 10) },
+          symbol: "EURUSD",
+          treasuryCurve: {
+            count: 3_000,
+            firstTime: Date.UTC(2013, 0, 2),
+            largestGapMs: 90 * 86_400_000,
+            lastTime: Date.UTC(2027, 0, 1),
+          },
+        })),
+      /90-day interior hole/,
+    );
+    // A curve ending before the corpus does is the same staleness at the
+    // tail: the visibility pointer stalls and every later decision reads
+    // the last rows as current.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: {
+            "15min": {
+              clock: { verdict: "indeterminate" },
+              count: 960,
+              firstTime: Date.UTC(2026, 6, 1),
+              largestGapMs: 0,
+              lastTime: Date.UTC(2026, 7, 18),
+              spanDays: 10,
+            },
+          },
+          symbol: "EURUSD",
+          treasuryCurve: {
+            count: 3_000,
+            firstTime: Date.UTC(2013, 0, 2),
+            largestGapMs: 4 * 86_400_000,
+            lastTime: Date.UTC(2026, 5, 1),
+          },
+        })),
+      /Treasury curve ends 2026-06-01 but the corpus runs to 2026-08-18/,
+    );
+  });
+
+  it("binds the density door on deliberate historical reads, while conditions and curve evidence stay exempt (#364 round 2, finding 3)", () => {
+    // The stated asymmetry, executed: the superseded-clock override
+    // accepts superseded measurement TERMS (no conditions block, no
+    // curve facts — both pre-R1b by definition), but never poisoned
+    // DATA — a density violation refuses the historical read exactly as
+    // the clock witnesses beside it would.
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    const realWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const superseded = {
+        calendar: CALENDAR_CLOCK,
+        normalizer: "ny-wall-utc-v1-superseded",
+      };
+      assert.throws(
+        () =>
+          assertManifestedCorpus(writeCorpus({
+            clock: superseded,
+            series: { "15min": facts(670, 10), "5min": facts(2_000, 10) },
+            symbol: "BTCUSD",
+            treasuryCurve: null,
+          })),
+        /under the crypto floor/,
+      );
+      const { rows } = assertManifestedCorpus(writeCorpus({
+        clock: superseded,
+        series: { "15min": facts(960, 10), "5min": facts(2_880, 10) },
+        symbol: "BTCUSD",
+        treasuryCurve: null,
+      }));
+      assert.equal(rows.length, 1);
+    } finally {
+      console.warn = realWarn;
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
   });
 });
 

@@ -36,6 +36,7 @@ import {
   seriesFacts,
   type SeriesFacts,
   type SweepConditions,
+  treasuryCurveFacts,
 } from "./sweepManifest.ts";
 import {
   type DatedTreasuryRow,
@@ -194,6 +195,29 @@ async function main() {
   const treasuryRates = args.discover
     ? []
     : await loadTreasuryRates(args.cacheDir);
+  // #364 round 2, finding 1: the conditions block CLAIMS reconstruction,
+  // so the curve must be evidence, not hope. Empty means every decision
+  // scores the hardwired zero E6 abolished; a stale tail is worse — the
+  // visibility pointer stalls and every decision past the curve's end
+  // scores against months-old rows as if they were fresh. Both refuse
+  // here, before hours of simulation; interior holes refuse per-chunk in
+  // the fetch and at the corpus door (manifest treasuryCurve facts).
+  if (!args.discover && !args.warmOnly) {
+    const lastRow = treasuryRates.at(-1);
+    if (!lastRow) {
+      throw new Error(
+        "Treasury curve is empty — the manifest would claim " +
+          "historical-treasury-curve over zero rows; refusing to sweep",
+      );
+    }
+    if (lastRow.dateMs < Date.now() - 7 * 86_400_000) {
+      throw new Error(
+        `Treasury curve ends ${new Date(lastRow.dateMs).toISOString()} — ` +
+          `more than 7 days stale; decisions past its end would score ` +
+          `against stale rows as if fresh; refusing to sweep`,
+      );
+    }
+  }
   // The three E6 terms this corpus is measured under — hashed into the
   // manifest so readers can refuse a corpus measured under other terms.
   const conditions: SweepConditions = {
@@ -530,6 +554,7 @@ async function main() {
       stepBars: args.step,
       symbols: manifestSymbols,
       trainShare: TRAIN_SHARE,
+      treasuryCurve: treasuryCurveFacts(treasuryRates),
       warmupBars: WARMUP_BARS,
     });
     await writeFile(
@@ -671,13 +696,33 @@ async function fetchTreasuryRates(
       );
     }
     const payload = await readJsonWithBudget(response, budget());
+    let chunkRows = 0;
     if (Array.isArray(payload)) {
       for (const raw of payload) {
         const row = parseTreasuryRow(raw);
         if (row) {
           rows.push(row);
+          chunkRows += 1;
         }
       }
+    }
+    // #364 round 2, finding 1: I3's own reasoning covers a 200 carrying
+    // an empty or unparseable body, which !response.ok does not — a
+    // zero-row chunk would hole the curve permanently (fetchSince only
+    // tops up the tail) and every decision inside the hole would score
+    // against stale rows. The Treasury market publishes ~250 rows/year
+    // from the 2013 floor, so any window of a week or more with zero
+    // parseable rows is a provider failure, never a holiday run. Windows
+    // under 7 days (top-ups, the truncated final chunk) may be
+    // legitimately empty over a weekend.
+    const windowTo = Math.min(from + chunkMs, Date.now());
+    if (chunkRows === 0 && windowTo - from >= 7 * 86_400_000) {
+      throw new Error(
+        `Treasury-rate chunk ${isoDate(new Date(from))}..${
+          isoDate(new Date(windowTo))
+        } returned zero parseable rows — a holed curve is refused, never ` +
+          `merged and pinned`,
+      );
     }
     await sleep(150);
   }

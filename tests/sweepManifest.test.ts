@@ -7,6 +7,8 @@ import {
   sha256Hex,
   stableStringify,
   type SweepConditions,
+  treasuryCurveFacts,
+  type TreasuryCurveFacts,
 } from "../scripts/sweepManifest.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
@@ -93,6 +95,7 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     conditions?: SweepConditions;
     generatedAt?: string;
     grid?: unknown[];
+    treasuryCurve?: TreasuryCurveFacts;
   } = {}) =>
     buildSweepManifest({
       analyzerVersion: "2026.08.09.test",
@@ -113,6 +116,12 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
         symbolInput(overrides.calibration ?? { tp1RiskShare: 0.8 }),
       ],
       trainShare: 0.6,
+      treasuryCurve: overrides.treasuryCurve ?? {
+        count: 3_000,
+        firstTime: Date.UTC(2013, 0, 2),
+        largestGapMs: 4 * 86_400_000,
+        lastTime: Date.UTC(2027, 0, 1),
+      },
       warmupBars: 240,
     });
 
@@ -159,6 +168,20 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     );
   });
 
+  it("hashes the Treasury-curve facts — the evidence behind the macro claim moves the hash (#364 round 2)", () => {
+    assert.notEqual(
+      build().manifestHash,
+      build({
+        treasuryCurve: {
+          count: 3_000,
+          firstTime: Date.UTC(2013, 0, 2),
+          largestGapMs: 40 * 86_400_000,
+          lastTime: Date.UTC(2027, 0, 1),
+        },
+      }).manifestHash,
+    );
+  });
+
   it("hashes the E6 conditions — stated terms are part of corpus identity (R1b)", () => {
     const baseline = build();
     assert.equal(baseline.conditions.macroAdjustment, "historical-treasury-curve");
@@ -180,6 +203,34 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
       build().manifestHash,
       build({ generatedAt: "2027-01-01T00:00:00.000Z" }).manifestHash,
     );
+  });
+});
+
+describe("treasuryCurveFacts — the curve's own continuity record", () => {
+  const day = 86_400_000;
+
+  it("records count, ends and the largest inter-row gap", () => {
+    const facts = treasuryCurveFacts([
+      { dateMs: 0 },
+      { dateMs: 3 * day },
+      { dateMs: 4 * day },
+      { dateMs: 40 * day },
+    ]);
+    assert.deepEqual(facts, {
+      count: 4,
+      firstTime: 0,
+      largestGapMs: 36 * day,
+      lastTime: 40 * day,
+    });
+  });
+
+  it("states an empty curve as zero rows, never a fabricated span", () => {
+    assert.deepEqual(treasuryCurveFacts([]), {
+      count: 0,
+      firstTime: null,
+      largestGapMs: 0,
+      lastTime: null,
+    });
   });
 });
 
@@ -217,6 +268,15 @@ describe("the driver writes the manifest beside the emit", () => {
       /Treasury[\s\S]{0,200}?console\.warn[\s\S]{0,80}?continue/,
       "a failed Treasury chunk must stop the run, never hole the join",
     );
+    // #364 round 2, finding 1: the claim carries evidence. A 200 with an
+    // empty or unparseable body over a week-or-wider window throws (a
+    // holed curve is refused, never merged and pinned); the driver
+    // refuses an empty or stale-tailed curve before simulating; and the
+    // manifest carries the curve's facts for the door to assert.
+    assert.match(script, /returned zero parseable rows/);
+    assert.match(script, /Treasury curve is empty/);
+    assert.match(script, /more than 7 days stale/);
+    assert.match(script, /treasuryCurve: treasuryCurveFacts\(treasuryRates\),/);
   });
 
   // #364 round 1, finding 1: starvation-audit read the driver's stdout

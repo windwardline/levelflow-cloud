@@ -26,6 +26,16 @@ import type { SweepEmitRow } from "../scripts/sweepStats.ts";
 // produces the observed improvement (3b) — blocks, not rows, because
 // outcomes within a day share their market.
 
+// A healthy Treasury-curve evidence block for fixtures (#364 round 2,
+// finding 1): far end date so no fixture's corpus outruns it, gap under
+// the door's 7-day bound.
+const TEST_TREASURY_CURVE = {
+  count: 3_000,
+  firstTime: Date.UTC(2013, 0, 2),
+  largestGapMs: 4 * 86_400_000,
+  lastTime: Date.UTC(2027, 0, 1),
+};
+
 const DAY = 86_400_000;
 
 function outcomeRow(
@@ -97,6 +107,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
       symbol,
     })),
     trainShare: 0.6,
+    treasuryCurve: TEST_TREASURY_CURVE,
     warmupBars: 240,
   });
   writeFileSync(
@@ -302,6 +313,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
+      treasuryCurve: TEST_TREASURY_CURVE,
       warmupBars: 240,
     });
     writeFileSync(
@@ -352,6 +364,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
         symbol: rows[0]?.symbol ?? "EURUSD",
       }],
       trainShare: 0.6,
+      treasuryCurve: TEST_TREASURY_CURVE,
       warmupBars: 240,
     });
     writeFileSync(
@@ -609,6 +622,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
+      treasuryCurve: TEST_TREASURY_CURVE,
       warmupBars: 240,
     });
     writeFileSync(
