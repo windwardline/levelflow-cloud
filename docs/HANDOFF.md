@@ -867,7 +867,10 @@ Sunday condemning a healthy store run-globally).
   healthy / unstamped / naive-data / shifted / sawtooth / corrupt /
   incomplete caches. Green requires: stamps, witnesses, zero-shift
   registration (a large-overlap pair that cannot register FAILS —
-  uncertainty resolves toward failing at this gate), density ≥2.5, the
+  uncertainty resolves toward failing at this gate), density inside the
+  [2.5, 3.5] band (the ceiling catches a provider cap below ~2,386; the
+  ~2,386-2,784 blind band — up to ~14% 15-minute clip reading green — is
+  stated and carried by R1's E2 door), the
   ^GSPC anchor, a daily store per symbol, and every roster symbol
   present — a rebuild abandoned at 40 of 97 symbols is incomplete, not
   green.

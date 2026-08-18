@@ -259,6 +259,42 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
   });
 
+  it("pins the ceiling's boundary on both sides — the stated blind band reads green, past it reads red (#358 round 5)", () => {
+    // A ~10% primary clip (ratio ~3.33) sits INSIDE the ceiling's stated
+    // blind band and passes — that is the documented limit, pinned green
+    // so nobody mistakes the band for coverage. A ~20% clip (ratio 3.75)
+    // crosses the 3.5 ceiling and fails.
+    const inBand = cacheDir();
+    store(
+      inBand,
+      "EURUSD-15min-7000",
+      BAR_CLOCK,
+      intraday(900_000, false).filter((_, index) => index % 10 !== 9),
+    );
+    store(inBand, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    store(inBand, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const green = auditCacheClock({ cacheDir: inBand });
+    assert.ok(
+      !green.failures.some((line) => /ABOVE the complete ratio/.test(line)),
+      green.failures.join("\n"),
+    );
+
+    const pastBand = cacheDir();
+    store(
+      pastBand,
+      "EURUSD-15min-7000",
+      BAR_CLOCK,
+      intraday(900_000, false).filter((_, index) => index % 5 !== 4),
+    );
+    store(pastBand, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    store(pastBand, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const red = auditCacheClock({ cacheDir: pastBand });
+    assert.ok(
+      red.failures.some((line) => /ABOVE the complete ratio/.test(line)),
+      red.failures.join("\n"),
+    );
+  });
+
   it("condemns an INFLATED density — a clipped 15-minute primary reads above 3, not below (#358 round 4)", () => {
     const dir = cacheDir();
     // Thin the PRIMARY to half: the floor-only check read this pair as

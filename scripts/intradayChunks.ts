@@ -16,12 +16,17 @@
 //
 // Window arithmetic is DATE-based (the endpoint takes YYYY-MM-DD), `to`
 // is MEASURED INCLUSIVE, and adjacent windows deliberately share their
-// boundary date so no hole can open. The chunk sizes keep the physical
-// worst case — chunkDays + 1 calendar dates, plus the fall-back day's
-// extra hour — under the measured caps:
+// boundary date so no hole can open — a clip of up to one date's worth
+// at a window's old end is restored in full by its neighbour's kept
+// newest date. The chunk sizes keep the physical worst case —
+// chunkDays + 1 calendar dates, plus the fall-back day's extra hour —
+// within one boundary-date restoration of the measured caps:
 //
 //   5min:  5 days → worst 6 dates × 288 + 12 = 1,740 rows  (cap ≥ 2,304)
-//   15min: 29 days → worst 30 dates × 96 + 4 = 2,884 rows  (cap ≥ 2,880)
+//   15min: 29 days → worst 30 dates × 96 + 4 = 2,884 rows  (cap ≥ 2,880;
+//          the 4-row excess is a fall-back-week window once a year,
+//          inside the one-date neighbour restoration — accepted and
+//          stated, not detected)
 //
 // HOW A FUTURE CLIP IS CAUGHT — stated honestly, because three designs
 // died here (#358 rounds 1, 4 and 4b): a row-count tripwire above the
@@ -35,10 +40,16 @@
 // without false positives is not achievable from inside one response,
 // and no consolation instrument should pretend otherwise. The guard is
 // the measured caps above, verify-cache-clock's density floor AND
-// ceiling (a clipped 15-minute primary INFLATES the 5min/15min ratio —
-// and because the two timeframes' windows fill different fractions of a
-// shared cap, a cap drop cannot leave the ratio at 3), and R1's E2
-// per-symbol density assertion at the corpus door.
+// ceiling, and R1's E2 per-symbol density assertion at the corpus door.
+// The ceiling's SENSITIVITY BAND, stated honestly (#358 round 5): a
+// clipped 15-minute primary inflates the 5min/15min ratio — unique
+// 15-minute rows per 29-day stride are min(2,784, cap), so ratio =
+// 8,352 / min(2,784, cap) — and the 3.5 ceiling therefore catches any
+// cap below ~2,386. Between ~2,386 and 2,784 only the 15-minute series
+// clips (up to ~14%) and the ratio stays inside the band: that is the
+// ceiling's stated blind band, carried by R1's E2 door, not covered
+// here. Tightening the ceiling below 3.5 is a data-informed follow-up
+// once the rebuilt cache yields a real ratio distribution.
 
 export type IntradayTimeframe = "15min" | "5min";
 

@@ -47,10 +47,13 @@ per symbol, and was never carried by the defect. Leave it running.
   (cap ≥ 2,880; the 15-minute cap had never been measured before). The
   sizing stays conservative (5/29 days). A future clip cannot be caught
   from inside one response without false positives — the guard is these
-  measured facts and the verifier's density floor AND ceiling (a clipped
-  15-minute primary INFLATES the 5min/15min ratio, and because the two
-  timeframes' windows fill different fractions of a shared cap, a cap
-  drop cannot leave the ratio at 3).
+  measured facts and the verifier's density floor AND ceiling, whose
+  sensitivity band is stated rather than overclaimed: a clipped
+  15-minute primary inflates the 5min/15min ratio, and the 3.5 ceiling
+  catches any cap below ~2,386; between ~2,386 and 2,784 only the
+  15-minute series clips (up to ~14%) and the ratio stays in band —
+  that blind band is carried by R1's E2 door. Tightening the ceiling is
+  a data-informed follow-up once step 3 yields real ratios (record them).
 
 - **Run the minute bank FIRST if it has not already resumed** — this is
   the time-critical piece, not the rebuild: FMP serves 1-minute bars
