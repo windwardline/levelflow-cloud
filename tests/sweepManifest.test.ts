@@ -28,7 +28,7 @@ describe("seriesFacts — continuity as a recorded fact", () => {
       bar(hour),
       bar(2 * hour),
       bar(50 * hour),
-    ]);
+    ], "intraday");
     assert.equal(facts.count, 4);
     assert.equal(facts.firstTime, 0);
     assert.equal(facts.lastTime, 50 * hour);
@@ -37,7 +37,7 @@ describe("seriesFacts — continuity as a recorded fact", () => {
   });
 
   it("reads an empty or single-bar series without inventing ends", () => {
-    assert.deepEqual(seriesFacts([]), {
+    assert.deepEqual(seriesFacts([], "intraday"), {
       clock: { verdict: "indeterminate" },
       count: 0,
       firstTime: null,
@@ -45,7 +45,7 @@ describe("seriesFacts — continuity as a recorded fact", () => {
       lastTime: null,
       spanDays: 0,
     });
-    assert.deepEqual(seriesFacts([bar(5)]), {
+    assert.deepEqual(seriesFacts([bar(5)], "intraday"), {
       clock: { verdict: "indeterminate" },
       count: 1,
       firstTime: 5,
@@ -79,9 +79,9 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
     calibration,
     providerSymbol: "ESUSD",
     series: {
-      "15min": seriesFacts([{ time: 0 }, { time: 900_000 }]),
-      "1day": seriesFacts([{ time: 0 }]),
-      "5min": seriesFacts([]),
+      "15min": seriesFacts([{ time: 0 }, { time: 900_000 }], "intraday"),
+      "1day": seriesFacts([{ time: 0 }], "daily"),
+      "5min": seriesFacts([], "intraday"),
     },
     symbol: "ESUSD",
   });

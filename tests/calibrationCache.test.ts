@@ -242,6 +242,46 @@ describe("R0 one-clock store guard", () => {
     );
   });
 
+  // #358: a truncated or malformed store used to fall through to re-init
+  // and silently start a full refetch — the exact "decision, not a side
+  // effect" the header forbids — and on success OVERWROTE the evidence.
+  // Every malformed shape now refuses loudly, under a token the nightly
+  // top-up deliberately does NOT stand down for.
+  for (
+    const [label, content] of [
+      ["truncated JSON", '{"items":[{"ti'],
+      ["items is null", JSON.stringify({ clock: CLOCK, items: null, pinned: {} })],
+      ["top-level array", JSON.stringify([{ time: 1 }])],
+      ["pinned missing", JSON.stringify({ clock: CLOCK, items: [tick(1)] })],
+    ] as const
+  ) {
+    it(`refuses a corrupt store (${label}) instead of silently refetching`, async () => {
+      const dir = tempDir();
+      writeFileSync(join(dir, "SYM-15min-max.rolling.json"), content);
+      await assert.rejects(
+        loadRollingSeries<Tick>({
+          anchor: "2026-08-18",
+          cacheDir: dir,
+          clock: CLOCK,
+          fetchFull: async () => {
+            throw new Error("a corrupt store must not trigger a refetch");
+          },
+          fetchSince: async () => {
+            throw new Error("a corrupt store must not be topped up");
+          },
+          key: "SYM-15min-max",
+          timeOf,
+        }),
+        /cacheStoreUnreadable/,
+      );
+      // The file is untouched — evidence, not casualty.
+      assert.equal(
+        readFileSync(join(dir, "SYM-15min-max.rolling.json"), "utf8"),
+        content,
+      );
+    });
+  }
+
   it("ignores legacy date-keyed files — the r17 migration imported the defect era", async () => {
     const dir = tempDir();
     // Under the removed migration this file would have seeded the store

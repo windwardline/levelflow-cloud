@@ -55,12 +55,14 @@ export function sha256Hex(text: string): string {
 /**
  * Continuity as a recorded fact: ends, count, largest inter-bar gap — and
  * since R0, the series' clock witness. The role names which witnesses
- * apply: a daily series testifies through its stamp hour, an intraday one
- * through weekly opens and spring transitions.
+ * apply — a daily series testifies through its stamp hour, an intraday
+ * one through weekly opens and spring transitions — and it is REQUIRED:
+ * a defaulted role once let a daily series ride under intraday witnesses,
+ * where a naive daily store can never be condemned (#358 finding 9).
  */
 export function seriesFacts(
   bars: Array<{ time: number }>,
-  role: SeriesRole = "intraday",
+  role: SeriesRole,
 ): SeriesFacts {
   if (bars.length === 0) {
     return {

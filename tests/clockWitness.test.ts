@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 import {
   crossSeriesClock,
   newYorkOffsetHours,
+  REFERENCE_SESSION_ANCHORS,
   seriesClockWitness,
+  sessionAnchorWitness,
   storeKindForKey,
 } from "../scripts/clockWitness.ts";
 import {
@@ -16,7 +18,11 @@ import {
 // same underlying instants — through the current normalizer's conversion
 // (true UTC) and through the pre-2026-08-09 defect's transform (New York
 // wall digits read back as UTC) — so each witness is tested against the
-// exact populations it must separate.
+// exact populations it must separate. The #358 adversarial round added
+// the pins for what an aggregate-only witness could NOT separate: a
+// minority naive era certified "utc", a half-poisoned primary reading
+// "aligned", the untested −4 polarity that carries the real 2026-08-11
+// signature, and a single outage Sunday condemning a healthy store.
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -51,7 +57,7 @@ describe("newYorkOffsetHours", () => {
   });
 });
 
-describe("daily-stamp witness — the universal condemning witness", () => {
+describe("daily-stamp witness — the universal condemning witness, per year", () => {
   const days = (count: number, stamp: (y: number, m: number, d: number) => number) => {
     const bars = [];
     for (let index = 0; index < count; index += 1) {
@@ -68,6 +74,7 @@ describe("daily-stamp witness — the universal condemning witness", () => {
     );
     assert.equal(witness.verdict, "utc");
     assert.ok(witness.daily!.midnightNyShare >= 0.99);
+    assert.equal(witness.daily!.naiveYears, 0);
   });
 
   it("condemns the defect era's 00:00-UTC stamps as naive", () => {
@@ -88,6 +95,26 @@ describe("daily-stamp witness — the universal condemning witness", () => {
     }
     const witness = seriesClockWitness([...naiveEra, ...utcEra], "daily");
     assert.equal(witness.verdict, "mixed");
+  });
+
+  it("condemns a MINORITY naive era that an aggregate share would absolve (#358)", () => {
+    // Ten years true, one naive year in the middle: ~9% of rows — under
+    // every aggregate threshold, but a whole year of 4-5h-early stamps.
+    const bars = [];
+    for (let index = 0; index < 11 * 365; index += 1) {
+      const { day, month, year } = utcDate(Date.UTC(2015, 0, 1) + index * DAY);
+      bars.push(
+        bar(
+          year === 2019
+            ? Date.UTC(year, month - 1, day)
+            : newYorkWallClockToUtcMs(year, month, day, 0, 0, 0),
+        ),
+      );
+    }
+    const witness = seriesClockWitness(bars, "daily");
+    assert.equal(witness.verdict, "mixed");
+    assert.equal(witness.daily!.naiveYears, 1);
+    assert.ok(witness.daily!.utcYears >= 9);
   });
 
   it("stays indeterminate below the sample floor", () => {
@@ -141,23 +168,44 @@ describe("weekly-open witness — proves utc, never condemns", () => {
     assert.equal(witness.verdict, "indeterminate");
     assert.equal(witness.weekly!.edtHour, witness.weekly!.estHour);
   });
+
+  it("a fully naive sessioned series is indeterminate here — the stated limit, not a pass", () => {
+    // Both witnesses stand down for a naive forex-shaped store: weekly
+    // sees invariance (indistinguishable from Tokyo), transition has no
+    // bars at the closed 02:00 hour. The condemnation path for this
+    // population is the store stamp, the cross-series mate, and the
+    // reference anchor — pinned as such so nobody mistakes the
+    // indeterminate for a clean bill.
+    const witness = seriesClockWitness(
+      weeks((sunday) => {
+        const { day, month, year } = utcDate(sunday);
+        return naiveStamp(newYorkWallClockToUtcMs(year, month, day, 17, 0, 0));
+      }),
+      "intraday",
+    );
+    assert.equal(witness.verdict, "indeterminate");
+  });
 });
 
-describe("spring-transition witness — the 24/7 condemning witness", () => {
+describe("spring-transition witness — the 24/7 condemning witness, per year", () => {
   // Nine years of hourly bars: every spring-forward Sunday has no 02:xx
   // New York wall hour, so the naive transform is missing that hour's
   // stamps while true UTC keeps the full day.
   const start = Date.UTC(2017, 0, 2);
   const hours = 9 * 365 * 24;
 
-  it("keeps a true-UTC series at full transition-day counts", () => {
+  const trueUtcBars = () => {
     const bars = [];
     for (let index = 0; index < hours; index += 1) {
       bars.push(bar(start + index * HOUR));
     }
-    const witness = seriesClockWitness(bars, "intraday");
+    return bars;
+  };
+
+  it("keeps a true-UTC series at full transition-day counts", () => {
+    const witness = seriesClockWitness(trueUtcBars(), "intraday");
     assert.equal(witness.verdict, "utc");
-    assert.ok(witness.transition!.ratio! >= 0.985);
+    assert.ok(witness.transition!.ratioMedian! >= 0.985);
     assert.ok(witness.transition!.sampled >= 8);
   });
 
@@ -171,7 +219,39 @@ describe("spring-transition witness — the 24/7 condemning witness", () => {
       "intraday",
     );
     assert.equal(witness.verdict, "naive");
-    assert.ok(witness.transition!.ratio! <= 0.97);
+    assert.ok(witness.transition!.ratioMedian! <= 0.97);
+  });
+
+  it("does NOT condemn a healthy series for one outage-dented transition Sunday (#358)", () => {
+    const springOf2020 = (() => {
+      // Second Sunday of March 2020, as the witness computes it.
+      const first = new Date(Date.UTC(2020, 2, 1)).getUTCDay();
+      return Math.floor(
+        Date.UTC(2020, 2, 1 + ((7 - first) % 7) + 7) / DAY,
+      );
+    })();
+    const bars = trueUtcBars().filter((entry, index) =>
+      Math.floor(entry.time / DAY) !== springOf2020 || index % 2 === 0
+    );
+    const witness = seriesClockWitness(bars, "intraday");
+    assert.equal(witness.verdict, "utc");
+    assert.equal(witness.transition!.lowYears, 1);
+  });
+
+  it("condemns a MINORITY naive era among true years as mixed (#358)", () => {
+    // 2019 and 2020 naive, the rest true: the median is clean, the two
+    // low years are the tell.
+    const bars = [];
+    for (let index = 0; index < hours; index += 1) {
+      const time = start + index * HOUR;
+      const year = new Date(time).getUTCFullYear();
+      bars.push(bar(year === 2019 || year === 2020 ? naiveStamp(time) : time));
+    }
+    const deduped = [...new Set(bars.map((entry) => entry.time))]
+      .sort((a, b) => a - b).map(bar);
+    const witness = seriesClockWitness(deduped, "intraday");
+    assert.equal(witness.verdict, "mixed");
+    assert.ok(witness.transition!.lowYears >= 2);
   });
 
   it("stays indeterminate for a session market that is closed at the transition hour", () => {
@@ -191,59 +271,163 @@ describe("spring-transition witness — the 24/7 condemning witness", () => {
   });
 });
 
-describe("cross-series registration — the audit's mixed-clock instrument", () => {
+describe("cross-series registration — the audit's mixed-clock instrument, per year", () => {
   // One deterministic price path, sampled at 5 minutes; the 15-minute
   // series aggregates exactly three 5-minute bars, so extremes agree
-  // bar-for-bar when the clocks agree.
-  const buildPair = (fiveMinShiftMs: number) => {
-    const start = Date.UTC(2026, 3, 1);
+  // bar-for-bar when the clocks agree. Spans two calendar years so the
+  // per-year condemnation has year boundaries to work with.
+  const START = Date.UTC(2025, 10, 1);
+  const TOTAL_DAYS = 150;
+  const buildPair = (input: {
+    fiveShiftMs?: number;
+    primaryShiftMs?: number | ((time: number) => number);
+  } = {}) => {
+    const fiveShift = input.fiveShiftMs ?? 0;
+    const primaryShiftOf = typeof input.primaryShiftMs === "function"
+      ? input.primaryShiftMs
+      : () => (input.primaryShiftMs as number | undefined) ?? 0;
     const fiveMinute = [];
     const primary = [];
-    const totalFive = 60 * 288;
+    const totalFive = TOTAL_DAYS * 288;
     for (let index = 0; index < totalFive; index += 1) {
       const high = 100 + 10 * Math.sin(index / 37) + (index % 13) * 0.01;
       fiveMinute.push({
         high,
         low: high - 0.5 - (index % 7) * 0.01,
-        time: start + index * 300_000 + fiveMinShiftMs,
+        time: START + index * 300_000 + fiveShift,
       });
     }
     for (let index = 0; index < totalFive; index += 3) {
-      const window = fiveMinute.slice(index, index + 3);
+      const window = [];
+      for (let k = index; k < index + 3; k += 1) {
+        const high = 100 + 10 * Math.sin(k / 37) + (k % 13) * 0.01;
+        window.push({ high, low: high - 0.5 - (k % 7) * 0.01 });
+      }
+      const time = START + index * 300_000;
       primary.push({
         high: Math.max(...window.map((entry) => entry.high)),
         low: Math.min(...window.map((entry) => entry.low)),
-        time: start + index * 300_000,
+        time: time + primaryShiftOf(time),
       });
     }
     return { fiveMinute, primary };
   };
 
   it("reads a same-clock pair as aligned at zero shift", () => {
-    const { fiveMinute, primary } = buildPair(0);
+    const { fiveMinute, primary } = buildPair();
     const registration = crossSeriesClock(primary, fiveMinute);
     assert.equal(registration.verdict, "aligned");
     assert.equal(registration.bestShiftHours, 0);
     assert.ok(registration.matchRateAtZero! >= 0.9);
+    assert.equal(registration.shiftedYears, 0);
   });
 
-  it("reads a naive-vs-utc pair as shifted — the 4-hour signature", () => {
-    const { fiveMinute, primary } = buildPair(-4 * HOUR);
+  it("reads a naive 5-minute series against a true primary as shifted at +4", () => {
+    const { fiveMinute, primary } = buildPair({ fiveShiftMs: -4 * HOUR });
     const registration = crossSeriesClock(primary, fiveMinute);
     assert.equal(registration.verdict, "shifted");
     assert.equal(registration.bestShiftHours, 4);
-    assert.ok(
-      registration.matchRateAtBest! >= registration.matchRateAtZero! + 0.3,
-    );
+  });
+
+  it("reads a naive PRIMARY against a true 5-minute mate as shifted at −4 — the real 2026-08-11 polarity (#358)", () => {
+    const { fiveMinute, primary } = buildPair({ primaryShiftMs: -4 * HOUR });
+    const registration = crossSeriesClock(primary, fiveMinute);
+    assert.equal(registration.verdict, "shifted");
+    assert.equal(registration.bestShiftHours, -4);
+  });
+
+  it("condemns a HALF-poisoned primary whose healthy half clears the aligned floor (#358)", () => {
+    // First 75 days naive, rest true: globally ~half the days match at
+    // zero shift (the healthy era), which the old aggregate read as
+    // aligned at 0.5+. The poisoned era's own year registers shifted.
+    const cutover = START + 75 * DAY;
+    const { fiveMinute, primary } = buildPair({
+      primaryShiftMs: (time) => (time < cutover ? -4 * HOUR : 0),
+    });
+    const registration = crossSeriesClock(primary, fiveMinute);
+    assert.equal(registration.verdict, "shifted");
+    assert.ok(registration.shiftedYears >= 1);
   });
 
   it("stays indeterminate below the common-day floor", () => {
-    const { fiveMinute, primary } = buildPair(0);
+    const { fiveMinute, primary } = buildPair();
     const registration = crossSeriesClock(
       primary.slice(0, 96 * 5),
       fiveMinute.slice(0, 288 * 5),
     );
     assert.equal(registration.verdict, "indeterminate");
+  });
+});
+
+describe("reference session anchor — the absolute check for a named venue (#358)", () => {
+  // NYSE-shaped days: 09:30–16:00 New York wall, 15-minute bars, across
+  // both DST regimes (Aug 2025 – Jun 2026).
+  const sessionDays = (naive: boolean) => {
+    const bars = [];
+    for (let index = 0; index < 220; index += 1) {
+      const base = Date.UTC(2025, 7, 4) + index * DAY;
+      const at = new Date(base);
+      if (at.getUTCDay() === 0 || at.getUTCDay() === 6) {
+        continue;
+      }
+      const { day, month, year } = utcDate(base);
+      for (let barIndex = 0; barIndex < 26; barIndex += 1) {
+        const wallMinutes = 9 * 60 + 30 + barIndex * 15;
+        const time = newYorkWallClockToUtcMs(
+          year,
+          month,
+          day,
+          Math.floor(wallMinutes / 60),
+          wallMinutes % 60,
+          0,
+        );
+        bars.push(bar(naive ? naiveStamp(time) : time));
+      }
+    }
+    return bars;
+  };
+
+  it("anchors a true-UTC store at the venue's known open in both regimes", () => {
+    const witness = sessionAnchorWitness(
+      sessionDays(false),
+      REFERENCE_SESSION_ANCHORS["^GSPC"],
+    );
+    assert.equal(witness.verdict, "anchored");
+    assert.ok(witness.anchoredYears >= 2);
+    assert.equal(witness.displacedYears, 0);
+  });
+
+  it("condemns the naive transform — the store's first bar reads hours before the open", () => {
+    const witness = sessionAnchorWitness(
+      sessionDays(true),
+      REFERENCE_SESSION_ANCHORS["^GSPC"],
+    );
+    assert.equal(witness.verdict, "displaced");
+  });
+
+  it("condemns a provider convention flip, which every relative instrument misses (#358)", () => {
+    // FMP starts stamping true-UTC digits while the normalizer still
+    // applies the NY-wall reading: every bar lands 4-5h late. Weekly,
+    // transition and cross-series all pass (everything shifts together);
+    // the venue anchor does not.
+    const flipped = sessionDays(false).map((entry) => {
+      const digits = new Date(entry.time);
+      return bar(
+        newYorkWallClockToUtcMs(
+          digits.getUTCFullYear(),
+          digits.getUTCMonth() + 1,
+          digits.getUTCDate(),
+          digits.getUTCHours(),
+          digits.getUTCMinutes(),
+          0,
+        ),
+      );
+    });
+    const witness = sessionAnchorWitness(
+      flipped,
+      REFERENCE_SESSION_ANCHORS["^GSPC"],
+    );
+    assert.equal(witness.verdict, "displaced");
   });
 });
 

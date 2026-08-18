@@ -9,38 +9,65 @@
 // decision bar because the 15-minute and daily stores were naive while the
 // 5-minute store (first fetched after the fix) was true UTC.
 //
-// Three witnesses, each honest about what it can and cannot see:
+// Everything here judges PER YEAR and then aggregates, because the real
+// defect shape is era-mixing: an aggregate share blurs a minority naive
+// era into an affirmative healthy verdict (measured in the #358
+// adversarial round: a 30%-naive weekly histogram still cleared the 0.6
+// modal floor, a 5-of-16-naive-year transition mean read 0.987 "utc", and
+// a half-poisoned primary matched its true mate on 51% of days —
+// "aligned"). Year granularity is the honest resolution: the condemned
+// store's naive era spans ~16 years and its true era weeks.
+//
+// The witnesses, each honest about what it can and cannot see:
 //
 // - DAILY-STAMP witness (universal, condemning): FMP end-of-day rows are
-//   date-only labels, and the current normalizer (bars.ts toTimestamp)
-//   stamps a date-only label at New York midnight — 04:00 UTC in EDT,
-//   05:00 in EST. The naive era stamped the same label at 00:00 UTC. The
-//   modal stamp hour therefore separates the eras for EVERY market,
-//   including 24/7 crypto.
+//   date-only labels; the current normalizer stamps them at New York
+//   midnight (04/05 UTC), the naive era at 00 UTC. Judged per year: one
+//   naive year among true years is "mixed", however small its share of
+//   the whole.
 //
 // - WEEKLY-OPEN witness (intraday, proving only): a session market's week
 //   opens at a fixed venue wall hour, so under true UTC the weekly first
 //   bar's UTC hour moves by exactly one hour between the EDT and EST
-//   regimes; under naive stamps it never moves. Seasonal INVARIANCE proves
-//   nothing, though — a venue without DST (Tokyo) is invariant in UTC too —
-//   so this witness only ever returns "utc" or "indeterminate", never
+//   regimes; under naive stamps it never moves. Seasonal INVARIANCE
+//   proves nothing — a venue without DST (Tokyo) is invariant in UTC too
+//   — so this witness only ever returns "utc" or "indeterminate", never
 //   condemns. tests/clockWitness.test.ts pins the Nikkei-shaped false
 //   positive it must not commit.
 //
 // - SPRING-TRANSITION witness (24/7 intraday, condemning): on the
 //   spring-forward Sunday the New York wall clock has no 02:xx hour, so a
-//   naive 24/7 series is missing exactly that hour's stamps (~92 of 96
-//   15-minute bars) while a true-UTC series keeps all 96. Fall-back days
-//   discriminate nothing — the repeated wall hour collapses to one instant
-//   under BOTH parsers — so only spring Sundays are sampled.
+//   naive 24/7 series is missing exactly that hour's stamps (ratio
+//   23/24 ≈ 0.958 against neighboring Sundays) while true UTC keeps the
+//   full day. Fall-back days discriminate nothing — the repeated wall
+//   hour collapses to one instant under BOTH parsers — so only spring
+//   Sundays are sampled, and only 2007+ (the current US DST rule; the
+//   pre-2007 rule differed and a mis-sampled ordinary Sunday reads ~1.0,
+//   diluting toward a false pass). Judged per year: two or more low
+//   years is "mixed" even when the median is clean; the median condemns
+//   an all-naive store; a single low year (one provider outage) is
+//   tolerated rather than condemning a healthy store.
 //
 // - CROSS-SERIES registration (per symbol, condemning): two series of the
 //   same market on the same clock agree on each day's extremes at zero
 //   shift; a naive series against a true-UTC one registers at ±4/5 hours
-//   instead. This is the audit's own instrument (75-84% match at +4h across
-//   2010-2025, 0.0% at zero). It measures RELATIVE registration only: two
-//   series that are both naive read as aligned, which is why the absolute
-//   witnesses above exist.
+//   instead. This is the audit's own instrument. Judged globally AND per
+//   year, because a half-poisoned primary still matches its healthy mate
+//   on the healthy half's days. It measures RELATIVE registration only:
+//   two series that are both naive read as aligned — which for a
+//   sessioned market no venue-agnostic instrument can catch (measured,
+//   not conjectured), and is why the reference session anchor below and
+//   the constructive store stamp exist.
+//
+// - REFERENCE SESSION ANCHOR (one designated symbol, condemning): the 2b
+//   proof mechanized. ^GSPC's cash session opens 09:30 New York wall in
+//   July AND January — a measured venue fact, safe to assert precisely
+//   because it is venue-SPECIFIC (the Tokyo trap does not apply to a
+//   symbol whose venue we name). A store whose modal first-bar wall time
+//   is displaced from 09:30 is on the wrong clock — including the one
+//   failure the relative instruments provably cannot see: the provider
+//   changing its own stamp convention under a normalizer still carrying
+//   the old assumption, which shifts every series together.
 //
 // A verdict is never a substitute for the constructive guarantee — the
 // rolling store's clock stamp (calibrationCache.ts), written only by the
@@ -54,8 +81,10 @@ import { newYorkClockParts } from "../supabase/functions/trade-analyzer/bars.ts"
  * UTC (NFP Jul-2026 stamps 12:30:00 = 08:30 ET) — the other half of the
  * one-provider-two-conventions split that bars.ts documents — and
  * replay-sweep.ts's fetchCalendarEvents has always parsed it that way
- * (`+"Z"`). Distinct from BAR_CLOCK because the conventions are distinct;
- * a calendar store must never satisfy a bar store's stamp or vice versa.
+ * (`+"Z"`) across this repository's entire history. (The repo's history
+ * begins 2026-08-10, after the normalizer fix; the pre-repo era is
+ * unverifiable from git and is covered by the rebuild runbook archiving
+ * the whole cache directory, cot files included.)
  */
 export const CALENDAR_CLOCK = "fmp-calendar-utc-v1";
 
@@ -65,15 +94,19 @@ const DAY_MS = 86_400_000;
 export type WitnessVerdict = "indeterminate" | "mixed" | "naive" | "utc";
 
 export type SeriesClockWitness = {
-  /** Daily-stamp evidence: share of stamps at 00 UTC vs New York midnight. */
+  /** Daily-stamp evidence: aggregate shares plus per-year verdict counts. */
   daily?: {
     midnightNyShare: number;
     midnightUtcShare: number;
+    mixedYears: number;
+    naiveYears: number;
     sampled: number;
+    utcYears: number;
   };
-  /** Spring-forward evidence: transition-Sunday bar count vs neighbors. */
+  /** Spring-forward evidence: median ratio, and how many years ran low. */
   transition?: {
-    ratio: number | null;
+    lowYears: number;
+    ratioMedian: number | null;
     sampled: number;
   };
   verdict: WitnessVerdict;
@@ -107,49 +140,80 @@ function round3(value: number): number {
   return Number(value.toFixed(3));
 }
 
+function median(values: number[]): number {
+  const sorted = [...values].sort((first, second) => first - second);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
 /**
- * The daily series' stamps, read for the two possible midnights. Date-only
- * EOD labels land at New York midnight (UTC hour 4 or 5) under the current
- * normalizer and at 00 UTC under the naive era. Sub-daily or otherwise
- * unexpected stamp hours dilute both shares and resolve toward
- * "indeterminate" rather than toward either era.
+ * The daily series' stamps, read for the two possible midnights and
+ * judged per year. Date-only EOD labels land at New York midnight (UTC
+ * hour 4 or 5) under the current normalizer and at 00 UTC under the
+ * naive era; a year of one kind among years of the other is "mixed"
+ * whatever its share of the aggregate. Sub-daily or otherwise unexpected
+ * stamp hours dilute both shares and resolve toward "indeterminate"
+ * rather than toward either era.
  */
 function dailyWitness(times: number[]): SeriesClockWitness {
   const sampled = times.length;
   if (sampled < 30) {
     return { verdict: "indeterminate" };
   }
-  let atUtcMidnight = 0;
-  let atNyMidnight = 0;
+  type YearTally = { atNy: number; atUtc: number; rows: number };
+  const byYear = new Map<number, YearTally>();
+  let atUtcTotal = 0;
+  let atNyTotal = 0;
   for (const time of times) {
-    const hour = new Date(time).getUTCHours();
-    const minute = new Date(time).getUTCMinutes();
-    if (minute !== 0) {
+    const date = new Date(time);
+    const year = date.getUTCFullYear();
+    const tally = byYear.get(year) ?? { atNy: 0, atUtc: 0, rows: 0 };
+    tally.rows += 1;
+    if (date.getUTCMinutes() === 0) {
+      const hour = date.getUTCHours();
+      if (hour === 0) {
+        tally.atUtc += 1;
+        atUtcTotal += 1;
+      } else if (hour === 4 || hour === 5) {
+        tally.atNy += 1;
+        atNyTotal += 1;
+      }
+    }
+    byYear.set(year, tally);
+  }
+  let utcYears = 0;
+  let naiveYears = 0;
+  let mixedYears = 0;
+  for (const tally of byYear.values()) {
+    if (tally.rows < 30) {
       continue;
     }
-    if (hour === 0) {
-      atUtcMidnight += 1;
-    } else if (hour === 4 || hour === 5) {
-      atNyMidnight += 1;
+    const nyShare = tally.atNy / tally.rows;
+    const utcShare = tally.atUtc / tally.rows;
+    if (nyShare >= 0.8 && utcShare <= 0.1) {
+      utcYears += 1;
+    } else if (utcShare >= 0.8 && nyShare <= 0.1) {
+      naiveYears += 1;
+    } else if (nyShare >= 0.15 && utcShare >= 0.15) {
+      mixedYears += 1;
     }
   }
-  const midnightUtcShare = atUtcMidnight / sampled;
-  const midnightNyShare = atNyMidnight / sampled;
   const daily = {
-    midnightNyShare: round3(midnightNyShare),
-    midnightUtcShare: round3(midnightUtcShare),
+    midnightNyShare: round3(atNyTotal / sampled),
+    midnightUtcShare: round3(atUtcTotal / sampled),
+    mixedYears,
+    naiveYears,
     sampled,
+    utcYears,
   };
-  if (midnightNyShare >= 0.8 && midnightUtcShare <= 0.1) {
-    return { daily, verdict: "utc" };
-  }
-  if (midnightUtcShare >= 0.8 && midnightNyShare <= 0.1) {
-    return { daily, verdict: "naive" };
-  }
-  if (midnightUtcShare >= 0.15 && midnightNyShare >= 0.15) {
-    return { daily, verdict: "mixed" };
-  }
-  return { daily, verdict: "indeterminate" };
+  const verdict: WitnessVerdict = mixedYears > 0 ||
+      (naiveYears > 0 && utcYears > 0)
+    ? "mixed"
+    : naiveYears > 0
+    ? "naive"
+    : utcYears > 0
+    ? "utc"
+    : "indeterminate";
+  return { daily, verdict };
 }
 
 type ModalHour = { hour: number | null; share: number };
@@ -178,7 +242,10 @@ function modalHour(hours: number[]): ModalHour {
  * EST modal hour sits exactly one hour after the EDT modal hour (the same
  * venue wall time read through two offsets); anything else — including
  * perfect invariance, which a no-DST venue produces legitimately — is
- * "indeterminate".
+ * "indeterminate". A minority naive era dilutes the modal shares below
+ * the proof floor, so contamination costs the proof rather than earning
+ * it; this witness never certifies a mixed store as clean on its own —
+ * the cross-series and anchor witnesses carry condemnation.
  */
 function weeklyWitness(times: number[]): Pick<SeriesClockWitness, "verdict" | "weekly"> {
   const edtHours: number[] = [];
@@ -213,8 +280,16 @@ function weeklyWitness(times: number[]): Pick<SeriesClockWitness, "verdict" | "w
   return { verdict: provesUtc ? "utc" : "indeterminate", weekly };
 }
 
-/** Second Sunday of March, as a UTC day index (spring-forward in New York). */
-function springForwardUtcDay(year: number): number {
+/**
+ * Second Sunday of March as a UTC day index — valid for the 2007+ US DST
+ * rule only. Pre-2007 springs moved in April; sampling those years under
+ * this rule would read ordinary Sundays (~ratio 1.0) and dilute a naive
+ * store toward a pass, so they are excluded rather than mis-sampled.
+ */
+function springForwardUtcDay(year: number): number | null {
+  if (year < 2007) {
+    return null;
+  }
   const firstOfMarch = Date.UTC(year, 2, 1);
   const firstDow = new Date(firstOfMarch).getUTCDay();
   const firstSundayDate = 1 + ((7 - firstDow) % 7);
@@ -223,10 +298,12 @@ function springForwardUtcDay(year: number): number {
 
 /**
  * Spring-transition bar counts for a series that trades through the New
- * York 02:00 wall hour (24/7 markets). A naive series is missing that
- * hour's stamps on every spring-forward Sunday (~92/96 for 15-minute);
- * true UTC keeps the full day. Session markets are closed at that hour and
- * return "indeterminate" here.
+ * York 02:00 wall hour (24/7 markets), judged per year. A naive year runs
+ * ~0.958 against neighboring Sundays; a healthy year ~1.0. Two or more
+ * low years condemn as "mixed" even when the median is clean (a minority
+ * naive era); a low median condemns as "naive"; a single low year — one
+ * provider outage denting one transition Sunday — is tolerated. Session
+ * markets are closed at that hour and return "indeterminate" here.
  */
 function transitionWitness(
   times: number[],
@@ -252,6 +329,9 @@ function transitionWitness(
   const lastYear = new Date(times[times.length - 1]).getUTCFullYear();
   for (let year = firstYear; year <= lastYear; year += 1) {
     const transitionDay = springForwardUtcDay(year);
+    if (transitionDay === null) {
+      continue;
+    }
     const transitionCount = barsByDay.get(transitionDay);
     if (transitionDay <= firstDay || transitionDay >= lastDay || !transitionCount) {
       continue;
@@ -263,18 +343,26 @@ function transitionWitness(
     if (neighborCounts.length < 2) {
       continue;
     }
-    const median = neighborCounts[Math.floor(neighborCounts.length / 2)];
-    ratios.push(transitionCount / median);
+    const neighborMedian = neighborCounts[Math.floor(neighborCounts.length / 2)];
+    ratios.push(transitionCount / neighborMedian);
   }
   if (ratios.length < 8) {
     return { verdict: "indeterminate" };
   }
-  const ratio = ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
-  const transition = { ratio: round3(ratio), sampled: ratios.length };
-  if (ratio <= 0.97) {
+  const ratioMedian = median(ratios);
+  const lowYears = ratios.filter((ratio) => ratio <= 0.97).length;
+  const transition = {
+    lowYears,
+    ratioMedian: round3(ratioMedian),
+    sampled: ratios.length,
+  };
+  if (ratioMedian <= 0.97) {
     return { transition, verdict: "naive" };
   }
-  if (ratio >= 0.985) {
+  if (lowYears >= 2) {
+    return { transition, verdict: "mixed" };
+  }
+  if (ratioMedian >= 0.985) {
     return { transition, verdict: "utc" };
   }
   return { transition, verdict: "indeterminate" };
@@ -283,8 +371,11 @@ function transitionWitness(
 /**
  * The series' own clock evidence. Condemning verdicts ("naive", "mixed")
  * come only from witnesses that cannot false-positive on a legitimate
- * store; "indeterminate" means the series carries no absolute evidence and
- * the store's constructive clock stamp is the only guarantee.
+ * store; "indeterminate" means the series carries no absolute evidence
+ * and the store's constructive clock stamp is the only guarantee — which
+ * is the honest resting state for most sessioned intraday series (their
+ * absolute check is the reference anchor below, on the one symbol whose
+ * venue hours are measured fact).
  */
 export function seriesClockWitness(
   bars: Array<{ time: number }>,
@@ -316,6 +407,8 @@ export type CrossSeriesClock = {
   matchRateAtBest: number | null;
   matchRateAtZero: number | null;
   sampledDays: number;
+  /** Years whose own days register best at a non-zero shift. */
+  shiftedYears: number;
   verdict: "aligned" | "indeterminate" | "shifted";
 };
 
@@ -354,10 +447,15 @@ function closeEnough(first: number, second: number): boolean {
 /**
  * Relative registration of the 5-minute series against the 15-minute
  * primary: at which shift do the two agree on each UTC day's extremes?
- * Shift 0 with a high match rate is the healthy state; a best shift of
- * ±4/5 hours is the mixed-clock signature the 2026-08-11 audit measured.
- * Both-series-naive reads as aligned here — the absolute witnesses and the
- * store stamps exist for exactly that blind spot.
+ * Judged globally AND per year: a half-poisoned primary still matches its
+ * healthy mate on the healthy era's days (measured: 51% at zero shift for
+ * a half-naive store — over the "aligned" floor), but the poisoned era's
+ * own YEARS register best at ±4/5, and one such year condemns. The shift
+ * list carries both polarities deliberately: the 2026-08-11 store (naive
+ * primary, true 5-min) registers at −4; the mirror shape at +4 — both
+ * pinned in tests. Both-series-naive still reads as aligned here; the
+ * absolute witnesses, the reference anchor and the store stamps exist for
+ * exactly that blind spot.
  */
 export function crossSeriesClock(
   primary: OhlcBar[],
@@ -367,27 +465,36 @@ export function crossSeriesClock(
   const shifts = [0, 4, 5, -4, -5];
   let sampledDays = 0;
   const rates = new Map<number, number>();
+  type YearTally = { common: number; matched: number };
+  const perYear = new Map<number, Map<number, YearTally>>();
   for (const shift of shifts) {
     const shiftedDays = dayExtremes(fiveMinute, shift, 24);
     let common = 0;
     let matched = 0;
+    const yearTallies = new Map<number, YearTally>();
     for (const [day, extremes] of shiftedDays) {
       const reference = primaryDays.get(day);
       if (!reference) {
         continue;
       }
+      const year = new Date(day * DAY_MS).getUTCFullYear();
+      const tally = yearTallies.get(year) ?? { common: 0, matched: 0 };
       common += 1;
+      tally.common += 1;
       if (
         closeEnough(reference.high, extremes.high) &&
         closeEnough(reference.low, extremes.low)
       ) {
         matched += 1;
+        tally.matched += 1;
       }
+      yearTallies.set(year, tally);
     }
     if (shift === 0) {
       sampledDays = common;
     }
     rates.set(shift, common >= 30 ? matched / common : Number.NaN);
+    perYear.set(shift, yearTallies);
   }
   const zeroRate = rates.get(0);
   const matchRateAtZero = zeroRate !== undefined && Number.isFinite(zeroRate)
@@ -402,25 +509,159 @@ export function crossSeriesClock(
     }
   }
   const matchRateAtBest = Number.isFinite(bestRate) ? round3(bestRate) : null;
+
+  // Per-year condemnation: a year with enough common days whose best
+  // non-zero shift beats its own zero-shift rate decisively.
+  let shiftedYears = 0;
+  const zeroYears = perYear.get(0) ?? new Map<number, YearTally>();
+  const allYears = new Set<number>();
+  for (const tallies of perYear.values()) {
+    for (const year of tallies.keys()) {
+      allYears.add(year);
+    }
+  }
+  for (const year of allYears) {
+    const zero = zeroYears.get(year);
+    const zeroYearRate = zero && zero.common >= 30
+      ? zero.matched / zero.common
+      : null;
+    let bestYearRate = Number.NEGATIVE_INFINITY;
+    for (const shift of shifts) {
+      if (shift === 0) {
+        continue;
+      }
+      const tally = perYear.get(shift)?.get(year);
+      if (tally && tally.common >= 30) {
+        bestYearRate = Math.max(bestYearRate, tally.matched / tally.common);
+      }
+    }
+    if (
+      Number.isFinite(bestYearRate) && bestYearRate >= 0.5 &&
+      bestYearRate >= (zeroYearRate ?? 0) + 0.3
+    ) {
+      shiftedYears += 1;
+    }
+  }
+
   if (matchRateAtZero === null || matchRateAtBest === null) {
     return {
       bestShiftHours: 0,
       matchRateAtBest,
       matchRateAtZero,
       sampledDays,
-      verdict: "indeterminate",
+      shiftedYears,
+      verdict: shiftedYears > 0 ? "shifted" : "indeterminate",
     };
   }
-  const shifted = bestShiftHours !== 0 && matchRateAtBest >= 0.5 &&
-    matchRateAtBest >= matchRateAtZero + 0.3;
-  const aligned = matchRateAtZero >= 0.5 &&
+  const shifted = shiftedYears > 0 ||
+    (bestShiftHours !== 0 && matchRateAtBest >= 0.5 &&
+      matchRateAtBest >= matchRateAtZero + 0.3);
+  const aligned = !shifted && matchRateAtZero >= 0.5 &&
     matchRateAtZero >= matchRateAtBest - 0.05;
   return {
     bestShiftHours,
     matchRateAtBest,
     matchRateAtZero,
     sampledDays,
+    shiftedYears,
     verdict: shifted ? "shifted" : aligned ? "aligned" : "indeterminate",
+  };
+}
+
+/**
+ * The reference symbols whose venue session opens are MEASURED facts,
+ * safe to assert precisely because they are venue-specific — the Tokyo
+ * trap (never infer a venue's clock behavior from invariance) does not
+ * apply to a symbol whose venue we name. ^GSPC is the 2b proof itself:
+ * the banked S&P cash session reads 09:30–15:45 New York wall in July
+ * AND January.
+ */
+export const REFERENCE_SESSION_ANCHORS: Record<
+  string,
+  { wallHour: number; wallMinute: number }
+> = {
+  "^GSPC": { wallHour: 9, wallMinute: 30 },
+};
+
+export type SessionAnchorWitness = {
+  anchoredYears: number;
+  displacedYears: number;
+  sampledDays: number;
+  verdict: "anchored" | "displaced" | "indeterminate";
+};
+
+/**
+ * The absolute intraday witness for a designated reference symbol: the
+ * New York wall reading of each UTC day's first bar, judged per year
+ * against the venue's known session open. A true-UTC store reads the
+ * anchor in both DST regimes; a naive store reads 4–5 hours early; a
+ * provider convention flip under an unchanged normalizer — the failure
+ * the relative instruments provably cannot see, because every series
+ * shifts together — displaces it too. One displaced year condemns.
+ */
+export function sessionAnchorWitness(
+  bars: Array<{ time: number }>,
+  anchor: { wallHour: number; wallMinute: number },
+): SessionAnchorWitness {
+  const barsByDay = new Map<number, number[]>();
+  for (const bar of bars) {
+    const day = Math.floor(bar.time / DAY_MS);
+    const times = barsByDay.get(day) ?? [];
+    times.push(bar.time);
+    barsByDay.set(day, times);
+  }
+  const wallMinutesByYear = new Map<number, number[]>();
+  let sampledDays = 0;
+  for (const times of barsByDay.values()) {
+    if (times.length < 20) {
+      continue;
+    }
+    sampledDays += 1;
+    const first = Math.min(...times);
+    const parts = newYorkClockParts(first);
+    const year = new Date(first).getUTCFullYear();
+    const list = wallMinutesByYear.get(year) ?? [];
+    list.push(parts.hour * 60 + parts.minute);
+    wallMinutesByYear.set(year, list);
+  }
+  const anchorMinutes = anchor.wallHour * 60 + anchor.wallMinute;
+  let anchoredYears = 0;
+  let displacedYears = 0;
+  for (const minutes of wallMinutesByYear.values()) {
+    if (minutes.length < 40) {
+      continue;
+    }
+    const counts = new Map<number, number>();
+    for (const value of minutes) {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    let modal = -1;
+    let modalCount = 0;
+    for (const [value, count] of counts) {
+      if (count > modalCount) {
+        modal = value;
+        modalCount = count;
+      }
+    }
+    const share = modalCount / minutes.length;
+    if (share < 0.6) {
+      continue;
+    }
+    if (modal === anchorMinutes) {
+      anchoredYears += 1;
+    } else {
+      displacedYears += 1;
+    }
+  }
+  return {
+    anchoredYears,
+    displacedYears,
+    sampledDays,
+    verdict: displacedYears > 0
+      ? "displaced"
+      : anchoredYears > 0
+      ? "anchored"
+      : "indeterminate",
   };
 }
 
@@ -428,8 +669,9 @@ export function crossSeriesClock(
  * The clock a rolling store's key implies, for readers that scan the cache
  * directory itself (scripts/verify-cache-clock.ts). Bar stores carry
  * BAR_CLOCK (bars.ts); the calendar store carries CALENDAR_CLOCK. COT
- * files are bespoke per-contract JSON, not rolling stores, and never
- * carried the defect (weekly date labels, parsed as UTC since inception).
+ * files are bespoke per-contract JSON, not rolling stores; their parse is
+ * unchanged across this repository's history and the rebuild archives
+ * them with the rest of the directory.
  */
 export function storeKindForKey(
   key: string,

@@ -24,7 +24,7 @@
 // every date-keyed file predates the clock stamp by definition, so seeding
 // from one imports the defect this guard exists to stop.
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 
 export const DEFAULT_CACHE_DIR = ".calibration-cache";
 
@@ -57,12 +57,46 @@ export function mergeByTime<T>(
   return [...byTime.values()].sort((a, b) => timeOf(a) - timeOf(b));
 }
 
-async function readJson<T>(path: string): Promise<T | null> {
+// Absent is a cold start; present-but-unreadable is a STOP. A truncated
+// or corrupt store must never quietly become a full refetch — that is a
+// gigabyte-scale decision per this file's header, not a side effect. The
+// refusal deliberately does NOT carry the cacheClockMismatch token: the
+// nightly top-up stands down only for the one named clock condition, and
+// a corrupt store is a real failure that must go red (#358 minor).
+async function readStore<T>(path: string): Promise<RollingStore<T> | null> {
+  let text: string;
   try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
-  } catch {
-    return null;
+    text = await readFile(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw new Error(
+      `cacheStoreUnreadable: ${path} exists but cannot be read ` +
+        `(${String(error)}) — inspect or delete it deliberately`,
+    );
   }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `cacheStoreUnreadable: ${path} is not valid JSON — a truncated or ` +
+        `corrupt store is inspected or deleted deliberately, never ` +
+        `silently refetched`,
+    );
+  }
+  const store = parsed as RollingStore<T>;
+  if (
+    !store || !Array.isArray(store.items) ||
+    typeof store.pinned !== "object" || store.pinned === null
+  ) {
+    throw new Error(
+      `cacheStoreUnreadable: ${path} does not have the rolling-store ` +
+        `shape — inspect or delete it deliberately, never silently refetch`,
+    );
+  }
+  return store;
 }
 
 // One rolling series: bars, calendar events — anything with a time order.
@@ -83,8 +117,8 @@ export async function loadRollingSeries<T>(input: {
   await mkdir(cacheDir, { recursive: true });
   const path = `${cacheDir}/${key}.rolling.json`;
 
-  let store = await readJson<RollingStore<T>>(path);
-  if (store && Array.isArray(store.items) && store.clock !== clock) {
+  let store = await readStore<T>(path);
+  if (store && store.clock !== clock) {
     throw new Error(
       `cacheClockMismatch: ${path} carries clock "${
         store.clock ?? "<unstamped — pre-R0 mixed-clock era>"
@@ -93,7 +127,7 @@ export async function loadRollingSeries<T>(input: {
         `per docs/cache-rebuild-r0.md.`,
     );
   }
-  if (!store || !Array.isArray(store.items)) {
+  if (!store) {
     store = { clock, items: [], pinned: {} };
   }
 
@@ -122,7 +156,13 @@ export async function loadRollingSeries<T>(input: {
     delete store.pinned[stale];
   }
 
-  await writeFile(path, JSON.stringify(store));
+  // Atomic replace: a crash (or a process.exit racing a sibling write)
+  // mid-writeFile would leave a torn multi-MB store — the exact corrupt
+  // shape readStore refuses. Rename either completes or leaves the old
+  // store intact; stray .tmp debris matches no store scan and is inert.
+  const tmpPath = `${path}.tmp-${process.pid}`;
+  await writeFile(tmpPath, JSON.stringify(store));
+  await rename(tmpPath, path);
   const through = store.pinned[anchor];
   return store.items.filter((item) => timeOf(item) <= through);
 }

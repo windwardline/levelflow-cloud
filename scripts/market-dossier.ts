@@ -29,7 +29,7 @@ import {
 } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { getFuturesContractSpec } from "../supabase/functions/trade-analyzer/futures.ts";
 import { SECURITY_OPTIONS } from "../src/lib/symbolMap.ts";
-import { readLinesSync } from "./sweepStats.ts";
+import { assertManifest, readLinesSync } from "./sweepStats.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -94,6 +94,11 @@ function collect(
 ) {
   const byMarket = new Map<string, Map<string, { confirm: Acc; select: Acc }>>();
   for (const path of paths) {
+    // R0: the one-clock door — a corpus that cannot state its clock (or
+    // whose witnesses condemn it) is refused here too, not only in the
+    // aggregation readers. These five scripts produced the invalidated
+    // 4d-era figures by reading emits bare.
+    assertManifest(path);
     readLinesSync(path, (line) => {
       if (!line) return;
       const row = JSON.parse(line) as {

@@ -84,6 +84,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
           rows
             .filter((row) => row.symbol === symbol)
             .map((row) => ({ time: Number(row.time) || 0 })),
+          "intraday",
         ),
       },
       symbol,
@@ -285,7 +286,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       symbols: [{
         calibration: {},
         providerSymbol: "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
@@ -328,7 +329,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       symbols: [{
         calibration: {},
         providerSymbol: rows[0]?.symbol ?? "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: rows[0]?.symbol ?? "EURUSD",
       }],
       trainShare: 0.6,
@@ -549,7 +550,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       symbols: [{
         calibration: {},
         providerSymbol: "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,

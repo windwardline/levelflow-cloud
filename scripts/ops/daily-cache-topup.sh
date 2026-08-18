@@ -53,20 +53,24 @@ if [ "$rc" -eq 0 ]; then
   exit 0
 fi
 
-if printf '%s' "$out" | grep -qE '\(429\)|providerQuotaExhausted|Too Many Requests'; then
+# Herestrings, not printf|grep: under `set -o pipefail`, grep -q exiting
+# on an early match can SIGPIPE the printf and flip a legitimate
+# stand-down to red (#358 review).
+if grep -qE '\(429\)|providerQuotaExhausted|Too Many Requests' <<<"$out"; then
   echo "$(date -u +%FT%TZ) STOOD DOWN: FMP provider quota exhausted (429). Cache not topped up; not a regression. See §21j."
   exit 0
 fi
 
 # R0 one clock: the store guard refuses a cache stamped under a different
-# (or no) normalization — the pre-2026-08-11 mixed-clock store — rather
-# than deepening it. Like the 429 branch, this is one named, proven
-# condition: it is not a regression, and it is not actionable nightly —
-# the ONE action that clears it is the deliberate rebuild in
-# docs/cache-rebuild-r0.md, which cannot run until FMP's allowance
-# recovers. Anything else stays red.
-if printf '%s' "$out" | grep -q 'cacheClockMismatch'; then
-  echo "$(date -u +%FT%TZ) STOOD DOWN: cache predates the one-clock rebuild (R0). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
+# (or no) normalization rather than deepening it — the pre-2026-08-11
+# mixed-clock store, or a future BAR_CLOCK bump whose rebuild has not run
+# yet. Like the 429 branch, this is one named, proven condition whose one
+# clearing action is the deliberate rebuild in docs/cache-rebuild-r0.md.
+# Deliberately NOT matched: cacheClockWitnessRefused (a condemned witness
+# on a STAMPED store) and cacheStoreUnreadable (a corrupt store) — both
+# are fresh, actionable regressions and stay red.
+if grep -q 'cacheClockMismatch' <<<"$out"; then
+  echo "$(date -u +%FT%TZ) STOOD DOWN: store clock does not match this build (pre-R0 store, or a BAR_CLOCK bump without its rebuild). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
   exit 0
 fi
 

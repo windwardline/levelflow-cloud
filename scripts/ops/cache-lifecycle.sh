@@ -4,7 +4,8 @@
 # Three named populations, three rules:
 #   1. LEGACY date-keyed cache files (.calibration-cache/*-2026-*.json era):
 #      superseded by the rolling stores in r17 — deletable on sight. The
-#      migration read them once; nothing reads them again (~2.8GB found).
+#      r17 migration that once read them was REMOVED by R0 (it imported
+#      pre-clock-stamp data); nothing reads them at all now (~2.8GB found).
 #   2. Finished sweep emits (sweeps/**/*.jsonl older than KEEP_DAYS):
 #      the corpus of record is the manifest + the verdicts doc; a raw
 #      emit older than the window is re-creatable from the warm cache at

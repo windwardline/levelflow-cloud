@@ -198,7 +198,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       symbols: [{
         calibration: { tp1RiskShare: 0.8 },
         providerSymbol: "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
@@ -279,7 +279,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
       calibration: {},
       calibrationHash: sha256Hex(stableStringify({})),
       providerSymbol: "EURUSD",
-      series: { "15min": seriesFacts([{ time: 0 }]) },
+      series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
       symbol: "EURUSD",
     }],
     trainShare: 0.6,
@@ -299,7 +299,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
     };
     manifest.clock = { calendar: "test-calendar-v1", normalizer: "test-clock-v1" };
     manifest.symbols[0].series["15min"] = {
-      ...seriesFacts([{ time: 0 }]),
+      ...seriesFacts([{ time: 0 }], "intraday"),
       clock: { verdict: "naive" },
     };
     assert.throws(
@@ -323,4 +323,31 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
       /registers against.*4h\s+shift.*mixed-clock signature/s,
     );
   });
+});
+
+// #358 finding 4: five analysis scripts read emits straight through
+// readLinesSync and never touched the manifest — the exact tools that
+// produced the invalidated 4d-era figures, still able to aggregate a
+// pre-R0 corpus. The one-clock door now stands at each of their entries,
+// and this pin keeps the set closed: any script that reads emit lines
+// must assert the manifest first.
+describe("every emit reader passes the one-clock door (R0)", () => {
+  for (
+    const script of [
+      "scripts/market-dossier.ts",
+      "scripts/roster-expectancy-audit.ts",
+      "scripts/threshold-rescue.ts",
+      "scripts/cost-sensitivity-verdict.ts",
+      "scripts/feasibility-4d.ts",
+    ]
+  ) {
+    it(`${script} asserts the manifest before reading a line`, () => {
+      const source = readFileSync(script, "utf8");
+      assert.match(source, /assertManifest\(path\);/);
+      assert.match(
+        source,
+        /import \{ assertManifest, readLinesSync \} from "\.\/sweepStats\.ts";/,
+      );
+    });
+  }
 });

@@ -38,6 +38,13 @@ import {
   crossSeriesClock,
 } from "./clockWitness.ts";
 import {
+  emptyStreakLimitFor,
+  INTRADAY_ROW_CAP_TRIPWIRE,
+  intradayChunkWindows,
+  type IntradayTimeframe,
+  MAX_DEPTH_DAYS,
+} from "./intradayChunks.ts";
+import {
   calendarFolds,
   type ClassFoldSpec,
   foldsByClass,
@@ -343,9 +350,17 @@ async function main() {
     // invariant is corpus-global, and a sweep that quietly drops a
     // poisoned market ships a corpus that looks whole. The store guard
     // (calibrationCache) already refuses a wrong-stamp store; this is the
-    // independent check on the data itself, and it also catches the case
-    // the stamp cannot: FMP changing its own convention under a normalizer
-    // that still carries the old assumption.
+    // independent per-year check on the data itself. Its measured limits
+    // (#358 adversarial round): a sessioned pair whose BOTH series are on
+    // the same wrong clock reads as aligned here — that case is carried
+    // by the store stamp and by the reference session anchor in
+    // verify-cache-clock, the only instrument that catches a provider
+    // convention flip shifting every series together.
+    //
+    // The token is deliberately NOT cacheClockMismatch: that name is the
+    // nightly top-up's named stand-down for the pre-rebuild store, while a
+    // witness refusal on a STAMPED store is a fresh, actionable regression
+    // that must go red.
     const series = {
       "15min": seriesFacts(primaryBars, "intraday"),
       "1day": seriesFacts(dailyBars, "daily"),
@@ -355,18 +370,20 @@ async function main() {
     for (const [timeframe, facts] of Object.entries(series)) {
       if (facts.clock.verdict === "naive" || facts.clock.verdict === "mixed") {
         throw new Error(
-          `cacheClockMismatch: ${symbol} ${timeframe} series witnesses a ` +
-            `"${facts.clock.verdict}" clock (${JSON.stringify(facts.clock)}) ` +
-            `— rebuild the cache per docs/cache-rebuild-r0.md`,
+          `cacheClockWitnessRefused: ${symbol} ${timeframe} series ` +
+            `witnesses a "${facts.clock.verdict}" clock ` +
+            `(${JSON.stringify(facts.clock)}) on a stamped store — ` +
+            `investigate before any rebuild; see docs/cache-rebuild-r0.md`,
         );
       }
     }
     if (registration.verdict === "shifted") {
       throw new Error(
-        `cacheClockMismatch: ${symbol} 5min series registers against the ` +
-          `15min primary at ${registration.bestShiftHours}h ` +
-          `(${JSON.stringify(registration)}) — the mixed-clock signature; ` +
-          `rebuild the cache per docs/cache-rebuild-r0.md`,
+        `cacheClockWitnessRefused: ${symbol} 5min series registers against ` +
+          `the 15min primary at ${registration.bestShiftHours}h ` +
+          `(${JSON.stringify(registration)}) — the mixed-clock signature ` +
+          `on a stamped store; investigate before any rebuild; see ` +
+          `docs/cache-rebuild-r0.md`,
       );
     }
 
@@ -710,43 +727,10 @@ function parseArgs(argv: string[]): SweepArgs {
   };
 }
 
-// FMP caps a single intraday response, and the cap is a per-timeframe FACT,
-// not one number: 15-minute chunks of 30 days came back complete for every
-// market including 24/7 crypto (2,880 rows — proven by the corpus itself:
-// crypto densities ran 98%+ with ~1-day largest gaps, 4a report), while
-// 5-minute chunks were observed clipping at ~2,000 rows (remediation 1b —
-// the 30-day sawtooth that left EURUSD 5-minute-dense on 1,408 of 5,247
-// days and made 64.7% of confirm-fold decisions phantoms). 6 days of
-// 5-minute bars is 1,728 rows for a 24/7 market — under the observed clip
-// with margin. The tripwire below makes the cap assumption self-verifying
-// instead of silent: a chunk that comes back at cap size is treated as
-// possibly truncated and fails the run.
-const INTRADAY_CHUNK_DAYS: Record<"15min" | "5min", number> = {
-  "15min": 30,
-  "5min": 6,
-};
-// A chunk at or above this row count is indistinguishable from a clipped
-// one. Complete worst cases sit below (15min: 2,880 for 24/7; 5min: 1,728),
-// so a trip means either the window is oversized for the cap or FMP
-// lowered it — both demand resizing, not a quietly holed series.
-const INTRADAY_ROW_CAP_TRIPWIRE: Record<"15min" | "5min", number> = {
-  "15min": 2_950,
-  "5min": 1_900,
-};
-// Walking back stops after this many consecutive empty DAYS, which is how
-// the end of a symbol's history is detected rather than assumed. 90 days
-// clears any plausible holiday or provider gap (largest observed: 33.9d,
-// XAUUSD). Expressed in days, not windows: when the 5-minute chunk shrank
-// to 6 days (R0), a three-WINDOW streak would have quietly become an
-// 18-day stop and amputated any history behind a moderate gap.
-const EMPTY_WINDOW_CLEARANCE_DAYS = 90;
-// Safety ceiling only — it must never be the binding constraint, so it sits
-// above every confirmed provider floor. Measured 2026-07-29 by walking back
-// until history ended: forex begins 2010-01 (~6,050 days), XAUUSD 2013-07
-// (~4,760), ^GSPC 2020-02 (~2,350), ^NDX 2020-08 (~2,175), crypto and XAGUSD
-// ~1,060-1,200, and CME futures 2023-09/10 (~1,031-1,038). Depth is
-// discovered per symbol at run time, never assumed.
-const MAX_DEPTH_DAYS = 7_000;
+// Chunk sizing, window tiling, the response-cap tripwires and the
+// empty-window clearance live in scripts/intradayChunks.ts (R0; fleet
+// review #358 findings 1 and 5), extracted pure so the 1b sawtooth fix is
+// pinned by behaviour — this file runs main() on import and cannot be.
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
@@ -757,48 +741,43 @@ async function fetchIntradayBars(
   providerSymbol: string,
   days: number,
   sinceMs?: number,
-  timeframe: "15min" | "5min" = "15min",
+  timeframe: IntradayTimeframe = "15min",
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
-  const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
-  const chunkDays = INTRADAY_CHUNK_DAYS[timeframe];
   const capTripwire = INTRADAY_ROW_CAP_TRIPWIRE[timeframe];
-  const emptyStreakLimit = Math.ceil(EMPTY_WINDOW_CLEARANCE_DAYS / chunkDays);
-  const now = Date.now();
+  const emptyStreakLimit = emptyStreakLimitFor(timeframe);
   let emptyStreak = 0;
 
-  for (
-    let offset = chunkDays;
-    offset <= ceiling + chunkDays;
-    offset += chunkDays
-  ) {
-    const from = new Date(now - offset * 86_400_000);
-    const to = new Date(now - (offset - chunkDays) * 86_400_000);
-    // Top-up mode: chunks walk backward, so the first chunk that ends
-    // before the floor means everything older is already stored.
-    if (sinceMs !== undefined && to.getTime() < sinceMs) {
-      break;
-    }
+  const windows = intradayChunkWindows({
+    days,
+    nowMs: Date.now(),
+    sinceMs,
+    timeframe,
+  });
+  for (const window of windows) {
     const endpoint = new URL(
       `${FMP_API_BASE_URL}/historical-chart/${timeframe}`,
     );
     endpoint.searchParams.set("symbol", providerSymbol);
-    endpoint.searchParams.set("from", isoDate(from));
-    endpoint.searchParams.set("to", isoDate(to));
+    endpoint.searchParams.set("from", isoDate(new Date(window.fromMs)));
+    endpoint.searchParams.set("to", isoDate(new Date(window.toMs)));
     endpoint.searchParams.set("apikey", API_KEY!);
-    const chunk = await fetchBars(endpoint);
-    if (chunk.length >= capTripwire) {
-      // A clipped chunk keeps its NEWEST rows, so the hole lands silently
-      // at the old end of the window and nothing downstream can tell a
-      // thin market from a truncated fetch — that is remediation 1b. Stop
-      // the run instead of caching a holed series the top-up will never
-      // refetch.
+    const { bars: chunk, rawRows } = await fetchBars(endpoint);
+    // The provider's cap applies to the RAW payload — the boundary's
+    // rejections must not let a clipped chunk slip under the wire
+    // (#358 finding 2). A clipped chunk keeps its NEWEST rows, so the
+    // hole lands silently at the old end of the window and nothing
+    // downstream can tell a thin market from a truncated fetch — that is
+    // remediation 1b. Stop the run instead of caching a holed series the
+    // top-up will never refetch.
+    if (rawRows >= capTripwire) {
       throw new Error(
-        `${providerSymbol} ${timeframe} chunk ${isoDate(from)}..${
-          isoDate(to)
-        } returned ${chunk.length} rows, at the provider's response cap — ` +
-          `possibly truncated; shrink INTRADAY_CHUNK_DAYS["${timeframe}"] ` +
-          `rather than caching a holed series`,
+        `${providerSymbol} ${timeframe} chunk ${
+          isoDate(new Date(window.fromMs))
+        }..${isoDate(new Date(window.toMs))} returned ${rawRows} raw rows, ` +
+          `at the provider's response cap — possibly truncated; shrink ` +
+          `INTRADAY_CHUNK_DAYS["${timeframe}"] rather than caching a ` +
+          `holed series`,
       );
     }
     if (chunk.length === 0) {
@@ -826,10 +805,15 @@ async function fetchDailyBars(
   endpoint.searchParams.set("from", isoDate(new Date(floor)));
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  return dedupeSort(await fetchBars(endpoint));
+  return dedupeSort((await fetchBars(endpoint)).bars);
 }
 
-async function fetchBars(endpoint: URL): Promise<Bar[]> {
+// Returns the normalized bars AND the raw payload row count: the
+// provider's response cap applies to what it SENT, not to what survived
+// the boundary's rejections, so the intraday tripwire reads rawRows.
+async function fetchBars(
+  endpoint: URL,
+): Promise<{ bars: Bar[]; rawRows: number }> {
   const response = await fetchFmpWithRetry(() => fetch(endpoint), {
     paceMs: FMP_PACE_MS,
   });
@@ -850,7 +834,7 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
   // rejection), and every rejection lands in the tally the manifest carries.
   // A corpus with silent holes was how a 135,533% bar got cemented into the
   // calibration cache with nothing ever refetching it.
-  return normalizeFmpBars(
+  const bars = normalizeFmpBars(
     rows as FmpBar[],
     Number.MAX_SAFE_INTEGER,
     (rejection) => {
@@ -858,6 +842,7 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
         (barRejectionTally[rejection.reason] ?? 0) + 1;
     },
   );
+  return { bars, rawRows: rows.length };
 }
 
 /** 2h: every boundary rejection this run, by reason — printed at the end of

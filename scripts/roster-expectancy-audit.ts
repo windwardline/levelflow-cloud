@@ -21,7 +21,7 @@ import {
   getCategoryCalibration,
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
-import { readLinesSync } from "./sweepStats.ts";
+import { assertManifest, readLinesSync } from "./sweepStats.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -140,6 +140,11 @@ async function main() {
 
   const acc = new Map<string, { confirm: Acc; select: Acc }>();
   for (const path of paths) {
+    // R0: the one-clock door — a corpus that cannot state its clock (or
+    // whose witnesses condemn it) is refused here too, not only in the
+    // aggregation readers. These five scripts produced the invalidated
+    // 4d-era figures by reading emits bare.
+    assertManifest(path);
     readLinesSync(path, (line) => {
       if (!line) return;
       const row = JSON.parse(line) as {

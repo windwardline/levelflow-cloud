@@ -32,7 +32,7 @@
 //   gross confirm E  > 0  -> the negative rests on OUR modeled cost.
 //                            DO NOT withdraw; disclose the sensitivity.
 import { readFileSync, writeFileSync } from "node:fs";
-import { readLinesSync } from "./sweepStats.ts";
+import { assertManifest, readLinesSync } from "./sweepStats.ts";
 
 function spansFrom(paths: string[]): Map<string, { first: number; last: number }> {
   const spans = new Map<string, { first: number; last: number }>();
@@ -83,6 +83,11 @@ function collect(
 ): Map<string, Acc> {
   const acc = new Map<string, Acc>();
   for (const path of paths) {
+    // R0: the one-clock door — a corpus that cannot state its clock (or
+    // whose witnesses condemn it) is refused here too, not only in the
+    // aggregation readers. These five scripts produced the invalidated
+    // 4d-era figures by reading emits bare.
+    assertManifest(path);
     readLinesSync(path, (line) => {
       if (!line) return;
       const row = JSON.parse(line) as {
