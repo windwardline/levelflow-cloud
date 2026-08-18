@@ -227,31 +227,60 @@ only today, per the 2026-08-11 wipe. Carried on HANDOFF's small list.
 
 ## Slice 2 closure record (2026-08-18)
 
-Shipped as one PR after slice 1, under `2026.08.18.one-physics`:
+Shipped as one PR after slice 1, under `2026.08.18.one-physics`. The
+PR's own review round (#362) found the E3 half-application and three
+policy gaps before merge; the bullets below describe the amended state,
+with the round's findings folded in rather than recorded as a separate
+layer.
 
 - **E1**: `resolutionSeriesFor` in `replay.ts` is the ONE tiering rule —
   5-minute when it reaches the setup's creation, else 15-minute — used by
-  both live writers (each now fetches both series per symbol; a thrown
-  fetch fails the setup for that run rather than silently degrading the
-  tier), and the resolver stamps `feedback.resolutionIntervalMs` on every
-  resolution so degraded rows are visible. The sweep's emit symmetry
-  rides with R1b.
+  both live writers (each now fetches both series per symbol), and the
+  resolver stamps `feedback.resolutionIntervalMs` on every resolution so
+  degraded rows are visible. Failure policy (#362 review, finding 3): a
+  thrown 15-minute fetch fails the setup for that run — nothing to grade
+  on — while a thrown 5-MINUTE fetch degrades to the 15-minute tier,
+  visibly via the stamp; the caught promise is what the per-symbol cache
+  holds, so one 5-minute failure cannot poison the symbol's remaining
+  setups. The sweep's emit symmetry rides with R1b.
 - **E2 (live half)**: the true no-bars expiry carries
   `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
   not. The sweep's distinct counter and `assertManifest`'s per-symbol
   density assertion remain R1b.
-- **E3**: `market.latest` is the last COMPLETED primary-timeframe bar
-  (`lastCompletedBar`; the 1-minute-preferring picker is deleted); chart
+- **E3**: the completed-bar law applies to the SERIES, not just the
+  anchor pointer (#362 review, finding 1 — moving `market.latest` alone
+  left entry math, ATR, pivots and the committee on the forming bar and
+  turned `buildPricePlan`'s viability gate into a live-only directional
+  filter): `completedIntradaySeries` (bars.ts, executed by the harness)
+  trims every intraday series to closed spans before the sufficiency
+  check, `market.latest === market.primary.at(-1)` by construction, the
+  forming-bar fallback is deleted (finding 4), and `buildPricePlan`
+  derives every price from its own series tail — the sweep's exact
+  single-anchor shape. The 1-minute-preferring picker is deleted; chart
   feed and quote snapshot untouched.
 - **E7**: construction writes `runnerProtection` and `reviewWindowHours`
   into `risk_model`; the bridge reads them with strict validation, and
-  pre-slice rows keep today's exact behavior, version-scoped.
+  pre-slice rows keep today's exact behavior, version-scoped. The same
+  rule now governs the CLIENT's copy-gate window (#362 review, finding
+  5): `storedSetup.ts` prefers the row's stamped `reviewWindowHours`
+  over the calibration mirror, same validation as the bridge, mirror
+  fallback for pre-E7 rows — the one frontend touch in R1a.
 - Pins: behavioral in `tests/replayHarness.test.ts` (tiering, interval
   stamp, no-bars marker, bridge reads, trail_tp1-through-the-bridge),
-  source-level in `tests/securityHardening.test.ts` for the Deno-side
-  halves. The pre-pin suite ran green with zero failures on the physics
-  change — the same producer-never-tested pattern as D2's register
-  entry, now closed for these paths too.
+  `tests/barDecode.test.ts` (the trim, executed), `tests/pricePlan.test.ts`
+  (single-anchor construction), `tests/storedSetup.test.ts` (row-stamped
+  copy window); source-level in `tests/securityHardening.test.ts` for
+  the Deno-side halves. The pre-pin suite ran green with zero failures
+  on the physics change — the same producer-never-tested pattern as
+  D2's register entry, now closed for these paths too (#362 finding 2
+  closed the loader instance of it).
+- **Residue, named not smuggled**: the GRADING series (both writers'
+  `fetchFmpBars` results) still carries its forming tail bar. Highs and
+  lows of a forming bar are realized prices, so touch grading is honest;
+  the divergence is the expiry branch pricing its exit off a non-final
+  close — small, real, and the corpus never does it. Rides with R1b's
+  sweep-side E2 work as a deliberate decision (trim vs. wait-one-span),
+  not folded silently into this slice.
 
 ## Sequencing — three PRs, engine first
 
@@ -274,8 +303,11 @@ Shipped as one PR after slice 1, under `2026.08.18.one-physics`:
 3. **R1c — the E4 instrument**: the collapse reader + its report,
    doored and population-pinned like every other reader.
 
-Frontend is untouched in all three; no migration is required (feedback
-is jsonb). Live-path changes (R1a) deploy through the ordinary gate and
+Frontend is untouched in all three except R1a's one client read
+(`storedSetup.ts` prefers the row's stamped review window — #362
+finding 5; the mirror fallback covers every pre-E7 row, so no ordering
+hazard with the Edge deploy); no migration is required (feedback is
+jsonb). Live-path changes (R1a) deploy through the ordinary gate and
 change grading physics from that deploy forward — the cohort boundary
 is `ANALYZER_VERSION`, which R1a must bump, exactly as the learning
 read/write version predicates assume.

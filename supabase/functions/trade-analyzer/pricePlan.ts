@@ -104,7 +104,15 @@ export function buildPricePlan(
   const bars = market.primary;
   const daily = market.daily;
   const latest = bars.at(-1)!;
-  const currentClose = market.latest.close;
+  // E3 (#362 review, finding 1): ONE anchor. The viability gate below
+  // used to read market.latest — a fresher print than the bar the entry
+  // offset came from — which made the gate a live-only, direction-biased
+  // filter the corpus never had: in the sweep the decision bar IS the
+  // latest bar, so the gate compares an offset against its own base and
+  // fires only on degenerate offsets. Every price here now derives from
+  // the same completed decision bar; the loader guarantees market.latest
+  // and bars.at(-1) agree, and this function no longer depends on that.
+  const currentClose = latest.close;
   const atr = averageTrueRange(bars, 14);
   const dailyAtr = averageTrueRange(daily, 14);
   const pivots = findSwingPivots(bars, 3);

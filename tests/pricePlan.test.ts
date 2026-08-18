@@ -261,6 +261,38 @@ const regime: Regime = {
 
 describe("price plan integration", () => {
 
+  it("construction is single-anchor: a divergent market.latest changes nothing (#362 review, finding 1)", () => {
+    // Pre-fix, the viability gate read market.latest while the entry math
+    // read primary.at(-1) — so once the anchor moved to the completed
+    // bar, an intra-bar rally larger than the entry offset rejected every
+    // buy the corpus would have kept (and an intra-bar fall, every sell).
+    // One anchor: the same primary series builds the same plan no matter
+    // what market.latest claims — here it claims a close 5 below the
+    // decision bar, which the old gate read as "entry above market" and
+    // rejected.
+    const baseline = buildPricePlan(
+      "buy",
+      "EURUSD",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    const divergent = syntheticMarket();
+    divergent.latest = { ...divergent.latest, close: divergent.latest.close - 5 };
+    const plan = buildPricePlan(
+      "buy",
+      "EURUSD",
+      divergent,
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(baseline);
+    assert.ok(plan, "the old cross-anchor gate would have rejected this buy");
+    assert.equal(plan.entryPrice, baseline.entryPrice);
+    assert.equal(plan.stopLoss, baseline.stopLoss);
+    assert.equal(plan.takeProfit, baseline.takeProfit);
+  });
+
   it("emits a ladder with TP1 between entry and the runner target", () => {
     const plan = buildPricePlan(
       "buy",

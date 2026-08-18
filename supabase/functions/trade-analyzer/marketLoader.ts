@@ -1,4 +1,8 @@
-import { type FmpBar, normalizeFmpBars } from "./bars.ts";
+import {
+  completedIntradaySeries,
+  type FmpBar,
+  normalizeFmpBars,
+} from "./bars.ts";
 import { parseFmpQuoteSnapshot, type QuoteSnapshot } from "./quotes.ts";
 import {
   type Bar,
@@ -139,11 +143,23 @@ async function fetchMarketContext(
   await Promise.all(
     intradayTimeframes.map(async (timeframe) => {
       try {
-        const bars = await fetchFmpBars(
-          fmpSymbol,
+        // E3 (#362 review, finding 1): the completed-bar law applies to
+        // the SERIES, not just the `latest` pointer below — an untrimmed
+        // tail would feed the forming bar to the ATR, the pivots and the
+        // committee votes even with the anchor moved. Trimmed BEFORE the
+        // sufficiency check: 40 bars of decision-grade history is the
+        // claim the check makes. Grading is a different consumer with a
+        // different clock — the outcome writers call fetchFmpBars
+        // directly and stay untrimmed (their forming-tail question is
+        // named in the divergence map, not smuggled in here).
+        const bars = completedIntradaySeries(
+          await fetchFmpBars(
+            fmpSymbol,
+            timeframe,
+            recordEvent,
+            fetchWithTimeout,
+          ),
           timeframe,
-          recordEvent,
-          fetchWithTimeout,
         );
         if (bars.length >= 40) {
           timeframes[timeframe] = bars;
@@ -166,17 +182,22 @@ async function fetchMarketContext(
   const primary = timeframes[primaryTimeframe] ?? daily;
   // E3 (R1a slice 2): ONE decision anchor. `latest` used to be the last
   // 1-minute bar whenever one existed, while the sweep's decision
-  // context anchors on the completed 15-minute decision bar — so live
+  // context anchors on the completed primary decision bar — so live
   // entries were placed against a price the measured corpus never saw
   // (the corpus has no deep 1-minute history; that is §21's minute-bank
-  // program). Setup construction now anchors on the last COMPLETED bar
-  // of the PRIMARY timeframe — the information set every measured number
-  // was derived under. The chart feed (market-data) and the quote
-  // snapshot are untouched: display freshness is not decision input.
-  // When the minute bank matures into the corpus, both sides move
-  // together in one deliberate change.
-  const latest = lastCompletedBar(primary, primaryTimeframe) ??
-    primary.at(-1) ?? daily.at(-1)!;
+  // program). Every intraday series above is trimmed to completed bars,
+  // so `primary.at(-1)` IS the last completed primary bar and the anchor
+  // equals the series tail — the sweep's own shape, one anchor for the
+  // entry math, the gate, and every vote. The forming-bar fallback that
+  // used to sit here is deliberately gone (#362 review, finding 4): a
+  // trimmed series either qualifies with >= 40 completed bars or its
+  // timeframe is absent, and the terminal fallback is completeDaily's
+  // last bar — completed by that gate's own rule, never forming. The
+  // chart feed (market-data) and the quote snapshot are untouched:
+  // display freshness is not decision input. When the minute bank
+  // matures into the corpus, both sides move together in one deliberate
+  // change.
+  const latest = primary.at(-1) ?? daily.at(-1)!;
 
   return {
     availableTimeframes,
@@ -189,35 +210,6 @@ async function fetchMarketContext(
     quote,
     timeframes,
   };
-}
-
-// A bar is decision-grade only once its span has closed (LA-2's own
-// principle applied at load): the newest fetched intraday bar is usually
-// still forming, and the sweep's decision bar is complete by
-// construction. Daily completion is completeDaily's job upstream — a
-// completed daily bar's span extends past `now` for most of the day, so
-// the span test must not run on it.
-const INTRADAY_SPAN_MS: Partial<Record<Timeframe, number>> = {
-  "15min": 15 * 60 * 1000,
-  "1hour": 60 * 60 * 1000,
-  "4hour": 4 * 60 * 60 * 1000,
-};
-
-function lastCompletedBar(
-  bars: Bar[],
-  timeframe: Timeframe,
-): Bar | undefined {
-  const spanMs = INTRADAY_SPAN_MS[timeframe];
-  if (spanMs === undefined) {
-    return bars.at(-1);
-  }
-  const now = Date.now();
-  for (let index = bars.length - 1; index >= 0; index -= 1) {
-    if (bars[index].time + spanMs <= now) {
-      return bars[index];
-    }
-  }
-  return undefined;
 }
 
 async function fetchFmpQuoteSnapshot(

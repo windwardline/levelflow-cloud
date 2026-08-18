@@ -57,17 +57,26 @@ export function storedSetupAsCandidate(
   // here would print the literal "NaN" on the ladder beside the "—" the rail
   // drew for the same column.
   const breakevenTriggerPrice = asPrice(setup.breakeven_trigger_price);
-  // The copy gate's window: created_at + the symbol's own review window,
-  // through the same calibration mirror the stamp and the meter already
-  // read. Null when created_at is unparseable — the gate then leaves the
-  // affordances live, exactly as a scan row without an expiry does.
+  // The copy gate's window: created_at + the row's OWN review window when
+  // the analyzer stamped one (risk_model.reviewWindowHours — E7's rule
+  // that decision-time facts ride the row, applied to the affordance gate
+  // exactly as the resolver's bridge applies it, same validation and all;
+  // #362 review, finding 5), else the calibration mirror for pre-E7 rows.
+  // Re-modelling from the mirror alone meant this gate and the resolver
+  // could disagree the moment the calibration moved. Null when created_at
+  // is unparseable — the gate then leaves the affordances live, exactly
+  // as a scan row without an expiry does.
   const reviewedAtMs = storedSetupReviewedAt(setup);
-  const copyWindowEndsAt = reviewedAtMs === null ? null : new Date(
-    reviewedAtMs +
-      reviewWindowHoursForSymbol(
+  const rowReviewWindowHours = Number(setup.risk_model?.reviewWindowHours);
+  const reviewWindowHours =
+    Number.isFinite(rowReviewWindowHours) && rowReviewWindowHours > 0
+      ? rowReviewWindowHours
+      : reviewWindowHoursForSymbol(
         setup.symbol,
         getSecurityOption(setup.symbol).assetType,
-      ) * 60 * 60 * 1000,
+      );
+  const copyWindowEndsAt = reviewedAtMs === null ? null : new Date(
+    reviewedAtMs + reviewWindowHours * 60 * 60 * 1000,
   ).toISOString();
   const entryPrice = asPrice(setup.limit_entry);
   const stopLoss = asPrice(setup.stop_loss);

@@ -715,11 +715,23 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
         /\.\.\.fillOptionsFromRiskModel\(setup\.risk_model\),\s*\n\s*barIntervalMs: resolution\.barIntervalMs,/,
         `${file} must override the interval AFTER the bridge spread so the chosen tier governs`,
       );
-      // The old single-timeframe fetch must not quietly return.
+      // Finding 3 (#362 review): the 5-minute fetch — and only the
+      // 5-minute fetch — degrades to the coarser tier on failure, and the
+      // CAUGHT promise is what the per-symbol cache holds, so one failure
+      // cannot poison the symbol's remaining setups this run. The
+      // 15-minute fetch stays fatal: without it there is nothing to
+      // grade on. (The old formatting-keyed doesNotMatch that stood here
+      // pinned nothing — the round-1 verdict's own minor — and these two
+      // subsume it: a single-series fetch cannot satisfy both.)
+      assert.match(
+        source,
+        /"5min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch\(\(\) => \[\]\)/,
+        `${file} must degrade a failed 5-minute fetch to the 15-minute tier`,
+      );
       assert.doesNotMatch(
         source,
-        /fetchFmpBars\(\s*providerSymbol,\s*"15min",[^)]*\)\s*,?\s*\)\s*;\s*\n\s*\}\s*\n\s*const bars =/,
-        `${file} must fetch both series, not the 15-minute one alone`,
+        /"15min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch/,
+        `${file} must keep a failed 15-minute fetch fatal for the setup`,
       );
     }
   });
@@ -729,11 +741,21 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
       "supabase/functions/trade-analyzer/marketLoader.ts",
       "utf8",
     );
-    assert.match(loader, /lastCompletedBar\(primary, primaryTimeframe\)/);
+    // Finding 1 (#362 review): the completed-bar law applies to the
+    // SERIES, before the sufficiency check — moving only the `latest`
+    // pointer left the entry math, the ATR, the pivots and the committee
+    // on the forming bar and turned the viability gate into a live-only
+    // directional filter. The trim itself is EXECUTED in
+    // tests/barDecode.test.ts and the single-anchor consequence in
+    // tests/pricePlan.test.ts; these pins hold the loader wiring.
+    assert.match(loader, /completedIntradaySeries\(\s*await fetchFmpBars\(/);
+    assert.match(loader, /const latest = primary\.at\(-1\) \?\? daily\.at\(-1\)!/);
     assert.match(loader, /latestTimeframe: primaryTimeframe/);
     // The 1-minute-preferring picker is gone; the sweep's decision
-    // context (sweep.ts) anchors at 15min, and live now matches it.
+    // context (sweep.ts) anchors at 15min, and live now matches it. The
+    // forming-bar fallback (finding 4) went with it.
     assert.doesNotMatch(loader, /pickLatestTimeframe/);
+    assert.doesNotMatch(loader, /lastCompletedBar/);
   });
 
   it("E7: construction writes the protection mode and review window into the row the bridge reads", () => {

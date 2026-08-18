@@ -213,7 +213,7 @@ describe("storedSetupReviewedAt", () => {
 
 // The copy gate's window (1l, 2026-08-09): derived, gate-only, never printed.
 describe("copyWindowEndsAt — the gate's window, not the stamp's", () => {
-  it("derives created_at + the symbol's own review window", () => {
+  it("derives created_at + the mirror's review window for a pre-E7 row", () => {
     const candidate = storedSetupAsCandidate(buildSetup());
     assert.ok(candidate.setup);
     const created = new Date(buildSetup().created_at).getTime();
@@ -225,6 +225,48 @@ describe("copyWindowEndsAt — the gate's window, not the stamp's", () => {
       candidate.setup!.copyWindowEndsAt,
       new Date(created + hours * 60 * 60 * 1000).toISOString(),
     );
+  });
+
+  it("prefers the row's own stamped window — E7's decision-time fact rides the row (#362 review, finding 5)", () => {
+    const candidate = storedSetupAsCandidate(buildSetup({
+      risk_model: { reviewWindowHours: 9.5 },
+    }));
+    assert.ok(candidate.setup);
+    const created = new Date(buildSetup().created_at).getTime();
+    assert.equal(
+      candidate.setup!.copyWindowEndsAt,
+      new Date(created + 9.5 * 60 * 60 * 1000).toISOString(),
+    );
+    // The mirror must not produce the same number by coincidence, or this
+    // test would pass with the stamp never read.
+    assert.notEqual(
+      reviewWindowHoursForSymbol(
+        buildSetup().symbol,
+        getSecurityOption(buildSetup().symbol).assetType,
+      ),
+      9.5,
+    );
+  });
+
+  it("falls back to the mirror when the stamp is missing or malformed — the bridge's own validation", () => {
+    const created = new Date(buildSetup().created_at).getTime();
+    const mirrorEnd = new Date(
+      created +
+        reviewWindowHoursForSymbol(
+          buildSetup().symbol,
+          getSecurityOption(buildSetup().symbol).assetType,
+        ) * 60 * 60 * 1000,
+    ).toISOString();
+    for (const reviewWindowHours of ["yolo", -3, 0, null]) {
+      const candidate = storedSetupAsCandidate(buildSetup({
+        risk_model: { reviewWindowHours },
+      }));
+      assert.equal(
+        candidate.setup!.copyWindowEndsAt,
+        mirrorEnd,
+        `a stamp of ${JSON.stringify(reviewWindowHours)} must fall back`,
+      );
+    }
   });
 
   it("never reaches the stamp — the §17f decision stands", () => {
