@@ -326,21 +326,43 @@ describe("security hardening", () => {
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
     assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
     // #361 round 2, finding 1: the bearers ride 600-mode header files
-    // read with `curl -H @file` — the class pin below sweeps EVERY ops
-    // script for the interpolated form (case-insensitive, #363 round
-    // 1), so the fix cannot regress here and quietly survive in a
-    // sibling.
+    // read with `curl -H @file` — the class pin below sweeps the WHOLE
+    // REPO's shell surface for the interpolated form
+    // (case-insensitive), so the fix cannot regress in one script and
+    // survive in a sibling, and HANDOFF's "scripts/ops is the entire
+    // shell surface" claim is self-verifying rather than asserted
+    // (#363 round 4, smaller 1): a .sh added anywhere cannot escape the
+    // walk, and an empty walk cannot pass.
     assert.match(sync, /-H @"\$MGMT_AUTH_FILE"/);
     assert.match(sync, /-H @"\$VERIFY_AUTH_FILE"/);
-    for (const script of readdirSync("scripts/ops")) {
-      if (!script.endsWith(".sh")) {
-        continue;
-      }
-      const source = readFileSync(join("scripts/ops", script), "utf8");
+    const shellScripts = (readdirSync(".", { recursive: true }) as string[])
+      .filter((file) =>
+        file.endsWith(".sh") &&
+        !file.startsWith("node_modules") &&
+        !file.startsWith("dist") &&
+        !file.startsWith(".git")
+      );
+    assert.ok(
+      shellScripts.length >= 5,
+      "the shell sweep must find the ops scripts — an empty walk proves nothing",
+    );
+    for (const script of shellScripts) {
+      const source = readFileSync(script, "utf8");
       assert.doesNotMatch(
         source,
         /authorization: bearer \$/i,
         `${script} must not interpolate a bearer onto argv — 600-mode header files only`,
+      );
+      // The BODY family too (#363 round 4, finding 1 — round 1's actual
+      // finding was a credential-bearing request body on argv, and a
+      // narrow one-file pin would let a second curl regress it in a
+      // sibling): -d / --data / --data-raw / --data-binary / --data-ascii
+      // followed by an interpolated double-quoted value is that shape;
+      // bodies travel by --data @file.
+      assert.doesNotMatch(
+        source,
+        /--?d(ata(-raw|-binary|-ascii)?)?\s+"\$/,
+        `${script} must not pass an inline "$…" request body — bodies travel by --data @file`,
       );
     }
     // The same law for the Resend key, BOTH hops (#363 round 1,
@@ -358,7 +380,6 @@ describe("security hardening", () => {
     assert.match(brand, /RESEND_KEY="\$RESEND_KEY" python3 > "\$PAYLOAD_FILE"/);
     assert.doesNotMatch(brand, /python3 - "\$RESEND_KEY"/);
     assert.match(brand, /--data @"\$PAYLOAD_FILE"/);
-    assert.doesNotMatch(brand, /-d "\$PAYLOAD"/);
     assert.match(brand, /chmod 600 "\$AUTH_FILE" "\$PAYLOAD_FILE"/);
     assert.match(brand, /rm -f "\$AUTH_FILE" "\$PAYLOAD_FILE"/);
     // #361 round 2, findings 2-4 — the classification work, pinned:
