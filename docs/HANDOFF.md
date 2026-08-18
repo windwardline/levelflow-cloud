@@ -43,7 +43,9 @@ deploy pipeline itself.
 Trade history was preserved at the re-park, then **wiped on the owner's
 clean-model order 2026-08-11** (amendment 35): setups, outcomes, sessions and
 refresh tokens all to zero, verified; thirteen accounts untouched. The first
-live cohort under `2026.08.11.declines` accrues from an empty table. (The
+live cohort accrued (briefly, E2E debris only) under `2026.08.11.declines`;
+R1a's first slice moved the boundary to `2026.08.18.realized-r` (D2 —
+grading numbers changed, so the version moved with them). (The
 E2E account's rows reappear on every deploy — pipeline debris, not history;
 group by user before trusting a raw `count(*)`.)
 
@@ -62,8 +64,41 @@ step leaves every signed-in operator working behind a closed door.
 > allowance recovered immediately** — probed the same day (quote 200, two
 > 5-minute history windows served complete; see
 > `docs/cache-rebuild-r0.md` §0 for the measured results, including the
-> settled `to`-inclusivity and the ≥2,304-row 5-minute cap). The
-> paragraphs below are kept as the record of the blackout. What remains
+> settled `to`-inclusivity and the ≥2,304-row 5-minute cap).
+>
+> **⚠ OPEN OWNER ACTION (2026-08-18): production's FMP key is DEAD — one
+> Keychain-sync command heals it.** The fleet credential law
+> (windwardline/ops: "Keychain is the secret store"; `credentials.tsv` is
+> the governed inventory) rotated `fmp-api-key` on **2026-08-17** after
+> the prior value surfaced in an agent transcript. The rotation
+> propagated to every Keychain-reading consumer with no edit — but the
+> GitHub Actions secret `FMP_API_KEY` was a consumer the inventory never
+> listed, so it went stale, and every deploy overwrote Supabase's
+> function secret with the dead key. The FMP blackout masked it (the
+> gate stood down on quota); the moment the allowance recovered, runs
+> 373/374 went red, and #359's printed refusal named it: FMP's own
+> `"Invalid API KEY"`. Production Edge Functions are failing all FMP
+> fetches until the sync runs.
+>
+> **The fix keeps the keys in one place** (the first remedy drafted here
+> — pushing the key back into GitHub — was WRONG under the fleet law and
+> was replaced): `deploy.yml` no longer holds, requires, or pushes
+> `FMP_API_KEY` at all; Supabase's function secret — the one copy
+> production physically requires — is set only by
+> `scripts/ops/sync-function-secrets.sh`, which reads the Keychain at
+> launch and holds nothing. **Owner's one step, on the studio Mac, after
+> the PR carrying that script and the deploy.yml change merges:**
+> `bash ~/Projects/levelflow-cloud/scripts/ops/sync-function-secrets.sh`
+> (pull main first). Rotation from then on: rotate in the Keychain, run
+> the script, done. The stale GitHub secret can be deleted in repo
+> Settings → Secrets (optional; it is dead value, referenced by
+> nothing). Follow-ups carried below: the inventory row gains this
+> consumer; `FINNHUB_API_KEY` exists ONLY as a GitHub secret (an
+> ungoverned remote copy, the resend-zapier failure class); the
+> Supabase-family GitHub secrets are Keychain-governed but their GitHub
+> copies are likewise not yet inventory-listed.
+>
+> The paragraphs below are kept as the record of the blackout. What remains
 > true: the 1-minute bars not banked between 2026-08-13 and the bank's
 > first post-upgrade run are permanently gone (~3-day serving window);
 > everything else refetches. The minute bank resumes on its own schedule
@@ -124,7 +159,7 @@ rather than into that table.
 | | |
 | --- | --- |
 | Markets | **97 distinct** — the offering is 97 markets, presented per account type as forex 45 · crypto 33 · futures 27. Those three sum to 105 because the eight crypto CFDs (`FOREX_ACCOUNT_CRYPTO_CFDS`) are visible on BOTH the forex and crypto accounts and are counted twice; 105 is the sum of account-scoped VIEWS, never the roster. (A stale 106 stood here until round 8's CV-9; the 105 that replaced it was this same double-count, caught by the 2026-08-11 audit.) `defaultScanSymbols` is the roster and has always been 97 (amendment 32 executed 2026-08-09 in two acts: thirteen derivative rows dormant, then BRENT on the owner's F13 frame — its "stable" basis measured +1.10 against the recorded +1.67, a contract-month spread no line can honestly state) |
-| Engine | `2026.08.11.declines` — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deployed and verified |
+| Engine | `2026.08.18.realized-r` (R1a slice 1: D2 — realized R from legs on every filled resolution, TP1-banked expiries score the ladder; calibration cells unchanged from `2026.08.11.declines`) — 72 derived per-market cells across three tranches PLUS a decline layer of 15 markets the engine refuses to build setups for. **Both rest on the invalidated corpus** (banner above); the declines stand only on the conservative reading that the clock defect inflates expectancy. Edge Functions deployed and verified |
 | Public face | The parking page |
 | Tests | 2,178 at this writing — the count drifts every PR, so `npm test` is the authority, not this cell; check · lint · check:migrations · test · build · check:bundle all green |
 | Repo | `main` is the trunk; the 2026-08-10/11 programme landed as #307-#322. Check `gh pr list` before trusting any count here |
@@ -1018,6 +1053,22 @@ key. Sequenced after item 6's `init.sql` work.
   at all. Exempted by name in the reader-population pin; the real fix
   (rejection tallies into the emit/manifest) belongs with R2's
   instrument work.
+- **Pre-bump resolved rows carry no realized R** (D2's deferred third
+  clause): rows graded before `2026.08.18.realized-r` on the
+  take-profit/stop-loss branches have legs in feedback but no
+  `realizedR`/`netRealizedR`, and the frontend is NOT cohort-scoped
+  (`buildRecordBand`/`netRForSlice` read all rows), so the Insights Net
+  R band under-counts exactly those rows — E2E debris only today, per
+  the 2026-08-11 wipe. Unpark: back-derive from the stored legs with
+  the same accountant, riding Phase 2's D1 recompute (one data touch).
+- **Credential-inventory gaps in the deploy pipeline** (found while
+  closing the 2026-08-18 FMP-key incident): `FINNHUB_API_KEY` exists
+  ONLY as a GitHub secret — no Keychain row, the ungoverned-remote-copy
+  class the ops README documents — and the Supabase-family GitHub
+  secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) are
+  Keychain-governed but their GitHub copies are not listed as consumers
+  in `windwardline/ops` `credentials.tsv`, so a rotation would strand
+  them exactly as it stranded FMP. Fix at the inventory, not here.
 
 ---
 

@@ -1069,3 +1069,114 @@ describe("ops hygiene — outcome-sync budget and retention (round-8 OP-1/OP-4, 
     );
   });
 });
+
+// D2 (R1a): the resolver writes realized R from its own legs on EVERY
+// filled resolution — the expiry branch used to be the only writer, so any
+// R sum over the live cohort was a sum over expiries alone (0.34% of
+// filled outcomes, completeness register D2), and even that branch applied
+// full-size arithmetic to a half-sized runner after TP1 banked. The
+// register's whyMissed: every consumer test built `feedback.realizedR`
+// fixtures by hand, so the producer was never tested. These pin the
+// producer.
+describe("D2 (R1a) — realized R on every filled resolution", () => {
+  const farNow = createdAt + 365 * 24 * 60 * 60 * 1000;
+
+  it("a take_profit resolution carries gross and net realized R", () => {
+    const setup = buildSetup({ entry: 100, side: "buy", stop: 98, target: 105 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 101, 99.8, 100.5, 100.5),
+      buildBar(30, 105.4, 100.2, 104.8, 104.8),
+    ], farNow, { roundTripCost: 0.4 });
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") {
+      return;
+    }
+    // Fill at the limit (100), target banked at its level (105), risk 2:
+    // gross (105-100)/2 = 2.5; net charges the one round trip 0.4/2 = 0.2R.
+    assert.equal(result.feedback.realizedR, 2.5);
+    assert.equal(result.feedback.netRealizedR, 2.3);
+  });
+
+  it("a stop_loss resolution carries its negative realized R", () => {
+    const setup = buildSetup({ entry: 100, side: "sell", stop: 102, target: 95 });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.7, 100.1, 100.1),
+      buildBar(30, 102.5, 99.4, 102.1, 102.1),
+    ], farNow);
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") {
+      return;
+    }
+    // Price-improved sell fill at the open (100.1); the stop gaps to the
+    // open's print (102.1): (100.1 - 102.1)/2 = -1.
+    assert.equal(result.outcome, "stop_loss");
+    assert.equal(result.feedback.realizedR, -1);
+    assert.equal(result.feedback.netRealizedR, -1);
+  });
+
+  it("a tp1_partial breakeven return scores the LADDER — half banked at TP1, half flat", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+      tp1: 101,
+    });
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 101.3, 100.1, 101.1, 100.5),
+      buildBar(45, 101.2, 99.9, 100.0, 100.0),
+    ], farNow);
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") {
+      return;
+    }
+    // Half banked at TP1 (101, +0.5R on the half = 0.25R), runner exits at
+    // breakeven (0R): 0.25R total.
+    assert.equal(result.outcome, "tp1_partial");
+    assert.equal(result.feedback.realizedR, 0.25);
+  });
+
+  it("a TP1-banked EXPIRY scores the ladder too — the branch that used to bill full size on a half-sized runner", () => {
+    const setup = buildSetup({
+      entry: 100,
+      side: "buy",
+      stop: 98,
+      target: 105,
+      tp1: 101,
+    });
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+    const result = evaluateSetupOutcome(setup, [
+      buildBar(15, 100.4, 99.8, 100.2, 100.2),
+      buildBar(30, 102, 100.1, 102, 100.5),
+    ], expiresAt + 1, { roundTripCost: 0.4 });
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") {
+      return;
+    }
+    // Half banked at TP1 (+0.25R), runner half expires at the last close
+    // 102 (+0.5R on the half): 0.75R gross — NOT the 1.0R the old
+    // full-size expiry arithmetic printed for this path — and 0.55R net
+    // of the 0.2R round trip.
+    assert.equal(result.outcome, "tp1_partial");
+    assert.equal(result.feedback.realizedR, 0.75);
+    assert.equal(result.feedback.netRealizedR, 0.55);
+  });
+
+  it("an unfilled resolution carries NO realized R — no position, no R", () => {
+    const setup = buildSetup({ entry: 98, side: "buy", stop: 96, target: 103 });
+    const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
+    const result = evaluateSetupOutcome(
+      setup,
+      [buildBar(15, 101, 99, 100)],
+      expiresAt + 1,
+    );
+    assert.equal(result.state, "resolved");
+    if (result.state !== "resolved") {
+      return;
+    }
+    assert.equal(result.outcome, "unfilled");
+    assert.equal(result.feedback.realizedR, undefined);
+    assert.equal(result.feedback.netRealizedR, undefined);
+  });
+});

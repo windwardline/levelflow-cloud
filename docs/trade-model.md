@@ -19,7 +19,7 @@
 > the defect and must be rebuilt (Phase 0) before anything is re-measured.
 
 
-Model version: `2026.08.11.declines` (live). The per-market layer this
+Model version: `2026.08.18.realized-r` (live — R1a slice 1, D2: realized R from legs on every filled resolution; calibration cells unchanged from `2026.08.11.declines`). The per-market layer this
 records was derived from the invalidated corpus — see the banner above.
 Last reviewed: 2026-07-30 (round 23 — the calibration arc is complete;
 see "The stopping point" and "Resumption protocol" below)
@@ -162,6 +162,13 @@ change set. What changed, in the order the data flows:
   unit, actual leg prints the numerator, one round trip of cost charged in
   R space. `effectiveRewardRisk` drops its double-charged denominator so
   the payoff gate's forward metric means what the measured corpus means.
+  **D2 closed (R1a slice 1, 2026-08-18):** the accountant moved into
+  `replay.ts` and the resolver writes `realizedR`/`netRealizedR` from its
+  own legs on EVERY filled resolution — the expiry branch had been the
+  only writer, and it billed full size on a half-sized runner after TP1
+  banked; a TP1-banked expiry now scores the ladder. Unfilled rows carry
+  no R. Back-deriving R for rows graded before the bump rides with
+  Phase 2's D1 recompute.
 - **Indicators abstain (2m, 2n).** EMA seeds on a real SMA and is null
   below its period; RSI is null on a frozen series instead of reading 100
   overbought; a regime that cannot warm refuses the decision into a new
@@ -329,7 +336,7 @@ whim. Two triggers, whichever comes first:
    join trade_setups ts on ts.id = o.setup_id
    -- Use the LIVE cohort (calibration.ts ANALYZER_VERSION) — a dead
    -- version here counts zero accrual forever (round-8 PH-13).
-   where o.analyzer_version = '2026.08.11.declines'
+   where o.analyzer_version = '2026.08.18.realized-r'
      and o.outcome not in ('pending', 'unfilled')
    group by 1
    order by resolved_filled desc;

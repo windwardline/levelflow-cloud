@@ -7,6 +7,7 @@ import { completedDailySeries } from "./dailyCompletion.ts";
 import { buildPricePlan } from "./pricePlan.ts";
 import {
   evaluateSetupOutcome,
+  realizedRFromLegs,
   type ReplayBar,
   type ResolutionLeg,
   type ResolvedOutcome,
@@ -126,39 +127,10 @@ export type SweepResult = {
   summary: SweepSummary;
 };
 
-// 2g (2026-08-09): the one R accountant. Ten implementations used to
-// reconstruct R from the plan's NOMINAL levels — every stop exiting exactly
-// at the stop, every fill at the limit, cost nowhere, "ambiguous" scored as
-// a free 0. This reads the resolver's gap-aware legs instead: planned risk
-// is the unit (position size was computed on it), actual prints are the
-// numerator, and 2d charges exactly one round trip of cost in R space —
-// full-size entry plus either two half-size exits (ladder) or one full exit,
-// two cost units either way, matching estimateExecutionQuality's
-// estimatedRoundTripCost = spread + 2 x slippage at perLegCost =
-// spread/2 + slippage. The resolver prices ambiguity at the stop side, so
-// 2e's explicit -1 emerges from the same arithmetic as every other outcome.
-export function realizedRFromLegs(input: {
-  legs: ResolutionLeg[];
-  perLegCost: number;
-  riskDistance: number;
-  side: "buy" | "sell";
-}): number {
-  const entry = input.legs.find((leg) => leg.leg === "entry");
-  const exit = input.legs.find((leg) => leg.leg === "exit");
-  if (!entry || !exit || input.riskDistance <= 0) {
-    return 0;
-  }
-  const sign = input.side === "buy" ? 1 : -1;
-  const tp1 = input.legs.find((leg) => leg.leg === "tp1");
-  const exitFraction = tp1 ? 0.5 : 1;
-  const bankedR = tp1
-    ? (0.5 * sign * (tp1.price - entry.price)) / input.riskDistance
-    : 0;
-  const exitR = (exitFraction * sign * (exit.price - entry.price)) /
-    input.riskDistance;
-  const costR = (2 * input.perLegCost) / input.riskDistance;
-  return Number((bankedR + exitR - costR).toFixed(4));
-}
+// 2g's one R accountant moved into replay.ts with D2 (R1a): the resolver
+// itself now writes realized R from its own legs on every filled
+// resolution, and this module imports the same function for the emit —
+// one arithmetic, two call sites, zero copies.
 
 // Bucket starts memoized per (width, bar time): the sweep resamples heavily
 // overlapping history windows at every decision point, so the same bar's

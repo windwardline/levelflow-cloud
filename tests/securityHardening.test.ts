@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { cleanExternalUrl } from "../src/lib/urlSafety";
 
@@ -252,6 +253,59 @@ describe("security hardening", () => {
     assert.match(workflow, /x-content-type-options/);
     assert.match(workflow, /permissions-policy/);
     assert.match(workflow, /cross-origin-opener-policy/);
+  });
+
+  it("holds no FMP key in CI — the Keychain is the secret store (fleet credential law)", () => {
+    // The 2026-08-17 fmp-api-key rotation propagated to every
+    // Keychain-reading consumer with no edit and missed the GitHub copy,
+    // which then overwrote Supabase's good value on every deploy (runs
+    // 373/374 — "Invalid API KEY"). Supabase's function secret — the one
+    // copy production physically requires — is set only by
+    // scripts/ops/sync-function-secrets.sh from the studio Keychain; CI
+    // never holds the key again, and a convenience edit re-adding it is
+    // a red build, not a quiet regression.
+    // Every workflow, not just deploy.yml (fleet round 3): the incident
+    // was a consumer nobody had listed, and a future convenience re-add
+    // would land in a NEW workflow (HANDOFF discusses automating the
+    // studio cron FMP readers) — the pin's scope is the law's scope: CI.
+    for (const workflow of readdirSync(".github/workflows")) {
+      if (!/\.ya?ml$/.test(workflow)) {
+        continue;
+      }
+      const source = readFileSync(join(".github/workflows", workflow), "utf8");
+      assert.equal(
+        source.includes("secrets.FMP_API_KEY"),
+        false,
+        `${workflow} must not hold the FMP key — CI never carries it`,
+      );
+    }
+
+    const sync = readFileSync("scripts/ops/sync-function-secrets.sh", "utf8");
+    assert.match(
+      sync,
+      /security find-generic-password -a peacock -s fmp-api-key -w/,
+    );
+    assert.match(sync, /supabase secrets set --project-ref/);
+    // The value travels by 600-mode temp env-file, never argv — it must
+    // not be readable in `ps` on the studio machine.
+    assert.match(sync, /chmod 600/);
+    assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
+
+    // The conduit is recorded where operators actually read (fleet
+    // re-review on #360): the deployment procedure and the README
+    // checklist both name the script, and neither may drift back to an
+    // argv-form `supabase secrets set FMP_API_KEY=…` — the second,
+    // ungoverned path for exactly the key whose unlisted copy caused
+    // the 2026-08-18 outage.
+    const deployment = readFileSync("docs/deployment.md", "utf8");
+    assert.match(deployment, /sync-function-secrets\.sh/);
+    assert.doesNotMatch(
+      deployment,
+      /supabase secrets set[^\n]*FMP_API_KEY=/,
+    );
+    const readme = readFileSync("README.md", "utf8");
+    assert.match(readme, /sync-function-secrets\.sh/);
+    assert.doesNotMatch(readme, /supabase secrets set[^\n]*FMP_API_KEY=/);
   });
 
   it("never severs a deploy mid-flight", () => {

@@ -144,6 +144,43 @@ export function fillOptionsFromRiskModel(
   };
 }
 
+// 2g (2026-08-09): the one R accountant — moved here from sweep.ts with
+// D2 (R1a) so the resolver itself can write realized R on every filled
+// resolution instead of the expiry branch alone. Ten implementations
+// used to reconstruct R from the plan's NOMINAL levels — every stop
+// exiting exactly at the stop, every fill at the limit, cost nowhere,
+// "ambiguous" scored as a free 0. This reads the resolver's gap-aware
+// legs instead: planned risk is the unit (position size was computed on
+// it), actual prints are the numerator, and 2d charges exactly one
+// round trip of cost in R space — full-size entry plus either two
+// half-size exits (ladder) or one full exit, two cost units either way,
+// matching estimateExecutionQuality's estimatedRoundTripCost = spread +
+// 2 x slippage at perLegCost = spread/2 + slippage. The resolver prices
+// ambiguity at the stop side, so 2e's explicit -1 emerges from the same
+// arithmetic as every other outcome.
+export function realizedRFromLegs(input: {
+  legs: ResolutionLeg[];
+  perLegCost: number;
+  riskDistance: number;
+  side: "buy" | "sell";
+}): number {
+  const entry = input.legs.find((leg) => leg.leg === "entry");
+  const exit = input.legs.find((leg) => leg.leg === "exit");
+  if (!entry || !exit || input.riskDistance <= 0) {
+    return 0;
+  }
+  const sign = input.side === "buy" ? 1 : -1;
+  const tp1 = input.legs.find((leg) => leg.leg === "tp1");
+  const exitFraction = tp1 ? 0.5 : 1;
+  const bankedR = tp1
+    ? (0.5 * sign * (tp1.price - entry.price)) / input.riskDistance
+    : 0;
+  const exitR = (exitFraction * sign * (exit.price - entry.price)) /
+    input.riskDistance;
+  const costR = (2 * input.perLegCost) / input.riskDistance;
+  return Number((bankedR + exitR - costR).toFixed(4));
+}
+
 export function evaluateSetupOutcome(
   setup: ReplaySetup,
   bars: ReplayBar[],
@@ -277,6 +314,30 @@ export function evaluateSetupOutcome(
   const legs: ResolutionLeg[] = [
     { leg: "entry", price: roundPrice(fillPrice), time: fillBar.time },
   ];
+  // D2 (R1a): realized R on EVERY filled resolution, read from the legs
+  // the resolution actually printed. The expiry branch used to be the
+  // only writer — and applied full-size arithmetic even when TP1 had
+  // banked half — so any R sum over the live cohort was a sum over
+  // expiries alone (0.34% of filled outcomes, per the completeness
+  // register's D2). Gross carries the price story; net additionally
+  // charges the one cost the prints cannot carry (the commission,
+  // options.roundTripCost) — the same single round trip the sweep's
+  // emit charges through the same accountant. Unfilled resolutions
+  // carry neither field: no position, no R.
+  const realizedFields = () => ({
+    netRealizedR: realizedRFromLegs({
+      legs,
+      perLegCost: (options?.roundTripCost ?? 0) / 2,
+      riskDistance,
+      side: setup.side,
+    }),
+    realizedR: realizedRFromLegs({
+      legs,
+      perLegCost: 0,
+      riskDistance,
+      side: setup.side,
+    }),
+  });
   let maxFavorableMove = 0;
   let maxAdverseMove = 0;
   let tp1Hit = false;
@@ -376,6 +437,7 @@ export function evaluateSetupOutcome(
       return {
         exitAt: new Date(bar.time).toISOString(),
         feedback: {
+          ...realizedFields(),
           ambiguousSameBar: stopHit && (targetHit || tp1Touched),
           legs,
           maxAdverseMove: roundPrice(maxAdverseMove),
@@ -416,6 +478,7 @@ export function evaluateSetupOutcome(
           return {
             exitAt: new Date(bar.time).toISOString(),
             feedback: {
+              ...realizedFields(),
               legs,
               maxAdverseMove: roundPrice(maxAdverseMove),
               maxFavorableMove: roundPrice(maxFavorableMove),
@@ -437,27 +500,21 @@ export function evaluateSetupOutcome(
     // Realized from the ACTUAL fill print — a gap-improved entry earns its
     // improvement — against the planned risk unit. FR-1: closing at review
     // end is a market order that crosses the book once, so the exit prints
-    // at the BID side of the last close, not at mid.
+    // at the BID side of the last close, not at mid. D2 (R1a): the shared
+    // accountant reads the legs, so a TP1-banked runner scores the LADDER
+    // (half at TP1, half here) where this branch used to apply full-size
+    // arithmetic to a half-sized position.
     const expiryPrint = isBuy ? lastClose - halfSpread : lastClose + halfSpread;
-    const realizedR = riskDistance > 0
-      ? Number(
-        (((isBuy ? 1 : -1) * (expiryPrint - fillPrice)) / riskDistance)
-          .toFixed(4),
-      )
-      : 0;
-    // FR-8: the in-profit/at-loss split is a NET claim. Price drift that
-    // does not clear the round trip is a loss, and the label may never
-    // contradict the accountant's sign.
-    const costR = riskDistance > 0
-      ? (options?.roundTripCost ?? 0) / riskDistance
-      : 0;
-    const netRealizedR = Number((realizedR - costR).toFixed(4));
     legs.push({
       kind: "expiry",
       leg: "exit",
       price: roundPrice(expiryPrint),
       time: createdBars.at(-1)!.time,
     });
+    // FR-8: the in-profit/at-loss split is a NET claim. Price drift that
+    // does not clear the round trip is a loss, and the label may never
+    // contradict the accountant's sign.
+    const { netRealizedR, realizedR } = realizedFields();
     return {
       exitAt: new Date(expiresAt).toISOString(),
       feedback: {

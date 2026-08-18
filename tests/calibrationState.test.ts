@@ -295,9 +295,29 @@ describe("calibration state of record (arc complete 2026-07-30)", () => {
     );
     assert.match(
       calibrationSrc,
-      /ANALYZER_VERSION = "2026\.08\.11\.declines"/,
+      /ANALYZER_VERSION = "2026\.08\.18\.realized-r"/,
     );
     assert.match(src, /ANALYZER_VERSION,\n/);
+
+    // Fleet finding on #360: docs/trade-model.md is the ENGINE STATE OF
+    // RECORD and its accrual query counts zero accrual forever under a
+    // dead version (round-8 PH-13) — it drifted silently on this very
+    // bump because nothing held it to the constant. Both the stated
+    // model version and the SQL's cohort filter are pinned here, so the
+    // next bump cannot ship without moving the record with it.
+    const versionLiteral = calibrationSrc.match(
+      /ANALYZER_VERSION = "([^"]+)"/,
+    )?.[1];
+    assert.ok(versionLiteral, "calibration.ts must state ANALYZER_VERSION");
+    const tradeModel = readFileSync("docs/trade-model.md", "utf8");
+    assert.ok(
+      tradeModel.includes(`Model version: \`${versionLiteral}\``),
+      "trade-model.md's stated model version must match ANALYZER_VERSION",
+    );
+    assert.ok(
+      tradeModel.includes(`o.analyzer_version = '${versionLiteral}'`),
+      "trade-model.md's accrual SQL must filter on the live cohort",
+    );
   });
 });
 

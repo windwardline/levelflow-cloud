@@ -457,7 +457,7 @@ describe("1b: futures-shaped classes align or refuse — nothing ships off-grid"
     );
     assert.match(
       calibrationSource,
-      /export const ANALYZER_VERSION = "2026\.08\.11\.declines";/,
+      /export const ANALYZER_VERSION = "2026\.08\.18\.realized-r";/,
     );
     assert.match(INDEX_SOURCE, /ANALYZER_VERSION,\n/);
   });
