@@ -37,7 +37,10 @@ if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
 fi
 export SUPABASE_ACCESS_TOKEN
 
-ENV_FILE="$(mktemp)"
+# Explicit template: portable across BSD/macOS and GNU mktemp — a bare
+# mktemp is a usage error on older BSDs, which under `set -e` would abort
+# this script mid-outage (fleet review note on #360).
+ENV_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-fn-secrets.XXXXXXXX")"
 chmod 600 "$ENV_FILE"
 trap 'rm -f "$ENV_FILE"' EXIT
 printf 'FMP_API_KEY=%s\n' "$FMP_API_KEY" > "$ENV_FILE"

@@ -276,6 +276,22 @@ describe("security hardening", () => {
     // not be readable in `ps` on the studio machine.
     assert.match(sync, /chmod 600/);
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
+
+    // The conduit is recorded where operators actually read (fleet
+    // re-review on #360): the deployment procedure and the README
+    // checklist both name the script, and neither may drift back to an
+    // argv-form `supabase secrets set FMP_API_KEY=…` — the second,
+    // ungoverned path for exactly the key whose unlisted copy caused
+    // the 2026-08-18 outage.
+    const deployment = readFileSync("docs/deployment.md", "utf8");
+    assert.match(deployment, /sync-function-secrets\.sh/);
+    assert.doesNotMatch(
+      deployment,
+      /supabase secrets set[^\n]*FMP_API_KEY=/,
+    );
+    const readme = readFileSync("README.md", "utf8");
+    assert.match(readme, /sync-function-secrets\.sh/);
+    assert.doesNotMatch(readme, /supabase secrets set[^\n]*FMP_API_KEY=/);
   });
 
   it("never severs a deploy mid-flight", () => {

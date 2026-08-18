@@ -66,7 +66,10 @@ records in `analyzer_events`. See [docs/deployment.md](/docs/deployment.md).
 5. Apply the launch migrations in `supabase/migrations/`.
 6. Deploy the Supabase Edge Functions and set Supabase function secrets:
    - `NEWS_SYNC_TOKEN`
-   - `FMP_API_KEY` for the analyzer and macro news ingestion
+   - `FMP_API_KEY` for the analyzer and macro news ingestion — set ONLY via
+     `scripts/ops/sync-function-secrets.sh` (Keychain → Supabase; the deploy
+     workflow deliberately never holds or pushes this key — see
+     [docs/deployment.md](/docs/deployment.md))
    - `FINNHUB_API_KEY` only if macro news ingestion is switched away from FMP
    - `FMP_API_BASE_URL` only if FMP changes the default stable REST host
 7. Set hosted frontend env vars:

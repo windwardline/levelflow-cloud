@@ -52,9 +52,24 @@ Apply migrations before deploying Edge Functions that depend on new database obj
 
 ```bash
 npx supabase db push --linked
-npx supabase secrets set FMP_API_KEY=your_financial_modeling_prep_key --project-ref your-project-ref
+scripts/ops/sync-function-secrets.sh   # FMP_API_KEY: Keychain → Supabase, the one conduit
 npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
 ```
+
+**The FMP key never travels any other way.** The fleet credential law
+(`windwardline/ops`: the Keychain is the secret store; `credentials.tsv`
+is the governed inventory) makes the studio Keychain authoritative, and
+`scripts/ops/sync-function-secrets.sh` is the one conduit to the one
+copy production physically requires — Supabase's function secret, which
+persists across deploys. `deploy.yml` deliberately does not hold, require,
+or push the key (the 2026-08-17 rotation stranded exactly such an
+unlisted CI copy, and every deploy then overwrote the good value with the
+dead one — deploy runs 373/374). Rotation is: rotate in the Keychain, run
+the script, done; the deploy-time E2E chart gate is what proves the value
+authenticates. Never pass the key on argv — the script moves it by
+600-mode temp env-file so it cannot surface in `ps`, and
+`tests/securityHardening.test.ts` pins both this file and the workflow
+against regressing to an inline `secrets set FMP_API_KEY=` form.
 
 ## Server Runtime
 
