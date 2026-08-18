@@ -483,6 +483,49 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
   });
 
+  it("a present-but-condemned DAILY earns its own RED, never the missing-daily line — the direction 6b deliberately narrowed (round 6c)", () => {
+    // Pre-round-6b this shape double-reported: the per-store RED plus
+    // "intraday stores present but no daily store", which is false — the
+    // store exists. The narrowing was deliberate; this pins it so a
+    // refactor can neither restore the double-report nor drop the daily
+    // line entirely (the empty-intraday case above holds the other side).
+    const misStamped = cacheDir();
+    store(misStamped, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
+    store(misStamped, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    store(misStamped, "EURUSD-daily-7000", "some-older-clock", daily(false));
+    const stampAudit = auditCacheClock({ cacheDir: misStamped });
+    assert.ok(
+      stampAudit.failures.some((line) =>
+        /daily-7000: stamped "some-older-clock", expected/.test(line)
+      ),
+      stampAudit.failures.join("\n"),
+    );
+    assert.ok(
+      !stampAudit.failures.some((line) =>
+        /intraday stores present but no daily store/.test(line)
+      ),
+      stampAudit.failures.join("\n"),
+    );
+
+    const torn = cacheDir();
+    store(torn, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
+    store(torn, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    writeFileSync(join(torn, "EURUSD-daily-7000.rolling.json"), '{"items":[{"ti');
+    const tornAudit = auditCacheClock({ cacheDir: torn });
+    assert.ok(
+      tornAudit.failures.some((line) =>
+        /daily-7000: unreadable store/.test(line)
+      ),
+      tornAudit.failures.join("\n"),
+    );
+    assert.ok(
+      !tornAudit.failures.some((line) =>
+        /intraday stores present but no daily store/.test(line)
+      ),
+      tornAudit.failures.join("\n"),
+    );
+  });
+
   it("fails when the roster names the reference symbol and its anchor never ran — dark is not green (round 6)", () => {
     const dir = cacheDir();
     healthyTrio(dir);

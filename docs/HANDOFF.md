@@ -767,7 +767,7 @@ the live roster is 97 distinct markets.
 | rank | item | state |
 |---|---|---|
 | **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST |
-| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333); E2's fetch half (chunk sizing) landed with R0 | **NEXT** |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences three PRs — R1a one physics (engine+writers), R1b the sweep's stated inputs + the E2 door assertion, R1c the E4 collapse instrument | **NEXT** |
 | **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
@@ -850,7 +850,12 @@ Sunday condemning a healthy store run-globally).
   5min 5d, 15min 29d — so the worst case under the MEASURED-INCLUSIVE
   `to` (chunkDays+1 dates, plus the fall-back day's extra hour) fits the
   MEASURED caps (15min ≥ 2,880 and 5min ≥ 2,304, both probed complete
-  2026-08-18); and the empty-window walk-back expressed in days (90).
+  2026-08-18 — and the 15-minute floor SUPERSEDED the same afternoon by
+  a 45-day probe in the live path's own shape returning **4,266 rows,
+  all 45 dates complete**, recorded in
+  `docs/research/r1-divergence-map-2026-08-18.md`; the chunk sizing
+  stays at the conservative morning values); and the empty-window
+  walk-back expressed in days (90).
   Per-chunk clip detection was measured infeasible without run-killing
   false positives — three candidate detectors died in review (#358
   rounds 1/4/4b: dead row tripwire, holiday-false-positive coverage
