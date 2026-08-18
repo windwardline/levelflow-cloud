@@ -1086,7 +1086,15 @@ key. Sequenced after item 6's `init.sql` work.
   live only in stdout, so starvation analysis has no manifested source
   at all. Exempted by name in the reader-population pin; the real fix
   (rejection tallies into the emit/manifest) belongs with R2's
-  instrument work.
+  instrument work. **#364 round 1 found its positional column map had
+  already drifted once** (notWarm's insertion — geometryKill silently
+  summed noConsensus + belowConf) and R1b's `unresolv` column would
+  have drifted it twice: it now resolves columns by NAME from the
+  table's own header, refuses a table missing a required name, and a
+  test pins the driver's header against the names the audit consumes.
+  Any starvation reading taken from the drifted map between notWarm's
+  landing and this fix is suspect; amendment 25's original 2026-08-06
+  run predates notWarm and stands.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

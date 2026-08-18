@@ -481,7 +481,22 @@ layer.
   (conditions hashed; driver wiring). No `ANALYZER_VERSION` bump: no
   live scored number moves — the marker refinement is metadata, and the
   corpus-identity boundary for the sweep changes is the conditions
-  block itself.
+  block itself. **The one version-boundary nuance, written down (#364
+  round 1, finding 3)**: `trade_outcomes.analyzer_version` is stamped at
+  DECISION time, so rows created under `2026.08.18.one-physics` and
+  resolved before this deploy carry containment-semantics markers while
+  rows resolved after carry presence-semantics ones, indistinguishably.
+  Accepted, for three stacked reasons: the refinement is a strict
+  NARROWING, so a pre-deploy row can only be over-marked (a filter that
+  drops marked rows drops at most a few honest ones, never keeps a
+  false one); the two semantics diverge only where containment-empty
+  meets overlap-present — the sub-bar-span weekly clamp (whose first
+  live occurrence cannot predate Friday 2026-08-21; one-physics
+  deployed Tuesday the 18th) or a total provider outage across the
+  whole window with only a creation-straddling bar served — so the
+  divergent population is empty-to-negligible at the hours-old marker's
+  age; and D1's reader reads the map. A future marker change that is
+  NOT a strict narrowing takes the version bump.
 
 ## Sequencing — three PRs, engine first
 

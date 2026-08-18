@@ -218,4 +218,44 @@ describe("the driver writes the manifest beside the emit", () => {
       "a failed Treasury chunk must stop the run, never hole the join",
     );
   });
+
+  // #364 round 1, finding 1: starvation-audit read the driver's stdout
+  // table by POSITION and had already drifted once silently (notWarm's
+  // insertion left geometryKill summing noConsensus + belowConf — the
+  // amendment-25 gate deciding starvation from the wrong columns);
+  // R1b's unresolv column would have drifted it again. The audit now
+  // resolves columns by name from the header and refuses a table
+  // missing a required name; this pin holds the two sources together —
+  // every name the audit consumes must exist in the driver's header —
+  // so a future column insert breaks HERE, never silently there. Both
+  // files run main() on import, hence source pins.
+  it("the starvation audit's required columns all exist in the driver's header, resolved by name", () => {
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const audit = readFileSync("scripts/starvation-audit.ts", "utf8");
+    const headerBlock = driver.match(
+      /const rows: string\[\]\[\] = \[\[([\s\S]*?)\]\];/,
+    );
+    assert.ok(headerBlock, "driver must declare its stdout header literally");
+    const headerNames = [...headerBlock![1].matchAll(/"(\w+)"/g)]
+      .map((m) => m[1]);
+    const auditNames = (label: string) => {
+      const block = audit.match(
+        new RegExp(`const ${label} = \\[([\\s\\S]*?)\\] as const;`),
+      );
+      assert.ok(block, `audit must declare ${label} literally`);
+      return [...block![1].matchAll(/"(\w+)"/g)].map((m) => m[1]);
+    };
+    for (const name of [
+      ...auditNames("NEED_COLUMNS"),
+      ...auditNames("OPTIONAL_COLUMNS"),
+    ]) {
+      assert.ok(
+        headerNames.includes(name),
+        `audit consumes column "${name}" which the driver's header does not carry`,
+      );
+    }
+    // The positional accessor shape is gone for good.
+    assert.doesNotMatch(audit, /const n = \(i: number\)/);
+    assert.match(audit, /index\.has\(name\)/);
+  });
 });

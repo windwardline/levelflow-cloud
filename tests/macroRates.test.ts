@@ -120,4 +120,22 @@ describe("parseTreasuryRow — the provider's own field names", () => {
     assert.equal(parseTreasuryRow(null), null);
     assert.equal(parseTreasuryRow([1]), null);
   });
+
+  it("takes the label as its date part at UTC midnight — never local-time parsed (#364 round 1, finding 6)", () => {
+    // V8 parses a space-separated datetime as LOCAL time, which would
+    // make dateMs — and through +24h day-naming, the whole visibility
+    // join — depend on the sweep host's TZ. The parser now reads exactly
+    // the leading YYYY-MM-DD (UTC by spec), so this equality holds under
+    // any TZ, and a row without a leading bare date is refused.
+    const datetime = parseTreasuryRow({
+      date: "2026-08-11 00:00:00",
+      year2: 3.9,
+      year10: 4.2,
+    });
+    assert.equal(datetime?.dateMs, Date.parse("2026-08-11"));
+    assert.equal(
+      parseTreasuryRow({ date: "August 11, 2026", year2: 3.9, year10: 4.2 }),
+      null,
+    );
+  });
 });

@@ -23,27 +23,79 @@
  *
  * Session and news blocks are deliberate and not starvation; they are reported
  * for completeness so the arithmetic is legible.
+ *
+ * Columns are resolved BY NAME from the table's own header (#364 round 1,
+ * finding 1): the positional map that stood here had already drifted once
+ * (never re-indexed when notWarm joined the driver's table — geometryKill
+ * silently summed noConsensus + belowConf) and R1b's unresolv column would
+ * have drifted it again. A required name missing from the header is a
+ * refusal, never a zero; notWarm and unresolv are optional-with-zero so
+ * pre-notWarm logs stay readable. tests/sweepManifest.test.ts pins the
+ * driver's header against the names required here.
  */
 import { readFileSync } from "node:fs";
 
 type Row = {
   symbol: string; split: string; decisions: number; sessionBlk: number;
-  newsBlk: number; regimeBlk: number; noConsensus: number; planRejected: number;
-  belowConf: number; belowPayoff: number; setups: number;
+  newsBlk: number; notWarm: number; regimeBlk: number; noConsensus: number;
+  planRejected: number; unresolv: number; belowConf: number;
+  belowPayoff: number; setups: number;
 };
+
+// The names this audit's arithmetic consumes. `need` entries refuse a table
+// that lacks them; `optional` entries read 0 from an older table.
+const NEED_COLUMNS = [
+  "symbol", "variant", "split", "decisions", "sessionBlk", "newsBlk",
+  "regimeBlk", "noConsensus", "planRejected", "belowConf", "belowPayoff",
+  "setups",
+] as const;
+const OPTIONAL_COLUMNS = ["notWarm", "unresolv"] as const;
+for (const name of OPTIONAL_COLUMNS) {
+  if ((NEED_COLUMNS as readonly string[]).includes(name)) {
+    throw new Error(`column "${name}" is listed both required and optional`);
+  }
+}
 
 function parse(paths: string[]): Row[] {
   const rows: Row[] = [];
   for (const path of paths) {
-    for (const line of readFileSync(path, "utf8").split("\n")) {
+    const lines = readFileSync(path, "utf8").split("\n");
+    const headerLine = lines.find((line) =>
+      line.trim().startsWith("symbol")
+    );
+    if (!headerLine) {
+      throw new Error(
+        `${path}: no sweep header row (a line starting with "symbol") — ` +
+          `this audit refuses to guess column positions`,
+      );
+    }
+    const header = headerLine.trim().split(/\s+/);
+    const index = new Map(header.map((name, i) => [name, i] as const));
+    for (const name of NEED_COLUMNS) {
+      if (!index.has(name)) {
+        throw new Error(
+          `${path}: sweep header carries no "${name}" column — the driver's ` +
+            `table and this audit have diverged; fix the mapping, never guess`,
+        );
+      }
+    }
+    for (const line of lines) {
       const f = line.trim().split(/\s+/);
-      if (f.length < 16 || f[0] === "symbol" || !/^[A-Z^]/.test(f[0])) continue;
-      if (f[1] !== "baseline") continue;
-      const n = (i: number) => Number(f[i]) || 0;
+      if (f.length < header.length || f[0] === "symbol" || !/^[A-Z^]/.test(f[0])) continue;
+      const text = (name: string) => f[index.get(name)!] ?? "";
+      if (text("variant") !== "baseline") continue;
+      const n = (name: typeof NEED_COLUMNS[number]) =>
+        Number(text(name)) || 0;
+      const opt = (name: typeof OPTIONAL_COLUMNS[number]) =>
+        index.has(name) ? Number(text(name)) || 0 : 0;
       rows.push({
-        symbol: f[0], split: f[2], decisions: n(3), sessionBlk: n(4), newsBlk: n(5),
-        regimeBlk: n(6), noConsensus: n(7), planRejected: n(8), belowConf: n(9),
-        belowPayoff: n(10), setups: n(11),
+        symbol: text("symbol"), split: text("split"),
+        decisions: n("decisions"), sessionBlk: n("sessionBlk"),
+        newsBlk: n("newsBlk"), notWarm: opt("notWarm"),
+        regimeBlk: n("regimeBlk"), noConsensus: n("noConsensus"),
+        planRejected: n("planRejected"), unresolv: opt("unresolv"),
+        belowConf: n("belowConf"), belowPayoff: n("belowPayoff"),
+        setups: n("setups"),
       });
     }
   }
@@ -57,13 +109,18 @@ const byS = new Map<string, Row>();
 for (const r of rows) {
   const prev = byS.get(r.symbol);
   if (!prev) { byS.set(r.symbol, { ...r }); continue; }
-  for (const k of ["decisions","sessionBlk","newsBlk","regimeBlk","noConsensus",
-    "planRejected","belowConf","belowPayoff","setups"] as const) prev[k] += r[k];
+  for (const k of ["decisions","sessionBlk","newsBlk","notWarm","regimeBlk",
+    "noConsensus","planRejected","unresolv","belowConf","belowPayoff",
+    "setups"] as const) prev[k] += r[k];
 }
 
 const out = [...byS.values()].map((r) => {
-  // Decisions that reached the geometry stage at all.
-  const reachedGeometry = r.decisions - r.sessionBlk - r.newsBlk - r.regimeBlk - r.noConsensus;
+  // Decisions that reached the geometry stage at all. notWarm decisions never
+  // did (the regime could not form) — subtracting it is part of the same
+  // repair as the named columns: the drifted map had silently excluded it
+  // from BOTH sides of this arithmetic.
+  const reachedGeometry = r.decisions - r.sessionBlk - r.newsBlk - r.notWarm -
+    r.regimeBlk - r.noConsensus;
   const geometryKill = r.planRejected + r.belowPayoff;
   const survival = reachedGeometry > 0 ? 1 - geometryKill / reachedGeometry : 0;
   return { ...r, reachedGeometry, geometryKill, survival };

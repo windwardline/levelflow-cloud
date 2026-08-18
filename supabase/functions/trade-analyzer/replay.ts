@@ -287,7 +287,14 @@ export function evaluateSetupOutcome(
       // below one bar span (a setup created inside the final bar before
       // the weekly close) marked every such row as a provider gap over a
       // feed that was fully dense. The marker now means exactly "the
-      // provider had NO bar overlapping the review window"; a
+      // RESOLUTION STREAM handed to this resolver had no bar overlapping
+      // the review window" (#364 round 1, finding 2 — the claim is
+      // scoped to its evidence): live hands the whole fetched series, so
+      // there it reads as provider absence up to the fetch depth; the
+      // sweep's stream deliberately begins after the decision bar
+      // completes (FR-5 — its interior is decision-time information that
+      // could never grade anything), so there it reads as absence of
+      // GRADEABLE bars, stated at the slice site in sweep.ts. A
       // present-but-uncontained window resolves unfilled UNMARKED, with
       // its own sentence, because the limit was never testable on a
       // complete bar — a grading-law fact, not a data fact. The outcome

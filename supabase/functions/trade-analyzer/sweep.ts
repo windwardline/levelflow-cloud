@@ -666,6 +666,13 @@ export function simulateSymbol(input: {
       maxAdverseMove: feedbackNumber("maxAdverseMove"),
       maxFavorableMove: feedbackNumber("maxFavorableMove"),
       newsPenalty: newsPenaltyUnits,
+      // The marker's claim is scoped to the resolution stream (#364
+      // round 1, finding 2): here that stream starts after the decision
+      // bar completes (FR-5 slice above), so a marked corpus row says
+      // "no GRADEABLE bar overlapped the window" — the decision bar's
+      // own interior, which could never grade anything, is outside the
+      // evidence and outside the claim. replay.ts's marker comment
+      // carries the full statement for both callers.
       ...(evaluation.feedback.noBarsInReviewWindow === true &&
         { noBarsInReviewWindow: true as const }),
       outcome: evaluation.outcome,

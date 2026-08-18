@@ -393,6 +393,15 @@ const FIVE_MIN_CLASS_FLOORS: Partial<
   metals: 140,
 };
 
+// This assertion runs inside the per-symbol loop and therefore binds
+// DELIBERATE HISTORICAL READS too, unlike the conditions check below it
+// (#364 round 1, finding 5 — intended, stated): the superseded-clock
+// override accepts superseded MEASUREMENT TERMS, never poisoned data. A
+// clipped or holed series is wrong, not old — the same standing as the
+// clock witnesses beside it in the loop, which have always bound
+// historical reads. A historical corpus this refuses was measuring
+// against data the door can now prove defective; there is nothing
+// honest to read from it.
 function assertFiveMinuteDensity(
   emitPath: string,
   entry: SweepManifest["symbols"][number],

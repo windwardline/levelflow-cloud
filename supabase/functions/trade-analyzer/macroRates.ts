@@ -162,7 +162,18 @@ export function parseTreasuryRow(value: unknown): DatedTreasuryRow | null {
     return null;
   }
   const row = value as Record<string, unknown>;
-  const dateMs = Date.parse(String(row.date ?? row.calendarDate ?? ""));
+  // dateMs is CONTRACTUALLY the label's UTC midnight — treasuryVisibleAtMs
+  // adds 24h and reads UTC calendar parts, so an off-midnight instant
+  // could name the wrong day. Date.parse alone cannot guarantee that
+  // (#364 round 1, finding 6): V8 parses "2026-08-11 00:00:00" — space
+  // separator — as LOCAL time, making the offline join TZ-dependent. So
+  // the label is taken as exactly its leading YYYY-MM-DD (a bare ISO
+  // date parses as UTC by spec), and a row whose date does not start
+  // with one is refused rather than guessed at.
+  const label = String(row.date ?? row.calendarDate ?? "").slice(0, 10);
+  const dateMs = /^\d{4}-\d{2}-\d{2}$/.test(label)
+    ? Date.parse(label)
+    : Number.NaN;
   const tenYear = numberFromKeys(row, [
     "year10",
     "tenYear",
