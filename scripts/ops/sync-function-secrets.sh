@@ -21,8 +21,13 @@
 # `ps` — the same discipline deploy.yml uses for the secrets it still owns.
 set -euo pipefail
 
-REPO="/Users/peacock/Projects/levelflow-cloud"
-PROJECT_REF="usrtpoftuvhpmyhlhqlg"
+# Defaults are the studio machine and the production project; both take
+# env overrides so docs/deployment.md's generic procedure stays honest
+# (fleet round 3: a hardcoded line between two placeholder-convention
+# commands would push the key to PRODUCTION regardless of what the
+# operator had just linked).
+REPO="${REPO:-/Users/peacock/Projects/levelflow-cloud}"
+PROJECT_REF="${PROJECT_REF:-usrtpoftuvhpmyhlhqlg}"
 cd "$REPO"
 
 FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w 2>/dev/null || true)"

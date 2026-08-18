@@ -52,7 +52,9 @@ Apply migrations before deploying Edge Functions that depend on new database obj
 
 ```bash
 npx supabase db push --linked
-scripts/ops/sync-function-secrets.sh   # FMP_API_KEY: Keychain → Supabase, the one conduit
+# FMP_API_KEY: Keychain → Supabase, the one conduit. Defaults to the studio
+# machine and the PRODUCTION project ref — override for any other target:
+REPO=. PROJECT_REF=your-project-ref scripts/ops/sync-function-secrets.sh
 npx supabase functions deploy market-data trade-analyzer news-calendar outcome-sync --project-ref your-project-ref
 ```
 
@@ -68,8 +70,8 @@ dead one — deploy runs 373/374). Rotation is: rotate in the Keychain, run
 the script, done; the deploy-time E2E chart gate is what proves the value
 authenticates. Never pass the key on argv — the script moves it by
 600-mode temp env-file so it cannot surface in `ps`, and
-`tests/securityHardening.test.ts` pins both this file and the workflow
-against regressing to an inline `secrets set FMP_API_KEY=` form.
+`tests/securityHardening.test.ts` pins both this file and every workflow
+against regressing to the inline argv form.
 
 ## Server Runtime
 

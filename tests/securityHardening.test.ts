@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { cleanExternalUrl } from "../src/lib/urlSafety";
 
@@ -263,8 +264,21 @@ describe("security hardening", () => {
     // scripts/ops/sync-function-secrets.sh from the studio Keychain; CI
     // never holds the key again, and a convenience edit re-adding it is
     // a red build, not a quiet regression.
-    const deploy = readFileSync(".github/workflows/deploy.yml", "utf8");
-    assert.equal(deploy.includes("secrets.FMP_API_KEY"), false);
+    // Every workflow, not just deploy.yml (fleet round 3): the incident
+    // was a consumer nobody had listed, and a future convenience re-add
+    // would land in a NEW workflow (HANDOFF discusses automating the
+    // studio cron FMP readers) — the pin's scope is the law's scope: CI.
+    for (const workflow of readdirSync(".github/workflows")) {
+      if (!/\.ya?ml$/.test(workflow)) {
+        continue;
+      }
+      const source = readFileSync(join(".github/workflows", workflow), "utf8");
+      assert.equal(
+        source.includes("secrets.FMP_API_KEY"),
+        false,
+        `${workflow} must not hold the FMP key — CI never carries it`,
+      );
+    }
 
     const sync = readFileSync("scripts/ops/sync-function-secrets.sh", "utf8");
     assert.match(

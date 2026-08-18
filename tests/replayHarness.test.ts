@@ -1148,7 +1148,7 @@ describe("D2 (R1a) — realized R on every filled resolution", () => {
     const expiresAt = getSetupExpiryTime(setup.symbol, createdAt);
     const result = evaluateSetupOutcome(setup, [
       buildBar(15, 100.4, 99.8, 100.2, 100.2),
-      buildBar(30, 101.3, 100.1, 102, 100.5),
+      buildBar(30, 102, 100.1, 102, 100.5),
     ], expiresAt + 1, { roundTripCost: 0.4 });
     assert.equal(result.state, "resolved");
     if (result.state !== "resolved") {
