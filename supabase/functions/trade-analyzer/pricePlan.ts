@@ -197,6 +197,33 @@ export function buildPricePlan(
     return null;
   }
 
+  // #362 round 4, finding 1 — the admission half of E3's clock. The
+  // anchor is deliberately a completed bar, so between its close and
+  // this instant the market kept moving. In the corpus anchor latency is
+  // zero by construction (the sweep's decision instant IS its anchor
+  // bar), so the corpus contains no plan whose limit the market had
+  // already crossed at creation; live, nothing else would refuse one —
+  // a buy limit at/above the ask (or a sell at/below the bid) is a
+  // market order wearing a limit costume, an out-of-population shape.
+  // The quote NEVER enters a derived price: construction stays
+  // single-anchor, and with no quote (fetch failure; every sweep
+  // context) admission is unchanged — the residual anchor-latency
+  // smear is named in the divergence map.
+  if (market.quote) {
+    if (
+      side === "buy" &&
+      roundPrice(entryPrice) >= roundPrice(market.quote.ask)
+    ) {
+      return null;
+    }
+    if (
+      side === "sell" &&
+      roundPrice(entryPrice) <= roundPrice(market.quote.bid)
+    ) {
+      return null;
+    }
+  }
+
   if (side === "buy" && roundPrice(stopLoss) >= roundPrice(entryPrice)) {
     return null;
   }

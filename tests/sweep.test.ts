@@ -84,6 +84,40 @@ function dailyBars(count: number): Bar[] {
   }));
 }
 
+// Split each 15-minute bar into three coherent 5-minute sub-bars with the
+// parent's full range confined to the MIDDLE sub-bar. A touch that the
+// narrow first sub-bar cannot reach lands at parent.time + 300_000 — an
+// instant the 15-minute grid cannot produce — so a fill or exit stamped
+// there is unfakeable proof the 5-minute stream governed grading.
+function fiveMinuteSplit(primary: Bar[]): Bar[] {
+  return primary.flatMap((bar) => [
+    {
+      close: bar.open,
+      high: bar.open + 0.05,
+      low: bar.open - 0.05,
+      open: bar.open,
+      time: bar.time,
+      volume: 300,
+    },
+    {
+      close: bar.close,
+      high: bar.high,
+      low: bar.low,
+      open: bar.open,
+      time: bar.time + 300_000,
+      volume: 400,
+    },
+    {
+      close: bar.close,
+      high: bar.close + 0.05,
+      low: bar.close - 0.05,
+      open: bar.close,
+      time: bar.time + 600_000,
+      volume: 300,
+    },
+  ]);
+}
+
 // A flat, self-coherent 5-minute series for the tier-admission pin: its
 // content is irrelevant to the assertions — only where it BEGINS and ENDS
 // relative to the decision instants matters.
@@ -145,6 +179,32 @@ describe("replay sweep", () => {
     assert.ok(
       reaching.outcomes.every((record) => record.filledAtMs === null),
       "an admitted 5-minute stream must govern grading",
+    );
+
+    // The positive physics (#362 round 4, smaller item — the short
+    // corpus above proves admission, not use, since the old rule would
+    // have produced the same all-unfilled shape): a corpus that reaches
+    // back AND covers the window grades ON the 5-minute stream. The
+    // discriminator is the graded content, not the stamp instants —
+    // fills stamp at bar time and this fixture's 0.4-per-bar step
+    // gap-throughs entries at the narrow first sub-bar, so instants
+    // stay on the parent grid — but 3× finer event ordering changes the
+    // legs, exits and realized R of every emitted row (measured when
+    // this pin was written: 13 of 13 rows differ, including the emitted
+    // count), where a refused tier reproduces the baseline exactly.
+    const covered = simulateSymbol({
+      ...base,
+      fiveMinuteBars: fiveMinuteSplit(triangleBars(600)),
+    });
+    assert.ok(covered.outcomes.length > 0);
+    assert.ok(
+      covered.outcomes.some((record) => record.filledAtMs !== null),
+      "a covering 5-minute stream must actually fill",
+    );
+    assert.notDeepStrictEqual(
+      covered.outcomes,
+      baseline.outcomes,
+      "an admitted, covering 5-minute stream must grade differently from 15-minute physics",
     );
   });
 

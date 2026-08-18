@@ -280,7 +280,11 @@ layer.
   snapshot untouched — `market-data` has its own timeframe list.
 - **E7**: construction writes `runnerProtection` and `reviewWindowHours`
   into `risk_model`; the bridge reads them with strict validation, and
-  pre-slice rows keep today's exact behavior, version-scoped. The same
+  pre-slice rows keep today's exact behavior, version-scoped. The reads
+  sit ABOVE the cost gate (#362 round 4, finding 2): mode and window are
+  decision-time facts orthogonal to the cost triple, so a malformed cost
+  stamp fails only the cost fields — it no longer sends a validly
+  stamped row back to the breakeven fallback. The same
   rule now governs the CLIENT's copy-gate window (#362 review, finding
   5): `storedSetup.ts` prefers the row's stamped `reviewWindowHours`
   over the calibration mirror, same validation as the bridge, mirror
@@ -329,9 +333,28 @@ layer.
     the decision basis' age, up to one primary span behind the clock, a
     daily stamp on the loader's fallback — not a provider freshness
     probe (`last_checked_at` carries that). The "limited" status
-    threshold moved in step with the fallen timeframe ceiling (< 4 of
-    six → < 3 of five) so no symbol flips status without a real
-    coverage change.
+    threshold moved with the fallen ceiling (< 4 of six → < 3 of five),
+    status-preserving for every symbol whose 1min series qualified and
+    deliberately LOOSER for the ones it never qualified on (#362 round
+    4, finding 3): a 3-of-5 thin symbol was "limited" only because a
+    series the engine no longer consumes counted as missing, and
+    absence of decision-irrelevant data is not a coverage defect.
+  - **Anchor latency** (#362 round 4, finding 1 — the residue this
+    slice itself created): the corpus's decision instant IS its anchor
+    bar (the sweep stamps `created_at: latest.time`), so corpus anchor
+    latency is zero; live decides at wall clock against an anchor that
+    is on average half a primary span old (up to 4h on the `4hour`
+    fallback). The through-market case is CLOSED at admission —
+    `buildPricePlan` refuses a buy limit at/above the live ask and a
+    sell at/below the live bid, the out-of-population "market order in
+    a limit costume" nothing else would have caught after round 1's
+    cross-anchor gate was removed; the quote never enters a derived
+    price, and a null quote (fetch failure; every sweep context) admits
+    as before. What REMAINS residue is the symmetric fill-rate smear:
+    the market moves both ways inside the latency window, spreading the
+    live fill distribution around the corpus's zero-latency
+    measurement. Unmeasurable until the minute bank matures (§21);
+    named here so no cohort read mistakes it for closed.
   - `completedIntradaySeries` span-tests the session's FINAL `1hour`/
     `4hour` bar too (#362 round 2, smaller item): FMP's truncated
     session-close bars (an equity 15:30 hourly covers 30 minutes) read

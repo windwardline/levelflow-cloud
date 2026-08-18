@@ -131,28 +131,16 @@ export function fillOptionsFromRiskModel(
     return {};
   }
   const model = riskModel as Record<string, unknown>;
-  const quality = model.executionQuality;
-  if (typeof quality !== "object" || quality === null) {
-    return {};
-  }
-  const record = quality as Record<string, unknown>;
-  const spread = Number(record.estimatedSpread);
-  const slippage = Number(record.estimatedSlippage);
-  const commission = Number(record.estimatedCommission);
-  if (
-    !Number.isFinite(spread) || spread < 0 ||
-    !Number.isFinite(slippage) || slippage < 0 ||
-    !Number.isFinite(commission) || commission < 0
-  ) {
-    return {};
-  }
-  const options: ReplayFillOptions = {
-    barIntervalMs: 15 * 60 * 1000,
-    gapExitSlippage: slippage,
-    halfSpread: spread / 2,
-    roundTripCost: commission,
-    sameBarProtectionArming: true,
-  };
+  const options: ReplayFillOptions = {};
+  // E7's reads sit ABOVE the cost gate (#362 round 4, finding 2): the
+  // protection mode and review window are decision-time facts orthogonal
+  // to the cost triple, so a row whose cost stamp is missing or
+  // malformed must still grade under ITS OWN mode and window — not the
+  // breakeven fallback and resolution-time calibration, which is the
+  // exact divergence E7 closed and the shared early return had silently
+  // reopened for that row class. Each fact stands behind its own
+  // validation; only the COST fields die on the cost gate below (a v1
+  // row resolves v1-style, never with an invented number).
   if (
     model.runnerProtection === "breakeven" ||
     model.runnerProtection === "hold" ||
@@ -164,6 +152,26 @@ export function fillOptionsFromRiskModel(
   if (Number.isFinite(reviewWindowHours) && reviewWindowHours > 0) {
     options.reviewHours = reviewWindowHours;
   }
+  const quality = model.executionQuality;
+  if (typeof quality !== "object" || quality === null) {
+    return options;
+  }
+  const record = quality as Record<string, unknown>;
+  const spread = Number(record.estimatedSpread);
+  const slippage = Number(record.estimatedSlippage);
+  const commission = Number(record.estimatedCommission);
+  if (
+    !Number.isFinite(spread) || spread < 0 ||
+    !Number.isFinite(slippage) || slippage < 0 ||
+    !Number.isFinite(commission) || commission < 0
+  ) {
+    return options;
+  }
+  options.barIntervalMs = 15 * 60 * 1000;
+  options.gapExitSlippage = slippage;
+  options.halfSpread = spread / 2;
+  options.roundTripCost = commission;
+  options.sameBarProtectionArming = true;
   return options;
 }
 

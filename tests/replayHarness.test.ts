@@ -1312,6 +1312,28 @@ describe("R1a slice 2 — one physics", () => {
     const legacy = fillOptionsFromRiskModel({ executionQuality: base });
     assert.equal(legacy.runnerProtection, undefined);
     assert.equal(legacy.reviewHours, undefined);
+
+    // #362 round 4, finding 2: the mode and window are decision-time
+    // facts orthogonal to the cost triple — a malformed (or absent)
+    // cost stamp must not send a validly stamped row back to the
+    // breakeven fallback and resolution-time calibration. The cost
+    // fields alone die on the cost gate.
+    const badCosts = fillOptionsFromRiskModel({
+      executionQuality: { ...base, estimatedSpread: "corrupt" },
+      reviewWindowHours: 12,
+      runnerProtection: "trail_tp1",
+    });
+    assert.equal(badCosts.runnerProtection, "trail_tp1");
+    assert.equal(badCosts.reviewHours, 12);
+    assert.equal(badCosts.halfSpread, undefined);
+    assert.equal(badCosts.roundTripCost, undefined);
+    const noCosts = fillOptionsFromRiskModel({
+      reviewWindowHours: 12,
+      runnerProtection: "hold",
+    });
+    assert.equal(noCosts.runnerProtection, "hold");
+    assert.equal(noCosts.reviewHours, 12);
+    assert.equal(noCosts.halfSpread, undefined);
   });
 
   it("E7: a stored trail_tp1 row grades under trail_tp1 physics through the bridge", () => {

@@ -293,6 +293,62 @@ describe("price plan integration", () => {
     assert.equal(plan.takeProfit, baseline.takeProfit);
   });
 
+  it("refuses a limit the live market has already crossed — admission, not physics (#362 round 4, finding 1)", () => {
+    const baseline = buildPricePlan(
+      "buy",
+      "EURUSD",
+      syntheticMarket(),
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(baseline);
+
+    // The market fell through the buy limit since the anchor closed: the
+    // ask sits below the entry, so the "limit" would fill instantly at
+    // the touch — a market order wearing a limit costume, a shape the
+    // zero-anchor-latency corpus contains none of. Refused at admission.
+    const crossed = syntheticMarket();
+    crossed.quote = {
+      ask: baseline.entryPrice - 0.5,
+      bid: baseline.entryPrice - 0.6,
+      price: null,
+      spread: 0.1,
+      source: "fmp_quote",
+    };
+    assert.equal(
+      buildPricePlan(
+        "buy",
+        "EURUSD",
+        crossed,
+        regime,
+        getCategoryCalibration("EURUSD"),
+      ),
+      null,
+    );
+
+    // A quote that does not cross admits the plan and enters NO derived
+    // price — construction stays single-anchor.
+    const clear = syntheticMarket();
+    clear.quote = {
+      ask: baseline.entryPrice + 0.4,
+      bid: baseline.entryPrice + 0.3,
+      price: null,
+      spread: 0.1,
+      source: "fmp_quote",
+    };
+    const admitted = buildPricePlan(
+      "buy",
+      "EURUSD",
+      clear,
+      regime,
+      getCategoryCalibration("EURUSD"),
+    );
+    assert.ok(admitted);
+    assert.equal(admitted.entryPrice, baseline.entryPrice);
+    assert.equal(admitted.stopLoss, baseline.stopLoss);
+    assert.equal(admitted.takeProfit, baseline.takeProfit);
+  });
+
   it("emits a ladder with TP1 between entry and the runner target", () => {
     const plan = buildPricePlan(
       "buy",

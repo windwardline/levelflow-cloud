@@ -38,13 +38,18 @@ export async function recordMarketDataHealth(
       ...providerFailures,
       ...(marketContext?.providerWarnings ?? []),
     ];
-    // E3 dropped the analyzer's 1-minute fetch (#362 round 3, finding
-    // 2), so the timeframe ceiling fell from six to five. "limited"
-    // keeps its meaning — more than two series missing — by moving the
-    // threshold in step: < 4 of a possible six ≡ < 3 of a possible five
-    // for every symbol that served 1min, which was every symbol that
-    // could reach the old bar. Left at < 4 it would have flipped
-    // symbols to "limited" with no change in provider coverage.
+    // E3 dropped the analyzer's 1-minute fetch (#362 rounds 3-4), so
+    // the timeframe ceiling fell from six to five. For a symbol whose
+    // 1min series qualified, < 4 of six ≡ < 3 of five — status
+    // preserved; left at < 4, those symbols would have flipped
+    // "limited" with no coverage change. For a symbol that never served
+    // 1min (its 3-day lookback against the same 40-bar floor drops out
+    // exactly on thin and holiday-shortened markets), the count is
+    // unchanged and the move is deliberately LOOSER: such a symbol at
+    // 3-of-5 was "limited" only because a series the engine no longer
+    // consumes was counted as missing, and absence of decision-
+    // irrelevant data is not a coverage defect. The asymmetry is
+    // stated, not accidental (#362 round 4, finding 3).
     const status = !marketContext
       ? "unavailable"
       : providerWarnings.length > 0 ||
