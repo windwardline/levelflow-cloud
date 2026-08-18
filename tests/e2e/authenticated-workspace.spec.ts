@@ -683,21 +683,33 @@ test("a receipt How this works link lands on the Guide's record section", async 
 // leaves `data` null, so the body — and market-data's `providerQuotaExhausted`
 // flag with it — is only reachable through the error's `context` Response.
 //
-// Fails safe by construction: anything unexpected returns false, so a run that
-// cannot PROVE the provider is out of budget asserts normally and goes red.
-// The dangerous direction here is a false positive, which would skip a genuine
-// regression, so uncertainty resolves toward testing rather than toward
-// standing down.
-async function upstreamQuotaExhausted(error: unknown): Promise<boolean> {
-  const context = (error as { context?: { json?: () => Promise<unknown> } } | null)
-    ?.context;
+// One read, two uses: a Response body reads once, and the same read that
+// decides the quota stand-down must also CARRY the refusal when the answer is
+// no. On 2026-08-18 two deploy attempts failed on the chart gate with nothing
+// but the generic "non-2xx status code" in the log, while the same account
+// measurably served the same query — market-data's 502 body names the
+// provider's actual refusal (`providerStatus`), and it was being read for one
+// boolean and thrown away. The failure message now prints it.
+//
+// The stand-down still fails safe by construction: anything unexpected reads
+// as not-quota, so a run that cannot PROVE the provider is out of budget
+// asserts normally and goes red. The dangerous direction here is a false
+// positive, which would skip a genuine regression, so uncertainty resolves
+// toward testing rather than toward standing down.
+async function readInvokeRefusal(error: unknown): Promise<{
+  body: { providerQuotaExhausted?: boolean; providerStatus?: string } | null;
+  status: number | undefined;
+}> {
+  const context = (error as {
+    context?: { json?: () => Promise<unknown>; status?: number };
+  } | null)?.context;
   if (!context || typeof context.json !== "function") {
-    return false;
+    return { body: null, status: undefined };
   }
   const body = (await context.json().catch(() => null)) as
-    | { providerQuotaExhausted?: boolean }
+    | { providerQuotaExhausted?: boolean; providerStatus?: string }
     | null;
-  return body?.providerQuotaExhausted === true;
+  return { body, status: context.status };
 }
 
 test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
@@ -745,7 +757,8 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
   // come out of its loading overlay WITH data, which it cannot do when the
   // provider is refusing. So the test stands down — for that one named
   // condition, surfaced explicitly, and never for a generic upstream error.
-  if (await upstreamQuotaExhausted(marketDataResponse.error)) {
+  const refusal = await readInvokeRefusal(marketDataResponse.error);
+  if (refusal.body?.providerQuotaExhausted === true) {
     console.warn(
       "[market-data] FMP 30-day allowance exhausted — live chart coverage NOT verified this run.",
     );
@@ -756,7 +769,11 @@ test("advisor loads Ultimate one-minute chart data", async ({ page }) => {
     );
   }
 
-  expect(marketDataResponse.error).toBeFalsy();
+  expect(
+    marketDataResponse.error,
+    `market-data refused the 1-minute request: status=${refusal.status}, ` +
+      `body=${JSON.stringify(refusal.body)}`,
+  ).toBeFalsy();
   expect(marketData?.error).toBeFalsy();
   expect(marketData?.timeframe).toBe("1min");
   expect(marketData?.resultsCount ?? 0).toBeGreaterThan(0);
