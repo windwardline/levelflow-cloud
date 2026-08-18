@@ -23,11 +23,14 @@ RESEND_KEY="$(security find-generic-password -a peacock -s resend-api-key -w 2>/
 
 # Fleet law (#361 round 2, finding 1's class): credential values travel
 # by 600-mode files, never argv — bash printf is a builtin, so nothing
-# here surfaces in `ps`. The Resend key rides into python via the
-# environment for the same reason.
+# here surfaces in `ps`. That includes the PATCH BODY (#363 round 1,
+# finding 1): the payload carries the Resend key as smtp_pass, so it
+# goes to curl via --data @file, never as an inline -d argument — and
+# the key rides into python via the environment, never python's argv.
 AUTH_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-auth-brand.XXXXXXXX")"
-chmod 600 "$AUTH_FILE"
-trap 'rm -f "$AUTH_FILE"' EXIT
+PAYLOAD_FILE="$(mktemp "${TMPDIR:-/tmp}/levelflow-auth-brand-payload.XXXXXXXX")"
+chmod 600 "$AUTH_FILE" "$PAYLOAD_FILE"
+trap 'rm -f "$AUTH_FILE" "$PAYLOAD_FILE"' EXIT
 printf 'Authorization: Bearer %s\n' "$SUPABASE_ACCESS_TOKEN" > "$AUTH_FILE"
 
 echo "== Current values =="
@@ -37,7 +40,7 @@ curl -fsS "$API" -H @"$AUTH_FILE" \
 read -r -p "PATCH sender name + magic-link subject + body template to 'Levelflow'? [y/N] " yn
 [ "$yn" = "y" ] || { echo "aborted"; exit 0; }
 
-PAYLOAD="$(RESEND_KEY="$RESEND_KEY" python3 <<'PY'
+RESEND_KEY="$RESEND_KEY" python3 > "$PAYLOAD_FILE" <<'PY'
 import json, os
 
 # Standing Windward Line magic-link template; only the app name and the
@@ -71,12 +74,11 @@ print(json.dumps({
   "mailer_templates_magic_link_content": template,
 }))
 PY
-)"
 
 if ! resp="$(curl -sS --fail-with-body -X PATCH "$API" \
   -H @"$AUTH_FILE" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD")"; then
+  --data @"$PAYLOAD_FILE")"; then
   echo "PATCH failed:"
   printf '%s' "$resp" | python3 -c "import sys,json
 try:

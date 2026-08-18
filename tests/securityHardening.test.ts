@@ -315,8 +315,9 @@ describe("security hardening", () => {
     assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
     // #361 round 2, finding 1: the bearers ride 600-mode header files
     // read with `curl -H @file` — the class pin below sweeps EVERY ops
-    // script for the interpolated form, so the fix cannot regress here
-    // and quietly survive in a sibling.
+    // script for the interpolated form (case-insensitive, #363 round
+    // 1), so the fix cannot regress here and quietly survive in a
+    // sibling.
     assert.match(sync, /-H @"\$MGMT_AUTH_FILE"/);
     assert.match(sync, /-H @"\$VERIFY_AUTH_FILE"/);
     for (const script of readdirSync("scripts/ops")) {
@@ -326,28 +327,37 @@ describe("security hardening", () => {
       const source = readFileSync(join("scripts/ops", script), "utf8");
       assert.doesNotMatch(
         source,
-        /Authorization: Bearer \$/,
+        /authorization: bearer \$/i,
         `${script} must not interpolate a bearer onto argv — 600-mode header files only`,
       );
     }
-    // The same law for the Resend key: into python via the environment,
-    // never argv (`ps` shows argv of a real process; env it does not).
+    // The same law for the Resend key, BOTH hops (#363 round 1,
+    // finding 1 — the first fold moved it from python's argv to curl's
+    // via -d "$PAYLOAD", the same class one process later): into python
+    // via the environment, and into curl via --data @file — the payload
+    // carries the key as smtp_pass, so it must never be a command
+    // argument (`ps` shows argv of a real process; env it does not).
     const brand = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
-    assert.match(brand, /RESEND_KEY="\$RESEND_KEY" python3/);
+    assert.match(brand, /RESEND_KEY="\$RESEND_KEY" python3 > "\$PAYLOAD_FILE"/);
     assert.doesNotMatch(brand, /python3 - "\$RESEND_KEY"/);
+    assert.match(brand, /--data @"\$PAYLOAD_FILE"/);
+    assert.doesNotMatch(brand, /-d "\$PAYLOAD"/);
     // #361 round 2, findings 2-4 — the classification work, pinned:
     // a transport failure at verify reports the halves synced instead of
     // dying silently under set -e; 401/403 retries before it is
     // believed; both pooler generations are probed; the preflight's
-    // abort names the last psql stderr so a stale password is
-    // distinguishable from an unreachable network.
+    // abort echoes EVERY probe's psql stderr under host/user markers
+    // (#363 round 1, finding 3 — last-only buried an auth failure under
+    // aws-1's NXDOMAIN) so a stale password is distinguishable from an
+    // unreachable network.
     assert.match(sync, /verify_status \|\| true/);
     assert.match(sync, /"000" \| ""\)/);
     assert.match(sync, /the token halves ARE synced/);
     assert.match(sync, /while \{ \[ "\$STATUS" = "401" \]/);
     assert.match(sync, /for prefix in aws-0 aws-1/);
-    assert.match(sync, /last failed attempt's psql stderr/);
-    assert.match(sync, /PROBE_ERR_FILE/);
+    assert.match(sync, /failed attempts' psql stderr/);
+    assert.match(sync, /2>>"\$PROBE_ERR_FILE"/);
+    assert.doesNotMatch(sync, /2>"\$PROBE_ERR_FILE"/);
 
     // The conduit is recorded where operators actually read (fleet
     // re-review on #360): the deployment procedure and the README

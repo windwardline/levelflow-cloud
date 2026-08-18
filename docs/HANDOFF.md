@@ -93,6 +93,15 @@ step leaves every signed-in operator working behind a closed door.
 > removed. Rotation from now on, for both credentials: rotate in the
 > Keychain, run the script, done.
 >
+> The script's failure modes after #363 (the round-2 fold-forward): no
+> credential value ever rides argv in ANY `scripts/ops` script (bearers
+> and the PATCH body travel by 600-mode files; class-pinned), a
+> transport failure at the verify step reports **the token halves ARE
+> synced** instead of dying silently, and a preflight abort prints
+> every probe's psql stderr under host/user markers — "password
+> authentication failed" there means the `supabase-db-levelflow`
+> Keychain item is stale, not the network.
+>
 > The paragraphs below are kept as the record of the blackout. What remains
 > true: the 1-minute bars not banked between 2026-08-13 and the bank's
 > first post-upgrade run are permanently gone (~3-day serving window);

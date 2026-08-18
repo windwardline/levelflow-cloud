@@ -94,6 +94,7 @@ chmod 600 "$ENV_FILE" "$SQL_FILE" "$PROBE_FILE" "$PROBE_ERR_FILE" \
   "$MGMT_AUTH_FILE" "$VERIFY_AUTH_FILE"
 trap 'rm -f "$ENV_FILE" "$SQL_FILE" "$PROBE_FILE" "$PROBE_ERR_FILE" "$MGMT_AUTH_FILE" "$VERIFY_AUTH_FILE"' EXIT
 echo "select 1;" > "$PROBE_FILE"
+: > "$PROBE_ERR_FILE"
 # The bearers travel by 600-mode header files read with `curl -H @file`
 # (#361 round 2, finding 1): the preamble's never-argv claim now holds
 # for every network call this script makes — bash printf is a builtin,
@@ -108,8 +109,14 @@ printf 'Authorization: Bearer %s\n' "$NEWS_SYNC_TOKEN" > "$VERIFY_AUTH_FILE"
 # guard instead of aborting silently (#361 review, finding 2).
 DB_HOST=""
 DB_USER=""
+# Every attempt APPENDS its stderr under a host/user marker (#363 round
+# 1, finding 3): truncating per attempt left only the LAST failure on
+# screen — and the last probe is aws-1, which often fails with NXDOMAIN
+# because the generation prefix may not exist, burying an earlier
+# "password authentication failed" under a DNS error.
+printf -- '--- db.%s.supabase.co as postgres ---\n' "$PROJECT_REF" >> "$PROBE_ERR_FILE"
 if run_psql "db.${PROJECT_REF}.supabase.co" "postgres" "$PROBE_FILE" \
-  >/dev/null 2>"$PROBE_ERR_FILE"; then
+  >/dev/null 2>>"$PROBE_ERR_FILE"; then
   DB_HOST="db.${PROJECT_REF}.supabase.co"
   DB_USER="postgres"
 else
@@ -120,9 +127,11 @@ else
     sed -E 's/.*"region"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/' || true)"
   if [ -n "$REGION" ] && [ "$REGION" != "$PROJECT_JSON" ]; then
     for prefix in aws-0 aws-1; do
+      printf -- '--- %s-%s.pooler.supabase.com as postgres.%s ---\n' \
+        "$prefix" "$REGION" "$PROJECT_REF" >> "$PROBE_ERR_FILE"
       if run_psql "${prefix}-${REGION}.pooler.supabase.com" \
         "postgres.${PROJECT_REF}" "$PROBE_FILE" \
-        >/dev/null 2>"$PROBE_ERR_FILE"; then
+        >/dev/null 2>>"$PROBE_ERR_FILE"; then
         DB_HOST="${prefix}-${REGION}.pooler.supabase.com"
         DB_USER="postgres.${PROJECT_REF}"
         break
@@ -132,12 +141,12 @@ else
 fi
 if [ -z "$DB_HOST" ]; then
   log "no reachable database endpoint (direct and pooler both failed); aborting — nothing written"
-  # #361 round 2, finding 3: the LAST failed attempt's psql stderr,
-  # verbatim — "password authentication failed" means the
-  # supabase-db-levelflow Keychain item is stale (this script's own
-  # subject), not the network. psql stderr names host and user, never
-  # the password.
-  log "last failed attempt's psql stderr:"
+  # #361 round 2, finding 3: EVERY failed attempt's psql stderr,
+  # verbatim under its host/user marker — "password authentication
+  # failed" means the supabase-db-levelflow Keychain item is stale
+  # (this script's own subject), not the network. psql stderr names
+  # host and user, never the password.
+  log "failed attempts' psql stderr:"
   sed 's/^/  /' "$PROBE_ERR_FILE" || true
   exit 1
 fi

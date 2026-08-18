@@ -145,14 +145,17 @@ jobs:
       # this file.
       - name: Configure Supabase function secrets
         run: |
+          # FMP_API_BASE_URL is inline, not a secret lookup (#361 round-2
+          # doc note): the secrets.FMP_API_BASE_URL it once read never
+          # existed, so the expression rendered empty and only the ||
+          # default saved it — the exact dead-reference shape that blanked
+          # FINNHUB_API_KEY. A host change is an edit to that line,
+          # reviewed like any other. (Comment sits OUTSIDE the heredoc so
+          # the env file handed to `supabase secrets set` never depends on
+          # a dotenv parser skipping comments — #363 review.)
           cat > /tmp/levelflow-function-secrets.env <<'EOF'
           APP_ALLOWED_ORIGINS=https://levelflow.windwardline.com,http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5175,http://localhost:5175
           ECONOMIC_CALENDAR_PROVIDER=${{ vars.ECONOMIC_CALENDAR_PROVIDER || 'fmp' }}
-          # Inline, not a secret lookup (#361 round-2 doc note): the
-          # secrets.FMP_API_BASE_URL this line once read never existed, so
-          # the expression rendered empty and only the || default saved it —
-          # the exact dead-reference shape that blanked FINNHUB_API_KEY. A
-          # host change is an edit to this line, reviewed like any other.
           FMP_API_BASE_URL=https://financialmodelingprep.com/stable
           EOF
           npx supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file /tmp/levelflow-function-secrets.env
