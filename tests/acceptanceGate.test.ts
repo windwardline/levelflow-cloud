@@ -310,6 +310,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
   const shardWith = (
     rows: SweepEmitRow[],
     gridOverride?: unknown[],
+    clockOverride?: { calendar: string; normalizer: string },
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -321,7 +322,8 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
-      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
+      clock: clockOverride ??
+        { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
       days: 365,
       generatedAt: "2026-08-10T07:00:00.000Z",
       grid: gridOverride ?? [{}, { wide: true }],
@@ -367,6 +369,19 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       gradeCorpus([
         shardWith(shardRows("EURUSD")),
         shardWith(shardRows("GBPUSD"), [{}, { different: true }]),
+      ]),
+      /shards of one measurement/,
+    );
+  });
+
+  it("refuses shards swept under different clocks — no mixed-clock corpus at read time (R0)", async () => {
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD")),
+        shardWith(shardRows("GBPUSD"), undefined, {
+          calendar: "test-calendar-v1",
+          normalizer: "some-other-clock",
+        }),
       ]),
       /shards of one measurement/,
     );

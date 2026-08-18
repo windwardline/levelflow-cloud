@@ -23,8 +23,9 @@
 // - DAILY-STAMP witness (universal, condemning): FMP end-of-day rows are
 //   date-only labels; the current normalizer stamps them at New York
 //   midnight (04/05 UTC), the naive era at 00 UTC. Judged per year: one
-//   naive year among true years is "mixed", however small its share of
-//   the whole.
+//   naive year among true years is "mixed", down to a ~5% admixture
+//   within the year (~12 trading days) — the stated noise floor, below
+//   which this witness is blind.
 //
 // - WEEKLY-OPEN witness (intraday, proving only): a session market's week
 //   opens at a fixed venue wall hour, so under true UTC the weekly first
@@ -46,7 +47,9 @@
 //   diluting toward a false pass). Judged per year: two or more low
 //   years is "mixed" even when the median is clean; the median condemns
 //   an all-naive store; a single low year (one provider outage) is
-//   tolerated rather than condemning a healthy store.
+//   tolerated rather than condemning a healthy store. Three sampled
+//   springs suffice — the young 2020-2023 crypto listings carry 3-6,
+//   the deep majors (BTC 2013-11, ETH 2015, DASH/DOGE 2017) 9-13.
 //
 // - CROSS-SERIES registration (per symbol, condemning): two series of the
 //   same market on the same clock agree on each day's extremes at zero
@@ -189,12 +192,18 @@ function dailyWitness(times: number[]): SeriesClockWitness {
     }
     const nyShare = tally.atNy / tally.rows;
     const utcShare = tally.atUtc / tally.rows;
-    if (nyShare >= 0.8 && utcShare <= 0.1) {
-      utcYears += 1;
-    } else if (utcShare >= 0.8 && nyShare <= 0.1) {
-      naiveYears += 1;
-    } else if (nyShare >= 0.15 && utcShare >= 0.15) {
+    // No dead band between the branches (#358 re-review): a year showing
+    // BOTH midnights above the 5% noise floor is mixed, full stop — the
+    // pure branches demand the other midnight stay UNDER that floor. A
+    // legitimate store has exactly zero of the other midnight, so ~12
+    // days of admixture in a year is the smallest contamination this can
+    // see, and that floor is the stated limit, not a hidden one.
+    if (nyShare >= 0.05 && utcShare >= 0.05) {
       mixedYears += 1;
+    } else if (nyShare >= 0.8 && utcShare < 0.05) {
+      utcYears += 1;
+    } else if (utcShare >= 0.8 && nyShare < 0.05) {
+      naiveYears += 1;
     }
   }
   const daily = {
@@ -346,7 +355,16 @@ function transitionWitness(
     const neighborMedian = neighborCounts[Math.floor(neighborCounts.length / 2)];
     ratios.push(transitionCount / neighborMedian);
   }
-  if (ratios.length < 8) {
+  // Three springs suffice (#358 re-review): the per-year median +
+  // lowYears logic is what makes a low floor safe — three all-naive
+  // springs give a 0.958 median ("naive"), one outage in three leaves
+  // the median clean, and two dented springs condemn as "mixed", which
+  // at an acceptance gate is the correct direction for evidence that
+  // thin. The old floor of 8 needed ~9 years of 24/7 history, which the
+  // young 2020-2023 crypto listings do not have; the deep majors
+  // (BTCUSD 2013-11, ETHUSD 2015, DASH/DOGE 2017 — the 4a corpus
+  // manifest) sample 9-13 springs either way.
+  if (ratios.length < 3) {
     return { verdict: "indeterminate" };
   }
   const ratioMedian = median(ratios);
@@ -525,6 +543,13 @@ export function crossSeriesClock(
     const zeroYearRate = zero && zero.common >= 30
       ? zero.matched / zero.common
       : null;
+    // No zero-shift evidence for the year means no verdict for the year
+    // (#358 re-review): condemning against an absent baseline would let
+    // a partial boundary year false-positive, and condemning verdicts
+    // here must come only from evidence that cannot.
+    if (zeroYearRate === null) {
+      continue;
+    }
     let bestYearRate = Number.NEGATIVE_INFINITY;
     for (const shift of shifts) {
       if (shift === 0) {
@@ -537,7 +562,7 @@ export function crossSeriesClock(
     }
     if (
       Number.isFinite(bestYearRate) && bestYearRate >= 0.5 &&
-      bestYearRate >= (zeroYearRate ?? 0) + 0.3
+      bestYearRate >= zeroYearRate + 0.3
     ) {
       shiftedYears += 1;
     }

@@ -124,6 +124,28 @@ describe("daily-stamp witness — the universal condemning witness, per year", (
     );
     assert.equal(witness.verdict, "indeterminate");
   });
+
+  it("has no dead band — a ~12% one-year admixture is mixed, not invisible (#358 re-review)", () => {
+    // 45 naive days inside one otherwise-true year: 12.3% of that year —
+    // inside the old 0.10–0.15 gap where the year matched no branch and
+    // the store verdicted "utc".
+    const bars = [];
+    for (let index = 0; index < 11 * 365; index += 1) {
+      const { day, month, year } = utcDate(Date.UTC(2015, 0, 1) + index * DAY);
+      const naiveDay = year === 2019 && month >= 3 && month <= 4 &&
+        day <= 23;
+      bars.push(
+        bar(
+          naiveDay
+            ? Date.UTC(year, month - 1, day)
+            : newYorkWallClockToUtcMs(year, month, day, 0, 0, 0),
+        ),
+      );
+    }
+    const witness = seriesClockWitness(bars, "daily");
+    assert.equal(witness.verdict, "mixed");
+    assert.equal(witness.daily!.mixedYears, 1);
+  });
 });
 
 describe("weekly-open witness — proves utc, never condemns", () => {
@@ -252,6 +274,32 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     const witness = seriesClockWitness(deduped, "intraday");
     assert.equal(witness.verdict, "mixed");
     assert.ok(witness.transition!.lowYears >= 2);
+  });
+
+  it("fires at realistic young-crypto depth — three springs decide (#358 re-review)", () => {
+    // A 2023-04 listing (the CAKE/HBAR vintage) reaches 2026 with exactly
+    // three spring Sundays. The old floor of 8 made the witness
+    // unreachable for this population; the per-year median makes 3 safe.
+    const youngStart = Date.UTC(2023, 3, 1);
+    const youngHours = Math.floor((Date.UTC(2026, 7, 1) - youngStart) / HOUR);
+    const trueBars = [];
+    for (let index = 0; index < youngHours; index += 1) {
+      trueBars.push(bar(youngStart + index * HOUR));
+    }
+    const healthy = seriesClockWitness(trueBars, "intraday");
+    assert.equal(healthy.verdict, "utc");
+    assert.equal(healthy.transition!.sampled, 3);
+
+    const stamps = new Set<number>();
+    for (let index = 0; index < youngHours; index += 1) {
+      stamps.add(naiveStamp(youngStart + index * HOUR));
+    }
+    const poisoned = seriesClockWitness(
+      [...stamps].sort((a, b) => a - b).map(bar),
+      "intraday",
+    );
+    assert.equal(poisoned.verdict, "naive");
+    assert.ok(poisoned.transition!.ratioMedian! <= 0.97);
   });
 
   it("stays indeterminate for a session market that is closed at the transition hour", () => {

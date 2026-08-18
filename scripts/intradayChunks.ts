@@ -59,12 +59,14 @@ export function emptyStreakLimitFor(timeframe: IntradayTimeframe): number {
 }
 
 // Safety ceiling only — it must never be the binding constraint, so it
-// sits above every confirmed provider floor. Measured 2026-07-29 by
-// walking back until history ended: forex begins 2010-01 (~6,050 days),
-// XAUUSD 2013-07 (~4,760), ^GSPC 2020-02 (~2,350), ^NDX 2020-08 (~2,175),
-// crypto and XAGUSD ~1,060-1,200, and CME futures 2023-09/10
-// (~1,031-1,038). Depth is discovered per symbol at run time, never
-// assumed.
+// sits above every confirmed provider floor. Floors from the 2026-08-10
+// corpus manifest (the 4a report — which superseded a 2026-07-29
+// walk-back that had read crypto as ~1,060-1,200 days): forex begins
+// 2010-01 (~6,050 days), crypto MAJORS 2013-2017 (BTCUSD 2013-11 with
+// 383k 15-minute bars, ETHUSD 2015-08, DASH/DOGE 2017), young listings
+// 2020-2023 (~1,030-2,150), XAUUSD 2013-07 (~4,760), CME futures
+// 2023-09/10 (~1,031-1,038). Depth is discovered per symbol at run
+// time, never assumed.
 export const MAX_DEPTH_DAYS = 7_000;
 
 export type ChunkWindow = { fromMs: number; toMs: number };

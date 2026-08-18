@@ -19,28 +19,39 @@ lives). Nothing here touches the minute bank — it is a separate
 append-only store with its own launchd agent, probes its provider's clock
 per symbol, and was never carried by the defect. Leave it running.
 
-## 0. Preconditions — do not start early
+## 0. Preconditions — SATISFIED 2026-08-18
 
-- **FMP's trailing-30-day allowance must have recovered.** The sweep spend
-  ages out around **2026-09-12**. A rebuild against an exhausted allowance
-  burns requests into 429s and cannot succeed (HANDOFF §1: "Do not re-run
-  the bank into a 429"). Probe with one cheap request:
+- **The allowance recovered early.** The owner purchased a **100 GB plan
+  upgrade** on 2026-08-18, ending the blackout ahead of the ~2026-09-12
+  drain date. Probed the same day from the rebuild PR's session (via the
+  FMP connector, which shares the account): a quote request returned
+  **200** — no 429. If this runbook is being executed much later, re-run
+  one cheap probe first:
 
   ```sh
   FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w)" \
     sh -c 'curl -s -o /dev/null -w "%{http_code}\n" "https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=2026-09-10&to=2026-09-12&apikey=$FMP_API_KEY"'
   ```
 
-  `200` → proceed. `429` → stop; the window has not drained. Re-probe
-  daily, not hourly — probes are cheap but not free.
+- **The `to`-inclusivity question is SETTLED, measured 2026-08-18:**
+  `historical-chart/5min?symbol=BTCUSD&from=2026-08-10&to=2026-08-15`
+  returned **1,728 rows — six full dates at 288 bars each**, so `to` is
+  **inclusive** and the chunk plan's worst case (chunkDays+1 dates) is
+  the real case; and an 8-date window (`2026-08-01..2026-08-08`)
+  returned **2,304 rows complete**, so the 5-minute response cap is
+  ≥ 2,304 today — the audit-era ~2,000 clip is not currently binding.
+  The sizing stays conservative anyway (5/29 days); the tripwire remains
+  the live check if the cap ever tightens again.
 
-- **Settle the `to`-inclusivity question with one more probe** (it sizes
-  nothing critical — the chunk plan is safe under either convention — but
-  it turns an assumption into a fact): request
-  `historical-chart/5min?symbol=BTCUSD&from=<D>&to=<D+5>` for a recent
-  complete week and count rows. ~1,440–1,728 rows means the window is
-  what the plan assumes; a count at ~2,000 means the 5-minute clip is
-  live and the chunk plan's tripwire will be earning its keep.
+- **Run the minute bank FIRST if it has not already resumed** — this is
+  the time-critical piece, not the rebuild: FMP serves 1-minute bars
+  only ~3 days deep, so each hour before the bank's next successful run
+  is recoverable history expiring. If the bank's launchd agent is
+  loaded, kickstart it; the rebuild can then proceed at leisure:
+
+  ```sh
+  launchctl kickstart -k "gui/$(id -u)/com.windwardline.levelflow-minute-bank"
+  ```
 
 - Be on a commit that includes the R0 change set (`scripts/intradayChunks.ts`
   exists).
@@ -160,12 +171,14 @@ rm -rf ~/levelflow-cache-condemned-2026-08-11
 ## What this rebuild cannot lose
 
 Nothing in `.calibration-cache` is unrecoverable: FMP serves 15-minute
-history to each symbol's provider floor (forex 2010, crypto 2013+,
+history to each symbol's provider floor (forex 2010; crypto majors
+2013–2017, young listings 2020–2023 — per the 4a corpus manifest, which
+superseded an earlier walk-back that read all crypto as ~3 years;
 futures 2023+), 5-minute to its own shallower floor, daily deeper than
 either, the calendar from 2013 and COT from 2009. The **unrecoverable**
-population is the 1-minute bank's blackout gap (2026-08-13 →
-allowance recovery), which lives in a different store and a different
-program (§21). Do not conflate the two.
+population is the 1-minute bank's blackout gap (2026-08-13 → the bank's
+first post-upgrade run), which lives in a different store and a
+different program (§21). Do not conflate the two.
 
 ## Why wipe-and-refetch, not re-stamp in place
 

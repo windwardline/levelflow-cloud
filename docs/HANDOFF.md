@@ -56,7 +56,20 @@ Spec §17p records it.
 branch, so it turns away arrivals and does **not** end visits. A park without the logout
 step leaves every signed-in operator working behind a closed door.
 
-### FMP is dark, and the loss is permanent
+### FMP is dark, and the loss is permanent — **ENDED EARLY 2026-08-18**
+
+> **UPDATE 2026-08-18: the owner purchased a 100 GB plan upgrade and the
+> allowance recovered immediately** — probed the same day (quote 200, two
+> 5-minute history windows served complete; see
+> `docs/cache-rebuild-r0.md` §0 for the measured results, including the
+> settled `to`-inclusivity and the ≥2,304-row 5-minute cap). The
+> paragraphs below are kept as the record of the blackout. What remains
+> true: the 1-minute bars not banked between 2026-08-13 and the bank's
+> first post-upgrade run are permanently gone (~3-day serving window);
+> everything else refetches. The minute bank resumes on its own schedule
+> now that 429s have stopped — kickstart it early to save the
+> recoverable tail. The R0 cache rebuild is UNBLOCKED and waits only on
+> the studio machine's operator.
 
 The account's trailing-30-day bandwidth allowance was exhausted on 2026-08-13 by
 the rebuild's **replay sweeps** — not by the minute bank, whose steady draw is
@@ -753,7 +766,7 @@ the live roster is 97 distinct markets.
 
 | rank | item | state |
 |---|---|---|
-| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); the rebuild itself is one budgeted run gated on FMP recovery ~09-12 — `docs/cache-rebuild-r0.md` |
+| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST |
 | **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333); E2's fetch half (chunk sizing) landed with R0 | **NEXT** |
 | **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
@@ -800,14 +813,22 @@ Sunday condemning a healthy store run-globally).
   spring-transition counts condemn 24/7 markets (median across years,
   one outage Sunday tolerated, two low years condemn); 15min↔5min
   registration condemns any year that registers at ±4/5 — both
-  polarities pinned, −4 being the real 2026-08-11 signature. THE STATED
-  LIMITS, measured not conjectured: a sessioned pair whose both series
-  share the wrong clock is invisible to every relative instrument, and a
-  provider convention flip (everything shifts together) defeats even the
-  transition witness via exact count conservation. Those two cases are
-  carried by the store stamp and by the **reference session anchor**:
-  ^GSPC's 09:30-ET open asserted in both DST regimes — venue-anchored by
-  design, which is exactly why the Tokyo trap does not apply to it.
+  polarities pinned, −4 being the real 2026-08-11 signature, and only
+  years with their own zero-shift evidence may condemn. The fleet
+  re-review tightened three edges same-day: the transition floor is 3
+  springs (the per-year median makes it safe; the old floor of 8 was
+  unreachable for 2020-2023 crypto listings), the daily witness has no
+  dead band (any year with ≥5% of both midnights is mixed; ~12 days/year
+  is the stated blind floor), and shard aggregation refuses shards whose
+  manifests disagree on the clock (`conditionsOf` now hashes it). THE
+  STATED LIMITS, measured not conjectured: a sessioned pair whose both
+  series share the wrong clock is invisible to every relative
+  instrument, and a provider convention flip (everything shifts
+  together) defeats even the transition witness via exact count
+  conservation. Those two cases are carried by the store stamp and by
+  the **reference session anchor**: ^GSPC's 09:30-ET open asserted in
+  both DST regimes — venue-anchored by design, which is exactly why the
+  Tokyo trap does not apply to it.
   Witnesses ride in the manifest under the hash; the driver refuses a
   condemned series corpus-globally; `verifyManifest` refuses any corpus
   with no clock block or a condemned verdict — killing every pre-R0
@@ -834,15 +855,18 @@ Sunday condemning a healthy store run-globally).
   ^GSPC anchor, a daily store per symbol, and every roster symbol
   present — a rebuild abandoned at 40 of 97 symbols is incomplete, not
   green.
-- **What remains is operational and gated on FMP recovery (~09-12):**
-  `docs/cache-rebuild-r0.md` — probe the allowance (and the
-  `to`-inclusivity, one request), BOOT OUT the top-up agent first (the
-  07:00 slot plus RunAtLoad would write into a mid-rebuild cache),
-  archive the condemned store OUTSIDE the repo (`git clean -dfx` reaches
-  ignored and untracked alike), one budgeted direct `--warm-only` roster
-  run (~10–14 GB expected under a 30 gb ceiling, 8–12 h, resumable,
-  streamed to a log), verify green, re-arm the agent, one green nightly,
-  then delete the archive.
+- **What remains is operational and UNBLOCKED (2026-08-18, the owner's
+  100 GB upgrade):** `docs/cache-rebuild-r0.md` — preconditions already
+  probed green (200s; `to` measured INCLUSIVE at 1,728 rows/6 dates;
+  5-minute cap measured ≥2,304 — the audit-era clip not currently
+  binding), kickstart the minute bank FIRST (the ~3-day 1-minute window
+  is the only clock running), BOOT OUT the top-up agent (the 07:00 slot
+  plus RunAtLoad would write into a mid-rebuild cache), archive the
+  condemned store OUTSIDE the repo (`git clean -dfx` reaches ignored and
+  untracked alike), one budgeted direct `--warm-only` roster run
+  (~10–14 GB expected under a 30 gb ceiling, 8–12 h, resumable, streamed
+  to a log), verify green, re-arm the agent, one green nightly, then
+  delete the archive.
 
 ### ⛔ STOP — THE CORPUS IS INVALID (2026-08-11, evening)
 

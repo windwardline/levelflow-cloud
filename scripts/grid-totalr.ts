@@ -566,6 +566,10 @@ export async function gradeCorpus(
   const conditionsOf = (candidate: SweepManifest) =>
     stableStringify({
       analyzerVersion: candidate.analyzerVersion,
+      // R0 (#358 re-review): shards swept either side of a BAR_CLOCK bump
+      // are two measurements — combining them assembles a mixed-clock
+      // corpus at read time, the exact defect class R0 ends.
+      clock: candidate.clock,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
@@ -587,7 +591,7 @@ export async function gradeCorpus(
   for (let index = 1; index < shardManifests.length; index += 1) {
     if (conditionsOf(shardManifests[index]) !== firstConditions) {
       throw new Error(
-        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, grid, folds, step or warmup do not match; these are not shards of one measurement`,
+        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, clock, grid, folds, step or warmup do not match; these are not shards of one measurement`,
       );
     }
   }
