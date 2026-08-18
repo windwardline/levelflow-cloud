@@ -65,10 +65,22 @@ jobs:
       VITE_ENABLE_GOOGLE_AUTH: ${{ vars.VITE_ENABLE_GOOGLE_AUTH || 'false' }}
       SUPABASE_PROJECT_REF: usrtpoftuvhpmyhlhqlg
     steps:
+      # FMP_API_KEY is deliberately NOT here and NOT pushed below. The fleet
+      # credential law (windwardline/ops: "Keychain is the secret store";
+      # credentials.tsv is the governed inventory) makes the studio Keychain
+      # authoritative — and this workflow's copy was the consumer that law's
+      # inventory missed: the 2026-08-17 key rotation propagated to every
+      # Keychain-reading consumer with no edit, while the GitHub copy went
+      # stale and every deploy silently overwrote Supabase's good value with
+      # the dead one ("Invalid API KEY", runs 373/374). Supabase's function
+      # secret is now set ONLY from the Keychain via
+      # scripts/ops/sync-function-secrets.sh (run on the studio machine at
+      # rotation), it persists across deploys, and the E2E chart gate below
+      # is what proves it authenticates.
       - name: Check required secrets
         run: |
           missing=0
-          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD NEWS_SYNC_TOKEN FMP_API_KEY LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD NEWS_SYNC_TOKEN LEVELFLOW_E2E_EMAIL LEVELFLOW_E2E_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "Missing required secret: ${name}"
               missing=1
@@ -78,7 +90,6 @@ jobs:
         env:
           LEVELFLOW_E2E_EMAIL: ${{ secrets.LEVELFLOW_E2E_EMAIL }}
           LEVELFLOW_E2E_PASSWORD: ${{ secrets.LEVELFLOW_E2E_PASSWORD }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           NEWS_SYNC_TOKEN: ${{ secrets.NEWS_SYNC_TOKEN }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -128,7 +139,6 @@ jobs:
           APP_ALLOWED_ORIGINS=https://levelflow.windwardline.com,http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5175,http://localhost:5175
           NEWS_SYNC_TOKEN=${{ secrets.NEWS_SYNC_TOKEN }}
           ECONOMIC_CALENDAR_PROVIDER=${{ vars.ECONOMIC_CALENDAR_PROVIDER || 'fmp' }}
-          FMP_API_KEY=${{ secrets.FMP_API_KEY }}
           FMP_API_BASE_URL=${{ secrets.FMP_API_BASE_URL || 'https://financialmodelingprep.com/stable' }}
           FINNHUB_API_KEY=${{ secrets.FINNHUB_API_KEY }}
           EOF
