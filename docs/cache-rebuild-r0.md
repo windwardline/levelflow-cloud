@@ -153,8 +153,14 @@ clipped 15-minute PRIMARY inflates the ratio above the ceiling); the
 ^GSPC reference session anchored at 09:30 New York wall in both DST
 regimes (the absolute check — it alone catches a provider convention
 flip, which shifts every series together and is invisible to every
-relative instrument); a daily store beside every intraday pair; and
-every roster symbol present. Any red line: the rebuild did not take —
+relative instrument — and the audit FAILS if this anchor never ran,
+because without a ^GSPC intraday store the one absolute check goes dark
+silently); a daily store beside every intraday pair; every roster
+symbol's THREE stores present — 15min, 5min and daily, with an empty
+store counting as absent, because a symbol FMP answered with empty
+intraday windows ends up daily-only without any error and previously
+read green on every witness it never ran; and the calendar store
+present. Any red line: the rebuild did not take —
 do not sweep, do not delete the archive, diagnose.
 
 For the record, the same command pointed at the condemned archive should

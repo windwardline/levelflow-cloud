@@ -871,9 +871,13 @@ Sunday condemning a healthy store run-globally).
   [2.5, 3.5] band (the ceiling catches a provider cap below ~2,386; the
   ~2,386-2,784 blind band — up to ~14% 15-minute clip reading green — is
   stated and carried by R1's E2 door), the
-  ^GSPC anchor, a daily store per symbol, and every roster symbol
-  present — a rebuild abandoned at 40 of 97 symbols is incomplete, not
-  green.
+  ^GSPC anchor, a daily store per symbol, and — the round-6 completeness
+  gates — every roster symbol's THREE stores present (an empty store
+  counts as absent; a daily-only symbol previously passed every
+  presence check), the reference anchor having actually RUN (without its
+  intraday store the one absolute check went dark silently), and the
+  calendar store present. A rebuild abandoned at 40 of 97 symbols, or
+  one that left a symbol daily-only, is incomplete, not green.
 - **What remains is operational and UNBLOCKED (2026-08-18, the owner's
   100 GB upgrade):** `docs/cache-rebuild-r0.md` — preconditions already
   probed green (200s; `to` measured INCLUSIVE at 1,728 rows/6 dates;

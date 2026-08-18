@@ -358,4 +358,86 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
       red.failures.join("\n"),
     );
   });
+
+  // Round 6 (#358): the presence checks fire only around stores that
+  // EXIST, so they composed into a hole — a daily-only symbol passed all
+  // three, the ^GSPC anchor silently never ran without its intraday
+  // store, and nothing asserted the calendar. Roster mode is the
+  // completeness spec, and these pin each gate in both directions.
+  const calendarStore = (dir: string) =>
+    store(dir, "econ-calendar", CALENDAR_CLOCK, [
+      { currency: "USD", impact: "high", time: Date.UTC(2026, 0, 3, 13, 30) },
+    ]);
+
+  it("passes a complete roster cache — the completeness gates demand, they do not invent (round 6)", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    calendarStore(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD"],
+    });
+    assert.deepEqual(audit.failures, [], audit.failures.join("\n"));
+  });
+
+  it("fails a roster symbol left daily-only — every witness read green while it carried no intraday data (round 6)", () => {
+    const dir = cacheDir();
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    calendarStore(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD"],
+    });
+    assert.equal(audit.failures.length, 1, audit.failures.join("\n"));
+    assert.match(
+      audit.failures[0],
+      /EURUSD: on the scan roster but missing its 15min and 5min store/,
+    );
+  });
+
+  it("treats an EMPTY store as absent — zero rows satisfy no completeness gate (round 6)", () => {
+    const dir = cacheDir();
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, []);
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, []);
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    calendarStore(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD"],
+    });
+    assert.ok(
+      audit.failures.some((line) =>
+        /missing its 15min and 5min store/.test(line)
+      ),
+      audit.failures.join("\n"),
+    );
+  });
+
+  it("fails when the roster names the reference symbol and its anchor never ran — dark is not green (round 6)", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    store(dir, "^GSPC-daily-7000", BAR_CLOCK, daily(false));
+    calendarStore(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD", "^GSPC"],
+    });
+    assert.ok(
+      audit.failures.some((line) =>
+        /\^GSPC: the reference session anchor NEVER RAN/.test(line)
+      ),
+      audit.failures.join("\n"),
+    );
+  });
+
+  it("fails a roster cache with no calendar store — the rebuild always fetches it (round 6)", () => {
+    const dir = cacheDir();
+    healthyTrio(dir);
+    const audit = auditCacheClock({
+      cacheDir: dir,
+      rosterProviderSymbols: ["EURUSD"],
+    });
+    assert.equal(audit.failures.length, 1, audit.failures.join("\n"));
+    assert.match(audit.failures[0], /econ-calendar: no calendar store/);
+  });
 });

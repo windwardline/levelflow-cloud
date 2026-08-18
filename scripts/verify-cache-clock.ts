@@ -16,8 +16,14 @@
 // invisible to every relative instrument — measured, #358); a daily
 // store beside every intraday pair (the daily witness is the universal
 // condemning one); and, when a roster is supplied (the CLI supplies the
-// live scan roster), every roster symbol's three stores present — a
-// rebuild abandoned at 40 of 97 symbols is incomplete, not green.
+// live scan roster), the COMPLETENESS gates (#358 round 6): every roster
+// symbol's three stores present — all of 15min, 5min and daily, with an
+// EMPTY store counting as absent — the reference symbol's session anchor
+// actually run (not merely not-failed: without its intraday store the one
+// absolute check goes dark, and dark is not green), and the calendar
+// store present. A rebuild abandoned at 40 of 97 symbols, or one that
+// left a symbol daily-only because FMP answered its intraday windows
+// empty, is incomplete, not green.
 //
 // The poisoned pre-R0 store fails the very first check — every store
 // unstamped — which is the point: this instrument proves the rebuild
@@ -109,8 +115,17 @@ export function auditCacheClock(input: {
     { fifteen?: SlimSeries; five?: SlimSeries }
   >();
   // Which series kinds each provider symbol has, for the daily-present
-  // and roster checks.
+  // and roster completeness checks. Kinds are registered only for stores
+  // that hold rows: the pipeline never writes an empty store
+  // (loadRollingSeries returns before the write when a fetch yields
+  // nothing), so an empty one satisfies no completeness gate.
   const kindsByProvider = new Map<string, Set<string>>();
+  // Whether each reference symbol's session anchor actually RAN — the
+  // per-store block below is conditioned on an intraday store existing,
+  // so absence must be failed explicitly, not silently skipped (#358
+  // round 6).
+  const anchorWitnessed = new Set<string>();
+  let calendarPresent = false;
 
   for (const name of rollingNames) {
     const key = name.slice(0, -".rolling.json".length);
@@ -118,6 +133,12 @@ export function auditCacheClock(input: {
     if (!kind) {
       fail(`${key}: unknown store kind — no expected clock for this key`);
       continue;
+    }
+    if (kind.kind === "calendar") {
+      // Presence means the file exists under the calendar key; an
+      // unreadable or mis-stamped calendar earns its own RED below
+      // rather than additionally reading as missing.
+      calendarPresent = true;
     }
     let store: { clock?: string; items?: StoredBar[] };
     try {
@@ -148,7 +169,7 @@ export function auditCacheClock(input: {
 
     const keyMatch = key.match(/^(.*)-(15min|5min|daily)-(.+)$/);
     const provider = keyMatch?.[1];
-    if (provider) {
+    if (provider && items.length > 0) {
       const kinds = kindsByProvider.get(provider) ?? new Set<string>();
       kinds.add(keyMatch![2]);
       kindsByProvider.set(provider, kinds);
@@ -181,6 +202,7 @@ export function auditCacheClock(input: {
     // The reference anchor: the one absolute sessioned-intraday check.
     const anchor = provider ? REFERENCE_SESSION_ANCHORS[provider] : undefined;
     if (anchor && kind.role === "intraday" && items.length > 0) {
+      anchorWitnessed.add(provider!);
       const anchored = sessionAnchorWitness(items, anchor);
       if (anchored.verdict === "displaced") {
         fail(
@@ -296,10 +318,42 @@ export function auditCacheClock(input: {
     }
   }
   if (rosterProviderSymbols) {
+    // The completeness gates (#358 round 6). The presence checks above
+    // fire only around stores that EXIST, so alone they compose into a
+    // hole: a symbol left daily-only — reachable without an exception,
+    // because empty intraday payloads make loadRollingSeries return
+    // without writing while the daily sibling in the same Promise.all
+    // lands, and the sweep then skips the symbol and exits 0 — passed
+    // every one of them. The roster is the spec of what a finished
+    // rebuild contains, so roster mode demands the whole shape.
     for (const provider of rosterProviderSymbols) {
-      if (!kindsByProvider.has(provider)) {
+      const kinds = kindsByProvider.get(provider);
+      if (!kinds) {
         fail(`${provider}: on the scan roster but has NO stores — rebuild incomplete`);
+        continue;
       }
+      const missing = ["15min", "5min", "daily"].filter((k) => !kinds.has(k));
+      if (missing.length > 0) {
+        fail(
+          `${provider}: on the scan roster but missing its ${
+            missing.join(" and ")
+          } store(s) — a partial symbol reads green on every witness it ` +
+            `never ran; rebuild incomplete`,
+        );
+      }
+      if (REFERENCE_SESSION_ANCHORS[provider] && !anchorWitnessed.has(provider)) {
+        fail(
+          `${provider}: the reference session anchor NEVER RAN — no ` +
+            `${provider} intraday bars were witnessed, and nothing else ` +
+            `can see a provider convention flip; dark is not green`,
+        );
+      }
+    }
+    if (!calendarPresent) {
+      fail(
+        `econ-calendar: no calendar store — the rebuild fetches it ` +
+          `alongside every roster symbol; a cache without it is incomplete`,
+      );
     }
   }
   if (cotNames.length > 0) {

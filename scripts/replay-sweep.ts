@@ -335,24 +335,21 @@ async function main() {
       continue;
     }
 
-    if (primaryBars.length < WARMUP_BARS * 2) {
-      console.warn(
-        `Skipping ${symbol}: only ${primaryBars.length} intraday bars.`,
-      );
-      continue;
-    }
-
-    const cotReports = await loadCotReports(args.cacheDir, symbol);
-
     // R0 one clock: the series testify about their own stamps, and a
     // condemned witness stops the RUN, not just the symbol — the one-clock
     // invariant is corpus-global, and a sweep that quietly drops a
-    // poisoned market ships a corpus that looks whole. The store guard
-    // (calibrationCache) already refuses a wrong-stamp store; this is the
-    // independent per-year check on the data itself. Its measured limits
-    // (#358 adversarial round): a sessioned pair whose BOTH series are on
-    // the same wrong clock reads as aligned here — that case is carried
-    // by the store stamp and by the reference session anchor in
+    // poisoned market ships a corpus that looks whole. That is why this
+    // block sits ABOVE the thin-symbol skip below (#358 round 6): a symbol
+    // under the depth floor is excluded from the measurement, but its
+    // stores are already stamped and cached, and a later, deeper run will
+    // read them — so its data is witnessed before it is dropped. The
+    // witnesses return "indeterminate" below their own sample floors, so
+    // this cannot false-condemn a series that is merely thin. The store
+    // guard (calibrationCache) already refuses a wrong-stamp store; this
+    // is the independent per-year check on the data itself. Its measured
+    // limits (#358 adversarial round): a sessioned pair whose BOTH series
+    // are on the same wrong clock reads as aligned here — that case is
+    // carried by the store stamp and by the reference session anchor in
     // verify-cache-clock, the only instrument that catches a provider
     // convention flip shifting every series together.
     //
@@ -385,6 +382,15 @@ async function main() {
           `docs/cache-rebuild-r0.md`,
       );
     }
+
+    if (primaryBars.length < WARMUP_BARS * 2) {
+      console.warn(
+        `Skipping ${symbol}: only ${primaryBars.length} intraday bars.`,
+      );
+      continue;
+    }
+
+    const cotReports = await loadCotReports(args.cacheDir, symbol);
 
     manifestSymbols.push({
       calibration: {

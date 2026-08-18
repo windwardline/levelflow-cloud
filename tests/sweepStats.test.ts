@@ -368,7 +368,11 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 describe("every emit reader passes the one-clock door (R0) — the population, not a list", () => {
   const readerPattern =
     /createInterface\(|readLinesSync\(|split\("\\n"\)|split\(\/\\r\?\\n\/\)|split\('\\n'\)/;
-  const doorPattern = /assertManifest\(|assertManifestedCorpus/;
+  // The door must be CALLED, not merely imported (#358 round 6 minor):
+  // the bare identifier also matched its own import line, so a reader
+  // that imported assertManifestedCorpus and never invoked it would have
+  // passed. \w* keeps the streaming variant's call matched.
+  const doorPattern = /assertManifest\(|assertManifestedCorpus\w*\(/;
   // Keyed by path relative to scripts/, not basename (#358 round 4b): a
   // future scripts/<subdir>/starvation-audit.ts must not inherit an
   // exemption written for a different file.
