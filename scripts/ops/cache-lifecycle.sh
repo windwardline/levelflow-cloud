@@ -50,6 +50,19 @@ while IFS= read -r -d '' file; do
 done < <(find "$SWEEPS_DIR" -name '*.jsonl' -mtime +"$KEEP_DAYS" -print0 2>/dev/null)
 echo "sweep emits older than ${KEEP_DAYS}d: $emit_count ($((emit_bytes / 1024 / 1024))MB)"
 
+# 4. Atomic-write debris (R0): calibrationCache writes temp+rename, so a
+#    crash can abandon a multi-MB .rolling.json.tmp-<pid>. Inert — no
+#    reader matches the name — but not free on a 30GB-budget machine.
+#    A day old means no live process still owns it.
+tmp_count=0
+tmp_bytes=0
+while IFS= read -r -d '' file; do
+  tmp_count=$((tmp_count + 1))
+  tmp_bytes=$((tmp_bytes + $(stat -f %z "$file")))
+  [ "$MODE" = "apply" ] && rm "$file"
+done < <(find "$CACHE_DIR" -maxdepth 1 -name '*.rolling.json.tmp-*' -mtime +1 -print0 2>/dev/null)
+echo "abandoned atomic-write temps older than 1d: $tmp_count ($((tmp_bytes / 1024 / 1024))MB)"
+
 if [ "$MODE" = "dry-run" ]; then
   echo "dry run — re-run with --apply to delete"
 fi

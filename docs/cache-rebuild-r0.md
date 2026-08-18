@@ -9,9 +9,10 @@ mismatched store **refuses to load** (`cacheClockMismatch`), and a
 corrupt or truncated one refuses too (`cacheStoreUnreadable`) instead of
 silently refetching; the manifest carries the clock and per-year
 witnesses; every corpus reader — the aggregation doors *and* all nine
-bare emit readers, the population pinned by a sweep-style test rather
-than an enumeration in prose — refuses a corpus that cannot prove its
-clock. The
+bare emit readers, the population pinned by a sweep-style test over the known
+line-reading idioms — refuses a corpus that cannot prove its clock, and
+since round 4 refuses a corpus whose STATED clock is not this build's
+(a BAR_CLOCK bump forces the re-sweep, not just the cache rebuild). The
 condemned 3.9 GB store on the studio machine therefore cannot be read,
 topped up, or quietly deepened by anything at this commit or later — the
 only way forward is this rebuild.
@@ -35,15 +36,20 @@ per symbol, and was never carried by the defect. Leave it running.
     sh -c 'curl -s -o /dev/null -w "%{http_code}\n" "https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=EURUSD&from=2026-09-10&to=2026-09-12&apikey=$FMP_API_KEY"'
   ```
 
-- **The `to`-inclusivity question is SETTLED, measured 2026-08-18:**
+- **The `to`-inclusivity and BOTH caps are SETTLED, measured 2026-08-18:**
   `historical-chart/5min?symbol=BTCUSD&from=2026-08-10&to=2026-08-15`
   returned **1,728 rows — six full dates at 288 bars each**, so `to` is
   **inclusive** and the chunk plan's worst case (chunkDays+1 dates) is
-  the real case; and an 8-date window (`2026-08-01..2026-08-08`)
-  returned **2,304 rows complete**, so the 5-minute response cap is
-  ≥ 2,304 today — the audit-era ~2,000 clip is not currently binding.
-  The sizing stays conservative anyway (5/29 days); the tripwire remains
-  the live check if the cap ever tightens again.
+  the real case; an 8-date 5-minute window returned **2,304 rows
+  complete** (cap ≥ 2,304 — the audit-era ~2,000 clip is not currently
+  binding); and a 29-day 15-minute window (`2026-07-15..2026-08-13`)
+  returned **2,880 rows — 30 dates at 96/96 min/max per date, complete**
+  (cap ≥ 2,880; the 15-minute cap had never been measured before). The
+  sizing stays conservative (5/29 days). A future clip cannot be caught
+  from inside one response without false positives — the guard is these
+  measured facts, the chunk row-count tally the sweep writes into the
+  manifest (a clip shows as a constant count below the window's physical
+  maximum), and the verifier's density floor AND ceiling.
 
 - **Run the minute bank FIRST if it has not already resumed** — this is
   the time-critical piece, not the rebuild: FMP serves 1-minute bars
@@ -114,10 +120,11 @@ FMP_API_KEY="$(security find-generic-password -a peacock -s fmp-api-key -w)" \
   rewinds to its start; store writes are atomic (temp + rename), so a
   crash cannot leave a torn store.
 - The chunk plan lives in `scripts/intradayChunks.ts` (5-minute: 5 days;
-  15-minute: 29 — sized so the worst case under an inclusive `to` stays
-  under the provider caps). If any chunk trips the response-cap tripwire,
-  the run stops by design; shrink the chunk size rather than resuming
-  past it.
+  15-minute: 29 — sized so the worst case under the measured-inclusive
+  `to` fits the measured caps). Every chunk's row count is tallied into
+  the emit manifest (`chunkRowCounts`); a provider clip would show there
+  as a constant count below the window's physical maximum (1,740 / 2,884)
+  — check it in step 3 alongside the verifier.
 - Do not run sweeps or the full test suite on the machine while this
   runs.
 
@@ -128,18 +135,25 @@ npx tsx scripts/verify-cache-clock.ts
 ```
 
 Green requires, for every store: the expected clock stamp, readable; no
-witness condemning a series (per-year daily stamps at New York midnight,
-spring-transition Sundays full, weekly opens moving with DST where the
-venue does); every 15min/5min pair registering at zero shift — with a
-large-overlap pair that cannot register at all treated as a failure,
-because at this gate uncertainty resolves toward failing; a 5min/15min
-density near 3 over the shared span (the 1b sawtooth read ~0.6–1.0); the
+witness condemning a series — per-year daily stamps at New York
+midnight, with a deep daily store REQUIRED to actually resolve (an
+undecided witness on 100+ rows fails, matching the other absolute
+gates); no spring-transition year in the naive-shaped band [0.93, 0.975]
+that losing exactly one wall hour produces (outage dents read as gaps);
+weekly opens moving with DST where the venue does; every 15min/5min pair
+registering at zero shift — with a large-overlap pair that cannot
+register at all treated as a failure, because at this gate uncertainty
+resolves toward failing; a 5min/15min density between 2.5 and 3.5 over
+the shared span (the 1b sawtooth read ~0.6–1.0 below the floor; a
+clipped 15-minute PRIMARY inflates the ratio above the ceiling); the
 ^GSPC reference session anchored at 09:30 New York wall in both DST
 regimes (the absolute check — it alone catches a provider convention
 flip, which shifts every series together and is invisible to every
 relative instrument); a daily store beside every intraday pair; and
-every roster symbol present. Any red line: the rebuild did not take — do
-not sweep, do not delete the archive, diagnose.
+every roster symbol present. Also eyeball the emit manifest's
+`chunkRowCounts` for any constant count below the physical maxima
+(1,740 / 2,884). Any red line: the rebuild did not take — do not sweep,
+do not delete the archive, diagnose.
 
 For the record, the same command pointed at the condemned archive should
 fail on every store — it predates the stamp:

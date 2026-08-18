@@ -810,8 +810,11 @@ Sunday condemning a healthy store run-globally).
   zero-shift match all read clean under aggregates). Daily NY-midnight
   stamps condemn universally — one naive year is "mixed"; the
   weekly-open DST shift PROVES utc but never condemns (the Nikkei pin);
-  spring-transition counts condemn 24/7 markets (median across years,
-  one outage Sunday tolerated, two low years condemn); 15min↔5min
+  spring-transition counts condemn 24/7 markets on NAIVE-SHAPED evidence
+  only — `lowYears` counts years whose ratio sits in the [0.93, 0.975]
+  band that losing exactly one wall hour produces (~0.958), so outage
+  dents read as gaps, a naive-shaped median condemns, and two
+  naive-shaped years are "mixed"; 15min↔5min
   registration condemns any year that registers at ±4/5 — both
   polarities pinned, −4 being the real 2026-08-11 signature, and only
   years with their own zero-shift evidence may condemn. The fleet
@@ -839,8 +842,9 @@ Sunday condemning a healthy store run-globally).
   threshold-rescue, cost-sensitivity-verdict, feasibility-4d,
   confidence-bands, ag-class-derivation, exclusion-suspects,
   stop-provenance) — and the POPULATION is pinned by a sweep-style test
-  in `tests/sweepStats.test.ts`, so a tenth reader cannot appear
-  undoored without failing CI.
+  in `tests/sweepStats.test.ts` over the known line-reading idioms —
+  wider than any enumeration, honest about being a pattern match rather
+  than a proof.
 - **The 1b fetch defect fixed at the source** (`scripts/intradayChunks.ts`,
   extracted pure and pinned by behaviour): chunks sized per timeframe —
   5min 5d, 15min 29d — so the worst case under an INCLUSIVE `to`

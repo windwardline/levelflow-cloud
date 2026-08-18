@@ -4,30 +4,39 @@
 // that must be testable cannot live there.
 //
 // FMP caps a single intraday response, and the cap is a per-timeframe
-// FACT, not one number: 15-minute chunks of 30 days came back complete
-// for every market including 24/7 crypto (proven by the corpus itself —
-// crypto densities ran 98%+ with ~1-day largest gaps, 4a report), while
-// 5-minute chunks were observed clipping at ~2,000 rows (remediation 1b:
-// the 30-day sawtooth that left EURUSD 5-minute-dense on 1,408 of 5,247
-// days and made 64.7% of confirm-fold decisions phantoms).
+// FACT — MEASURED 2026-08-18, after the allowance upgrade, one probe
+// each (recorded in docs/cache-rebuild-r0.md §0):
 //
-// Window arithmetic is DATE-based (the endpoint takes YYYY-MM-DD), and
-// adjacent windows deliberately share their boundary date so no hole can
-// open whichever way the provider treats `to` (inclusive or exclusive —
-// unsettled while FMP is dark; the rebuild runbook's probe settles it).
-// The chunk sizes are therefore chosen so the WORST case — chunkDays + 1
-// calendar dates under an inclusive `to` — stays under the cap with
-// margin:
+//   15min: a 29-day BTCUSD window returned 2,880 rows — 30 dates at
+//          96/96 min/max per date, COMPLETE → cap ≥ 2,880
+//   5min:  an 8-date BTCUSD window returned 2,304 rows complete
+//          → cap ≥ 2,304 (the audit-era ~2,000 clip — remediation 1b:
+//          the sawtooth that left EURUSD 5-minute-dense on 1,408 of
+//          5,247 days — is not currently binding)
 //
-//   5min:  5 days → worst 6 dates × 288 = 1,728 rows  (clip ~2,000)
-//   15min: 29 days → worst 30 dates × 96 = 2,880 rows (cap ~3,000)
+// Window arithmetic is DATE-based (the endpoint takes YYYY-MM-DD), `to`
+// is MEASURED INCLUSIVE, and adjacent windows deliberately share their
+// boundary date so no hole can open. The chunk sizes keep the physical
+// worst case — chunkDays + 1 calendar dates, plus the fall-back day's
+// extra hour — under the measured caps:
 //
-// The tripwire makes the cap assumption self-verifying instead of
-// silent: a chunk whose RAW payload row count reaches it is
-// indistinguishable from a clipped one and fails the run — a clipped
-// chunk keeps its newest rows, so the hole lands at the old end of the
-// window where nothing downstream can tell a thin market from a
-// truncated fetch, and the rolling cache would never refetch it.
+//   5min:  5 days → worst 6 dates × 288 + 12 = 1,740 rows  (cap ≥ 2,304)
+//   15min: 29 days → worst 30 dates × 96 + 4 = 2,884 rows  (cap ≥ 2,880)
+//
+// HOW A FUTURE CLIP IS CAUGHT — stated honestly, because two designs
+// died here (#358 rounds 1 and 4): a row-count tripwire above the
+// physical maximum can never fire (a complete chunk cannot reach it and
+// a clipped chunk returns fewer rows still), and an oldest-bar coverage
+// check false-trips on sessioned markets (a holiday-cluster window can
+// legitimately open days late — a run-killing false positive). Per-chunk
+// clip detection without false positives is not achievable from inside
+// one response. The guard is therefore layered where the context is:
+// the sweep records a per-timeframe chunk row-count tally into the
+// manifest (a clip shows as a constant count below the window's physical
+// maximum, visible to any reader), verify-cache-clock bounds the
+// 5min/15min density with a floor AND a ceiling (a clipped primary
+// inflates the ratio), and R1's E2 adds the per-symbol density assertion
+// at the corpus door.
 
 export type IntradayTimeframe = "15min" | "5min";
 
@@ -36,12 +45,10 @@ export const INTRADAY_CHUNK_DAYS: Record<IntradayTimeframe, number> = {
   "5min": 5,
 };
 
-// Complete worst cases sit below these (15min: 2,880; 5min: 1,728) under
-// either date convention; a trip means the window is oversized for the
-// cap or FMP lowered it — both demand resizing, never a holed series.
-export const INTRADAY_ROW_CAP_TRIPWIRE: Record<IntradayTimeframe, number> = {
-  "15min": 2_950,
-  "5min": 1_900,
+/** Bars per date at full 24/7 density, for physical-maximum arithmetic. */
+export const BARS_PER_DATE: Record<IntradayTimeframe, number> = {
+  "15min": 96,
+  "5min": 288,
 };
 
 // Walking back stops after this many consecutive empty DAYS — how the end

@@ -48,15 +48,16 @@ describe("the sweep driver feeds every store its clock (read as text — main() 
     assert.doesNotMatch(sweep, /legacyPrefix/);
   });
 
-  it("takes its chunk plan from intradayChunks and trips on the RAW payload count", () => {
+  it("takes its chunk plan from intradayChunks and records every chunk's row count", () => {
     // The 1b fix is pinned by behaviour in tests/intradayChunks.test.ts;
-    // here: the driver actually uses that plan, and the tripwire reads
-    // the provider's row count, not the post-rejection survivor count
-    // (#358 findings 2 and 5).
+    // here: the driver actually uses that plan, and the manifest carries
+    // the chunk row-count tally — a future clip shows as a constant
+    // count below the window's physical maximum (#358 round 4; the
+    // row-count tripwire it replaces was arithmetically dead).
     assert.match(sweep, /from "\.\/intradayChunks\.ts"/);
     assert.match(sweep, /intradayChunkWindows\(\{/);
-    assert.match(sweep, /rawRows >= capTripwire/);
-    assert.match(sweep, /at the provider's response cap/);
+    assert.match(sweep, /chunkRowCounts: chunkRowTally/);
+    assert.doesNotMatch(sweep, /INTRADAY_ROW_CAP_TRIPWIRE/);
   });
 
   it("splits the refusal tokens: witness refusals are actionable and must not wear the stand-down's name", () => {

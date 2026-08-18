@@ -259,6 +259,48 @@ describe("auditCacheClock — the rebuild's acceptance instrument", () => {
     );
   });
 
+  it("condemns an INFLATED density — a clipped 15-minute primary reads above 3, not below (#358 round 4)", () => {
+    const dir = cacheDir();
+    // Thin the PRIMARY to half: the floor-only check read this pair as
+    // greener (ratio 6); the ceiling catches it.
+    store(
+      dir,
+      "EURUSD-15min-7000",
+      BAR_CLOCK,
+      intraday(900_000, false).filter((_, index) => index % 2 === 0),
+    );
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    store(dir, "EURUSD-daily-7000", BAR_CLOCK, daily(false));
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      audit.failures.some((line) => /ABOVE the complete ratio/.test(line)),
+      audit.failures.join("\n"),
+    );
+  });
+
+  it("fails a deep daily store whose witness resolved nothing — green must mean decided (#358 round 4)", () => {
+    const dir = cacheDir();
+    store(dir, "EURUSD-15min-7000", BAR_CLOCK, intraday(900_000, false));
+    store(dir, "EURUSD-5min-7000", BAR_CLOCK, intraday(300_000, false));
+    // 300 rows stamped at neither midnight (hour 12 UTC): every year
+    // undecided, verdict indeterminate at a depth where that is not
+    // youth, it is a store the universal witness cannot read.
+    store(
+      dir,
+      "EURUSD-daily-7000",
+      BAR_CLOCK,
+      daily(false).map((b, index) => ({
+        ...b,
+        time: Date.UTC(2025, 6, 1, 12) + index * DAY,
+      })),
+    );
+    const audit = auditCacheClock({ cacheDir: dir });
+    assert.ok(
+      audit.failures.some((line) => /daily witness resolved NOTHING/.test(line)),
+      audit.failures.join("\n"),
+    );
+  });
+
   it("anchors the reference symbol at its venue open, and condemns a displaced store", () => {
     const healthy = cacheDir();
     store(healthy, "^GSPC-15min-7000", BAR_CLOCK, referenceIntraday(15, false));

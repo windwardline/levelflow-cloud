@@ -9,6 +9,8 @@ import {
   sha256Hex,
   stableStringify,
 } from "../scripts/sweepManifest.ts";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
@@ -190,7 +192,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
-      clock: { calendar: "test-calendar-v1", normalizer: "test-clock-v1" },
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: 365,
       generatedAt: "2026-08-10T04:00:00.000Z",
       grid: [{}],
@@ -293,11 +295,28 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
     );
   });
 
+  it("refuses a corpus swept under a SUPERSEDED clock — a stated clock must be this build's (#358 round 4)", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: "ny-wall-utc-v1-superseded" };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /superseded-clock corpus is re-swept, not/,
+    );
+    // A deliberate historical read is an explicit act, and only that.
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    try {
+      const { rows } = assertManifestedCorpus(writeWithManifest(manifest));
+      assert.equal(rows.length, 1);
+    } finally {
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
+  });
+
   it("refuses a corpus whose series witnesses a naive clock", () => {
     const manifest = legacyManifest() as ReturnType<typeof legacyManifest> & {
       clock?: unknown;
     };
-    manifest.clock = { calendar: "test-calendar-v1", normalizer: "test-clock-v1" };
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     manifest.symbols[0].series["15min"] = {
       ...seriesFacts([{ time: 0 }], "intraday"),
       clock: { verdict: "naive" },
@@ -310,7 +329,7 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 
   it("refuses a corpus whose 5min series registers at a shift against the primary", () => {
     const manifest = legacyManifest() as Record<string, unknown>;
-    manifest.clock = { calendar: "test-calendar-v1", normalizer: "test-clock-v1" };
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
     (manifest.symbols as Array<Record<string, unknown>>)[0].crossSeriesClock = {
       bestShiftHours: 4,
       matchRateAtBest: 0.8,
@@ -335,7 +354,8 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
 // stated reason. A new reader idiom extends the pattern; a new reader
 // without a door fails here.
 describe("every emit reader passes the one-clock door (R0) — the population, not a list", () => {
-  const readerPattern = /createInterface\(|readLinesSync\(|split\("\\n"\)/;
+  const readerPattern =
+    /createInterface\(|readLinesSync\(|split\("\\n"\)|split\(\/\\r\?\\n\/\)|split\('\\n'\)/;
   const doorPattern = /assertManifest\(|assertManifestedCorpus/;
   const exempt: Record<string, string> = {
     "starvation-audit.ts":
@@ -348,11 +368,20 @@ describe("every emit reader passes the one-clock door (R0) — the population, n
 
   it("every line-reading script under scripts/ has the door or a named exemption", () => {
     const undoored: string[] = [];
-    for (const name of readdirSync("scripts")) {
-      if (!name.endsWith(".ts")) {
+    for (
+      const entry of readdirSync("scripts", {
+        recursive: true,
+        withFileTypes: true,
+      })
+    ) {
+      const name = entry.name;
+      if (!entry.isFile() || !/\.(ts|mjs)$/.test(name)) {
         continue;
       }
-      const source = readFileSync(`scripts/${name}`, "utf8");
+      const source = readFileSync(
+        join(entry.parentPath, name),
+        "utf8",
+      );
       if (!readerPattern.test(source)) {
         continue;
       }

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  BARS_PER_DATE,
   EMPTY_WINDOW_CLEARANCE_DAYS,
   emptyStreakLimitFor,
   INTRADAY_CHUNK_DAYS,
-  INTRADAY_ROW_CAP_TRIPWIRE,
   intradayChunkWindows,
   MAX_DEPTH_DAYS,
 } from "../scripts/intradayChunks.ts";
@@ -15,23 +15,38 @@ import {
 
 const DAY = 86_400_000;
 
-describe("chunk sizes are bounded against the provider caps under EITHER date convention", () => {
-  it("worst-case rows (chunkDays + 1 dates, 24/7 market) sit under each tripwire", () => {
-    // Adjacent windows share a boundary date, so if FMP's `to` is
-    // inclusive a window covers chunkDays + 1 calendar dates. The sizes
-    // must hold even then (#358 finding 1).
-    assert.ok((INTRADAY_CHUNK_DAYS["15min"] + 1) * 96 < INTRADAY_ROW_CAP_TRIPWIRE["15min"]);
-    assert.ok((INTRADAY_CHUNK_DAYS["5min"] + 1) * 288 < INTRADAY_ROW_CAP_TRIPWIRE["5min"]);
-    // And with the fall-back day's extra hour on top (+4 / +12 rows).
-    assert.ok((INTRADAY_CHUNK_DAYS["15min"] + 1) * 96 + 4 < INTRADAY_ROW_CAP_TRIPWIRE["15min"]);
-    assert.ok((INTRADAY_CHUNK_DAYS["5min"] + 1) * 288 + 12 < INTRADAY_ROW_CAP_TRIPWIRE["5min"]);
+// The caps as MEASURED 2026-08-18 (runbook §0): one probe each, both
+// windows returned complete. A row-count tripwire was removed as
+// arithmetically dead (#358 round 4) — a complete chunk cannot reach a
+// tripwire above its physical maximum and a clipped chunk returns fewer
+// rows still — so the guard is these measured facts plus the store-level
+// density floor+ceiling and the manifest's chunk row-count tally.
+const MEASURED_CAP_FLOOR = { "15min": 2_880, "5min": 2_304 } as const;
+
+describe("chunk sizes are bounded against the MEASURED provider caps", () => {
+  it("worst-case rows fit the measured caps, with the one 4-row ambiguity stated", () => {
+    // Adjacent windows share a boundary date and `to` is measured
+    // inclusive, so a window covers chunkDays + 1 calendar dates
+    // (#358 finding 1).
+    const worst15 = (INTRADAY_CHUNK_DAYS["15min"] + 1) *
+        BARS_PER_DATE["15min"] + 4;
+    const worst5 = (INTRADAY_CHUNK_DAYS["5min"] + 1) * BARS_PER_DATE["5min"] +
+      12;
+    // 5min: comfortably under the measured floor.
+    assert.ok(worst5 < MEASURED_CAP_FLOOR["5min"]);
+    // 15min: the floor was measured on a complete non-fall-back window,
+    // so the cap is >= 2,880 and only a fall-back-week window (once a
+    // year) exceeds it — by exactly the repeated hour's 4 bars. If the
+    // cap were exactly 2,880 those 4 bars would clip, visible in the
+    // manifest's chunk row-count tally.
+    assert.equal(worst15, MEASURED_CAP_FLOOR["15min"] + 4);
   });
 
   it("pins the deliberate values — moving any of these is a provider-cap decision", () => {
     assert.equal(INTRADAY_CHUNK_DAYS["15min"], 29);
     assert.equal(INTRADAY_CHUNK_DAYS["5min"], 5);
-    assert.equal(INTRADAY_ROW_CAP_TRIPWIRE["15min"], 2_950);
-    assert.equal(INTRADAY_ROW_CAP_TRIPWIRE["5min"], 1_900);
+    assert.equal(BARS_PER_DATE["15min"], 96);
+    assert.equal(BARS_PER_DATE["5min"], 288);
     assert.equal(EMPTY_WINDOW_CLEARANCE_DAYS, 90);
     assert.equal(MAX_DEPTH_DAYS, 7_000);
   });

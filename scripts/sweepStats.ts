@@ -19,6 +19,8 @@
 
 import { closeSync, createReadStream, openSync, readFileSync, readSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
   sha256Hex,
   stableStringify,
@@ -236,6 +238,25 @@ function verifyManifest(emitPath: string): SweepManifest {
         `the R0 one-clock rebuild is mixed-clock (see docs/research/` +
         `remediation-program-2026-08-11.md) and cannot be aggregated; ` +
         `re-sweep on the rebuilt cache`,
+    );
+  }
+  // And the stated clock must be THIS build's clock (#358 round 4): a
+  // BAR_CLOCK bump supersedes every corpus swept before it — the store
+  // guard forces the CACHE rebuild, and this forces the RE-SWEEP, closing
+  // the same "a fix cannot reach an already-persisted artifact" mechanism
+  // one layer up. A deliberate historical read is an explicit act:
+  //   LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1
+  if (
+    (manifest.clock.normalizer !== BAR_CLOCK ||
+      manifest.clock.calendar !== CALENDAR_CLOCK) &&
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK !== "1"
+  ) {
+    throw new Error(
+      `${emitPath}: corpus swept under clock "${manifest.clock.normalizer}"/` +
+        `"${manifest.clock.calendar}" but this build is "${BAR_CLOCK}"/` +
+        `"${CALENDAR_CLOCK}" — a superseded-clock corpus is re-swept, not ` +
+        `aggregated (set LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1 only for a ` +
+        `deliberate historical read)`,
     );
   }
   for (const entry of manifest.symbols ?? []) {

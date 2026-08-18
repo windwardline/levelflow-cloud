@@ -39,7 +39,6 @@ import {
 } from "./clockWitness.ts";
 import {
   emptyStreakLimitFor,
-  INTRADAY_ROW_CAP_TRIPWIRE,
   intradayChunkWindows,
   type IntradayTimeframe,
   MAX_DEPTH_DAYS,
@@ -482,6 +481,7 @@ async function main() {
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
       clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      chunkRowCounts: chunkRowTally,
       days: args.days,
       folds: classFolds ? undefined : folds,
       ...(classFolds && {
@@ -744,7 +744,6 @@ async function fetchIntradayBars(
   timeframe: IntradayTimeframe = "15min",
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
-  const capTripwire = INTRADAY_ROW_CAP_TRIPWIRE[timeframe];
   const emptyStreakLimit = emptyStreakLimitFor(timeframe);
   let emptyStreak = 0;
 
@@ -762,24 +761,14 @@ async function fetchIntradayBars(
     endpoint.searchParams.set("from", isoDate(new Date(window.fromMs)));
     endpoint.searchParams.set("to", isoDate(new Date(window.toMs)));
     endpoint.searchParams.set("apikey", API_KEY!);
-    const { bars: chunk, rawRows } = await fetchBars(endpoint);
-    // The provider's cap applies to the RAW payload — the boundary's
-    // rejections must not let a clipped chunk slip under the wire
-    // (#358 finding 2). A clipped chunk keeps its NEWEST rows, so the
-    // hole lands silently at the old end of the window and nothing
-    // downstream can tell a thin market from a truncated fetch — that is
-    // remediation 1b. Stop the run instead of caching a holed series the
-    // top-up will never refetch.
-    if (rawRows >= capTripwire) {
-      throw new Error(
-        `${providerSymbol} ${timeframe} chunk ${
-          isoDate(new Date(window.fromMs))
-        }..${isoDate(new Date(window.toMs))} returned ${rawRows} raw rows, ` +
-          `at the provider's response cap — possibly truncated; shrink ` +
-          `INTRADAY_CHUNK_DAYS["${timeframe}"] rather than caching a ` +
-          `holed series`,
-      );
-    }
+    const chunk = await fetchBars(endpoint);
+    // A future clip cannot be caught from inside one response without
+    // false positives (intradayChunks.ts header, #358 round 4) — but it
+    // SHOWS as a constant chunk row count below the window's physical
+    // maximum, so every count is tallied into the manifest for the
+    // store-level checks and any reader to see.
+    const tally = chunkRowTally[timeframe];
+    tally[chunk.length] = (tally[chunk.length] ?? 0) + 1;
     if (chunk.length === 0) {
       emptyStreak += 1;
       if (emptyStreak >= emptyStreakLimit) {
@@ -805,15 +794,10 @@ async function fetchDailyBars(
   endpoint.searchParams.set("from", isoDate(new Date(floor)));
   endpoint.searchParams.set("to", isoDate(new Date()));
   endpoint.searchParams.set("apikey", API_KEY!);
-  return dedupeSort((await fetchBars(endpoint)).bars);
+  return dedupeSort(await fetchBars(endpoint));
 }
 
-// Returns the normalized bars AND the raw payload row count: the
-// provider's response cap applies to what it SENT, not to what survived
-// the boundary's rejections, so the intraday tripwire reads rawRows.
-async function fetchBars(
-  endpoint: URL,
-): Promise<{ bars: Bar[]; rawRows: number }> {
+async function fetchBars(endpoint: URL): Promise<Bar[]> {
   const response = await fetchFmpWithRetry(() => fetch(endpoint), {
     paceMs: FMP_PACE_MS,
   });
@@ -834,7 +818,7 @@ async function fetchBars(
   // rejection), and every rejection lands in the tally the manifest carries.
   // A corpus with silent holes was how a 135,533% bar got cemented into the
   // calibration cache with nothing ever refetching it.
-  const bars = normalizeFmpBars(
+  return normalizeFmpBars(
     rows as FmpBar[],
     Number.MAX_SAFE_INTEGER,
     (rejection) => {
@@ -842,12 +826,17 @@ async function fetchBars(
         (barRejectionTally[rejection.reason] ?? 0) + 1;
     },
   );
-  return { bars, rawRows: rows.length };
 }
 
 /** 2h: every boundary rejection this run, by reason — printed at the end of
  * the run and carried into the corpus manifest (2i). */
 export const barRejectionTally: Record<string, number> = {};
+
+/** R0 (#358 round 4): chunk row counts per timeframe, into the manifest —
+ * a future provider clip shows as a constant count below the window's
+ * physical maximum, visible to every reader. */
+export const chunkRowTally: Record<IntradayTimeframe, Record<number, number>> =
+  { "15min": {}, "5min": {} };
 
 function dedupeSort(bars: Bar[]): Bar[] {
   const byTime = new Map<number, Bar>();

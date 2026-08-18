@@ -106,6 +106,11 @@ export type SweepManifest = {
     calendar: string;
     normalizer: string;
   };
+  // R0 (#358 round 4): chunk row counts per intraday timeframe. A
+  // provider clip cannot be caught from inside one response without
+  // false positives, but it SHOWS here as a constant count below the
+  // window's physical maximum — recorded so any reader can see it.
+  chunkRowCounts?: Record<string, Record<number, number>>;
   days: number;
   // 3c/3d: the calendar folds this corpus was decided under — absent on
   // legacy two-split corpora, whose readers map train/test instead.
@@ -152,6 +157,7 @@ export function buildSweepManifest(input: {
   anchor: string;
   barRejections: Record<string, number>;
   clock: SweepManifest["clock"];
+  chunkRowCounts?: SweepManifest["chunkRowCounts"];
   days: number;
   folds?: SweepManifest["folds"];
   foldsByClass?: SweepManifest["foldsByClass"];
@@ -192,6 +198,7 @@ export function buildSweepManifest(input: {
     anchor: input.anchor,
     barRejections: input.barRejections,
     clock: input.clock,
+    ...(input.chunkRowCounts && { chunkRowCounts: input.chunkRowCounts }),
     days: input.days,
     ...(input.folds && { folds: input.folds }),
     ...(input.foldsByClass && { foldsByClass: input.foldsByClass }),

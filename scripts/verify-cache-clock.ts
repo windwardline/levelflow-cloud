@@ -51,9 +51,18 @@ type SlimSeries = {
 
 // The 1b sawtooth reads ~0.6-1.0 here; a whole series reads ~3. The floor
 // deliberately sits far from both so neither noise nor a thin market can
-// blur the verdict.
+// blur the verdict. The CEILING is the other direction's detector (#358
+// round 4): a clipped 15-minute PRIMARY against a complete 5-minute
+// series inflates the ratio above 3, so a floor alone reads a clipped
+// primary as greener.
 const DENSITY_RATIO_FLOOR = 2.5;
+const DENSITY_RATIO_CEILING = 3.5;
 const DENSITY_MIN_PRIMARY_ROWS = 1_000;
+// A daily store this deep that witnesses NOTHING is unaccepted, matching
+// the registration and anchor gates' posture — the daily witness is the
+// universal condemning one, and green must mean it actually resolved.
+// Below this depth an undecided store is legitimately young.
+const DAILY_WITNESS_REQUIRED_ROWS = 100;
 // A pair with this many shared days and no verdict is not "unknown", it
 // is unaccepted: something about the data defeats the instrument, and the
 // acceptance gate does not wave that through.
@@ -149,6 +158,15 @@ export function auditCacheClock(input: {
     if (witness.verdict === "naive" || witness.verdict === "mixed") {
       fail(
         `${key}: witnesses "${witness.verdict}" — ${JSON.stringify(witness)}`,
+      );
+    } else if (
+      kind.role === "daily" && witness.verdict === "indeterminate" &&
+      items.length >= DAILY_WITNESS_REQUIRED_ROWS
+    ) {
+      fail(
+        `${key}: daily witness resolved NOTHING on ${items.length} rows — ` +
+          `the universal condemning witness must decide at this depth; ` +
+          `investigate before accepting`,
       );
     } else if (kind.role === "daily" && items.length > 0) {
       ok(
@@ -249,6 +267,12 @@ export function auditCacheClock(input: {
         fail(
           `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
             `shared span — the 1b sawtooth signature (complete is ~3)`,
+        );
+      } else if (ratio > DENSITY_RATIO_CEILING) {
+        fail(
+          `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
+            `shared span — ABOVE the complete ratio; a clipped 15-minute ` +
+            `primary inflates this, it does not lower it`,
         );
       } else {
         ok(`${pairKey}: 5min/15min density ${ratio.toFixed(2)}`);
