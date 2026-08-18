@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -335,17 +336,30 @@ describe("security hardening", () => {
     // walk, and an empty walk cannot pass.
     assert.match(sync, /-H @"\$MGMT_AUTH_FILE"/);
     assert.match(sync, /-H @"\$VERIFY_AUTH_FILE"/);
-    const shellScripts = (readdirSync(".", { recursive: true }) as string[])
-      .filter((file) =>
-        file.endsWith(".sh") &&
-        !file.startsWith("node_modules") &&
-        !file.startsWith("dist") &&
-        !file.startsWith(".git")
+    // The swept set is git's, not the working tree's (#363 round 5): a
+    // readdirSync walk enumerated node_modules and every gitignored
+    // scratch dir, differed between CI and the studio machine, and its
+    // prefix filters silently dropped .github (".github".startsWith(
+    // ".git") — the one directory where CI credentials flow). Tracked
+    // files are the law's exact surface, deterministically.
+    const shellScripts = execSync("git ls-files -z", { encoding: "utf8" })
+      .split("\0")
+      .filter((file) => file.endsWith(".sh"));
+    // HANDOFF's exhaustiveness claim, pinned by PATH rather than by
+    // count: the five known scripts must be in the swept set, so a
+    // relocation cannot make the loop iterate past them and stay green.
+    for (const expected of [
+      "scripts/ops/bank-minute-bars-daily.sh",
+      "scripts/ops/cache-lifecycle.sh",
+      "scripts/ops/daily-cache-topup.sh",
+      "scripts/ops/sync-function-secrets.sh",
+      "scripts/ops/update-auth-brand.sh",
+    ]) {
+      assert.ok(
+        shellScripts.includes(expected),
+        `${expected} must be in the swept shell surface`,
       );
-    assert.ok(
-      shellScripts.length >= 5,
-      "the shell sweep must find the ops scripts — an empty walk proves nothing",
-    );
+    }
     for (const script of shellScripts) {
       const source = readFileSync(script, "utf8");
       assert.doesNotMatch(
@@ -353,15 +367,17 @@ describe("security hardening", () => {
         /authorization: bearer \$/i,
         `${script} must not interpolate a bearer onto argv — 600-mode header files only`,
       );
-      // The BODY family too (#363 round 4, finding 1 — round 1's actual
-      // finding was a credential-bearing request body on argv, and a
-      // narrow one-file pin would let a second curl regress it in a
-      // sibling): -d / --data / --data-raw / --data-binary / --data-ascii
-      // followed by an interpolated double-quoted value is that shape;
-      // bodies travel by --data @file.
+      // The BODY family too (#363 rounds 4-5 — round 1's actual finding
+      // was a credential-bearing request body on argv): any body/form
+      // flag whose double-quoted argument contains an interpolation,
+      // ANYWHERE in the quotes — the natural inline-JSON shape
+      // -d "{\"smtp_pass\":\"$KEY\"}" is the one that matters, not just
+      // round 1's literal spelling. Deliberately eager: a future
+      // `psql -d "$DBNAME"` would false-fire, and for this sweep that
+      // is the right side to err on — bodies travel by --data @file.
       assert.doesNotMatch(
         source,
-        /--?d(ata(-raw|-binary|-ascii)?)?\s+"\$/,
+        /(^|\s)(-d|--data(-raw|-binary|-ascii|-urlencode)?|--json|-F|--form)\s*"[^"]*\$/,
         `${script} must not pass an inline "$…" request body — bodies travel by --data @file`,
       );
     }
