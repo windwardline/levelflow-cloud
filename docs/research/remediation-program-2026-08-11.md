@@ -155,6 +155,25 @@ Two operational facts Phase 0 inherits, both set 2026-08-11:
   it banks 1-minute bars for the E8 feed-identity corpus and touches
   nothing the clock defect reaches.
 
+**Status 2026-08-18 — Phase 0's code half is in, and the rebuild is
+UNBLOCKED.** Every rolling store now records the clock that wrote it and
+refuses to load under another (`cacheClockMismatch`); per-year witnesses
+and 15min↔5min registration ride in the manifest and are enforced at
+every emit reader the repo has (nine bare readers doored plus the
+aggregation doors — the population is pinned by a sweep-style test in
+`tests/sweepStats.test.ts`, not by an enumeration in prose); the 1b
+chunk sizing is fixed against caps measured complete on 2026-08-18
+(per-chunk clip detection proved infeasible without false positives —
+the guard is the measured caps, the verifier's density floor+ceiling,
+and R1's E2 door assertion); and
+the nightly top-up stands down by name against the condemned store, so
+the "stopped or not" ambiguity above no longer matters. The allowance
+did NOT have to age out: the owner purchased a **100 GB plan upgrade on
+2026-08-18** and the probes came back clean the same day (no 429s; the
+minute bank's 13:00Z run banked all 97 symbols). The bytes are
+available now — **`docs/cache-rebuild-r0.md`** is the runbook, including
+the re-arm of this launchd agent.
+
 ### Phase 1 — one engine (close every sweep↔live divergence)
 So that what is measured is what trades:
 - **E1** production resolves on 15-minute bars, the corpus on 5-minute.

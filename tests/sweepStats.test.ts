@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
+import {
+  buildSweepManifest,
+  seriesFacts,
+  sha256Hex,
+  stableStringify,
+} from "../scripts/sweepManifest.ts";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
@@ -185,6 +192,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: 365,
       generatedAt: "2026-08-10T04:00:00.000Z",
       grid: [{}],
@@ -192,7 +200,7 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
       symbols: [{
         calibration: { tp1RiskShare: 0.8 },
         providerSymbol: "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
@@ -234,4 +242,195 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
     writeFileSync(emitPath, '{"outcome":"take_profit"\nnot json\n');
     assert.throws(() => assertManifestedCorpus(emitPath), /line 1|parse/i);
   });
+});
+
+// R0 one clock: the door refuses a corpus that cannot state its
+// normalization, or whose own witnesses contradict it. A pre-R0 manifest
+// hashes cleanly — its conditions were honestly recorded — but it is the
+// mixed-clock population by definition, and the refusal must name that
+// rather than read it.
+describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
+  const writeWithManifest = (manifest: Record<string, unknown>) => {
+    const dir = mkdtempSync(join(tmpdir(), "sweepstats-clock-"));
+    const emitPath = join(dir, "run.jsonl");
+    writeFileSync(emitPath, JSON.stringify(row("take_profit", 1)) + "\n");
+    const { generatedAt: _generatedAt, ...hashedPayload } = manifest;
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(
+        {
+          ...manifest,
+          manifestHash: sha256Hex(stableStringify(hashedPayload)),
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    return emitPath;
+  };
+
+  const legacyManifest = () => ({
+    analyzerVersion: "2026.08.09.test",
+    anchor: "2026-08-10",
+    barRejections: {},
+    days: 365,
+    generatedAt: "2026-08-10T04:00:00.000Z",
+    grid: [{}],
+    stepBars: 16,
+    symbols: [{
+      calibration: {},
+      calibrationHash: sha256Hex(stableStringify({})),
+      providerSymbol: "EURUSD",
+      series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+      symbol: "EURUSD",
+    }],
+    trainShare: 0.6,
+    warmupBars: 240,
+  });
+
+  it("refuses a pre-R0 manifest with no clock block, even though its hash verifies", () => {
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(legacyManifest())),
+      /no clock block.*mixed-clock/s,
+    );
+  });
+
+  it("refuses a corpus swept under a SUPERSEDED clock — a stated clock must be this build's (#358 round 4)", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: "ny-wall-utc-v1-superseded" };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /superseded-clock corpus is re-swept, not/,
+    );
+    // A deliberate historical read is an explicit act — and a LOUD one
+    // (#358 round 4b): the override must warn on every read, or a
+    // superseded-clock figure becomes indistinguishable from one that
+    // passed the door.
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    const warned: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (message: unknown) => {
+      warned.push(String(message));
+    };
+    try {
+      const { rows } = assertManifestedCorpus(writeWithManifest(manifest));
+      assert.equal(rows.length, 1);
+      assert.equal(warned.length, 1);
+      assert.match(warned[0], /SUPERSEDED-CLOCK READ/);
+      assert.match(warned[0], /ny-wall-utc-v1-superseded/);
+    } finally {
+      console.warn = realWarn;
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
+  });
+
+  it("refuses a corpus whose series witnesses a naive clock", () => {
+    const manifest = legacyManifest() as ReturnType<typeof legacyManifest> & {
+      clock?: unknown;
+    };
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    manifest.symbols[0].series["15min"] = {
+      ...seriesFacts([{ time: 0 }], "intraday"),
+      clock: { verdict: "naive" },
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /EURUSD 15min.*"naive" clock/s,
+    );
+  });
+
+  it("refuses a corpus whose 5min series registers at a shift against the primary", () => {
+    const manifest = legacyManifest() as Record<string, unknown>;
+    manifest.clock = { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK };
+    (manifest.symbols as Array<Record<string, unknown>>)[0].crossSeriesClock = {
+      bestShiftHours: 4,
+      matchRateAtBest: 0.8,
+      matchRateAtZero: 0,
+      sampledDays: 400,
+      verdict: "shifted",
+    };
+    assert.throws(
+      () => assertManifestedCorpus(writeWithManifest(manifest)),
+      /registers against.*4h\s+shift.*mixed-clock signature/s,
+    );
+  });
+});
+
+// #358 findings (round 1 #4 and round 3 #1): bare emit readers kept
+// aggregating pre-R0 corpora, and dooring an ENUMERATED list twice
+// proved the enumeration was the mistake — round 1 named five, round 3
+// found four more, and the sweep below found the tenth candidate
+// (starvation-audit) reading a third idiom. So the pin is the
+// POPULATION, not a list: every script that line-reads files must
+// either pass the one-clock door or sit on the exemption list with a
+// stated reason. A new reader idiom extends the pattern; a new reader
+// without a door fails here.
+describe("every emit reader passes the one-clock door (R0) — the population, not a list", () => {
+  const readerPattern =
+    /createInterface\(|readLinesSync\(|split\("\\n"\)|split\(\/\\r\?\\n\/\)|split\('\\n'\)/;
+  const doorPattern = /assertManifest\(|assertManifestedCorpus/;
+  // Keyed by path relative to scripts/, not basename (#358 round 4b): a
+  // future scripts/<subdir>/starvation-audit.ts must not inherit an
+  // exemption written for a different file.
+  const exempt: Record<string, string> = {
+    "starvation-audit.ts":
+      "reads the sweep's printed stdout TABLE, not the emit — an artifact " +
+      "that cannot carry a manifest; the gap (rejection tallies live only " +
+      "in stdout) is carried on HANDOFF's small list for the instrument " +
+      "phase",
+    "sweepStats.ts": "is the door module itself",
+  };
+
+  it("every line-reading script under scripts/ has the door or a named exemption", () => {
+    const undoored: string[] = [];
+    for (
+      const entry of readdirSync("scripts", {
+        recursive: true,
+        withFileTypes: true,
+      })
+    ) {
+      const name = entry.name;
+      if (!entry.isFile() || !/\.(ts|mjs)$/.test(name)) {
+        continue;
+      }
+      const fullPath = join(entry.parentPath, name);
+      const relPath = fullPath.replace(/^scripts\//, "");
+      const source = readFileSync(fullPath, "utf8");
+      if (!readerPattern.test(source)) {
+        continue;
+      }
+      if (doorPattern.test(source) || exempt[relPath]) {
+        continue;
+      }
+      undoored.push(relPath);
+    }
+    assert.deepEqual(
+      undoored,
+      [],
+      `line-reading scripts with no one-clock door: ${undoored.join(", ")}`,
+    );
+  });
+
+  for (
+    const script of [
+      "scripts/market-dossier.ts",
+      "scripts/roster-expectancy-audit.ts",
+      "scripts/threshold-rescue.ts",
+      "scripts/cost-sensitivity-verdict.ts",
+      "scripts/feasibility-4d.ts",
+      "scripts/confidence-bands.ts",
+      "scripts/ag-class-derivation.ts",
+      "scripts/exclusion-suspects.ts",
+      "scripts/stop-provenance.ts",
+    ]
+  ) {
+    it(`${script} asserts the manifest before reading a line`, () => {
+      const source = readFileSync(script, "utf8");
+      assert.match(source, /assertManifest\((path|file)\);/);
+      assert.match(
+        source,
+        /import \{ assertManifest[^}]*\} from "\.\/sweepStats\.ts";/,
+      );
+    });
+  }
 });

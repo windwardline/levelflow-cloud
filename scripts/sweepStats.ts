@@ -19,6 +19,8 @@
 
 import { closeSync, createReadStream, openSync, readFileSync, readSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
   sha256Hex,
   stableStringify,
@@ -224,6 +226,67 @@ function verifyManifest(emitPath: string): SweepManifest {
     throw new Error(
       `${emitPath}: manifest hash mismatch — recorded ${manifestHash}, recomputed ${recomputed}; the corpus's stated conditions cannot be trusted`,
     );
+  }
+  // R0 one clock: a corpus that does not state its normalization predates
+  // the clock stamp and is the 2026-08-11 mixed-clock population by
+  // definition — refused, not read. This deliberately kills the legacy
+  // two-split affordance below for pre-R0 corpora: the item-2 baseline was
+  // invalidated with the rest.
+  if (!manifest.clock?.normalizer || !manifest.clock?.calendar) {
+    throw new Error(
+      `${emitPath}: manifest carries no clock block — a corpus built before ` +
+        `the R0 one-clock rebuild is mixed-clock (see docs/research/` +
+        `remediation-program-2026-08-11.md) and cannot be aggregated; ` +
+        `re-sweep on the rebuilt cache`,
+    );
+  }
+  // And the stated clock must be THIS build's clock (#358 round 4): a
+  // BAR_CLOCK bump supersedes every corpus swept before it — the store
+  // guard forces the CACHE rebuild, and this forces the RE-SWEEP, closing
+  // the same "a fix cannot reach an already-persisted artifact" mechanism
+  // one layer up. A deliberate historical read is an explicit act:
+  //   LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1
+  if (
+    manifest.clock.normalizer !== BAR_CLOCK ||
+    manifest.clock.calendar !== CALENDAR_CLOCK
+  ) {
+    if (process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK !== "1") {
+      throw new Error(
+        `${emitPath}: corpus swept under clock "${manifest.clock.normalizer}"/` +
+          `"${manifest.clock.calendar}" but this build is "${BAR_CLOCK}"/` +
+          `"${CALENDAR_CLOCK}" — a superseded-clock corpus is re-swept, not ` +
+          `aggregated (set LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1 only for a ` +
+          `deliberate historical read)`,
+      );
+    }
+    // The override never passes silently (#358 round 4b): a figure read
+    // under it must be distinguishable from one that passed the door, or
+    // a superseded-clock number gets cited later as if it were clean.
+    console.warn(
+      `SUPERSEDED-CLOCK READ: ${emitPath} was swept under ` +
+        `"${manifest.clock.normalizer}"/"${manifest.clock.calendar}"; this ` +
+        `build is "${BAR_CLOCK}"/"${CALENDAR_CLOCK}". Figures derived from ` +
+        `this corpus are historical, not current.`,
+    );
+  }
+  for (const entry of manifest.symbols ?? []) {
+    for (const [timeframe, facts] of Object.entries(entry.series ?? {})) {
+      const verdict = facts.clock?.verdict;
+      if (verdict === "naive" || verdict === "mixed") {
+        throw new Error(
+          `${emitPath}: ${entry.symbol} ${timeframe} series witnesses a ` +
+            `"${verdict}" clock — the corpus disagrees with its own stated ` +
+            `normalization and is refused`,
+        );
+      }
+    }
+    if (entry.crossSeriesClock?.verdict === "shifted") {
+      throw new Error(
+        `${emitPath}: ${entry.symbol} 5-minute series registers against the ` +
+          `15-minute primary at a ${entry.crossSeriesClock.bestShiftHours}h ` +
+          `shift — the mixed-clock signature; the corpus is refused`,
+      );
+    }
   }
   return manifest;
 }

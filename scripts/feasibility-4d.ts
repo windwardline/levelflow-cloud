@@ -18,7 +18,7 @@ import { findBrokerInstrument } from "../src/lib/broker/instruments.ts";
 import { PROGRAM_LINES } from "../src/lib/broker/programs.ts";
 import { sizeSetup } from "../src/lib/broker/sizing.ts";
 import type { ProgramLine } from "../src/lib/broker/types.ts";
-import { readLinesSync } from "./sweepStats.ts";
+import { assertManifest, readLinesSync } from "./sweepStats.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -86,6 +86,11 @@ async function main() {
   const closes = new Map<string, number[]>();
 
   for (const path of paths) {
+    // R0: the one-clock door — a corpus that cannot state its clock (or
+    // whose witnesses condemn it) is refused here too, not only in the
+    // aggregation readers. These five scripts produced the invalidated
+    // 4d-era figures by reading emits bare.
+    assertManifest(path);
     readLinesSync(path, (line) => {
       if (!line) return;
       const row = JSON.parse(line) as {

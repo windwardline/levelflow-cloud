@@ -33,6 +33,17 @@ import {
 } from "./fmpByteBudget.ts";
 import { buildSweepManifest, seriesFacts, type SeriesFacts } from "./sweepManifest.ts";
 import {
+  CALENDAR_CLOCK,
+  type CrossSeriesClock,
+  crossSeriesClock,
+} from "./clockWitness.ts";
+import {
+  emptyStreakLimitFor,
+  intradayChunkWindows,
+  type IntradayTimeframe,
+  MAX_DEPTH_DAYS,
+} from "./intradayChunks.ts";
+import {
   calendarFolds,
   type ClassFoldSpec,
   foldsByClass,
@@ -54,6 +65,7 @@ import type { SweepNewsEvent } from "../supabase/functions/trade-analyzer/sweep.
 import { simulateSymbol } from "../supabase/functions/trade-analyzer/sweep.ts";
 import { resolveProviderSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import {
+  BAR_CLOCK,
   type FmpBar,
   normalizeFmpBars,
 } from "../supabase/functions/trade-analyzer/bars.ts";
@@ -157,6 +169,7 @@ async function main() {
   let emittedRecords = 0;
   const manifestSymbols: Array<{
     calibration: Record<string, unknown>;
+    crossSeriesClock: CrossSeriesClock;
     providerSymbol: string;
     series: Record<string, SeriesFacts>;
     symbol: string;
@@ -216,11 +229,11 @@ async function main() {
       const bars = await loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs),
         key: `${providerSymbol}-15min-${args.days}`,
-        legacyPrefix: `${providerSymbol}-15min-${args.days}-`,
         timeOf: (bar) => bar.time,
       });
       if (bars.length > 0) {
@@ -275,21 +288,21 @@ async function main() {
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () => fetchIntradayBars(providerSymbol, args.days),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs),
         key: `${providerSymbol}-15min-${args.days}`,
-        legacyPrefix: `${providerSymbol}-15min-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () => fetchDailyBars(providerSymbol, args.days + 240),
         fetchSince: (sinceMs) =>
           fetchDailyBars(providerSymbol, args.days + 240, sinceMs),
         key: `${providerSymbol}-daily-${args.days}`,
-        legacyPrefix: `${providerSymbol}-daily-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
       // 2l: the committee's real 5min series. FMP's 5min depth is shallower
@@ -299,12 +312,12 @@ async function main() {
       loadRollingSeries<Bar>({
         anchor,
         cacheDir: args.cacheDir!,
+        clock: BAR_CLOCK,
         fetchFull: () =>
           fetchIntradayBars(providerSymbol, args.days, undefined, "5min"),
         fetchSince: (sinceMs) =>
           fetchIntradayBars(providerSymbol, args.days, sinceMs, "5min"),
         key: `${providerSymbol}-5min-${args.days}`,
-        legacyPrefix: `${providerSymbol}-5min-${args.days}-`,
         timeOf: (bar) => bar.time,
       }),
     ]);
@@ -331,16 +344,55 @@ async function main() {
 
     const cotReports = await loadCotReports(args.cacheDir, symbol);
 
+    // R0 one clock: the series testify about their own stamps, and a
+    // condemned witness stops the RUN, not just the symbol — the one-clock
+    // invariant is corpus-global, and a sweep that quietly drops a
+    // poisoned market ships a corpus that looks whole. The store guard
+    // (calibrationCache) already refuses a wrong-stamp store; this is the
+    // independent per-year check on the data itself. Its measured limits
+    // (#358 adversarial round): a sessioned pair whose BOTH series are on
+    // the same wrong clock reads as aligned here — that case is carried
+    // by the store stamp and by the reference session anchor in
+    // verify-cache-clock, the only instrument that catches a provider
+    // convention flip shifting every series together.
+    //
+    // The token is deliberately NOT cacheClockMismatch: that name is the
+    // nightly top-up's named stand-down for the pre-rebuild store, while a
+    // witness refusal on a STAMPED store is a fresh, actionable regression
+    // that must go red.
+    const series = {
+      "15min": seriesFacts(primaryBars, "intraday"),
+      "1day": seriesFacts(dailyBars, "daily"),
+      "5min": seriesFacts(fiveMinuteBars, "intraday"),
+    };
+    const registration = crossSeriesClock(primaryBars, fiveMinuteBars);
+    for (const [timeframe, facts] of Object.entries(series)) {
+      if (facts.clock.verdict === "naive" || facts.clock.verdict === "mixed") {
+        throw new Error(
+          `cacheClockWitnessRefused: ${symbol} ${timeframe} series ` +
+            `witnesses a "${facts.clock.verdict}" clock ` +
+            `(${JSON.stringify(facts.clock)}) on a stamped store — ` +
+            `investigate before any rebuild; see docs/cache-rebuild-r0.md`,
+        );
+      }
+    }
+    if (registration.verdict === "shifted") {
+      throw new Error(
+        `cacheClockWitnessRefused: ${symbol} 5min series registers against ` +
+          `the 15min primary at ${registration.bestShiftHours}h ` +
+          `(${JSON.stringify(registration)}) — the mixed-clock signature ` +
+          `on a stamped store; investigate before any rebuild; see ` +
+          `docs/cache-rebuild-r0.md`,
+      );
+    }
+
     manifestSymbols.push({
       calibration: {
         ...getCategoryCalibration(symbol),
       } as unknown as Record<string, unknown>,
+      crossSeriesClock: registration,
       providerSymbol,
-      series: {
-        "15min": seriesFacts(primaryBars),
-        "1day": seriesFacts(dailyBars),
-        "5min": seriesFacts(fiveMinuteBars),
-      },
+      series,
       symbol,
     });
 
@@ -428,6 +480,7 @@ async function main() {
       analyzerVersion: ANALYZER_VERSION,
       anchor: isoDate(new Date()),
       barRejections: barRejectionTally,
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: args.days,
       folds: classFolds ? undefined : folds,
       ...(classFolds && {
@@ -468,10 +521,12 @@ async function loadEconomicCalendar(
   return loadRollingSeries<SweepNewsEvent>({
     anchor,
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
+    // The calendar's own clock, not BAR_CLOCK: FMP stamps calendar events
+    // in true UTC and the parse below has always read them that way.
+    clock: CALENDAR_CLOCK,
     fetchFull: () => fetchCalendarEvents(Date.parse("2013-01-01T00:00:00Z")),
     fetchSince: (sinceMs) => fetchCalendarEvents(sinceMs),
     key: "econ-calendar",
-    legacyPrefix: "econ-calendar-",
     timeOf: (event) => event.time,
   });
 }
@@ -671,22 +726,13 @@ function parseArgs(argv: string[]): SweepArgs {
   };
 }
 
-// FMP caps a single intraday response near 3,000 rows. A 30-day window stays
-// complete for every supported market (~2,040 forex bars) and cuts request
-// count ~4x versus 8-day chunks, which is what makes multi-year depth
-// practical.
-const INTRADAY_CHUNK_DAYS = 30;
-// Walking back stops after this many consecutive empty windows, which is how
-// the end of a symbol's history is detected rather than assumed. Three
-// windows (90 days) clears any plausible holiday or provider gap.
-const EMPTY_WINDOW_STREAK_LIMIT = 3;
-// Safety ceiling only — it must never be the binding constraint, so it sits
-// above every confirmed provider floor. Measured 2026-07-29 by walking back
-// until history ended: forex begins 2010-01 (~6,050 days), XAUUSD 2013-07
-// (~4,760), ^GSPC 2020-02 (~2,350), ^NDX 2020-08 (~2,175), crypto and XAGUSD
-// ~1,060-1,200, and CME futures 2023-09/10 (~1,031-1,038). Depth is
-// discovered per symbol at run time, never assumed.
-const MAX_DEPTH_DAYS = 7_000;
+// Chunk sizing, window tiling and the empty-window clearance live in
+// scripts/intradayChunks.ts (R0; #358), extracted pure so the 1b sawtooth
+// fix is pinned by behaviour — this file runs main() on import and cannot
+// be. Clip detection is NOT per-chunk (measured infeasible without false
+// positives — see that file's header): the guard is the measured caps,
+// verify-cache-clock's density floor+ceiling, and R1's E2 density
+// assertion at the corpus door.
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
@@ -697,36 +743,30 @@ async function fetchIntradayBars(
   providerSymbol: string,
   days: number,
   sinceMs?: number,
-  timeframe: "15min" | "5min" = "15min",
+  timeframe: IntradayTimeframe = "15min",
 ): Promise<Bar[]> {
   const bars: Bar[] = [];
-  const ceiling = days >= MAX_DEPTH_DAYS ? MAX_DEPTH_DAYS : days;
-  const now = Date.now();
+  const emptyStreakLimit = emptyStreakLimitFor(timeframe);
   let emptyStreak = 0;
 
-  for (
-    let offset = INTRADAY_CHUNK_DAYS;
-    offset <= ceiling + INTRADAY_CHUNK_DAYS;
-    offset += INTRADAY_CHUNK_DAYS
-  ) {
-    const from = new Date(now - offset * 86_400_000);
-    const to = new Date(now - (offset - INTRADAY_CHUNK_DAYS) * 86_400_000);
-    // Top-up mode: chunks walk backward, so the first chunk that ends
-    // before the floor means everything older is already stored.
-    if (sinceMs !== undefined && to.getTime() < sinceMs) {
-      break;
-    }
+  const windows = intradayChunkWindows({
+    days,
+    nowMs: Date.now(),
+    sinceMs,
+    timeframe,
+  });
+  for (const window of windows) {
     const endpoint = new URL(
       `${FMP_API_BASE_URL}/historical-chart/${timeframe}`,
     );
     endpoint.searchParams.set("symbol", providerSymbol);
-    endpoint.searchParams.set("from", isoDate(from));
-    endpoint.searchParams.set("to", isoDate(to));
+    endpoint.searchParams.set("from", isoDate(new Date(window.fromMs)));
+    endpoint.searchParams.set("to", isoDate(new Date(window.toMs)));
     endpoint.searchParams.set("apikey", API_KEY!);
     const chunk = await fetchBars(endpoint);
     if (chunk.length === 0) {
       emptyStreak += 1;
-      if (emptyStreak >= EMPTY_WINDOW_STREAK_LIMIT) {
+      if (emptyStreak >= emptyStreakLimit) {
         break;
       }
     } else {
@@ -786,6 +826,7 @@ async function fetchBars(endpoint: URL): Promise<Bar[]> {
 /** 2h: every boundary rejection this run, by reason — printed at the end of
  * the run and carried into the corpus manifest (2i). */
 export const barRejectionTally: Record<string, number> = {};
+
 
 function dedupeSort(bars: Bar[]): Bar[] {
   const byTime = new Map<number, Bar>();

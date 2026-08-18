@@ -1,0 +1,343 @@
+// R0 acceptance instrument: read every rolling store in the calibration
+// cache and report, per store, whether its stamp and its DATA agree on the
+// one clock — without touching the network. Run it after the rebuild
+// (docs/cache-rebuild-r0.md) and any time the cache's clock is in doubt:
+//
+//   npx tsx scripts/verify-cache-clock.ts [--cache-dir path]
+//
+// Green requires: every store stamped with its expected clock and
+// readable; no witness condemning a series; every 15min/5min pair
+// registering at zero shift — with a LARGE-overlap pair that cannot
+// register at all treated as a failure, because at the acceptance gate
+// uncertainty resolves toward failing; no 1b sawtooth (5min rows ≈ 3x
+// the 15min count over the shared span); the reference symbol's session
+// anchored at its venue's known open (the absolute check that catches a
+// provider convention flip, which shifts every series together and is
+// invisible to every relative instrument — measured, #358); a daily
+// store beside every intraday pair (the daily witness is the universal
+// condemning one); and, when a roster is supplied (the CLI supplies the
+// live scan roster), every roster symbol's three stores present — a
+// rebuild abandoned at 40 of 97 symbols is incomplete, not green.
+//
+// The poisoned pre-R0 store fails the very first check — every store
+// unstamped — which is the point: this instrument proves the rebuild
+// happened and took, rather than trusting that it did. The audit core is
+// exported and exercised by tests/verifyCacheClock.test.ts against
+// synthetic healthy and poisoned caches.
+
+import { readdirSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import {
+  defaultScanSymbols,
+  resolveProviderSymbols,
+} from "../supabase/functions/trade-analyzer/symbols.ts";
+import {
+  CALENDAR_CLOCK,
+  crossSeriesClock,
+  REFERENCE_SESSION_ANCHORS,
+  seriesClockWitness,
+  sessionAnchorWitness,
+  storeKindForKey,
+} from "./clockWitness.ts";
+
+type StoredBar = { high: number; low: number; time: number };
+type SlimSeries = {
+  count: number;
+  firstTime: number;
+  lastTime: number;
+  slim: StoredBar[];
+};
+
+// The 1b sawtooth reads ~0.6-1.0 here; a whole series reads ~3. The floor
+// deliberately sits far from both so neither noise nor a thin market can
+// blur the verdict. The CEILING is the other direction's detector (#358
+// round 4): a clipped 15-minute PRIMARY against a complete 5-minute
+// series inflates the ratio above 3, so a floor alone reads a clipped
+// primary as greener.
+const DENSITY_RATIO_FLOOR = 2.5;
+const DENSITY_RATIO_CEILING = 3.5;
+const DENSITY_MIN_PRIMARY_ROWS = 1_000;
+// A daily store this deep that witnesses NOTHING is unaccepted, matching
+// the registration and anchor gates' posture — the daily witness is the
+// universal condemning one, and green must mean it actually resolved.
+// Below this depth an undecided store is legitimately young.
+const DAILY_WITNESS_REQUIRED_ROWS = 100;
+// A pair with this many shared days and no verdict is not "unknown", it
+// is unaccepted: something about the data defeats the instrument, and the
+// acceptance gate does not wave that through.
+const REGISTRATION_REQUIRED_DAYS = 200;
+
+export type CacheClockAudit = {
+  failures: string[];
+  lines: string[];
+};
+
+export function auditCacheClock(input: {
+  cacheDir: string;
+  rosterProviderSymbols?: string[];
+}): CacheClockAudit {
+  const { cacheDir, rosterProviderSymbols } = input;
+  const lines: string[] = [];
+  const failures: string[] = [];
+  const fail = (line: string) => {
+    failures.push(line);
+    lines.push(`  RED  ${line}`);
+  };
+  const ok = (line: string) => lines.push(`  ok   ${line}`);
+
+  let names: string[];
+  try {
+    names = readdirSync(cacheDir).sort();
+  } catch {
+    fail(`${cacheDir}: not readable — nothing to verify`);
+    return { failures, lines };
+  }
+  const rollingNames = names.filter((name) => name.endsWith(".rolling.json"));
+  const cotNames = names.filter((name) =>
+    name.startsWith("cot-") && name.endsWith(".json")
+  );
+  if (rollingNames.length === 0) {
+    fail(`${cacheDir}: no rolling stores — nothing to verify`);
+    return { failures, lines };
+  }
+
+  // Intraday series held only until their 15min/5min mate arrives, then
+  // released — holding all 97 symbols' full series at once is gigabytes.
+  const pending = new Map<
+    string,
+    { fifteen?: SlimSeries; five?: SlimSeries }
+  >();
+  // Which series kinds each provider symbol has, for the daily-present
+  // and roster checks.
+  const kindsByProvider = new Map<string, Set<string>>();
+
+  for (const name of rollingNames) {
+    const key = name.slice(0, -".rolling.json".length);
+    const kind = storeKindForKey(key);
+    if (!kind) {
+      fail(`${key}: unknown store kind — no expected clock for this key`);
+      continue;
+    }
+    let store: { clock?: string; items?: StoredBar[] };
+    try {
+      store = JSON.parse(readFileSync(join(cacheDir, name), "utf8")) as {
+        clock?: string;
+        items?: StoredBar[];
+      };
+    } catch {
+      // A torn or corrupt store is a RED line, not a crash — the "for the
+      // record" pass over the condemned archive must list every store.
+      fail(`${key}: unreadable store (truncated or corrupt JSON)`);
+      continue;
+    }
+    const items = Array.isArray(store.items) ? store.items : [];
+    const expected = kind.kind === "calendar" ? CALENDAR_CLOCK : BAR_CLOCK;
+    if (store.clock !== expected) {
+      fail(
+        `${key}: stamped "${
+          store.clock ?? "<unstamped — pre-R0 mixed-clock era>"
+        }", expected "${expected}"`,
+      );
+      continue;
+    }
+    if (kind.kind === "calendar") {
+      ok(`${key}: ${items.length} events, clock "${store.clock}"`);
+      continue;
+    }
+
+    const keyMatch = key.match(/^(.*)-(15min|5min|daily)-(.+)$/);
+    const provider = keyMatch?.[1];
+    if (provider) {
+      const kinds = kindsByProvider.get(provider) ?? new Set<string>();
+      kinds.add(keyMatch![2]);
+      kindsByProvider.set(provider, kinds);
+    }
+
+    const witness = seriesClockWitness(items, kind.role);
+    if (witness.verdict === "naive" || witness.verdict === "mixed") {
+      fail(
+        `${key}: witnesses "${witness.verdict}" — ${JSON.stringify(witness)}`,
+      );
+    } else if (
+      kind.role === "daily" && witness.verdict === "indeterminate" &&
+      items.length >= DAILY_WITNESS_REQUIRED_ROWS
+    ) {
+      fail(
+        `${key}: daily witness resolved NOTHING on ${items.length} rows — ` +
+          `the universal condemning witness must decide at this depth; ` +
+          `investigate before accepting`,
+      );
+    } else if (kind.role === "daily" && items.length > 0) {
+      ok(
+        `${key}: ${items.length} bars from ${
+          new Date(items[0].time).toISOString().slice(0, 10)
+        }, witness "${witness.verdict}"`,
+      );
+    } else {
+      ok(`${key}: ${items.length} bars, witness "${witness.verdict}"`);
+    }
+
+    // The reference anchor: the one absolute sessioned-intraday check.
+    const anchor = provider ? REFERENCE_SESSION_ANCHORS[provider] : undefined;
+    if (anchor && kind.role === "intraday" && items.length > 0) {
+      const anchored = sessionAnchorWitness(items, anchor);
+      if (anchored.verdict === "displaced") {
+        fail(
+          `${key}: reference session displaced from its venue open — ` +
+            `${JSON.stringify(anchored)}`,
+        );
+      } else if (anchored.verdict === "anchored") {
+        ok(
+          `${key}: reference session anchored (${anchored.anchoredYears} years)`,
+        );
+      } else {
+        fail(
+          `${key}: reference session anchor INDETERMINATE — the one ` +
+            `absolute check did not resolve; investigate before accepting`,
+        );
+      }
+    }
+
+    if (!keyMatch || keyMatch[2] === "daily" || items.length === 0) {
+      continue;
+    }
+    const pairKey = `${keyMatch[1]}|${keyMatch[3]}`;
+    const slim: SlimSeries = {
+      count: items.length,
+      firstTime: items[0].time,
+      lastTime: items[items.length - 1].time,
+      slim: items.map((bar) => ({
+        high: bar.high,
+        low: bar.low,
+        time: bar.time,
+      })),
+    };
+    const entry = pending.get(pairKey) ?? {};
+    if (keyMatch[2] === "15min") {
+      entry.fifteen = slim;
+    } else {
+      entry.five = slim;
+    }
+    if (!entry.fifteen || !entry.five) {
+      pending.set(pairKey, entry);
+      continue;
+    }
+    pending.delete(pairKey);
+    const { fifteen, five } = entry;
+    const registration = crossSeriesClock(fifteen.slim, five.slim);
+    if (registration.verdict === "shifted") {
+      fail(
+        `${pairKey}: 5min registers at ${registration.bestShiftHours}h ` +
+          `against the 15min primary — ${JSON.stringify(registration)}`,
+      );
+    } else if (
+      registration.verdict === "indeterminate" &&
+      registration.sampledDays >= REGISTRATION_REQUIRED_DAYS
+    ) {
+      fail(
+        `${pairKey}: registration INDETERMINATE over ` +
+          `${registration.sampledDays} shared days — the pair cannot prove ` +
+          `alignment; investigate before accepting`,
+      );
+    } else {
+      ok(
+        `${pairKey}: registration "${registration.verdict}" ` +
+          `(zero-shift match ${registration.matchRateAtZero ?? "n/a"})`,
+      );
+    }
+    // 1b: over the shared span a complete 5min series holds ~3x the 15min
+    // rows; the sawtooth held ~0.6-1.0x. Counted on the overlap only, so a
+    // 5min history that legitimately starts later is not condemned for
+    // being younger.
+    const overlapStart = Math.max(fifteen.firstTime, five.firstTime);
+    const overlapEnd = Math.min(fifteen.lastTime, five.lastTime);
+    const inOverlap = (series: SlimSeries) =>
+      series.slim.reduce(
+        (count, bar) =>
+          bar.time >= overlapStart && bar.time <= overlapEnd
+            ? count + 1
+            : count,
+        0,
+      );
+    const primaryRows = inOverlap(fifteen);
+    if (primaryRows >= DENSITY_MIN_PRIMARY_ROWS) {
+      const ratio = inOverlap(five) / primaryRows;
+      if (ratio < DENSITY_RATIO_FLOOR) {
+        fail(
+          `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
+            `shared span — the 1b sawtooth signature (complete is ~3)`,
+        );
+      } else if (ratio > DENSITY_RATIO_CEILING) {
+        fail(
+          `${pairKey}: 5min/15min density ${ratio.toFixed(2)} over the ` +
+            `shared span — ABOVE the complete ratio; a clipped 15-minute ` +
+            `primary inflates this, it does not lower it`,
+        );
+      } else {
+        ok(`${pairKey}: 5min/15min density ${ratio.toFixed(2)}`);
+      }
+    }
+  }
+
+  for (const [pairKey, entry] of pending) {
+    const present = entry.fifteen ? "15min" : "5min";
+    const missing = entry.fifteen ? "5min" : "15min";
+    fail(
+      `${pairKey}: ${present} store present but no ${missing} mate — ` +
+        `rebuild incomplete`,
+    );
+  }
+  for (const [provider, kinds] of kindsByProvider) {
+    if (!kinds.has("daily")) {
+      // The daily witness is the universal condemning one; a symbol
+      // without its daily store has lost the strongest check silently.
+      fail(`${provider}: intraday stores present but no daily store`);
+    }
+  }
+  if (rosterProviderSymbols) {
+    for (const provider of rosterProviderSymbols) {
+      if (!kindsByProvider.has(provider)) {
+        fail(`${provider}: on the scan roster but has NO stores — rebuild incomplete`);
+      }
+    }
+  }
+  if (cotNames.length > 0) {
+    // Informational: cot files are bespoke (no clock stamp; parse
+    // unchanged across repo history). The rebuild archives them with the
+    // directory; their presence is listed so a partial cleanup is visible.
+    lines.push(`  note ${cotNames.length} cot-*.json contract file(s) present`);
+  }
+  return { failures, lines };
+}
+
+function main(): void {
+  const flagIndex = process.argv.indexOf("--cache-dir");
+  const cacheDir = flagIndex >= 0
+    ? process.argv[flagIndex + 1]
+    : ".calibration-cache";
+  const roster = defaultScanSymbols
+    .map((symbol) => resolveProviderSymbols(symbol)[0])
+    .filter((provider): provider is string => Boolean(provider));
+  const { failures, lines } = auditCacheClock({
+    cacheDir,
+    rosterProviderSymbols: roster,
+  });
+  for (const line of lines) {
+    console.log(line);
+  }
+  if (failures.length > 0) {
+    console.error(
+      `\n${failures.length} check(s) failed the one-clock audit. ` +
+        `Rebuild per docs/cache-rebuild-r0.md; do not sweep or top up ` +
+        `against this cache.`,
+    );
+    process.exit(1);
+  }
+  console.log(`\nAll stores stamped and witnessed on one clock.`);
+}
+
+// Importable for tests; the CLI entry runs only when invoked directly.
+if (basename(process.argv[1] ?? "").startsWith("verify-cache-clock")) {
+  main();
+}

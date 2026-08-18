@@ -22,6 +22,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { assertManifest } from "./sweepStats.ts";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 
 type Row = {
@@ -43,6 +44,8 @@ function add(k: string, row: Row): void {
 }
 
 for (const file of process.argv.slice(2)) {
+  // R0: the one-clock door (#358 round 3).
+  assertManifest(file);
   const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
   for await (const line of stream) {
     if (!line) continue;

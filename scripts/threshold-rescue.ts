@@ -16,7 +16,7 @@
 //   npx tsx scripts/threshold-rescue.ts sweeps/4c/shard-*.jsonl \
 //     --markets EGLDUSD,ZCUSX,... --out docs/research/.../4d-threshold-rescue.json
 import { writeFileSync } from "node:fs";
-import { readLinesSync } from "./sweepStats.ts";
+import { assertManifest, readLinesSync } from "./sweepStats.ts";
 
 const MIN_FILLED = 30; // the same floor the market-unit gate uses
 
@@ -54,6 +54,11 @@ async function main() {
   const rowsBySymbol = new Map<string, Row[]>();
 
   for (const path of paths) {
+    // R0: the one-clock door — a corpus that cannot state its clock (or
+    // whose witnesses condemn it) is refused here too, not only in the
+    // aggregation readers. These five scripts produced the invalidated
+    // 4d-era figures by reading emits bare.
+    assertManifest(path);
     readLinesSync(path, (line) => {
       if (!line) return;
       const row = JSON.parse(line) as {

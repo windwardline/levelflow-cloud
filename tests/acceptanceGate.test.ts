@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
+import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   classVerdicts,
   marketVerdicts,
@@ -68,6 +70,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
     analyzerVersion: "2026.08.09.test",
     anchor: "2026-08-10",
     barRejections: {},
+    clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
     days: 365,
     generatedAt: "2026-08-10T05:00:00.000Z",
     grid: [{}, { tp1RiskShare: 0.9 }],
@@ -83,6 +86,7 @@ function corpusWith(rows: SweepEmitRow[]): string {
           rows
             .filter((row) => row.symbol === symbol)
             .map((row) => ({ time: Number(row.time) || 0 })),
+          "intraday",
         ),
       },
       symbol,
@@ -270,6 +274,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: 365,
       folds: [
         { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
@@ -283,7 +288,7 @@ describe("a folded corpus names its own partition (3c/3d)", () => {
       symbols: [{
         calibration: {},
         providerSymbol: "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,
@@ -307,6 +312,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
   const shardWith = (
     rows: SweepEmitRow[],
     gridOverride?: unknown[],
+    clockOverride?: { calendar: string; normalizer: string },
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -318,6 +324,8 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-10",
       barRejections: {},
+      clock: clockOverride ??
+        { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: 365,
       generatedAt: "2026-08-10T07:00:00.000Z",
       grid: gridOverride ?? [{}, { wide: true }],
@@ -325,7 +333,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       symbols: [{
         calibration: {},
         providerSymbol: rows[0]?.symbol ?? "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: rows[0]?.symbol ?? "EURUSD",
       }],
       trainShare: 0.6,
@@ -366,6 +374,37 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       ]),
       /shards of one measurement/,
     );
+  });
+
+  it("refuses shards swept under different clocks — no mixed-clock corpus at read time (R0)", async () => {
+    // The door itself refuses a superseded-clock shard first; the
+    // conditionsOf comparison is the second layer, reachable only under
+    // the deliberate historical-read override — exercise both.
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD")),
+        shardWith(shardRows("GBPUSD"), undefined, {
+          calendar: CALENDAR_CLOCK,
+          normalizer: "some-other-clock",
+        }),
+      ]),
+      /superseded-clock corpus/,
+    );
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    try {
+      await assert.rejects(
+        gradeCorpus([
+          shardWith(shardRows("EURUSD")),
+          shardWith(shardRows("GBPUSD"), undefined, {
+            calendar: CALENDAR_CLOCK,
+            normalizer: "some-other-clock",
+          }),
+        ]),
+        /shards of one measurement/,
+      );
+    } finally {
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
   });
 });
 
@@ -533,6 +572,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       analyzerVersion: "2026.08.09.test",
       anchor: "2026-08-11",
       barRejections: {},
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
       days: 365,
       folds: [
         { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
@@ -545,7 +585,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       symbols: [{
         calibration: {},
         providerSymbol: "EURUSD",
-        series: { "15min": seriesFacts([{ time: 0 }]) },
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
         symbol: "EURUSD",
       }],
       trainShare: 0.6,

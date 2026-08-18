@@ -1,4 +1,5 @@
-// Durable, incremental calibration cache (round-17 hardening).
+// Durable, incremental calibration cache (round-17 hardening; R0 one-clock
+// guard 2026-08-18).
 //
 // The old cache keyed every file to the UTC run date, so each new day
 // refetched every symbol's full history — the 40-70 minute cold morning.
@@ -8,11 +9,22 @@
 // series reaches, and every later run that day reads exactly that slice,
 // never the network.
 //
-// Legacy migration is free: on a store miss, the newest date-keyed file
-// from the old scheme seeds the store, and when its anchor is today's the
-// pin transfers with it — zero refetch.
+// R0: every store records the CLOCK that wrote it — the normalizer's
+// identity (bars.ts BAR_CLOCK for bar stores, clockWitness.ts
+// CALENDAR_CLOCK for the calendar). The cache persists NORMALIZED items,
+// so "top up only" means a normalizer change strands old items on the old
+// clock forever; that is the exact mechanism of the 2026-08-11 mixed-clock
+// corpus (naive-era 15min/daily under a true-UTC 5min). A store whose
+// stamp is absent or different is REFUSED loudly, never read, never
+// topped up, never silently refetched — a 3.9GB rebuild against a
+// possibly-exhausted provider allowance is a decision, not a side effect.
+// The rebuild procedure is docs/cache-rebuild-r0.md.
+//
+// The legacy date-keyed migration from r17 is gone for the same reason:
+// every date-keyed file predates the clock stamp by definition, so seeding
+// from one imports the defect this guard exists to stop.
 
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 
 export const DEFAULT_CACHE_DIR = ".calibration-cache";
 
@@ -24,6 +36,7 @@ export const TOP_UP_OVERLAP_MS = 3 * 86_400_000;
 const PINS_KEPT = 5;
 
 type RollingStore<T> = {
+  clock?: string;
   items: T[];
   pinned: Record<string, number>;
 };
@@ -44,69 +57,78 @@ export function mergeByTime<T>(
   return [...byTime.values()].sort((a, b) => timeOf(a) - timeOf(b));
 }
 
-async function readJson<T>(path: string): Promise<T | null> {
+// Absent is a cold start; present-but-unreadable is a STOP. A truncated
+// or corrupt store must never quietly become a full refetch — that is a
+// gigabyte-scale decision per this file's header, not a side effect. The
+// refusal deliberately does NOT carry the cacheClockMismatch token: the
+// nightly top-up stands down only for the one named clock condition, and
+// a corrupt store is a real failure that must go red (#358 minor).
+async function readStore<T>(path: string): Promise<RollingStore<T> | null> {
+  let text: string;
   try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
-  } catch {
-    return null;
+    text = await readFile(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw new Error(
+      `cacheStoreUnreadable: ${path} exists but cannot be read ` +
+        `(${String(error)}) — inspect or delete it deliberately`,
+    );
   }
-}
-
-async function seedFromLegacy<T>(
-  cacheDir: string,
-  legacyPrefix: string,
-): Promise<{ items: T[]; anchor: string } | null> {
-  let names: string[];
+  let parsed: unknown;
   try {
-    names = await readdir(cacheDir);
+    parsed = JSON.parse(text);
   } catch {
-    return null;
+    throw new Error(
+      `cacheStoreUnreadable: ${path} is not valid JSON — a truncated or ` +
+        `corrupt store is inspected or deleted deliberately, never ` +
+        `silently refetched`,
+    );
   }
-  const candidates = names
-    .filter((name) => name.startsWith(legacyPrefix) && name.endsWith(".json"))
-    .sort();
-  const newest = candidates.at(-1);
-  if (!newest) {
-    return null;
+  const store = parsed as RollingStore<T>;
+  if (
+    !store || !Array.isArray(store.items) ||
+    typeof store.pinned !== "object" || store.pinned === null
+  ) {
+    throw new Error(
+      `cacheStoreUnreadable: ${path} does not have the rolling-store ` +
+        `shape — inspect or delete it deliberately, never silently refetch`,
+    );
   }
-  const items = await readJson<T[]>(`${cacheDir}/${newest}`);
-  if (!Array.isArray(items) || items.length === 0) {
-    return null;
-  }
-  const anchor = newest.slice(legacyPrefix.length, -".json".length);
-  return { items, anchor };
+  return store;
 }
 
 // One rolling series: bars, calendar events — anything with a time order.
 export async function loadRollingSeries<T>(input: {
   anchor: string;
   cacheDir: string;
+  // The normalization identity this build writes and requires. A store
+  // stamped otherwise (or never stamped — the pre-R0 mixed-clock era)
+  // throws rather than loads.
+  clock: string;
   fetchFull: () => Promise<T[]>;
   fetchSince: (sinceMs: number) => Promise<T[]>;
   key: string;
-  // Old date-keyed filename prefix (everything before the anchor date).
-  legacyPrefix?: string;
   timeOf: (item: T) => number;
 }): Promise<T[]> {
-  const { anchor, cacheDir, fetchFull, fetchSince, key, legacyPrefix, timeOf } =
+  const { anchor, cacheDir, clock, fetchFull, fetchSince, key, timeOf } =
     input;
   await mkdir(cacheDir, { recursive: true });
   const path = `${cacheDir}/${key}.rolling.json`;
 
-  let store = await readJson<RollingStore<T>>(path);
-  if (!store || !Array.isArray(store.items)) {
-    store = { items: [], pinned: {} };
-    if (legacyPrefix) {
-      const legacy = await seedFromLegacy<T>(cacheDir, legacyPrefix);
-      if (legacy) {
-        store.items = legacy.items;
-        if (legacy.anchor === anchor) {
-          // Same-day migration: the legacy file IS today's pinned view.
-          store.pinned[anchor] = timeOf(legacy.items.at(-1)!);
-        }
-        await writeFile(path, JSON.stringify(store));
-      }
-    }
+  let store = await readStore<T>(path);
+  if (store && store.clock !== clock) {
+    throw new Error(
+      `cacheClockMismatch: ${path} carries clock "${
+        store.clock ?? "<unstamped — pre-R0 mixed-clock era>"
+      }" but this build reads and writes "${clock}". The store cannot be ` +
+        `read or topped up under a different normalization — rebuild it ` +
+        `per docs/cache-rebuild-r0.md.`,
+    );
+  }
+  if (!store) {
+    store = { clock, items: [], pinned: {} };
   }
 
   const pinnedThrough = store.pinned[anchor];
@@ -134,7 +156,13 @@ export async function loadRollingSeries<T>(input: {
     delete store.pinned[stale];
   }
 
-  await writeFile(path, JSON.stringify(store));
+  // Atomic replace: a crash (or a process.exit racing a sibling write)
+  // mid-writeFile would leave a torn multi-MB store — the exact corrupt
+  // shape readStore refuses. Rename either completes or leaves the old
+  // store intact; stray .tmp debris matches no store scan and is inert.
+  const tmpPath = `${path}.tmp-${process.pid}`;
+  await writeFile(tmpPath, JSON.stringify(store));
+  await rename(tmpPath, path);
   const through = store.pinned[anchor];
   return store.items.filter((item) => timeOf(item) <= through);
 }

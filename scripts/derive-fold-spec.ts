@@ -9,6 +9,7 @@
  *     --out sweeps/4c/fold-spec.json
  */
 import { writeFileSync } from "node:fs";
+import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import {
   getAssetType,
   hasKnownAssetType,
@@ -44,12 +45,12 @@ async function main(): Promise<void> {
     const bars = await loadRollingSeries<Bar>({
       anchor,
       cacheDir: DEFAULT_CACHE_DIR,
+      clock: BAR_CLOCK,
       fetchFull: () => {
         throw new Error(`${symbol}: cache cold — warm it with the sweep first`);
       },
       fetchSince: () => Promise.resolve([]),
       key: `${providerSymbol}-15min-${days}`,
-      legacyPrefix: `${providerSymbol}-15min-${days}-`,
       timeOf: (bar) => bar.time,
     });
     if (bars.length === 0) continue;

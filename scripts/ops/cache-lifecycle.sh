@@ -4,7 +4,8 @@
 # Three named populations, three rules:
 #   1. LEGACY date-keyed cache files (.calibration-cache/*-2026-*.json era):
 #      superseded by the rolling stores in r17 — deletable on sight. The
-#      migration read them once; nothing reads them again (~2.8GB found).
+#      r17 migration that once read them was REMOVED by R0 (it imported
+#      pre-clock-stamp data); nothing reads them at all now (~2.8GB found).
 #   2. Finished sweep emits (sweeps/**/*.jsonl older than KEEP_DAYS):
 #      the corpus of record is the manifest + the verdicts doc; a raw
 #      emit older than the window is re-creatable from the warm cache at
@@ -48,6 +49,19 @@ while IFS= read -r -d '' file; do
   [ "$MODE" = "apply" ] && rm "$file"
 done < <(find "$SWEEPS_DIR" -name '*.jsonl' -mtime +"$KEEP_DAYS" -print0 2>/dev/null)
 echo "sweep emits older than ${KEEP_DAYS}d: $emit_count ($((emit_bytes / 1024 / 1024))MB)"
+
+# 4. Atomic-write debris (R0): calibrationCache writes temp+rename, so a
+#    crash can abandon a multi-MB .rolling.json.tmp-<pid>. Inert — no
+#    reader matches the name — but not free on a 30GB-budget machine.
+#    A day old means no live process still owns it.
+tmp_count=0
+tmp_bytes=0
+while IFS= read -r -d '' file; do
+  tmp_count=$((tmp_count + 1))
+  tmp_bytes=$((tmp_bytes + $(stat -f %z "$file")))
+  [ "$MODE" = "apply" ] && rm "$file"
+done < <(find "$CACHE_DIR" -maxdepth 1 -name '*.rolling.json.tmp-*' -mtime +1 -print0 2>/dev/null)
+echo "abandoned atomic-write temps older than 1d: $tmp_count ($((tmp_bytes / 1024 / 1024))MB)"
 
 if [ "$MODE" = "dry-run" ]; then
   echo "dry run — re-run with --apply to delete"

@@ -12,6 +12,7 @@ import {
 type Tick = { time: number; value: number };
 const timeOf = (tick: Tick) => tick.time;
 const tick = (time: number, value = 0): Tick => ({ time, value });
+const CLOCK = "test-clock-v1";
 
 const dirs: string[] = [];
 function tempDir() {
@@ -43,6 +44,7 @@ describe("calibration rolling cache", () => {
       loadRollingSeries<Tick>({
         anchor: "2026-07-30",
         cacheDir: dir,
+        clock: CLOCK,
         fetchFull: async () => {
           fullCalls += 1;
           return [tick(100), tick(200)];
@@ -68,6 +70,7 @@ describe("calibration rolling cache", () => {
     await loadRollingSeries<Tick>({
       anchor: "2026-07-30",
       cacheDir: dir,
+      clock: CLOCK,
       fetchFull: async () => [tick(1_000), tick(2_000)],
       fetchSince: async () => [],
       key: "SYM-15min-max",
@@ -76,6 +79,7 @@ describe("calibration rolling cache", () => {
     const next = await loadRollingSeries<Tick>({
       anchor: "2026-07-31",
       cacheDir: dir,
+      clock: CLOCK,
       fetchFull: async () => {
         throw new Error("full refetch must not happen on top-up");
       },
@@ -94,6 +98,7 @@ describe("calibration rolling cache", () => {
     const dir = tempDir();
     const base = {
       cacheDir: dir,
+      clock: CLOCK,
       fetchFull: async () => [tick(1_000)],
       key: "SYM-15min-max",
       timeOf,
@@ -130,6 +135,7 @@ describe("calibration rolling cache", () => {
       loadRollingSeries<Tick>({
         anchor: "2026-07-30",
         cacheDir: dir,
+        clock: CLOCK,
         fetchFull: async () => {
           throw new Error("provider chunk failed");
         },
@@ -145,6 +151,7 @@ describe("calibration rolling cache", () => {
     const recovered = await loadRollingSeries<Tick>({
       anchor: "2026-07-30",
       cacheDir: dir,
+      clock: CLOCK,
       fetchFull: async () => [tick(10), tick(20)],
       fetchSince: async () => {
         throw new Error("a store miss must fetch full history");
@@ -154,13 +161,132 @@ describe("calibration rolling cache", () => {
     });
     assert.deepEqual(recovered.map(timeOf), [10, 20]);
   });
+});
 
-  it("seeds from the newest legacy date-keyed file and pins same-day for free", async () => {
+// R0 one clock (remediation program 2026-08-11, Phase 0). The cache stores
+// NORMALIZED items and only ever tops up, so a normalizer change strands
+// every previously cached bar on the old clock — the exact mechanism of
+// the mixed-clock corpus. Each store now records the clock that wrote it
+// and refuses to load under any other, LOUDLY: a silent refetch of a
+// multi-gigabyte store against a possibly-exhausted FMP allowance must be
+// a decision, never a side effect.
+describe("R0 one-clock store guard", () => {
+  it("stamps new stores with the clock that wrote them", async () => {
+    const dir = tempDir();
+    await loadRollingSeries<Tick>({
+      anchor: "2026-08-18",
+      cacheDir: dir,
+      clock: CLOCK,
+      fetchFull: async () => [tick(10)],
+      fetchSince: async () => [],
+      key: "SYM-15min-max",
+      timeOf,
+    });
+    const store = JSON.parse(
+      readFileSync(join(dir, "SYM-15min-max.rolling.json"), "utf8"),
+    );
+    assert.equal(store.clock, CLOCK);
+  });
+
+  it("refuses an unstamped (pre-R0) store instead of reading or topping it up", async () => {
+    const dir = tempDir();
+    // The 2026-08-11 poisoned store's exact shape: items and pins, no clock.
+    writeFileSync(
+      join(dir, "SYM-15min-max.rolling.json"),
+      JSON.stringify({ items: [tick(10)], pinned: { "2026-08-18": 10 } }),
+    );
+    await assert.rejects(
+      loadRollingSeries<Tick>({
+        anchor: "2026-08-18",
+        cacheDir: dir,
+        clock: CLOCK,
+        fetchFull: async () => {
+          throw new Error("a refused store must not trigger a refetch");
+        },
+        fetchSince: async () => {
+          throw new Error("a refused store must not be topped up");
+        },
+        key: "SYM-15min-max",
+        timeOf,
+      }),
+      /cacheClockMismatch.*unstamped.*cache-rebuild-r0/s,
+    );
+    // The store itself is untouched — evidence, not casualty.
+    const store = JSON.parse(
+      readFileSync(join(dir, "SYM-15min-max.rolling.json"), "utf8"),
+    );
+    assert.deepEqual(store.items, [tick(10)]);
+  });
+
+  it("refuses a store stamped under a different clock, pinned day or not", async () => {
     const dir = tempDir();
     writeFileSync(
-      join(dir, "SYM-15min-max-2026-07-29.json"),
-      JSON.stringify([tick(10)]),
+      join(dir, "SYM-15min-max.rolling.json"),
+      JSON.stringify({
+        clock: "some-older-clock",
+        items: [tick(10)],
+        pinned: { "2026-08-18": 10 },
+      }),
     );
+    await assert.rejects(
+      loadRollingSeries<Tick>({
+        anchor: "2026-08-18",
+        cacheDir: dir,
+        clock: CLOCK,
+        fetchFull: async () => [],
+        fetchSince: async () => [],
+        key: "SYM-15min-max",
+        timeOf,
+      }),
+      /cacheClockMismatch.*some-older-clock/s,
+    );
+  });
+
+  // #358: a truncated or malformed store used to fall through to re-init
+  // and silently start a full refetch — the exact "decision, not a side
+  // effect" the header forbids — and on success OVERWROTE the evidence.
+  // Every malformed shape now refuses loudly, under a token the nightly
+  // top-up deliberately does NOT stand down for.
+  for (
+    const [label, content] of [
+      ["truncated JSON", '{"items":[{"ti'],
+      ["items is null", JSON.stringify({ clock: CLOCK, items: null, pinned: {} })],
+      ["top-level array", JSON.stringify([{ time: 1 }])],
+      ["pinned missing", JSON.stringify({ clock: CLOCK, items: [tick(1)] })],
+    ] as const
+  ) {
+    it(`refuses a corrupt store (${label}) instead of silently refetching`, async () => {
+      const dir = tempDir();
+      writeFileSync(join(dir, "SYM-15min-max.rolling.json"), content);
+      await assert.rejects(
+        loadRollingSeries<Tick>({
+          anchor: "2026-08-18",
+          cacheDir: dir,
+          clock: CLOCK,
+          fetchFull: async () => {
+            throw new Error("a corrupt store must not trigger a refetch");
+          },
+          fetchSince: async () => {
+            throw new Error("a corrupt store must not be topped up");
+          },
+          key: "SYM-15min-max",
+          timeOf,
+        }),
+        /cacheStoreUnreadable/,
+      );
+      // The file is untouched — evidence, not casualty.
+      assert.equal(
+        readFileSync(join(dir, "SYM-15min-max.rolling.json"), "utf8"),
+        content,
+      );
+    });
+  }
+
+  it("ignores legacy date-keyed files — the r17 migration imported the defect era", async () => {
+    const dir = tempDir();
+    // Under the removed migration this file would have seeded the store
+    // (and pinned same-day) with pre-clock-stamp data. It must now be
+    // inert: a store miss fetches full history instead.
     writeFileSync(
       join(dir, "SYM-15min-max-2026-07-30.json"),
       JSON.stringify([tick(10), tick(20)]),
@@ -168,21 +294,15 @@ describe("calibration rolling cache", () => {
     const bars = await loadRollingSeries<Tick>({
       anchor: "2026-07-30",
       cacheDir: dir,
-      fetchFull: async () => {
-        throw new Error("legacy seed must not refetch full history");
-      },
+      clock: CLOCK,
+      fetchFull: async () => [tick(30)],
       fetchSince: async () => {
-        throw new Error("same-day legacy seed must not top up");
+        throw new Error("a store miss must fetch full history");
       },
       key: "SYM-15min-max",
-      legacyPrefix: "SYM-15min-max-",
       timeOf,
     });
-    assert.deepEqual(bars.map(timeOf), [10, 20]);
-    const store = JSON.parse(
-      readFileSync(join(dir, "SYM-15min-max.rolling.json"), "utf8"),
-    );
-    assert.equal(store.pinned["2026-07-30"], 20);
+    assert.deepEqual(bars.map(timeOf), [30]);
   });
 });
 

@@ -109,6 +109,26 @@ export function normalizeFmpBars(
 }
 
 /**
+ * R0 "one clock": the identity of toTimestamp's stamp interpretation. The
+ * rolling calibration cache persists NORMALIZED bars, so a normalizer
+ * change silently strands every previously cached bar on the old clock —
+ * which is exactly how the 2026-08-11 mixed-clock corpus happened: the 2b
+ * fix below corrected new fetches while the cache kept serving naive-era
+ * stamps it never refetched. Every rolling store now records the clock
+ * that wrote it (scripts/calibrationCache.ts) and refuses to load under a
+ * different one.
+ *
+ * The contract: any change to WHAT INSTANT toTimestamp assigns a given
+ * stamp — timezone, convention, date-only anchoring — MUST bump this
+ * string, which forces a deliberate cache rebuild instead of a silent
+ * mixed-clock store. Pure parser hardening that maps the same input to
+ * the same instant does not bump it. The naive pre-2026-08-09 era is the
+ * implicit v1 and deliberately has no identifier: nothing may ever match
+ * it. Pinned in tests/cacheClock.test.ts.
+ */
+export const BAR_CLOCK = "ny-wall-utc-v2";
+
+/**
  * 2b: the provider clock, measured rather than assumed. FMP stamps BARS in
  * America/New_York wall time — proof: the banked S&P cash session reads
  * 09:30-15:45 in July AND January (true UTC would move it an hour between

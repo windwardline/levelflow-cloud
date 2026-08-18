@@ -56,7 +56,20 @@ Spec §17p records it.
 branch, so it turns away arrivals and does **not** end visits. A park without the logout
 step leaves every signed-in operator working behind a closed door.
 
-### FMP is dark, and the loss is permanent
+### FMP is dark, and the loss is permanent — **ENDED EARLY 2026-08-18**
+
+> **UPDATE 2026-08-18: the owner purchased a 100 GB plan upgrade and the
+> allowance recovered immediately** — probed the same day (quote 200, two
+> 5-minute history windows served complete; see
+> `docs/cache-rebuild-r0.md` §0 for the measured results, including the
+> settled `to`-inclusivity and the ≥2,304-row 5-minute cap). The
+> paragraphs below are kept as the record of the blackout. What remains
+> true: the 1-minute bars not banked between 2026-08-13 and the bank's
+> first post-upgrade run are permanently gone (~3-day serving window);
+> everything else refetches. The minute bank resumes on its own schedule
+> now that 429s have stopped — kickstart it early to save the
+> recoverable tail. The R0 cache rebuild is UNBLOCKED and waits only on
+> the studio machine's operator.
 
 The account's trailing-30-day bandwidth allowance was exhausted on 2026-08-13 by
 the rebuild's **replay sweeps** — not by the minute bank, whose steady draw is
@@ -753,8 +766,8 @@ the live roster is 97 distinct markets.
 
 | rank | item | state |
 |---|---|---|
-| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **NEXT** |
-| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333) | after R0 |
+| **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches). D3 done (#333); E2's fetch half (chunk sizing) landed with R0 | **NEXT** |
 | **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
@@ -763,6 +776,116 @@ the live roster is 97 distinct markets.
 
 Full detail and the reasons the order is load-bearing:
 `docs/research/remediation-program-2026-08-11.md`.
+
+#### R0's code half — landed 2026-08-18, hardened same day by the adversarial round
+
+What could be done without bytes is done; what needs bytes has a runbook
+and a date. The change set went through the amendment-38 loop before
+merging: two independent finder passes plus the fleet review produced
+~20 findings; the surviving ones were verified personally and fixed in
+the same PR (#358) — including three that would have burned the rebuild
+itself (chunk windows one day wider than their sizing under an inclusive
+`to`; the cap tripwire counting post-rejection rows; a single outage
+Sunday condemning a healthy store run-globally).
+
+- **The constructive guarantee** — every rolling store records the clock
+  that wrote it (`BAR_CLOCK` `ny-wall-utc-v2` beside the normalizer it
+  identifies in `bars.ts`, with a bump contract; `CALENDAR_CLOCK` for
+  the calendar store). `loadRollingSeries` refuses an unstamped or
+  mismatched store loudly (`cacheClockMismatch`), refuses a corrupt or
+  truncated one too (`cacheStoreUnreadable` — a malformed store used to
+  fall through to a silent full refetch), and writes atomically
+  (temp+rename), so no crash can manufacture the corrupt shape. The
+  condemned 3.9 GB store cannot be read, topped up, or silently
+  refetched by anything at this commit or later. The r17 legacy-file
+  migration is gone. Token discipline: the nightly top-up stands down
+  ONLY for `cacheClockMismatch` (the pre-rebuild store; the one
+  non-actionable condition) — a witness refusal on a STAMPED store
+  (`cacheClockWitnessRefused`) and a corrupt store both stay red.
+- **The witnesses, per year, with measured limits stated**
+  (`scripts/clockWitness.ts`). Everything judges per year because the
+  defect shape is era-mixing, and aggregate shares certify minority
+  contamination (measured: a 30%-naive weekly histogram, a
+  5-of-16-naive-year transition mean, and a half-poisoned primary at 51%
+  zero-shift match all read clean under aggregates). Daily NY-midnight
+  stamps condemn universally — one naive year is "mixed"; the
+  weekly-open DST shift PROVES utc but never condemns (the Nikkei pin);
+  spring-transition counts condemn 24/7 markets on NAIVE-SHAPED evidence
+  only — `lowYears` counts years whose ratio sits in the [0.93, 0.975]
+  band that losing exactly one wall hour produces (~0.958), so outage
+  dents read as gaps, a naive-shaped median condemns, and two
+  naive-shaped years are "mixed"; 15min↔5min
+  registration condemns any year that registers at ±4/5 — both
+  polarities pinned, −4 being the real 2026-08-11 signature, and only
+  years with their own zero-shift evidence may condemn. The fleet
+  re-review tightened three edges same-day: the transition floor is 3
+  springs (the per-year median makes it safe; the old floor of 8 was
+  unreachable for 2020-2023 crypto listings), the daily witness has no
+  dead band (any year with ≥5% of both midnights is mixed; ~12 days/year
+  is the stated blind floor), and shard aggregation refuses shards whose
+  manifests disagree on the clock (`conditionsOf` now hashes it). THE
+  STATED LIMITS, measured not conjectured: a sessioned pair whose both
+  series share the wrong clock is invisible to every relative
+  instrument, and a provider convention flip (everything shifts
+  together) defeats even the transition witness via exact count
+  conservation. Those two cases are carried by the store stamp and by
+  the **reference session anchor**: ^GSPC's 09:30-ET open asserted in
+  both DST regimes — venue-anchored by design, which is exactly why the
+  Tokyo trap does not apply to it.
+  Witnesses ride in the manifest under the hash; the driver refuses a
+  condemned series corpus-globally; `verifyManifest` refuses any corpus
+  with no clock block or a condemned verdict — killing every pre-R0
+  corpus at the aggregation doors, and every bare emit reader passes
+  through `assertManifest` too. Nine of them, found by sweeping the
+  population after round 3 caught round 1's list being examples, not
+  the population (market-dossier, roster-expectancy-audit,
+  threshold-rescue, cost-sensitivity-verdict, feasibility-4d,
+  confidence-bands, ag-class-derivation, exclusion-suspects,
+  stop-provenance) — and the POPULATION is pinned by a sweep-style test
+  in `tests/sweepStats.test.ts` over the known line-reading idioms —
+  wider than any enumeration, honest about being a pattern match rather
+  than a proof.
+- **The 1b fetch defect fixed at the source** (`scripts/intradayChunks.ts`,
+  extracted pure and pinned by behaviour): chunks sized per timeframe —
+  5min 5d, 15min 29d — so the worst case under the MEASURED-INCLUSIVE
+  `to` (chunkDays+1 dates, plus the fall-back day's extra hour) fits the
+  MEASURED caps (15min ≥ 2,880 and 5min ≥ 2,304, both probed complete
+  2026-08-18); and the empty-window walk-back expressed in days (90).
+  Per-chunk clip detection was measured infeasible without run-killing
+  false positives — three candidate detectors died in review (#358
+  rounds 1/4/4b: dead row tripwire, holiday-false-positive coverage
+  check, unreadable merged tally) — so the clip guard is the measured
+  caps, the verifier's density floor AND ceiling (a clipped 15-minute
+  primary INFLATES the 5min/15min ratio), and R1's E2 density assertion
+  at the corpus door. E2's other half — the distinct no-bars resolution
+  state — stays in R1. A `BAR_CLOCK` bump now also forces the RE-SWEEP,
+  not just the cache rebuild: the corpus door refuses a superseded-clock
+  manifest, with `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` as the explicit,
+  loudly-warning historical-read act.
+- **`scripts/verify-cache-clock.ts` is the acceptance instrument**, now
+  an importable audit pinned by its own test suite against synthetic
+  healthy / unstamped / naive-data / shifted / sawtooth / corrupt /
+  incomplete caches. Green requires: stamps, witnesses, zero-shift
+  registration (a large-overlap pair that cannot register FAILS —
+  uncertainty resolves toward failing at this gate), density inside the
+  [2.5, 3.5] band (the ceiling catches a provider cap below ~2,386; the
+  ~2,386-2,784 blind band — up to ~14% 15-minute clip reading green — is
+  stated and carried by R1's E2 door), the
+  ^GSPC anchor, a daily store per symbol, and every roster symbol
+  present — a rebuild abandoned at 40 of 97 symbols is incomplete, not
+  green.
+- **What remains is operational and UNBLOCKED (2026-08-18, the owner's
+  100 GB upgrade):** `docs/cache-rebuild-r0.md` — preconditions already
+  probed green (200s; `to` measured INCLUSIVE at 1,728 rows/6 dates;
+  5-minute cap measured ≥2,304 — the audit-era clip not currently
+  binding), kickstart the minute bank FIRST (the ~3-day 1-minute window
+  is the only clock running), BOOT OUT the top-up agent (the 07:00 slot
+  plus RunAtLoad would write into a mid-rebuild cache), archive the
+  condemned store OUTSIDE the repo (`git clean -dfx` reaches ignored and
+  untracked alike), one budgeted direct `--warm-only` roster run
+  (~10–14 GB expected under a 30 gb ceiling, 8–12 h, resumable, streamed
+  to a log), verify green, re-arm the agent, one green nightly, then
+  delete the archive.
 
 ### ⛔ STOP — THE CORPUS IS INVALID (2026-08-11, evening)
 
@@ -872,6 +995,20 @@ key. Sequenced after item 6's `init.sql` work.
 - Entry-offset grid never derived at the new geometry.
 - The indices row in `replayReliability.ts` (.51/952) is the **pre-round-28** record.
   It is left as measured rather than restated; re-measuring it is item 4's first act.
+- **COT files never top up** — `fetchCotContract` serves an existing
+  `cot-*.json` forever (clock-safe, but a weekly positioning series frozen
+  at its fetch date goes stale silently). Surfaced by the R0 review; the
+  rebuild refreshes them once, the staleness mechanism remains.
+- **The daily EOD endpoint has no row-cap tripwire** (single un-chunked
+  request; no cap ever measured). The rebuild runbook has the operator
+  eyeball each daily store's first date; a real fix wants a measured cap
+  first.
+- **`starvation-audit.ts` reads the sweep's printed stdout table**, an
+  artifact that cannot carry a manifest — per-gate rejection tallies
+  live only in stdout, so starvation analysis has no manifested source
+  at all. Exempted by name in the reader-population pin; the real fix
+  (rejection tallies into the emit/manifest) belongs with R2's
+  instrument work.
 
 ---
 
