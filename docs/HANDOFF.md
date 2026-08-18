@@ -66,21 +66,37 @@ step leaves every signed-in operator working behind a closed door.
 > `docs/cache-rebuild-r0.md` §0 for the measured results, including the
 > settled `to`-inclusivity and the ≥2,304-row 5-minute cap).
 >
-> **⚠ OPEN OWNER ACTION (2026-08-18 afternoon): the FMP key in the GitHub
-> `FMP_API_KEY` secret is DEAD.** The first post-upgrade deploys (runs
-> 373/374 on main) failed their live chart gate, and once #359 taught the
-> gate to print the refusal, FMP's own words were `"Invalid API KEY"` —
-> while the studio Keychain key banked 76k one-minute bars at 13:00Z and
-> the FMP connector served the identical query minutes around both
-> failures. Production's Edge Functions hold that dead key too (the
-> deploy pushes the secret to Supabase), so live provider fetches are
-> failing account-wide until this is fixed. Remedy, owner-only: copy the
-> WORKING key (`security find-generic-password -a peacock -s fmp-api-key
-> -w` on the studio Mac, or the FMP dashboard) into the GitHub Actions
-> secret `FMP_API_KEY`, then re-run `deploy.yml` on main — the deploy
-> re-pushes it to Supabase and the gate re-verifies. The E2E quota
-> stand-down correctly did NOT swallow this: an invalid key is a
-> configuration failure and stays red.
+> **⚠ OPEN OWNER ACTION (2026-08-18): production's FMP key is DEAD — one
+> Keychain-sync command heals it.** The fleet credential law
+> (windwardline/ops: "Keychain is the secret store"; `credentials.tsv` is
+> the governed inventory) rotated `fmp-api-key` on **2026-08-17** after
+> the prior value surfaced in an agent transcript. The rotation
+> propagated to every Keychain-reading consumer with no edit — but the
+> GitHub Actions secret `FMP_API_KEY` was a consumer the inventory never
+> listed, so it went stale, and every deploy overwrote Supabase's
+> function secret with the dead key. The FMP blackout masked it (the
+> gate stood down on quota); the moment the allowance recovered, runs
+> 373/374 went red, and #359's printed refusal named it: FMP's own
+> `"Invalid API KEY"`. Production Edge Functions are failing all FMP
+> fetches until the sync runs.
+>
+> **The fix keeps the keys in one place** (the first remedy drafted here
+> — pushing the key back into GitHub — was WRONG under the fleet law and
+> was replaced): `deploy.yml` no longer holds, requires, or pushes
+> `FMP_API_KEY` at all; Supabase's function secret — the one copy
+> production physically requires — is set only by
+> `scripts/ops/sync-function-secrets.sh`, which reads the Keychain at
+> launch and holds nothing. **Owner's one step, on the studio Mac, after
+> the PR carrying that script and the deploy.yml change merges:**
+> `bash ~/Projects/levelflow-cloud/scripts/ops/sync-function-secrets.sh`
+> (pull main first). Rotation from then on: rotate in the Keychain, run
+> the script, done. The stale GitHub secret can be deleted in repo
+> Settings → Secrets (optional; it is dead value, referenced by
+> nothing). Follow-ups carried below: the inventory row gains this
+> consumer; `FINNHUB_API_KEY` exists ONLY as a GitHub secret (an
+> ungoverned remote copy, the resend-zapier failure class); the
+> Supabase-family GitHub secrets are Keychain-governed but their GitHub
+> copies are likewise not yet inventory-listed.
 >
 > The paragraphs below are kept as the record of the blackout. What remains
 > true: the 1-minute bars not banked between 2026-08-13 and the bank's
@@ -1037,6 +1053,22 @@ key. Sequenced after item 6's `init.sql` work.
   at all. Exempted by name in the reader-population pin; the real fix
   (rejection tallies into the emit/manifest) belongs with R2's
   instrument work.
+- **Pre-bump resolved rows carry no realized R** (D2's deferred third
+  clause): rows graded before `2026.08.18.realized-r` on the
+  take-profit/stop-loss branches have legs in feedback but no
+  `realizedR`/`netRealizedR`, and the frontend is NOT cohort-scoped
+  (`buildRecordBand`/`netRForSlice` read all rows), so the Insights Net
+  R band under-counts exactly those rows — E2E debris only today, per
+  the 2026-08-11 wipe. Unpark: back-derive from the stored legs with
+  the same accountant, riding Phase 2's D1 recompute (one data touch).
+- **Credential-inventory gaps in the deploy pipeline** (found while
+  closing the 2026-08-18 FMP-key incident): `FINNHUB_API_KEY` exists
+  ONLY as a GitHub secret — no Keychain row, the ungoverned-remote-copy
+  class the ops README documents — and the Supabase-family GitHub
+  secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) are
+  Keychain-governed but their GitHub copies are not listed as consumers
+  in `windwardline/ops` `credentials.tsv`, so a rotation would strand
+  them exactly as it stranded FMP. Fix at the inventory, not here.
 
 ---
 

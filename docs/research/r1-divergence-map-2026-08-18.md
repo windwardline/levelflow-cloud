@@ -198,25 +198,32 @@ change shape; the `ANALYZER_VERSION` bump scopes the boundary. The
 `tests/securityHardening.test.ts` call-site pins evolve with the bridge
 signature if it grows a second argument for E1's resolution timeframe.
 
-## D2 — realized R exists only on the expiry branch
+## D2 — realized R exists only on the expiry branch — **CLOSED (R1a slice 1, 2026-08-18)**
 
-**Engine** (replay.ts): `realizedR`/`netRealizedR` are computed and
-written into `feedback` ONLY in the `now > expiresAt` branch (:442-468).
-The take-profit, stop-loss, TP1-lock and same-bar-arming resolutions
-return legs but no realized R; both live writers store the feedback
-as-is (and `realized_pnl` stays null everywhere — R is the unit, PnL is
-sizing). Any R sum over `trade_outcomes` is therefore a sum over
-expiries alone.
+**Was**: `realizedR`/`netRealizedR` were computed and written into
+`feedback` ONLY in the expiry branch — the take-profit, stop-loss,
+TP1-lock and same-bar-arming resolutions returned legs but no realized
+R, so any R sum over `trade_outcomes` was a sum over expiries alone —
+and even the expiry branch billed full size on a half-sized runner
+after TP1 banked. The sweep computed `realizedRFromLegs` for every
+resolved row, so the corpus had uniform R and the cohort did not.
 
-**Sweep**: computes `realizedRFromLegs` for every resolved row
-(sweep.ts), so the corpus has uniform R and the cohort does not.
+**Closed by**: the 2g accountant moved into `replay.ts`; the resolver
+writes gross `realizedR` and net `netRealizedR` from its own legs on
+EVERY filled resolution (a TP1-banked expiry now scores the ladder;
+unfilled rows carry neither field); the sweep imports the same
+function; `extractRealizedR` prefers net so a stat labelled "Net R" is
+net; `ANALYZER_VERSION` → `2026.08.18.realized-r` moves the cohort
+boundary with the changed numbers. Producer pins in
+`tests/replayHarness.test.ts`.
 
-**Fix**: one leg-accounting function in replay.ts — the resolver
-computes net realized R from its own legs on EVERY resolved branch and
-writes `realizedR`/`netRealizedR` into feedback uniformly; the sweep
-imports the same function instead of carrying its own
-(`realizedRFromLegs` retires or delegates). D1 (Phase 2) then has its
-input on every row, not one branch.
+**Deferred, named**: the register remedy's third clause — back-deriving
+R for rows resolved BEFORE the bump from their stored legs — rides with
+Phase 2's D1 recompute (one data touch, not two). Until it lands,
+pre-bump take-profit/stop-loss rows stay R-less and the frontend is not
+cohort-scoped (`buildRecordBand` and `netRForSlice` read all rows), so
+the Insights Net R band under-counts exactly those rows — E2E debris
+only today, per the 2026-08-11 wipe. Carried on HANDOFF's small list.
 
 ## Sequencing — three PRs, engine first
 
