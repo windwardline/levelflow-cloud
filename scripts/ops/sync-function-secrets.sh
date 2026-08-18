@@ -139,10 +139,18 @@ else
         break
       fi
     done
+  else
+    # #363 round 3, finding 2: the abort must never assert a probe that
+    # never ran. On this path the pooler was SKIPPED, not failed — and
+    # the likeliest cause is a second stale credential this script
+    # already holds (the direct-IPv4 deprecation makes the pooler the
+    # expected path, so this branch is not exotic).
+    printf -- '--- pooler not probed: region lookup failed (supabase-access-token stale? management API unreachable?) ---\n' \
+      >> "$PROBE_ERR_FILE"
   fi
 fi
 if [ -z "$DB_HOST" ]; then
-  log "no reachable database endpoint (direct and pooler both failed); aborting — nothing written"
+  log "no reachable database endpoint (the direct host failed; the attempts below say whether the pooler was probed or skipped); aborting — nothing written"
   # #361 round 2, finding 3: EVERY failed attempt's psql stderr,
   # verbatim under its host/user marker — "password authentication
   # failed" means the supabase-db-levelflow Keychain item is stale

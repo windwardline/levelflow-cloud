@@ -94,7 +94,9 @@ step leaves every signed-in operator working behind a closed door.
 > Keychain, run the script, done.
 >
 > The script's failure modes after #363 (the round-2 fold-forward): no
-> credential value ever rides argv in ANY `scripts/ops` script (bearers
+> credential value ever rides argv in ANY `scripts/ops` script — which
+> is this repo's ENTIRE shell surface: all five `.sh` files live there,
+> so the directory-scoped sweep is exhaustive, not a narrowing (bearers
 > and the PATCH body travel by 600-mode files; class-pinned). The law's
 > scope is the STUDIO machine, where argv is world-readable in a
 > multi-process session — CI argv is deliberately outside it:

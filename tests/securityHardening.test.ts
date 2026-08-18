@@ -309,8 +309,20 @@ describe("security hardening", () => {
     assert.match(sync, /functions\/v1\/news-calendar/);
     assert.match(sync, /VERIFY FAILED/);
     // Values travel by 600-mode temp files, never argv — they must not
-    // be readable in `ps` on the studio machine.
-    assert.match(sync, /chmod 600/);
+    // be readable by other users on the studio machine. Lifetime pinned
+    // by EXACT file list (#363 round 3, finding 1 — a bare /chmod 600/
+    // cannot tell six files from one, and the script holds FOUR
+    // cleartext credential files: env, SQL, and both auth headers):
+    // dropping any file from the mode or the trap is a red build, not a
+    // freshly rotated credential resident in $TMPDIR.
+    assert.match(
+      sync,
+      /chmod 600 "\$ENV_FILE" "\$SQL_FILE" "\$PROBE_FILE" "\$PROBE_ERR_FILE" \\\n\s+"\$MGMT_AUTH_FILE" "\$VERIFY_AUTH_FILE"/,
+    );
+    assert.match(
+      sync,
+      /trap 'rm -f "\$ENV_FILE" "\$SQL_FILE" "\$PROBE_FILE" "\$PROBE_ERR_FILE" "\$MGMT_AUTH_FILE" "\$VERIFY_AUTH_FILE"' EXIT/,
+    );
     assert.doesNotMatch(sync, /secrets set[^\n]*FMP_API_KEY=/);
     assert.doesNotMatch(sync, /secrets set[^\n]*NEWS_SYNC_TOKEN=/);
     // #361 round 2, finding 1: the bearers ride 600-mode header files
