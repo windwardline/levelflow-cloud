@@ -140,8 +140,23 @@ async function fetchMarketContext(
   const daily = completeDaily(fetchedDaily);
   const timeframes: Partial<Record<Timeframe, Bar[]>> = { "1day": daily };
 
+  // E3 (#362 round 2, finding 2): the 1-minute series has no decision
+  // consumer left — pickPrimaryTimeframe never selects it, the alignment
+  // vote filters it out, and `latest` reads the trimmed primary — so the
+  // analyzer no longer fetches it. One provider call and up to 1,800
+  // decoded bars per symbol per scan (the load class behind the two 546
+  // CPU-budget deaths in bars.ts's docblock) bought nothing but an
+  // activeTimeframes chip claiming data was considered when it no longer
+  // was; dropping it also aligns availableTimeframes — and the "< 3"
+  // sufficiency gate reading it — with the sweep's, which never counted
+  // 1min. The chart feed (market-data) has its own timeframe list and
+  // still serves 1-minute candles; §21's minute bank is the studio-side
+  // corpus program and never read this fetch.
+  const decisionTimeframes = intradayTimeframes.filter(
+    (timeframe) => timeframe !== "1min",
+  );
   await Promise.all(
-    intradayTimeframes.map(async (timeframe) => {
+    decisionTimeframes.map(async (timeframe) => {
       try {
         // E3 (#362 review, finding 1): the completed-bar law applies to
         // the SERIES, not just the `latest` pointer below — an untrimmed

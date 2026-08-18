@@ -1048,6 +1048,13 @@ key. Sequenced after item 6's `init.sql` work.
   at all. Exempted by name in the reader-population pin; the real fix
   (rejection tallies into the emit/manifest) belongs with R2's
   instrument work.
+- **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
+  deploy** (#362 round-1 throughput note): E1's dual-series fetch means
+  each NEW symbol in a run costs two provider calls inside
+  `RUN_BUDGET_MS = 12s` / `MAX_SETUPS_PER_RUN = 300`, so a rising
+  skipped count is the first symptom if the hourly window stops keeping
+  up. No change shipped — the budget machinery is the designed backstop;
+  this is an observation point, not a defect.
 - **Pre-bump resolved rows carry no realized R** (D2's deferred third
   clause): rows graded before `2026.08.18.realized-r` on the
   take-profit/stop-loss branches have legs in feedback but no

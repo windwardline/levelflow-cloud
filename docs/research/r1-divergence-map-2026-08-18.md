@@ -242,7 +242,17 @@ layer.
   on — while a thrown 5-MINUTE fetch degrades to the 15-minute tier,
   visibly via the stamp; the caught promise is what the per-symbol cache
   holds, so one 5-minute failure cannot poison the symbol's remaining
-  setups. The sweep's emit symmetry rides with R1b.
+  setups. Round 2 then found the THIRD caller: the sweep's own inline
+  admission took the 5-minute tier whenever the corpus array was
+  non-empty, never testing reach-back to the decision instant — so a
+  decision predating the 5-minute corpus graded a truncated window (or
+  resolved through the no-bars branch, E2's own defect reproduced by the
+  tiering) while live degraded honestly to 15-minute physics. The sweep
+  now decides its tier through `resolutionSeriesFor` as well — three
+  callers, one rule; its FR-5 start offset and horizon slice are
+  unchanged. The behavioral pin for the sweep side rides with R1b's emit
+  tier symmetry, which gives it an observable per-row field; until then
+  the wiring is source-pinned. The sweep's emit symmetry rides with R1b.
 - **E2 (live half)**: the true no-bars expiry carries
   `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
   not. The sweep's distinct counter and `assertManifest`'s per-symbol
@@ -256,8 +266,14 @@ layer.
   check, `market.latest === market.primary.at(-1)` by construction, the
   forming-bar fallback is deleted (finding 4), and `buildPricePlan`
   derives every price from its own series tail — the sweep's exact
-  single-anchor shape. The 1-minute-preferring picker is deleted; chart
-  feed and quote snapshot untouched.
+  single-anchor shape. The 1-minute-preferring picker is deleted, and
+  with it the 1-minute FETCH (#362 round 2, finding 2): nothing decided
+  on that series any more — the alignment vote filters it, the primary
+  picker never selects it — so the analyzer stops paying a provider call
+  and up to 1,800 decoded bars per symbol per scan for a display chip,
+  and `availableTimeframes` (and the "< 3" sufficiency gate reading it)
+  now counts exactly what the sweep's does. Chart feed and quote
+  snapshot untouched — `market-data` has its own timeframe list.
 - **E7**: construction writes `runnerProtection` and `reviewWindowHours`
   into `risk_model`; the bridge reads them with strict validation, and
   pre-slice rows keep today's exact behavior, version-scoped. The same
@@ -274,13 +290,34 @@ layer.
   on the physics change — the same producer-never-tested pattern as
   D2's register entry, now closed for these paths too (#362 finding 2
   closed the loader instance of it).
-- **Residue, named not smuggled**: the GRADING series (both writers'
-  `fetchFmpBars` results) still carries its forming tail bar. Highs and
-  lows of a forming bar are realized prices, so touch grading is honest;
-  the divergence is the expiry branch pricing its exit off a non-final
-  close — small, real, and the corpus never does it. Rides with R1b's
-  sweep-side E2 work as a deliberate decision (trim vs. wait-one-span),
-  not folded silently into this slice.
+- **Residue, named not smuggled** (rides with R1b unless marked):
+  - The GRADING series (both writers' `fetchFmpBars` results) still
+    carries its forming tail bar. Highs and lows of a forming bar are
+    realized prices, so touch grading is honest; the divergence is the
+    expiry branch pricing its exit off a non-final close — small, real,
+    and the corpus never does it. Deliberate decision pending (trim vs.
+    wait-one-span).
+  - `confluence.orderConstruction.latestClose` — the client's §19c
+    sizing rate — aged with the anchor (#362 round 2, finding 3): a
+    completed-bar close bounded by the primary span (daily on the
+    loader's fallback) instead of a ≤1-minute print. Accepted for
+    sizing tolerance; sourcing the bridge quote from `market.quote` is
+    a §19 governor change with its own review, not an engine rider.
+  - The copy gate matches the resolver on hours but not on the weekly
+    close (#362 round 2, finding 4 — pre-existing): `getSetupExpiryTime`
+    clamps every non-crypto window to the weekly cutoff and
+    `storedSetup.ts` computes flat hours, so a Friday-afternoon forex
+    setup stays copyable past the instant the resolver expires it.
+    Closing it means mirroring the NY-clock weekly-close rule
+    client-side — its own considered change.
+  - `completedIntradaySeries` span-tests the session's FINAL `1hour`/
+    `4hour` bar too (#362 round 2, smaller item): FMP's truncated
+    session-close bars (an equity 15:30 hourly covers 30 minutes) read
+    as forming until the full span elapses, so a genuinely completed
+    bar is briefly dropped and the ≥40/≥80 counts drop with it. Error
+    is conservative-direction and bites only when `1hour`/`4hour` is
+    primary; the sweep resamples those series from 15-minute history
+    and never span-tests them.
 
 ## Sequencing — three PRs, engine first
 

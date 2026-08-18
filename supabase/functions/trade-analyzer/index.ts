@@ -1282,6 +1282,13 @@ async function analyzeSetup(
         contractSpec: pricePlan.contractSpec,
         futuresTickAdjustments: pricePlan.futuresTickAdjustments,
         orderType: "limit",
+        // E3 aged this field (#362 round 2, finding 3): the completed
+        // decision-anchor close, no longer a ≤1-minute print. The
+        // client's §19c Size row reads it as the market's rate —
+        // staleness now bounded by the primary span (a daily close on
+        // the loader's fallback) — accepted for sizing tolerance and
+        // named in the divergence map's residue; sourcing it from
+        // market.quote is a §19 governor change, not a rider here.
         latestClose: market.latest.close,
         tickValidation: pricePlan.contractSpec
           ? `Prices rounded to the ${pricePlan.contractSpec.contractLabel} tick size.`

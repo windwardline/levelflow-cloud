@@ -733,7 +733,38 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
         /"15min",\s*\n\s*recordAnalyzerEvent,\s*\n\s*fetchWithTimeout,\s*\n\s*\)\.catch/,
         `${file} must keep a failed 15-minute fetch fatal for the setup`,
       );
+      // Format-independent half of the pair (#362 round 2, smaller item):
+      // exactly ONE degrade-catch per writer. With the positive match
+      // above binding it to the 5-minute fetch, a reformatted 15-minute
+      // .catch cannot hide — it would make this count two.
+      assert.equal(
+        (source.match(/\)\.catch\(\(\) => \[\]\)/g) ?? []).length,
+        1,
+        `${file} must carry exactly one degrade-catch, on the 5-minute fetch`,
+      );
     }
+  });
+
+  it("E1: the sweep decides its tier through the same rule — three callers, one physics (#362 round 2, finding 1)", () => {
+    const sweep = readFileSync(
+      "supabase/functions/trade-analyzer/sweep.ts",
+      "utf8",
+    );
+    assert.match(
+      sweep,
+      /resolutionSeriesFor\(\{\s*\n\s*createdAtMs: latest\.time,/,
+      "the sweep's tier must come from the shared admission rule at the decision instant",
+    );
+    // The whole-corpus non-empty admission is the divergence round 2
+    // caught: a 5-minute corpus starting after the decision instant must
+    // degrade to 15-minute physics in the sweep exactly as live does.
+    // The behavioral half of this pin arrives with R1b's emit tier
+    // symmetry, which gives the assertion an observable per-row field.
+    assert.doesNotMatch(
+      sweep,
+      /fiveMinuteBars && fiveMinuteBars\.length > 0/,
+      "the sweep must not admit the 5-minute tier on mere non-emptiness",
+    );
   });
 
   it("E3: setup construction anchors on the last COMPLETED primary bar, never the freshest 1-minute print", () => {
@@ -756,6 +787,12 @@ describe("R1a slice 2 — live grading and construction share the sweep's physic
     // forming-bar fallback (finding 4) went with it.
     assert.doesNotMatch(loader, /pickLatestTimeframe/);
     assert.doesNotMatch(loader, /lastCompletedBar/);
+    // #362 round 2, finding 2: the 1-minute series has no decision
+    // consumer, so the analyzer must not pay a provider call and up to
+    // 1,800 decoded bars per symbol for a display chip — and its absence
+    // aligns availableTimeframes with the sweep's, which never counted
+    // 1min. The chart's own feed (market-data) is a different function.
+    assert.match(loader, /\(timeframe\) => timeframe !== "1min"/);
   });
 
   it("E7: construction writes the protection mode and review window into the row the bridge reads", () => {

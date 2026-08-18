@@ -59,13 +59,19 @@ export function storedSetupAsCandidate(
   const breakevenTriggerPrice = asPrice(setup.breakeven_trigger_price);
   // The copy gate's window: created_at + the row's OWN review window when
   // the analyzer stamped one (risk_model.reviewWindowHours — E7's rule
-  // that decision-time facts ride the row, applied to the affordance gate
-  // exactly as the resolver's bridge applies it, same validation and all;
-  // #362 review, finding 5), else the calibration mirror for pre-E7 rows.
-  // Re-modelling from the mirror alone meant this gate and the resolver
-  // could disagree the moment the calibration moved. Null when created_at
-  // is unparseable — the gate then leaves the affordances live, exactly
-  // as a scan row without an expiry does.
+  // that decision-time facts ride the row, read with the bridge's exact
+  // validation; #362 review, finding 5), else the calibration mirror for
+  // pre-E7 rows. Re-modelling from the mirror alone meant this gate and
+  // the resolver could disagree the moment the calibration moved. Known
+  // remaining gap (#362 round 2, finding 4 — pre-existing, named in the
+  // divergence map's residue): the resolver also clamps every non-crypto
+  // window to the weekly close (getSetupExpiryTime), and this gate does
+  // not, so a Friday-afternoon forex setup stays copyable past the
+  // cutoff the resolver expires it at. Closing that means mirroring the
+  // NY-clock weekly-close rule client-side — its own considered change,
+  // not a rider. Null when created_at is unparseable — the gate then
+  // leaves the affordances live, exactly as a scan row without an
+  // expiry does.
   const reviewedAtMs = storedSetupReviewedAt(setup);
   const rowReviewWindowHours = Number(setup.risk_model?.reviewWindowHours);
   const reviewWindowHours =
