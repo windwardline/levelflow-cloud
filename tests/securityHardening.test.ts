@@ -336,12 +336,19 @@ describe("security hardening", () => {
     // via -d "$PAYLOAD", the same class one process later): into python
     // via the environment, and into curl via --data @file — the payload
     // carries the key as smtp_pass, so it must never be a command
-    // argument (`ps` shows argv of a real process; env it does not).
+    // argument (argv is world-readable via `ps -ax`; the environment is
+    // readable only by the same user). And the credential FILE's
+    // lifetime is pinned with its transport (#363 round 2, finding 2):
+    // 600-mode at creation, removed by the trap — dropping either
+    // leaves the Resend key readable or resident in /tmp with a green
+    // build.
     const brand = readFileSync("scripts/ops/update-auth-brand.sh", "utf8");
     assert.match(brand, /RESEND_KEY="\$RESEND_KEY" python3 > "\$PAYLOAD_FILE"/);
     assert.doesNotMatch(brand, /python3 - "\$RESEND_KEY"/);
     assert.match(brand, /--data @"\$PAYLOAD_FILE"/);
     assert.doesNotMatch(brand, /-d "\$PAYLOAD"/);
+    assert.match(brand, /chmod 600 "\$AUTH_FILE" "\$PAYLOAD_FILE"/);
+    assert.match(brand, /rm -f "\$AUTH_FILE" "\$PAYLOAD_FILE"/);
     // #361 round 2, findings 2-4 — the classification work, pinned:
     // a transport failure at verify reports the halves synced instead of
     // dying silently under set -e; 401/403 retries before it is

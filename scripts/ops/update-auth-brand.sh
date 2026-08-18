@@ -22,8 +22,10 @@ RESEND_KEY="$(security find-generic-password -a peacock -s resend-api-key -w 2>/
 [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$RESEND_KEY" ] || { echo "missing Keychain credentials"; exit 1; }
 
 # Fleet law (#361 round 2, finding 1's class): credential values travel
-# by 600-mode files, never argv — bash printf is a builtin, so nothing
-# here surfaces in `ps`. That includes the PATCH BODY (#363 round 1,
+# by 600-mode files, never argv — argv is world-readable via `ps -ax`,
+# so no OTHER user or process watcher can read them (the invoking user
+# can always inspect their own processes; bash printf is a builtin, so
+# the writes below spawn nothing). That includes the PATCH BODY (#363 round 1,
 # finding 1): the payload carries the Resend key as smtp_pass, so it
 # goes to curl via --data @file, never as an inline -d argument — and
 # the key rides into python via the environment, never python's argv.

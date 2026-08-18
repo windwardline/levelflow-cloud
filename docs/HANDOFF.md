@@ -95,7 +95,14 @@ step leaves every signed-in operator working behind a closed door.
 >
 > The script's failure modes after #363 (the round-2 fold-forward): no
 > credential value ever rides argv in ANY `scripts/ops` script (bearers
-> and the PATCH body travel by 600-mode files; class-pinned), a
+> and the PATCH body travel by 600-mode files; class-pinned). The law's
+> scope is the STUDIO machine, where argv is world-readable in a
+> multi-process session — CI argv is deliberately outside it:
+> `deploy.yml` passes `--password` to the Supabase CLI on a
+> GitHub-hosted runner, which is ephemeral and single-tenant, and
+> dropping the flags to lean on the CLI's env fallback is unverifiable
+> short of a live production deploy (#363 round 2, weighed and
+> declined). Also after #363: a
 > transport failure at the verify step reports **the token halves ARE
 > synced** instead of dying silently, and a preflight abort prints
 > every probe's psql stderr under host/user markers — "password

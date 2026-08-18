@@ -35,8 +35,10 @@
 # Reads fmp-api-key, levelflow-newssync-token, supabase-access-token and
 # supabase-db-levelflow from the Keychain at launch and holds none of them
 # (fleet law: helpers read their credentials at launch, never hold them).
-# Values travel via chmod-600 temp files, never argv, so they cannot
-# surface in `ps`. Nothing here ever prints a secret value.
+# Values travel via chmod-600 temp files, never argv — argv is
+# world-readable via `ps -ax`, so this is what keeps other users (and
+# any process watcher) from reading them; the invoking user can always
+# inspect their own processes. Nothing here ever prints a secret value.
 set -euo pipefail
 
 # Defaults are the studio machine and the production project; both take
