@@ -8,8 +8,10 @@ normalization that wrote it (`BAR_CLOCK` in the analyzer's `bars.ts`,
 mismatched store **refuses to load** (`cacheClockMismatch`), and a
 corrupt or truncated one refuses too (`cacheStoreUnreadable`) instead of
 silently refetching; the manifest carries the clock and per-year
-witnesses; every corpus reader — the aggregation doors *and* the five
-bare emit readers — refuses a corpus that cannot prove its clock. The
+witnesses; every corpus reader — the aggregation doors *and* all nine
+bare emit readers, the population pinned by a sweep-style test rather
+than an enumeration in prose — refuses a corpus that cannot prove its
+clock. The
 condemned 3.9 GB store on the studio machine therefore cannot be read,
 topped up, or quietly deepened by anything at this commit or later — the
 only way forward is this rebuild.

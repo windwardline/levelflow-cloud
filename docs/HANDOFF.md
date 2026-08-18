@@ -832,11 +832,15 @@ Sunday condemning a healthy store run-globally).
   Witnesses ride in the manifest under the hash; the driver refuses a
   condemned series corpus-globally; `verifyManifest` refuses any corpus
   with no clock block or a condemned verdict — killing every pre-R0
-  corpus at the aggregation doors, and the five bare emit readers
-  (market-dossier, roster-expectancy-audit, threshold-rescue,
-  cost-sensitivity-verdict, feasibility-4d) now pass through
-  `assertManifest` too, so "every corpus reader" is finally a true
-  sentence.
+  corpus at the aggregation doors, and every bare emit reader passes
+  through `assertManifest` too. Nine of them, found by sweeping the
+  population after round 3 caught round 1's list being examples, not
+  the population (market-dossier, roster-expectancy-audit,
+  threshold-rescue, cost-sensitivity-verdict, feasibility-4d,
+  confidence-bands, ag-class-derivation, exclusion-suspects,
+  stop-provenance) — and the POPULATION is pinned by a sweep-style test
+  in `tests/sweepStats.test.ts`, so a tenth reader cannot appear
+  undoored without failing CI.
 - **The 1b fetch defect fixed at the source** (`scripts/intradayChunks.ts`,
   extracted pure and pinned by behaviour): chunks sized per timeframe —
   5min 5d, 15min 29d — so the worst case under an INCLUSIVE `to`
@@ -984,6 +988,12 @@ key. Sequenced after item 6's `init.sql` work.
   request; no cap ever measured). The rebuild runbook has the operator
   eyeball each daily store's first date; a real fix wants a measured cap
   first.
+- **`starvation-audit.ts` reads the sweep's printed stdout table**, an
+  artifact that cannot carry a manifest — per-gate rejection tallies
+  live only in stdout, so starvation analysis has no manifested source
+  at all. Exempted by name in the reader-population pin; the real fix
+  (rejection tallies into the emit/manifest) belongs with R2's
+  instrument work.
 
 ---
 

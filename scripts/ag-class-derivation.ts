@@ -17,6 +17,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { assertManifest } from "./sweepStats.ts";
 
 const GRAINS = new Set(["ZCUSX", "ZSUSX", "ZLUSX", "ZMUSD", "ZOUSX", "ZRUSD"]);
 const LIVESTOCK = new Set(["LEUSX", "GFUSX", "HEUSX"]);
@@ -44,6 +45,8 @@ async function main(): Promise<void> {
   const hours = new Map<string, S>();     // cohort|utcHour
   const totals = new Map<string, S>();
   for (const file of process.argv.slice(2)) {
+    // R0: the one-clock door (#358 round 3).
+    assertManifest(file);
     const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
     for await (const line of stream) {
       if (!line) continue;

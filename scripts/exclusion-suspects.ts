@@ -19,6 +19,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { assertManifest } from "./sweepStats.ts";
 
 const SUSPECTS = new Set([
   "SP", "NSDQ", "DOW", "NIKKEI", "DAX", "ASX",
@@ -37,6 +38,8 @@ async function main(): Promise<void> {
   const acc = new Map<string, S>();
   const k = (s: string, p: string) => `${s}|${p}`;
   for (const file of process.argv.slice(2)) {
+    // R0: the one-clock door (#358 round 3).
+    assertManifest(file);
     const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });
     for await (const line of stream) {
       if (!line) continue;

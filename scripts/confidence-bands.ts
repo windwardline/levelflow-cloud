@@ -23,6 +23,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { assertManifest } from "./sweepStats.ts";
 import {
   getAssetType,
   getCategoryCalibration,
@@ -224,6 +225,9 @@ async function main(): Promise<void> {
   let gated = 0;
 
   for (const file of files) {
+    // R0: the one-clock door — no corpus aggregates without proving its
+    // clock (#358 round 3: this reader decides a shipped scoring input).
+    assertManifest(file);
     const stream = createInterface({
       crlfDelay: Number.POSITIVE_INFINITY,
       input: createReadStream(file),

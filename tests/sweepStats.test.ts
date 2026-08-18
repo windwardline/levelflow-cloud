@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -325,13 +325,49 @@ describe("assertManifestedCorpus — the one-clock refusals (R0)", () => {
   });
 });
 
-// #358 finding 4: five analysis scripts read emits straight through
-// readLinesSync and never touched the manifest — the exact tools that
-// produced the invalidated 4d-era figures, still able to aggregate a
-// pre-R0 corpus. The one-clock door now stands at each of their entries,
-// and this pin keeps the set closed: any script that reads emit lines
-// must assert the manifest first.
-describe("every emit reader passes the one-clock door (R0)", () => {
+// #358 findings (round 1 #4 and round 3 #1): bare emit readers kept
+// aggregating pre-R0 corpora, and dooring an ENUMERATED list twice
+// proved the enumeration was the mistake — round 1 named five, round 3
+// found four more, and the sweep below found the tenth candidate
+// (starvation-audit) reading a third idiom. So the pin is the
+// POPULATION, not a list: every script that line-reads files must
+// either pass the one-clock door or sit on the exemption list with a
+// stated reason. A new reader idiom extends the pattern; a new reader
+// without a door fails here.
+describe("every emit reader passes the one-clock door (R0) — the population, not a list", () => {
+  const readerPattern = /createInterface\(|readLinesSync\(|split\("\\n"\)/;
+  const doorPattern = /assertManifest\(|assertManifestedCorpus/;
+  const exempt: Record<string, string> = {
+    "starvation-audit.ts":
+      "reads the sweep's printed stdout TABLE, not the emit — an artifact " +
+      "that cannot carry a manifest; the gap (rejection tallies live only " +
+      "in stdout) is carried on HANDOFF's small list for the instrument " +
+      "phase",
+    "sweepStats.ts": "is the door module itself",
+  };
+
+  it("every line-reading script under scripts/ has the door or a named exemption", () => {
+    const undoored: string[] = [];
+    for (const name of readdirSync("scripts")) {
+      if (!name.endsWith(".ts")) {
+        continue;
+      }
+      const source = readFileSync(`scripts/${name}`, "utf8");
+      if (!readerPattern.test(source)) {
+        continue;
+      }
+      if (doorPattern.test(source) || exempt[name]) {
+        continue;
+      }
+      undoored.push(name);
+    }
+    assert.deepEqual(
+      undoored,
+      [],
+      `line-reading scripts with no one-clock door: ${undoored.join(", ")}`,
+    );
+  });
+
   for (
     const script of [
       "scripts/market-dossier.ts",
@@ -339,14 +375,18 @@ describe("every emit reader passes the one-clock door (R0)", () => {
       "scripts/threshold-rescue.ts",
       "scripts/cost-sensitivity-verdict.ts",
       "scripts/feasibility-4d.ts",
+      "scripts/confidence-bands.ts",
+      "scripts/ag-class-derivation.ts",
+      "scripts/exclusion-suspects.ts",
+      "scripts/stop-provenance.ts",
     ]
   ) {
     it(`${script} asserts the manifest before reading a line`, () => {
       const source = readFileSync(script, "utf8");
-      assert.match(source, /assertManifest\(path\);/);
+      assert.match(source, /assertManifest\((path|file)\);/);
       assert.match(
         source,
-        /import \{ assertManifest, readLinesSync \} from "\.\/sweepStats\.ts";/,
+        /import \{ assertManifest[^}]*\} from "\.\/sweepStats\.ts";/,
       );
     });
   }

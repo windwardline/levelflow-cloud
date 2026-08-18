@@ -146,6 +146,30 @@ describe("daily-stamp witness — the universal condemning witness, per year", (
     assert.equal(witness.verdict, "mixed");
     assert.equal(witness.daily!.mixedYears, 1);
   });
+
+  it("does not let a partial year condemn on two rows — the floor is absolute too (#358 round 3)", () => {
+    // Ten clean full years, then a 40-row partial 2025 whose first two
+    // rows are naive: 5% of that year's rows — over the proportional
+    // floor — but only 2 rows, under the absolute one. Not mixed.
+    const bars = [];
+    for (let ms = Date.UTC(2015, 0, 1); ms < Date.UTC(2025, 0, 1); ms += DAY) {
+      const { day, month, year } = utcDate(ms);
+      bars.push(bar(newYorkWallClockToUtcMs(year, month, day, 0, 0, 0)));
+    }
+    for (let index = 0; index < 40; index += 1) {
+      const { day, month, year } = utcDate(Date.UTC(2025, 0, 1) + index * DAY);
+      bars.push(
+        bar(
+          index < 2
+            ? Date.UTC(year, month - 1, day)
+            : newYorkWallClockToUtcMs(year, month, day, 0, 0, 0),
+        ),
+      );
+    }
+    const witness = seriesClockWitness(bars, "daily");
+    assert.equal(witness.verdict, "utc");
+    assert.equal(witness.daily!.mixedYears, 0);
+  });
 });
 
 describe("weekly-open witness — proves utc, never condemns", () => {
@@ -257,7 +281,9 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     );
     const witness = seriesClockWitness(bars, "intraday");
     assert.equal(witness.verdict, "utc");
-    assert.equal(witness.transition!.lowYears, 1);
+    // A half-missing Sunday (ratio ~0.5) is far outside the naive-shaped
+    // band, so it reads as a gap — not as clock evidence at all.
+    assert.equal(witness.transition!.lowYears, 0);
   });
 
   it("condemns a MINORITY naive era among true years as mixed (#358)", () => {
@@ -274,6 +300,29 @@ describe("spring-transition witness — the 24/7 condemning witness, per year", 
     const witness = seriesClockWitness(deduped, "intraday");
     assert.equal(witness.verdict, "mixed");
     assert.ok(witness.transition!.lowYears >= 2);
+  });
+
+  it("does NOT condemn a 3-spring store for two outage-dented Sundays — gaps are not clock evidence (#358 round 3)", () => {
+    // Two of the three sampled springs half-missing: the old <=0.97 rule
+    // read the 0.5 ratios as naive and condemned run-globally; the
+    // naive-shaped band reads them as gaps and refuses to verdict.
+    const youngStart = Date.UTC(2023, 3, 1);
+    const youngHours = Math.floor((Date.UTC(2026, 7, 1) - youngStart) / HOUR);
+    const springDays = [2024, 2025].map((year) => {
+      const first = new Date(Date.UTC(year, 2, 1)).getUTCDay();
+      return Math.floor(Date.UTC(year, 2, 1 + ((7 - first) % 7) + 7) / DAY);
+    });
+    const bars = [];
+    for (let index = 0; index < youngHours; index += 1) {
+      const time = youngStart + index * HOUR;
+      if (springDays.includes(Math.floor(time / DAY)) && index % 2 === 1) {
+        continue;
+      }
+      bars.push(bar(time));
+    }
+    const witness = seriesClockWitness(bars, "intraday");
+    assert.equal(witness.verdict, "indeterminate");
+    assert.equal(witness.transition!.lowYears, 0);
   });
 
   it("fires at realistic young-crypto depth — three springs decide (#358 re-review)", () => {

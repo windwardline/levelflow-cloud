@@ -24,7 +24,9 @@
 //   date-only labels; the current normalizer stamps them at New York
 //   midnight (04/05 UTC), the naive era at 00 UTC. Judged per year: one
 //   naive year among true years is "mixed", down to a ~5% admixture
-//   within the year (~12 trading days) — the stated noise floor, below
+//   within the year AND at least 5 rows of each midnight (~12 trading
+//   days in a full year; the absolute floor keeps a partial first/last
+//   year from condemning on two rows) — the stated noise floor, below
 //   which this witness is blind.
 //
 // - WEEKLY-OPEN witness (intraday, proving only): a session market's week
@@ -44,12 +46,14 @@
 //   hour collapses to one instant under BOTH parsers — so only spring
 //   Sundays are sampled, and only 2007+ (the current US DST rule; the
 //   pre-2007 rule differed and a mis-sampled ordinary Sunday reads ~1.0,
-//   diluting toward a false pass). Judged per year: two or more low
-//   years is "mixed" even when the median is clean; the median condemns
-//   an all-naive store; a single low year (one provider outage) is
-//   tolerated rather than condemning a healthy store. Three sampled
-//   springs suffice — the young 2020-2023 crypto listings carry 3-6,
-//   the deep majors (BTC 2013-11, ETH 2015, DASH/DOGE 2017) 9-13.
+//   diluting toward a false pass). Judged per year against the
+//   NAIVE-SHAPED band [0.93, 0.975] — the signature of losing exactly
+//   one wall hour — so an outage dent (arbitrary, usually deeper) reads
+//   as a gap, never as clock evidence: two or more naive-shaped years
+//   is "mixed" even when the median is clean; a naive-shaped median
+//   condemns an all-naive store. Three sampled springs suffice — the
+//   young 2020-2023 crypto listings carry 3-6, the deep majors (BTC
+//   2013-11, ETH 2015, DASH/DOGE 2017) 9-13.
 //
 // - CROSS-SERIES registration (per symbol, condemning): two series of the
 //   same market on the same clock agree on each day's extremes at zero
@@ -196,9 +200,15 @@ function dailyWitness(times: number[]): SeriesClockWitness {
     // BOTH midnights above the 5% noise floor is mixed, full stop — the
     // pure branches demand the other midnight stay UNDER that floor. A
     // legitimate store has exactly zero of the other midnight, so ~12
-    // days of admixture in a year is the smallest contamination this can
-    // see, and that floor is the stated limit, not a hidden one.
-    if (nyShare >= 0.05 && utcShare >= 0.05) {
+    // days of admixture in a full year is the smallest contamination
+    // this can see, and that floor is the stated limit, not a hidden
+    // one. The floor is absolute as well as proportional (#358 round 3):
+    // in a partial first/last year, 5% can be two rows, and a
+    // run-aborting verdict should not hang on two rows.
+    if (
+      nyShare >= 0.05 && utcShare >= 0.05 &&
+      tally.atNy >= 5 && tally.atUtc >= 5
+    ) {
       mixedYears += 1;
     } else if (nyShare >= 0.8 && utcShare < 0.05) {
       utcYears += 1;
@@ -355,32 +365,38 @@ function transitionWitness(
     const neighborMedian = neighborCounts[Math.floor(neighborCounts.length / 2)];
     ratios.push(transitionCount / neighborMedian);
   }
-  // Three springs suffice (#358 re-review): the per-year median +
-  // lowYears logic is what makes a low floor safe — three all-naive
-  // springs give a 0.958 median ("naive"), one outage in three leaves
-  // the median clean, and two dented springs condemn as "mixed", which
-  // at an acceptance gate is the correct direction for evidence that
-  // thin. The old floor of 8 needed ~9 years of 24/7 history, which the
-  // young 2020-2023 crypto listings do not have; the deep majors
-  // (BTCUSD 2013-11, ETHUSD 2015, DASH/DOGE 2017 — the 4a corpus
-  // manifest) sample 9-13 springs either way.
+  // Three springs suffice (#358 re-review): the per-year, naive-shaped
+  // judging below is what makes a low floor safe — three all-naive
+  // springs give a 0.958 median ("naive"), while outage-dented Sundays
+  // fall outside the naive band and read as gaps, not evidence. The old
+  // floor of 8 needed ~9 years of 24/7 history, which the young
+  // 2020-2023 crypto listings do not have; the deep majors (BTCUSD
+  // 2013-11, ETHUSD 2015, DASH/DOGE 2017 — the 4a corpus manifest)
+  // sample 9-13 springs either way.
   if (ratios.length < 3) {
     return { verdict: "indeterminate" };
   }
   const ratioMedian = median(ratios);
-  const lowYears = ratios.filter((ratio) => ratio <= 0.97).length;
+  // The condemning evidence is NAIVE-SHAPED, not merely low (#358 round
+  // 3): a naive spring loses exactly the 02:xx wall hour — 23/24 ≈ 0.958
+  // — while an outage dent is arbitrary and usually far deeper. Counting
+  // only the [0.93, 0.975] band means two provider gaps among three
+  // sampled Sundays read as gaps (indeterminate), never as a condemned
+  // store, while every genuinely naive year still counts.
+  const naiveShaped = (ratio: number) => ratio >= 0.93 && ratio <= 0.975;
+  const lowYears = ratios.filter(naiveShaped).length;
   const transition = {
     lowYears,
     ratioMedian: round3(ratioMedian),
     sampled: ratios.length,
   };
-  if (ratioMedian <= 0.97) {
+  if (naiveShaped(ratioMedian)) {
     return { transition, verdict: "naive" };
   }
   if (lowYears >= 2) {
     return { transition, verdict: "mixed" };
   }
-  if (ratioMedian >= 0.985) {
+  if (ratioMedian >= 0.985 && lowYears <= 1) {
     return { transition, verdict: "utc" };
   }
   return { transition, verdict: "indeterminate" };
