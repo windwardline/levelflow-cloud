@@ -32,6 +32,7 @@ import {
   stableStringify,
   type SweepConditions,
   type SweepManifest,
+  TREASURY_FETCH_START_MS,
 } from "./sweepManifest.ts";
 
 export type SweepEmitRow = {
@@ -454,10 +455,13 @@ function verifyManifest(emitPath: string): SweepManifest {
           `the corpus is refused`,
       );
     }
-    // The 2013-01-01 floor the driver's fetchFull hard-codes, plus a
-    // week: a curve reaching its own provider floor is as deep as the
-    // claim can honestly be.
-    const treasuryFloorMs = Date.UTC(2013, 0, 8);
+    // The driver's REQUESTED fetch start, plus a week (#364 round 13,
+    // finding 3): a curve reaching the start we asked for is as deep as
+    // the claim can honestly be. Derived from the shared constant so
+    // the door and the driver cannot drift, and the constant's comment
+    // carries the 2026-08-19 endpoint probe (coverage to at least
+    // 2005-01-03), so this tolerance is measured, not assumed.
+    const treasuryFloorMs = TREASURY_FETCH_START_MS + weekMs;
     const curveFirst = (curve as { firstTime?: number | null }).firstTime;
     if (
       Number.isFinite(corpusStartMs) &&
@@ -468,10 +472,13 @@ function verifyManifest(emitPath: string): SweepManifest {
       throw new Error(
         `${emitPath}: Treasury curve starts ${
           new Date(curveFirst).toISOString().slice(0, 10)
-        } — after both the provider's 2013 floor and the corpus start (${
+        } — after both the requested fetch floor and the corpus start (${
           new Date(corpusStartMs).toISOString().slice(0, 10)
         }); a shallow rebuilt store scores those decisions at the ` +
-          `hardwired zero the claim abolished, and the corpus is refused`,
+          `hardwired zero the claim abolished, and the corpus is refused. ` +
+          `If a full refetch cannot reach the floor, the provider's ` +
+          `coverage moved — re-probe its earliest served date and update ` +
+          `TREASURY_FETCH_START_MS with the recorded evidence`,
       );
     }
     // #364 round 11, finding 2: crossSeriesDensity is evidence like the

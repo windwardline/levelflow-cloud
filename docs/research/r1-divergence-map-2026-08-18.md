@@ -472,9 +472,12 @@ layer.
 - **E2, corpus door**: `verifyManifest` gained the per-symbol 5-minute
   density assertion, constants MEASURED (FMP probe 2026-08-11..17,
   rows per calendar day): tight 5/15 rows-per-day ratio [2.7, 3.25]
-  gated on the primary running ≥60 15-minute rows/day (the near-24h
-  markets — exactly the chunk shapes that approach provider caps;
-  densest excluded symbol is ^GDAXI at 24.5), plus absolute 5-minute
+  gated on the CLIP-INVARIANT population filter max(15-minute,
+  5-minute/3) ≥60 rows/day (rounds 11–12 — originally the 15-minute
+  count alone, which a clip moved together with the ratio's
+  denominator; the near-24h markets, exactly the chunk shapes that
+  approach provider caps; densest excluded symbol is ^GDAXI at 24.5 /
+  73.6/3), plus absolute 5-minute
   floors for the structurally deterministic classes: crypto 260
   (BTCUSD 288.0, THETAUSD 287.9), forex 150 (EURUSD 205.6), metals 140
   (XAUUSD 197.1), energies 140 (measured directly: the class's only
@@ -500,6 +503,22 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
+  Amended #364 round 13, the curve side: the driver pre-flight now
+  also refuses an interior hole >7 days in the STORED curve
+  (`treasuryCurveFacts` on load — the fetch's per-chunk guard fires
+  only on the run that fetches and only on a zero-row chunk, and the
+  rolling store never revisits a pinned interior, so read-time was the
+  only prior reader of stored continuity); the leading-edge check
+  stays door-only because it needs the corpus start. The door's
+  leading-edge tolerance now derives from the shared
+  `TREASURY_FETCH_START_MS` (driver and door cannot drift), and that
+  constant carries a 2026-08-19 endpoint probe: FMP /treasury-rates
+  serves continuously across the 2013-01 boundary and reaches at least
+  2005-01-03, so the requested start is a driver choice ~8 years
+  inside provider depth — measured, not assumed. And `--warm-only`
+  tolerates a Treasury load failure (warn-and-continue; the bar survey
+  must not die on the corpus path's second endpoint), while sweep runs
+  keep the throw.
   Amended #364 rounds 8–12: the floor table's provenance is stated
   where the constants live (round 12): each class floor generalises
   from one or two probed members on a homogeneity assumption the

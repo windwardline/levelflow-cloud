@@ -38,6 +38,7 @@ import {
   seriesFacts,
   type SeriesFacts,
   type SweepConditions,
+  TREASURY_FETCH_START_MS,
   treasuryCurveFacts,
 } from "./sweepManifest.ts";
 import {
@@ -196,17 +197,37 @@ async function main() {
   // E6 (R1b): the historical Treasury curve, one rolling store shared by
   // every symbol — each decision instant scores under the two most recent
   // rows visible at that instant (macroRates.ts), the same arithmetic the
-  // live analyzer runs on its fetch's two most recent rows.
-  const treasuryRates = args.discover
-    ? []
-    : await loadTreasuryRates(args.cacheDir);
+  // live analyzer runs on its fetch's two most recent rows. Under
+  // --warm-only a load failure WARNS and continues (#364 round 13,
+  // smaller): the survey path must not die on the corpus path's second
+  // provider endpoint — a Treasury outage would otherwise abort the
+  // nightly top-up with the whole roster untouched, one layer earlier
+  // than the mid-roster case round 9 removed. Sweep runs keep the throw.
+  let treasuryRates: DatedTreasuryRow[] = [];
+  if (!args.discover) {
+    try {
+      treasuryRates = await loadTreasuryRates(args.cacheDir);
+    } catch (error) {
+      if (!args.warmOnly) throw error;
+      console.warn(
+        `treasury top-up failed — bar survey continues without it: ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
   // #364 round 2, finding 1: the conditions block CLAIMS reconstruction,
   // so the curve must be evidence, not hope. Empty means every decision
   // scores the hardwired zero E6 abolished; a stale tail is worse — the
   // visibility pointer stalls and every decision past the curve's end
-  // scores against months-old rows as if they were fresh. Both refuse
-  // here, before hours of simulation; interior holes refuse per-chunk in
-  // the fetch and at the corpus door (manifest treasuryCurve facts).
+  // scores against months-old rows as if they were fresh. An interior
+  // hole is the same stall mid-corpus (#364 round 13, finding 1): the
+  // fetch's per-chunk guard fires only on the run that fetches and only
+  // on a ZERO-row chunk, and the rolling store never revisits a pinned
+  // interior, so the STORED curve's continuity is asserted here from
+  // its facts — before hours of simulation, not at the read door after
+  // them. Only the leading-edge check stays door-only: it needs the
+  // corpus start, which does not exist until symbols load.
   if (!args.discover && !args.warmOnly) {
     const lastRow = treasuryRates.at(-1);
     if (!lastRow) {
@@ -220,6 +241,18 @@ async function main() {
         `Treasury curve ends ${new Date(lastRow.dateMs).toISOString()} — ` +
           `more than 7 days stale; decisions past its end would score ` +
           `against stale rows as if fresh; refusing to sweep`,
+      );
+    }
+    const curveFacts = treasuryCurveFacts(treasuryRates);
+    if (curveFacts.largestGapMs > 7 * 86_400_000) {
+      throw new Error(
+        `Treasury curve has a ${
+          Math.round(curveFacts.largestGapMs / 86_400_000)
+        }-day interior hole — the visibility pointer would stall inside ` +
+          `it, scoring months-stale rows as fresh; delete the ` +
+          `treasury-rates store, refetch full history, and re-run ` +
+          `(the corpus door would refuse this run's output; refusing ` +
+          `before simulation instead)`,
       );
     }
   }
@@ -734,7 +767,7 @@ async function loadTreasuryRates(
     anchor,
     cacheDir: cacheDir ?? DEFAULT_CACHE_DIR,
     clock: CALENDAR_CLOCK,
-    fetchFull: () => fetchTreasuryRates(Date.parse("2013-01-01T00:00:00Z")),
+    fetchFull: () => fetchTreasuryRates(TREASURY_FETCH_START_MS),
     fetchSince: (sinceMs) => fetchTreasuryRates(sinceMs),
     key: "treasury-rates",
     timeOf: (row) => row.dateMs,

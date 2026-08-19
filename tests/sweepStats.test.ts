@@ -8,6 +8,7 @@ import {
   seriesFacts,
   sha256Hex,
   stableStringify,
+  TREASURY_FETCH_START_MS,
 } from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
@@ -937,6 +938,36 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
       symbol: "EURUSD",
       treasuryCurve: shallowCurve,
     }));
+    // #364 round 13, finding 3: the tolerance is the driver's REQUESTED
+    // start plus a week, from the shared constant — probed 2026-08-19
+    // (provider coverage reaches at least 2005). Against a corpus
+    // DEEPER than the requested start, a curve six days past the start
+    // is inside the tolerance and admits at any corpus depth; eight
+    // days past it is a shallow rebuild and refuses, with the
+    // provider-coverage-moved remedy in the message.
+    const deeperThanRequested = Date.UTC(2012, 0, 2);
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": modern15min(deeperThanRequested) },
+      symbol: "EURUSD",
+      treasuryCurve: {
+        ...shallowCurve,
+        firstTime: TREASURY_FETCH_START_MS + 6 * 86_400_000,
+      },
+    }));
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": modern15min(deeperThanRequested) },
+          symbol: "EURUSD",
+          treasuryCurve: {
+            ...shallowCurve,
+            firstTime: TREASURY_FETCH_START_MS + 8 * 86_400_000,
+          },
+        })),
+      /shallow rebuilt store.*re-probe its earliest served date/s,
+    );
   });
 
   it("binds the density door on deliberate historical reads, while conditions and curve evidence stay exempt (#364 round 2, finding 3)", () => {

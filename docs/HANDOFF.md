@@ -930,9 +930,13 @@ Sunday condemning a healthy store run-globally).
   rounds 1/4/4b: dead row tripwire, holiday-false-positive coverage
   check, unreadable merged tally) — so the clip guard is the measured
   caps, the verifier's density floor AND ceiling (a clipped 15-minute
-  primary INFLATES the 5min/15min ratio), and R1's E2 density assertion
-  at the corpus door. E2's other half — the distinct no-bars resolution
-  state — stays in R1. A `BAR_CLOCK` bump now also forces the RE-SWEEP,
+  primary INFLATES the 5min/15min ratio), and R1b's E2 density
+  assertion, which runs in TWO places (#364 rounds 8–11): the sweep
+  driver's pre-flight, refusing at the first violator before
+  simulation spends anything, and the corpus door as backstop — while
+  the nightly `--warm-only` log prints every symbol's rows/day without
+  asserting, the standing full-roster density survey. E2's other half
+  — the distinct no-bars resolution state — stays in R1. A `BAR_CLOCK` bump now also forces the RE-SWEEP,
   not just the cache rebuild: the corpus door refuses a superseded-clock
   manifest, with `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` as the explicit,
   loudly-warning historical-read act.
@@ -943,8 +947,10 @@ Sunday condemning a healthy store run-globally).
   registration (a large-overlap pair that cannot register FAILS —
   uncertainty resolves toward failing at this gate), density inside the
   [2.5, 3.5] band (the ceiling catches a provider cap below ~2,386; the
-  ~2,386-2,784 blind band — up to ~14% 15-minute clip reading green — is
-  stated and carried by R1's E2 door), the
+  ~2,386-2,784 blind band — up to ~14% 15-minute clip reading green
+  here — is narrowed by R1b's E2 door to a stated RESIDUE, not closed:
+  ≤~7.7% on the door's clip-invariant ratio population, plus the
+  symmetric both-series clip no ratio can see; #364 rounds 10–12), the
   ^GSPC anchor, a daily store per symbol, and — the round-6 completeness
   gates — every roster symbol's THREE stores present (an empty store
   counts as absent; a daily-only symbol previously passed every
@@ -1123,6 +1129,12 @@ key. Sequenced after item 6's `init.sql` work.
   (concurrent callers now serialize one pace apart — intended), the
   test asserts the full pace with no cushion, and a source pin refuses
   `Date.now()` in the module.
+- **`loadEconomicCalendar` still binds `--warm-only` un-tolerated**
+  (#364 round 13, smaller — pre-existing on main): a calendar-endpoint
+  outage aborts the nightly top-up before the first symbol, the same
+  shape the Treasury load was given warn-and-continue for in R1b. Give
+  it the identical warm-only tolerance with R2's instrument work; the
+  sweep-path throw is correct and stays.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

@@ -296,9 +296,17 @@ describe("the driver writes the manifest beside the emit", () => {
     // warned-and-continued hole would be pinned as the anchor day's truth
     // and never refetched.
     assert.match(script, /Treasury-rate fetch failed \(\$\{response\.status\}\)/);
+    // Scoped to the FETCH body (#364 round 13): the no-warn-continue law
+    // is about the join — a warned-over chunk would pin a hole as the
+    // anchor day's truth. The load SITE's warm-only tolerance is a
+    // different law (the survey must not die on this endpoint), pinned
+    // separately below.
+    const fetchStart = script.indexOf("async function fetchTreasuryRates");
+    const fetchEnd = script.indexOf("async function", fetchStart + 1);
+    assert.ok(fetchStart >= 0 && fetchEnd > fetchStart);
     assert.doesNotMatch(
-      script,
-      /Treasury[\s\S]{0,200}?console\.warn[\s\S]{0,80}?continue/,
+      script.slice(fetchStart, fetchEnd),
+      /console\.warn/,
       "a failed Treasury chunk must stop the run, never hole the join",
     );
     // #364 round 2, finding 1: the claim carries evidence. A 200 with an
@@ -310,6 +318,25 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
     assert.match(script, /treasuryCurve: treasuryCurveFacts\(treasuryRates\),/);
+    // #364 round 13, finding 1: the STORED curve's continuity is
+    // asserted at pre-flight from its facts — the chunk guard fires
+    // only on the run that fetches and only on zero rows, and the
+    // rolling store never revisits a pinned interior.
+    assert.match(script, /-day interior hole — the visibility pointer/);
+    // #364 round 13, finding 3: fetchFull requests from the SHARED
+    // constant the door's leading-edge tolerance derives from.
+    assert.match(
+      script,
+      /fetchTreasuryRates\(TREASURY_FETCH_START_MS\)/,
+      "the driver and the door must share one requested start",
+    );
+    // #364 round 13, smaller: the survey path tolerates a Treasury
+    // load failure; sweep runs keep the throw.
+    assert.match(
+      script,
+      /if \(!args\.warmOnly\) throw error;/,
+      "--warm-only must survive a Treasury outage — warn and continue",
+    );
   });
 
   // #364 round 9, finding 1: the density pre-flight binds only the

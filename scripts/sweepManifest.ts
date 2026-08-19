@@ -159,6 +159,18 @@ export type SweepConditions = {
   weightAdjustment: "raw-engine-zero";
 };
 
+// #364 round 13, finding 3: the ONE requested start both the driver's
+// treasury fetchFull and the door's leading-edge tolerance derive from,
+// so the two cannot drift. It is a driver CHOICE, not a provider edge —
+// probed 2026-08-19 against FMP /treasury-rates: rows serve
+// continuously across the 2013-01 boundary (2013-01-02 onward present)
+// and coverage reaches at least 2005-01-03, so the requested start sits
+// roughly eight years inside provider depth. If a REBUILT store ever
+// refuses at the door's leading edge, re-probe the endpoint's earliest
+// served date and move THIS constant with the recorded evidence; the
+// door's tolerance follows it automatically.
+export const TREASURY_FETCH_START_MS = Date.UTC(2013, 0, 1);
+
 // #364 round 2, finding 1: conditions.macroAdjustment is a CLAIM, and a
 // claim without evidence is exactly what the manifest exists to end —
 // an empty or holed curve would score zeros (or worse, months-stale
