@@ -255,6 +255,36 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
     assert.equal(market.accepted, false);
   });
 
+  // #364 round 38, finding 2: the statistic's own resolution puts the
+  // smallest significant pairing at FIVE shared days (same-signed
+  // deltas reach the sign-flip maximum only on the all-matching
+  // assignment, so min p ~ 2^-n: 0.0625 at n=4, 0.03125 at n=5) — and
+  // below that the permutation ESTIMATE could still dip under 0.05 by
+  // seed. A four-day pairing with heavy composition — the variant
+  // trades sixteen select days the baseline never touches, profitable
+  // both folds, expectancy up, not thin — must be refused
+  // deterministically by the floor, not left to estimator noise.
+  it("refuses a pairing below the statistic's resolution — four shared days cannot carry an acceptance", () => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 4; day += 1) {
+      rows.push(trainRow("baseline", day, 0.3));
+      rows.push(outcomeRow("baseline", day, 0.3));
+      rows.push(trainRow("compose", day, 0.8));
+      rows.push(outcomeRow("compose", day, 0.8));
+    }
+    for (let day = 4; day < 20; day += 1) {
+      rows.push(trainRow("compose", day, 0.8));
+      rows.push(outcomeRow("compose", day, 0.8));
+    }
+    const verdict = classVerdicts(readGridCube(rows), {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 200,
+      seed: 9,
+    }).get("forex")!.get("compose")!;
+    assert.equal(verdict.sharedDays, 4);
+    assert.equal(verdict.accepted, false);
+  });
+
   // #364 round 37, finding 2: a baseline variant that carries no cell
   // made every class degenerate at once — deltas against nothing, the
   // variants' own totals wearing delta names — and (before finding 1's

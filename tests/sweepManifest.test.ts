@@ -1010,9 +1010,13 @@ describe("the driver writes the manifest beside the emit", () => {
   // #364 round 34, finding 2: "which flags take a value" must be written
   // down ONCE. num() refuses a flag outside VALUE_FLAGS at runtime (every
   // executed run above exercises it at module load); this scan holds the
-  // same law at source, the round-28 vocabulary-scan shape, for both
-  // files that carry the walker — a num() call site added without joining
-  // VALUE_FLAGS fails here even if the runtime guard is ever removed.
+  // same law at source, the round-28 vocabulary-scan shape, across every
+  // dialed reader — the three path-walker files (starvation-audit,
+  // account-type-report, grid-totalr, all on the same sequential walker
+  // since #364 round 38) and sweep-analysis, whose VALUE_FLAGS feeds the
+  // refusals alone since it collects no positional paths. A guarded call
+  // site added without joining VALUE_FLAGS fails here even if the
+  // runtime guard is ever removed.
   it("every num() flag is declared in VALUE_FLAGS, and num() refuses undeclared flags — every reader with a numeric dial", () => {
     // #364 round 36 widened the law past the two walker files: any
     // reader with a numeric dial declares its value-taking flags ONCE

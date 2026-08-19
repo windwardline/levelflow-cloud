@@ -187,6 +187,21 @@ function seedFrom(base: number, text: string): number {
  * family, and the null distribution is the maximum statistic across the
  * family — strong family-wise control over the crossed grid.
  */
+// THE PAIRING FLOOR'S BASIS (#364 round 38, finding 2 — derived, not
+// assumed): for same-signed shared-day deltas, the sign-flip maximum is
+// reached only by the all-matching assignment, so the smallest
+// attainable pairedP at n shared days is ~2^-n — 0.50 at n=1, 0.125 at
+// n=3, 0.0625 at n=4, 0.03125 at n=5 — and 5 is therefore the smallest
+// pairing at which the 0.05 threshold is reachable at all. Below it
+// acceptance was already impossible in EXPECTATION, but the permutation
+// p is an estimate: at n=4 the exceed count is Binomial(permutations,
+// 1/16), and with the default 1,000 draws roughly one seed in twenty
+// realises p <= 0.05 — so the floor makes the impossibility
+// deterministic instead of leaving it to estimator noise. Any floor
+// below 5 admits verdicts the statistic cannot support; raising it
+// above 5 is a strictness choice this derivation does not compel.
+const MIN_SHARED_DAYS = 5;
+
 function familyPairedP(
   deltasByVariant: Map<string, Map<number, number>>,
   permutations: number,
@@ -486,14 +501,19 @@ function groupVerdicts(
       const sharedDays = deltasByVariant.get(variant)?.size ?? 0;
       // The rule (round-8 batch 1): both folds positive, the PAIRED
       // family-wise p enforced at 0.05, expectancy holds, not thin —
-      // and at least one shared day (#364 round 37, finding 1): the
-      // paired p is defined by the pairing, so zero pairs cannot clear
-      // it. familyPairedP floors the degenerate variant at p = 1 too;
-      // this term keeps the law visible at the verdict, where
-      // sharedDays had been recorded and never read. Sigma and the
+      // and a pairing the statistic can actually resolve (#364 round
+      // 37, finding 1 drew the floor at zero pairs; round 38, finding
+      // 2 raised it to MIN_SHARED_DAYS, basis at the constant).
+      // Stated plainly (#364 round 38): the p certifies the SHARED
+      // days only, while the fit/select deltas and the expectancy term
+      // are whole-fold aggregates — compositionR names the non-shared
+      // portion per verdict, printed, descriptive — so a variant that
+      // composes heavily rides an acceptance whose p speaks for its
+      // pairing, not its composition. Sigma and the
       // pooled p remain printed, descriptive only.
       const accepted = !thin && fitTotalDelta > 0 && selectTotalDelta > 0 &&
-        sharedDays > 0 && pairedP <= 0.05 && selectExpectancyDelta >= 0;
+        sharedDays >= MIN_SHARED_DAYS && pairedP <= 0.05 &&
+        selectExpectancyDelta >= 0;
       const selectStats = aggregate.variant.select;
       const expiries = selectStats.filled - selectStats.wins -
         selectStats.stops - selectStats.ambiguous;
@@ -822,14 +842,19 @@ async function main(): Promise<void> {
   // BEFORE the usage check so the specific refusal wins when a flag
   // typed without its value eats the only shard path.
   const VALUE_FLAGS = new Set(["--baseline", "--permutations", "--seed"]);
-  const flagValueIndexes = new Set<number>();
-  for (const name of VALUE_FLAGS) {
-    const index = args.indexOf(name);
-    if (index >= 0) flagValueIndexes.add(index + 1);
+  // The sequential walker the sibling readers carry (#364 round 38,
+  // smaller — the indexOf-per-flag Set that stood here covered only a
+  // flag's FIRST occurrence, so "--seed 7 --seed 8" walked "8" into
+  // the shard paths and the corpus door refused it as a missing
+  // manifest, the wrong diagnosis).
+  const paths: string[] = [];
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i].startsWith("--")) {
+      if (VALUE_FLAGS.has(args[i])) i += 1;
+      continue;
+    }
+    paths.push(args[i]);
   }
-  const paths = args.filter((arg, index) =>
-    !arg.startsWith("--") && !flagValueIndexes.has(index)
-  );
   const num = (arg: string, fallback: number): number => {
     if (!VALUE_FLAGS.has(arg)) {
       throw new Error(

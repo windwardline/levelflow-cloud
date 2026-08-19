@@ -177,6 +177,26 @@ export function planRun(argv: string[]) {
   // `--limit`, or one followed by the next flag, used to fetch nothing at all
   // and exit 0 — a run that examined nothing wearing the result of one that
   // ran and passed. Infinity is the unflagged default and passes.
+  // #364 round 38, finding 1 — the worst of the three dials, because
+  // its failure EXITS 0: "--dir --concurrency 4" (the documented
+  // invocation typed without its path) made the next flag the store
+  // directory; mkdir CREATED it, every sidecar read fresh, the full
+  // provider window refetched into a phantom store, none of the three
+  // escalations fired, and departedSymbols read the phantom and saw
+  // nothing wrong — while the real .minute-bank stopped growing inside
+  // the 3-day window this file exists to never miss. A path flag
+  // refuses a missing value or a flag token; the unflagged default
+  // passes.
+  if (argv.includes("--dir")) {
+    const token = argv[argv.indexOf("--dir") + 1];
+    if (token === undefined || token.startsWith("--")) {
+      throw new Error(
+        `--dir owns the token after it and got ${
+          token === undefined ? "no value" : JSON.stringify(token)
+        } — a store path, never a flag; pass --dir <path>`,
+      );
+    }
+  }
   // The same law for --concurrency (#364 round 37, smaller): Number of
   // a missing value is NaN, Math.max(1, NaN) is NaN, and Array.from
   // with a NaN length is EMPTY — zero workers, nothing fetched — and

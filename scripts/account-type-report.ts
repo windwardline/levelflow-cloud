@@ -286,8 +286,12 @@ async function main(): Promise<void> {
     );
   }
   console.log(
-    `precision: per-market s.e. measured from that market's own R deviation; ` +
-      `rollup s.e. clustered by market (its sample is the category's ` +
+    `precision: per-market s.e. measured from that market's own R deviation ` +
+      `ASSUMING within-market independence — outcomes in one market share ` +
+      `regime, session and calibration, so that s.e. is understated and ` +
+      `its sigma an UPPER bound on confidence (day-clustering it is R2 ` +
+      `instrument work, recorded in HANDOFF); rollup s.e. clustered by ` +
+      `market (its sample is the category's ` +
       `FILLED markets, printed per rollup line); thin = under ` +
       `${minFilled} filled — one floor applied at BOTH grains, so a ` +
       `category can clear it on pooled outcomes while every member ` +
@@ -379,6 +383,16 @@ async function main(): Promise<void> {
         // Measured, never assumed (3a): this market's own R deviation over
         // sqrt(filled). Below two filled outcomes no deviation exists, so no
         // sigma claim — and therefore no exclusion — can be made from it.
+        // STATED (#364 round 38, finding 3): this form assumes
+        // within-market independence, the exact overconfidence
+        // clusteredStandardError's docstring rejects at the rollup —
+        // outcomes in one market share regime, session and calibration
+        // — so this s.e. is understated and the sigma>=2 exclusion
+        // test fires MORE readily than the data supports. --min-filled
+        // bounds the sample size, not the correlation; day-clustering
+        // this s.e. (the way grid-totalr blocks by day) is R2
+        // instrument work, recorded in HANDOFF beside this file's
+        // other instrument items.
         const se = rStandardError(stats);
         const sigma = value !== null && se !== null && se > 0
           ? Math.abs(value) / se

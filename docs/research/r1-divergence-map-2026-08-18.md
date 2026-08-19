@@ -556,7 +556,24 @@ layer.
   the precision line states that one `--min-filled` floor applies at
   both grains, and bank-minute-bars' `--concurrency` gained
   `--limit`'s guard (a NaN worker pool fetched nothing and blamed the
-  provider window). One denominator note beside the unfilled
+  provider window). Round 38: the pairing floor rose from nonzero to
+  the statistic's own resolution — MIN_SHARED_DAYS 5, basis at the
+  constant: for same-signed deltas the minimum attainable p is ~2⁻ⁿ,
+  so 0.05 is unreachable below five shared days and only estimator
+  noise could dip under it at four — with the shared-vs-whole-fold
+  mismatch stated at the accepted site (the p certifies the pairing,
+  not the composition; compositionR stays the descriptive record);
+  the per-market σ's independence assumption is STATED at the
+  precision line and the σ site (an understated s.e. in the adverse
+  exclusion direction — day-clustering it is recorded as R2
+  instrument work in HANDOFF); grid-totalr adopted the same
+  sequential walker as the other two path readers (the indexOf Set
+  covered only a flag's first occurrence, so a duplicated dial walked
+  its second value into the shard paths); and bank-minute-bars'
+  `--dir` gained its guard — the phantom-store shape: mkdir created
+  the mistyped directory, the full provider window refetched into it,
+  and the run exited 0 while the real store stopped growing inside
+  the 3-day window. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly
