@@ -1176,10 +1176,15 @@ key. Sequenced after item 6's `init.sql` work.
   and the treasury store rides `CALENDAR_CLOCK` against the bars'
   `BAR_CLOCK` (#364 round 23 replaced round 22's same-discipline
   rationale, which the two-clock split refuted). The top-up script
-  greps the must-stay-red tokens BEFORE its 429 stand-down: with the
-  deferral, a terminal roster 429 shares the output under the
-  documented blackout and would otherwise downgrade a deterministic
-  refusal to a stand-down at exit 0 (#364 round 23). Warned over
+  greps three of the four BEFORE its 429 stand-down —
+  `cacheClockMismatch` keeps its own named stand-down, its message
+  routing each store to its own remedy (#364 round 24) — because
+  with the deferral a terminal roster 429 shares the output under
+  the documented blackout and would otherwise downgrade a
+  deterministic refusal to a stand-down at exit 0 (#364 round 23);
+  and the tolerated transport warn re-shapes parenthesized statuses,
+  so a tolerated treasury 429 cannot feed that stand-down either
+  (#364 round 24). Warned over
   instead, `top-up complete` would print nightly over a store that
   never warms — that false green is the whole cost: the guard throws
   on the first zero-row chunk, so the wasted refetch is a request or

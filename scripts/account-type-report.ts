@@ -172,7 +172,22 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`corpus: ${kept} rows clearing payoff+regime (${gated} gated out)`);
+  // The headline states its own denominator (#364 round 24, finding 3,
+  // following sweep-analysis's round-7 pattern): kept counts every row
+  // handed to the vocabulary, whose partition holds data-absence rows
+  // OUT of n — so the number a ruling is quoted from subtracts them,
+  // with the held-out volume on its own line.
+  let dataAbsentTotal = 0;
+  for (const stats of bySymbol.values()) dataAbsentTotal += stats.dataAbsent;
+  console.log(
+    `corpus: ${kept - dataAbsentTotal} market-evidence rows clearing ` +
+      `payoff+regime (${gated} gated out)`,
+  );
+  if (dataAbsentTotal > 0) {
+    console.log(
+      `(data-absence rows held out of every denominator: ${dataAbsentTotal})`,
+    );
+  }
   console.log(
     `precision: per-market s.e. measured from that market's own R deviation; ` +
       `rollup s.e. clustered by market; thin = under ${minFilled} filled\n`,
@@ -234,6 +249,7 @@ async function main(): Promise<void> {
         lines.push(
           `      ${member.brokerName.padEnd(10)} ${String(stats.filled).padStart(6)} ` +
             `${pct(stats.wins, stats.filled).padStart(4)} ${pct(stats.stops, stats.filled).padStart(5)} ` +
+            `${String(stats.dataAbsent).padStart(8)} ` +
             `${value.toFixed(3).padStart(7)} ±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
         );
         if (value < 0 && sigma !== null && sigma >= 2) {
@@ -245,14 +261,19 @@ async function main(): Promise<void> {
       }
       const rollupValue = expectancy(rollup);
       const rollupSe = clusteredStandardError(memberStats);
+      // dataAbs beside filled at both grains (#364 round 24, finding 3):
+      // a category heavy in provider absence must be distinguishable
+      // from one whose markets never traded — those are the sparse
+      // futures/agriculture markets an E8 inclusion decision turns on.
       console.log(
         `\n  ${category}  (${members.length} markets, ${rollup.filled} filled, ` +
+          `${rollup.dataAbsent} dataAbs, ` +
           `E=${rollupValue === null ? "—" : rollupValue.toFixed(3)}` +
           `${rollupSe === null ? "" : ` ±${rollupSe.toFixed(3)} clustered`})`,
       );
       console.log(
         `      ${"market".padEnd(10)} ${"filled".padStart(6)} ${"win".padStart(4)} ` +
-          `${"stop".padStart(5)} ${"E".padStart(7)}`,
+          `${"stop".padStart(5)} ${"dataAbs".padStart(8)} ${"E".padStart(7)}`,
       );
       for (const line of lines) console.log(line);
       if (missing > 0) {

@@ -263,6 +263,35 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     assert.match(source, /assertManifestedCorpus\(/);
   });
 
+  // #364 round 24, finding 3: round 7 made sweep-analysis state its own
+  // denominator; this reader took the partition (round 5) but not the
+  // statement — `kept` counted every row handed to the vocabulary, so
+  // the headline a ruling is quoted from included the data-absence rows
+  // every table below held out, and rollup.dataAbsent was accumulated
+  // but printed nowhere.
+  it("states its own denominator — data-absence leaves the headline and is surfaced per market and per rollup", () => {
+    assert.match(
+      source,
+      /corpus: \$\{kept - dataAbsentTotal\} market-evidence rows/,
+      "the headline must subtract the vocabulary's held-out rows",
+    );
+    assert.match(
+      source,
+      /data-absence rows held out of every denominator: \$\{dataAbsentTotal\}/,
+      "the held-out volume must print on its own line",
+    );
+    assert.match(
+      source,
+      /String\(stats\.dataAbsent\)\.padStart\(8\)/,
+      "each market line must carry its dataAbs column",
+    );
+    assert.match(
+      source,
+      /\$\{rollup\.dataAbsent\} dataAbs/,
+      "the category rollup must state its held-out volume",
+    );
+  });
+
   it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {
     assert.match(source, /raw\.holdout === true/);
   });

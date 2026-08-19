@@ -245,12 +245,17 @@ async function main() {
       // !args.warmOnly). So ALL FOUR DEFER rather than abort: the bar
       // survey completes, then the run exits red after the table — the
       // top-up script's branches run on the nonzero exit and grep
-      // these tokens ahead of its 429 stand-down (#364 round 23,
-      // finding 1: with the deferral, a blackout-era roster 429 shares
-      // the output and would otherwise downgrade the refusal to a
-      // stand-down), while the roster keeps its warm instead of dying
-      // at zero of 97 symbols for conditions the bar stores don't
-      // have. (Round 9 declined collect-then-throw on the SWEEP path
+      // THREE of the tokens ahead of its 429 stand-down (#364 round
+      // 23, finding 1: with the deferral, a blackout-era roster 429
+      // shares the output and would otherwise downgrade the refusal
+      // to a stand-down; cacheClockMismatch is the fourth and keeps
+      // its own named stand-down there, whose message directs each
+      // store to its own remedy — and a calendar-clock bump usually
+      // surfaces from loadEconomicCalendar first, so the
+      // treasury-origin mismatch needs the calendar store absent or
+      // current beside a stale treasury store), while the roster
+      // keeps its warm instead of dying at zero of 97 symbols for
+      // conditions the bar stores don't have. (Round 9 declined collect-then-throw on the SWEEP path
       // because simulation spends hours on a corpus already known
       // dead; the survey spends nothing after its loop.) Only genuine
       // transport failures reach the warn-and-continue below.
@@ -264,8 +269,19 @@ async function main() {
             `run exits red after the table: ${message}`,
         );
       } else {
+        // #364 round 24, finding 1: the top-up script's quota stand-down
+        // greps \(429\) over the WHOLE captured output, and this warn
+        // CONTINUES the run — a tolerated treasury 429 re-printed
+        // verbatim would let any later, unrelated failure be reported
+        // as a quota stand-down at exit 0. Every other FMP site either
+        // throws on a 429 (the token then marks where the run died) or
+        // warns unparenthesized (the COT site); this warn re-shapes
+        // "(NNN)" to "status NNN" for the same reason, so a quota
+        // stand-down still requires a 429 the run actually died on.
         console.warn(
-          `treasury top-up failed — bar survey continues without it: ${message}`,
+          `treasury top-up failed — bar survey continues without it: ${
+            message.replace(/\((\d{3})\)/g, "status $1")
+          }`,
         );
       }
     }

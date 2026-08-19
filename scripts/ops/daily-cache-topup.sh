@@ -65,7 +65,12 @@ fi
 # one clearing action), and a treasury-origin mismatch defers in the
 # driver, so the bars still warm before that stand-down prints.
 if grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out"; then
-  echo "$(date -u +%FT%TZ) top-up FAILED: integrity refusal in output (see above) — a co-occurring 429 does not stand this down"
+  # Name WHICH condition fired (#364 round 24, smaller): the four tokens
+  # have four different remedies, and with the driver's deferral the
+  # token line can sit thousands of log lines above the failure that
+  # ended the run.
+  tokens=$(grep -oE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out" | sort -u | xargs)
+  echo "$(date -u +%FT%TZ) top-up FAILED: integrity refusal ($tokens) — that token's own log line above names the remedy; a co-occurring 429 does not stand this down"
   exit 1
 fi
 
@@ -91,7 +96,13 @@ fi
 # defers in the driver, so this stand-down prints with the bars already
 # warmed.
 if grep -q 'cacheClockMismatch' <<<"$out"; then
-  echo "$(date -u +%FT%TZ) STOOD DOWN: store clock does not match this build (pre-R0 store, or a BAR_CLOCK bump without its rebuild). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
+  # Per-store remedies (#364 round 24, finding 2): the cacheClockMismatch
+  # line above names WHICH store, and the two clocks have different
+  # clearing actions — the old single-remedy message sent a
+  # treasury/calendar mismatch to an 8-12h bar rebuild that cannot clear
+  # a stamp on treasury-rates.rolling.json, and claimed "NOT topped up"
+  # over bars the driver's deferral had already warmed.
+  echo "$(date -u +%FT%TZ) STOOD DOWN: a rolling store's clock does not match this build — the cacheClockMismatch line above names WHICH store. A bar store (BAR_CLOCK: pre-R0 store, or a BAR_CLOCK bump without its rebuild) means rebuild per docs/cache-rebuild-r0.md. A treasury or calendar store (CALENDAR_CLOCK) clears by deleting that one rolling store and re-running; the driver defers the treasury case, so the bar top-up above may already be complete."
   exit 0
 fi
 

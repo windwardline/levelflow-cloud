@@ -133,9 +133,14 @@ bar stores warm and needs only the treasury fix plus a cheap
 re-run. (Warned over instead, these would leave `top-up complete`
 printing nightly over a store that never warms — the cost is that
 false green, not the refetch, which the first-zero-row-chunk throw
-cuts to a request or two. The nightly script also greps these
-tokens ahead of its 429 stand-down, so a blackout-era roster 429 in
-the same log cannot downgrade them to a stand-down.) Two blind
+cuts to a request or two. The nightly script greps three of
+them — both chunk tokens and `cacheStoreUnreadable` — ahead of its
+429 stand-down, so a blackout-era roster 429 in the same log cannot
+downgrade them; `cacheClockMismatch` keeps its own named stand-down,
+whose message routes a bar-store mismatch to this rebuild and a
+treasury/calendar-store mismatch to deleting that one rolling store.
+And the tolerated transport warn re-shapes any parenthesized status,
+so a tolerated treasury 429 cannot feed the quota stand-down either.) Two blind
 spots to know: the survey path asserts nothing about a hole already
 PINNED in the store — that surfaces at the next sweep pre-flight or
 corpus read, never in the nightly log — and the economic calendar

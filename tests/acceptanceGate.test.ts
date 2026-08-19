@@ -391,6 +391,41 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     return rows;
   };
 
+  // #364 round 24, finding 3: the graded population states its own
+  // denominator — the vocabulary already holds a data-absence row out of
+  // every cell's n, and gradeCorpus now RETURNS the held-out volume so
+  // the report prints it instead of leaving it silent. Executed both
+  // ways: the marked row is counted, and it moves no verdict.
+  it("counts data-absence rows held out of the graded population without moving a verdict — executed", async () => {
+    const rows = shardRows("EURUSD");
+    const marked = {
+      ...outcomeRow("baseline", 3, 0),
+      noBarsInReviewWindow: true,
+      symbol: "EURUSD",
+    };
+    const withMarked = await gradeCorpus([shardWith([...rows, marked])], {
+      permutations: 50,
+      seed: 6,
+    });
+    const without = await gradeCorpus([shardWith(rows)], {
+      permutations: 50,
+      seed: 6,
+    });
+    assert.equal(withMarked.dataAbsentRows, 1);
+    assert.equal(without.dataAbsentRows, 0);
+    assert.equal(
+      withMarked.verdicts.get("forex")!.get("wide")!.accepted,
+      without.verdicts.get("forex")!.get("wide")!.accepted,
+    );
+    // The report line the returned count feeds exists at source (the
+    // script runs main() only under its own argv, so the print itself
+    // is pinned rather than executed).
+    assert.match(
+      readFileSync("scripts/grid-totalr.ts", "utf8"),
+      /data-absence rows held out of every fold denominator: \$\{dataAbsentRows\}/,
+    );
+  });
+
   it("concatenates shards whose conditions match", async () => {
     const graded = await gradeCorpus(
       [shardWith(shardRows("EURUSD")), shardWith(shardRows("GBPUSD"))],

@@ -546,6 +546,11 @@ export async function gradeCorpus(
     verdictUnit?: "class" | "market";
   } = {},
 ): Promise<{
+  // #364 round 24, finding 3: the data-absence rows the vocabulary held
+  // out of every cell's n across the graded population — returned so the
+  // report states its own denominator instead of leaving the held-out
+  // volume silent.
+  dataAbsentRows: number;
   foldNames: FoldNames;
   manifest: SweepManifest;
   verdicts: Map<string, Map<string, VariantVerdict>>;
@@ -718,7 +723,19 @@ export async function gradeCorpus(
   const foldNames: FoldNames = options.confirmFinal
     ? derived
     : { fit: derived.fit, select: derived.select };
+  // #364 round 24, finding 3: sum what the vocabulary held out — each
+  // row lands in exactly one (symbol, variant, split) cell, so the sum
+  // over cells is the graded population's total, shard merges included.
+  let dataAbsentRows = 0;
+  for (const byVariant of cube.values()) {
+    for (const bySplit of byVariant.values()) {
+      for (const cell of bySplit.values()) {
+        dataAbsentRows += cell.dataAbsent;
+      }
+    }
+  }
   return {
+    dataAbsentRows,
     foldNames,
     manifest,
     verdicts: (options.verdictUnit === "market" ? marketVerdicts : classVerdicts)(
@@ -749,7 +766,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const baselineIndex = args.indexOf("--baseline");
-  const { foldNames, manifest, verdicts } = await gradeCorpus(paths, {
+  const { dataAbsentRows, foldNames, manifest, verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
     confirmFinal: args.includes("--confirm-final"),
@@ -765,6 +782,15 @@ async function main(): Promise<void> {
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · anchor ${manifest.anchor}`,
   );
+  // The graded population states its own denominator (#364 round 24,
+  // finding 3, following sweep-analysis's round-7 pattern): the
+  // vocabulary holds data-absence rows out of every cell's n, and the
+  // held-out volume is printed rather than silent.
+  if (dataAbsentRows > 0) {
+    console.log(
+      `(data-absence rows held out of every fold denominator: ${dataAbsentRows})`,
+    );
+  }
   for (const [assetClass, classMap] of verdicts) {
     console.log(`\n=== ${assetClass.toUpperCase()} ===`);
     console.log(

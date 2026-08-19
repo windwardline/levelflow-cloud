@@ -512,6 +512,17 @@ describe("the driver writes the manifest beside the emit", () => {
       /bar survey continues without it/,
       "--warm-only must survive a Treasury provider TRANSPORT outage",
     );
+    // #364 round 24, finding 1: the tolerated transport warn CONTINUES
+    // the run, so it must not re-print the "(NNN)" signature the top-up
+    // script's quota stand-down greps over the whole captured output —
+    // or any later, unrelated failure is reported as a quota stand-down
+    // at exit 0. Re-shaped to "status NNN", the COT site's
+    // unparenthesized convention, so a stand-down still requires a 429
+    // the run actually died on.
+    assert.ok(
+      script.includes(String.raw`message.replace(/\((\d{3})\)/g, "status $1")`),
+      "the tolerated warn must strip the parenthesized-status stand-down signature",
+    );
     // #364 round 14, finding 2: the fetch counts parser-refused rows so
     // a hole refusal can distinguish "provider served nothing" from
     // "we refused what it served".
