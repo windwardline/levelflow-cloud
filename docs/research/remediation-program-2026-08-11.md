@@ -232,6 +232,18 @@ So that what is measured is what trades.
 - **D1** global learning derives `confidence_adjustment` from a win
   *rate*; derive it from mean realized R instead.
 
+### Phase 2b — the geometry model's own fresh-eyes round
+
+Ranked into the sequence 2026-08-19; it had sat in HANDOFF's section 5 as
+a lens nobody owned. Several lenses, each asked what the geometry MODEL is
+missing rather than how to tune it — the one surface the adversarial
+protocol has never been pointed at.
+
+**It must clear before Phase 3 opens.** Its output changes what the sweep
+should measure, and Phase 3 is the ONE re-simulate. Run it after Phase 3
+and the choice is a second full re-sweep or shipping a geometry no
+adversarial pass ever probed.
+
 ### Phase 3 — re-sweep, once
 One corpus, one clock, one engine, with the instrument repaired. Item
 2's law still governs: **one re-simulate after the instrument changes,

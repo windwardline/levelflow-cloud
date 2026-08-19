@@ -1387,7 +1387,9 @@ layer.
    per-symbol density assertion; E6 macro reconstruction + the two
    stated-zero terms in the manifest conditions. (Manifest `conditions`
    is new and hashed → old corpora refuse at the door exactly as
-   designed; the re-sweep is Phase 3's one re-simulate, after Phase 2.)
+   designed; the re-sweep is Phase 3's one re-simulate, after Phase 2b — the
+   geometry model's fresh-eyes round, which changes what should be
+   measured and so must clear before the single re-sweep opens.)
 3. **R1c — the E4 instrument**: the collapse reader + its report,
    doored and population-pinned like every other reader.
 
