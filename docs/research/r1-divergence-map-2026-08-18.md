@@ -503,6 +503,22 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
+  Amended #364 round 14: the warm-only Treasury tolerance is scoped by
+  CAUSE — store-integrity refusals (`cacheStoreUnreadable`,
+  `cacheClockMismatch`) re-throw so the top-up script's red stays
+  honest, and only provider transport warns-and-continues. The hole
+  refusal is corpus-relative like its neighbours: `treasuryCurveFacts`
+  manifests week-plus gap POSITIONS (largestGapMs alone is
+  positionless; positions ride outside conditionsOf identity), the
+  door refuses only gaps touching the corpus span (absolute fallback
+  for manifests predating the fact), the driver pre-flight scopes to
+  the requested `--days` window plus a week of visibility lead, and
+  both remedies distinguish the hole a refetch cannot clear — the
+  fetch counts parser-refused provider rows, which are deterministic
+  on refetch, and names the count beside any hole refusal. The
+  starvation audit excludes `unresolv` from BOTH sides of survival
+  (defect bucket, not a parameter verdict — counting them as survivors
+  under-flagged the amendment-25 gate).
   Amended #364 round 13, the curve side: the driver pre-flight now
   also refuses an interior hole >7 days in the STORED curve
   (`treasuryCurveFacts` on load — the fetch's per-chunk guard fires

@@ -208,11 +208,25 @@ async function main() {
     try {
       treasuryRates = await loadTreasuryRates(args.cacheDir);
     } catch (error) {
-      if (!args.warmOnly) throw error;
+      const message = (error as Error).message;
+      // #364 round 14, finding 1: tolerance is scoped by CAUSE, never by
+      // call site. cacheStoreUnreadable and cacheClockMismatch are
+      // store-integrity refusals the top-up script names must-stay-red
+      // (one a stand-down with its own operator instruction, one
+      // "deliberately NOT matched — a fresh, actionable regression") and
+      // both of its branches run only on a nonzero exit — swallowing
+      // them here would print "top-up complete" over a corrupt or
+      // wrong-clock store, the false green the script's own discipline
+      // forbids. Only provider transport is tolerated on the survey
+      // path.
+      if (
+        !args.warmOnly ||
+        /cacheStoreUnreadable|cacheClockMismatch/.test(message)
+      ) {
+        throw error;
+      }
       console.warn(
-        `treasury top-up failed — bar survey continues without it: ${
-          (error as Error).message
-        }`,
+        `treasury top-up failed — bar survey continues without it: ${message}`,
       );
     }
   }
@@ -243,16 +257,36 @@ async function main() {
           `against stale rows as if fresh; refusing to sweep`,
       );
     }
-    const curveFacts = treasuryCurveFacts(treasuryRates);
-    if (curveFacts.largestGapMs > 7 * 86_400_000) {
+    // Scoped to the REQUESTED window (#364 round 14, finding 2): the
+    // store always spans the full fetch depth while a corpus spans
+    // --days, so a hole years outside the requested window must not
+    // block a run whose decisions never read across it. The door's
+    // check is exact against the corpus bounds via the manifested gap
+    // positions; this pre-flight bound is the request-shaped
+    // approximation, extended a week left for the visibility lead.
+    const windowStartMs = Date.now() - (args.days + 7) * 86_400_000;
+    const windowFacts = treasuryCurveFacts(
+      treasuryRates.filter((row) => row.dateMs >= windowStartMs),
+    );
+    if (windowFacts.largestGapMs > 7 * 86_400_000) {
       throw new Error(
         `Treasury curve has a ${
-          Math.round(curveFacts.largestGapMs / 86_400_000)
-        }-day interior hole — the visibility pointer would stall inside ` +
-          `it, scoring months-stale rows as fresh; delete the ` +
-          `treasury-rates store, refetch full history, and re-run ` +
-          `(the corpus door would refuse this run's output; refusing ` +
-          `before simulation instead)`,
+          Math.round(windowFacts.largestGapMs / 86_400_000)
+        }-day interior hole inside the requested ${args.days}-day window ` +
+          `— the visibility pointer would stall inside it, scoring ` +
+          `months-stale rows as fresh; delete the treasury-rates store, ` +
+          `refetch full history, and re-run (the corpus door would ` +
+          `refuse this run's output; refusing before simulation ` +
+          `instead).` +
+          (treasuryParserRefusals > 0
+            ? ` NOTE: ${treasuryParserRefusals} provider rows were ` +
+              `refused by the parser THIS run — if the hole persists ` +
+              `across a full refetch, the rows inside it are being ` +
+              `refused (macroRates.ts date/tenor bounds); investigate ` +
+              `those rows, not the store`
+            : ` If the hole persists across a full refetch, the rows ` +
+              `inside it are being refused by the parser (macroRates.ts ` +
+              `date/tenor bounds); investigate those rows, not the store`),
       );
     }
   }
@@ -774,6 +808,11 @@ async function loadTreasuryRates(
   });
 }
 
+// Rows the parser refused across this process's Treasury fetches — only
+// the run that fetches can count them (a warm store fetches nothing), so
+// hole refusals report the count as this-run evidence, not store truth.
+let treasuryParserRefusals = 0;
+
 async function fetchTreasuryRates(
   startMs: number,
 ): Promise<DatedTreasuryRow[]> {
@@ -812,6 +851,13 @@ async function fetchTreasuryRates(
         if (row) {
           rows.push(row);
           chunkRows += 1;
+        } else {
+          // #364 round 14, finding 2: a refused provider row (date shape,
+          // tenor bounds) is DETERMINISTIC on refetch — a run of them is
+          // the one hole "delete the store and refetch" cannot clear, so
+          // the count is surfaced beside any hole refusal to tell "the
+          // provider served nothing" from "we refused what it served".
+          treasuryParserRefusals += 1;
         }
       }
     }

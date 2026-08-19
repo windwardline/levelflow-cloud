@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import {
   buildSweepManifest,
@@ -242,7 +245,10 @@ describe("buildSweepManifest — the NGUSD hazard closed", () => {
 describe("treasuryCurveFacts — the curve's own continuity record", () => {
   const day = 86_400_000;
 
-  it("records count, ends and the largest inter-row gap", () => {
+  it("records count, ends, the largest inter-row gap, and week-plus gap POSITIONS", () => {
+    // #364 round 14, finding 2: largestGapMs alone is positionless, so
+    // the door could only refuse a holed curve absolutely. Week-plus
+    // gaps carry their positions for the corpus-relative refusal.
     const facts = treasuryCurveFacts([
       { dateMs: 0 },
       { dateMs: 3 * day },
@@ -252,9 +258,15 @@ describe("treasuryCurveFacts — the curve's own continuity record", () => {
     assert.deepEqual(facts, {
       count: 4,
       firstTime: 0,
+      gapsOverWeekMs: [{ endMs: 40 * day, startMs: 4 * day }],
       largestGapMs: 36 * day,
       lastTime: 40 * day,
     });
+    // A healthy curve hashes exactly as it did before the field existed.
+    assert.deepEqual(
+      treasuryCurveFacts([{ dateMs: 0 }, { dateMs: 3 * day }]),
+      { count: 2, firstTime: 0, largestGapMs: 3 * day, lastTime: 3 * day },
+    );
   });
 
   it("states an empty curve as zero rows, never a fabricated span", () => {
@@ -318,11 +330,16 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
     assert.match(script, /treasuryCurve: treasuryCurveFacts\(treasuryRates\),/);
-    // #364 round 13, finding 1: the STORED curve's continuity is
-    // asserted at pre-flight from its facts — the chunk guard fires
-    // only on the run that fetches and only on zero rows, and the
-    // rolling store never revisits a pinned interior.
-    assert.match(script, /-day interior hole — the visibility pointer/);
+    // #364 round 13, finding 1 (scoped round 14): the STORED curve's
+    // continuity is asserted at pre-flight from its facts — the chunk
+    // guard fires only on the run that fetches and only on zero rows,
+    // and the rolling store never revisits a pinned interior — bounded
+    // to the requested --days window so a hole outside it cannot block
+    // a run whose decisions never read across it.
+    assert.match(
+      script,
+      /-day interior hole inside the requested \$\{args\.days\}-day window/,
+    );
     // #364 round 13, finding 3: fetchFull requests from the SHARED
     // constant the door's leading-edge tolerance derives from.
     assert.match(
@@ -330,13 +347,25 @@ describe("the driver writes the manifest beside the emit", () => {
       /fetchTreasuryRates\(TREASURY_FETCH_START_MS\)/,
       "the driver and the door must share one requested start",
     );
-    // #364 round 13, smaller: the survey path tolerates a Treasury
-    // load failure; sweep runs keep the throw.
+    // #364 round 13, smaller + round 14, finding 1: the survey path
+    // tolerates a Treasury PROVIDER failure, but the tolerance is
+    // scoped by CAUSE — store-integrity refusals re-throw so the
+    // top-up script's must-stay-red conditions can go red (both of its
+    // branches run only on a nonzero exit).
     assert.match(
       script,
-      /if \(!args\.warmOnly\) throw error;/,
-      "--warm-only must survive a Treasury outage — warn and continue",
+      /\/cacheStoreUnreadable\|cacheClockMismatch\/\.test\(message\)/,
+      "store-integrity refusals must re-throw under --warm-only",
     );
+    assert.match(
+      script,
+      /bar survey continues without it/,
+      "--warm-only must survive a Treasury PROVIDER outage",
+    );
+    // #364 round 14, finding 2: the fetch counts parser-refused rows so
+    // a hole refusal can distinguish "provider served nothing" from
+    // "we refused what it served".
+    assert.match(script, /treasuryParserRefusals \+= 1;/);
   });
 
   // #364 round 9, finding 1: the density pre-flight binds only the
@@ -443,6 +472,34 @@ describe("the driver writes the manifest beside the emit", () => {
     // The positional accessor shape is gone for good.
     assert.doesNotMatch(audit, /const n = \(i: number\)/);
     assert.match(audit, /index\.has\(name\)/);
+  });
+
+  // #364 round 14, finding 3: unresolv (the resolver's defect bucket)
+  // leaves BOTH sides of the survival arithmetic — counting it as a
+  // survivor biased survival up and the amendment-25 gate under-flagged.
+  // Executed against a synthetic table, since source pins cannot run
+  // arithmetic: decisions 100, pre-geometry blocks 40, unresolv 10 →
+  // reached 50 (not 60); kills 45 → survival 10% and STARVED. Under the
+  // old arithmetic this read reached 60 / survival 25% — merely "thin".
+  it("the audit's survival excludes unresolv from both sides — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-"));
+    const log = join(dir, "sweep.log");
+    writeFileSync(
+      log,
+      [
+        "symbol variant split decisions sessionBlk newsBlk notWarm " +
+        "regimeBlk noConsensus planRejected unresolv belowConf " +
+        "belowPayoff setups",
+        "EURUSD baseline test 100 10 10 0 10 10 40 10 0 5 5",
+        "",
+      ].join("\n"),
+    );
+    const out = execFileSync(
+      "npx",
+      ["tsx", "scripts/starvation-audit.ts", log, "--report"],
+      { encoding: "utf8" },
+    );
+    assert.match(out, /EURUSD\s+100\s+50\s+40\s+5\s+10%\s+STARVED/);
   });
 
   // #364 round 3, finding 4: by-name reading is only as safe as the

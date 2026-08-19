@@ -51,6 +51,13 @@
  * regimes exit at the pre-plan gate in normal mode and skip the
  * acceptance tally in capture-all — so the column is the pre-geometry
  * block exactly.)
+ *
+ * unresolv (R1b's defect bucket — the plan built and the resolver still
+ * returned non-finite numbers) is excluded from BOTH sides of the
+ * survival arithmetic (#364 round 14): counting those decisions as
+ * survivors biased survival up and this gate under-flagged, while
+ * counting them as geometry kills would blame parameters for a sweep
+ * bug. A nonzero unresolv is a debugging signal, not a starvation one.
  */
 import { readFileSync } from "node:fs";
 
@@ -137,9 +144,14 @@ const out = [...byS.values()].map((r) => {
   // Decisions that reached the geometry stage at all. notWarm decisions never
   // did (the regime could not form) — subtracting it is part of the same
   // repair as the named columns: the drifted map had silently excluded it
-  // from BOTH sides of this arithmetic.
+  // from BOTH sides of this arithmetic. unresolv leaves both sides too
+  // (#364 round 14, finding 3): those decisions built a plan and the
+  // resolver still could not grade it — a DEFECT bucket, not a parameter
+  // verdict — so counting them as survivors biased survival up and the
+  // amendment-25 gate under-flagged, while folding them into geometryKill
+  // would blame parameters for a sweep bug.
   const reachedGeometry = r.decisions - r.sessionBlk - r.newsBlk - r.notWarm -
-    r.regimeBlk - r.noConsensus;
+    r.regimeBlk - r.noConsensus - r.unresolv;
   const geometryKill = r.planRejected + r.belowPayoff;
   const survival = reachedGeometry > 0 ? 1 - geometryKill / reachedGeometry : 0;
   return { ...r, reachedGeometry, geometryKill, survival };

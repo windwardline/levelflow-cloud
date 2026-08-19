@@ -183,6 +183,15 @@ export const TREASURY_FETCH_START_MS = Date.UTC(2013, 0, 1);
 export type TreasuryCurveFacts = {
   count: number;
   firstTime: number | null;
+  // #364 round 14, finding 2: largestGapMs is POSITIONLESS, so the door
+  // could only refuse a holed curve absolutely — a 2015 hole blocking a
+  // 2020-2026 corpus no decision of which reads across it. Week-plus
+  // gaps therefore carry their positions (present only when any exist,
+  // so healthy curves hash identically to before), letting the door
+  // refuse exactly the corpora whose span a hole touches. NOT part of
+  // conditionsOf identity — that keeps firstTime/largestGapMs, both
+  // day-stable.
+  gapsOverWeekMs?: Array<{ endMs: number; startMs: number }>;
   largestGapMs: number;
   lastTime: number | null;
 };
@@ -195,15 +204,20 @@ export function treasuryCurveFacts(
   }
   const times = rows.map((row) => row.dateMs).sort((a, b) => a - b);
   let largestGapMs = 0;
+  const gapsOverWeekMs: Array<{ endMs: number; startMs: number }> = [];
   for (let index = 1; index < times.length; index += 1) {
     const gap = times[index] - times[index - 1];
     if (gap > largestGapMs) {
       largestGapMs = gap;
     }
+    if (gap > 7 * 86_400_000) {
+      gapsOverWeekMs.push({ endMs: times[index], startMs: times[index - 1] });
+    }
   }
   return {
     count: rows.length,
     firstTime: times[0],
+    ...(gapsOverWeekMs.length > 0 && { gapsOverWeekMs }),
     largestGapMs,
     lastTime: times[times.length - 1],
   };

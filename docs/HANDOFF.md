@@ -1134,7 +1134,13 @@ key. Sequenced after item 6's `init.sql` work.
   outage aborts the nightly top-up before the first symbol, the same
   shape the Treasury load was given warn-and-continue for in R1b. Give
   it the identical warm-only tolerance with R2's instrument work; the
-  sweep-path throw is correct and stays.
+  sweep-path throw is correct and stays. The Treasury tolerance's own
+  flip side (#364 round 14): a provider failure there leaves a
+  warm-only run green with the treasury store un-warmed, signalled by
+  one `treasury top-up failed` warn line — the rebuild runbook's step 2
+  now tells the operator to grep for it, and store-integrity failures
+  (`cacheStoreUnreadable`/`cacheClockMismatch`) re-throw so the top-up
+  script's red stays honest.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

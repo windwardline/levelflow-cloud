@@ -419,15 +419,6 @@ function verifyManifest(emitPath: string): SweepManifest {
       );
     }
     const weekMs = 7 * 86_400_000;
-    if ((curve.largestGapMs ?? 0) > weekMs) {
-      throw new Error(
-        `${emitPath}: Treasury curve has a ${
-          Math.round((curve.largestGapMs ?? 0) / 86_400_000)
-        }-day interior hole — decisions inside it scored months-stale rows ` +
-          `as fresh; delete the treasury-rates store, refetch full history, ` +
-          `and re-sweep`,
-      );
-    }
     let corpusEndMs = Number.NEGATIVE_INFINITY;
     let corpusStartMs = Number.POSITIVE_INFINITY;
     for (const entry of manifest.symbols ?? []) {
@@ -440,6 +431,49 @@ function verifyManifest(emitPath: string): SweepManifest {
       ) {
         corpusStartMs = facts.firstTime;
       }
+    }
+    // #364 round 14, finding 2: the hole check is corpus-relative like
+    // its two neighbours — the store always spans the full fetch depth,
+    // and a hole years outside the corpus touches no decision. The
+    // manifested gap POSITIONS make that judgement exact (largestGapMs
+    // alone is positionless); a manifest predating the positions falls
+    // back to the absolute refusal, conservative by construction. The
+    // remedy distinguishes the one hole a refetch cannot clear: rows
+    // the parser refuses are refused deterministically on every fetch.
+    const holeRemedy = `delete the treasury-rates store, refetch full ` +
+      `history, and re-sweep — and if the hole persists across the ` +
+      `refetch, the rows inside it are being refused by the parser ` +
+      `(macroRates.ts date/tenor bounds); investigate those rows, not ` +
+      `the store`;
+    const gapsOverWeekMs = (curve as {
+      gapsOverWeekMs?: Array<{ endMs: number; startMs: number }>;
+    }).gapsOverWeekMs;
+    if (gapsOverWeekMs && gapsOverWeekMs.length > 0) {
+      const touching = Number.isFinite(corpusStartMs) &&
+          Number.isFinite(corpusEndMs)
+        ? gapsOverWeekMs.find((gap) =>
+          gap.endMs >= corpusStartMs - weekMs && gap.startMs <= corpusEndMs
+        )
+        : gapsOverWeekMs[0];
+      if (touching) {
+        throw new Error(
+          `${emitPath}: Treasury curve has a ${
+            Math.round((touching.endMs - touching.startMs) / 86_400_000)
+          }-day interior hole (${
+            new Date(touching.startMs).toISOString().slice(0, 10)
+          }..${
+            new Date(touching.endMs).toISOString().slice(0, 10)
+          }) inside the corpus span — decisions there scored months-stale ` +
+            `rows as fresh; ${holeRemedy}`,
+        );
+      }
+    } else if ((curve.largestGapMs ?? 0) > weekMs) {
+      throw new Error(
+        `${emitPath}: Treasury curve has a ${
+          Math.round((curve.largestGapMs ?? 0) / 86_400_000)
+        }-day interior hole — decisions inside it scored months-stale rows ` +
+          `as fresh; ${holeRemedy}`,
+      );
     }
     if (
       Number.isFinite(corpusEndMs) &&

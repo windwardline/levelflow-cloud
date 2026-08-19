@@ -876,6 +876,46 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
         })),
       /90-day interior hole/,
     );
+    // #364 round 14, finding 2: with manifested gap POSITIONS the hole
+    // check is corpus-relative like its neighbours — a hole years
+    // outside the corpus span (fixture corpus sits at the 1970 epoch,
+    // the gap in 2015) admits even though largestGapMs alone would have
+    // refused above, and a hole touching the span refuses with its
+    // dates named.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": facts(960, 10) },
+      symbol: "EURUSD",
+      treasuryCurve: {
+        count: 3_000,
+        firstTime: Date.UTC(2013, 0, 2),
+        gapsOverWeekMs: [{
+          endMs: Date.UTC(2015, 3, 1),
+          startMs: Date.UTC(2015, 0, 1),
+        }],
+        largestGapMs: 90 * 86_400_000,
+        lastTime: Date.UTC(2027, 0, 1),
+      },
+    }));
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": facts(960, 10) },
+          symbol: "EURUSD",
+          treasuryCurve: {
+            count: 3_000,
+            firstTime: Date.UTC(2013, 0, 2),
+            gapsOverWeekMs: [{
+              endMs: 20 * 86_400_000,
+              startMs: 2 * 86_400_000,
+            }],
+            largestGapMs: 90 * 86_400_000,
+            lastTime: Date.UTC(2027, 0, 1),
+          },
+        })),
+      /18-day interior hole \(1970-01-03\.\.1970-01-21\) inside the corpus span.*investigate those rows, not the store/s,
+    );
     // A curve ending before the corpus does is the same staleness at the
     // tail: the visibility pointer stalls and every later decision reads
     // the last rows as current.

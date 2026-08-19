@@ -112,8 +112,16 @@ this archive rather than by the store guard.)
 The rebuild is not a special code path: it is a cold cache warmed by the
 same `--warm-only` run the nightly top-up performs, fetching every roster
 symbol's full 15-minute, 5-minute and daily history plus the economic
-calendar and COT contracts, all through the current normalizer, all
-stamped, all witness-checked as they load. Run it directly so the output
+calendar, the Treasury curve (R1b) and COT contracts, all through the
+current normalizer, all stamped, all witness-checked as they load. One
+asymmetry to know (#364 rounds 13–14): a Treasury PROVIDER failure under
+`--warm-only` warns and continues so the bar warm cannot die on the
+second endpoint — which means a rebuild can finish green with the
+treasury store un-warmed. Before calling step 2 done, grep the log for
+`treasury top-up failed`; a hit means re-run once the endpoint recovers
+(cheap — the bar stores are already warm). Store-integrity failures
+(`cacheStoreUnreadable`, `cacheClockMismatch`) still abort, as they
+must. Run it directly so the output
 streams (the launchd wrapper buffers everything until exit, which for a
 run this long reads as a hang):
 
