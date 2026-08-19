@@ -1490,6 +1490,21 @@ change is reverted (`familyPairedP` is byte-identical to its round-44
 state) and a three-variant disjoint-block fixture pins the correction,
 verified to fail under the regressed form.
 
+**The blast radius was audited, not assumed.** The workflows ran from
+13:45 and 14:24 UTC, so three commits sat inside the exposure window:
+`36905a7` (round 43), `59cc4d9` (round 44) and `6beac15` (round 45).
+`d0b9907` predates it by one minute and `28bcd7b` was staged after both
+were stopped, with the staged diff read hunk by hunk. Each exposed
+commit's file set matches its disposition exactly — no unexpected file
+appears in any of them — and every hunk sits in a function within that
+round's stated scope. The statistical core was then compared directly
+against `d0b9907` rather than reasoned about: `familyPairedP`,
+`MIN_EFFECTIVE_PAIRS` with `supportOf`, `permutationPValue`,
+`mulberry32`, and the `accepted` and `thin` expressions in
+`groupVerdicts` are all **byte-identical** to their pre-exposure state.
+The max-T replacement was the only semantic contamination, and it is
+reverted.
+
 The generalisable part is not "that agent misbehaved". It is that a
 commit's contents must be something you assert, not something you
 collect — and a green suite is only evidence about the properties some
