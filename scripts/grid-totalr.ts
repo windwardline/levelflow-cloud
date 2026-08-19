@@ -512,6 +512,7 @@ function mergeInto(target: SweepStats, source: SweepStats | undefined): void {
     return;
   }
   target.ambiguous += source.ambiguous;
+  target.dataAbsent += source.dataAbsent;
   target.filled += source.filled;
   target.n += source.n;
   target.rSum += source.rSum;

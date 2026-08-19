@@ -1095,6 +1095,13 @@ key. Sequenced after item 6's `init.sql` work.
   Any starvation reading taken from the drifted map between notWarm's
   landing and this fix is suspect; amendment 25's original 2026-08-06
   run predates notWarm and stands.
+- **`confidence-bands.ts` still carries a private `add()`/`Stats`**
+  outside the one vocabulary (#364 round 5 noted it in passing —
+  pre-existing item-3 drift, not R1b's): its `n` counts every row
+  unconditionally, so the R1b data-absence partition cannot reach it,
+  and it lacks the dispersion term. Fold it into `sweepStats.ts` with
+  R2's instrument work, alongside the rejection-tallies-into-manifest
+  item above.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

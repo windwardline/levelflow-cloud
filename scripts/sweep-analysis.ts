@@ -23,6 +23,7 @@ import {
   addOutcome,
   assertManifestedCorpusStreaming,
   emptyStats,
+  type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
 
@@ -101,11 +102,16 @@ function classOf(symbol: string): string {
 type Stats = SweepStats;
 
 function add(stats: Stats, row: Row): void {
+  // The RAW row rides through (#364 round 5, finding 1): a rebuilt
+  // three-field row stripped noBarsInReviewWindow, so this reader — the
+  // one whose historical all-rows denominator is the reason sweepStats
+  // exists — kept blending provider absence into the market verdict
+  // after round 4 partitioned it. Spreading the row makes the omission
+  // impossible for future marker fields too; only realizedR is coerced.
   addOutcome(stats, {
-    outcome: row.outcome,
+    ...row,
     realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
-    symbol: row.symbol,
-  });
+  } as SweepEmitRow);
 }
 
 function rate(part: number, whole: number): string {
@@ -230,7 +236,7 @@ async function main(): Promise<void> {
     const live = liveThreshold(className) ?? 0;
     table(
       `${className} — confidence reliability (5-point buckets; * marks the live threshold's bucket, ! marks n < ${minN})`,
-      ["band", "n", "tp1", "stop", "unfilled", "expR", "flag"],
+      ["band", "n", "tp1", "stop", "unfilled", "dataAbs", "expR", "flag"],
       [...buckets.entries()]
         .sort(([a], [b]) => a - b)
         .map(([bucket, stats]) => [
@@ -239,6 +245,7 @@ async function main(): Promise<void> {
           rate(stats.wins, stats.filled),
           rate(stats.stops, stats.filled),
           rate(stats.n - stats.filled, stats.n),
+          String(stats.dataAbsent),
           expectancyLabel(stats),
           `${bucket <= live && live <= bucket + 4 ? "*" : ""}${stats.n < minN ? "!" : ""}`,
         ]),

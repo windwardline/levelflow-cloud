@@ -47,6 +47,7 @@ import {
   emptyStats,
   expectancy,
   rStandardError,
+  type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
 
@@ -161,11 +162,13 @@ async function main(): Promise<void> {
         stats = emptyStats();
         bySymbol.set(row.symbol, stats);
       }
+      // The raw row rides through so the data-absence marker (and any
+      // future per-row fact) reaches the vocabulary's partition (#364
+      // round 5, finding 1); only realizedR is coerced.
       addOutcome(stats, {
-        outcome: row.outcome,
+        ...raw,
         realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
-        symbol: row.symbol,
-      });
+      } as SweepEmitRow);
     }
   }
 
@@ -208,6 +211,8 @@ async function main(): Promise<void> {
           continue;
         }
         memberStats.push(stats);
+        rollup.ambiguous += stats.ambiguous;
+        rollup.dataAbsent += stats.dataAbsent;
         rollup.n += stats.n;
         rollup.filled += stats.filled;
         rollup.wins += stats.wins;

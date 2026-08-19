@@ -423,7 +423,18 @@ layer.
   bar's own slot, never in the stream, pretend to fit, false-marking
   every weekly-clamped window between one and two bar spans: one
   artifact row per clamped symbol per week); live omits the option,
-  since its stream reaches back past creation and `createdAt` is exact. An uncontainable
+  since its stream reaches back past creation and `createdAt` is exact.
+  **The partition reaches the aggregators** (#364 rounds 4–5): the one
+  stats vocabulary (`sweepStats.ts`) holds marked rows out of `n` in a
+  `dataAbsent` counter, so every published fill rate (`filled/n`)
+  states its own denominator — market evidence only; the driver's
+  long-standing `unfilled` column changed meaning to
+  `total − filled − dataAbsent` (market-evidence unfilled, with
+  `dataAbsent` its own column beside it); readers hand the vocabulary
+  the RAW emit row so the marker cannot be stripped by a rebuild, and
+  the field-by-field rollups carry every `SweepStats` key by test. A
+  cohort author reading this map should assume any pre-R1b published
+  fill or unfilled figure blended data absence into its denominator. An uncontainable
   window (#362 round 7's sub-bar-span weekly clamp, and any window no
   grid slot fits) resolves unfilled UNMARKED with its own sentence — a
   grading-law fact; a containable window whose resolution stream held

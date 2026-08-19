@@ -443,6 +443,30 @@ describe("replay sweep", () => {
     }
     assert.equal(clamped.summary.dataAbsent, 0);
     assert.equal(clamped.summary.unfilled, clamped.outcomes.length);
+
+    // Executed control (#364 round 5, smaller): widen the window by ONE
+    // stream slot — 30 minutes — and the same fixture grades through the
+    // stream (fills happen), so the 24-minute run's all-unfilled shape
+    // above is observed to come from the no-bars branch, not from a
+    // fixture that quietly stopped reaching it.
+    const oneSlot = simulateSymbol({
+      calibrationOverride: {
+        blockedRegimes: [],
+        defaultReviewHours: 0.5,
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      captureAll: true,
+      dailyBars: wideDaily,
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(
+      oneSlot.outcomes.some((record) => record.filledAtMs !== null),
+      "one admissible stream slot must grade — the clamped run's shape is the branch, not the fixture",
+    );
   });
 
   it("records stop provenance on every setup and reports cap binding", () => {

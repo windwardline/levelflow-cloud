@@ -144,6 +144,47 @@ describe("clusteredStandardError — 3a's dispersion, clustered by market", () =
   });
 });
 
+describe("the partition reaches every reader (#364 round 5, finding 1)", () => {
+  // The vocabulary partitions on the raw row's marker, so a reader that
+  // REBUILDS the row before addOutcome silently strips it — which is how
+  // two readers kept the pre-partition denominator one call away from
+  // the fix. The raw-row spread makes the omission impossible, including
+  // for future per-row facts; combined with the vocabulary-level pin
+  // above (a marked row moves dataAbsent and nothing else), the
+  // reader-level property holds by composition.
+  it("readers hand addOutcome the raw emit row, never a rebuilt one", () => {
+    assert.match(
+      readFileSync("scripts/sweep-analysis.ts", "utf8"),
+      /addOutcome\(stats, \{\s*\n\s*\.\.\.row,/,
+    );
+    assert.match(
+      readFileSync("scripts/account-type-report.ts", "utf8"),
+      /addOutcome\(stats, \{\s*\n\s*\.\.\.raw,/,
+    );
+  });
+
+  // Self-updating against SweepStats growth: every key the vocabulary
+  // carries must survive the two field-by-field rollups, so the next
+  // added field breaks here instead of silently reading 0 in every
+  // rollup cell.
+  it("every SweepStats key survives the field-by-field rollups", () => {
+    const gridTotalr = readFileSync("scripts/grid-totalr.ts", "utf8");
+    const accountReport = readFileSync("scripts/account-type-report.ts", "utf8");
+    for (const key of Object.keys(emptyStats())) {
+      assert.match(
+        gridTotalr,
+        new RegExp(`target\\.${key} \\+= source\\.${key};`),
+        `grid-totalr mergeInto must carry ${key}`,
+      );
+      assert.match(
+        accountReport,
+        new RegExp(`rollup\\.${key} \\+= stats\\.${key};`),
+        `account-type-report rollup must carry ${key}`,
+      );
+    }
+  });
+});
+
 describe("account-type-report adopts the shared vocabulary (3a)", () => {
   const source = readFileSync("scripts/account-type-report.ts", "utf8");
 
