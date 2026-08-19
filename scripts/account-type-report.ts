@@ -162,6 +162,12 @@ async function main(): Promise<void> {
     // all; the hash verifies before the first row, same door as ever.
     await assertManifestedCorpusStreaming(file, (raw) => {
       const row = raw as unknown as Row;
+      // Baseline-only, like every other figure this report prints — the
+      // variant filter runs FIRST (#364 round 29, finding 2: the holdout
+      // tally sat above it, so a grid corpus counted every variant's
+      // holdout rows while kept/gated/dataAbsent stayed baseline-only —
+      // two populations under one heading).
+      if (row.variant && row.variant !== "baseline") return;
       // 3e: holdout markets are excluded from every tuning-adjacent read;
       // this report informs inclusion decisions, so it is one of them.
       // Counted, never silent (#364 round 27, finding 2).
@@ -170,7 +176,6 @@ async function main(): Promise<void> {
         holdoutSymbols.add(row.symbol);
         return;
       }
-      if (row.variant && row.variant !== "baseline") return;
       if (!passesOtherGates(row)) {
         gated += 1;
         return;
@@ -213,7 +218,10 @@ async function main(): Promise<void> {
     );
   }
   if (holdoutRows > 0) {
-    console.log(`(holdout markets excluded: ${holdoutRows} rows)`);
+    console.log(
+      `(holdout markets excluded: ${holdoutRows} rows — baseline variant, ` +
+        `stamped flag)`,
+    );
   }
   console.log(
     `precision: per-market s.e. measured from that market's own R deviation; ` +

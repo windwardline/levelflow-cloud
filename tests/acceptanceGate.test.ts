@@ -439,6 +439,38 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     );
   });
 
+  // #364 round 29, finding 1: the folds line printed the manifest's
+  // STAMPED holdout list while gradeCorpus excludes the read-time
+  // stratified set — different definitions (round 27), different
+  // counts — and kept printing under --include-holdout, where nothing
+  // is excluded. gradeCorpus now returns the held set's size. Three
+  // same-class shards make the stratified rule bite (max(1,
+  // round(0.2*3)) = 1 of 3 forex markets) while the fixture manifests
+  // stamp NO holdout list at all — the reported count is the read's
+  // own, never the stamp's.
+  it("reports the read-time stratified holdout count, and none under includeHoldout — executed", async () => {
+    const shards = [
+      shardWith(shardRows("EURUSD")),
+      shardWith(shardRows("GBPUSD")),
+      shardWith(shardRows("USDJPY")),
+    ];
+    const graded = await gradeCorpus(shards, { permutations: 50, seed: 6 });
+    assert.equal(graded.heldOutMarkets, 1);
+    const included = await gradeCorpus(shards, {
+      includeHoldout: true,
+      permutations: 50,
+      seed: 6,
+    });
+    assert.equal(included.heldOutMarkets, 0);
+    // The print site consumes the returned figure, never the stamp.
+    const source = readFileSync("scripts/grid-totalr.ts", "utf8");
+    assert.match(
+      source,
+      /holdout \$\{heldOutMarkets\} markets excluded \(read-time stratified\)/,
+    );
+    assert.doesNotMatch(source, /manifest\.holdoutSymbols\?\.length/);
+  });
+
   it("concatenates shards whose conditions match", async () => {
     const graded = await gradeCorpus(
       [shardWith(shardRows("EURUSD")), shardWith(shardRows("GBPUSD"))],

@@ -296,7 +296,13 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       /export type EvidenceRow = SweepEmitRow & \{([\s\S]*?)\};/,
     );
     assert.ok(typeBlock, "EvidenceRow must be declared literally");
-    const declared = [...typeBlock![1].matchAll(/^\s*(\w+)\?:/gm)]
+    // Reach (#364 round 29, smaller): \??: covers optional AND required
+    // declarations in the type's own literal block. Out of reach by
+    // construction: fields living only in SweepEmitRow's index
+    // signature — those ride the projection solely via
+    // VOCABULARY_ROW_KEYS, so a question needing one must first declare
+    // it on EvidenceRow, which brings it under this pin.
+    const declared = [...typeBlock![1].matchAll(/^\s*(\w+)\??:/gm)]
       .map((m) => m[1]);
     const listBlock = evidence.match(
       /const EVIDENCE_ROW_KEYS = \[([\s\S]*?)\] as const;/,
@@ -387,6 +393,16 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       // CORPUS (never swept)" in the coverage-gap tally.
       { holdout: true, outcome: "take_profit", realizedR: 1, symbol: "USDJPY" },
       { holdout: true, outcome: "stop_loss", realizedR: -1, symbol: "USDJPY" },
+      // #364 round 29, finding 2: a NON-baseline holdout row must not
+      // count — the holdout volume is baseline-only, like every other
+      // figure this report prints.
+      {
+        holdout: true,
+        outcome: "take_profit",
+        realizedR: 1,
+        symbol: "USDJPY",
+        variant: "wide",
+      },
     ];
     writeFileSync(
       emitPath,
@@ -450,8 +466,10 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     assert.match(out, / 3\s+— ±—/);
     assert.match(out, /none — no market is negative beyond noise/);
     // #364 round 27, finding 2: the held-out market prints as policy,
-    // with its volume stated — never as a coverage gap.
-    assert.match(out, /holdout markets excluded: 2 rows/);
+    // with its volume stated — never as a coverage gap. Round 29,
+    // finding 2: the volume is BASELINE-only (the fixture's wide-variant
+    // holdout row must not move it) and the line states its scope.
+    assert.match(out, /holdout markets excluded: 2 rows — baseline variant/);
     assert.match(out, /HELD OUT \(3e confirmation set\)/);
   });
 

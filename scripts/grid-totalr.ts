@@ -558,6 +558,13 @@ export async function gradeCorpus(
   // printing this figure states those terms.
   dataAbsentRows: number;
   foldNames: FoldNames;
+  // #364 round 29, finding 1: the markets THIS read held out — the
+  // read-time stratified set's size (0 under includeHoldout) — returned
+  // so the report prints the set it actually excluded, never the
+  // manifest's stamped list, which is a different definition entirely
+  // (round 27: the stratified rule holds nothing out of a class under
+  // three members, and the stamp is one shard's class-blind 1-in-5).
+  heldOutMarkets: number;
   manifest: SweepManifest;
   verdicts: Map<string, Map<string, VariantVerdict>>;
 }> {
@@ -755,6 +762,7 @@ export async function gradeCorpus(
   return {
     dataAbsentRows,
     foldNames,
+    heldOutMarkets: held.size,
     manifest,
     verdicts: (options.verdictUnit === "market" ? marketVerdicts : classVerdicts)(
       cube,
@@ -784,7 +792,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const baselineIndex = args.indexOf("--baseline");
-  const { dataAbsentRows, foldNames, manifest, verdicts } = await gradeCorpus(paths, {
+  const { dataAbsentRows, foldNames, heldOutMarkets, manifest, verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant: baselineIndex >= 0 ? args[baselineIndex + 1] : undefined,
     confirmFinal: args.includes("--confirm-final"),
@@ -792,10 +800,21 @@ async function main(): Promise<void> {
     permutations: flag("permutations", 1_000),
     seed: flag("seed", 7),
   });
+  // The holdout clause reports what THIS read excluded (#364 round 29,
+  // finding 1): the old form printed shardManifests[0]'s STAMPED list —
+  // a different definition than the read-time stratified set gradeCorpus
+  // excludes over every shard's union — and kept printing under
+  // --include-holdout, where nothing is excluded at all.
   console.log(
     `folds: fit=${foldNames.fit} select=${foldNames.select}` +
       `${foldNames.confirm ? ` confirm=${foldNames.confirm} (read once, accepted variants only)` : " (legacy two-split corpus)"}` +
-      `${manifest.holdoutSymbols?.length ? ` · holdout ${manifest.holdoutSymbols.length} markets excluded` : ""}`,
+      `${
+        args.includes("--include-holdout")
+          ? " · holdout INCLUDED by --include-holdout (none excluded)"
+          : heldOutMarkets > 0
+          ? ` · holdout ${heldOutMarkets} markets excluded (read-time stratified)`
+          : ""
+      }`,
   );
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · anchor ${manifest.anchor}`,
