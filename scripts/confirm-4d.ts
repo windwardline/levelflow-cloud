@@ -23,31 +23,81 @@ type Candidate = {
   worstDayR: number | null;
 };
 
+// The ONE declaration of which flags own the token after them (#364
+// round 44, smaller — the form rounds 33–38 installed in the four
+// dialed readers, at the two scripts they did not reach). The walker
+// here had been INVERTED: it listed the flags that take no value and
+// consumed the next token for everything else, so a typo'd or
+// newly-added boolean flag silently ate the shard path following it and
+// this script BURNED the confirm read over a corpus one shard short of
+// the one the operator named. A positive declaration cannot do that: an
+// undeclared flag consumes nothing.
+const VALUE_FLAGS = new Set([
+  "--baseline",
+  "--targets",
+  "--prefix",
+  "--permutations",
+  "--seed",
+]);
+
 async function main() {
   const argv = process.argv.slice(2);
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      if (
-        argv[index] !== "--acknowledge-prior-reads" &&
-        argv[index] !== "--holdout-cycle" &&
-        argv[index] !== "--per-market-folds" &&
-        argv[index] !== "--feasibility-disclosure-only"
-      ) index += 1;
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
       continue;
     }
     paths.push(argv[index]);
   }
-  const flagValue = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
+  const str = (arg: string): string | undefined => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `str("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value stays in the shard paths`,
+      );
+    }
+    const index = argv.indexOf(arg);
+    if (index === -1) return undefined;
+    const token = argv[index + 1];
+    if (token === undefined || token.startsWith("--")) {
+      throw new Error(
+        `${arg} owns the token after it and got ${
+          token === undefined ? "no value" : `"${token}"`
+        } — a value, never a flag; pass ${arg} <value>`,
+      );
+    }
+    return token;
   };
-  const baselineVariant = flagValue("baseline") ?? "baseline";
+  const num = (arg: string, fallback: number): number => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `num("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value stays in the shard paths`,
+      );
+    }
+    const index = argv.indexOf(arg);
+    if (index === -1) return fallback;
+    const parsed = Number(argv[index + 1]);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(
+        `${arg} owns the token after it and cannot read ${
+          argv[index + 1] === undefined
+            ? "a missing value"
+            : `"${argv[index + 1]}"`
+        } as a number — the walker already kept that token out of the ` +
+          `shard paths, and this script burns the confirm read; pass ` +
+          `${arg} <number>`,
+      );
+    }
+    return parsed;
+  };
+  const baselineVariant = str("--baseline") ?? "baseline";
   const dir = "docs/research/baseline-2026-08-10";
   const holdoutCycle = argv.includes("--holdout-cycle");
   const perMarketFolds = argv.includes("--per-market-folds");
-  const targetsFlag = flagValue("targets");
-  const prefix = flagValue("prefix") ??
+  const targetsFlag = str("--targets");
+  const prefix = str("--prefix") ??
     (holdoutCycle ? "4d-holdout" : "4d");
   const candidates = JSON.parse(
     readFileSync(`${dir}/${prefix}-candidates.json`, "utf8"),
@@ -151,44 +201,85 @@ async function main() {
       targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
     );
   }
-  const { verdicts } = await gradeCorpus(paths, {
+  const { confirmRead, verdicts } = await gradeCorpus(paths, {
     acknowledgePriorReads: argv.includes("--acknowledge-prior-reads"),
     baselineVariant,
     confirmFinal: true,
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
     perMarketFolds,
-    permutations: Number(flagValue("permutations") ?? 1_000),
-    seed: Number(flagValue("seed") ?? 7),
+    permutations: num("--permutations", 1_000),
+    seed: num("--seed", 7),
     symbolFilter,
     verdictUnit: "market",
   });
 
   const confirmReport: Record<
     string,
-    { confirmTotalDelta: number | null; variant: string }
+    {
+      confirmTotalDelta: number | null;
+      // The delta's two denominators travel with it (#364 rounds 43-44):
+      // a null here is "the gate refused the pick" or "the confirm fold
+      // could not judge it", and these are what tell them apart.
+      confirmFilled: number | null;
+      confirmBaseFilled: number | null;
+      variant: string;
+    }
   > = {};
   let confirmedPositive = 0;
   let confirmedNegative = 0;
-  let unreadable = 0;
+  // "unreadable" meant one thing when confirmTotalDelta was non-null
+  // exactly for accepted variants: the pick did not clear the 4c gate.
+  // #364 round 43 gave a null delta a SECOND cause — accepted, but the
+  // confirm fold carried no filled outcomes on one or both sides — with
+  // a different remedy (the fold boundary or the market's coverage,
+  // not the gate), and this counter absorbed it silently. The causes
+  // are separated here and the total kept, so a 4d ruling can tell a
+  // pick that lost the gate from one the held-back window could not
+  // judge (#364 round 44, finding 2).
+  let notAccepted = 0;
+  let unevidenced = 0;
+  let noVerdict = 0;
   for (const [symbol, pick] of Object.entries(finalPicks)) {
     const verdict = verdicts.get(symbol)?.get(pick.variant);
     const delta = verdict?.confirmTotalDelta ?? null;
     confirmReport[symbol] = {
       confirmTotalDelta: delta,
+      confirmFilled: verdict?.confirmFilled ?? null,
+      confirmBaseFilled: verdict?.confirmBaseFilled ?? null,
       variant: pick.variant,
     };
-    if (delta === null) unreadable += 1;
-    else if (delta > 0) confirmedPositive += 1;
-    else confirmedNegative += 1;
+    if (delta !== null) {
+      if (delta > 0) confirmedPositive += 1;
+      else confirmedNegative += 1;
+    } else if (!verdict) noVerdict += 1;
+    else if (!verdict.accepted) notAccepted += 1;
+    else unevidenced += 1;
   }
+  const unreadable = notAccepted + unevidenced + noVerdict;
+  // The artifact a 4d ruling is read from states whether the confirm
+  // fold was actually READ (#364 round 44, finding 2): it had carried a
+  // readAt timestamp unconditionally, so a run that produced no figure
+  // and burned nothing still left a file on disk saying the held-back
+  // fold was opened at that instant — round 43's finding at the reader
+  // that matters. readAt is null when nothing was read, and the cause
+  // rides beside it.
   writeFileSync(
     `${dir}/${prefix}-confirm-read.json`,
     JSON.stringify(
       {
+        confirmRead,
         confirmReport,
         confirmedNegative,
         confirmedPositive,
-        readAt: new Date().toISOString(),
+        noVerdict,
+        notAccepted,
+        notReadReason: confirmRead
+          ? null
+          : unevidenced > 0
+          ? "accepted picks carried no filled outcomes on both sides of the confirm fold — nothing burned"
+          : "no pick's variant was accepted, so there was nothing to confirm — nothing burned",
+        readAt: confirmRead ? new Date().toISOString() : null,
+        unevidenced,
         unreadable,
       },
       null,
@@ -196,8 +287,15 @@ async function main() {
     ) + "\n",
   );
   console.log(
-    `confirm read: ${confirmedPositive} picks positive, ` +
-      `${confirmedNegative} negative, ${unreadable} unreadable -> ${prefix}-confirm-read.json`,
+    (confirmRead
+      ? `confirm read: ${confirmedPositive} picks positive, ` +
+        `${confirmedNegative} negative`
+      : `confirm NOT READ (nothing burned): ${confirmedPositive} positive, ` +
+        `${confirmedNegative} negative`) +
+      `, ${unreadable} without a figure ` +
+      `(${notAccepted} not accepted, ${unevidenced} accepted but ` +
+      `unevidenced in the confirm fold, ${noVerdict} with no verdict) ` +
+      `-> ${prefix}-confirm-read.json`,
   );
 }
 

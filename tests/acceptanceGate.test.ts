@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import {
   buildSweepManifest,
@@ -1296,7 +1302,119 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
   // verdict fields that groupVerdicts produces, which is the half that
   // keeps passing while the printer drifts — so this drives the real
   // binary end to end.
+  // #364 round 44, finding 1: the ledger keys on the CORPUS's identity,
+  // not shard 0's manifestHash. Every shard of one measurement hashes
+  // differently (manifestHash covers the shard's own symbols array), so
+  // the old key made a reorder, a subset, or an archived shard-0 look
+  // like a corpus never read — and the held-back fold opened again with
+  // no refusal. conditionsOf is what defines one measurement, and the
+  // shard loop already refuses shards that disagree on it.
+  const foldedShard = (symbol: string): string => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 16; day += 1) {
+      for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
+        rows.push({ ...outcomeRow("baseline", day + offset, 0.1, undefined, symbol), split });
+        rows.push({ ...outcomeRow("good", day + offset, 0.4, undefined, symbol), split });
+      }
+    }
+    const dir = mkdtempSync(join(tmpdir(), "gate-fshard-"));
+    const emitPath = join(dir, `${symbol}.jsonl`);
+    writeFileSync(
+      emitPath,
+      rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+    );
+    const manifest = buildSweepManifest({
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-11",
+      barRejections: {},
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      conditions: {
+        macroAdjustment: "historical-treasury-curve",
+        providerWarningCount: "zero-by-construction",
+        weightAdjustment: "raw-engine-zero",
+      },
+      days: 365,
+      folds: [
+        { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
+        { decisionEndMs: 8, endMs: 9, name: "select", startMs: 5 },
+        { decisionEndMs: 12, endMs: 13, name: "confirm", startMs: 9 },
+      ],
+      generatedAt: "2026-08-11T05:00:00.000Z",
+      grid: [{}, { good: true }],
+      stepBars: 16,
+      symbols: [{
+        calibration: {},
+        providerSymbol: symbol,
+        series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+        symbol,
+      }],
+      trainShare: 0.6,
+      treasuryCurve: TEST_TREASURY_CURVE,
+      warmupBars: 240,
+    });
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    return emitPath;
+  };
+
+  it("refuses a re-read of the same corpus under a reordered or reduced shard list", async () => {
+    const a = foldedShard("EURUSD");
+    const b = foldedShard("GBPUSD");
+    // Distinct shards of ONE measurement: different manifest hashes,
+    // identical conditions (which is why the shard loop admits them).
+    const manifestOf = (path: string) =>
+      JSON.parse(readFileSync(`${path}.manifest.json`, "utf8")) as {
+        manifestHash: string;
+      };
+    assert.notEqual(manifestOf(a).manifestHash, manifestOf(b).manifestHash);
+
+    const first = await gradeCorpus([a, b], {
+      confirmFinal: true,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(first.confirmRead, true);
+
+    // Reordered — the same corpus by every definition that matters.
+    await assert.rejects(
+      gradeCorpus([b, a], { confirmFinal: true, permutations: 100, seed: 4 }),
+      /has already been read 1 time\(s\)/,
+    );
+    // A subset, including the one that drops the shard the first read
+    // listed first — the case a single derived ledger path would miss.
+    await assert.rejects(
+      gradeCorpus([b], { confirmFinal: true, permutations: 100, seed: 4 }),
+      /has already been read 1 time\(s\)/,
+    );
+    await assert.rejects(
+      gradeCorpus([a], { confirmFinal: true, permutations: 100, seed: 4 }),
+      /has already been read 1 time\(s\)/,
+    );
+    // One read is one entry per shard directory, counted once by its
+    // readId rather than once per copy.
+    const again = await gradeCorpus([b, a], {
+      acknowledgePriorReads: true,
+      confirmFinal: true,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(again.confirmRead, true);
+    await assert.rejects(
+      gradeCorpus([a, b], { confirmFinal: true, permutations: 100, seed: 4 }),
+      /has already been read 2 time\(s\)/,
+    );
+  });
+
   it("the printed report claims a read only when the ledger recorded one — executed through main()", () => {
+    // The ledger lives beside the shards, named for the corpus identity
+    // (#364 round 44, finding 1), so the test looks where the code now
+    // writes rather than at the retired per-shard path.
+    const ledgersIn = (emitPath: string): string[] =>
+      readdirSync(dirname(emitPath)).filter((name) =>
+        name.startsWith("confirm-log-")
+      );
     const run = (emitPath: string, extra: string[]): string =>
       execFileSync(
         "npx",
@@ -1314,11 +1432,16 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     // Zero-accept: grading against "good" leaves "baseline" failing
     // both folds, so no confirm figure is produced.
     const zeroAccept = foldedCorpus();
-    const zeroLog = `${zeroAccept}.confirm-log.jsonl`;
     const zeroOut = run(zeroAccept, ["--baseline", "good"]);
-    assert.match(zeroOut, /confirm=confirm NOT READ \(no accepted variant/);
+    // #364 round 44, finding 3: the two false-states of confirmRead have
+    // opposite next moves, so they are named apart. Nothing accepted →
+    // the 4c gate produced no pick and the confirm fold is irrelevant.
+    assert.match(
+      zeroOut,
+      /confirm=confirm NOT READ \(no variant was accepted, so there was no pick to confirm/,
+    );
     assert.doesNotMatch(zeroOut, /read once/);
-    assert.equal(existsSync(zeroLog), false);
+    assert.deepEqual(ledgersIn(zeroAccept), []);
 
     // An accepted variant the confirm fold never covered says so on its
     // own row rather than printing a silent confirm column.
@@ -1328,8 +1451,13 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       oneSidedOut,
       /confirm NOT READ — no filled outcomes on both sides \(variant 0, baseline 16\)/,
     );
-    assert.match(oneSidedOut, /confirm=confirm NOT READ/);
-    assert.equal(existsSync(`${oneSided}.confirm-log.jsonl`), false);
+    // …while something WAS accepted here, so the folds line names the
+    // other cause: the pick is real and this fold cannot judge it.
+    assert.match(
+      oneSidedOut,
+      /confirm=confirm NOT READ \(accepted variants carried no filled outcomes on both sides/,
+    );
+    assert.deepEqual(ledgersIn(oneSided), []);
 
     // The real read: the statement, the per-row figure with both
     // denominators, and the ledger all agree.
@@ -1337,8 +1465,11 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const fullOut = run(full, []);
     assert.match(fullOut, /confirm=confirm \(read once, accepted variants only\)/);
     assert.match(fullOut, /confirm ΔR 4\.8 over 16\/16 filled/);
+    const ledgers = ledgersIn(full);
+    assert.equal(ledgers.length, 1);
     assert.equal(
-      readFileSync(`${full}.confirm-log.jsonl`, "utf8").trim().split("\n").length,
+      readFileSync(join(dirname(full), ledgers[0]), "utf8").trim().split("\n")
+        .length,
       1,
     );
   });

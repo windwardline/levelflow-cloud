@@ -43,7 +43,13 @@ import {
   type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
-import { stableStringify, type SweepManifest } from "./sweepManifest.ts";
+import { randomUUID } from "node:crypto";
+import { dirname, join } from "node:path";
+import {
+  sha256Hex,
+  stableStringify,
+  type SweepManifest,
+} from "./sweepManifest.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 
@@ -160,6 +166,12 @@ export type VariantVerdict = {
   // NULL when the confirm fold is not in play at all — a legacy
   // two-split corpus, or a run without --confirm-final — which is how
   // the printer tells "not requested" from "requested and unevidenced".
+  // These are CONFIRM-DERIVED and, like the data-absence count, ride a
+  // run that may burn nothing (#364 round 44, smaller): they are
+  // coverage counts, never R, and they exist to explain an absence the
+  // reader would otherwise see as a silent column — but a repeatable
+  // run can enumerate the confirm fold's per-variant coverage without
+  // ever reaching the ledger, and that is the ledger's true scope.
   confirmFilled: number | null;
   confirmBaseFilled: number | null;
   fitTotalDelta: number;
@@ -862,6 +874,16 @@ export async function gradeCorpus(
       );
     }
   }
+  // THE CORPUS's identity, not a shard's (#364 round 44, finding 1).
+  // manifestHash covers each shard's OWN symbols array, so every shard
+  // of one measurement hashes differently — keying LA-6's ledger on
+  // shardManifests[0] made a reorder, a subset, or an archived shard-0
+  // look like a corpus never read, and the held-back fold opened again
+  // with no refusal and no acknowledgement. conditionsOf is exactly the
+  // subset that defines one measurement (it is what the loop above
+  // refuses shards over), so it is identical across every shard by
+  // construction and invariant to their order.
+  const corpusId = sha256Hex(firstConditions);
   const held = options.includeHoldout
     ? new Set<string>()
     : stratifiedHoldout([...unionSymbols], (symbol) => getAssetType(symbol));
@@ -921,7 +943,7 @@ export async function gradeCorpus(
 
   // Confirm-fold discipline by mechanism (LA-6): without confirmFinal the
   // confirm fold is never computed; with it, the read is appended to a
-  // burned-log keyed by the corpus's manifest hash, and a corpus whose
+  // burned-log keyed by the CORPUS's identity, and a corpus whose
   // log already holds a read refuses without explicit acknowledgement.
   // The CHECK runs here, before any confirm figure can be computed; the
   // APPEND runs after the verdicts exist (#364 round 41, finding 1) —
@@ -937,19 +959,59 @@ export async function gradeCorpus(
   // reads, no refusal). LA-6 disciplines the analyst's re-reads, not
   // concurrency, and one-shot confirm reads are not a parallel
   // workload — do not assume the old adjacency.
-  const confirmLogPath = options.confirmLogPath ??
-    `${paths[0]}.confirm-log.jsonl`;
+  // The ledger's LOCATION is subset- and order-invariant (#364 round
+  // 44, finding 1): one file per distinct shard DIRECTORY, named for
+  // the corpus identity. Writing to every directory is what makes any
+  // later subset find it — a single derived path (say, the first
+  // shard's directory) is missed by exactly the subset that drops that
+  // shard, which is the case this finding is about. In the normal
+  // layout every shard shares one directory, so this is one file; the
+  // identity in the name keeps two measurements in one directory
+  // apart. One read writes one entry per directory under a shared
+  // readId, so a later count is of READS, not of copies.
+  const shardDirs = [...new Set(paths.map((path) => dirname(path)))].sort();
+  const ledgerName = `confirm-log-${corpusId.slice(0, 12)}.jsonl`;
+  const ledgerPaths = options.confirmLogPath
+    ? [options.confirmLogPath]
+    : shardDirs.map((dir) => join(dir, ledgerName));
   if (options.confirmFinal) {
-    if (existsSync(confirmLogPath)) {
-      const prior = readFileSync(confirmLogPath, "utf8").trim().split("\n")
-        .filter(Boolean)
-        .map((line) => JSON.parse(line) as { corpusHash: string })
-        .filter((entry) => entry.corpusHash === manifest.manifestHash);
-      if (prior.length > 0 && !options.acknowledgePriorReads) {
-        throw new Error(
-          `confirm fold for corpus ${manifest.manifestHash.slice(0, 12)} has already been read ${prior.length} time(s) — pass acknowledgePriorReads to read again; every read is logged`,
-        );
+    // Prior reads are sought in those ledgers AND in the per-shard
+    // files earlier versions wrote, matching the corpus identity OR any
+    // shard's own manifestHash — the key those versions used. A ledger
+    // written before this fix must still refuse: widening the search is
+    // strictly conservative, and losing a recorded read is the one
+    // outcome this discipline cannot afford.
+    const priorLogPaths = [
+      ...ledgerPaths,
+      ...(options.confirmLogPath
+        ? []
+        : paths.map((path) => `${path}.confirm-log.jsonl`)),
+    ].filter((path, index, all) => all.indexOf(path) === index);
+    const shardHashes = new Set(shardManifests.map((m) => m.manifestHash));
+    const priorReadIds = new Set<string>();
+    let priorLegacy = 0;
+    for (const logPath of priorLogPaths) {
+      if (!existsSync(logPath)) continue;
+      for (const line of readFileSync(logPath, "utf8").trim().split("\n")) {
+        if (!line) continue;
+        const entry = JSON.parse(line) as {
+          corpusHash: string;
+          readId?: string;
+        };
+        if (
+          entry.corpusHash !== corpusId && !shardHashes.has(entry.corpusHash)
+        ) {
+          continue;
+        }
+        if (entry.readId) priorReadIds.add(entry.readId);
+        else priorLegacy += 1;
       }
+    }
+    const prior = priorReadIds.size + priorLegacy;
+    if (prior > 0 && !options.acknowledgePriorReads) {
+      throw new Error(
+        `confirm fold for corpus ${corpusId.slice(0, 12)} has already been read ${prior} time(s) — pass acknowledgePriorReads to read again; every read is logged`,
+      );
     }
   }
   // A folded corpus names its own partition; a legacy two-split corpus
@@ -1007,13 +1069,22 @@ export async function gradeCorpus(
       )
     );
   if (confirmRead) {
-    appendFileSync(
-      confirmLogPath,
-      JSON.stringify({
-        corpusHash: manifest.manifestHash,
-        readAt: new Date().toISOString(),
-      }) + "\n",
-    );
+    const entry = JSON.stringify({
+      corpusHash: corpusId,
+      readAt: new Date().toISOString(),
+      // One id per READ, repeated in each directory's ledger, so a
+      // later count counts reads rather than copies (#364 round 44,
+      // finding 1).
+      readId: randomUUID(),
+      // The shard hashes this read actually covered, so the ledger
+      // records the population beside the identity — a subset read and
+      // a full read are both refusals next time, but they are
+      // distinguishable in the record.
+      shardHashes: shardManifests.map((m) => m.manifestHash),
+    }) + "\n";
+    for (const ledgerPath of ledgerPaths) {
+      appendFileSync(ledgerPath, entry);
+    }
   }
   return {
     confirmRead,
@@ -1123,6 +1194,9 @@ async function main(): Promise<void> {
     permutations,
     seed,
   });
+  const anyAccepted = [...verdicts.values()].some((byVariant) =>
+    [...byVariant.values()].some((verdict) => verdict.accepted)
+  );
   // The holdout clause reports what THIS read excluded (#364 round 29,
   // finding 1): the old form printed shardManifests[0]'s STAMPED list —
   // a different definition than the read-time stratified set gradeCorpus
@@ -1138,7 +1212,18 @@ async function main(): Promise<void> {
           // over a burned-log that was never written.
           ? confirmRead
             ? ` confirm=${foldNames.confirm} (read once, accepted variants only)`
-            : ` confirm=${foldNames.confirm} NOT READ (no accepted variant carried filled outcomes on both sides — nothing burned)`
+            // #364 round 44, finding 3: confirmRead is false in two
+            // structurally different states with opposite next moves —
+            // nothing accepted (the 4c gate produced no pick, and the
+            // confirm fold is irrelevant) versus accepted with no
+            // two-sided confirm evidence (the pick is real and this fold
+            // cannot judge it). The single message stated the second for
+            // both; it is vacuously true of the first, which is why it
+            // read as fine. Routed by cause, the standard rounds 34, 35
+            // and 41 set.
+            : anyAccepted
+            ? ` confirm=${foldNames.confirm} NOT READ (accepted variants carried no filled outcomes on both sides of the confirm fold — nothing burned)`
+            : ` confirm=${foldNames.confirm} NOT READ (no variant was accepted, so there was no pick to confirm — nothing burned)`
           : " (legacy two-split corpus)"
       }` +
       `${

@@ -634,7 +634,27 @@ layer.
   fold, and `reason` became required so the printer's causeless
   fallback could not exist. `main()` now has executed coverage —
   driving the real binary over a folded corpus in three states — so
-  the printer is no longer the uncovered half. One denominator note beside the unfilled
+  the printer is no longer the uncovered half. Round 44 took the same
+  discipline outward, to the ledger's identity and to LA-6's
+  consumers: the burned log is keyed on the CORPUS (a hash of
+  `conditionsOf`, identical across shards and invariant to their
+  order) rather than shard 0's `manifestHash`, which covers that
+  shard's own symbols and therefore differs for every shard — so a
+  reorder, a subset, or an archived shard-0 had looked like a corpus
+  never read and opened the held-back fold again silently; one entry
+  per shard directory under a shared `readId` makes any later subset
+  find it while counting reads rather than copies, and the prior-read
+  scan still matches the retired per-shard key so a ledger written
+  before the fix keeps refusing. `confirm-4d` — the script whose
+  header calls itself the one authorized read — now consumes
+  `confirmRead` instead of stamping `readAt` unconditionally, and
+  splits its `unreadable` counter into the three causes round 43 had
+  silently merged (not accepted, accepted-but-unevidenced, no
+  verdict). The `NOT READ` folds line routes its two states apart, and
+  both 4d scripts moved off an INVERTED argv walker — a list of the
+  flags taking no value, with every other `--flag` eating the next
+  token — onto the same positive declaration, now inside the
+  bidirectional scan. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

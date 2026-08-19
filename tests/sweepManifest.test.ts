@@ -1031,6 +1031,15 @@ describe("the driver writes the manifest beside the emit", () => {
         "scripts/account-type-report.ts",
         "scripts/sweep-analysis.ts",
         "scripts/grid-totalr.ts",
+        // #364 round 44, smaller: the two 4d scripts carried an
+        // INVERTED walker — a list of the flags taking no value, with
+        // every other --flag consuming the next token — so a typo'd or
+        // newly-added boolean flag ate the shard path after it and the
+        // run graded (and under confirm-4d, BURNED) a corpus one shard
+        // short. They now carry the same positive declaration, inside
+        // the same bidirectional law.
+        "scripts/confirm-4d.ts",
+        "scripts/derive-4d.ts",
       ]
     ) {
       const source = readFileSync(file, "utf8");
