@@ -13,6 +13,7 @@ import {
   type SweepConditions,
   treasuryCurveFacts,
   type TreasuryCurveFacts,
+  treasuryGapTouching,
 } from "../scripts/sweepManifest.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
@@ -277,6 +278,22 @@ describe("treasuryCurveFacts — the curve's own continuity record", () => {
       lastTime: null,
     });
   });
+
+  it("treasuryGapTouching sees the hole that STRADDLES a span's edge — the shape filtering rows could not (#364 round 15, finding 1)", () => {
+    // Rows end at day 100 and resume at day 150; a span starting at day
+    // 133 (the --days-60-plus-lead shape) is touched by that gap even
+    // though the gap's left anchor sits outside the span — filtering
+    // rows to the span first deleted that anchor and measured ~nothing.
+    const gaps = [{ endMs: 150 * day, startMs: 100 * day }];
+    assert.deepEqual(
+      treasuryGapTouching(gaps, 133 * day, 200 * day),
+      gaps[0],
+    );
+    // A span the gap never reaches stays untouched, and no gaps at all
+    // is never a touch.
+    assert.equal(treasuryGapTouching(gaps, 160 * day, 200 * day), undefined);
+    assert.equal(treasuryGapTouching(undefined, 0, 200 * day), undefined);
+  });
 });
 
 describe("the driver writes the manifest beside the emit", () => {
@@ -330,15 +347,27 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
     assert.match(script, /treasuryCurve: treasuryCurveFacts\(treasuryRates\),/);
-    // #364 round 13, finding 1 (scoped round 14): the STORED curve's
-    // continuity is asserted at pre-flight from its facts — the chunk
-    // guard fires only on the run that fetches and only on zero rows,
-    // and the rolling store never revisits a pinned interior — bounded
-    // to the requested --days window so a hole outside it cannot block
-    // a run whose decisions never read across it.
+    // #364 round 13, finding 1 (scoped rounds 14-15): the STORED
+    // curve's continuity is asserted at pre-flight from its facts —
+    // the chunk guard fires only on the run that fetches and only on
+    // zero rows, and the rolling store never revisits a pinned
+    // interior — via the SAME overlap predicate as the door, over
+    // whole-store gap positions (filtering rows first deletes the left
+    // anchor of a hole straddling the window's edge), against the
+    // requested --days window.
     assert.match(
       script,
-      /-day interior hole inside the requested \$\{args\.days\}-day window/,
+      /\) touching the requested \$\{args\.days\}-day window/,
+    );
+    assert.match(
+      script,
+      /const holeTouching = treasuryGapTouching\(\s*\n?\s*treasuryCurveFacts\(treasuryRates\)\.gapsOverWeekMs,/,
+      "the driver measures gaps over the WHOLE store and tests overlap",
+    );
+    assert.match(
+      readFileSync("scripts/sweepStats.ts", "utf8"),
+      /treasuryGapTouching\(/,
+      "the door runs the same predicate — one mechanism for one law",
     );
     // #364 round 13, finding 3: fetchFull requests from the SHARED
     // constant the door's leading-edge tolerance derives from.
@@ -494,10 +523,13 @@ describe("the driver writes the manifest beside the emit", () => {
         "",
       ].join("\n"),
     );
+    // --no-install fails fast instead of reaching the network if the
+    // local tsx bin is missing; the timeout turns a resolution stall
+    // into a failure rather than a suite hang (#364 round 15, smaller).
     const out = execFileSync(
       "npx",
-      ["tsx", "scripts/starvation-audit.ts", log, "--report"],
-      { encoding: "utf8" },
+      ["--no-install", "tsx", "scripts/starvation-audit.ts", log, "--report"],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
     assert.match(out, /EURUSD\s+100\s+50\s+40\s+5\s+10%\s+STARVED/);
   });

@@ -33,6 +33,7 @@ import {
   type SweepConditions,
   type SweepManifest,
   TREASURY_FETCH_START_MS,
+  treasuryGapTouching,
 } from "./sweepManifest.ts";
 
 export type SweepEmitRow = {
@@ -449,10 +450,15 @@ function verifyManifest(emitPath: string): SweepManifest {
       gapsOverWeekMs?: Array<{ endMs: number; startMs: number }>;
     }).gapsOverWeekMs;
     if (gapsOverWeekMs && gapsOverWeekMs.length > 0) {
+      // Same predicate as the driver pre-flight (#364 round 15) — one
+      // mechanism for one law; only the span differs (exact corpus
+      // bounds here, the requested window there).
       const touching = Number.isFinite(corpusStartMs) &&
           Number.isFinite(corpusEndMs)
-        ? gapsOverWeekMs.find((gap) =>
-          gap.endMs >= corpusStartMs - weekMs && gap.startMs <= corpusEndMs
+        ? treasuryGapTouching(
+          gapsOverWeekMs,
+          corpusStartMs - weekMs,
+          corpusEndMs,
         )
         : gapsOverWeekMs[0];
       if (touching) {

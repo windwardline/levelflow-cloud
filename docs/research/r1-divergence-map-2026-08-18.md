@@ -512,7 +512,11 @@ layer.
   positionless; positions ride outside conditionsOf identity), the
   door refuses only gaps touching the corpus span (absolute fallback
   for manifests predating the fact), the driver pre-flight scopes to
-  the requested `--days` window plus a week of visibility lead, and
+  the requested `--days` window plus a week of visibility lead —
+  round 15: via the SAME shared overlap predicate as the door
+  (`treasuryGapTouching`), over whole-store gap positions, because
+  filtering rows to the window first deleted the left anchor of
+  exactly the hole that straddles the window's edge — and
   both remedies distinguish the hole a refetch cannot clear — the
   fetch counts parser-refused provider rows, which are deterministic
   on refetch, and names the count beside any hole refusal. The
@@ -614,13 +618,20 @@ layer.
   otherwise hole the store permanently — the visibility pointer stalls
   inside a hole and scores months-old rows as fresh, worse than the
   zero the claim abolished), and the door refuses missing facts,
-  interior holes over 7 days, and a curve ending more than 7 days
-  before the corpus does. The LEADING edge is deliberately unasserted:
-  the 2013 floor means early decisions score stance "unavailable" —
-  the honest live-outage semantics. The density door, by contrast,
-  binds deliberate historical reads too (round 1 finding 5, executed
-  round 2): the override accepts superseded measurement terms, never
-  poisoned data.
+  week-plus interior holes where they TOUCH the corpus span (rounds
+  14–15: gap positions are manifested, and one shared overlap
+  predicate serves the door and the driver pre-flight), a curve ending
+  more than 7 days before the corpus does, and — rounds 3 and 13 — a
+  LEADING edge short of the corpus: a curve whose first row is after
+  both `TREASURY_FETCH_START_MS + 7d` and the corpus start is a
+  shallow rebuild and refuses (an earlier revision of this bullet
+  called the leading edge "deliberately unasserted"; that was the
+  pre-round-3 design and stood here stale through round 15).
+  Decisions before a floor-deep curve's first row still score stance
+  "unavailable" — the honest live-outage semantics survives for the
+  admissible shapes. The density door, by contrast, binds deliberate
+  historical reads too (round 1 finding 5, executed round 2): the
+  override accepts superseded measurement terms, never poisoned data.
 - **Emit symmetry**: every corpus row carries `resolutionIntervalMs`
   (behavioral tier pin now executed: 15-minute physics stamps 900000 on
   every row, an admitted 5-minute stream stamps 300000), plus

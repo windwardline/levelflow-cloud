@@ -196,6 +196,26 @@ export type TreasuryCurveFacts = {
   lastTime: number | null;
 };
 
+// #364 round 15: ONE overlap predicate for the interior-hole law,
+// called by the driver pre-flight (span = the requested --days window)
+// and the corpus door (span = the corpus bounds) — the round-13
+// shared-constant discipline applied to the mechanism, so the next
+// scoping change lands in both places by construction. A gap touches a
+// span when any part of it can stall the visibility pointer for a
+// decision inside the span; gaps must come from the WHOLE store's
+// facts — measuring gaps over pre-filtered rows deletes the left
+// anchor of exactly the hole that straddles the span's edge (round 15,
+// finding 1).
+export function treasuryGapTouching(
+  gaps: Array<{ endMs: number; startMs: number }> | undefined,
+  spanStartMs: number,
+  spanEndMs: number,
+): { endMs: number; startMs: number } | undefined {
+  return gaps?.find((gap) =>
+    gap.endMs >= spanStartMs && gap.startMs <= spanEndMs
+  );
+}
+
 export function treasuryCurveFacts(
   rows: Array<{ dateMs: number }>,
 ): TreasuryCurveFacts {

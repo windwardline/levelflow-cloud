@@ -40,6 +40,7 @@ import {
   type SweepConditions,
   TREASURY_FETCH_START_MS,
   treasuryCurveFacts,
+  treasuryGapTouching,
 } from "./sweepManifest.ts";
 import {
   type DatedTreasuryRow,
@@ -257,23 +258,39 @@ async function main() {
           `against stale rows as if fresh; refusing to sweep`,
       );
     }
-    // Scoped to the REQUESTED window (#364 round 14, finding 2): the
-    // store always spans the full fetch depth while a corpus spans
-    // --days, so a hole years outside the requested window must not
-    // block a run whose decisions never read across it. The door's
-    // check is exact against the corpus bounds via the manifested gap
-    // positions; this pre-flight bound is the request-shaped
-    // approximation, extended a week left for the visibility lead.
+    // Scoped by OVERLAP against the requested window (#364 rounds
+    // 14-15): the store always spans the full fetch depth while a
+    // corpus spans --days, so a hole outside the requested window must
+    // not block the run — but the gaps are measured over the WHOLE
+    // store first, because filtering rows to the window deletes the
+    // gap's left anchor, and every hole reaching into the window
+    // anchors outside it (round 15, finding 1: the filtered version
+    // could not see exactly the straddling hole the +7-day visibility
+    // lead exists for). Deliberately conservative toward refusal on
+    // the corpus side: the request window bounds every possible
+    // corpus, so this can only be stricter than the door's exact
+    // corpus-span check, never blinder — and a week-plus hole inside
+    // the requested window is store damage to repair regardless of
+    // where this corpus starts. Same predicate as the door; the two
+    // cannot drift.
     const windowStartMs = Date.now() - (args.days + 7) * 86_400_000;
-    const windowFacts = treasuryCurveFacts(
-      treasuryRates.filter((row) => row.dateMs >= windowStartMs),
+    const holeTouching = treasuryGapTouching(
+      treasuryCurveFacts(treasuryRates).gapsOverWeekMs,
+      windowStartMs,
+      Date.now(),
     );
-    if (windowFacts.largestGapMs > 7 * 86_400_000) {
+    if (holeTouching) {
       throw new Error(
         `Treasury curve has a ${
-          Math.round(windowFacts.largestGapMs / 86_400_000)
-        }-day interior hole inside the requested ${args.days}-day window ` +
-          `— the visibility pointer would stall inside it, scoring ` +
+          Math.round(
+            (holeTouching.endMs - holeTouching.startMs) / 86_400_000,
+          )
+        }-day interior hole (${
+          isoDate(new Date(holeTouching.startMs))
+        }..${
+          isoDate(new Date(holeTouching.endMs))
+        }) touching the requested ${args.days}-day window — the ` +
+          `visibility pointer would stall inside it, scoring ` +
           `months-stale rows as fresh; delete the treasury-rates store, ` +
           `refetch full history, and re-run (the corpus door would ` +
           `refuse this run's output; refusing before simulation ` +
