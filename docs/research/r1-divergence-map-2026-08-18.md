@@ -622,7 +622,19 @@ layer.
   rather than a prefix match on the reason's wording, which had left
   round 39's bare-"fails" defect one rewording away with every test
   green, since `main()` has no executed coverage; a source pin now
-  refuses any prefix discriminator. One denominator note beside the unfilled
+  refuses any prefix discriminator. Round 43 closed the criterion's
+  other end and the report that disagreed with it: the confirm delta
+  is NULL unless both sides carry filled confirm-fold outcomes (an
+  accepted variant that never traded the window had yielded a
+  printable `0 − 0 = 0`, or a `0 − X` reading as a loss it never
+  took — and since round 42 that non-null number is what burns the
+  read), the figure states both denominators on its row, the folds
+  line claims a read only when the ledger recorded one, the
+  data-absence count states that its graded folds include the confirm
+  fold, and `reason` became required so the printer's causeless
+  fallback could not exist. `main()` now has executed coverage —
+  driving the real binary over a folded corpus in three states — so
+  the printer is no longer the uncovered half. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

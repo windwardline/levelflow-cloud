@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1091,12 +1092,25 @@ describe("gate v2 — the statistics become the rule (round-8 batch 1)", () => {
 });
 
 describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
-  const foldedCorpus = (): string => {
+  // omitConfirmFor drops a variant's confirm-fold rows entirely, which is
+  // what addRowToCube produces for a variant that generated no ACCEPTED
+  // setups in the confirm window (#364 round 43, finding 1) — acceptance
+  // is decided on fit+select alone, so nothing about clearing the gate
+  // implies the confirm fold covered the variant at all.
+  const foldedCorpus = (
+    options: { omitConfirmFor?: string[] } = {},
+  ): string => {
+    const omit = new Set(options.omitConfirmFor ?? []);
     const rows: SweepEmitRow[] = [];
     for (let day = 0; day < 16; day += 1) {
       for (const [split, offset] of [["fit", 0], ["select", 40], ["confirm", 80]] as const) {
-        rows.push({ ...outcomeRow("baseline", day + offset, 0.1), split });
-        rows.push({ ...outcomeRow("good", day + offset, 0.4), split });
+        for (const variant of ["baseline", "good"] as const) {
+          if (split === "confirm" && omit.has(variant)) continue;
+          rows.push({
+            ...outcomeRow(variant, day + offset, variant === "good" ? 0.4 : 0.1),
+            split,
+          });
+        }
       }
     }
     const dir = mkdtempSync(join(tmpdir(), "gate-v2-"));
@@ -1209,7 +1223,124 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const verdict = graded.verdicts.get("forex")!.get("baseline")!;
     assert.equal(verdict.accepted, false);
     assert.equal(verdict.confirmTotalDelta, null);
+    assert.equal(graded.confirmRead, false);
     assert.equal(existsSync(logPath), false);
+  });
+
+  // #364 round 43, finding 1: a confirm delta needs evidence on BOTH
+  // sides. totalOf is `rSum ?? 0` and mergeInto skips absent cells, so
+  // an accepted variant that produced no filled confirm-fold outcomes
+  // yielded a NON-NULL number — which since round 42 is exactly what
+  // burns the corpus's one acknowledged read.
+  it("gives an accepted variant with no confirm-fold evidence null, never a zero — and burns nothing", async () => {
+    // One side missing: the variant never traded the confirm window
+    // while the baseline did. Unfixed this reads 0 − 1.6 = −1.6, which
+    // prints as the variant LOSING 1.6R when it simply did not trade.
+    const oneSided = foldedCorpus({ omitConfirmFor: ["good"] });
+    const oneSidedLog = `${oneSided}.confirm-log.jsonl`;
+    const first = await gradeCorpus(oneSided, {
+      confirmFinal: true,
+      confirmLogPath: oneSidedLog,
+      permutations: 100,
+      seed: 4,
+    });
+    const good = first.verdicts.get("forex")!.get("good")!;
+    assert.equal(good.accepted, true);
+    assert.equal(good.confirmFilled, 0);
+    assert.ok(
+      (good.confirmBaseFilled ?? 0) > 0,
+      "the baseline side must carry evidence for this to be the one-sided case",
+    );
+    assert.equal(good.confirmTotalDelta, null);
+    assert.equal(first.confirmRead, false);
+    assert.equal(existsSync(oneSidedLog), false);
+
+    // Neither side: the 0 − 0 = 0 shape, a figure over an absent
+    // denominator that printed identically to a real net zero.
+    const neither = foldedCorpus({ omitConfirmFor: ["good", "baseline"] });
+    const neitherLog = `${neither}.confirm-log.jsonl`;
+    const second = await gradeCorpus(neither, {
+      confirmFinal: true,
+      confirmLogPath: neitherLog,
+      permutations: 100,
+      seed: 4,
+    });
+    const alsoGood = second.verdicts.get("forex")!.get("good")!;
+    assert.equal(alsoGood.accepted, true);
+    assert.equal(alsoGood.confirmFilled, 0);
+    assert.equal(alsoGood.confirmBaseFilled, 0);
+    assert.equal(alsoGood.confirmTotalDelta, null);
+    assert.equal(second.confirmRead, false);
+    assert.equal(existsSync(neitherLog), false);
+
+    // The real read still states its two denominators.
+    const full = foldedCorpus();
+    const fullLog = `${full}.confirm-log.jsonl`;
+    const third = await gradeCorpus(full, {
+      confirmFinal: true,
+      confirmLogPath: fullLog,
+      permutations: 100,
+      seed: 4,
+    });
+    const read = third.verdicts.get("forex")!.get("good")!;
+    assert.notEqual(read.confirmTotalDelta, null);
+    assert.equal(read.confirmFilled, 16);
+    assert.equal(read.confirmBaseFilled, 16);
+    assert.equal(third.confirmRead, true);
+    assert.equal(readFileSync(fullLog, "utf8").trim().split("\n").length, 1);
+  });
+
+  // #364 round 43, finding 2: the printed report and the ledger must
+  // give the same answer to "was the confirm fold read?". main() had NO
+  // executed coverage at all — the round-39/41/42 tests assert the
+  // verdict fields that groupVerdicts produces, which is the half that
+  // keeps passing while the printer drifts — so this drives the real
+  // binary end to end.
+  it("the printed report claims a read only when the ledger recorded one — executed through main()", () => {
+    const run = (emitPath: string, extra: string[]): string =>
+      execFileSync(
+        "npx",
+        [
+          "--no-install",
+          "tsx",
+          "scripts/grid-totalr.ts",
+          emitPath,
+          "--confirm-final",
+          ...extra,
+        ],
+        { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+      );
+
+    // Zero-accept: grading against "good" leaves "baseline" failing
+    // both folds, so no confirm figure is produced.
+    const zeroAccept = foldedCorpus();
+    const zeroLog = `${zeroAccept}.confirm-log.jsonl`;
+    const zeroOut = run(zeroAccept, ["--baseline", "good"]);
+    assert.match(zeroOut, /confirm=confirm NOT READ \(no accepted variant/);
+    assert.doesNotMatch(zeroOut, /read once/);
+    assert.equal(existsSync(zeroLog), false);
+
+    // An accepted variant the confirm fold never covered says so on its
+    // own row rather than printing a silent confirm column.
+    const oneSided = foldedCorpus({ omitConfirmFor: ["good"] });
+    const oneSidedOut = run(oneSided, []);
+    assert.match(
+      oneSidedOut,
+      /confirm NOT READ — no filled outcomes on both sides \(variant 0, baseline 16\)/,
+    );
+    assert.match(oneSidedOut, /confirm=confirm NOT READ/);
+    assert.equal(existsSync(`${oneSided}.confirm-log.jsonl`), false);
+
+    // The real read: the statement, the per-row figure with both
+    // denominators, and the ledger all agree.
+    const full = foldedCorpus();
+    const fullOut = run(full, []);
+    assert.match(fullOut, /confirm=confirm \(read once, accepted variants only\)/);
+    assert.match(fullOut, /confirm ΔR 4\.8 over 16\/16 filled/);
+    assert.equal(
+      readFileSync(`${full}.confirm-log.jsonl`, "utf8").trim().split("\n").length,
+      1,
+    );
   });
 });
 

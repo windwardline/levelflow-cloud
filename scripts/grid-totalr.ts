@@ -110,7 +110,12 @@ function addRowToCube(
 export type VariantVerdict = {
   // One word for the row's disposition, with THIN carrying its count —
   // stated on the verdict rather than reconstructed by every printer.
-  reason?: string;
+  // REQUIRED (#364 round 43, smaller): optional, it backed a
+  // `?? "NO VERDICT"` fallback in the printer — the one path by which a
+  // future noVerdict without a reason prints the causeless label rounds
+  // 39 and 41 spent two rounds eliminating. Required makes the omission
+  // a compile error, the same move that made noVerdict required.
+  reason: string;
   // TRUE when the gate could not resolve this variant at all — an
   // unresolvable pairing or an absent group baseline — as a FIELD, not
   // a message prefix (#364 round 42, finding 2): the printer had
@@ -137,8 +142,26 @@ export type VariantVerdict = {
   // its own sign.
   droppedR: number | null;
   // The confirm fold is read ONLY under confirmFinal, appended to the
-  // burned-log — discipline by mechanism, not promise (LA-6).
+  // burned-log — discipline by mechanism, not promise (LA-6). NULL
+  // unless the delta has evidence on BOTH sides (#364 round 43,
+  // finding 1): totalOf is `rSum ?? 0` and mergeInto skips absent
+  // cells, so an accepted variant that produced no filled confirm-fold
+  // outcomes yielded 0 − 0 = 0 — a printable figure over an absent
+  // denominator, and since round 42 the very thing that burns the
+  // corpus's one read. One side missing is the round-37 shape at this
+  // grain besides: a "delta" that is really one side's own total. The
+  // file's established disposition for a quantity with no evidence is
+  // null with the cause named, so that is what this is.
   confirmTotalDelta: number | null;
+  // The confirm delta's two denominators, so the figure states its own
+  // sample the way the E8 rollup's clustered s.e. does (#364 round 43,
+  // finding 1: `0.0 over nothing` and `0.0 net over 400 outcomes` had
+  // printed identically, in the one number LA-6 exists to ration).
+  // NULL when the confirm fold is not in play at all — a legacy
+  // two-split corpus, or a run without --confirm-final — which is how
+  // the printer tells "not requested" from "requested and unevidenced".
+  confirmFilled: number | null;
+  confirmBaseFilled: number | null;
   fitTotalDelta: number;
   // The ENFORCED statistic (LA-3/LA-4): family-wise max-T sign-flip
   // permutation over shared-day deltas, one flip pattern per iteration
@@ -650,9 +673,25 @@ function groupVerdicts(
           : "fails",
         compositionR: compositionByVariant.get(variant) ?? null,
         droppedR: droppedByVariant.get(variant) ?? null,
-        confirmTotalDelta: accepted && foldNames.confirm
+        // #364 round 43, finding 1: a delta needs evidence on BOTH
+        // sides. Without the filled guards this read 0 − 0 = 0 for an
+        // accepted variant that produced no confirm-fold outcomes
+        // (addRowToCube drops unaccepted rows, so such a variant has no
+        // cell at all, and one whose confirm setups all expired
+        // unfilled has rSum 0 by the same path) — and acceptance is
+        // decided on fit+select alone, so clearing the gate implies
+        // nothing about confirm-fold presence.
+        confirmTotalDelta: accepted && foldNames.confirm &&
+            aggregate.variant.confirm.filled > 0 &&
+            aggregate.base.confirm.filled > 0
           ? totalOf(aggregate.variant.confirm) -
             totalOf(aggregate.base.confirm)
+          : null,
+        confirmFilled: foldNames.confirm
+          ? aggregate.variant.confirm.filled
+          : null,
+        confirmBaseFilled: foldNames.confirm
+          ? aggregate.base.confirm.filled
           : null,
         fitTotalDelta,
         pairedP,
@@ -738,6 +777,14 @@ export async function gradeCorpus(
   heldOutMarkets: number;
   manifest: SweepManifest;
   verdicts: Map<string, Map<string, VariantVerdict>>;
+  // Whether the confirm fold was actually READ — the same boolean the
+  // burned-log keys on, returned so the report cannot claim a read the
+  // ledger did not record (#364 round 43, finding 2: the folds line
+  // still announced "read once" off the fold merely existing, the gate
+  // round 42 retired one function away, so a zero-accept run printed
+  // "read once", burned nothing, and pointed the next run at
+  // --acknowledge-prior-reads for a read that never happened).
+  confirmRead: boolean;
 }> {
   const paths = Array.isArray(emitPathOrPaths)
     ? emitPathOrPaths
@@ -952,7 +999,7 @@ export async function gradeCorpus(
   // a legacy two-split corpus; rounds 38–40 tightened acceptance three
   // times, so the zero-accept confirm run is a transition this change
   // set itself creates.
-  const confirmRead = options.confirmFinal &&
+  const confirmRead = options.confirmFinal === true &&
     foldNames.confirm !== undefined &&
     [...verdicts.values()].some((byVariant) =>
       [...byVariant.values()].some(
@@ -969,6 +1016,7 @@ export async function gradeCorpus(
     );
   }
   return {
+    confirmRead,
     dataAbsentRows,
     foldNames,
     heldOutMarkets: held.size,
@@ -1060,7 +1108,14 @@ async function main(): Promise<void> {
     );
     process.exit(1);
   }
-  const { dataAbsentRows, foldNames, heldOutMarkets, manifest, verdicts } = await gradeCorpus(paths, {
+  const {
+    confirmRead,
+    dataAbsentRows,
+    foldNames,
+    heldOutMarkets,
+    manifest,
+    verdicts,
+  } = await gradeCorpus(paths, {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant,
     confirmFinal: args.includes("--confirm-final"),
@@ -1075,7 +1130,17 @@ async function main(): Promise<void> {
   // --include-holdout, where nothing is excluded at all.
   console.log(
     `folds: fit=${foldNames.fit} select=${foldNames.select}` +
-      `${foldNames.confirm ? ` confirm=${foldNames.confirm} (read once, accepted variants only)` : " (legacy two-split corpus)"}` +
+      `${
+        foldNames.confirm
+          // #364 round 43, finding 2: the STATEMENT keys on the same
+          // boolean the ledger does. Announcing the read off the fold's
+          // mere existence left a zero-accept run claiming "read once"
+          // over a burned-log that was never written.
+          ? confirmRead
+            ? ` confirm=${foldNames.confirm} (read once, accepted variants only)`
+            : ` confirm=${foldNames.confirm} NOT READ (no accepted variant carried filled outcomes on both sides — nothing burned)`
+          : " (legacy two-split corpus)"
+      }` +
       `${
         args.includes("--include-holdout")
           ? " · holdout INCLUDED by --include-holdout (none excluded)"
@@ -1102,6 +1167,12 @@ async function main(): Promise<void> {
     console.log(
       `(data-absence rows held out of every fold denominator: ${dataAbsentRows}` +
         ` — all variants, graded folds only, accepted rows; ` +
+        // The graded folds INCLUDE the confirm fold under
+        // --confirm-final (#364 round 43, finding 2), so on a run that
+        // burned nothing this count is still partly confirm-derived —
+        // stated, since it is the second place "was the confirm fold
+        // read?" gets an answer.
+        `${foldNames.confirm ? "INCLUDES the confirm fold; " : ""}` +
         `${
           args.includes("--include-holdout")
             ? "holdout INCLUDED by --include-holdout"
@@ -1126,13 +1197,24 @@ async function main(): Promise<void> {
       const label = verdict.thin
         ? `THIN (${verdict.selectFilled} filled) — refuse`
         : verdict.noVerdict
-        ? verdict.reason ?? "NO VERDICT"
+        ? verdict.reason
         : verdict.accepted
         ? "ACCEPT — fit+select, paired p, expectancy holds"
         : "fails";
-      const confirmNote = verdict.confirmTotalDelta === null
-        ? ""
-        : ` · confirm ΔR ${verdict.confirmTotalDelta.toFixed(1)}`;
+      // The confirm figure states its own two denominators, and an
+      // accepted variant whose confirm read found no evidence says so
+      // rather than printing nothing (#364 round 43, finding 1) — the
+      // reader would otherwise see an accepted row with a silent
+      // confirm column and no way to tell it from a variant the fold
+      // never covered.
+      const confirmNote = verdict.confirmTotalDelta !== null
+        ? ` · confirm ΔR ${verdict.confirmTotalDelta.toFixed(1)} over ` +
+          `${verdict.confirmFilled}/${verdict.confirmBaseFilled} filled`
+        : verdict.accepted && verdict.confirmFilled !== null
+        ? ` · confirm NOT READ — no filled outcomes on both sides ` +
+          `(variant ${verdict.confirmFilled}, baseline ` +
+          `${verdict.confirmBaseFilled})`
+        : "";
       console.log(
         `${variant.padEnd(28)}${verdict.fitTotalDelta.toFixed(1).padStart(10)}${
           verdict.selectTotalDelta.toFixed(1).padStart(9)
