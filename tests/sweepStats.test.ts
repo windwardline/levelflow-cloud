@@ -17,6 +17,7 @@ import {
   clusteredStandardError,
   emptyStats,
   expectancy,
+  fiveMinuteFloorFor,
   rStandardError,
   rStdDev,
   type SweepEmitRow,
@@ -777,36 +778,71 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     );
   });
 
-  it("refuses two mature stores that share no time window — shape poison on every read path", () => {
+  it("refuses two stores that share no time window — shape poison on every read path, sub-week spans included", () => {
     // A 5-minute series covering a period its own primary never touches
     // cannot be one symbol's feed at two resolutions. Binds like the
     // clock witnesses, before any evidence-block reasoning.
+    const disjoint = (spanDays: number, counts: [number, number]) => ({
+      "15min": {
+        clock: { verdict: "indeterminate" },
+        count: counts[0],
+        firstTime: 0,
+        largestGapMs: 0,
+        lastTime: spanDays * DAY,
+        spanDays,
+      },
+      "5min": {
+        clock: { verdict: "indeterminate" },
+        count: counts[1],
+        firstTime: 20 * DAY,
+        largestGapMs: 0,
+        lastTime: (20 + spanDays) * DAY,
+        spanDays,
+      },
+    });
     assert.throws(
       () =>
         assertManifestedCorpus(writeCorpus({
           conditions: goodConditions,
-          series: {
-            "15min": {
-              clock: { verdict: "indeterminate" },
-              count: 960,
-              firstTime: 0,
-              largestGapMs: 0,
-              lastTime: 10 * DAY,
-              spanDays: 10,
-            },
-            "5min": {
-              clock: { verdict: "indeterminate" },
-              count: 2_880,
-              firstTime: 20 * DAY,
-              largestGapMs: 0,
-              lastTime: 30 * DAY,
-              spanDays: 10,
-            },
-          },
+          series: disjoint(10, [960, 2_880]),
           symbol: "BTCUSD",
         })),
       /BTCUSD 5-minute and 15-minute series share no time window/,
     );
+    // Sub-week spans do not excuse disjointness (#364 round 12,
+    // smaller): the check sits above the sub-week silence, so this
+    // refuses as shape poison rather than falling through to the
+    // missing-evidence refusal and its wrong "re-sweep" diagnosis.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: disjoint(2, [192, 400]),
+          symbol: "BTCUSD",
+        })),
+      /BTCUSD 5-minute and 15-minute series share no time window/,
+    );
+  });
+
+  it("floors bind only deliberate class attributions — the forex fallback confers none (#364 round 12, findings 1 and 3)", () => {
+    // Explicit-list resolutions carry their class floor; WTI resolves
+    // energies, whose measurement IS CLUSD's probe (symbols.ts maps WTI
+    // to CLUSD), while the roster name CLUSD is futures — floorless,
+    // ratio-judged. A roster pair carries the forex floor by currency
+    // shape; a futures-shaped name missing from every class list falls
+    // through getAssetType to forex and must get NO floor — the class
+    // list is incomplete, not the series defective — and a 6-char name
+    // whose halves are not currencies gets none either.
+    assert.equal(fiveMinuteFloorFor("BTCUSD"), 260);
+    assert.equal(fiveMinuteFloorFor("EURUSD"), 150);
+    assert.equal(fiveMinuteFloorFor("XAUUSD"), 140);
+    assert.equal(fiveMinuteFloorFor("WTI"), 140);
+    assert.equal(fiveMinuteFloorFor("ASX"), 34);
+    assert.equal(fiveMinuteFloorFor("CLUSD"), undefined);
+    assert.equal(fiveMinuteFloorFor("ESUSD"), undefined);
+    assert.equal(fiveMinuteFloorFor("XC"), undefined);
+    assert.equal(fiveMinuteFloorFor("ZWUSD"), undefined);
+    assert.equal(fiveMinuteFloorFor("EMDUSD"), undefined);
   });
 
   it("refuses a macro claim without curve evidence, a holed curve, and a stale-tailed curve (#364 round 2, finding 1)", () => {

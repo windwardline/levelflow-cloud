@@ -477,9 +477,16 @@ layer.
   densest excluded symbol is ^GDAXI at 24.5), plus absolute 5-minute
   floors for the structurally deterministic classes: crypto 260
   (BTCUSD 288.0, THETAUSD 287.9), forex 150 (EURUSD 205.6), metals 140
-  (XAUUSD 197.1), energies 140 (the class is BRENT/WTI; CLUSD's 197.7
-  measurement is FUTURES-class — ratio-judged, no floor — a #364
-  round-11 attribution correction), indices 34 (^N225 48.6 …
+  (XAUUSD 197.1), energies 140 (measured directly: the class's only
+  sweepable member is WTI — BRENT is dormant under amendment 32 — and
+  WTI's provider series IS CLUSD, symbols.ts's no-fallback mapping, so
+  CLUSD's 197.7 probe is a measurement of the exact bytes this floor
+  binds. Round 11's "attribution correction" here got that backwards
+  and round 12 corrected it; the roster name CLUSD is itself
+  futures-class and ratio-judged, so the one series answers to two laws
+  under its two roster names, WTI refusing first if it ever degrades
+  below 140), indices 34 (four of SIX members probed — DOW and NSDQ
+  carry the floor on their classmates' evidence; ^N225 48.6 …
   ^GDAXI 73.6). futures/agriculture/livestock carry NO absolute floor:
   the probe found ZRUSD ~36 rows/day with intra-session holes, XC ~8.6
   (prints only where trades occurred) and QG serving no 5-minute data
@@ -493,7 +500,15 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
-  Amended #364 rounds 8–11: the assertion runs in TWO places — the
+  Amended #364 rounds 8–12: the floor table's provenance is stated
+  where the constants live (round 12): each class floor generalises
+  from one or two probed members on a homogeneity assumption the
+  nightly survey tests at depth, and the forex floor binds only
+  shape-verified currency pairs over the roster's eight currencies —
+  getAssetType's forex FALLBACK would otherwise hand the 150 floor to
+  any symbol onboarded into symbolMap before its class list, aborting
+  the pre-flight with exactly the wrong diagnosis. Rounds 8–11: the
+  assertion runs in TWO places — the
   read-time door, and the driver pre-flight on SWEEP runs only, beside
   the clock witnesses, refusing at the first violator before simulation
   spends anything (the refusal names the survey mode). `--warm-only`

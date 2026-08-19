@@ -49,9 +49,12 @@ const symbolMap: Record<string, string> = {
   // primaries — ASX/EWA ~304x, NSDQ/QQQ ~41x, DAX/"DAX" ~560x
   // (docs/research/e8-feed-verification-2026-08-02.md, Open Item 7) — the
   // same "tracks the primary at scale" failure WTI's USO fallback failed
-  // below, so no symbol keeps a stand-in source anymore. noTradeSymbols below
-  // already refuses these three, and the rest of the measured no-trade list,
-  // before any provider fetch.
+  // below, so no symbol keeps a stand-in source anymore. (An earlier
+  // revision said noTradeSymbols refuses these three — that list has been
+  // EMPTY since the 2026-08-07 owner ruling; all six cash indices scan on
+  // their index primaries like every other market, and the no-stand-in
+  // decision stands on its own: no bars means the no-data path, never a
+  // scaled substitute. Stale-comment fix, #364 round 12.)
   NSDQ: "^NDX",
   NIKKEI: "^N225",
   DOW: "^DJI",

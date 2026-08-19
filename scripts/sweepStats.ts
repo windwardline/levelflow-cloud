@@ -510,14 +510,29 @@ function verifyManifest(emitPath: string): SweepManifest {
 // only the 5/15 ratio, and binds the ratio TIGHTER than the cache
 // instrument can afford to.
 //
-// Every constant below is measured, not assumed (FMP 5-minute probe,
-// 2026-08-11..17, rows per CALENDAR day averaged over the week —
-// weekends inside): BTCUSD 288.0 and THETAUSD 287.9 (crypto is
-// full-density across the class), EURUSD 205.6, XAUUSD 197.1,
-// ESUSD/CLUSD 197.7, PAUSD 198.7 (slot-dense despite thin volume),
-// ZCUSX 146.7, ^GDAXI 73.6, ^GSPC 55.7, ^AXJO ~52, ^N225 48.6, LEUSX
-// 40.0 — while ZRUSD ~36 prints with intra-session holes, XC ~8.6 prints
-// only where trades occurred, and QG serves no 5-minute data at all.
+// Every constant below is measured (FMP 5-minute probe, 2026-08-11..17,
+// rows per CALENDAR day averaged over the week — weekends inside):
+// BTCUSD 288.0 and THETAUSD 287.9, EURUSD 205.6, XAUUSD 197.1,
+// ESUSD/CLUSD 197.7 (CLUSD is also the series that SERVES WTI —
+// symbols.ts maps WTI to CLUSD with no fallback — so this one
+// measurement backs both the futures ratio population and the energies
+// floor, whose only sweepable member is WTI; #364 round 12, finding 1),
+// PAUSD 198.7 (slot-dense despite thin volume), ZCUSX 146.7, ^GDAXI
+// 73.6, ^GSPC 55.7, ^AXJO ~52, ^N225 48.6, LEUSX 40.0 — while ZRUSD ~36
+// prints with intra-session holes, XC ~8.6 prints only where trades
+// occurred, and QG serves no 5-minute data at all. Measured does NOT
+// mean every bound member was probed (#364 round 12, finding 2): each
+// class floor generalises from its probed members to classmates on a
+// HOMOGENEITY assumption — crypto 260 binds 33 roster symbols from
+// BTCUSD/THETAUSD (the tightest margin, 90.3% of a perfect 288 grid,
+// asserted across the twenty-five onboarded 2026-08-06); forex 150
+// binds all 28 roster pairs from EURUSD; metals 140 binds
+// XAGUSD/XAUUSD from XAUUSD; indices 34 binds SIX members (ASX, DAX,
+// DOW, NIKKEI, NSDQ, SP — all sweepable since the 2026-08-07 ruling
+// emptied noTradeSymbols) from four probes (^AXJO, ^GDAXI, ^N225,
+// ^GSPC; DOW and NSDQ were never probed). The nightly warm-only survey
+// is the instrument that tests the assumption at depth, and the
+// pre-flight refusal names it.
 // That last group is the design constraint: trade-sparse series are
 // HONEST provider data whose parent-child arithmetic legitimately
 // degenerates (a 15-minute parent holding one print yields one 5-minute
@@ -545,13 +560,19 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   absolute floors carry where they exist.
 // - The absolute floors bind the four structurally deterministic classes
 //   (probed margin under the measured week: crypto 260, forex 150,
-//   metals 140, energies 140) plus cash indices at 34 (all four members
-//   measured 48.6-73.6; their chunks sit far from any cap, so the floor
-//   is the holed-store detector). futures, agriculture and livestock
-//   carry no absolute floor: their spread spans 8.6..197.7 rows/day, so
-//   any shared floor either condemns honest sparseness or defends
-//   nothing — their liquid members are exactly the ones the ratio gate
-//   already judges.
+//   metals 140, energies 140 — backed by CLUSD-as-WTI, see above) plus
+//   cash indices at 34 (four of six members probed at 48.6-73.6; their
+//   chunks sit far from any cap, so the floor is the holed-store
+//   detector). futures, agriculture and livestock carry no absolute
+//   floor: their spread spans 8.6..197.7 rows/day, so any shared floor
+//   either condemns honest sparseness or defends nothing — their liquid
+//   members are exactly the ones the ratio gate already judges. One
+//   provider series can carry TWO roster names under two laws: WTI and
+//   CLUSD are both on defaultScanSymbols and load identical bytes, with
+//   WTI judged by the energies floor plus the ratio and CLUSD by the
+//   ratio alone — if that series degrades below 140, the pre-flight
+//   refuses on WTI and would have passed CLUSD, which is the floor
+//   doing its job on the class that carries one.
 // - Both ratio claims above hold AT DEPTH through the manifested
 //   shared-window counts (#364 round 10, finding 1): the band is a
 //   same-window statistic, the stores' own windows diverge at depth,
@@ -573,6 +594,41 @@ const FIVE_MIN_CLASS_FLOORS: Partial<
   indices: 34,
   metals: 140,
 };
+
+// #364 round 12, finding 3: getAssetType resolves every class EXCEPT
+// forex by explicit list membership — forex is the FALLBACK, so a
+// symbol onboarded into symbolMap but not yet added to a class list
+// would inherit the forex floor of 150 and abort the sweep pre-flight
+// with exactly the wrong diagnosis (the series is fine; the class list
+// is incomplete — the same silent-default hazard calibration.ts
+// documents for parameters, now with a run-killing consequence). The
+// forex floor therefore binds only DELIBERATE currency pairs, named by
+// shape over the roster's own eight currencies; any other
+// fallback-resolved symbol is floorless — the standing the door
+// already gives an off-roster symbol, for the same reason. The other
+// floored classes need no such guard: their resolution IS explicit
+// listing.
+const FOREX_PAIR_CURRENCIES = new Set([
+  "AUD",
+  "CAD",
+  "CHF",
+  "EUR",
+  "GBP",
+  "JPY",
+  "NZD",
+  "USD",
+]);
+
+export function fiveMinuteFloorFor(symbol: string): number | undefined {
+  const assetType = getAssetType(symbol);
+  if (assetType === "forex") {
+    const deliberatePair = /^[A-Z]{6}$/.test(symbol) &&
+      FOREX_PAIR_CURRENCIES.has(symbol.slice(0, 3)) &&
+      FOREX_PAIR_CURRENCIES.has(symbol.slice(3));
+    return deliberatePair ? FIVE_MIN_CLASS_FLOORS.forex : undefined;
+  }
+  return FIVE_MIN_CLASS_FLOORS[assetType];
+}
 
 // This assertion runs inside the per-symbol loop and therefore binds
 // DELIBERATE HISTORICAL READS too, unlike the conditions check below it
@@ -600,16 +656,16 @@ export function assertFiveMinuteDensity(
   if (!five || five.count === 0 || !fifteen || fifteen.count === 0) {
     return;
   }
-  if (
-    five.spanDays < DENSITY_MIN_SPAN_DAYS ||
-    fifteen.spanDays < DENSITY_MIN_SPAN_DAYS
-  ) {
-    return;
-  }
-  // #364 round 11, finding 2 rider: two mature stores that share NO time
+  // #364 round 11, finding 2 rider: two stores that share NO time
   // window cannot be one symbol's feed at two resolutions — that is
   // shape poison, not degradation, and like the clock witnesses it
-  // binds every read, historical included.
+  // binds every read, historical included. It sits ABOVE the sub-week
+  // silence deliberately (#364 round 12, smaller): disjointness is a
+  // statement about shape, not density, so a young span does not excuse
+  // it — and below the silence, a sub-week disjoint pair would fall
+  // through to the missing-evidence refusal and its wrong "re-sweep"
+  // diagnosis, since the driver cannot write crossSeriesDensity for
+  // windows that never meet.
   if (
     five.firstTime !== null && five.lastTime !== null &&
     fifteen.firstTime !== null && fifteen.lastTime !== null &&
@@ -622,13 +678,21 @@ export function assertFiveMinuteDensity(
         `symbol's feed; the corpus is refused`,
     );
   }
+  if (
+    five.spanDays < DENSITY_MIN_SPAN_DAYS ||
+    fifteen.spanDays < DENSITY_MIN_SPAN_DAYS
+  ) {
+    return;
+  }
   const fivePerDay = five.count / five.spanDays;
   const fifteenPerDay = fifteen.count / fifteen.spanDays;
   // The roster is the class authority; an off-roster symbol (which only a
   // hand-built manifest can carry — the driver refuses them) gets no
-  // class floor rather than inheriting getAssetType's forex fallback.
+  // class floor rather than inheriting getAssetType's forex fallback,
+  // and fiveMinuteFloorFor extends the same standing to ON-roster
+  // symbols the fallback mis-classes (#364 round 12, finding 3).
   const floor = hasKnownAssetType(entry.symbol)
-    ? FIVE_MIN_CLASS_FLOORS[getAssetType(entry.symbol)]
+    ? fiveMinuteFloorFor(entry.symbol)
     : undefined;
   if (floor !== undefined && fivePerDay < floor) {
     throw new Error(
