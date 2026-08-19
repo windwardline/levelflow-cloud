@@ -56,6 +56,15 @@
  * acceptance tally in capture-all — so the column is the pre-geometry
  * block exactly.)
  *
+ * A table this file parses ZERO rows from is refused the same way
+ * (#364 round 20, finding 2): a survey log (--warm-only and --discover
+ * print the full header and no data rows — the nightly launchd log has
+ * exactly this shape), a --grid table with no baseline variant, and a
+ * truncated log all used to print "0 of 0 markets flagged" and exit
+ * 0 — a clean pass with nothing measured. --report cannot suppress
+ * this refusal: it acknowledges a measured verdict, never an absent
+ * one.
+ *
  * unresolv (R1b's defect bucket — the plan built and the resolver still
  * returned non-finite numbers) is excluded from BOTH sides of the
  * survival arithmetic (#364 round 14): counting those decisions as
@@ -151,14 +160,46 @@ function parse(paths: string[]): Row[] {
 
 // Flags filtered out, or readFileSync tries to open "--report" as a log and the
 // gate fails for the wrong reason — which it did on first test.
-const rows = parse(process.argv.slice(2).filter((arg) => !arg.startsWith("--")));
+const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+const rows = parse(paths);
+// Zero parsed rows is a refusal, never a clean pass (#364 round 20,
+// finding 2): the header refusals above still admit a structurally
+// valid table this gate measured NOTHING from, and "0 of 0 markets
+// flagged" on exit 0 is the same false green the capture-all guard
+// closes, one shape over. A refusal rather than a verdict, so
+// --report cannot suppress it.
+if (rows.length === 0) {
+  throw new Error(
+    paths.length === 0
+      ? "no log paths given — nothing to audit"
+      : `${paths.join(", ")}: parsed zero baseline rows — either the ` +
+        `table carries no baseline variant (a --grid sweep without ` +
+        `one; parse keeps baseline rows only) or it carries no data ` +
+        `rows at all (a --warm-only or --discover survey log, or a ` +
+        `run truncated before any symbol completed); a gate that ` +
+        `measured nothing cannot pass — run it against a normal ` +
+        `sweep's table`,
+  );
+}
 const byS = new Map<string, Row>();
 for (const r of rows) {
   const prev = byS.get(r.symbol);
   if (!prev) { byS.set(r.symbol, { ...r }); continue; }
-  for (const k of ["decisions","sessionBlk","newsBlk","notWarm","regimeBlk",
-    "noConsensus","planRejected","unresolv","belowConf","belowPayoff",
-    "dataAbsent","setups"] as const) prev[k] += r[k];
+  // Summed over the parsed row's OWN keys (#364 round 20, finding 3):
+  // the literal key list that stood here was a third parallel
+  // enumeration beside Row and NEED_/OPTIONAL_COLUMNS — and the one
+  // nothing pinned or executed (the fixtures were single-row, so the
+  // rollup never even ran in the suite). A column added to Row but
+  // forgotten here would keep the FIRST split's value while every
+  // other column accumulated, mixing a per-split number into
+  // per-symbol totals. Iterating the row's keys makes that
+  // impossible, and the string-identity skip is compiler-enforced: a
+  // future non-numeric field fails the += below until it joins the
+  // skip.
+  for (const k of Object.keys(r) as Array<keyof Row>) {
+    if (k === "symbol" || k === "split") continue;
+    prev[k] += r[k];
+  }
 }
 
 const out = [...byS.values()].map((r) => {

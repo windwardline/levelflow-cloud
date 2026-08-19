@@ -1112,7 +1112,18 @@ key. Sequenced after item 6's `init.sql` work.
   `unresolv` is a resolver defect and `dataAbsent` a data fact — the
   no-bars decisions that pre-R1b landed in planRejected and
   over-flagged sparse markets; counting either as a survivor would
-  under-flag instead. Executed against a synthetic table.
+  under-flag instead. It refuses a `--capture-all` table by the
+  driver's stamped `# capture-all` marker (#364 round 19 — acceptance
+  gates are untallied there, so survival computed from one is a false
+  green; pre-marker archives are indistinguishable, so for those the
+  advice stands: normal tables only) and refuses a table it parsed
+  ZERO rows from (#364 round 20 — survey logs print the full header
+  with no data rows, and a `--grid` table may carry no baseline
+  variant; "0 of 0 markets flagged" on exit 0 was a clean pass with
+  nothing measured, and `--report` suppresses neither refusal). Its
+  cross-split rollup sums over each parsed row's own keys rather than
+  a hand-maintained list (#364 round 20). Executed against synthetic
+  tables: two-split rollup, capture-all refusal, zero-row refusals.
 - **`confidence-bands.ts` still carries a private `add()`/`Stats`**
   outside the one vocabulary (#364 round 5 noted it in passing —
   pre-existing item-3 drift, not R1b's): its `n` counts every row

@@ -39,6 +39,7 @@ import {
   type SeriesFacts,
   type SweepConditions,
   TREASURY_FETCH_START_MS,
+  treasuryChunkRefusal,
   treasuryCurveFacts,
   treasuryGapTouching,
 } from "./sweepManifest.ts";
@@ -904,6 +905,7 @@ async function fetchTreasuryRates(
     }
     const payload = await readJsonWithBudget(response, budget());
     let chunkRows = 0;
+    const parserRefusalsBefore = treasuryParserRefusals;
     if (Array.isArray(payload)) {
       for (const raw of payload) {
         const row = parseTreasuryRow(raw);
@@ -920,23 +922,23 @@ async function fetchTreasuryRates(
         }
       }
     }
-    // #364 round 2, finding 1: I3's own reasoning covers a 200 carrying
-    // an empty or unparseable body, which !response.ok does not — a
-    // zero-row chunk would hole the curve permanently (fetchSince only
-    // tops up the tail) and every decision inside the hole would score
-    // against stale rows. The Treasury market publishes ~250 rows/year
-    // from the 2013 floor, so any window of a week or more with zero
-    // parseable rows is a provider failure, never a holiday run. Windows
-    // under 7 days (top-ups, the truncated final chunk) may be
-    // legitimately empty over a weekend.
-    const windowTo = Math.min(from + chunkMs, Date.now());
-    if (chunkRows === 0 && windowTo - from >= 7 * 86_400_000) {
-      throw new Error(
-        `Treasury-rate chunk ${isoDate(new Date(from))}..${
-          isoDate(new Date(windowTo))
-        } returned zero parseable rows — a holed curve is refused, never ` +
-          `merged and pinned`,
-      );
+    // #364 round 2, finding 1 (split round 20, finding 1): the zero-row
+    // chunk law lives in sweepManifest.ts beside the constant it names,
+    // where tests execute both branches — an interior chunk is a hole,
+    // but a chunk starting at TREASURY_FETCH_START_MS is the constant
+    // asking deeper than the provider serves, and the hole remedies
+    // cannot clear that (the deepening runbook has already deleted the
+    // store when this fires). The chunk's own parser-refusal count rides
+    // along so "the provider served nothing" is distinguishable from
+    // "we refused what it served".
+    const refusal = treasuryChunkRefusal({
+      chunkRows,
+      fromMs: from,
+      parserRefusals: treasuryParserRefusals - parserRefusalsBefore,
+      windowToMs: Math.min(from + chunkMs, Date.now()),
+    });
+    if (refusal) {
+      throw new Error(refusal);
     }
     await sleep(150);
   }

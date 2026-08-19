@@ -11,6 +11,8 @@ import {
   sha256Hex,
   stableStringify,
   type SweepConditions,
+  TREASURY_FETCH_START_MS,
+  treasuryChunkRefusal,
   treasuryCurveFacts,
   type TreasuryCurveFacts,
   treasuryGapTouching,
@@ -294,6 +296,87 @@ describe("treasuryCurveFacts — the curve's own continuity record", () => {
     assert.equal(treasuryGapTouching(gaps, 160 * day, 200 * day), undefined);
     assert.equal(treasuryGapTouching(undefined, 0, 200 * day), undefined);
   });
+
+  // #364 round 20, finding 1: the zero-row chunk law splits by POSITION.
+  // Round 19 put the "provider coverage is shallower than the constant"
+  // remedy on the store-head pre-flight — a branch guarded by a store
+  // that LOADED, which the deepening runbook's own delete-store step
+  // guarantees never runs: with the store gone, the refetch's first
+  // chunk throws before a single row is stored. So the chunk refusal
+  // itself distinguishes the requested start (coverage — name the
+  // constant and the re-probe remedy; deleting the store cannot clear
+  // it) from an interior chunk (a genuine hole), and both branches
+  // execute here rather than riding as source pins.
+  it("treasuryChunkRefusal names coverage at the requested start, a hole in the interior, and stays silent on healthy or sub-week chunks (#364 round 20, finding 1)", () => {
+    const year = 365 * day;
+    const interior = treasuryChunkRefusal({
+      chunkRows: 0,
+      fromMs: TREASURY_FETCH_START_MS + 2 * year,
+      parserRefusals: 0,
+      windowToMs: TREASURY_FETCH_START_MS + 3 * year,
+    });
+    assert.ok(interior, "an interior zero-row year must refuse");
+    assert.match(interior, /a holed curve is refused, never merged and pinned/);
+    assert.doesNotMatch(interior, /TREASURY_FETCH_START_MS/);
+    const atStart = treasuryChunkRefusal({
+      chunkRows: 0,
+      fromMs: TREASURY_FETCH_START_MS,
+      parserRefusals: 0,
+      windowToMs: TREASURY_FETCH_START_MS + year,
+    });
+    assert.ok(atStart, "a zero-row chunk at the requested start must refuse");
+    assert.match(atStart, /starts at the requested fetch start/);
+    assert.match(atStart, /coverage, not a hole/);
+    assert.match(
+      atStart,
+      /re-probe the endpoint's earliest served date and move TREASURY_FETCH_START_MS with the recorded evidence/,
+    );
+    assert.doesNotMatch(atStart, /holed curve/);
+    // Rows present, or a sub-week window (top-ups, the truncated final
+    // chunk — legitimately empty over a weekend): no refusal.
+    assert.equal(
+      treasuryChunkRefusal({
+        chunkRows: 1,
+        fromMs: TREASURY_FETCH_START_MS,
+        parserRefusals: 0,
+        windowToMs: TREASURY_FETCH_START_MS + year,
+      }),
+      null,
+    );
+    assert.equal(
+      treasuryChunkRefusal({
+        chunkRows: 0,
+        fromMs: TREASURY_FETCH_START_MS + 2 * year,
+        parserRefusals: 0,
+        windowToMs: TREASURY_FETCH_START_MS + 2 * year + 3 * day,
+      }),
+      null,
+    );
+  });
+
+  it("treasuryChunkRefusal carries the chunk's parser-refusal count on both branches (#364 round 14, finding 2)", () => {
+    // Refused rows are deterministic on refetch — without the count,
+    // "the provider serves nothing" is unverifiable from the message
+    // alone, and the coverage branch would steer an operator into
+    // moving the constant on false evidence.
+    const year = 365 * day;
+    for (const fromMs of [
+      TREASURY_FETCH_START_MS,
+      TREASURY_FETCH_START_MS + 2 * year,
+    ]) {
+      const refusal = treasuryChunkRefusal({
+        chunkRows: 0,
+        fromMs,
+        parserRefusals: 3,
+        windowToMs: fromMs + year,
+      });
+      assert.ok(refusal);
+      assert.match(
+        refusal,
+        /3 provider rows in this chunk were refused by the parser/,
+      );
+    }
+  });
 });
 
 describe("the driver writes the manifest beside the emit", () => {
@@ -338,12 +421,21 @@ describe("the driver writes the manifest beside the emit", () => {
       /console\.warn/,
       "a failed Treasury chunk must stop the run, never hole the join",
     );
-    // #364 round 2, finding 1: the claim carries evidence. A 200 with an
-    // empty or unparseable body over a week-or-wider window throws (a
-    // holed curve is refused, never merged and pinned); the driver
+    // #364 round 2, finding 1 (split round 20, finding 1): the claim
+    // carries evidence. A 200 with an empty or unparseable body over a
+    // week-or-wider window throws via the shared chunk predicate —
+    // whose interior-hole and coverage-at-the-requested-start branches
+    // are EXECUTED in the treasuryCurveFacts suite; this pin holds the
+    // driver's side: every chunk runs the law, wired with the chunk's
+    // OWN parser-refusal count so "the provider served nothing" stays
+    // distinguishable from "we refused what it served". The driver
     // refuses an empty or stale-tailed curve before simulating; and the
     // manifest carries the curve's facts for the door to assert.
-    assert.match(script, /returned zero parseable rows/);
+    assert.match(
+      script.slice(fetchStart, fetchEnd),
+      /const refusal = treasuryChunkRefusal\(\{\s*\n\s*chunkRows,\s*\n\s*fromMs: from,\s*\n\s*parserRefusals: treasuryParserRefusals - parserRefusalsBefore,/,
+      "the fetch must run the shared zero-row chunk law on every chunk",
+    );
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
     // #364 round 17, finding 2: the manifest records the fetch start
@@ -524,11 +616,17 @@ describe("the driver writes the manifest beside the emit", () => {
   // landed in planRejected) BOTH leave both sides of the survival
   // arithmetic — counting either as a survivor biases survival up and
   // the amendment-25 gate under-flags. Executed against a synthetic
-  // table, since source pins cannot run arithmetic: decisions 100,
-  // pre-geometry blocks 30, unresolv 10, dataAbsent 10 → reached 50;
-  // kills 45 → survival 10% and STARVED. Without the two exclusions
-  // this read reached 70 / survival 36% — unflagged entirely.
-  it("the audit's survival excludes unresolv AND dataAbsent from both sides — executed", () => {
+  // table, since source pins cannot run arithmetic — and against TWO
+  // split rows (#364 round 20, finding 3): a real table carries one
+  // row per (symbol, split), so this fixture takes the cross-split
+  // rollup branch, which summed a hand-maintained key list nothing
+  // executed (single-row fixtures never entered the merge) until it
+  // was rewritten to iterate the parsed row's own keys. Totals:
+  // decisions 100, pre-geometry blocks 30, unresolv 10, dataAbsent 10
+  // → reached 50; kills 45 → survival 10% and STARVED. A column
+  // frozen at its first split's value moves the printed totals and
+  // fails the match.
+  it("the audit's survival excludes unresolv AND dataAbsent from both sides, summed across splits — executed", () => {
     const dir = mkdtempSync(join(tmpdir(), "starv-"));
     const log = join(dir, "sweep.log");
     writeFileSync(
@@ -537,11 +635,12 @@ describe("the driver writes the manifest beside the emit", () => {
         "symbol variant split decisions sessionBlk newsBlk notWarm " +
         "regimeBlk noConsensus planRejected unresolv belowConf " +
         "belowPayoff dataAbsent setups",
-        // setups 15 = decisions − Σ rejections, and dataAbsent 10 ⊆
-        // setups (#364 round 19, smaller): the fixture is a table a
-        // real run could emit, so it teaches dataAbsent's subset
-        // semantics rather than contradicting them.
-        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 5 10 15",
+        // Each split row is a table a real run could emit: setups =
+        // decisions − Σ rejections and dataAbsent ⊆ setups (#364
+        // round 19, smaller) hold per row (train 50−42=8 with 5 ⊆ 8,
+        // test 50−43=7 with 5 ⊆ 7).
+        "EURUSD baseline train 50 5 5 0 2 3 20 5 0 2 5 8",
+        "EURUSD baseline test 50 5 5 0 3 2 20 5 0 3 5 7",
         "",
       ].join("\n"),
     );
@@ -598,6 +697,54 @@ describe("the driver writes the manifest beside the emit", () => {
       readFileSync("scripts/replay-sweep.ts", "utf8"),
       /# capture-all — acceptance gates untallied/,
     );
+  });
+
+  // #364 round 20, finding 2: parse() returning zero rows used to fall
+  // through to "0 of 0 markets flagged" and exit 0 — the amendment-25
+  // gate reporting a clean pass having measured nothing. Both reachable
+  // shapes execute here: a survey log (--warm-only and --discover print
+  // the driver's full header and no data rows — the nightly launchd
+  // log's exact shape) and a --grid table with no baseline variant
+  // (parse keeps baseline rows only). --report is passed to prove this
+  // is a refusal, not a verdict: it cannot be acknowledged away.
+  it("the audit refuses a table it parsed zero rows from — executed (header-only and grid-only)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-zero-"));
+    const header =
+      "symbol variant split decisions sessionBlk newsBlk notWarm " +
+      "regimeBlk noConsensus planRejected unresolv belowConf " +
+      "belowPayoff dataAbsent setups";
+    const headerOnly = join(dir, "warm-only.log");
+    writeFileSync(headerOnly, [header, ""].join("\n"));
+    const gridOnly = join(dir, "grid.log");
+    writeFileSync(
+      gridOnly,
+      [
+        header,
+        "EURUSD tp1AtrMultiplier=0.5 test 100 10 10 0 5 5 40 10 0 5 10 15",
+        "",
+      ].join("\n"),
+    );
+    for (const log of [headerOnly, gridOnly]) {
+      assert.throws(
+        () =>
+          execFileSync(
+            "npx",
+            [
+              "--no-install",
+              "tsx",
+              "scripts/starvation-audit.ts",
+              log,
+              "--report",
+            ],
+            { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+          ),
+        (error: unknown) =>
+          /parsed zero baseline rows/.test(
+            String((error as { stderr?: string }).stderr ?? ""),
+          ),
+        `${log} must refuse rather than report 0 of 0 markets flagged`,
+      );
+    }
   });
 
   // #364 round 3, finding 4: by-name reading is only as safe as the

@@ -235,6 +235,66 @@ export function treasuryGapTouching(
   );
 }
 
+// The fetch-time zero-row chunk law (#364 round 2, finding 1; split
+// #364 round 20, finding 1). I3's reasoning covers a 200 carrying an
+// empty or unparseable body, which !response.ok does not — a zero-row
+// chunk would hole the curve permanently (fetchSince only tops up the
+// tail) and every decision inside the hole would score against stale
+// rows. The Treasury market publishes ~250 rows/year, so any window of
+// a week or more with zero parseable rows is a provider failure, never
+// a holiday run; windows under 7 days (top-ups, the truncated final
+// chunk) may be legitimately empty over a weekend.
+//
+// Round 20 split the diagnosis: a zero-row chunk that STARTS at
+// TREASURY_FETCH_START_MS is not a hole — it is the constant asking
+// deeper than the provider serves, and the runbook's own deepening
+// procedure (probe → move the constant → delete the store) routes the
+// operator straight into this branch when the probe was wrong. The
+// hole remedies ("delete the store and refetch") cannot clear it — the
+// store is already gone — so this branch names the constant and the
+// move-it-back remedy, which round 19 had placed only on the
+// store-head pre-flight that an empty store can never reach. Interior
+// chunks keep the hole diagnosis: a zero-row window inside served
+// coverage is exactly what this guard was built for. Both branches
+// carry the chunk's own parser-refusal count (#364 round 14, finding
+// 2): rows the parser refused are deterministic on refetch, so without
+// the count "the provider serves nothing" is unverifiable from the
+// message alone.
+export function treasuryChunkRefusal(input: {
+  chunkRows: number;
+  fromMs: number;
+  parserRefusals: number;
+  windowToMs: number;
+}): string | null {
+  if (
+    input.chunkRows > 0 || input.windowToMs - input.fromMs < 7 * 86_400_000
+  ) {
+    return null;
+  }
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const span = `${iso(input.fromMs)}..${iso(input.windowToMs)}`;
+  const parserNote = input.parserRefusals > 0
+    ? ` NOTE: ${input.parserRefusals} provider rows in this chunk were ` +
+      `refused by the parser THIS run (macroRates.ts date/tenor bounds) — ` +
+      `the provider may be serving rows we refuse; investigate those rows ` +
+      `first`
+    : "";
+  if (input.fromMs === TREASURY_FETCH_START_MS) {
+    return (
+      `Treasury-rate chunk ${span} starts at the requested fetch start and ` +
+      `returned zero parseable rows — the provider serves nothing at ` +
+      `TREASURY_FETCH_START_MS's depth, so this is coverage, not a hole: ` +
+      `deleting and refetching the store cannot clear it; re-probe the ` +
+      `endpoint's earliest served date and move TREASURY_FETCH_START_MS ` +
+      `with the recorded evidence.` + parserNote
+    );
+  }
+  return (
+    `Treasury-rate chunk ${span} returned zero parseable rows — a holed ` +
+    `curve is refused, never merged and pinned.` + parserNote
+  );
+}
+
 export function treasuryCurveFacts(
   rows: Array<{ dateMs: number }>,
 ): TreasuryCurveFacts {

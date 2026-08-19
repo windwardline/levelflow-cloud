@@ -661,7 +661,14 @@ layer.
   chunk returning zero parseable rows (a 200-with-empty-body would
   otherwise hole the store permanently — the visibility pointer stalls
   inside a hole and scores months-old rows as fresh, worse than the
-  zero the claim abolished), and the door refuses missing facts,
+  zero the claim abolished; the diagnosis splits by position since
+  round 20: a zero-row chunk STARTING at the requested fetch start is
+  coverage rather than a hole — the constant asks deeper than the
+  provider serves, the deepening runbook has already deleted the store
+  when it fires, and the refusal names the re-probe-and-move remedy —
+  while interior chunks keep the hole wording; both branches carry the
+  chunk's parser-refusal count, and the shared predicate lives in
+  `sweepManifest.ts` with both branches executed), and the door refuses missing facts,
   week-plus interior holes where they TOUCH the corpus span (rounds
   14–15: gap positions are manifested, and one shared overlap
   predicate serves the door and the driver pre-flight), a curve ending

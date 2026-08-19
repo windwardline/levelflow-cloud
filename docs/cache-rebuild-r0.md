@@ -233,8 +233,14 @@ To deepen the Treasury request (`TREASURY_FETCH_START_MS`): FIRST
 probe that the provider actually SERVES the new start — the recorded
 2026-08-19 probe is a lower bound ("at least 2005-01-03"), which
 covers moves to 2005 or later but says nothing about deeper; a
-constant past the provider's real floor turns the pre-flight into a
-permanent refusal with the old store already deleted (#364 round 19).
+constant past the provider's real floor makes the refetch's FIRST
+chunk come back empty, so with the old store already deleted the
+FETCH refuses permanently — not the pre-flight, which only ever sees
+a store that loaded — and since #364 round 20 that refusal names this
+exact situation and remedy (coverage, not a hole: re-probe the
+earliest served date and move the constant back with the evidence)
+instead of a store-hole message deleting-and-refetching cannot clear
+(#364 rounds 19–20).
 Then move the constant with the new probe recorded beside it AND
 delete the treasury-rates rolling store — an existing store never
 re-fetches its head, and the sweep pre-flight refuses a store
