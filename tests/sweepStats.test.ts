@@ -16,6 +16,7 @@ import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
   addOutcome,
   assertManifestedCorpus,
+  assertManifestedCorpusStreaming,
   clusteredStandardError,
   emptyStats,
   expectancy,
@@ -282,6 +283,43 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     );
   });
 
+  // #364 round 28, finding 1: the evidence half of the 4b projection
+  // was a hand-enumerated list against a hand-written type — and it had
+  // already dropped two declared fields (sessionLabel, tp1Hit), which a
+  // future question would have read as undefined on every row with the
+  // suite green. The projection now derives from EVIDENCE_ROW_KEYS;
+  // this test holds the type and the list in lockstep, both read from
+  // source since the type is erased at runtime.
+  it("every field EvidenceRow declares survives the 4b projection", () => {
+    const evidence = readFileSync("scripts/geometry-evidence.ts", "utf8");
+    const typeBlock = evidence.match(
+      /export type EvidenceRow = SweepEmitRow & \{([\s\S]*?)\};/,
+    );
+    assert.ok(typeBlock, "EvidenceRow must be declared literally");
+    const declared = [...typeBlock![1].matchAll(/^\s*(\w+)\?:/gm)]
+      .map((m) => m[1]);
+    const listBlock = evidence.match(
+      /const EVIDENCE_ROW_KEYS = \[([\s\S]*?)\] as const;/,
+    );
+    assert.ok(listBlock, "EVIDENCE_ROW_KEYS must be declared literally");
+    const listed = [...listBlock![1].matchAll(/"(\w+)"/g)].map((m) => m[1]);
+    assert.ok(
+      declared.length >= 13,
+      "EvidenceRow must declare the evidence fields",
+    );
+    for (const key of declared) {
+      assert.ok(
+        listed.includes(key),
+        `EvidenceRow declares ${key} but EVIDENCE_ROW_KEYS does not carry it`,
+      );
+    }
+    assert.match(
+      evidence,
+      /for \(const key of EVIDENCE_ROW_KEYS\)/,
+      "the projection derives from the list, never a parallel enumeration",
+    );
+  });
+
   // #364 round 24, finding 3: round 7 made sweep-analysis state its own
   // denominator; this reader took the partition (round 5) but not the
   // statement — `kept` counted every row handed to the vocabulary, so
@@ -510,6 +548,23 @@ describe("assertManifestedCorpus — no unverified corpus is aggregated (2i's do
           manifest.warmupBars = 120;
         })),
       /manifest hash/,
+    );
+  });
+
+  // #364 round 28, finding 2: the streaming door's try wrapped the
+  // READER callback, so any reader defect was reported as "line N
+  // failed to parse — a holed corpus is refused" — a re-sweep remedy
+  // that cannot clear a code bug, with the real stack discarded — and
+  // rounds 26-27 moved two readers' entire per-row logic behind it.
+  // The try now wraps only the parse; a reader defect surfaces as
+  // itself.
+  it("propagates a reader defect from the streaming callback as itself — never as a holed corpus", async () => {
+    await assert.rejects(
+      () =>
+        assertManifestedCorpusStreaming(writeCorpus(), () => {
+          throw new Error("reader defect: not a parse problem");
+        }),
+      /reader defect: not a parse problem/,
     );
   });
 

@@ -24,6 +24,31 @@ import {
   vocabularyRow,
 } from "./sweepStats.ts";
 
+// The evidence fields the five questions read, declared ONCE (#364
+// round 28, finding 1 — round 6's defect class, closed by the
+// VOCABULARY_ROW_KEYS mechanism applied to the evidence half): the
+// streaming projection is DERIVED from this list, so a field declared
+// on EvidenceRow cannot be silently dropped by the narrowing — the
+// hand-enumerated projection had already dropped sessionLabel and
+// tp1Hit, which a future question would have read as undefined on
+// every row with the suite green. A test holds this list and the type
+// in lockstep.
+export const EVIDENCE_ROW_KEYS = [
+  "accepted",
+  "confidenceScore",
+  "exitAtMs",
+  "filledAtMs",
+  "legs",
+  "maxAdverseMove",
+  "maxFavorableMove",
+  "regime",
+  "riskDistance",
+  "sessionLabel",
+  "side",
+  "stopProvenance",
+  "tp1Hit",
+] as const;
+
 export type EvidenceRow = SweepEmitRow & {
   accepted?: boolean;
   confidenceScore?: number;
@@ -160,29 +185,44 @@ async function main(): Promise<void> {
   // evidence fields the five questions read; the baseline/holdout
   // filter runs inside the callback so filtered rows are never held.
   const rows: EvidenceRow[] = [];
+  let dataAbsentRows = 0;
   const manifest = await assertManifestedCorpusStreaming(paths[0], (raw) => {
     const row = raw as EvidenceRow;
     if ((row.variant ?? "baseline") !== "baseline" || row.holdout === true) {
       return;
     }
-    rows.push({
+    if (raw.noBarsInReviewWindow === true) {
+      dataAbsentRows += 1;
+    }
+    const projected = {
       ...vocabularyRow(raw),
-      accepted: row.accepted,
-      confidenceScore: row.confidenceScore,
-      exitAtMs: row.exitAtMs,
-      filledAtMs: row.filledAtMs,
-      legs: row.legs,
-      maxAdverseMove: row.maxAdverseMove,
-      maxFavorableMove: row.maxFavorableMove,
-      regime: row.regime,
-      riskDistance: row.riskDistance,
-      side: row.side,
-      stopProvenance: row.stopProvenance,
-    });
+    } as EvidenceRow;
+    for (const key of EVIDENCE_ROW_KEYS) {
+      if (key in row) {
+        (projected as Record<string, unknown>)[key] = row[key];
+      }
+    }
+    rows.push(projected);
   });
+  // The headline states market evidence (#364 round 28, finding 3): the
+  // five questions all filter to filled rows, so no TABLE moves with a
+  // marked row — but the headline is the corpus-size figure an operator
+  // quotes, and R1b inflates exactly it (no-bars decisions that
+  // previously emitted nothing now emit baseline rows, in bulk for the
+  // sparse floorless classes).
   console.log(
-    `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${rows.length} baseline rows (holdout excluded)\n`,
+    `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${
+      rows.length - dataAbsentRows
+    } baseline market-evidence rows (holdout excluded by the emit's stamped flag)`,
   );
+  if (dataAbsentRows > 0) {
+    console.log(
+      `(data-absence rows held out of the headline: ${dataAbsentRows}` +
+        ` — baseline variant, stamped holdout excluded; retained in the ` +
+        `row stream, and every question filters to filled rows)`,
+    );
+  }
+  console.log("");
   const reviewHoursBySymbol = new Map<string, number>(
     manifest.symbols.map((entry) => [
       entry.symbol,

@@ -462,11 +462,14 @@ layer.
   row volume stated instead of "NOT IN CORPUS (never swept)" (round
   27 — policy is not a coverage gap), and reads through the
   streaming door (round 26). The FOURTH reader, `geometry-evidence`
-  (4b), streams through the same door with a projection (round 27 —
-  round 26's "one reader left" count missed it); its five questions
-  filter to filled rows before any denominator, so the data-absence
-  partition cannot reach them wrongly and it prints no held-out
-  line. One denominator note beside the unfilled
+  (4b), streams through the same door with a projection DERIVED from
+  `EVIDENCE_ROW_KEYS` (rounds 27–28 — round 26's "one reader left"
+  count missed it, and the first hand-enumerated projection dropped
+  two declared fields); its five questions filter to filled rows
+  before any denominator, so no table moves with a marked row — and
+  its HEADLINE states market-evidence rows with the held-out volume
+  on its own scoped line (round 28: the headline is a corpus-size
+  figure R1b inflates, and safe denominators did not exempt it). One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

@@ -216,13 +216,21 @@ export async function assertManifestedCorpusStreaming(
     if (!trimmed) {
       continue;
     }
+    // The try wraps ONLY the parse (#364 round 28, finding 2): every
+    // reader's per-row logic runs in this callback, and a bare catch
+    // around it reported any reader defect as corpus corruption — a
+    // re-sweep remedy that cannot clear a code bug, with the real
+    // error and stack discarded. A parse failure keeps the
+    // holed-corpus diagnosis; a reader defect surfaces as itself.
+    let row: SweepEmitRow;
     try {
-      onRow(JSON.parse(trimmed) as SweepEmitRow);
+      row = JSON.parse(trimmed) as SweepEmitRow;
     } catch {
       throw new Error(
         `${emitPath}: line ${lineNumber} failed to parse — a holed corpus is refused, not shrunk`,
       );
     }
+    onRow(row);
   }
   return manifest;
 }
