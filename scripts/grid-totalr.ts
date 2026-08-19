@@ -591,13 +591,14 @@ export async function gradeCorpus(
       // (replay-sweep.ts, 3c-across-shards). conditions alone separates
       // pre/post-R1b (null vs the block); firstTime/largestGapMs carry
       // the shallow- or holed-store case on the historical-read path.
-      // Precision (#364 round 9, smaller): firstTime is exact — the
-      // floor is fixed. largestGapMs is monotone NON-DECREASING under a
-      // tail top-up, invariant today only because the 13-year historical
-      // max (~4 days, holiday adjoining a weekend) dominates any tail
-      // gap the door's own 7-day bound would admit; a tail gap that DID
-      // exceed it would refuse at the door before ever reaching this
-      // comparison.
+      // Precision (#364 round 9, smaller; figure aligned round 16):
+      // firstTime is exact — the floor is fixed. largestGapMs is
+      // monotone NON-DECREASING under a tail top-up, invariant today
+      // only because the historical max (<=5 days — weekend plus
+      // holiday runs, the door's own constant figure) dominates any
+      // tail gap the door's 7-day bound would admit; a tail gap that
+      // DID exceed it would refuse at the door before ever reaching
+      // this comparison.
       treasuryCurve: candidate.treasuryCurve
         ? {
           firstTime: candidate.treasuryCurve.firstTime,

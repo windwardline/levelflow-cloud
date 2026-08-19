@@ -476,8 +476,13 @@ layer.
   5-minute/3) ≥60 rows/day (rounds 11–12 — originally the 15-minute
   count alone, which a clip moved together with the ratio's
   denominator; the near-24h markets, exactly the chunk shapes that
-  approach provider caps; densest excluded symbol is ^GDAXI at 24.5 /
-  73.6/3), plus absolute 5-minute
+  approach provider caps; under max() the densest excluded symbol is
+  ZCUSX at 48.9 = 146.7/3, an 18% margin — round 16 corrected the
+  stale ^GDAXI 24.5 figure, which was the retired 15-minute-only
+  filter's boundary — and ZCUSX is agriculture, a no-floor class, so
+  at that boundary it is currently judged by nothing: the one named
+  exception to the liquid-members clause, honest until the deep survey
+  re-derives the constants), plus absolute 5-minute
   floors for the structurally deterministic classes: crypto 260
   (BTCUSD 288.0, THETAUSD 287.9), forex 150 (EURUSD 205.6), metals 140
   (XAUUSD 197.1), energies 140 (measured directly: the class's only
@@ -497,12 +502,25 @@ layer.
   arithmetic legitimately degenerates, so any shared floor would
   false-condemn them or defend nothing; their liquid members (ESUSD
   197.7, PAUSD 198.7 — slot-dense despite thin volume) are exactly the
-  ratio gate's population. The carried blind band closes to a residue:
+  ratio gate's population, with the one named ZCUSX exception recorded
+  in the boundary note above. The carried blind band closes to a residue:
   a 15-minute clip ≤~7.7% (ratio 3.0→3.25) on gated symbols can still
   pass — down from ≤14.3% — and any cap low enough to touch 5-minute
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
+  Amended #364 round 16: the curve-evidence checks are gated on
+  EVIDENCE PRESENCE, not read mode — a manifest that CARRIES
+  treasuryCurve facts has their integrity (count, corpus-touching
+  holes, stale tail, shallow leading edge) asserted on every read
+  path, the superseded-clock override included, because present
+  evidence of a holed or stale-tailed curve is data poison with the
+  density door's standing (it scored non-zero stale macro adjustments
+  no per-row field can reveal), and the pre-round-16 read-mode gate
+  would have gone blind to it the day a BAR_CLOCK bump made every
+  post-R1b corpus a historical read. Only the conditions LITERALS and
+  the absence of evidence blocks a pre-R1b manifest never carried
+  remain override-exempt terms.
   Amended #364 round 14: the warm-only Treasury tolerance is scoped by
   CAUSE — store-integrity refusals (`cacheStoreUnreadable`,
   `cacheClockMismatch`) re-throw so the top-up script's red stays

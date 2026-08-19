@@ -221,6 +221,14 @@ the next sweep. Two related notes: a
 superseded-clock corpus read is possible only via the explicit
 `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` override, which warns loudly on
 every read — figures produced under it are historical, never current.
+Know exactly what the override stops checking (#364 round 16): only
+stated measurement TERMS — the conditions literals, and evidence
+blocks a pre-R1b manifest never carried (conditions, curve facts,
+shared-window density facts). Every data-integrity law still binds
+under it: clock witnesses, the density floors and ratio, disjoint
+stores, and any curve evidence that IS present (a manifest carrying
+facts that show a holed, stale-tailed, or shallow curve refuses under
+the override exactly as on the current path — poison is never a term).
 
 Next 07:00 run should log `top-up complete`. Confirm one green nightly
 log before calling Phase 0 done. (If a future nightly log ever shows the

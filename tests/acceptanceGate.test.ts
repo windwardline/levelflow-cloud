@@ -496,43 +496,40 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     assert.equal(verdict.selectFilled, 24);
   });
 
-  it("still refuses shards whose curve DEPTH differs, on the historical-read path (#364 round 8)", async () => {
-    // firstTime is day-invariant — the floor is fixed at 2013 — so a
-    // shallow-store shard against a full-depth shard is two
-    // measurements. With the current clock the door's leading-edge
-    // check refuses the shallow shard first; the identity comparison is
-    // the second layer for the superseded-clock override, where the
-    // door skips the curve checks.
-    const shallow: TreasuryCurveFacts = {
+  it("still refuses shards whose curve DEPTH differs within the door's tolerance (#364 rounds 8 and 16)", async () => {
+    // firstTime is day-stable, so two stores of different depth are two
+    // measurements even when BOTH are individually admissible (each
+    // firstTime inside the fetch-floor tolerance, so the door's
+    // leading-edge check passes both) — the identity comparison is what
+    // separates them. A shard shallow enough to trip the door itself
+    // now refuses THERE on every read path (round 16: present curve
+    // evidence binds historical reads too), so this layer's population
+    // is exactly the within-tolerance mismatches.
+    const slightlyDeeper: TreasuryCurveFacts = {
       ...TEST_TREASURY_CURVE,
-      firstTime: Date.UTC(2020, 0, 6),
+      firstTime: Date.UTC(2013, 0, 7),
     };
-    const supersededClock = {
-      calendar: CALENDAR_CLOCK,
-      normalizer: "some-other-clock",
-    };
-    const warned = console.warn;
-    console.warn = () => {};
-    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
-    try {
-      await assert.rejects(
-        gradeCorpus([
-          shardWith(shardRows("EURUSD"), undefined, supersededClock),
-          shardWith(
-            shardRows("GBPUSD"),
-            undefined,
-            supersededClock,
-            undefined,
-            shallow,
-          ),
-        ]),
-        /shards of one measurement/,
-      );
-    } finally {
-      console.warn = warned;
-      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
-    }
+    await assert.rejects(
+      gradeCorpus([
+        shardWith(shardRows("EURUSD")),
+        shardWith(
+          shardRows("GBPUSD"),
+          undefined,
+          undefined,
+          undefined,
+          slightlyDeeper,
+        ),
+      ]),
+      /shards of one measurement/,
+    );
   });
+
+  // (#364 round 16, finding 1: the door-level law — PRESENT curve
+  // evidence showing a corpus-touching hole refuses on every read path,
+  // the superseded-clock override included — is executed in
+  // tests/sweepStats.test.ts's historical-reads test, whose fixtures
+  // carry a real corpus span for the gap to touch; gradeCorpus routes
+  // every shard through that same verifyManifest.)
 });
 
 describe("the baseline is a named cell (4c's retired-gate grids)", () => {

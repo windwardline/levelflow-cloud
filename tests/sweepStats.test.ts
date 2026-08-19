@@ -1010,12 +1010,18 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     );
   });
 
-  it("binds the density door on deliberate historical reads, while conditions and curve evidence stay exempt (#364 round 2, finding 3)", () => {
+  it("binds the density door on deliberate historical reads, while conditions and ABSENT curve evidence stay exempt (#364 rounds 2 and 16)", () => {
     // The stated asymmetry, executed: the superseded-clock override
-    // accepts superseded measurement TERMS (no conditions block, no
-    // curve facts — both pre-R1b by definition), but never poisoned
-    // DATA — a density violation refuses the historical read exactly as
-    // the clock witnesses beside it would.
+    // accepts superseded measurement TERMS — an absent conditions block
+    // and absent curve facts, the pre-R1b population TODAY by
+    // scheduling (the R0 rebuild has produced no corpus; the one
+    // re-sweep is R3's), and after any future clock bump, whatever
+    // corpora genuinely predate the facts — but never poisoned DATA: a
+    // density violation refuses the historical read exactly as the
+    // clock witnesses beside it would, and PRESENT curve evidence gets
+    // its integrity asserted on every read path (round 16 — the
+    // evidence-presence gate is what keeps post-R1b corpora's poison
+    // checks alive once a clock bump makes them historical reads).
     process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
     const realWarn = console.warn;
     console.warn = () => {};
@@ -1041,6 +1047,30 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
         treasuryCurve: null,
       }));
       assert.equal(rows.length, 1);
+      // Round 16, finding 1: the same historical read WITH curve facts
+      // showing a corpus-touching hole refuses — present evidence
+      // saying the curve was holed is poison, not a superseded term,
+      // and unlike an absent curve it scored non-zero stale macro
+      // adjustments no per-row field can reveal.
+      assert.throws(
+        () =>
+          assertManifestedCorpus(writeCorpus({
+            clock: superseded,
+            series: { "15min": facts(960, 10) },
+            symbol: "EURUSD",
+            treasuryCurve: {
+              count: 3_000,
+              firstTime: Date.UTC(2013, 0, 2),
+              gapsOverWeekMs: [{
+                endMs: 20 * 86_400_000,
+                startMs: 2 * 86_400_000,
+              }],
+              largestGapMs: 18 * 86_400_000,
+              lastTime: Date.UTC(2027, 0, 1),
+            },
+          })),
+        /interior hole.*inside the corpus span/s,
+      );
     } finally {
       console.warn = realWarn;
       delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;

@@ -393,30 +393,72 @@ function verifyManifest(emitPath: string): SweepManifest {
         );
       }
     }
-    // #364 round 2, finding 1: conditions.macroAdjustment is a claim,
-    // and the door checks the EVIDENCE, not just the literal — an empty
-    // curve scores the hardwired zero E6 abolished; a holed or
-    // stale-tailed one is worse, scoring months-old rows as fresh where
-    // the visibility pointer stalls. The LEADING edge (#364 round 3,
-    // finding 2) is asserted with one tolerance: a curve starting at
-    // the provider's own 2013 floor passes regardless of corpus depth —
-    // decisions before it score stance "unavailable", which the emit
-    // now records per row (macroStance) so the zero is visible
-    // downstream — but a curve that starts BOTH after that floor AND
-    // after the corpus does is a shallow rebuild (the provider's floor
-    // moved, or the store was rebuilt partial), restoring E6's original
-    // zero under the claim, and is refused. Seven days exceeds any real
-    // Treasury publication gap (weekend plus holiday runs are <=5).
-    const curve = manifest.treasuryCurve as
-      | { count?: number; largestGapMs?: number; lastTime?: number | null }
-      | undefined;
-    if (!curve || !Number.isFinite(curve.count) || (curve.count ?? 0) < 2) {
+    // #364 round 16, finding 1: only the BLOCK'S ABSENCE is a terms gap
+    // (a pre-R1b manifest measured under hardwired-zero macro, where no
+    // curve was used and none can have poisoned anything) — refused on
+    // the current path, exempt under the historical-read override. Facts
+    // that ARE present get their integrity asserted below, OUTSIDE this
+    // gate, on every read path: a holed or stale-tailed curve scored
+    // non-zero stale macro adjustments no per-row field can reveal —
+    // poison, not terms, the density door's standing. Without this
+    // split, the next BAR_CLOCK bump would turn every post-R1b corpus
+    // into a historical read whose real curve evidence nothing checks.
+    if (!manifest.treasuryCurve) {
       throw new Error(
         `${emitPath}: conditions claim historical-treasury-curve but the ` +
-          `manifest carries ${
-            curve ? `${curve.count ?? 0} curve rows` : "no treasuryCurve facts"
-          } — a claim without evidence is refused; re-sweep with the curve ` +
-          `store intact`,
+          `manifest carries no treasuryCurve facts — a claim without ` +
+          `evidence is refused; re-sweep with the curve store intact`,
+      );
+    }
+    // #364 round 11, finding 2: crossSeriesDensity is evidence like the
+    // curve facts — the driver writes it whenever both series have bars
+    // and their windows meet, so on the current path its absence means
+    // the manifest predates the fact, and missing evidence must buy a
+    // refusal, never the weaker own-span fallback (which abstains for
+    // most of the roster at depth). Manifests that genuinely predate
+    // the fact are exactly the historical-read population, where the
+    // fallback legitimately remains.
+    for (const entry of manifest.symbols ?? []) {
+      const five = entry.series?.["5min"];
+      const fifteen = entry.series?.["15min"];
+      if (
+        five && five.count > 0 && fifteen && fifteen.count > 0 &&
+        !entry.crossSeriesDensity
+      ) {
+        throw new Error(
+          `${emitPath}: ${entry.symbol} carries both 5-minute and ` +
+            `15-minute series but no crossSeriesDensity shared-window ` +
+            `facts — the ratio's claim without its evidence is refused; ` +
+            `re-sweep with the current driver`,
+        );
+      }
+    }
+  }
+  // #364 round 2, finding 1 (re-gated round 16, finding 1): the door
+  // checks the EVIDENCE, not just the literal — an empty curve scores
+  // the hardwired zero E6 abolished; a holed or stale-tailed one is
+  // worse, scoring months-old rows as fresh where the visibility
+  // pointer stalls. The LEADING edge (#364 round 3, finding 2) is
+  // asserted with one tolerance: a curve starting at the requested
+  // fetch floor passes regardless of corpus depth — decisions before
+  // it score stance "unavailable", visible per row (macroStance) — but
+  // one starting BOTH after that floor AND after the corpus start is a
+  // shallow rebuild, restoring E6's original zero under the claim.
+  // Seven days exceeds any real Treasury publication gap (weekend plus
+  // holiday runs are <=5). These checks bind EVERY read path whenever
+  // the facts are present — present evidence saying the curve was
+  // holed, stale-tailed, or shallow is data poison with the density
+  // door's standing, not a superseded term the override may accept.
+  const curve = manifest.treasuryCurve as
+    | { count?: number; largestGapMs?: number; lastTime?: number | null }
+    | undefined;
+  if (curve) {
+    if (!Number.isFinite(curve.count) || (curve.count ?? 0) < 2) {
+      throw new Error(
+        `${emitPath}: conditions claim historical-treasury-curve but the ` +
+          `manifest carries ${curve.count ?? 0} curve rows — a claim ` +
+          `without evidence is refused; re-sweep with the curve store ` +
+          `intact`,
       );
     }
     const weekMs = 7 * 86_400_000;
@@ -521,30 +563,8 @@ function verifyManifest(emitPath: string): SweepManifest {
           `TREASURY_FETCH_START_MS with the recorded evidence`,
       );
     }
-    // #364 round 11, finding 2: crossSeriesDensity is evidence like the
-    // curve facts — the driver writes it whenever both series have bars
-    // and their windows meet, so on the current path its absence means
-    // the manifest predates the fact, and missing evidence must buy a
-    // refusal, never the weaker own-span fallback (which abstains for
-    // most of the roster at depth). Manifests that genuinely predate
-    // the fact are exactly the historical-read population, where the
-    // fallback legitimately remains.
-    for (const entry of manifest.symbols ?? []) {
-      const five = entry.series?.["5min"];
-      const fifteen = entry.series?.["15min"];
-      if (
-        five && five.count > 0 && fifteen && fifteen.count > 0 &&
-        !entry.crossSeriesDensity
-      ) {
-        throw new Error(
-          `${emitPath}: ${entry.symbol} carries both 5-minute and ` +
-            `15-minute series but no crossSeriesDensity shared-window ` +
-            `facts — the ratio's claim without its evidence is refused; ` +
-            `re-sweep with the current driver`,
-        );
-      }
-    }
   }
+
   return manifest;
 }
 
@@ -590,8 +610,15 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   max(15-minute, 5-minute/3) density runs >=60 15-minute-equivalent
 //   rows/day — the near-24h markets (weekly-average arithmetic: crypto
 //   96, forex 68.5, metals 65.7, ES-class futures 65.9 on the 15-minute
-//   side, with the 5-minute side agreeing at 197-288/3; the densest
-//   excluded symbol is ^GDAXI at 24.5 / 73.6/3). The filter takes the
+//   side, with the 5-minute side agreeing at 197-288/3). Under max()
+//   the densest excluded symbol is ZCUSX at 48.9 (146.7/3 — #364 round
+//   16: ^GDAXI's 24.5 was the boundary of the RETIRED 15-minute-only
+//   filter), an 18% margin, not a clean separation — and ZCUSX is
+//   agriculture, a no-floor class, so at that boundary it is judged by
+//   nothing at all: the one named exception to the liquid-members
+//   clause below, honest until the deep survey re-derives the
+//   constants (carried: density-ceiling tightening). The filter takes
+//   the
 //   MAX of the two so that a clip on either single series cannot move a
 //   symbol out of the population (#364 round 11, finding 1 — filtering
 //   on the 15-minute count alone was self-defeating: the clip lowered
@@ -613,7 +640,11 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   detector). futures, agriculture and livestock carry no absolute
 //   floor: their spread spans 8.6..197.7 rows/day, so any shared floor
 //   either condemns honest sparseness or defends nothing — their liquid
-//   members are exactly the ones the ratio gate already judges. One
+//   members are exactly the ones the ratio gate already judges, with
+//   ONE named exception (#364 round 16): ZCUSX sits 18% under the
+//   gate's population floor (48.9 vs 60) and carries no class floor,
+//   so it is currently judged by nothing at all — see the boundary
+//   note above. One
 //   provider series can carry TWO roster names under two laws: WTI and
 //   CLUSD are both on defaultScanSymbols and load identical bytes, with
 //   WTI judged by the energies floor plus the ratio and CLUSD by the
@@ -765,7 +796,14 @@ export function assertFiveMinuteDensity(
   // (running the own-span heuristic beside it would resurrect the
   // false positive the fact exists to kill); the own-span computation
   // below is the FALLBACK for manifests predating the fact, gated on
-  // near-identical windows so it never compares across eras. A
+  // near-identical windows so it never compares across eras. On a
+  // CURRENT-clock fact-less manifest this fallback can fire before the
+  // evidence block's "re-sweep with the current driver" refusal —
+  // deliberate (#364 round 16, smaller, declined ordering change): the
+  // sameWindow gate means any ratio it throws is a genuine same-window
+  // anomaly, a data diagnosis the poison-outranks-terms ordering ranks
+  // above the evidence gap, and every fix path ends in a current-driver
+  // re-sweep that writes the fact anyway. A
   // fact-less manifest without window agreement is silent here, and the
   // absolute floors above still bind.
   const shared = entry.crossSeriesDensity;
