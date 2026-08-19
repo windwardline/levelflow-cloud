@@ -128,7 +128,12 @@
  * pilot sweep over the sparse floorless classes this gate protects —
  * the run whose green matters most. The per-market table still
  * prints (the causes are the evidence), then the gate throws with
- * both exclusion counts named; like every refusal above, --report
+ * both exclusion counts named and the remedy ROUTED BY CAUSE (#364
+ * round 34, finding 1): the floor dial is offered only for the
+ * thin-sample share, because the null-survival branch fires before
+ * the floor is consulted and no --min-reached value recovers a zero
+ * geometry denominator — that share's remedy is the window or the
+ * feed's gradeable-bar coverage. Like every refusal above, --report
  * cannot suppress it.
  *
  * dataAbsent leaves both sides by the same rule (#364 round 18): those
@@ -255,8 +260,16 @@ function parse(paths: string[]): Row[] {
 // pattern-match that stood here for one round was positional-blind both ways —
 // "--min-reached 1e2" parsed as floor 100 while handing "1e2" to readFileSync
 // as a log path, failing for exactly the wrong reason this comment names.
-// (account-type-report's copy of the pattern-match predates this change and is
-// recorded as carried in HANDOFF.)
+// (Round 34 rode the same form into account-type-report.)
+//
+// This Set is the ONE declaration of which flags take values (#364 round
+// 34, finding 2): the walker below consumes it to keep values out of the
+// path list, and num() REFUSES a flag outside it — so a future dial added
+// through num() but forgotten here fails EVERY run at module load instead
+// of shipping green and handing its value to readFileSync on the first
+// real invocation. tests/sweepManifest.test.ts also scans this file's
+// num() call sites against the Set, holding the two shapes together at
+// source the way the round-28 vocabulary scans do.
 const VALUE_FLAGS = new Set(["--min-reached"]);
 const argv = process.argv.slice(2);
 const paths: string[] = [];
@@ -294,6 +307,13 @@ for (let i = 0; i < argv.length; i += 1) {
 // reached-geometry distribution may justify raising it, never lowering
 // it below the arithmetic here.
 function num(arg: string, fallback: number): number {
+  if (!VALUE_FLAGS.has(arg)) {
+    throw new Error(
+      `num("${arg}") reads a value the path walker does not know owns ` +
+        `the next token — add it to VALUE_FLAGS, or its value becomes a ` +
+        `log path`,
+    );
+  }
   const index = process.argv.indexOf(arg);
   if (index === -1) return fallback;
   const parsed = Number(process.argv[index + 1]);
@@ -422,13 +442,35 @@ const excluded = [
 // floorless classes. The table above already printed the causes; the
 // throw makes the exit code agree with them, and --report cannot
 // suppress a refusal (it acknowledges a measured verdict, never an
-// absent one).
+// absent one). Remedies route by CAUSE (#364 round 34, finding 1): the
+// floor dial is INERT for a no-verdict market — the null-survival
+// branch fires before the floor is consulted, so no --min-reached
+// value recovers a zero geometry denominator — and on the gate's own
+// population the no-verdict share dominates (an all-marked bounded
+// pilot), so the fixed remedy pair that stood here for one round sent
+// that operator to a dial that changes nothing (the
+// remedy-that-cannot-clear class rounds 14, 19, 20 and 25 closed at
+// other sites).
 if (judged === 0) {
+  const remedies = [
+    ...(thinSample > 0
+      ? [
+        `for the thin-sample share: deepen the sweep window, or lower ` +
+        `--min-reached with the per-row evidence in hand`,
+      ]
+      : []),
+    ...(noVerdict > 0
+      ? [
+        `for the no-verdict share: deepen the sweep window or restore ` +
+        `the feed's gradeable-bar coverage — no --min-reached value ` +
+        `recovers a zero geometry denominator`,
+      ]
+      : []),
+  ];
   throw new Error(
     `every market fell outside the judged denominator ` +
       `(${excluded.join("; ")}) — a gate that judged nothing cannot ` +
-      `pass (the zero-row rule by a second route); deepen the sweep ` +
-      `window, or lower --min-reached with the per-row evidence in hand`,
+      `pass (the zero-row rule by a second route); ${remedies.join("; ")}`,
   );
 }
 console.log(

@@ -851,6 +851,13 @@ describe("the driver writes the manifest beside the emit", () => {
           /every market fell outside the judged denominator/.test(stderr) &&
           /2 thin sample below 100 reached; 1 no verdict — zero geometry denominator/
             .test(stderr) &&
+          // #364 round 34, finding 1: both causes are present here, so
+          // BOTH routed remedies print — the dial for the thin share,
+          // the data remedy for the no-verdict share.
+          /lower --min-reached with the per-row evidence in hand/
+            .test(stderr) &&
+          /no --min-reached value recovers a zero geometry denominator/
+            .test(stderr) &&
           !/no such file/i.test(stderr) &&
           !/markets flagged/.test(String(failed.stdout ?? ""))
         );
@@ -858,6 +865,81 @@ describe("the driver writes the manifest beside the emit", () => {
       "floor 100 excludes every market — the gate must refuse, with the " +
         "flag value consumed as a value rather than opened as a path",
     );
+  });
+
+  // #364 round 34, finding 1: the refusal's remedies route by CAUSE. On
+  // an ALL-no-verdict roster — the dominant shape, since a bounded pilot
+  // over sparse floorless classes emits every setup marked — the floor
+  // dial is INERT (the null-survival branch fires before the floor is
+  // consulted; --min-reached 0 changes nothing), so offering it sent the
+  // operator to a dial that cannot clear the condition. The refusal must
+  // name only the data remedy here.
+  it("the all-no-verdict refusal offers the data remedy, never the inert floor dial — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-nov-"));
+    const log = join(dir, "sweep.log");
+    writeFileSync(
+      log,
+      [
+        "symbol variant split decisions sessionBlk newsBlk notWarm " +
+        "regimeBlk noConsensus planRejected unresolv belowConf " +
+        "belowPayoff dataAbsent setups",
+        "GBPUSD baseline test 20 0 0 0 0 0 0 0 0 0 20 20",
+        "",
+      ].join("\n"),
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          ["--no-install", "tsx", "scripts/starvation-audit.ts", log, "--report"],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) => {
+        const stderr = String((error as { stderr?: string }).stderr ?? "");
+        return (
+          /every market fell outside the judged denominator \(1 no verdict — zero geometry denominator\)/
+            .test(stderr) &&
+          /no --min-reached value recovers a zero geometry denominator/
+            .test(stderr) &&
+          !/lower --min-reached/.test(stderr)
+        );
+      },
+      "an all-no-verdict roster must not be offered the floor dial",
+    );
+  });
+
+  // #364 round 34, finding 2: "which flags take a value" must be written
+  // down ONCE. num() refuses a flag outside VALUE_FLAGS at runtime (every
+  // executed run above exercises it at module load); this scan holds the
+  // same law at source, the round-28 vocabulary-scan shape, for both
+  // files that carry the walker — a num() call site added without joining
+  // VALUE_FLAGS fails here even if the runtime guard is ever removed.
+  it("every num() flag is declared in VALUE_FLAGS, and num() refuses undeclared flags — both walker files", () => {
+    for (
+      const file of [
+        "scripts/starvation-audit.ts",
+        "scripts/account-type-report.ts",
+      ]
+    ) {
+      const source = readFileSync(file, "utf8");
+      const declared = source.match(/const VALUE_FLAGS = new Set\(\[([^\]]*)\]\)/);
+      assert.ok(declared, `${file} must declare VALUE_FLAGS literally`);
+      const flags = [...declared![1].matchAll(/"(--[\w-]+)"/g)].map((m) => m[1]);
+      const reads = [...source.matchAll(/num\("(--[\w-]+)"/g)].map((m) => m[1]);
+      assert.ok(reads.length > 0, `${file} must read at least one num() flag`);
+      for (const flag of reads) {
+        assert.ok(
+          flags.includes(flag),
+          `${file}: num("${flag}") reads a value VALUE_FLAGS does not declare — ` +
+            `its value would be walked into the path list`,
+        );
+      }
+      assert.match(
+        source,
+        /if \(!VALUE_FLAGS\.has\(arg\)\) \{\s*\n\s*throw new Error\(/,
+        `${file}: num() must refuse a flag outside VALUE_FLAGS`,
+      );
+    }
   });
 
   // #364 round 33, finding 1: a table that PARSES cleanly but leaves

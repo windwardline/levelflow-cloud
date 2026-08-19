@@ -484,7 +484,13 @@ layer.
   manifest's STAMPED flag with the gate's read-time stratified set
   called out (round 30); the E8 report also labels fully-gated
   markets ALL ROWS GATED under the CURRENT calibration rather than
-  "NOT IN CORPUS" (round 30 — thresholds may postdate the sweep);
+  "NOT IN CORPUS" (round 30 — thresholds may postdate the sweep) and
+  WITHHOLDS its EXCLUDE verdict below `--min-filled` (round 34: the
+  σ≥2 test's only intrinsic floor was rStdDev's two filled outcomes,
+  so three low-dispersion losses cleared it into the candidates
+  block — the row now prints with the withhold named, making true the
+  behaviour rounds 32–33 recorded for that floor when they built the
+  starvation gate's withhold on it);
   and the amendment-25 starvation gate reads a zero geometry
   denominator as NO VERDICT, never maximal starvation — by the
   driver's row identity it means the geometry killed nothing, every
@@ -500,7 +506,13 @@ layer.
   the whole roster it REFUSES — a throw `--report` cannot suppress —
   rather than printing "0 of 0 markets flagged" and exiting 0, the
   zero-row clause's false green reopened by a cleanly-parsing second
-  route (round 33). One denominator note beside the unfilled
+  route (round 33), with the refusal's remedies routed by cause: the
+  floor dial only for the thin-sample share, because the
+  null-survival branch fires before the floor is consulted and no
+  `--min-reached` value recovers a zero geometry denominator (round
+  34; "which flags take a value" is likewise declared once — num()
+  refuses a flag outside VALUE_FLAGS, and a source scan pins both
+  walker files). One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

@@ -836,7 +836,7 @@ the live roster is 97 distinct markets.
 | rank | item | state |
 |---|---|---|
 | **R0** | One clock — rebuild `.calibration-cache` under a single normalization, assert it in the manifest | **code half DONE 2026-08-18** (see below); **rebuild UNBLOCKED same day** by the owner's 100 GB upgrade (probes green, `to`-inclusivity settled) — one budgeted studio-machine run per `docs/cache-rebuild-r0.md`, minute bank kickstart FIRST |
-| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences the PRs. **R1a DONE 2026-08-18 in two slices**: slice 1 (#360) D2 — realized R from legs on every filled resolution; slice 2 E1 (the sweep's own resolution tiering in both live writers, recorded per row), E3 (decision anchor = last completed primary bar), E7 (the bridge reads the row's stored runner-protection mode and review window), E2's live no-bars marker — engine now at `2026.08.18.one-physics`. **R1b DONE 2026-08-18** (the sweep tells the truth about its inputs. E2: the no-bars marker gates on whether a completed bar COULD have existed in the resolution stream — the first slot at/after `max(createdAt, streamStartsAtMs)`, the sweep passing decision-bar-open + 15min — never on presence or containment (#364 rounds 3–4; the intermediate presence form never deployed), plus the `unresolvable` counter and the measured per-symbol density door; the aggregator partitions with it — `SweepStats.dataAbsent` holds marked rows out of `n` so fill rates state their denominator, and the driver's `unfilled` column is now `total − filled − dataAbsent`. The FIVE corpus readers STATE the partition (#364 rounds 24–33): three scoped held-out lines each naming their own population and holdout definition (the emit's stamped flag for sweep-analysis and the E8 report vs `gradeCorpus`'s read-time stratified set, whose excluded count the 4c report prints from the read, never the stamp), and `data-limits` — the table 4c per-market sweeps read their limits from — names its list as the stamped flag with the gate's own set called out; the E8 report prints `dataAbs` per market and rollup, labels held-out markets HELD OUT and fully-gated markets ALL ROWS GATED (current calibration — thresholds may postdate the sweep) rather than "NOT IN CORPUS", and survives an all-marked market; `geometry-evidence` streams with a derived projection and a market-evidence headline; and the amendment-25 starvation gate reads a zero geometry denominator as NO VERDICT rather than maximal starvation, withholds the flag below a `--min-reached` floor (default 30, binomial basis recorded at the constant), partitions its summary by cause so the flagged denominator holds only judged markets, and refuses outright — `--report` powerless — when the exclusions swallow the whole roster (#364 rounds 31–33) — the map's reader clause is the authority. E6: macro reconstruction from the historical Treasury curve at New-York-midnight visibility with curve-evidence facts hashed into the manifest, and providerWarningCount/weightAdjustment stated in the hashed `conditions` block the readers now require; emit rows carry tier, macro adjustment + stance, and marker — closure record in the map is the authority; corpora without conditions refuse at the door, and the one re-sweep stays R3's). **Remaining: R1c** (the E4 collapse instrument) | **R1c NEXT** |
+| **R1** | One engine — close every sweep↔live divergence (E1 resolution anchor, E2 the 5-min sawtooth, E3 `market.latest`, E6 score terms, E4 correlation collapse, D2 realized R on non-expiry branches, **plus discovered E7**: the options bridge drops the runner-protection mode, so live grades every row "breakeven" while the calibration ships trail_tp1/hold). D3 done (#333); E2's fetch half (chunk sizing) landed with R0. **The map**: `docs/research/r1-divergence-map-2026-08-18.md` pins every divergence to code on both sides and sequences the PRs. **R1a DONE 2026-08-18 in two slices**: slice 1 (#360) D2 — realized R from legs on every filled resolution; slice 2 E1 (the sweep's own resolution tiering in both live writers, recorded per row), E3 (decision anchor = last completed primary bar), E7 (the bridge reads the row's stored runner-protection mode and review window), E2's live no-bars marker — engine now at `2026.08.18.one-physics`. **R1b DONE 2026-08-18** (the sweep tells the truth about its inputs. E2: the no-bars marker gates on whether a completed bar COULD have existed in the resolution stream — the first slot at/after `max(createdAt, streamStartsAtMs)`, the sweep passing decision-bar-open + 15min — never on presence or containment (#364 rounds 3–4; the intermediate presence form never deployed), plus the `unresolvable` counter and the measured per-symbol density door; the aggregator partitions with it — `SweepStats.dataAbsent` holds marked rows out of `n` so fill rates state their denominator, and the driver's `unfilled` column is now `total − filled − dataAbsent`. The FIVE corpus readers STATE the partition (#364 rounds 24–34): three scoped held-out lines each naming their own population and holdout definition (the emit's stamped flag for sweep-analysis and the E8 report vs `gradeCorpus`'s read-time stratified set, whose excluded count the 4c report prints from the read, never the stamp), and `data-limits` — the table 4c per-market sweeps read their limits from — names its list as the stamped flag with the gate's own set called out; the E8 report prints `dataAbs` per market and rollup, labels held-out markets HELD OUT and fully-gated markets ALL ROWS GATED (current calibration — thresholds may postdate the sweep) rather than "NOT IN CORPUS", survives an all-marked market, and withholds its EXCLUDE verdict below `--min-filled` (#364 round 34 — the σ≥2 test's only intrinsic floor was two filled outcomes); `geometry-evidence` streams with a derived projection and a market-evidence headline; and the amendment-25 starvation gate reads a zero geometry denominator as NO VERDICT rather than maximal starvation, withholds the flag below a `--min-reached` floor (default 30, binomial basis recorded at the constant), partitions its summary by cause so the flagged denominator holds only judged markets, and refuses outright — `--report` powerless, remedies routed by cause since the floor dial cannot recover a zero denominator — when the exclusions swallow the whole roster (#364 rounds 31–34) — the map's reader clause is the authority. E6: macro reconstruction from the historical Treasury curve at New-York-midnight visibility with curve-evidence facts hashed into the manifest, and providerWarningCount/weightAdjustment stated in the hashed `conditions` block the readers now require; emit rows carry tier, macro adjustment + stance, and marker — closure record in the map is the authority; corpora without conditions refuse at the door, and the one re-sweep stays R3's). **Remaining: R1c** (the E4 collapse instrument) | **R1c NEXT** |
 | **R2** | Repair the instrument — D4 (the gate has no absolute-expectancy term), M3 (confirm decides on a bare delta), M1 (audit double-counts), M5 (make the cost scale reach the resolver), D1 (learning from a win rate) | after R1 |
 | **R3** | Re-sweep ONCE — item 2's law: one re-simulate after the instrument changes, never one per fix | after R2 |
 | **R4** | The per-market program — every matched market individually, against its own shipped configuration, absolute expectancy as the criterion | after R3 |
@@ -1147,18 +1147,27 @@ key. Sequenced after item 6's `init.sql` work.
   — rather than printing "0 of 0 markets flagged" on exit 0, the
   zero-row false green reopened by a cleanly-parsing second route
   (#364 round 33; the bounded-pilot shape over sparse floorless
-  classes). Its argv path filter gives value-taking flags ownership
+  classes), and the refusal's remedies route by CAUSE (#364 round 34
+  — the floor dial is inert for a zero geometry denominator, since
+  the null-survival branch never consults the floor, so it is offered
+  only for the thin-sample share; the no-verdict share's remedy is
+  the window or the feed's gradeable-bar coverage). Its argv path
+  filter gives value-taking flags ownership
   of the following token rather than pattern-matching bare numbers
   (round 33 — `--min-reached 1e2` had parsed as floor 100 while
-  handing "1e2" to readFileSync as a path; account-type-report's
-  pre-existing copy of the pattern-match is carried below). Executed
+  handing "1e2" to readFileSync as a path; round 34 declared "which
+  flags take a value" ONCE — num() refuses a flag outside VALUE_FLAGS
+  and a source scan pins both walker files — and rode the same walker
+  into account-type-report). Executed
   against synthetic
   tables: two-split rollup, capture-all refusal, per-file zero-row
   refusals beside a healthy table, mixed-generation refusal,
   no-verdict and thin-sample rows with the partitioned summary and
   unconditional floor echo under both the default and an explicit
-  `--min-reached` floor, and the all-excluded refusal at the default
-  floor and via a floor that excludes everything.
+  `--min-reached` floor, the all-excluded refusal at the default
+  floor and via a floor that excludes everything, and the
+  all-no-verdict refusal proving the dial is never offered where it
+  cannot act.
 - **`confidence-bands.ts` still carries a private `add()`/`Stats`**
   outside the one vocabulary (#364 round 5 noted it in passing —
   pre-existing item-3 drift, not R1b's): its `n` counts every row
@@ -1172,12 +1181,11 @@ key. Sequenced after item 6's `init.sql` work.
   nothing compares their measurement identity the way `gradeCorpus`'s
   `conditionsOf` does for shards — and R1b's `conditions`/curve facts
   are a new axis files can differ on. Give it the same shard-identity
-  comparison with R2's instrument work. Same destination for its argv
-  path filter: it pattern-matches bare numbers to keep `--min-filled`'s
-  value out of the file list (pre-existing on main; predates #364),
-  the positional blindness round 33 fixed in starvation-audit by
-  giving value-taking flags ownership of the following token — apply
-  the same form when the file is next touched.
+  comparison with R2's instrument work. (Its argv path filter no
+  longer waits with it: round 33 deferred the walker form "until the
+  file is next touched"; round 34's finding 3 touched the file, so
+  the value-flag-owns-the-next-token walker rode along then, with
+  num() refusing flags outside the one VALUE_FLAGS declaration.)
 - **`fmpRetry.ts` paced on the wall clock from its birth until #364**
   (round-9 CI caught it): `Date.now()` steps under NTP, so a forward
   step under-waited the pace — a burst through FMP's 3,000/min ceiling,

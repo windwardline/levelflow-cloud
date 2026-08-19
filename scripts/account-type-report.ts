@@ -17,7 +17,15 @@
  * never assumed from a flag: per-market SE is that market's own sample
  * deviation over sqrt(filled) — the guard that stops a thin sample being
  * read as a finding, which is exactly how the six-index blanket exclusion
- * got asserted — and the category rollup's SE is clustered by market,
+ * got asserted. The SE alone is NOT that guard at tiny n (#364 round 34,
+ * finding 3): its only intrinsic floor is rStdDev's two filled outcomes,
+ * and at n=3 a low-dispersion losing streak yields sigma in the double
+ * digits precisely because the sample never saw the tails — so the
+ * EXCLUDE verdict is additionally withheld below --min-filled (the row
+ * still prints, THIN still labels it, the flag names the withhold), which
+ * makes true the behaviour #364 rounds 32–33 recorded for this floor when
+ * they built starvation-audit's --min-reached on it — and the category
+ * rollup's SE is clustered by market,
  * because outcomes inside one market share regime, session and
  * calibration. Corpora enter through assertManifestedCorpusStreaming
  * (2i): an emit that cannot prove its conditions is refused, not
@@ -125,7 +133,23 @@ function pct(part: number, whole: number): string {
   return whole === 0 ? "—" : `${((part / whole) * 100).toFixed(0)}%`;
 }
 
+// The ONE declaration of which flags own the token after them — the form
+// #364 round 33 installed in starvation-audit, ridden along here by round
+// 34 (the bare-number pattern-match that stood here was positional-blind:
+// "--min-filled 1e2" parsed as 100 while handing "1e2" to the streaming
+// door as a corpus path). The walker in main() consumes it to keep values
+// out of the file list, and num() refuses a flag outside it, so a future
+// dial forgotten here fails every run at first read instead of shipping.
+const VALUE_FLAGS = new Set(["--min-filled"]);
+
 function num(arg: string, fallback: number): number {
+  if (!VALUE_FLAGS.has(arg)) {
+    throw new Error(
+      `num("${arg}") reads a value the path walker does not know owns ` +
+        `the next token — add it to VALUE_FLAGS, or its value becomes a ` +
+        `corpus path`,
+    );
+  }
   const index = process.argv.indexOf(arg);
   if (index === -1) return fallback;
   const parsed = Number(process.argv[index + 1]);
@@ -133,8 +157,15 @@ function num(arg: string, fallback: number): number {
 }
 
 async function main(): Promise<void> {
-  const files = process.argv.slice(2).filter((arg) => !arg.startsWith("--") &&
-    !/^[\d.]+$/.test(arg));
+  const argv = process.argv.slice(2);
+  const files: string[] = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i].startsWith("--")) {
+      if (VALUE_FLAGS.has(argv[i])) i += 1;
+      continue;
+    }
+    files.push(argv[i]);
+  }
   if (files.length === 0) {
     console.error("usage: account-type-report.ts <emit.jsonl> [more.jsonl ...]");
     process.exit(1);
@@ -325,8 +356,27 @@ async function main(): Promise<void> {
           ? Math.abs(value) / se
           : null;
         const thin = stats.filled < minFilled ? " THIN" : "";
-        const flag = value !== null && value < 0 && sigma !== null && sigma >= 2
-          ? " <- EXCLUDE (negative, 2+ s.e.)"
+        // #364 round 34, finding 3: the sigma>=2 test's only intrinsic
+        // floor is rStdDev's TWO filled outcomes — at n=3 a
+        // low-dispersion losing streak clears it with sigma in the
+        // double digits precisely because the sample never saw the
+        // distribution's tails, the thin-sample-read-as-a-finding
+        // hazard this file exists to stop. Below --min-filled the
+        // EXCLUDE verdict is therefore WITHHELD, the round-25 shape:
+        // the row prints, THIN labels it, the flag names the withhold,
+        // and nothing joins the EXCLUSION CANDIDATES block the E8
+        // decisions read. (Rounds 32–33 built starvation-audit's
+        // --min-reached withhold on the recorded understanding that
+        // this floor already behaved this way; as of this round it
+        // does.) "Negative but within noise" stays reserved for
+        // sigma < 2 — a thin market is not "within noise", its sigma
+        // is untrustworthy, which is a different statement.
+        const excludeEligible = value !== null && value < 0 &&
+          sigma !== null && sigma >= 2;
+        const flag = excludeEligible
+          ? (stats.filled >= minFilled
+            ? " <- EXCLUDE (negative, 2+ s.e.)"
+            : " <- exclude withheld (thin sample below --min-filled)")
           : value !== null && value < 0
             ? " <- negative but within noise"
             : "";
@@ -337,9 +387,9 @@ async function main(): Promise<void> {
             `${(value === null ? "—" : value.toFixed(3)).padStart(7)} ` +
             `±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
         );
-        if (value !== null && value < 0 && sigma !== null && sigma >= 2) {
+        if (excludeEligible && stats.filled >= minFilled) {
           verdicts.push(
-            `${classification}/${member.brokerName}: E=${value.toFixed(3)} ` +
+            `${classification}/${member.brokerName}: E=${value!.toFixed(3)} ` +
               `±${se!.toFixed(3)} over ${stats.filled} filled — exclude`,
           );
         }
