@@ -53,6 +53,27 @@ if [ "$rc" -eq 0 ]; then
   exit 0
 fi
 
+# Must-stay-red integrity refusals outrank every stand-down (#364 round
+# 23): the driver defers treasury integrity refusals past the bar
+# survey, so a terminal roster 429 can share this output with one of
+# these tokens — and under the documented 429 blackout that pairing is
+# the NORMAL state. Grepped after the 429 branch, a deterministic
+# refusal would be downgraded to a quota stand-down (exit 0) forever —
+# the false green the tokens exist to prevent. Checked first for that
+# reason; exits 1, never 0. cacheClockMismatch is deliberately NOT
+# here: it keeps its own named stand-down below (the rebuild is its
+# one clearing action), and a treasury-origin mismatch defers in the
+# driver, so the bars still warm before that stand-down prints.
+if grep -qE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out"; then
+  # Name WHICH condition fired (#364 round 24, smaller): the four tokens
+  # have four different remedies, and with the driver's deferral the
+  # token line can sit thousands of log lines above the failure that
+  # ended the run.
+  tokens=$(grep -oE 'cacheStoreUnreadable|cacheClockWitnessRefused|treasuryCoverageRefused|treasuryChunkHole' <<<"$out" | sort -u | xargs)
+  echo "$(date -u +%FT%TZ) top-up FAILED: integrity refusal ($tokens) — that token's own log line above names the remedy; a co-occurring 429 does not stand this down"
+  exit 1
+fi
+
 # Herestrings, not printf|grep: under `set -o pipefail`, grep -q exiting
 # on an early match can SIGPIPE the printf and flip a legitimate
 # stand-down to red (#358 review).
@@ -66,11 +87,22 @@ fi
 # mixed-clock store, or a future BAR_CLOCK bump whose rebuild has not run
 # yet. Like the 429 branch, this is one named, proven condition whose one
 # clearing action is the deliberate rebuild in docs/cache-rebuild-r0.md.
-# Deliberately NOT matched: cacheClockWitnessRefused (a condemned witness
-# on a STAMPED store) and cacheStoreUnreadable (a corrupt store) — both
-# are fresh, actionable regressions and stay red.
+# The four must-stay-red integrity tokens (cacheClockWitnessRefused, a
+# condemned witness on a STAMPED store; cacheStoreUnreadable, a corrupt
+# store; and the R1b treasury chunk refusals treasuryCoverageRefused /
+# treasuryChunkHole) are matched ABOVE this branch and above the 429
+# stand-down — fresh, actionable regressions exit 1 there and can never
+# be stood down (#364 rounds 21-23). A treasury-origin cacheClockMismatch
+# defers in the driver, so this stand-down prints with the bars already
+# warmed.
 if grep -q 'cacheClockMismatch' <<<"$out"; then
-  echo "$(date -u +%FT%TZ) STOOD DOWN: store clock does not match this build (pre-R0 store, or a BAR_CLOCK bump without its rebuild). NOT topped up and NOT usable — rebuild per docs/cache-rebuild-r0.md."
+  # Per-store remedies (#364 round 24, finding 2): the cacheClockMismatch
+  # line above names WHICH store, and the two clocks have different
+  # clearing actions — the old single-remedy message sent a
+  # treasury/calendar mismatch to an 8-12h bar rebuild that cannot clear
+  # a stamp on treasury-rates.rolling.json, and claimed "NOT topped up"
+  # over bars the driver's deferral had already warmed.
+  echo "$(date -u +%FT%TZ) STOOD DOWN: a rolling store's clock does not match this build — the cacheClockMismatch line above names WHICH store. A bar store (BAR_CLOCK: pre-R0 store, or a BAR_CLOCK bump without its rebuild) means rebuild per docs/cache-rebuild-r0.md. A treasury or calendar store (CALENDAR_CLOCK) clears by deleting that one rolling store and re-running; the driver defers the treasury case, so the bar top-up above may already be complete."
   exit 0
 fi
 

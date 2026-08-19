@@ -19,6 +19,7 @@
  *   FMP_API_KEY=... npx tsx scripts/probe-minute-bars.ts [--json out.json]
  */
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { flagReader } from "./flagReader.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const KEY = process.env.FMP_API_KEY;
@@ -76,7 +77,22 @@ async function probe(fmpSymbol: string, markets: string[]): Promise<Probe> {
   }
 }
 
+// The ONE declaration of which flags own the token after them (#364
+// round 50, finding 2 — the scan now globs scripts/, so every reader with
+// a value-taking flag is inside the law rather than on a curated list).
+const VALUE_FLAGS = new Set(["--json"]);
+
+
 async function main(): Promise<void> {
+  // Arguments are refused BEFORE the metered provider run (#364 round
+  // 52, finding 2). The port that gave --json a real refusal left the
+  // read at the end of main(), so a flag typed without its path spent
+  // the entire roster probe against the quota and then died without
+  // writing the artifact the run existed to produce — fail-late, in the
+  // change set that moved the density floors and the curve checks into
+  // pre-flights for exactly this reason.
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const jsonPath = str("--json");
   if (!KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -124,11 +140,11 @@ async function main(): Promise<void> {
     console.log(`\nno 1-minute series (${none.length}):`);
     for (const r of none) console.log(`  ${r.fmpSymbol.padEnd(10)} ${r.note} — ${r.markets.join(" ")}`);
   }
-  const jsonIndex = process.argv.indexOf("--json");
-  if (jsonIndex !== -1 && process.argv[jsonIndex + 1]) {
+  // (read at the top of main(), before any provider work)
+  if (jsonPath !== undefined) {
     const { writeFileSync } = await import("node:fs");
-    writeFileSync(process.argv[jsonIndex + 1], JSON.stringify(results, null, 2));
-    console.log(`\nwrote ${process.argv[jsonIndex + 1]}`);
+    writeFileSync(jsonPath, JSON.stringify(results, null, 2));
+    console.log(`\nwrote ${jsonPath}`);
   }
 }
 

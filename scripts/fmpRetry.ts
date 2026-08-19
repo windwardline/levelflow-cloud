@@ -26,7 +26,15 @@ export type FmpRetryOptions = {
 
 const DEFAULT_DELAYS_MS = [2_000, 8_000, 30_000];
 
-let lastRequestAtMs = 0;
+// Pacing runs on performance.now(), never Date.now() (#364 round-9 CI):
+// the wall clock steps under NTP — a forward step under-waits the pace
+// and bursts through the 3,000/min ceiling this module exists to respect
+// (a CI runner's ~5ms step cut a 25ms pace to 19.7ms), and a backward
+// step of minutes would stall every consumer that long. The monotonic
+// clock can do neither. null = no request has gone through yet, so the
+// first is never paced (performance.now() starts near 0 at process
+// start, which a numeric sentinel would read as a recent request).
+let lastRequestAtMs: number | null = null;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,11 +53,22 @@ export async function fetchFmpWithRetry<T extends RetryableResponse>(
   let response: T;
   for (let attempt = 0; ; attempt += 1) {
     if (paceMs > 0) {
-      const wait = lastRequestAtMs + paceMs - Date.now();
-      if (wait > 0) {
-        await sleep(wait);
+      if (lastRequestAtMs !== null) {
+        // Re-check after waking: setTimeout can fire up to ~1ms early on
+        // libuv's ms-truncated timer clock, and "at least paceMs apart"
+        // is a floor, not a target. Because the loop re-reads the
+        // module-global stamp, N CONCURRENT callers serialize one pace
+        // apart instead of computing one shared wait and firing
+        // together — intended (#364 round 9, smaller): the pace exists
+        // to hold the whole process under FMP's ceiling, and a
+        // simultaneous burst of N is exactly what it must prevent.
+        let elapsed = performance.now() - lastRequestAtMs;
+        while (elapsed < paceMs) {
+          await sleep(paceMs - elapsed);
+          elapsed = performance.now() - lastRequestAtMs;
+        }
       }
-      lastRequestAtMs = Date.now();
+      lastRequestAtMs = performance.now();
     }
     response = await request();
     if (response.ok || !shouldRetry(response.status)) {

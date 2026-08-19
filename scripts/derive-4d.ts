@@ -11,11 +11,30 @@
 // permutation, the 30-filled floor. Emits the candidate table the
 // feasibility join and the one confirm-final read consume — this script
 // never touches the confirm fold.
-import { writeFileSync } from "node:fs";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  assertInDomain,
+  soleFlagIndex,
+  tokenFault,
+  type NumericDomain,
+} from "./flagReader.ts";
+
+// The ONE declaration of which flags own the token after them (#364
+// round 44, smaller) — the form rounds 33–38 installed in the four
+// dialed readers, at the two 4d scripts they did not reach.
+const VALUE_FLAGS = new Set([
+  "--baseline",
+  "--out",
+  "--targets",
+  "--permutations",
+  "--seed",
+]);
 
 type MarketCandidates = {
   // Every accepted variant, best first by select-fold expectancy delta.
@@ -37,25 +56,73 @@ type MarketCandidates = {
 
 async function main() {
   const argv = process.argv.slice(2);
-  // Positional args are shard paths; every --flag consumes the token
-  // after it, so a flag VALUE can never masquerade as a path.
+  // Positional args are shard paths; a DECLARED value flag consumes the
+  // token after it, and nothing else does (#364 round 44, smaller). The
+  // inverted form that stood here listed the flags taking no value and
+  // consumed the next token for every other --flag, and its comment
+  // claimed "a flag VALUE can never masquerade as a path" — true, but
+  // the inverse was the live hazard: a typo'd or newly-added boolean
+  // flag ate the shard PATH after it and the run graded a corpus one
+  // shard short, silently.
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      if (
-        argv[index] !== "--holdout-cycle" &&
-        argv[index] !== "--per-market-folds"
-      ) index += 1;
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
       continue;
     }
     paths.push(argv[index]);
   }
-  const flagValue = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
+  const str = (arg: string): string | undefined => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `str("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value stays in the shard paths`,
+      );
+    }
+    const index = soleFlagIndex(argv, arg);
+    if (index === -1) return undefined;
+    const token = argv[index + 1];
+    if (tokenFault(token) !== null) {
+      throw new Error(
+        `${arg} owns the token after it and got ${describeToken(token)} — a ` +
+          `value, never a flag and never blank; pass ${arg} <value>`,
+      );
+    }
+    return token;
   };
-  const baselineVariant = flagValue("baseline") ?? "baseline";
-  const outPath = flagValue("out") ??
+  const num = (
+    arg: string,
+    fallback: number,
+    domain?: NumericDomain,
+  ): number => {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `num("${arg}") reads a value outside VALUE_FLAGS — declare it ` +
+          `there, or its value stays in the shard paths`,
+      );
+    }
+    const index = soleFlagIndex(argv, arg);
+    if (index === -1) {
+      // The DEFAULT is checked too — a default outside its own
+      // dial's domain is a defect no operator would ever see.
+      if (domain !== undefined) assertInDomain(arg, fallback, domain);
+      return fallback;
+    }
+    const token = argv[index + 1];
+    const parsed = Number(token);
+    if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
+      throw new Error(
+        `${arg} owns the token after it and cannot read ${
+          describeNumericToken(token)
+        } as a number — the walker already kept that token out of the ` +
+          `shard paths; pass ${arg} <number>`,
+      );
+    }
+    if (domain !== undefined) assertInDomain(arg, parsed, domain);
+    return parsed;
+  };
+  const baselineVariant = str("--baseline") ?? "baseline";
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-candidates.json";
   if (paths.length === 0) {
     throw new Error("derive-4d: no corpus shards given");
@@ -89,7 +156,7 @@ async function main() {
   // targets ride the surgical filter and holdout members are included
   // (their rows are the whole point).
   const perMarketFolds = argv.includes("--per-market-folds");
-  const targetsFlag = flagValue("targets");
+  const targetsFlag = str("--targets");
   if (targetsFlag) {
     symbolFilter = new Set(
       targetsFlag.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
@@ -100,8 +167,15 @@ async function main() {
     baselineVariant,
     includeHoldout: holdoutCycle || targetsFlag !== undefined,
     perMarketFolds,
-    permutations: Number(flagValue("permutations") ?? 1_000),
-    seed: Number(flagValue("seed") ?? 7),
+    permutations: num("--permutations", 1_000, {
+    basis:
+      "a permutation p-value is (1 + #{at least as extreme}) / " +
+      "(permutations + 1), so zero permutations makes every p exactly 1 " +
+      "and the gate refuses every variant in silence",
+    integer: true,
+    min: 1,
+  }),
+    seed: num("--seed", 7),
     symbolFilter,
     verdictUnit: "market",
   });
@@ -140,7 +214,7 @@ async function main() {
     derivedAt: new Date().toISOString(),
     markets,
   };
-  writeFileSync(outPath, JSON.stringify(summary, null, 2) + "\n");
+  writeResearchArtifact(outPath, summary);
 
   const tuned = Object.values(markets).filter((m) => !m.measureOnly).length;
   const measureOnly = Object.values(markets).filter((m) =>

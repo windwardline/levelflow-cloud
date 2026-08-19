@@ -23,14 +23,31 @@ import {
   addOutcome,
   assertManifestedCorpusStreaming,
   emptyStats,
+  type SweepEmitRow,
   type SweepStats,
+  vocabularyRow,
 } from "./sweepStats.ts";
+import {
+  describeNumericToken,
+  describeToken,
+  assertInDomain,
+  soleFlagIndex,
+  tokenFault,
+  type NumericDomain,
+} from "./flagReader.ts";
 
 type Row = {
   accepted: boolean;
   holdout?: boolean;
   confidenceScore: number;
   cotStance: string | null;
+  // R1b's per-row facts (#364 round 6, finding 1): the marker rides via
+  // vocabularyRow in the projection below; the two macro fields are
+  // carried so this file CAN read them — a closed projection had
+  // silently dropped all three.
+  macroAdjustment?: number;
+  macroStance?: string;
+  noBarsInReviewWindow?: true;
   newsPenalty: number;
   outcome: string;
   realizedR: number | null;
@@ -101,11 +118,16 @@ function classOf(symbol: string): string {
 type Stats = SweepStats;
 
 function add(stats: Stats, row: Row): void {
+  // The RAW row rides through (#364 round 5, finding 1): a rebuilt
+  // three-field row stripped noBarsInReviewWindow, so this reader — the
+  // one whose historical all-rows denominator is the reason sweepStats
+  // exists — kept blending provider absence into the market verdict
+  // after round 4 partitioned it. Spreading the row makes the omission
+  // impossible for future marker fields too; only realizedR is coerced.
   addOutcome(stats, {
-    outcome: row.outcome,
+    ...row,
     realizedR: typeof row.realizedR === "number" ? row.realizedR : Number.NaN,
-    symbol: row.symbol,
-  });
+  } as SweepEmitRow);
 }
 
 function rate(part: number, whole: number): string {
@@ -132,10 +154,81 @@ function table(title: string, header: string[], rows: string[][]): void {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const emitPath = args[args.indexOf("--emit") + 1];
-  const minNIndex = args.indexOf("--min-n");
-  const minN = minNIndex === -1 ? 30 : Number(args[minNIndex + 1]);
-  if (!emitPath || emitPath.startsWith("--")) {
+  // The value flags read through the accessors below, which REFUSE a
+  // token they cannot use (#364 round 36, finding 1 — the refusal rounds
+  // 33–35 built into both sibling readers, at the one they never
+  // reached): a bare Number() here made a mistyped --min-n into NaN, and
+  // every thin guard in this file is a `stats.n < minN` comparison — x <
+  // NaN is false for every x, so not one "!" marker printed, in the
+  // reader whose header says a thin cell can never read as a finding.
+  // --emit is declared here TOO, since round 53: this file collects no
+  // positional paths, so the earlier note reasoned there was no walker
+  // for the Set to feed and read --emit's token bare — but the Set feeds
+  // the ACCESSORS as well as a walker, and reading bare left the corpus
+  // path, the one input every table is computed over, as the single
+  // unguarded read in the file. `--emit a.jsonl --emit b.jsonl` reported
+  // over a.jsonl without a word, and with --emit absent entirely
+  // `args[-1 + 1]` handed args[0] over, so the flag the usage line calls
+  // required was optional in fact. Both dials are read BEFORE the usage
+  // check so the specific refusal wins over the generic error.
+  const VALUE_FLAGS = new Set(["--min-n", "--emit"]);
+  function str(arg: string): string | undefined {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `str("${arg}") reads a value outside VALUE_FLAGS — declare it there`,
+      );
+    }
+    const index = soleFlagIndex(args, arg);
+    if (index === -1) return undefined;
+    const token = args[index + 1];
+    if (tokenFault(token) !== null) {
+      throw new Error(
+        `${arg} owns the token after it and got ${describeToken(token)} — a ` +
+          `corpus path, never a flag and never blank; pass ${arg} <path>`,
+      );
+    }
+    return token;
+  }
+  function num(
+  arg: string,
+  fallback: number,
+  domain?: NumericDomain,
+): number {
+    if (!VALUE_FLAGS.has(arg)) {
+      throw new Error(
+        `num("${arg}") reads a value outside VALUE_FLAGS — declare it there`,
+      );
+    }
+    const index = soleFlagIndex(args, arg);
+    if (index === -1) {
+      // The DEFAULT is checked too — a default outside its own
+      // dial's domain is a defect no operator would ever see.
+      if (domain !== undefined) assertInDomain(arg, fallback, domain);
+      return fallback;
+    }
+    const token = args[index + 1];
+    const parsed = Number(token);
+    if (tokenFault(token) !== null || !Number.isFinite(parsed)) {
+      throw new Error(
+        `${arg} owns the token after it and cannot read ${
+          describeNumericToken(token)
+        } as a number — a NaN or ZERO floor disables every thin marker in ` +
+          `tables a calibration ruling is made from: x < NaN is false for ` +
+          `every x, and x < 0 is false for every count; pass ${arg} <number>`,
+      );
+    }
+    if (domain !== undefined) assertInDomain(arg, parsed, domain);
+    return parsed;
+  }
+  const minN = num("--min-n", 30, {
+    basis:
+      "the marker fires on stats.n < minN, and a floor of zero is not 'no floor' — it silently readmits " +
+      "the thin cells the floor exists to withhold",
+    integer: true,
+    min: 1,
+  });
+  const emitPath = str("--emit");
+  if (emitPath === undefined) {
     console.error("Usage: npx tsx scripts/sweep-analysis.ts --emit path.jsonl");
     process.exit(1);
   }
@@ -147,18 +240,29 @@ async function main(): Promise<void> {
   // holdout markets (3e) never enter a tuning table.
   const rows: Row[] = [];
   let holdoutSkipped = 0;
+  let dataAbsentRows = 0;
   await assertManifestedCorpusStreaming(emitPath, (raw) => {
     const parsed = raw as unknown as Row;
     if (parsed.holdout === true) {
       holdoutSkipped += 1;
       return;
     }
+    if (raw.noBarsInReviewWindow === true) {
+      dataAbsentRows += 1;
+    }
+    // The vocabulary's own projection rides first (#364 round 6,
+    // finding 1): a field the partition reads can no longer be dropped
+    // by this narrowing — round 5 fixed the add() call while THIS push
+    // was the layer that stripped the marker. The narrowing itself
+    // stays: it exists for the 505 MB corpus.
     rows.push({
+      ...vocabularyRow(raw),
       accepted: parsed.accepted,
       confidenceScore: parsed.confidenceScore,
       cotStance: parsed.cotStance,
+      macroAdjustment: parsed.macroAdjustment,
+      macroStance: parsed.macroStance,
       newsPenalty: parsed.newsPenalty,
-      outcome: parsed.outcome,
       realizedR: parsed.realizedR,
       regime: parsed.regime,
       rewardRisk: parsed.rewardRisk,
@@ -173,10 +277,33 @@ async function main(): Promise<void> {
     });
   });
   if (holdoutSkipped > 0) {
-    console.log(`(holdout markets excluded: ${holdoutSkipped} rows)`);
+    // Scope and definition on the line itself (#364 round 30, smaller):
+    // the data-absence line below also names them, but it is gated on
+    // marked rows existing — this line must stand alone.
+    console.log(
+      `(holdout markets excluded: ${holdoutSkipped} rows — all variants, ` +
+        `all splits, stamped flag)`,
+    );
   }
 
-  console.log(`# Sweep analysis — ${rows.length} evaluated setups`);
+  // The headline states its own denominator (#364 round 7, finding 3):
+  // every table below holds data-absence rows out of n, so the number a
+  // ruling is quoted from must be the same population — with the
+  // excluded volume on its own line, the holdoutSkipped pattern.
+  console.log(
+    `# Sweep analysis — ${
+      rows.length - dataAbsentRows
+    } market-evidence setups`,
+  );
+  // Each reader's held-out line names its OWN population (#364 round 26,
+  // finding 2): the three readers' scopes differ.
+  if (dataAbsentRows > 0) {
+    console.log(
+      `(data-absence rows held out of every denominator: ${dataAbsentRows}` +
+        ` — all variants, all splits; holdout excluded by the emit's ` +
+        `stamped flag)`,
+    );
+  }
   console.log(`Emit: ${emitPath} · min-n for a reportable cell: ${minN}`);
   const splits = [...new Set(rows.map((row) => row.split))];
   const variants = [...new Set(rows.map((row) => row.variant))];
@@ -230,7 +357,7 @@ async function main(): Promise<void> {
     const live = liveThreshold(className) ?? 0;
     table(
       `${className} — confidence reliability (5-point buckets; * marks the live threshold's bucket, ! marks n < ${minN})`,
-      ["band", "n", "tp1", "stop", "unfilled", "expR", "flag"],
+      ["band", "n", "tp1", "stop", "unfilled", "dataAbs", "expR", "flag"],
       [...buckets.entries()]
         .sort(([a], [b]) => a - b)
         .map(([bucket, stats]) => [
@@ -239,6 +366,7 @@ async function main(): Promise<void> {
           rate(stats.wins, stats.filled),
           rate(stats.stops, stats.filled),
           rate(stats.n - stats.filled, stats.n),
+          String(stats.dataAbsent),
           expectancyLabel(stats),
           `${bucket <= live && live <= bucket + 4 ? "*" : ""}${stats.n < minN ? "!" : ""}`,
         ]),

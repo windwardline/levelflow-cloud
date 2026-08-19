@@ -46,6 +46,7 @@ import {
   sessionAnchorWitness,
   storeKindForKey,
 } from "./clockWitness.ts";
+import { flagReader } from "./flagReader.ts";
 
 type StoredBar = { high: number; low: number; time: number };
 type SlimSeries = {
@@ -421,11 +422,17 @@ export function auditCacheClock(input: {
   return { failures, lines };
 }
 
+// The ONE declaration of which flags own the token after them — the form
+// rounds 33-38 installed across the corpus readers, extended to every
+// script with a value-taking flag (#364 round 50, finding 2). The scan in
+// tests/sweepManifest.test.ts now DERIVES its file list by globbing
+// scripts/, so a new reader joins the law automatically instead of being
+// found by a review round.
+const VALUE_FLAGS = new Set(["--cache-dir"]);
+
 function main(): void {
-  const flagIndex = process.argv.indexOf("--cache-dir");
-  const cacheDir = flagIndex >= 0
-    ? process.argv[flagIndex + 1]
-    : ".calibration-cache";
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const cacheDir = str("--cache-dir") ?? ".calibration-cache";
   const roster = defaultScanSymbols
     .map((symbol) => resolveProviderSymbols(symbol)[0])
     .filter((provider): provider is string => Boolean(provider));

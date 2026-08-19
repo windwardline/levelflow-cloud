@@ -37,7 +37,24 @@ type S = { filled: number; rSum: number; wins: number };
 async function main(): Promise<void> {
   const acc = new Map<string, S>();
   const k = (s: string, p: string) => `${s}|${p}`;
-  for (const file of process.argv.slice(2)) {
+  const files = process.argv.slice(2);
+// WIF-4, derived population (#364 round 54, finding 2): a run over zero
+// rows cannot report a verdict, and this reader had no door — with no
+// shard the loop never runs and the table prints its column header alone
+// under exit 0, which is exactly what a real corpus holding no qualifying
+// row also prints. The operator cannot tell "nothing qualified" from "I
+// forgot the shard path". Round 53 installed this law over a HAND-PICKED
+// five-file population; the population is derived in tests/emptyCorpusRefusals.test.ts's
+// scan now, the way the flag law's is.
+  if (files.length === 0) {
+    console.error(
+      "usage: exclusion-suspects.ts <emit.jsonl> [more.jsonl ...] — a run " +
+        "over zero rows cannot rank suspects; the header-only table it " +
+        "would print is what a corpus with no qualifying market prints too",
+    );
+    process.exit(1);
+  }
+  for (const file of files) {
     // R0: the one-clock door (#358 round 3).
     assertManifest(file);
     const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });

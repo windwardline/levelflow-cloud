@@ -70,7 +70,18 @@ function main(): void {
   }
   const holdout = manifest.holdoutSymbols ?? [];
   if (holdout.length > 0) {
-    console.log(`\nholdout (${holdout.length}): ${holdout.join(", ")}`);
+    // The STAMPED flag, named as such (#364 round 30, finding 3): this
+    // is the driver's class-blind 1-in-5 draw recorded in the manifest.
+    // The 4c gate (grid-totalr) ignores it and excludes its own
+    // read-time stratified set — a different set by design — and prints
+    // that count itself; a per-market sweep planned off this table must
+    // not read this list as the gate's holdout.
+    console.log(
+      `\nholdout (${holdout.length}, the manifest's STAMPED flag — the 4c ` +
+        `gate excludes its own read-time stratified set instead): ${
+          holdout.join(", ")
+        }`,
+    );
   }
 }
 

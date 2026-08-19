@@ -31,8 +31,10 @@
 //                            published bill the market loses.
 //   gross confirm E  > 0  -> the negative rests on OUR modeled cost.
 //                            DO NOT withdraw; disclose the sensitivity.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 function spansFrom(paths: string[]): Map<string, { first: number; last: number }> {
   const spans = new Map<string, { first: number; last: number }>();
@@ -174,19 +176,54 @@ function read(acc: Acc | undefined) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  const flag = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
-  const netPaths = (flag("net") ?? "").split(",").filter(Boolean);
-  const grossPaths = (flag("gross") ?? "").split(",").filter(Boolean);
+  const VALUE_FLAGS = new Set(["--net", "--gross", "--cells", "--out"]);
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const netPaths = (str("--net") ?? "").split(",").filter(Boolean);
+  const grossPaths = (str("--gross") ?? "").split(",").filter(Boolean);
   const cells = new Map<string, string>();
-  for (const pair of (flag("cells") ?? "").split(";")) {
+  for (const pair of (str("--cells") ?? "").split(";")) {
     const [symbol, variant] = pair.split("|");
     if (symbol && variant) cells.set(symbol.trim(), variant.trim());
   }
-  const outPath = flag("out") ??
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json";
+
+  // A run over zero rows cannot report a verdict — WIF-4, the law
+  // roster-expectancy-audit states at its own door and this file had no
+  // form of (#364 round 53, finding 2). All three inputs default to the
+  // empty string and are then split, so any one of them omitted produced
+  // a complete-looking artifact — verdicts {}, summary all zeros, and a
+  // summary line reading "0 data-negative … 0 cost-dependent" — over a
+  // corpus nobody opened. The three are named separately because they
+  // fail for different reasons: a missed --gross is the arm this whole
+  // comparison exists for, and its absence would otherwise read as
+  // agreement between two corpora only one of which was supplied.
+  // (This script's MECHANISM is known broken — see the banner at the top
+  // — so nothing it writes is evidence either way. The refusals are here
+  // because a broken instrument that also cannot say it read nothing is
+  // two defects, and the second one outlives the first: whatever repairs
+  // the wiring inherits these doors.)
+  for (
+    const [flag, paths] of [
+      ["--net", netPaths],
+      ["--gross", grossPaths],
+    ] as const
+  ) {
+    if (paths.length === 0) {
+      throw new Error(
+        `cost-sensitivity-verdict: ${flag} named no shard. Both arms are ` +
+          `read and compared, so a missing one cannot be reported as a ` +
+          `verdict; pass ${flag} shard-a.jsonl,shard-b.jsonl .`,
+      );
+    }
+  }
+  if (cells.size === 0) {
+    throw new Error(
+      "cost-sensitivity-verdict: --cells named no (symbol|variant) cell. " +
+        "The verdict loop walks this map, so an empty one reads both " +
+        "corpora and judges nothing; pass --cells SYM|variant;… .",
+    );
+  }
 
   // Spans from each corpus's OWN manifests; the same symbols were swept
   // both times, so the folds land identically.
@@ -229,24 +266,17 @@ async function main() {
       verdict,
     };
   }
-  writeFileSync(
-    outPath,
-    JSON.stringify(
-      {
-        derivedAt: new Date().toISOString(),
-        note:
-          "INVALID — the 'gross' arm charged the same costs as the net arm. " +
-          "LEVELFLOW_MODELED_COST_SCALE never reaches the replay resolver " +
-          "(defect 1c, 2026-08-11), so this file measures nothing. Do not use " +
-          "these numbers to withdraw, defend, or ship a market. See " +
-          "docs/research/remediation-program-2026-08-11.md.",
-        summary: { costDependent, indistinguishable, unreadable, withdrawable },
-        verdicts,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeResearchArtifact(outPath, {
+    derivedAt: new Date().toISOString(),
+    note:
+      "INVALID — the 'gross' arm charged the same costs as the net arm. " +
+      "LEVELFLOW_MODELED_COST_SCALE never reaches the replay resolver " +
+      "(defect 1c, 2026-08-11), so this file measures nothing. Do not use " +
+      "these numbers to withdraw, defend, or ship a market. See " +
+      "docs/research/remediation-program-2026-08-11.md.",
+    summary: { costDependent, indistinguishable, unreadable, withdrawable },
+    verdicts,
+  });
   console.log(
     `cost sensitivity: ${withdrawable} data-negative beyond error (decline), ` +
       `${costDependent} cost-dependent (keep), ${indistinguishable} indistinguishable from zero (keep), ` +

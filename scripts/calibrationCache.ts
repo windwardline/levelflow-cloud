@@ -25,6 +25,7 @@
 // from one imports the defect this guard exists to stop.
 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { CALENDAR_CLOCK } from "./clockWitness.ts";
 
 export const DEFAULT_CACHE_DIR = ".calibration-cache";
 
@@ -71,6 +72,10 @@ async function readStore<T>(path: string): Promise<RollingStore<T> | null> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
+    // The parenthesized error string is safe in the nightly log only
+    // because the top-up script greps cacheStoreUnreadable ahead of its
+    // \(429\) quota stand-down (#364 rounds 23-24): the token outranks
+    // any status-shaped fragment the wrapped error might carry.
     throw new Error(
       `cacheStoreUnreadable: ${path} exists but cannot be read ` +
         `(${String(error)}) — inspect or delete it deliberately`,
@@ -119,12 +124,20 @@ export async function loadRollingSeries<T>(input: {
 
   let store = await readStore<T>(path);
   if (store && store.clock !== clock) {
+    // #364 round 25, finding 3: the remedy follows the store's own
+    // clock — the nightly stand-down defers to THIS line for it. A
+    // calendar-clock store (treasury-rates, econ-calendar) clears by
+    // deleting that one store; routing it to the 8-12h bar rebuild is
+    // a remedy that cannot clear its stamp (round-14's shape).
+    const remedy = clock === CALENDAR_CLOCK
+      ? `delete this one rolling store and re-run — it refetches under ` +
+        `the current clock; the bar-store rebuild cannot clear it`
+      : `rebuild it per docs/cache-rebuild-r0.md`;
     throw new Error(
       `cacheClockMismatch: ${path} carries clock "${
         store.clock ?? "<unstamped — pre-R0 mixed-clock era>"
       }" but this build reads and writes "${clock}". The store cannot be ` +
-        `read or topped up under a different normalization — rebuild it ` +
-        `per docs/cache-rebuild-r0.md.`,
+        `read or topped up under a different normalization — ${remedy}.`,
     );
   }
   if (!store) {

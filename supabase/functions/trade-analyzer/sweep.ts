@@ -19,6 +19,13 @@ import {
   cotScoreAdjustment,
 } from "./cotContext.ts";
 import {
+  calculateMacroRateAdjustment,
+  type DatedTreasuryRow,
+  treasuryContextFromRows,
+  treasuryVisibleAtMs,
+  unavailableContext,
+} from "./macroRates.ts";
+import {
   calculateNewsPenaltyUnits,
   isBlockingNewsEvent,
   NEWS_ACTIVE_AFTER_MS,
@@ -63,12 +70,31 @@ export type SweepOutcomeRecord = {
   exitAtMs: number;
   filledAtMs: number | null;
   legs: ResolutionLeg[];
+  // E6 (R1b): the reconstructed Treasury-curve adjustment this row was
+  // scored under — recorded per row like newsPenalty and sessionPenalty,
+  // on the stopProvenance principle: every input that moves a score is a
+  // measurable column, never an assumed constant. The stance rides
+  // beside it the way cotStance rides beside cotPercentile (#364 round
+  // 3, finding 2): adjustment 0 alone conflates "no curve visible",
+  // "rates steady", and "no rate-aligned side" — three different facts
+  // a cohort read must be able to separate, and the disambiguation that
+  // makes the curve's tolerated leading edge honestly VISIBLE downstream.
+  macroAdjustment: number;
+  macroStance: string;
   maxAdverseMove: number | null;
   maxFavorableMove: number | null;
   newsPenalty: number;
+  // E2 (R1b): the resolver's data-absence marker, carried into the corpus
+  // so a cohort read can separate "the provider had no bars inside the
+  // review window" from a market that genuinely never filled the limit.
+  noBarsInReviewWindow?: true;
   outcome: Exclude<ResolvedOutcome, "pending">;
   realizedR: number;
   regime: string;
+  // E1's tier, per row (emit symmetry with the live writers'
+  // feedback.resolutionIntervalMs): 300000 when the 5-minute series
+  // resolved this row, 900000 when it degraded to 15-minute physics.
+  resolutionIntervalMs: number;
   // The planned risk unit in PRICE terms — with the legs, every half of a
   // resolution reconstructs exactly (rewardRisk alone is a ratio).
   riskDistance: number;
@@ -95,6 +121,10 @@ export type SweepOutcomeRecord = {
 };
 
 export type SweepSummary = {
+  // #364 round 4, finding 2: no-bars rows split out of unfilled so the
+  // summary's denominators state themselves — data absence is not a
+  // market verdict, at the aggregator exactly as at the resolver.
+  dataAbsent: number;
   expectancyR: number;
   filled: number;
   stopRate: number;
@@ -124,6 +154,13 @@ export type SweepResult = {
     regimeBlocked: number;
     regimeGated: number;
     sessionBlocked: number;
+    // E2's sweep half (R1b): planRejected means "buildPricePlan refused"
+    // and nothing else. A constructed plan whose evaluation still comes
+    // back non-resolved lands here instead — with the sweep's far-future
+    // resolution clock every no-bars case resolves through the marker, so
+    // the only path left is non-finite plan numbers, and that is a defect
+    // to surface, not a plan verdict to blend in.
+    unresolvable: number;
   };
   summary: SweepSummary;
 };
@@ -276,6 +313,16 @@ export function simulateSymbol(input: {
   primaryBars: Bar[];
   stepBars: number;
   symbol: string;
+  // E6 (R1b): daily 2Y/10Y Treasury rows, sorted ascending by dateMs. Each
+  // decision instant scores under calculateMacroRateAdjustment fed by the
+  // two most recent rows VISIBLE at that instant (macroRates.ts's New York
+  // midnight rule), exactly the arithmetic the live analyzer runs on the
+  // response's two most recent rows. Optional so fixtures can exercise the
+  // outage shape; the driver always loads and passes the historical curve
+  // — without it every decision scores stance "unavailable", the live
+  // outage semantics, and the manifest could not honestly state
+  // conditions.macroAdjustment as reconstructed.
+  treasuryRates?: DatedTreasuryRow[];
   warmupBars: number;
 }): SweepResult {
   const calibration: CategoryCalibration = {
@@ -298,11 +345,17 @@ export function simulateSymbol(input: {
     regimeBlocked: 0,
     regimeGated: 0,
     sessionBlocked: 0,
+    unresolvable: 0,
   };
   const newsEvents = input.newsEvents ?? [];
   // Decision points advance chronologically, so a moving pointer keeps the
   // relevant-event window scan linear across the whole simulation.
   let newsStartIndex = 0;
+  // E6: the Treasury join walks the same way — rows become visible in
+  // dateMs order (the visibility instant is monotone in the label date),
+  // so one pointer serves every decision.
+  const treasuryRates = input.treasuryRates ?? [];
+  let treasuryVisible = 0;
   // 2a: what a decision may read from the daily series is bounded by each
   // bar's COMPLETION instant, not its stamp. The old time<=now filter
   // admitted the decision day's own completed OHLC at 00:00 — ATR, EMAs,
@@ -352,6 +405,12 @@ export function simulateSymbol(input: {
       ) {
         fiveMinVisible += 1;
       }
+    }
+    while (
+      treasuryVisible < treasuryRates.length &&
+      treasuryVisibleAtMs(treasuryRates[treasuryVisible].dateMs) <= latest.time
+    ) {
+      treasuryVisible += 1;
     }
     const market = buildDecisionMarketContext({
       daily,
@@ -447,11 +506,35 @@ export function simulateSymbol(input: {
     }
 
     // Mirror the live analyzer's acceptance gates: confidence threshold and
-    // effective payoff floor. News, session, macro, and learning inputs are
-    // zero offline, matching a clean-conditions review.
+    // effective payoff floor. E6 (R1b) resolved the three score inputs the
+    // sweep used to hardwire to zero, one per term:
+    // - macroAdjustment is RECONSTRUCTED — the two most recent Treasury
+    //   rows visible at this instant feed the same arithmetic live runs.
+    // - providerWarningCount stays 0 because zero is CORRECT BY
+    //   CONSTRUCTION offline: warnings are live transport failures, and
+    //   the corpus door refuses a cache that cannot prove completeness
+    //   (buildDecisionMarketContext pins providerWarnings: []). The
+    //   manifest states it in conditions.providerWarningCount.
+    // - weightAdjustment stays 0 as a DECISION: replaying the learning
+    //   table honestly means simulating its own evolution (walk-forward
+    //   learning — a program, not a patch), so the corpus measures the raw
+    //   engine and says so in conditions.weightAdjustment, and no reader
+    //   can mistake corpus expectancy for cohort-adjusted expectancy.
     const cotContext = buildCotContext(
       input.cotReports ?? [],
       latest.time,
+    );
+    const macroRate = calculateMacroRateAdjustment(
+      input.symbol,
+      consensus.side,
+      treasuryVisible >= 2
+        ? treasuryContextFromRows(
+          treasuryRates[treasuryVisible - 1],
+          treasuryRates[treasuryVisible - 2],
+        )
+        : unavailableContext(
+          "No Treasury rows were visible at this decision instant.",
+        ),
     );
     const scoreBreakdown = scoreSetupConfidence({
       availableTimeframeCount: market.availableTimeframes.length,
@@ -463,7 +546,7 @@ export function simulateSymbol(input: {
         calibration.cotScoreAdjustment ?? 0,
       ),
       executionPenalty: plan.executionQuality.confidencePenalty,
-      macroAdjustment: 0,
+      macroAdjustment: macroRate.adjustment,
       newsPenaltyUnits,
       providerWarningCount: 0,
       regimeAdjustment: calibration.regimeScoreAdjustments?.[regime.name] ?? 0,
@@ -560,12 +643,24 @@ export function simulateSymbol(input: {
         roundTripCost: plan.executionQuality.estimatedCommission,
         runnerProtection: calibration.runnerProtection,
         sameBarProtectionArming: true,
+        // FR-5's stream begins one decision bar after creation on BOTH
+        // tiers, and the no-bars marker's could-a-completed-bar-exist
+        // question must ask about this stream, not the decision bar's
+        // own slot (#364 round 4, finding 1 — the Friday weekly-clamp
+        // false mark).
+        streamStartsAtMs: latest.time + 15 * 60 * 1000,
       },
     );
     if (evaluation.state !== "resolved") {
-      // No future bars inside the review window; count with plan rejections
-      // so decision-point accounting stays exact.
-      rejections.planRejected += 1;
+      // E2's sweep half (R1b): this used to wear planRejected — "no future
+      // bars inside the review window" counted as a plan verdict. That
+      // case now RESOLVES: the resolver's far-future clock turns every
+      // no-bars window into an unfilled row carrying the
+      // noBarsInReviewWindow marker, which the emit below preserves. What
+      // reaches this branch is a constructed plan the resolver still could
+      // not grade (non-finite plan numbers) — its own bucket, so
+      // planRejected keeps one meaning and decision arithmetic stays exact.
+      rejections.unresolvable += 1;
       continue;
     }
 
@@ -583,10 +678,22 @@ export function simulateSymbol(input: {
       exitAtMs: Date.parse(evaluation.exitAt),
       filledAtMs: evaluation.filledAt ? Date.parse(evaluation.filledAt) : null,
       legs: evaluation.legs,
+      macroAdjustment: macroRate.adjustment,
+      macroStance: macroRate.stance,
       maxAdverseMove: feedbackNumber("maxAdverseMove"),
       maxFavorableMove: feedbackNumber("maxFavorableMove"),
       newsPenalty: newsPenaltyUnits,
+      // The marker's claim is scoped to the resolution stream (#364
+      // round 1, finding 2): here that stream starts after the decision
+      // bar completes (FR-5 slice above), so a marked corpus row says
+      // "no GRADEABLE bar overlapped the window" — the decision bar's
+      // own interior, which could never grade anything, is outside the
+      // evidence and outside the claim. replay.ts's marker comment
+      // carries the full statement for both callers.
+      ...(evaluation.feedback.noBarsInReviewWindow === true &&
+        { noBarsInReviewWindow: true as const }),
       outcome: evaluation.outcome,
+      resolutionIntervalMs,
       riskDistance: Math.abs(plan.entryPrice - plan.stopLoss),
       realizedR: realizedRFromLegs({
         legs: evaluation.legs,
@@ -632,6 +739,9 @@ export function summarizeSweepOutcomes(
   records: SweepOutcomeRecord[],
 ): SweepSummary {
   const total = records.length;
+  const dataAbsent = records.filter((record) =>
+    record.noBarsInReviewWindow === true
+  ).length;
   const filledRecords = records.filter((record) =>
     record.outcome !== "unfilled"
   );
@@ -647,12 +757,13 @@ export function summarizeSweepOutcomes(
     : 0;
 
   return {
+    dataAbsent,
     expectancyR: roundStat(expectancy),
     filled,
     stopRate: filled > 0 ? roundStat(stops / filled) : 0,
     total,
     tp1HitRate: filled > 0 ? roundStat(tp1Hits / filled) : 0,
-    unfilled: total - filled,
+    unfilled: total - filled - dataAbsent,
   };
 }
 

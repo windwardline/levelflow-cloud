@@ -112,8 +112,44 @@ this archive rather than by the store guard.)
 The rebuild is not a special code path: it is a cold cache warmed by the
 same `--warm-only` run the nightly top-up performs, fetching every roster
 symbol's full 15-minute, 5-minute and daily history plus the economic
-calendar and COT contracts, all through the current normalizer, all
-stamped, all witness-checked as they load. Run it directly so the output
+calendar, the Treasury curve (R1b) and COT contracts, all through the
+current normalizer, all stamped, all witness-checked as they load. One
+asymmetry to know (#364 rounds 13–14; scope tightened round 21): a
+Treasury provider TRANSPORT failure under `--warm-only` (a non-200, a
+timeout, quota) warns and continues so the bar warm cannot die on the
+second endpoint — which means a rebuild can finish green with the
+treasury store un-warmed. Before calling step 2 done, grep the log for
+`treasury top-up failed`; a hit means re-run once the endpoint recovers
+(cheap — the bar stores are already warm). Integrity refusals go red,
+as they must, with the roster's warm preserved (#364 rounds 21–23):
+every treasury integrity refusal — store (`cacheStoreUnreadable`,
+`cacheClockMismatch`) and chunk (`treasuryCoverageRefused`,
+`treasuryChunkHole`) — DEFERS under `--warm-only`: the bar survey
+completes, then the run exits red after the table. None of the four
+says anything about the bar stores — the store guard is per-file,
+and the treasury store is stamped `CALENDAR_CLOCK` while every bar
+store is `BAR_CLOCK` — so a step-2 run that ends this way has its
+bar stores warm and needs only the treasury fix plus a cheap
+re-run. (Warned over instead, these would leave `top-up complete`
+printing nightly over a store that never warms — the cost is that
+false green, not the refetch, which the first-zero-row-chunk throw
+cuts to a request or two. The nightly script greps three of
+them — both chunk tokens and `cacheStoreUnreadable` — ahead of its
+429 stand-down, so a blackout-era roster 429 in the same log cannot
+downgrade them; `cacheClockMismatch` keeps its own named stand-down,
+whose message routes a bar-store mismatch to this rebuild and a
+treasury/calendar-store mismatch to deleting that one rolling store.
+And the tolerated transport warn re-shapes any parenthesized status,
+so a tolerated treasury 429 cannot feed the quota stand-down either.) Two blind
+spots to know: the survey path asserts nothing about a hole already
+PINNED in the store — that surfaces at the next sweep pre-flight or
+corpus read, never in the nightly log — and the economic calendar
+loads BEFORE the treasury curve with no tolerance at all (the
+carried R2 item), so a calendar-endpoint outage — or a
+`CALENDAR_CLOCK` bump, which condemns the calendar store first —
+still ends step 2 in its first seconds with zero symbols warmed; if
+step 2 dies instantly, check the calendar load first and re-run
+once it clears. Run it directly so the output
 streams (the launchd wrapper buffers everything until exit, which for a
 run this long reads as a hang):
 
@@ -194,15 +230,65 @@ updating is the same failure class inverted:
 launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.windwardline.levelflow-cache-topup.plist
 ```
 
-Know what is and is not watching from here: the density floor+ceiling
-runs only when `verify-cache-clock` is invoked by hand — nothing
-re-checks it at top-up time, so a provider cap change landing AFTER step
-3 stays invisible until R1's E2 density assertion reaches the corpus
-door (or the next manual verify). If FMP announces plan or endpoint
-changes, re-run step 3 before the next sweep. Two related notes: a
+Know what is and is not watching from here (amended by #364, R1b):
+three layers see density now. `verify-cache-clock` by hand carries the
+loose [2.5, 3.5] band; every SWEEP run's driver pre-flight asserts the
+corpus door's tighter floors per symbol and refuses at the first
+violator — before THAT symbol simulates, not before all simulation:
+the loop interleaves per symbol, so a violation late in the roster
+costs the prefix already simulated (#364 round 31 corrected the
+spends-nothing claim); launch sweeps after a nightly survey with no
+`WOULD REFUSE` line and a violator costs nothing at the survey's
+depth (#364 round 32 made that advice real — see below; a bounded
+sweep's own window is still judged only by its own pre-flight). And
+the read-time corpus door backstops. Top-up time still deliberately asserts NOTHING — a
+density refusal under `--warm-only` would go red mid-roster and leave
+every later symbol un-topped-up, this runbook's own failure class — but
+the warm-only log now prints a density line for every symbol — 5-minute
+rows/day at depth, or `5min 0 rows` when the store is empty, which is
+exactly what a provider endpoint change that zeroes the feed would
+produce — and, since #364 round 32, runs the corpus door itself in
+REPORT mode on every manifest-eligible symbol, logging
+`density WOULD REFUSE at this depth: …` with the door's own message
+when the floors or the intersection ratio would fail there. "Green
+survey" therefore means the door's own green at max depth, not an
+operator eyeballing rows/day against floors stated in another file;
+enforcement still waits at the next sweep pre-flight or corpus read. If a nightly log's density lines
+shift, or FMP announces plan or endpoint changes, re-run step 3 before
+the next sweep. Two related notes: a
 superseded-clock corpus read is possible only via the explicit
 `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` override, which warns loudly on
 every read — figures produced under it are historical, never current.
+Know exactly what the override stops checking (#364 round 16): only
+stated measurement TERMS — the conditions literals, and evidence
+blocks a pre-R1b manifest never carried (conditions, curve facts,
+shared-window density facts). Every data-integrity law still binds
+under it: clock witnesses, the density floors and ratio, disjoint
+stores, and any curve evidence that IS present (a manifest carrying
+facts that show a holed, stale-tailed, or shallow curve refuses under
+the override exactly as on the current path — poison is never a term).
+To deepen the Treasury request (`TREASURY_FETCH_START_MS`): FIRST
+probe that the provider actually SERVES the new start — the recorded
+2026-08-19 probe is a lower bound ("at least 2005-01-03"), which
+covers moves to 2005 or later but says nothing about deeper; a
+constant past the provider's real floor makes the refetch's FIRST
+chunk come back empty, so with the old store already deleted the
+FETCH refuses permanently — not the pre-flight, which only ever sees
+a store that loaded — and since #364 round 20 that refusal names this
+exact situation and remedy (coverage, not a hole: re-probe the
+earliest served date and move the constant back with the evidence)
+instead of a store-hole message deleting-and-refetching cannot clear
+(#364 rounds 19–20). Its `treasuryCoverageRefused` token stays red
+under `--warm-only` too (round 21), so a wrong constant shows in the
+nightly log as a failure, never as a green survey over an un-warmed
+store — with the red exit deferred past the bar survey (round 22),
+so the roster still warms on those nights.
+Then move the constant with the new probe recorded beside it AND
+delete the treasury-rates rolling store — an existing store never
+re-fetches its head, and the sweep pre-flight refuses a store
+shallower than the requested start (naming both remedies), so a
+forgotten delete cannot stamp a false `requestedStartMs` into a
+manifest (#364 round 18).
 
 Next 07:00 run should log `top-up complete`. Confirm one green nightly
 log before calling Phase 0 done. (If a future nightly log ever shows the

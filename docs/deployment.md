@@ -74,10 +74,14 @@ hold, require, or push either credential (the 2026-08-17 rotations
 stranded exactly such unlisted CI copies — deploy runs 373/374). Rotation
 is: rotate in the Keychain, run the script, done; the script proves the
 token end-to-end with one authenticated news-calendar call, and the
-deploy-time E2E chart gate proves the FMP key. Never pass a value on
-argv — the script moves them by 600-mode temp files so they cannot
-surface in `ps`, and `tests/securityHardening.test.ts` pins this file and
-every workflow against regressions.
+deploy-time E2E chart gate proves the FMP key. Never pass a credential
+value on argv — argv is world-readable via `ps -ax`, so no OTHER user or
+process watcher can read what travels by the script's 600-mode temp
+files (the invoking user can always inspect their own processes, and the
+script deliberately keeps two values in its own environment:
+`SUPABASE_ACCESS_TOKEN` exported for the CLI and `PGPASSWORD` for psql —
+readable only by that same user). `tests/securityHardening.test.ts` pins
+this file and every workflow against regressions.
 
 **Not on the studio machine?** The script's Keychain reads are the studio
 machine's (`security find-generic-password -a peacock -s …`). Elsewhere,

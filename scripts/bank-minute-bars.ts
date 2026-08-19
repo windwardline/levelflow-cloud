@@ -49,6 +49,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { MASTER_LIST_ROWS } from "../src/lib/broker/masterList.ts";
+import { flagReader } from "./flagReader.ts";
 
 const BASE = "https://financialmodelingprep.com/stable";
 const KEY = process.env.FMP_API_KEY;
@@ -110,14 +111,20 @@ type SidecarState = {
   sourceTimezone: string | null;
 };
 
+// The ONE declaration of which flags own the token after them — the form
+// rounds 33-38 installed across the corpus readers, extended to every
+// script with a value-taking flag (#364 round 50, finding 2). The scan in
+// tests/sweepManifest.test.ts now DERIVES its file list by globbing
+// scripts/, so a new reader joins the law automatically instead of being
+// found by a review round.
+const VALUE_FLAGS = new Set(["--dir", "--concurrency", "--limit"]);
+
 function parseArgs(argv: string[]) {
-  const dirFlag = argv.indexOf("--dir");
-  const concurrencyFlag = argv.indexOf("--concurrency");
-  const limitFlag = argv.indexOf("--limit");
+  const { num, str } = flagReader(argv, VALUE_FLAGS);
   return {
-    dir: dirFlag >= 0 ? argv[dirFlag + 1] : ".minute-bank",
-    concurrency: concurrencyFlag >= 0 ? Number(argv[concurrencyFlag + 1]) : 4,
-    limit: limitFlag >= 0 ? Number(argv[limitFlag + 1]) : Infinity,
+    dir: str("--dir") ?? ".minute-bank",
+    concurrency: num("--concurrency", 4),
+    limit: num("--limit", Infinity),
   };
 }
 
@@ -177,12 +184,48 @@ export function planRun(argv: string[]) {
   // `--limit`, or one followed by the next flag, used to fetch nothing at all
   // and exit 0 — a run that examined nothing wearing the result of one that
   // ran and passed. Infinity is the unflagged default and passes.
-  if (!(limit > 0)) {
+  // #364 round 38, finding 1 — the worst of the three dials, because
+  // its failure EXITS 0: "--dir --concurrency 4" (the documented
+  // invocation typed without its path) made the next flag the store
+  // directory; mkdir CREATED it, every sidecar read fresh, the full
+  // provider window refetched into a phantom store, none of the three
+  // escalations fired, and departedSymbols read the phantom and saw
+  // nothing wrong — while the real .minute-bank stopped growing inside
+  // the 3-day window this file exists to never miss. A path flag
+  // refuses a missing value or a flag token; the unflagged default
+  // passes.
+  // --dir's own guard is GONE (#364 round 52, finding 3): parseArgs
+  // above reads it through flagReader, which refuses a missing or
+  // flag-shaped token itself, so the hand-written block here was
+  // unreachable in both of its conditions. It was kept after the port
+  // on the belief that its message was pinned, but the tests matched on
+  // the flag NAME alone and flagReader's message satisfies them too —
+  // deleting the block left every one of them green. The round-38
+  // defect it was written for is still closed; it is closed one call
+  // earlier, by the shared reader, and the tests below now say which
+  // layer they are exercising.
+  // The same law for --concurrency (#364 round 37, smaller): Number of
+  // a missing value is NaN, Math.max(1, NaN) is NaN, and Array.from
+  // with a NaN length is EMPTY — zero workers, nothing fetched — and
+  // the zero-fetch escalation then blames the provider window for a
+  // mistyped flag no request was ever made under. The unflagged
+  // default (4) passes.
+  // Both messages report the value the READER produced, not a token
+  // re-derived from argv (#364 round 53, finding 1). The re-derivation
+  // that stood here was a second, unguarded resolution of a flag whose
+  // value had already been resolved one line up — first-occurrence-only,
+  // so the two could in principle name different tokens, and the
+  // diagnostic would be the one that lied. It cannot happen today, since
+  // flagReader refuses the repeat before either line runs; a refusal that
+  // depends on another refusal firing first is exactly how this PR's
+  // reachable-guard defects have read.
+  if (!(concurrency > 0)) {
     throw new Error(
-      `--limit must be a positive number; got ${JSON.stringify(
-        argv[argv.indexOf("--limit") + 1] ?? null,
-      )}.`,
+      `--concurrency must be a positive number; got ${concurrency}.`,
     );
+  }
+  if (!(limit > 0)) {
+    throw new Error(`--limit must be a positive number; got ${limit}.`);
   }
   const roster = bankableSymbols();
   return { dir, concurrency, roster, targets: roster.slice(0, limit) };

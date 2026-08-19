@@ -19,6 +19,7 @@
  * a report.
  */
 import { MASTER_LIST_ROWS, type MasterListRow } from "../src/lib/broker/masterList.ts";
+import { flagReader } from "./flagReader.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 const API_KEY = process.env.FMP_API_KEY;
@@ -221,7 +222,22 @@ async function reprobeUnmatched(rows: MasterListRow[]): Promise<void> {
   }
 }
 
+// The ONE declaration of which flags own the token after them (#364
+// round 50, finding 2 — the scan now globs scripts/, so every reader with
+// a value-taking flag is inside the law rather than on a curated list).
+const VALUE_FLAGS = new Set(["--json"]);
+
+
 async function main(): Promise<void> {
+  // Arguments are refused BEFORE the metered provider run (#364 round
+  // 52, finding 2). The port that gave --json a real refusal left the
+  // read at the end of main(), so a flag typed without its path spent
+  // the entire roster probe against the quota and then died without
+  // writing the artifact the run existed to produce — fail-late, in the
+  // change set that moved the density floors and the curve checks into
+  // pre-flights for exactly this reason.
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const jsonPath = str("--json");
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -271,11 +287,11 @@ async function main(): Promise<void> {
 
   await reprobeUnmatched(unmapped);
 
-  const jsonIndex = process.argv.indexOf("--json");
-  if (jsonIndex !== -1 && process.argv[jsonIndex + 1]) {
+  // (read at the top of main(), before any provider work)
+  if (jsonPath !== undefined) {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(
-      process.argv[jsonIndex + 1],
+      jsonPath,
       JSON.stringify(
         results.map((entry) => ({
           fmpSymbol: entry.fmpSymbol,
@@ -297,7 +313,7 @@ async function main(): Promise<void> {
         2,
       ),
     );
-    console.log(`\nwrote ${process.argv[jsonIndex + 1]}`);
+    console.log(`\nwrote ${jsonPath}`);
   }
 
   // Served rows lapsing is a hard failure; an unonboarded mate lapsing is

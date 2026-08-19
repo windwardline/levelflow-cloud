@@ -14,7 +14,7 @@
 // Both are reads of the SAME capture-all corpus: every decision is
 // present with its score, so a threshold is a filter, not a new
 // assumption.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   ENGINE_DECLINED_MARKETS,
@@ -22,6 +22,8 @@ import {
 } from "../supabase/functions/trade-analyzer/calibration.ts";
 import { defaultScanSymbols } from "../supabase/functions/trade-analyzer/symbols.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
@@ -59,11 +61,18 @@ function stats(acc: Acc) {
  * like a finished run — the exact silent pass the standard forbids, so this
  * refuses rather than reports (WIF-4, 2026-08-11).
  */
+const VALUE_FLAGS = new Set(["--out"]);
+
 export function shardPathsFromArgv(argv: string[]): string[] {
+  // POSITIVE membership test (#364 round 50, finding 2): the old form
+  // consumed the token after EVERY --flag, so a boolean or typo'd flag
+  // ate the shard path following it and the audit ran over a corpus one
+  // shard short of the one named — round 44's defect, surfaced here by
+  // the derived scan.
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      index += 1;
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
       continue;
     }
     paths.push(argv[index]);
@@ -80,11 +89,8 @@ export function shardPathsFromArgv(argv: string[]): string[] {
 async function main() {
   const argv = process.argv.slice(2);
   const paths = shardPathsFromArgv(argv);
-  const flag = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
-  const outPath = flag("out") ??
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/roster-expectancy-audit.json";
   const picksDir = "docs/research/baseline-2026-08-10";
 
@@ -237,10 +243,7 @@ async function main() {
     };
   }
 
-  writeFileSync(
-    outPath,
-    JSON.stringify({ report, tally }, null, 2) + "\n",
-  );
+  writeResearchArtifact(outPath, { report, tally });
   console.log(
     `roster expectancy: ${tally.measurablyPositive} positive, ` +
       `${tally.zeroSpanning} zero-spanning, ` +

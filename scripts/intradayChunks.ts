@@ -40,16 +40,28 @@
 // without false positives is not achievable from inside one response,
 // and no consolation instrument should pretend otherwise. The guard is
 // the measured caps above, verify-cache-clock's density floor AND
-// ceiling, and R1's E2 per-symbol density assertion at the corpus door.
+// ceiling, and R1b's E2 per-symbol density assertion — which runs in
+// TWO places (#364 rounds 8-9, correcting the corpus-door-only claim
+// that stood here): the sweep driver's own pre-flight, refusing at the
+// first violator before THAT symbol simulates (the loop interleaves
+// per symbol, so a late violator costs the roster prefix already
+// walked — #364 round 31), and the read-time corpus door, with the
+// nightly --warm-only log running the same door in REPORT mode across
+// the whole roster — would-refuse verdicts logged, never thrown (#364
+// round 32; the raw-print survey that stood here asserted nothing).
 // The ceiling's SENSITIVITY BAND, stated honestly (#358 round 5): a
 // clipped 15-minute primary inflates the 5min/15min ratio — unique
 // 15-minute rows per 29-day stride are min(2,784, cap), so ratio =
 // 8,352 / min(2,784, cap) — and the 3.5 ceiling therefore catches any
 // cap below ~2,386. Between ~2,386 and 2,784 only the 15-minute series
-// clips (up to ~14%) and the ratio stays inside the band: that is the
-// ceiling's stated blind band, carried by R1's E2 door, not covered
-// here. Tightening the ceiling below 3.5 is a data-informed follow-up
-// once the rebuilt cache yields a real ratio distribution.
+// clips (up to ~14%) and the ratio stays inside the band: that band is
+// a stated RESIDUE, never a closure (#364 rounds 10-11, correcting the
+// "carried by R1's E2 door" claim that stood here) — the assertion's
+// clip-invariant max(15-minute, 5-minute/3) population narrows it to
+// <=~7.7%, and a symmetric clip of both series stays uncovered by any
+// layer, as sweepStats.ts's density design block records. Tightening
+// the ceiling below 3.5 is a data-informed follow-up once the rebuilt
+// cache yields a real ratio distribution.
 
 export type IntradayTimeframe = "15min" | "5min";
 

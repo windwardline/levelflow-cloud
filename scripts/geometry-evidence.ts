@@ -14,14 +14,40 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type { ResolutionLeg } from "../supabase/functions/trade-analyzer/replay.ts";
 import {
-  assertManifestedCorpus,
+  assertManifestedCorpusStreaming,
   emptyStats,
   addOutcome,
   clusteredStandardError,
   expectancy,
   type SweepEmitRow,
   type SweepStats,
+  vocabularyRow,
 } from "./sweepStats.ts";
+
+// The evidence fields the five questions read, declared ONCE (#364
+// round 28, finding 1 — round 6's defect class, closed by the
+// VOCABULARY_ROW_KEYS mechanism applied to the evidence half): the
+// streaming projection is DERIVED from this list, so a field declared
+// on EvidenceRow cannot be silently dropped by the narrowing — the
+// hand-enumerated projection had already dropped sessionLabel and
+// tp1Hit, which a future question would have read as undefined on
+// every row with the suite green. A test holds this list and the type
+// in lockstep.
+export const EVIDENCE_ROW_KEYS = [
+  "accepted",
+  "confidenceScore",
+  "exitAtMs",
+  "filledAtMs",
+  "legs",
+  "maxAdverseMove",
+  "maxFavorableMove",
+  "regime",
+  "riskDistance",
+  "sessionLabel",
+  "side",
+  "stopProvenance",
+  "tp1Hit",
+] as const;
 
 export type EvidenceRow = SweepEmitRow & {
   accepted?: boolean;
@@ -141,19 +167,62 @@ function fmt(value: number | null | undefined, digits = 3): string {
     : value.toFixed(digits);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
   if (paths.length !== 1) {
     console.error("usage: geometry-evidence.ts <emit.jsonl>");
     process.exit(1);
   }
-  const { manifest, rows: rawRows } = assertManifestedCorpus(paths[0]);
-  const rows = (rawRows as EvidenceRow[]).filter((row) =>
-    (row.variant ?? "baseline") === "baseline" && row.holdout !== true
-  );
+  // Streamed through the manifest door with a projection (#364 round 27,
+  // finding 3 — round 26's "one reader left" count missed this one): the
+  // non-streaming read held BOTH the raw array and the filtered copy
+  // live, with EvidenceRow carrying legs[] and the excursion fields —
+  // heavier per row than sweep-analysis's projection, on the same
+  // 505 MB-scale corpora, and R1b grows every emit by the no-bars rows
+  // that previously emitted nothing. The projection spreads
+  // vocabularyRow FIRST (round 6's law: a field the partition reads
+  // cannot be dropped by a reader's narrowing), then exactly the
+  // evidence fields the five questions read; the baseline/holdout
+  // filter runs inside the callback so filtered rows are never held.
+  const rows: EvidenceRow[] = [];
+  let dataAbsentRows = 0;
+  const manifest = await assertManifestedCorpusStreaming(paths[0], (raw) => {
+    const row = raw as EvidenceRow;
+    if ((row.variant ?? "baseline") !== "baseline" || row.holdout === true) {
+      return;
+    }
+    if (raw.noBarsInReviewWindow === true) {
+      dataAbsentRows += 1;
+    }
+    const projected = {
+      ...vocabularyRow(raw),
+    } as EvidenceRow;
+    for (const key of EVIDENCE_ROW_KEYS) {
+      if (key in row) {
+        (projected as Record<string, unknown>)[key] = row[key];
+      }
+    }
+    rows.push(projected);
+  });
+  // The headline states market evidence (#364 round 28, finding 3): the
+  // five questions all filter to filled rows, so no TABLE moves with a
+  // marked row — but the headline is the corpus-size figure an operator
+  // quotes, and R1b inflates exactly it (no-bars decisions that
+  // previously emitted nothing now emit baseline rows, in bulk for the
+  // sparse floorless classes).
   console.log(
-    `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${rows.length} baseline rows (holdout excluded)\n`,
+    `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${
+      rows.length - dataAbsentRows
+    } baseline market-evidence rows (holdout excluded by the emit's stamped flag)`,
   );
+  if (dataAbsentRows > 0) {
+    console.log(
+      `(data-absence rows held out of the headline: ${dataAbsentRows}` +
+        ` — baseline variant, stamped holdout excluded; retained in the ` +
+        `row stream, and every question filters to filled rows)`,
+    );
+  }
+  console.log("");
   const reviewHoursBySymbol = new Map<string, number>(
     manifest.symbols.map((entry) => [
       entry.symbol,
@@ -348,5 +417,8 @@ function main(): void {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main();
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }

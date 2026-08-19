@@ -44,7 +44,27 @@ async function main(): Promise<void> {
   const bands = new Map<string, S>();     // cohort|floor|split
   const hours = new Map<string, S>();     // cohort|utcHour
   const totals = new Map<string, S>();
-  for (const file of process.argv.slice(2)) {
+  const files = process.argv.slice(2);
+  // WIF-4, derived population (#364 round 54, finding 2): a run over zero
+  // rows cannot report a verdict, and this reader had no door — with no
+  // shard the loop never runs and the table prints its column header alone
+  // under exit 0, which is exactly what a real corpus holding no qualifying
+  // row also prints. The operator cannot tell "nothing qualified" from "I
+  // forgot the shard path". Round 53 installed this law over a HAND-PICKED
+  // five-file population; the population is derived in tests/emptyCorpusRefusals.test.ts's
+  // scan now, the way the flag law's is.
+  // Its own text is honest — it prints "no rows" per cohort — but the
+  // EXIT CODE says the run succeeded, and a cohort legitimately holding no
+  // rows prints the same line.
+  if (files.length === 0) {
+    console.error(
+      "usage: ag-class-derivation.ts <emit.jsonl> [more.jsonl ...] — a run " +
+        "over zero rows cannot derive a class; \"no rows\" per cohort under " +
+        "exit 0 is indistinguishable from a corpus that really holds none",
+    );
+    process.exit(1);
+  }
+  for (const file of files) {
     // R0: the one-clock door (#358 round 3).
     assertManifest(file);
     const stream = createInterface({ crlfDelay: Infinity, input: createReadStream(file) });

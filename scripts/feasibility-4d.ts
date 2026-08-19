@@ -13,12 +13,14 @@
 // (market, accepted-candidate) — the sizing engine then answers per
 // program line. Nothing here reads the confirm fold's aggregates; the
 // pass collects execution geometry only.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { findBrokerInstrument } from "../src/lib/broker/instruments.ts";
 import { PROGRAM_LINES } from "../src/lib/broker/programs.ts";
 import { sizeSetup } from "../src/lib/broker/sizing.ts";
 import type { ProgramLine } from "../src/lib/broker/types.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
+import { writeResearchArtifact } from "./researchArtifact.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -46,24 +48,52 @@ function median(values: number[]): number | null {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
+const VALUE_FLAGS = new Set(["--candidates", "--out"]);
+
 async function main() {
   const argv = process.argv.slice(2);
+  // POSITIVE membership test (#364 round 50, finding 2). The old form
+  // consumed the token after EVERY --flag, so a boolean flag — or a
+  // typo'd one — ate the shard path following it and the run graded a
+  // corpus one shard short of the one the operator named. That is the
+  // defect round 44 found in the two 4d scripts; the derived scan
+  // surfaced it here.
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      index += 1;
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
       continue;
     }
     paths.push(argv[index]);
   }
-  const flagValue = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
-  const candidatesPath = flagValue("candidates") ??
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const candidatesPath = str("--candidates") ??
     "docs/research/baseline-2026-08-10/4d-candidates.json";
-  const outPath = flagValue("out") ??
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-feasibility.json";
+  // A run over zero rows cannot report a verdict — WIF-4, the law
+  // roster-expectancy-audit states at its own door and this file had no
+  // form of (#364 round 53, finding 2). It matters most HERE of the
+  // three: `feasibility` is a join whose consumers read an absent line as
+  // "the venue cannot size this cell", so an empty pass does not read as
+  // missing — it reads as INFEASIBLE EVERYWHERE, a false negative on
+  // every candidate, under a summary line ("feasibility for 0 markets")
+  // and an exit code that both say the run finished.
+  //
+  // ABOVE the candidates read (#364 round 55, finding 3). Round 53 put
+  // this door after it, so a run with no corpus died on `ENOENT:
+  // 4d-candidates.json` — non-zero and loud, but naming the wrong missing
+  // thing, and telling an operator to go find a file rather than to pass
+  // their shards. It is the same ordering defect round 54 found in
+  // confirm-4d, in a door added one round earlier, and the assertion that
+  // caught it is the one round 55 asked for.
+  if (paths.length === 0) {
+    throw new Error(
+      "feasibility-4d: no shard paths given. The geometry pass reads the " +
+        "corpus, and a join over zero rows reports every cell infeasible; " +
+        "pass the sweep shards explicitly.",
+    );
+  }
   const candidateFile = JSON.parse(
     readFileSync(candidatesPath, "utf8"),
   ) as CandidateFile;
@@ -76,6 +106,15 @@ async function main() {
     wanted.set(
       symbol,
       new Set(market.accepted.map((candidate) => candidate.variant)),
+    );
+  }
+
+  if (wanted.size === 0) {
+    throw new Error(
+      `feasibility-4d: ${candidatesPath} names no accepted candidate on any ` +
+        `market, so the pass would collect nothing. A candidate file with ` +
+        `no accepts is a 4d result, not a feasibility question — there is ` +
+        `nothing here to size.`,
     );
   }
 
@@ -138,6 +177,20 @@ async function main() {
     });
   }
 
+  // Shards and candidates both given, and not one accepted cell found a
+  // filled row carrying usable geometry. Only the corpus can see this,
+  // and the artifact is the same empty one the two doors above refuse
+  // (#364 round 53, finding 2).
+  if (geometry.size === 0) {
+    throw new Error(
+      `feasibility-4d: none of the ${wanted.size} market(s) with accepted ` +
+        `candidates found a filled row with an entry price and a positive ` +
+        `riskDistance across ${paths.length} shard(s) — check that the ` +
+        `candidate file and the corpus are the same measurement; an empty ` +
+        `join reads as infeasible everywhere.`,
+    );
+  }
+
   const quotes: Record<string, number> = {};
   for (const [symbol, sample] of closes) {
     const value = median(sample);
@@ -195,22 +248,15 @@ async function main() {
     }
   }
 
-  writeFileSync(
-    outPath,
-    JSON.stringify(
-      {
-        dailyLossDefaultPercent: DAILY_LOSS_DEFAULT_PERCENT,
-        derivedAt: new Date().toISOString(),
-        feasibility,
-        note:
-          "feasible = the §19 engine sizes at least one step at the line's " +
-          "smallest account within the published 3% default daily line, at " +
-          "the candidate's median stop geometry.",
-      },
-      null,
-      2,
-    ) + "\n",
-  );
+  writeResearchArtifact(outPath, {
+    dailyLossDefaultPercent: DAILY_LOSS_DEFAULT_PERCENT,
+    derivedAt: new Date().toISOString(),
+    feasibility,
+    note:
+      "feasible = the §19 engine sizes at least one step at the line's " +
+      "smallest account within the published 3% default daily line, at " +
+      "the candidate's median stop geometry.",
+  });
   console.log(
     `feasibility for ${Object.keys(feasibility).length} markets -> ${outPath}`,
   );
