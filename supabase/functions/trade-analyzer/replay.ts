@@ -100,6 +100,17 @@ export type ReplayFillOptions = {
   // FR-8: the expired-in-profit/at-loss split reads NET of this round
   // trip, so a label can never contradict the accountant's sign.
   roundTripCost?: number;
+  // E2 (#364 round 4, finding 1): where the RESOLUTION STREAM begins,
+  // when that is later than creation. The sweep stamps created_at at the
+  // decision bar's open while FR-5 starts its stream one decision bar
+  // later, so the no-bars marker's could-a-completed-bar-exist question
+  // must ask about the stream's own first admissible slot — computed
+  // from max(createdAt, streamStartsAtMs) — or a weekly-clamped window
+  // between one and two bar spans false-marks in the corpus while the
+  // decision bar's slot (never in the stream) pretends to fit. Live
+  // omits it: there the stream reaches back past creation and createdAt
+  // is exact.
+  streamStartsAtMs?: number;
   // FR-4: a manual TP1 partial fills this much worse than its level.
   tp1FillHaircut?: number;
   // LA-13: a limit "touch" is not a fill — demand this much penetration
@@ -303,7 +314,11 @@ export function evaluateSetupOutcome(
       // completes (FR-5 — absence of GRADEABLE bars, stated at its
       // slice site). The outcome stays "unfilled" for schema stability
       // either way.
-      const firstSlotStart = Math.ceil(createdAt / barIntervalMs) *
+      const earliestAdmissible = Math.max(
+        createdAt,
+        options?.streamStartsAtMs ?? createdAt,
+      );
+      const firstSlotStart = Math.ceil(earliestAdmissible / barIntervalMs) *
         barIntervalMs;
       const completedBarCouldExist = firstSlotStart + barIntervalMs <=
         expiresAt;

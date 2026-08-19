@@ -1351,6 +1351,45 @@ describe("R1a slice 2 — one physics", () => {
       String(outage.state === "resolved" ? outage.feedback.reason : ""),
       /No post-recommendation bars were available/,
     );
+
+    // #364 round 4, finding 1: the discriminator asks about the STREAM's
+    // first admissible slot. A 20-minute window sits between one and two
+    // bar spans — the creation instant's own slot fits, so a live caller
+    // (whose stream reaches back past creation) marks a genuinely empty
+    // window; a sweep-shaped caller whose stream starts one decision bar
+    // later could never have been handed a gradeable slot, and the same
+    // window is unmarked.
+    const twentyMinutes = { reviewHours: 1 / 3 };
+    const liveShaped = evaluateSetupOutcome(
+      setup,
+      [],
+      createdAt + 2 * 60 * 60 * 1000,
+      twentyMinutes,
+    );
+    assert.equal(
+      liveShaped.state === "resolved"
+        ? liveShaped.feedback.noBarsInReviewWindow
+        : null,
+      true,
+    );
+    const sweepShaped = evaluateSetupOutcome(
+      setup,
+      [],
+      createdAt + 2 * 60 * 60 * 1000,
+      { ...twentyMinutes, streamStartsAtMs: createdAt + 15 * 60 * 1000 },
+    );
+    assert.equal(
+      sweepShaped.state === "resolved"
+        ? sweepShaped.feedback.noBarsInReviewWindow
+        : null,
+      undefined,
+    );
+    assert.match(
+      String(
+        sweepShaped.state === "resolved" ? sweepShaped.feedback.reason : "",
+      ),
+      /before any complete bar could form inside it/,
+    );
   });
 
   it("E7: the bridge reads the row's stored protection mode and review window", () => {

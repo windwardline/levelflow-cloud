@@ -341,6 +341,7 @@ describe("the driver writes the manifest beside the emit", () => {
     const rowExpression: Record<string, RegExp> = {
       belowConf: /belowConfidence/,
       belowPayoff: /belowPayoff/,
+      dataAbsent: /summary\.dataAbsent/,
       decisions: /decisionPoints/,
       expectancyR: /expectancyR/,
       newsBlk: /newsBlocked/,

@@ -412,10 +412,18 @@ layer.
 ## R1b closure record (2026-08-18) — the sweep tells the truth about its inputs
 
 - **E2, sweep half + marker refinement**: the resolver's no-bars branch
-  gates the marker on **whether a completed bar COULD have existed** —
-  a fact about the window and the bar grid (bars sit on epoch multiples
-  of their span; the first slot at/after creation either fits inside
-  `[createdAt, expiresAt)` or nothing ever could). An uncontainable
+  gates the marker on **whether a completed bar COULD have existed in
+  the stream handed to it** — a fact about the window and the bar grid
+  (bars sit on epoch multiples of their span; the first slot at/after
+  `max(createdAt, streamStartsAtMs)` either fits inside
+  `[createdAt, expiresAt)` or nothing ever could). The sweep passes
+  `streamStartsAtMs = decision bar open + 15min` because FR-5 starts
+  its stream one decision bar after creation on both tiers (#364 round
+  4, finding 1 — computing from `createdAt` alone let the decision
+  bar's own slot, never in the stream, pretend to fit, false-marking
+  every weekly-clamped window between one and two bar spans: one
+  artifact row per clamped symbol per week); live omits the option,
+  since its stream reaches back past creation and `createdAt` is exact. An uncontainable
   window (#362 round 7's sub-bar-span weekly clamp, and any window no
   grid slot fits) resolves unfilled UNMARKED with its own sentence — a
   grading-law fact; a containable window whose resolution stream held

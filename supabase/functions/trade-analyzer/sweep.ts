@@ -121,6 +121,10 @@ export type SweepOutcomeRecord = {
 };
 
 export type SweepSummary = {
+  // #364 round 4, finding 2: no-bars rows split out of unfilled so the
+  // summary's denominators state themselves — data absence is not a
+  // market verdict, at the aggregator exactly as at the resolver.
+  dataAbsent: number;
   expectancyR: number;
   filled: number;
   stopRate: number;
@@ -639,6 +643,12 @@ export function simulateSymbol(input: {
         roundTripCost: plan.executionQuality.estimatedCommission,
         runnerProtection: calibration.runnerProtection,
         sameBarProtectionArming: true,
+        // FR-5's stream begins one decision bar after creation on BOTH
+        // tiers, and the no-bars marker's could-a-completed-bar-exist
+        // question must ask about this stream, not the decision bar's
+        // own slot (#364 round 4, finding 1 — the Friday weekly-clamp
+        // false mark).
+        streamStartsAtMs: latest.time + 15 * 60 * 1000,
       },
     );
     if (evaluation.state !== "resolved") {
@@ -729,6 +739,9 @@ export function summarizeSweepOutcomes(
   records: SweepOutcomeRecord[],
 ): SweepSummary {
   const total = records.length;
+  const dataAbsent = records.filter((record) =>
+    record.noBarsInReviewWindow === true
+  ).length;
   const filledRecords = records.filter((record) =>
     record.outcome !== "unfilled"
   );
@@ -744,12 +757,13 @@ export function summarizeSweepOutcomes(
     : 0;
 
   return {
+    dataAbsent,
     expectancyR: roundStat(expectancy),
     filled,
     stopRate: filled > 0 ? roundStat(stops / filled) : 0,
     total,
     tp1HitRate: filled > 0 ? roundStat(tp1Hits / filled) : 0,
-    unfilled: total - filled,
+    unfilled: total - filled - dataAbsent,
   };
 }
 

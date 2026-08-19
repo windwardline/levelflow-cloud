@@ -52,6 +52,20 @@ describe("sweepStats — the engine's vocabulary, once", () => {
     assert.equal(Number(stats.rSum.toFixed(2)), 0.6);
   });
 
+  it("holds data-absence rows out of every denominator (#364 round 4, finding 2)", () => {
+    const stats = emptyStats();
+    addOutcome(stats, row("take_profit", 1));
+    addOutcome(stats, row("unfilled", 0));
+    addOutcome(stats, { ...row("unfilled", 0), noBarsInReviewWindow: true });
+    // The marked row is counted where a reader can see it and nowhere
+    // else: n and filled are exactly what the two market-evidence rows
+    // made them, so fill rate does not move with provider coverage.
+    assert.equal(stats.dataAbsent, 1);
+    assert.equal(stats.n, 2);
+    assert.equal(stats.filled, 1);
+    assert.equal(expectancy(stats), 1);
+  });
+
   it("computes expectancy over filled, refusing an empty denominator", () => {
     const stats = emptyStats();
     assert.equal(expectancy(stats), null);

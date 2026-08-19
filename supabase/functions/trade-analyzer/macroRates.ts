@@ -1,10 +1,13 @@
-// E6 (R1b): the pure half of the Treasury-rate context, split out of
-// macroContext.ts the way bars.ts carries marketLoader's pure boundary —
-// macroContext.ts reads Deno.env at module top, so the offline sweep (and
-// the node:test harness behind it) could never import the adjustment
-// arithmetic it needed to reconstruct macroAdjustment per decision
-// instant. Everything here is a pure function of its inputs: the fetch,
-// its cache and its telemetry recorder stay in macroContext.ts.
+// E6 (R1b): the environment-free half of the Treasury-rate context, split
+// out of macroContext.ts the way bars.ts carries marketLoader's pure
+// boundary — macroContext.ts reads Deno.env at module top, so the offline
+// sweep (and the node:test harness behind it) could never import the
+// adjustment arithmetic it needed to reconstruct macroAdjustment per
+// decision instant. Everything here is deterministic in its inputs — the
+// one module-level state is treasuryVisibleAtMs's memo of a
+// deterministic map (bounded by distinct treasury dates, the same shape
+// as bars.ts's formatter caches) — while the fetch, its response cache
+// and its telemetry recorder stay in macroContext.ts.
 
 import { newYorkWallClockToUtcMs } from "./bars.ts";
 import { getAssetType } from "./calibration.ts";

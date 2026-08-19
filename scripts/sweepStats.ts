@@ -41,6 +41,14 @@ export type SweepEmitRow = {
 
 export type SweepStats = {
   ambiguous: number;
+  // #364 round 4, finding 2: rows the resolver marked
+  // noBarsInReviewWindow — data absence, not market evidence. Held OUT
+  // of n so fill rate (filled/n) states its own denominator: E2's
+  // premise (data absence is not a market verdict) is enforced at the
+  // resolver and recorded per corpus row, and an aggregator that blends
+  // those rows back into the denominator is the exact unstated-
+  // denominator class the remediation program exists to end.
+  dataAbsent: number;
   filled: number;
   n: number;
   rSum: number;
@@ -52,6 +60,7 @@ export type SweepStats = {
 export function emptyStats(): SweepStats {
   return {
     ambiguous: 0,
+    dataAbsent: 0,
     filled: 0,
     n: 0,
     rSum: 0,
@@ -62,6 +71,10 @@ export function emptyStats(): SweepStats {
 }
 
 export function addOutcome(stats: SweepStats, row: SweepEmitRow): void {
+  if (row.noBarsInReviewWindow === true) {
+    stats.dataAbsent += 1;
+    return;
+  }
   stats.n += 1;
   if (row.outcome === "unfilled") {
     return;

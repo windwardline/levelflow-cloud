@@ -383,6 +383,66 @@ describe("replay sweep", () => {
     for (const record of result.outcomes) {
       assert.equal(record.accepted, false);
     }
+    // #364 round 4, finding 3 — the structural argument behind the
+    // round-3 decline, executed: rejections.regimeGated is ZERO in both
+    // modes. In capture-all (this run) gated decisions EMIT instead of
+    // tallying; in gate mode (below) blocked regimes exit at the
+    // pre-plan gate as regimeBlocked. That is what keeps the driver's
+    // regimeBlk column a pure pre-geometry block and the amendment-25
+    // starvation gate's reachedGeometry subtraction honest — deleting
+    // the pre-plan gate's !captureAll guard would flip this with every
+    // other test still green, so it is pinned here.
+    assert.equal(result.rejections.regimeGated, 0);
+    const gateMode = simulateSymbol({
+      calibrationOverride: { runnerWindowShare: 1, tp1RiskShare: 0.8 },
+      dailyBars: dailyBars(80),
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(gateMode.rejections.regimeBlocked > 0);
+    assert.equal(gateMode.rejections.regimeGated, 0);
+  });
+
+  it("leaves a window shorter than the stream's first slot UNMARKED — the sweep's stream starts one decision bar late (#364 round 4, finding 1)", () => {
+    // A 24-minute review window sits between one and two 15-minute bar
+    // spans: the decision bar's own slot fits inside it, but FR-5's
+    // stream begins one decision bar after creation, so the first slot
+    // the resolver could ever be handed needs a 30-minute window. Every
+    // decision here resolves unfilled through the no-bars branch, and
+    // none may carry the marker — computed from createdAt alone, all of
+    // them would (the run without the wiring marks all 12), one
+    // weekly-clamp artifact per symbol writ large. The daily range is
+    // widened so expectedWindowMove clears the ladder inside 24 minutes;
+    // the shipped 6.4-range fixture is (correctly) plan-starved at this
+    // window, which would make the pin vacuous.
+    const wideDaily = dailyBars(80).map((bar) => ({
+      ...bar,
+      high: 115,
+      low: 85,
+    }));
+    const clamped = simulateSymbol({
+      calibrationOverride: {
+        blockedRegimes: [],
+        defaultReviewHours: 0.4,
+        runnerWindowShare: 1,
+        tp1RiskShare: 0.8,
+      },
+      captureAll: true,
+      dailyBars: wideDaily,
+      primaryBars: triangleBars(600),
+      stepBars: 16,
+      symbol: "EURUSD",
+      warmupBars: 120,
+    });
+    assert.ok(clamped.outcomes.length > 0);
+    for (const record of clamped.outcomes) {
+      assert.equal(record.outcome, "unfilled");
+      assert.equal(record.noBarsInReviewWindow, undefined);
+    }
+    assert.equal(clamped.summary.dataAbsent, 0);
+    assert.equal(clamped.summary.unfilled, clamped.outcomes.length);
   });
 
   it("records stop provenance on every setup and reports cap binding", () => {
