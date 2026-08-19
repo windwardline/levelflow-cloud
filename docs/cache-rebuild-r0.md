@@ -229,12 +229,18 @@ under it: clock witnesses, the density floors and ratio, disjoint
 stores, and any curve evidence that IS present (a manifest carrying
 facts that show a holed, stale-tailed, or shallow curve refuses under
 the override exactly as on the current path — poison is never a term).
-To deepen the Treasury request (`TREASURY_FETCH_START_MS`): move the
-constant with its recorded probe evidence AND delete the
-treasury-rates rolling store — an existing store never re-fetches its
-head, and the sweep pre-flight refuses a store shallower than the
-requested start (naming this remedy), so a forgotten delete cannot
-stamp a false `requestedStartMs` into a manifest (#364 round 18).
+To deepen the Treasury request (`TREASURY_FETCH_START_MS`): FIRST
+probe that the provider actually SERVES the new start — the recorded
+2026-08-19 probe is a lower bound ("at least 2005-01-03"), which
+covers moves to 2005 or later but says nothing about deeper; a
+constant past the provider's real floor turns the pre-flight into a
+permanent refusal with the old store already deleted (#364 round 19).
+Then move the constant with the new probe recorded beside it AND
+delete the treasury-rates rolling store — an existing store never
+re-fetches its head, and the sweep pre-flight refuses a store
+shallower than the requested start (naming both remedies), so a
+forgotten delete cannot stamp a false `requestedStartMs` into a
+manifest (#364 round 18).
 
 Next 07:00 run should log `top-up complete`. Confirm one green nightly
 log before calling Phase 0 done. (If a future nightly log ever shows the

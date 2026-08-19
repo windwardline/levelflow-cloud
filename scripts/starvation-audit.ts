@@ -42,11 +42,15 @@
  * before R1b (the rice 263-of-424 above) sit on the wider meaning;
  * compare across that boundary with the marker in hand.
  *
- * Run this gate on a NORMAL sweep's table, never a --capture-all one:
- * capture-all deliberately emits below-threshold decisions as outcome
- * rows instead of tallying the acceptance gates, so belowConf and
- * belowPayoff read 0 there and survival is overstated — the opposite
- * lie from the drift this file just closed. (regimeBlk is safe either
+ * This gate REFUSES a --capture-all table (#364 round 19 turned the
+ * standing advice into a guard): capture-all deliberately emits
+ * below-threshold decisions as outcome rows instead of tallying the
+ * acceptance gates, so belowConf and belowPayoff read 0 there and
+ * survival is overstated — the opposite lie from the drift this file
+ * just closed. The driver stamps "# capture-all" above such a table
+ * and parse() refuses the marker like a missing required column.
+ * Tables printed BEFORE the marker existed cannot be told apart — for
+ * archives, the advice stands: run this gate on normal tables only. (regimeBlk is safe either
  * way: the driver's regimeGated addend is structurally zero — blocked
  * regimes exit at the pre-plan gate in normal mode and skip the
  * acceptance tally in capture-all — so the column is the pre-geometry
@@ -65,7 +69,8 @@
  * planRejected (counted as geometry kills, over-flagging sparse
  * markets); counting them as survivors instead would under-flag. The
  * column comes from SweepSummary's accepted-only tally, which is sound
- * here because this gate already refuses --capture-all tables.
+ * here because this gate refuses --capture-all tables via the driver's
+ * mode marker (above).
  */
 import { readFileSync } from "node:fs";
 
@@ -94,6 +99,14 @@ function parse(paths: string[]): Row[] {
   const rows: Row[] = [];
   for (const path of paths) {
     const lines = readFileSync(path, "utf8").split("\n");
+    if (lines.some((line) => line.trim().startsWith("# capture-all"))) {
+      throw new Error(
+        `${path}: this is a --capture-all table — its acceptance gates ` +
+          `are untallied by design (belowConf/belowPayoff read 0), so ` +
+          `survival computed from it is a false green; run this gate on ` +
+          `a normal sweep's table`,
+      );
+    }
     const headerLine = lines.find((line) =>
       line.trim().startsWith("symbol")
     );

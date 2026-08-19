@@ -277,7 +277,11 @@ async function main() {
           isoDate(new Date(TREASURY_FETCH_START_MS))
         } — an existing store never deepens on its own (top-ups touch ` +
           `only the tail); delete the treasury-rates rolling store and ` +
-          `re-run to fetch full history at the requested depth`,
+          `re-run to fetch full history at the requested depth. If a ` +
+          `full refetch STILL cannot reach the requested start, the ` +
+          `provider's coverage is shallower than the constant claims — ` +
+          `re-probe its earliest served date and move ` +
+          `TREASURY_FETCH_START_MS back with the recorded evidence`,
       );
     }
     // Scoped by OVERLAP against the requested window (#364 rounds
@@ -707,6 +711,19 @@ async function main() {
     }
   }
 
+  // #364 round 19, finding 1: the table STATES its mode, so
+  // starvation-audit can refuse a capture-all table instead of reading
+  // zeroed acceptance gates as survival — under --capture-all the
+  // acceptance tally is skipped by design, so belowConf/belowPayoff
+  // print 0 and the amendment-25 gate would go quiet on the wrong
+  // table. The marker turns the audit's run-on-normal-tables advice
+  // into a guard.
+  if (args.captureAll) {
+    console.log(
+      "# capture-all — acceptance gates untallied; starvation-audit " +
+        "refuses this table",
+    );
+  }
   printTable(rows);
   if (args.emit && emitStream) {
     await new Promise<void>((resolve, reject) => {

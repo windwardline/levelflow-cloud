@@ -537,7 +537,11 @@ describe("the driver writes the manifest beside the emit", () => {
         "symbol variant split decisions sessionBlk newsBlk notWarm " +
         "regimeBlk noConsensus planRejected unresolv belowConf " +
         "belowPayoff dataAbsent setups",
-        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 5 10 5",
+        // setups 15 = decisions − Σ rejections, and dataAbsent 10 ⊆
+        // setups (#364 round 19, smaller): the fixture is a table a
+        // real run could emit, so it teaches dataAbsent's subset
+        // semantics rather than contradicting them.
+        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 5 10 15",
         "",
       ].join("\n"),
     );
@@ -550,6 +554,50 @@ describe("the driver writes the manifest beside the emit", () => {
       { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
     assert.match(out, /EURUSD\s+100\s+50\s+40\s+5\s+10%\s+STARVED/);
+  });
+
+  // #364 round 19, finding 1: the capture-all refusal is a GUARD, not
+  // advice — the driver stamps "# capture-all" above such a table
+  // (acceptance gates untallied, belowConf/belowPayoff print 0, so
+  // survival computed from it is a false green on a gate that exits 1)
+  // and the audit refuses the marker like a missing required column.
+  it("the audit refuses a capture-all table by its stamped marker — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "starv-ca-"));
+    const log = join(dir, "sweep.log");
+    writeFileSync(
+      log,
+      [
+        "# capture-all — acceptance gates untallied; starvation-audit " +
+        "refuses this table",
+        "symbol variant split decisions sessionBlk newsBlk notWarm " +
+        "regimeBlk noConsensus planRejected unresolv belowConf " +
+        "belowPayoff dataAbsent setups",
+        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 0 10 20",
+        "",
+      ].join("\n"),
+    );
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          [
+            "--no-install",
+            "tsx",
+            "scripts/starvation-audit.ts",
+            log,
+            "--report",
+          ],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) =>
+        /--capture-all table/.test(String((error as { stderr?: string }).stderr ?? "")),
+    );
+    // The driver's stamp exists at source, so the marker the audit
+    // trusts is one the sweep actually writes.
+    assert.match(
+      readFileSync("scripts/replay-sweep.ts", "utf8"),
+      /# capture-all — acceptance gates untallied/,
+    );
   });
 
   // #364 round 3, finding 4: by-name reading is only as safe as the
