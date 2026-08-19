@@ -110,14 +110,63 @@ type SidecarState = {
   sourceTimezone: string | null;
 };
 
+// The ONE declaration of which flags own the token after them — the form
+// rounds 33-38 installed across the corpus readers, extended to every
+// script with a value-taking flag (#364 round 50, finding 2). The scan in
+// tests/sweepManifest.test.ts now DERIVES its file list by globbing
+// scripts/, so a new reader joins the law automatically instead of being
+// found by a review round.
+const VALUE_FLAGS = new Set(["--dir", "--concurrency", "--limit"]);
+
+function flagValue(argv: string[], arg: string): string | undefined {
+  if (!VALUE_FLAGS.has(arg)) {
+    throw new Error(
+      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
+        `or its value is read as something else`,
+    );
+  }
+  const index = argv.indexOf(arg);
+  if (index === -1) return undefined;
+  const token = argv[index + 1];
+  if (token === undefined || token.startsWith("--")) {
+    throw new Error(
+      `${arg} owns the token after it and got ${
+        token === undefined ? "no value" : `"${token}"`
+      } — a value, never a flag; pass ${arg} <value>`,
+    );
+  }
+  return token;
+}
+
+function str(argv: string[], arg: string): string | undefined {
+  return flagValue(argv, arg);
+}
+
+function num(argv: string[], arg: string, fallback: number): number {
+  if (!VALUE_FLAGS.has(arg)) {
+    throw new Error(
+      `num("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
+        `or its value is read as something else`,
+    );
+  }
+  const token = flagValue(argv, arg);
+  if (token === undefined) return fallback;
+  const parsed = Number(token);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(
+      `${arg} owns the token after it and cannot read "${token}" as a ` +
+        `number — a NaN dial disables the comparison it feeds silently; ` +
+        `pass ${arg} <number>`,
+    );
+  }
+  return parsed;
+}
+
 function parseArgs(argv: string[]) {
-  const dirFlag = argv.indexOf("--dir");
-  const concurrencyFlag = argv.indexOf("--concurrency");
-  const limitFlag = argv.indexOf("--limit");
   return {
-    dir: dirFlag >= 0 ? argv[dirFlag + 1] : ".minute-bank",
-    concurrency: concurrencyFlag >= 0 ? Number(argv[concurrencyFlag + 1]) : 4,
-    limit: limitFlag >= 0 ? Number(argv[limitFlag + 1]) : Infinity,
+    dir: str(argv, "--dir") ?? ".minute-bank",
+    concurrency: num(argv, "--concurrency", 4),
+    limit: num(argv, "--limit", Infinity),
   };
 }
 

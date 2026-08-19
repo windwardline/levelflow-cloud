@@ -17,6 +17,7 @@
 //     --markets EGLDUSD,ZCUSX,... --out docs/research/.../4d-threshold-rescue.json
 import { writeFileSync } from "node:fs";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
 
 const MIN_FILLED = 30; // the same floor the market-unit gate uses
 
@@ -26,26 +27,31 @@ function expectancy(bucket: Bucket): number | null {
   return bucket.filled >= MIN_FILLED ? bucket.sumR / bucket.filled : null;
 }
 
+const VALUE_FLAGS = new Set(["--markets", "--out"]);
+
 async function main() {
   const argv = process.argv.slice(2);
+  // POSITIVE membership test (#364 round 50, finding 2). The old form
+  // consumed the token after EVERY --flag, so a boolean flag — or a
+  // typo'd one — ate the shard path following it and the run graded a
+  // corpus one shard short of the one the operator named. That is the
+  // defect round 44 found in the two 4d scripts; the derived scan
+  // surfaced it here.
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      index += 1;
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
       continue;
     }
     paths.push(argv[index]);
   }
-  const flag = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
+  const { str } = flagReader(argv, VALUE_FLAGS);
   const wanted = new Map<string, string>();
-  for (const pair of (flag("markets") ?? "").split(";")) {
+  for (const pair of (str("--markets") ?? "").split(";")) {
     const [symbol, variant] = pair.split("|");
     if (symbol && variant) wanted.set(symbol.trim(), variant.trim());
   }
-  const outPath = flag("out") ??
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-threshold-rescue.json";
   // Fold boundaries per market, exactly as the totality cycle cut them.
   const spans = new Map<string, { first: number; last: number }>();

@@ -33,6 +33,7 @@
 //                            DO NOT withdraw; disclose the sensitivity.
 import { readFileSync, writeFileSync } from "node:fs";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
 
 function spansFrom(paths: string[]): Map<string, { first: number; last: number }> {
   const spans = new Map<string, { first: number; last: number }>();
@@ -174,18 +175,16 @@ function read(acc: Acc | undefined) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  const flag = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
-  const netPaths = (flag("net") ?? "").split(",").filter(Boolean);
-  const grossPaths = (flag("gross") ?? "").split(",").filter(Boolean);
+  const VALUE_FLAGS = new Set(["--net", "--gross", "--cells", "--out"]);
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const netPaths = (str("--net") ?? "").split(",").filter(Boolean);
+  const grossPaths = (str("--gross") ?? "").split(",").filter(Boolean);
   const cells = new Map<string, string>();
-  for (const pair of (flag("cells") ?? "").split(";")) {
+  for (const pair of (str("--cells") ?? "").split(";")) {
     const [symbol, variant] = pair.split("|");
     if (symbol && variant) cells.set(symbol.trim(), variant.trim());
   }
-  const outPath = flag("out") ??
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json";
 
   // Spans from each corpus's OWN manifests; the same symbols were swept

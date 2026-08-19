@@ -61,9 +61,13 @@ rather than in CI on purpose: CI runs on a clean checkout, so an uncommitted
 ledger line exists only on the machine that did the reading and is precisely
 what CI cannot see.
 
-Two retired locations are still searched on read, never written:
-`<shard-dir>/confirm-log-<id>.jsonl` and `<shard-path>.confirm-log.jsonl`
-(the original). A ledger written by either earlier version keeps refusing.
+THREE retired forms are still searched on read, never written:
+`<corpusId>.jsonl` in this directory (before the ledger's name carried a
+prefix), `<shard-dir>/confirm-log-<id>.jsonl`, and
+`<shard-path>.confirm-log.jsonl` (the original). A ledger written by any
+earlier version keeps refusing — which is why this directory is globbed
+UNPREFIXED while the operator-controlled ones are not: adding the prefix
+would otherwise have orphaned the form written immediately before it.
 
 The search is widened across **identities** as well as locations, which
 matters because `conditionsOf` grows: it has been amended several times, and

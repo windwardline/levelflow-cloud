@@ -421,11 +421,40 @@ export function auditCacheClock(input: {
   return { failures, lines };
 }
 
+// The ONE declaration of which flags own the token after them — the form
+// rounds 33-38 installed across the corpus readers, extended to every
+// script with a value-taking flag (#364 round 50, finding 2). The scan in
+// tests/sweepManifest.test.ts now DERIVES its file list by globbing
+// scripts/, so a new reader joins the law automatically instead of being
+// found by a review round.
+const VALUE_FLAGS = new Set(["--cache-dir"]);
+
+function flagValue(argv: string[], arg: string): string | undefined {
+  if (!VALUE_FLAGS.has(arg)) {
+    throw new Error(
+      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
+        `or its value is read as something else`,
+    );
+  }
+  const index = argv.indexOf(arg);
+  if (index === -1) return undefined;
+  const token = argv[index + 1];
+  if (token === undefined || token.startsWith("--")) {
+    throw new Error(
+      `${arg} owns the token after it and got ${
+        token === undefined ? "no value" : `"${token}"`
+      } — a value, never a flag; pass ${arg} <value>`,
+    );
+  }
+  return token;
+}
+
+function str(argv: string[], arg: string): string | undefined {
+  return flagValue(argv, arg);
+}
+
 function main(): void {
-  const flagIndex = process.argv.indexOf("--cache-dir");
-  const cacheDir = flagIndex >= 0
-    ? process.argv[flagIndex + 1]
-    : ".calibration-cache";
+  const cacheDir = str(process.argv, "--cache-dir") ?? ".calibration-cache";
   const roster = defaultScanSymbols
     .map((symbol) => resolveProviderSymbols(symbol)[0])
     .filter((provider): provider is string => Boolean(provider));

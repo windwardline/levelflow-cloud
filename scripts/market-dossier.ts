@@ -36,6 +36,25 @@ const BASELINE =
   "confidenceThreshold=0,runnerProtection=breakeven,maxStopAtrMultiplier=1,sizingHoursFactor=1";
 const MIN_FILLED = 30;
 
+/**
+ * What the re-gated pinned cell actually is (#364 round 50, finding 3).
+ *
+ * It was called "SHIPPED (baseline at class threshold)", which claimed
+ * the cell is what the market runs. The pin fixes FOUR parameters and
+ * the re-gate undoes only `confidenceThreshold`, so the claim held only
+ * where the market's other three matched — and it is not checkable at
+ * all: the manifest records each symbol's calibration as a HASH, so the
+ * values in force when the corpus was swept cannot be recovered from
+ * it, and comparing against the current build instead answers a
+ * different question. Round 49 suppressed the cell on a
+ * current-calibration comparison, which blanks essentially the whole
+ * roster once 4d picks ship; that fix was worse than the defect. The
+ * name now says what the cell is rather than asserting what it
+ * represents, and the divergence from the current calibration rides
+ * each dossier row as a stated caveat.
+ */
+export const RECONSTRUCTED = "PINNED BASELINE re-gated at this market's threshold";
+
 type Acc = { n: number; sum: number; sumSq: number };
 const empty = (): Acc => ({ n: 0, sum: 0, sumSq: 0 });
 
@@ -87,18 +106,44 @@ function spansFrom(paths: string[]) {
   return spans;
 }
 
+/**
+ * Which of the pinned cell's other parameters this market does not ship.
+ *
+ * The pinned grid cell fixes four values and the re-gate undoes only
+ * `confidenceThreshold` (#364 round 49, finding 3), so the other three
+ * are compared against what the market actually runs. Exported and at
+ * module scope (#364 round 50, smaller) so the REAL closure — the one
+ * that decides metals diverges, which is the entire motivating case —
+ * is under executed coverage rather than only the injected stand-in.
+ *
+ * It reads the CURRENT build's calibration, which is what the dossier
+ * says on the row: a class threshold or stop cap changed after the
+ * sweep re-labels a published cell, and R2 and R4 move these by design.
+ */
+export function pinDivergence(symbol: string): string[] {
+  const shipped = getCategoryCalibration(symbol);
+  const differing: string[] = [];
+  if ((shipped.maxStopAtrMultiplier ?? 1) !== 1) {
+    differing.push(
+      `maxStopAtrMultiplier=${shipped.maxStopAtrMultiplier} (pin 1)`,
+    );
+  }
+  if ((shipped.runnerProtection ?? "breakeven") !== "breakeven") {
+    differing.push(
+      `runnerProtection=${shipped.runnerProtection} (pin breakeven)`,
+    );
+  }
+  if ((shipped.sizingHoursFactor ?? 1) !== 1) {
+    differing.push(`sizingHoursFactor=${shipped.sizingHoursFactor} (pin 1)`);
+  }
+  return differing;
+}
+
 /** Every cell's per-fold accumulation, so a market's ALTERNATIVES are visible too. */
 export function collect(
   paths: string[],
   spans: Map<string, { first: number; last: number }>,
   thresholdOf: (symbol: string) => number,
-  // Which of the pinned cell's OTHER parameters this market does not
-  // actually ship (#364 round 49, finding 3). Empty means the
-  // reconstruction is honest; anything else means it is not, and the
-  // cell must not wear the SHIPPED name. Defaults to "no divergence" so
-  // existing callers keep their behaviour explicitly rather than by
-  // omission.
-  pinDivergence: (symbol: string) => string[] = () => [],
 ) {
   const byMarket = new Map<string, Map<string, { confirm: Acc; select: Acc }>>();
   for (const path of paths) {
@@ -156,11 +201,8 @@ export function collect(
       // verdict rather than a mislabelled one.
       if (variant === BASELINE) {
         const score = Number(row.confidenceScore);
-        if (
-          Number.isFinite(score) && score >= thresholdOf(symbol) &&
-          pinDivergence(symbol).length === 0
-        ) {
-          variant = "SHIPPED (baseline at class threshold)";
+        if (Number.isFinite(score) && score >= thresholdOf(symbol)) {
+          variant = RECONSTRUCTED;
         }
       }
       const fitEnd = span.first + (span.last - span.first) * 0.5;
@@ -271,33 +313,10 @@ function main() {
 
   const thresholdOf = (symbol: string) =>
     getCategoryCalibration(symbol).confidenceThreshold;
-  // The pinned cell fixes four parameters and the re-gate undoes only
-  // the threshold (#364 round 49, finding 3). These are the other three,
-  // compared against what the market actually ships.
-  const pinDivergence = (symbol: string): string[] => {
-    const shipped = getCategoryCalibration(symbol);
-    const differing: string[] = [];
-    if ((shipped.maxStopAtrMultiplier ?? 1) !== 1) {
-      differing.push(
-        `maxStopAtrMultiplier=${shipped.maxStopAtrMultiplier} (pin 1)`,
-      );
-    }
-    if ((shipped.runnerProtection ?? "breakeven") !== "breakeven") {
-      differing.push(
-        `runnerProtection=${shipped.runnerProtection} (pin breakeven)`,
-      );
-    }
-    if ((shipped.sizingHoursFactor ?? 1) !== 1) {
-      differing.push(
-        `sizingHoursFactor=${shipped.sizingHoursFactor} (pin 1)`,
-      );
-    }
-    return differing;
-  };
   const netSpans = spansFrom(netPaths);
-  const net = collect(netPaths, netSpans, thresholdOf, pinDivergence);
+  const net = collect(netPaths, netSpans, thresholdOf);
   const gross = grossPaths.length > 0
-    ? collect(grossPaths, spansFrom(grossPaths), thresholdOf, pinDivergence)
+    ? collect(grossPaths, spansFrom(grossPaths), thresholdOf)
     : new Map();
 
   const menuBySymbol = new Map(SECURITY_OPTIONS.map((o) => [o.symbol, o]));
@@ -321,17 +340,11 @@ function main() {
         : "set for THIS market (derived cell or legacy override)";
     }
     const cell = derived.get(symbol);
-    // A market with no derived pick falls back to the reconstructed
-    // shipped cell — but only where that reconstruction is honest. Where
-    // the grid's pins differ from what this market runs, the cell was
-    // never built, and naming it here would publish a measurement of a
-    // configuration the market does not use (#364 round 49, finding 3).
+    // A market with no derived pick falls back to the reconstruction,
+    // which is now named for what it is rather than for what it was
+    // assumed to represent.
     const diverging = pinDivergence(symbol);
-    const effectiveVariant = cell?.variant ??
-      (diverging.length === 0
-        ? "SHIPPED (baseline at class threshold)"
-        : `NO SHIPPED CELL — the grid's pinned baseline differs from this ` +
-          `market's calibration on ${diverging.join(", ")}`);
+    const effectiveVariant = cell?.variant ?? RECONSTRUCTED;
     const netCells = net.get(symbol);
     const grossCells = gross.get(symbol);
     const readCell = (
@@ -386,8 +399,14 @@ function main() {
       tickSpec: spec ?? null,
       trancheHistory: trancheHistory.get(symbol) ?? [],
       effectiveVariant,
-      // Stated per market rather than inferred from the variant name.
-      shippedCellPinDivergence: diverging.length > 0 ? diverging : null,
+      // Stated per market rather than inferred from the variant name,
+      // and labelled with WHICH calibration it was compared against
+      // (#364 round 50, smaller — the shape round 30 forced on the E8
+      // report): this is the current build's, not the one in force when
+      // the corpus was swept, and R2/R4 move these by design.
+      shippedCellPinDivergence: diverging.length > 0
+        ? { differsOn: diverging, comparedAgainst: "current calibration" }
+        : null,
     };
   }
 

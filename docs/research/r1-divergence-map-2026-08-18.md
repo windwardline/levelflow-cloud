@@ -869,6 +869,48 @@ layer.
   so an uncommitted ledger line exists only on the machine that did the
   reading and is exactly what CI cannot see.
 
+  Round 50's three, and one correction of round 49's own fix. The
+  ledger's rename had orphaned the form rounds 45-48 wrote —
+  `<corpusId>.jsonl`, unprefixed — on both halves at once, since the
+  direct probe computes the new name and the prefixed glob filters the
+  old one out; the canonical directory is now globbed UNPREFIXED (it is
+  repository-controlled and holds only ledgers, so the corpus-emit
+  hazard the prefix exists for does not apply there) while the
+  operator-controlled directories keep the requirement, and the README
+  names three retired forms rather than two.
+
+  The walker law's REACH was fictional, which is the deeper of the two.
+  Its enforcement list was seven hard-coded paths — which is why
+  `market-dossier` sat outside it for 49 rounds — so the scan now
+  DERIVES the list by globbing `scripts/`, and an exemption must name
+  the file and say why. Deriving it immediately found what neither a
+  review sweep nor a hand grep had: six more readers using the template
+  form `` indexOf(`--${name}`) ``, invisible to a `"--` search, plus
+  three unconditional walkers that ate the shard path after any flag.
+  All of them now route through ONE guarded reader,
+  `scripts/flagReader.ts`, whose two refusals are pinned by executed
+  tests rather than by matching source against itself — the "declare it
+  once" move this PR has made six times before. The law also caught an
+  error in its own migration: `--from` and `--to` had been added to
+  `replay-sweep`'s declaration from what turned out to be
+  `URLSearchParams` keys, and the bidirectional half refused them.
+
+  Round 49's finding-3 fix was WRONG and is reverted in favour of a
+  different one. It suppressed the re-gated cell wherever the market's
+  current calibration diverged from the grid's four-parameter pin.
+  Executing the real closure — which round 49 never did, testing only an
+  injected stand-in, exactly as round 50's smaller predicted — showed
+  divergence is the norm rather than the exception once 4d picks ship:
+  EURUSD diverges as readily as XAUUSD, so the fix would have blanked
+  essentially the whole roster. The sweep-time calibration cannot settle
+  it either, because the manifest records each symbol's calibration as a
+  HASH. The actual defect was the LABEL: the cell was called "SHIPPED
+  (baseline at class threshold)", asserting it is what the market runs.
+  It is now named for what it is — `PINNED BASELINE re-gated at this
+  market's threshold` — the cell is built as before, and the divergence
+  from the current calibration rides each row as a stated caveat naming
+  the calibration it was compared against.
+
   One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -17,6 +22,7 @@ import {
   type TreasuryCurveFacts,
   treasuryGapTouching,
 } from "../scripts/sweepManifest.ts";
+import { flagReader } from "../scripts/flagReader.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
 // sweep's conditions except stdout and an operator-pathed JSONL with NO
@@ -1025,35 +1031,66 @@ describe("the driver writes the manifest beside the emit", () => {
     // NaN and silently disabled every thin marker (x < NaN is false),
     // and grid-totalr kept the name list and the accessors as two
     // places for one fact.
+    // The list is DERIVED, not curated (#364 round 50, finding 2). A
+    // hand-maintained array is why market-dossier sat outside this law
+    // for 49 rounds and why bank-minute-bars and verify-cache-clock sat
+    // outside it after that — the thing deciding which files the law
+    // reaches was seven literal paths. This PR has closed exactly that
+    // class six times by deriving the enumeration instead
+    // (VOCABULARY_ROW_KEYS, the own-keys rollup, EVIDENCE_ROW_KEYS,
+    // VALUE_FLAGS itself, supportOf), so the same move applies here:
+    // every script that reads the token after a --flag is in, and a new
+    // one fails HERE rather than in a review round.
+    //
+    // An exemption must name the file and say why. There is one, and it
+    // is a genuine "already refuses" rather than a convenience:
+    const LAW_EXEMPT = new Map<string, string>([
+      [
+        "scripts/flagReader.ts",
+        "this file IS the law's implementation — it declares no flags of " +
+        "its own, and its two refusals are pinned by executed tests below " +
+        "rather than by matching its own source against itself.",
+      ],
+      [
+        "scripts/fmpByteBudget.ts",
+        "one flag, --byte-budget, whose value is parsed by a strict " +
+        "size regex at the read. A missing value throws by name and a " +
+        "flag-shaped token fails the regex, so both failure modes the " +
+        "law exists to close are already closed, by a mechanism rather " +
+        "than a convention.",
+      ],
+    ]);
+    const readsAFlagValue = (source: string) =>
+      /indexOf\(\s*(?:`|")--/.test(source) || /VALUE_FLAGS/.test(source);
+    const scriptFiles = readdirSync("scripts")
+      .filter((name) => name.endsWith(".ts"))
+      .map((name) => `scripts/${name}`)
+      .filter((file) => readsAFlagValue(readFileSync(file, "utf8")))
+      .sort();
+    assert.ok(
+      scriptFiles.length >= 7,
+      `the glob must find the readers, got ${scriptFiles.length}`,
+    );
+    for (const stale of LAW_EXEMPT.keys()) {
+      assert.ok(
+        scriptFiles.includes(stale),
+        `${stale} is exempted but no longer reads a flag value — drop the ` +
+          `exemption rather than leaving it to cover a future file`,
+      );
+    }
     for (
-      const file of [
-        "scripts/starvation-audit.ts",
-        "scripts/account-type-report.ts",
-        "scripts/sweep-analysis.ts",
-        "scripts/grid-totalr.ts",
-        // #364 round 44, smaller: the two 4d scripts carried an
-        // INVERTED walker — a list of the flags taking no value, with
-        // every other --flag consuming the next token — so a typo'd or
-        // newly-added boolean flag ate the shard path after it and the
-        // run graded (and under confirm-4d, BURNED) a corpus one shard
-        // short. They now carry the same positive declaration, inside
-        // the same bidirectional law.
-        "scripts/confirm-4d.ts",
-        "scripts/derive-4d.ts",
-        // #364 round 49, finding 2: the seventh reader. market-dossier
-        // carried a bare argv.indexOf for --net/--gross/--out — first
-        // occurrence only, no refusal either way — and the list that
-        // enforces the law had never grown to meet it, so a mistyped
-        // --out silently wrote the artifact to the default path.
-        "scripts/market-dossier.ts",
-      ]
+      const file of scriptFiles.filter((file) => !LAW_EXEMPT.has(file))
     ) {
       const source = readFileSync(file, "utf8");
       const declared = source.match(/const VALUE_FLAGS = new Set\(\[([^\]]*)\]\)/);
       assert.ok(declared, `${file} must declare VALUE_FLAGS literally`);
       const flags = [...declared![1].matchAll(/"(--[\w-]+)"/g)].map((m) => m[1]);
-      const reads = [...source.matchAll(/(?:num|str)\("(--[\w-]+)"/g)]
-        .map((m) => m[1]);
+      // Both call shapes: str("--x") in the readers that close over
+      // argv, and str(argv, "--x") in the shared-accessor form the
+      // scripts brought under the law in #364 round 50 use.
+      const reads = [
+        ...source.matchAll(/(?:num|str)\(\s*(?:[\w.]+\s*,\s*)?"(--[\w-]+)"/g),
+      ].map((m) => m[1]);
       assert.ok(reads.length > 0, `${file} must read at least one guarded flag`);
       for (const flag of reads) {
         assert.ok(
@@ -1068,16 +1105,26 @@ describe("the driver writes the manifest beside the emit", () => {
       // neither refusal, which was exactly --baseline's gap.
       for (const flag of flags) {
         assert.ok(
-          new RegExp(`(?:num|str)\\("${flag}"`).test(source),
+          new RegExp(
+            `(?:num|str)\\(\\s*(?:[\\w.]+\\s*,\\s*)?"${flag}"`,
+          ).test(source),
           `${file}: VALUE_FLAGS declares ${flag} with no guarded accessor ` +
             `reading it`,
         );
       }
-      assert.match(
-        source,
-        /if \(!VALUE_FLAGS\.has\(arg\)\) \{\s*\n\s*throw new Error\(/,
-        `${file}: num() must refuse a flag outside VALUE_FLAGS`,
-      );
+      // The guard lives EITHER inline, in the readers that predate the
+      // shared module, OR in scripts/flagReader.ts, which the file
+      // imports — one implementation for the whole directory (#364
+      // round 50, finding 2). flagReader's own refusals are pinned
+      // below, executed rather than by source match.
+      const usesSharedReader = /from "\.\/flagReader\.ts"/.test(source);
+      if (!usesSharedReader) {
+        assert.match(
+          source,
+          /if \(!VALUE_FLAGS\.has\(arg\)\) \{\s*\n\s*throw new Error\(/,
+          `${file}: num() must refuse a flag outside VALUE_FLAGS`,
+        );
+      }
       // #364 round 35, finding 1 (widened round 36): a present but
       // unparseable token refuses — never a silent fallback. Scoped to
       // readers that actually HAVE a numeric dial (#364 round 49,
@@ -1085,7 +1132,7 @@ describe("the driver writes the manifest beside the emit", () => {
       // reader must own one. market-dossier takes three string flags
       // and no number, and demanding a num() guard of it would be a
       // remedy that cannot be satisfied.
-      if (/\bnum\(/.test(source)) {
+      if (/\bnum\(/.test(source) && !usesSharedReader) {
         assert.match(
           source,
           /if \(!Number\.isFinite\(parsed\)\) \{\s*\n\s*throw new Error\(/,
@@ -1099,15 +1146,15 @@ describe("the driver writes the manifest beside the emit", () => {
       // boolean flag eats the shard path following it and the run grades
       // (and under confirm-4d, BURNS) a corpus one shard short of the
       // one the operator named. The walker's consume decision is a
-      // POSITIVE membership test or it is the defect. Two readers are
-      // exempt by construction — they collect no positional arguments,
-      // so they have no walker to invert: sweep-analysis, and
-      // market-dossier, which takes its corpora through --net/--gross.
-      const NO_POSITIONALS = new Set([
-        "scripts/sweep-analysis.ts",
-        "scripts/market-dossier.ts",
-      ]);
-      if (!NO_POSITIONALS.has(file)) {
+      // POSITIVE membership test or it is the defect. Which files this
+      // reaches is DERIVED too (#364 round 50, finding 2): a reader only
+      // needs a walker if it collects positional arguments, so the pin
+      // applies exactly to the files that walk argv. A curated
+      // exemption list here would reproduce the defect one level down —
+      // it was one, and it already had to be widened by hand once.
+      const walksArgv = /for \(let \w+ = 0; \w+ < (?:argv|args)\.length/
+        .test(source);
+      if (walksArgv) {
         assert.match(
           source,
           /if \(VALUE_FLAGS\.has\(\w+\[\w+\]\)\)/,
@@ -1122,6 +1169,45 @@ describe("the driver writes the manifest beside the emit", () => {
         );
       }
     }
+  });
+
+  // #364 round 50, finding 2: the shared reader's refusals, executed.
+  // Every script that reads a flag value now routes through this one
+  // implementation, so these two assertions stand behind all of them —
+  // and they are executed rather than matched against source, which is
+  // what the files delegating to it can no longer do for themselves.
+  it("the shared flag reader refuses an undeclared flag, a missing value and a flag-shaped value", () => {
+    const declared = new Set(["--out", "--limit"]);
+    const { num, str } = flagReader(["--out", "x.json"], declared);
+    assert.equal(str("--out"), "x.json");
+    assert.equal(str("--limit"), undefined);
+    assert.equal(num("--limit", 7), 7);
+
+    assert.throws(
+      () => str("--nope"),
+      /is not declared in this script's VALUE_FLAGS/,
+      "a flag nothing declared must not read a value",
+    );
+
+    const eaten = flagReader(["--out", "--limit", "3"], declared);
+    assert.throws(
+      () => eaten.str("--out"),
+      /owns the token after it and got "--limit"/,
+      "a flag must never take the next FLAG as its value",
+    );
+
+    const bare = flagReader(["--out"], declared);
+    assert.throws(
+      () => bare.str("--out"),
+      /owns the token after it and got no value/,
+    );
+
+    const notANumber = flagReader(["--limit", "many"], declared);
+    assert.throws(
+      () => notANumber.num("--limit", 1),
+      /cannot read "many" as a number/,
+      "a NaN dial disables the comparison it feeds without saying so",
+    );
   });
 
   // #364 round 36, finding 1 + smaller: the token refusal executed in

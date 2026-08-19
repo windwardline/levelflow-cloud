@@ -21,18 +21,17 @@ import {
   loadRollingSeries,
 } from "./calibrationCache.ts";
 import type { ClassFoldSpec } from "./sweepFolds.ts";
+import { flagReader } from "./flagReader.ts";
 
-const get = (flag: string) => {
-  const index = process.argv.indexOf(`--${flag}`);
-  return index >= 0 ? process.argv[index + 1] : undefined;
-};
+const VALUE_FLAGS = new Set(["--days", "--out", "--symbols"]);
+const { str } = flagReader(process.argv, VALUE_FLAGS);
 
 async function main(): Promise<void> {
-  const symbols = (get("symbols") ?? "").split(",").map((value) =>
+  const symbols = (str("--symbols") ?? "").split(",").map((value) =>
     value.trim().toUpperCase()
   ).filter(Boolean);
-  const days = Number(get("days") ?? "7000");
-  const out = get("out");
+  const days = Number(str("--days") ?? "7000");
+  const out = str("--out");
   if (symbols.length === 0 || !out) {
     console.error("usage: derive-fold-spec.ts --symbols A,B --days N --out spec.json");
     process.exit(1);

@@ -86,6 +86,7 @@ import {
   normalizeFmpBars,
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
+import { flagReader } from "./flagReader.ts";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 // OP-6: optional inter-request pacing for fleet runs — one env knob,
@@ -1128,24 +1129,32 @@ async function fetchCotContract(
 // this script's main.
 
 function parseArgs(argv: string[]): SweepArgs {
-  const get = (flag: string) => {
-    const index = argv.indexOf(`--${flag}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
+  const VALUE_FLAGS = new Set([
+    "--cache-dir",
+    "--days",
+    "--emit",
+    "--fold-end",
+    "--fold-spec",
+    "--fold-start",
+    "--grid",
+    "--step",
+    "--symbols",
+  ]);
+  const { str } = flagReader(argv, VALUE_FLAGS);
   // OP-9: "--symbols roster" derives the list from the engine's own scan
   // roster instead of a hand-kept copy — the ops top-up ran a 57-name
   // snapshot that had silently lost 40+ onboarded markets (and kept
   // dormant BRENT). One source, no drift.
-  const symbolsArg = get("symbols") ?? "EURUSD";
+  const symbolsArg = str("--symbols") ?? "EURUSD";
   const symbols = (symbolsArg.trim().toLowerCase() === "roster"
     ? defaultScanSymbols
     : symbolsArg.split(",").map((value) => value.trim().toUpperCase()))
     .filter(Boolean);
-  const daysArg = get("days") ?? "60";
+  const daysArg = str("--days") ?? "60";
   // "max" discovers each symbol's full available history from the run date.
   const days = daysArg === "max" ? MAX_DEPTH_DAYS : Number(daysArg);
-  const step = Number(get("step") ?? 16);
-  const gridSpec = get("grid");
+  const step = Number(str("--step") ?? 16);
+  const gridSpec = str("--grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
   if (gridSpec) {
     // Semicolon-separated axes, crossed (2026-08-06). One axis stays exactly as
@@ -1168,19 +1177,19 @@ function parseArgs(argv: string[]): SweepArgs {
     // axes, and the baseline is added once at the end.
     grid.push(...parseGridSpec(gridSpec));
   }
-  const foldStartRaw = get("fold-start");
-  const foldEndRaw = get("fold-end");
+  const foldStartRaw = str("--fold-start");
+  const foldEndRaw = str("--fold-end");
   return {
-    cacheDir: get("cache-dir"),
+    cacheDir: str("--cache-dir"),
     foldEndMs: foldEndRaw !== undefined ? Number(foldEndRaw) : undefined,
-    foldSpecPath: get("fold-spec"),
+    foldSpecPath: str("--fold-spec"),
     foldStartMs: foldStartRaw !== undefined ? Number(foldStartRaw) : undefined,
     captureAll: argv.includes("--capture-all"),
     ignoreLowEdge: argv.includes("--ignore-low-edge"),
     warmOnly: argv.includes("--warm-only"),
     days,
     discover: argv.includes("--discover"),
-    emit: get("emit"),
+    emit: str("--emit"),
     grid,
     step,
     symbols,

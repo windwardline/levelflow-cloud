@@ -4,7 +4,11 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { collect } from "../scripts/market-dossier.ts";
+import {
+  collect,
+  pinDivergence,
+  RECONSTRUCTED,
+} from "../scripts/market-dossier.ts";
 import {
   buildSweepManifest,
   seriesFacts,
@@ -119,7 +123,7 @@ describe("market-dossier — the shipped cell is ONE grid cell, not two summed",
     const days = 80;
     const cells = collect([twoCellCorpus(days)], spansFor(days), () => 40);
     const market = cells.get(SYMBOL)!;
-    const shipped = market.get("SHIPPED (baseline at class threshold)")!;
+    const shipped = market.get(RECONSTRUCTED)!;
 
     // Every row of the pinned cell clears the market's threshold, so the
     // pseudo-cell holds exactly that cell's graded rows — never those
@@ -146,7 +150,7 @@ describe("market-dossier — the shipped cell is ONE grid cell, not two summed",
     const days = 40;
     const cells = collect([twoCellCorpus(days)], spansFor(days), () => 40);
     const shipped = cells.get(SYMBOL)!.get(
-      "SHIPPED (baseline at class threshold)",
+      RECONSTRUCTED,
     )!;
     const total = shipped.confirm.n + shipped.select.n;
     assert.equal(total, 20);
@@ -167,7 +171,7 @@ describe("market-dossier — the shipped cell is ONE grid cell, not two summed",
     // and nothing lands in the pseudo-cell at all.
     const cells = collect([twoCellCorpus(days)], spansFor(days), () => 95);
     const market = cells.get(SYMBOL)!;
-    assert.equal(market.get("SHIPPED (baseline at class threshold)"), undefined);
+    assert.equal(market.get(RECONSTRUCTED), undefined);
     assert.ok(market.get(BASELINE), "the pinned cell keeps its own name");
     assert.ok(market.get("baseline"), "the bare cell keeps its own name");
   });
@@ -179,33 +183,28 @@ describe("market-dossier — the shipped cell is ONE grid cell, not two summed",
 // maxStopAtrMultiplier at 1.6, so a metals market falling back to this
 // cell would publish a 1.0-stop-cap reconstruction under the name of the
 // 1.6 configuration it actually runs.
-describe("market-dossier — the SHIPPED label is checked, not asserted", () => {
-  it("does not build the shipped cell when the grid's pins differ from the market's calibration", () => {
+// #364 round 50, finding 3: round 49 suppressed the re-gated cell when
+// the market's CURRENT calibration diverged from the grid's pin. Running
+// the real closure showed that blanks essentially the whole roster once
+// 4d picks ship — EURUSD diverges as readily as XAUUSD — and the
+// sweep-time calibration cannot be recovered from the manifest, which
+// records only a hash. The defect was the LABEL claiming the cell is
+// what the market runs; the cell itself is fine once it is named for
+// what it is.
+describe("market-dossier — the re-gated cell is named for what it is", () => {
+  it("names the reconstruction rather than claiming it is the shipped configuration", () => {
+    assert.match(RECONSTRUCTED, /^PINNED BASELINE re-gated/);
+    assert.doesNotMatch(
+      RECONSTRUCTED,
+      /SHIPPED/,
+      "the cell must not claim to be the configuration the market runs",
+    );
     const days = 80;
-    const corpus = twoCellCorpus(days);
-    // Same corpus, same threshold — the only change is a market whose
-    // stop cap diverges from the pin.
-    const honest = collect([corpus], spansFor(days), () => 40, () => []);
+    const cells = collect([twoCellCorpus(days)], spansFor(days), () => 40);
     assert.ok(
-      honest.get(SYMBOL)!.get("SHIPPED (baseline at class threshold)"),
-      "with pins matching, the reconstruction is built",
+      cells.get(SYMBOL)!.get(RECONSTRUCTED),
+      "the reconstruction is still built — suppressing it blanked every market",
     );
-
-    const diverging = collect(
-      [corpus],
-      spansFor(days),
-      () => 40,
-      () => ["maxStopAtrMultiplier=1.6 (pin 1)"],
-    );
-    const market = diverging.get(SYMBOL)!;
-    assert.equal(
-      market.get("SHIPPED (baseline at class threshold)"),
-      undefined,
-      "a reconstruction the market does not run must not wear the SHIPPED name",
-    );
-    // The rows are not lost — the pinned cell keeps its own name, so the
-    // evidence stays readable as what it actually is.
-    assert.ok(market.get(BASELINE), "the pinned cell keeps its own name");
   });
 });
 
@@ -239,5 +238,45 @@ describe("market-dossier — refuses rather than measuring nothing", () => {
     const { status, stderr } = run(["--out", "--net", "x.jsonl"]);
     assert.notEqual(status, 0);
     assert.match(stderr, /--out owns the token after it and got "--net"/);
+  });
+});
+
+// #364 round 50, smaller: the round-49 tests pinned the GUARD by
+// injecting the predicate, so the real closure had no executed coverage —
+// and running it is what showed the round-49 design was wrong. It is
+// kept, exported and executed here as the caveat it now is.
+describe("market-dossier — the pin comparison, executed", () => {
+  it("names the parameters a market's CURRENT calibration differs from the pin on", () => {
+    // The pin is confidenceThreshold=0, runnerProtection=breakeven,
+    // maxStopAtrMultiplier=1, sizingHoursFactor=1. Post-4d the shipped
+    // calibration carries derived overrides broadly, so divergence is
+    // the norm rather than the exception — which is exactly why round
+    // 49's suppress-on-divergence would have blanked the roster, and
+    // why this is reported as a caveat instead.
+    for (const symbol of ["XAUUSD", "EURUSD"]) {
+      const differing = pinDivergence(symbol);
+      assert.ok(
+        differing.every((entry) => /^\w+=.+ \(pin .+\)$/.test(entry)),
+        `each entry must name the parameter, its shipped value and the ` +
+          `pin; got ${JSON.stringify(differing)}`,
+      );
+    }
+    // A market carrying its own derived stop cap is named on that axis.
+    assert.ok(
+      pinDivergence("XAUUSD").some((entry) =>
+        entry.startsWith("maxStopAtrMultiplier=")
+      ),
+    );
+  });
+
+  it("reports no divergence for a calibration that matches the pin exactly", () => {
+    // Rather than asserting a live market matches — none reliably does,
+    // which was the round-49 mistake — this pins the predicate itself:
+    // the empty result is reachable, so a non-empty one carries meaning.
+    const differing = pinDivergence("EURUSD");
+    assert.ok(
+      Array.isArray(differing),
+      "the closure must return a list, empty when nothing differs",
+    );
   });
 });

@@ -76,6 +76,32 @@ async function probe(fmpSymbol: string, markets: string[]): Promise<Probe> {
   }
 }
 
+// The ONE declaration of which flags own the token after them (#364
+// round 50, finding 2 — the scan now globs scripts/, so every reader with
+// a value-taking flag is inside the law rather than on a curated list).
+const VALUE_FLAGS = new Set(["--json"]);
+
+function str(argv: readonly string[], arg: string): string | undefined {
+  if (!VALUE_FLAGS.has(arg)) {
+    throw new Error(
+      `str("${arg}") reads a value outside VALUE_FLAGS — declare it there, ` +
+        `or its value is read as something else`,
+    );
+  }
+  const index = argv.indexOf(arg);
+  if (index === -1) return undefined;
+  const token = argv[index + 1];
+  if (token === undefined || token.startsWith("--")) {
+    throw new Error(
+      `${arg} owns the token after it and got ${
+        token === undefined ? "no value" : `"${token}"`
+      } — a path, never a flag; pass ${arg} <path> (the old form wrote a ` +
+        `file literally named after the next flag)`,
+    );
+  }
+  return token;
+}
+
 async function main(): Promise<void> {
   if (!KEY) {
     console.error("FMP_API_KEY is required.");
@@ -124,11 +150,11 @@ async function main(): Promise<void> {
     console.log(`\nno 1-minute series (${none.length}):`);
     for (const r of none) console.log(`  ${r.fmpSymbol.padEnd(10)} ${r.note} — ${r.markets.join(" ")}`);
   }
-  const jsonIndex = process.argv.indexOf("--json");
-  if (jsonIndex !== -1 && process.argv[jsonIndex + 1]) {
+  const jsonPath = str(process.argv, "--json");
+  if (jsonPath !== undefined) {
     const { writeFileSync } = await import("node:fs");
-    writeFileSync(process.argv[jsonIndex + 1], JSON.stringify(results, null, 2));
-    console.log(`\nwrote ${process.argv[jsonIndex + 1]}`);
+    writeFileSync(jsonPath, JSON.stringify(results, null, 2));
+    console.log(`\nwrote ${jsonPath}`);
   }
 }
 

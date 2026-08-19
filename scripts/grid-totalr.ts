@@ -1153,7 +1153,18 @@ export async function gradeCorpus(
       // and in the repository's own — not just the one name today's
       // identity computes, which is the whole point of the widening.
       ...jsonlIn(dirname(canonicalLedgerPath), "confirm-log-"),
-      ...jsonlIn(DEFAULT_CONFIRM_LOG_DIR, "confirm-log-"),
+      // The canonical directory is globbed UNPREFIXED as well (#364
+      // round 50, finding 1). Round 49 renamed the ledger to carry a
+      // confirm-log- prefix and made every glob require it, which
+      // orphaned the form rounds 45-48 wrote — <corpusId>.jsonl, right
+      // here — on both halves at once: the direct probe computes the new
+      // name and the glob filters the old one out. That is the failure
+      // round 48 closed, restored by a rename. The prefix exists because
+      // --confirm-log-dir is operator-controlled and may point at the
+      // sweeps directory; THIS directory is repository-controlled and
+      // holds only ledgers, so an unprefixed glob here carries none of
+      // the corpus-emit hazard the prefix was added for.
+      ...jsonlIn(DEFAULT_CONFIRM_LOG_DIR, ""),
       ...(options.confirmLogPath ? [] : [
         ...[...new Set(paths.map((path) => dirname(path)))].sort().flatMap((
           dir,

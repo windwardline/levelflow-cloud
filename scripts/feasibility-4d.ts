@@ -19,6 +19,7 @@ import { PROGRAM_LINES } from "../src/lib/broker/programs.ts";
 import { sizeSetup } from "../src/lib/broker/sizing.ts";
 import type { ProgramLine } from "../src/lib/broker/types.ts";
 import { assertManifest, readLinesSync } from "./sweepStats.ts";
+import { flagReader } from "./flagReader.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -46,23 +47,28 @@ function median(values: number[]): number | null {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
+const VALUE_FLAGS = new Set(["--candidates", "--out"]);
+
 async function main() {
   const argv = process.argv.slice(2);
+  // POSITIVE membership test (#364 round 50, finding 2). The old form
+  // consumed the token after EVERY --flag, so a boolean flag — or a
+  // typo'd one — ate the shard path following it and the run graded a
+  // corpus one shard short of the one the operator named. That is the
+  // defect round 44 found in the two 4d scripts; the derived scan
+  // surfaced it here.
   const paths: string[] = [];
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index].startsWith("--")) {
-      index += 1;
+      if (VALUE_FLAGS.has(argv[index])) index += 1;
       continue;
     }
     paths.push(argv[index]);
   }
-  const flagValue = (name: string) => {
-    const index = argv.indexOf(`--${name}`);
-    return index >= 0 ? argv[index + 1] : undefined;
-  };
-  const candidatesPath = flagValue("candidates") ??
+  const { str } = flagReader(argv, VALUE_FLAGS);
+  const candidatesPath = str("--candidates") ??
     "docs/research/baseline-2026-08-10/4d-candidates.json";
-  const outPath = flagValue("out") ??
+  const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-feasibility.json";
   const candidateFile = JSON.parse(
     readFileSync(candidatesPath, "utf8"),
