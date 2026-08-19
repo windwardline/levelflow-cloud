@@ -430,11 +430,21 @@ layer.
   states its own denominator — market evidence only; the driver's
   long-standing `unfilled` column changed meaning to
   `total − filled − dataAbsent` (market-evidence unfilled, with
-  `dataAbsent` its own column beside it); readers hand the vocabulary
-  the RAW emit row so the marker cannot be stripped by a rebuild, and
-  the field-by-field rollups carry every `SweepStats` key by test. A
-  cohort author reading this map should assume any pre-R1b published
-  fill or unfilled figure blended data absence into its denominator. An uncontainable
+  `dataAbsent` its own column beside it); readers either hand the
+  vocabulary the RAW emit row (account-type-report) or project through
+  the vocabulary's own `vocabularyRow` helper (sweep-analysis — its
+  505 MB-corpus narrowing stays, and the helper carries the partition
+  keys by construction; #364 round 6 caught the first "raw row" fix
+  spreading a row that was itself a closed rebuild one layer up), the
+  projection-to-partition path is executed in tests, and the
+  field-by-field rollups carry every `SweepStats` key by a
+  self-updating pin. One denominator note beside the unfilled
+  redefinition: the driver's `setups` column is `SweepSummary.total` =
+  `filled + unfilled + dataAbsent` (every emitted row), while a corpus
+  reader's `n` is market evidence only — the two differ by exactly
+  `dataAbsent` for the same run, by design. A cohort author reading
+  this map should assume any pre-R1b published fill or unfilled figure
+  blended data absence into its denominator. An uncontainable
   window (#362 round 7's sub-bar-span weekly clamp, and any window no
   grid slot fits) resolves unfilled UNMARKED with its own sentence — a
   grading-law fact; a containable window whose resolution stream held

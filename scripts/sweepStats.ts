@@ -70,6 +70,32 @@ export function emptyStats(): SweepStats {
   };
 }
 
+/**
+ * The fields this vocabulary's partition and accounting read, projected
+ * off a raw emit row (#364 round 6, finding 1). A reader that narrows
+ * rows for memory (sweep-analysis holds a projection of a 505 MB
+ * corpus) spreads THIS through its projection instead of enumerating
+ * fields — round 5's raw-row fix was applied to a row that was itself a
+ * sixteen-field rebuild from one layer up, so the marker never arrived
+ * and dataAbsent was structurally zero there. A vocabulary field added
+ * here flows into every projecting reader by construction; realizedR
+ * passes through verbatim so each reader keeps its own null-coercion.
+ */
+export function vocabularyRow(
+  raw: SweepEmitRow,
+): Pick<SweepEmitRow, "outcome" | "realizedR" | "symbol"> & {
+  noBarsInReviewWindow?: true;
+} {
+  return {
+    ...(raw.noBarsInReviewWindow === true
+      ? { noBarsInReviewWindow: true as const }
+      : {}),
+    outcome: raw.outcome,
+    realizedR: raw.realizedR,
+    symbol: raw.symbol,
+  };
+}
+
 export function addOutcome(stats: SweepStats, row: SweepEmitRow): void {
   if (row.noBarsInReviewWindow === true) {
     stats.dataAbsent += 1;

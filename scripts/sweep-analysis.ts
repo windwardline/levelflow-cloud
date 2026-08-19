@@ -25,6 +25,7 @@ import {
   emptyStats,
   type SweepEmitRow,
   type SweepStats,
+  vocabularyRow,
 } from "./sweepStats.ts";
 
 type Row = {
@@ -32,6 +33,13 @@ type Row = {
   holdout?: boolean;
   confidenceScore: number;
   cotStance: string | null;
+  // R1b's per-row facts (#364 round 6, finding 1): the marker rides via
+  // vocabularyRow in the projection below; the two macro fields are
+  // carried so this file CAN read them — a closed projection had
+  // silently dropped all three.
+  macroAdjustment?: number;
+  macroStance?: string;
+  noBarsInReviewWindow?: true;
   newsPenalty: number;
   outcome: string;
   realizedR: number | null;
@@ -159,12 +167,19 @@ async function main(): Promise<void> {
       holdoutSkipped += 1;
       return;
     }
+    // The vocabulary's own projection rides first (#364 round 6,
+    // finding 1): a field the partition reads can no longer be dropped
+    // by this narrowing — round 5 fixed the add() call while THIS push
+    // was the layer that stripped the marker. The narrowing itself
+    // stays: it exists for the 505 MB corpus.
     rows.push({
+      ...vocabularyRow(raw),
       accepted: parsed.accepted,
       confidenceScore: parsed.confidenceScore,
       cotStance: parsed.cotStance,
+      macroAdjustment: parsed.macroAdjustment,
+      macroStance: parsed.macroStance,
       newsPenalty: parsed.newsPenalty,
-      outcome: parsed.outcome,
       realizedR: parsed.realizedR,
       regime: parsed.regime,
       rewardRisk: parsed.rewardRisk,

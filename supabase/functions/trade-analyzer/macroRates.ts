@@ -109,7 +109,13 @@ export function calculateMacroRateAdjustment(
 /**
  * The one context construction, shared by the live fetch (macroContext.ts,
  * most-recent two rows of the response) and the sweep (E6: most-recent two
- * VISIBLE rows at each decision instant). Rows arrive latest-first.
+ * VISIBLE rows at each decision instant). The two arguments are (latest,
+ * previous) — note the callers hold OPPOSITE array orders (#364 round 6,
+ * smaller): the live fetch sorts its response DESCENDING and passes
+ * rows[0]/rows[1], while the sweep's rolling store is ASCENDING (the
+ * visibility pointer requires it) and passes [pointer−1]/[pointer−2].
+ * This function sees only the pair; each caller owns its ordering, and
+ * the sweep's is executed end-to-end in tests/sweep.test.ts.
  */
 export function treasuryContextFromRows(
   latest: DatedTreasuryRow,

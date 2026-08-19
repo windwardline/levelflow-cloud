@@ -19,6 +19,8 @@ import {
   expectancy,
   rStandardError,
   rStdDev,
+  type SweepEmitRow,
+  vocabularyRow,
 } from "../scripts/sweepStats.ts";
 
 // Item 3, first commit (the map's govern-all finding): seven emit-readers
@@ -146,16 +148,45 @@ describe("clusteredStandardError — 3a's dispersion, clustered by market", () =
 
 describe("the partition reaches every reader (#364 round 5, finding 1)", () => {
   // The vocabulary partitions on the raw row's marker, so a reader that
-  // REBUILDS the row before addOutcome silently strips it — which is how
-  // two readers kept the pre-partition denominator one call away from
-  // the fix. The raw-row spread makes the omission impossible, including
-  // for future per-row facts; combined with the vocabulary-level pin
-  // above (a marked row moves dataAbsent and nothing else), the
-  // reader-level property holds by composition.
-  it("readers hand addOutcome the raw emit row, never a rebuilt one", () => {
+  // REBUILDS the row anywhere between the manifest door and addOutcome
+  // silently strips it. Round 5 pinned the addOutcome call's shape and
+  // round 6 (finding 1) showed why that was not enough: sweep-analysis's
+  // spread was over a row that was itself a closed sixteen-field rebuild
+  // one layer up, so the pin passed while dataAbsent stayed structurally
+  // zero. The projection now rides through the vocabulary's OWN helper,
+  // and the property is EXECUTED here — a marked raw row survives the
+  // projection into the partition — plus wiring pins that each reader
+  // either spreads the raw row or spreads vocabularyRow at its
+  // projection site.
+  it("a marked row survives a memory projection into the partition — executed, not source-matched", () => {
+    const stats = emptyStats();
+    addOutcome(
+      stats,
+      vocabularyRow({
+        confidenceScore: 55,
+        noBarsInReviewWindow: true,
+        outcome: "unfilled",
+        realizedR: 0,
+        symbol: "EURUSD",
+      } as unknown as SweepEmitRow),
+    );
+    addOutcome(
+      stats,
+      vocabularyRow({
+        outcome: "take_profit",
+        realizedR: 1.2,
+        symbol: "EURUSD",
+      } as unknown as SweepEmitRow),
+    );
+    assert.equal(stats.dataAbsent, 1);
+    assert.equal(stats.n, 1);
+    assert.equal(stats.filled, 1);
+  });
+
+  it("readers project through vocabularyRow or spread the raw row — the stripping layer is pinned where it lived", () => {
     assert.match(
       readFileSync("scripts/sweep-analysis.ts", "utf8"),
-      /addOutcome\(stats, \{\s*\n\s*\.\.\.row,/,
+      /rows\.push\(\{\s*\n\s*\.\.\.vocabularyRow\(raw\),/,
     );
     assert.match(
       readFileSync("scripts/account-type-report.ts", "utf8"),
