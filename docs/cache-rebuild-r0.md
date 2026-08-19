@@ -202,10 +202,12 @@ violator, before simulation spends anything; and the read-time corpus
 door backstops. Top-up time still deliberately asserts NOTHING — a
 density refusal under `--warm-only` would go red mid-roster and leave
 every later symbol un-topped-up, this runbook's own failure class — but
-the warm-only log now prints every symbol's 5-minute rows/day at depth,
-so a provider cap change landing after step 3 shows in the next nightly
-log even though nothing enforces it there; enforcement waits at the
-next sweep pre-flight or corpus read. If a nightly log's density lines
+the warm-only log now prints a density line for every symbol — 5-minute
+rows/day at depth, or `5min 0 rows` when the store is empty, which is
+exactly what a provider endpoint change that zeroes the feed would
+produce — so a cap or plan change landing after step 3 shows in the
+next nightly log even though nothing enforces it there; enforcement
+waits at the next sweep pre-flight or corpus read. If a nightly log's density lines
 shift, or FMP announces plan or endpoint changes, re-run step 3 before
 the next sweep. Two related notes: a
 superseded-clock corpus read is possible only via the explicit

@@ -674,23 +674,38 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     );
   });
 
-  it("falls back to the near-identical-window heuristic when the fact is absent — silent across different windows (#364 round 9, finding 2)", () => {
-    // A manifest predating crossSeriesDensity: the own-window ratio
-    // 3.89 would refuse, but the windows diverge, so the fallback
-    // self-excludes rather than comparing across eras; the crypto
-    // absolute floor still binds the 5-minute series over its own span
-    // (288 >= 260) and admits.
-    assertManifestedCorpus(writeCorpus({
-      conditions: goodConditions,
-      series: depthShapeSeries,
-      symbol: "BTCUSD",
-    }));
+  it("falls back to the near-identical-window heuristic on HISTORICAL reads without the fact (#364 rounds 9 and 11)", () => {
+    // Manifests predating crossSeriesDensity are exactly the
+    // historical-read population — on the current path their absence
+    // refuses at the evidence block (executed above). Under the
+    // override, the own-window ratio 3.89 would refuse, but the windows
+    // diverge, so the fallback self-excludes rather than comparing
+    // across eras; the crypto absolute floor still binds the 5-minute
+    // series over its own span (288 >= 260) and admits.
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    const realWarn = console.warn;
+    console.warn = () => {};
+    try {
+      assertManifestedCorpus(writeCorpus({
+        clock: {
+          calendar: CALENDAR_CLOCK,
+          normalizer: "ny-wall-utc-v1-superseded",
+        },
+        series: depthShapeSeries,
+        symbol: "BTCUSD",
+        treasuryCurve: null,
+      }));
+    } finally {
+      console.warn = realWarn;
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
   });
 
   it("admits honest shapes: dense-and-coherent, trade-sparse, absent 5-minute, sub-week span", () => {
     // Dense and coherent: 288/96 = 3.0 at full crypto density.
     assertManifestedCorpus(writeCorpus({
       conditions: goodConditions,
+      crossSeriesDensity: { fifteenCount: 960, fiveCount: 2_880, spanDays: 10 },
       series: { "15min": facts(960, 10), "5min": facts(2_880, 10) },
       symbol: "BTCUSD",
     }));
@@ -698,6 +713,7 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     // ratio gate self-excludes it and futures carries no absolute floor.
     assertManifestedCorpus(writeCorpus({
       conditions: goodConditions,
+      crossSeriesDensity: { fifteenCount: 30, fiveCount: 90, spanDays: 10 },
       series: { "15min": facts(30, 10), "5min": facts(90, 10) },
       symbol: "XC",
     }));
@@ -711,9 +727,86 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     // silent rather than guessing.
     assertManifestedCorpus(writeCorpus({
       conditions: goodConditions,
+      crossSeriesDensity: { fifteenCount: 192, fiveCount: 400, spanDays: 2 },
       series: { "15min": facts(192, 2), "5min": facts(400, 2) },
       symbol: "BTCUSD",
     }));
+  });
+
+  it("keeps a clipped ES-class primary in the ratio's population — the filter is clip-invariant (#364 round 11, finding 1)", () => {
+    // ESUSD is asset-type futures: no absolute floor, BY DESIGN judged
+    // by the ratio. A ~12% 15-minute clip (65.9 -> 57.9/day) used to
+    // drag the symbol below the 60/day population filter — the clip
+    // removed it from the instrument that detects clipping, leaving it
+    // judged by nothing. max(fifteen, five/3) keeps it in (the healthy
+    // 5-minute side testifies 197.3/3 = 65.8/day) and the ratio fires.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          crossSeriesDensity: {
+            fifteenCount: 21_120,
+            fiveCount: 72_000,
+            spanDays: 365,
+          },
+          series: {
+            "15min": facts(21_120, 365),
+            "5min": facts(72_000, 365),
+          },
+          symbol: "ESUSD",
+        })),
+      /ESUSD 5min\/15min density 3\.41.*shared window.*outside \[2\.7, 3\.25\]/s,
+    );
+  });
+
+  it("refuses a current-path manifest whose symbol has both series but no crossSeriesDensity — a claim without its evidence (#364 round 11, finding 2)", () => {
+    // The driver writes the fact whenever both series have bars and
+    // their windows meet, so on the current path absence means the
+    // manifest predates the fact; missing evidence buys a refusal,
+    // never the weaker own-span fallback. This shape passes the
+    // density loop (fallback ratio 3.0, in band) and refuses at the
+    // evidence block.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": facts(960, 10), "5min": facts(2_880, 10) },
+          symbol: "BTCUSD",
+        })),
+      /BTCUSD carries both 5-minute and 15-minute series but no crossSeriesDensity/,
+    );
+  });
+
+  it("refuses two mature stores that share no time window — shape poison on every read path", () => {
+    // A 5-minute series covering a period its own primary never touches
+    // cannot be one symbol's feed at two resolutions. Binds like the
+    // clock witnesses, before any evidence-block reasoning.
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: {
+            "15min": {
+              clock: { verdict: "indeterminate" },
+              count: 960,
+              firstTime: 0,
+              largestGapMs: 0,
+              lastTime: 10 * DAY,
+              spanDays: 10,
+            },
+            "5min": {
+              clock: { verdict: "indeterminate" },
+              count: 2_880,
+              firstTime: 20 * DAY,
+              largestGapMs: 0,
+              lastTime: 30 * DAY,
+              spanDays: 10,
+            },
+          },
+          symbol: "BTCUSD",
+        })),
+      /BTCUSD 5-minute and 15-minute series share no time window/,
+    );
   });
 
   it("refuses a macro claim without curve evidence, a holed curve, and a stale-tailed curve (#364 round 2, finding 1)", () => {

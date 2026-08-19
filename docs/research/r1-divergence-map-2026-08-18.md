@@ -477,7 +477,9 @@ layer.
   densest excluded symbol is ^GDAXI at 24.5), plus absolute 5-minute
   floors for the structurally deterministic classes: crypto 260
   (BTCUSD 288.0, THETAUSD 287.9), forex 150 (EURUSD 205.6), metals 140
-  (XAUUSD 197.1), energies 140 (CLUSD 197.7), indices 34 (^N225 48.6 …
+  (XAUUSD 197.1), energies 140 (the class is BRENT/WTI; CLUSD's 197.7
+  measurement is FUTURES-class — ratio-judged, no floor — a #364
+  round-11 attribution correction), indices 34 (^N225 48.6 …
   ^GDAXI 73.6). futures/agriculture/livestock carry NO absolute floor:
   the probe found ZRUSD ~36 rows/day with intra-session holes, XC ~8.6
   (prints only where trades occurred) and QG serving no 5-minute data
@@ -491,7 +493,7 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
-  Amended #364 rounds 8–10: the assertion runs in TWO places — the
+  Amended #364 rounds 8–11: the assertion runs in TWO places — the
   read-time door, and the driver pre-flight on SWEEP runs only, beside
   the clock witnesses, refusing at the first violator before simulation
   spends anything (the refusal names the survey mode). `--warm-only`
@@ -511,12 +513,22 @@ layer.
   those on every symbol at any depth. That is what keeps the no-floor
   classes' liquid members judged and the clipped-primary blind band
   closed on a `--days max` corpus; the own-span computation survives
-  only as the fallback for manifests predating the fact, gated on
-  near-identical windows (shared span ≥90% of both) so it never
-  compares across eras. The absolute floors still bind each series
-  over its own span, and the first deep survey is what tells whether
-  the one-week floors hold at depth (carried: density-ceiling
-  tightening).
+  only as the fallback for manifests predating the fact — which are
+  exactly the HISTORICAL-READ population (round 11): on the current
+  path a manifest whose symbol carries both series but no
+  crossSeriesDensity refuses as a claim without its evidence, the same
+  law as the curve facts — gated on near-identical windows (shared
+  span ≥90% of both) so it never compares across eras. The ratio's
+  population filter is CLIP-INVARIANT (round 11): max(15-minute,
+  5-minute/3) ≥60 rows/day, so a clip on either single series cannot
+  move a symbol out of the gate that detects clipping — filtering on
+  the 15-minute count alone had metals leaving above an 8.7% clip and
+  floorless ES-class futures above 9.0%, judged by nothing — and two
+  mature stores sharing NO time window refuse outright on every read
+  path (shape poison, the clock witnesses' standing). The absolute
+  floors still bind each series over its own span, and the first deep
+  survey is what tells whether the one-week floors hold at depth
+  (carried: density-ceiling tightening).
 - **E6, per term as designed**: `macroAdjustment` is RECONSTRUCTED —
   `macroRates.ts` (new, Deno-free; macroContext.ts keeps fetch/cache/
   recorder and composes the same pieces, pinned) carries the pure

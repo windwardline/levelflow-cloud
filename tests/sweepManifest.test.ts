@@ -349,6 +349,18 @@ describe("the driver writes the manifest beside the emit", () => {
       /`density 5min \$\{series\["5min"\]\.count\} rows`/,
       "an empty 5-minute store still prints its survey line",
     );
+    // #364 round 11, finding 3: the print's POSITION is load-bearing
+    // too — the thin-symbol exemption is justified by "its store still
+    // shows in the survey line above", and both docs promise the
+    // nightly log is a full-roster survey, so the print must stay
+    // ABOVE the thin-symbol skip.
+    const printIdx = script.indexOf("density 5min");
+    assert.ok(
+      printIdx >= 0 && printIdx < thinSkip,
+      "the survey line prints ABOVE the thin-symbol skip — thin " +
+        "symbols belong to the full-roster survey even though the " +
+        "floors never judge them",
+    );
     assert.match(
       script,
       /const crossSeriesDensity = crossSeriesDensityFacts\(\s*\n?\s*fiveMinuteBars,\s*\n?\s*primaryBars,?\s*\n?\s*\)/,

@@ -474,6 +474,29 @@ function verifyManifest(emitPath: string): SweepManifest {
           `hardwired zero the claim abolished, and the corpus is refused`,
       );
     }
+    // #364 round 11, finding 2: crossSeriesDensity is evidence like the
+    // curve facts — the driver writes it whenever both series have bars
+    // and their windows meet, so on the current path its absence means
+    // the manifest predates the fact, and missing evidence must buy a
+    // refusal, never the weaker own-span fallback (which abstains for
+    // most of the roster at depth). Manifests that genuinely predate
+    // the fact are exactly the historical-read population, where the
+    // fallback legitimately remains.
+    for (const entry of manifest.symbols ?? []) {
+      const five = entry.series?.["5min"];
+      const fifteen = entry.series?.["15min"];
+      if (
+        five && five.count > 0 && fifteen && fifteen.count > 0 &&
+        !entry.crossSeriesDensity
+      ) {
+        throw new Error(
+          `${emitPath}: ${entry.symbol} carries both 5-minute and ` +
+            `15-minute series but no crossSeriesDensity shared-window ` +
+            `facts — the ratio's claim without its evidence is refused; ` +
+            `re-sweep with the current driver`,
+        );
+      }
+    }
   }
   return manifest;
 }
@@ -501,15 +524,25 @@ function verifyManifest(emitPath: string): SweepManifest {
 // child), so a fixed law over every symbol would either false-refuse
 // them or be vacuous for the dense ones. The instruments therefore
 // self-select:
-// - The tight ratio judges only symbols whose PRIMARY runs >=60
-//   15-minute rows/day — the near-24h markets (weekly-average arithmetic:
-//   crypto 96, forex 68.5, metals 65.7, ES-class futures 65.9; the
-//   densest excluded symbol is ^GDAXI at 24.5). Exactly these are the
-//   markets whose 29-day chunks approach provider caps, i.e. the band's
-//   home; a clipped primary moves a true ~3.0 ratio above 3.25 at a
-//   >=7.7% clip, shrinking the band's blind residue from <=14.3% to
-//   <=7.7%, and any cap low enough to clip the 5-minute chunks drags the
-//   ratio far below 2.7.
+// - The tight ratio judges only slot-dense markets: symbols whose
+//   max(15-minute, 5-minute/3) density runs >=60 15-minute-equivalent
+//   rows/day — the near-24h markets (weekly-average arithmetic: crypto
+//   96, forex 68.5, metals 65.7, ES-class futures 65.9 on the 15-minute
+//   side, with the 5-minute side agreeing at 197-288/3; the densest
+//   excluded symbol is ^GDAXI at 24.5 / 73.6/3). The filter takes the
+//   MAX of the two so that a clip on either single series cannot move a
+//   symbol out of the population (#364 round 11, finding 1 — filtering
+//   on the 15-minute count alone was self-defeating: the clip lowered
+//   the filter and the ratio's denominator together, so metals left the
+//   gate above an 8.7% clip and floorless ES-class futures above 9.0%).
+//   Exactly these are the markets whose 29-day chunks approach provider
+//   caps, i.e. the band's home; a clipped primary moves a true ~3.0
+//   ratio above 3.25 at a >=7.7% clip, shrinking the band's blind
+//   residue from <=14.3% to <=7.7% across the WHOLE population, and any
+//   cap low enough to clip the 5-minute chunks drags the ratio far
+//   below 2.7. The residue that remains is the symmetric case — both
+//   series clipped by the same factor — which no ratio can see and the
+//   absolute floors carry where they exist.
 // - The absolute floors bind the four structurally deterministic classes
 //   (probed margin under the measured week: crypto 260, forex 150,
 //   metals 140, energies 140) plus cash indices at 34 (all four members
@@ -573,6 +606,22 @@ export function assertFiveMinuteDensity(
   ) {
     return;
   }
+  // #364 round 11, finding 2 rider: two mature stores that share NO time
+  // window cannot be one symbol's feed at two resolutions — that is
+  // shape poison, not degradation, and like the clock witnesses it
+  // binds every read, historical included.
+  if (
+    five.firstTime !== null && five.lastTime !== null &&
+    fifteen.firstTime !== null && fifteen.lastTime !== null &&
+    Math.min(five.lastTime, fifteen.lastTime) <=
+      Math.max(five.firstTime, fifteen.firstTime)
+  ) {
+    throw new Error(
+      `${emitPath}: ${entry.symbol} 5-minute and 15-minute series share no ` +
+        `time window — two stores that never overlap cannot be one ` +
+        `symbol's feed; the corpus is refused`,
+    );
+  }
   const fivePerDay = five.count / five.spanDays;
   const fifteenPerDay = fifteen.count / fifteen.spanDays;
   // The roster is the class authority; an off-roster symbol (which only a
@@ -610,11 +659,24 @@ export function assertFiveMinuteDensity(
   // absolute floors above still bind.
   const shared = entry.crossSeriesDensity;
   if (shared) {
-    if (
-      shared.spanDays >= DENSITY_MIN_SPAN_DAYS &&
-      shared.fifteenCount > 0 &&
-      shared.fifteenCount / shared.spanDays >= DENSITY_RATIO_PRIMARY_FLOOR
-    ) {
+    // Population filter (#364 round 11, finding 1): whether the ratio
+    // judges a symbol is decided by max(fifteen, five/3) per day — a
+    // quantity a SINGLE clipped series cannot move out of the
+    // population, because the un-clipped side still testifies that the
+    // market is slot-dense. Filtering on the 15-minute count alone was
+    // self-defeating: a clip lowered the filter and the ratio's
+    // denominator together, so metals left the gate above an 8.7% clip
+    // and ES-class futures (no absolute floor, BY DESIGN judged here)
+    // above 9.0% — the clip removed the symbol from the instrument
+    // that detects clipping. Under max(), a one-sided clip of either
+    // series keeps the symbol in the population and moves the ratio
+    // out of band; only a SYMMETRIC clip of both stays invisible,
+    // which no ratio can see and the absolute floors carry where they
+    // exist.
+    const slotDense = shared.fifteenCount > 0 &&
+      Math.max(shared.fifteenCount, shared.fiveCount / 3) / shared.spanDays >=
+        DENSITY_RATIO_PRIMARY_FLOOR;
+    if (shared.spanDays >= DENSITY_MIN_SPAN_DAYS && slotDense) {
       const ratio = shared.fiveCount / shared.fifteenCount;
       if (ratio < DENSITY_RATIO_MIN || ratio > DENSITY_RATIO_MAX) {
         throw new Error(
@@ -639,7 +701,10 @@ export function assertFiveMinuteDensity(
     : 0;
   const sameWindow = sharedSpanDays >= 0.9 * five.spanDays &&
     sharedSpanDays >= 0.9 * fifteen.spanDays;
-  if (sameWindow && fifteenPerDay >= DENSITY_RATIO_PRIMARY_FLOOR) {
+  if (
+    sameWindow &&
+    Math.max(fifteenPerDay, fivePerDay / 3) >= DENSITY_RATIO_PRIMARY_FLOOR
+  ) {
     const ratio = fivePerDay / fifteenPerDay;
     if (ratio < DENSITY_RATIO_MIN || ratio > DENSITY_RATIO_MAX) {
       throw new Error(
