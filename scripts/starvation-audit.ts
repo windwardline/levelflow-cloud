@@ -102,6 +102,20 @@
  * condition, not a geometry one (the rule account-type-report applies
  * to filled 0, round 25).
  *
+ * A LOW geometry denominator prints its ratio but withholds the
+ * verdict (#364 round 32, finding 3): survival 0-of-2 is the same
+ * printed figure as 0-of-2,000 and carries none of its evidence, and
+ * a STARVED flag from a handful of decisions is this file's own
+ * failure mode pointed at itself — a verdict drawn from a sample too
+ * small to support one. Below --min-reached (default 30) the row
+ * prints its ratio with "thin sample — flag withheld", joins neither
+ * the starved tally nor the flagged denominator, and cannot exit 1.
+ * The summary partitions the roster by cause — flagged-eligible,
+ * thin-sample, no-verdict — so an excluded market is named, never
+ * absorbed (#364 round 32, finding 2: the old "N of M flagged"
+ * counted no-verdict markets in M, understating the flagged share of
+ * what was actually judged).
+ *
  * dataAbsent leaves both sides by the same rule (#364 round 18): those
  * decisions built a plan and their review window held no gradeable
  * bars — a DATA fact, not a parameter verdict. Pre-R1b they landed in
@@ -221,8 +235,22 @@ function parse(paths: string[]): Row[] {
 }
 
 // Flags filtered out, or readFileSync tries to open "--report" as a log and the
-// gate fails for the wrong reason — which it did on first test.
-const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+// gate fails for the wrong reason — which it did on first test. Bare numbers
+// are flag VALUES (--min-reached 20), never log paths — the same filter
+// account-type-report carries for the same reason.
+const paths = process.argv.slice(2).filter((arg) =>
+  !arg.startsWith("--") && !/^[\d.]+$/.test(arg)
+);
+// Below this many geometry-stage decisions a survival ratio prints but is
+// never flagged (#364 round 32, finding 3) — the accessor is
+// account-type-report's num() shape, value riding argv after the flag.
+function num(arg: string, fallback: number): number {
+  const index = process.argv.indexOf(arg);
+  if (index === -1) return fallback;
+  const parsed = Number(process.argv[index + 1]);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+const minReached = num("--min-reached", 30);
 // Zero paths is the one invocation-level refusal; zero ROWS refuses per
 // file inside parse() (#364 rounds 20–21, finding 2 each), and both are
 // refusals rather than verdicts — --report cannot suppress either.
@@ -283,19 +311,28 @@ const out = [...byS.values()].map((r) => {
 console.log(`${"market".padEnd(9)}${"decisions".padStart(10)}${"reached".padStart(9)}` +
   `${"planRej".padStart(9)}${"belowPay".padStart(9)}${"survive".padStart(9)}  flag`);
 let starved = 0;
+let thinSample = 0;
+let noVerdict = 0;
 for (const r of out) {
   const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
   // Under a third surviving the geometry gates means the geometry, not the
   // market, is deciding how much evidence we ever collect about it. A null
   // survival means no decision reached the geometry at all — no
   // denominator, no claim, and the cause prints so the operator sees a
-  // data condition rather than a parameter one (#364 round 31).
+  // data condition rather than a parameter one (#364 round 31). A
+  // denominator below --min-reached prints its ratio but withholds the
+  // flag (#364 round 32) — 0-of-2 is not evidence of starvation.
   let flag = "";
   if (r.survival === null) {
     flag = r.dataAbsent > 0
       ? `no verdict — geometry killed 0; all ${r.dataAbsent} emitted ` +
         `setups carry the data-absence marker`
       : "no verdict — nothing reached the geometry stage";
+    noVerdict += 1;
+  } else if (r.reachedGeometry < minReached) {
+    flag = `thin sample — ${r.reachedGeometry} reached geometry ` +
+      `(< ${minReached}); flag withheld`;
+    thinSample += 1;
   } else if (r.survival < 0.15) {
     flag = "STARVED — geometry kills 85%+";
     starved += 1;
@@ -309,7 +346,22 @@ for (const r of out) {
     `${(r.survival === null ? "—" : pct(r.survival)).padStart(9)}  ${flag}`,
   );
 }
-console.log(`\n${starved} of ${out.length} markets flagged. Ranked worst first.`);
+// The flagged denominator holds only markets that received a verdict;
+// excluded markets are named by cause, never absorbed (#364 round 32,
+// finding 2).
+const excluded = [
+  ...(thinSample > 0
+    ? [`${thinSample} thin sample below ${minReached} reached`]
+    : []),
+  ...(noVerdict > 0
+    ? [`${noVerdict} no verdict — zero geometry denominator`]
+    : []),
+];
+console.log(
+  `\n${starved} of ${out.length - thinSample - noVerdict} markets flagged` +
+    `${excluded.length > 0 ? ` (${excluded.join("; ")})` : ""}` +
+    `. Ranked worst first.`,
+);
 
 // A gate, not a report (amendment 25). Run this against any broker's first sweep
 // BEFORE any market's expectancy is read as a verdict about that market. Exit 1

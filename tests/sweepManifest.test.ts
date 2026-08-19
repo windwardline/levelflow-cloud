@@ -592,6 +592,46 @@ describe("the driver writes the manifest beside the emit", () => {
       /Full-roster density survey/,
       "a sweep refusal names the survey instrument",
     );
+    assert.match(
+      script,
+      /would-refuse verdict, asserts nothing/,
+      "the refusal describes the survey as it now behaves — reporting, " +
+        "not merely printing",
+    );
+    // #364 round 32, finding 1: the survey RUNS the door in report
+    // mode — same intersection facts, verdict logged, never thrown —
+    // so a survey with no WOULD-REFUSE line is the door's own green,
+    // not an operator's eyeball of raw rows/day against floors stated
+    // in another file. The else arm must sit on the sweep pre-flight's
+    // guard (behind only comments), and its catch must log without
+    // re-throwing: round 9's law — no mid-roster red under --warm-only
+    // — holds.
+    assert.match(
+      script,
+      /\} else \{\s*\n(?:\s*\/\/[^\n]*\n)*\s*try \{\s*\n\s*assertFiveMinuteDensity\(`survey:\$\{symbol\}`/,
+      "the warm-only arm runs the door under the survey: label",
+    );
+    const surveyIdx = script.indexOf("assertFiveMinuteDensity(`survey:");
+    const surveyBranch = script.slice(
+      surveyIdx,
+      script.indexOf("\n    }\n", surveyIdx),
+    );
+    assert.match(
+      surveyBranch,
+      /catch \(error\) \{\s*\n\s*console\.log\(/,
+      "the survey branch LOGS the door's verdict",
+    );
+    assert.match(
+      surveyBranch,
+      /density WOULD REFUSE at this depth/,
+      "the survey names its verdict as the door's would-refuse",
+    );
+    assert.doesNotMatch(
+      surveyBranch,
+      /throw/,
+      "the survey branch never throws — a violator cannot kill the " +
+        "top-up or the rebuild mid-roster",
+    );
     // #364 round 10: the survey line prints for EVERY symbol — an empty
     // 5-minute store prints "0 rows" (the survey is the only layer that
     // can surface a total feed loss), and the shared-window counts are
@@ -710,6 +750,13 @@ describe("the driver writes the manifest beside the emit", () => {
         // dataAbsent 20) — has a ZERO geometry denominator and must
         // read NO VERDICT, never survival 0% → STARVED.
         "GBPUSD baseline test 20 0 0 0 0 0 0 0 0 0 20 20",
+        // #364 round 32, finding 3: a THIN geometry denominator — two
+        // decisions reached geometry and both died — prints survival
+        // 0% but withholds the flag below --min-reached (default 30):
+        // 0-of-2 is not evidence of starvation. Row identity holds:
+        // setups = 20 − 14 = 6 with dataAbsent 6 ⊆ 6, and reached =
+        // planRejected 1 + belowConf 0 + belowPayoff 1 + (6 − 6) = 2.
+        "XCUSD baseline test 20 3 3 0 2 2 1 2 0 1 6 6",
         "",
       ].join("\n"),
     );
@@ -728,7 +775,40 @@ describe("the driver writes the manifest beside the emit", () => {
       out,
       /GBPUSD\s+20\s+0\s+0\s+0\s+—\s+no verdict — geometry killed 0; all 20 emitted setups carry the data-absence marker/,
     );
-    assert.match(out, /1 of 2 markets flagged/);
+    // The thin-denominator market prints its ratio with the flag
+    // withheld (#364 round 32, finding 3)…
+    assert.match(
+      out,
+      /XCUSD\s+20\s+2\s+1\s+1\s+0%\s+thin sample — 2 reached geometry \(< 30\); flag withheld/,
+    );
+    // …and the summary's denominator holds only judged markets, with
+    // every exclusion named by cause (#364 round 32, finding 2).
+    assert.match(
+      out,
+      /1 of 1 markets flagged \(1 thin sample below 30 reached; 1 no verdict — zero geometry denominator\)/,
+    );
+    // Same table under --min-reached 1: the floor is an argv value the
+    // path filter must NOT read as a log path (readFileSync("1") would
+    // fail the run), and beneath it XCUSD's 0-of-2 is judged — STARVED
+    // joins the tally and the thin-sample partition empties.
+    const floored = execFileSync(
+      "npx",
+      [
+        "--no-install",
+        "tsx",
+        "scripts/starvation-audit.ts",
+        log,
+        "--min-reached",
+        "1",
+        "--report",
+      ],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+    );
+    assert.match(floored, /XCUSD\s+20\s+2\s+1\s+1\s+0%\s+STARVED/);
+    assert.match(
+      floored,
+      /2 of 2 markets flagged \(1 no verdict — zero geometry denominator\)/,
+    );
   });
 
   // #364 round 19, finding 1: the capture-all refusal is a GUARD, not

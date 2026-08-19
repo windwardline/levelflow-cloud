@@ -170,7 +170,9 @@ driver's pre-flight, refusing at the first violator before that
 symbol simulates (the loop interleaves per symbol, so a late violator
 costs the roster prefix already walked — #364 round 31), and the
 read-time corpus door, with the nightly `--warm-only` log the
-standing full-roster survey; the verifier ceiling's blind band is a
+standing full-roster survey (running the door itself in report mode
+since round 32 — would-refuse verdicts logged, never thrown); the
+verifier ceiling's blind band is a
 stated residue — ≤~7.7% under the assertion's clip-invariant
 max(15-minute, 5-minute/3) population, plus the uncovered
 symmetric-clip case — never a closure, #364 rounds 8–11); and

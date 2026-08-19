@@ -646,9 +646,10 @@ async function main() {
     // refusal there would go red mid-roster and leave every later
     // symbol un-topped-up, the silent-decay failure the top-up script
     // exists to prevent. Warm-only is instead the SURVEY instrument:
-    // the print above runs for every symbol without asserting, so the
-    // one-week floors meet multi-year reality on a run they cannot
-    // kill. Thin symbols never reach the manifest, so the skip above
+    // the print above runs for every symbol, and the door runs in
+    // REPORT mode below — verdict logged, never thrown (#364 round
+    // 32) — so the one-week floors meet multi-year reality on a run
+    // they cannot kill. Thin symbols never reach the manifest, so the skip above
     // exempts them too — which is a DIFFERENT placement than the clock
     // witnesses hold, deliberately (#364 round 10, smaller): witnesses
     // judge the STORE, which outlives this run cached and stamped, so
@@ -667,9 +668,16 @@ async function main() {
     // doc). Hoisting into a dedicated pre-pass was considered and
     // DECLINED there: it would re-load every symbol's two intraday
     // stores before this loop loads them again — doubling store I/O at
-    // max depth — for a guarantee the free nightly survey already
-    // provides; launch sweeps after a green survey and the violator
-    // costs nothing.
+    // max depth. Round 31's note here justified the decline by a
+    // survey guarantee that did not exist (#364 round 32, finding 1):
+    // the survey asserted nothing, its line prints own-span rows/day
+    // while the door judges the intersection ratio, and the nightly
+    // run's --days max window is not a bounded sweep's window. The
+    // else branch below closes the first two gaps — the survey now
+    // runs the door itself in REPORT mode — so a max-depth survey
+    // with no WOULD-REFUSE line is the door's own green at the
+    // deepest window: evidence for launching, while this pre-flight
+    // stays the authority for the window a sweep actually requests.
     if (!args.warmOnly) {
       try {
         assertFiveMinuteDensity(`preflight:${symbol}`, {
@@ -680,8 +688,29 @@ async function main() {
       } catch (error) {
         throw new Error(
           `${(error as Error).message}\n` +
-            `Full-roster density survey (prints every symbol, asserts ` +
-            `nothing): --symbols roster --days max --warm-only`,
+            `Full-roster density survey (reports each symbol's ` +
+            `would-refuse verdict, asserts nothing): ` +
+            `--symbols roster --days max --warm-only`,
+        );
+      }
+    } else {
+      // The door itself, in report mode: the catch LOGS and never
+      // throws, so round 9's law holds — a violator cannot go red
+      // mid-roster and leave every later symbol un-topped-up — while
+      // the verdict is the assertion's own, on the same intersection
+      // facts the sweep pre-flight judges, at this run's depth. The
+      // rows/day line above is the raw material; this line is the
+      // door's reading of it.
+      try {
+        assertFiveMinuteDensity(`survey:${symbol}`, {
+          crossSeriesDensity,
+          series,
+          symbol,
+        });
+      } catch (error) {
+        console.log(
+          `${symbol}\tdensity WOULD REFUSE at this depth: ` +
+            `${(error as Error).message}`,
         );
       }
     }
@@ -1168,8 +1197,9 @@ function parseArgs(argv: string[]): SweepArgs {
 // first violator before THAT symbol simulates (#364 rounds 8-9; the
 // loop interleaves per symbol, so a late violator costs the roster
 // prefix already walked — round 31), and again at the read-time corpus
-// door, with the nightly --warm-only log reading the whole roster for
-// free.
+// door, with the nightly --warm-only log running the same door in
+// report mode across the whole roster (#364 round 32) — would-refuse
+// verdicts logged, never thrown.
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the

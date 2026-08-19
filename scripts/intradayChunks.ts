@@ -46,7 +46,9 @@
 // first violator before THAT symbol simulates (the loop interleaves
 // per symbol, so a late violator costs the roster prefix already
 // walked — #364 round 31), and the read-time corpus door, with the
-// nightly --warm-only log reading the whole roster's density for free.
+// nightly --warm-only log running the same door in REPORT mode across
+// the whole roster — would-refuse verdicts logged, never thrown (#364
+// round 32; the raw-print survey that stood here asserted nothing).
 // The ceiling's SENSITIVITY BAND, stated honestly (#358 round 5): a
 // clipped 15-minute primary inflates the 5min/15min ratio — unique
 // 15-minute rows per 29-day stride are min(2,784, cap), so ratio =

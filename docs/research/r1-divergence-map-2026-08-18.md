@@ -87,7 +87,9 @@ corpus-door-only design stated here): the sweep driver's pre-flight,
 refusing at the first violator before that symbol simulates (the
 loop interleaves per symbol, so a late violator costs the roster
 prefix already walked — round 31), and the read-time corpus door,
-with the nightly `--warm-only` log the standing full-roster survey. The verify-cache-clock ceiling's blind band
+with the nightly `--warm-only` log the standing full-roster survey
+(round 32: the survey runs the door itself in report mode —
+would-refuse verdicts logged, never thrown). The verify-cache-clock ceiling's blind band
 (~2,386–2,784 cap: only the 15-minute series clips, ≤~14%, ratio in
 band) is narrowed by the assertion's clip-invariant max(15-minute,
 5-minute/3) population to a stated residue of ≤~7.7%, with the
@@ -654,7 +656,13 @@ layer.
   layer that can surface a total feed loss, since the door is
   deliberately silent on absence), making the nightly log the standing
   full-roster density survey; symbols too thin to enter the manifest
-  are exempt the same way. And the RATIO is a same-window statistic —
+  are exempt the same way. Round 32 upgraded the survey from raw
+  print to the door's own verdict in report mode: each
+  manifest-eligible symbol also gets `density WOULD REFUSE at this
+  depth: …` logged — never thrown — when the assertion would fail,
+  retiring round 31's claim that the un-asserting survey already
+  guaranteed a violator-free launch (it printed own-span rows/day
+  while the door judges the intersection ratio). And the RATIO is a same-window statistic —
   the probe measured both series over one shared week, while at depth
   the 5-minute store is shallower than the 15-minute for most symbols,
   and era-density differences in the non-shared depth would masquerade
