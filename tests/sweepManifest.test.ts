@@ -705,6 +705,11 @@ describe("the driver writes the manifest beside the emit", () => {
         // test 50−44=6 with 6 ⊆ 6).
         "EURUSD baseline train 50 5 3 1 2 4 22 3 1 2 6 7",
         "EURUSD baseline test 50 3 4 3 3 2 18 5 3 3 6 6",
+        // #364 round 31, finding 1: an all-data-absent market — no
+        // geometry kill, every emitted setup marked (setups 20 ==
+        // dataAbsent 20) — has a ZERO geometry denominator and must
+        // read NO VERDICT, never survival 0% → STARVED.
+        "GBPUSD baseline test 20 0 0 0 0 0 0 0 0 0 20 20",
         "",
       ].join("\n"),
     );
@@ -717,6 +722,13 @@ describe("the driver writes the manifest beside the emit", () => {
       { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
     );
     assert.match(out, /EURUSD\s+100\s+50\s+40\s+5\s+10%\s+STARVED/);
+    // The zero-denominator market prints "—" and a named cause, sorts
+    // last, and stays out of the flagged tally (#364 round 31).
+    assert.match(
+      out,
+      /GBPUSD\s+20\s+0\s+0\s+0\s+—\s+no verdict — geometry killed 0; all 20 emitted setups carry the data-absence marker/,
+    );
+    assert.match(out, /1 of 2 markets flagged/);
   });
 
   // #364 round 19, finding 1: the capture-all refusal is a GUARD, not

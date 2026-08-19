@@ -234,8 +234,11 @@ Know what is and is not watching from here (amended by #364, R1b):
 three layers see density now. `verify-cache-clock` by hand carries the
 loose [2.5, 3.5] band; every SWEEP run's driver pre-flight asserts the
 corpus door's tighter floors per symbol and refuses at the first
-violator, before simulation spends anything; and the read-time corpus
-door backstops. Top-up time still deliberately asserts NOTHING — a
+violator — before THAT symbol simulates, not before all simulation:
+the loop interleaves per symbol, so a violation late in the roster
+costs the prefix already simulated (#364 round 31 corrected the
+spends-nothing claim); launch sweeps after a green nightly survey and
+a violator costs nothing. And the read-time corpus door backstops. Top-up time still deliberately asserts NOTHING — a
 density refusal under `--warm-only` would go red mid-roster and leave
 every later symbol un-topped-up, this runbook's own failure class — but
 the warm-only log now prints a density line for every symbol — 5-minute

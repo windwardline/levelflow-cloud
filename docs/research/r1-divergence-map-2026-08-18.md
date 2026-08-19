@@ -84,9 +84,10 @@ than bare `unfilled`; sweep: its own rejection counter, never
 density assertion** binding absolute rows/day and the shared-window
 ratio, landed in TWO layers (#364 rounds 8–9, superseding the
 corpus-door-only design stated here): the sweep driver's pre-flight,
-refusing at the first violator before simulation, and the read-time
-corpus door, with the nightly `--warm-only` log the standing
-full-roster survey. The verify-cache-clock ceiling's blind band
+refusing at the first violator before that symbol simulates (the
+loop interleaves per symbol, so a late violator costs the roster
+prefix already walked — round 31), and the read-time corpus door,
+with the nightly `--warm-only` log the standing full-roster survey. The verify-cache-clock ceiling's blind band
 (~2,386–2,784 cap: only the 15-minute series clips, ≤~14%, ratio in
 band) is narrowed by the assertion's clip-invariant max(15-minute,
 5-minute/3) population to a stated residue of ≤~7.7%, with the
@@ -475,7 +476,18 @@ layer.
   before any denominator, so no table moves with a marked row — and
   its HEADLINE states market-evidence rows with the held-out volume
   on its own scoped line (round 28: the headline is a corpus-size
-  figure R1b inflates, and safe denominators did not exempt it). One denominator note beside the unfilled
+  figure R1b inflates, and safe denominators did not exempt it). A
+  FIFTH manifest reader, `data-limits` (the table 4c per-market
+  sweeps read their limits from), names its holdout list as the
+  manifest's STAMPED flag with the gate's read-time stratified set
+  called out (round 30); the E8 report also labels fully-gated
+  markets ALL ROWS GATED under the CURRENT calibration rather than
+  "NOT IN CORPUS" (round 30 — thresholds may postdate the sweep);
+  and the amendment-25 starvation gate reads a zero geometry
+  denominator as NO VERDICT, never maximal starvation — by the
+  driver's row identity it means the geometry killed nothing, every
+  emitted setup carrying the marker or every decision dying
+  pre-geometry (round 31). One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly
@@ -630,8 +642,11 @@ layer.
   the pre-flight with exactly the wrong diagnosis. Rounds 8–11: the
   assertion runs in TWO places — the
   read-time door, and the driver pre-flight on SWEEP runs only, beside
-  the clock witnesses, refusing at the first violator before simulation
-  spends anything (the refusal names the survey mode). `--warm-only`
+  the clock witnesses, refusing at the first violator before THAT
+  symbol simulates — the loop interleaves per symbol, so a late
+  violator costs the roster prefix already walked (round 31 corrected
+  the spends-nothing claim; the refusal names the survey mode, which
+  reads the whole roster for free). `--warm-only`
   (the nightly top-up and the R0 rebuild) never asserts — it produces
   no corpus, and a mid-roster refusal would stop topping up every later
   symbol — but prints every symbol's line unconditionally, an empty

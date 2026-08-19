@@ -89,6 +89,19 @@
  * counting them as geometry kills would blame parameters for a sweep
  * bug. A nonzero unresolv is a debugging signal, not a starvation one.
  *
+ * A ZERO geometry denominator is NO VERDICT, never the worst one
+ * (#364 round 31, finding 1): by the driver's row identity,
+ * reachedGeometry = planRejected + belowConf + belowPayoff +
+ * (setups − dataAbsent), so it reaches zero exactly when the geometry
+ * killed nothing — every decision died at the pre-geometry gates, or
+ * every emitted setup carried the data-absence marker, the expected
+ * shape for the sparse floorless classes this gate protects. Such a
+ * market prints "survive —" with the cause named, sorts last, and
+ * never counts toward the STARVED/thin tally or the exit-1: the
+ * round-18 both-sides rule stands, and its zero case is a data
+ * condition, not a geometry one (the rule account-type-report applies
+ * to filled 0, round 25).
+ *
  * dataAbsent leaves both sides by the same rule (#364 round 18): those
  * decisions built a plan and their review window held no gradeable
  * bars — a DATA fact, not a parameter verdict. Pre-R1b they landed in
@@ -251,9 +264,21 @@ const out = [...byS.values()].map((r) => {
   const reachedGeometry = r.decisions - r.sessionBlk - r.newsBlk - r.notWarm -
     r.regimeBlk - r.noConsensus - r.unresolv - r.dataAbsent;
   const geometryKill = r.planRejected + r.belowPayoff;
-  const survival = reachedGeometry > 0 ? 1 - geometryKill / reachedGeometry : 0;
+  // #364 round 31, finding 1: a ZERO denominator is NO VERDICT, never
+  // the worst one. By the driver's row identity, reachedGeometry =
+  // planRejected + belowConf + belowPayoff + (setups − dataAbsent), so
+  // it reaches zero exactly when the geometry killed NOTHING — every
+  // decision died at the pre-geometry gates, or every emitted setup
+  // carried the data-absence marker (the expected shape for the sparse
+  // floorless classes this gate protects). The old ": 0" fallback read
+  // that market as survival 0% → STARVED → exit 1 — a maximal adverse
+  // verdict from an absent denominator, the shape round 25 fixed in
+  // account-type-report (filled 0 → E "—", no verdict).
+  const survival = reachedGeometry > 0
+    ? 1 - geometryKill / reachedGeometry
+    : null;
   return { ...r, reachedGeometry, geometryKill, survival };
-}).sort((a, b) => a.survival - b.survival);
+}).sort((a, b) => (a.survival ?? 2) - (b.survival ?? 2));
 
 console.log(`${"market".padEnd(9)}${"decisions".padStart(10)}${"reached".padStart(9)}` +
   `${"planRej".padStart(9)}${"belowPay".padStart(9)}${"survive".padStart(9)}  flag`);
@@ -261,17 +286,27 @@ let starved = 0;
 for (const r of out) {
   const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
   // Under a third surviving the geometry gates means the geometry, not the
-  // market, is deciding how much evidence we ever collect about it.
-  const flag = r.survival < 0.15
-    ? "STARVED — geometry kills 85%+"
-    : r.survival < 0.33
-    ? "thin — geometry kills 2 of 3"
-    : "";
-  if (flag) starved += 1;
+  // market, is deciding how much evidence we ever collect about it. A null
+  // survival means no decision reached the geometry at all — no
+  // denominator, no claim, and the cause prints so the operator sees a
+  // data condition rather than a parameter one (#364 round 31).
+  let flag = "";
+  if (r.survival === null) {
+    flag = r.dataAbsent > 0
+      ? `no verdict — geometry killed 0; all ${r.dataAbsent} emitted ` +
+        `setups carry the data-absence marker`
+      : "no verdict — nothing reached the geometry stage";
+  } else if (r.survival < 0.15) {
+    flag = "STARVED — geometry kills 85%+";
+    starved += 1;
+  } else if (r.survival < 0.33) {
+    flag = "thin — geometry kills 2 of 3";
+    starved += 1;
+  }
   console.log(
     `${r.symbol.padEnd(9)}${String(r.decisions).padStart(10)}${String(r.reachedGeometry).padStart(9)}` +
     `${String(r.planRejected).padStart(9)}${String(r.belowPayoff).padStart(9)}` +
-    `${pct(r.survival).padStart(9)}  ${flag}`,
+    `${(r.survival === null ? "—" : pct(r.survival)).padStart(9)}  ${flag}`,
   );
 }
 console.log(`\n${starved} of ${out.length} markets flagged. Ranked worst first.`);

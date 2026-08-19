@@ -43,9 +43,10 @@
 // ceiling, and R1b's E2 per-symbol density assertion — which runs in
 // TWO places (#364 rounds 8-9, correcting the corpus-door-only claim
 // that stood here): the sweep driver's own pre-flight, refusing at the
-// first violator before any symbol simulates, and the read-time corpus
-// door, with the nightly --warm-only log as the standing full-roster
-// density survey.
+// first violator before THAT symbol simulates (the loop interleaves
+// per symbol, so a late violator costs the roster prefix already
+// walked — #364 round 31), and the read-time corpus door, with the
+// nightly --warm-only log reading the whole roster's density for free.
 // The ceiling's SENSITIVITY BAND, stated honestly (#358 round 5): a
 // clipped 15-minute primary inflates the 5min/15min ratio — unique
 // 15-minute rows per 29-day stride are min(2,784, cap), so ratio =

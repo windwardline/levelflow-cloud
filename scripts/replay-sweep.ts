@@ -660,7 +660,16 @@ async function main() {
     // refuses at the FIRST violator — its corpus is dead at the read
     // door regardless, so finishing the roster would only spend
     // simulation on a doomed run; the refusal names the survey mode
-    // instead.
+    // instead. The refusal lands before THAT symbol simulates, not
+    // before all simulation — the loop interleaves load-assert-simulate
+    // per symbol, so a late violator costs the roster prefix already
+    // walked (#364 round 31 corrected the free-refusal claim in every
+    // doc). Hoisting into a dedicated pre-pass was considered and
+    // DECLINED there: it would re-load every symbol's two intraday
+    // stores before this loop loads them again — doubling store I/O at
+    // max depth — for a guarantee the free nightly survey already
+    // provides; launch sweeps after a green survey and the violator
+    // costs nothing.
     if (!args.warmOnly) {
       try {
         assertFiveMinuteDensity(`preflight:${symbol}`, {
@@ -1155,10 +1164,12 @@ function parseArgs(argv: string[]): SweepArgs {
 // be. Clip detection is NOT per-chunk (measured infeasible without false
 // positives — see that file's header): the guard is the measured caps,
 // verify-cache-clock's density floor+ceiling, and R1b's E2 density
-// assertion — run FIRST by this driver's own pre-flight, refusing at
-// the first violator before simulation (#364 rounds 8-9), and again at
-// the read-time corpus door, with the nightly --warm-only log as the
-// standing full-roster survey.
+// assertion — run by this driver's own pre-flight, refusing at the
+// first violator before THAT symbol simulates (#364 rounds 8-9; the
+// loop interleaves per symbol, so a late violator costs the roster
+// prefix already walked — round 31), and again at the read-time corpus
+// door, with the nightly --warm-only log reading the whole roster for
+// free.
 
 // Walks backward from now until history genuinely ends, so every symbol
 // contributes its full available depth and the window rolls forward with the
