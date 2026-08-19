@@ -441,6 +441,8 @@ async function main() {
     // recent week (2026-08-11..17), and this print is how the first real
     // deep run tells "clipped store" from "the provider's early history
     // is thinner than its 2026 history" before anything is committed.
+    // It prints in EVERY mode, thin symbols included — under --warm-only
+    // the nightly log is the full-roster survey.
     if (series["5min"].count > 0 && series["5min"].spanDays >= 1) {
       console.log(
         `${symbol}	density 5min ${
@@ -453,13 +455,37 @@ async function main() {
             : ""),
       );
     }
-    assertFiveMinuteDensity(`preflight:${symbol}`, { series, symbol });
 
     if (primaryBars.length < WARMUP_BARS * 2) {
       console.warn(
         `Skipping ${symbol}: only ${primaryBars.length} intraday bars.`,
       );
       continue;
+    }
+
+    // #364 round 9, finding 1: the density law binds only the corpus
+    // path. --warm-only (the nightly launchd top-up and the R0 rebuild's
+    // step 2) produces no corpus and has no door to front-run — a
+    // refusal there would go red mid-roster and leave every later
+    // symbol un-topped-up, the silent-decay failure the top-up script
+    // exists to prevent. Warm-only is instead the SURVEY instrument:
+    // the print above runs for every symbol without asserting, so the
+    // one-week floors meet multi-year reality on a run they cannot
+    // kill. Thin symbols never reach the manifest, so the skip above
+    // exempts them too. A sweep run still refuses at the FIRST violator
+    // — its corpus is dead at the read door regardless, so finishing
+    // the roster would only spend simulation on a doomed run; the
+    // refusal names the survey mode instead.
+    if (!args.warmOnly) {
+      try {
+        assertFiveMinuteDensity(`preflight:${symbol}`, { series, symbol });
+      } catch (error) {
+        throw new Error(
+          `${(error as Error).message}\n` +
+            `Full-roster density survey (prints every symbol, asserts ` +
+            `nothing): --symbols roster --days max --warm-only`,
+        );
+      }
     }
 
     const cotReports = await loadCotReports(args.cacheDir, symbol);

@@ -56,7 +56,12 @@ export async function fetchFmpWithRetry<T extends RetryableResponse>(
       if (lastRequestAtMs !== null) {
         // Re-check after waking: setTimeout can fire up to ~1ms early on
         // libuv's ms-truncated timer clock, and "at least paceMs apart"
-        // is a floor, not a target.
+        // is a floor, not a target. Because the loop re-reads the
+        // module-global stamp, N CONCURRENT callers serialize one pace
+        // apart instead of computing one shared wait and firing
+        // together — intended (#364 round 9, smaller): the pace exists
+        // to hold the whole process under FMP's ceiling, and a
+        // simultaneous burst of N is exactly what it must prevent.
         let elapsed = performance.now() - lastRequestAtMs;
         while (elapsed < paceMs) {
           await sleep(paceMs - elapsed);

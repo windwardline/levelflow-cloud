@@ -279,6 +279,35 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /treasuryCurve: treasuryCurveFacts\(treasuryRates\),/);
   });
 
+  // #364 round 9, finding 1: the density pre-flight binds only the
+  // corpus path. Its PLACEMENT is the law — above the thin-symbol skip
+  // or outside the warm-only guard it kills the nightly launchd top-up
+  // and the R0 rebuild mid-roster, on floors those runs' outputs are
+  // never measured against — so the order and the guard are pinned as
+  // source shapes, like the rest of this driver's wiring.
+  it("asserts density only for manifested symbols on sweep runs — never under --warm-only, never on thin symbols", () => {
+    const script = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const thinSkip = script.indexOf("primaryBars.length < WARMUP_BARS * 2");
+    const densityCall = script.indexOf("assertFiveMinuteDensity(`preflight:");
+    assert.ok(thinSkip >= 0, "the thin-symbol skip must exist");
+    assert.ok(
+      densityCall > thinSkip,
+      "density asserts BELOW the thin-symbol skip — a symbol that never " +
+        "reaches the manifest is never judged by the door's floors",
+    );
+    assert.match(
+      script,
+      /if \(!args\.warmOnly\) \{\s*\n\s*try \{\s*\n\s*assertFiveMinuteDensity\(`preflight:/,
+      "the assertion sits inside the !warmOnly guard — the top-up and " +
+        "the rebuild produce no corpus and must survey, not die",
+    );
+    assert.match(
+      script,
+      /Full-roster density survey/,
+      "a sweep refusal names the survey instrument",
+    );
+  });
+
   // #364 round 1, finding 1: starvation-audit read the driver's stdout
   // table by POSITION and had already drifted once silently (notWarm's
   // insertion left geometryKill summing noConsensus + belowConf — the

@@ -1109,6 +1109,18 @@ key. Sequenced after item 6's `init.sql` work.
   `conditionsOf` does for shards — and R1b's `conditions`/curve facts
   are a new axis files can differ on. Give it the same shard-identity
   comparison with R2's instrument work.
+- **`fmpRetry.ts` paced on the wall clock from its birth until #364**
+  (round-9 CI caught it live): `Date.now()` steps under NTP, so a
+  forward step under-waited the pace — a burst through FMP's 3,000/min
+  ceiling, the silent-shard-death class OP-6 built the module to kill —
+  and a backward step would have stalled every consumer by the step
+  size. Fixed in #364: pacing runs on `performance.now()` with a strict
+  re-check loop (concurrent callers now serialize one pace apart —
+  intended), the test asserts the full pace with no cushion, and a
+  source pin refuses `Date.now()` in the module. Any pacing behaviour
+  observed before #364 (the OP-6 write-up's operational notes included)
+  carried this defect; no measurement depended on pacing precision, so
+  nothing needs re-deriving.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

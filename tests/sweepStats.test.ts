@@ -613,6 +613,40 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
     );
   });
 
+  it("stays silent on the ratio across DIFFERENT windows — the band is a same-window statistic (#364 round 9, finding 2)", () => {
+    // The [2.7, 3.25] band was probed with both series over one shared
+    // week. Here the 15-minute store is 13 years deep and era-mixed
+    // (74/day) while the 5-minute store covers only the most recent
+    // year (288/day) — the normal FMP depth shape, no clipping
+    // anywhere — and the own-window ratio 288/74 = 3.89 would refuse.
+    // The shared window is a fraction of the 15-minute span, so the
+    // ratio self-excludes; the crypto absolute floor still binds the
+    // 5-minute series over its own span (288 >= 260) and admits.
+    const DAY = 86_400_000;
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: {
+        "15min": {
+          clock: { verdict: "indeterminate" },
+          count: 351_130,
+          firstTime: 0,
+          largestGapMs: 0,
+          lastTime: 4_745 * DAY,
+          spanDays: 4_745,
+        },
+        "5min": {
+          clock: { verdict: "indeterminate" },
+          count: 105_120,
+          firstTime: 4_380 * DAY,
+          largestGapMs: 0,
+          lastTime: 4_745 * DAY,
+          spanDays: 365,
+        },
+      },
+      symbol: "BTCUSD",
+    }));
+  });
+
   it("admits honest shapes: dense-and-coherent, trade-sparse, absent 5-minute, sub-week span", () => {
     // Dense and coherent: 288/96 = 3.0 at full crypto density.
     assertManifestedCorpus(writeCorpus({

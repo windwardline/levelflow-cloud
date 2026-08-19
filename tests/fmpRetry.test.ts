@@ -5,6 +5,7 @@
 // driver's three sites and the bank script share it and the tests can
 // exercise every branch without a network.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { fetchFmpWithRetry } from "../scripts/fmpRetry.ts";
 
@@ -77,20 +78,16 @@ describe("fetchFmpWithRetry — the 429 survives, the run does not die (OP-6)", 
     assert.equal(calls, 1);
   });
 
-  it("paces every request when a pace is set", async () => {
-    // Both sides measure performance.now() — the pacer runs on the same
-    // monotonic clock (#364 round-9 CI: on Date.now(), an NTP step on
-    // the runner cut the wait below even this 5ms cushion), and its
-    // re-check loop makes the floor strict, so ≥ pace-minus-cushion
-    // cannot flake on scheduling delay, which only lands late.
+  it("paces every request when a pace is set — the full pace, strictly", async () => {
+    // start is taken BEFORE the first call, so the pacer's own stamp
+    // lands at or after it on the SAME monotonic clock, and the second
+    // call's re-check loop guarantees stamps[1] >= that stamp + paceMs.
+    // The bound is therefore exact — no cushion — and cannot flake:
+    // scheduling delay only lands late. The old test measured from
+    // after the first call and allowed a 20% under-wait, which is how a
+    // wall-clock NTP step under-pacing by 5ms (#364 round-9 CI) was the
+    // first anyone heard of it.
     const stamps: number[] = [];
-    await fetchFmpWithRetry(
-      () => {
-        stamps.push(performance.now());
-        return Promise.resolve(response(200));
-      },
-      { delaysMs: [1], paceMs: 25 },
-    );
     const start = performance.now();
     await fetchFmpWithRetry(
       () => {
@@ -99,9 +96,32 @@ describe("fetchFmpWithRetry — the 429 survives, the run does not die (OP-6)", 
       },
       { delaysMs: [1], paceMs: 25 },
     );
-    assert.ok(
-      stamps[1] - start >= 20,
-      `second call must wait out the pace: ${stamps[1] - start}ms`,
+    await fetchFmpWithRetry(
+      () => {
+        stamps.push(performance.now());
+        return Promise.resolve(response(200));
+      },
+      { delaysMs: [1], paceMs: 25 },
     );
+    assert.ok(
+      stamps[1] - start >= 25,
+      `second call must wait out the full pace: ${stamps[1] - start}ms`,
+    );
+  });
+
+  it("paces on the monotonic clock, never the wall clock — source pin (#364 round 9, finding 4)", () => {
+    // Executed behaviour cannot catch a revert on an unstepped runner:
+    // Date.now() only under-paces when NTP steps it forward, which is
+    // exactly when a burst through FMP's 3,000/min ceiling goes silent
+    // (the 429s retry, the run slows or dies unnamed). So the clock
+    // choice and the strict-floor loop are pinned as source shapes, the
+    // sweepManifest.test.ts idiom for laws a test cannot execute into.
+    // Comments are stripped first: the module's own comments NAME the
+    // banned call to explain the ban, and the pin's law is about code.
+    const source = readFileSync("scripts/fmpRetry.ts", "utf8");
+    const code = source.replace(/\/\/.*$/gm, "");
+    assert.doesNotMatch(code, /Date\.now\(\)/);
+    assert.match(code, /performance\.now\(\) - lastRequestAtMs/);
+    assert.match(code, /while \(elapsed < paceMs\)/);
   });
 });

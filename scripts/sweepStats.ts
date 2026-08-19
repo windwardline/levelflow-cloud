@@ -578,7 +578,24 @@ export function assertFiveMinuteDensity(
         `holed, or not this symbol's feed, and the corpus is refused`,
     );
   }
-  if (fifteenPerDay >= DENSITY_RATIO_PRIMARY_FLOOR) {
+  // #364 round 9, finding 2: the band is a SAME-WINDOW statistic — the
+  // probe measured both series over one shared week. At depth the two
+  // stores cover different windows (FMP's 5-minute depth is shallower
+  // than 15-minute for most symbols, the driver's own words), and any
+  // era whose 15-minute density differs from the shared window's — a
+  // thinner provider era, an extended closure — moves the ratio without
+  // any clipping, which a ±0.25 band cannot absorb. So the ratio judges
+  // only near-identical windows and stays silent otherwise, like the
+  // absent-5min and sub-week self-exclusions above; the absolute floors
+  // still bind each series over its own span.
+  const sharedSpanDays = five.firstTime !== null && five.lastTime !== null &&
+      fifteen.firstTime !== null && fifteen.lastTime !== null
+    ? (Math.min(five.lastTime, fifteen.lastTime) -
+      Math.max(five.firstTime, fifteen.firstTime)) / 86_400_000
+    : 0;
+  const sameWindow = sharedSpanDays >= 0.9 * five.spanDays &&
+    sharedSpanDays >= 0.9 * fifteen.spanDays;
+  if (sameWindow && fifteenPerDay >= DENSITY_RATIO_PRIMARY_FLOOR) {
     const ratio = fivePerDay / fifteenPerDay;
     if (ratio < DENSITY_RATIO_MIN || ratio > DENSITY_RATIO_MAX) {
       throw new Error(

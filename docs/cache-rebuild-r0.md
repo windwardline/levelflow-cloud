@@ -194,12 +194,20 @@ updating is the same failure class inverted:
 launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.windwardline.levelflow-cache-topup.plist
 ```
 
-Know what is and is not watching from here: the density floor+ceiling
-runs only when `verify-cache-clock` is invoked by hand — nothing
-re-checks it at top-up time, so a provider cap change landing AFTER step
-3 stays invisible until R1's E2 density assertion reaches the corpus
-door (or the next manual verify). If FMP announces plan or endpoint
-changes, re-run step 3 before the next sweep. Two related notes: a
+Know what is and is not watching from here (amended by #364, R1b):
+three layers see density now. `verify-cache-clock` by hand carries the
+loose [2.5, 3.5] band; every SWEEP run's driver pre-flight asserts the
+corpus door's tighter floors per symbol and refuses at the first
+violator, before simulation spends anything; and the read-time corpus
+door backstops. Top-up time still deliberately asserts NOTHING — a
+density refusal under `--warm-only` would go red mid-roster and leave
+every later symbol un-topped-up, this runbook's own failure class — but
+the warm-only log now prints every symbol's 5-minute rows/day at depth,
+so a provider cap change landing after step 3 shows in the next nightly
+log even though nothing enforces it there; enforcement waits at the
+next sweep pre-flight or corpus read. If a nightly log's density lines
+shift, or FMP announces plan or endpoint changes, re-run step 3 before
+the next sweep. Two related notes: a
 superseded-clock corpus read is possible only via the explicit
 `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` override, which warns loudly on
 every read — figures produced under it are historical, never current.

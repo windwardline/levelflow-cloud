@@ -583,7 +583,7 @@ export async function gradeCorpus(
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
       stepBars: candidate.stepBars,
-      // Only the DAY-INVARIANT curve facts join identity (#364 round 8,
+      // Only the DAY-STABLE curve facts join identity (#364 round 8,
       // finding 1): count and lastTime move with the run day — the
       // rolling store pins per anchor, so a cross-midnight shard pair or
       // a re-run dead shard would refuse as different measurements, the
@@ -591,6 +591,13 @@ export async function gradeCorpus(
       // (replay-sweep.ts, 3c-across-shards). conditions alone separates
       // pre/post-R1b (null vs the block); firstTime/largestGapMs carry
       // the shallow- or holed-store case on the historical-read path.
+      // Precision (#364 round 9, smaller): firstTime is exact — the
+      // floor is fixed. largestGapMs is monotone NON-DECREASING under a
+      // tail top-up, invariant today only because the 13-year historical
+      // max (~4 days, holiday adjoining a weekend) dominates any tail
+      // gap the door's own 7-day bound would admit; a tail gap that DID
+      // exceed it would refuse at the door before ever reaching this
+      // comparison.
       treasuryCurve: candidate.treasuryCurve
         ? {
           firstTime: candidate.treasuryCurve.firstTime,
