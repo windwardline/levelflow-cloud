@@ -229,6 +229,12 @@ under it: clock witnesses, the density floors and ratio, disjoint
 stores, and any curve evidence that IS present (a manifest carrying
 facts that show a holed, stale-tailed, or shallow curve refuses under
 the override exactly as on the current path — poison is never a term).
+To deepen the Treasury request (`TREASURY_FETCH_START_MS`): move the
+constant with its recorded probe evidence AND delete the
+treasury-rates rolling store — an existing store never re-fetches its
+head, and the sweep pre-flight refuses a store shallower than the
+requested start (naming this remedy), so a forgotten delete cannot
+stamp a false `requestedStartMs` into a manifest (#364 round 18).
 
 Next 07:00 run should log `top-up complete`. Confirm one green nightly
 log before calling Phase 0 done. (If a future nightly log ever shows the

@@ -27,6 +27,7 @@ import {
 import { CALENDAR_CLOCK } from "./clockWitness.ts";
 import {
   type CrossSeriesDensity,
+  type TreasuryCurveFacts,
   type SeriesFacts,
   sha256Hex,
   stableStringify,
@@ -449,9 +450,10 @@ function verifyManifest(emitPath: string): SweepManifest {
   // the facts are present — present evidence saying the curve was
   // holed, stale-tailed, or shallow is data poison with the density
   // door's standing, not a superseded term the override may accept.
-  const curve = manifest.treasuryCurve as
-    | { count?: number; largestGapMs?: number; lastTime?: number | null }
-    | undefined;
+  // #364 round 18, smaller: narrowed against the EXPORTED type, so a
+  // field rename in sweepManifest.ts breaks this file at compile time
+  // instead of silently reverting a check to its fallback.
+  const curve = manifest.treasuryCurve as TreasuryCurveFacts | undefined;
   if (curve) {
     if (!Number.isFinite(curve.count) || (curve.count ?? 0) < 2) {
       // #364 round 17, smaller: evidence voice, not the conditions
@@ -493,9 +495,7 @@ function verifyManifest(emitPath: string): SweepManifest {
       `refetch, the rows inside it are being refused by the parser ` +
       `(macroRates.ts date/tenor bounds); investigate those rows, not ` +
       `the store`;
-    const gapsOverWeekMs = (curve as {
-      gapsOverWeekMs?: Array<{ endMs: number; startMs: number }>;
-    }).gapsOverWeekMs;
+    const gapsOverWeekMs = curve.gapsOverWeekMs;
     if (gapsOverWeekMs && gapsOverWeekMs.length > 0) {
       // Same predicate as the driver pre-flight (#364 round 15) — one
       // mechanism for one law; only the span differs (exact corpus
@@ -553,9 +553,15 @@ function verifyManifest(emitPath: string): SweepManifest {
     // manifest predating the field: all were requested at the
     // 2013-01-01 constant, whose comment carries the 2026-08-19
     // endpoint probe (coverage to at least 2005-01-03).
-    const treasuryFloorMs = ((curve as { requestedStartMs?: number })
-      .requestedStartMs ?? TREASURY_FETCH_START_MS) + weekMs;
-    const curveFirst = (curve as { firstTime?: number | null }).firstTime;
+    // requestedStartMs is a DRIVER-DECLARED term — self-certifying,
+    // trusted because only the driver writes manifests and its
+    // pre-flight refuses a store shallower than the request, which is
+    // what keeps the declaration true (#364 round 18). This check has
+    // no override behind it since round 16, so that discipline is the
+    // floor the shallow-rebuild refusal rests on.
+    const treasuryFloorMs =
+      (curve.requestedStartMs ?? TREASURY_FETCH_START_MS) + weekMs;
+    const curveFirst = curve.firstTime;
     if (
       Number.isFinite(corpusStartMs) &&
       typeof curveFirst === "number" &&

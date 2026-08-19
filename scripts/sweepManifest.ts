@@ -168,7 +168,14 @@ export type SweepConditions = {
 // roughly eight years inside provider depth. If a REBUILT store ever
 // refuses at the door's leading edge, re-probe the endpoint's earliest
 // served date and move THIS constant with the recorded evidence; the
-// door's tolerance follows it automatically.
+// door's tolerance follows it automatically. The STORE does not (#364
+// round 18): an existing rolling store never re-fetches its head —
+// fetchFull runs only on an empty store, and top-ups touch only the
+// tail — so deepening this constant requires deleting the
+// treasury-rates rolling store first. The driver pre-flight refuses a
+// store whose head sits later than this requested start, naming that
+// remedy, which is also what keeps each manifest's requestedStartMs an
+// honest term rather than a build artifact.
 export const TREASURY_FETCH_START_MS = Date.UTC(2013, 0, 1);
 
 // #364 round 2, finding 1: conditions.macroAdjustment is a CLAIM, and a

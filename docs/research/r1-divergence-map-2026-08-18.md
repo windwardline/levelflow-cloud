@@ -513,6 +513,19 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
+  Amended #364 round 18: the driver pre-flight also refuses a store
+  whose HEAD sits later than the build's requested start — an existing
+  rolling store never re-fetches its head (fetchFull runs only on an
+  empty store), so deepening `TREASURY_FETCH_START_MS` without
+  deleting the store would otherwise stamp `requestedStartMs` as a
+  term the corpus was never fetched under; the refusal names the real
+  remedy and keeps the manifested term true by construction, and the
+  door states that the term is driver-declared and self-certifying,
+  trusted on exactly that discipline. The starvation audit excludes
+  `dataAbsent` from both sides of survival by the round-14 rule (a
+  data fact, not a parameter verdict — pre-R1b these decisions landed
+  in planRejected and over-flagged; counting them as survivors would
+  under-flag).
   Amended #364 round 17: the leading-edge check judges each corpus by
   its own RECORDED fetch request — the manifest carries
   `requestedStartMs`, so deepening `TREASURY_FETCH_START_MS` later

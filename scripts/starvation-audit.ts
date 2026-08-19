@@ -58,6 +58,14 @@
  * survivors biased survival up and this gate under-flagged, while
  * counting them as geometry kills would blame parameters for a sweep
  * bug. A nonzero unresolv is a debugging signal, not a starvation one.
+ *
+ * dataAbsent leaves both sides by the same rule (#364 round 18): those
+ * decisions built a plan and their review window held no gradeable
+ * bars — a DATA fact, not a parameter verdict. Pre-R1b they landed in
+ * planRejected (counted as geometry kills, over-flagging sparse
+ * markets); counting them as survivors instead would under-flag. The
+ * column comes from SweepSummary's accepted-only tally, which is sound
+ * here because this gate already refuses --capture-all tables.
  */
 import { readFileSync } from "node:fs";
 
@@ -65,7 +73,7 @@ type Row = {
   symbol: string; split: string; decisions: number; sessionBlk: number;
   newsBlk: number; notWarm: number; regimeBlk: number; noConsensus: number;
   planRejected: number; unresolv: number; belowConf: number;
-  belowPayoff: number; setups: number;
+  belowPayoff: number; dataAbsent: number; setups: number;
 };
 
 // The names this audit's arithmetic consumes. `need` entries refuse a table
@@ -75,7 +83,7 @@ const NEED_COLUMNS = [
   "regimeBlk", "noConsensus", "planRejected", "belowConf", "belowPayoff",
   "setups",
 ] as const;
-const OPTIONAL_COLUMNS = ["notWarm", "unresolv"] as const;
+const OPTIONAL_COLUMNS = ["notWarm", "unresolv", "dataAbsent"] as const;
 for (const name of OPTIONAL_COLUMNS) {
   if ((NEED_COLUMNS as readonly string[]).includes(name)) {
     throw new Error(`column "${name}" is listed both required and optional`);
@@ -121,7 +129,7 @@ function parse(paths: string[]): Row[] {
         regimeBlk: n("regimeBlk"), noConsensus: n("noConsensus"),
         planRejected: n("planRejected"), unresolv: opt("unresolv"),
         belowConf: n("belowConf"), belowPayoff: n("belowPayoff"),
-        setups: n("setups"),
+        dataAbsent: opt("dataAbsent"), setups: n("setups"),
       });
     }
   }
@@ -137,7 +145,7 @@ for (const r of rows) {
   if (!prev) { byS.set(r.symbol, { ...r }); continue; }
   for (const k of ["decisions","sessionBlk","newsBlk","notWarm","regimeBlk",
     "noConsensus","planRejected","unresolv","belowConf","belowPayoff",
-    "setups"] as const) prev[k] += r[k];
+    "dataAbsent","setups"] as const) prev[k] += r[k];
 }
 
 const out = [...byS.values()].map((r) => {
@@ -151,7 +159,7 @@ const out = [...byS.values()].map((r) => {
   // amendment-25 gate under-flagged, while folding them into geometryKill
   // would blame parameters for a sweep bug.
   const reachedGeometry = r.decisions - r.sessionBlk - r.newsBlk - r.notWarm -
-    r.regimeBlk - r.noConsensus - r.unresolv;
+    r.regimeBlk - r.noConsensus - r.unresolv - r.dataAbsent;
   const geometryKill = r.planRejected + r.belowPayoff;
   const survival = reachedGeometry > 0 ? 1 - geometryKill / reachedGeometry : 0;
   return { ...r, reachedGeometry, geometryKill, survival };

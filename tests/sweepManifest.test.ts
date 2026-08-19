@@ -402,6 +402,15 @@ describe("the driver writes the manifest beside the emit", () => {
     // a hole refusal can distinguish "provider served nothing" from
     // "we refused what it served".
     assert.match(script, /treasuryParserRefusals \+= 1;/);
+    // #364 round 18, finding 2: an existing store never deepens on its
+    // own, so the pre-flight refuses a store head later than this
+    // build's requested start — which is also what keeps the manifested
+    // requestedStartMs an honest term rather than a build artifact.
+    assert.match(
+      script,
+      /headRow\.dateMs > TREASURY_FETCH_START_MS \+ 7 \* 86_400_000/,
+      "the store-head refusal keeps requestedStartMs true by construction",
+    );
   });
 
   // #364 round 9, finding 1: the density pre-flight binds only the
@@ -510,14 +519,16 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(audit, /index\.has\(name\)/);
   });
 
-  // #364 round 14, finding 3: unresolv (the resolver's defect bucket)
-  // leaves BOTH sides of the survival arithmetic — counting it as a
-  // survivor biased survival up and the amendment-25 gate under-flagged.
-  // Executed against a synthetic table, since source pins cannot run
-  // arithmetic: decisions 100, pre-geometry blocks 40, unresolv 10 →
-  // reached 50 (not 60); kills 45 → survival 10% and STARVED. Under the
-  // old arithmetic this read reached 60 / survival 25% — merely "thin".
-  it("the audit's survival excludes unresolv from both sides — executed", () => {
+  // #364 rounds 14 and 18: unresolv (the resolver's defect bucket) and
+  // dataAbsent (R1b's no-bars data fact — pre-R1b these decisions
+  // landed in planRejected) BOTH leave both sides of the survival
+  // arithmetic — counting either as a survivor biases survival up and
+  // the amendment-25 gate under-flags. Executed against a synthetic
+  // table, since source pins cannot run arithmetic: decisions 100,
+  // pre-geometry blocks 30, unresolv 10, dataAbsent 10 → reached 50;
+  // kills 45 → survival 10% and STARVED. Without the two exclusions
+  // this read reached 70 / survival 36% — unflagged entirely.
+  it("the audit's survival excludes unresolv AND dataAbsent from both sides — executed", () => {
     const dir = mkdtempSync(join(tmpdir(), "starv-"));
     const log = join(dir, "sweep.log");
     writeFileSync(
@@ -525,8 +536,8 @@ describe("the driver writes the manifest beside the emit", () => {
       [
         "symbol variant split decisions sessionBlk newsBlk notWarm " +
         "regimeBlk noConsensus planRejected unresolv belowConf " +
-        "belowPayoff setups",
-        "EURUSD baseline test 100 10 10 0 10 10 40 10 0 5 5",
+        "belowPayoff dataAbsent setups",
+        "EURUSD baseline test 100 10 10 0 5 5 40 10 0 5 10 5",
         "",
       ].join("\n"),
     );

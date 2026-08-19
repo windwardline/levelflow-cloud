@@ -1107,7 +1107,12 @@ key. Sequenced after item 6's `init.sql` work.
   test pins the driver's header against the names the audit consumes.
   Any starvation reading taken from the drifted map between notWarm's
   landing and this fix is suspect; amendment 25's original 2026-08-06
-  run predates notWarm and stands.
+  run predates notWarm and stands. R1b's two new buckets both leave
+  BOTH sides of the survival arithmetic (#364 rounds 14 and 18):
+  `unresolv` is a resolver defect and `dataAbsent` a data fact — the
+  no-bars decisions that pre-R1b landed in planRejected and
+  over-flagged sparse markets; counting either as a survivor would
+  under-flag instead. Executed against a synthetic table.
 - **`confidence-bands.ts` still carries a private `add()`/`Stats`**
   outside the one vocabulary (#364 round 5 noted it in passing —
   pre-existing item-3 drift, not R1b's): its `n` counts every row

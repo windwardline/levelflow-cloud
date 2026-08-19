@@ -258,6 +258,28 @@ async function main() {
           `against stale rows as if fresh; refusing to sweep`,
       );
     }
+    // #364 round 18, finding 2: deepening TREASURY_FETCH_START_MS does
+    // NOT deepen an existing store — fetchFull runs only when the store
+    // is empty and fetchSince only tops up the tail — so a store whose
+    // head sits later than this build's requested start would stamp
+    // requestedStartMs as a term the corpus was never fetched under,
+    // hashed into its identity. Refused here, pre-symbols, with the
+    // real remedy; this refusal is what keeps the manifested term TRUE
+    // by construction.
+    const headRow = treasuryRates[0];
+    if (
+      headRow && headRow.dateMs > TREASURY_FETCH_START_MS + 7 * 86_400_000
+    ) {
+      throw new Error(
+        `Treasury store starts ${
+          isoDate(new Date(headRow.dateMs))
+        } but this build requests ${
+          isoDate(new Date(TREASURY_FETCH_START_MS))
+        } — an existing store never deepens on its own (top-ups touch ` +
+          `only the tail); delete the treasury-rates rolling store and ` +
+          `re-run to fetch full history at the requested depth`,
+      );
+    }
     // Scoped by OVERLAP against the requested window (#364 rounds
     // 14-15): the store always spans the full fetch depth while a
     // corpus spans --days, so a hole outside the requested window must
