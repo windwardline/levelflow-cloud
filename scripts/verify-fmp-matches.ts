@@ -229,6 +229,15 @@ const VALUE_FLAGS = new Set(["--json"]);
 
 
 async function main(): Promise<void> {
+  // Arguments are refused BEFORE the metered provider run (#364 round
+  // 52, finding 2). The port that gave --json a real refusal left the
+  // read at the end of main(), so a flag typed without its path spent
+  // the entire roster probe against the quota and then died without
+  // writing the artifact the run existed to produce — fail-late, in the
+  // change set that moved the density floors and the curve checks into
+  // pre-flights for exactly this reason.
+  const { str } = flagReader(process.argv, VALUE_FLAGS);
+  const jsonPath = str("--json");
   if (!API_KEY) {
     console.error("FMP_API_KEY is required.");
     process.exit(1);
@@ -278,8 +287,7 @@ async function main(): Promise<void> {
 
   await reprobeUnmatched(unmapped);
 
-  const { str } = flagReader(process.argv, VALUE_FLAGS);
-  const jsonPath = str("--json");
+  // (read at the top of main(), before any provider work)
   if (jsonPath !== undefined) {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(

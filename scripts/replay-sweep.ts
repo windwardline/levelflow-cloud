@@ -87,6 +87,7 @@ import {
 } from "../supabase/functions/trade-analyzer/bars.ts";
 import type { Bar } from "../supabase/functions/trade-analyzer/types.ts";
 import { flagReader } from "./flagReader.ts";
+import { fileURLToPath } from "node:url";
 
 const FMP_API_BASE_URL = "https://financialmodelingprep.com/stable";
 // OP-6: optional inter-request pacing for fleet runs — one env knob,
@@ -1128,7 +1129,7 @@ async function fetchCotContract(
 // validated runnerProtection string axis), importable without running
 // this script's main.
 
-function parseArgs(argv: string[]): SweepArgs {
+export function parseArgs(argv: string[]): SweepArgs {
   const VALUE_FLAGS = new Set([
     "--cache-dir",
     "--days",
@@ -1150,7 +1151,7 @@ function parseArgs(argv: string[]): SweepArgs {
     ? defaultScanSymbols
     : symbolsArg.split(",").map((value) => value.trim().toUpperCase()))
     .filter(Boolean);
-  const daysArg = str("--days") ?? "60";
+  const daysArg = str("--days");
   // "max" discovers each symbol's full available history from the run date.
   // Numeric dials go through num(), which refuses a token it cannot
   // parse (#364 round 51, finding 1). Reading them with str() and then
@@ -1159,7 +1160,15 @@ function parseArgs(argv: string[]): SweepArgs {
   // `--step abc` makes `index += NaN` false on the first comparison, so
   // the decision loop runs once per symbol, the manifest records
   // stepBars as null, and the run writes a corpus and exits 0.
-  const days = daysArg === "max" ? MAX_DEPTH_DAYS : num("--days", 365);
+  // ONE read, ONE default (#364 round 52, finding 1). The num() port
+  // split this into `str("--days") ?? "60"` for the "max" test and
+  // `num("--days", 365)` for the value, so the halves carried different
+  // defaults and the "60" was dead: every unflagged run walked 365 days
+  // where main walks 60. `days` is inside conditionsOf since round 47,
+  // so it is hashed into the corpus identity and the LA-6 ledger key; it
+  // also sets the provider fetch volume against the §21j ceiling. The
+  // manifest records whatever it was, so the drift left no witness.
+  const days = daysArg === "max" ? MAX_DEPTH_DAYS : num("--days", 60);
   const step = num("--step", 16);
   const gridSpec = str("--grid");
   const grid: Array<Partial<CategoryCalibration>> = [{}];
@@ -1354,7 +1363,12 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+// Run only as a binary, never on import (the grid-totalr pattern), so
+// parseArgs' defaults can be pinned — there was no such pin, which is
+// why a 6x depth change landed silently (#364 round 52, finding 1).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

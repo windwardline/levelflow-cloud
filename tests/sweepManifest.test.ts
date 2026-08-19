@@ -23,6 +23,7 @@ import {
   treasuryGapTouching,
 } from "../scripts/sweepManifest.ts";
 import { flagReader } from "../scripts/flagReader.ts";
+import { parseArgs } from "../scripts/replay-sweep.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
 // sweep's conditions except stdout and an operator-pathed JSONL with NO
@@ -1044,7 +1045,27 @@ describe("the driver writes the manifest beside the emit", () => {
     //
     // An exemption must name the file and say why. There is one, and it
     // is a genuine "already refuses" rather than a convenience:
+    // Files that read argv but take no flag VALUES — positional paths
+    // only. The exemption VERIFIES ITS OWN PREMISE below: if one of
+    // these grows a `--flag` literal it stops being exempt, so the
+    // reason cannot quietly outlive the fact.
+    const POSITIONAL_ONLY = [
+      "scripts/ag-class-derivation.ts",
+      "scripts/confidence-bands.ts",
+      "scripts/data-limits.ts",
+      "scripts/exclusion-suspects.ts",
+      "scripts/geometry-evidence.ts",
+      "scripts/stop-provenance.ts",
+    ];
     const LAW_EXEMPT = new Map<string, string>([
+      ...POSITIONAL_ONLY.map((file) =>
+        [
+          file,
+          "reads argv for positional shard paths and declares no value " +
+          "flag — checked, not asserted: the scan refuses this exemption " +
+          "if the file ever contains a --flag literal.",
+        ] as [string, string]
+      ),
       [
         "scripts/flagReader.ts",
         "this file IS the law's implementation — it declares no flags of " +
@@ -1060,8 +1081,18 @@ describe("the driver writes the manifest beside the emit", () => {
         "than a convention.",
       ],
     ]);
+    // Membership is decided by whether a file touches argv at all, not
+    // by a curated list of the idioms it might use (#364 round 52,
+    // smaller). The pattern list was the defect one level up from the
+    // one round 50 closed: `indexOf("--` and `VALUE_FLAGS` miss
+    // `findIndex`, an `entries()` loop, and the `reduce` shape
+    // flagReader itself now uses — so the next author copying the
+    // shared reader's own idiom instead of importing it would land
+    // outside the law. Reading argv is the thing that puts a script
+    // under it; the exemption map is where a file that does so without
+    // taking flag VALUES says as much, by name.
     const readsAFlagValue = (source: string) =>
-      /indexOf\(\s*(?:`|")--/.test(source) || /VALUE_FLAGS/.test(source);
+      /\bprocess\.argv\b/.test(source) || /\bargv\b/.test(source);
     const scriptFiles = readdirSync("scripts")
       .filter((name) => name.endsWith(".ts"))
       .map((name) => `scripts/${name}`)
@@ -1074,8 +1105,28 @@ describe("the driver writes the manifest beside the emit", () => {
     for (const stale of LAW_EXEMPT.keys()) {
       assert.ok(
         scriptFiles.includes(stale),
-        `${stale} is exempted but no longer reads a flag value — drop the ` +
+        `${stale} is exempted but no longer reads argv — drop the ` +
           `exemption rather than leaving it to cover a future file`,
+      );
+    }
+    // The positional-only exemption is only honest while it is true.
+    // Comments are stripped first: these files legitimately DISCUSS the
+    // sweep's own flags in prose (`--capture-all`), which is not the
+    // same as reading one.
+    const withoutComments = (source: string) =>
+      source.split("\n")
+        .filter((line) => {
+          const trimmed = line.trim();
+          return !trimmed.startsWith("//") && !trimmed.startsWith("*") &&
+            !trimmed.startsWith("/*");
+        })
+        .join("\n");
+    for (const file of POSITIONAL_ONLY) {
+      assert.doesNotMatch(
+        withoutComments(readFileSync(file, "utf8")),
+        /["'`]--[a-z]/,
+        `${file} is exempted as positional-only but now reads a --flag — ` +
+          `bring it under the law or state a different reason`,
       );
     }
     for (
@@ -1258,6 +1309,25 @@ describe("the driver writes the manifest beside the emit", () => {
   // corpus — both files read the dial BEFORE their usage checks, so
   // the specific refusal wins, and grid-totalr's shard path is never
   // opened.
+  // #364 round 52, finding 1: the sweep driver's defaults had no pin, so
+  // the num() port silently changed --days from 60 to 365 — a 6x depth
+  // change in a field hashed into the corpus identity and the LA-6
+  // ledger key, setting the provider fetch volume, with the manifest
+  // recording whatever it was so the drift left no witness. The port
+  // split one read into two halves carrying different defaults; they
+  // are one read again, and these are the values main() has always
+  // used.
+  it("the sweep driver's unflagged defaults are what main has always used", () => {
+    const defaults = parseArgs([]);
+    assert.equal(defaults.days, 60, "--days absent must walk 60 days");
+    assert.equal(defaults.step, 16);
+    assert.deepEqual(defaults.symbols, ["EURUSD"]);
+    // "max" is the one value that is not a number, and it still resolves
+    // through the same single read.
+    assert.ok(parseArgs(["--days", "max"]).days > 60);
+    assert.equal(parseArgs(["--days", "90"]).days, 90);
+  });
+
   // #364 round 51, finding 1: the two files brought under the walker law
   // in this change set read their numeric dials through str() and coerced
   // by hand, so an unparseable token became NaN. In the sweep DRIVER that

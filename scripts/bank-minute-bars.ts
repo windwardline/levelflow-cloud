@@ -194,16 +194,16 @@ export function planRun(argv: string[]) {
   // the 3-day window this file exists to never miss. A path flag
   // refuses a missing value or a flag token; the unflagged default
   // passes.
-  if (argv.includes("--dir")) {
-    const token = argv[argv.indexOf("--dir") + 1];
-    if (token === undefined || token.startsWith("--")) {
-      throw new Error(
-        `--dir owns the token after it and got ${
-          token === undefined ? "no value" : JSON.stringify(token)
-        } — a store path, never a flag; pass --dir <path>`,
-      );
-    }
-  }
+  // --dir's own guard is GONE (#364 round 52, finding 3): parseArgs
+  // above reads it through flagReader, which refuses a missing or
+  // flag-shaped token itself, so the hand-written block here was
+  // unreachable in both of its conditions. It was kept after the port
+  // on the belief that its message was pinned, but the tests matched on
+  // the flag NAME alone and flagReader's message satisfies them too —
+  // deleting the block left every one of them green. The round-38
+  // defect it was written for is still closed; it is closed one call
+  // earlier, by the shared reader, and the tests below now say which
+  // layer they are exercising.
   // The same law for --concurrency (#364 round 37, smaller): Number of
   // a missing value is NaN, Math.max(1, NaN) is NaN, and Array.from
   // with a NaN length is EMPTY — zero workers, nothing fetched — and

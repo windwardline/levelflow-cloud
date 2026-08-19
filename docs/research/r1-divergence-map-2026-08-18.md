@@ -962,6 +962,45 @@ layer.
   the canonical directory only; a redirect keeps the prefix, because it
   may be the sweeps directory).
 
+  Round 52 caught a silent behaviour change in round 51's own fix. The
+  `num()` port split the driver's `--days` read into two halves —
+  `str("--days") ?? "60"` for the "max" test and `num("--days", 365)`
+  for the value — carrying DIFFERENT defaults, so the "60" was dead and
+  every unflagged run walked 365 days where main walks 60. `days` sits
+  inside `conditionsOf` since round 47, so it is hashed into the corpus
+  identity and the LA-6 ledger key; it sets the provider fetch volume
+  against the §21j ceiling; and the manifest records whatever it was, so
+  the drift left no witness. It is one read with one default again, and
+  `parseArgs` is exported behind a run-as-binary guard so its defaults
+  are pinned — there was no such pin, which is why a 6x depth change
+  landed silently.
+
+  Two more from the same port. `probe-minute-bars` and
+  `verify-fmp-matches` read their `--json` flag at the END of `main()`,
+  so the refusal the port correctly introduced fired only AFTER the
+  whole metered roster probe — a mistyped flag spent the quota and then
+  died without writing the artifact the run existed for. Both read it
+  before any provider work now, the shape rounds 8 and 13 established
+  for the density floors and the curve checks. And `bank-minute-bars`'
+  hand-written `--dir` guard had become unreachable once the file read
+  through `flagReader`, while the tests that pin round 38's
+  phantom-store defect matched on the flag NAME alone — which both
+  layers' messages satisfy — so deleting the guard left them green. The
+  dead block is gone and each assertion now names the message its own
+  layer produces, so the two are told apart.
+
+  The scan's membership predicate stopped being a curated pattern list.
+  It had matched `indexOf("--` or `VALUE_FLAGS`, which misses
+  `findIndex`, an `entries()` loop, and the `reduce` shape `flagReader`
+  itself uses — so an author copying the shared reader's own idiom
+  instead of importing it would have landed outside the law, the defect
+  one level up from the one round 50 closed. Reading argv at all is now
+  what puts a script under it, and the six positional-only readers are
+  exempted by name with an exemption that VERIFIES ITS OWN PREMISE: the
+  scan refuses it if one of them ever reads a `--flag`, comments
+  stripped first, since those files legitimately discuss the sweep's
+  flags in prose.
+
   One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus

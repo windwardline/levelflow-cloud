@@ -159,13 +159,28 @@ describe("minute bank — --limit truncates the fetch, never the roster", () => 
   // and Array.from with a NaN length is an EMPTY worker pool, so
   // nothing was fetched and the zero-fetch escalation blamed the
   // provider window for a mistyped flag no request was made under.
+  // Two layers refuse here and the assertions now name which (#364
+  // round 52, finding 3): flagReader refuses a missing or flag-shaped
+  // token at the read, and planRun's own law refuses a value that
+  // parses but is not positive. These matched on the flag NAME alone,
+  // which both messages satisfy, so they could not tell the layers
+  // apart — and did not notice when one of them stopped running.
   it("refuses a --concurrency it cannot read rather than spawning zero workers", () => {
-    assert.throws(() => planRun(["--concurrency"]), /--concurrency/);
+    assert.throws(
+      () => planRun(["--concurrency"]),
+      /--concurrency owns the token after it and got no value/,
+    );
     assert.throws(
       () => planRun(["--concurrency", "--dir", "/tmp/x"]),
-      /--concurrency/,
+      /--concurrency owns the token after it and got "--dir"/,
     );
-    assert.throws(() => planRun(["--concurrency", "0"]), /--concurrency/);
+    // …and this one is planRun's own: 0 parses fine, and Array.from
+    // over zero workers fetches nothing while the zero-fetch
+    // escalation blames the provider window.
+    assert.throws(
+      () => planRun(["--concurrency", "0"]),
+      /--concurrency must be a positive number/,
+    );
   });
 
   // #364 round 38, finding 1: the third dial's failure was the worst —
@@ -174,9 +189,17 @@ describe("minute bank — --limit truncates the fetch, never the roster", () => 
   // sidecars read fresh, no escalation fires, departedSymbols reads
   // the phantom), while the real store stopped growing inside the
   // 3-day provider window.
+  // Closed by flagReader since the round-50 port, not by a guard in
+  // this file — the hand-written one was unreachable and is gone.
   it("refuses a --dir it cannot read rather than banking into a phantom store", () => {
-    assert.throws(() => planRun(["--dir"]), /--dir/);
-    assert.throws(() => planRun(["--dir", "--concurrency", "4"]), /--dir/);
+    assert.throws(
+      () => planRun(["--dir"]),
+      /--dir owns the token after it and got no value/,
+    );
+    assert.throws(
+      () => planRun(["--dir", "--concurrency", "4"]),
+      /--dir owns the token after it and got "--concurrency"/,
+    );
   });
 });
 
