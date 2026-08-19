@@ -547,9 +547,10 @@ export async function gradeCorpus(
   } = {},
 ): Promise<{
   // #364 round 24, finding 3: the data-absence rows the vocabulary held
-  // out of every cell's n across the graded population — returned so the
-  // report states its own denominator instead of leaving the held-out
-  // volume silent.
+  // out of every GRADED cell's n — scoped to the folds this read
+  // computes (round 25, finding 2), so the number reconciles with the
+  // tables under it — returned so the report states its own denominator
+  // instead of leaving the held-out volume silent.
   dataAbsentRows: number;
   foldNames: FoldNames;
   manifest: SweepManifest;
@@ -723,14 +724,26 @@ export async function gradeCorpus(
   const foldNames: FoldNames = options.confirmFinal
     ? derived
     : { fit: derived.fit, select: derived.select };
-  // #364 round 24, finding 3: sum what the vocabulary held out — each
-  // row lands in exactly one (symbol, variant, split) cell, so the sum
-  // over cells is the graded population's total, shard merges included.
+  // #364 round 24, finding 3 (fold-scoped round 25, finding 2): sum
+  // what the vocabulary held out — each row lands in exactly one
+  // (symbol, variant, split) cell, so the sum is exact across shard
+  // merges — but only over the splits this read GRADES: the cube also
+  // holds the confirm fold, which foldNames drops without
+  // --confirm-final, and a held-out count spanning a fold no table
+  // computes could not be reconciled with any printed n, which is the
+  // whole point of stating a denominator.
+  const gradedSplits = new Set(
+    Object.values(foldNames).filter((name): name is string =>
+      typeof name === "string"
+    ),
+  );
   let dataAbsentRows = 0;
   for (const byVariant of cube.values()) {
     for (const bySplit of byVariant.values()) {
-      for (const cell of bySplit.values()) {
-        dataAbsentRows += cell.dataAbsent;
+      for (const [split, cell] of bySplit) {
+        if (gradedSplits.has(split)) {
+          dataAbsentRows += cell.dataAbsent;
+        }
       }
     }
   }

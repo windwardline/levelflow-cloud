@@ -234,25 +234,37 @@ async function main(): Promise<void> {
         rollup.stops += stats.stops;
         rollup.rSum += stats.rSum;
         rollup.rSumSq += stats.rSumSq;
-        const value = expectancy(stats)!;
+        // #364 round 25, finding 1: a market whose corpus rows are ALL
+        // data-absence rows sits here with filled 0 — R1b emits those
+        // rows (pre-R1b they landed in planRejected and the market hit
+        // NOT IN CORPUS), and all-marked is the EXPECTED shape for the
+        // sparse floorless classes this report's inclusion decisions
+        // turn on. expectancy() is null there: no sigma claim and no
+        // verdict can be made, so the line prints E "—" with its
+        // dataAbs volume still visible — the non-null assertion that
+        // stood here crashed the whole report on exactly that market.
+        const value = expectancy(stats);
         // Measured, never assumed (3a): this market's own R deviation over
         // sqrt(filled). Below two filled outcomes no deviation exists, so no
         // sigma claim — and therefore no exclusion — can be made from it.
         const se = rStandardError(stats);
-        const sigma = se !== null && se > 0 ? Math.abs(value) / se : null;
+        const sigma = value !== null && se !== null && se > 0
+          ? Math.abs(value) / se
+          : null;
         const thin = stats.filled < minFilled ? " THIN" : "";
-        const flag = value < 0 && sigma !== null && sigma >= 2
+        const flag = value !== null && value < 0 && sigma !== null && sigma >= 2
           ? " <- EXCLUDE (negative, 2+ s.e.)"
-          : value < 0
+          : value !== null && value < 0
             ? " <- negative but within noise"
             : "";
         lines.push(
           `      ${member.brokerName.padEnd(10)} ${String(stats.filled).padStart(6)} ` +
             `${pct(stats.wins, stats.filled).padStart(4)} ${pct(stats.stops, stats.filled).padStart(5)} ` +
             `${String(stats.dataAbsent).padStart(8)} ` +
-            `${value.toFixed(3).padStart(7)} ±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
+            `${(value === null ? "—" : value.toFixed(3)).padStart(7)} ` +
+            `±${se === null ? "—" : se.toFixed(3)}${thin}${flag}`,
         );
-        if (value < 0 && sigma !== null && sigma >= 2) {
+        if (value !== null && value < 0 && sigma !== null && sigma >= 2) {
           verdicts.push(
             `${classification}/${member.brokerName}: E=${value.toFixed(3)} ` +
               `±${se!.toFixed(3)} over ${stats.filled} filled — exclude`,

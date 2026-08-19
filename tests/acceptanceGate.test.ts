@@ -395,7 +395,11 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
   // denominator — the vocabulary already holds a data-absence row out of
   // every cell's n, and gradeCorpus now RETURNS the held-out volume so
   // the report prints it instead of leaving it silent. Executed both
-  // ways: the marked row is counted, and it moves no verdict.
+  // ways: the marked row is counted, and it moves no verdict. Scoped to
+  // the GRADED folds (#364 round 25, finding 2): the confirm-split
+  // marked row below must NOT count on this non-confirm-final read,
+  // whose tables never compute that fold — the count must reconcile
+  // with the population the verdicts describe.
   it("counts data-absence rows held out of the graded population without moving a verdict — executed", async () => {
     const rows = shardRows("EURUSD");
     const marked = {
@@ -403,10 +407,19 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       noBarsInReviewWindow: true,
       symbol: "EURUSD",
     };
-    const withMarked = await gradeCorpus([shardWith([...rows, marked])], {
-      permutations: 50,
-      seed: 6,
-    });
+    const confirmMarked = {
+      ...outcomeRow("baseline", 5, 0),
+      noBarsInReviewWindow: true,
+      split: "confirm",
+      symbol: "EURUSD",
+    };
+    const withMarked = await gradeCorpus(
+      [shardWith([...rows, marked, confirmMarked])],
+      {
+        permutations: 50,
+        seed: 6,
+      },
+    );
     const without = await gradeCorpus([shardWith(rows)], {
       permutations: 50,
       seed: 6,

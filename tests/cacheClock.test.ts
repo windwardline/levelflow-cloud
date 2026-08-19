@@ -89,6 +89,12 @@ describe("the store guard's refusals are loud and the ops jobs know their names"
     assert.match(cache, /cacheClockMismatch/);
     assert.match(cache, /cacheStoreUnreadable/);
     assert.match(cache, /docs\/cache-rebuild-r0\.md/);
+    // #364 round 25, finding 3: the remedy follows the store's own
+    // clock — the nightly stand-down defers to this raise site for it,
+    // and the single bar-rebuild remedy cannot clear a stamp on a
+    // calendar-clock store (treasury-rates, econ-calendar).
+    assert.match(cache, /clock === CALENDAR_CLOCK/);
+    assert.match(cache, /delete this one rolling store and re-run/);
     // Atomic replace: a torn multi-MB writeFile is the corrupt shape the
     // guard refuses; rename either completes or leaves the old store.
     assert.match(cache, /await rename\(tmpPath, path\)/);

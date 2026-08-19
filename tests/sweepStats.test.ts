@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -290,6 +291,97 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
       /\$\{rollup\.dataAbsent\} dataAbs/,
       "the category rollup must state its held-out volume",
     );
+  });
+
+  // #364 round 25, finding 1: a market whose corpus rows are ALL
+  // data-absence rows enters bySymbol with filled 0 — R1b emits those
+  // rows (pre-R1b they landed in planRejected and the market hit NOT IN
+  // CORPUS) — and the reader's non-null expectancy assertion crashed
+  // the whole E8 report on exactly the sparse floorless markets its
+  // inclusion decisions turn on. Executed (the reader had only source
+  // pins): the report must survive, subtract the held-out rows from its
+  // headline, and print the all-marked market with E "—" and its
+  // dataAbs volume — with no verdict fabricated from a null.
+  it("survives a market whose rows are all data-absence rows — executed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "acct-report-"));
+    const emitPath = join(dir, "run.jsonl");
+    const rows = [
+      { outcome: "take_profit", realizedR: 1.5, symbol: "EURUSD" },
+      { outcome: "stop_loss", realizedR: -1, symbol: "EURUSD" },
+      {
+        noBarsInReviewWindow: true,
+        outcome: "unfilled",
+        realizedR: null,
+        symbol: "GBPUSD",
+      },
+      {
+        noBarsInReviewWindow: true,
+        outcome: "unfilled",
+        realizedR: null,
+        symbol: "GBPUSD",
+      },
+      {
+        noBarsInReviewWindow: true,
+        outcome: "unfilled",
+        realizedR: null,
+        symbol: "GBPUSD",
+      },
+    ];
+    writeFileSync(
+      emitPath,
+      rows.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+    );
+    const manifest = buildSweepManifest({
+      analyzerVersion: "2026.08.09.test",
+      anchor: "2026-08-10",
+      barRejections: {},
+      clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+      conditions: {
+        macroAdjustment: "historical-treasury-curve",
+        providerWarningCount: "zero-by-construction",
+        weightAdjustment: "raw-engine-zero",
+      },
+      days: 365,
+      generatedAt: "2026-08-10T04:00:00.000Z",
+      grid: [{}],
+      stepBars: 16,
+      symbols: [
+        {
+          calibration: {},
+          providerSymbol: "EURUSD",
+          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          symbol: "EURUSD",
+        },
+        {
+          calibration: {},
+          providerSymbol: "GBPUSD",
+          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          symbol: "GBPUSD",
+        },
+      ],
+      trainShare: 0.6,
+      treasuryCurve: {
+        count: 3_000,
+        firstTime: Date.UTC(2013, 0, 2),
+        largestGapMs: 4 * 86_400_000,
+        lastTime: Date.UTC(2027, 0, 1),
+      },
+      warmupBars: 240,
+    });
+    writeFileSync(
+      `${emitPath}.manifest.json`,
+      JSON.stringify(manifest, null, 2) + "\n",
+    );
+    const out = execFileSync(
+      "npx",
+      ["--no-install", "tsx", "scripts/account-type-report.ts", emitPath],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+    );
+    assert.match(out, /corpus: 2 market-evidence rows/);
+    assert.match(out, /data-absence rows held out of every denominator: 3/);
+    // The all-marked market's line: filled 0, dataAbs 3, E "—", ±"—".
+    assert.match(out, / 3\s+— ±—/);
+    assert.match(out, /none — no market is negative beyond noise/);
   });
 
   it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {
