@@ -22,7 +22,7 @@ import {
   type TreasuryCurveFacts,
   treasuryGapTouching,
 } from "../scripts/sweepManifest.ts";
-import { flagReader } from "../scripts/flagReader.ts";
+import { flagReader, soleFlagIndex } from "../scripts/flagReader.ts";
 import { parseArgs } from "../scripts/replay-sweep.ts";
 
 // 2i (2026-08-09): the corpus describes itself. Nothing used to persist a
@@ -1069,16 +1069,21 @@ describe("the driver writes the manifest beside the emit", () => {
       [
         "scripts/flagReader.ts",
         "this file IS the law's implementation — it declares no flags of " +
-        "its own, and its two refusals are pinned by executed tests below " +
-        "rather than by matching its own source against itself.",
+        "its own, and its four refusals (undeclared flag, missing or " +
+        "flag-shaped token, unparseable number, repeated flag) are pinned " +
+        "by executed tests below rather than by matching its own source " +
+        "against itself. The count is checked, so a fifth cannot arrive " +
+        "unexecuted.",
       ],
       [
         "scripts/fmpByteBudget.ts",
         "one flag, --byte-budget, whose value is parsed by a strict " +
-        "size regex at the read. A missing value throws by name and a " +
-        "flag-shaped token fails the regex, so both failure modes the " +
-        "law exists to close are already closed, by a mechanism rather " +
-        "than a convention.",
+        "size regex at the read. All THREE of the header's failure modes " +
+        "are closed by mechanism: a missing value throws by name, a " +
+        "flag-shaped token fails the regex, and a repeat is refused by " +
+        "soleFlagIndex. Verified below, not asserted — the premise had " +
+        "argued exactly two modes while the read was a bare indexOf " +
+        "(#364 round 53, finding 1).",
       ],
     ]);
     // Membership is decided by whether a file touches argv at all, not
@@ -1129,6 +1134,39 @@ describe("the driver writes the manifest beside the emit", () => {
           `bring it under the law or state a different reason`,
       );
     }
+    // The byte-budget exemption states a mechanism; the mechanism is
+    // checked here, for the same reason the positional-only one is. Its
+    // first version claimed "both failure modes the law exists to close"
+    // over a law that lists three, and the third — first-occurrence-only
+    // — was open, on the one dial that exists because nothing else can
+    // refuse an ad-hoc run's spend (#364 round 53, finding 1).
+    // The shared reader's exemption names a COUNT, and the count is what
+    // makes "pinned by executed tests below" checkable: a refusal added
+    // to flagReader without an executed test lands here, where the
+    // author has to either write the test or say why the enumeration
+    // changed. Round 51 added the repeat refusal and left the exemption
+    // reading "two" — an enumeration in prose narrower than the code
+    // beside it, the class this PR keeps closing (#364 round 53).
+    const sharedReader = readFileSync("scripts/flagReader.ts", "utf8");
+    assert.equal(
+      [...sharedReader.matchAll(/throw new Error\(/g)].length,
+      4,
+      "flagReader's refusal count changed — update the exemption's " +
+        "enumeration and add an executed test for the new refusal",
+    );
+    const byteBudget = readFileSync("scripts/fmpByteBudget.ts", "utf8");
+    assert.match(
+      byteBudget,
+      /soleFlagIndex\(argv, "--byte-budget"\)/,
+      "the byte-budget exemption claims a repeat is refused — it must " +
+        "resolve through soleFlagIndex to be true",
+    );
+    assert.match(
+      byteBudget,
+      /\/\^\(\\d\+/,
+      "the byte-budget exemption claims a strict size regex parses the " +
+        "value — the regex must still be there",
+    );
     for (
       const file of scriptFiles.filter((file) => !LAW_EXEMPT.has(file))
     ) {
@@ -1169,6 +1207,30 @@ describe("the driver writes the manifest beside the emit", () => {
       // round 50, finding 2). flagReader's own refusals are pinned
       // below, executed rather than by source match.
       const usesSharedReader = /from "\.\/flagReader\.ts"/.test(source);
+      // RESOLUTION — where in argv a flag sits — is one implementation
+      // everywhere, even where the MESSAGES are not (#364 round 53,
+      // finding 1). `indexOf` returns the FIRST occurrence, mode two of
+      // the three flagReader's header names, and round 51 closed it
+      // inside the shared reader while leaving it live in the six files
+      // that kept their own accessors: the acceptance gate, the script
+      // that BURNS the confirm read, both 4d derivations, and the two
+      // audits that exit non-zero. `--seed 7 --seed 8` ran at 7 with a
+      // confident success line. A reader may keep its own wording — the
+      // executed tests that assert those messages are why six of them
+      // do — but it may not keep its own resolution.
+      assert.doesNotMatch(
+        source,
+        /\.indexOf\(\s*(?:arg\b|"--)/,
+        `${file}: a flag's position must resolve through soleFlagIndex, ` +
+          `which refuses a repeat — indexOf silently reads the first of ` +
+          `"--seed 7 --seed 8"`,
+      );
+      assert.match(
+        source,
+        /soleFlagIndex|from "\.\/flagReader\.ts"/,
+        `${file}: reads a flag value without the shared resolution step — ` +
+          `import soleFlagIndex, or the whole reader, from flagReader.ts`,
+      );
       if (!usesSharedReader) {
         assert.match(
           source,
@@ -1400,6 +1462,88 @@ describe("the driver writes the manifest beside the emit", () => {
         /--permutations owns the token after it and cannot read a missing value as a number/
           .test(String((error as { stderr?: string }).stderr ?? "")),
       "grid-totalr must refuse — a NaN dial silently refuses every variant",
+    );
+  });
+
+  // #364 round 53, finding 1: the repeat refusal, at the shared step and
+  // then through two readers that reach it by IMPORT rather than by
+  // rewrite. Round 51 built this refusal into flagReader and the eleven
+  // files that had been ported to it; the six that kept their own
+  // accessors — because their specific wording is asserted elsewhere —
+  // kept `indexOf` with it, so the acceptance gate and the reader every
+  // calibration table is read from still took the first of a repeated
+  // flag in silence. The gate is the one that matters most: `--seed 7
+  // --seed 8` graded at seed 7 and printed a verdict, and a permutation
+  // p-value is exactly the kind of figure nobody re-derives by hand.
+  it("a repeated value flag is refused at the shared step", () => {
+    assert.equal(soleFlagIndex(["--seed", "7"], "--seed"), 0);
+    assert.equal(soleFlagIndex(["--out", "x"], "--seed"), -1);
+    assert.throws(
+      () => soleFlagIndex(["--seed", "7", "--seed", "8"], "--seed"),
+      /--seed was given 2 times — this reader will not choose between them/,
+    );
+  });
+
+  it("the acceptance gate and the calibration reader refuse a repeated flag — executed", () => {
+    const refuses = (args: string[], pattern: RegExp, why: string) => {
+      assert.throws(
+        () =>
+          execFileSync("npx", ["--no-install", "tsx", ...args], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            timeout: 60_000,
+          }),
+        (error: unknown) =>
+          pattern.test(String((error as { stderr?: string }).stderr ?? "")),
+        why,
+      );
+    };
+    refuses(
+      // Refused before the corpus door opens, so the named shard is
+      // never read — the refusal is about the command line, not the file.
+      [
+        "scripts/grid-totalr.ts",
+        "never-opened.jsonl",
+        "--seed",
+        "7",
+        "--seed",
+        "8",
+      ],
+      /--seed was given 2 times/,
+      "the gate must not grade at the first of two seeds",
+    );
+    refuses(
+      ["scripts/sweep-analysis.ts", "--emit", "a.jsonl", "--emit", "b.jsonl"],
+      /--emit was given 2 times/,
+      "the reader must not report over the first of two corpora",
+    );
+  });
+
+  // The corpus path was the LAST unguarded read in sweep-analysis (#364
+  // round 53, finding 1). Its VALUE_FLAGS note had reasoned that --emit
+  // needed no declaration because the file collects no positional paths
+  // and so has no walker to feed — true about the walker, and wrong
+  // about the Set, which feeds the accessors too. With --emit absent,
+  // `args[args.indexOf("--emit") + 1]` is `args[0]`: the flag the usage
+  // line calls required was optional in fact, and any first token would
+  // be opened as the corpus.
+  it("the calibration reader will not read a corpus nobody named", () => {
+    assert.throws(
+      () =>
+        execFileSync(
+          "npx",
+          ["--no-install", "tsx", "scripts/sweep-analysis.ts", "a.jsonl"],
+          { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
+        ),
+      (error: unknown) => {
+        const failed = error as { stderr?: string; status?: number };
+        assert.match(String(failed.stderr ?? ""), /Usage: .*--emit path\.jsonl/);
+        // Exit 1, the usage code — not a crash on a file it tried to
+        // open, which is what reading args[0] as the corpus would give.
+        assert.equal(failed.status, 1);
+        return true;
+      },
+      "a bare positional must not be opened as the corpus",
     );
   });
 

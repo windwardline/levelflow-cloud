@@ -154,6 +154,7 @@
  * mode marker (above).
  */
 import { readFileSync } from "node:fs";
+import { soleFlagIndex } from "./flagReader.ts";
 
 type Row = {
   symbol: string; split: string; decisions: number; sessionBlk: number;
@@ -322,7 +323,7 @@ function num(arg: string, fallback: number): number {
         `log path`,
     );
   }
-  const index = process.argv.indexOf(arg);
+  const index = soleFlagIndex(process.argv, arg);
   if (index === -1) return fallback;
   const token = process.argv[index + 1];
   const parsed = Number(token);

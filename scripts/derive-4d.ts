@@ -16,6 +16,7 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 import { gradeCorpus, type VariantVerdict } from "./grid-totalr.ts";
 import { assertManifest } from "./sweepStats.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
+import { soleFlagIndex } from "./flagReader.ts";
 
 // The ONE declaration of which flags own the token after them (#364
 // round 44, smaller) — the form rounds 33–38 installed in the four
@@ -71,7 +72,7 @@ async function main() {
           `there, or its value stays in the shard paths`,
       );
     }
-    const index = argv.indexOf(arg);
+    const index = soleFlagIndex(argv, arg);
     if (index === -1) return undefined;
     const token = argv[index + 1];
     if (token === undefined || token.startsWith("--")) {
@@ -90,7 +91,7 @@ async function main() {
           `there, or its value stays in the shard paths`,
       );
     }
-    const index = argv.indexOf(arg);
+    const index = soleFlagIndex(argv, arg);
     if (index === -1) return fallback;
     const parsed = Number(argv[index + 1]);
     if (!Number.isFinite(parsed)) {

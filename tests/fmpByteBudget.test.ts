@@ -153,4 +153,20 @@ describe("parseByteBudgetArg — an ad-hoc run declares its cost or does not sta
       /--byte-budget/,
     );
   });
+
+  // #364 round 53, finding 1. This file is exempt from the VALUE_FLAGS
+  // law because the size regex above closes the two failure modes that
+  // law exists for by mechanism — but the shared reader's header lists
+  // THREE, and the third was open here: `indexOf` reads the first
+  // occurrence, so `--byte-budget 2gb --byte-budget 150gb` started under
+  // whichever ceiling came first, on the one dial that exists because
+  // nothing between the command line and the provider can otherwise
+  // refuse an ad-hoc run's spend.
+  it("refuses a ceiling declared twice rather than picking one", () => {
+    assert.throws(
+      () =>
+        parseByteBudgetArg(["--byte-budget", "2gb", "--byte-budget", "150gb"]),
+      /--byte-budget was given 2 times/,
+    );
+  });
 });

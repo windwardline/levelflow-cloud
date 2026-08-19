@@ -87,6 +87,20 @@ a fact about the shard files themselves, which no amendment can move. Each
 entry also records the identity's payload, not just its hash, so a later
 reader can see which definition a read was filed under.
 
+A line this scan cannot read **refuses the run, by name** — the ledger path,
+the line number, and the remedy — rather than being skipped. Three shapes
+refuse: a line that is not JSON, a line that parses to something other than
+an object, and an object carrying no `corpusHash` string. The reason to
+refuse rather than skip is the discipline itself: an unreadable line's
+contents are unknowable, so skipping one means possibly opening the
+held-back fold a second time while believing no prior read exists. A false
+refusal costs an operator one repair — from git history, since these files
+are tracked — and a missed one costs the measurement. Note the blast radius
+this cuts both ways: because this directory is globbed whole on every
+confirm read, one bad line blocks every corpus, not just its own, which is
+why the message says so and names the file. A `.jsonl` that is not a ledger
+does not belong here; move it rather than leaving it to be read as one.
+
 `--confirm-log-dir` redirects **where a read is written**, never where prior
 reads are looked for: this directory is searched on every `--confirm-final`
 run whatever the flag says, and a redirected run warns that it is filing

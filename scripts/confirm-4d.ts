@@ -13,6 +13,7 @@ import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.t
 import { gradeCorpus } from "./grid-totalr.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
 import { assertManifest } from "./sweepStats.ts";
+import { soleFlagIndex } from "./flagReader.ts";
 
 type Candidate = {
   selectExpectancyDelta: number;
@@ -64,7 +65,7 @@ async function main() {
           `there, or its value stays in the shard paths`,
       );
     }
-    const index = argv.indexOf(arg);
+    const index = soleFlagIndex(argv, arg);
     if (index === -1) return undefined;
     const token = argv[index + 1];
     if (token === undefined || token.startsWith("--")) {
@@ -83,7 +84,7 @@ async function main() {
           `there, or its value stays in the shard paths`,
       );
     }
-    const index = argv.indexOf(arg);
+    const index = soleFlagIndex(argv, arg);
     if (index === -1) return fallback;
     const parsed = Number(argv[index + 1]);
     if (!Number.isFinite(parsed)) {

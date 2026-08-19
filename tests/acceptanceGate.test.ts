@@ -1776,6 +1776,113 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.equal(existsSync(retired), false);
   });
 
+  // #364 round 53, finding 3: the prior-read scan parses every line of
+  // every ledger in the canonical directory, on every confirm read,
+  // whatever corpus is being graded. A bare JSON.parse there threw a
+  // SyntaxError naming neither the file nor the line — so one truncated
+  // append blocked EVERY corpus with a diagnosis pointing at nothing, and
+  // the obvious operator response to an unreadable ledger ("delete it")
+  // is the one move that loses the record the refusal exists to protect.
+  // Refusing rather than skipping is the discipline: a line nobody can
+  // read may be the entry recording that this very fold was already
+  // opened.
+  it("refuses a ledger line it cannot read, naming the file and the line", async () => {
+    const corpus = foldedShard("EURUSD");
+    const canonicalDir = join(
+      dirname(dirname(fileURLToPath(import.meta.url))),
+      "docs/research/confirm-reads",
+    );
+    // A name no corpus identity can compute, so this fixture cannot
+    // collide with a real recorded read; the directory is globbed whole,
+    // which is exactly why any .jsonl in it is read.
+    const broken = join(canonicalDir, "confirm-log-round53-fixture.jsonl");
+    assert.equal(existsSync(broken), false, "the fixture name must be free");
+    const cleanup = () => rmSync(broken, { force: true });
+    const onSignal = () => {
+      cleanup();
+      process.exit(130);
+    };
+    process.on("exit", cleanup);
+    process.on("SIGINT", onSignal);
+    process.on("SIGTERM", onSignal);
+    try {
+      // Line 2 is the truncated append — the shape a process killed
+      // mid-write leaves behind.
+      writeFileSync(
+        broken,
+        `{"corpusHash":"deadbeef","readAt":"2026-08-19T00:00:00.000Z"}\n` +
+          `{"corpusHash":"dead\n`,
+      );
+      await assert.rejects(
+        gradeCorpus([corpus], {
+          confirmFinal: true,
+          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger-")),
+          permutations: 100,
+          seed: 4,
+        }),
+        (error: unknown) => {
+          const message = (error as Error).message;
+          assert.match(message, /line 2 is not readable as JSON/);
+          assert.match(message, /confirm-log-round53-fixture\.jsonl/);
+          // The remedy, not just the complaint: repair from history, or
+          // move a non-ledger file out of a directory globbed whole.
+          assert.match(message, /Repair the line from git history/);
+          assert.match(message, /blocks every corpus/);
+          return true;
+        },
+      );
+
+      // A line that PARSES but is not an entry was the worse half: the
+      // property read threw "cannot read properties of null", which names
+      // neither the ledger nor the discipline.
+      writeFileSync(broken, "null\n");
+      await assert.rejects(
+        gradeCorpus([corpus], {
+          confirmFinal: true,
+          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger2-")),
+          permutations: 100,
+          seed: 4,
+        }),
+        /line 1 parses as null rather than a ledger entry object/,
+      );
+
+      // An object with no corpusHash cannot be matched against the read
+      // being attempted, and an entry that cannot be matched is not
+      // evidence of absence.
+      writeFileSync(broken, `{"readAt":"2026-08-19T00:00:00.000Z"}\n`);
+      await assert.rejects(
+        gradeCorpus([corpus], {
+          confirmFinal: true,
+          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger3-")),
+          permutations: 100,
+          seed: 4,
+        }),
+        /line 1 carries no corpusHash string/,
+      );
+
+      // …and a well-formed ledger for a DIFFERENT corpus is read past
+      // without complaint, which is what keeps the refusal about
+      // unreadable lines rather than about unfamiliar ones.
+      writeFileSync(
+        broken,
+        `{"corpusHash":"not-this-corpus","readAt":"2026-08-19T00:00:00.000Z","shardHashes":["other"]}\n`,
+      );
+      const graded = await gradeCorpus([corpus], {
+        confirmFinal: true,
+        confirmLogDir: mkdtempSync(join(tmpdir(), "gate-badledger4-")),
+        permutations: 100,
+        seed: 4,
+      });
+      assert.equal(graded.confirmRead, true);
+    } finally {
+      cleanup();
+      process.off("exit", cleanup);
+      process.off("SIGINT", onSignal);
+      process.off("SIGTERM", onSignal);
+    }
+    assert.equal(existsSync(broken), false);
+  });
+
   // #364 round 46, smaller: "commit any line that appears here" was a
   // promise in a change set whose repeated law is mechanism. A burn left
   // uncommitted is invisible to every other checkout — the same failure

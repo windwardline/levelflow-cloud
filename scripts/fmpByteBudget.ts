@@ -13,6 +13,8 @@
 // consumer that has actually caused an outage, for one file and no
 // infrastructure.
 
+import { soleFlagIndex } from "./flagReader.ts";
+
 const UNITS: Record<string, number> = {
   b: 1,
   kb: 1024,
@@ -82,7 +84,14 @@ export async function readJsonWithBudget<T = unknown>(
 }
 
 export function parseByteBudgetArg(argv: readonly string[]): number {
-  const flagAt = argv.indexOf("--byte-budget");
+  // Resolved through the shared step rather than indexOf (#364 round 53,
+  // finding 1). This file is exempt from the VALUE_FLAGS law because the
+  // size regex below already closes the missing-value and flag-shaped-value
+  // modes — but the law lists THREE, and first-occurrence-only was open
+  // here: `--byte-budget 2gb --byte-budget 150gb` started under the 2 GB
+  // ceiling without a word, on the one dial whose whole reason for
+  // existing is that nothing else can refuse an ad-hoc run's spend.
+  const flagAt = soleFlagIndex(argv, "--byte-budget");
   const raw = flagAt === -1 ? undefined : argv[flagAt + 1];
   if (raw === undefined) {
     throw new Error(

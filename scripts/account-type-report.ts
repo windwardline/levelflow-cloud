@@ -60,6 +60,7 @@ import {
   type SweepEmitRow,
   type SweepStats,
 } from "./sweepStats.ts";
+import { soleFlagIndex } from "./flagReader.ts";
 
 const CLASSIFICATIONS: BrokerClassification[] = ["forex", "futures", "crypto"];
 
@@ -150,7 +151,7 @@ function num(arg: string, fallback: number): number {
         `corpus path`,
     );
   }
-  const index = process.argv.indexOf(arg);
+  const index = soleFlagIndex(process.argv, arg);
   if (index === -1) return fallback;
   const token = process.argv[index + 1];
   const parsed = Number(token);

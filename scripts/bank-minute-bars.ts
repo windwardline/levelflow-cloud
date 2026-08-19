@@ -210,19 +210,22 @@ export function planRun(argv: string[]) {
   // the zero-fetch escalation then blames the provider window for a
   // mistyped flag no request was ever made under. The unflagged
   // default (4) passes.
+  // Both messages report the value the READER produced, not a token
+  // re-derived from argv (#364 round 53, finding 1). The re-derivation
+  // that stood here was a second, unguarded resolution of a flag whose
+  // value had already been resolved one line up — first-occurrence-only,
+  // so the two could in principle name different tokens, and the
+  // diagnostic would be the one that lied. It cannot happen today, since
+  // flagReader refuses the repeat before either line runs; a refusal that
+  // depends on another refusal firing first is exactly how this PR's
+  // reachable-guard defects have read.
   if (!(concurrency > 0)) {
     throw new Error(
-      `--concurrency must be a positive number; got ${JSON.stringify(
-        argv[argv.indexOf("--concurrency") + 1] ?? null,
-      )}.`,
+      `--concurrency must be a positive number; got ${concurrency}.`,
     );
   }
   if (!(limit > 0)) {
-    throw new Error(
-      `--limit must be a positive number; got ${JSON.stringify(
-        argv[argv.indexOf("--limit") + 1] ?? null,
-      )}.`,
-    );
+    throw new Error(`--limit must be a positive number; got ${limit}.`);
   }
   const roster = bankableSymbols();
   return { dir, concurrency, roster, targets: roster.slice(0, limit) };

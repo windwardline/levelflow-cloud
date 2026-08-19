@@ -187,6 +187,43 @@ async function main() {
   const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-cost-sensitivity.json";
 
+  // A run over zero rows cannot report a verdict — WIF-4, the law
+  // roster-expectancy-audit states at its own door and this file had no
+  // form of (#364 round 53, finding 2). All three inputs default to the
+  // empty string and are then split, so any one of them omitted produced
+  // a complete-looking artifact — verdicts {}, summary all zeros, and a
+  // summary line reading "0 data-negative … 0 cost-dependent" — over a
+  // corpus nobody opened. The three are named separately because they
+  // fail for different reasons: a missed --gross is the arm this whole
+  // comparison exists for, and its absence would otherwise read as
+  // agreement between two corpora only one of which was supplied.
+  // (This script's MECHANISM is known broken — see the banner at the top
+  // — so nothing it writes is evidence either way. The refusals are here
+  // because a broken instrument that also cannot say it read nothing is
+  // two defects, and the second one outlives the first: whatever repairs
+  // the wiring inherits these doors.)
+  for (
+    const [flag, paths] of [
+      ["--net", netPaths],
+      ["--gross", grossPaths],
+    ] as const
+  ) {
+    if (paths.length === 0) {
+      throw new Error(
+        `cost-sensitivity-verdict: ${flag} named no shard. Both arms are ` +
+          `read and compared, so a missing one cannot be reported as a ` +
+          `verdict; pass ${flag} shard-a.jsonl,shard-b.jsonl .`,
+      );
+    }
+  }
+  if (cells.size === 0) {
+    throw new Error(
+      "cost-sensitivity-verdict: --cells named no (symbol|variant) cell. " +
+        "The verdict loop walks this map, so an empty one reads both " +
+        "corpora and judges nothing; pass --cells SYM|variant;… .",
+    );
+  }
+
   // Spans from each corpus's OWN manifests; the same symbols were swept
   // both times, so the folds land identically.
   const net = collect(netPaths, cells, spansFrom(netPaths));

@@ -55,6 +55,7 @@ import {
   type SweepManifest,
 } from "./sweepManifest.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
+import { soleFlagIndex } from "./flagReader.ts";
 import {
   appendFileSync,
   existsSync,
@@ -1197,9 +1198,60 @@ export async function gradeCorpus(
       // it costs nothing — readLinesSync is the reader sweepStats
       // exports precisely because the baseline emit is 1.2GB, past
       // Node's maximum string length, so slurping one can never work.
-      readLinesSync(logPath, (line) => {
+      readLinesSync(logPath, (line, lineNumber) => {
         if (!line) return;
-        const entry = JSON.parse(line) as {
+        // A line this scan cannot read REFUSES, by name (#364 round 53,
+        // finding 3). The bare JSON.parse that stood here threw a
+        // SyntaxError naming neither the file nor the line — and this
+        // loop runs over the canonical directory on EVERY confirm read,
+        // whatever corpus is being graded, so one truncated append or one
+        // stray .jsonl blocked every corpus at once with a diagnosis that
+        // pointed at nothing. A `null` line, which parses, was worse: the
+        // property read below threw "cannot read properties of null".
+        //
+        // Refusing rather than SKIPPING is deliberate, and it is the
+        // whole discipline: an unreadable line's contents are unknowable,
+        // so skipping it means possibly reading the held-back fold a
+        // second time while believing no prior read exists — the one
+        // outcome LA-6 exists to make impossible. A false refusal costs
+        // an operator one repair; a missed one costs the measurement.
+        const parsed = ((): Record<string, unknown> => {
+          let value: unknown;
+          try {
+            value = JSON.parse(line);
+          } catch (error) {
+            throw new Error(
+              `LA-6: ${logPath} line ${lineNumber} is not readable as JSON ` +
+                `(${(error as Error).message}). The confirm ledger is ` +
+                `checked on every read, so this blocks every corpus, not ` +
+                `just this one. Repair the line from git history, or — if ` +
+                `the file is not a ledger — move it out of ` +
+                `${DEFAULT_CONFIRM_LOG_DIR}, which is globbed whole.`,
+            );
+          }
+          if (
+            value === null || typeof value !== "object" || Array.isArray(value)
+          ) {
+            throw new Error(
+              `LA-6: ${logPath} line ${lineNumber} parses as ` +
+                `${value === null ? "null" : Array.isArray(value) ? "an array" : typeof value} ` +
+                `rather than a ledger entry object. This directory is ` +
+                `globbed whole and is expected to hold ledgers only — move ` +
+                `a non-ledger .jsonl elsewhere rather than leaving it to be ` +
+                `read as one.`,
+            );
+          }
+          return value as Record<string, unknown>;
+        })();
+        if (typeof parsed.corpusHash !== "string") {
+          throw new Error(
+            `LA-6: ${logPath} line ${lineNumber} carries no corpusHash ` +
+              `string, so this scan cannot tell whether it records a read ` +
+              `of the fold about to be opened. A ledger entry that cannot ` +
+              `be matched is not evidence of absence.`,
+          );
+        }
+        const entry = parsed as {
           corpusHash: string;
           identity?: string;
           readAt?: string;
@@ -1445,7 +1497,7 @@ async function main(): Promise<void> {
           `there, or its value stays in the shard paths`,
       );
     }
-    const index = args.indexOf(arg);
+    const index = soleFlagIndex(args, arg);
     if (index === -1) return fallback;
     const token = args[index + 1];
     const parsed = Number(token);
@@ -1467,7 +1519,7 @@ async function main(): Promise<void> {
           `there, or its value stays in the shard paths`,
       );
     }
-    const index = args.indexOf(arg);
+    const index = soleFlagIndex(args, arg);
     if (index === -1) return undefined;
     const token = args[index + 1];
     if (token === undefined || token.startsWith("--")) {

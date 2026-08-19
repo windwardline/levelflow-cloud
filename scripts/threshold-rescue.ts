@@ -53,6 +53,30 @@ async function main() {
   }
   const outPath = str("--out") ??
     "docs/research/baseline-2026-08-10/4d-threshold-rescue.json";
+  // A run over zero rows cannot report a verdict — WIF-4, the law
+  // roster-expectancy-audit states at its own door and this file had no
+  // form of (#364 round 53, finding 2). Both inputs are refusals, because
+  // both produce the SAME artifact: `report` stays {} and the summary
+  // line reads "0 of 0 markets have a both-folds-positive threshold",
+  // which is indistinguishable from a real corpus in which no threshold
+  // rescued anything — and this script exists to answer whether a
+  // negative cell can be rescued, so "no rescue found" is a decision
+  // input, never a shrug. --markets carries no default, and an empty one
+  // matches nothing: `wanted.get(symbol)` is undefined for every row and
+  // every row returns early.
+  if (paths.length === 0) {
+    throw new Error(
+      "threshold-rescue: no shard paths given. Pass the sweep shards " +
+        "explicitly; a run over zero rows cannot report a verdict.",
+    );
+  }
+  if (wanted.size === 0) {
+    throw new Error(
+      "threshold-rescue: --markets named no (symbol|variant) cell. Every " +
+        "row is filtered against this map, so an empty one reads the whole " +
+        "corpus and reports on nothing; pass --markets SYM|variant;… .",
+    );
+  }
   // Fold boundaries per market, exactly as the totality cycle cut them.
   const spans = new Map<string, { first: number; last: number }>();
 
@@ -148,6 +172,19 @@ async function main() {
     report[symbol] = { candidates, rescue };
   }
 
+  // The third route to "0 of 0": shards and cells both given, and not one
+  // named cell found a row (a variant name that does not appear, a market
+  // swept under a different one). The two inputs above cannot see this —
+  // only the corpus can — and the artifact it would write is the same
+  // empty one (#364 round 53, finding 2).
+  if (Object.keys(report).length === 0) {
+    throw new Error(
+      `threshold-rescue: none of the ${wanted.size} named cell(s) matched a ` +
+        `row across ${paths.length} shard(s) — check the variant names ` +
+        `against the corpus; an empty report cannot be read as "no rescue ` +
+        `available".`,
+    );
+  }
   writeFileSync(outPath, JSON.stringify({ minFilled: MIN_FILLED, report }, null, 2) + "\n");
   const rescued = Object.values(report).filter((entry) =>
     (entry as { rescue: unknown }).rescue !== null

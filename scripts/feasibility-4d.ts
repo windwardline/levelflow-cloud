@@ -85,6 +85,30 @@ async function main() {
     );
   }
 
+  // A run over zero rows cannot report a verdict — WIF-4, the law
+  // roster-expectancy-audit states at its own door and this file had no
+  // form of (#364 round 53, finding 2). It matters most HERE of the
+  // three: `feasibility` is a join whose consumers read an absent line as
+  // "the venue cannot size this cell", so an empty pass does not read as
+  // missing — it reads as INFEASIBLE EVERYWHERE, a false negative on
+  // every candidate, under a summary line ("feasibility for 0 markets")
+  // and an exit code that both say the run finished.
+  if (paths.length === 0) {
+    throw new Error(
+      "feasibility-4d: no shard paths given. The geometry pass reads the " +
+        "corpus, and a join over zero rows reports every cell infeasible; " +
+        "pass the sweep shards explicitly.",
+    );
+  }
+  if (wanted.size === 0) {
+    throw new Error(
+      `feasibility-4d: ${candidatesPath} names no accepted candidate on any ` +
+        `market, so the pass would collect nothing. A candidate file with ` +
+        `no accepts is a 4d result, not a feasibility question — there is ` +
+        `nothing here to size.`,
+    );
+  }
+
   type Geometry = { entries: number[]; risks: number[] };
   const geometry = new Map<string, Map<string, Geometry>>();
   // Median CLOSE per symbol regardless of variant, for the quotes map the
@@ -142,6 +166,20 @@ async function main() {
         cell.risks.push(row.riskDistance);
       }
     });
+  }
+
+  // Shards and candidates both given, and not one accepted cell found a
+  // filled row carrying usable geometry. Only the corpus can see this,
+  // and the artifact is the same empty one the two doors above refuse
+  // (#364 round 53, finding 2).
+  if (geometry.size === 0) {
+    throw new Error(
+      `feasibility-4d: none of the ${wanted.size} market(s) with accepted ` +
+        `candidates found a filled row with an entry price and a positive ` +
+        `riskDistance across ${paths.length} shard(s) — check that the ` +
+        `candidate file and the corpus are the same measurement; an empty ` +
+        `join reads as infeasible everywhere.`,
+    );
   }
 
   const quotes: Record<string, number> = {};

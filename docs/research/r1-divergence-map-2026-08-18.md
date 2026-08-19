@@ -798,9 +798,21 @@ layer.
   reporting `inherited from class 'metals'` on the same row. No
   published figure was wrong — every market currently on the pseudo-cell
   matches the pins — which is why this was a missing guard rather than a
-  wrong number. Where the pins diverge the cell is not built, the market
-  reports NO SHIPPED CELL naming the differing parameters, and the
-  divergence rides the dossier as its own field.
+  wrong number. **The last sentence of this paragraph is SUPERSEDED by
+  rounds 50–51** and is kept because the record of what was decided
+  matters: it read "where the pins diverge the cell is not built, the
+  market reports NO SHIPPED CELL naming the differing parameters, and
+  the divergence rides the dossier as its own field." Round 50 removed
+  the condition — divergence is the norm once 4d picks ship, and
+  suppressing on it blanked the roster — so the re-gate is
+  UNCONDITIONAL and there is no NO-SHIPPED-CELL report. What prevents
+  the mislabelling is the NAME (`RECONSTRUCTED` does not claim to be
+  what the market runs), and round 51 scoped the divergence field to
+  the rows it describes: `shippedCellPinDivergence` is emitted only
+  where `effectiveVariant === RECONSTRUCTED`, since on a market with
+  its own derived cell the field would have been a fact about a
+  reconstruction that row is not. `scripts/market-dossier.ts` is the
+  authority (#364 round 53, smaller).
 
   Two records were corrected rather than extended. The ledger README
   still described the retired anchor-and-days identity, including the

@@ -12,11 +12,43 @@
  * - an undeclared flag reads a value nothing declared it owns.
  *
  * Closing that per file meant the fix reached whichever file someone
- * happened to open. This module is the one implementation; a reader
+ * happened to open. This module is the one implementation FOR THE
+ * READERS THAT IMPORT IT — eleven of seventeen. The other six keep
+ * their own value accessors, because their specific error messages are
+ * what executed tests assert, and rewriting those would trade a live
+ * pin for uniformity; they share `soleFlagIndex` below, so flag
+ * RESOLUTION is one implementation everywhere even where the messages
+ * are not (#364 round 53, finding 1 — the first version of this
+ * sentence claimed all of them and was false). A reader
  * declares which of its flags take a value and reads them through here,
  * and `tests/sweepManifest.test.ts` derives the list of files the law
  * applies to by globbing this directory rather than curating it.
  */
+/**
+ * Where a flag sits in argv, refusing a repeat.
+ *
+ * Exported so the readers that keep their own value accessors — six of
+ * them, whose specific error messages executed tests assert — share the
+ * RESOLUTION step even where they do not share the messages (#364 round
+ * 53, finding 1). First-occurrence-only is mode two of the three the
+ * header above lists, and round 51 made it a refusal here while leaving
+ * it live in all six, including the gates that exit non-zero and the
+ * script that burns the confirm read.
+ */
+export function soleFlagIndex(argv: readonly string[], arg: string): number {
+  const occurrences = argv.reduce<number[]>(
+    (found, token, at) => token === arg ? [...found, at] : found,
+    [],
+  );
+  if (occurrences.length > 1) {
+    throw new Error(
+      `${arg} was given ${occurrences.length} times — this reader will ` +
+        `not choose between them; pass ${arg} exactly once`,
+    );
+  }
+  return occurrences[0] ?? -1;
+}
+
 export function flagReader(
   argv: readonly string[],
   valueFlags: ReadonlySet<string>,
@@ -29,27 +61,7 @@ export function flagReader(
           `as something else entirely`,
       );
     }
-    // Every occurrence, not the first (#364 round 51, finding 3). The
-    // header above lists first-occurrence-only as one of the three modes
-    // this module exists to close, and the first version of it used
-    // argv.indexOf — reproducing the defect verbatim in the one
-    // implementation the whole directory delegates to. A repeated value
-    // flag is refused rather than silently resolved either way:
-    // `--out a.json --out b.json` is an operator who does not know which
-    // file they are writing, and the reachable shape is a wrapper
-    // supplying a default ahead of "$@", where taking the first means
-    // writing to the default under a confident success line.
-    const occurrences = argv.reduce<number[]>(
-      (found, token, at) => token === arg ? [...found, at] : found,
-      [],
-    );
-    if (occurrences.length > 1) {
-      throw new Error(
-        `${arg} was given ${occurrences.length} times — this reader will ` +
-          `not choose between them; pass ${arg} exactly once`,
-      );
-    }
-    const index = occurrences[0] ?? -1;
+    const index = soleFlagIndex(argv, arg);
     if (index === -1) return undefined;
     const next = argv[index + 1];
     if (next === undefined || next.startsWith("--")) {
