@@ -439,20 +439,34 @@ layer.
   projection-to-partition path is executed in tests, and the
   field-by-field rollups carry every `SweepStats` key by a
   self-updating pin. **The readers also STATE the partition** (#364
-  rounds 24–26): each of the three corpus readers prints its held-out
-  data-absence volume beside its headline, and each line names its
-  OWN population, because the three populations differ —
-  `sweep-analysis` covers all variants and splits (holdout excluded),
-  `account-type-report` covers the baseline variant clearing
-  payoff+regime, and `grid-totalr` covers accepted rows in the GRADED
-  folds only (confirm excluded without `--confirm-final`, so the
-  count reconciles with the tables under it; `gradeCorpus` returns
-  the figure) — three scoped figures, never one sentence over three
-  denominators. `account-type-report` additionally prints `dataAbs`
-  per market and per category rollup, survives a market whose rows
-  are ALL data-absence rows (null expectancy prints "—" with no
-  fabricated verdict — round 25's crash fix, executed), and reads
-  through the streaming door like its siblings (round 26). One denominator note beside the unfilled
+  rounds 24–27): the three AGGREGATING corpus readers print their
+  held-out data-absence volumes beside their headlines, and each line
+  names its OWN population and its OWN holdout definition, because
+  the populations differ on both axes — `sweep-analysis` covers all
+  variants and splits and `account-type-report` the baseline variant
+  clearing payoff+regime, both excluding the emit's STAMPED holdout
+  flag (the driver's class-blind 1-in-5 draw), while `grid-totalr`
+  covers accepted rows in the GRADED folds only (confirm excluded
+  without `--confirm-final`; `gradeCorpus` returns the figure) and
+  excludes a READ-TIME stratified holdout recomputed per class that
+  ignores the stamped flag entirely and holds nothing out of a class
+  under three members — two holdout definitions by design (round-8
+  batch 1 made the gate's recomputable), so the same corpus yields
+  different populations, and each printed line says which; a caller
+  of `gradeCorpus` with a symbolFilter or per-market folds narrows
+  the figure further and states its own terms. `account-type-report`
+  additionally prints `dataAbs` per market and per category rollup,
+  survives a market whose rows are ALL data-absence rows (null
+  expectancy prints "—" with no fabricated verdict — round 25's
+  crash fix, executed), labels held-out markets HELD OUT with their
+  row volume stated instead of "NOT IN CORPUS (never swept)" (round
+  27 — policy is not a coverage gap), and reads through the
+  streaming door (round 26). The FOURTH reader, `geometry-evidence`
+  (4b), streams through the same door with a projection (round 27 —
+  round 26's "one reader left" count missed it); its five questions
+  filter to filled rows before any denominator, so the data-absence
+  partition cannot reach them wrongly and it prints no held-out
+  line. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

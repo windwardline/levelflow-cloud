@@ -14,13 +14,14 @@ import { fileURLToPath } from "node:url";
 import { getAssetType } from "../supabase/functions/trade-analyzer/calibration.ts";
 import type { ResolutionLeg } from "../supabase/functions/trade-analyzer/replay.ts";
 import {
-  assertManifestedCorpus,
+  assertManifestedCorpusStreaming,
   emptyStats,
   addOutcome,
   clusteredStandardError,
   expectancy,
   type SweepEmitRow,
   type SweepStats,
+  vocabularyRow,
 } from "./sweepStats.ts";
 
 export type EvidenceRow = SweepEmitRow & {
@@ -141,16 +142,44 @@ function fmt(value: number | null | undefined, digits = 3): string {
     : value.toFixed(digits);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const paths = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
   if (paths.length !== 1) {
     console.error("usage: geometry-evidence.ts <emit.jsonl>");
     process.exit(1);
   }
-  const { manifest, rows: rawRows } = assertManifestedCorpus(paths[0]);
-  const rows = (rawRows as EvidenceRow[]).filter((row) =>
-    (row.variant ?? "baseline") === "baseline" && row.holdout !== true
-  );
+  // Streamed through the manifest door with a projection (#364 round 27,
+  // finding 3 — round 26's "one reader left" count missed this one): the
+  // non-streaming read held BOTH the raw array and the filtered copy
+  // live, with EvidenceRow carrying legs[] and the excursion fields —
+  // heavier per row than sweep-analysis's projection, on the same
+  // 505 MB-scale corpora, and R1b grows every emit by the no-bars rows
+  // that previously emitted nothing. The projection spreads
+  // vocabularyRow FIRST (round 6's law: a field the partition reads
+  // cannot be dropped by a reader's narrowing), then exactly the
+  // evidence fields the five questions read; the baseline/holdout
+  // filter runs inside the callback so filtered rows are never held.
+  const rows: EvidenceRow[] = [];
+  const manifest = await assertManifestedCorpusStreaming(paths[0], (raw) => {
+    const row = raw as EvidenceRow;
+    if ((row.variant ?? "baseline") !== "baseline" || row.holdout === true) {
+      return;
+    }
+    rows.push({
+      ...vocabularyRow(raw),
+      accepted: row.accepted,
+      confidenceScore: row.confidenceScore,
+      exitAtMs: row.exitAtMs,
+      filledAtMs: row.filledAtMs,
+      legs: row.legs,
+      maxAdverseMove: row.maxAdverseMove,
+      maxFavorableMove: row.maxFavorableMove,
+      regime: row.regime,
+      riskDistance: row.riskDistance,
+      side: row.side,
+      stopProvenance: row.stopProvenance,
+    });
+  });
   console.log(
     `corpus ${manifest.manifestHash.slice(0, 12)} · engine ${manifest.analyzerVersion} · ${rows.length} baseline rows (holdout excluded)\n`,
   );
@@ -348,5 +377,8 @@ function main(): void {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main();
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }

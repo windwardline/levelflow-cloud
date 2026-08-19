@@ -550,7 +550,12 @@ export async function gradeCorpus(
   // out of every GRADED cell's n — scoped to the folds this read
   // computes (round 25, finding 2), so the number reconciles with the
   // tables under it — returned so the report states its own denominator
-  // instead of leaving the held-out volume silent.
+  // instead of leaving the held-out volume silent. Scoped further by
+  // this call's own options (#364 round 27, finding 1): the read-time
+  // stratified holdout (or none under includeHoldout), any
+  // symbolFilter, and per-market-folds' exact-containment drops all
+  // narrow the graded population before a cell exists — a caller
+  // printing this figure states those terms.
   dataAbsentRows: number;
   foldNames: FoldNames;
   manifest: SweepManifest;
@@ -799,12 +804,23 @@ async function main(): Promise<void> {
   // finding 3, following sweep-analysis's round-7 pattern): the
   // vocabulary holds data-absence rows out of every cell's n, and the
   // held-out volume is printed rather than silent.
-  // Each reader's held-out line names its OWN population (#364 round 26,
-  // finding 2): the three readers' scopes differ.
+  // Each reader's held-out line names its OWN population AND its own
+  // holdout definition (#364 rounds 26-27): this reader ignores the
+  // emit's stamped holdout flag and excludes a read-time stratified
+  // recomputation instead — a genuinely different set (the stamped
+  // draw is class-blind 1-in-5; the stratified one holds nothing out
+  // of a class under three members) — and --include-holdout empties
+  // that set, flipping the population.
   if (dataAbsentRows > 0) {
     console.log(
       `(data-absence rows held out of every fold denominator: ${dataAbsentRows}` +
-        ` — all variants, graded folds only, accepted rows)`,
+        ` — all variants, graded folds only, accepted rows; ` +
+        `${
+          args.includes("--include-holdout")
+            ? "holdout INCLUDED by --include-holdout"
+            : "holdout excluded by read-time stratified recomputation, " +
+              "not the stamped flag"
+        })`,
     );
   }
   for (const [assetClass, classMap] of verdicts) {

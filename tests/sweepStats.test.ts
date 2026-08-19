@@ -261,14 +261,25 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
   });
 
   it("reads only manifested corpora, streamed — the 2i door applies to reports too", () => {
-    // #364 round 26, finding 1: the non-streaming door returns one
-    // array holding every parsed row of the file — the shape both
-    // sibling readers refuse — and R1b grows every emit by the no-bars
+    // #364 round 26, finding 1 (count corrected round 27, finding 3):
+    // the non-streaming door returns one array holding every parsed
+    // row of the file, and R1b grows every emit by the no-bars
     // decisions that previously emitted nothing. This reader
     // accumulates per symbol in one pass, so it streams with no rows
-    // array at all.
+    // array at all; geometry-evidence — the FOURTH corpus reader,
+    // which round 26's "one reader left" premise missed — streams
+    // with a projection that spreads vocabularyRow first (round 6's
+    // law), then exactly the evidence fields its questions read.
     assert.match(source, /assertManifestedCorpusStreaming\(/);
     assert.doesNotMatch(source, /assertManifestedCorpus\(/);
+    const evidence = readFileSync("scripts/geometry-evidence.ts", "utf8");
+    assert.match(evidence, /assertManifestedCorpusStreaming\(/);
+    assert.doesNotMatch(evidence, /assertManifestedCorpus\(/);
+    assert.match(
+      evidence,
+      /\.\.\.vocabularyRow\(raw\),/,
+      "the 4b reader's projection must spread the vocabulary first",
+    );
   });
 
   // #364 round 24, finding 3: round 7 made sweep-analysis state its own
@@ -333,6 +344,11 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
         realizedR: null,
         symbol: "GBPUSD",
       },
+      // #364 round 27, finding 2: a held-out market WAS swept — it must
+      // print as HELD OUT with its row volume stated, never as "NOT IN
+      // CORPUS (never swept)" in the coverage-gap tally.
+      { holdout: true, outcome: "take_profit", realizedR: 1, symbol: "USDJPY" },
+      { holdout: true, outcome: "stop_loss", realizedR: -1, symbol: "USDJPY" },
     ];
     writeFileSync(
       emitPath,
@@ -365,6 +381,12 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
           series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
           symbol: "GBPUSD",
         },
+        {
+          calibration: {},
+          providerSymbol: "USDJPY",
+          series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+          symbol: "USDJPY",
+        },
       ],
       trainShare: 0.6,
       treasuryCurve: {
@@ -389,6 +411,10 @@ describe("account-type-report adopts the shared vocabulary (3a)", () => {
     // The all-marked market's line: filled 0, dataAbs 3, E "—", ±"—".
     assert.match(out, / 3\s+— ±—/);
     assert.match(out, /none — no market is negative beyond noise/);
+    // #364 round 27, finding 2: the held-out market prints as policy,
+    // with its volume stated — never as a coverage gap.
+    assert.match(out, /holdout markets excluded: 2 rows/);
+    assert.match(out, /HELD OUT \(3e confirmation set\)/);
   });
 
   it("excludes holdout markets — the report informs inclusion decisions (3e)", () => {

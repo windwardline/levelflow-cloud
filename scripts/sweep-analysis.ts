@@ -215,7 +215,8 @@ async function main(): Promise<void> {
   if (dataAbsentRows > 0) {
     console.log(
       `(data-absence rows held out of every denominator: ${dataAbsentRows}` +
-        ` — all variants, all splits, holdout excluded)`,
+        ` — all variants, all splits; holdout excluded by the emit's ` +
+        `stamped flag)`,
     );
   }
   console.log(`Emit: ${emitPath} · min-n for a reportable cell: ${minN}`);

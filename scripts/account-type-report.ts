@@ -145,6 +145,12 @@ async function main(): Promise<void> {
   const bySymbol = new Map<string, SweepStats>();
   let gated = 0;
   let kept = 0;
+  // #364 round 27, finding 2: a held-out market WAS swept — dropping it
+  // silently at the door left the member loop labelling it "NOT IN
+  // CORPUS (never swept)" and counting it as a coverage gap, for ~1 in
+  // 5 of the roster, in the report E8 inclusion decisions read.
+  let holdoutRows = 0;
+  const holdoutSymbols = new Set<string>();
 
   for (const file of files) {
     // Streamed through the manifest door (#364 round 26, finding 1): the
@@ -158,7 +164,12 @@ async function main(): Promise<void> {
       const row = raw as unknown as Row;
       // 3e: holdout markets are excluded from every tuning-adjacent read;
       // this report informs inclusion decisions, so it is one of them.
-      if (raw.holdout === true) return;
+      // Counted, never silent (#364 round 27, finding 2).
+      if (raw.holdout === true) {
+        holdoutRows += 1;
+        holdoutSymbols.add(row.symbol);
+        return;
+      }
       if (row.variant && row.variant !== "baseline") return;
       if (!passesOtherGates(row)) {
         gated += 1;
@@ -197,8 +208,12 @@ async function main(): Promise<void> {
   if (dataAbsentTotal > 0) {
     console.log(
       `(data-absence rows held out of every denominator: ${dataAbsentTotal}` +
-        ` — baseline variant, all splits, rows clearing payoff+regime)`,
+        ` — baseline variant, all splits, rows clearing payoff+regime; ` +
+        `holdout excluded by the emit's stamped flag)`,
     );
+  }
+  if (holdoutRows > 0) {
+    console.log(`(holdout markets excluded: ${holdoutRows} rows)`);
   }
   console.log(
     `precision: per-market s.e. measured from that market's own R deviation; ` +
@@ -230,9 +245,21 @@ async function main(): Promise<void> {
       const memberStats: SweepStats[] = [];
       const lines: string[] = [];
       let missing = 0;
+      let heldOut = 0;
       for (const member of members) {
         const stats = bySymbol.get(member.levelflowSymbol!);
         if (!stats) {
+          // Held-out is policy, not a gap (#364 round 27, finding 2):
+          // the market was swept and its rows are reserved for the 3e
+          // confirmation read — the coverage-gap tally must not count
+          // it, or a fifth of the roster reads as "never swept".
+          if (holdoutSymbols.has(member.levelflowSymbol!)) {
+            heldOut += 1;
+            lines.push(
+              `      ${member.brokerName.padEnd(10)} — HELD OUT (3e confirmation set)`,
+            );
+            continue;
+          }
           missing += 1;
           lines.push(`      ${member.brokerName.padEnd(10)} — NOT IN CORPUS (never swept)`);
           continue;
@@ -302,6 +329,12 @@ async function main(): Promise<void> {
       for (const line of lines) console.log(line);
       if (missing > 0) {
         console.log(`      (${missing} market(s) absent from the corpus — coverage gap)`);
+      }
+      if (heldOut > 0) {
+        console.log(
+          `      (${heldOut} market(s) held out — 3e confirmation set, ` +
+            `swept but excluded from every tuning read)`,
+        );
       }
     }
   }
