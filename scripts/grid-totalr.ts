@@ -571,10 +571,19 @@ export async function gradeCorpus(
       // are two measurements — combining them assembles a mixed-clock
       // corpus at read time, the exact defect class R0 ends.
       clock: candidate.clock,
+      // R1b (#364 round 7): the E6 stated terms and the curve evidence
+      // behind them are measurement identity too. The corpus door
+      // asserts both only on the !historicalRead branch, and THIS
+      // comparison is the second layer for exactly the historical-read
+      // path — without these axes, a pre-R1b hardwired-zero-macro shard
+      // and a post-R1b reconstructed-macro shard (same version, same
+      // superseded clock, same grid) would pool into one verdict.
+      conditions: candidate.conditions ?? null,
       folds: candidate.folds ?? null,
       foldsByClass: candidate.foldsByClass ?? null,
       grid: candidate.grid,
       stepBars: candidate.stepBars,
+      treasuryCurve: candidate.treasuryCurve ?? null,
       warmupBars: candidate.warmupBars,
     });
   const unionSymbols = new Set<string>();
@@ -592,7 +601,7 @@ export async function gradeCorpus(
   for (let index = 1; index < shardManifests.length; index += 1) {
     if (conditionsOf(shardManifests[index]) !== firstConditions) {
       throw new Error(
-        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, clock, grid, folds, step or warmup do not match; these are not shards of one measurement`,
+        `${paths[index]}: shard conditions differ from ${paths[0]} — engine, clock, stated conditions, treasury curve, grid, folds, step or warmup do not match; these are not shards of one measurement`,
       );
     }
   }

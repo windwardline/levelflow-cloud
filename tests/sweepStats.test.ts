@@ -20,6 +20,7 @@ import {
   rStandardError,
   rStdDev,
   type SweepEmitRow,
+  VOCABULARY_ROW_KEYS,
   vocabularyRow,
 } from "../scripts/sweepStats.ts";
 
@@ -181,6 +182,30 @@ describe("the partition reaches every reader (#364 round 5, finding 1)", () => {
     assert.equal(stats.dataAbsent, 1);
     assert.equal(stats.n, 1);
     assert.equal(stats.filled, 1);
+  });
+
+  // The input-side twin of the rollup pin (#364 round 7, finding 2):
+  // addOutcome's own source is scanned for `row.<field>` reads, and each
+  // one must be in VOCABULARY_ROW_KEYS — so a new partition fact wired
+  // into addOutcome without joining the projection list breaks here,
+  // instead of arriving as undefined on every projected row with the
+  // marker-specific executed test above still green.
+  it("every field addOutcome reads survives vocabularyRow — self-updating on the input side", () => {
+    const source = readFileSync("scripts/sweepStats.ts", "utf8");
+    const bodyStart = source.indexOf("export function addOutcome");
+    const bodyEnd = source.indexOf("export function", bodyStart + 1);
+    assert.ok(bodyStart >= 0 && bodyEnd > bodyStart);
+    const body = source.slice(bodyStart, bodyEnd);
+    const reads = new Set(
+      [...body.matchAll(/row\.([A-Za-z]+)/g)].map((match) => match[1]),
+    );
+    assert.ok(reads.size >= 3, "addOutcome must read row fields directly");
+    for (const field of reads) {
+      assert.ok(
+        (VOCABULARY_ROW_KEYS as readonly string[]).includes(field),
+        `addOutcome reads row.${field}, which VOCABULARY_ROW_KEYS does not carry — projecting readers would drop it`,
+      );
+    }
   });
 
   it("readers project through vocabularyRow or spread the raw row — the stripping layer is pinned where it lived", () => {

@@ -34,6 +34,14 @@
  * driver's header against the names required here AND against the data
  * row's own order.
  *
+ * R1b narrowed planRejected's meaning (#364 round 7, smaller): decisions
+ * whose review window held no bars used to land here; they now resolve
+ * and emit as setups rows carrying the data-absence marker (dataAbsent
+ * in the driver's table). So planRejected — and geometryKill/survival
+ * built on it — is the ladder's own refusals only, and figures recorded
+ * before R1b (the rice 263-of-424 above) sit on the wider meaning;
+ * compare across that boundary with the marker in hand.
+ *
  * Run this gate on a NORMAL sweep's table, never a --capture-all one:
  * capture-all deliberately emits below-threshold decisions as outcome
  * rows instead of tallying the acceptance gates, so belowConf and

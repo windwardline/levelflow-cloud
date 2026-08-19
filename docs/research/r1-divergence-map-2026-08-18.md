@@ -507,11 +507,18 @@ layer.
   the score site. `weightAdjustment` stays 0 as the raw-engine
   decision. All three are STATED in the manifest's hashed `conditions`
   block, and `verifyManifest` refuses a manifest without it or with
-  other literals — no escape hatch of its own, because the only
-  legitimate condition-less corpus is pre-R1b, which is
-  superseded-clock by definition and already admitted solely through
-  that loud explicit override (whose deliberate historical reads skip
-  the conditions demand). **The claim carries evidence** (#364 round 2,
+  other literals — no escape hatch of its own. Provenance stated
+  honestly (#364 round 7): R1b bumps neither clock, so a corpus swept
+  in the R0→R1b window would be current-clock and legitimately
+  condition-less — none exists because the R0 rebuild has not produced
+  its first corpus (the one re-sweep is R3's), a scheduling fact; if
+  one ever surfaces the refusal stands and the remedy is the R3
+  re-sweep. Pre-R1b archived corpora are superseded-clock and admitted
+  solely through that loud explicit override (whose deliberate
+  historical reads skip the conditions demand — and for exactly that
+  path, the 4c shard-identity comparison in `gradeCorpus` carries
+  `conditions` and `treasuryCurve` as measurement axes, so a
+  hardwired-zero-macro shard can never pool with a reconstructed one). **The claim carries evidence** (#364 round 2,
   finding 1): the manifest records the curve's own facts (count, ends,
   largest inter-row gap — hashed), the driver refuses an empty or
   >7-day-stale curve before simulating and throws on any week-or-wider

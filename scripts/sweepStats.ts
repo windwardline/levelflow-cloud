@@ -71,29 +71,42 @@ export function emptyStats(): SweepStats {
 }
 
 /**
- * The fields this vocabulary's partition and accounting read, projected
- * off a raw emit row (#364 round 6, finding 1). A reader that narrows
- * rows for memory (sweep-analysis holds a projection of a 505 MB
- * corpus) spreads THIS through its projection instead of enumerating
- * fields — round 5's raw-row fix was applied to a row that was itself a
- * sixteen-field rebuild from one layer up, so the marker never arrived
- * and dataAbsent was structurally zero there. A vocabulary field added
- * here flows into every projecting reader by construction; realizedR
- * passes through verbatim so each reader keeps its own null-coercion.
+ * Every raw-row key this vocabulary's partition and accounting read
+ * (#364 round 7, finding 2): vocabularyRow projects exactly this list,
+ * and the input-side pin in tests/sweepStats.test.ts scans addOutcome's
+ * own source for `row.<field>` reads and asserts each one is here — so
+ * a new partition fact added to addOutcome without joining this list
+ * fails in CI instead of arriving as undefined on every projected row
+ * (round 6's defect, made structurally impossible on the input side the
+ * way the rollup pin already made it on the output side).
  */
-export function vocabularyRow(
-  raw: SweepEmitRow,
-): Pick<SweepEmitRow, "outcome" | "realizedR" | "symbol"> & {
-  noBarsInReviewWindow?: true;
-} {
-  return {
-    ...(raw.noBarsInReviewWindow === true
-      ? { noBarsInReviewWindow: true as const }
-      : {}),
-    outcome: raw.outcome,
-    realizedR: raw.realizedR,
-    symbol: raw.symbol,
-  };
+export const VOCABULARY_ROW_KEYS = [
+  "noBarsInReviewWindow",
+  "outcome",
+  "realizedR",
+  "symbol",
+] as const;
+
+/**
+ * The vocabulary's own projection off a raw emit row (#364 round 6,
+ * finding 1). A reader that narrows rows for memory (sweep-analysis
+ * holds a projection of a 505 MB corpus) spreads THIS through its
+ * projection instead of enumerating fields — round 5's raw-row fix was
+ * applied to a row that was itself a sixteen-field rebuild from one
+ * layer up, so the marker never arrived and dataAbsent was structurally
+ * zero there. Derived from VOCABULARY_ROW_KEYS so a key added there
+ * flows into every projecting reader by construction; values pass
+ * through verbatim (realizedR included) so each reader keeps its own
+ * null-coercion.
+ */
+export function vocabularyRow(raw: SweepEmitRow): SweepEmitRow {
+  const projected: Record<string, unknown> = {};
+  for (const key of VOCABULARY_ROW_KEYS) {
+    if (raw[key] !== undefined) {
+      projected[key] = raw[key];
+    }
+  }
+  return projected as SweepEmitRow;
 }
 
 export function addOutcome(stats: SweepStats, row: SweepEmitRow): void {
@@ -338,14 +351,17 @@ function verifyManifest(emitPath: string): SweepManifest {
   // E6 (R1b): the corpus states the score-input terms it was measured
   // under, or it is refused. This check deliberately runs LAST — data
   // poison (the witness refusals above) outranks unstated terms in the
-  // diagnosis — and deliberately has no escape hatch of its own: the one
-  // legitimate corpus without a conditions block is a pre-R1b historical
-  // corpus, which is superseded-clock by definition and already admitted
-  // only through the loud explicit override above. A CURRENT-clock corpus
-  // missing conditions can only be hand-edited or hash-forged history —
-  // refused. The literals are the contract: a corpus stating other terms
-  // was measured under a different sweep and cannot aggregate beside
-  // these.
+  // diagnosis — and deliberately has no escape hatch of its own. The
+  // honest provenance (#364 round 7, smaller): R1b bumps neither clock,
+  // so a corpus swept in the R0-to-R1b window WOULD be current-clock and
+  // legitimately condition-less — none exists because the R0 rebuild has
+  // not produced its first corpus and HANDOFF schedules the one re-sweep
+  // as R3's, a scheduling fact, not a definitional one. If such a corpus
+  // ever surfaces, this refusal is still the right behaviour: it was
+  // measured under unstated terms, and the remedy is the R3 re-sweep,
+  // not an override. The literals are the contract: a corpus stating
+  // other terms was measured under a different sweep and cannot
+  // aggregate beside these.
   if (!historicalRead) {
     const conditions = manifest.conditions as
       | Record<string, unknown>

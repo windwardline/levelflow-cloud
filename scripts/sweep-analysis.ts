@@ -161,11 +161,15 @@ async function main(): Promise<void> {
   // holdout markets (3e) never enter a tuning table.
   const rows: Row[] = [];
   let holdoutSkipped = 0;
+  let dataAbsentRows = 0;
   await assertManifestedCorpusStreaming(emitPath, (raw) => {
     const parsed = raw as unknown as Row;
     if (parsed.holdout === true) {
       holdoutSkipped += 1;
       return;
+    }
+    if (raw.noBarsInReviewWindow === true) {
+      dataAbsentRows += 1;
     }
     // The vocabulary's own projection rides first (#364 round 6,
     // finding 1): a field the partition reads can no longer be dropped
@@ -197,7 +201,20 @@ async function main(): Promise<void> {
     console.log(`(holdout markets excluded: ${holdoutSkipped} rows)`);
   }
 
-  console.log(`# Sweep analysis — ${rows.length} evaluated setups`);
+  // The headline states its own denominator (#364 round 7, finding 3):
+  // every table below holds data-absence rows out of n, so the number a
+  // ruling is quoted from must be the same population — with the
+  // excluded volume on its own line, the holdoutSkipped pattern.
+  console.log(
+    `# Sweep analysis — ${
+      rows.length - dataAbsentRows
+    } market-evidence setups`,
+  );
+  if (dataAbsentRows > 0) {
+    console.log(
+      `(data-absence rows held out of every denominator: ${dataAbsentRows})`,
+    );
+  }
   console.log(`Emit: ${emitPath} · min-n for a reportable cell: ${minN}`);
   const splits = [...new Set(rows.map((row) => row.split))];
   const variants = [...new Set(rows.map((row) => row.variant))];

@@ -1102,6 +1102,13 @@ key. Sequenced after item 6's `init.sql` work.
   and it lacks the dispersion term. Fold it into `sweepStats.ts` with
   R2's instrument work, alongside the rejection-tallies-into-manifest
   item above.
+- **`account-type-report.ts` reads several emit files in one pass with
+  no cross-file identity check** (#364 round 7 noted it in passing —
+  pre-existing): each file passes the corpus door individually, but
+  nothing compares their measurement identity the way `gradeCorpus`'s
+  `conditionsOf` does for shards — and R1b's `conditions`/curve facts
+  are a new axis files can differ on. Give it the same shard-identity
+  comparison with R2's instrument work.
 - **Watch `outcome-sync`'s `skippedForBudget` after the one-physics
   deploy** (#362 round-1 throughput note): E1's dual-series fetch means
   each NEW symbol in a run costs two provider calls inside

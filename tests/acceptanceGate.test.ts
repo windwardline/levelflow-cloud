@@ -3,7 +3,11 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { buildSweepManifest, seriesFacts } from "../scripts/sweepManifest.ts";
+import {
+  buildSweepManifest,
+  seriesFacts,
+  type SweepConditions,
+} from "../scripts/sweepManifest.ts";
 import { BAR_CLOCK } from "../supabase/functions/trade-analyzer/bars.ts";
 import { CALENDAR_CLOCK } from "../scripts/clockWitness.ts";
 import {
@@ -335,6 +339,7 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
     rows: SweepEmitRow[],
     gridOverride?: unknown[],
     clockOverride?: { calendar: string; normalizer: string },
+    conditionsOverride?: Record<string, string>,
   ): string => {
     const dir = mkdtempSync(join(tmpdir(), "gate-shard-"));
     const emitPath = join(dir, "shard.jsonl");
@@ -348,11 +353,11 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
       barRejections: {},
       clock: clockOverride ??
         { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
-      conditions: {
+      conditions: (conditionsOverride ?? {
         macroAdjustment: "historical-treasury-curve",
         providerWarningCount: "zero-by-construction",
         weightAdjustment: "raw-engine-zero",
-      },
+      }) as SweepConditions,
       days: 365,
       generatedAt: "2026-08-10T07:00:00.000Z",
       grid: gridOverride ?? [{}, { wide: true }],
@@ -431,6 +436,39 @@ describe("shards of one measurement (4c) — matched conditions or refusal", () 
         /shards of one measurement/,
       );
     } finally {
+      delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
+    }
+  });
+
+  it("refuses shards whose STATED CONDITIONS differ, on the historical-read path where the door does not assert them (#364 round 7)", async () => {
+    // Both shards share one superseded clock, so under the override they
+    // pass the door (which skips the conditions and curve-evidence
+    // checks for deliberate historical reads) and only conditionsOf
+    // stands between a hardwired-zero-macro shard and a
+    // reconstructed-macro shard pooling into one verdict — the exact
+    // post-clock-bump shape, since R1b deliberately bumps neither the
+    // clock nor ANALYZER_VERSION.
+    const supersededClock = {
+      calendar: CALENDAR_CLOCK,
+      normalizer: "some-other-clock",
+    };
+    const warned = console.warn;
+    console.warn = () => {};
+    process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK = "1";
+    try {
+      await assert.rejects(
+        gradeCorpus([
+          shardWith(shardRows("EURUSD"), undefined, supersededClock),
+          shardWith(shardRows("GBPUSD"), undefined, supersededClock, {
+            macroAdjustment: "hardwired-zero",
+            providerWarningCount: "zero-by-construction",
+            weightAdjustment: "raw-engine-zero",
+          }),
+        ]),
+        /shards of one measurement/,
+      );
+    } finally {
+      console.warn = warned;
       delete process.env.LEVELFLOW_ALLOW_SUPERSEDED_CLOCK;
     }
   });
