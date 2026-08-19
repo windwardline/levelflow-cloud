@@ -278,39 +278,44 @@ export function evaluateSetupOutcome(
 
   if (createdBars.length === 0) {
     if (now > expiresAt) {
-      // E2 (R1a slice 2; marker refined R1b): data absence is not a
-      // market verdict, and CONTAINMENT-empty is not data absence. The
-      // filter above is the grading law — a bar must complete before
-      // expiry to testify — but a bar that merely overlaps the window is
-      // still present data, and #362 round 7 caught the containment set
-      // standing in for the presence question: a review window clamped
+      // E2 (R1a slice 2; marker refined R1b, corrected #364 round 3):
+      // data absence is not a market verdict, and an UNCONTAINABLE
+      // window is not data absence. #362 round 7 caught the containment
+      // set standing in for that question — a review window clamped
       // below one bar span (a setup created inside the final bar before
       // the weekly close) marked every such row as a provider gap over a
-      // feed that was fully dense. The marker now means exactly "the
-      // RESOLUTION STREAM handed to this resolver had no bar overlapping
-      // the review window" (#364 round 1, finding 2 — the claim is
-      // scoped to its evidence): live hands the whole fetched series, so
-      // there it reads as provider absence up to the fetch depth; the
-      // sweep's stream deliberately begins after the decision bar
-      // completes (FR-5 — its interior is decision-time information that
-      // could never grade anything), so there it reads as absence of
-      // GRADEABLE bars, stated at the slice site in sweep.ts. A
-      // present-but-uncontained window resolves unfilled UNMARKED, with
-      // its own sentence, because the limit was never testable on a
-      // complete bar — a grading-law fact, not a data fact. The outcome
-      // stays "unfilled" for schema stability either way.
-      const barsPresent = bars.some((bar) =>
-        bar.time + barIntervalMs > createdAt && bar.time < expiresAt
-      );
+      // feed that was fully dense. The first repair asked "was any bar
+      // PRESENT", which over-corrected: live's resolution stream reaches
+      // back past creation by construction (resolutionSeriesFor), so the
+      // bar straddling createdAt made presence true on every recent
+      // setup and a full-window provider outage resolved UNMARKED — the
+      // founding E2 signal, dead on the live path. The discriminator is
+      // a fact about the window and the bar grid, not about the data:
+      // COULD a completed bar have existed? Bars sit on epoch multiples
+      // of their span (New York offsets are whole hours), so the first
+      // slot at/after creation either fits inside the window or nothing
+      // ever could. Uncontainable window -> unfilled UNMARKED with its
+      // own sentence (a grading-law fact); containable and yet the
+      // stream held nothing gradeable -> the marker. The claim stays
+      // scoped to the resolution stream (#364 round 1, finding 2): live
+      // hands the whole fetched series (provider absence up to fetch
+      // depth), the sweep's stream begins after the decision bar
+      // completes (FR-5 — absence of GRADEABLE bars, stated at its
+      // slice site). The outcome stays "unfilled" for schema stability
+      // either way.
+      const firstSlotStart = Math.ceil(createdAt / barIntervalMs) *
+        barIntervalMs;
+      const completedBarCouldExist = firstSlotStart + barIntervalMs <=
+        expiresAt;
       return {
         exitAt: new Date(expiresAt).toISOString(),
         feedback: {
           expiresAt: new Date(expiresAt).toISOString(),
           legs: [],
-          ...(barsPresent ? {} : { noBarsInReviewWindow: true }),
-          reason: barsPresent
-            ? "Bars overlapped the review window, but none completed inside it before the setup expired."
-            : "No post-recommendation bars were available before the setup review window expired.",
+          ...(completedBarCouldExist ? { noBarsInReviewWindow: true } : {}),
+          reason: completedBarCouldExist
+            ? "No post-recommendation bars were available before the setup review window expired."
+            : "The review window closed before any complete bar could form inside it.",
           resolutionIntervalMs: barIntervalMs,
           source: "price_path_review",
         },

@@ -318,4 +318,62 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.doesNotMatch(audit, /const n = \(i: number\)/);
     assert.match(audit, /index\.has\(name\)/);
   });
+
+  // #364 round 3, finding 4: by-name reading is only as safe as the
+  // header being in the DATA ROW's order — insert a header column
+  // without its row expression (or the reverse) and every by-name
+  // lookup past the insertion reads the neighbour. This holds the two
+  // literals together position by position; a new column must be added
+  // to the header, the push, AND this mapping in the same change.
+  it("the driver's data row is in its own header's order, field by field", () => {
+    const driver = readFileSync("scripts/replay-sweep.ts", "utf8");
+    const headerNames = [
+      ...driver.match(
+        /const rows: string\[\]\[\] = \[\[([\s\S]*?)\]\];/,
+      )![1].matchAll(/"(\w+)"/g),
+    ].map((m) => m[1]);
+    const pushBlock = driver.match(/rows\.push\(\[\s*\n([\s\S]*?)\]\);/);
+    assert.ok(pushBlock, "driver must push its data row as one literal");
+    const fields = pushBlock![1]
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("//"));
+    const rowExpression: Record<string, RegExp> = {
+      belowConf: /belowConfidence/,
+      belowPayoff: /belowPayoff/,
+      decisions: /decisionPoints/,
+      expectancyR: /expectancyR/,
+      newsBlk: /newsBlocked/,
+      noConsensus: /noConsensus/,
+      notWarm: /notWarm/,
+      planRejected: /planRejected/,
+      regimeBlk: /regimeBlocked \+ result\.rejections\.regimeGated/,
+      sessionBlk: /sessionBlocked/,
+      setups: /summary\.total/,
+      split: /split\.name/,
+      stopRate: /stopRate/,
+      symbol: /^symbol,$/,
+      tp1HitRate: /tp1HitRate/,
+      unfilled: /summary\.unfilled/,
+      unresolv: /unresolvable/,
+      variant: /^variant,$/,
+    };
+    assert.equal(
+      fields.length,
+      headerNames.length,
+      "header and data row must carry the same number of columns",
+    );
+    headerNames.forEach((name, position) => {
+      const pattern = rowExpression[name];
+      assert.ok(
+        pattern,
+        `header column "${name}" has no row-expression mapping — extend this pin with the new column`,
+      );
+      assert.match(
+        fields[position],
+        pattern,
+        `row position ${position} must carry ${name}`,
+      );
+    });
+  });
 });

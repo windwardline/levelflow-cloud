@@ -338,12 +338,16 @@ function verifyManifest(emitPath: string): SweepManifest {
     // and the door checks the EVIDENCE, not just the literal — an empty
     // curve scores the hardwired zero E6 abolished; a holed or
     // stale-tailed one is worse, scoring months-old rows as fresh where
-    // the visibility pointer stalls. The LEADING edge is deliberately
-    // not asserted: the curve's 2013 floor means early decisions score
-    // stance "unavailable" — the honest live-outage semantics the map
-    // records — while holes and tails score STALE, which nothing
-    // downstream can see. Seven days exceeds any real Treasury
-    // publication gap (weekend plus holiday runs are <=5).
+    // the visibility pointer stalls. The LEADING edge (#364 round 3,
+    // finding 2) is asserted with one tolerance: a curve starting at
+    // the provider's own 2013 floor passes regardless of corpus depth —
+    // decisions before it score stance "unavailable", which the emit
+    // now records per row (macroStance) so the zero is visible
+    // downstream — but a curve that starts BOTH after that floor AND
+    // after the corpus does is a shallow rebuild (the provider's floor
+    // moved, or the store was rebuilt partial), restoring E6's original
+    // zero under the claim, and is refused. Seven days exceeds any real
+    // Treasury publication gap (weekend plus holiday runs are <=5).
     const curve = manifest.treasuryCurve as
       | { count?: number; largestGapMs?: number; lastTime?: number | null }
       | undefined;
@@ -367,10 +371,16 @@ function verifyManifest(emitPath: string): SweepManifest {
       );
     }
     let corpusEndMs = Number.NEGATIVE_INFINITY;
+    let corpusStartMs = Number.POSITIVE_INFINITY;
     for (const entry of manifest.symbols ?? []) {
-      const last = entry.series?.["15min"]?.lastTime;
-      if (typeof last === "number" && last > corpusEndMs) {
-        corpusEndMs = last;
+      const facts = entry.series?.["15min"];
+      if (typeof facts?.lastTime === "number" && facts.lastTime > corpusEndMs) {
+        corpusEndMs = facts.lastTime;
+      }
+      if (
+        typeof facts?.firstTime === "number" && facts.firstTime < corpusStartMs
+      ) {
+        corpusStartMs = facts.firstTime;
       }
     }
     if (
@@ -385,6 +395,26 @@ function verifyManifest(emitPath: string): SweepManifest {
           new Date(corpusEndMs).toISOString().slice(0, 10)
         } — every later decision scored the curve's stale tail as fresh; ` +
           `the corpus is refused`,
+      );
+    }
+    // The 2013-01-01 floor the driver's fetchFull hard-codes, plus a
+    // week: a curve reaching its own provider floor is as deep as the
+    // claim can honestly be.
+    const treasuryFloorMs = Date.UTC(2013, 0, 8);
+    const curveFirst = (curve as { firstTime?: number | null }).firstTime;
+    if (
+      Number.isFinite(corpusStartMs) &&
+      typeof curveFirst === "number" &&
+      curveFirst > treasuryFloorMs &&
+      curveFirst > corpusStartMs
+    ) {
+      throw new Error(
+        `${emitPath}: Treasury curve starts ${
+          new Date(curveFirst).toISOString().slice(0, 10)
+        } — after both the provider's 2013 floor and the corpus start (${
+          new Date(corpusStartMs).toISOString().slice(0, 10)
+        }); a shallow rebuilt store scores those decisions at the ` +
+          `hardwired zero the claim abolished, and the corpus is refused`,
       );
     }
   }

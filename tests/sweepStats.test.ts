@@ -583,6 +583,41 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
         })),
       /Treasury curve ends 2026-06-01 but the corpus runs to 2026-08-18/,
     );
+    // #364 round 3, finding 2: the LEADING edge. A curve starting after
+    // BOTH the provider's 2013 floor and the corpus start is a shallow
+    // rebuild — E6's zero restored under the claim — and refuses; the
+    // same shallow curve over a corpus it fully covers passes, and a
+    // floor-deep curve passes any corpus depth.
+    const modern15min = (firstTime: number) => ({
+      clock: { verdict: "indeterminate" },
+      count: 960,
+      firstTime,
+      largestGapMs: 0,
+      lastTime: Date.UTC(2026, 7, 18),
+      spanDays: 10,
+    });
+    const shallowCurve = {
+      count: 1_500,
+      firstTime: Date.UTC(2020, 0, 6),
+      largestGapMs: 4 * 86_400_000,
+      lastTime: Date.UTC(2027, 0, 1),
+    };
+    assert.throws(
+      () =>
+        assertManifestedCorpus(writeCorpus({
+          conditions: goodConditions,
+          series: { "15min": modern15min(Date.UTC(2015, 0, 5)) },
+          symbol: "EURUSD",
+          treasuryCurve: shallowCurve,
+        })),
+      /Treasury curve starts 2020-01-06.*shallow rebuilt store/s,
+    );
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": modern15min(Date.UTC(2021, 0, 4)) },
+      symbol: "EURUSD",
+      treasuryCurve: shallowCurve,
+    }));
   });
 
   it("binds the density door on deliberate historical reads, while conditions and curve evidence stay exempt (#364 round 2, finding 3)", () => {

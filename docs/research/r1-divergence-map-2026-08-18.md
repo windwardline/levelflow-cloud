@@ -276,13 +276,13 @@ layer.
   `feedback.noBarsInReviewWindow: true`; a bars-but-no-fill expiry does
   not. The sweep's half and the corpus door landed in R1b (closure
   record below), which also refined the marker itself: #362 round 7
-  caught the containment set standing in for the presence question, so
-  the marker now fires only when NO bar overlaps the review window
-  (scoped to the resolution stream — the R1b record below carries the
-  full statement per caller) — a window clamped under one bar span
-  (creation inside the final bar before the weekly close) resolves
-  unfilled UNMARKED with its own sentence, a grading-law fact rather
-  than a data fact.
+  caught the containment set standing in for the wrong question, and
+  the marker now gates on whether a completed bar COULD have existed
+  in the window (scoped to the resolution stream — the R1b record
+  below carries the full rule per caller) — a window clamped under one
+  bar span (creation inside the final bar before the weekly close)
+  resolves unfilled UNMARKED with its own sentence, a grading-law fact
+  rather than a data fact.
 - **E3**: the completed-bar law applies to the SERIES, not just the
   anchor pointer (#362 review, finding 1 — moving `market.latest` alone
   left entry math, ATR, pivots and the committee on the forming bar and
@@ -412,18 +412,24 @@ layer.
 ## R1b closure record (2026-08-18) — the sweep tells the truth about its inputs
 
 - **E2, sweep half + marker refinement**: the resolver's no-bars branch
-  now answers the PRESENCE question, not the containment one —
-  `noBarsInReviewWindow` fires only when no bar OVERLAPS
-  `[createdAt, expiresAt)`, **scoped to the resolution stream the
-  resolver was handed** (#364 round 1 finding 2 / round 2 finding 2):
-  live hands the whole fetched series, so there the marker reads as
-  provider absence up to the fetch depth; the sweep's stream begins
-  after the decision bar completes (FR-5 — its interior is
-  decision-time information that could never grade anything), so a
-  marked corpus row claims absence of GRADEABLE bars, never absolute
-  provider absence. Bars present but none contained (the
-  sub-bar-span clamped window) resolve unfilled unmarked with a
-  distinct sentence. In the sweep, that case emits (the resolver's
+  gates the marker on **whether a completed bar COULD have existed** —
+  a fact about the window and the bar grid (bars sit on epoch multiples
+  of their span; the first slot at/after creation either fits inside
+  `[createdAt, expiresAt)` or nothing ever could). An uncontainable
+  window (#362 round 7's sub-bar-span weekly clamp, and any window no
+  grid slot fits) resolves unfilled UNMARKED with its own sentence — a
+  grading-law fact; a containable window whose resolution stream held
+  nothing gradeable carries the marker. The claim is **scoped to the
+  resolution stream** (#364 round 1 finding 2): live hands the whole
+  fetched series, so there the marker reads as provider absence up to
+  the fetch depth; the sweep's stream begins after the decision bar
+  completes (FR-5), so a marked corpus row claims absence of GRADEABLE
+  bars. (#364 round 3, finding 1 corrected the intermediate form: a
+  bare was-any-bar-present test would have let the bar straddling
+  creation — always served live, since the stream reaches back past
+  creation by construction — suppress the marker on a full-window
+  provider outage, killing E2's founding signal; that form never
+  deployed.) In the sweep, that case emits (the resolver's
   far-future clock resolves every no-bars window), so the corpus row
   carries the marker and the counter question reshaped: `planRejected`
   means only "buildPricePlan refused", and the surviving non-resolved
@@ -505,21 +511,27 @@ layer.
   live scored number moves — the marker refinement is metadata, and the
   corpus-identity boundary for the sweep changes is the conditions
   block itself. **The one version-boundary nuance, written down (#364
-  round 1, finding 3)**: `trade_outcomes.analyzer_version` is stamped at
-  DECISION time, so rows created under `2026.08.18.one-physics` and
-  resolved before this deploy carry containment-semantics markers while
-  rows resolved after carry presence-semantics ones, indistinguishably.
-  Accepted, for three stacked reasons: the refinement is a strict
-  NARROWING, so a pre-deploy row can only be over-marked (a filter that
-  drops marked rows drops at most a few honest ones, never keeps a
-  false one); the two semantics diverge only where containment-empty
-  meets overlap-present — the sub-bar-span weekly clamp (whose first
-  live occurrence cannot predate Friday 2026-08-21; one-physics
-  deployed Tuesday the 18th) or a total provider outage across the
-  whole window with only a creation-straddling bar served — so the
-  divergent population is empty-to-negligible at the hours-old marker's
-  age; and D1's reader reads the map. A future marker change that is
-  NOT a strict narrowing takes the version bump.
+  round 1, finding 3; population updated round 3)**:
+  `trade_outcomes.analyzer_version` is stamped at DECISION time, so
+  rows created under `2026.08.18.one-physics` and resolved before this
+  deploy carry containment-semantics markers while rows resolved after
+  carry the could-a-completed-bar-exist semantics, indistinguishably.
+  Accepted, for three stacked reasons: the final rule is a strict
+  NARROWING of the deployed one (marked now = containment-empty AND
+  containable window ⊆ containment-empty = marked before), so a
+  pre-deploy row can only be over-marked — a filter that drops marked
+  rows drops at most a few honest ones, never keeps a false one; the
+  divergent population is exactly the uncontainable-window rows (the
+  sub-bar-span weekly clamp), whose first live occurrence cannot
+  predate Friday 2026-08-21 while one-physics deployed Tuesday the
+  18th — empty until then; and D1's reader reads the map. A future
+  marker change that is NOT a strict narrowing takes the version bump.
+  Same boundary, second rider (#364 round 3, smaller): the live
+  Treasury parser tightened with the macroRates.ts extraction — a date
+  not beginning `YYYY-MM-DD` is now refused (raising the I11 outage
+  event, never passing silently) and `latestDate`/`previousDate`
+  normalize to bare ISO; identical on FMP's actual shape, recorded here
+  because it rides the same unbumped version.
 
 ## Sequencing — three PRs, engine first
 

@@ -73,8 +73,14 @@ export type SweepOutcomeRecord = {
   // E6 (R1b): the reconstructed Treasury-curve adjustment this row was
   // scored under — recorded per row like newsPenalty and sessionPenalty,
   // on the stopProvenance principle: every input that moves a score is a
-  // measurable column, never an assumed constant.
+  // measurable column, never an assumed constant. The stance rides
+  // beside it the way cotStance rides beside cotPercentile (#364 round
+  // 3, finding 2): adjustment 0 alone conflates "no curve visible",
+  // "rates steady", and "no rate-aligned side" — three different facts
+  // a cohort read must be able to separate, and the disambiguation that
+  // makes the curve's tolerated leading edge honestly VISIBLE downstream.
   macroAdjustment: number;
+  macroStance: string;
   maxAdverseMove: number | null;
   maxFavorableMove: number | null;
   newsPenalty: number;
@@ -663,6 +669,7 @@ export function simulateSymbol(input: {
       filledAtMs: evaluation.filledAt ? Date.parse(evaluation.filledAt) : null,
       legs: evaluation.legs,
       macroAdjustment: macroRate.adjustment,
+      macroStance: macroRate.stance,
       maxAdverseMove: feedbackNumber("maxAdverseMove"),
       maxFavorableMove: feedbackNumber("maxFavorableMove"),
       newsPenalty: newsPenaltyUnits,

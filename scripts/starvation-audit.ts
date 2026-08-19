@@ -31,7 +31,18 @@
  * have drifted it again. A required name missing from the header is a
  * refusal, never a zero; notWarm and unresolv are optional-with-zero so
  * pre-notWarm logs stay readable. tests/sweepManifest.test.ts pins the
- * driver's header against the names required here.
+ * driver's header against the names required here AND against the data
+ * row's own order.
+ *
+ * Run this gate on a NORMAL sweep's table, never a --capture-all one:
+ * capture-all deliberately emits below-threshold decisions as outcome
+ * rows instead of tallying the acceptance gates, so belowConf and
+ * belowPayoff read 0 there and survival is overstated — the opposite
+ * lie from the drift this file just closed. (regimeBlk is safe either
+ * way: the driver's regimeGated addend is structurally zero — blocked
+ * regimes exit at the pre-plan gate in normal mode and skip the
+ * acceptance tally in capture-all — so the column is the pre-geometry
+ * block exactly.)
  */
 import { readFileSync } from "node:fs";
 

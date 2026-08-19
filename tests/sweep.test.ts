@@ -31,6 +31,7 @@ function outcomeRecord(
     filledAtMs: null,
     legs: [],
     macroAdjustment: 0,
+    macroStance: "unavailable",
     maxAdverseMove: null,
     maxFavorableMove: null,
     newsPenalty: 0,
@@ -252,8 +253,10 @@ describe("replay sweep", () => {
     const without = simulateSymbol({ ...base });
     assert.ok(without.outcomes.length > 0);
     assert.ok(
-      without.outcomes.every((record) => record.macroAdjustment === 0),
-      "no visible curve must score as the live outage does — adjustment 0",
+      without.outcomes.every((record) =>
+        record.macroAdjustment === 0 && record.macroStance === "unavailable"
+      ),
+      "no visible curve must score as the live outage does — adjustment 0, stance recorded so the zero is disambiguated downstream",
     );
 
     // Two rows fully visible before the corpus (+10 bps: rising, >=8 —
@@ -287,6 +290,10 @@ describe("replay sweep", () => {
       const expected = (record.side === "sell" ? 2 : -2) *
         (risingVisible ? 1 : -1);
       assert.equal(record.macroAdjustment, expected);
+      assert.equal(
+        record.macroStance,
+        expected > 0 ? "aligned" : "against",
+      );
       assert.equal(
         record.confidenceScore - bare.confidenceScore,
         expected,

@@ -1283,61 +1283,72 @@ describe("R1a slice 2 — one physics", () => {
     );
   });
 
-  it("E2 (R1b): the marker is a PRESENCE claim, not the containment set — bars overlapping an uncontainable window resolve unmarked", () => {
+  it("E2 (R1b, corrected #364 round 3): the marker gates on whether a completed bar COULD have existed, so an uncontainable window is unmarked and a real outage still marks", () => {
     const setup = buildSetup({ entry: 98, side: "buy", stop: 96, target: 103 });
+
     // A review window shorter than one bar span — the live shape is a
     // setup created inside the final bar before the weekly close, where
-    // getSetupExpiryTime clamps the window under 15 minutes. No bar can
-    // ever be CONTAINED (complete before expiry), so #362 round 7's
-    // containment-as-presence marked every such row as a provider gap
-    // over a feed that was fully dense.
+    // getSetupExpiryTime clamps the window under 15 minutes. No grid
+    // slot fits inside [createdAt, expiresAt), so no bar could ever
+    // complete there regardless of what the provider served — a
+    // grading-law fact, unmarked, whether bars overlap the window or
+    // sit entirely elsewhere (#362 round 7's motivating shape).
     const shortWindow = { reviewHours: 0.1 };
     const expiresAt = getSetupExpiryTime(setup.symbol, createdAt, 0.1);
     const farNow = expiresAt + 60 * 60 * 1000;
-
-    // Bars overlap the window — one straddling creation, one starting
-    // inside it — but neither completes before the 6-minute expiry.
-    const overlapping = evaluateSetupOutcome(
-      setup,
+    for (const streamBars of [
       [buildBar(-10, 101, 99, 100), buildBar(0, 101, 99, 100)],
-      farNow,
-      shortWindow,
-    );
-    assert.equal(overlapping.state, "resolved");
-    assert.equal(
-      overlapping.state === "resolved" ? overlapping.outcome : null,
-      "unfilled",
-    );
-    assert.equal(
-      overlapping.state === "resolved"
-        ? overlapping.feedback.noBarsInReviewWindow
-        : null,
-      undefined,
-    );
-    // The sentence is the grading-law fact, never the data-absence claim.
-    assert.match(
-      String(
-        overlapping.state === "resolved" ? overlapping.feedback.reason : "",
-      ),
-      /none completed inside it/,
-    );
-
-    // The provider's bars sit entirely OUTSIDE the window: that is data
-    // absence even though the array is non-empty, and the marker fires.
-    const outside = evaluateSetupOutcome(
-      setup,
       [buildBar(60, 101, 99, 100)],
-      farNow,
-      shortWindow,
+    ]) {
+      const clamped = evaluateSetupOutcome(
+        setup,
+        streamBars,
+        farNow,
+        shortWindow,
+      );
+      assert.equal(clamped.state, "resolved");
+      assert.equal(
+        clamped.state === "resolved" ? clamped.outcome : null,
+        "unfilled",
+      );
+      assert.equal(
+        clamped.state === "resolved"
+          ? clamped.feedback.noBarsInReviewWindow
+          : null,
+        undefined,
+      );
+      assert.match(
+        String(clamped.state === "resolved" ? clamped.feedback.reason : ""),
+        /before any complete bar could form inside it/,
+      );
+    }
+
+    // The outage shape #364 round 3 caught the presence test losing:
+    // live's stream reaches back past creation by construction, so the
+    // bar straddling createdAt is always served — a setup created
+    // mid-bar whose provider then goes dark for the whole window must
+    // still carry the marker. (created_at sits 7 minutes inside the
+    // straddler so containment excludes it, and a completed bar could
+    // plainly have existed in the full-length window.)
+    const midBarSetup = {
+      ...setup,
+      created_at: new Date(createdAt + 7 * 60 * 1000).toISOString(),
+    };
+    const outage = evaluateSetupOutcome(
+      midBarSetup,
+      [buildBar(0, 101, 99, 100)],
+      createdAt + 4 * 60 * 60 * 1000,
+      { reviewHours: 2 },
     );
+    assert.equal(outage.state, "resolved");
     assert.equal(
-      outside.state === "resolved"
-        ? outside.feedback.noBarsInReviewWindow
+      outage.state === "resolved"
+        ? outage.feedback.noBarsInReviewWindow
         : null,
       true,
     );
     assert.match(
-      String(outside.state === "resolved" ? outside.feedback.reason : ""),
+      String(outage.state === "resolved" ? outage.feedback.reason : ""),
       /No post-recommendation bars were available/,
     );
   });
