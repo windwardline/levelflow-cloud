@@ -699,7 +699,58 @@ layer.
   the VALUE_FLAGS scan gained the pin for the walker itself, which had
   never been asserted — every prior assertion was about the accessors,
   and a file could satisfy all of them while its walker consumed the
-  token after every flag. One denominator note beside the unfilled
+  token after every flag.
+
+  Round 46 closed the ledger work and caught something that was not
+  ledger work at all. **`familyPairedP` had lost its family-wise max-T
+  control**: the permutation loop's maximum across the floor-clearing
+  family was replaced by a per-variant map, so each variant was priced
+  against its own null and the crossed grid's multiplicity correction
+  was gone — a class's null false-accept rate running ~1 − 0.95^V
+  instead of ~0.05, in the gate whose output is the parameter set the
+  desk ships. It is reverted; `familyPairedP` is byte-identical to its
+  round-44 state. The reason it survived a green suite is the durable
+  lesson: every non-singleton fixture in `tests/acceptanceGate.test.ts`
+  had a SUB-FLOOR sibling, so round 40's exclusion meant the max was
+  never actually taken over two competing hypotheses, and the test
+  written to pin family membership passed identically under both
+  implementations. There is now a fixture with three floor-clearing
+  variants whose edges sit on DISJOINT day blocks — independent under a
+  shared per-day sign draw, each with support 5 and observed √5, so the
+  own null is 1/32 and the family null 1 − (31/32)³ — and it asserts
+  that a variant accepting alone is refused beside its siblings on an
+  identical observed statistic. It is the only test in the suite that
+  fails under the regressed form, which was verified by applying it.
+  On provenance, stated plainly because it is the actual root cause:
+  the change was not authored as part of round 45. Background review
+  agents were running against the same working tree the round-45 commit
+  was staged from, and `git add -A` swept their edit into it. The
+  practice that follows — no write-capable background agent against the
+  tree a commit is staged from, and explicit paths rather than `-A` —
+  is recorded in HANDOFF.
+
+  The round's other two findings were the ledger's own. The canonical
+  directory is now resolved from `grid-totalr.ts`'s module location
+  rather than left as a bare relative path, because a relative default
+  resolves against `process.cwd()` — grading from the sweeps directory
+  (the natural cwd when the shard paths are `shard-*.jsonl`) would have
+  found no prior read, opened the held-back fold, and created a fresh
+  untracked tree under that cwd: round 45's own finding one layer down,
+  with the README already stating the property as achieved. And
+  `--confirm-log-dir` had been fed to BOTH halves, so a redirect removed
+  the repository's ledger from the PRIOR-READ SCAN as well as from the
+  write — a corpus already recorded opened again with no refusal and
+  left no trace where the next default run looks, which is a quieter
+  escape than `--acknowledge-prior-reads`, the sanctioned one, which
+  logs. The canonical path now joins the scan unconditionally and a
+  redirected run says out loud that it is filing outside the record.
+  Finally, the tracked-ledger claim stopped being a promise: the burn
+  prints the exact `git add` for the file it wrote. That reminder sits
+  at the read and not in CI deliberately — CI runs on a clean checkout,
+  so an uncommitted ledger line exists only on the machine that did the
+  reading and is exactly what CI cannot see.
+
+  One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

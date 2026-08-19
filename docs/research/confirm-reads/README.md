@@ -18,18 +18,32 @@ excludes `symbols` on purpose, so grading a SUBSET of the shards resolves to
 the same file and still refuses; it includes anchor and days so a re-sweep
 does not collide with the corpus it replaces.
 
+The directory itself is resolved from `grid-totalr.ts`'s own location, never
+from the working directory, so the record does not move when the operator
+does.
+
 **These files are tracked in git deliberately**, for the reason
 `docs/HANDOFF.md` is: a discipline whose record lives only on the machine
 that ran it is no discipline at all. Round 44 keyed the ledger on the corpus
 and left it filed beside the shards, which meant copying a corpus elsewhere
 to grade left the record behind and the copy could be read forever while the
-original's count never moved. Commit any line that appears here.
+original's count never moved.
+
+Commit any line that appears here — and the burn says so itself, printing the
+exact `git add` for the file it just wrote. That reminder lives at the read
+rather than in CI on purpose: CI runs on a clean checkout, so an uncommitted
+ledger line exists only on the machine that did the reading and is precisely
+what CI cannot see.
 
 Two retired locations are still searched on read, never written:
 `<shard-dir>/confirm-log-<id>.jsonl` (round 44) and
 `<shard-path>.confirm-log.jsonl` (the original). A ledger written by either
 earlier version keeps refusing.
 
-`--confirm-log-dir` redirects the ledger. It exists so the executed tests can
-drive the real binaries without appending to this record; an operator grading
-a real corpus has no reason to pass it.
+`--confirm-log-dir` redirects **where a read is written**, never where prior
+reads are looked for: this directory is searched on every `--confirm-final`
+run whatever the flag says, and a redirected run warns that it is filing
+outside the record. The flag exists so the executed tests can drive the real
+binaries without appending here; an operator grading a real corpus has no
+reason to pass it, and it is not an escape from the discipline —
+`--acknowledge-prior-reads` is the sanctioned one, and it still logs.

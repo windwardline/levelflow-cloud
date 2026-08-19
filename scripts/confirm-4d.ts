@@ -296,6 +296,28 @@ async function main() {
   }
   const unreadable = refusedByGate + gateCouldNotJudge + thin + unevidenced +
     missingVerdict;
+  // The REASON names the causes actually present, not just the two the
+  // three-way split could tell apart (#364 round 45, self-review after
+  // finding 2). Splitting the counters and leaving this sentence
+  // collapsed reproduces the same defect one field over: a corpus whose
+  // every pick was thin, or which the gate could not judge, read "no
+  // pick's variant was accepted" — literally true, since thin and
+  // noVerdict verdicts both carry accepted === false, and pointing at
+  // the calibration when the remedy is the corpus's depth or the
+  // pairing. This line is what a 4d ruling's author reads first.
+  const notReadCauses = [
+    unevidenced > 0 &&
+    `${unevidenced} accepted but carried no filled outcomes on both sides ` +
+      `of the confirm fold`,
+    refusedByGate > 0 && `${refusedByGate} refused by the 4c gate`,
+    gateCouldNotJudge > 0 &&
+    `${gateCouldNotJudge} the gate could not judge (the pairing, or a ` +
+      `baseline with no select-fold days)`,
+    thin > 0 && `${thin} thin — under the market grain's filled floor`,
+    missingVerdict > 0 &&
+    `${missingVerdict} carried no verdict at all — frozen picks the ` +
+      `grading pass never reached`,
+  ].filter((cause): cause is string => typeof cause === "string");
   // The artifact a 4d ruling is read from states whether the confirm
   // fold was actually READ (#364 round 44, finding 2): it had carried a
   // readAt timestamp unconditionally, so a run that produced no figure
@@ -315,9 +337,9 @@ async function main() {
         missingVerdict,
         notReadReason: confirmRead
           ? null
-          : unevidenced > 0
-          ? "accepted picks carried no filled outcomes on both sides of the confirm fold — nothing burned"
-          : "no pick's variant was accepted, so there was nothing to confirm — nothing burned",
+          : notReadCauses.length > 0
+          ? `nothing burned — ${notReadCauses.join("; ")}`
+          : "nothing burned — there were no frozen picks to confirm",
         readAt: confirmRead ? new Date().toISOString() : null,
         refusedByGate,
         thin,

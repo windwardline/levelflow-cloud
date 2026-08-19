@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -439,6 +440,90 @@ describe("classVerdicts — 3f/3g/3b in one gate", () => {
       "NO VERDICT — pairing 2 nonzero of 6 shared days is below the " +
         "statistic's floor (5)",
     );
+  });
+
+  // #364 round 46, finding 1: every non-singleton fixture in this file
+  // had a SUB-FLOOR sibling, so the max across the family was never
+  // actually taken — the round-40 test above passes identically whether
+  // the null is the family maximum or each variant's own statistic, and
+  // a change replacing maxT with a per-variant map went out under a
+  // green suite. Multiplicity control is what makes a class's whole
+  // crossed grid one test rather than V independent ones; without it a
+  // class's null false-accept rate runs ~1 − 0.95^V instead of ~0.05,
+  // and this gate's output is the parameter set the desk ships.
+  //
+  // Three variants, each clearing MIN_EFFECTIVE_PAIRS with its edge on
+  // a DISJOINT five-day block and matching the baseline elsewhere, so
+  // their statistics are independent under a shared per-day sign draw
+  // (a shared block would make them move together and the max would
+  // equal each one). Each has support 5 with equal-magnitude deltas, so
+  // observed = √5 and only the all-plus draw on its own block reaches
+  // it: own null 1/32 ≈ 0.031, family null 1 − (31/32)³ ≈ 0.091. A
+  // accepts alone and is refused with its siblings present, on an
+  // identical observed statistic — which is the correction doing
+  // exactly what it exists to do.
+  const disjointFamily = (variants: readonly string[]): SweepEmitRow[] => {
+    const rows: SweepEmitRow[] = [];
+    for (let day = 0; day < 5 * variants.length; day += 1) {
+      rows.push(trainRow("baseline", day, 0.1));
+      rows.push(outcomeRow("baseline", day, 0.1));
+      variants.forEach((variant, index) => {
+        // Matching the baseline off its own block gives a delta of
+        // exactly zero there, which supportOf excludes — so every
+        // variant is above the floor and none is thin.
+        const own = day >= index * 5 && day < index * 5 + 5;
+        rows.push(trainRow(variant, day, own ? 0.4 : 0.1));
+        rows.push(outcomeRow(variant, day, own ? 0.4 : 0.1));
+      });
+    }
+    return rows;
+  };
+
+  it("prices multiplicity across the family — a variant that accepts alone is refused beside floor-clearing siblings", () => {
+    const options = {
+      foldNames: { fit: "train", select: "test" },
+      permutations: 2_000,
+      seed: 11,
+    };
+    const alone = classVerdicts(readGridCube(disjointFamily(["A"])), options)
+      .get("forex")!.get("A")!;
+    assert.equal(alone.effectivePairs, 5);
+    assert.equal(alone.thin, false);
+    assert.ok(
+      alone.pairedP > 0.02 && alone.pairedP < 0.05,
+      `A's own null is 1/32 ≈ 0.031, got ${alone.pairedP}`,
+    );
+    assert.equal(alone.accepted, true);
+
+    const family = classVerdicts(
+      readGridCube(disjointFamily(["A", "B", "C"])),
+      options,
+    ).get("forex")!;
+    const a = family.get("A")!;
+    // Nothing about A's own evidence changed: same support, same
+    // equal-magnitude deltas, same observed statistic. Only the family
+    // it is tested within did.
+    assert.equal(a.effectivePairs, 5);
+    assert.equal(a.thin, false);
+    assert.equal(a.noVerdict, false);
+    assert.ok(
+      a.pairedP > alone.pairedP,
+      `the family null must be no smaller than A's own (${a.pairedP} vs ` +
+        `${alone.pairedP}) — equality here means the max is not being taken`,
+    );
+    assert.ok(
+      a.pairedP > 0.05,
+      `three independent floor-clearing variants give ~0.091, got ${a.pairedP}`,
+    );
+    assert.equal(a.accepted, false);
+    // Every member sees the same family null, so none of the three is
+    // accepted on evidence that clears only its own.
+    for (const variant of ["B", "C"]) {
+      const sibling = family.get(variant)!;
+      assert.equal(sibling.effectivePairs, 5);
+      assert.equal(sibling.accepted, false);
+      assert.ok(sibling.pairedP > 0.05);
+    }
   });
 
   // #364 round 37, finding 2: a baseline variant that carries no cell
@@ -1410,6 +1495,91 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.deepEqual(readdirSync(confirmLogDir).length, 1);
   });
 
+  // #364 round 46, finding 3: feeding --confirm-log-dir to BOTH halves
+  // made the test hatch an unrecorded bypass rather than a relocation —
+  // a corpus already recorded in the repository's own ledger opened
+  // again with no refusal, and the second read left no trace where the
+  // next default run looks. The redirect keeps its write; the canonical
+  // ledger is searched either way.
+  //
+  // This is the one test that touches the canonical directory, because
+  // the property under test IS that directory being consulted. It
+  // asserts the fixture id is absent first (so it can never mistake a
+  // real record for its own), writes one line, and removes it in
+  // `finally`.
+  it("still refuses a corpus the repository's own ledger recorded, even under a redirect", async () => {
+    const corpus = foldedShard("EURUSD");
+    const redirect = mkdtempSync(join(tmpdir(), "gate-redirect-"));
+    const first = await gradeCorpus([corpus], {
+      confirmFinal: true,
+      confirmLogDir: redirect,
+      permutations: 100,
+      seed: 4,
+    });
+    assert.equal(first.confirmRead, true);
+    const [ledgerName] = readdirSync(redirect);
+    const canonical = join("docs/research/confirm-reads", ledgerName);
+    assert.equal(
+      existsSync(canonical),
+      false,
+      "this fixture's corpus id must not collide with a real recorded read",
+    );
+    try {
+      // The entry a default run would have filed, placed where a
+      // default run files it.
+      writeFileSync(canonical, readFileSync(join(redirect, ledgerName)));
+      await assert.rejects(
+        gradeCorpus([corpus], {
+          confirmFinal: true,
+          confirmLogDir: mkdtempSync(join(tmpdir(), "gate-redirect2-")),
+          permutations: 100,
+          seed: 4,
+        }),
+        /has already been read 1 time\(s\)/,
+      );
+    } finally {
+      rmSync(canonical, { force: true });
+    }
+    assert.equal(existsSync(canonical), false);
+  });
+
+  // #364 round 46, smaller: "commit any line that appears here" was a
+  // promise in a change set whose repeated law is mechanism. A burn left
+  // uncommitted is invisible to every other checkout — the same failure
+  // the README opens by naming — and CI cannot see it, because CI runs
+  // on a clean checkout and the unrecorded line exists only on the
+  // machine that did the reading. So the mechanism fires at the burn.
+  it("names the command that finishes the record, and warns when the write is redirected", async () => {
+    const corpus = foldedShard("GBPUSD");
+    const redirect = mkdtempSync(join(tmpdir(), "gate-warn-"));
+    const warnings: string[] = [];
+    const original = console.warn;
+    console.warn = (message: string) => void warnings.push(message);
+    try {
+      await gradeCorpus([corpus], {
+        confirmFinal: true,
+        confirmLogDir: redirect,
+        permutations: 100,
+        seed: 4,
+      });
+    } finally {
+      console.warn = original;
+    }
+    const ledger = join(redirect, readdirSync(redirect)[0]);
+    assert.ok(
+      warnings.some((line) => line.includes(`git add ${ledger}`)),
+      `the burn must name the command that records it; got ${
+        JSON.stringify(warnings)
+      }`,
+    );
+    assert.ok(
+      warnings.some((line) =>
+        line.includes("NOT in the repository's confirm record")
+      ),
+      "a redirected write must say so out loud",
+    );
+  });
+
   // #364 round 45, finding 1: keying the ledger's LOCATION on the
   // shards' directory made it invariant to order and to subsets but not
   // to a MOVE. Copying a corpus elsewhere to grade — ordinary
@@ -1541,6 +1711,32 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     assert.deepEqual(
       readdirSync(dirname(full)).filter((name) => name.includes("confirm-log")),
       [],
+    );
+  });
+
+  // A source pin, deliberately: the only way to EXECUTE the default is to
+  // let a test append to the repository's real confirm ledger, which is
+  // the one thing that record must never receive from a test run. The
+  // law it holds is the round-45 finding one layer down — a bare relative
+  // default resolves against process.cwd(), so grading from a
+  // subdirectory would find no prior read, open the held-back fold, and
+  // file the entry somewhere nobody looks. The location must depend on
+  // the repository alone.
+  it("resolves the default ledger location from the repository, never from the working directory", () => {
+    const source = readFileSync("scripts/grid-totalr.ts", "utf8");
+    const declared = source.match(
+      /const DEFAULT_CONFIRM_LOG_DIR = ([\s\S]*?);/,
+    );
+    assert.ok(declared, "the default ledger location must be declared once");
+    assert.match(
+      declared![1],
+      /fileURLToPath\(import\.meta\.url\)/,
+      "the default must be anchored to this module's own path",
+    );
+    assert.doesNotMatch(
+      declared![1],
+      /process\.cwd\(\)/,
+      "the working directory is exactly what the location must not depend on",
     );
   });
 });
@@ -1790,9 +1986,26 @@ describe("confirm-4d — the artifact names what the confirm fold could not judg
     assert.equal(artifact.unevidenced, 0);
     assert.match(
       artifact.notReadReason as string,
-      /no pick's variant was accepted/,
+      /1 refused by the 4c gate/,
     );
     assert.deepEqual(readdirSync(ledgerDir), []);
+  });
+
+  // The reason line splits with the counters, or it reproduces the same
+  // defect one field over: thin and noVerdict verdicts both carry
+  // accepted === false, so a corpus of nothing but those had read "no
+  // pick's variant was accepted" — true, and pointing at the
+  // calibration when the remedy is the corpus's depth or the pairing.
+  it("names thin and unjudgeable picks apart in the reason, never as a lost gate", () => {
+    const { artifact } = run(["AUDUSD", "USDJPY"]);
+    assert.equal(artifact.confirmRead, false);
+    assert.equal(artifact.thin, 1);
+    assert.equal(artifact.gateCouldNotJudge, 1);
+    assert.equal(artifact.refusedByGate, 0);
+    const reason = artifact.notReadReason as string;
+    assert.match(reason, /1 thin — under the market grain's filled floor/);
+    assert.match(reason, /1 the gate could not judge/);
+    assert.doesNotMatch(reason, /refused by the 4c gate/);
   });
 });
 

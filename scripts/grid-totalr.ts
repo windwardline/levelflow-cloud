@@ -26,7 +26,10 @@
  *   ignored.
  *
  * Usage:
- *   npx tsx scripts/grid-totalr.ts <emit.jsonl> [--permutations 1000] [--seed 7]
+ *   npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...]
+ *     [--baseline <variant>] [--permutations 1000] [--seed 7]
+ *     [--confirm-final] [--acknowledge-prior-reads] [--include-holdout]
+ *     [--confirm-log-dir <dir>]
  *
  * The emit must carry its manifest beside it (2i): an undescribed corpus
  * is refused at the door.
@@ -63,7 +66,17 @@ import {
 // keeps docs/HANDOFF.md tracked rather than in a worktree: a record of
 // what was read must outlive the housekeeping done to the thing it
 // describes. Filed by corpus identity, one file per corpus.
-const DEFAULT_CONFIRM_LOG_DIR = "docs/research/confirm-reads";
+//
+// Resolved from THIS MODULE's path, never from process.cwd() (#364
+// round 45, self-review): a bare relative default would file the record
+// wherever the operator happened to be standing, which is the same
+// defect one layer down — grading from a subdirectory would find no
+// prior read, open the held-back fold, and write the entry somewhere
+// nobody looks. The location must depend on the repository alone.
+const DEFAULT_CONFIRM_LOG_DIR = join(
+  dirname(dirname(fileURLToPath(import.meta.url))),
+  "docs/research/confirm-reads",
+);
 
 const DAY_MS = 86_400_000;
 
@@ -338,7 +351,7 @@ function familyPairedP(
     for (const day of allDays) {
       signs.set(day, random() < 0.5 ? -1 : 1);
     }
-    const ownT = new Map<string, number>();
+    let maxT = Number.NEGATIVE_INFINITY;
     for (const variant of variants) {
       const deltas = deltasByVariant.get(variant)!;
       const norm = scale.get(variant)!;
@@ -356,11 +369,10 @@ function familyPairedP(
         sum += signs.get(day)! * delta;
       }
       const statistic = sum / norm;
-      ownT.set(variant, statistic);
+      if (statistic > maxT) maxT = statistic;
     }
     for (const variant of variants) {
-      const t = ownT.get(variant);
-      if (t !== undefined && t >= observed.get(variant)!) {
+      if (maxT >= observed.get(variant)!) {
         exceed.set(variant, exceed.get(variant)! + 1);
       }
     }
@@ -1022,8 +1034,22 @@ export async function gradeCorpus(
     // own manifestHash — the key the first version used. Widening the
     // search is strictly conservative, and losing a recorded read is
     // the one outcome this discipline cannot afford.
+    //
+    // The REPOSITORY's own ledger is searched unconditionally, even
+    // when a redirect names somewhere else to write (#364 round 46,
+    // finding 3). Feeding the redirect to both halves made the test
+    // hatch an unrecorded BYPASS rather than a relocation: a corpus
+    // already read once and recorded in docs/research/confirm-reads
+    // opened again with no refusal, and the second read left no trace
+    // where the next default run looks — inverting the rule stated
+    // three lines up. --acknowledge-prior-reads is the sanctioned
+    // escape and it still logs; this one must not be a quieter one.
+    // The redirect keeps its write, so a test still cannot append to
+    // the record, and a temp corpus has no entry under the canonical
+    // id to find.
     const priorLogPaths = [
       canonicalLedgerPath,
+      join(DEFAULT_CONFIRM_LOG_DIR, `${corpusId}.jsonl`),
       ...(options.confirmLogPath ? [] : [
         ...[...new Set(paths.map((path) => dirname(path)))].sort().map((dir) =>
           join(dir, `confirm-log-${corpusId.slice(0, 12)}.jsonl`)
@@ -1031,6 +1057,14 @@ export async function gradeCorpus(
         ...paths.map((path) => `${path}.confirm-log.jsonl`),
       ]),
     ].filter((path, index, all) => all.indexOf(path) === index);
+    if (canonicalLedgerPath !== join(DEFAULT_CONFIRM_LOG_DIR, `${corpusId}.jsonl`)) {
+      console.warn(
+        `LA-6: this read will be filed at ${canonicalLedgerPath}, NOT in ` +
+          `the repository's confirm record — the repository ledger is ` +
+          `still being checked for prior reads, but nothing here will be ` +
+          `written to it. Drop the redirect to record this read.`,
+      );
+    }
     const shardHashes = new Set(shardManifests.map((m) => m.manifestHash));
     const seenReadIds = new Set<string>();
     // The refusal names its evidence (#364 round 45, finding 3): every
@@ -1153,6 +1187,19 @@ export async function gradeCorpus(
     }) + "\n";
     mkdirSync(dirname(canonicalLedgerPath), { recursive: true });
     appendFileSync(canonicalLedgerPath, entry);
+    // The tracked-ledger claim was a PROMISE in a change set whose
+    // repeated law is mechanism (#364 round 46, smaller): a burn left
+    // uncommitted is invisible to every other checkout, which is the
+    // failure the README opens by naming. A CI gate is the wrong
+    // instrument here — CI runs on a clean checkout, so the unrecorded
+    // line exists only on the machine that did the reading and is
+    // exactly what CI cannot see. The mechanism has to fire where the
+    // read happens, naming the command that finishes it.
+    console.warn(
+      `LA-6: the confirm fold was READ and the record appended. This is ` +
+        `not finished until it is committed:\n  git add ${canonicalLedgerPath} ` +
+        `&& git commit -m "record LA-6 confirm read ${corpusId.slice(0, 12)}"`,
+    );
   }
   return {
     confirmRead,
