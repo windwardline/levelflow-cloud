@@ -654,7 +654,52 @@ layer.
   both 4d scripts moved off an INVERTED argv walker — a list of the
   flags taking no value, with every other `--flag` eating the next
   token — onto the same positive declaration, now inside the
-  bidirectional scan. One denominator note beside the unfilled
+  bidirectional scan.
+
+  Round 45 corrected that closure record and finished the split it
+  began. Round 44 fixed the ledger's KEY and left its LOCATION derived
+  from the shards' own directory, so the archived case it names above
+  was closed only for a corpus that never moved: copying the shards
+  elsewhere to grade — ordinary housekeeping — left the record behind,
+  the held-back fold opened again with nothing recorded, and the copy
+  could be read forever while the original's count never advanced. The
+  identity is content-addressed, so the entry is now filed under it in
+  one canonical directory that travels with the repository
+  (`docs/research/confirm-reads/`, tracked for the same reason
+  `HANDOFF.md` is), with the per-shard-directory and per-shard-path
+  forms kept as READ-ONLY fallbacks so both earlier ledgers keep
+  refusing. Writing exactly one file also restored the append's
+  atomicity: the round-44 fan-out could append to one directory and
+  then throw on the next, recording a read the caller never learned
+  about. The identity itself gained the sweep's `anchor` and `days` —
+  `conditionsOf` is a shard-COMPATIBILITY predicate, not a corpus
+  identity, so an R3 re-sweep sharing version, clock, grid and fold
+  spec had collided with the corpus it replaces and demanded the
+  acknowledgement on its FIRST read; `symbols` deliberately stays out,
+  since the union differs between a full read and a subset and
+  including it would undo round 44's whole point. Residue, stated:
+  shards swept under different anchors are admitted by `conditionsOf`
+  as one measurement but produce a population-dependent id — that
+  shard set is not one sweep, and it is the one axis on which subset
+  invariance is not absolute. The refusal now names its evidence — the
+  ledger path, the prior read's timestamp, whether the match came by
+  corpus identity or the retired per-shard key, and how this read's
+  shard population compares to the recorded one — reading the
+  `shardHashes` round 44 wrote under a comment calling a subset read
+  "distinguishable in the record" and then never read. `confirm-4d`'s
+  counter split went from three causes to five: `thin` and
+  `noVerdict` verdicts both carry `accepted === false`, so both had
+  landed in "not accepted" and were reported as having LOST the gate
+  when the gate could not judge them at all — a different remedy again
+  (the corpus's depth, the pairing) — and each disposition now carries
+  its own counter plus a per-pick `gateDisposition` and the gate's own
+  `gateReason`. The script that BURNS finally has executed coverage,
+  driven end to end over a folded fixture that lands one market on
+  each of the six dispositions, plus the two no-burn artifacts; and
+  the VALUE_FLAGS scan gained the pin for the walker itself, which had
+  never been asserted — every prior assertion was about the accessors,
+  and a file could satisfy all of them while its walker consumed the
+  token after every flag. One denominator note beside the unfilled
   redefinition: the driver's `setups` column is `SweepSummary.total` =
   `filled + unfilled + dataAbsent` (every emitted row), while a corpus
   reader's `n` is market evidence only — the two differ by exactly

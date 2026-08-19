@@ -1079,6 +1079,30 @@ describe("the driver writes the manifest beside the emit", () => {
         /if \(!Number\.isFinite\(parsed\)\) \{\s*\n\s*throw new Error\(/,
         `${file}: num() must refuse a token it cannot parse`,
       );
+      // #364 round 45, smaller: everything above pins the ACCESSORS. A
+      // file could satisfy all of it while its path walker still
+      // consumed the token after every --flag — the inverted shape round
+      // 44 found in the two 4d scripts, where a typo'd or newly-added
+      // boolean flag eats the shard path following it and the run grades
+      // (and under confirm-4d, BURNS) a corpus one shard short of the
+      // one the operator named. The walker's consume decision is a
+      // POSITIVE membership test or it is the defect. sweep-analysis is
+      // exempt by construction: it collects no positional arguments, so
+      // it has no walker to invert.
+      if (file !== "scripts/sweep-analysis.ts") {
+        assert.match(
+          source,
+          /if \(VALUE_FLAGS\.has\(\w+\[\w+\]\)\)/,
+          `${file}: the path walker must consume the following token only ` +
+            `for a flag VALUE_FLAGS declares`,
+        );
+        assert.doesNotMatch(
+          source,
+          /if \(!VALUE_FLAGS\.has\(\w+\[\w+\]\)\)/,
+          `${file}: an inverted walker consumes the token after every flag ` +
+            `NOT declared, so an undeclared flag eats a positional path`,
+        );
+      }
     }
   });
 

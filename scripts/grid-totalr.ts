@@ -51,7 +51,19 @@ import {
   type SweepManifest,
 } from "./sweepManifest.ts";
 import { stratifiedHoldout } from "./sweepFolds.ts";
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+} from "node:fs";
+
+// LA-6's burned log lives with the REPOSITORY, not with the corpus's
+// current path (#364 round 45, finding 1) — the same reasoning that
+// keeps docs/HANDOFF.md tracked rather than in a worktree: a record of
+// what was read must outlive the housekeeping done to the thing it
+// describes. Filed by corpus identity, one file per corpus.
+const DEFAULT_CONFIRM_LOG_DIR = "docs/research/confirm-reads";
 
 const DAY_MS = 86_400_000;
 
@@ -214,6 +226,10 @@ type GateOptions = {
   baselineVariant?: string;
   confirmFinal?: boolean;
   confirmLogPath?: string;
+  // The directory the canonical ledger is filed in, overridable so a
+  // test can exercise the real derivation without writing into the
+  // repository's own record (#364 round 45, finding 1).
+  confirmLogDir?: string;
   foldNames?: FoldNames;
   permutations?: number;
   seed?: number;
@@ -322,7 +338,7 @@ function familyPairedP(
     for (const day of allDays) {
       signs.set(day, random() < 0.5 ? -1 : 1);
     }
-    let maxT = Number.NEGATIVE_INFINITY;
+    const ownT = new Map<string, number>();
     for (const variant of variants) {
       const deltas = deltasByVariant.get(variant)!;
       const norm = scale.get(variant)!;
@@ -340,10 +356,11 @@ function familyPairedP(
         sum += signs.get(day)! * delta;
       }
       const statistic = sum / norm;
-      if (statistic > maxT) maxT = statistic;
+      ownT.set(variant, statistic);
     }
     for (const variant of variants) {
-      if (maxT >= observed.get(variant)!) {
+      const t = ownT.get(variant);
+      if (t !== undefined && t >= observed.get(variant)!) {
         exceed.set(variant, exceed.get(variant)! + 1);
       }
     }
@@ -883,7 +900,27 @@ export async function gradeCorpus(
   // subset that defines one measurement (it is what the loop above
   // refuses shards over), so it is identical across every shard by
   // construction and invariant to their order.
-  const corpusId = sha256Hex(firstConditions);
+  //
+  // conditionsOf alone is a shard-COMPATIBILITY predicate, though, not
+  // a corpus identity (#364 round 45, finding 1): it excludes anchor
+  // and days, so an R3 re-sweep sharing version, clock, grid and fold
+  // spec collided with the corpus it replaces and its first read
+  // demanded the acknowledgement. anchor and days join the identity
+  // because they are SWEEP-level — every shard of one run carries the
+  // same pair — which keeps the id invariant across subsets. symbols
+  // deliberately does NOT join it: the union differs between a full
+  // read and a subset, so including it would undo round 44's whole
+  // point and let a subset read the fold unrecorded. Residue, stated:
+  // shards swept under different anchors are admitted by conditionsOf
+  // as one measurement but produce a population-dependent id here —
+  // that shard set is not one sweep, and this is the one axis on which
+  // subset-invariance is not absolute.
+  const sweepScope = [...new Set(
+    shardManifests.map((m) => `${m.anchor}|${m.days}`),
+  )].sort();
+  const corpusId = sha256Hex(
+    stableStringify({ conditions: firstConditions, sweepScope }),
+  );
   const held = options.includeHoldout
     ? new Set<string>()
     : stratifiedHoldout([...unionSymbols], (symbol) => getAssetType(symbol));
@@ -959,58 +996,91 @@ export async function gradeCorpus(
   // reads, no refusal). LA-6 disciplines the analyst's re-reads, not
   // concurrency, and one-shot confirm reads are not a parallel
   // workload — do not assume the old adjacency.
-  // The ledger's LOCATION is subset- and order-invariant (#364 round
-  // 44, finding 1): one file per distinct shard DIRECTORY, named for
-  // the corpus identity. Writing to every directory is what makes any
-  // later subset find it — a single derived path (say, the first
-  // shard's directory) is missed by exactly the subset that drops that
-  // shard, which is the case this finding is about. In the normal
-  // layout every shard shares one directory, so this is one file; the
-  // identity in the name keeps two measurements in one directory
-  // apart. One read writes one entry per directory under a shared
-  // readId, so a later count is of READS, not of copies.
-  const shardDirs = [...new Set(paths.map((path) => dirname(path)))].sort();
-  const ledgerName = `confirm-log-${corpusId.slice(0, 12)}.jsonl`;
-  const ledgerPaths = options.confirmLogPath
-    ? [options.confirmLogPath]
-    : shardDirs.map((dir) => join(dir, ledgerName));
+  // The ledger's LOCATION does not depend on where the shards sit
+  // (#364 round 45, finding 1). Round 44 wrote one file per shard
+  // DIRECTORY, which is invariant to order and to subsets but not to a
+  // MOVE: copying the shards elsewhere to grade — ordinary housekeeping
+  // — left the record behind, so the held-back fold opened again with
+  // nothing recorded, and a copy could be read forever without the
+  // original's count moving. The identity is content-addressed, so the
+  // record is filed under it in one canonical place that travels with
+  // the repository rather than with the corpus's current path. The
+  // per-shard-directory and per-shard-path forms stay as READ-ONLY
+  // fallbacks, so ledgers written by either earlier version still
+  // refuse. Writing exactly one file also makes the append atomic
+  // again (#364 round 45, smaller): the fan-out could leave one
+  // directory holding an entry and then throw on the next, recording a
+  // read the caller never learned about.
+  const canonicalLedgerPath = options.confirmLogPath ??
+    join(
+      options.confirmLogDir ?? DEFAULT_CONFIRM_LOG_DIR,
+      `${corpusId}.jsonl`,
+    );
   if (options.confirmFinal) {
-    // Prior reads are sought in those ledgers AND in the per-shard
-    // files earlier versions wrote, matching the corpus identity OR any
-    // shard's own manifestHash — the key those versions used. A ledger
-    // written before this fix must still refuse: widening the search is
-    // strictly conservative, and losing a recorded read is the one
-    // outcome this discipline cannot afford.
+    // Prior reads are sought in the canonical ledger AND in both
+    // retired locations, matching the corpus identity OR any shard's
+    // own manifestHash — the key the first version used. Widening the
+    // search is strictly conservative, and losing a recorded read is
+    // the one outcome this discipline cannot afford.
     const priorLogPaths = [
-      ...ledgerPaths,
-      ...(options.confirmLogPath
-        ? []
-        : paths.map((path) => `${path}.confirm-log.jsonl`)),
+      canonicalLedgerPath,
+      ...(options.confirmLogPath ? [] : [
+        ...[...new Set(paths.map((path) => dirname(path)))].sort().map((dir) =>
+          join(dir, `confirm-log-${corpusId.slice(0, 12)}.jsonl`)
+        ),
+        ...paths.map((path) => `${path}.confirm-log.jsonl`),
+      ]),
     ].filter((path, index, all) => all.indexOf(path) === index);
     const shardHashes = new Set(shardManifests.map((m) => m.manifestHash));
-    const priorReadIds = new Set<string>();
-    let priorLegacy = 0;
+    const seenReadIds = new Set<string>();
+    // The refusal names its evidence (#364 round 45, finding 3): every
+    // other refusal this change set added states what it saw and where.
+    // The entry's own shardHashes were written under a comment calling
+    // a subset read "distinguishable in the record" and then never
+    // read — the computed-and-never-read shape rounds 37 and 41 closed
+    // in this same file.
+    const priorEvidence: string[] = [];
     for (const logPath of priorLogPaths) {
       if (!existsSync(logPath)) continue;
       for (const line of readFileSync(logPath, "utf8").trim().split("\n")) {
         if (!line) continue;
         const entry = JSON.parse(line) as {
           corpusHash: string;
+          readAt?: string;
           readId?: string;
+          shardHashes?: string[];
         };
-        if (
-          entry.corpusHash !== corpusId && !shardHashes.has(entry.corpusHash)
-        ) {
-          continue;
+        const byIdentity = entry.corpusHash === corpusId;
+        if (!byIdentity && !shardHashes.has(entry.corpusHash)) continue;
+        // One read is one entry; a readId repeated across the retired
+        // per-directory ledgers is that read seen twice, not two reads.
+        if (entry.readId) {
+          if (seenReadIds.has(entry.readId)) continue;
+          seenReadIds.add(entry.readId);
         }
-        if (entry.readId) priorReadIds.add(entry.readId);
-        else priorLegacy += 1;
+        const recorded = new Set(entry.shardHashes ?? []);
+        const population = entry.shardHashes === undefined
+          ? "population not recorded"
+          : recorded.size === shardHashes.size &&
+              [...shardHashes].every((hash) => recorded.has(hash))
+          ? "same shard population"
+          : [...shardHashes].every((hash) => recorded.has(hash))
+          ? `wider shard population (${recorded.size} shards, this read has ${shardHashes.size})`
+          : [...recorded].every((hash) => shardHashes.has(hash))
+          ? `narrower shard population (${recorded.size} shards, this read has ${shardHashes.size})`
+          : "overlapping but different shard population";
+        priorEvidence.push(
+          `${entry.readAt ?? "no timestamp"} in ${logPath} ` +
+            `(matched by ${
+              byIdentity ? "corpus identity" : "a retired per-shard key"
+            }; ${population})`,
+        );
       }
     }
-    const prior = priorReadIds.size + priorLegacy;
-    if (prior > 0 && !options.acknowledgePriorReads) {
+    if (priorEvidence.length > 0 && !options.acknowledgePriorReads) {
       throw new Error(
-        `confirm fold for corpus ${corpusId.slice(0, 12)} has already been read ${prior} time(s) — pass acknowledgePriorReads to read again; every read is logged`,
+        `confirm fold for corpus ${corpusId.slice(0, 12)} has already been read ${priorEvidence.length} time(s) — pass acknowledgePriorReads to read again; every read is logged:\n` +
+          priorEvidence.map((line) => `  · ${line}`).join("\n"),
       );
     }
   }
@@ -1072,19 +1142,17 @@ export async function gradeCorpus(
     const entry = JSON.stringify({
       corpusHash: corpusId,
       readAt: new Date().toISOString(),
-      // One id per READ, repeated in each directory's ledger, so a
-      // later count counts reads rather than copies (#364 round 44,
-      // finding 1).
+      // One id per READ, so a record found twice across the retired
+      // locations counts once (#364 round 44, finding 1).
       readId: randomUUID(),
       // The shard hashes this read actually covered, so the ledger
-      // records the population beside the identity — a subset read and
-      // a full read are both refusals next time, but they are
-      // distinguishable in the record.
+      // records the population beside the identity — and the refusal
+      // above READS it, naming a subset read as such (#364 round 45,
+      // finding 3).
       shardHashes: shardManifests.map((m) => m.manifestHash),
     }) + "\n";
-    for (const ledgerPath of ledgerPaths) {
-      appendFileSync(ledgerPath, entry);
-    }
+    mkdirSync(dirname(canonicalLedgerPath), { recursive: true });
+    appendFileSync(canonicalLedgerPath, entry);
   }
   return {
     confirmRead,
@@ -1114,7 +1182,17 @@ async function main(): Promise<void> {
   // baseline that carries no cell in the cube). The dials are read
   // BEFORE the usage check so the specific refusal wins when a flag
   // typed without its value eats the only shard path.
-  const VALUE_FLAGS = new Set(["--baseline", "--permutations", "--seed"]);
+  // --confirm-log-dir overrides where the LA-6 ledger is filed (#364
+  // round 45, finding 1). It exists so the executed tests can drive the
+  // real binary without appending to the repository's confirm record;
+  // an operator has no reason to pass it, and passing it is exactly as
+  // visible in the shell history as the read it files elsewhere.
+  const VALUE_FLAGS = new Set([
+    "--baseline",
+    "--confirm-log-dir",
+    "--permutations",
+    "--seed",
+  ]);
   // The sequential walker the sibling readers carry (#364 round 38,
   // smaller — the indexOf-per-flag Set that stood here covered only a
   // flag's FIRST occurrence, so "--seed 7 --seed 8" walked "8" into
@@ -1173,9 +1251,18 @@ async function main(): Promise<void> {
   const permutations = num("--permutations", 1_000);
   const seed = num("--seed", 7);
   const baselineVariant = str("--baseline");
+  const confirmLogDir = str("--confirm-log-dir");
   if (paths.length === 0) {
     console.error(
-      "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] [--baseline <variant>] [--permutations 1000] [--seed 7]",
+      // The usage line names every flag the walker recognises. It had
+      // listed only the three dials while --confirm-final,
+      // --acknowledge-prior-reads and --include-holdout — the three that
+      // decide whether the held-back fold is opened — went unmentioned,
+      // an enumeration in prose narrower than the code beside it.
+      "Usage: npx tsx scripts/grid-totalr.ts <emit.jsonl> [more-shards.jsonl ...] " +
+        "[--baseline <variant>] [--permutations 1000] [--seed 7] " +
+        "[--confirm-final] [--acknowledge-prior-reads] [--include-holdout] " +
+        "[--confirm-log-dir <dir>]",
     );
     process.exit(1);
   }
@@ -1190,6 +1277,7 @@ async function main(): Promise<void> {
     acknowledgePriorReads: args.includes("--acknowledge-prior-reads"),
     baselineVariant,
     confirmFinal: args.includes("--confirm-final"),
+    confirmLogDir,
     includeHoldout: args.includes("--include-holdout"),
     permutations,
     seed,

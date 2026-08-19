@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
+  copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -1370,51 +1372,111 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       };
     assert.notEqual(manifestOf(a).manifestHash, manifestOf(b).manifestHash);
 
-    const first = await gradeCorpus([a, b], {
+    // #364 round 45, finding 1: the ledger's canonical home is a fixed
+    // repository directory, not the shards' own. Every call here names a
+    // temp one — a test must never append to the real confirm record —
+    // and they all name the SAME one, which is the point: the ledger no
+    // longer moves when the corpus does.
+    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-ledger-"));
+    const grade = (paths: string[], extra: Record<string, unknown> = {}) =>
+      gradeCorpus(paths, {
+        confirmFinal: true,
+        confirmLogDir,
+        permutations: 100,
+        seed: 4,
+        ...extra,
+      });
+
+    const first = await grade([a, b]);
+    assert.equal(first.confirmRead, true);
+
+    // Reordered — the same corpus by every definition that matters.
+    await assert.rejects(grade([b, a]), /has already been read 1 time\(s\)/);
+    // A subset, including the one that drops the shard the first read
+    // listed first — the case a single derived ledger path would miss.
+    await assert.rejects(grade([b]), /has already been read 1 time\(s\)/);
+    await assert.rejects(grade([a]), /has already been read 1 time\(s\)/);
+    // One read is one entry, counted once by its readId rather than once
+    // per copy.
+    const again = await grade([b, a], { acknowledgePriorReads: true });
+    assert.equal(again.confirmRead, true);
+    await assert.rejects(grade([a, b]), /has already been read 2 time\(s\)/);
+
+    // The identity is content-addressed and filed under ONE name, so the
+    // whole record is a single file — round 45's smaller finding: the
+    // per-directory fan-out could append to one shard's ledger and then
+    // throw before the next, recording a read the caller never learned
+    // about.
+    assert.deepEqual(readdirSync(confirmLogDir).length, 1);
+  });
+
+  // #364 round 45, finding 1: keying the ledger's LOCATION on the
+  // shards' directory made it invariant to order and to subsets but not
+  // to a MOVE. Copying a corpus elsewhere to grade — ordinary
+  // housekeeping — left the record behind, so the held-back fold opened
+  // again with nothing recorded, and the copy could be read forever
+  // while the original's count never moved.
+  it("refuses a re-read of a corpus that was COPIED to a fresh directory", async () => {
+    const original = foldedShard("EURUSD");
+    const confirmLogDir = mkdtempSync(join(tmpdir(), "gate-ledger-copy-"));
+    const first = await gradeCorpus([original], {
       confirmFinal: true,
+      confirmLogDir,
       permutations: 100,
       seed: 4,
     });
     assert.equal(first.confirmRead, true);
 
-    // Reordered — the same corpus by every definition that matters.
+    // A byte-identical copy at a path sharing nothing with the original.
+    const elsewhere = mkdtempSync(join(tmpdir(), "gate-moved-"));
+    const copied = join(elsewhere, "EURUSD.jsonl");
+    copyFileSync(original, copied);
+    copyFileSync(`${original}.manifest.json`, `${copied}.manifest.json`);
+    assert.notEqual(dirname(copied), dirname(original));
+
     await assert.rejects(
-      gradeCorpus([b, a], { confirmFinal: true, permutations: 100, seed: 4 }),
+      gradeCorpus([copied], {
+        confirmFinal: true,
+        confirmLogDir,
+        permutations: 100,
+        seed: 4,
+      }),
       /has already been read 1 time\(s\)/,
     );
-    // A subset, including the one that drops the shard the first read
-    // listed first — the case a single derived ledger path would miss.
+
+    // …and the refusal names its evidence rather than only its count
+    // (#364 round 45, finding 3): where the record is, when the prior
+    // read happened, and how this read's shard population compares to
+    // the one recorded — which is what tells "I graded this yesterday"
+    // apart from "someone else's run collided with mine".
+    const readAt = (JSON.parse(
+      readFileSync(join(confirmLogDir, readdirSync(confirmLogDir)[0]), "utf8")
+        .trim(),
+    ) as { readAt: string }).readAt;
     await assert.rejects(
-      gradeCorpus([b], { confirmFinal: true, permutations: 100, seed: 4 }),
-      /has already been read 1 time\(s\)/,
-    );
-    await assert.rejects(
-      gradeCorpus([a], { confirmFinal: true, permutations: 100, seed: 4 }),
-      /has already been read 1 time\(s\)/,
-    );
-    // One read is one entry per shard directory, counted once by its
-    // readId rather than once per copy.
-    const again = await gradeCorpus([b, a], {
-      acknowledgePriorReads: true,
-      confirmFinal: true,
-      permutations: 100,
-      seed: 4,
-    });
-    assert.equal(again.confirmRead, true);
-    await assert.rejects(
-      gradeCorpus([a, b], { confirmFinal: true, permutations: 100, seed: 4 }),
-      /has already been read 2 time\(s\)/,
+      gradeCorpus([copied], {
+        confirmFinal: true,
+        confirmLogDir,
+        permutations: 100,
+        seed: 4,
+      }),
+      (error: Error) => {
+        assert.match(error.message, new RegExp(readAt));
+        assert.match(error.message, new RegExp(confirmLogDir));
+        assert.match(error.message, /matched by corpus identity/);
+        assert.match(error.message, /same shard population/);
+        return true;
+      },
     );
   });
 
   it("the printed report claims a read only when the ledger recorded one — executed through main()", () => {
-    // The ledger lives beside the shards, named for the corpus identity
-    // (#364 round 44, finding 1), so the test looks where the code now
-    // writes rather than at the retired per-shard path.
-    const ledgersIn = (emitPath: string): string[] =>
-      readdirSync(dirname(emitPath)).filter((name) =>
-        name.startsWith("confirm-log-")
-      );
+    // The ledger is filed under the corpus identity in one canonical
+    // directory (#364 round 45, finding 1), which the run names
+    // explicitly here: an executed test drives the REAL binary, and the
+    // real binary's default is the repository's own confirm record.
+    const ledgerDir = mkdtempSync(join(tmpdir(), "gate-main-ledger-"));
+    const ledgersIn = (): string[] => readdirSync(ledgerDir);
     const run = (emitPath: string, extra: string[]): string =>
       execFileSync(
         "npx",
@@ -1424,6 +1486,8 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
           "scripts/grid-totalr.ts",
           emitPath,
           "--confirm-final",
+          "--confirm-log-dir",
+          ledgerDir,
           ...extra,
         ],
         { cwd: process.cwd(), encoding: "utf8", timeout: 60_000 },
@@ -1441,7 +1505,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       /confirm=confirm NOT READ \(no variant was accepted, so there was no pick to confirm/,
     );
     assert.doesNotMatch(zeroOut, /read once/);
-    assert.deepEqual(ledgersIn(zeroAccept), []);
+    assert.deepEqual(ledgersIn(), []);
 
     // An accepted variant the confirm fold never covered says so on its
     // own row rather than printing a silent confirm column.
@@ -1457,7 +1521,7 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
       oneSidedOut,
       /confirm=confirm NOT READ \(accepted variants carried no filled outcomes on both sides/,
     );
-    assert.deepEqual(ledgersIn(oneSided), []);
+    assert.deepEqual(ledgersIn(), []);
 
     // The real read: the statement, the per-row figure with both
     // denominators, and the ledger all agree.
@@ -1465,13 +1529,270 @@ describe("gate v2 — confirm-fold discipline by mechanism (LA-6)", () => {
     const fullOut = run(full, []);
     assert.match(fullOut, /confirm=confirm \(read once, accepted variants only\)/);
     assert.match(fullOut, /confirm ΔR 4\.8 over 16\/16 filled/);
-    const ledgers = ledgersIn(full);
+    const ledgers = ledgersIn();
     assert.equal(ledgers.length, 1);
     assert.equal(
-      readFileSync(join(dirname(full), ledgers[0]), "utf8").trim().split("\n")
+      readFileSync(join(ledgerDir, ledgers[0]), "utf8").trim().split("\n")
         .length,
       1,
     );
+    // Nothing was written beside the shards: the record travels with the
+    // repository now, not with the corpus's current path.
+    assert.deepEqual(
+      readdirSync(dirname(full)).filter((name) => name.includes("confirm-log")),
+      [],
+    );
+  });
+});
+
+// #364 round 45, finding 2: confirm-4d is the script that BURNS, and it
+// had no executed coverage at all — which is why its cause counters
+// conflated three of the gate's dispositions for two rounds. The verdict
+// fields the LA-6 tests above assert are the half that keeps passing
+// while the artifact drifts. These drive the real binary.
+describe("confirm-4d — the artifact names what the confirm fold could not judge", () => {
+  const MARKETS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF"] as const;
+  // The market grain's absolute floor is 30 filled select-fold days, so
+  // 40 puts every market except the deliberately thin one past it.
+  const DAYS = 40;
+
+  // One row per (symbol, variant, fold, day). Each symbol is shaped to
+  // land on exactly one of the gate's dispositions:
+  //   EURUSD  variant wins everywhere, confirm covered      → confirmed
+  //   GBPUSD  variant loses on the measured folds           → refused-by-gate
+  //   USDJPY  40 filled days but only 3 nonzero deltas      → gate-could-not-judge
+  //   AUDUSD  10 filled select days, under the floor        → thin
+  //   USDCHF  wins fit+select, no confirm-fold rows at all  → accepted-but-unevidenced
+  const rowsFor = (symbol: string): SweepEmitRow[] => {
+    const rows: SweepEmitRow[] = [];
+    const days = symbol === "AUDUSD" ? 10 : DAYS;
+    for (let day = 0; day < days; day += 1) {
+      for (
+        const [split, offset] of [
+          ["fit", 0],
+          ["select", 100],
+          ["confirm", 200],
+        ] as const
+      ) {
+        const variantR = symbol === "GBPUSD"
+          ? 0.05
+          : symbol === "USDJPY"
+          ? (day < 3 ? 0.4 : 0.1)
+          : 0.4;
+        rows.push({
+          ...outcomeRow("baseline", day + offset, 0.1, undefined, symbol),
+          split,
+        });
+        // The unevidenced case: the variant simply never traded the
+        // held-back window, which is not the same fact as losing there.
+        if (symbol === "USDCHF" && split === "confirm") continue;
+        rows.push({
+          ...outcomeRow("good", day + offset, variantR, undefined, symbol),
+          split,
+        });
+      }
+    }
+    return rows;
+  };
+
+  const fixture = (symbols: readonly string[]): {
+    corpus: string;
+    ledgerDir: string;
+    researchDir: string;
+  } => {
+    const rows = symbols.flatMap(rowsFor);
+    const dir = mkdtempSync(join(tmpdir(), "confirm4d-"));
+    const corpus = join(dir, "shard.jsonl");
+    writeFileSync(
+      corpus,
+      rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+    );
+    writeFileSync(
+      `${corpus}.manifest.json`,
+      JSON.stringify(
+        buildSweepManifest({
+          analyzerVersion: "2026.08.09.test",
+          anchor: "2026-08-11",
+          barRejections: {},
+          clock: { calendar: CALENDAR_CLOCK, normalizer: BAR_CLOCK },
+          conditions: {
+            macroAdjustment: "historical-treasury-curve",
+            providerWarningCount: "zero-by-construction",
+            weightAdjustment: "raw-engine-zero",
+          },
+          days: 365,
+          folds: [
+            { decisionEndMs: 4, endMs: 5, name: "fit", startMs: 0 },
+            { decisionEndMs: 8, endMs: 9, name: "select", startMs: 5 },
+            { decisionEndMs: 12, endMs: 13, name: "confirm", startMs: 9 },
+          ],
+          generatedAt: "2026-08-11T05:00:00.000Z",
+          grid: [{}, { good: true }],
+          stepBars: 16,
+          symbols: symbols.map((symbol) => ({
+            calibration: {},
+            providerSymbol: symbol,
+            series: { "15min": seriesFacts([{ time: 0 }], "intraday") },
+            symbol,
+          })),
+          trainShare: 0.6,
+          treasuryCurve: TEST_TREASURY_CURVE,
+          warmupBars: 240,
+        }),
+        null,
+        2,
+      ) + "\n",
+    );
+
+    const researchDir = join(dir, "research");
+    mkdirSync(researchDir, { recursive: true });
+    // NZDUSD rides the candidates and the feasibility map but never the
+    // corpus: a frozen pick the grading pass produced no verdict for at
+    // all, which is a different fact from any disposition the gate can
+    // reach and used to share a counter with one of them.
+    const picked = [...symbols, "NZDUSD"];
+    writeFileSync(
+      join(researchDir, "4d-candidates.json"),
+      JSON.stringify({
+        analyzerVersion: "2026.08.09.test",
+        markets: Object.fromEntries(picked.map((symbol) => [symbol, {
+          accepted: [{
+            pairedP: 0.01,
+            selectExpectancyDelta: 0.3,
+            selectExpiryShare: 0,
+            selectFilled: DAYS,
+            variant: "good",
+            worstDayR: -0.5,
+          }],
+          measureOnly: false,
+          starved: false,
+        }])),
+      }) + "\n",
+    );
+    writeFileSync(
+      join(researchDir, "4d-feasibility.json"),
+      JSON.stringify({
+        feasibility: Object.fromEntries(picked.map((symbol) => [symbol, {
+          good: { feasibleLines: ["standard"], medianRiskDistance: 1 },
+        }])),
+      }) + "\n",
+    );
+
+    // Every fixture here shares conditions, anchor and days, so they all
+    // share ONE corpus identity — which is the round-44/45 point, and
+    // means each run needs its own ledger to be a first read.
+    return {
+      corpus,
+      ledgerDir: mkdtempSync(join(tmpdir(), "confirm4d-ledger-")),
+      researchDir,
+    };
+  };
+
+  const run = (symbols: readonly string[]): {
+    artifact: Record<string, unknown>;
+    ledgerDir: string;
+    stdout: string;
+  } => {
+    const { corpus, ledgerDir, researchDir } = fixture(symbols);
+    const stdout = execFileSync("npx", [
+      "--no-install",
+      "tsx",
+      "scripts/confirm-4d.ts",
+      corpus,
+      "--research-dir",
+      researchDir,
+      "--confirm-log-dir",
+      ledgerDir,
+      "--targets",
+      symbols.join(","),
+      "--permutations",
+      "200",
+    ], { cwd: process.cwd(), encoding: "utf8", timeout: 120_000 });
+    return {
+      artifact: JSON.parse(
+        readFileSync(join(researchDir, "4d-confirm-read.json"), "utf8"),
+      ) as Record<string, unknown>,
+      ledgerDir,
+      stdout,
+    };
+  };
+
+  it("gives each unconfirmed pick its own cause, and burns exactly one read", () => {
+    const { artifact, ledgerDir, stdout } = run(MARKETS);
+    const report = artifact.confirmReport as Record<
+      string,
+      { confirmTotalDelta: number | null; gateDisposition: string }
+    >;
+
+    assert.equal(report.EURUSD.gateDisposition, "confirmed");
+    assert.ok((report.EURUSD.confirmTotalDelta ?? 0) > 0);
+    assert.equal(report.GBPUSD.gateDisposition, "refused-by-gate");
+    assert.equal(report.USDJPY.gateDisposition, "gate-could-not-judge");
+    assert.equal(report.AUDUSD.gateDisposition, "thin");
+    assert.equal(report.USDCHF.gateDisposition, "accepted-but-unevidenced");
+    assert.equal(report.NZDUSD.gateDisposition, "missing-verdict");
+    for (const symbol of ["GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD"]) {
+      assert.equal(report[symbol].confirmTotalDelta, null);
+    }
+
+    // The five causes are five counters. Before round 45 the middle
+    // three were one number called "notAccepted", read as "the gate
+    // measured these and they lost" — three different remedies (the
+    // corpus's depth, the pairing, the calibration) reported as one.
+    assert.equal(artifact.confirmedPositive, 1);
+    assert.equal(artifact.confirmedNegative, 0);
+    assert.equal(artifact.refusedByGate, 1);
+    assert.equal(artifact.gateCouldNotJudge, 1);
+    assert.equal(artifact.thin, 1);
+    assert.equal(artifact.unevidenced, 1);
+    assert.equal(artifact.missingVerdict, 1);
+    assert.equal(artifact.unreadable, 5);
+
+    // Each null delta also carries the gate's own words for why, so the
+    // artifact and the gate's printed table cannot disagree.
+    const reasons = artifact.confirmReport as Record<
+      string,
+      { gateReason: string | null }
+    >;
+    assert.match(reasons.AUDUSD.gateReason!, /^THIN \(10 filled\)/);
+    assert.match(reasons.USDJPY.gateReason!, /NO VERDICT — pairing 3 nonzero/);
+    assert.equal(reasons.NZDUSD.gateReason, null);
+
+    // Something was confirmed, so the fold WAS read: readAt is a real
+    // instant, no cause rides beside it, and the ledger holds the one
+    // entry that read is now permanently recorded as.
+    assert.equal(artifact.confirmRead, true);
+    assert.equal(artifact.notReadReason, null);
+    assert.ok(typeof artifact.readAt === "string");
+    assert.equal(readdirSync(ledgerDir).length, 1);
+    assert.match(stdout, /confirm read: 1 picks positive, 0 negative/);
+    assert.match(stdout, /1 the gate could not judge, 1 thin/);
+  });
+
+  it("burns nothing and names the cause when every pick is accepted but unevidenced", () => {
+    const { artifact, ledgerDir, stdout } = run(["USDCHF"]);
+    assert.equal(artifact.confirmRead, false);
+    assert.equal(artifact.readAt, null);
+    assert.equal(artifact.unevidenced, 1);
+    assert.match(
+      artifact.notReadReason as string,
+      /carried no filled outcomes on both sides of the confirm fold/,
+    );
+    assert.deepEqual(readdirSync(ledgerDir), []);
+    assert.match(stdout, /confirm NOT READ \(nothing burned\)/);
+  });
+
+  it("burns nothing and names the other cause when no pick cleared the gate", () => {
+    const { artifact, ledgerDir } = run(["GBPUSD"]);
+    assert.equal(artifact.confirmRead, false);
+    assert.equal(artifact.readAt, null);
+    assert.equal(artifact.refusedByGate, 1);
+    assert.equal(artifact.unevidenced, 0);
+    assert.match(
+      artifact.notReadReason as string,
+      /no pick's variant was accepted/,
+    );
+    assert.deepEqual(readdirSync(ledgerDir), []);
   });
 });
 
