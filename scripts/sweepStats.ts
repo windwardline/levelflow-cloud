@@ -454,10 +454,15 @@ function verifyManifest(emitPath: string): SweepManifest {
     | undefined;
   if (curve) {
     if (!Number.isFinite(curve.count) || (curve.count ?? 0) < 2) {
+      // #364 round 17, smaller: evidence voice, not the conditions
+      // block's — this check also runs on historical reads, where the
+      // conditions block may be absent entirely, so the refusal speaks
+      // about the evidence itself.
       throw new Error(
-        `${emitPath}: conditions claim historical-treasury-curve but the ` +
-          `manifest carries ${curve.count ?? 0} curve rows — a claim ` +
-          `without evidence is refused; re-sweep with the curve store ` +
+        `${emitPath}: treasuryCurve facts carry ${
+          curve.count ?? 0
+        } rows — too thin to witness any curve, so every macro score in ` +
+          `this corpus is unsupported; re-sweep with the curve store ` +
           `intact`,
       );
     }
@@ -537,13 +542,19 @@ function verifyManifest(emitPath: string): SweepManifest {
           `the corpus is refused`,
       );
     }
-    // The driver's REQUESTED fetch start, plus a week (#364 round 13,
-    // finding 3): a curve reaching the start we asked for is as deep as
-    // the claim can honestly be. Derived from the shared constant so
-    // the door and the driver cannot drift, and the constant's comment
-    // carries the 2026-08-19 endpoint probe (coverage to at least
-    // 2005-01-03), so this tolerance is measured, not assumed.
-    const treasuryFloorMs = TREASURY_FETCH_START_MS + weekMs;
+    // The fetch start THIS CORPUS was requested under, plus a week
+    // (#364 round 13, finding 3; round 17, finding 2): a curve reaching
+    // the start it was asked for is as deep as the claim can honestly
+    // be — judged against the corpus's own RECORDED request, so
+    // deepening TREASURY_FETCH_START_MS later never retroactively
+    // condemns an archived corpus that was correct when swept ("we now
+    // fetch deeper" is a term of the current build, not poison in the
+    // recorded data). The build-constant fallback is exact for every
+    // manifest predating the field: all were requested at the
+    // 2013-01-01 constant, whose comment carries the 2026-08-19
+    // endpoint probe (coverage to at least 2005-01-03).
+    const treasuryFloorMs = ((curve as { requestedStartMs?: number })
+      .requestedStartMs ?? TREASURY_FETCH_START_MS) + weekMs;
     const curveFirst = (curve as { firstTime?: number | null }).firstTime;
     if (
       Number.isFinite(corpusStartMs) &&
@@ -611,13 +622,25 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   rows/day — the near-24h markets (weekly-average arithmetic: crypto
 //   96, forex 68.5, metals 65.7, ES-class futures 65.9 on the 15-minute
 //   side, with the 5-minute side agreeing at 197-288/3). Under max()
-//   the densest excluded symbol is ZCUSX at 48.9 (146.7/3 — #364 round
-//   16: ^GDAXI's 24.5 was the boundary of the RETIRED 15-minute-only
-//   filter), an 18% margin, not a clean separation — and ZCUSX is
-//   agriculture, a no-floor class, so at that boundary it is judged by
-//   nothing at all: the one named exception to the liquid-members
-//   clause below, honest until the deep survey re-derives the
-//   constants (carried: density-ceiling tightening). The filter takes
+//   the densest excluded symbol is ZCUSX, MEASURED at 52.4 15-minute
+//   rows/calendar day (probed 2026-08-19 over the same 2026-08-11..17
+//   week: 367 rows across 7 days — Fri closes without a night session;
+//   #364 round 17 replaced round 16's DERIVED 146.7/3 = 48.9, which
+//   assumed the very ratio this gate tests, and ^GDAXI's 24.5 before
+//   it was the retired 15-minute-only filter's boundary). That is a
+//   12.7% margin, and ZCUSX is agriculture, a no-floor class, so today
+//   it is judged by nothing at all: the one named exception to the
+//   liquid-members clause below, honest until the deep survey
+//   re-derives the constants (carried: density-ceiling tightening).
+//   Its measured same-week ratio is 146.7/52.4 = 2.80 — inside the
+//   band — so if depth lifts BOTH tiers proportionally past the floor
+//   it is admitted AND passes; the certain-refusal wedge (15-minute
+//   >=60 with the 5-minute side frozen) requires the tiers to diverge,
+//   which the survey would surface as its own anomaly. The other
+//   symbols quoted only on the 5-minute side are structurally far from
+//   the boundary by session length alone: ~6.5h cash-index sessions
+//   cap 15-minute density near 19/calendar day (^GSPC, ^AXJO, ^N225)
+//   and ~5.25h livestock sessions near 15 (LEUSX). The filter takes
 //   the
 //   MAX of the two so that a clip on either single series cannot move a
 //   symbol out of the population (#364 round 11, finding 1 — filtering
@@ -641,10 +664,10 @@ function verifyManifest(emitPath: string): SweepManifest {
 //   floor: their spread spans 8.6..197.7 rows/day, so any shared floor
 //   either condemns honest sparseness or defends nothing — their liquid
 //   members are exactly the ones the ratio gate already judges, with
-//   ONE named exception (#364 round 16): ZCUSX sits 18% under the
-//   gate's population floor (48.9 vs 60) and carries no class floor,
-//   so it is currently judged by nothing at all — see the boundary
-//   note above. One
+//   ONE named exception (#364 rounds 16-17): ZCUSX, measured at 52.4
+//   15-minute rows/calendar day, sits 12.7% under the gate's
+//   population floor and carries no class floor, so it is currently
+//   judged by nothing at all — see the boundary note above. One
 //   provider series can carry TWO roster names under two laws: WTI and
 //   CLUSD are both on defaultScanSymbols and load identical bytes, with
 //   WTI judged by the energies floor plus the ratio and CLUSD by the

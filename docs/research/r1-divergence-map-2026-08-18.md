@@ -477,12 +477,16 @@ layer.
   count alone, which a clip moved together with the ratio's
   denominator; the near-24h markets, exactly the chunk shapes that
   approach provider caps; under max() the densest excluded symbol is
-  ZCUSX at 48.9 = 146.7/3, an 18% margin — round 16 corrected the
-  stale ^GDAXI 24.5 figure, which was the retired 15-minute-only
-  filter's boundary — and ZCUSX is agriculture, a no-floor class, so
-  at that boundary it is currently judged by nothing: the one named
-  exception to the liquid-members clause, honest until the deep survey
-  re-derives the constants), plus absolute 5-minute
+  ZCUSX, MEASURED at 52.4 15-minute rows/calendar day — probed
+  2026-08-19 over the same 2026-08-11..17 week, 367 rows across 7 days
+  — a 12.7% margin (round 17 replaced round 16's derived 146.7/3 =
+  48.9, which assumed the ratio the gate tests; ^GDAXI's 24.5 before
+  it was the retired filter's boundary). ZCUSX is agriculture, a
+  no-floor class, so today it is judged by nothing: the one named
+  exception to the liquid-members clause. Its measured same-week ratio
+  is 2.80 — in band — so proportional depth lifts admit AND pass it;
+  only a tier divergence reaches the certain-refusal wedge, and the
+  survey would flag that divergence itself), plus absolute 5-minute
   floors for the structurally deterministic classes: crypto 260
   (BTCUSD 288.0, THETAUSD 287.9), forex 150 (EURUSD 205.6), metals 140
   (XAUUSD 197.1), energies 140 (measured directly: the class's only
@@ -509,6 +513,15 @@ layer.
   chunks drags the ratio out the bottom. Absent 5-minute series and
   sub-week spans stay silent, deliberately (degradation is per-row via
   the emit tier; a 2-day span cannot separate holiday from hole).
+  Amended #364 round 17: the leading-edge check judges each corpus by
+  its own RECORDED fetch request — the manifest carries
+  `requestedStartMs`, so deepening `TREASURY_FETCH_START_MS` later
+  never retroactively condemns an archived corpus that was as deep as
+  it was asked to be ("we now fetch deeper" is a term of the current
+  build, not poison in the recorded data; the build-constant fallback
+  is exact for manifests predating the field, all requested at
+  2013-01-01). And the boundary provenance above is measured, not
+  derived: the ZCUSX 15-minute probe replaced the five/3 assumption.
   Amended #364 round 16: the curve-evidence checks are gated on
   EVIDENCE PRESENCE, not read mode — a manifest that CARRIES
   treasuryCurve facts has their integrity (count, corpus-touching

@@ -194,6 +194,18 @@ export type TreasuryCurveFacts = {
   gapsOverWeekMs?: Array<{ endMs: number; startMs: number }>;
   largestGapMs: number;
   lastTime: number | null;
+  // #364 round 17, finding 2: the fetch start THIS corpus was requested
+  // under — a measurement TERM, recorded so the door's leading-edge
+  // check judges the corpus by its own request rather than by the
+  // current build's constant. Without it, deepening
+  // TREASURY_FETCH_START_MS (a live option — the provider serves to at
+  // least 2005) would retroactively condemn every archived corpus whose
+  // curve was exactly as deep as it was asked to be, permanently and
+  // with no override. Absent on manifests predating the field, which
+  // were all requested at the 2013-01-01 constant, so the build-value
+  // fallback is exact for that population. Set by the driver, not
+  // derivable from rows.
+  requestedStartMs?: number;
 };
 
 // #364 round 15: ONE overlap predicate for the interior-hole law,

@@ -1008,6 +1008,23 @@ describe("verifyManifest — stated conditions and 5-minute density (R1b)", () =
         })),
       /shallow rebuilt store.*re-probe its earliest served date/s,
     );
+    // #364 round 17, finding 2: the RECORDED request wins over the
+    // build constant. A corpus requested at a 2020 start whose curve
+    // reaches exactly that start admits against any corpus depth, even
+    // though the current build's 2013 constant would call it a shallow
+    // rebuild — deepening the constant later must never retroactively
+    // condemn an archived corpus that was as deep as it was asked to
+    // be.
+    assertManifestedCorpus(writeCorpus({
+      conditions: goodConditions,
+      series: { "15min": modern15min(deeperThanRequested) },
+      symbol: "EURUSD",
+      treasuryCurve: {
+        ...shallowCurve,
+        firstTime: Date.UTC(2020, 0, 2),
+        requestedStartMs: Date.UTC(2020, 0, 1),
+      },
+    }));
   });
 
   it("binds the density door on deliberate historical reads, while conditions and ABSENT curve evidence stay exempt (#364 rounds 2 and 16)", () => {

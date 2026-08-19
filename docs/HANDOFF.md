@@ -939,7 +939,14 @@ Sunday condemning a healthy store run-globally).
   — the distinct no-bars resolution state — stays in R1. A `BAR_CLOCK` bump now also forces the RE-SWEEP,
   not just the cache rebuild: the corpus door refuses a superseded-clock
   manifest, with `LEVELFLOW_ALLOW_SUPERSEDED_CLOCK=1` as the explicit,
-  loudly-warning historical-read act.
+  loudly-warning historical-read act. The override excuses TERMS only
+  (#364 rounds 16–17): the conditions literals, evidence blocks a
+  pre-R1b manifest never carried, and each corpus's own recorded fetch
+  request. Every data-integrity law still binds under it — clock
+  witnesses, density floors and ratio, disjoint stores, and any curve
+  evidence that IS present (a manifest whose facts show a holed or
+  stale-tailed curve refuses under the override exactly as on the
+  current path).
 - **`scripts/verify-cache-clock.ts` is the acceptance instrument**, now
   an importable audit pinned by its own test suite against synthetic
   healthy / unstamped / naive-data / shifted / sawtooth / corrupt /

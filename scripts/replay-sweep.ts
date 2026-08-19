@@ -714,7 +714,10 @@ async function main() {
       stepBars: args.step,
       symbols: manifestSymbols,
       trainShare: TRAIN_SHARE,
-      treasuryCurve: treasuryCurveFacts(treasuryRates),
+      treasuryCurve: {
+        ...treasuryCurveFacts(treasuryRates),
+        requestedStartMs: TREASURY_FETCH_START_MS,
+      },
       warmupBars: WARMUP_BARS,
     });
     await writeFile(

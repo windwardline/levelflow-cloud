@@ -346,7 +346,14 @@ describe("the driver writes the manifest beside the emit", () => {
     assert.match(script, /returned zero parseable rows/);
     assert.match(script, /Treasury curve is empty/);
     assert.match(script, /more than 7 days stale/);
-    assert.match(script, /treasuryCurve: treasuryCurveFacts\(treasuryRates\),/);
+    // #364 round 17, finding 2: the manifest records the fetch start
+    // this corpus was REQUESTED under, so the door's leading-edge check
+    // judges archived corpora by their own request, not the current
+    // build's constant.
+    assert.match(
+      script,
+      /treasuryCurve: \{\s*\n\s*\.\.\.treasuryCurveFacts\(treasuryRates\),\s*\n\s*requestedStartMs: TREASURY_FETCH_START_MS,/,
+    );
     // #364 round 13, finding 1 (scoped rounds 14-15): the STORED
     // curve's continuity is asserted at pre-flight from its facts —
     // the chunk guard fires only on the run that fetches and only on
